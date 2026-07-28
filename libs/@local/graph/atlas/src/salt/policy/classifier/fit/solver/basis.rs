@@ -38,7 +38,7 @@ pub(super) const HELMERT_V1: [[f64; CONTRAST_ROWS]; GeometryClass::COUNT] = [
 
 /// Maps contrast coordinates to class logits: `ℓ = B·t`.
 #[inline]
-pub(super) const fn expand(contrast: [f64; CONTRAST_ROWS]) -> [f64; GeometryClass::COUNT] {
+pub(crate) const fn expand(contrast: [f64; CONTRAST_ROWS]) -> [f64; GeometryClass::COUNT] {
     core::array::from_fn(const |class| {
         let row = HELMERT_V1[class];
         let mut logit = contrast[0] * row[0];

@@ -22,7 +22,7 @@ use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 
 /// A cross-field constraint failed; per-field domains hold by construction.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) enum SolverConfigError {
+pub(crate) enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
     RadiusDomain {
         minimum: DPositive,
@@ -43,50 +43,90 @@ pub(super) enum SolverConfigError {
 }
 
 /// Trust-region Newton-CG loop configuration.
+///
+/// Every field carries a default; `SolverConfig { .. }` is the deployment configuration and
+/// satisfies [`validate`](Self::validate). The budget defaults sit an order beyond the
+/// predicted need at annotation-corpus scale, so termination is by tolerance and a budget
+/// terminal reports as a failure.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct SolverConfig {
+pub(crate) struct SolverConfig {
     /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
-    pub preparation: PreparationSettings,
-    /// Smallest admissible trust radius `Δ_min`.
-    pub radius_minimum: DPositive,
-    /// Starting trust radius `Δ_initial`.
-    pub radius_initial: DPositive,
-    /// Largest admissible trust radius `Δ_max`.
-    pub radius_maximum: DPositive,
-    /// Radius contraction factor on rejection.
-    pub shrink_factor: OpenUnitFraction,
-    /// Radius growth factor on an expanded boundary step.
-    pub expansion_factor: GreaterThanOne,
-    /// Acceptance ratio threshold `η_accept`; equality accepts.
-    pub eta_accept: OpenUnitFraction,
+    pub preparation: PreparationSettings = PreparationSettings { .. },
+    /// Smallest admissible trust radius `Δ_min`. Defaults to `1e-8`.
+    pub radius_minimum: DPositive = const {
+        DPositive::new(1.0e-8).expect("the radius floor is positive")
+    },
+    /// Starting trust radius `Δ_initial`. Defaults to one.
+    pub radius_initial: DPositive = DPositive::ONE,
+    /// Largest admissible trust radius `Δ_max`. Defaults to `1e4`.
+    pub radius_maximum: DPositive = const {
+        DPositive::new(1.0e4).expect("the radius cap is positive")
+    },
+    /// Radius contraction factor on rejection. Defaults to `0.25`.
+    pub shrink_factor: OpenUnitFraction = const {
+        OpenUnitFraction::new(0.25).expect("a quarter is interior")
+    },
+    /// Radius growth factor on an expanded boundary step. Defaults to `2`.
+    pub expansion_factor: GreaterThanOne = const {
+        GreaterThanOne::new(2.0).expect("doubling expands")
+    },
+    /// Acceptance ratio threshold `η_accept`; equality accepts. Defaults to `0.1`.
+    pub eta_accept: OpenUnitFraction = const {
+        OpenUnitFraction::new(0.1).expect("a tenth is interior")
+    },
     /// Expansion ratio threshold `η_expand`; equality expands a tagged boundary step.
-    pub eta_expand: OpenUnitFraction,
-    /// CG residual tolerance relative to the initial residual norm.
-    pub relative_cg_residual_tolerance: OpenUnitFraction,
+    /// Defaults to `0.75`.
+    pub eta_expand: OpenUnitFraction = const {
+        OpenUnitFraction::new(0.75).expect("three quarters is interior")
+    },
+    /// CG residual tolerance relative to the initial residual norm. Defaults to `0.1`.
+    pub relative_cg_residual_tolerance: OpenUnitFraction = const {
+        OpenUnitFraction::new(0.1).expect("a tenth is interior")
+    },
     /// Gradient-certificate tolerance relative to the initial scaled gradient norm.
-    pub relative_scaled_gradient_tolerance: OpenUnitFraction,
-    /// Absolute floor of the gradient certificate; zero disables it.
-    pub absolute_scaled_gradient_tolerance: DNonNegative,
+    /// Defaults to `1e-6`.
+    pub relative_scaled_gradient_tolerance: OpenUnitFraction = const {
+        OpenUnitFraction::new(1.0e-6).expect("the relative tolerance is interior")
+    },
+    /// Absolute floor of the gradient certificate; zero disables it. Defaults to `1e-10`.
+    pub absolute_scaled_gradient_tolerance: DNonNegative = const {
+        DNonNegative::new(1.0e-10).expect("the absolute floor is non-negative")
+    },
     /// Objective-resolution width in ulps of the accepted objective's spacing.
-    pub objective_resolution_ulps: NonZeroU32,
-    /// Curvature-guard width in ulps of the direction-scale product.
-    pub curvature_guard_ulps: NonZeroU32,
-    /// Boundary-residual tolerance in ulps of one.
-    pub boundary_residual_ulps: NonZeroU32,
-    /// Inclusive maximum of started outer iterations.
-    pub maximum_outer_iterations: NonZeroU64,
-    /// Inclusive maximum of CG iterations per outer solve.
-    pub maximum_cg_iterations: NonZeroU64,
-    /// Inclusive maximum of Hessian-vector-product requests.
-    pub maximum_hvp_requests: NonZeroU64,
-    /// Inclusive maximum of objective requests; at least two.
-    pub maximum_objective_requests: u64,
-    /// Inclusive maximum of gradient requests; at least two.
-    pub maximum_gradient_requests: u64,
-    /// Inclusive maximum of started row traversals; at least three.
-    pub maximum_row_traversals: u64,
-    /// Inclusive maximum of consecutive rejected candidates.
-    pub maximum_consecutive_rejections: NonZeroU64,
+    /// Defaults to four.
+    pub objective_resolution_ulps: NonZeroU32 = const {
+        NonZeroU32::new(4).expect("four is nonzero")
+    },
+    /// Curvature-guard width in ulps of the direction-scale product. Defaults to sixteen.
+    pub curvature_guard_ulps: NonZeroU32 = const {
+        NonZeroU32::new(16).expect("sixteen is nonzero")
+    },
+    /// Boundary-residual tolerance in ulps of one. Defaults to sixty-four.
+    pub boundary_residual_ulps: NonZeroU32 = const {
+        NonZeroU32::new(64).expect("sixty-four is nonzero")
+    },
+    /// Inclusive maximum of started outer iterations. Defaults to `500`.
+    pub maximum_outer_iterations: NonZeroU64 = const {
+        NonZeroU64::new(500).expect("five hundred is nonzero")
+    },
+    /// Inclusive maximum of CG iterations per outer solve. Defaults to `100`.
+    pub maximum_cg_iterations: NonZeroU64 = const {
+        NonZeroU64::new(100).expect("one hundred is nonzero")
+    },
+    /// Inclusive maximum of Hessian-vector-product requests. Defaults to `50_000`.
+    pub maximum_hvp_requests: NonZeroU64 = const {
+        NonZeroU64::new(50_000).expect("fifty thousand is nonzero")
+    },
+    /// Inclusive maximum of objective requests; at least two. Defaults to `2_000`.
+    pub maximum_objective_requests: u64 = 2_000,
+    /// Inclusive maximum of gradient requests; at least two. Defaults to `2_000`.
+    pub maximum_gradient_requests: u64 = 2_000,
+    /// Inclusive maximum of started row traversals; at least three. Defaults to `500_000`.
+    pub maximum_row_traversals: u64 = 500_000,
+    /// Inclusive maximum of consecutive rejected candidates. Defaults to thirty.
+    pub maximum_consecutive_rejections: NonZeroU64 = const {
+        NonZeroU64::new(30).expect("thirty is nonzero")
+    },
 }
 
 impl SolverConfig {
@@ -97,7 +137,7 @@ impl SolverConfig {
     /// Returns the [`SolverConfigError`] of the first violated ordering or floor, in declared
     /// field order.
     #[expect(clippy::missing_const_for_fn, reason = "false positive")]
-    pub(super) fn validate(&self) -> Result<(), SolverConfigError> {
+    pub(crate) fn validate(&self) -> Result<(), SolverConfigError> {
         let radius_ordered = self.radius_minimum <= self.radius_initial
             && self.radius_initial <= self.radius_maximum;
 

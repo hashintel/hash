@@ -59,7 +59,9 @@ mod tests;
     reason = "the generation runner and precedence resolution consume the fit surface"
 )]
 pub(crate) use self::fit::{
-    Fit, FitConfig, FitError, FitEvidence, TrainingRow, TrainingSet, TrainingSetError, fit,
+    CgStage, Fit, FitConfig, FitError, FitEvidence, PreparationError, PreparationSettings,
+    SolverConfig, SolverConfigError, SolverFailure, TrainingRow, TrainingSet, TrainingSetError,
+    fit,
 };
 
 const _: () = assert!(CANONICAL_DIMENSIONS.is_multiple_of(8));

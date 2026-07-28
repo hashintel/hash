@@ -35,7 +35,7 @@ use crate::math::{AlignedDVecN, BoxedDVecN};
 
 /// The accepted iterate: the point in scaled coordinates with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct AcceptedPoint {
+pub(crate) struct AcceptedPoint {
     /// The accepted point `ζ` in scaled coordinates.
     pub zeta: BoxedDVecN<SOLVER_DIMENSIONS>,
     /// The normalized objective at the point.
@@ -49,7 +49,7 @@ pub(super) struct AcceptedPoint {
 /// A rejection changes only this state; an acceptance replaces the accepted point after its
 /// candidate gradient proves finite.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct SolverControl {
+pub(crate) struct SolverControl {
     /// The current trust radius.
     pub radius: f64,
     /// Consecutively rejected candidates since the last acceptance.
@@ -106,7 +106,7 @@ impl SolverControl {
 
 /// The persisted gradient-certificate evidence: the initial norm and its derived threshold.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct CertificateEvidence {
+pub(crate) struct CertificateEvidence {
     /// The initial scaled-gradient norm `‖gζ,0‖₂`.
     pub initial_gradient_norm: f64,
     /// The derived threshold `max(absolute, relative·‖gζ,0‖₂)`.
@@ -115,7 +115,7 @@ pub(super) struct CertificateEvidence {
 
 /// A certified solution: the accepted point re-proven by the reserved final evaluation.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct Converged {
+pub(crate) struct Converged {
     /// The accepted point carrying the fresh final objective and gradient.
     pub point: AcceptedPoint,
 }
@@ -123,7 +123,7 @@ pub(super) struct Converged {
 /// Everything one solve reports: the terminal, the last accepted state, control, evidence, and
 /// receipts.
 #[derive(Debug)]
-pub(super) struct SolverRun {
+pub(crate) struct SolverRun {
     /// The certified solution or the typed failure.
     pub outcome: Result<Converged, SolverFailure>,
     /// The last accepted point; on failure its objective is the final objective.
@@ -142,7 +142,7 @@ pub(super) struct SolverRun {
 ///
 /// `counters` carries the preparation charges; the returned control state carries the counters
 /// of the whole fit. The configuration is validated by its owner before the solve begins.
-pub(super) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> SolverRun {
+pub(crate) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> SolverRun {
     debug_assert!(
         problem.config.validate().is_ok(),
         "the solver configuration is validated",

@@ -2379,6 +2379,207 @@ impl WalkBench {
             .collect()
     }
 
+    /// Returns one zoom's public uniform-grid depth.
+    ///
+    /// The grid is `d(z) = z + m + k`, where `m` is the schedule span and `k` is
+    /// `additional_depth`. The result clamps to [`Depth::MAX`].
+    ///
+    /// # Panics
+    ///
+    /// Panics when `z` lies beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> Depth {
+        assert!(
+            z <= self.max_zoom,
+            "the schedule serves zooms up to {}",
+            self.max_zoom,
+        );
+        Depth::new(
+            z.saturating_add(self.span)
+                .saturating_add(additional_depth)
+                .min(Depth::MAX.get()),
+        )
+        .expect("the clamped public grid lies within the key width")
+    }
+
+    // Reads either one delta or the cumulative prefix directly in scope-bucket order.
+    fn uniform_positions(
+        &self,
+        address: (u8, u32, u32),
+        depths: (u8, u8),
+        generation: &ServedGeneration,
+        cumulative: bool,
+    ) -> Vec<u32> {
+        let (z, x, y) = address;
+        let (additional_depth, previous_additional_depth) = depths;
+        let depth = self.uniform_grid_depth(z, additional_depth);
+        let ranges = if z == 0 {
+            generation.segments.clone()
+        } else {
+            generation.narrowed(cell_of(z, x, y), &generation.segments, &self.codes)
+        };
+        let first = if cumulative || z == 0 {
+            0
+        } else {
+            usize::from(
+                self.uniform_grid_depth(z - 1, previous_additional_depth)
+                    .get(),
+            ) + 1
+        };
+        let last = usize::from(depth.get());
+        if first > last {
+            return Vec::new();
+        }
+
+        let capacity = ranges[first..=last]
+            .iter()
+            .map(ExactSizeIterator::len)
+            .sum();
+        let mut delivered = Vec::with_capacity(capacity);
+        for range in &ranges[first..=last] {
+            delivered.extend_from_slice(&generation.positions[range.clone()]);
+        }
+
+        delivered
+    }
+
+    /// Delivers one tile from a public uniform grid in scope-bucket order.
+    ///
+    /// Every zoom uses the same `additional_depth`, so consecutive levels read consecutive buckets
+    /// of the visible-only generation. A non-root delta is one bucket; the root is the prefix
+    /// through [`Self::uniform_grid_depth`].
+    ///
+    /// Before [`Depth::MAX`], accumulating these deltas gives exactly one best-ranked visible point
+    /// per occupied cell of the public grid. At [`Depth::MAX`], the catch-all bucket also carries
+    /// entries sharing an exact key.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_delivery(
+        &self,
+        additional_depth: u8,
+        z: u8,
+        x: u32,
+        y: u32,
+        generation: &ServedGeneration,
+    ) -> Vec<u32> {
+        self.uniform_positions(
+            (z, x, y),
+            (additional_depth, additional_depth),
+            generation,
+            false,
+        )
+    }
+
+    /// Accumulates a public uniform grid inside one tile in scope-bucket order.
+    ///
+    /// The result is the visible-only generation prefix through
+    /// [`Self::uniform_grid_depth`], narrowed to the tile cell. It is set-equal to accumulating
+    /// [`Self::uniform_delivery`] down the tile's ancestor chain.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_cumulative_delivery(
+        &self,
+        additional_depth: u8,
+        z: u8,
+        x: u32,
+        y: u32,
+        generation: &ServedGeneration,
+    ) -> Vec<u32> {
+        self.uniform_positions(
+            (z, x, y),
+            (additional_depth, additional_depth),
+            generation,
+            true,
+        )
+    }
+
+    /// Returns the grid depth of a public one-level refinement step.
+    ///
+    /// The grid is the cut below `refine_from_zoom`, one level finer from that zoom onward, and
+    /// [`Depth::MAX`] at the terminal zoom.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `z` lies beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> Depth {
+        let additional_depth = if z == self.max_zoom {
+            Depth::MAX.get().saturating_sub(z.saturating_add(self.span))
+        } else {
+            u8::from(z >= refine_from_zoom)
+        };
+        self.uniform_grid_depth(z, additional_depth)
+    }
+
+    /// Delivers one tile from a public one-level refinement step.
+    ///
+    /// Zooms below `refine_from_zoom` use the cut grid. That zoom and every later regular zoom use
+    /// one additional level globally. The transition delta reads two consecutive scope buckets;
+    /// later deltas read one. The deepest zoom reads through [`Depth::MAX`] so the terminal tile
+    /// keeps the cascade's catch-all completeness. Delivery remains scope-bucket ordered
+    /// throughout.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_step_delivery(
+        &self,
+        refine_from_zoom: u8,
+        z: u8,
+        x: u32,
+        y: u32,
+        generation: &ServedGeneration,
+    ) -> Vec<u32> {
+        let additional_depth =
+            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
+        let previous_additional_depth = if z == 0 {
+            0
+        } else {
+            self.uniform_step_grid_depth(refine_from_zoom, z - 1).get() - (z - 1) - self.span
+        };
+        self.uniform_positions(
+            (z, x, y),
+            (additional_depth, previous_additional_depth),
+            generation,
+            false,
+        )
+    }
+
+    /// Accumulates a public one-level refinement step inside one tile.
+    ///
+    /// The result is the visible-only generation prefix through the cut below
+    /// `refine_from_zoom`, through one additional level from that zoom onward, and through the
+    /// catch-all at the deepest zoom.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    #[must_use]
+    pub fn uniform_step_cumulative_delivery(
+        &self,
+        refine_from_zoom: u8,
+        z: u8,
+        x: u32,
+        y: u32,
+        generation: &ServedGeneration,
+    ) -> Vec<u32> {
+        let additional_depth =
+            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
+        self.uniform_positions(
+            (z, x, y),
+            (additional_depth, additional_depth),
+            generation,
+            true,
+        )
+    }
+
     /// Delivers one tile behind its chain out of a served generation.
     ///
     /// The chain is [`Self::rank_chain`]'s: every level resolves its own grid and delivers the
@@ -4033,6 +4234,58 @@ mod tests {
         None
     }
 
+    /// Returns the first tile whose uniform-grid rows differ between the two corpora.
+    fn uniform_interference(
+        additional_depth: u8,
+        clustered: bool,
+        visible: f64,
+    ) -> Option<(u8, u32, u32)> {
+        let hidden = masked(clustered, visible);
+        let alone = hidden.visible_only();
+        let generation = hidden.indexed_generation(GenerationLayout::Inline);
+        let alone_generation = alone.indexed_generation(GenerationLayout::Inline);
+
+        for (z, x, y) in tiles(&hidden) {
+            let left = hidden.rows(hidden.uniform_delivery(additional_depth, z, x, y, &generation));
+            let right =
+                alone.rows(alone.uniform_delivery(additional_depth, z, x, y, &alone_generation));
+            if left != right {
+                return Some((z, x, y));
+            }
+        }
+
+        None
+    }
+
+    /// Returns the first tile whose stepped uniform-grid rows differ between the two corpora.
+    fn uniform_step_interference(
+        refine_from_zoom: u8,
+        clustered: bool,
+        visible: f64,
+    ) -> Option<(u8, u32, u32)> {
+        let hidden = masked(clustered, visible);
+        let alone = hidden.visible_only();
+        let generation = hidden.indexed_generation(GenerationLayout::Inline);
+        let alone_generation = alone.indexed_generation(GenerationLayout::Inline);
+
+        for (z, x, y) in tiles(&hidden) {
+            let left =
+                hidden.rows(hidden.uniform_step_delivery(refine_from_zoom, z, x, y, &generation));
+            let right = alone.rows(alone.uniform_step_delivery(
+                refine_from_zoom,
+                z,
+                x,
+                y,
+                &alone_generation,
+            ));
+            if left != right {
+                return Some((z, x, y));
+            }
+        }
+
+        None
+    }
+
     #[test]
     fn the_served_form_delivers_the_scanning_form_exactly() {
         for clustered in [false, true] {
@@ -4241,6 +4494,370 @@ mod tests {
                  no longer separates a hidden-independent rule from a leaking one",
             );
         }
+    }
+
+    #[test]
+    fn a_public_uniform_grid_is_proportional_in_bucket_order() {
+        for additional_depth in [0_u8, 1] {
+            for clustered in [false, true] {
+                for visible in [1.0, 0.5, 0.05] {
+                    let bench = masked(clustered, visible);
+                    let generation = bench.indexed_generation(GenerationLayout::Inline);
+                    let buckets = buckets_by_position(&generation, bench.points());
+                    let (codes, _, _) = bench.columns();
+
+                    for (z, x, y) in tiles(&bench) {
+                        let depth = bench.uniform_grid_depth(z, additional_depth);
+                        assert!(depth < Depth::MAX, "the fixture stays before the catch-all");
+                        let delivered = bench.uniform_cumulative_delivery(
+                            additional_depth,
+                            z,
+                            x,
+                            y,
+                            &generation,
+                        );
+                        let shown: HashSet<u64> = delivered
+                            .iter()
+                            .map(|&position| {
+                                MortonKey::from_bits(codes[position as usize]).prefix(depth)
+                            })
+                            .collect();
+                        let occupied = bench.occupied_cells(z, x, y, depth);
+
+                        assert_eq!(
+                            shown,
+                            occupied,
+                            "the public grid misses a depth-{} cell at tile {z}/{x}/{y}, \
+                             clustered {clustered}, visible {visible}",
+                            depth.get(),
+                        );
+                        assert_eq!(
+                            delivered.len(),
+                            shown.len(),
+                            "the public grid repeats a depth-{} cell at tile {z}/{x}/{y}",
+                            depth.get(),
+                        );
+                        assert!(
+                            delivered.windows(2).all(|pair| {
+                                let [left, right] = pair else {
+                                    unreachable!("a two-entry window has two entries")
+                                };
+                                buckets
+                                    .get(*left as usize)
+                                    .expect("the left position lies in the bucket column")
+                                    <= buckets
+                                        .get(*right as usize)
+                                        .expect("the right position lies in the bucket column")
+                            }),
+                            "the public grid is not in scope-bucket order at tile {z}/{x}/{y}",
+                        );
+
+                        let mut cell_order =
+                            bench.served_representatives(z, x, y, depth, &generation);
+                        let mut bucket_order = delivered.clone();
+                        cell_order.sort_unstable();
+                        bucket_order.sort_unstable();
+                        assert_eq!(
+                            bucket_order, cell_order,
+                            "delivery order changed the selected set at tile {z}/{x}/{y}",
+                        );
+
+                        let cells_per_tile =
+                            1_usize << (2 * u32::from(bench.span() + additional_depth));
+                        assert!(
+                            delivered.len() <= cells_per_tile,
+                            "the public grid passed its geometric per-tile bound",
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn public_uniform_grid_deltas_accumulate_to_the_prefix() {
+        for additional_depth in [0_u8, 1] {
+            let bench = masked(false, 0.5);
+            let generation = bench.indexed_generation(GenerationLayout::Inline);
+            let (codes, _, _) = bench.columns();
+
+            for (z, x, y) in tiles(&bench) {
+                let cell = cell_of(z, x, y);
+                let cumulative: HashSet<u32> = bench
+                    .uniform_cumulative_delivery(additional_depth, z, x, y, &generation)
+                    .into_iter()
+                    .collect();
+                let mut deltas = HashSet::new();
+                for level in 0..=z {
+                    let shift = z - level;
+                    for position in bench.uniform_delivery(
+                        additional_depth,
+                        level,
+                        x >> shift,
+                        y >> shift,
+                        &generation,
+                    ) {
+                        if cell.contains(MortonKey::from_bits(codes[position as usize])) {
+                            assert!(
+                                deltas.insert(position),
+                                "a public-grid delta repeated position {position}",
+                            );
+                        }
+                    }
+                }
+
+                assert_eq!(
+                    deltas, cumulative,
+                    "public-grid deltas do not accumulate at tile {z}/{x}/{y}",
+                );
+            }
+        }
+
+        for refine_from_zoom in [6_u8, 12, u8::MAX] {
+            let bench = masked(false, 0.5);
+            let generation = bench.indexed_generation(GenerationLayout::Inline);
+            let (codes, _, _) = bench.columns();
+
+            for (z, x, y) in tiles(&bench) {
+                let cell = cell_of(z, x, y);
+                let cumulative: HashSet<u32> = bench
+                    .uniform_step_cumulative_delivery(refine_from_zoom, z, x, y, &generation)
+                    .into_iter()
+                    .collect();
+                let mut deltas = HashSet::new();
+                for level in 0..=z {
+                    let shift = z - level;
+                    for position in bench.uniform_step_delivery(
+                        refine_from_zoom,
+                        level,
+                        x >> shift,
+                        y >> shift,
+                        &generation,
+                    ) {
+                        if cell.contains(MortonKey::from_bits(codes[position as usize])) {
+                            assert!(
+                                deltas.insert(position),
+                                "a stepped public-grid delta repeated position {position}",
+                            );
+                        }
+                    }
+                }
+
+                assert_eq!(
+                    deltas, cumulative,
+                    "stepped public-grid deltas do not accumulate at tile {z}/{x}/{y}",
+                );
+                let depth = bench.uniform_step_grid_depth(refine_from_zoom, z);
+                let shown: HashSet<u64> = cumulative
+                    .iter()
+                    .map(|&position| MortonKey::from_bits(codes[position as usize]).prefix(depth))
+                    .collect();
+                assert_eq!(shown, bench.occupied_cells(z, x, y, depth));
+                assert_eq!(shown.len(), cumulative.len());
+            }
+        }
+    }
+
+    #[test]
+    fn scope_bucket_order_preserves_the_wire_split_and_full_cut_delivery() {
+        let full = masked(false, 1.0);
+        let full_generation = full.indexed_generation(GenerationLayout::Inline);
+        let pyramid = full.pyramid();
+        let column = full.column();
+        let view = VisibleView::new(&pyramid, &column);
+        for (z, x, y) in tiles(&full) {
+            assert_eq!(
+                full.uniform_step_delivery(u8::MAX, z, x, y, &full_generation),
+                full.delivery(FillRule::Unmasked, z, x, y, view),
+                "the public cut grid moved the full delivery at tile {z}/{x}/{y}",
+            );
+        }
+
+        let bench = masked(false, 0.5);
+        let generation = bench.indexed_generation(GenerationLayout::Inline);
+        let buckets = buckets_by_position(&generation, bench.points());
+        let refine_from_zoom = bench.span();
+        let mut split_transition = false;
+        for (z, x, y) in tiles(&bench) {
+            let cut = z + bench.span();
+            let delivered = bench.uniform_step_delivery(refine_from_zoom, z, x, y, &generation);
+            let mut natural = 0_usize;
+            let mut tail = 0_usize;
+            let mut in_tail = false;
+            for &position in &delivered {
+                let bucket = buckets[position as usize].get();
+                if bucket <= cut {
+                    assert!(!in_tail, "a natural row followed the deeper tail");
+                    natural += 1;
+                } else {
+                    in_tail = true;
+                    tail += 1;
+                }
+            }
+
+            if z == 0 {
+                assert_eq!(tail, 0, "the root precedes the public refinement step");
+            } else if z < refine_from_zoom {
+                assert_eq!(tail, 0, "a pre-step tile delivered a deeper bucket");
+            } else if z == refine_from_zoom {
+                split_transition |= natural > 0 && tail > 0;
+            } else {
+                assert_eq!(natural, 0, "a post-step tile repeated its parent cut");
+            }
+            if z == bench.max_zoom() {
+                assert_eq!(
+                    bench
+                        .uniform_step_cumulative_delivery(refine_from_zoom, z, x, y, &generation,)
+                        .len(),
+                    bench.gather(z, x, y).len(),
+                    "the terminal public-grid tile omitted visible rows",
+                );
+            }
+        }
+        assert!(
+            split_transition,
+            "the transition never exercised both the natural run and deeper tail",
+        );
+    }
+
+    #[test]
+    fn a_public_uniform_grid_keeps_rows_invariant_while_the_known_bad_rule_fails() {
+        for additional_depth in [0_u8, 1] {
+            for clustered in [false, true] {
+                for visible in [0.75, 0.5, 0.05] {
+                    assert_eq!(
+                        uniform_interference(additional_depth, clustered, visible),
+                        None,
+                        "the public grid moved rows once hidden rows existed, clustered \
+                         {clustered}, visible {visible}",
+                    );
+                }
+            }
+        }
+
+        for refine_from_zoom in [6_u8, 12, u8::MAX] {
+            for clustered in [false, true] {
+                for visible in [0.75, 0.5, 0.05] {
+                    assert_eq!(
+                        uniform_step_interference(refine_from_zoom, clustered, visible),
+                        None,
+                        "the stepped public grid moved rows once hidden rows existed, clustered \
+                         {clustered}, visible {visible}",
+                    );
+                }
+            }
+        }
+
+        for rule in refinements(DotBudget::Scheduled) {
+            assert!(
+                served_interference(rule, false, 0.5).is_some(),
+                "{rule:?} passed beside the public grid, so the identity check no longer \
+                 separates the known-bad rule",
+            );
+        }
+    }
+
+    #[test]
+    fn the_density_metric_accepts_public_grids_and_rejects_per_tile_budgets() {
+        let mut today_rejected = false;
+        let mut budget_rejected = false;
+        for clustered in [false, true] {
+            let bench = masked(clustered, 0.5);
+            let pyramid = bench.pyramid();
+            let column = bench.column();
+            let view = VisibleView::new(&pyramid, &column);
+            let generation = bench.indexed_generation(GenerationLayout::Inline);
+
+            for z in 0..=3_u8 {
+                let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+                let windows = 1_usize << (2 * u32::from(window_depth.get()));
+                let counts = |positions: Vec<u32>| {
+                    let mut counts = vec![0_usize; windows];
+                    for position in positions {
+                        let code = bench
+                            .codes
+                            .get(position as usize)
+                            .expect("delivered positions lie in the code column");
+                        let window = MortonKey::from_bits(code.to_bits()).prefix(window_depth);
+                        *counts
+                            .get_mut(usize::try_from(window).expect("the audit grid fits usize"))
+                            .expect("the prefix lies in the audit grid") += 1;
+                    }
+                    counts
+                };
+                let occupied = |depth: Depth| {
+                    let mut counts = vec![0_usize; windows];
+                    let shift = 2 * u32::from(depth.get() - window_depth.get());
+                    for cell in bench.occupied_cells(0, 0, 0, depth) {
+                        let window =
+                            usize::try_from(cell >> shift).expect("the audit grid fits usize");
+                        *counts
+                            .get_mut(window)
+                            .expect("the prefix lies in the audit grid") += 1;
+                    }
+                    counts
+                };
+                let world = |rule: Option<FillRule>, additional_depth: Option<u8>| {
+                    let side = 1_u32 << z;
+                    let mut delivered = Vec::new();
+                    for x in 0..side {
+                        for y in 0..side {
+                            delivered.extend(match (rule, additional_depth) {
+                                (Some(rule), _) => {
+                                    bench.served_cumulative_delivery(rule, z, x, y, &generation)
+                                }
+                                (None, Some(additional_depth)) => bench
+                                    .uniform_cumulative_delivery(
+                                        additional_depth,
+                                        z,
+                                        x,
+                                        y,
+                                        &generation,
+                                    ),
+                                (None, None) => {
+                                    bench.cumulative_delivery(FillRule::Unmasked, z, x, y, view)
+                                }
+                            });
+                        }
+                    }
+                    counts(delivered)
+                };
+                let proportional = |shown: &[usize], actual: &[usize]| {
+                    let shown_total = shown.iter().sum::<usize>() as u128;
+                    let actual_total = actual.iter().sum::<usize>() as u128;
+                    shown.iter().zip(actual).all(|(&dots, &cells)| {
+                        dots as u128 * actual_total == cells as u128 * shown_total
+                    })
+                };
+
+                let cut = bench.uniform_grid_depth(z, 0);
+                let finer = bench.uniform_grid_depth(z, 1);
+                let coarse = world(Some(FillRule::CoverageRank), None);
+                let uniform = world(None, Some(1));
+                assert_eq!(coarse, occupied(cut));
+                assert_eq!(uniform, occupied(finer));
+
+                let today = world(None, None);
+                let budgeted = world(
+                    Some(FillRule::Refined(Refinement {
+                        budget: DotBudget::Constant(KNEE),
+                        order: RefineOrder::Population,
+                    })),
+                    None,
+                );
+                today_rejected |= !proportional(&today, &occupied(cut));
+                budget_rejected |= !proportional(&budgeted, &occupied(cut));
+            }
+        }
+
+        assert!(
+            today_rejected,
+            "the metric no longer catches today's spatial distortion",
+        );
+        assert!(
+            budget_rejected,
+            "the metric no longer catches per-tile budget equalization",
+        );
     }
 
     #[test]

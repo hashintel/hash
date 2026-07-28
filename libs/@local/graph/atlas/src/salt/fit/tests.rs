@@ -43,7 +43,10 @@ use crate::{
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN},
+    math::{
+        AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
+        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+    },
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -53,8 +56,8 @@ use crate::{
             GeometryClass, PolicyOverride, PolicySource, Posterior,
             artifact::PolicyTableArchive,
             classifier::{
-                Classifier, FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet,
-                fit as fit_classifier,
+                Classifier, FitConfig as ClassifierFitConfig, PreparationSettings, SolverConfig,
+                TrainingRow, TrainingSet, fit as fit_classifier,
             },
         },
         postings::artifact::PostingsArchive,
@@ -200,12 +203,58 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A config echo published before the classifier supply settings existed omits them.
-///
-/// It deserializes to the compiled defaults, so generations from before the fields stay openable.
+/// The classifier fit echo round-trips every solver knob.
 #[test]
-fn config_echo_without_classifier_supply_settings_still_parses() {
-    #[derive(serde::Serialize, serde::Deserialize)]
+fn classifier_fit_echo_round_trips_every_knob() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    // Every knob differs from its default and from every sibling, so the round-trip equality
+    // certifies each field's wire path individually.
+    let distinct = ClassifierFitConfig {
+        solver: SolverConfig {
+            preparation: PreparationSettings {
+                regularization: d_positive!(0.625),
+                target_sum_tolerance_ulps: NonZero::new(24).expect("twenty-four is nonzero"),
+                curvature_floor: d_positive!(1.0e-11),
+            },
+            radius_minimum: d_positive!(3.0e-8),
+            radius_initial: d_positive!(0.5),
+            radius_maximum: d_positive!(2.0e4),
+            shrink_factor: open_unit_fraction!(0.3),
+            expansion_factor: greater_than_one!(2.5),
+            eta_accept: open_unit_fraction!(0.05),
+            eta_expand: open_unit_fraction!(0.8),
+            relative_cg_residual_tolerance: open_unit_fraction!(0.2),
+            relative_scaled_gradient_tolerance: open_unit_fraction!(2.0e-6),
+            absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-9),
+            objective_resolution_ulps: NonZero::new(5).expect("five is nonzero"),
+            curvature_guard_ulps: NonZero::new(17).expect("seventeen is nonzero"),
+            boundary_residual_ulps: NonZero::new(65).expect("sixty-five is nonzero"),
+            maximum_outer_iterations: NonZero::new(501).expect("the budget is nonzero"),
+            maximum_cg_iterations: NonZero::new(101).expect("the budget is nonzero"),
+            maximum_hvp_requests: NonZero::new(50_001).expect("the budget is nonzero"),
+            maximum_objective_requests: 2_001,
+            maximum_gradient_requests: 2_002,
+            maximum_row_traversals: 500_001,
+            maximum_consecutive_rejections: NonZero::new(31).expect("the budget is nonzero"),
+        },
+        folds: 3,
+        seed: 11,
+    };
+
+    let mut config = config();
+    config.policy.classifier_fit = distinct;
+
+    let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
+    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
+    assert_eq!(echoed.0, config);
+}
+
+/// A config echo names every classifier fit setting; absence is a rupture, not a default.
+#[test]
+fn config_echo_requires_the_classifier_fit_settings() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
     let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
@@ -213,12 +262,10 @@ fn config_echo_without_classifier_supply_settings_still_parses() {
         .get_mut("policy")
         .and_then(serde_json::Value::as_object_mut)
         .expect("the echo carries a policy object");
-    assert!(policy.remove("assembly").is_some());
     assert!(policy.remove("classifier_fit").is_some());
 
-    let echoed: Echo =
-        serde_json::from_value(document).expect("the pre-supply echo still deserializes");
-    assert_eq!(echoed.0, config());
+    serde_json::from_value::<Echo>(document)
+        .expect_err("an echo without the classifier fit settings does not parse");
 }
 
 /// A config echo published before the group budget existed omits it.

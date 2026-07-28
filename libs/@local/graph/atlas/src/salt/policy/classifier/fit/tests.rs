@@ -3,18 +3,21 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::assert_matches;
+use core::{assert_matches, num::NonZeroU64};
 
 use super::{
     FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
-    fit, grouped_folds,
-    objective::{self, PARAMETER_COUNT, Parameters},
+    fit, fit_model, grouped_folds,
+    objective::{PARAMETER_COUNT, Parameters},
+    solver::{
+        PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
+    },
     split_parameters,
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN},
+    math::{AlignedVecN, BoxedVecN, d_positive},
     salt::policy::GeometryClass,
 };
 
@@ -70,10 +73,13 @@ fn digest(bytes: &[u8]) -> Sha256Digest {
 
 fn config() -> FitConfig {
     FitConfig {
-        regularization: 0.5,
-        maximum_iterations: 1_000,
-        gradient_tolerance: 1.0e-7,
-        history_size: 8,
+        solver: SolverConfig {
+            preparation: PreparationSettings {
+                regularization: d_positive!(0.5),
+                ..
+            },
+            ..
+        },
         folds: 2,
         seed: 17,
     }
@@ -205,87 +211,6 @@ fn grouped_folds_reject_too_few_groups() {
     );
 }
 
-#[test]
-fn objective_is_invariant_to_a_common_intercept_shift() {
-    let mut corpus = Corpus::new();
-    corpus.push(&[], [0.2, 0.3, 0.500_000_000_5], 1.0, b"group");
-    let training = corpus.training();
-    let objective = objective::Objective {
-        training,
-        folds: &[0],
-        held_out: None,
-        regularization: 1.0,
-    };
-
-    let zero = Parameters::zero();
-    let mut shifted = Parameters::zero();
-    shifted.as_array_mut()[PARAMETER_COUNT - GeometryClass::COUNT..].fill(17.0);
-
-    let zero_cost = objective.cost_value(&zero);
-    let shifted_cost = objective.cost_value(&shifted);
-    assert!((zero_cost - shifted_cost).abs() <= 1.0e-12);
-
-    let zero_gradient = objective.gradient_value(&zero);
-    let shifted_gradient = objective.gradient_value(&shifted);
-    for (zero, shifted) in zero_gradient.as_array()[PARAMETER_COUNT - GeometryClass::COUNT..]
-        .iter()
-        .zip(&shifted_gradient.as_array()[PARAMETER_COUNT - GeometryClass::COUNT..])
-    {
-        assert!((zero - shifted).abs() <= 1.0e-12);
-    }
-}
-
-#[test]
-fn objective_gradient_matches_central_differences() {
-    let corpus = mixed_corpus();
-    let training = corpus.training();
-    let objective = objective::Objective {
-        training,
-        folds: &[0, 0],
-        held_out: None,
-        regularization: 0.75,
-    };
-
-    let mut parameters = Parameters::zero();
-    {
-        let array = parameters.as_array_mut();
-        let leading_by_class = [
-            [0.10, -0.05, 0.20, 0.15],
-            [-0.10, 0.25, 0.05, -0.20],
-            [0.30, -0.15, -0.10, 0.05],
-        ];
-        for (class, leading) in leading_by_class.into_iter().enumerate() {
-            array[class * CANONICAL_DIMENSIONS..class * CANONICAL_DIMENSIONS + leading.len()]
-                .copy_from_slice(&leading);
-        }
-        array[PARAMETER_COUNT - GeometryClass::COUNT..].copy_from_slice(&[-0.125, 0.0, 0.125]);
-    }
-
-    let gradient = objective.gradient_value(&parameters);
-    let step = 1.0e-5;
-    for index in [
-        0,
-        2,
-        CANONICAL_DIMENSIONS + 1,
-        2 * CANONICAL_DIMENSIONS + 3,
-        PARAMETER_COUNT - GeometryClass::COUNT,
-        PARAMETER_COUNT - 1,
-    ] {
-        let mut forward = parameters.clone();
-        forward.as_array_mut()[index] += step;
-        let mut backward = parameters.clone();
-        backward.as_array_mut()[index] -= step;
-        let difference =
-            (objective.cost_value(&forward) - objective.cost_value(&backward)) / (2.0 * step);
-
-        let analytic = gradient.as_array()[index];
-        assert!(
-            (difference - analytic).abs() <= 1.0e-6 * analytic.abs().max(1.0),
-            "component {index}: finite difference {difference} vs gradient {analytic}",
-        );
-    }
-}
-
 /// One-hot rows over the first three components, one class each.
 fn one_hot_corpus() -> Corpus {
     let mut corpus = Corpus::new();
@@ -308,55 +233,20 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     let corpus = one_hot_corpus();
     let training = corpus.training();
 
-    let (weak, _) = objective::fit_model(
-        training,
-        &[0, 0, 0],
-        None,
-        FitConfig {
-            regularization: 0.1,
-            ..config()
+    let regularized = |regularization| FitConfig {
+        solver: SolverConfig {
+            preparation: PreparationSettings { regularization, .. },
+            ..
         },
-    )
-    .expect("the weak fit converges");
-    let (strong, _) = objective::fit_model(
-        training,
-        &[0, 0, 0],
-        None,
-        FitConfig {
-            regularization: 10.0,
-            ..config()
-        },
-    )
-    .expect("the strong fit converges");
-
-    assert!(coefficient_norm(&strong) < coefficient_norm(&weak));
-}
-
-#[test]
-fn fitted_parameters_are_locally_optimal() {
-    let corpus = one_hot_corpus();
-    let training = corpus.training();
-    let objective = objective::Objective {
-        training,
-        folds: &[0, 0, 0],
-        held_out: None,
-        regularization: 0.5,
+        ..config()
     };
 
-    let (parameters, _) =
-        objective::fit_model(training, &[0, 0, 0], None, config()).expect("the fit converges");
-    let optimum = objective.cost_value(&parameters);
+    let (weak, _) = fit_model(training, &[0, 0, 0], None, regularized(d_positive!(0.1)))
+        .expect("the weak fit converges");
+    let (strong, _) = fit_model(training, &[0, 0, 0], None, regularized(d_positive!(10.0)))
+        .expect("the strong fit converges");
 
-    for index in [0, 1, CANONICAL_DIMENSIONS + 1, PARAMETER_COUNT - 1] {
-        for delta in [-1.0e-3, 1.0e-3] {
-            let mut perturbed = parameters.clone();
-            perturbed.as_array_mut()[index] += delta;
-            assert!(
-                objective.cost_value(&perturbed) >= optimum,
-                "perturbing component {index} by {delta} improved the objective",
-            );
-        }
-    }
+    assert!(coefficient_norm(&strong) < coefficient_norm(&weak));
 }
 
 #[test]
@@ -365,13 +255,13 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[1.0], [0.0, 0.5, 0.5], 1.0, b"one");
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
-    let error = objective::fit_model(corpus.training(), &[0, 0], None, config())
+    let error = fit_model(corpus.training(), &[0, 0], None, config())
         .expect_err("a class without mass cannot fit");
     assert_matches!(
         error,
-        FitError::MissingClassMass {
+        FitError::Preparation(PreparationError::MissingClassMass {
             class: GeometryClass::Coincident,
-        },
+        }),
     );
 }
 
@@ -546,7 +436,13 @@ fn fit_recovers_the_generating_distributions() {
     let fitted = fit(
         training,
         FitConfig {
-            regularization: 1.0e-3,
+            solver: SolverConfig {
+                preparation: PreparationSettings {
+                    regularization: d_positive!(1.0e-3),
+                    ..
+                },
+                ..
+            },
             seed: 7,
             ..config()
         },
@@ -588,65 +484,51 @@ fn fit_recovers_the_generating_distributions() {
 }
 
 #[test]
-fn exhausted_iteration_bound_is_an_error() {
+fn exhausted_outer_iteration_budget_is_an_error() {
     let corpus = soft_corpus();
     let error = fit(
         corpus.training(),
         FitConfig {
-            maximum_iterations: 1,
-            gradient_tolerance: 1.0e-12,
+            solver: SolverConfig {
+                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+                ..
+            },
             ..config()
         },
     )
-    .expect_err("one iteration cannot converge");
+    .expect_err("one outer iteration cannot converge");
 
-    assert_matches!(error, FitError::DidNotConverge { .. });
+    assert_matches!(error, FitError::Solver(SolverFailure::OuterIterationBudget));
 }
 
 #[test]
-fn configuration_domains_are_validated() {
+fn configuration_violations_are_named() {
     let corpus = mixed_corpus();
-    for (field, config) in [
-        (
-            "regularization",
-            FitConfig {
-                regularization: 0.0,
-                ..config()
+
+    let error = fit(
+        corpus.training(),
+        FitConfig {
+            folds: 1,
+            ..config()
+        },
+    )
+    .expect_err("one fold cannot hold anything out");
+    assert_matches!(error, FitError::FoldCount { folds: 1 });
+
+    let error = fit(
+        corpus.training(),
+        FitConfig {
+            solver: SolverConfig {
+                radius_minimum: d_positive!(2.0),
+                radius_maximum: d_positive!(1.0),
+                ..
             },
-        ),
-        (
-            "gradient_tolerance",
-            FitConfig {
-                gradient_tolerance: f64::NAN,
-                ..config()
-            },
-        ),
-        (
-            "maximum_iterations",
-            FitConfig {
-                maximum_iterations: 0,
-                ..config()
-            },
-        ),
-        (
-            "history_size",
-            FitConfig {
-                history_size: 0,
-                ..config()
-            },
-        ),
-        (
-            "folds",
-            FitConfig {
-                folds: 1,
-                ..config()
-            },
-        ),
-    ] {
-        let error = fit(corpus.training(), config).expect_err("the configuration is invalid");
-        assert!(
-            matches!(error, FitError::InvalidConfig { field: actual, .. } if actual == field),
-            "expected an invalid {field}",
-        );
-    }
+            ..config()
+        },
+    )
+    .expect_err("the radius ordering is violated");
+    assert_matches!(
+        error,
+        FitError::Config(SolverConfigError::RadiusDomain { .. })
+    );
 }

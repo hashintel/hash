@@ -8,35 +8,44 @@
 //!     + (λ / 2) · squared_norm(W),
 //! ```
 //!
-//! through L-BFGS with an Armijo backtracking line search ([`objective`]). Whole relation groups
-//! are assigned to seeded, size-balanced folds before fitting, so near-duplicate corpus entries
-//! never straddle a train/validation split; concatenated out-of-fold logits calibrate one scalar
-//! deployment temperature ([`calibration`]), and the applicability distribution is fitted over the
-//! complete corpus ([`applicability`]). The fold models and the final model are independent and fit
-//! in parallel; each fit's arithmetic is sequential, so the result is deterministic.
+//! through the deterministic bounded trust-region Newton-CG [`solver`], which operates in
+//! contrast coordinates and certifies every solution against its gradient threshold. Whole
+//! relation groups are assigned to seeded, size-balanced folds before fitting, so
+//! near-duplicate corpus entries never straddle a train/validation split; concatenated
+//! out-of-fold logits calibrate one scalar deployment temperature ([`calibration`]), and the
+//! applicability distribution is fitted over the complete corpus ([`applicability`]). The fold
+//! models and the final model are independent and fit in parallel; each fit's arithmetic is
+//! sequential, so the result is deterministic.
 //!
-//! Every fit must reach the configured gradient tolerance: a fit that exhausts its iteration bound
-//! is an error, never a best-effort model. An atlas generation requires a valid classifier artifact
-//! and fails candidacy without one, so a questionable model must not be published for the pipeline
-//! to limp on with.
+//! Every fit must certify at the configured gradient threshold: a solve that ends at any typed
+//! terminal - an exhausted budget, a stalled reduction, or arithmetic that left the finite
+//! domain - is an error, never a best-effort model. An atlas generation requires a valid
+//! classifier artifact and fails candidacy without one, so a questionable model must not be
+//! published for the pipeline to limp on with.
 
 use core::{error::Error, fmt};
 use std::collections::HashMap;
 
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
-use self::objective::Parameters;
+use self::{
+    objective::Parameters,
+    solver::{ScaledProblem, WorkCounters, prepare, solve},
+};
 use super::Classifier;
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedDVecN, DVecN},
+    math::{AlignedVecN, BoxedDVecN, DVecN, MatrixN},
     salt::policy::GeometryClass,
 };
 
 mod applicability;
 #[cfg(feature = "bench")]
 pub use self::solver::bench;
+pub(crate) use self::solver::{
+    CgStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
+};
 mod calibration;
 mod objective;
 mod solver;
@@ -94,67 +103,51 @@ impl fmt::Display for TrainingSetError {
 impl Error for TrainingSetError {}
 
 /// The fit could not produce a valid classifier.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum FitError {
-    /// A configuration value lies outside its documented domain.
-    InvalidConfig { field: &'static str, value: f64 },
+    /// The solver configuration violated a cross-field constraint.
+    Config(SolverConfigError),
+    /// The fold count cannot hold one validation portion out. At least 2 folds are required.
+    FoldCount { folds: usize },
     /// Fewer distinct groups than requested folds.
     InsufficientGroups { groups: usize, folds: usize },
-    /// A fold's training portion carries no target mass for a class.
-    MissingClassMass { class: GeometryClass },
+    /// A training portion violated the preparation contract.
+    Preparation(PreparationError),
+    /// The solve ended at a typed terminal instead of a certified minimizer.
+    Solver(SolverFailure),
     /// An evaluation outside the solver produced a non-finite value.
     NonFinite,
-    /// The optimizer failed internally.
-    Solver(argmin::core::Error),
-    /// The iteration bound was exhausted above the gradient tolerance.
-    DidNotConverge { iterations: u64, gradient_norm: f64 },
 }
 
+#[expect(
+    clippy::use_debug,
+    reason = "the wrapped verdicts are typed vocabulary; their variant names are the message"
+)]
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidConfig { field, value } => {
-                write!(fmt, "the configured {field} {value} is out of domain")
+            Self::Config(error) => {
+                write!(fmt, "the solver configuration is invalid: {error:?}")
+            }
+            Self::FoldCount { folds } => {
+                write!(fmt, "{folds} validation folds cannot hold anything out")
             }
             Self::InsufficientGroups { groups, folds } => write!(
                 fmt,
                 "{groups} relation groups cannot fill {folds} validation folds",
             ),
-            Self::MissingClassMass { class } => write!(
-                fmt,
-                "a training fold carries no target mass for the {class} class",
-            ),
+            Self::Preparation(error) => {
+                write!(fmt, "the training portion failed preparation: {error:?}")
+            }
+            Self::Solver(failure) => {
+                write!(fmt, "the solve ended at the {failure:?} terminal")
+            }
             Self::NonFinite => fmt.write_str("an evaluation produced a non-finite value"),
-            Self::Solver(error) => write!(fmt, "the optimizer failed: {error}"),
-            Self::DidNotConverge {
-                iterations,
-                gradient_norm,
-            } => write!(
-                fmt,
-                "the fit stopped after {iterations} iterations at gradient norm {gradient_norm}",
-            ),
         }
     }
 }
 
-impl From<argmin::core::Error> for FitError {
-    fn from(error: argmin::core::Error) -> Self {
-        Self::Solver(error)
-    }
-}
-
-impl Error for FitError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Solver(error) => Some(error.as_ref()),
-            Self::InvalidConfig { .. }
-            | Self::InsufficientGroups { .. }
-            | Self::MissingClassMass { .. }
-            | Self::NonFinite
-            | Self::DidNotConverge { .. } => None,
-        }
-    }
-}
+impl Error for FitError {}
 
 /// One soft label, vote weight, and indivisible validation group.
 ///
@@ -280,22 +273,14 @@ impl<'training> TrainingSet<'training> {
     }
 }
 
-/// Optimizer and grouped-validation settings.
+/// Solver and grouped-validation settings.
 ///
-/// The defaults are starting points pending corpus-scale tuning; the out-of-fold metrics in
+/// The solver defaults are the deployment configuration; the out-of-fold metrics in
 /// [`FitEvidence`] judge them.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
-    /// L2 penalty `λ` multiplying `squared_norm(W) / 2`; intercepts are never regularized.
-    ///
-    /// Positive. Defaults to 1.0.
-    pub regularization: f64 = 1.0,
-    /// Iteration bound per model fit. Positive. Defaults to 500.
-    pub maximum_iterations: u64 = 500,
-    /// Euclidean gradient norm at which a fit converges. Positive. Defaults to 1e-6.
-    pub gradient_tolerance: f64 = 1.0e-6,
-    /// Retained L-BFGS curvature pairs. Positive. Defaults to 8.
-    pub history_size: usize = 8,
+    /// The bounded trust-region Newton-CG solver configuration, preparation knobs included.
+    pub solver: SolverConfig = SolverConfig { .. },
     /// Grouped cross-validation fold count. At least 2. Defaults to 5.
     pub folds: usize = 5,
     /// Fold-assignment seed.
@@ -303,40 +288,17 @@ pub(crate) struct FitConfig {
 }
 
 impl FitConfig {
+    /// Admits the configuration or names the first violation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Config`] for a solver configuration violating a cross-field
+    /// constraint and [`FitError::FoldCount`] for fewer than two folds.
     pub(crate) fn validate(self) -> Result<(), FitError> {
-        // TODO: not a huge fan of this, this is stringly typed :/
-        for (field, value) in [
-            ("regularization", self.regularization),
-            ("gradient_tolerance", self.gradient_tolerance),
-        ] {
-            if !value.is_finite() || value <= 0.0 {
-                return Err(FitError::InvalidConfig { field, value });
-            }
-        }
-
-        if self.maximum_iterations == 0 {
-            return Err(FitError::InvalidConfig {
-                field: "maximum_iterations",
-                value: 0.0,
-            });
-        }
-
-        if self.history_size == 0 {
-            return Err(FitError::InvalidConfig {
-                field: "history_size",
-                value: 0.0,
-            });
-        }
+        self.solver.validate().map_err(FitError::Config)?;
 
         if self.folds < 2 {
-            #[expect(
-                clippy::cast_precision_loss,
-                reason = "the offending fold count is 0 or 1"
-            )]
-            return Err(FitError::InvalidConfig {
-                field: "folds",
-                value: self.folds as f64,
-            });
+            return Err(FitError::FoldCount { folds: self.folds });
         }
 
         Ok(())
@@ -358,7 +320,7 @@ pub(crate) struct FitEvidence {
     pub raw_brier: f64,
     /// Weighted-mean Brier score at the deployment temperature.
     pub calibrated_brier: f64,
-    /// Iterations of the final full-corpus fit.
+    /// Started outer iterations of the final full-corpus fit.
     pub iterations: u64,
 }
 
@@ -375,9 +337,9 @@ pub(crate) struct Fit {
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] for invalid configuration, too few relation groups, a fold without
-/// complete class mass, a non-finite evaluation, an optimizer failure, or a fit that exhausts its
-/// iteration bound above the gradient tolerance.
+/// Returns a [`FitError`] for invalid configuration, too few relation groups, a training
+/// portion violating the preparation contract, a solve ending at a typed terminal, or a
+/// non-finite out-of-fold evaluation.
 pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, FitError> {
     config.validate()?;
 
@@ -389,7 +351,7 @@ pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, F
         .into_par_iter()
         .map(|fold| {
             let held_out = (fold < config.folds).then_some(fold);
-            objective::fit_model(training, &folds, held_out, config)
+            fit_model(training, &folds, held_out, config)
         })
         .collect::<Result<_, _>>()?;
 
@@ -433,6 +395,61 @@ pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, F
             iterations,
         },
     })
+}
+
+/// Fits one model over the rows outside the held-out fold through the bounded solver.
+///
+/// Returns the flat class parameters and the count of started outer iterations.
+///
+/// # Errors
+///
+/// Returns [`FitError::Preparation`] when the training portion violates the preparation
+/// contract and [`FitError::Solver`] when the solve ends at a typed terminal.
+fn fit_model(
+    training: TrainingSet<'_>,
+    folds: &[usize],
+    held_out: Option<usize>,
+    config: FitConfig,
+) -> Result<(Parameters, u64), FitError> {
+    // The held-out fold's complement materializes densely: the solver
+    // traverses whole corpora, and fold membership is not its contract.
+    let subset = held_out.map(|held_out| {
+        let members: Vec<usize> = folds
+            .iter()
+            .enumerate()
+            .filter(|(_, fold)| **fold != held_out)
+            .map(|(row, _)| row)
+            .collect();
+
+        let mut embeddings = MatrixN::zeroed(members.len());
+        let embedding_rows = embeddings.rows_mut();
+        let mut rows = Vec::with_capacity(members.len());
+        for (position, &member) in members.iter().enumerate() {
+            *embedding_rows[position].as_array_mut() = *training.embedding(member).as_array();
+            rows.push(training.rows()[member]);
+        }
+        (embeddings, rows)
+    });
+    let (embeddings, rows) = subset.as_ref().map_or(
+        (training.embeddings, training.rows),
+        |(embeddings, rows)| (embeddings.rows(), rows.as_slice()),
+    );
+
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(embeddings, rows, config.solver.preparation, &mut counters)
+        .map_err(FitError::Preparation)?;
+    let problem = ScaledProblem {
+        prepared,
+        config: config.solver,
+    };
+    let run = solve(&problem, counters);
+    let converged = run.outcome.map_err(FitError::Solver)?;
+
+    let point = problem.point(&converged.point.zeta);
+    Ok((
+        objective::expand_point(&point),
+        run.control.outer_iterations_started,
+    ))
 }
 
 /// Copies a flat parameter vector into per-class coefficient rows and intercepts.

@@ -39,7 +39,7 @@ use crate::{
 
 /// Preparation rejected the corpus or its configuration.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) enum PreparationError {
+pub(crate) enum PreparationError {
     /// The embedding and row counts differ.
     RowMismatch { embeddings: usize, rows: usize },
     /// The corpus holds no rows.
@@ -68,19 +68,28 @@ pub(super) enum PreparationError {
 }
 
 /// Solver-relevant knobs consumed by preparation.
+///
+/// Every field carries a default; `PreparationSettings { .. }` is the deployment
+/// configuration. The tolerance default admits targets whose sums carry division rounding
+/// only.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct PreparationSettings {
+pub(crate) struct PreparationSettings {
     /// L2 penalty `λ` on contrast coefficients; intercepts are never regularized.
-    pub regularization: DPositive,
-    /// Unit-sum tolerance for raw targets, in ulps of one.
-    pub target_sum_tolerance_ulps: NonZero<u32>,
-    /// Floor on the initial Hessian diagonal, in curvature units.
-    pub curvature_floor: DPositive,
+    /// Defaults to one.
+    pub regularization: DPositive = DPositive::ONE,
+    /// Unit-sum tolerance for raw targets, in ulps of one. Defaults to sixteen.
+    pub target_sum_tolerance_ulps: NonZero<u32> = const {
+        NonZero::new(16).expect("sixteen is nonzero")
+    },
+    /// Floor on the initial Hessian diagonal, in curvature units. Defaults to `1e-12`.
+    pub curvature_floor: DPositive = const {
+        DPositive::new(1.0e-12).expect("the floor is positive")
+    },
 }
 
 /// Canonicalization and scaling evidence of one successful preparation.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct PreparationEvidence {
+pub(crate) struct PreparationEvidence {
     /// Smallest and largest raw target sum seen across rows.
     pub sum_range: [f64; 2],
     /// Largest normalization adjustment `max_i,c |u_ic − t_ic/s_i|` across rows.
@@ -91,7 +100,7 @@ pub(super) struct PreparationEvidence {
 
 /// A validated corpus with closed targets, accumulated statistics, and initial scaling.
 #[derive(Debug)]
-pub(super) struct Prepared<'corpus> {
+pub(crate) struct Prepared<'corpus> {
     /// Embeddings in row order; row `i` of the corpus reads embedding `i`.
     pub embeddings: &'corpus [AlignedVecN<CANONICAL_DIMENSIONS>],
     /// Weighted training rows in original order.
@@ -117,7 +126,7 @@ pub(super) struct Prepared<'corpus> {
 /// Returns a [`PreparationError`] naming the first violated contract, in traversal order:
 /// pre-traversal shape and configuration checks, then per-row validation in ascending row order,
 /// then the post-traversal total-weight, class-mass, and scaling checks.
-pub(super) fn prepare<'corpus>(
+pub(crate) fn prepare<'corpus>(
     embeddings: &'corpus [AlignedVecN<CANONICAL_DIMENSIONS>],
     rows: &'corpus [TrainingRow],
     settings: PreparationSettings,

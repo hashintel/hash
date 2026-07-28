@@ -200,7 +200,7 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
         };
 
     SaltRepository {
-        version: RepositoryVersion::V0,
+        version: RepositoryVersion::V1,
         files: SaltFiles {
             representations: ingested.representations,
             card_embeddings: ingested.cards.embeddings,

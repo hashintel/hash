@@ -93,6 +93,9 @@ const fn order_name(order: RefineOrder) -> &'static str {
 /// The dot budget the refinement tables run under: the cells one tile's cut grid holds.
 const BUDGET: usize = 4096;
 
+/// The public uniform-grid candidate's refinement below every tile cut.
+const UNIFORM_DEPTH: u8 = 1;
+
 /// One refinement rule under a constant budget.
 const fn refined(budget: usize, order: RefineOrder) -> FillRule {
     FillRule::Refined(Refinement {
@@ -2180,6 +2183,759 @@ fn sweep(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     }
 }
 
+/// One rule in the proportional-density comparison.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum DensityRule {
+    /// The current hidden-budget fill.
+    Today,
+    /// Visible scheduled rows in the corpus generation.
+    Floor,
+    /// One representative per occupied cut cell.
+    Coarse,
+    /// Population-ordered per-tile budget refinement.
+    Budgeted,
+    /// One representative per occupied cell one public level below the cut.
+    Uniform,
+}
+
+/// Names one proportional-density rule.
+const fn density_rule_name(rule: DensityRule) -> &'static str {
+    match rule {
+        DensityRule::Today => "today",
+        DensityRule::Floor => "r1-floor",
+        DensityRule::Coarse => "r2-coarse",
+        DensityRule::Budgeted => "r4-budget",
+        DensityRule::Uniform => "uniform+1",
+    }
+}
+
+/// Delivers the whole rendered world at one zoom under one rule.
+fn world_delivery(
+    bench: &WalkBench,
+    rule: DensityRule,
+    z: u8,
+    view: VisibleView<'_>,
+    generation: &hash_graph_atlas::bench::lod::ServedGeneration,
+) -> Vec<u32> {
+    let side = 1_u32 << z;
+    let mut delivered = Vec::new();
+    for x in 0..side {
+        for y in 0..side {
+            let mut tile = match rule {
+                DensityRule::Today => bench.cumulative_delivery(FillRule::Unmasked, z, x, y, view),
+                DensityRule::Floor => bench.cumulative_delivery(FillRule::Visible, z, x, y, view),
+                DensityRule::Coarse => {
+                    bench.served_cumulative_delivery(FillRule::CoverageRank, z, x, y, generation)
+                }
+                DensityRule::Budgeted => bench.served_cumulative_delivery(
+                    refined(BUDGET / 4, RefineOrder::Population),
+                    z,
+                    x,
+                    y,
+                    generation,
+                ),
+                DensityRule::Uniform => {
+                    bench.uniform_cumulative_delivery(UNIFORM_DEPTH, z, x, y, generation)
+                }
+            };
+            delivered.append(&mut tile);
+        }
+    }
+
+    let unique: HashSet<u32> = delivered.iter().copied().collect();
+    assert_eq!(
+        unique.len(),
+        delivered.len(),
+        "disjoint tiles repeated a delivered position",
+    );
+    delivered
+}
+
+/// Counts delivered positions in equal-area windows.
+fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: Depth) -> Vec<usize> {
+    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(depth.get()))];
+    for &position in positions {
+        let code = *codes
+            .get(position as usize)
+            .expect("delivered positions lie in the code column");
+        let window = MortonKey::from_bits(code).prefix(depth);
+        *counts
+            .get_mut(usize::try_from(window).expect("the audit grid fits usize"))
+            .expect("the prefix lies in the audit grid") += 1;
+    }
+    counts
+}
+
+/// Counts occupied cells of one truth grid in equal-area windows.
+fn occupied_window_counts(
+    bench: &WalkBench,
+    occupied_depth: Depth,
+    window_depth: Depth,
+) -> Vec<usize> {
+    assert!(window_depth <= occupied_depth);
+    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(window_depth.get()))];
+    let shift = 2 * u32::from(occupied_depth.get() - window_depth.get());
+    for cell in bench.occupied_cells(0, 0, 0, occupied_depth) {
+        let window = cell >> shift;
+        *counts
+            .get_mut(usize::try_from(window).expect("the audit grid fits usize"))
+            .expect("the prefix lies in the audit grid") += 1;
+    }
+    counts
+}
+
+/// Returns one window's Morton index.
+fn window_index(depth: Depth, x: u32, y: u32) -> usize {
+    let shift = 32 - u32::from(depth.get());
+    usize::try_from(MortonKey::new(x << shift, y << shift).prefix(depth))
+        .expect("the audit grid fits usize")
+}
+
+/// One rule's scale-free fit to one public occupancy grid.
+#[derive(Debug, Copy, Clone)]
+struct DensityFit {
+    /// The public grid's refinement below the cut.
+    additional_depth: u8,
+    /// Total variation between shown and occupied spatial shares.
+    total_variation: f64,
+    /// The largest sampling-ratio contrast across a rendered tile boundary.
+    seam_maximum: f64,
+    /// The 95th percentile sampling-ratio contrast across rendered tile boundaries.
+    seam_p95: f64,
+    /// The smallest shown-to-occupied ratio over nonempty windows.
+    sampling_minimum: f64,
+    /// The largest shown-to-occupied ratio over nonempty windows.
+    sampling_maximum: f64,
+}
+
+/// Fits one shown distribution to one public occupancy grid.
+fn density_fit(
+    shown: &[usize],
+    occupied: &[usize],
+    render_zoom: u8,
+    window_depth: Depth,
+    additional_depth: u8,
+) -> DensityFit {
+    assert_eq!(shown.len(), occupied.len());
+    let shown_total = shown.iter().sum::<usize>();
+    let occupied_total = occupied.iter().sum::<usize>();
+    assert!(shown_total > 0 && occupied_total > 0);
+
+    let denominator = 2.0 * shown_total as f64 * occupied_total as f64;
+    let total_variation = shown
+        .iter()
+        .zip(occupied)
+        .map(|(&dots, &cells)| {
+            let shown_share = dots as u128 * occupied_total as u128;
+            let occupied_share = cells as u128 * shown_total as u128;
+            shown_share.abs_diff(occupied_share) as f64
+        })
+        .sum::<f64>()
+        / denominator;
+
+    let mut sampling_minimum = f64::INFINITY;
+    let mut sampling_maximum = 0.0_f64;
+    for (&dots, &cells) in shown.iter().zip(occupied) {
+        if cells == 0 {
+            continue;
+        }
+        let sampling = dots as f64 / cells as f64;
+        sampling_minimum = sampling_minimum.min(sampling);
+        sampling_maximum = sampling_maximum.max(sampling);
+    }
+
+    let side = 1_u32 << window_depth.get();
+    let windows_per_tile_side = 1_u32 << (window_depth.get() - render_zoom);
+    let mut seams = Vec::new();
+    let mut observe = |left: usize, right: usize| {
+        let left_cells = *occupied
+            .get(left)
+            .expect("the left window lies in the grid");
+        let right_cells = *occupied
+            .get(right)
+            .expect("the right window lies in the grid");
+        if left_cells == 0 || right_cells == 0 {
+            return;
+        }
+        let left_dots = *shown.get(left).expect("the left window lies in the grid");
+        let right_dots = *shown.get(right).expect("the right window lies in the grid");
+        let left_cross = left_dots as f64 * right_cells as f64;
+        let right_cross = right_dots as f64 * left_cells as f64;
+        let sum = left_cross + right_cross;
+        seams.push(if sum == 0.0 {
+            0.0
+        } else {
+            (left_cross - right_cross).abs() / sum
+        });
+    };
+    for x in 0..side {
+        for y in 0..side {
+            let current = window_index(window_depth, x, y);
+            if x + 1 < side && (x + 1).is_multiple_of(windows_per_tile_side) {
+                observe(current, window_index(window_depth, x + 1, y));
+            }
+            if y + 1 < side && (y + 1).is_multiple_of(windows_per_tile_side) {
+                observe(current, window_index(window_depth, x, y + 1));
+            }
+        }
+    }
+    seams.sort_by(f64::total_cmp);
+    let seam_maximum = seams.last().copied().unwrap_or(0.0);
+    let seam_p95 = seams
+        .get(seams.len().saturating_sub(1) * 95 / 100)
+        .copied()
+        .unwrap_or(0.0);
+
+    DensityFit {
+        additional_depth,
+        total_variation,
+        seam_maximum,
+        seam_p95,
+        sampling_minimum,
+        sampling_maximum,
+    }
+}
+
+/// Finds the public occupancy grid whose spatial distribution best fits the shown dots.
+fn best_density_fit(
+    bench: &WalkBench,
+    shown: &[usize],
+    render_zoom: u8,
+    window_depth: Depth,
+) -> DensityFit {
+    let mut best = None;
+    for additional_depth in 0..=6_u8 {
+        let occupied_depth = bench.uniform_grid_depth(render_zoom, additional_depth);
+        let occupied = occupied_window_counts(bench, occupied_depth, window_depth);
+        let fit = density_fit(
+            shown,
+            &occupied,
+            render_zoom,
+            window_depth,
+            additional_depth,
+        );
+        if best
+            .as_ref()
+            .is_none_or(|best: &DensityFit| fit.total_variation < best.total_variation)
+        {
+            best = Some(fit);
+        }
+    }
+
+    best.expect("the public-grid search checks seven depths")
+}
+
+/// Counts adjacent R4 tiles whose whole-grid depth differs and tiles with a mixed grid.
+fn budget_grid_seams(
+    bench: &WalkBench,
+    z: u8,
+    generation: &hash_graph_atlas::bench::lod::ServedGeneration,
+) -> (usize, usize, usize) {
+    let rule = refined(BUDGET / 4, RefineOrder::Population);
+    let side = 1_u32 << z;
+    let mut grids = Vec::with_capacity(usize::try_from(side * side).expect("the grid fits usize"));
+    let mut mixed = 0_usize;
+    for x in 0..side {
+        for y in 0..side {
+            let audit = bench.served_audit(rule, z, x, y, generation);
+            grids.push(audit.refined);
+            mixed += usize::from(audit.deepened > 0);
+        }
+    }
+
+    let at =
+        |x: u32, y: u32| usize::try_from(x * side + y).expect("the shallow audit grid fits usize");
+    let mut different = 0_usize;
+    let mut edges = 0_usize;
+    for x in 0..side {
+        for y in 0..side {
+            if x + 1 < side {
+                let current = grids.get(at(x, y)).expect("the tile lies in the grid");
+                let right = grids
+                    .get(at(x + 1, y))
+                    .expect("the right tile lies in the grid");
+                different += usize::from(current != right);
+                edges += 1;
+            }
+            if y + 1 < side {
+                let current = grids.get(at(x, y)).expect("the tile lies in the grid");
+                let below = grids
+                    .get(at(x, y + 1))
+                    .expect("the lower tile lies in the grid");
+                different += usize::from(current != below);
+                edges += 1;
+            }
+        }
+    }
+
+    (different, edges, mixed)
+}
+
+/// Prints the best public-grid fit and boundary seam contrast for every rule.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the report keeps one mask-rule row's fit, acceptance assertions, and output adjacent"
+)]
+fn proportional_density(bench: &mut WalkBench) {
+    const RULES: [DensityRule; 5] = [
+        DensityRule::Today,
+        DensityRule::Floor,
+        DensityRule::Coarse,
+        DensityRule::Budgeted,
+        DensityRule::Uniform,
+    ];
+
+    println!("\nproportional density: best public grid over 4x4 windows per rendered tile");
+    println!(
+        "{:<10} {:>7} {:<11} {:>9} {:>5} {:>3} {:>9} {:>9} {:>9} {:>9} {:>9} {:>10}",
+        "mask",
+        "visible",
+        "rule",
+        "dots z3",
+        "tv z",
+        "k",
+        "max TV",
+        "seam p95",
+        "seam max",
+        "sample lo",
+        "sample hi",
+        "k edges",
+    );
+
+    let (codes, _, _) = bench.columns();
+    let mut today_separates = false;
+    let mut budget_separates = false;
+    for clustered in SHAPES {
+        for visible in FRACTIONS {
+            remask(bench, clustered, visible);
+            let pyramid = bench.pyramid();
+            let column = bench.column();
+            let view = VisibleView::new(&pyramid, &column);
+            let generation = bench.indexed_generation(GenerationLayout::Shared);
+
+            for rule in RULES {
+                let mut worst_fit = DensityFit {
+                    additional_depth: 0,
+                    total_variation: -1.0,
+                    seam_maximum: 0.0,
+                    seam_p95: 0.0,
+                    sampling_minimum: 0.0,
+                    sampling_maximum: 0.0,
+                };
+                let mut worst_zoom = 0_u8;
+                let mut worst_seam_p95 = 0.0_f64;
+                let mut worst_seam_maximum = 0.0_f64;
+                let mut dots_at_three = 0_usize;
+                let mut different_edges = 0_usize;
+                let mut grid_edges = 0_usize;
+
+                for z in 0..=3_u8 {
+                    let delivered = world_delivery(bench, rule, z, view, &generation);
+                    if z == 3 {
+                        dots_at_three = delivered.len();
+                    }
+                    let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+                    let shown = delivered_window_counts(&codes, &delivered, window_depth);
+                    let fit = best_density_fit(bench, &shown, z, window_depth);
+
+                    if rule == DensityRule::Coarse {
+                        let occupied = occupied_window_counts(
+                            bench,
+                            bench.uniform_grid_depth(z, 0),
+                            window_depth,
+                        );
+                        assert!(
+                            density_fit(&shown, &occupied, z, window_depth, 0).total_variation
+                                <= f64::EPSILON,
+                            "the coarse public grid failed its own density metric",
+                        );
+                    }
+                    if rule == DensityRule::Uniform {
+                        let occupied = occupied_window_counts(
+                            bench,
+                            bench.uniform_grid_depth(z, UNIFORM_DEPTH),
+                            window_depth,
+                        );
+                        assert!(
+                            density_fit(&shown, &occupied, z, window_depth, UNIFORM_DEPTH,)
+                                .total_variation
+                                <= f64::EPSILON,
+                            "the uniform public grid failed its own density metric",
+                        );
+                    }
+
+                    if fit.total_variation > worst_fit.total_variation {
+                        worst_fit = fit;
+                        worst_zoom = z;
+                    }
+                    worst_seam_p95 = worst_seam_p95.max(fit.seam_p95);
+                    worst_seam_maximum = worst_seam_maximum.max(fit.seam_maximum);
+                    if rule == DensityRule::Budgeted {
+                        let (different, edges, _) = budget_grid_seams(bench, z, &generation);
+                        different_edges += different;
+                        grid_edges += edges;
+                    }
+                }
+
+                today_separates |=
+                    rule == DensityRule::Today && worst_fit.total_variation > f64::EPSILON;
+                budget_separates |=
+                    rule == DensityRule::Budgeted && worst_fit.total_variation > f64::EPSILON;
+                println!(
+                    "{:<10} {:>7} {:<11} {:>9} {:>5} {:>3} {:>9.4} {:>9.4} {:>9.4} {:>9.3} \
+                     {:>9.3} {:>4}/{:<5}",
+                    shape_name(clustered),
+                    format!("{:.0}%", visible * 100.0),
+                    density_rule_name(rule),
+                    dots_at_three,
+                    worst_zoom,
+                    worst_fit.additional_depth,
+                    worst_fit.total_variation,
+                    worst_seam_p95,
+                    worst_seam_maximum,
+                    worst_fit.sampling_minimum,
+                    worst_fit.sampling_maximum,
+                    different_edges,
+                    grid_edges,
+                );
+            }
+        }
+    }
+    assert!(
+        today_separates,
+        "the proportional-density metric no longer catches today's rule",
+    );
+    assert!(
+        budget_separates,
+        "the proportional-density metric does not catch per-tile budget refinement",
+    );
+}
+
+/// Prints dot counts and the public uniform grid's geometric response bound.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the report co-measures five laws and three public-depth controls in one sweep"
+)]
+fn uniform_density_counts(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
+    println!("\nuniform public-grid dot count over {} tiles", tiles.len());
+    println!(
+        "{:<10} {:>7} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>9} {:>9} \
+         {:>9}",
+        "mask",
+        "visible",
+        "today",
+        "r2",
+        "r4",
+        "uniform0",
+        "uniform1",
+        "from z6",
+        "from z9",
+        "from z12",
+        "staircase",
+        "u6 max",
+        "u1 max",
+        "term gap",
+    );
+
+    for clustered in SHAPES {
+        for visible in FRACTIONS {
+            remask(bench, clustered, visible);
+            let pyramid = bench.pyramid();
+            let column = bench.column();
+            let view = VisibleView::new(&pyramid, &column);
+            let generation = bench.indexed_generation(GenerationLayout::Shared);
+            let mut today = 0_usize;
+            let mut coarse = 0_usize;
+            let mut budgeted = 0_usize;
+            let mut uniform_zero = 0_usize;
+            let mut uniform_one = 0_usize;
+            let mut from_six = 0_usize;
+            let mut from_nine = 0_usize;
+            let mut from_twelve = 0_usize;
+            let mut staircase = 0_usize;
+            let mut from_six_maximum = 0_usize;
+            let mut uniform_one_maximum = 0_usize;
+            let mut terminal_population = 0_usize;
+            let mut terminal_delivered = 0_usize;
+
+            for &(z, x, y) in tiles {
+                today += bench
+                    .cumulative_delivery(FillRule::Unmasked, z, x, y, view)
+                    .len();
+                coarse += bench
+                    .served_cumulative_delivery(FillRule::CoverageRank, z, x, y, &generation)
+                    .len();
+                budgeted += bench
+                    .served_cumulative_delivery(
+                        refined(BUDGET / 4, RefineOrder::Population),
+                        z,
+                        x,
+                        y,
+                        &generation,
+                    )
+                    .len();
+                uniform_zero += bench
+                    .uniform_step_cumulative_delivery(u8::MAX, z, x, y, &generation)
+                    .len();
+                uniform_one += bench
+                    .uniform_cumulative_delivery(UNIFORM_DEPTH, z, x, y, &generation)
+                    .len();
+                from_six += bench
+                    .uniform_step_cumulative_delivery(6, z, x, y, &generation)
+                    .len();
+                from_six_maximum = from_six_maximum
+                    .max(bench.uniform_step_delivery(6, z, x, y, &generation).len());
+                from_nine += bench
+                    .uniform_cumulative_delivery(u8::from(z >= 9), z, x, y, &generation)
+                    .len();
+                from_twelve += bench
+                    .uniform_cumulative_delivery(u8::from(z >= 12), z, x, y, &generation)
+                    .len();
+                staircase += bench
+                    .uniform_cumulative_delivery(z / bench.span(), z, x, y, &generation)
+                    .len();
+                uniform_one_maximum = uniform_one_maximum.max(
+                    bench
+                        .uniform_delivery(UNIFORM_DEPTH, z, x, y, &generation)
+                        .len(),
+                );
+                if z == bench.max_zoom() {
+                    terminal_population += bench.gather(z, x, y).len();
+                    terminal_delivered += bench
+                        .uniform_step_cumulative_delivery(6, z, x, y, &generation)
+                        .len();
+                }
+            }
+            assert_eq!(coarse, uniform_zero, "the two coarse forms differ in count");
+            assert_eq!(
+                terminal_population, terminal_delivered,
+                "the terminal public grid omitted visible rows",
+            );
+
+            println!(
+                "{:<10} {:>7} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} {:>10} \
+                 {:>9} {:>9} {:>9}",
+                shape_name(clustered),
+                format!("{:.0}%", visible * 100.0),
+                today,
+                coarse,
+                budgeted,
+                uniform_zero,
+                uniform_one,
+                from_six,
+                from_nine,
+                from_twelve,
+                staircase,
+                from_six_maximum,
+                uniform_one_maximum,
+                terminal_population - terminal_delivered,
+            );
+        }
+    }
+}
+
+/// Prints the all-visible deep-tail and delivery-order delta.
+fn hybrid_delta(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
+    bench.mask_uniform(1.0, SEED);
+    let pyramid = bench.pyramid();
+    let column = bench.column();
+    let view = VisibleView::new(&pyramid, &column);
+    let generation = bench.indexed_generation(GenerationLayout::Shared);
+    let budgeted = refined(BUDGET / 4, RefineOrder::Population);
+
+    println!("\nall-visible dispatch delta against today's delivery");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>8}",
+        "rule", "sequence", "set", "count", "first z",
+    );
+    for name in ["r4", "uniform0", "from-z6"] {
+        let mut sequence = 0_usize;
+        let mut set = 0_usize;
+        let mut count = 0_usize;
+        let mut first = None;
+        for &(z, x, y) in tiles {
+            let today = bench.delivery(FillRule::Unmasked, z, x, y, view);
+            let candidate = match name {
+                "r4" => bench.served_delivery(budgeted, z, x, y, &generation),
+                "uniform0" => bench.uniform_step_delivery(u8::MAX, z, x, y, &generation),
+                "from-z6" => bench.uniform_step_delivery(6, z, x, y, &generation),
+                _ => unreachable!("the candidate table is exhaustive"),
+            };
+            sequence += usize::from(today != candidate);
+            count += usize::from(today.len() != candidate.len());
+            let mut today_set = today;
+            let mut candidate_set = candidate;
+            today_set.sort_unstable();
+            candidate_set.sort_unstable();
+            if today_set != candidate_set {
+                set += 1;
+                first = first.or(Some(z));
+            }
+        }
+
+        println!(
+            "{:<10} {:>10} {:>10} {:>10} {:>8}",
+            name,
+            sequence,
+            set,
+            count,
+            first.map_or_else(|| "-".to_owned(), |z| z.to_string()),
+        );
+    }
+}
+
+/// Interleaved baseline and candidate medians for one timing pair.
+#[derive(Debug, Copy, Clone)]
+struct PairTimes {
+    /// Baseline median in microseconds.
+    baseline: f64,
+    /// Candidate median in microseconds.
+    candidate: f64,
+    /// Median of adjacent candidate-to-baseline ratios.
+    ratio: f64,
+}
+
+/// Measures a candidate adjacent to a fresh baseline with alternating arm order.
+fn paired_micros(mut baseline: impl FnMut(), mut candidate: impl FnMut()) -> PairTimes {
+    const CALLS_PER_SAMPLE: usize = 100;
+
+    let mut baselines = [0.0_f64; REPETITIONS];
+    let mut candidates = [0.0_f64; REPETITIONS];
+    let mut ratios = [0.0_f64; REPETITIONS];
+    for repetition in 0..REPETITIONS {
+        let mut measure_baseline = || {
+            measure_once(|| {
+                for _ in 0..CALLS_PER_SAMPLE {
+                    baseline();
+                }
+            }) / CALLS_PER_SAMPLE as f64
+        };
+        let mut measure_candidate = || {
+            measure_once(|| {
+                for _ in 0..CALLS_PER_SAMPLE {
+                    candidate();
+                }
+            }) / CALLS_PER_SAMPLE as f64
+        };
+        let (baseline, candidate) = if repetition.is_multiple_of(2) {
+            (measure_baseline(), measure_candidate())
+        } else {
+            let candidate = measure_candidate();
+            (measure_baseline(), candidate)
+        };
+        record_sample(&mut baselines, repetition, baseline);
+        record_sample(&mut candidates, repetition, candidate);
+        record_sample(&mut ratios, repetition, candidate / baseline);
+    }
+
+    PairTimes {
+        baseline: sample_median(baselines),
+        candidate: sample_median(candidates),
+        ratio: sample_median(ratios),
+    }
+}
+
+/// Prints interleaved per-tile cost for R4 and the public uniform grids.
+fn closure_selection_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
+    println!("\nclosure selection cost, paired median of {REPETITIONS}");
+    println!(
+        "{:<10} {:>7} {:>3} {:>10} {:>10} {:>9} {:>10} {:>9} {:>10} {:>9} {:>10} {:>9}",
+        "mask",
+        "visible",
+        "z",
+        "today r4",
+        "r4 us",
+        "r4/base",
+        "uniform0",
+        "u0/base",
+        "from-z6",
+        "u6/base",
+        "uniform1",
+        "u1/base",
+    );
+
+    for clustered in SHAPES {
+        for visible in FRACTIONS {
+            remask(bench, clustered, visible);
+            let generation = bench.indexed_generation(GenerationLayout::Shared);
+            for &(z, x, y) in path {
+                if !z.is_multiple_of(6) {
+                    continue;
+                }
+                let r4 = paired_micros(
+                    || {
+                        black_box(bench.chained_delivery(z, x, y));
+                    },
+                    || {
+                        black_box(bench.served_delivery(
+                            refined(BUDGET / 4, RefineOrder::Population),
+                            z,
+                            x,
+                            y,
+                            &generation,
+                        ));
+                    },
+                );
+                let uniform_zero = paired_micros(
+                    || {
+                        black_box(bench.chained_delivery(z, x, y));
+                    },
+                    || {
+                        black_box(bench.uniform_step_delivery(u8::MAX, z, x, y, &generation));
+                    },
+                );
+                let from_six = paired_micros(
+                    || {
+                        black_box(bench.chained_delivery(z, x, y));
+                    },
+                    || {
+                        black_box(bench.uniform_step_delivery(6, z, x, y, &generation));
+                    },
+                );
+                let uniform_one = paired_micros(
+                    || {
+                        black_box(bench.chained_delivery(z, x, y));
+                    },
+                    || {
+                        black_box(bench.uniform_delivery(UNIFORM_DEPTH, z, x, y, &generation));
+                    },
+                );
+
+                println!(
+                    "{:<10} {:>7} {:>3} {:>10.1} {:>10.1} {:>9.3} {:>10.1} {:>9.3} {:>10.1} \
+                     {:>9.3} {:>10.1} {:>9.3}",
+                    shape_name(clustered),
+                    format!("{:.0}%", visible * 100.0),
+                    z,
+                    r4.baseline,
+                    r4.candidate,
+                    r4.ratio,
+                    uniform_zero.candidate,
+                    uniform_zero.ratio,
+                    from_six.candidate,
+                    from_six.ratio,
+                    uniform_one.candidate,
+                    uniform_one.ratio,
+                );
+            }
+        }
+    }
+}
+
+/// Prints every density-closure report with interleaved cost last.
+fn density_closure_reports(
+    bench: &mut WalkBench,
+    path: &[(u8, u32, u32)],
+    tiles: &[(u8, u32, u32)],
+) {
+    proportional_density(bench);
+    uniform_density_counts(bench, tiles);
+    hybrid_delta(bench, tiles);
+    if std::env::var_os("ATLAS_DENSITY_CLOSURE_TIMED").is_some() {
+        closure_selection_cost(bench, path);
+    }
+}
+
 /// Prints every calibration report the target carries, served tables first.
 fn reports(bench: &mut WalkBench, path: &[(u8, u32, u32)], tiles: &[(u8, u32, u32)]) {
     let rules = headline_rules();
@@ -2227,6 +2983,10 @@ fn benches(criterion: &mut Criterion) {
     let &(deep_z, deep_x, deep_y) = path.last().expect("the descent path holds the root");
 
     let tiles = audit_tiles(&bench, &path);
+    if std::env::var_os("ATLAS_DENSITY_CLOSURE_ONLY").is_some() {
+        density_closure_reports(&mut bench, &path, &tiles);
+        return;
+    }
     reports(&mut bench, &path, &tiles);
 
     timings(criterion, &mut bench, (deep_z, deep_x, deep_y));

@@ -1,16 +1,15 @@
 //! Double-precision `N`-dimensional vectors and their reductions.
 //!
-//! [`DVecN`] is the `f64` twin of [`VecN`], for the few consumers whose algorithms
-//! demand double precision throughout, such as classifier logits feeding a quasi-Newton optimizer.
+//! [`DVecN`] is the `f64` twin of [`VecN`], for the few consumers whose algorithms demand
+//! double precision throughout, such as classifier logits feeding the bounded trust-region
+//! Newton-CG solver.
 //! Its reductions ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp)) shift,
 //! exponentiate, and fold four lanes at a time; the exponential goes through
 //! [`kernel::exp_f64x4`](super::kernel), which currently lowers to one libm call per lane.
 //!
 //! [`BoxedDVecN`] owns a heap allocation aligned for [`f64x8`] and hands out [`AlignedDVecN`]
 //! references to it, mirroring [`BoxedVecN`](super::BoxedVecN): the storage for optimizer state -
-//! parameter and gradient vectors - whose dimension is far too large for the stack. The
-//! [`argmin`](mod@argmin) submodule implements the `argmin-math` operations on the boxed vector, so
-//! quasi-Newton solvers run their inner loops on these kernels.
+//! parameter and gradient vectors - whose dimension is far too large for the stack.
 
 use alloc::alloc::Global;
 use core::{
@@ -25,7 +24,6 @@ use super::{
     vecn::{AlignedVecN, VecN},
 };
 
-mod argmin;
 #[cfg(test)]
 mod tests;
 

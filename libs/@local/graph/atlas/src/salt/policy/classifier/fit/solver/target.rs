@@ -19,7 +19,7 @@ use crate::salt::policy::GeometryClass;
 
 /// A closed target rejected the raw triple.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) enum ClosedTargetError {
+pub(crate) enum ClosedTargetError {
     /// The raw component sum lies outside the unit-sum ulp tolerance.
     SumOutOfTolerance { sum: f64 },
     /// A normalized or derived component is non-finite or negative.
@@ -40,7 +40,7 @@ pub(super) struct Canonicalization {
 /// Stores the leading normalized components; the reference component is derived as
 /// `u_ref = 1 − Σ_c u_c` on demand, so it can never disagree with the stored components.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct ClosedTarget {
+pub(crate) struct ClosedTarget {
     /// The stored leading components, one per class ahead of the reference.
     components: [f64; LEADING_CLASSES],
 }

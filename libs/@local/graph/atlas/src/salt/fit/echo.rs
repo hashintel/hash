@@ -817,7 +817,7 @@ struct PolicyOptionsDef {
     // are a faithful echo of those runs.
     #[serde(with = "assembly_config", default)]
     assembly: AssemblyConfig,
-    #[serde(with = "classifier_fit_config", default)]
+    #[serde(with = "classifier_fit_config")]
     classifier_fit: ClassifierFitConfig,
 }
 
@@ -879,19 +879,58 @@ mod assembly_config {
 
 /// serde shadow of the classifier's fit configuration.
 ///
-/// Deserialization revalidates through the configuration's own domain check.
+/// The wire form mirrors the typed configuration: every validated scalar is echoed as its
+/// plain value, and deserialization rebuilds each field through its validating constructor
+/// before revalidating the cross-field constraints through the configuration's own domain
+/// check.
 mod classifier_fit_config {
+    use core::num::NonZero;
+
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
-    use crate::salt::policy::classifier::FitConfig;
+    use crate::{
+        math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction},
+        salt::policy::classifier::{FitConfig, PreparationSettings, SolverConfig},
+    };
+
+    /// The preparation knobs' wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct PreparationRecord {
+        regularization: f64,
+        target_sum_tolerance_ulps: u32,
+        curvature_floor: f64,
+    }
+
+    /// The solver knobs' wire form.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct SolverRecord {
+        preparation: PreparationRecord,
+        radius_minimum: f64,
+        radius_initial: f64,
+        radius_maximum: f64,
+        shrink_factor: f64,
+        expansion_factor: f64,
+        eta_accept: f64,
+        eta_expand: f64,
+        relative_cg_residual_tolerance: f64,
+        relative_scaled_gradient_tolerance: f64,
+        absolute_scaled_gradient_tolerance: f64,
+        objective_resolution_ulps: u32,
+        curvature_guard_ulps: u32,
+        boundary_residual_ulps: u32,
+        maximum_outer_iterations: u64,
+        maximum_cg_iterations: u64,
+        maximum_hvp_requests: u64,
+        maximum_objective_requests: u64,
+        maximum_gradient_requests: u64,
+        maximum_row_traversals: u64,
+        maximum_consecutive_rejections: u64,
+    }
 
     /// The fit settings' wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
-        regularization: f64,
-        maximum_iterations: u64,
-        gradient_tolerance: f64,
-        history_size: usize,
+        solver: SolverRecord,
         folds: usize,
         seed: u64,
     }
@@ -900,15 +939,102 @@ mod classifier_fit_config {
     where
         S: serde::Serializer,
     {
+        let solver = &config.solver;
         Record {
-            regularization: config.regularization,
-            maximum_iterations: config.maximum_iterations,
-            gradient_tolerance: config.gradient_tolerance,
-            history_size: config.history_size,
+            solver: SolverRecord {
+                preparation: PreparationRecord {
+                    regularization: solver.preparation.regularization.get(),
+                    target_sum_tolerance_ulps: solver.preparation.target_sum_tolerance_ulps.get(),
+                    curvature_floor: solver.preparation.curvature_floor.get(),
+                },
+                radius_minimum: solver.radius_minimum.get(),
+                radius_initial: solver.radius_initial.get(),
+                radius_maximum: solver.radius_maximum.get(),
+                shrink_factor: solver.shrink_factor.get(),
+                expansion_factor: solver.expansion_factor.get(),
+                eta_accept: solver.eta_accept.get(),
+                eta_expand: solver.eta_expand.get(),
+                relative_cg_residual_tolerance: solver.relative_cg_residual_tolerance.get(),
+                relative_scaled_gradient_tolerance: solver.relative_scaled_gradient_tolerance.get(),
+                absolute_scaled_gradient_tolerance: solver.absolute_scaled_gradient_tolerance.get(),
+                objective_resolution_ulps: solver.objective_resolution_ulps.get(),
+                curvature_guard_ulps: solver.curvature_guard_ulps.get(),
+                boundary_residual_ulps: solver.boundary_residual_ulps.get(),
+                maximum_outer_iterations: solver.maximum_outer_iterations.get(),
+                maximum_cg_iterations: solver.maximum_cg_iterations.get(),
+                maximum_hvp_requests: solver.maximum_hvp_requests.get(),
+                maximum_objective_requests: solver.maximum_objective_requests,
+                maximum_gradient_requests: solver.maximum_gradient_requests,
+                maximum_row_traversals: solver.maximum_row_traversals,
+                maximum_consecutive_rejections: solver.maximum_consecutive_rejections.get(),
+            },
             folds: config.folds,
             seed: config.seed,
         }
         .serialize(serializer)
+    }
+
+    /// A positive double rebuilt from its echoed value.
+    fn positive<E>(field: &str, value: f64) -> Result<DPositive, E>
+    where
+        E: serde::de::Error,
+    {
+        DPositive::new(value).ok_or_else(|| {
+            E::custom(format_args!(
+                "the echoed {field} {value} is not positive and finite"
+            ))
+        })
+    }
+
+    /// A non-negative double rebuilt from its echoed value.
+    fn non_negative<E>(field: &str, value: f64) -> Result<DNonNegative, E>
+    where
+        E: serde::de::Error,
+    {
+        DNonNegative::new(value).ok_or_else(|| {
+            E::custom(format_args!(
+                "the echoed {field} {value} is not non-negative and finite"
+            ))
+        })
+    }
+
+    /// An open unit fraction rebuilt from its echoed value.
+    fn fraction<E>(field: &str, value: f64) -> Result<OpenUnitFraction, E>
+    where
+        E: serde::de::Error,
+    {
+        OpenUnitFraction::new(value)
+            .ok_or_else(|| E::custom(format_args!("the echoed {field} {value} is not in (0, 1)")))
+    }
+
+    /// A factor beyond one rebuilt from its echoed value.
+    fn beyond_one<E>(field: &str, value: f64) -> Result<GreaterThanOne, E>
+    where
+        E: serde::de::Error,
+    {
+        GreaterThanOne::new(value).ok_or_else(|| {
+            E::custom(format_args!(
+                "the echoed {field} {value} is not greater than one"
+            ))
+        })
+    }
+
+    /// A non-zero 32-bit count rebuilt from its echoed value.
+    fn non_zero_u32<E>(field: &str, value: u32) -> Result<NonZero<u32>, E>
+    where
+        E: serde::de::Error,
+    {
+        NonZero::new(value)
+            .ok_or_else(|| E::custom(format_args!("the echoed {field} {value} is zero")))
+    }
+
+    /// A non-zero 64-bit budget rebuilt from its echoed value.
+    fn non_zero_u64<E>(field: &str, value: u64) -> Result<NonZero<u64>, E>
+    where
+        E: serde::de::Error,
+    {
+        NonZero::new(value)
+            .ok_or_else(|| E::custom(format_args!("the echoed {field} {value} is zero")))
     }
 
     pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<FitConfig, D::Error>
@@ -916,11 +1042,65 @@ mod classifier_fit_config {
         D: serde::Deserializer<'de>,
     {
         let record = Record::deserialize(deserializer)?;
+        let solver = &record.solver;
         let config = FitConfig {
-            regularization: record.regularization,
-            maximum_iterations: record.maximum_iterations,
-            gradient_tolerance: record.gradient_tolerance,
-            history_size: record.history_size,
+            solver: SolverConfig {
+                preparation: PreparationSettings {
+                    regularization: positive("regularization", solver.preparation.regularization)?,
+                    target_sum_tolerance_ulps: non_zero_u32(
+                        "target-sum tolerance",
+                        solver.preparation.target_sum_tolerance_ulps,
+                    )?,
+                    curvature_floor: positive(
+                        "curvature floor",
+                        solver.preparation.curvature_floor,
+                    )?,
+                },
+                radius_minimum: positive("minimum radius", solver.radius_minimum)?,
+                radius_initial: positive("initial radius", solver.radius_initial)?,
+                radius_maximum: positive("maximum radius", solver.radius_maximum)?,
+                shrink_factor: fraction("shrink factor", solver.shrink_factor)?,
+                expansion_factor: beyond_one("expansion factor", solver.expansion_factor)?,
+                eta_accept: fraction("acceptance threshold", solver.eta_accept)?,
+                eta_expand: fraction("expansion threshold", solver.eta_expand)?,
+                relative_cg_residual_tolerance: fraction(
+                    "CG residual tolerance",
+                    solver.relative_cg_residual_tolerance,
+                )?,
+                relative_scaled_gradient_tolerance: fraction(
+                    "relative gradient tolerance",
+                    solver.relative_scaled_gradient_tolerance,
+                )?,
+                absolute_scaled_gradient_tolerance: non_negative(
+                    "absolute gradient tolerance",
+                    solver.absolute_scaled_gradient_tolerance,
+                )?,
+                objective_resolution_ulps: non_zero_u32(
+                    "objective resolution",
+                    solver.objective_resolution_ulps,
+                )?,
+                curvature_guard_ulps: non_zero_u32("curvature guard", solver.curvature_guard_ulps)?,
+                boundary_residual_ulps: non_zero_u32(
+                    "boundary residual tolerance",
+                    solver.boundary_residual_ulps,
+                )?,
+                maximum_outer_iterations: non_zero_u64(
+                    "outer iteration budget",
+                    solver.maximum_outer_iterations,
+                )?,
+                maximum_cg_iterations: non_zero_u64(
+                    "CG iteration budget",
+                    solver.maximum_cg_iterations,
+                )?,
+                maximum_hvp_requests: non_zero_u64("HVP budget", solver.maximum_hvp_requests)?,
+                maximum_objective_requests: solver.maximum_objective_requests,
+                maximum_gradient_requests: solver.maximum_gradient_requests,
+                maximum_row_traversals: solver.maximum_row_traversals,
+                maximum_consecutive_rejections: non_zero_u64(
+                    "rejection budget",
+                    solver.maximum_consecutive_rejections,
+                )?,
+            },
             folds: record.folds,
             seed: record.seed,
         };

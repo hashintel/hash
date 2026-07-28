@@ -27,7 +27,7 @@ use crate::math::{AlignedDVecN, BoxedDVecN};
 
 /// The terminating tag of a successful inner solve.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum CgTag {
+pub(crate) enum CgTag {
     /// The residual met its relative tolerance strictly inside the trust region.
     ResidualConverged,
     /// The iterate reached the trust boundary.

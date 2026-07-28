@@ -75,7 +75,7 @@ fn config(seed: u64) -> FitConfig {
 
 fn repository() -> SaltRepository {
     SaltRepository {
-        version: RepositoryVersion::V0,
+        version: RepositoryVersion::V1,
         files: SaltFiles {
             representations: file("representations.arr"),
             card_embeddings: file("card-embeddings.arr"),

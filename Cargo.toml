@@ -113,8 +113,6 @@ anstream                           = { version = "1.0.0", default-features = fal
 anstyle                            = { version = "1.0.13", default-features = false }
 anstyle-lossy                      = { version = "1.1.4", default-features = false }
 anstyle-svg                        = { version = "1.0.0", default-features = false }
-argmin                             = { version = "0.11.0", default-features = false }
-argmin-math                        = { version = "0.5.1", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
 aws-config                         = { version = "1.8.10" }
 aws-sdk-s3                         = { version = "1.110.0", default-features = false }

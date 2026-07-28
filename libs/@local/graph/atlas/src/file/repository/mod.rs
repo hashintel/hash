@@ -10,9 +10,11 @@
 //! only versions this module implements, so reading a repository of another version fails before
 //! anything is interpreted.
 //!
-//! The layout (directory structure, naming) is version 0 and **mutable**: change it freely to fit
+//! The layout (directory structure, naming) is version 1 and **mutable**: change it freely to fit
 //! what the pipeline needs and increment [`RepositoryVersion`] when you do; published files are
-//! immutable, the conventions around them are not, until they stabilize.
+//! immutable, the conventions around them are not, until they stabilize. Retired versions stay
+//! retired: a repository of an earlier layout is rejected whole, never reinterpreted, and its
+//! store requires a fresh generation.
 
 use alloc::borrow::Cow;
 
@@ -30,7 +32,10 @@ mod tests;
 )]
 #[serde(into = "u32", try_from = "u32")]
 pub(crate) enum RepositoryVersion {
-    V0 = 0,
+    /// The bounded-solver layout: the metadata document echoes the classifier fit's full
+    /// solver configuration. Version 0, whose echo carried the retired L-BFGS optimizer's
+    /// settings, is rejected.
+    V1 = 1,
 }
 
 impl From<RepositoryVersion> for u32 {
@@ -46,19 +51,19 @@ impl TryFrom<u32> for RepositoryVersion {
     #[inline]
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(Self::V0),
+            1 => Ok(Self::V1),
             _ => Err(UnknownRepositoryVersion(value)),
         }
     }
 }
 
-/// A repository version this module does not implement.
+/// A repository version this module does not implement: retired or not yet defined.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct UnknownRepositoryVersion(u32);
 
 impl core::fmt::Display for UnknownRepositoryVersion {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(fmt, "unknown repository version {}", self.0)
+        write!(fmt, "unsupported repository version {}", self.0)
     }
 }
 

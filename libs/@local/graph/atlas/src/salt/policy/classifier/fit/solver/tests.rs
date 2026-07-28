@@ -10,7 +10,7 @@ use core::{
 
 use super::{
     super::{
-        TrainingRow, TrainingSet,
+        TrainingRow,
         objective::{self, Parameters},
     },
     AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
@@ -36,7 +36,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AlignedVecN, BoxedDVecN, BoxedVecN, DNonNegative, DPositive, OpenUnitFraction,
+        AlignedVecN, BoxedDVecN, BoxedVecN, DNonNegative, DPositive, DVecN, OpenUnitFraction,
         d_non_negative, d_positive, greater_than_one, open_unit_fraction,
     },
     salt::policy::GeometryClass,
@@ -650,27 +650,50 @@ fn objective_at_zero_is_ln_three() {
     );
 }
 
-/// The contrast objective agrees with the legacy raw-space objective at `W = BA`, `b = Ba`.
+/// The raw-space objective over the full corpus: a per-row reference over [`objective::logits`]
+/// sharing no code with the contrast evaluation.
+fn raw_objective(corpus: &Corpus, raw: &Parameters, regularization: f64) -> f64 {
+    let mut objective = 0.0;
+    for (row, embedding) in corpus.rows.iter().zip(corpus.embeddings()) {
+        let logits = objective::logits(raw, embedding);
+        let log_normalizer = DVecN::new(logits).log_sum_exp();
+
+        let target_logit = row
+            .target
+            .into_iter()
+            .zip(logits)
+            .map(|(target, logit)| target * logit)
+            .sum::<f64>();
+
+        let target_mass = row.target.into_iter().sum::<f64>();
+        objective = row.weight.mul_add(
+            target_mass.mul_add(log_normalizer, -target_logit),
+            objective,
+        );
+    }
+
+    let (rows, _) = raw.as_array().as_chunks::<CANONICAL_DIMENSIONS>();
+    for row in rows {
+        objective = (0.5 * regularization).mul_add(DVecN::from_ref(row).norm_squared(), objective);
+    }
+    objective
+}
+
+/// The contrast objective agrees with the raw-space objective at `W = BA`, `b = Ba`.
 #[test]
-fn objective_matches_the_legacy_implementation() {
+fn objective_matches_the_raw_space_reference() {
     let corpus = valid_corpus();
     let mut counters = WorkCounters::default();
     let prepared = prepare(corpus.embeddings(), &corpus.rows, settings(), &mut counters)
         .expect("the fixture corpus prepares");
     let parameters = solver_parameters();
 
-    let training =
-        TrainingSet::new(corpus.embeddings(), &corpus.rows).expect("the fixture corpus validates");
-    let folds = vec![0_usize; corpus.rows.len()];
-    let legacy = objective::Objective {
-        training,
-        folds: &folds,
-        held_out: None,
-        regularization: settings().regularization.get(),
-    };
-
     let mine = prepared.objective_only(&parameters, &mut counters);
-    let reference = legacy.cost_value(&raw_parameters(&parameters)) / prepared.total_weight;
+    let reference = raw_objective(
+        &corpus,
+        &raw_parameters(&parameters),
+        settings().regularization.get(),
+    ) / prepared.total_weight;
     assert!(
         (mine - reference).abs() <= 1.0e-12 * reference.abs().max(1.0),
         "{mine} vs {reference}",
@@ -683,19 +706,9 @@ fn raw_gauges_are_flat_and_projected_away() {
     let corpus = valid_corpus();
     let parameters = solver_parameters();
 
-    let training =
-        TrainingSet::new(corpus.embeddings(), &corpus.rows).expect("the fixture corpus validates");
-    let folds = vec![0_usize; corpus.rows.len()];
-    // Regularization zero isolates the data term, whose gauges are exact.
-    let data_only = objective::Objective {
-        training,
-        folds: &folds,
-        held_out: None,
-        regularization: 0.0,
-    };
-
     let raw = raw_parameters(&parameters);
-    let base = data_only.cost_value(&raw);
+    // Regularization zero isolates the data term, whose gauges are exact.
+    let base = raw_objective(&corpus, &raw, 0.0);
 
     // Intercept gauge b → b + c·1 and coefficient gauge W → W + 1vᵀ, applied together.
     let mut shifted = raw;
@@ -711,7 +724,7 @@ fn raw_gauges_are_flat_and_projected_away() {
             *intercept += 0.37;
         }
     }
-    let gauged = data_only.cost_value(&shifted);
+    let gauged = raw_objective(&corpus, &shifted, 0.0);
     assert!(
         (gauged - base).abs() <= 1.0e-10 * base.abs().max(1.0),
         "{gauged} vs {base}",
@@ -1438,6 +1451,10 @@ fn boundary_construction_replica(
 /// `‖direction‖ = 3.404·Δ`, `interior·direction ≈ −1.5624`, `Δ = 0.7`. A stricter valid gate
 /// therefore rejects a finite crossing a wider valid gate admits: the tolerance is a
 /// calibration decision at this dimension, not a formality.
+///
+/// The residuals are asserted exactly: they are pinned receipt data, empirically pinned on
+/// aarch64-apple-darwin. The operation sequence behind them is fixed, so an environment that
+/// rounds differently fails these assertions by name instead of silently shifting the receipt.
 #[test]
 fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
     let radius = 0.7;
@@ -1449,18 +1466,10 @@ fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
     let (replica_step, built, returned) =
         boundary_construction_replica(&interior, &direction, radius)
             .expect("the pinned crossing constructs");
-    assert!(built > 8.0, "the built residual exceeds the stricter gate");
-    assert!(
-        returned > 8.0,
-        "the returned residual exceeds the stricter gate"
-    );
-    assert!(
-        built <= 64.0,
-        "the built residual stays within the wider gate"
-    );
-    assert!(
-        returned <= 64.0,
-        "the returned residual stays within the wider gate"
+    assert_eq!(built, 25.0, "the built residual is pinned receipt data");
+    assert_eq!(
+        returned, 24.0,
+        "the returned residual is pinned receipt data"
     );
 
     assert_eq!(
@@ -1495,7 +1504,124 @@ fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
     let mut normalized = admitted.step;
     *normalized /= radius;
     let reference = (compensated_l2(normalized.as_array()) - 1.0).abs() / f64::EPSILON;
-    assert!(reference > 8.0 && reference <= 64.0);
+    assert_eq!(
+        reference, 23.0,
+        "the compensated reference is pinned receipt data"
+    );
+}
+
+/// The declared boundary-residual calibration sweep: the permanent receipt of the observed
+/// envelope at the admitted dimension, 6146.
+///
+/// The grid is the declared calibration domain over [`spiked_dense`] crossings: interior and
+/// direction phases `{k/40 : k = 0..39}`, radii `{9.5e-4, 0.3, 0.7, 1.0, 1.6e4}`, interior
+/// norm fractions `{0.31, 0.62, 0.87, 0.9392, 0.99, 0.999}`, and direction norm fractions
+/// `{1.0, 3.404, 9.7}` - 144,000 crossings, every one of which constructs. Residuals are the
+/// radius-normalized built and returned deviations of [`boundary_construction_replica`], in
+/// ulps of one, under the arithmetic the replica shares with [`boundary_step`]:
+/// [`checked_dot`]/[`checked_norm_squared`]/[`stable_l2`] over the house pinned striped
+/// folds.
+///
+/// The envelope is pinned exactly: largest built residual 44.0 ulp(1), attained at
+/// `(φ_i 0.55, φ_d 0.2, Δ 9.5e-4, f_i 0.9392, f_d 9.7)`; largest returned residual
+/// 44.5 ulp(1), attained at `(0.8, 0.125, 9.5e-4, 0.999, 9.7)`; none above 64; the partition
+/// counts classify `max(built, returned)` against the 8 and 64 gates. The pinned values are
+/// empirical receipt data on aarch64-apple-darwin. The sweep selects no production tolerance
+/// and claims no maximal error: it persists the procedure and what it observed.
+///
+/// Reproduce with:
+///
+/// ```text
+/// cargo nextest run -p hash-graph-atlas --all-features --lib \
+///     boundary_residual_calibration_sweep --run-ignored all
+/// ```
+#[test]
+#[ignore = "the 144,000-crossing sweep is a calibration receipt, not a per-commit gate"]
+fn boundary_residual_calibration_sweep_pins_the_observed_envelope() {
+    let phases: Vec<f64> = (0..40_i32).map(|step| f64::from(step) / 40.0).collect();
+    let radii = [9.5e-4_f64, 0.3, 0.7, 1.0, 1.6e4];
+    let interior_fractions = [0.31_f64, 0.62, 0.87, 0.9392, 0.99, 0.999];
+    let direction_fractions = [1.0_f64, 3.404, 9.7];
+
+    let mut attempted = 0_u64;
+    let mut constructed = 0_u64;
+    let mut over_64 = 0_u64;
+    let mut in_window = 0_u64;
+    let mut within_8 = 0_u64;
+    let mut max_built = 0.0_f64;
+    let mut max_returned = 0.0_f64;
+
+    for &radius in &radii {
+        let directions: Vec<BoxedDVecN<SOLVER_DIMENSIONS>> = direction_fractions
+            .iter()
+            .flat_map(|&fraction| {
+                phases
+                    .iter()
+                    .map(move |&phase| spiked_dense(fraction * radius, phase))
+            })
+            .collect();
+        for &fraction in &interior_fractions {
+            for &phase in &phases {
+                let interior = spiked_dense(fraction * radius, phase);
+                for direction in &directions {
+                    attempted += 1;
+                    let Some((_, built, returned)) =
+                        boundary_construction_replica(&interior, direction, radius)
+                    else {
+                        continue;
+                    };
+                    constructed += 1;
+                    let peak = built.max(returned);
+                    if peak > 64.0 {
+                        over_64 += 1;
+                    } else if peak > 8.0 {
+                        in_window += 1;
+                    } else {
+                        within_8 += 1;
+                    }
+                    max_built = max_built.max(built);
+                    max_returned = max_returned.max(returned);
+                }
+            }
+        }
+    }
+
+    assert_eq!(attempted, 144_000);
+    assert_eq!(constructed, 144_000, "every declared crossing constructs");
+    assert_eq!(
+        max_built, 44.0,
+        "the largest built residual is pinned receipt data"
+    );
+    assert_eq!(
+        max_returned, 44.5,
+        "the largest returned residual is pinned receipt data"
+    );
+    assert_eq!(over_64, 0, "no crossing exceeds the wider gate");
+    assert_eq!(in_window, 17_947);
+    assert_eq!(within_8, 126_053);
+
+    // One exact parameter tuple attains each maximum.
+    let (_, built, _) = boundary_construction_replica(
+        &spiked_dense(0.9392 * 9.5e-4, 0.55),
+        &spiked_dense(9.7 * 9.5e-4, 0.2),
+        9.5e-4,
+    )
+    .expect("the built-maximum crossing constructs");
+    assert_eq!(
+        built, max_built,
+        "the pinned tuple attains the built maximum"
+    );
+
+    let (_, _, returned) = boundary_construction_replica(
+        &spiked_dense(0.999 * 9.5e-4, 0.8),
+        &spiked_dense(9.7 * 9.5e-4, 0.125),
+        9.5e-4,
+    )
+    .expect("the returned-maximum crossing constructs");
+    assert_eq!(
+        returned, max_returned,
+        "the pinned tuple attains the returned maximum"
+    );
 }
 
 /// Rows whose targets all close to the uniform distribution: the origin is the minimizer.
@@ -1978,8 +2104,9 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
 /// system rides only the exposed identity.
 #[test]
 #[expect(
-    clippy::little_endian_bytes,
-    reason = "the digest preimage is pinned to canonical little-endian bytes on every platform"
+    clippy::host_endian_bytes,
+    reason = "the digest preimage is native in-memory bytes; the component walk proves the \
+              preimage layout on every environment"
 )]
 fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     let corpus = uniform_corpus();
@@ -1998,13 +2125,14 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(coordinates.dimensions, SOLVER_DIMENSIONS as u64);
 
     // Re-derive a digest from the exposed tag and dimension; agreement proves every preimage
-    // starts with exactly those bytes. The coordinate system does not enter the preimage.
+    // starts with exactly those bytes, followed by the components' native bytes in vector
+    // order. The coordinate system does not enter the preimage.
     let vector = flat(&[(0, 1.5), (7, -0.25)]);
     let mut hasher = Sha256::new();
     hasher.update(coordinates.domain_tag.as_bytes());
-    hasher.update(&coordinates.dimensions.to_le_bytes());
+    hasher.update(&coordinates.dimensions.to_ne_bytes());
     for component in vector.as_array() {
-        hasher.update(&component.to_bits().to_le_bytes());
+        hasher.update(&component.to_bits().to_ne_bytes());
     }
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }

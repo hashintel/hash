@@ -25,7 +25,7 @@ use crate::{
     salt::policy::GeometryClass,
 };
 
-mod basis;
+pub(super) mod basis;
 #[cfg(feature = "bench")]
 pub mod bench;
 mod boundary;
@@ -46,6 +46,13 @@ mod work;
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::{
+    config::{SolverConfig, SolverConfigError},
+    prepare::{PreparationError, PreparationSettings},
+    terminal::{CgStage, SolverFailure},
+};
+pub(super) use self::{prepare::prepare, problem::ScaledProblem, solve::solve, work::WorkCounters};
 
 /// Augmented coordinates per contrast row: the embedding dimensions plus one intercept.
 const AUGMENTED_DIMENSIONS: usize = CANONICAL_DIMENSIONS + 1;
@@ -68,11 +75,11 @@ const SOLVER_DIMENSIONS: usize = CONTRAST_ROWS * AUGMENTED_DIMENSIONS;
 /// [`from_flat`](Self::from_flat) / [`to_flat`](Self::to_flat) convert against the flat
 /// contrast-major layout without reordering coordinates.
 #[derive(Debug, Clone, PartialEq)]
-struct ContrastVector {
+pub(super) struct ContrastVector {
     /// Coefficient rows `A_r`, one per contrast coordinate, over the embedding dimensions.
-    coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; CONTRAST_ROWS],
+    pub coefficients: [BoxedDVecN<CANONICAL_DIMENSIONS>; CONTRAST_ROWS],
     /// Intercepts `a_r`, one per contrast coordinate.
-    intercepts: [f64; CONTRAST_ROWS],
+    pub intercepts: [f64; CONTRAST_ROWS],
 }
 
 impl ContrastVector {

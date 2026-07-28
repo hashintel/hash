@@ -11,7 +11,6 @@ authors.workspace = true
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
-argmin-math    = { workspace = true, features = ["primitives"], public = true }
 axum           = { workspace = true, public = true }
 camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
@@ -32,7 +31,6 @@ hash-graph-types               = { workspace = true }
 
 # Private third-party dependencies
 aide                  = { workspace = true, features = ["axum", "axum-json", "macros", "scalar"] }
-argmin                = { workspace = true }
 burn                  = { workspace = true, features = ["autodiff", "ndarray"] }
 chacha20poly1305      = { workspace = true }
 clap                  = { workspace = true, features = ["derive", "env"] }
@@ -90,7 +88,7 @@ gpu = ["burn/metal"]
 # operator binary over the same modules.
 
 [[example]]
-name              = "classifier_compare"
+name              = "classifier_probe"
 required-features = ["bench"]
 
 [[example]]

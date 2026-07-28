@@ -17,7 +17,7 @@ use crate::math::{AlignedDVecN, BoxedDVecN};
 
 /// A prepared corpus and validated configuration evaluated in scaled coordinates.
 #[derive(Debug)]
-pub(super) struct ScaledProblem<'corpus> {
+pub(crate) struct ScaledProblem<'corpus> {
     /// The validated corpus with its closed targets and preparation-time diagonal.
     pub prepared: Prepared<'corpus>,
     /// The validated solver-loop configuration.
@@ -26,7 +26,7 @@ pub(super) struct ScaledProblem<'corpus> {
 
 impl ScaledProblem<'_> {
     /// The physical contrast point `θ(ζ) = D⁻¹ζ`.
-    pub(super) fn point(&self, zeta: &AlignedDVecN<SOLVER_DIMENSIONS>) -> ContrastVector {
+    pub(crate) fn point(&self, zeta: &AlignedDVecN<SOLVER_DIMENSIONS>) -> ContrastVector {
         ContrastVector::from_flat(&self.prepared.scaling.divide(zeta))
     }
 

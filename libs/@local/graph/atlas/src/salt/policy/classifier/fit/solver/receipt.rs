@@ -20,7 +20,7 @@ use crate::{
 
 /// The start-state receipt of one started outer iteration and its completion facts.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct OuterReceipt {
+pub(crate) struct OuterReceipt {
     /// One-based index of the started outer iteration.
     pub outer_iteration: u64,
     /// Trust radius entering the iteration.
@@ -41,7 +41,7 @@ pub(super) struct OuterReceipt {
 
 /// The candidate classification of one outer iteration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum CandidateOutcome {
+pub(crate) enum CandidateOutcome {
     /// The trial objective was not finite; the candidate was rejected.
     RejectedNonFinite,
     /// The acceptance ratio fell below its threshold; the candidate was rejected.
@@ -54,7 +54,7 @@ pub(super) enum CandidateOutcome {
 
 /// The accepted-step curvature diagnostic; a failure is a recorded reason, never a terminal.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) enum CurvatureDiagnostic {
+pub(crate) enum CurvatureDiagnostic {
     /// The accepted-step curvature: the dot `p·y` and its normalization `(p·y) / (p·p)`.
     Value {
         /// The dot `p·y` with `y = g_trial − g`.
@@ -78,7 +78,7 @@ pub(super) enum CurvatureDiagnostic {
 /// counters and the run terminal, not here. A recorded scalar that failed its own finiteness is
 /// also [`None`]; the terminal outcome of the run names the failure.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub(super) struct OuterOutcome {
+pub(crate) struct OuterOutcome {
     /// The inner CG outcome tag.
     pub tag: Option<CgTag>,
     /// Norm of the returned step `‖p‖`.
@@ -108,7 +108,7 @@ pub(super) struct OuterOutcome {
 /// byte-identical to the prefix of every digest preimage; the coordinate system is separately
 /// exposed by this identity and does not enter the preimage.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct ReceiptCoordinates {
+pub(crate) struct ReceiptCoordinates {
     /// The digest preimage domain tag, naming the receipt/digest version.
     pub domain_tag: &'static str,
     /// The coordinate system of every digested vector.
@@ -126,16 +126,15 @@ impl ReceiptCoordinates {
     };
 }
 
-/// The digest of a flat solver vector: the domain tag, the declared dimension, then every
-/// component's bits in vector order.
-#[expect(
-    clippy::little_endian_bytes,
-    reason = "the digest preimage is pinned to canonical little-endian bytes on every platform"
-)]
+/// The digest of a flat solver vector: the domain tag's UTF-8 bytes, the declared dimension,
+/// then every component in vector order, both as native in-memory bytes.
+///
+/// Digest identity is environment-scoped: a replay in the same environment reproduces the
+/// bytes bit-for-bit, and no cross-build or cross-architecture byte identity is claimed.
 pub(super) fn vector_digest(vector: &AlignedDVecN<SOLVER_DIMENSIONS>) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(ReceiptCoordinates::CURRENT.domain_tag.as_bytes());
-    hasher.update(&ReceiptCoordinates::CURRENT.dimensions.to_le_bytes());
+    hasher.update(ReceiptCoordinates::CURRENT.dimensions.as_bytes());
     hasher.update(vector.as_bytes());
     hasher.finalize()
 }
