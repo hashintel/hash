@@ -700,6 +700,7 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
                   id: node.id,
                   label: node.label,
                   type: node.type,
+                  timingGrain: node.timing_grain,
                 })}
               </span>
             </Tooltip>

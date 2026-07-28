@@ -9,6 +9,8 @@ import {
 import {
   filterGraphNodeByDateRange,
   filterStepByDateRange,
+  windowGraphNodeToRange,
+  windowStepToRange,
 } from "./range-filter";
 
 describe("filterStepByDateRange", () => {
@@ -79,6 +81,20 @@ describe("filterStepByDateRange", () => {
     expect(out.complete_timing?.stats.n).toBe(1);
     expect(out.complete_timing?.stats.median).toBe(26);
   });
+
+  it("leaves empty kept means null while retaining raw windowed points", () => {
+    const step = stepFrom([obs("2026-04", 13)]);
+    step.mean_observations = [obs("2026-01", 10)];
+    step.complete_timing = timingSeriesFrom([obs("2026-04", 26)]);
+    step.complete_timing.mean_observations = [obs("2026-01", 20)];
+
+    const out = windowStepToRange(step, "3m");
+
+    expect(out.stats.n).toBe(1);
+    expect(out.stats.mean).toBeNull();
+    expect(out.complete_timing?.stats.n).toBe(1);
+    expect(out.complete_timing?.stats.mean).toBeNull();
+  });
 });
 
 describe("filterGraphNodeByDateRange", () => {
@@ -131,5 +147,18 @@ describe("filterGraphNodeByDateRange", () => {
     expect(out.mean_observations).toBeUndefined();
     expect(out.stats.mean).toBe(1.8);
     expect(out.stats.p95).toBe(3.5);
+  });
+
+  it("leaves an empty kept node mean null while retaining raw points", () => {
+    const out = windowGraphNodeToRange(
+      makeNode({
+        observations: [obs("2026-04", 13)],
+        mean_observations: [obs("2026-01", 10)],
+      }),
+      "3m",
+    );
+
+    expect(out.stats.n).toBe(1);
+    expect(out.stats.mean).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { countNoun, countTooltip } from "./observation-labels";
+import { countNoun, countTooltip, shortCountLabel } from "./observation-labels";
 
 describe("campaign observation labels", () => {
   const qaCampaign = {
@@ -12,6 +12,7 @@ describe("campaign observation labels", () => {
 
   it("labels campaign-grain QA timing observations as campaigns", () => {
     expect(countNoun(qaCampaign)).toBe("campaigns");
+    expect(shortCountLabel(7, qaCampaign)).toBe("7 campaigns");
     expect(
       countTooltip({ ...qaCampaign, count: 7, rangeLabel: "12m" }),
     ).toContain("7 campaigns in the last 12 months");

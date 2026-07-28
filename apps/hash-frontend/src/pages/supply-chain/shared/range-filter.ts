@@ -91,6 +91,14 @@ function filterObservationsByCutoff(
   };
 }
 
+function meanForObservations(observations: Observation[]): number | null {
+  if (observations.length === 0) {
+    return null;
+  }
+  return computeStats(observations.map((observation) => observation.value))
+    .mean;
+}
+
 function filterYieldData(yd: YieldData, cutoff: string): YieldData {
   const row = filterObservationsByCutoff(yd.observations, yd.monthly, cutoff);
   return {
@@ -321,9 +329,7 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
       ? rawStats
       : {
           ...rawStats,
-          mean: computeStats(
-            meanObservations.map((observation) => observation.value),
-          ).mean,
+          mean: meanForObservations(meanObservations),
         };
   return {
     ...ts,
@@ -364,9 +370,7 @@ function filterTimingSeries(ts: TimingSeries, cutoff: string): TimingSeries {
       ? rawStats
       : {
           ...rawStats,
-          mean: computeStats(
-            meanObservations.map((observation) => observation.value),
-          ).mean,
+          mean: meanForObservations(meanObservations),
         };
   const filteredMonthly: MonthlyBucket[] = selectedStep.monthly.filter(
     (month) => month.month >= cutoff,
@@ -514,9 +518,7 @@ export function windowGraphNodeToRange(
       ? rawStats
       : {
           ...rawStats,
-          mean: computeStats(
-            meanObservations.map((observation) => observation.value),
-          ).mean,
+          mean: meanForObservations(meanObservations),
         };
   const filteredMonthly = (selectedNode.monthly ?? []).filter(
     (month) => month.month >= cutoff,
