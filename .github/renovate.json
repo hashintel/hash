@@ -37,9 +37,7 @@
         "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:export )?MISE_VERSION=(?<currentValue>[0-9][^\\s]*)\\s"
       ],
       "extractVersionTemplate": "^v(?<version>.+)$"
-    }
-  ],
-  "customManagers": [
+    },
     {
       "customType": "regex",
       "description": "Keep the `rust` entry in the mise lockfile in sync with `rust-toolchain.toml`. The mise manager cannot do this itself because the Rust toolchain enters mise through the idiomatic version file, not through the mise config.",
