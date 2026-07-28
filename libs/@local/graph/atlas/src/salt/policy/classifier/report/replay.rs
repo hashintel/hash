@@ -101,7 +101,8 @@ impl CardEmbedder for TableEmbedder {
 pub(crate) struct Frozen {
     supplied: SuppliedAnnotations,
     embedder: TableEmbedder,
-    document_verified: bool,
+    staged_document_digest: Sha256Digest,
+    document_digest: Sha256Digest,
     staged_embeddings_digest: Sha256Digest,
     staged_hashes_digest: Sha256Digest,
     staged_classifier_digest: Sha256Digest,
@@ -165,7 +166,8 @@ impl Frozen {
         Self {
             supplied,
             embedder,
-            document_verified: corpus_digest == corpus_file.hash,
+            staged_document_digest: corpus_file.hash,
+            document_digest: corpus_digest,
             staged_embeddings_digest: embeddings_file.hash,
             staged_hashes_digest: hashes_file.hash,
             staged_classifier_digest: files.classifier.hash,
@@ -182,8 +184,10 @@ impl Frozen {
     /// assembly, or when the reassembled table does not reproduce the staged bytes.
     pub(crate) async fn reconstruct(&self) -> Reconstructed {
         assert!(
-            self.document_verified,
-            "the staged corpus document reproduces its recorded digest",
+            self.document_digest == self.staged_document_digest,
+            "the staged corpus document reproduces its recorded digest (recorded {}, loaded {})",
+            self.staged_document_digest,
+            self.document_digest,
         );
 
         let corpus = assemble(self.supplied.document(), &self.embedder, self.assembly)
@@ -201,11 +205,16 @@ impl Frozen {
 
         assert!(
             embeddings_digest == self.staged_embeddings_digest,
-            "the reassembled embedding table reproduces the staged bytes",
+            "the reassembled embedding table reproduces the staged bytes (staged {}, reassembled \
+             {})",
+            self.staged_embeddings_digest,
+            embeddings_digest,
         );
         assert!(
             hashes_digest == self.staged_hashes_digest,
-            "the reassembled hash column reproduces the staged bytes",
+            "the reassembled hash column reproduces the staged bytes (staged {}, reassembled {})",
+            self.staged_hashes_digest,
+            hashes_digest,
         );
 
         Reconstructed { corpus }

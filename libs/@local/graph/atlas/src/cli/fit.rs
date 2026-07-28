@@ -24,15 +24,6 @@ use crate::{
     reason = "the flags are independent operator switches"
 )]
 pub struct FitArgs {
-    /// The generation root directory.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_ROOT",
-        value_parser = super::parse_root,
-        value_hint = ValueHint::DirPath,
-    )]
-    root: GenerationRoot,
-
     /// The run seed; equal seeds replay every draw, the admission probe's included.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
     seed: u64,
@@ -250,10 +241,10 @@ impl FitCommand {
 
         Ok(())
     }
-}
 
-impl From<FitArgs> for FitCommand {
-    fn from(args: FitArgs) -> Self {
+    /// Resolves the parsed flags into one fit invocation over the root.
+    #[must_use]
+    pub fn new(root: super::RootArgs, args: FitArgs) -> Self {
         let classifier = match (args.annotations, args.classifier) {
             (Some(annotations), None) => ClassifierSource::Annotations(annotations),
             (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
@@ -273,7 +264,7 @@ impl From<FitArgs> for FitCommand {
         };
 
         Self {
-            root: args.root,
+            root: root.root,
             report: args.report,
             options: Options {
                 seed: args.seed,

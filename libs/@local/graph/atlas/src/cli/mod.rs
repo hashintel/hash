@@ -24,6 +24,8 @@
 
 use std::io;
 
+use clap::ValueHint;
+
 use crate::serve::GenerationRoot;
 
 mod fit;
@@ -41,6 +43,22 @@ pub use self::{
     serve::{ServeArgs, ServeCommand, ServeError},
 };
 pub use crate::salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary};
+
+/// The generation-root flag, shared by every command that opens one.
+///
+/// Hosts flatten it exactly once per invocation: the graph binary at the `atlas` level, the
+/// standalone shell inside each subcommand.
+#[derive(Debug, clap::Args)]
+pub struct RootArgs {
+    /// The generation root directory.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_ROOT",
+        value_parser = parse_root,
+        value_hint = ValueHint::DirPath,
+    )]
+    root: GenerationRoot,
+}
 
 /// Parses a generation-root argument: opens the root, creating the directory when absent.
 fn parse_root(value: &str) -> io::Result<GenerationRoot> {

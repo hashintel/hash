@@ -1,20 +1,14 @@
 //! The probe command: one receipt-dumping solve of a fold subset from a frozen corpus.
 
-use clap::{Args, ValueHint};
+use clap::Args;
 
-use crate::{file::generation::GenerationId, serve::GenerationRoot};
+use crate::file::generation::GenerationId;
 
 /// Root, generation, and fold-assignment settings of one probe.
 #[derive(Debug, Args)]
 pub struct ProbeArgs {
-    /// The generation root directory.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_ROOT",
-        value_parser = crate::cli::parse_root,
-        value_hint = ValueHint::DirPath,
-    )]
-    root: GenerationRoot,
+    #[command(flatten)]
+    root: crate::cli::RootArgs,
 
     /// Hex identity of the published generation whose staged corpus is probed.
     #[arg(long)]
@@ -41,7 +35,7 @@ impl ProbeArgs {
         crate::math::kernel::verify_cpu_baseline();
 
         crate::salt::policy::classifier::fit::solver::report::probe_fold(
-            &self.root,
+            &self.root.root,
             self.generation,
             self.seed,
             self.fold,

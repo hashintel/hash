@@ -2,10 +2,9 @@
 //!
 //! The probe reconstructs the classifier training set of one published generation from its
 //! staged annotation artifacts ([`replay`](crate::salt::policy::classifier::report::replay)),
-//! re-runs
-//! the bounded solver over one fold subset under the generation's echoed fit configuration -
-//! with the fold-assignment seed supplied externally, so any assignment can be probed - and
-//! dumps every receipt: the terminal is the observation.
+//! re-runs the bounded solver over one fold subset under the generation's echoed fit
+//! configuration - with the fold-assignment seed supplied externally, so any assignment can be
+//! probed - and dumps every receipt: the terminal is the observation.
 //!
 //! Failures panic with the failing step's error: a probe run has no recovery path, and the
 //! error is the diagnosis.

@@ -4,22 +4,13 @@ use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
 
 use super::ReportError;
-use crate::{
-    file::generation::GenerationId, salt::policy::classifier::report::ClassifierReport,
-    serve::GenerationRoot,
-};
+use crate::{file::generation::GenerationId, salt::policy::classifier::report::ClassifierReport};
 
 /// Root, generation, and output settings of one classifier report.
 #[derive(Debug, Args)]
 pub struct ClassifierArgs {
-    /// The generation root directory.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_ROOT",
-        value_parser = crate::cli::parse_root,
-        value_hint = ValueHint::DirPath,
-    )]
-    root: GenerationRoot,
+    #[command(flatten)]
+    root: crate::cli::RootArgs,
 
     /// Hex identity of the published generation whose classifier is reported.
     #[arg(long)]
@@ -50,7 +41,7 @@ impl ClassifierArgs {
     pub(super) async fn run(self) -> Result<(), ReportError> {
         crate::math::kernel::verify_cpu_baseline();
 
-        let report = ClassifierReport::compile(&self.root, self.generation).await;
+        let report = ClassifierReport::compile(&self.root.root, self.generation).await;
 
         let bundle =
             serde_json::to_vec_pretty(&report).expect("the report bundle serializes to JSON");

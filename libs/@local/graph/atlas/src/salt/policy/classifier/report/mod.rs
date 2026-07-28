@@ -1,8 +1,7 @@
 //! The classifier report: a certified refit of one published generation's deployed model.
 //!
 //! The report reconstructs the classifier training set from the generation's staged annotation
-//! artifacts (the [`replay`] facility), re-runs the full production fit under the
-//! echoed
+//! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
 //! configuration - fold assignment seeded by the echo, so the refit is deterministic - and
 //! asserts that the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. The
 //! bundle therefore provably describes the deployed model, not a lookalike.
@@ -132,7 +131,8 @@ impl ClassifierReport {
             .expect("writing to a sink performs no fallible IO");
         assert!(
             recomputed == staged,
-            "the refit model reproduces the staged classifier artifact bytes",
+            "the refit model reproduces the staged classifier artifact bytes (staged {staged}, \
+             recomputed {recomputed})",
         );
 
         let temperature = refit.classifier.temperature();

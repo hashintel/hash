@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
-use super::{FitArgs, PostgresArgs, ReportCommand};
+use super::{FitArgs, PostgresArgs, ReportCommand, RootArgs};
 
 /// The standalone atlas binary's command line.
 ///
@@ -20,6 +20,9 @@ struct Cli {
 enum Command {
     /// Fits one generation over the live store and activates it on admission.
     Fit {
+        #[command(flatten)]
+        root: RootArgs,
+
         #[command(flatten)]
         store: PostgresArgs,
 
@@ -74,12 +77,12 @@ pub async fn main() -> std::process::ExitCode {
 
     let cli = Cli::parse();
     match cli.command {
-        Command::Fit { store, args } => {
+        Command::Fit { root, store, args } => {
             let mut client = match store.connect().await {
                 Ok(client) => client,
                 Err(error) => return render_failure(&error),
             };
-            match super::FitCommand::from(*args).run(&mut client).await {
+            match super::FitCommand::new(root, *args).run(&mut client).await {
                 Ok(()) => std::process::ExitCode::SUCCESS,
                 Err(error) => render_failure(&error),
             }

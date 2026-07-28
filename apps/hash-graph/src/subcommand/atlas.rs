@@ -40,6 +40,9 @@ pub struct AtlasArgs {
     pub healthcheck: HealthcheckArgs,
 
     #[clap(flatten)]
+    pub root: cli::RootArgs,
+
+    #[clap(flatten)]
     pub serve: cli::ServeArgs,
 
     #[clap(flatten)]
@@ -60,6 +63,7 @@ pub enum AtlasCommand {
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
 pub(crate) async fn run_atlas(
     address: AtlasAddress,
+    root: cli::RootArgs,
     serve: cli::ServeArgs,
     dsn: String,
     shutdown: CancellationToken,
@@ -73,7 +77,7 @@ pub(crate) async fn run_atlas(
         .await
         .map_err(Report::new)
         .change_context(GraphError)?;
-    let router = cli::ServeCommand::from(serve)
+    let router = cli::ServeCommand::new(root, serve)
         .run(client, proof)
         .map_err(Report::new)
         .change_context(GraphError)?
@@ -114,7 +118,7 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
             .await
             .map_err(Report::new)
             .change_context(GraphError)?;
-        return cli::FitCommand::from(fit_args)
+        return cli::FitCommand::new(args.root, fit_args)
             .run(&mut client)
             .await
             .map_err(Report::new)
@@ -131,7 +135,7 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
     let shutdown = lifecycle.shutdown.clone();
     let dsn = args.db_info.url();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(args.address, args.serve, dsn, shutdown).await
+        run_atlas(args.address, args.root, args.serve, dsn, shutdown).await
     });
 
     // Wait for shutdown signal or unexpected server exit

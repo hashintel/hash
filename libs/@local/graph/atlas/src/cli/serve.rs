@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use core::{error::Error, fmt, time::Duration};
 
 use axum::Router;
-use clap::{Args, ValueHint};
+use clap::Args;
 use tokio_postgres::Client;
 
 use crate::{
@@ -137,15 +137,6 @@ impl From<LimitsArgs> for ServeLimits {
 /// configure what the atlas serves, not where it listens or which store it dials.
 #[derive(Debug, Args)]
 pub struct ServeArgs {
-    /// The generation root directory.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_ROOT",
-        value_parser = super::parse_root,
-        value_hint = ValueHint::DirPath,
-    )]
-    root: GenerationRoot,
-
     #[command(flatten)]
     limits: LimitsArgs,
 
@@ -211,6 +202,16 @@ pub struct ServeCommand {
 }
 
 impl ServeCommand {
+    /// Resolves the parsed flags into one serve invocation over the root.
+    #[must_use]
+    pub fn new(root: super::RootArgs, args: ServeArgs) -> Self {
+        Self {
+            root: root.root,
+            limits: args.limits.into(),
+            secret: args.secret,
+        }
+    }
+
     /// Opens the root's active generation and builds the read-API router over it.
     ///
     /// `/status` liveness route included.
@@ -253,15 +254,5 @@ impl ServeCommand {
             "/status",
             axum::routing::get(async || axum::http::StatusCode::OK),
         ))
-    }
-}
-
-impl From<ServeArgs> for ServeCommand {
-    fn from(args: ServeArgs) -> Self {
-        Self {
-            root: args.root,
-            limits: args.limits.into(),
-            secret: args.secret,
-        }
     }
 }
