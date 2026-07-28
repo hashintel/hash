@@ -559,7 +559,7 @@ pub(crate) async fn fit<D, E, P>(
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Send + 'static,
+    P: Progress + Send + Sync + 'static,
 {
     let staging = root.stage()?;
     let scratch = root.scratch()?;
@@ -596,9 +596,14 @@ where
                 writer.write_all(supplied.bytes())?;
                 Ok(supplied.hash())
             })?;
-            let corpus = assemble(supplied.document(), embedder, config.policy.assembly)
-                .await
-                .map_err(FitError::Assembly)?;
+            let corpus = assemble(
+                supplied.document(),
+                embedder,
+                config.policy.assembly,
+                &progress,
+            )
+            .await
+            .map_err(FitError::Assembly)?;
             tracing::info!(
                 supplied = corpus.evidence().supplied,
                 trained = corpus.evidence().trained,
@@ -613,7 +618,10 @@ where
         }
     };
 
-    let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
+    let ingested = ingest::run(
+        dataset, embedder, config, &staging, &scratch, prior, &progress,
+    )
+    .await?;
     progress.stage_completed(progress::Stage::Ingest);
 
     // Everything after the last dataset touch is CPU-and-file work:

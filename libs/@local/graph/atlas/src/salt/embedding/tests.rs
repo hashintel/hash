@@ -18,6 +18,7 @@ use crate::{
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::BoxedVecN,
+    progress::{NoProgress, Progress},
 };
 
 fn fingerprint(preimage: &[u8]) -> EmbedderFingerprint {
@@ -143,6 +144,30 @@ impl CardEmbedder for NanEmbedder {
     }
 }
 
+/// An observer recording the splits the card-embedding stage resolves.
+#[derive(Debug, Default)]
+struct RecordingProgress {
+    splits: Mutex<Vec<CardEmbeddingStats>>,
+}
+
+impl RecordingProgress {
+    fn splits(&self) -> Vec<CardEmbeddingStats> {
+        self.splits
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+}
+
+impl Progress for RecordingProgress {
+    fn embedding_started(&self, stats: &CardEmbeddingStats) {
+        self.splits
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push(*stats);
+    }
+}
+
 fn cards(texts: &[&str]) -> Vec<Card> {
     texts
         .iter()
@@ -159,7 +184,7 @@ async fn embeds_each_unique_text_once_in_row_order() {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
     let cards = cards(&["alpha", "beta", "alpha"]);
 
-    let (table, stats) = embed_cards(&embedder, &cards, None)
+    let (table, stats) = embed_cards(&embedder, &cards, None, &NoProgress)
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
@@ -188,16 +213,21 @@ async fn embeds_each_unique_text_once_in_row_order() {
 )]
 async fn reuses_prior_rows_under_an_equal_fingerprint() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
-    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None)
+    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     // The second embedder serves the same contract but would produce
     // shifted vectors, so a row equal to the prior vector proves reuse.
     let embedder = RecordingEmbedder::new(b"contract", 100.0);
-    let (table, stats) = embed_cards(&embedder, &cards(&["alpha", "beta"]), Some(prior.view()))
-        .await
-        .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+    let (table, stats) = embed_cards(
+        &embedder,
+        &cards(&["alpha", "beta"]),
+        Some(prior.view()),
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     assert_eq!(embedder.calls(), [["beta"]]);
     assert_eq!(
@@ -216,16 +246,100 @@ async fn reuses_prior_rows_under_an_equal_fingerprint() {
     miri,
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
-async fn skips_the_provider_when_every_row_reuses() {
+async fn the_resolved_split_reaches_the_observer_before_the_provider_does() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
-    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha", "beta"]), None)
+    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
+    let progress = RecordingProgress::default();
     let embedder = RecordingEmbedder::new(b"contract", 100.0);
-    let (table, stats) = embed_cards(&embedder, &cards(&["beta", "alpha"]), Some(prior.view()))
-        .await
-        .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+    let (_, stats) = embed_cards(
+        &embedder,
+        &cards(&["alpha", "beta"]),
+        Some(prior.view()),
+        &progress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+
+    // The observer learns the whole split - what the prior covers and
+    // what the provider will be asked for - as one report, and the
+    // published evidence says the same thing.
+    assert_eq!(
+        progress.splits(),
+        [CardEmbeddingStats {
+            reused: 1,
+            embedded: 1,
+        }]
+    );
+    assert_eq!(progress.splits(), [stats]);
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_wholly_reused_workload_still_reports_its_split() {
+    let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
+    let (prior, _) = embed_cards(
+        &prior_embedder,
+        &cards(&["alpha", "beta"]),
+        None,
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+
+    let progress = RecordingProgress::default();
+    let embedder = RecordingEmbedder::new(b"contract", 100.0);
+    embed_cards(
+        &embedder,
+        &cards(&["alpha", "beta"]),
+        Some(prior.view()),
+        &progress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+
+    // Nothing goes to the provider, and the operator still learns why
+    // the stage costs nothing.
+    assert_eq!(embedder.calls(), [] as [Vec<String>; 0]);
+    assert_eq!(
+        progress.splits(),
+        [CardEmbeddingStats {
+            reused: 2,
+            embedded: 0,
+        }]
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn skips_the_provider_when_every_row_reuses() {
+    let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
+    let (prior, _) = embed_cards(
+        &prior_embedder,
+        &cards(&["alpha", "beta"]),
+        None,
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+
+    let embedder = RecordingEmbedder::new(b"contract", 100.0);
+    let (table, stats) = embed_cards(
+        &embedder,
+        &cards(&["beta", "alpha"]),
+        Some(prior.view()),
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     assert!(embedder.calls().is_empty());
     assert_eq!(
@@ -246,14 +360,19 @@ async fn skips_the_provider_when_every_row_reuses() {
 )]
 async fn ignores_a_prior_table_from_another_contract() {
     let prior_embedder = RecordingEmbedder::new(b"contract a", 0.0);
-    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None)
+    let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     let embedder = RecordingEmbedder::new(b"contract b", 100.0);
-    let (table, stats) = embed_cards(&embedder, &cards(&["alpha", "beta"]), Some(prior.view()))
-        .await
-        .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+    let (table, stats) = embed_cards(
+        &embedder,
+        &cards(&["alpha", "beta"]),
+        Some(prior.view()),
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     assert_eq!(embedder.calls(), [["alpha", "beta"]]);
     assert_eq!(
@@ -272,7 +391,13 @@ async fn ignores_a_prior_table_from_another_contract() {
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
 async fn rejects_a_provider_row_count_mismatch() {
-    let result = embed_cards(&ShortEmbedder, &cards(&["alpha", "beta"]), None).await;
+    let result = embed_cards(
+        &ShortEmbedder,
+        &cards(&["alpha", "beta"]),
+        None,
+        &NoProgress,
+    )
+    .await;
 
     assert_matches!(
         result,
@@ -289,7 +414,7 @@ async fn rejects_a_provider_row_count_mismatch() {
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
 async fn rejects_non_finite_components() {
-    let result = embed_cards(&NanEmbedder, &cards(&["alpha"]), None).await;
+    let result = embed_cards(&NanEmbedder, &cards(&["alpha"]), None, &NoProgress).await;
 
     assert_matches!(
         result,
@@ -306,7 +431,7 @@ async fn rejects_non_finite_components() {
 async fn embeds_nothing_for_an_empty_card_list() {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
 
-    let (table, stats) = embed_cards(&embedder, &[], None)
+    let (table, stats) = embed_cards(&embedder, &[], None, &NoProgress)
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
@@ -349,9 +474,14 @@ fn text_digest(text: &str) -> Sha256Digest {
 
 async fn three_row_table() -> super::CardEmbeddingTable {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
-    let (table, _) = embed_cards(&embedder, &cards(&["alpha", "beta", "alpha"]), None)
-        .await
-        .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+    let (table, _) = embed_cards(
+        &embedder,
+        &cards(&["alpha", "beta", "alpha"]),
+        None,
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     table
 }

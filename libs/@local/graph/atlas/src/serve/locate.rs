@@ -17,6 +17,7 @@ use super::{
     hydrate::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
     intern::{self, Table},
     neighbourhood::{DeliveredEdge, Neighbourhood},
+    scope::ScopeReach,
     visibility::{VisibilityProof, VisibleRow},
 };
 use crate::{
@@ -315,6 +316,13 @@ pub struct LocateRequest {
 /// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LocateError {
+    /// The bound scope does not reach this surface.
+    ///
+    /// The ego graph is a link-bearing answer - it delivers the source's incident edges and the
+    /// partners they reach - and a restricted scope carries no statement about link rows, so the
+    /// request is refused before the request body is read at all: the variant precedes every
+    /// other rejection, and no rejection past it is reachable out of scope.
+    OutOfScope,
     /// The source id does not name a visible node - nonexistent.
     ///
     /// Denied, and unparsable are IDENTICAL by doctrine (missing = denied; an id that cannot name
@@ -345,6 +353,9 @@ pub enum LocateError {
 impl core::fmt::Display for LocateError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            Self::OutOfScope => {
+                fmt.write_str("the locate surface is not served in the caller's scope")
+            }
             Self::UnknownEntity => fmt.write_str("the entity id does not name a visible node"),
             Self::Source { carried } => {
                 write!(
@@ -403,9 +414,14 @@ impl Atlas {
     /// Version 0 serves the full unfiltered set; a request naming a visibility filter is rejected
     /// by name rather than answered with bytes that silently ignore it.
     ///
+    /// The surface is link-bearing, so it answers `reach` before it reads the request: a
+    /// restricted scope is refused here rather than at the transport, and the refusal is a
+    /// [`Result`] variant, so no caller can hold a refusal and a document together.
+    ///
     /// # Errors
     ///
-    /// Returns [`LocateError::Source`] when the body does not name exactly one of `entityId` and
+    /// Returns [`LocateError::OutOfScope`] when `reach` does not serve the link-bearing surfaces,
+    /// [`LocateError::Source`] when the body does not name exactly one of `entityId` and
     /// `row`, [`LocateError::UnknownEntity`] when the source does not resolve to a visible node,
     /// [`LocateError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
@@ -415,7 +431,11 @@ impl Atlas {
         request: &LocateRequest,
         limits: super::ServeLimits,
         proof: &VisibilityProof,
+        reach: ScopeReach,
     ) -> Result<LocateDocument, LocateError> {
+        if !reach.serves_links() {
+            return Err(LocateError::OutOfScope);
+        }
         if request.filter.is_some() {
             return Err(LocateError::Unsupported("filter"));
         }

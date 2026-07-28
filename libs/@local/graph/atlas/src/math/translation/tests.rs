@@ -1,4 +1,7 @@
-use crate::math::{Translation, Vec2, Vec2x4T, tests::POINTS};
+use crate::math::{
+    Translation, Vec2, Vec2x4T,
+    tests::{POINTS, SWEEP_POINTS, SWEEP_TRANSLATIONS},
+};
 
 #[test]
 fn translation_composes_and_inverts_exactly() {
@@ -25,5 +28,30 @@ fn translation_apply_x4_matches_apply() {
 
     for (index, point) in POINTS.into_iter().enumerate() {
         assert_eq!(batch.get(index), translation.apply(point));
+    }
+}
+
+/// `apply_x4` is exact against `apply` over a deterministic sweep of offsets and points.
+///
+/// The SIMD path is a plain lane-wise `f32` addition with no fused operation to round
+/// differently from the scalar path's addition, so every lane must match bit for bit; measured
+/// across [`SWEEP_TRANSLATIONS`] and [`SWEEP_POINTS`] (spanning zero, sub-unit and super-unit
+/// magnitudes, and mixed signs), the maximum observed distance is 0 ULP in both components.
+#[test]
+fn translation_apply_x4_matches_apply_exactly_over_a_sweep() {
+    for &offset in &SWEEP_TRANSLATIONS {
+        let translation = Translation::new(offset.x(), offset.y());
+        let (chunks, _remainder) = SWEEP_POINTS.as_chunks::<4>();
+        for &chunk in chunks {
+            let batch = translation.apply_x4(Vec2x4T::from(chunk));
+
+            for (index, &point) in chunk.iter().enumerate() {
+                assert_eq!(
+                    batch.get(index),
+                    translation.apply(point),
+                    "offset {offset:?}, point {point:?}",
+                );
+            }
+        }
     }
 }

@@ -3,6 +3,7 @@
     reason = "fixture vectors use exactly representable components, so ordering and conversion \
               must reproduce them bit-identically"
 )]
+use alloc::sync::Arc;
 use core::{assert_matches, future::ready, num::NonZero};
 use std::sync::Mutex;
 
@@ -10,12 +11,16 @@ use error_stack::Report;
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator};
 use hash_graph_types::Embedding;
 
-use super::{EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits};
+use super::{
+    EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, PREFLIGHT_TEXT,
+    RequestLimits,
+};
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS,
         card::{Cl100kTokenizer, Tokenizer as _},
     },
+    progress::{Batch, NoProgress, Progress},
     salt::embedding::CardEmbedder as _,
 };
 
@@ -71,6 +76,30 @@ impl EmbeddingGenerator for RecordingGenerator {
     }
 }
 
+/// An observer recording every request the provider reports, shared with its clones.
+#[derive(Debug, Default, Clone)]
+struct RecordingProgress {
+    batches: Arc<Mutex<Vec<Batch>>>,
+}
+
+impl RecordingProgress {
+    fn batches(&self) -> Vec<Batch> {
+        self.batches
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+}
+
+impl Progress for RecordingProgress {
+    fn embedding_batch(&self, batch: Batch) {
+        self.batches
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push(batch);
+    }
+}
+
 /// Returns vectors of a wrong width.
 struct NarrowGenerator;
 
@@ -95,6 +124,18 @@ impl EmbeddingGenerator for FailingGenerator {
         _: &[&str],
     ) -> impl Future<Output = Result<Vec<Embedding<'static>>, Report<EmbeddingError>>> + Send {
         ready(Err(Report::new(EmbeddingError::RateLimited)))
+    }
+}
+
+/// Answers every request with no vectors at all.
+struct SilentGenerator;
+
+impl EmbeddingGenerator for SilentGenerator {
+    fn create_embeddings(
+        &self,
+        _: &[&str],
+    ) -> impl Future<Output = Result<Vec<Embedding<'static>>, Report<EmbeddingError>>> + Send {
+        ready(Ok(Vec::new()))
     }
 }
 
@@ -136,7 +177,8 @@ fn fingerprints_distinguish_field_boundaries() {
 )]
 async fn embeds_in_input_order_within_one_request() {
     let generator = RecordingGenerator::default();
-    let provider = ExternalEmbeddingProvider::new(generator, &contract(), RequestLimits { .. });
+    let provider =
+        ExternalEmbeddingProvider::new(generator, &contract(), RequestLimits { .. }, NoProgress);
 
     let embeddings = provider
         .embed(["alpha", "beta"])
@@ -163,6 +205,7 @@ async fn splits_requests_at_the_document_ceiling() {
             documents: NonZero::new(2).expect("two is nonzero"),
             ..
         },
+        NoProgress,
     );
 
     let embeddings = provider
@@ -187,6 +230,65 @@ async fn splits_requests_at_the_document_ceiling() {
     miri,
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
+async fn every_completed_request_reports_its_position_in_the_workload() {
+    let progress = RecordingProgress::default();
+    let provider = ExternalEmbeddingProvider::new(
+        RecordingGenerator::default(),
+        &contract(),
+        RequestLimits {
+            documents: NonZero::new(2).expect("two is nonzero"),
+            ..
+        },
+        progress.clone(),
+    );
+
+    provider
+        .embed(["a", "bb", "ccc", "dddd", "eeeee"])
+        .await
+        .expect("the fixture generator should embed every text");
+
+    // Three requests over five texts: each report counts the texts
+    // behind it against the workload the provider was handed, and the
+    // last one closes on the whole.
+    assert_eq!(
+        progress.batches(),
+        [
+            Batch { done: 2, total: 5 },
+            Batch { done: 4, total: 5 },
+            Batch { done: 5, total: 5 },
+        ]
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_failed_request_reports_nothing() {
+    let progress = RecordingProgress::default();
+    let provider = ExternalEmbeddingProvider::new(
+        FailingGenerator,
+        &contract(),
+        RequestLimits { .. },
+        progress.clone(),
+    );
+
+    provider
+        .embed(["alpha"])
+        .await
+        .expect_err("the fixture generator fails every request");
+
+    // A report is a completion, so a workload that never completes one
+    // leaves the operator's counter where it was.
+    assert_eq!(progress.batches(), []);
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
 async fn splits_requests_at_the_token_ceiling() {
     let generator = RecordingGenerator::default();
     // Each fixture word counts one cl100k token in at most four bytes, so
@@ -199,6 +301,7 @@ async fn splits_requests_at_the_token_ceiling() {
             tokens: NonZero::new(2).expect("two is nonzero"),
             ..
         },
+        NoProgress,
     );
 
     let embeddings = provider
@@ -245,6 +348,7 @@ async fn splits_requests_at_the_byte_estimate_ceiling() {
             tokens: NonZero::new(6).expect("six is nonzero"),
             ..
         },
+        NoProgress,
     );
 
     let embeddings = provider
@@ -274,6 +378,7 @@ async fn rejects_a_text_above_the_token_ceiling() {
             tokens: NonZero::new(1).expect("one is nonzero"),
             ..
         },
+        NoProgress,
     );
 
     let result = provider.embed(["cat", "beta cat"]).await;
@@ -300,6 +405,7 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
             tokens: NonZero::new(3).expect("three is nonzero"),
             ..
         },
+        NoProgress,
     );
 
     // Two exact tokens in twenty-four bytes: legal by the tokenizer,
@@ -322,7 +428,8 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
 )]
 async fn rejects_reserved_tokens_before_any_request() {
     let generator = RecordingGenerator::default();
-    let provider = ExternalEmbeddingProvider::new(generator, &contract(), RequestLimits { .. });
+    let provider =
+        ExternalEmbeddingProvider::new(generator, &contract(), RequestLimits { .. }, NoProgress);
 
     let result = provider.embed(["<|endoftext|>"]).await;
 
@@ -339,8 +446,12 @@ async fn rejects_reserved_tokens_before_any_request() {
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
 async fn rejects_vectors_of_the_wrong_width() {
-    let provider =
-        ExternalEmbeddingProvider::new(NarrowGenerator, &contract(), RequestLimits { .. });
+    let provider = ExternalEmbeddingProvider::new(
+        NarrowGenerator,
+        &contract(),
+        RequestLimits { .. },
+        NoProgress,
+    );
 
     let result = provider.embed(["alpha"]).await;
 
@@ -359,8 +470,12 @@ async fn rejects_vectors_of_the_wrong_width() {
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
 async fn surfaces_provider_failures() {
-    let provider =
-        ExternalEmbeddingProvider::new(FailingGenerator, &contract(), RequestLimits { .. });
+    let provider = ExternalEmbeddingProvider::new(
+        FailingGenerator,
+        &contract(),
+        RequestLimits { .. },
+        NoProgress,
+    );
 
     let result = provider.embed(["alpha"]).await;
 
@@ -368,5 +483,104 @@ async fn surfaces_provider_failures() {
         result,
         Err(ExternalEmbeddingError::Provider(report))
             if matches!(report.current_context(), EmbeddingError::RateLimited)
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_preflight_spends_one_request_on_one_text() {
+    let progress = RecordingProgress::default();
+    let provider = ExternalEmbeddingProvider::new(
+        RecordingGenerator::default(),
+        &contract(),
+        RequestLimits { .. },
+        progress.clone(),
+    );
+
+    provider
+        .preflight()
+        .await
+        .expect("the fixture generator should answer the preflight");
+
+    assert_eq!(provider.generator.requests(), [[PREFLIGHT_TEXT]]);
+    // The preflight is not the workload, so it moves no counter and the
+    // operator's embedding bar still starts at the first card. Today the
+    // impl block carries no `Progress` bound at all; this assertion is
+    // what fails if one is ever added for a report from here.
+    assert_eq!(progress.batches(), []);
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_preflight_surfaces_provider_failures() {
+    let provider = ExternalEmbeddingProvider::new(
+        FailingGenerator,
+        &contract(),
+        RequestLimits { .. },
+        NoProgress,
+    );
+
+    let result = provider.preflight().await;
+
+    assert_matches!(
+        result,
+        Err(ExternalEmbeddingError::Provider(report))
+            if matches!(report.current_context(), EmbeddingError::RateLimited)
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_preflight_rejects_vectors_of_the_wrong_width() {
+    let provider = ExternalEmbeddingProvider::new(
+        NarrowGenerator,
+        &contract(),
+        RequestLimits { .. },
+        NoProgress,
+    );
+
+    let result = provider.preflight().await;
+
+    assert_matches!(
+        result,
+        Err(ExternalEmbeddingError::Dimensions {
+            index: 0,
+            actual: 512,
+        })
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn a_preflight_refuses_an_answer_of_the_wrong_length() {
+    let provider = ExternalEmbeddingProvider::new(
+        SilentGenerator,
+        &contract(),
+        RequestLimits { .. },
+        NoProgress,
+    );
+
+    let result = provider.preflight().await;
+
+    // One text is one vector; anything else is refused rather than
+    // indexed into.
+    assert_matches!(
+        result,
+        Err(ExternalEmbeddingError::BatchCount {
+            expected: 1,
+            actual: 0,
+        })
     );
 }

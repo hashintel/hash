@@ -22,15 +22,18 @@ use zerocopy::{LE, U64};
 
 use super::{
     Atlas, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
-    OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
+    OpenOptions, ScopeReach, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery,
+    TileRequest, VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
 use crate::identity::{NodeRowId, OntologyRowId};
 
 mod backfill;
 mod backfill_channel;
 mod masking;
+mod metadata_channel;
+mod open;
 mod row_codec;
+mod scope;
 mod seal;
 
 /// The tests' default authority: the operator proof, byte-identical to the pre-visibility serve.
@@ -259,7 +262,7 @@ fn fixture_classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
         .expect("the fixture classifier fits")
         .classifier;
 
@@ -930,7 +933,12 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
 
     let request = edges_request(full_grid());
     let bytes = atlas
-        .edges(&request, EdgesLimits::default(), &FULL)
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator,
+        )
         .expect("the full grid should serve");
     assert_eq!(&bytes[..8], b"SALTILEE");
 
@@ -951,7 +959,12 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
     // Identical requests yield identical bytes.
     assert_eq!(
         atlas
-            .edges(&request, EdgesLimits::default(), &FULL)
+            .edges(
+                &request,
+                EdgesLimits::default(),
+                &FULL,
+                ScopeReach::Operator
+            )
             .expect("the repeat should serve"),
         bytes,
     );
@@ -988,7 +1001,12 @@ async fn edges_serve_the_root_visible_subgraph() {
     let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let bytes = atlas
-        .edges(&edges_request(vec![root]), EdgesLimits::default(), &FULL)
+        .edges(
+            &edges_request(vec![root]),
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator,
+        )
         .expect("the root should serve");
     assert_eq!(
         bytes,
@@ -1002,6 +1020,7 @@ async fn edges_serve_the_root_visible_subgraph() {
             &edges_request(vec![root, root]),
             EdgesLimits::default(),
             &FULL,
+            ScopeReach::Operator,
         )
         .expect("the doubled root should serve");
     assert_eq!(doubled, bytes);
@@ -1053,6 +1072,7 @@ async fn edges_exclude_partially_delivered_pairs() {
             &edges_request(vec![coordinate_of(cell)]),
             EdgesLimits::default(),
             &FULL,
+            ScopeReach::Operator,
         )
         .expect("the source tile should serve");
 
@@ -1135,7 +1155,12 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         ..EdgesLimits::default()
     };
     let bytes = atlas
-        .edges(&edges_request(full_grid()), capped, &FULL)
+        .edges(
+            &edges_request(full_grid()),
+            capped,
+            &FULL,
+            ScopeReach::Operator,
+        )
         .expect("the capped request should serve");
     assert_eq!(
         bytes,
@@ -1151,6 +1176,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
                 ..EdgesLimits::default()
             },
             &FULL,
+            ScopeReach::Operator,
         )
         .expect("the zero cap should serve");
     assert_eq!(
@@ -1171,14 +1197,24 @@ async fn edges_reject_and_report_the_contract() {
             .expect("a filter document deserializes opaquely"),
     );
     assert_eq!(
-        atlas.edges(&filtered, EdgesLimits::default(), &FULL),
+        atlas.edges(
+            &filtered,
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator
+        ),
         Err(EdgesError::Unsupported("filter")),
     );
 
     let mut detailed = edges_request(vec![root]);
     detailed.include_detailed_data = true;
     assert_eq!(
-        atlas.edges(&detailed, EdgesLimits::default(), &FULL),
+        atlas.edges(
+            &detailed,
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator
+        ),
         Err(EdgesError::Unsupported("includeDetailedData")),
     );
 
@@ -1190,6 +1226,7 @@ async fn edges_reject_and_report_the_contract() {
                 ..EdgesLimits::default()
             },
             &FULL,
+            ScopeReach::Operator,
         ),
         Err(EdgesError::Tiles {
             count: 2,
@@ -1201,6 +1238,7 @@ async fn edges_reject_and_report_the_contract() {
             &edges_request(vec![TileCoordinate { z: 4, x: 0, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
+            ScopeReach::Operator,
         ),
         Err(EdgesError::Depth { z: 4, maximum: 3 }),
     );
@@ -1209,6 +1247,7 @@ async fn edges_reject_and_report_the_contract() {
             &edges_request(vec![TileCoordinate { z: 2, x: 4, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
+            ScopeReach::Operator,
         ),
         Err(EdgesError::Grid { z: 2, x: 4, y: 0 }),
     );
@@ -1216,7 +1255,12 @@ async fn edges_reject_and_report_the_contract() {
     // No tiles, no edges: the honest empty response with every column
     // present-empty.
     let bytes = atlas
-        .edges(&edges_request(Vec::new()), EdgesLimits::default(), &FULL)
+        .edges(
+            &edges_request(Vec::new()),
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator,
+        )
         .expect("the empty request should serve");
     assert_eq!(
         bytes,
@@ -1264,13 +1308,23 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     // The convenience path serves storeless deployments: it still
     // rejects the trailer by name.
     assert_eq!(
-        atlas.edges(&request, EdgesLimits::default(), &FULL),
+        atlas.edges(
+            &request,
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator
+        ),
         Err(EdgesError::Unsupported("includeDetailedData")),
     );
 
     // The transport path assembles, gathers, hydrates, encodes.
     let document = atlas
-        .assemble_edges(&request, EdgesLimits::default(), &FULL)
+        .assemble_edges(
+            &request,
+            EdgesLimits::default(),
+            &FULL,
+            ScopeReach::Operator,
+        )
         .expect("assembly ignores the trailer flag");
 
     let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
@@ -2034,6 +2088,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         request,
         TranslateLimits::default(),
         &FULL,
+        ScopeReach::Operator,
         &TranslateColumns {
             node_ids: &nodes,
             edge_ids: &edges,
@@ -2094,6 +2149,7 @@ fn translate_rejects_over_cap() {
             over,
             TranslateLimits::default(),
             &FULL,
+            ScopeReach::Operator,
             &TranslateColumns {
                 node_ids: &nodes,
                 edge_ids: &edges,
@@ -2132,6 +2188,7 @@ async fn translate_resolves_store_identities_end_to_end() {
             },
             TranslateLimits::default(),
             &FULL,
+            ScopeReach::Operator,
         )
         .expect("the request is under the cap");
 
@@ -2314,10 +2371,10 @@ async fn locate_by_wire_row_matches_by_entity() {
     assert_eq!(by_row.row, Some(wire));
     assert_eq!(by_row.entity_id, None);
     let entity_document = atlas
-        .assemble_locate(&by_entity, limits, &FULL)
+        .assemble_locate(&by_entity, limits, &FULL, ScopeReach::Operator)
         .expect("the entity resolves");
     let row_document = atlas
-        .assemble_locate(&by_row, limits, &FULL)
+        .assemble_locate(&by_row, limits, &FULL, ScopeReach::Operator)
         .expect("the wire row resolves");
     assert_eq!(
         encode_unhydrated(&atlas, &entity_document),
@@ -2340,7 +2397,7 @@ async fn locate_by_wire_row_matches_by_entity() {
         by_row.row = Some(codec::WireRow::pinned(garbage));
         assert_eq!(
             atlas
-                .assemble_locate(&by_row, limits, &FULL)
+                .assemble_locate(&by_row, limits, &FULL, ScopeReach::Operator)
                 .expect_err("the value is outside the universe"),
             super::LocateError::UnknownEntity,
             "{garbage}",
@@ -2352,7 +2409,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     by_row.entity_id = Some(entity_string_of(7));
     assert_eq!(
         atlas
-            .assemble_locate(&by_row, limits, &FULL)
+            .assemble_locate(&by_row, limits, &FULL, ScopeReach::Operator)
             .expect_err("two sources are ambiguous"),
         super::LocateError::Source { carried: 2 },
     );
@@ -2360,7 +2417,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     by_row.entity_id = None;
     assert_eq!(
         atlas
-            .assemble_locate(&by_row, limits, &FULL)
+            .assemble_locate(&by_row, limits, &FULL, ScopeReach::Operator)
             .expect_err("no source names no subject"),
         super::LocateError::Source { carried: 0 },
     );
@@ -2384,7 +2441,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 
     let mut request = locate_request(entity_string_of(0));
     let document = atlas
-        .assemble_locate(&request, limits, &FULL)
+        .assemble_locate(&request, limits, &FULL, ScopeReach::Operator)
         .expect("the request is well-formed");
     let bytes = encode_unhydrated(&atlas, &document);
     assert_eq!(bytes[0..8], *b"SALTILEL");
@@ -2461,7 +2518,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             .expect("the literal is a versioned url"),
     ];
     let colored_document = atlas
-        .assemble_locate(&request, limits, &FULL)
+        .assemble_locate(&request, limits, &FULL, ScopeReach::Operator)
         .expect("unresolvable colored ids are legal");
     assert_eq!(
         encode_unhydrated(&atlas, &colored_document),
@@ -2487,7 +2544,12 @@ async fn locate_rejections_carry_their_names() {
     ] {
         assert_eq!(
             atlas
-                .assemble_locate(&locate_request(id.clone()), limits, &FULL)
+                .assemble_locate(
+                    &locate_request(id.clone()),
+                    limits,
+                    &FULL,
+                    ScopeReach::Operator
+                )
                 .expect_err("the id names no visible node"),
             super::LocateError::UnknownEntity,
             "{id}",
@@ -2504,7 +2566,7 @@ async fn locate_rejections_carry_their_names() {
     ];
     assert_eq!(
         atlas
-            .assemble_locate(&colored, limits, &FULL)
+            .assemble_locate(&colored, limits, &FULL, ScopeReach::Operator)
             .expect_err("the list is over the cap"),
         super::LocateError::Types {
             count: limits.tile.colored_type_ids as usize + 1,
@@ -2520,7 +2582,7 @@ async fn locate_rejections_carry_their_names() {
     .expect("a filter body deserializes");
     assert_eq!(
         atlas
-            .assemble_locate(&filtered, limits, &FULL)
+            .assemble_locate(&filtered, limits, &FULL, ScopeReach::Operator)
             .expect_err("filter is a version-0 deferral"),
         super::LocateError::Unsupported("filter"),
     );

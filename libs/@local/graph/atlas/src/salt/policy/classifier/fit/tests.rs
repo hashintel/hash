@@ -4,6 +4,7 @@
 )]
 
 use core::{assert_matches, num::NonZeroU64};
+use std::sync::Mutex;
 
 use super::{
     FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
@@ -18,6 +19,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedVecN, d_positive},
+    progress::{NoProgress, Progress},
     salt::policy::GeometryClass,
 };
 
@@ -446,6 +448,7 @@ fn fit_recovers_the_generating_distributions() {
             seed: 7,
             ..config()
         },
+        &NoProgress,
     )
     .expect("the separable corpus fits");
 
@@ -495,6 +498,7 @@ fn exhausted_outer_iteration_budget_is_an_error() {
             },
             ..config()
         },
+        &NoProgress,
     )
     .expect_err("one outer iteration cannot converge");
 
@@ -511,6 +515,7 @@ fn configuration_violations_are_named() {
             folds: 1,
             ..config()
         },
+        &NoProgress,
     )
     .expect_err("one fold cannot hold anything out");
     assert_matches!(error, FitError::FoldCount { folds: 1 });
@@ -525,10 +530,102 @@ fn configuration_violations_are_named() {
             },
             ..config()
         },
+        &NoProgress,
     )
     .expect_err("the radius ordering is violated");
     assert_matches!(
         error,
         FitError::Config(SolverConfigError::RadiusDomain { .. })
     );
+}
+
+/// Records the fold announcements and completions of one fit.
+#[derive(Debug, Default)]
+struct RecordingProgress {
+    announced: Mutex<Vec<usize>>,
+    completed: Mutex<Vec<usize>>,
+}
+
+impl RecordingProgress {
+    fn announced(&self) -> Vec<usize> {
+        self.announced
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+
+    /// The completed folds, ascending: the pool finishes them in its own order.
+    fn completed(&self) -> Vec<usize> {
+        let mut folds = self
+            .completed
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone();
+        folds.sort_unstable();
+
+        folds
+    }
+}
+
+impl Progress for RecordingProgress {
+    fn classifier_started(&self, folds: usize) {
+        self.announced
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push(folds);
+    }
+
+    fn classifier_fold_completed(&self, fold: usize) {
+        self.completed
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push(fold);
+    }
+}
+
+#[test]
+fn every_cross_validation_fold_reports_once() {
+    let corpus = soft_corpus();
+    let progress = RecordingProgress::default();
+
+    fit(
+        corpus.training(),
+        FitConfig {
+            folds: 3,
+            ..config()
+        },
+        &progress,
+    )
+    .expect("the separable corpus fits");
+
+    // Four models are fitted; the fourth holds nothing out and is the
+    // deployment model, not a fold, so the counter's ceiling is the
+    // announced three.
+    assert_eq!(progress.announced(), [3]);
+    assert_eq!(progress.completed(), [0, 1, 2]);
+}
+
+#[test]
+fn a_fit_that_never_converges_completes_no_fold() {
+    let corpus = soft_corpus();
+    let progress = RecordingProgress::default();
+
+    fit(
+        corpus.training(),
+        FitConfig {
+            solver: SolverConfig {
+                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+                ..
+            },
+            ..config()
+        },
+        &progress,
+    )
+    .expect_err("one outer iteration cannot converge");
+
+    // The announcement is the workload, not a promise it will land: a
+    // model that failed has not completed, so the bar stays empty
+    // rather than filling as the failures arrive.
+    assert_eq!(progress.announced(), [2]);
+    assert_eq!(progress.completed(), [0_usize; 0]);
 }

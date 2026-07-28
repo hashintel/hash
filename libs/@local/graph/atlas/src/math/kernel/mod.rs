@@ -66,16 +66,6 @@ pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4
 
 /// Fused multiply-add, correctly rounded on every target.
 ///
-/// The `f32x8` counterpart of [`mul_add_f32x4`].
-#[inline(always)]
-pub(crate) fn mul_add_f32x8(lhs: f32x8, rhs: f32x8, accumulator: f32x8) -> f32x8 {
-    use std::simd::StdFloat as _;
-
-    lhs.mul_add(rhs, accumulator)
-}
-
-/// Fused multiply-add, correctly rounded on every target.
-///
 /// The `f64x4` counterpart of [`mul_add_f32x4`].
 #[inline(always)]
 pub(crate) fn mul_add_f64x4(lhs: f64x4, rhs: f64x4, accumulator: f64x4) -> f64x4 {
@@ -167,20 +157,91 @@ pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
 mod tests {
     use core::simd::Simd;
 
-    use super::{exp_f32x8, exp_f64x4, mul_add_f32x4, pow_f32x4};
+    use super::{exp_f32x8, exp_f64x4, mul_add_f32x4, mul_add_f64x4, mul_add_f64x8, pow_f32x4};
 
+    /// `mul_add_f32x4` matches scalar [`f32::mul_add`] bit for bit, per lane.
+    ///
+    /// Lane 0 is fusion-discriminating: `a = b = 1 + 2⁻¹²` and `c = -(1 + 2⁻¹¹)` make `a·b` round
+    /// to `1 + 2⁻¹¹` under tie-to-even before the add (the exact product carries a `2⁻²⁴` term,
+    /// exactly half the `f32` ulp at this magnitude), so an unfused `a * b + c` gives `0.0` where
+    /// the fused result is `2⁻²⁴`. Lane 1 is its sign-negated twin, mirroring the same tie around
+    /// zero. Lanes 2 and 3 are ordinary non-dyadic values.
     #[test]
-    fn mul_add_matches_scalar() {
-        let lhs = Simd::from_array([1.0, -2.0, 0.5, 8.0]);
-        let rhs = Simd::from_array([3.0, 0.25, -4.0, 0.0]);
-        let accumulator = Simd::from_array([0.5, 0.5, 0.5, 0.5]);
+    fn mul_add_f32x4_matches_scalar_mul_add() {
+        let factor = 1.0_f32 + (-12.0_f32).exp2();
+        let offset = -(1.0_f32 + (-11.0_f32).exp2());
+
+        let lhs = Simd::from_array([factor, -factor, 0.1_f32, 1.1_f32]);
+        let rhs = Simd::from_array([factor, factor, 0.3_f32, 2.2_f32]);
+        let accumulator = Simd::from_array([offset, -offset, 0.7_f32, 3.3_f32]);
 
         let result = mul_add_f32x4(lhs, rhs, accumulator).to_array();
 
         for lane in 0..4 {
             let expected = f32::mul_add(lhs[lane], rhs[lane], accumulator[lane]);
-            assert!(
-                (result[lane] - expected).abs() < 1e-6,
+            assert_eq!(
+                result[lane].to_bits(),
+                expected.to_bits(),
+                "lane {lane}: expected {expected}, got {}",
+                result[lane]
+            );
+        }
+    }
+
+    /// `mul_add_f64x4` matches scalar [`f64::mul_add`] bit for bit, per lane.
+    ///
+    /// Lane 0 is fusion-discriminating: `a = b = 1 + 2⁻²⁷` and `c = -(1 + 2⁻²⁶)` make the exact
+    /// product's `2⁻⁵⁴` term round away (a quarter of the `f64` ulp at this magnitude) before the
+    /// add, so an unfused `a * b + c` gives `0.0` where the fused result is `2⁻⁵⁴`. Lane 1 is its
+    /// sign-negated twin. Lanes 2 and 3 are ordinary non-dyadic values.
+    #[test]
+    fn mul_add_f64x4_matches_scalar_mul_add() {
+        let factor = 1.0_f64 + (-27.0_f64).exp2();
+        let offset = -(1.0_f64 + (-26.0_f64).exp2());
+
+        let lhs = Simd::from_array([factor, -factor, 0.1_f64, 1.1_f64]);
+        let rhs = Simd::from_array([factor, factor, 0.3_f64, 2.2_f64]);
+        let accumulator = Simd::from_array([offset, -offset, 0.7_f64, 3.3_f64]);
+
+        let result = mul_add_f64x4(lhs, rhs, accumulator).to_array();
+
+        for lane in 0..4 {
+            let expected = f64::mul_add(lhs[lane], rhs[lane], accumulator[lane]);
+            assert_eq!(
+                result[lane].to_bits(),
+                expected.to_bits(),
+                "lane {lane}: expected {expected}, got {}",
+                result[lane]
+            );
+        }
+    }
+
+    /// `mul_add_f64x8` matches scalar [`f64::mul_add`] bit for bit, per lane.
+    ///
+    /// Lanes 0 and 1 repeat the `f64x4` fusion-discriminating pair and its sign-negated twin; the
+    /// remaining six lanes are ordinary non-dyadic values.
+    #[test]
+    fn mul_add_f64x8_matches_scalar_mul_add() {
+        let factor = 1.0_f64 + (-27.0_f64).exp2();
+        let offset = -(1.0_f64 + (-26.0_f64).exp2());
+
+        let lhs = Simd::from_array([
+            factor, -factor, 0.1_f64, 1.1_f64, -0.15_f64, 9.9_f64, 0.01_f64, -1.234_f64,
+        ]);
+        let rhs = Simd::from_array([
+            factor, factor, 0.3_f64, 2.2_f64, 0.85_f64, -4.4_f64, 0.02_f64, 5.678_f64,
+        ]);
+        let accumulator = Simd::from_array([
+            offset, -offset, 0.7_f64, 3.3_f64, 6.02_f64, 1.7_f64, 0.03_f64, -9.101_f64,
+        ]);
+
+        let result = mul_add_f64x8(lhs, rhs, accumulator).to_array();
+
+        for lane in 0..8 {
+            let expected = f64::mul_add(lhs[lane], rhs[lane], accumulator[lane]);
+            assert_eq!(
+                result[lane].to_bits(),
+                expected.to_bits(),
                 "lane {lane}: expected {expected}, got {}",
                 result[lane]
             );

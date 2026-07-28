@@ -24,6 +24,10 @@
 //! mask misses collapse to one `None` - forbidden and nonexistent answer identical bytes. A
 //! transport without scoped sessions constructs [`VisibilityProof::full_visibility`] explicitly.
 //!
+//! [`ScopeReach`] accompanies the proof and names the surfaces the bound authority reaches.
+//! Edge sets derive from node visibility, which states nothing about the link rows themselves, so
+//! the link-bearing surfaces answer the operator scope and refuse a restricted one.
+//!
 //! # Architecture
 //!
 //! Each domain concept lives in exactly one module. The foundation: `open` is the open pass -
@@ -31,11 +35,12 @@
 //! validation produces; `grid` is the bucket schedule and its addressing; `secret` the wire
 //! secret; `error` the open-failure taxonomy.
 //!
-//! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
-//! permutation; `walk` the schedule-driven point delivery - full-visibility range assembly, the
-//! masked delivery chain, and the census; `neighbourhood` the adjacency edge sets and their caps;
-//! `colour` the type-colouring resolution; `intern` the wire intern tables; `seal` the sealed
-//! visibility bitmaps; `hydrate` the live store reads behind detail trailers.
+//! The domain: `visibility` carries the proof and the resolution seam and `scope` the surfaces the
+//! bound authority reaches; `codec` the keyed row-id permutation; `walk` the schedule-driven point
+//! delivery - full-visibility range assembly, the masked delivery chain, and the census;
+//! `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring resolution;
+//! `intern` the wire intern tables; `seal` the sealed visibility bitmaps; `hydrate` the live store
+//! reads behind detail trailers.
 //!
 //! The read surfaces compose those: `tile`, `edges`, `locate`, and `translate` each hold one
 //! endpoint's request vocabulary, rejection taxonomy, and assembly, and `manifest` the bootstrap
@@ -54,6 +59,7 @@ pub use self::{
     locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     open::OpenOptions,
+    scope::ScopeReach,
     seal::SealLimits,
     secret::{WireSecret, WireSecretError},
     tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
@@ -90,6 +96,7 @@ mod locate;
 mod manifest;
 mod neighbourhood;
 mod open;
+mod scope;
 mod seal;
 mod secret;
 mod tile;

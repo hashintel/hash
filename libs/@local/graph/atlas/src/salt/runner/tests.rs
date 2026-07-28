@@ -9,7 +9,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
-use super::{Admission, PriorMode, RunnerOptions, run};
+use super::{Admission, PriorMode, RunnerOptions, probe_rng, run};
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card,
@@ -194,7 +194,7 @@ fn classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
         .expect("the fixture classifier fits")
         .classifier;
 
@@ -392,5 +392,28 @@ async fn prior_modes_route_reuse() {
             .prior
             .is_none(),
         "a fresh run ignores the active generation",
+    );
+}
+
+/// Witnesses the replay half of [`probe_rng`]'s contract.
+///
+/// Equal seeds deriving equal draws is what lets a whole run replay from the one fit seed; the
+/// inequality is the complement that a constant generator would otherwise satisfy.
+#[test]
+fn the_admission_probe_derives_its_draws_from_the_fit_seed() {
+    let draws = |seed| {
+        let mut rng = probe_rng(seed);
+        core::array::from_fn::<u64, 4, _>(|_| rng.random_range(0..u64::MAX))
+    };
+
+    assert_eq!(
+        draws(13),
+        draws(13),
+        "equal fit seeds derive equal probe draws, or the run cannot replay",
+    );
+    assert_ne!(
+        draws(13),
+        draws(14),
+        "the derivation consumes the seed rather than the pinned name alone",
     );
 }

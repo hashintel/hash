@@ -9,7 +9,9 @@
 //! [`embed_cards`] is the entry point. It consumes finished [`Card`]s in ontology row order,
 //! deduplicates by text hash, satisfies what it can from a prior generation, and submits the
 //! remaining unique texts to a [`CardEmbedder`] in one call; request sizing against provider
-//! ceilings is the embedder's own concern. The assembled [`CardEmbeddingTable`] serializes into two
+//! ceilings is the embedder's own concern. The run's [`Progress`] observer sees the resolved reuse
+//! split and every request the embedder completes, so the paid part of a fit is legible while it
+//! runs. The assembled [`CardEmbeddingTable`] serializes into two
 //! array files: the `f32[T, 3072]` embedding matrix and the `u8[T, 32]` card-hash column. Card
 //! texts are not published, so the hash column is the persisted key that lets the next generation
 //! match its freshly rendered cards against these rows.
@@ -31,6 +33,7 @@ use crate::{
     identity::OntologyRowId,
     integrity::Sha256Digest,
     math::{AlignedVecN, BoxedVecN, MatrixN, VecN},
+    progress::Progress,
 };
 
 pub(crate) mod external;
@@ -342,14 +345,18 @@ struct UniqueCard<'card> {
 /// fingerprint equals the embedder's; the provider sees exactly the texts neither source covers, in
 /// one [`embed`](CardEmbedder::embed) call, and sees nothing when every row is covered.
 ///
+/// `progress` observes the resolved split once and then each request the provider completes,
+/// counted against the unique texts the split sent to it.
+///
 /// # Errors
 ///
 /// Returns an error when the provider fails, changes the row count, or returns a vector with a
 /// non-finite component. No partial table is produced.
-pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
+pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
     embedder: &E,
     cards: &[Card],
     prior: Option<CardEmbeddingView<'_>>,
+    progress: &P,
 ) -> Result<(CardEmbeddingTable, CardEmbeddingStats), CardEmbeddingError<E::Error>> {
     let fingerprint = embedder.fingerprint();
 
@@ -377,7 +384,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
     let mut components = MatrixN::zeroed(cards.len());
     let rows = components.rows_mut();
 
-    let mut stats = CardEmbeddingStats::default();
+    let mut reused = 0;
     let mut misses = Vec::new();
 
     let reusable = prior.filter(|view| view.fingerprint() == fingerprint);
@@ -396,12 +403,21 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
             continue;
         };
 
-        stats.reused += 1;
+        reused += 1;
         let card = &unique[&hash];
         for &position in &card.rows {
             *rows[position.as_usize()].as_array_mut() = *source.as_array();
         }
     }
+
+    // Both counts are final here: a provider failure fails the whole
+    // workload, so every text the split sent to the provider is either
+    // embedded or nothing is published.
+    let stats = CardEmbeddingStats {
+        reused,
+        embedded: misses.len(),
+    };
+    progress.embedding_started(&stats);
 
     if misses.is_empty() {
         return Ok((
@@ -428,7 +444,6 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync>(
         let card = &unique[&ordering[index]];
         validate_finite(embedding, card.rows[0])?;
 
-        stats.embedded += 1;
         for &position in &card.rows {
             *rows[position.as_usize()].as_array_mut() = *embedding.as_array();
         }

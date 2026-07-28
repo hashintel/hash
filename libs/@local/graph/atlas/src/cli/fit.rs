@@ -12,9 +12,11 @@ use tokio_postgres::Client;
 use crate::{
     dataset::TemporalAxes,
     integrity::SecretString,
-    progress::NoProgress,
+    progress::{NoProgress, Progress},
     salt::{
-        embedding::external::{EmbeddingContract, ExternalEmbeddingProvider, RequestLimits},
+        embedding::external::{
+            EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
+        },
         runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
     },
     serve::GenerationRoot,
@@ -139,6 +141,8 @@ pub struct FitArgs {
 pub enum FitError {
     /// The embedding provider could not be constructed.
     Embedder(Report<EmbeddingError>),
+    /// The embedding provider failed its preflight request.
+    Preflight(ExternalEmbeddingError),
     /// The run failed.
     Run(RunError),
     /// The admission report could not be written.
@@ -149,6 +153,9 @@ impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Embedder(_) => fmt.write_str("the embedding provider could not be constructed"),
+            Self::Preflight(_) => {
+                fmt.write_str("the embedding provider failed its preflight request")
+            }
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
         }
@@ -159,6 +166,7 @@ impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Embedder(report) => Some(report.current_context()),
+            Self::Preflight(error) => Some(error),
             Self::Run(error) => error.source(),
             Self::Io(error) => Some(error),
         }
@@ -177,14 +185,42 @@ impl From<io::Error> for FitError {
     }
 }
 
-/// The command's printed verdict: the run summary, the report location, and the wall time.
-struct Verdict<'data> {
-    summary: &'data Summary,
-    report: &'data Utf8Path,
+/// One fit's verdict: the run summary, the report location, and the wall time.
+///
+/// The command's product, rendered by its host rather than printed in place - the standalone
+/// shell's dashboard owns the terminal until the run ends, so the verdict is written after the
+/// dashboard hands it back.
+#[derive(Debug)]
+pub struct FitVerdict {
+    /// The run's plain-number summary.
+    summary: Summary,
+    /// Where the admission report landed.
+    report: Utf8PathBuf,
+    /// How long the run took.
     elapsed: Duration,
 }
 
-impl fmt::Display for Verdict<'_> {
+impl FitVerdict {
+    /// The run's summary.
+    #[must_use]
+    pub const fn summary(&self) -> &Summary {
+        &self.summary
+    }
+
+    /// Where the admission report landed.
+    #[must_use]
+    pub fn report(&self) -> &Utf8Path {
+        &self.report
+    }
+
+    /// How long the run took.
+    #[must_use]
+    pub const fn elapsed(&self) -> Duration {
+        self.elapsed
+    }
+}
+
+impl fmt::Display for FitVerdict {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(fmt)?;
         writeln!(fmt, "generation  {}", self.summary.generation)?;
@@ -204,16 +240,47 @@ impl fmt::Display for Verdict<'_> {
 }
 
 /// One fit invocation, resolved: the run's typed options over an opened root.
+///
+/// `P` is the run's progress observer: [`new`](Self::new) resolves the flags into a silent run, and
+/// [`with_progress`](Self::with_progress) hands the run to an operator surface that renders it.
 #[derive(Debug)]
-pub struct FitCommand {
+pub struct FitCommand<P> {
     root: GenerationRoot,
     report: Utf8PathBuf,
     openai_api_key: SecretString,
-    options: Options<NoProgress>,
+    options: Options<P>,
 }
 
-impl FitCommand {
-    /// Runs one production generation over the live store and prints its summary.
+impl<P> FitCommand<P> {
+    /// Reports this fit's progress to `progress` instead of the observer it carries.
+    #[must_use]
+    pub fn with_progress<P2>(self, progress: P2) -> FitCommand<P2> {
+        FitCommand {
+            root: self.root,
+            report: self.report,
+            openai_api_key: self.openai_api_key,
+            options: Options {
+                seed: self.options.seed,
+                landmarks: self.options.landmarks,
+                fresh: self.options.fresh,
+                anchors: self.options.anchors,
+                comparisons: self.options.comparisons,
+                verdicts: self.options.verdicts,
+                quality_thresholds: self.options.quality_thresholds,
+                classifier: self.options.classifier,
+                placement: self.options.placement,
+                nn_descent: self.options.nn_descent,
+                progress,
+            },
+        }
+    }
+}
+
+impl<P> FitCommand<P>
+where
+    P: Progress + Clone + Send + Sync + 'static,
+{
+    /// Runs one production generation over the live store and returns its verdict.
     ///
     /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
     /// standalone shell, [`connect`] behind the graph binary's own store flags). The snapshot is
@@ -221,13 +288,12 @@ impl FitCommand {
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: the run itself, or writing the
-    /// admission report.
+    /// Returns a [`FitError`] naming the step that failed: constructing the embedding provider,
+    /// its preflight request, the run itself, or writing the admission report.
     ///
     /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
     /// [`connect`]: super::connect
-    #[expect(clippy::print_stdout, reason = "the summary is the command's product")]
-    pub async fn run(self, client: &mut Client) -> Result<(), FitError> {
+    pub async fn run(self, client: &mut Client) -> Result<FitVerdict, FitError> {
         crate::math::kernel::verify_cpu_baseline();
 
         tracing::info!(
@@ -259,7 +325,11 @@ impl FitCommand {
                 encoding: "float",
             },
             RequestLimits { .. },
+            self.options.progress.clone(),
         );
+        // Before the store is read: a refused key is minutes cheaper here than
+        // at the first workload request.
+        embedder.preflight().await.map_err(FitError::Preflight)?;
 
         let started = Instant::now();
         let summary = live(
@@ -274,19 +344,16 @@ impl FitCommand {
 
         std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
 
-        println!(
-            "{}",
-            Verdict {
-                summary: &summary,
-                report: &self.report,
-                elapsed,
-            }
-        );
-
-        Ok(())
+        Ok(FitVerdict {
+            summary,
+            report: self.report,
+            elapsed,
+        })
     }
+}
 
-    /// Resolves the parsed flags into one fit invocation over the root.
+impl FitCommand<NoProgress> {
+    /// Resolves the parsed flags into one silent fit invocation over the root.
     #[must_use]
     pub fn new(root: super::RootArgs, args: FitArgs) -> Self {
         let classifier = match (args.annotations, args.classifier) {

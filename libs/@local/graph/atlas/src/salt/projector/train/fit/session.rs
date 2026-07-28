@@ -33,24 +33,27 @@ use super::{
         ObjectiveOptions, RUNGS,
         batch::{Batch, BatchSampler},
         metrics::{DegreeDeciles, TypeParticipants},
-        refresh::{self, Refresh},
+        refresh::{self, Refresh, SnapshotSample},
         step::Evaluation,
     },
     BoundaryEvidence, FrozenRadius, TickTelemetry, TrainError, TrainOptions, TrainerInputs,
     TrainingEvidence, TrainingSchedule,
 };
-use crate::salt::{
-    projector::{
-        loss::{ProximalEnergy, RelationEnergy},
-        miner::{HardNegativeMiner, MinedFrame},
-        model::Projector,
-        scale::LocalScales,
-        verdict::{
-            PlacementClass, ResolvedVerdict,
-            calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
+use crate::{
+    progress::Progress,
+    salt::{
+        projector::{
+            loss::{ProximalEnergy, RelationEnergy},
+            miner::{HardNegativeMiner, MinedFrame},
+            model::Projector,
+            scale::LocalScales,
+            verdict::{
+                PlacementClass, ResolvedVerdict,
+                calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
+            },
         },
+        relation::attraction::{AttractionGroup, AttractionIndex},
     },
-    relation::attraction::{AttractionGroup, AttractionIndex},
 };
 
 /// The trainer's optimizer: Adam adapted over the projector.
@@ -172,7 +175,13 @@ impl<'run> Session<'run> {
     /// The body is phase-agnostic: the opening segment passes `0..boundary`, the ladder
     /// `boundary..steps`, and the boundary work (radius freeze, unconditional refresh) triggers on
     /// the step index alone.
-    pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+    ///
+    /// The loop is the only place a step's loss exists before the run ends, so it reports every
+    /// step to `progress` against the whole schedule - not against its own range, which is one
+    /// phase of it. The snapshot sample the refresh ticks report is chosen here, once per phase,
+    /// from the observer's stated appetite; the choice consumes no randomness, so the run's draws
+    /// are the same under every observer.
+    pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
         &mut self,
         Training {
             mut model,
@@ -183,8 +192,14 @@ impl<'run> Session<'run> {
         steps: Range<usize>,
         rng: &mut R,
         device: &B::Device,
+        progress: &P,
     ) -> Result<Training<B>, TrainError> {
         let schedule = self.options.schedule;
+        let sample = SnapshotSample::select(
+            self.inputs.columns.representations.len(),
+            self.inputs.landmarks,
+            progress.projector_sample_size(),
+        );
         let mut scales: Option<[LocalScales; RUNGS.len()]> = None;
         let mut mined: Option<MinedFrame> = None;
 
@@ -213,6 +228,8 @@ impl<'run> Session<'run> {
                     &self.evaluation.deciles,
                     self.evaluation.options.relation.is_some(),
                     device,
+                    &sample,
+                    progress,
                 )?;
 
                 mined = Some(outcome.mined);
@@ -239,6 +256,7 @@ impl<'run> Session<'run> {
             let objective =
                 self.evaluation
                     .objective(&model, &batch, &mut evidence.budget, device)?;
+            progress.projector_step(step_index, schedule.steps.get(), &objective.loss);
             evidence.losses.push(objective.loss);
 
             let gradients = GradientsParams::from_grads(objective.surrogate.backward(), &model);

@@ -11,6 +11,7 @@
 
 use alloc::collections::BTreeMap;
 use core::num::NonZero;
+use std::sync::Mutex;
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
@@ -28,6 +29,7 @@ use super::{
         BudgetBreakdown, DegreeDeciles, DisplacementHistogram, DisplacementSummary,
         TypeParticipants,
     },
+    refresh::SnapshotSample,
     step::evaluate,
 };
 use crate::{
@@ -36,6 +38,7 @@ use crate::{
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
     },
+    progress::Progress,
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -1381,4 +1384,147 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     let plain_gradients = parameter_gradients(&model, &plain_objective.surrogate.backward());
     assert!(!padded_gradients.is_empty());
     assert_eq!(padded_gradients, plain_gradients);
+}
+
+/// Records every snapshot an observer with the given appetite receives.
+#[derive(Debug)]
+struct RecordingSnapshots {
+    appetite: usize,
+    snapshots: Mutex<Vec<(Vec<Vec2>, usize)>>,
+}
+
+impl RecordingSnapshots {
+    fn new(appetite: usize) -> Self {
+        Self {
+            appetite,
+            snapshots: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn snapshots(&self) -> Vec<(Vec<Vec2>, usize)> {
+        self.snapshots
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+}
+
+impl Progress for RecordingSnapshots {
+    fn projector_sample_size(&self) -> usize {
+        self.appetite
+    }
+
+    fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
+        self.snapshots
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push((positions.to_vec(), landmarks));
+    }
+}
+
+/// A frame whose every row sits at its own row index, so a report names the rows it sampled.
+fn identity_frame(rows: usize) -> Vec<Vec2> {
+    (0..rows)
+        .map(|row| {
+            #[expect(
+                clippy::cast_precision_loss,
+                reason = "the fixture's row counts are exactly representable"
+            )]
+            Vec2::new(row as f32, 0.0)
+        })
+        .collect()
+}
+
+/// The rows one sample reports out of an identity frame, with the landmark count.
+fn sampled_rows(sample: &SnapshotSample, rows: usize, appetite: usize) -> (Vec<usize>, usize) {
+    let observer = RecordingSnapshots::new(appetite);
+    sample.report(&identity_frame(rows), &observer);
+
+    let mut snapshots = observer.snapshots();
+    assert!(snapshots.len() <= 1, "one frame reports at most once");
+    let Some((positions, landmarks)) = snapshots.pop() else {
+        return (Vec::new(), 0);
+    };
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the identity frame's coordinates are the row indices themselves"
+    )]
+    let rows = positions.iter().map(|point| point.x() as usize).collect();
+
+    (rows, landmarks)
+}
+
+/// One landmark on a corpus row; only the row participates in a snapshot sample.
+fn landmark(row: usize) -> SupportAnchor {
+    SupportAnchor {
+        row: NodeRowId::from_usize(row),
+        target: Vec2::ZERO,
+        radius: 1.0,
+        weight: 1.0,
+    }
+}
+
+#[test]
+fn a_snapshot_sample_leads_with_landmarks_and_strides_the_rest() {
+    let landmarks = [landmark(4), landmark(0)];
+    let sample = SnapshotSample::select(8, &landmarks, 4);
+
+    // Both landmarks fit the half-budget, and the remaining two rows
+    // are an even stride over the six rows they left.
+    assert_eq!(sampled_rows(&sample, 8, 4), (vec![0, 4, 3, 7], 2));
+}
+
+#[test]
+fn a_snapshot_sample_never_repeats_a_landmark_row() {
+    let landmarks = [landmark(0), landmark(4), landmark(0)];
+    let sample = SnapshotSample::select(8, &landmarks, 8);
+    let (rows, landmarks) = sampled_rows(&sample, 8, 8);
+
+    let mut distinct = rows.clone();
+    distinct.sort_unstable();
+    distinct.dedup();
+    assert_eq!(distinct.len(), rows.len(), "{rows:?}");
+    assert_eq!(landmarks, 2);
+}
+
+#[test]
+fn landmarks_take_at_most_half_a_snapshot_budget() {
+    let landmarks: Vec<SupportAnchor> = (0..60).map(landmark).collect();
+    let sample = SnapshotSample::select(100, &landmarks, 10);
+    let (rows, landmarks) = sampled_rows(&sample, 100, 10);
+
+    // Half the budget holds the skeleton; the interior keeps the rest,
+    // so a landmark-rich corpus still shows more than its anchors.
+    assert_eq!(landmarks, 5);
+    assert_eq!(rows.len(), 10);
+    assert!(rows[5..].iter().all(|&row| row >= 60), "{rows:?}");
+}
+
+#[test]
+fn a_budget_beyond_the_corpus_reports_every_row_once() {
+    let sample = SnapshotSample::select(5, &[landmark(2)], 4_096);
+
+    assert_eq!(sampled_rows(&sample, 5, 4_096), (vec![2, 0, 1, 3, 4], 1));
+}
+
+#[test]
+fn an_observer_with_no_appetite_is_never_reported_to() {
+    let sample = SnapshotSample::select(8, &[landmark(0)], 0);
+    let observer = RecordingSnapshots::new(0);
+
+    sample.report(&identity_frame(8), &observer);
+
+    // Not an empty snapshot - no snapshot: the silent observer's
+    // reporting path allocates nothing.
+    assert!(observer.snapshots().is_empty());
+}
+
+#[test]
+fn a_landmark_outside_the_corpus_is_dropped_rather_than_indexed() {
+    let landmarks = [landmark(2), landmark(64)];
+    let sample = SnapshotSample::select(4, &landmarks, 4);
+
+    assert_eq!(sampled_rows(&sample, 4, 4), (vec![2, 0, 1, 3], 1));
 }

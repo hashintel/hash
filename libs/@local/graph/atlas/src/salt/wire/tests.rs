@@ -539,6 +539,116 @@ mod tile {
     }
 
     #[test]
+    fn masks_merge_a_gathered_delivered_set() {
+        let positions = [Vec2::new(0.0, 0.0); 22];
+        let rows: Vec<WireRow<NodeRowId>> = (0..22).map(WireRow::pinned).collect();
+        // The same five points as the range form, gathered: today's masked walk visits
+        // ascending corpus buckets, so its list ascends in base position.
+        let delivered = [4_u32, 5, 6, 20, 21];
+
+        let list = [5_u32, 20, 33];
+        let dense = [(1_u32 << 4) | (1 << 21)];
+        let empty: [u32; 0] = [];
+        let masks = [
+            Membership::List(&list),
+            Membership::Dense(&dense),
+            Membership::List(&empty),
+        ];
+
+        let mut response = minimal(&positions, &rows, &[]);
+        response.delivered = DeliveredSet::Positions(&delivered);
+        response.head.first_bucket = 0;
+        response.head.runs = &[5];
+        response.head.visible = 5;
+        response.masks = Some(&masks);
+        let bytes = response.encode();
+
+        // Point order 4, 5, 6, 20, 21: type 1 | type 0 | none | type 0 | type 1 - the
+        // range form's column, reached through the other producer shape.
+        assert_eq!(
+            section(&bytes, 3).expect("TYPE_MASK is present"),
+            [0b010, 0b001, 0b000, 0b001, 0b010]
+        );
+    }
+
+    /// Scope-bucket delivery order does not ascend in corpus base position, so every column
+    /// association is proven against delivered lists that break the ascent.
+    ///
+    /// The memberships give the five points five distinct masks, so no permutation error can
+    /// coincide with the right answer, and the first list keeps the lowest position first and the
+    /// highest last: a merge that assumed monotonicity still spans the correct window and still
+    /// mis-attributes the interior, which is the silent shape of the defect.
+    #[test]
+    fn masks_follow_delivery_order_when_it_inverts_base_order() {
+        // Coordinates and row ids are both distinct per base position and distinct from each
+        // other, so a column indexed by the wrong quantity cannot coincide with the right one.
+        let positions: Vec<Vec2> = (0..22_u8)
+            .map(|index| Vec2::new(f32::from(index), -f32::from(index)))
+            .collect();
+        let rows: Vec<WireRow<NodeRowId>> =
+            (0..22_u32).map(|row| WireRow::pinned(100 + row)).collect();
+
+        // type 0: 5 and 20 (33 lies outside the base domain and is never consulted).
+        let list = [5_u32, 20, 33];
+        // type 1: dense bits at 4, 20 and 21 over N = 22 (one word).
+        let dense = [(1_u32 << 4) | (1 << 20) | (1 << 21)];
+        // type 2: 6 and 21.
+        let third = [6_u32, 21];
+        let masks = [
+            Membership::List(&list),
+            Membership::Dense(&dense),
+            Membership::List(&third),
+        ];
+        // Masks by base position: 4 -> 0b010, 5 -> 0b001, 6 -> 0b100, 20 -> 0b011, 21 -> 0b110.
+
+        let scrambled = [4_u32, 20, 6, 5, 21];
+        let mut response = minimal(&positions, &rows, &[]);
+        response.delivered = DeliveredSet::Positions(&scrambled);
+        response.head.first_bucket = 0;
+        response.head.runs = &[2, 3];
+        response.head.visible = 5;
+        response.masks = Some(&masks);
+        let bytes = response.encode();
+
+        // The column is f32 xy pairs in delivered order, so the flat reading is the contract's.
+        let (coordinates, _) = section(&bytes, 1)
+            .expect("POSITIONS is present")
+            .as_chunks::<4>();
+        let delivered_points: Vec<f32> = coordinates
+            .iter()
+            .copied()
+            .map(f32::from_le_bytes)
+            .collect();
+        assert_eq!(
+            delivered_points,
+            [4.0, -4.0, 20.0, -20.0, 6.0, -6.0, 5.0, -5.0, 21.0, -21.0]
+        );
+
+        let (row_ids, _) = section(&bytes, 2)
+            .expect("ROW_IDS is present")
+            .as_chunks::<4>();
+        let delivered_rows: Vec<u32> = row_ids.iter().copied().map(u32::from_le_bytes).collect();
+        assert_eq!(delivered_rows, [104, 120, 106, 105, 121]);
+
+        // Point order 4, 20, 6, 5, 21. A monotone cursor answers [2, 3, 0, 0, 6] here: the
+        // right count, the right length, no panic, two points silently unmasked.
+        assert_eq!(
+            section(&bytes, 3).expect("TYPE_MASK is present"),
+            [0b010, 0b011, 0b100, 0b001, 0b110]
+        );
+
+        // The literal inversion: delivery order fully descending in base position.
+        let inverted = [21_u32, 20, 6, 5, 4];
+        response.delivered = DeliveredSet::Positions(&inverted);
+        let bytes = response.encode();
+
+        assert_eq!(
+            section(&bytes, 3).expect("TYPE_MASK is present"),
+            [0b110, 0b011, 0b100, 0b001, 0b010]
+        );
+    }
+
+    #[test]
     fn trailer_encodes_labels_and_icons() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();

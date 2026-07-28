@@ -10,6 +10,7 @@ use super::{
     hydrate::{DeliveredEntities, EdgeLinkDetails},
     intern::{self, Table},
     neighbourhood::Neighbourhood,
+    scope::ScopeReach,
     visibility::VisibilityProof,
     walk::Walk,
 };
@@ -26,6 +27,12 @@ use crate::{
 /// vocabulary.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EdgesError {
+    /// The bound scope does not reach this surface.
+    ///
+    /// The edges surface's subject is link rows, and a restricted scope carries no statement
+    /// about them, so the request is refused before the request body is read at all: the variant
+    /// precedes every other rejection, and no rejection past it is reachable out of scope.
+    OutOfScope,
     /// The request lists more tiles than the cap admits.
     Tiles {
         /// The listed tile count.
@@ -58,6 +65,9 @@ pub enum EdgesError {
 impl fmt::Display for EdgesError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::OutOfScope => {
+                write!(fmt, "the edges surface is not served in the caller's scope")
+            }
             Self::Tiles { count, maximum } => {
                 write!(
                     fmt,
@@ -154,12 +164,19 @@ impl Atlas {
         request: &EdgesRequest,
         limits: EdgesLimits,
         proof: &VisibilityProof,
+        reach: ScopeReach,
     ) -> Result<Vec<u8>, EdgesError> {
+        // The surface refusal precedes this path's own deferral, so a
+        // caller outside the scope learns nothing about which features
+        // the path serves.
+        if !reach.serves_links() {
+            return Err(EdgesError::OutOfScope);
+        }
         if request.include_detailed_data {
             return Err(EdgesError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_edges(request, limits, proof)?;
+        let document = self.assemble_edges(request, limits, proof, reach)?;
         Ok(self.encode_edges(&document, None))
     }
 
@@ -182,9 +199,14 @@ impl Atlas {
     /// Version 0 serves the full unfiltered edge set; a request naming a visibility filter is
     /// rejected by name rather than answered with bytes that silently ignore it.
     ///
+    /// The surface is link-bearing, so it answers `reach` before it reads the request: a
+    /// restricted scope is refused here rather than at the transport, and the refusal is a
+    /// [`Result`] variant, so no caller can hold a refusal and a document together.
+    ///
     /// # Errors
     ///
-    /// Returns [`EdgesError::Tiles`] when the request lists more tiles than `limits.tiles`,
+    /// Returns [`EdgesError::OutOfScope`] when `reach` does not serve the link-bearing surfaces,
+    /// [`EdgesError::Tiles`] when the request lists more tiles than `limits.tiles`,
     /// [`EdgesError::Depth`] when a listed zoom exceeds the generation's deepest served tile,
     /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid, and
     /// [`EdgesError::Unsupported`] when the request names a version-0 deferral.
@@ -193,7 +215,11 @@ impl Atlas {
         request: &EdgesRequest,
         limits: EdgesLimits,
         proof: &VisibilityProof,
+        reach: ScopeReach,
     ) -> Result<EdgesDocument, EdgesError> {
+        if !reach.serves_links() {
+            return Err(EdgesError::OutOfScope);
+        }
         if request.filter.is_some() {
             return Err(EdgesError::Unsupported("filter"));
         }

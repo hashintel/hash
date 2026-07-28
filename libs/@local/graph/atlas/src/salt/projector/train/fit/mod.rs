@@ -41,6 +41,7 @@ use super::{
 };
 use crate::{
     math::{Positive, UnitFraction},
+    progress::Progress,
     salt::{
         knn::table::KnnView,
         projector::{
@@ -413,6 +414,9 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 /// Equal models, inputs, options, and seeds draw equal batches; coordinate-level reproducibility
 /// additionally depends on the backend's own determinism.
 ///
+/// Every step reports its loss to `progress` as it is evaluated; the run behaves identically under
+/// any observer.
+///
 /// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]; call the phases
 /// directly to checkpoint or fork at the boundary.
 ///
@@ -428,15 +432,16 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 ///
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it; all inputs come from one generation, so a mismatch is a wiring defect.
-pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
     model: Projector<B>,
     inputs: &TrainerInputs<'_>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
+    progress: &P,
 ) -> Result<Fitted<B>, TrainError> {
-    let state = fit_to_boundary(model, inputs, options, rng, device)?;
-    fit_from_boundary(state, inputs, options, rng, device)
+    let state = fit_to_boundary(model, inputs, options, rng, device, progress)?;
+    fit_from_boundary(state, inputs, options, rng, device, progress)
 }
 
 /// Trains the opening segment: steps zero to the phase boundary, all at the zero rung.
@@ -454,12 +459,13 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
 ///
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
-pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
     model: Projector<B>,
     inputs: &TrainerInputs<'_>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
+    progress: &P,
 ) -> Result<BoundaryState<B>, TrainError> {
     let schedule = options.schedule;
     let mut session = Session::new(inputs, options)?;
@@ -478,6 +484,7 @@ pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Siz
         0..schedule.boundary,
         rng,
         device,
+        progress,
     )?;
 
     Ok(BoundaryState { training, schedule })
@@ -501,12 +508,17 @@ pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Siz
 ///
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
-pub(crate) fn fit_from_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized>(
+pub(crate) fn fit_from_boundary<
+    B: AutodiffBackend<FloatElem = f32>,
+    R: Rng + ?Sized,
+    P: Progress,
+>(
     state: BoundaryState<B>,
     inputs: &TrainerInputs<'_>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
+    progress: &P,
 ) -> Result<Fitted<B>, TrainError> {
     if options.schedule != state.schedule {
         return Err(TrainError::ScheduleChanged {
@@ -522,6 +534,7 @@ pub(crate) fn fit_from_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?S
         schedule.boundary..schedule.steps.get(),
         rng,
         device,
+        progress,
     )?;
 
     Ok(Fitted {

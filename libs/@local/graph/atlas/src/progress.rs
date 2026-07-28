@@ -24,6 +24,7 @@ pub use crate::salt::{CardEmbeddingStats, LossBreakdown, RecallSpotCheck};
 
 /// One pipeline stage of a run, in the order the runner drives them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Stage {
     /// Streaming the dataset and staging the ingest artifacts.
     Ingest,
@@ -49,6 +50,15 @@ pub enum Stage {
     Seal,
     /// Probing the published generation for the activation decision.
     Admission,
+}
+
+impl Stage {
+    /// Every stage, in the order the runner drives them.
+    ///
+    /// A renderer showing the run's remaining work needs the order before the run reaches it, so
+    /// the sequence is stated once here rather than inferred from arrival.
+    pub const ALL: [Self; core::mem::variant_count::<Self>()] =
+        core::array::from_fn(const |index| unsafe { core::mem::transmute(index as u8) });
 }
 
 /// One batched loop's position: `done` of `total` units covered.
@@ -134,9 +144,10 @@ pub trait Progress {
     /// How many placement rows the observer wants sampled into
     /// [`projector_snapshot`](Self::projector_snapshot) calls.
     ///
-    /// The capability probe: `0` - the default - means the run never gathers a snapshot. The
-    /// sample is chosen once at stage start from the run's seed, so every snapshot reports the
-    /// same rows moving.
+    /// The capability probe: `0` - the default - means the run never gathers a snapshot. The rows
+    /// are chosen once at stage start - the landmark skeleton first, then an even stride over the
+    /// corpus - and every snapshot reports those same rows moving. The choice draws no randomness,
+    /// so an observer's appetite cannot move what the run publishes.
     fn projector_sample_size(&self) -> usize {
         0
     }

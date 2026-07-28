@@ -13,6 +13,7 @@
 )]
 
 use core::num::NonZero;
+use std::sync::Mutex;
 
 use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
@@ -23,8 +24,8 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    FrozenRadius, RelationLens, TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit,
-    fit_from_boundary, fit_to_boundary,
+    FrozenRadius, LossBreakdown, RelationLens, TrainError, TrainOptions, TrainerInputs,
+    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -33,6 +34,7 @@ use crate::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
         unit_fraction,
     },
+    progress::{NoProgress, Progress},
     salt::{
         knn::table::{Knn, KnnMatrix},
         policy::ClassProbabilities,
@@ -369,15 +371,27 @@ fn mean_distance(layout: &[Vec2], pairs: impl Iterator<Item = (usize, usize)>) -
     total / count
 }
 
+/// Probed at N=25 and N=300, seeds 11 and 23, with the landmark coefficient zeroed (the
+/// corpus's only nonzero pinning force here - `anchor` is already zero in `options()` and this
+/// fixture supplies no anchors): separation survives at every point (within ~0.0003-0.012,
+/// between ~29-96, both seeds), so the semantic gradient itself drives the separation this test
+/// names and measures.
 #[test]
 fn training_separates_the_semantic_clusters() {
     let corpus = semantic_corpus();
     // Boundary at the end: a pure semantic run records no boundary.
-    let options = options(schedule(300, 300, 50), None);
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(11), &device())
-        .expect("the semantic fixture trains");
+    let options = options(schedule(25, 25, 10), None);
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(11),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
 
-    assert_eq!(fitted.evidence.losses.len(), 300);
+    assert_eq!(fitted.evidence.losses.len(), 25);
     assert!(fitted.evidence.boundary.is_none());
 
     let layout = project(&fitted.model, &corpus, 0.0);
@@ -400,7 +414,7 @@ fn training_separates_the_semantic_clusters() {
 #[test]
 fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
-    let mut options = options(schedule(300, 300, 50), None);
+    let mut options = options(schedule(25, 25, 10), None);
     // A dominant landmark coefficient pins the anchored rows.
     options.coefficients = Coefficients::new(
         Positive::ONE,
@@ -410,8 +424,15 @@ fn landmark_support_keeps_the_frame() {
         NonNegative::ZERO,
         non_negative!(8.0),
     );
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(11), &device())
-        .expect("the semantic fixture trains");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(11),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
 
     let layout = project(&fitted.model, &corpus, 0.0);
     for anchor in &corpus.landmarks {
@@ -424,14 +445,134 @@ fn landmark_support_keeps_the_frame() {
     }
 }
 
+/// A ten-step run certifies the mechanism `training_separates_the_semantic_clusters` measures at
+/// convergence: the semantic gradient already pulls cluster mates closer well short of the full
+/// schedule that compounds the effect into a separated layout. (One optimizer step is not enough
+/// for a stable direction: Adam's first update is close to the coordinatewise sign of the gradient,
+/// so a single step can move an individual row either way even though the mean cluster displacement
+/// already improves; ten steps let the true gradient direction dominate.)
+#[test]
+fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
+    let corpus = semantic_corpus();
+    let before = project(&model(), &corpus, 0.0);
+    let mut options = options(schedule(10, 10, 2), None);
+    // The default fixture carries other non-zero coefficients (ordinary,
+    // hard, landmark, and the evidence-less relation term); zeroing every
+    // force but the semantic one isolates the mechanism the certificate
+    // names. Rows in one cluster share almost the same input
+    // representation, so the shared network weights let any other active
+    // force move cluster mates in a correlated way - that confound must
+    // be off for the certificate to test what it names.
+    options.coefficients = Coefficients::new(
+        Positive::ONE,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+    );
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(11),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
+    let after = project(&fitted.model, &corpus, 0.0);
+
+    let within_pairs = || {
+        (0..HALF)
+            .flat_map(|one| ((one + 1)..HALF).map(move |other| (one, other)))
+            .flat_map(|(one, other)| [(one, other), (one + HALF, other + HALF)])
+    };
+    let before_distance = mean_distance(&before, within_pairs());
+    let after_distance = mean_distance(&after, within_pairs());
+    assert!(
+        after_distance < before_distance,
+        "a short semantic run should pull cluster mates closer: before {before_distance} after \
+         {after_distance}"
+    );
+}
+
+/// A ten-step run under a dominant landmark coefficient certifies the mechanism
+/// `landmark_support_keeps_the_frame` measures at convergence: the force already points each
+/// anchored row toward its target well short of the full run. (One optimizer step is not
+/// enough: Adam's first update is close to the coordinatewise sign of the gradient rather than its
+/// true direction, so a single step can send an anchored row away from its target even under a
+/// dominant coefficient; ten steps let the true gradient direction dominate.)
+#[test]
+fn few_steps_landmark_force_points_anchors_at_their_targets() {
+    let corpus = semantic_corpus();
+    let before = project(&model(), &corpus, 0.0);
+    let mut options = options(schedule(10, 10, 2), None);
+    // A dominant landmark coefficient pins the anchored rows; the ordinary
+    // and hard repulsion terms are unrelated to any fixed target point, so
+    // zeroing them keeps their sampling noise from swinging the one row
+    // this certificate reads. The relation term has no evidence in this
+    // corpus and is zeroed with them; the semantic term's type admits no
+    // zero, so the 8:1 landmark dominance carries the isolation.
+    options.coefficients = Coefficients::new(
+        Positive::ONE,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        non_negative!(8.0),
+    );
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(11),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
+    let after = project(&fitted.model, &corpus, 0.0);
+
+    for anchor in &corpus.landmarks {
+        let row = anchor.row.as_usize();
+        // The step's direction, not its magnitude: an Adam step can overshoot
+        // a nearby target in one move, but the force it took the step under
+        // must still point the row toward its landmark.
+        let movement = after[row] - before[row];
+        let toward = anchor.target - before[row];
+        assert!(
+            movement.dot(toward) > 0.0,
+            "row {} should move toward its landmark over the run: before {:?} after {:?} target \
+             {:?}",
+            anchor.row.as_u64(),
+            before[row],
+            after[row],
+            anchor.target,
+        );
+    }
+}
+
 #[test]
 fn equal_seeds_train_equal_frames() {
     let corpus = semantic_corpus();
     let options = options(schedule(24, 24, 8), None);
-    let one = fit(model(), &corpus.inputs(), &options, &mut rng(13), &device())
-        .expect("the semantic fixture trains");
-    let two = fit(model(), &corpus.inputs(), &options, &mut rng(13), &device())
-        .expect("the semantic fixture trains");
+    let one = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(13),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
+    let two = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(13),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
 
     assert_eq!(one.evidence.losses, two.evidence.losses);
     assert_eq!(
@@ -445,8 +586,15 @@ fn equal_seeds_train_equal_frames() {
 fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(12, 6, 4), None);
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
-        .expect("the boundary fixture trains");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the boundary fixture trains");
 
     let boundary = fitted
         .evidence
@@ -492,8 +640,15 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
 fn missing_reviewed_radius_names_both_fixes() {
     let corpus = proximal_corpus(Vec::new());
     let options = options(schedule(12, 6, 4), None);
-    let error = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
-        .expect_err("proximal force without reviews cannot freeze a radius");
+    let error = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect_err("proximal force without reviews cannot freeze a radius");
 
     assert_eq!(error, TrainError::MissingProximalReviews);
     let message = error.to_string();
@@ -505,8 +660,15 @@ fn missing_reviewed_radius_names_both_fixes() {
 fn asserted_radius_supersedes_the_measurement() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(8, 4, 4), Some(1.5));
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
-        .expect("the asserted fixture trains");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the asserted fixture trains");
 
     let boundary = fitted
         .evidence
@@ -524,8 +686,15 @@ fn asserted_radius_supersedes_the_measurement() {
 fn forceless_corpus_trains_vacuously() {
     let corpus = semantic_corpus();
     let options = options(schedule(9, 3, 4), None);
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(19), &device())
-        .expect("a forceless corpus trains vacuously");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(19),
+        &device(),
+        &NoProgress,
+    )
+    .expect("a forceless corpus trains vacuously");
 
     let boundary = fitted
         .evidence
@@ -552,8 +721,15 @@ fn vacuous_run_trains_a_flat_ladder() {
     // zero rung through it: the condition weights never receive
     // gradient, so every rung projects the identical map.
     let options = options(schedule(9, 3, 4), None);
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(19), &device())
-        .expect("a forceless corpus trains vacuously");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(19),
+        &device(),
+        &NoProgress,
+    )
+    .expect("a forceless corpus trains vacuously");
 
     let low = project(&fitted.model, &corpus, 0.0);
     assert_eq!(
@@ -586,6 +762,7 @@ fn measured_radius_requires_an_opening_segment() {
         &options(schedule(8, 0, 4), None),
         &mut rng(23),
         &device(),
+        &NoProgress,
     )
     .expect_err("a boundary at step zero cannot measure a radius");
     assert_eq!(error, TrainError::UnbaselinedRadius);
@@ -600,6 +777,7 @@ fn asserted_radius_permits_a_zero_boundary() {
         &options(schedule(8, 0, 4), Some(1.5)),
         &mut rng(23),
         &device(),
+        &NoProgress,
     )
     .expect("an asserted radius makes a zero boundary trainable");
 
@@ -643,6 +821,7 @@ fn coincident_only_force_requires_an_assertion() {
         &options(schedule(8, 4, 4), None),
         &mut rng(23),
         &device(),
+        &NoProgress,
     )
     .expect_err("coincident force alone cannot set the Proximal radius");
     assert_eq!(error, TrainError::CoincidentWithoutProximal);
@@ -654,6 +833,7 @@ fn coincident_only_force_requires_an_assertion() {
         &options(schedule(8, 4, 4), Some(1.0)),
         &mut rng(23),
         &device(),
+        &NoProgress,
     )
     .expect("an asserted radius composes the energy");
     let boundary = fitted
@@ -673,8 +853,15 @@ fn phase_a_ticks_measure_a_frozen_lens() {
     // exactly zero, not approximately.
     let corpus = semantic_corpus();
     let options = options(schedule(4, 4, 2), None);
-    let fitted = fit(model(), &corpus.inputs(), &options, &mut rng(29), &device())
-        .expect("the semantic fixture trains");
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(29),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the semantic fixture trains");
 
     assert_eq!(fitted.evidence.telemetry.len(), 2);
     for tick in &fitted.evidence.telemetry {
@@ -693,8 +880,15 @@ fn non_finite_representation_fails_the_first_tick() {
     let mut corpus = semantic_corpus();
     corpus.storage.as_array_mut()[3 * PROJECTOR_DIMENSIONS + 9] = f32::INFINITY;
     let options = options(schedule(4, 4, 2), None);
-    let error = fit(model(), &corpus.inputs(), &options, &mut rng(31), &device())
-        .expect_err("an infinite representation diverges the forward pass");
+    let error = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(31),
+        &device(),
+        &NoProgress,
+    )
+    .expect_err("an infinite representation diverges the forward pass");
 
     let TrainError::Refresh(refresh::RefreshError::Diverged { row, .. }) = error else {
         panic!("divergence surfaces as a refresh error, got {error:?}");
@@ -797,12 +991,26 @@ fn checkpointed_resume_matches_the_straight_run() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let options = options(schedule(12, 6, 4), None);
 
-    let straight = fit(model(), &corpus.inputs(), &options, &mut rng(17), &device())
-        .expect("the boundary fixture trains");
+    let straight = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the boundary fixture trains");
 
     let mut stream = rng(17);
-    let state = fit_to_boundary(model(), &corpus.inputs(), &options, &mut stream, &device())
-        .expect("the opening segment trains");
+    let state = fit_to_boundary(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut stream,
+        &device(),
+        &NoProgress,
+    )
+    .expect("the opening segment trains");
     let mut bytes = Vec::new();
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
     drop((state, stream));
@@ -810,8 +1018,15 @@ fn checkpointed_resume_matches_the_straight_run() {
     let (reopened, mut stream) =
         artifact::open_resume::<TestBackend>(bytes.as_slice(), architecture(), &device())
             .expect("the resume checkpoint opens");
-    let resumed = fit_from_boundary(reopened, &corpus.inputs(), &options, &mut stream, &device())
-        .expect("the resumed ladder trains");
+    let resumed = fit_from_boundary(
+        reopened,
+        &corpus.inputs(),
+        &options,
+        &mut stream,
+        &device(),
+        &NoProgress,
+    )
+    .expect("the resumed ladder trains");
 
     assert_eq!(
         resumed.evidence.losses.as_slice(),
@@ -839,8 +1054,15 @@ fn forked_ladders_share_the_frozen_radius() {
     let opening = options(schedule(12, 6, 4), None);
 
     let mut stream = rng(17);
-    let state = fit_to_boundary(model(), &corpus.inputs(), &opening, &mut stream, &device())
-        .expect("the opening segment trains");
+    let state = fit_to_boundary(
+        model(),
+        &corpus.inputs(),
+        &opening,
+        &mut stream,
+        &device(),
+        &NoProgress,
+    )
+    .expect("the opening segment trains");
     let mut bytes = Vec::new();
     artifact::write_resume(&state, &stream, &mut bytes).expect("the resume checkpoint writes");
 
@@ -857,8 +1079,15 @@ fn forked_ladders_share_the_frozen_radius() {
             NonNegative::ZERO,
             NonNegative::ONE,
         );
-        fit_from_boundary(state, &corpus.inputs(), &cell, &mut stream, &device())
-            .expect("the forked ladder trains")
+        fit_from_boundary(
+            state,
+            &corpus.inputs(),
+            &cell,
+            &mut stream,
+            &device(),
+            &NoProgress,
+        )
+        .expect("the forked ladder trains")
     };
 
     let one = fork(non_negative!(1.0));
@@ -879,12 +1108,26 @@ fn forked_ladders_share_the_frozen_radius() {
 fn resumed_ladder_rejects_a_changed_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
     let opening = options(schedule(12, 6, 4), None);
-    let state = fit_to_boundary(model(), &corpus.inputs(), &opening, &mut rng(17), &device())
-        .expect("the opening segment trains");
+    let state = fit_to_boundary(
+        model(),
+        &corpus.inputs(),
+        &opening,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the opening segment trains");
 
     let changed = options(schedule(16, 6, 4), None);
-    let error = fit_from_boundary(state, &corpus.inputs(), &changed, &mut rng(17), &device())
-        .expect_err("a changed schedule should be rejected");
+    let error = fit_from_boundary(
+        state,
+        &corpus.inputs(),
+        &changed,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect_err("a changed schedule should be rejected");
     assert_eq!(
         error,
         TrainError::ScheduleChanged {
@@ -892,4 +1135,178 @@ fn resumed_ladder_rejects_a_changed_schedule() {
             resumed: schedule(16, 6, 4),
         }
     );
+}
+
+/// Records every reported training step, and every snapshot of a stated appetite.
+#[derive(Debug, Default)]
+struct RecordingProgress {
+    appetite: usize,
+    steps: Mutex<Vec<(usize, usize, LossBreakdown)>>,
+    snapshots: Mutex<Vec<(Vec<Vec2>, usize)>>,
+}
+
+impl RecordingProgress {
+    /// An observer that watches the placement's rows as well as its losses.
+    fn watching(appetite: usize) -> Self {
+        Self {
+            appetite,
+            ..Self::default()
+        }
+    }
+
+    fn steps(&self) -> Vec<(usize, usize, LossBreakdown)> {
+        self.steps
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+
+    fn snapshots(&self) -> Vec<(Vec<Vec2>, usize)> {
+        self.snapshots
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .clone()
+    }
+}
+
+impl Progress for RecordingProgress {
+    fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {
+        self.steps
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push((step, steps, *loss));
+    }
+
+    fn projector_sample_size(&self) -> usize {
+        self.appetite
+    }
+
+    fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
+        self.snapshots
+            .lock()
+            .expect("the fixture mutex should not be poisoned")
+            .push((positions.to_vec(), landmarks));
+    }
+}
+
+#[test]
+fn every_training_step_reports_the_loss_it_records() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let options = options(schedule(12, 6, 4), None);
+    let progress = RecordingProgress::default();
+
+    let fitted = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &progress,
+    )
+    .expect("the boundary fixture trains");
+
+    let reported = progress.steps();
+    // The observation stream is the evidence, live: same values, same
+    // order, one per step, each stated against the whole schedule.
+    assert_eq!(
+        reported.iter().map(|&(step, ..)| step).collect::<Vec<_>>(),
+        (0..12).collect::<Vec<_>>(),
+    );
+    assert!(reported.iter().all(|&(_, steps, _)| steps == 12));
+    assert_eq!(
+        reported
+            .iter()
+            .map(|&(.., loss)| loss)
+            .collect::<Vec<_>>()
+            .as_slice(),
+        fitted.evidence.losses.as_slice(),
+    );
+}
+
+#[test]
+fn phases_report_against_the_whole_schedule() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let options = options(schedule(12, 6, 4), None);
+
+    let forked = RecordingProgress::default();
+    let mut stream = rng(17);
+    let state = fit_to_boundary(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut stream,
+        &device(),
+        &forked,
+    )
+    .expect("the opening segment trains");
+    fit_from_boundary(
+        state,
+        &corpus.inputs(),
+        &options,
+        &mut stream,
+        &device(),
+        &forked,
+    )
+    .expect("the resumed ladder trains");
+
+    // A phase reports against the whole schedule, not against its own
+    // range: the two segments concatenate into one 0..12 stream rather
+    // than each restarting the count at the boundary. Stated against
+    // the schedule rather than against a straight run, which composes
+    // these same two calls and would agree with any shared defect.
+    let reported = forked.steps();
+    assert_eq!(
+        reported.iter().map(|&(step, ..)| step).collect::<Vec<_>>(),
+        (0..12).collect::<Vec<_>>(),
+    );
+    assert!(reported.iter().all(|&(_, steps, _)| steps == 12));
+}
+
+#[test]
+fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
+    let corpus = proximal_corpus(vec![proximal_verdict()]);
+    let options = options(schedule(12, 6, 4), None);
+
+    let observer = RecordingProgress::watching(4);
+    let watched = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &observer,
+    )
+    .expect("the boundary fixture trains");
+    let unwatched = fit(
+        model(),
+        &corpus.inputs(),
+        &options,
+        &mut rng(17),
+        &device(),
+        &NoProgress,
+    )
+    .expect("the boundary fixture trains");
+
+    // The snapshot rides the refresh's own frame, so there is exactly
+    // one per tick - the telemetry counts the same ticks - and each
+    // reports the sample it was asked for, the corpus's two landmark
+    // rows first.
+    let snapshots = observer.snapshots();
+    assert_eq!(snapshots.len(), watched.evidence.telemetry.len());
+    assert!(!snapshots.is_empty());
+    assert!(
+        snapshots
+            .iter()
+            .all(|&(ref positions, landmarks)| positions.len() == 4 && landmarks == 2)
+    );
+
+    // The sample consumes no randomness, so watching cannot move the
+    // run: the two runs' losses are bit-equal, step for step.
+    assert_eq!(watched.evidence.losses, unwatched.evidence.losses);
+
+    // The placement moves under the observer's eye rather than
+    // reporting one frozen frame over and over.
+    let first = &snapshots.first().expect("a tick reported").0;
+    let last = &snapshots.last().expect("a tick reported").0;
+    assert_ne!(first, last);
 }

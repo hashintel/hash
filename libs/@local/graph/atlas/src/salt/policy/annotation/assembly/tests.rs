@@ -12,6 +12,7 @@ use crate::{
     file::array::ArrayFile,
     integrity::{Sha256, Update as _},
     math::BoxedVecN,
+    progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         policy::{annotation::AnnotationCorpus, classifier::TrainingSet},
@@ -401,6 +402,7 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
             maximum_group_fraction: 1.0,
             ..
         },
+        &NoProgress,
     )
     .await
     .expect("the fixture corpus assembles");
@@ -472,9 +474,14 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
 #[tokio::test]
 async fn staged_table_and_rows_satisfy_the_training_contract() {
     let corpus = fixture_corpus();
-    let assembled = assemble(&corpus, &ProgrammedEmbedder, AssemblyConfig::default())
-        .await
-        .expect("the fixture corpus assembles");
+    let assembled = assemble(
+        &corpus,
+        &ProgrammedEmbedder,
+        AssemblyConfig::default(),
+        &NoProgress,
+    )
+    .await
+    .expect("the fixture corpus assembles");
 
     let mut bytes = Vec::new();
     assembled
@@ -501,9 +508,14 @@ async fn corpus_with_no_admissible_card_is_an_empty_assembly() {
     let corpus = AnnotationCorpus::from_slice(document(&[shot]).as_bytes())
         .expect("the shot-only corpus admits");
 
-    let error = assemble(&corpus, &ProgrammedEmbedder, AssemblyConfig::default())
-        .await
-        .expect_err("policy leaves nothing to train on");
+    let error = assemble(
+        &corpus,
+        &ProgrammedEmbedder,
+        AssemblyConfig::default(),
+        &NoProgress,
+    )
+    .await
+    .expect_err("policy leaves nothing to train on");
     assert!(matches!(error, AssemblyError::Empty));
 }
 
@@ -514,9 +526,14 @@ async fn language_the_template_does_not_render_is_rejected() {
     let corpus = AnnotationCorpus::from_slice(document(&[card]).as_bytes())
         .expect("the reader accepts any recorded language");
 
-    let error = assemble(&corpus, &ProgrammedEmbedder, AssemblyConfig::default())
-        .await
-        .expect_err("the template renders English corpora");
+    let error = assemble(
+        &corpus,
+        &ProgrammedEmbedder,
+        AssemblyConfig::default(),
+        &NoProgress,
+    )
+    .await
+    .expect_err("the template renders English corpora");
     assert!(
         matches!(error, AssemblyError::Language { card: 0, ref language } if &**language == "de"),
     );
@@ -533,6 +550,7 @@ async fn assemble_under(cards: &[Value], maximum_group_fraction: f64) -> super::
             maximum_group_fraction,
             ..
         },
+        &NoProgress,
     )
     .await
     .expect("the subdivision corpus assembles")

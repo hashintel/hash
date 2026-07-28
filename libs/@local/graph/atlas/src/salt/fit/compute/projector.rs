@@ -45,6 +45,7 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, NonNegative, Positive, Vec2},
+    progress::Progress,
     salt::{
         knn::artifact::KnnArchive,
         ladder::{Field, measure_ladder, select_canonical},
@@ -132,9 +133,14 @@ pub(super) struct PlacementArtifacts {
 
 impl Context<'_> {
     /// Stages the canonical coordinates under the configured placement.
-    pub(super) fn stage_placement(
+    ///
+    /// The trained placement is the run's only long loop with a per-iteration reading, so it
+    /// reports every training step to `progress`; the baseline places in one pass and reports
+    /// nothing but its stage completion.
+    pub(super) fn stage_placement<P: Progress>(
         &self,
         inputs: &PlacementInputs<'_>,
+        progress: &P,
     ) -> Result<PlacementArtifacts, StageError> {
         let PlacementOptions::Projector(options) = &self.config.placement else {
             let coordinates = self.stage_baseline_coordinates(inputs.skeleton)?;
@@ -148,16 +154,17 @@ impl Context<'_> {
         };
 
         let _span = tracing::info_span!("projector").entered();
-        self.stage_projector(options, inputs)
+        self.stage_projector(options, inputs, progress)
     }
 
     /// Trains the projector and publishes the canonical rung's aligned field.
     ///
     /// The checkpoint stages beside it.
-    fn stage_projector(
+    fn stage_projector<P: Progress>(
         &self,
         options: &ProjectorOptions,
         inputs: &PlacementInputs<'_>,
+        progress: &P,
     ) -> Result<PlacementArtifacts, StageError> {
         let configured = options.architecture.representation_dimensions.get();
         if configured != PROJECTOR_DIMENSIONS {
@@ -229,7 +236,7 @@ impl Context<'_> {
             forward_rows: options.forward_rows,
         };
 
-        let fitted = self.train(options, &trainer_inputs, &train_options)?;
+        let fitted = self.train(options, &trainer_inputs, &train_options, progress)?;
         let checkpoint = self.stage_checkpoint(&fitted.model)?;
 
         // Inference runs on the inner backend. The lens is trained
@@ -276,11 +283,12 @@ impl Context<'_> {
     }
 
     /// Runs the training loop under its own span.
-    fn train(
+    fn train<P: Progress>(
         &self,
         options: &ProjectorOptions,
         inputs: &TrainerInputs<'_>,
         train_options: &TrainOptions,
+        progress: &P,
     ) -> Result<train::Fitted<TrainerBackend>, StageError> {
         let _span = tracing::info_span!("train").entered();
         let device = device();
@@ -295,6 +303,7 @@ impl Context<'_> {
             train_options,
             &mut stage_rng(self.config.seed, Stage::ProjectorDraws),
             &device,
+            progress,
         )?;
         tracing::info!(
             steps = options.schedule.steps().get(),

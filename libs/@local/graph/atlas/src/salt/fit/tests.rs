@@ -352,7 +352,7 @@ fn fixture_classifier() -> Classifier {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    fit_classifier(training, ClassifierFitConfig { folds: 2, .. })
+    fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
         .expect("the fixture classifier fits")
         .classifier
 }
@@ -1275,6 +1275,22 @@ async fn defective_corpus_publishes_nothing() {
     );
 }
 
+/// A one-step schedule with the boundary at step zero.
+///
+/// For orchestration certificates whose asserted behaviour does not depend on trained movement:
+/// the run still reaches the boundary and (when force is present and the radius is asserted) opens
+/// the ladder, at the minimum cost a valid schedule allows.
+fn minimal_schedule() -> TrainingSchedule {
+    TrainingSchedule::new(
+        NonZero::new(1).expect("the fixture step count is nonzero"),
+        0,
+        NonZero::new(1).expect("the fixture cadence is nonzero"),
+        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
+        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
+    )
+    .expect("the fixture schedule is valid")
+}
+
 /// The projector fixture's training run.
 ///
 /// Short enough for a test, long enough that the boundary and every rung run.
@@ -1374,8 +1390,12 @@ async fn forceless_projector_publishes_the_baseline_rung() {
 
     // An Overlay override strips the fixture's link type of force: the
     // boundary freezes nothing, the lens provably never trains, and the
-    // ladder is skipped whole.
-    let options = projector_options(None);
+    // ladder is skipped whole. The zero force makes the run vacuous by
+    // construction (`admit` sees no force at all), so the schedule
+    // carries no trained behaviour: one step certifies the same
+    // orchestration a longer run would.
+    let mut options = projector_options(None);
+    options.schedule = minimal_schedule();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options.clone()),
         policy: PolicyOptions {
@@ -1417,7 +1437,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
         .projector
         .as_ref()
         .expect("a trained placement records projector evidence");
-    assert_eq!(evidence.steps, 12);
+    assert_eq!(evidence.steps, 1);
     assert_eq!(
         evidence.boundary,
         Some(FrozenRadiusEvidence::Vacuous),
@@ -1602,6 +1622,10 @@ async fn vacuous_placement_trains_without_reviews() {
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
     let mut options = projector_options(None);
     options.vacuous = true;
+    // The vacuous flag empties the attraction index before admission, so
+    // the run is vacuous by construction regardless of the schedule: one
+    // step certifies the same orchestration a longer run would.
+    options.schedule = minimal_schedule();
     let vacuous_config = FitConfig {
         placement: PlacementOptions::Projector(options),
         policy,
@@ -1676,9 +1700,14 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let dataset = dataset();
 
     // 0.3 names no rung of the measured schedule: the configuration
-    // contradicts itself and the fit must refuse to publish.
+    // contradicts itself and the fit must refuse to publish. The
+    // asserted radius opens the ladder without a reviewed baseline
+    // segment, and the rejection is a fixed condition-schedule mismatch,
+    // not a function of how long the lens trained: one step certifies
+    // the same refusal a longer run would.
     let mut options = projector_options(Some(1.0));
     options.ladder.canonical = 0.3;
+    options.schedule = minimal_schedule();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {

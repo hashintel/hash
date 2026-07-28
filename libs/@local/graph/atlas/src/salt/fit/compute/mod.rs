@@ -51,6 +51,7 @@ mod landmark;
 mod lod;
 mod policy;
 mod projector;
+mod quotient;
 mod relation;
 
 /// The relation-policy classifier supply.
@@ -128,7 +129,7 @@ pub(super) fn run<I, O, P>(
 where
     I: ByteStable,
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
-    P: Progress,
+    P: Progress + Sync,
 {
     let context = Context {
         staging: &staging,
@@ -142,7 +143,8 @@ where
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
-    let (classifier, classifier_artifacts) = context.acquire_classifier(&inputs.classifier)?;
+    let (classifier, classifier_artifacts) =
+        context.acquire_classifier(&inputs.classifier, &progress)?;
     progress.stage_completed(Stage::Classifier);
     let policy = context.stage_policy(&classifier, &ingested.relations)?;
     progress.stage_completed(Stage::Policy);
@@ -166,14 +168,17 @@ where
     progress.stage_completed(Stage::Landmarks);
 
     let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
-    let placement = context.stage_placement(&PlacementInputs {
-        rows,
-        skeleton: &landmarks.artifact,
-        knn: &knn.artifact,
-        semantic: &semantic.artifact,
-        indexes: &relations.indexes,
-        resolution: &resolution,
-    })?;
+    let placement = context.stage_placement(
+        &PlacementInputs {
+            rows,
+            skeleton: &landmarks.artifact,
+            knn: &knn.artifact,
+            semantic: &semantic.artifact,
+            indexes: &relations.indexes,
+            resolution: &resolution,
+        },
+        &progress,
+    )?;
     progress.stage_completed(Stage::Projector);
 
     let lod = context.stage_lod::<I>(&ingested.node_types, &ingested.type_parents)?;

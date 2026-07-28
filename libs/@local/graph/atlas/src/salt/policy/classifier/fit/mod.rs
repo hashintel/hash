@@ -37,6 +37,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedDVecN, DVecN, MatrixN},
+    progress::Progress,
     salt::policy::GeometryClass,
 };
 
@@ -338,10 +339,18 @@ pub(crate) struct Fit {
 /// Returns a [`FitError`] for invalid configuration, too few relation groups, a training
 /// portion violating the preparation contract, a solve ending at a typed terminal, or a
 /// non-finite out-of-fold evaluation.
-pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, FitError> {
+///
+/// The fold fits are the long part of the stage, so each one reports to `progress` as it lands.
+/// They run in parallel, so completions arrive in whatever order the pool finishes them.
+pub(crate) fn fit<P: Progress + Sync>(
+    training: TrainingSet<'_>,
+    config: FitConfig,
+    progress: &P,
+) -> Result<Fit, FitError> {
     config.validate()?;
 
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
+    progress.classifier_started(config.folds);
 
     // Fold index `config.folds` holds nothing out: it is the final
     // full-corpus model, fitted in parallel with the fold models.
@@ -349,7 +358,15 @@ pub(crate) fn fit(training: TrainingSet<'_>, config: FitConfig) -> Result<Fit, F
         .into_par_iter()
         .map(|fold| {
             let held_out = (fold < config.folds).then_some(fold);
-            fit_model(training, &folds, held_out, config)
+            let model = fit_model(training, &folds, held_out, config)?;
+            // The final full-corpus model shares the map but is not a
+            // fold, and a fit that failed has not completed: only a
+            // held-out fit that returned moves the counter.
+            if let Some(fold) = held_out {
+                progress.classifier_fold_completed(fold);
+            }
+
+            Ok(model)
         })
         .collect::<Result<_, _>>()?;
 

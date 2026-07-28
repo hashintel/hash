@@ -9,6 +9,15 @@
 //! admission on a byte estimate of the token count - UTF-8 bytes divided by four, measured
 //! bit-exact against its rejections - so requests stay under the token ceiling in both
 //! accountings.
+//!
+//! The request boundary is also the workload's only observable progress, so the proxy carries the
+//! run's [`Progress`] observer and reports each request it completes against the workload it was
+//! handed. Nothing above it can report that: a caller hands over the whole workload in one call.
+//!
+//! Because the workload arrives whole, the first request is also the first proof that the provider
+//! is reachable under the configured credentials - by which point a run has already read the store
+//! and assembled its cards. [`ExternalEmbeddingProvider::preflight`] buys that proof up front, for
+//! one text.
 
 use core::{error::Error, fmt, iter::Peekable, num::NonZero, ops::ControlFlow};
 
@@ -21,6 +30,7 @@ use crate::{
     dataset::card::{Cl100kTokenizer, Tokenizer as _},
     integrity::{Sha256, Update as _},
     math::{BoxedVecN, VecN},
+    progress::{Batch, Progress},
 };
 
 #[cfg(test)]
@@ -78,6 +88,12 @@ impl EmbeddingContract<'_> {
 const DEFAULT_DOCUMENT_LIMIT: NonZero<usize> = const { NonZero::new(2_048).unwrap() };
 const DEFAULT_TOKEN_LIMIT: NonZero<usize> = const { NonZero::new(300_000).unwrap() };
 
+/// The text a preflight request carries.
+///
+/// Its content is immaterial - what is under test is whether the provider answers at all - so it is
+/// one short word, the cheapest request the endpoint accepts.
+const PREFLIGHT_TEXT: &str = "preflight";
+
 /// Ceilings one provider request must stay under.
 ///
 /// The defaults are the OpenAI embeddings API's published per-request ceilings.
@@ -106,22 +122,73 @@ struct RequestCost {
 /// The proxy owns request sizing: a workload splits into requests that respect both
 /// [`RequestLimits`] ceilings, each text's cost measured by its exact `cl100k_base` token count.
 /// Returned vectors are re-validated to the canonical width and handed back in input order.
+///
+/// Owning the split makes the proxy the only place a workload's advance is visible, so it reports
+/// every completed request to the run's observer.
 #[derive(Debug)]
-pub(crate) struct ExternalEmbeddingProvider<G> {
+pub(crate) struct ExternalEmbeddingProvider<G, P> {
     generator: G,
     fingerprint: EmbedderFingerprint,
     limits: RequestLimits,
+    progress: P,
 }
 
-impl<G> ExternalEmbeddingProvider<G> {
-    /// Creates a provider embedding under `contract` within `limits`.
+impl<G, P> ExternalEmbeddingProvider<G, P> {
+    /// Creates a provider embedding under `contract` within `limits`, reporting to `progress`.
     #[must_use]
-    pub(crate) fn new(generator: G, contract: &EmbeddingContract, limits: RequestLimits) -> Self {
+    pub(crate) fn new(
+        generator: G,
+        contract: &EmbeddingContract,
+        limits: RequestLimits,
+        progress: P,
+    ) -> Self {
         Self {
             generator,
             fingerprint: contract.fingerprint(),
             limits,
+            progress,
         }
+    }
+
+    /// Proves the provider answers, before anything expensive happens.
+    ///
+    /// One request for one short text, through the same generator, contract and canonical
+    /// validation the workload uses. It settles the three things a run cannot recover from and
+    /// otherwise discovers late: credentials the provider refuses, an endpoint that does not
+    /// answer, and a model whose vectors are not the canonical width.
+    ///
+    /// The check is unconditional, including for runs that turn out to reuse every card. Whether
+    /// anything needs embedding is known only after the store is read and the cards are assembled
+    /// - which is exactly the work whose cost this exists to avoid paying twice.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same [`ExternalEmbeddingError`] a workload would: [`Provider`] when the request
+    /// fails, [`BatchCount`] when one text does not return one vector, and [`Dimensions`] when the
+    /// returned vector is not [`CANONICAL_DIMENSIONS`] wide.
+    ///
+    /// [`Provider`]: ExternalEmbeddingError::Provider
+    /// [`BatchCount`]: ExternalEmbeddingError::BatchCount
+    /// [`Dimensions`]: ExternalEmbeddingError::Dimensions
+    pub(crate) async fn preflight(&self) -> Result<(), ExternalEmbeddingError>
+    where
+        G: EmbeddingGenerator,
+    {
+        let generated = self
+            .generator
+            .create_embeddings(&[PREFLIGHT_TEXT])
+            .await
+            .map_err(ExternalEmbeddingError::Provider)?;
+
+        let [embedding] = <[_; 1]>::try_from(generated).map_err(|generated: Vec<_>| {
+            ExternalEmbeddingError::BatchCount {
+                expected: 1,
+                actual: generated.len(),
+            }
+        })?;
+        canonical(embedding, 0)?;
+
+        Ok(())
     }
 
     /// Admits the workload's next text into the request under assembly, or breaks.
@@ -179,7 +246,9 @@ impl<G> ExternalEmbeddingProvider<G> {
     }
 }
 
-impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G> {
+impl<G: EmbeddingGenerator + Sync, P: Progress + Sync> CardEmbedder
+    for ExternalEmbeddingProvider<G, P>
+{
     type Error = ExternalEmbeddingError;
 
     fn fingerprint(&self) -> EmbedderFingerprint {
@@ -190,6 +259,11 @@ impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G>
         &self,
         texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error> {
+        // The workload is counted before the first request goes out:
+        // every report states its position against the whole.
+        let texts: Vec<&str> = texts.into_iter().collect();
+        let total = texts.len();
+
         let mut iter = texts.into_iter().peekable();
         let mut embeddings = Vec::new();
         // One request buffer serves the whole workload, cleared between
@@ -228,6 +302,10 @@ impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G>
             }
 
             offset += batch.len();
+            self.progress.embedding_batch(Batch {
+                done: offset,
+                total,
+            });
         }
 
         Ok(embeddings)

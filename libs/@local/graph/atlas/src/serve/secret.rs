@@ -108,3 +108,44 @@ impl fmt::Debug for WireSecret {
         fmt.debug_tuple("WireSecret").finish_non_exhaustive()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::WireSecret;
+
+    /// The wire secret's diagnostic rendering carries no key material.
+    ///
+    /// Scope is the outer rendering alone: [`WireSecret`]'s [`fmt::Debug`] formats no field, so
+    /// the held secret's own redaction is not observable here and is pinned where it lives. What
+    /// this does catch is the plausible regression - a rendering that reaches the bytes through
+    /// the held value's deref, whose hexadecimal form encodes them in full.
+    ///
+    /// [`fmt::Debug`]: core::fmt::Debug
+    #[test]
+    fn wire_secrets_redact_their_key() {
+        /// A key whose every byte differs from its neighbours, so a partial leak cannot hide in a
+        /// repeated run.
+        const HEX: &str = "6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55";
+
+        let secret = WireSecret::from_hex(HEX).expect("the literal is 64 lowercase hex digits");
+        let rendered = format!("{secret:?}");
+
+        // Any window of the configured form, not the whole string: a truncated or
+        // partially-encoded rendering leaks just as surely as a complete one.
+        for (start, window) in HEX.as_bytes().windows(8).enumerate() {
+            assert!(
+                !rendered
+                    .as_bytes()
+                    .windows(8)
+                    .any(|candidate| candidate == window),
+                "the rendering carries key material at position {start}: {rendered}"
+            );
+        }
+
+        // Redaction that hid the type would trade one diagnostic failure for another.
+        assert!(
+            rendered.contains("WireSecret"),
+            "the rendering still names the type: {rendered}"
+        );
+    }
+}
