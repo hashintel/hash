@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
-use super::{FitArgs, PostgresArgs, ProbeArgs, ReportCommand};
+use super::{FitArgs, PostgresArgs, ReportCommand};
 
 /// The standalone atlas binary's command line.
 ///
@@ -28,11 +28,7 @@ enum Command {
         args: Box<FitArgs>,
     },
 
-    /// Solves one fold subset from a published generation's frozen corpus and dumps every
-    /// receipt.
-    Probe(ProbeArgs),
-
-    /// Compiles an analysis bundle over a published generation.
+    /// Compiles an analysis instrument over a published generation.
     Report {
         #[command(subcommand)]
         command: ReportCommand,
@@ -87,10 +83,6 @@ pub async fn main() -> std::process::ExitCode {
                 Ok(()) => std::process::ExitCode::SUCCESS,
                 Err(error) => render_failure(&error),
             }
-        }
-        Command::Probe(args) => {
-            args.run().await;
-            std::process::ExitCode::SUCCESS
         }
         Command::Report { command } => match command.run().await {
             Ok(()) => std::process::ExitCode::SUCCESS,

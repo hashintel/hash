@@ -5,9 +5,9 @@
 //! [`ServeCommand`] open the root's active generation and build the read-API router
 //! ([`crate::api`]) the graph binary hosts. And the standalone `hash-graph-atlas` binary, whose
 //! shell the `cli` feature gates: its command line carries the fit command over its own store
-//! flags ([`PostgresArgs`]) plus the lab instruments - the fold probe ([`ProbeArgs`]) and the
-//! report bundles ([`ReportCommand`], one subcommand per report) - over a generation root's
-//! staged artifacts;
+//! flags ([`PostgresArgs`]) plus the report instruments ([`ReportCommand`], one subcommand per
+//! report - the certified classifier bundle, the fold probe) over a generation root's staged
+//! artifacts;
 //! serving stays exclusive to the graph binary. The store flags mirror the graph's
 //! `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry point.
 //!
@@ -28,7 +28,6 @@ use crate::serve::GenerationRoot;
 
 mod fit;
 mod postgres;
-mod probe;
 mod report;
 mod serve;
 mod shell;
@@ -38,8 +37,7 @@ pub use self::shell::main;
 pub use self::{
     fit::{FitArgs, FitCommand, FitError},
     postgres::{ConnectError, PostgresArgs, connect},
-    probe::ProbeArgs,
-    report::{ClassifierArgs, ReportCommand, ReportError},
+    report::{ClassifierArgs, ProbeArgs, ReportCommand, ReportError},
     serve::{ServeArgs, ServeCommand, ServeError},
 };
 pub use crate::salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary};

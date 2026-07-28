@@ -41,14 +41,12 @@ use crate::{
 };
 
 mod applicability;
-// The operator surface reaches the probe through the crate-root ladder; solver stays private.
 pub(crate) use self::solver::{
     CgStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
-    probe_fold,
 };
 mod calibration;
 mod objective;
-mod solver;
+pub(crate) mod solver;
 
 #[cfg(test)]
 mod tests;

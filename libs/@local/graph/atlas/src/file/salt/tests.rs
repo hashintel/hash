@@ -272,8 +272,6 @@ fn evidence() -> Evidence {
                         alignment: Similarity::IDENTITY,
                         baseline_movement: 0.0,
                         adjacent_movement: 0.0,
-                        monotonic: true,
-                        distinguishable: true,
                     },
                     RungEvidence {
                         condition: 1.0,
@@ -288,8 +286,6 @@ fn evidence() -> Evidence {
                         .expect("the fixture scale is finite, positive, and normal"),
                         baseline_movement: 0.125,
                         adjacent_movement: 0.125,
-                        monotonic: true,
-                        distinguishable: true,
                     },
                 ],
                 canonical: 1.0,

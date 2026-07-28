@@ -30,28 +30,29 @@
     // Language Features
     const_trait_impl,
     default_field_values,
-    never_type,
     exhaustive_patterns,
     f128,
+    never_type,
 
     // Library Features
     allocator_api,
     array_try_from_fn,
+    const_array,
+    const_closures,
     const_cmp,
     const_convert,
+    const_default,
     const_index,
     const_ops,
+    const_try,
     impl_trait_in_assoc_type,
     iter_intersperse,
+    iter_map_windows,
     pointer_is_aligned_to,
     portable_simd,
+    step_trait,
     variant_count,
-    const_closures,
-    const_array,
-    const_default,
-    const_try,
     vec_from_fn,
-    step_trait
 )]
 #![expect(
     dead_code,

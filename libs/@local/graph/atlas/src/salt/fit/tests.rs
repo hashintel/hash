@@ -1530,7 +1530,6 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
     // The lens is trained: the canonical rung moved measurably against
     // its predecessor.
     let canonical = &ladder.rungs[ladder.canonical_index];
-    assert!(canonical.distinguishable && canonical.monotonic);
     assert!(canonical.adjacent_movement > 0.0);
 
     // The published column is the canonical rung's projection under

@@ -46,9 +46,7 @@ pub(crate) mod ladder;
 pub(crate) mod landmark;
 // Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
-mod policy;
-// The `cli` operator surface reaches the classifier lab instruments here.
-pub(crate) use self::policy::classifier::{ClassifierReport, probe_fold};
+pub(crate) mod policy;
 // The root `progress` facade re-exports these observation types.
 pub use self::{
     embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,

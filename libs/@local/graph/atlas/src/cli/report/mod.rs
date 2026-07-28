@@ -1,29 +1,39 @@
-//! The report commands: analysis bundles over published generations, one submodule per report.
+//! The report commands: analysis instruments over published generations, one submodule per
+//! report.
 
 use core::{error::Error, fmt};
 use std::io;
 
 mod classifier;
+mod probe;
 
-pub use self::classifier::ClassifierArgs;
+pub use self::{classifier::ClassifierArgs, probe::ProbeArgs};
 
-/// The report subcommands, one per bundle.
+/// The report subcommands, one per instrument.
 #[derive(Debug, clap::Subcommand)]
 pub enum ReportCommand {
     /// Refits a published generation's classifier from its staged corpus, certifies the bytes
     /// against the deployed artifact, and writes the report bundle.
     Classifier(ClassifierArgs),
+
+    /// Solves one fold subset from a published generation's frozen corpus and dumps every
+    /// receipt.
+    Probe(ProbeArgs),
 }
 
 impl ReportCommand {
-    /// Compiles the selected report and writes its bundle.
+    /// Runs the selected report.
     ///
     /// # Errors
     ///
-    /// Returns a [`ReportError`] when the bundle cannot be written.
+    /// Returns a [`ReportError`] when a report bundle cannot be written.
     pub async fn run(self) -> Result<(), ReportError> {
         match self {
             Self::Classifier(args) => args.run().await,
+            Self::Probe(args) => {
+                args.run().await;
+                Ok(())
+            }
         }
     }
 }

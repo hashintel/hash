@@ -358,30 +358,7 @@ impl Context<'_> {
             losses = ?losses,
             "measured the rung relation losses"
         );
-        for (index, pair) in losses.windows(2).enumerate() {
-            let (previous, current) = (pair[0], pair[1]);
-            let delta = current - previous;
-            if delta > 0.0 {
-                // The relative delta is omitted over a zero
-                // predecessor rather than manufactured as inf/NaN.
-                if previous > 0.0 {
-                    tracing::warn!(
-                        condition = conditions[index + 1],
-                        previous_condition = conditions[index],
-                        delta,
-                        relative = delta / previous,
-                        "a rung's relation loss exceeds its predecessor's"
-                    );
-                } else {
-                    tracing::warn!(
-                        condition = conditions[index + 1],
-                        previous_condition = conditions[index],
-                        delta,
-                        "a rung's relation loss exceeds its predecessor's"
-                    );
-                }
-            }
-        }
+        warn_loss_regressions(conditions, &losses);
 
         // The frames map back together for the alignment fits; each is
         // one scratch array file, so the resident set is the mapped
@@ -432,30 +409,11 @@ impl Context<'_> {
 
         // The schedule's first rung is bit-exactly `0.0` by
         // construction, so `losses[0]` is the zero-condition raw loss.
-        let baseline_loss = losses[0];
-        if persisted_relation_loss >= baseline_loss {
-            let delta = persisted_relation_loss - baseline_loss;
-            // The relative delta is omitted over a zero baseline
-            // rather than manufactured as inf/NaN.
-            if baseline_loss > 0.0 {
-                tracing::warn!(
-                    canonical = selection.measurement.condition,
-                    persisted = persisted_relation_loss,
-                    baseline = baseline_loss,
-                    delta,
-                    relative = delta / baseline_loss,
-                    "the persisted canonical loss is not below the zero-condition raw loss"
-                );
-            } else {
-                tracing::warn!(
-                    canonical = selection.measurement.condition,
-                    persisted = persisted_relation_loss,
-                    baseline = baseline_loss,
-                    delta,
-                    "the persisted canonical loss is not below the zero-condition raw loss"
-                );
-            }
-        }
+        warn_persisted_regression(
+            selection.measurement.condition,
+            persisted_relation_loss,
+            losses[0],
+        );
 
         Ok((
             LadderEvidence {
@@ -560,6 +518,70 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
         )
         .expect("the trainer composed this energy at the boundary"),
     )
+}
+
+/// Warns on every adjacent raw relation-loss regression in the measured series.
+///
+/// One event per rung whose loss exceeds its predecessor's, carrying the absolute delta; the
+/// relative delta is omitted over a zero predecessor rather than manufactured as inf/NaN.
+fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
+    let rungs = conditions.iter().zip(losses);
+
+    for [(&previous_condition, &previous), (&condition, &current)] in
+        rungs.map_windows::<_, _, 2>(|arr| *arr)
+    {
+        let delta = current - previous;
+        if delta <= 0.0 {
+            continue;
+        }
+
+        if previous > 0.0 {
+            tracing::warn!(
+                condition,
+                previous_condition,
+                delta,
+                relative = delta / previous,
+                "a rung's relation loss exceeds its predecessor's"
+            );
+        } else {
+            tracing::warn!(
+                condition,
+                previous_condition,
+                delta,
+                "a rung's relation loss exceeds its predecessor's"
+            );
+        }
+    }
+}
+
+/// Warns when the persisted canonical loss is not below the zero-condition raw loss.
+///
+/// Carries the absolute delta; the relative delta is omitted over a zero baseline rather than
+/// manufactured as inf/NaN.
+fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
+    if persisted < baseline {
+        return;
+    }
+
+    let delta = persisted - baseline;
+    if baseline > 0.0 {
+        tracing::warn!(
+            canonical,
+            persisted,
+            baseline,
+            delta,
+            relative = delta / baseline,
+            "the persisted canonical loss is not below the zero-condition raw loss"
+        );
+    } else {
+        tracing::warn!(
+            canonical,
+            persisted,
+            baseline,
+            delta,
+            "the persisted canonical loss is not below the zero-condition raw loss"
+        );
+    }
 }
 
 /// Anchors every skeleton landmark at its laid-out coordinate.

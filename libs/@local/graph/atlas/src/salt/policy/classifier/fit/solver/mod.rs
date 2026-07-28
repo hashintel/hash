@@ -32,9 +32,9 @@ mod config;
 mod evaluate;
 mod flat;
 mod prepare;
-mod probe;
 mod problem;
 mod receipt;
+pub(crate) mod report;
 mod resolution;
 mod scale;
 mod solve;
@@ -49,7 +49,6 @@ mod tests;
 pub(crate) use self::{
     config::{SolverConfig, SolverConfigError},
     prepare::{PreparationError, PreparationSettings},
-    probe::probe_fold,
     receipt::ReceiptDetail,
     terminal::{CgStage, SolverFailure},
     work::WorkCounters,

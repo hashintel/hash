@@ -300,7 +300,7 @@ mod placement {
     use crate::{
         math::{NonNegative, Positive, UnitFraction},
         salt::{
-            ladder::{Conditions, LadderOptions, MeasurementOptions},
+            ladder::{Conditions, LadderOptions},
             projector::{
                 budget::BudgetOptions,
                 loss::{CoincidentEnergy, SupportOptions},
@@ -402,8 +402,6 @@ mod placement {
     #[derive(serde::Serialize, serde::Deserialize)]
     struct LadderRecord {
         conditions: Vec<f32>,
-        distinguishability_floor: f64,
-        monotonicity_tolerance: f64,
         canonical: f32,
     }
 
@@ -484,8 +482,6 @@ mod placement {
                 forward_rows: options.forward_rows,
                 ladder: LadderRecord {
                     conditions: options.ladder.conditions.values().to_vec(),
-                    distinguishability_floor: options.ladder.measurement.distinguishability_floor,
-                    monotonicity_tolerance: options.ladder.measurement.monotonicity_tolerance,
                     canonical: options.ladder.canonical,
                 },
                 vacuous: options.vacuous,
@@ -618,10 +614,6 @@ mod placement {
                 forward_rows: record.forward_rows,
                 ladder: LadderOptions {
                     conditions,
-                    measurement: MeasurementOptions {
-                        distinguishability_floor: record.ladder.distinguishability_floor,
-                        monotonicity_tolerance: record.ladder.monotonicity_tolerance,
-                    },
                     canonical: record.ladder.canonical,
                 },
                 vacuous: record.vacuous,
