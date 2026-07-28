@@ -3,10 +3,7 @@
 use core::{error::Error, fmt};
 use std::{io, path::Path};
 
-use zerocopy::{
-    FromBytes as _, TryFromBytes as _,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::{FromBytes as _, TryFromBytes as _, error::ConvertError};
 
 use super::{CLASSES, FileHeader};
 use crate::file::region::PageMap;

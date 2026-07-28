@@ -47,9 +47,11 @@ use crate::{
 };
 
 pub(crate) mod artifact;
-#[cfg(feature = "bench")]
-pub use self::fit::bench;
 mod fit;
+// The operator surface reaches the lab instruments through the crate-root ladder.
+pub(crate) use self::{fit::probe_fold, report::ClassifierReport};
+pub(crate) mod replay;
+pub(crate) mod report;
 
 #[cfg(test)]
 mod tests;

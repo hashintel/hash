@@ -96,10 +96,6 @@ path              = "src/main.rs"
 required-features = ["cli"]
 
 [[example]]
-name              = "classifier_probe"
-required-features = ["bench"]
-
-[[example]]
 name              = "clump_sweep"
 required-features = ["bench"]
 

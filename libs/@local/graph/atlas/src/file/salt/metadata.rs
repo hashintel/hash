@@ -231,10 +231,6 @@ pub(crate) struct RungEvidence {
     pub baseline_movement: f64,
     /// RMS movement against the preceding field after alignment.
     pub adjacent_movement: f64,
-    /// Whether the relation loss stayed within tolerance of the preceding rung's.
-    pub monotonic: bool,
-    /// Whether the adjacent movement reached the floor.
-    pub distinguishable: bool,
 }
 
 impl From<&RungMeasurement> for RungEvidence {
@@ -245,8 +241,6 @@ impl From<&RungMeasurement> for RungEvidence {
             alignment: measurement.alignment,
             baseline_movement: measurement.baseline_movement,
             adjacent_movement: measurement.adjacent_movement,
-            monotonic: measurement.monotonic,
-            distinguishable: measurement.distinguishable,
         }
     }
 }

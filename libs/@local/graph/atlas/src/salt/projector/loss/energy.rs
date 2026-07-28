@@ -232,6 +232,13 @@ impl RelationEnergy {
         self.epsilon
     }
 
+    /// Returns the Proximal component.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn proximal(self) -> ProximalEnergy {
+        self.proximal
+    }
+
     /// Evaluates the weighted class mixture and its derivative at a normalized distance.
     ///
     /// Each class energy is scaled by its weight; the derivative is the matching weighted sum of

@@ -1619,6 +1619,10 @@ fn solve_stores_no_receipts_routinely() {
         "outer iterations started"
     );
     assert!(run.receipts.is_empty(), "the routine posture stores none");
+    assert!(
+        run.coordinates.is_none(),
+        "the coordinate identity travels with the receipts it describes"
+    );
 }
 
 /// The full loop converges on the fixture corpus with truthful accounting throughout.
@@ -2053,7 +2057,9 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
 fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     let corpus = uniform_corpus();
     let run = run_solver(&corpus, solver_config());
-    let coordinates = run.coordinates;
+    let coordinates = run
+        .coordinates
+        .expect("a debugging request carries the coordinate identity");
 
     // The identity pins its literal v1 values, not merely shared-source agreement.
     assert_eq!(

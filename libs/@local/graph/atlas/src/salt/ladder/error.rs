@@ -10,7 +10,7 @@ pub(crate) enum ConditionsError {
         /// Rungs offered.
         count: usize,
     },
-    /// The first rung is not the exact semantic baseline `0.0`.
+    /// The first rung is not the exact zero-condition value `0.0`.
     BaselineNotZero {
         /// The offered first rung.
         value: f32,
@@ -45,7 +45,7 @@ impl fmt::Display for ConditionsError {
             Self::BaselineNotZero { value } => {
                 write!(
                     fmt,
-                    "the first rung must be the exact semantic baseline 0.0, got {value}"
+                    "the first rung must be the exact zero-condition value 0.0, got {value}"
                 )
             }
             Self::NonFinite { index, value } => {
@@ -93,16 +93,6 @@ pub enum LadderError {
         /// The offered loss.
         value: f64,
     },
-    /// The distinguishability floor is not a positive finite number.
-    InvalidFloor {
-        /// The offered floor.
-        value: f64,
-    },
-    /// The monotonicity tolerance is not a non-negative finite number.
-    InvalidTolerance {
-        /// The offered tolerance.
-        value: f64,
-    },
     /// A rung's field has no Procrustes alignment onto the compared field.
     ///
     /// Its points are coincident or the covariance cancels exactly.
@@ -136,18 +126,6 @@ impl fmt::Display for LadderError {
             Self::NonFiniteLoss { index, value } => {
                 write!(fmt, "field {index} has a non-finite loss: {value}")
             }
-            Self::InvalidFloor { value } => {
-                write!(
-                    fmt,
-                    "the distinguishability floor must be positive and finite, got {value}"
-                )
-            }
-            Self::InvalidTolerance { value } => {
-                write!(
-                    fmt,
-                    "the monotonicity tolerance must be non-negative and finite, got {value}"
-                )
-            }
             Self::Degenerate { index, against } => {
                 write!(
                     fmt,
@@ -168,20 +146,6 @@ pub enum CanonicalError {
         /// The requested condition.
         value: f32,
     },
-    /// The rung's relation loss rose beyond tolerance.
-    ///
-    /// Publishing it would worsen how well relations are honoured.
-    Monotonicity {
-        /// The requested condition.
-        value: f32,
-    },
-    /// The rung collapsed onto its predecessor.
-    ///
-    /// Publishing it buys nothing over the neighbouring condition.
-    Distinguishability {
-        /// The requested condition.
-        value: f32,
-    },
 }
 
 impl fmt::Display for CanonicalError {
@@ -189,12 +153,6 @@ impl fmt::Display for CanonicalError {
         match *self {
             Self::UnknownRung { value } => {
                 write!(fmt, "condition {value} is not a rung of the ladder")
-            }
-            Self::Monotonicity { value } => {
-                write!(fmt, "rung {value} failed the monotonicity criterion")
-            }
-            Self::Distinguishability { value } => {
-                write!(fmt, "rung {value} failed the distinguishability criterion")
             }
         }
     }

@@ -134,8 +134,9 @@ pub(crate) struct SolverRun {
     pub certificate: Option<CertificateEvidence>,
     /// One receipt per started outer iteration under a debugging request; empty routinely.
     pub receipts: Vec<OuterReceipt>,
-    /// The coordinate/version identity of the receipts and their digests.
-    pub coordinates: ReceiptCoordinates,
+    /// The coordinate/version identity of the receipts and their digests; present only under
+    /// a debugging request, with the receipts it describes.
+    pub coordinates: Option<ReceiptCoordinates>,
 }
 
 /// Runs the bounded trust-region solve from `ζ = 0` over a prepared problem.
@@ -185,7 +186,7 @@ pub(crate) fn solve(
         control,
         certificate,
         receipts,
-        coordinates: ReceiptCoordinates::CURRENT,
+        coordinates: (detail == ReceiptDetail::Digests).then_some(ReceiptCoordinates::CURRENT),
     }
 }
 

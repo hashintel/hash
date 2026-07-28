@@ -30,7 +30,7 @@ use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use self::{
     objective::Parameters,
-    solver::{ScaledProblem, prepare, solve},
+    solver::{ReceiptDetail, ScaledProblem, WorkCounters, prepare, solve},
 };
 use super::Classifier;
 use crate::{
@@ -41,14 +41,10 @@ use crate::{
 };
 
 mod applicability;
-#[cfg(feature = "bench")]
-pub use self::solver::bench;
-pub use self::solver::{
-    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptDetail,
-    StartDigests, WorkCounters,
-};
+// The operator surface reaches the probe through the crate-root ladder; solver stays private.
 pub(crate) use self::solver::{
     CgStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
+    probe_fold,
 };
 mod calibration;
 mod objective;

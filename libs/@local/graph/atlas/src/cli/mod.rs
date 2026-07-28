@@ -1,39 +1,50 @@
 //! The operator commands: fit a generation, serve the atlas.
 //!
 //! Two entry points consume this module. The `hash-graph atlas` subcommand: [`FitArgs`] and
-//! [`fit()`] run one production generation over the live store, and [`ServeArgs`] and
-//! [`open_router`] open the root's active generation and build the read-API router
+//! [`FitCommand`] run one production generation over the live store, and [`ServeArgs`] and
+//! [`ServeCommand`] open the root's active generation and build the read-API router
 //! ([`crate::api`]) the graph binary hosts. And the standalone `hash-graph-atlas` binary, whose
 //! shell the `cli` feature gates: its command line carries the fit command over its own store
-//! flags ([`StoreArgs`]); serving stays exclusive to the graph binary. The store flags mirror the
-//! graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry
-//! point.
+//! flags ([`PostgresArgs`]) plus the lab instruments - the fold probe ([`ProbeArgs`]) and the
+//! report bundles ([`ReportCommand`], one subcommand per report) - over a generation root's
+//! staged artifacts;
+//! serving stays exclusive to the graph binary. The store flags mirror the graph's
+//! `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry point.
+//!
+//! The hosts dial: a command runs over the store connection its host supplies -
+//! [`PostgresArgs::connect`] dials the shell's own flags, [`connect`] dials a rendered
+//! connection string.
 //!
 //! The run seam the fit command drives lives with the runner; this module re-exports its
 //! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as
 //! the crate's operator surface.
 //!
-//! The commands carry no listener or lifecycle of their own beyond what their arguments name.
+//! The commands carry no listener, lifecycle, or connection of their own beyond what their
+//! arguments name.
 
-use camino::Utf8PathBuf;
+use std::io;
+
+use crate::serve::GenerationRoot;
 
 mod fit;
+mod postgres;
+mod probe;
+mod report;
 mod serve;
 mod shell;
-mod store;
 
 #[cfg(feature = "cli")]
 pub use self::shell::main;
 pub use self::{
-    fit::{FitArgs, FitError, fit},
-    serve::{ServeArgs, ServeError, open_router},
-    store::{ConnectError, StoreArgs, connect},
+    fit::{FitArgs, FitCommand, FitError},
+    postgres::{ConnectError, PostgresArgs, connect},
+    probe::ProbeArgs,
+    report::{ClassifierArgs, ReportCommand, ReportError},
+    serve::{ServeArgs, ServeCommand, ServeError},
 };
 pub use crate::salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary};
 
-/// Returns the default generation root under the temp directory.
-fn default_root() -> Utf8PathBuf {
-    // NOTE: no default root in /tmp, this shouldn't have a default
-    let root = std::env::temp_dir().join("atlas-generations");
-    Utf8PathBuf::from_path_buf(root).expect("the temp directory is UTF-8")
+/// Parses a generation-root argument: opens the root, creating the directory when absent.
+fn parse_root(value: &str) -> io::Result<GenerationRoot> {
+    GenerationRoot::new(value)
 }

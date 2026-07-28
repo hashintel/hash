@@ -2,7 +2,7 @@
 
 use clap::{Parser, Subcommand};
 
-use super::{FitArgs, StoreArgs};
+use super::{FitArgs, PostgresArgs, ProbeArgs, ReportCommand};
 
 /// The standalone atlas binary's command line.
 ///
@@ -21,10 +21,21 @@ enum Command {
     /// Fits one generation over the live store and activates it on admission.
     Fit {
         #[command(flatten)]
-        store: StoreArgs,
+        store: PostgresArgs,
 
+        // The fit flags dwarf the other variants; the box keeps the enum small.
         #[command(flatten)]
-        args: Box<FitArgs>, // NOTE: why in a box?
+        args: Box<FitArgs>,
+    },
+
+    /// Solves one fold subset from a published generation's frozen corpus and dumps every
+    /// receipt.
+    Probe(ProbeArgs),
+
+    /// Compiles an analysis bundle over a published generation.
+    Report {
+        #[command(subcommand)]
+        command: ReportCommand,
     },
 }
 
@@ -67,7 +78,21 @@ pub async fn main() -> std::process::ExitCode {
 
     let cli = Cli::parse();
     match cli.command {
-        Command::Fit { store, args } => match super::fit(*args, &store.dsn()).await {
+        Command::Fit { store, args } => {
+            let mut client = match store.connect().await {
+                Ok(client) => client,
+                Err(error) => return render_failure(&error),
+            };
+            match super::FitCommand::from(*args).run(&mut client).await {
+                Ok(()) => std::process::ExitCode::SUCCESS,
+                Err(error) => render_failure(&error),
+            }
+        }
+        Command::Probe(args) => {
+            args.run().await;
+            std::process::ExitCode::SUCCESS
+        }
+        Command::Report { command } => match command.run().await {
             Ok(()) => std::process::ExitCode::SUCCESS,
             Err(error) => render_failure(&error),
         },

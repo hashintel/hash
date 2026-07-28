@@ -224,7 +224,7 @@ impl FromStr for GenerationId {
 }
 
 /// The directory of published generations.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GenerationRoot {
     path: Utf8PathBuf,
 }
@@ -240,6 +240,12 @@ impl GenerationRoot {
         fs::create_dir_all(&path)?;
 
         Ok(Self { path })
+    }
+
+    /// Returns the root directory.
+    #[must_use]
+    pub(crate) fn path(&self) -> &Utf8Path {
+        &self.path
     }
 
     /// Returns the directory of the given generation.

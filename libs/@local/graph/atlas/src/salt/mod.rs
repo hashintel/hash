@@ -47,17 +47,11 @@ pub(crate) mod landmark;
 // Crate-visible for the serving surface's schedule reads.
 pub(crate) mod lod;
 mod policy;
-// Crate-visible for the root `bench` facade's re-exports.
-#[cfg(feature = "bench")]
-pub use self::policy::classifier::bench as classifier_bench;
+// The `cli` operator surface reaches the classifier lab instruments here.
+pub(crate) use self::policy::classifier::{ClassifierReport, probe_fold};
 // The root `progress` facade re-exports these observation types.
 pub use self::{
-    embedding::CardEmbeddingStats,
-    knn::recall::RecallSpotCheck,
-    policy::classifier::{
-        CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptDetail,
-        StartDigests, WorkCounters,
-    },
+    embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
     projector::train::step::LossBreakdown,
 };
 // Crate-visible for the serving surface's TYPE_MASK reads.

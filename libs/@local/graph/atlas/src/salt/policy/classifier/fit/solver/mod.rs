@@ -26,14 +26,13 @@ use crate::{
 };
 
 pub(super) mod basis;
-#[cfg(feature = "bench")]
-pub mod bench;
 mod boundary;
 mod cg;
 mod config;
 mod evaluate;
 mod flat;
 mod prepare;
+mod probe;
 mod problem;
 mod receipt;
 mod resolution;
@@ -50,6 +49,7 @@ mod tests;
 pub(crate) use self::{
     config::{SolverConfig, SolverConfigError},
     prepare::{PreparationError, PreparationSettings},
+    probe::probe_fold,
     receipt::ReceiptDetail,
     terminal::{CgStage, SolverFailure},
     work::WorkCounters,

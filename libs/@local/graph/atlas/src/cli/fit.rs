@@ -1,20 +1,20 @@
 //! The fit command: one production generation over the live store.
 
-use core::{error::Error, fmt, num::NonZero};
+use core::{error::Error, fmt, num::NonZero, time::Duration};
 use std::{io, time::Instant};
 
-use camino::Utf8PathBuf;
-use clap::Args;
+use camino::{Utf8Path, Utf8PathBuf};
+use clap::{Args, ValueHint};
+use tokio_postgres::Client;
 
-use super::store::{ConnectError, connect};
 use crate::{
     dataset::TemporalAxes,
     progress::NoProgress,
-    salt::runner::live::{ClassifierSource, Options, Placement, RunError, live},
+    salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
     serve::GenerationRoot,
 };
 
-/// Store, root, and run settings of one fit.
+/// Root and run settings of one fit.
 #[derive(Debug, Args)]
 #[command(group = clap::ArgGroup::new("classifier_input")
     .required(true)
@@ -25,8 +25,13 @@ use crate::{
 )]
 pub struct FitArgs {
     /// The generation root directory.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_ROOT", default_value_t = super::default_root())]
-    root: Utf8PathBuf,
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_ROOT",
+        value_parser = super::parse_root,
+        value_hint = ValueHint::DirPath,
+    )]
+    root: GenerationRoot,
 
     /// The run seed; equal seeds replay every draw, the admission probe's included.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
@@ -52,7 +57,7 @@ pub struct FitArgs {
     ///
     /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
     /// so a corpus whose relations carry Proximal force needs one to train.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS", value_hint = ValueHint::FilePath)]
     verdicts: Option<Utf8PathBuf>,
 
     /// Path of a quality-thresholds document overriding the source defaults.
@@ -63,18 +68,22 @@ pub struct FitArgs {
     /// A present field overrides its default, an unknown field refuses the document, and an
     /// out-of-domain value refuses the run before it starts. The source defaults are maximally
     /// permissive, gating evidence presence rather than fidelity.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS")]
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS",
+        value_hint = ValueHint::FilePath,
+    )]
     quality_thresholds: Option<Utf8PathBuf>,
 
     /// Path of an annotation-corpus document: the classifier's training supply.
     ///
     /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
     /// table, and the model beside the generation.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS", value_hint = ValueHint::FilePath)]
     annotations: Option<Utf8PathBuf>,
 
     /// Path of a fitted classifier artifact (.clsf) to supply in place of fitting one.
-    #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER")]
+    #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER", value_hint = ValueHint::FilePath)]
     classifier: Option<Utf8PathBuf>,
 
     /// Override the trained placement's step count.
@@ -111,59 +120,16 @@ pub struct FitArgs {
     nn_descent: bool,
 
     /// Where the admission report JSON lands.
-    #[arg(long, default_value = "admission-report.json")]
+    #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
-}
-
-impl FitArgs {
-    /// Resolves the parsed flags into the run's typed options.
-    fn options(self) -> (Utf8PathBuf, Utf8PathBuf, Options<NoProgress>) {
-        let classifier = match (self.annotations, self.classifier) {
-            (Some(annotations), None) => ClassifierSource::Annotations(annotations),
-            (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
-            // The `classifier_input` argument group is required with
-            // exactly one member; the parser refuses every other shape.
-            _ => unreachable!("the classifier_input argument group admits exactly one path"),
-        };
-
-        let placement = if self.baseline {
-            Placement::Baseline
-        } else {
-            Placement::Projector {
-                steps: self.projector_steps,
-                asserted_radius: self.assert_proximal_radius,
-                vacuous: self.vacuous_placement,
-            }
-        };
-
-        let options = Options {
-            seed: self.seed,
-            landmarks: self.landmarks,
-            fresh: self.fresh,
-            anchors: self.anchors,
-            comparisons: self.comparisons,
-            verdicts: self.verdicts,
-            quality_thresholds: self.quality_thresholds,
-            classifier,
-            placement,
-            nn_descent: self.nn_descent,
-            progress: NoProgress,
-        };
-
-        (self.root, self.report, options) // NOTE: two `Utf8PathBuf` in the same tuple, that's bad, would it make sense to shrimply just implement `Parse` on `GenerationRoot`? it also seems like we're not using any of the more advanced clap features like hints, should I download some docs or smth for you?
-    }
 }
 
 /// One fit invocation's failure, by step.
 ///
-/// The store and run variants splice into the chain transparently (their display text and sources
-/// are the wrapped fault's, unchanged); the root and report variants name their own steps.
+/// The run variant splices into the chain transparently (its display text and sources are the
+/// wrapped fault's, unchanged); the report variant names its own step.
 #[derive(Debug)]
 pub enum FitError {
-    /// The generation root could not open.
-    Root(io::Error),
-    /// The store connection failed.
-    Connect(ConnectError),
     /// The run failed.
     Run(RunError),
     /// The admission report could not be written.
@@ -173,8 +139,6 @@ pub enum FitError {
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Root(_) => fmt.write_str("the generation root could not open"),
-            Self::Connect(error) => fmt::Display::fmt(error, fmt),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
         }
@@ -184,16 +148,9 @@ impl fmt::Display for FitError {
 impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Root(error) | Self::Io(error) => Some(error),
-            Self::Connect(error) => error.source(),
             Self::Run(error) => error.source(),
+            Self::Io(error) => Some(error),
         }
-    }
-}
-
-impl From<io::Error> for FitError {
-    fn from(value: io::Error) -> Self {
-        Self::Io(value)
     }
 }
 
@@ -203,71 +160,134 @@ impl From<RunError> for FitError {
     }
 }
 
-impl From<ConnectError> for FitError {
-    fn from(value: ConnectError) -> Self {
-        Self::Connect(value)
+impl From<io::Error> for FitError {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
     }
 }
 
-/// Runs one production generation run over the store at `dsn` and prints its summary.
-///
-/// The hosting binary supplies the connection string; the graph binary renders it from the same
-/// store flags its server reads, and the standalone binary from [`StoreArgs`](super::StoreArgs).
-/// The snapshot is pinned here: the run reads the store as of the moment the command starts.
-///
-/// # Errors
-///
-/// Returns a [`FitError`] naming the step that failed: opening the generation root, dialing the
-/// store, the run itself, or writing the admission report.
-#[expect(
-    clippy::print_stdout,
-    clippy::use_debug,
-    reason = "the summary is the command's product; option sets and `Duration` format through \
-              `Debug`"
-)]
-pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
-    // NOTE: why isn't this just `FitCommand::run`? and `FitArgs -> FitCommand`
-    crate::math::kernel::verify_cpu_baseline();
+/// The command's printed verdict: the run summary, the report location, and the wall time.
+struct Verdict<'data> {
+    summary: &'data Summary,
+    report: &'data Utf8Path,
+    elapsed: Duration,
+}
 
-    let (root, report, options) = args.options();
-    tracing::info!(
-        %root,
-        seed = options.seed,
-        landmarks = options.landmarks.get(),
-        fresh = options.fresh,
-        anchors = options.anchors.get(),
-        comparisons = options.comparisons.get(),
-        verdicts = ?options.verdicts,
-        quality_thresholds = ?options.quality_thresholds,
-        classifier = ?options.classifier,
-        placement = ?options.placement,
-        nn_descent = options.nn_descent,
-        "starting the production run"
-    );
+impl fmt::Display for Verdict<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(fmt)?;
+        writeln!(fmt, "generation  {}", self.summary.generation)?;
+        writeln!(fmt, "nodes       {}", self.summary.nodes)?;
+        writeln!(fmt, "edges       {}", self.summary.edges)?;
+        writeln!(fmt, "recall      {:.4}", self.summary.recall)?;
+        writeln!(
+            fmt,
+            "cards       {} reused, {} embedded",
+            self.summary.reused, self.summary.embedded
+        )?;
+        writeln!(fmt, "passes      {}", self.summary.passes)?;
+        writeln!(fmt, "activated   {}", self.summary.activated)?;
+        writeln!(fmt, "report      {}", self.report)?;
+        write!(fmt, "wall        {:.1}s", self.elapsed.as_secs_f64())
+    }
+}
 
-    let root = GenerationRoot::new(root).map_err(FitError::Root)?;
-    let mut client = connect(dsn).await?;
+/// One fit invocation, resolved: the run's typed options over an opened root.
+#[derive(Debug)]
+pub struct FitCommand {
+    root: GenerationRoot,
+    report: Utf8PathBuf,
+    options: Options<NoProgress>,
+}
 
-    let started = Instant::now();
-    let summary = live(&mut client, root, TemporalAxes::now(), options).await?;
-    let elapsed = started.elapsed();
+impl FitCommand {
+    /// Runs one production generation over the live store and prints its summary.
+    ///
+    /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
+    /// standalone shell, [`connect`] behind the graph binary's own store flags). The snapshot is
+    /// pinned here: the run reads the store as of the moment the command starts.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`FitError`] naming the step that failed: the run itself, or writing the
+    /// admission report.
+    ///
+    /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
+    /// [`connect`]: super::connect
+    #[expect(clippy::print_stdout, reason = "the summary is the command's product")]
+    pub async fn run(self, client: &mut Client) -> Result<(), FitError> {
+        crate::math::kernel::verify_cpu_baseline();
 
-    std::fs::write(&report, &summary.report).map_err(FitError::Io)?;
+        tracing::info!(
+            root = %self.root.path(),
+            seed = self.options.seed,
+            landmarks = self.options.landmarks.get(),
+            fresh = self.options.fresh,
+            anchors = self.options.anchors.get(),
+            comparisons = self.options.comparisons.get(),
+            verdicts = ?self.options.verdicts,
+            quality_thresholds = ?self.options.quality_thresholds,
+            classifier = ?self.options.classifier,
+            placement = ?self.options.placement,
+            nn_descent = self.options.nn_descent,
+            "starting the production run"
+        );
 
-    // NOTE: surely there's a prettier way to do this :3
-    println!();
-    println!("generation  {}", summary.generation);
-    println!("nodes       {}", summary.nodes);
-    println!("edges       {}", summary.edges);
-    println!("recall      {:.4}", summary.recall);
-    println!(
-        "cards       {} reused, {} embedded",
-        summary.reused, summary.embedded
-    );
-    println!("passes      {}", summary.passes);
-    println!("activated   {}", summary.activated);
-    println!("report      {report}");
-    println!("wall        {elapsed:.1?}");
+        let started = Instant::now();
+        let summary = live(client, self.root, TemporalAxes::now(), self.options).await?;
+        let elapsed = started.elapsed();
 
-    Ok(())
+        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+
+        println!(
+            "{}",
+            Verdict {
+                summary: &summary,
+                report: &self.report,
+                elapsed,
+            }
+        );
+
+        Ok(())
+    }
+}
+
+impl From<FitArgs> for FitCommand {
+    fn from(args: FitArgs) -> Self {
+        let classifier = match (args.annotations, args.classifier) {
+            (Some(annotations), None) => ClassifierSource::Annotations(annotations),
+            (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
+            // The `classifier_input` argument group is required with
+            // exactly one member; the parser refuses every other shape.
+            _ => unreachable!("the classifier_input argument group admits exactly one path"),
+        };
+
+        let placement = if args.baseline {
+            Placement::Baseline
+        } else {
+            Placement::Projector {
+                steps: args.projector_steps,
+                asserted_radius: args.assert_proximal_radius,
+                vacuous: args.vacuous_placement,
+            }
+        };
+
+        Self {
+            root: args.root,
+            report: args.report,
+            options: Options {
+                seed: args.seed,
+                landmarks: args.landmarks,
+                fresh: args.fresh,
+                anchors: args.anchors,
+                comparisons: args.comparisons,
+                verdicts: args.verdicts,
+                quality_thresholds: args.quality_thresholds,
+                classifier,
+                placement,
+                nn_descent: args.nn_descent,
+                progress: NoProgress,
+            },
+        }
+    }
 }

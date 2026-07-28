@@ -54,7 +54,7 @@ pub struct AtlasArgs {
 pub enum AtlasCommand {
     /// Fits one generation over the live store and activates it on
     /// admission.
-    Fit(Box<cli::FitArgs>),
+    Fit(cli::FitArgs),
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
@@ -69,8 +69,13 @@ pub(crate) async fn run_atlas(
     // library assumes. Every response exposes the whole generation,
     // so the surrounding deployment must restrict access to operators.
     let proof = hash_graph_atlas::serve::VisibilityProof::full_visibility();
-    let router = cli::open_router(serve, &dsn, proof)
+    let client = cli::connect(&dsn)
         .await
+        .map_err(Report::new)
+        .change_context(GraphError)?;
+    let router = cli::ServeCommand::from(serve)
+        .run(client, proof)
+        .map_err(Report::new)
         .change_context(GraphError)?
         .layer(HttpTracingLayer);
 
@@ -105,7 +110,12 @@ pub(crate) async fn run_atlas(
 )]
 pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
     if let Some(AtlasCommand::Fit(fit_args)) = args.command {
-        return cli::fit(*fit_args, &args.db_info.url())
+        let mut client = cli::connect(&args.db_info.url())
+            .await
+            .map_err(Report::new)
+            .change_context(GraphError)?;
+        return cli::FitCommand::from(fit_args)
+            .run(&mut client)
             .await
             .map_err(Report::new)
             .change_context(GraphError);

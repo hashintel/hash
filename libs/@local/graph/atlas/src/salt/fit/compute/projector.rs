@@ -350,6 +350,39 @@ impl Context<'_> {
             write_frame(rung_path(&ladder, index), &frame)?;
         }
 
+        // Logged before the alignment fits and the canonical selection:
+        // the raw series survives their failures.
+        tracing::info!(
+            radius = energy.proximal().radius(),
+            conditions = ?conditions,
+            losses = ?losses,
+            "measured the rung relation losses"
+        );
+        for (index, pair) in losses.windows(2).enumerate() {
+            let (previous, current) = (pair[0], pair[1]);
+            let delta = current - previous;
+            if delta > 0.0 {
+                // The relative delta is omitted over a zero
+                // predecessor rather than manufactured as inf/NaN.
+                if previous > 0.0 {
+                    tracing::warn!(
+                        condition = conditions[index + 1],
+                        previous_condition = conditions[index],
+                        delta,
+                        relative = delta / previous,
+                        "a rung's relation loss exceeds its predecessor's"
+                    );
+                } else {
+                    tracing::warn!(
+                        condition = conditions[index + 1],
+                        previous_condition = conditions[index],
+                        delta,
+                        "a rung's relation loss exceeds its predecessor's"
+                    );
+                }
+            }
+        }
+
         // The frames map back together for the alignment fits; each is
         // one scratch array file, so the resident set is the mapped
         // pages the fits touch, not the owned frames.
@@ -369,11 +402,7 @@ impl Context<'_> {
             })
             .collect();
 
-        let measurements = measure_ladder(
-            &options.ladder.conditions,
-            &fields,
-            options.ladder.measurement,
-        )?;
+        let measurements = measure_ladder(&options.ladder.conditions, &fields)?;
         let selection = select_canonical(&measurements, options.ladder.canonical)?;
         let alignment = selection.measurement.alignment;
         tracing::info!(
@@ -400,6 +429,33 @@ impl Context<'_> {
                 refresh::scales(frame, &inputs.knn.view(), selection.measurement.condition)?;
             relation_loss(frame, &scales, &inputs.indexes.attraction, energy)
         };
+
+        // The schedule's first rung is bit-exactly `0.0` by
+        // construction, so `losses[0]` is the zero-condition raw loss.
+        let baseline_loss = losses[0];
+        if persisted_relation_loss >= baseline_loss {
+            let delta = persisted_relation_loss - baseline_loss;
+            // The relative delta is omitted over a zero baseline
+            // rather than manufactured as inf/NaN.
+            if baseline_loss > 0.0 {
+                tracing::warn!(
+                    canonical = selection.measurement.condition,
+                    persisted = persisted_relation_loss,
+                    baseline = baseline_loss,
+                    delta,
+                    relative = delta / baseline_loss,
+                    "the persisted canonical loss is not below the zero-condition raw loss"
+                );
+            } else {
+                tracing::warn!(
+                    canonical = selection.measurement.condition,
+                    persisted = persisted_relation_loss,
+                    baseline = baseline_loss,
+                    delta,
+                    "the persisted canonical loss is not below the zero-condition raw loss"
+                );
+            }
+        }
 
         Ok((
             LadderEvidence {

@@ -2,29 +2,25 @@
 //!
 //! One projected layout per relation-lens condition, aligned and measured against its neighbours.
 //!
-//! A generation may publish several coordinate fields, one per value of the relation-strength
-//! condition; the ladder is that schedule with its cross-condition evidence. [`Conditions`] carries
-//! the schedule, valid by construction: the first rung is the exact semantic baseline `0.0`, the
-//! rungs ascend strictly, and every value is finite. The rung count is deliberately unbounded -
-//! each rung costs one projection pass plus four alignment passes, so the schedule length is
-//! configuration, not a format limit.
+//! A generation publishes one coordinate field: the configured canonical rung's, aligned into the
+//! baseline frame. Every other rung is a measurement counterfactual - the same jointly trained
+//! model projected at a different lens strength - recorded as evidence, never delivered.
+//! [`Conditions`] carries the schedule, valid by construction: the first rung is the zero-condition
+//! value `0.0` (the jointly trained model with the lens off, not a separately trained relation-free
+//! model), the rungs ascend strictly, and every value is finite. The rung count is deliberately
+//! unbounded - each rung costs one projection pass plus four alignment passes, so the schedule
+//! length is configuration, not a format limit.
 //!
 //! [`measure_ladder`] derives each rung's evidence. Every rung aligns onto the baseline and onto
 //! its predecessor with the unweighted Procrustes fit ([`Similarity::fit_uniform_par`]); the RMS
 //! movement the alignment cannot explain is the rung's real geometric change, invariant under the
-//! scale, rotation, and translation freedom the projector never promises to pin down. Two signals
-//! summarize the ladder's health:
-//!
-//! - **monotonicity**: a rung's relation loss may exceed its predecessor's by at most the
-//!   configured tolerance - strengthening the lens must not worsen how well relations are honoured;
-//! - **distinguishability**: a rung's aligned movement against its predecessor must reach the
-//!   configured floor - rungs that collapse onto their neighbour buy nothing.
+//! scale, rotation, and translation freedom the projector never promises to pin down. The
+//! measurements are diagnostics: they persist as evidence and surface as structured log events, and
+//! they never gate publication.
 //!
 //! [`select_canonical`] names the rung that publishes as the canonical field: the configured
-//! condition must be an exact member of the measured schedule and must have passed both criteria.
-//! The canonical field itself is the rung's coordinates with its baseline alignment applied - all
-//! rungs publish in one shared frame, the baseline's, so clients interpolate between conditions
-//! without per-rung frame bookkeeping.
+//! condition must be an exact member of the measured schedule - configuration naming a rung, not an
+//! interpolation point.
 //!
 //! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-rung
 //! relation loss is its frozen objective; both enter here as plain values, so the seam between the
@@ -43,7 +39,7 @@ pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 /// A validated relation-lens condition schedule.
 ///
 /// The invariants hold by construction: at least two rungs, the first bit-exactly `0.0` (the
-/// semantic baseline every other rung is measured against; `-0.0` is rejected because the value
+/// zero-condition rung every other rung is measured against; `-0.0` is rejected because the value
 /// conditions the projector and enters reproducibility records bit-for-bit), strictly ascending,
 /// every value finite. The values sit behind a [`Cow`] so the reference schedule is a constant.
 #[derive(Debug, Clone, PartialEq)]
@@ -55,7 +51,7 @@ impl Conditions {
     /// The reference schedule: the baseline plus four evenly spaced rungs.
     ///
     /// An unvalidated starting point carried over from the legacy pipeline; the ladder's own
-    /// distinguishability evidence revises it.
+    /// movement evidence revises it.
     pub(crate) const REFERENCE: Self = Self {
         values: Cow::Borrowed(&[0.0, 0.25, 0.5, 0.75, 1.0]),
     };
@@ -132,32 +128,9 @@ pub(crate) struct Field<'coordinates> {
     pub relation_loss: f64,
 }
 
-/// Cross-condition measurement thresholds.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct MeasurementOptions {
-    /// Minimum RMS movement against the preceding rung for a rung to count as distinguishable.
-    ///
-    /// Defaults to `1e-8`.
-    // The default is an unvalidated starting point (legacy required the
-    // value as config, setting no precedent); the canonical-selection
-    // criteria revise it from evidence.
-    pub distinguishability_floor: f64 = 1.0e-8,
-    /// Slack by which a rung's relation loss may exceed its predecessor's.
-    ///
-    /// Within it the rung still counts as monotonic. Defaults to `0.05`.
-    // Same provenance as the floor.
-    pub monotonicity_tolerance: f64 = 0.05,
-}
-
-const impl Default for MeasurementOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
-}
-
 /// One fit's whole ladder configuration.
 ///
-/// The schedule, the cross-condition thresholds, and the rung that publishes.
+/// The schedule and the rung that publishes.
 ///
 /// The canonical value names a schedule member bit-exactly ([`select_canonical`]); a value outside
 /// the schedule is a configuration contradiction and fails the fit at selection.
@@ -165,8 +138,6 @@ const impl Default for MeasurementOptions {
 pub(crate) struct LadderOptions {
     /// The condition schedule the ladder projects.
     pub conditions: Conditions = Conditions::REFERENCE,
-    /// The cross-condition measurement thresholds.
-    pub measurement: MeasurementOptions = MeasurementOptions::default(),
     /// The condition whose aligned field publishes as the canonical coordinates.
     ///
     /// Defaults to `1.0`, the full-strength lens, matching the reference pipeline's canonical
@@ -195,14 +166,6 @@ pub(crate) struct RungMeasurement {
     pub baseline_movement: f64,
     /// RMS movement against the preceding field after alignment.
     pub adjacent_movement: f64,
-    /// Whether the relation loss stayed within tolerance of the preceding rung's.
-    ///
-    /// The baseline is monotonic by definition.
-    pub monotonic: bool,
-    /// Whether the adjacent movement reached the floor.
-    ///
-    /// The baseline is distinguishable by definition.
-    pub distinguishable: bool,
 }
 
 /// Aligns and measures a condition ladder.
@@ -214,25 +177,13 @@ pub(crate) struct RungMeasurement {
 ///
 /// # Errors
 ///
-/// Returns an error when a threshold is invalid, the field count does not match the schedule, a
-/// field's rows differ from the baseline's, a relation loss is not finite, or a field admits no
-/// similarity alignment (coincident points or an exactly cancelling covariance).
+/// Returns an error when the field count does not match the schedule, a field's rows differ from
+/// the baseline's, a relation loss is not finite, or a field admits no similarity alignment
+/// (coincident points or an exactly cancelling covariance).
 pub(crate) fn measure_ladder(
     conditions: &Conditions,
     fields: &[Field<'_>],
-    options: MeasurementOptions,
 ) -> Result<Vec<RungMeasurement>, LadderError> {
-    if !options.distinguishability_floor.is_finite() || options.distinguishability_floor <= 0.0 {
-        return Err(LadderError::InvalidFloor {
-            value: options.distinguishability_floor,
-        });
-    }
-    if !options.monotonicity_tolerance.is_finite() || options.monotonicity_tolerance < 0.0 {
-        return Err(LadderError::InvalidTolerance {
-            value: options.monotonicity_tolerance,
-        });
-    }
-
     if fields.len() != conditions.len() {
         return Err(LadderError::FieldCount {
             conditions: conditions.len(),
@@ -259,7 +210,6 @@ pub(crate) fn measure_ladder(
 
     let baseline = fields[0].coordinates;
     let mut measurements = Vec::with_capacity(fields.len());
-    let mut previous_loss = None;
     for (index, (&condition, field)) in conditions.values().iter().zip(fields).enumerate() {
         let (alignment, baseline_movement, adjacent_movement) = if index == 0 {
             (Similarity::IDENTITY, 0.0, 0.0)
@@ -276,21 +226,13 @@ pub(crate) fn measure_ladder(
             (against_baseline.0, against_baseline.1, against_previous.1)
         };
 
-        let monotonic = previous_loss.is_none_or(|previous: f64| {
-            field.relation_loss <= previous + options.monotonicity_tolerance
-        });
-        let distinguishable = index == 0 || adjacent_movement >= options.distinguishability_floor;
-
         measurements.push(RungMeasurement {
             condition,
             relation_loss: field.relation_loss,
             alignment,
             baseline_movement,
             adjacent_movement,
-            monotonic,
-            distinguishable,
         });
-        previous_loss = Some(field.relation_loss);
     }
 
     Ok(measurements)
@@ -313,14 +255,11 @@ pub(crate) struct CanonicalSelection<'ladder> {
 /// Selects the rung publishing as the canonical field.
 ///
 /// The value must be an exact (bit-level) member of the measured schedule - the canonical condition
-/// is configuration naming a rung, not an interpolation point - and the rung's evidence must pass
-/// both cross-condition criteria. The baseline rung always passes: both criteria hold for it by
-/// definition.
+/// is configuration naming a rung, not an interpolation point.
 ///
 /// # Errors
 ///
-/// Returns an error when the value names no rung or the named rung failed monotonicity or
-/// distinguishability.
+/// Returns an error when the value names no rung.
 pub(crate) fn select_canonical(
     measurements: &[RungMeasurement],
     value: f32,
@@ -330,13 +269,6 @@ pub(crate) fn select_canonical(
         .enumerate()
         .find(|(_, measurement)| measurement.condition.to_bits() == value.to_bits())
         .ok_or(CanonicalError::UnknownRung { value })?;
-
-    if !measurement.monotonic {
-        return Err(CanonicalError::Monotonicity { value });
-    }
-    if !measurement.distinguishable {
-        return Err(CanonicalError::Distinguishability { value });
-    }
 
     Ok(CanonicalSelection { index, measurement })
 }

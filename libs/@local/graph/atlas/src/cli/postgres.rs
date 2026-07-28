@@ -8,12 +8,10 @@ use tokio_postgres::{Client, Config, NoTls, config::Host};
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
-/// The rendered connection string is what the commands dial; one deployment configuration drives
-/// the graph binary and the standalone binary alike.
+/// [`connect`](Self::connect) dials what the flags name; one deployment configuration drives the
+/// graph binary and the standalone binary alike.
 #[derive(Debug, Args)]
-pub struct StoreArgs {
-    // NOTE: `ConnectArgs` or `PostgresArgs` or `PostgresInfo` or whatever -> `Postgres*::connect`
-    // instead
+pub struct PostgresArgs {
     /// The store username.
     #[arg(long, default_value = "postgres", env = "HASH_GRAPH_PG_USER")]
     user: String,
@@ -40,16 +38,24 @@ pub struct StoreArgs {
     database: String,
 }
 
-impl StoreArgs {
+impl PostgresArgs {
     /// Renders the store connection string.
     ///
     /// The password rides the returned string, so it must not be logged or printed.
-    #[must_use]
-    pub fn dsn(&self) -> String {
+    fn dsn(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
             self.user, self.password, self.host, self.port, self.database
         )
+    }
+
+    /// Dials the store the flags name and drives the connection on a background task.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ConnectError`] when the store refuses the connection or handshake.
+    pub async fn connect(&self) -> Result<Client, ConnectError> {
+        connect(&self.dsn()).await
     }
 }
 

@@ -6,8 +6,8 @@
 use core::assert_matches;
 
 use super::{
-    CanonicalError, Conditions, ConditionsError, Field, LadderError, MeasurementOptions,
-    RungMeasurement, measure_ladder, select_canonical,
+    CanonicalError, Conditions, ConditionsError, Field, LadderError, RungMeasurement,
+    measure_ladder, select_canonical,
 };
 use crate::math::{Rotation, Similarity, Vec2};
 
@@ -122,7 +122,7 @@ fn measure_rejects_invalid_input() {
     ];
 
     assert_eq!(
-        measure_ladder(&conditions, &fields[..1], MeasurementOptions { .. }),
+        measure_ladder(&conditions, &fields[..1]),
         Err(LadderError::FieldCount {
             conditions: 2,
             fields: 1,
@@ -138,7 +138,7 @@ fn measure_rejects_invalid_input() {
         },
     ];
     assert_eq!(
-        measure_ladder(&conditions, &mismatched, MeasurementOptions { .. }),
+        measure_ladder(&conditions, &mismatched),
         Err(LadderError::RowMismatch {
             index: 1,
             rows: 8,
@@ -154,31 +154,8 @@ fn measure_rejects_invalid_input() {
         },
     ];
     assert_matches!(
-        measure_ladder(&conditions, &non_finite_loss, MeasurementOptions { .. }),
+        measure_ladder(&conditions, &non_finite_loss),
         Err(LadderError::NonFiniteLoss { index: 1, .. })
-    );
-
-    assert_eq!(
-        measure_ladder(
-            &conditions,
-            &fields,
-            MeasurementOptions {
-                distinguishability_floor: 0.0,
-                ..
-            }
-        ),
-        Err(LadderError::InvalidFloor { value: 0.0 })
-    );
-    assert_eq!(
-        measure_ladder(
-            &conditions,
-            &fields,
-            MeasurementOptions {
-                monotonicity_tolerance: -0.1,
-                ..
-            }
-        ),
-        Err(LadderError::InvalidTolerance { value: -0.1 })
     );
 }
 
@@ -199,7 +176,7 @@ fn measure_rejects_a_degenerate_field() {
     ];
 
     assert_eq!(
-        measure_ladder(&conditions, &fields, MeasurementOptions { .. }),
+        measure_ladder(&conditions, &fields),
         Err(LadderError::Degenerate {
             index: 1,
             against: 0,
@@ -208,7 +185,7 @@ fn measure_rejects_a_degenerate_field() {
 }
 
 #[test]
-fn pure_similarity_rung_is_indistinguishable() {
+fn pure_similarity_rung_measures_negligible_movement() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let transform = Similarity::new(2.0, Rotation::from_radians(1.3), Vec2::new(5.0, -3.0))
@@ -238,23 +215,14 @@ fn pure_similarity_rung_is_indistinguishable() {
             relation_loss: 1.0,
         },
     ];
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            distinguishability_floor: 1e-3,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     let rung = &measurements[1];
     assert!(
-        !rung.distinguishable,
-        "a pure similarity image must be indistinguishable, moved {}",
+        rung.adjacent_movement < 1e-3,
+        "a pure similarity image leaves no residual movement, moved {}",
         rung.adjacent_movement
     );
-    assert!(rung.adjacent_movement < 1e-3);
     // The fitted alignment inverts the transform: its scale undoes the
     // doubling.
     assert!(
@@ -268,7 +236,7 @@ fn pure_similarity_rung_is_indistinguishable() {
 }
 
 #[test]
-fn deformed_rung_is_distinguishable() {
+fn deformed_rung_measures_a_large_movement() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
@@ -283,17 +251,8 @@ fn deformed_rung_is_distinguishable() {
         },
     ];
 
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            distinguishability_floor: 1e-3,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    assert!(measurements[1].distinguishable);
     assert!(
         measurements[1].adjacent_movement > 0.5,
         "an axis swap over half the cloud is a large residual, got {}",
@@ -323,19 +282,10 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
         },
     ];
 
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            distinguishability_floor: 1e-3,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     let repeat = &measurements[2];
     assert!(repeat.adjacent_movement < 1e-6);
-    assert!(!repeat.distinguishable);
     assert!(
         repeat.baseline_movement > 0.5,
         "the repeat still differs from the baseline, got {}",
@@ -347,48 +297,38 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
 }
 
 #[test]
-fn monotonicity_tracks_the_loss_series_within_tolerance() {
+fn measurements_echo_the_loss_series() {
     let conditions = Conditions::new(vec![0.0, 0.25, 0.5, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
+    // The series falls, then rises twice: every loss echoes verbatim,
+    // whatever its direction.
     let fields = [
         Field {
             coordinates: &base,
             relation_loss: 1.0,
         },
-        // Improves: monotonic.
         Field {
             coordinates: &deformed,
             relation_loss: 0.9,
         },
-        // Rises within the tolerance: still monotonic.
         Field {
             coordinates: &base,
             relation_loss: 0.94,
         },
-        // Rises beyond the tolerance: not monotonic.
         Field {
             coordinates: &deformed,
             relation_loss: 1.1,
         },
     ];
 
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            monotonicity_tolerance: 0.05,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    let monotonic: Vec<bool> = measurements
+    let losses: Vec<f64> = measurements
         .iter()
-        .map(|measurement| measurement.monotonic)
+        .map(|measurement| measurement.relation_loss)
         .collect();
-    assert_eq!(monotonic, [true, true, true, false]);
-    // Each rung echoes its condition and loss.
+    assert_eq!(losses, [1.0, 0.9, 0.94, 1.1]);
     let conditions_seen: Vec<f32> = measurements
         .iter()
         .map(|measurement| measurement.condition)
@@ -397,7 +337,7 @@ fn monotonicity_tracks_the_loss_series_within_tolerance() {
 }
 
 #[test]
-fn canonical_selection_requires_an_exact_passing_member() {
+fn canonical_selection_requires_an_exact_member() {
     let conditions = Conditions::new(vec![0.0, 0.5, 1.0]).expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
@@ -412,59 +352,51 @@ fn canonical_selection_requires_an_exact_passing_member() {
             coordinates: &base,
             relation_loss: 1.0,
         },
-        // Genuine deformation: distinguishable, improving loss.
+        // Genuine deformation, improving loss.
         Field {
             coordinates: &deformed,
             relation_loss: 0.9,
         },
-        // A pure similarity image of its predecessor whose loss rises
-        // beyond tolerance: fails both criteria.
+        // A pure similarity image of its predecessor whose loss rises:
+        // the measurements record both, and the rung still publishes.
         Field {
             coordinates: &moved,
             relation_loss: 2.0,
         },
     ];
 
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            distinguishability_floor: 1e-3,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    // The baseline and the deformed rung select; the selection names
-    // the rung's field position and carries its alignment.
-    let baseline = select_canonical(&measurements, 0.0).expect("the baseline always passes");
+    // Every schedule member selects; the selection names the rung's
+    // field position and carries its alignment.
+    let baseline = select_canonical(&measurements, 0.0).expect("the baseline is a member");
     assert_eq!(baseline.index, 0);
     assert_eq!(baseline.measurement.alignment, Similarity::IDENTITY);
 
-    let selected = select_canonical(&measurements, 0.5).expect("the passing rung selects");
+    let selected = select_canonical(&measurements, 0.5).expect("the middle rung is a member");
     assert_eq!(selected.index, 1);
     assert_eq!(selected.measurement.alignment, measurements[1].alignment);
+
+    // The rung whose loss rose and whose movement collapsed onto its
+    // predecessor publishes like any other member: the measurements
+    // are diagnostics, not gates.
+    let risen = select_canonical(&measurements, 1.0).expect("the last rung is a member");
+    assert_eq!(risen.index, 2);
+    assert_eq!(risen.measurement.relation_loss, 2.0);
 
     // Values outside the schedule are rejected, not interpolated.
     assert_eq!(
         select_canonical(&measurements, 0.25),
         Err(CanonicalError::UnknownRung { value: 0.25 })
     );
-
-    // The failing rung reports its first violated criterion:
-    // monotonicity is checked before distinguishability.
-    assert_eq!(
-        select_canonical(&measurements, 1.0),
-        Err(CanonicalError::Monotonicity { value: 1.0 })
-    );
 }
 
 #[test]
-fn canonical_selection_rejects_an_indistinguishable_rung() {
+fn canonical_selection_publishes_a_rung_that_repeats_the_baseline() {
     let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
     let base = base_field();
-    // The rung repeats the baseline exactly: monotonic (loss improves)
-    // but indistinguishable.
+    // The rung repeats the baseline exactly: zero residual movement,
+    // and it publishes regardless.
     let fields = [
         Field {
             coordinates: &base,
@@ -476,20 +408,11 @@ fn canonical_selection_rejects_an_indistinguishable_rung() {
         },
     ];
 
-    let measurements = measure_ladder(
-        &conditions,
-        &fields,
-        MeasurementOptions {
-            distinguishability_floor: 1e-3,
-            ..
-        },
-    )
-    .expect("the ladder is well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    assert_eq!(
-        select_canonical(&measurements, 1.0),
-        Err(CanonicalError::Distinguishability { value: 1.0 })
-    );
+    let selected = select_canonical(&measurements, 1.0).expect("the rung is a member");
+    assert_eq!(selected.index, 1);
+    assert!(selected.measurement.adjacent_movement < 1e-6);
 }
 
 #[test]
@@ -508,8 +431,7 @@ fn baseline_rung_measures_as_the_identity() {
         },
     ];
 
-    let measurements =
-        measure_ladder(&conditions, &fields, MeasurementOptions { .. }).expect("well-formed");
+    let measurements = measure_ladder(&conditions, &fields).expect("well-formed");
 
     let RungMeasurement {
         condition,
@@ -517,14 +439,10 @@ fn baseline_rung_measures_as_the_identity() {
         alignment,
         baseline_movement,
         adjacent_movement,
-        monotonic,
-        distinguishable,
     } = measurements[0];
     assert_eq!(condition, 0.0);
     assert_eq!(relation_loss, 2.5);
     assert_eq!(alignment, Similarity::IDENTITY);
     assert_eq!(baseline_movement, 0.0);
     assert_eq!(adjacent_movement, 0.0);
-    assert!(monotonic);
-    assert!(distinguishable);
 }
