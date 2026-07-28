@@ -72,11 +72,16 @@ fn client_identity() -> String {
 
 impl TemporalClientConfig {
     pub fn new(url: impl Into<Url>) -> Self {
+        // The SDK's default-on DNS load balancing pins every resolved address as a separate
+        // endpoint, including the ECS Service Connect IPv6 VIP that is unreachable in our
+        // IPv4-only VPCs. Disabling it (`dns_load_balancing(None)`) restores hostname dialing
+        // with address fallback.
         Self {
             options: ConnectionOptions::new(url)
                 .client_name("HASH Temporal client")
                 .client_version(env!("CARGO_PKG_VERSION"))
                 .identity(client_identity())
+                .dns_load_balancing(None)
                 .build(),
         }
     }

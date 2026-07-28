@@ -70,13 +70,23 @@ export const useAccountPages = (
         latestPage.metadata.recordId.entityId,
       );
 
-      const parentLink = pageOutgoingLinks.find(({ linkEntity }) =>
-        linkEntity[0]!.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.hasParent.linkEntityTypeId,
-        ),
+      const [parentLink] = pageOutgoingLinks.flatMap(
+        ({ linkEntity, rightEntity }) =>
+          linkEntity[0]?.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.hasParent.linkEntityTypeId,
+          )
+            ? [{ rightEntity }]
+            : [],
       );
 
-      const parentPage = parentLink?.rightEntity[0] ?? null;
+      /**
+       * A `has-parent` link can be present in the subgraph while its target
+       * page is legitimately absent (`rightEntity` missing or empty): the
+       * parent page may be archived (its revisions no longer overlap the
+       * queried interval) or not visible to the requester. Treat such pages
+       * as parentless rather than erroring.
+       */
+      const parentPage = parentLink?.rightEntity?.[0] ?? null;
 
       return {
         ...simplifyProperties(latestPage.properties as PageProperties),

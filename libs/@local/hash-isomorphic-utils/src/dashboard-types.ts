@@ -214,6 +214,16 @@ export type ChartConfig = {
 };
 
 /**
+ * Returns the chart-level type implied by the primary series.
+ *
+ * The series configuration is the source of truth because it supports mixed
+ * chart types, whereas the separately stored chart type is only a summary.
+ */
+export const getPrimaryChartType = (
+  chartConfig: ChartConfig,
+): ChartType | null => chartConfig.series[0]?.type ?? null;
+
+/**
  * Display defaults shared by the chart editor and renderer.
  *
  * ECharts has its own defaults, so optional values must be resolved before

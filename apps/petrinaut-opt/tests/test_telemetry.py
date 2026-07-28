@@ -78,7 +78,8 @@ def test_setup_configures_service_telemetry(monkeypatch) -> None:
     assert meter_providers == [telemetry._providers[1]]
     assert instrumentation["tracer_provider"] is telemetry._providers[0]
     assert instrumentation["meter_provider"] is telemetry._providers[1]
-    assert instrumentation["excluded_urls"] == "status$"
+    assert instrumentation["excluded_urls"] == telemetry._FASTAPI_EXCLUDED_URLS
+    assert "/optimize/runs/[^/]+/events" in instrumentation["excluded_urls"]
     new_handlers = [
         handler
         for handler in logging.getLogger("pn_api").handlers

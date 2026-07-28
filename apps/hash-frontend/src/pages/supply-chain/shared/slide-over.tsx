@@ -18,12 +18,13 @@ import { css, cx } from "@hashintel/ds-helpers/css";
  * click. Portals into the supply-chain layout scope so tokens resolve. Caller
  * owns header + body.
  *
- * Enter/exit animation: the panel slides via the positioner's `right` offset and
- * the backdrop fades, driven by a local `visible` flag. We deliberately animate
- * `right` (not `transform`) so no containing block is created — the data-table
- * modal renders inline inside the content with `position: fixed` and must stay
- * relative to the viewport. On close we play the exit animation, then defer the
- * caller's `onClose` (which unmounts us) until the transition finishes.
+ * Enter/exit animation: the panel slides via its `right` offset while the
+ * full-viewport positioner stays fixed and the backdrop fades, driven by a
+ * local `visible` flag. We deliberately animate `right` (not `transform`) so no
+ * containing block is created — the data-table modal renders inline inside the
+ * content with `position: fixed` and must stay relative to the viewport. On
+ * close we play the exit animation, then defer the caller's `onClose` (which
+ * unmounts us) until the transition finishes.
  */
 
 const EXIT_MS = 200;
@@ -65,21 +66,14 @@ const backdropBase = css({
   inset: "0",
   bg: "neutral.a80",
   zIndex: "overlay",
-  opacity: "[0]",
   transition: "[opacity 200ms ease-out]",
 });
-const backdropVisible = css({ opacity: "[1]" });
 
 const positionerBase = css({
   position: "fixed",
-  top: "0",
-  bottom: "0",
-  right: "[-960px]",
   display: "flex",
   zIndex: "modal",
-  transition: "[right 200ms ease-out]",
 });
-const positionerVisible = css({ right: "0" });
 
 const contentStyles = css({
   height: "full",
@@ -123,14 +117,21 @@ export const SlideOver = ({
       >
         <Portal container={portalRef}>
           <ArkDialog.Backdrop
-            className={cx(backdropBase, visible && backdropVisible)}
+            className={backdropBase}
+            style={{ opacity: visible ? 1 : 0 }}
           />
           <ArkDialog.Positioner
-            className={cx(positionerBase, visible && positionerVisible)}
+            className={positionerBase}
+            style={{ inset: 0, justifyContent: "flex-end" }}
           >
             <ArkDialog.Content
               className={cx(contentStyles, className)}
               aria-label={label}
+              style={{
+                position: "relative",
+                right: visible ? 0 : "-960px",
+                transition: `right ${EXIT_MS}ms ease-out`,
+              }}
             >
               {children}
             </ArkDialog.Content>
