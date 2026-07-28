@@ -520,27 +520,61 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
     )
 }
 
-/// Warns on every adjacent raw relation-loss regression in the measured series.
+/// One adjacent raw relation-loss regression in a measured series.
+struct LossRegression {
+    /// The regressing rung's condition value.
+    condition: f32,
+    /// The predecessor's condition value.
+    previous_condition: f32,
+    /// The loss increase over the predecessor.
+    delta: f64,
+    /// The increase relative to the predecessor's loss.
+    ///
+    /// Absent over a zero predecessor rather than manufactured as inf/NaN.
+    relative: Option<f64>,
+}
+
+/// Finds every adjacent raw relation-loss regression in a measured series.
 ///
-/// One event per rung whose loss exceeds its predecessor's, carrying the absolute delta; the
-/// relative delta is omitted over a zero predecessor rather than manufactured as inf/NaN.
+/// Examines every adjacent transition and yields one entry per rung whose loss exceeds its
+/// predecessor's, in schedule order.
+fn loss_regressions<'series>(
+    conditions: &'series [f32],
+    losses: &'series [f64],
+) -> impl Iterator<Item = LossRegression> + 'series {
+    conditions
+        .iter()
+        .zip(losses)
+        .map_windows::<_, _, 2>(|window| *window)
+        .filter_map(
+            |[(&previous_condition, &previous), (&condition, &current)]| {
+                let delta = current - previous;
+
+                (delta > 0.0).then(|| LossRegression {
+                    condition,
+                    previous_condition,
+                    delta,
+                    relative: (previous > 0.0).then(|| delta / previous),
+                })
+            },
+        )
+}
+
+/// Warns on every adjacent raw relation-loss regression in the measured series.
 fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
-    let rungs = conditions.iter().zip(losses);
-
-    for [(&previous_condition, &previous), (&condition, &current)] in
-        rungs.map_windows::<_, _, 2>(|arr| *arr)
+    for LossRegression {
+        condition,
+        previous_condition,
+        delta,
+        relative,
+    } in loss_regressions(conditions, losses)
     {
-        let delta = current - previous;
-        if delta <= 0.0 {
-            continue;
-        }
-
-        if previous > 0.0 {
+        if let Some(relative) = relative {
             tracing::warn!(
                 condition,
                 previous_condition,
                 delta,
-                relative = delta / previous,
+                relative,
                 "a rung's relation loss exceeds its predecessor's"
             );
         } else {
@@ -757,4 +791,60 @@ fn relation_loss(
 /// Narrows a node row to a slice position.
 fn row_index(row: NodeRowId) -> usize {
     usize::try_from(row.as_u64()).expect("rows fit the address space")
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(
+        clippy::float_cmp,
+        reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
+    )]
+
+    use super::loss_regressions;
+
+    #[test]
+    fn loss_regressions_examine_the_even_to_odd_transition() {
+        // Only 1→2 rises; a non-overlapping pairing ((0,1), (2,3))
+        // sees two falling pairs and misses it.
+        let conditions = [0.0, 0.25, 0.5, 0.75];
+        let losses = [1.0, 0.5, 0.75, 0.5];
+
+        let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+
+        assert_eq!(regressions.len(), 1);
+        let regression = &regressions[0];
+        assert_eq!(regression.previous_condition, 0.25);
+        assert_eq!(regression.condition, 0.5);
+        assert_eq!(regression.delta, 0.25);
+        assert_eq!(regression.relative, Some(0.5));
+    }
+
+    #[test]
+    fn loss_regressions_examine_the_final_transition_of_an_odd_series() {
+        // Only 3→4 rises; a non-overlapping pairing of a five-rung
+        // series discards the final element with the remainder.
+        let conditions = [0.0, 0.25, 0.5, 0.75, 1.0];
+        let losses = [1.0, 0.75, 0.5, 0.25, 0.5];
+
+        let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+
+        assert_eq!(regressions.len(), 1);
+        let regression = &regressions[0];
+        assert_eq!(regression.previous_condition, 0.75);
+        assert_eq!(regression.condition, 1.0);
+        assert_eq!(regression.delta, 0.25);
+        assert_eq!(regression.relative, Some(1.0));
+    }
+
+    #[test]
+    fn loss_regression_relative_delta_is_absent_over_a_zero_predecessor() {
+        let conditions = [0.0, 1.0];
+        let losses = [0.0, 1.0];
+
+        let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
+
+        assert_eq!(regressions.len(), 1);
+        assert_eq!(regressions[0].delta, 1.0);
+        assert_eq!(regressions[0].relative, None);
+    }
 }

@@ -75,8 +75,8 @@ struct ModelSummary {
 struct RowReport {
     /// The card's canonical identity URL.
     identity: String,
-    /// The indivisible validation group, as a hex digest.
-    group: String,
+    /// The indivisible validation group.
+    group: Sha256Digest,
     /// The fold that held this row out.
     fold: usize,
     /// Soft target over the geometry classes, in class order.
@@ -149,7 +149,7 @@ impl ClassifierReport {
 
                 RowReport {
                     identity: identity.canonical_url(),
-                    group: training_row.group.to_string(),
+                    group: training_row.group,
                     fold: refit.evidence.folds[row],
                     target: training_row.target,
                     weight: training_row.weight,
