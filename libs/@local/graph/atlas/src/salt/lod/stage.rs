@@ -37,7 +37,7 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 /// Both values are unvalidated starting points, revised against the [`LodMeasurements`] of real
 /// generations; the manifest records what a generation was built with.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct LodConfig {
+pub struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
     /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64 sample grid): regular buckets deliver at most `4^span` points per incremental tile, and the deepest catch-all may exceed the cap by its co-located residue, measured as [`LodMeasurements::co_location_excess`].
@@ -74,8 +74,8 @@ impl LodConfig {
 }
 
 /// Building the lod structure failed.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum LodError {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LodError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
     /// The rank columns cover a different row count than the coordinates.

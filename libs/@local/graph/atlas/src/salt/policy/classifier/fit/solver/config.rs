@@ -22,7 +22,7 @@ use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 
 /// A cross-field constraint failed; per-field domains hold by construction.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum SolverConfigError {
+pub enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
     RadiusDomain {
         minimum: DPositive,
@@ -100,10 +100,6 @@ pub(crate) struct SolverConfig {
     /// Curvature-guard width in ulps of the direction-scale product. Defaults to sixteen.
     pub curvature_guard_ulps: NonZeroU32 = const {
         NonZeroU32::new(16).expect("sixteen is nonzero")
-    },
-    /// Boundary-residual tolerance in ulps of one. Defaults to sixty-four.
-    pub boundary_residual_ulps: NonZeroU32 = const {
-        NonZeroU32::new(64).expect("sixty-four is nonzero")
     },
     /// Inclusive maximum of started outer iterations. Defaults to `500`.
     pub maximum_outer_iterations: NonZeroU64 = const {

@@ -46,8 +46,8 @@ use crate::{identity::OntologyRowId, math::UnitFraction, salt::policy::classifie
 mod tests;
 
 /// A resolution input violated the table contract.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum ResolveError {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ResolveError {
     /// A relation appears more than once in the classifications.
     DuplicateRelation { relation: OntologyRowId },
     /// A relation carries two overrides of the same precedence.
@@ -96,7 +96,7 @@ pub(crate) enum Classification {
 ///
 /// The lowest variant present wins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum PolicySource {
+pub enum PolicySource {
     /// An explicit human override.
     Human,
     /// A human-reviewed soft label.

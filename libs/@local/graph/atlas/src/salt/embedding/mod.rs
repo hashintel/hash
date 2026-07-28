@@ -289,7 +289,7 @@ impl CardEmbeddingTable {
 
 /// [`embed_cards`] failed to produce a complete table.
 #[derive(Debug)]
-pub(crate) enum CardEmbeddingError<E> {
+pub enum CardEmbeddingError<E> {
     /// The provider failed to embed the workload.
     Embedder(E),
     /// The provider returned a different number of rows than requested.

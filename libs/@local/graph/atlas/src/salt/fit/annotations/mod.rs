@@ -24,7 +24,7 @@ mod tests;
 
 /// The supplied annotation-corpus file could not be admitted.
 #[derive(Debug)]
-pub(crate) enum SupplyError {
+pub enum SupplyError {
     /// The file could not be read.
     Io(io::Error),
     /// The bytes violate the annotation-corpus wire contract.

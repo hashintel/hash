@@ -38,11 +38,11 @@ use crate::{
 
 /// A checkpoint could not be written or opened.
 #[derive(Debug)]
-pub(crate) enum CheckpointError {
+pub enum CheckpointError {
     /// Reading or writing the checkpoint bytes failed.
     Io(io::Error),
     /// The framework could not encode or decode the record.
-    Record(RecorderError),
+    Record(RecordFault),
     /// The decoded parameters do not describe the architecture.
     Architecture(ArchitectureMismatch),
     /// The decoded schedule fields do not form a valid schedule.
@@ -91,10 +91,29 @@ impl From<io::Error> for CheckpointError {
     }
 }
 
-impl From<RecorderError> for CheckpointError {
-    #[inline]
-    fn from(error: RecorderError) -> Self {
-        Self::Record(error)
+impl CheckpointError {
+    // Not a `From` impl: burn is a private dependency, so the
+    // conversion stays out of the public interface.
+    const fn record(error: RecorderError) -> Self {
+        Self::Record(RecordFault(error))
+    }
+}
+
+/// The record codec's fault.
+// The private field keeps burn's `RecorderError` out of the public
+// interface: burn is a private dependency.
+#[derive(Debug)]
+pub struct RecordFault(RecorderError);
+
+impl core::fmt::Display for RecordFault {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl core::error::Error for RecordFault {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        self.0.source()
     }
 }
 
@@ -138,7 +157,9 @@ pub(crate) fn write_model<B: Backend>(
     // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so the
     // recorder round-trips the parameters exactly.
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let bytes = recorder.record(model.into_record(), ())?;
+    let bytes = recorder
+        .record(model.into_record(), ())
+        .map_err(CheckpointError::record)?;
     writer.write_all(&bytes)?;
     Ok(())
 }
@@ -159,7 +180,9 @@ pub(crate) fn open_model<B: Backend>(
     reader.read_to_end(&mut bytes)?;
 
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let record: ProjectorRecord<B> = recorder.load(bytes, device)?;
+    let record: ProjectorRecord<B> = recorder
+        .load(bytes, device)
+        .map_err(CheckpointError::record)?;
     Ok(Projector::from_record(architecture, record, device)?)
 }
 
@@ -193,7 +216,9 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
         generator: generator.state(),
     };
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let bytes = recorder.record(record, ())?;
+    let bytes = recorder
+        .record(record, ())
+        .map_err(CheckpointError::record)?;
     writer.write_all(&bytes)?;
 
     Ok(())
@@ -219,7 +244,9 @@ pub(crate) fn open_resume<B: AutodiffBackend<FloatElem = f32>>(
     let mut bytes = Vec::new();
     reader.read_to_end(&mut bytes)?;
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
-    let record: ResumeRecord<B> = recorder.load(bytes, device)?;
+    let record: ResumeRecord<B> = recorder
+        .load(bytes, device)
+        .map_err(CheckpointError::record)?;
 
     let schedule = NonZero::new(record.steps)
         .zip(NonZero::new(record.refresh_interval))

@@ -14,7 +14,7 @@ use crate::identity::NodeRowId;
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum KnnValidationError {
+pub enum KnnValidationError {
     /// The matrix is compressed by column.
     ColumnCompressed,
     /// The matrix is not square over the row domain.

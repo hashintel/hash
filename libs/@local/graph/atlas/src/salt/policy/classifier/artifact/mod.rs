@@ -29,7 +29,7 @@ const _: () = assert!(CLASSES == GeometryClass::COUNT);
 
 /// An opened classifier file does not hold a valid model.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum InvalidClassifierFile {
+pub enum InvalidClassifierFile {
     /// The model's dimension is not the card-embedding width.
     Dimension { dimension: u64 },
     /// A coefficient component is NaN or infinite.

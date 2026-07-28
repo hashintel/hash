@@ -11,7 +11,7 @@ use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
-    StageError, SuppliedAnnotations, SuppliedVerdicts,
+    StageError, SuppliedAnnotations, SuppliedVerdicts, Supplies,
     compute::{PlacementInner, placement_device, resolve_supplied},
     error::PlacementError,
     fit,
@@ -231,7 +231,6 @@ fn classifier_fit_echo_round_trips_every_knob() {
             absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-9),
             objective_resolution_ulps: NonZero::new(5).expect("five is nonzero"),
             curvature_guard_ulps: NonZero::new(17).expect("seventeen is nonzero"),
-            boundary_residual_ulps: NonZero::new(65).expect("sixty-five is nonzero"),
             maximum_outer_iterations: NonZero::new(501).expect("the budget is nonzero"),
             maximum_cg_iterations: NonZero::new(101).expect("the budget is nonzero"),
             maximum_hvp_requests: NonZero::new(50_001).expect("the budget is nonzero"),
@@ -252,23 +251,6 @@ fn classifier_fit_echo_round_trips_every_knob() {
     assert_eq!(echoed.0, config);
 }
 
-/// A config echo names every classifier fit setting; absence is a rupture, not a default.
-#[test]
-fn config_echo_requires_the_classifier_fit_settings() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
-    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
-    let policy = document
-        .get_mut("policy")
-        .and_then(serde_json::Value::as_object_mut)
-        .expect("the echo carries a policy object");
-    assert!(policy.remove("classifier_fit").is_some());
-
-    serde_json::from_value::<Echo>(document)
-        .expect_err("an echo without the classifier fit settings does not parse");
-}
-
 /// A config echo names every setting; absence is a rupture, not a default.
 #[test]
 fn config_echo_requires_every_setting() {
@@ -279,6 +261,7 @@ fn config_echo_requires_every_setting() {
         "/selection/parallel_chunk",
         "/policy/assembly/maximum_group_fraction",
         "/policy/assembly",
+        "/policy/classifier_fit",
         "/construction",
     ] {
         let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
@@ -434,11 +417,12 @@ async fn fit_publishes_a_complete_generation() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -623,11 +607,12 @@ async fn policy_artifacts_publish_and_read_back() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &supplied(classifier.clone()),
-        None,
-        None,
+        Supplies {
+            classifier: &supplied(classifier.clone()),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -687,11 +672,12 @@ async fn lod_columns_publish_in_base_order() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -791,11 +777,13 @@ async fn supplied_verdicts_publish_verbatim() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        Some(&supplied),
-        None,
+        Supplies {
+            classifier: &classifier,
+            verdicts: Some(&supplied),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -952,11 +940,12 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
         &dataset,
         &HashEmbedder,
         &config,
-        &ClassifierInput::Annotations(supplied.clone()),
-        None,
-        None,
+        Supplies {
+            classifier: &ClassifierInput::Annotations(supplied.clone()),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1066,11 +1055,12 @@ async fn prior_generation_seeds_reuse_and_retention() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1082,11 +1072,13 @@ async fn prior_generation_seeds_reuse_and_retention() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        None,
-        Some(&prior),
+        Supplies {
+            classifier: &classifier,
+            prior: Some(&prior),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1143,11 +1135,12 @@ async fn override_supersedes_the_classifier() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1191,11 +1184,12 @@ async fn equal_seeds_publish_equal_generations() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &first_root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1203,11 +1197,12 @@ async fn equal_seeds_publish_equal_generations() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &second_root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1253,11 +1248,12 @@ async fn defective_corpus_publishes_nothing() {
         &dataset,
         &HashEmbedder,
         &config(),
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await;
     assert!(
@@ -1398,11 +1394,12 @@ async fn forceless_projector_publishes_the_baseline_rung() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1480,11 +1477,12 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1584,11 +1582,12 @@ async fn vacuous_placement_trains_without_reviews() {
         &dataset,
         &HashEmbedder,
         &refused_config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &refused,
-        &NoProgress,
+        NoProgress,
     )
     .await;
     assert!(
@@ -1613,11 +1612,12 @@ async fn vacuous_placement_trains_without_reviews() {
         &dataset,
         &HashEmbedder,
         &vacuous_config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the vacuous placement should publish");
@@ -1698,11 +1698,12 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
         &dataset,
         &HashEmbedder,
         &config,
-        &fixture_input(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await;
     assert!(
@@ -1899,11 +1900,12 @@ async fn edge_artifacts_publish_and_read_back() {
         &dataset,
         &HashEmbedder,
         &config,
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");

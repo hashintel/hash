@@ -49,9 +49,6 @@ use crate::{
 pub(crate) mod artifact;
 #[cfg(feature = "bench")]
 pub use self::fit::bench;
-pub use self::fit::{
-    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, WorkCounters,
-};
 mod fit;
 
 #[cfg(test)]
@@ -71,7 +68,7 @@ const _: () = assert!(CANONICAL_DIMENSIONS.is_multiple_of(8));
 
 /// A prediction overflowed into a non-finite logit or distance.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct PredictError;
+pub struct PredictError;
 
 impl fmt::Display for PredictError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

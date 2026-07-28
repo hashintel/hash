@@ -69,7 +69,7 @@ impl Error for ConditionsError {}
 
 /// A rejected ladder measurement input.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum LadderError {
+pub enum LadderError {
     /// The field count does not match the schedule.
     FieldCount {
         /// Rungs in the schedule.
@@ -162,7 +162,7 @@ impl Error for LadderError {}
 
 /// A rejected canonical selection.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum CanonicalError {
+pub enum CanonicalError {
     /// The requested value is not a rung of the measured ladder.
     UnknownRung {
         /// The requested condition.

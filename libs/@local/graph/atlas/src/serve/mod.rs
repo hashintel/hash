@@ -114,7 +114,7 @@ pub const VARIANTS: [&str; 1] = ["plain"];
 /// [`ServeLimits::manifest_limits`], so advertisement and enforcement cannot disagree; not every
 /// control is published. Defaults are documented on the per-endpoint limits types; none of them is
 /// a wire constant.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ServeLimits {
     /// The tile endpoint's limits.
     pub tile: TileLimits,
@@ -126,6 +126,18 @@ pub struct ServeLimits {
     pub translate: TranslateLimits,
     /// The sealed-blob staleness limits.
     pub seal: SealLimits,
+}
+
+const impl Default for ServeLimits {
+    fn default() -> Self {
+        Self {
+            tile: TileLimits::default(),
+            edges: EdgesLimits::default(),
+            locate: LocateLimits::default(),
+            translate: TranslateLimits::default(),
+            seal: SealLimits::default(),
+        }
+    }
 }
 
 /// An opaque visibility filter document.

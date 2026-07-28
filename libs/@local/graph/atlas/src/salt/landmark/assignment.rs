@@ -80,7 +80,7 @@ impl LandmarkAssignment {
 
 /// The assignment inputs or backend misbehaved.
 #[derive(Debug)]
-pub(crate) enum AssignmentError<E> {
+pub enum AssignmentError<E> {
     /// A selected row lies outside the corpus.
     UnknownRow { row: u64, rows: usize },
     /// The backend reported an error.

@@ -15,7 +15,7 @@
 
 /// Logical and physical work counters of one fit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-pub struct WorkCounters {
+pub(crate) struct WorkCounters {
     /// Objective evaluations requested.
     pub objective_requests: u64,
     /// Gradient evaluations requested.

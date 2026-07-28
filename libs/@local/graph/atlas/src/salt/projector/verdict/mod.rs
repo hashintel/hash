@@ -42,7 +42,7 @@ pub(crate) const REVIEWED_VERDICTS_SCHEMA: &str = "atlas-reviewed-verdicts/1";
 
 /// A reviewed-verdicts document violated the wire contract.
 #[derive(Debug)]
-pub(crate) enum InvalidReviewedVerdicts {
+pub enum InvalidReviewedVerdicts {
     /// The bytes are not the expected JSON shape.
     ///
     /// Unknown fields, unknown placement classes, malformed versioned URLs, and noncanonical

@@ -896,7 +896,6 @@ mod classifier_fit_config {
         absolute_scaled_gradient_tolerance: f64,
         objective_resolution_ulps: u32,
         curvature_guard_ulps: u32,
-        boundary_residual_ulps: u32,
         maximum_outer_iterations: u64,
         maximum_cg_iterations: u64,
         maximum_hvp_requests: u64,
@@ -938,7 +937,6 @@ mod classifier_fit_config {
                 absolute_scaled_gradient_tolerance: solver.absolute_scaled_gradient_tolerance.get(),
                 objective_resolution_ulps: solver.objective_resolution_ulps.get(),
                 curvature_guard_ulps: solver.curvature_guard_ulps.get(),
-                boundary_residual_ulps: solver.boundary_residual_ulps.get(),
                 maximum_outer_iterations: solver.maximum_outer_iterations.get(),
                 maximum_cg_iterations: solver.maximum_cg_iterations.get(),
                 maximum_hvp_requests: solver.maximum_hvp_requests.get(),
@@ -1059,10 +1057,6 @@ mod classifier_fit_config {
                     solver.objective_resolution_ulps,
                 )?,
                 curvature_guard_ulps: non_zero_u32("curvature guard", solver.curvature_guard_ulps)?,
-                boundary_residual_ulps: non_zero_u32(
-                    "boundary residual tolerance",
-                    solver.boundary_residual_ulps,
-                )?,
                 maximum_outer_iterations: non_zero_u64(
                     "outer iteration budget",
                     solver.maximum_outer_iterations,

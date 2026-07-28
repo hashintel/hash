@@ -22,10 +22,9 @@ pub(crate) use self::{
     },
 };
 pub(crate) use self::{
-    embedding::{CardEmbeddingStats, EmbedderFingerprint},
+    embedding::EmbedderFingerprint,
     fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
     importance::RankingConfig,
-    knn::recall::RecallSpotCheck,
     lod::{quad::QuadMeasurements, stage::LodMeasurements},
     policy::{
         GeometryClass,
@@ -51,9 +50,15 @@ mod policy;
 // Crate-visible for the root `bench` facade's re-exports.
 #[cfg(feature = "bench")]
 pub use self::policy::classifier::bench as classifier_bench;
-// Crate-visible for the root `progress` facade's re-exports.
-pub use self::policy::classifier::{
-    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, WorkCounters,
+// The root `progress` facade re-exports these observation types.
+pub use self::{
+    embedding::CardEmbeddingStats,
+    knn::recall::RecallSpotCheck,
+    policy::classifier::{
+        CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptDetail,
+        StartDigests, WorkCounters,
+    },
+    projector::train::step::LossBreakdown,
 };
 // Crate-visible for the serving surface's TYPE_MASK reads.
 pub(crate) mod postings;

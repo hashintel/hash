@@ -25,7 +25,7 @@ use std::time::Instant;
 
 use hash_graph_atlas::{
     bench::quality::{AssessOptions, assess_current},
-    run::connect,
+    cli::connect,
 };
 use tracing_subscriber::{EnvFilter, fmt::format::FmtSpan};
 

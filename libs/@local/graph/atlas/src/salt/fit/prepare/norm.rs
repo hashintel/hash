@@ -59,7 +59,7 @@ const impl Default for SpotCheckOptions {
 
 /// One sampled row's violation of the representation contract.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) enum RepresentationDefect {
+pub enum RepresentationDefect {
     /// The row carries a non-finite component.
     NonFinite { row: NodeRowId, component: usize },
     /// The row's squared norm lies outside the unit tolerance.
@@ -85,7 +85,7 @@ impl fmt::Display for RepresentationDefect {
 
 /// Acceptance-sampling evidence for one matrix and contract.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct NormSpotCheck {
+pub struct NormSpotCheck {
     /// Rows in the checked matrix.
     pub rows: usize,
     /// Distinct rows verified.
@@ -114,7 +114,7 @@ impl NormSpotCheck {
 
 /// The spot check could not run.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum SpotCheckError {
+pub enum SpotCheckError {
     /// The matrix holds no rows to certify.
     Empty,
     /// A sampling budget lies outside the open unit interval.

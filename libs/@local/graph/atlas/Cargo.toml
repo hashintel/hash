@@ -116,6 +116,10 @@ name              = "knn_sweep"
 required-features = ["bench"]
 
 [[example]]
+name              = "ladder_loss_probe"
+required-features = ["bench"]
+
+[[example]]
 name              = "quality_live"
 required-features = ["bench"]
 

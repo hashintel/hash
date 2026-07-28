@@ -12,8 +12,6 @@
 //! the Hessian-vector-product budget, and the unreserved row-traversal budget, and every
 //! arithmetic escape is a typed [`SolverFailure`] naming its [`CgStage`].
 
-use core::num::NonZeroU32;
-
 use super::{
     ContrastVector, SOLVER_DIMENSIONS,
     boundary::{BoundaryStep, boundary_step},
@@ -103,17 +101,9 @@ pub(super) fn crossing(
     hessian_step: &AlignedDVecN<SOLVER_DIMENSIONS>,
     hessian_direction: &AlignedDVecN<SOLVER_DIMENSIONS>,
     radius: f64,
-    boundary_residual_ulps: NonZeroU32,
 ) -> Result<BoundaryStep, SolverFailure> {
-    boundary_step(
-        step,
-        direction,
-        hessian_step,
-        hessian_direction,
-        radius,
-        boundary_residual_ulps,
-    )
-    .ok_or(SolverFailure::NoFiniteBoundaryStep)
+    boundary_step(step, direction, hessian_step, hessian_direction, radius)
+        .ok_or(SolverFailure::NoFiniteBoundaryStep)
 }
 
 /// Runs one bounded Steihaug CG solve at the accepted point.
@@ -199,7 +189,6 @@ pub(super) fn bounded_steihaug_cg(
                 &hessian_step,
                 &hessian_direction,
                 control.radius,
-                config.boundary_residual_ulps,
             )?;
 
             return Ok(CgOutcome::CurvatureGuardBoundary(crossed));
@@ -227,7 +216,6 @@ pub(super) fn bounded_steihaug_cg(
                 &hessian_step,
                 &hessian_direction,
                 control.radius,
-                config.boundary_residual_ulps,
             )?;
             return Ok(CgOutcome::TrustBoundary(crossed));
         }

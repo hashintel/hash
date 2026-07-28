@@ -7,7 +7,7 @@ use crate::salt::projector::train::{StepError, refresh::RefreshError};
 
 /// A training run failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum TrainError {
+pub enum TrainError {
     /// The semantic graph carries no edge weight: there is no layout evidence to train against.
     NoSemanticEvidence,
     /// The schedule's boundary is step zero.

@@ -43,7 +43,7 @@ const CURRENT_FILE: &str = "current";
 
 /// A staging could not seal into a published generation.
 #[derive(Debug)]
-pub(crate) enum SealError {
+pub enum SealError {
     /// The manifest lists one name for two roles.
     Duplicate {
         /// The repeated file name.
@@ -147,7 +147,7 @@ impl Error for CurrentError {
 
 /// A generation could not be activated.
 #[derive(Debug)]
-pub(crate) enum ActivateError {
+pub enum ActivateError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
     /// The pointer could not be replaced.

@@ -95,7 +95,7 @@ pub(crate) struct ThresholdOverrides {
 
 /// An override value outside its control's domain.
 #[derive(Debug)]
-pub(crate) struct ThresholdDomainError {
+pub struct ThresholdDomainError {
     /// The refused field.
     pub field: &'static str,
     /// The refused value.

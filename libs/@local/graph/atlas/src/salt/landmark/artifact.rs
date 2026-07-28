@@ -27,7 +27,7 @@ use crate::{
 
 /// An opened landmark file does not hold a valid skeleton.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidLandmarkFile {
+pub enum InvalidLandmarkFile {
     /// The selected rows break the strictly ascending order.
     UnorderedRows { ordinal: usize },
     /// An assignment entry lies outside the landmark domain.

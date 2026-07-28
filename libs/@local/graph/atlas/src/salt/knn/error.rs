@@ -4,7 +4,7 @@ use super::table::KnnValidationError;
 
 /// Building or spot-checking against a backend failed.
 #[derive(Debug)]
-pub(crate) enum KnnError<E> {
+pub enum KnnError<E> {
     /// The backend reported an error.
     Backend(E),
     /// The assembled table violates a [`Knn`](super::table::Knn) invariant.

@@ -13,13 +13,13 @@ use crate::file::region::PageMap;
 
 /// Opening a classifier file failed.
 #[derive(Debug)]
-pub(crate) enum OpenClassifierError {
+pub enum OpenClassifierError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    Header,
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -40,9 +40,10 @@ impl fmt::Display for OpenClassifierError {
                 "the file holds {actual} bytes, fewer than the {}-byte header",
                 FileHeader::SIZE,
             ),
-            Self::Header(error) => write!(
+            Self::Header => write!(
                 fmt,
-                "the leading bytes are not a classifier file header: {error}",
+                "the leading bytes are not a classifier file header: The conversion failed \
+                 because the source bytes are not a valid value of the destination type.",
             ),
             Self::Length {
                 expected: Some(expected),
@@ -66,8 +67,7 @@ impl Error for OpenClassifierError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
-            Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Header | Self::Undersized { .. } | Self::Length { .. } => None,
         }
     }
 }
@@ -101,8 +101,8 @@ impl ClassifierFile {
         };
         let header = match FileHeader::try_read_from_bytes(bytes) {
             Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenClassifierError::Header(error.map_src(|_| ())));
+            Err(ConvertError::Validity(_)) => {
+                return Err(OpenClassifierError::Header);
             }
             Err(ConvertError::Size(_)) => {
                 unreachable!("the slice is exactly one header long")

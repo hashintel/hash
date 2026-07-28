@@ -1,13 +1,17 @@
-//! Digest-only diagnostic receipts of solver work.
+//! Diagnostic receipts of solver work, stored only for an explicit debugging consumer.
 //!
-//! Routine receipts carry scalar summaries, tags, counters, norms, dots, reductions, ratios,
-//! and SHA-256 digests of the solver's vectors - never the vectors themselves. One
-//! [`OuterReceipt`] is emitted for every started outer iteration at the moment its start is
+//! A routine fit stores no receipts: its solve returns the outcome, control state, counters,
+//! and certificate alone ([`ReceiptDetail::None`]), and the diagnostic-only arithmetic behind
+//! receipt fields is skipped with them. Under a debugging request ([`ReceiptDetail::Digests`])
+//! one [`OuterReceipt`] is stored for every started outer iteration at the moment its start is
 //! counted, and its [`OuterOutcome`] fields populate at reached outer-stage boundaries: an
 //! iteration that dies inside a stage keeps that stage's fields [`None`], while the work
-//! counters and the run terminal preserve the failed stage's work. Digests commit to the exact
-//! accepted bytes under the exposed [`ReceiptCoordinates`] identity: a replay in the same
-//! environment reproduces them bit-for-bit, and any drift names the first iteration that
+//! counters and the run terminal preserve the failed stage's work.
+//!
+//! Receipts carry scalar summaries - tags, counters, norms, dots, reductions, ratios - and
+//! SHA-256 digests of the solver's vectors, never the vectors themselves. Digests commit to
+//! the exact accepted bytes under the exposed [`ReceiptCoordinates`] identity: a replay in the
+//! same environment reproduces them bit-for-bit, and any drift names the first iteration that
 //! diverged.
 
 use zerocopy::IntoBytes as _;
@@ -18,9 +22,31 @@ use crate::{
     math::AlignedDVecN,
 };
 
+/// Whether a solve stores diagnostic receipts.
+///
+/// Receipts serve an explicit debugging consumer; the routine fit stores none and returns the
+/// outcome, control state, counters, and certificate alone.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ReceiptDetail {
+    /// No stored receipts: the routine posture.
+    None,
+    /// One receipt per started outer iteration, start-state digests included: a debugging
+    /// consumer's request.
+    Digests,
+}
+
+/// SHA-256 digests of one outer iteration's accepted start state.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct StartDigests {
+    /// Digest of the accepted point `ζ`.
+    pub zeta: Sha256Digest,
+    /// Digest of the accepted scaled gradient.
+    pub gradient: Sha256Digest,
+}
+
 /// The start-state receipt of one started outer iteration and its completion facts.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct OuterReceipt {
+pub(crate) struct OuterReceipt {
     /// One-based index of the started outer iteration.
     pub outer_iteration: u64,
     /// Trust radius entering the iteration.
@@ -29,10 +55,8 @@ pub struct OuterReceipt {
     pub objective: f64,
     /// Accepted scaled-gradient norm entering the iteration.
     pub gradient_norm: f64,
-    /// Digest of the accepted point `ζ`.
-    pub zeta_digest: Sha256Digest,
-    /// Digest of the accepted scaled gradient.
-    pub gradient_digest: Sha256Digest,
+    /// SHA-256 digests of the accepted start state.
+    pub digests: StartDigests,
     /// Counter snapshot at emission.
     pub counters: WorkCounters,
     /// Completion facts populated at reached outer-stage boundaries.
@@ -41,7 +65,7 @@ pub struct OuterReceipt {
 
 /// The candidate classification of one outer iteration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CandidateOutcome {
+pub(crate) enum CandidateOutcome {
     /// The trial objective was not finite; the candidate was rejected.
     RejectedNonFinite,
     /// The acceptance ratio fell below its threshold; the candidate was rejected.
@@ -54,7 +78,7 @@ pub enum CandidateOutcome {
 
 /// The accepted-step curvature diagnostic; a failure is a recorded reason, never a terminal.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum CurvatureDiagnostic {
+pub(crate) enum CurvatureDiagnostic {
     /// The accepted-step curvature: the dot `p·y` and its normalization `(p·y) / (p·p)`.
     Value {
         /// The dot `p·y` with `y = g_trial − g`.
@@ -78,7 +102,7 @@ pub enum CurvatureDiagnostic {
 /// counters and the run terminal, not here. A recorded scalar that failed its own finiteness is
 /// also [`None`]; the terminal outcome of the run names the failure.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub struct OuterOutcome {
+pub(crate) struct OuterOutcome {
     /// The inner CG outcome tag.
     pub tag: Option<CgTag>,
     /// Norm of the returned step `‖p‖`.

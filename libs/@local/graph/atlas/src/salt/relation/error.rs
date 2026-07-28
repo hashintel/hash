@@ -8,7 +8,7 @@ use crate::identity::OntologyRowId;
 
 /// A policy table or instance set violated a relation-index contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum RelationIndexError {
+pub enum RelationIndexError {
     /// The policies are not strictly ascending by relation row.
     PolicyOrder {
         position: usize,

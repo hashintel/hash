@@ -69,7 +69,7 @@ where
 
 /// The annotation-corpus document violates its wire contract.
 #[derive(Debug)]
-pub(crate) enum InvalidAnnotationCorpus {
+pub enum InvalidAnnotationCorpus {
     /// The bytes are not the expected JSON shape.
     ///
     /// Unknown fields, unknown enum values, absent required keys, and noncanonical digests all
@@ -192,7 +192,7 @@ impl Error for InvalidAnnotationCorpus {
 /// The adapter namespace a card was exported from.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum Source {
+pub enum Source {
     /// The hash store; identities are versioned URLs.
     Hash,
     /// Wikidata; identities are canonical entity URLs.

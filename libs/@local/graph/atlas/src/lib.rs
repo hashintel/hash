@@ -21,9 +21,7 @@
 //! - `dataset` - the [`Dataset`](dataset::Dataset) trait: the data one fit runs over, wherever it
 //!   lives, plus the relation-card format.
 //! - `salt` - the pipeline: graph construction, landmark layout, projector training, evaluation,
-//!   and materialization.
-//! - `run` - the operator seam: one production run over a live store, the fallible surface the
-//!   `cli` commands consume.
+//!   and materialization; `salt::runner::live` is the operator seam the `cli` commands drive.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! ## Workspace dependencies
@@ -85,6 +83,5 @@ pub mod math;
 pub mod morton;
 pub mod progress;
 pub mod random;
-pub mod run;
 mod salt;
 pub mod serve;

@@ -23,10 +23,10 @@ use crate::{
     dataset::Dataset,
     file::generation::{Generation, GenerationRoot},
     integrity::{Sha256, Update as _},
-    progress::Progress,
+    progress::{Progress, Stage},
     salt::{
         embedding::CardEmbedder,
-        fit::{ClassifierInput, FitConfig, SuppliedVerdicts, fit},
+        fit::{ClassifierInput, FitConfig, SuppliedVerdicts, Supplies, fit},
         quality::{
             report::QualityReport,
             runner::{QualityRunOptions, run as probe},
@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod error;
+pub(crate) mod live;
 
 #[cfg(test)]
 mod tests;
@@ -111,12 +112,12 @@ pub(crate) async fn run<D, E, P>(
     verdicts: Option<&SuppliedVerdicts>,
     root: &GenerationRoot,
     options: &RunnerOptions,
-    progress: &P,
+    progress: P,
 ) -> Result<Outcome, RunnerError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress,
+    P: Progress + Send + 'static,
 {
     let prior = match options.prior {
         PriorMode::FromActive => root
@@ -131,14 +132,18 @@ where
         dataset,
         embedder,
         &options.fit,
-        classifier,
-        verdicts,
-        prior.as_ref(),
+        Supplies {
+            classifier,
+            verdicts,
+            prior: prior.as_ref(),
+        },
         root,
         progress,
     )
     .await?;
+
     let id = published.id();
+    let progress = published.progress;
 
     let generation = root
         .open(id)
@@ -153,7 +158,7 @@ where
     .instrument(tracing::info_span!("admission"))
     .await
     .map_err(|source| RunnerError::Quality { id, source })?;
-    progress.stage_completed("admission");
+    progress.stage_completed(Stage::Admission);
 
     if !report.passes() {
         tracing::warn!(

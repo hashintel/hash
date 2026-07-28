@@ -13,7 +13,7 @@ use crate::file::region::PageMap;
 
 /// Opening a policy file failed.
 #[derive(Debug)]
-pub(crate) enum OpenPolicyError {
+pub enum OpenPolicyError {
     /// The file could not be opened or mapped.
     Io(io::Error),
     /// The file is shorter than one header.

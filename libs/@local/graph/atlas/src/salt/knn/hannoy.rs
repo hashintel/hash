@@ -83,8 +83,29 @@ const impl Default for HannoyIndexOptions {
 }
 
 /// The [`HannoyIndex`] backend failed.
+///
+/// The message names the failing surface - index, environment, lock file, or key space - and the
+/// concrete fault chains beneath through [`Error::source`].
+// The private field keeps hannoy's and heed's types out of the public
+// interface: both are private dependencies.
 #[derive(Debug)]
-pub(crate) enum HannoyIndexError {
+pub struct HannoyIndexError(IndexFault);
+
+impl fmt::Display for HannoyIndexError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+impl Error for HannoyIndexError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.0.source()
+    }
+}
+
+/// The backend's concrete faults.
+#[derive(Debug)]
+enum IndexFault {
     /// The index rejected an operation.
     Hannoy(hannoy::Error),
     /// The LMDB environment rejected an operation.
@@ -99,7 +120,7 @@ pub(crate) enum HannoyIndexError {
     RowNotIndexed(NodeRowId),
 }
 
-impl fmt::Display for HannoyIndexError {
+impl fmt::Display for IndexFault {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Hannoy(error) => write!(fmt, "the hannoy index failed: {error}"),
@@ -114,7 +135,7 @@ impl fmt::Display for HannoyIndexError {
     }
 }
 
-impl Error for HannoyIndexError {
+impl Error for IndexFault {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Hannoy(error) => Some(error),
@@ -127,25 +148,25 @@ impl Error for HannoyIndexError {
     }
 }
 
-impl From<hannoy::Error> for HannoyIndexError {
+impl From<hannoy::Error> for IndexFault {
     fn from(error: hannoy::Error) -> Self {
         Self::Hannoy(error)
     }
 }
 
-impl From<heed::Error> for HannoyIndexError {
+impl From<heed::Error> for IndexFault {
     fn from(error: heed::Error) -> Self {
         Self::Heed(error)
     }
 }
 
-impl From<io::Error> for HannoyIndexError {
+impl From<io::Error> for IndexFault {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
 }
 
-impl From<TryLockError> for HannoyIndexError {
+impl From<TryLockError> for IndexFault {
     fn from(error: TryLockError) -> Self {
         Self::Locked(error)
     }
@@ -171,7 +192,11 @@ impl HannoyIndex {
         base: impl AsRef<Utf8Path>,
         options: HannoyIndexOptions,
     ) -> Result<Self, HannoyIndexError> {
-        let base = base.as_ref();
+        Self::open(base.as_ref(), options).map_err(HannoyIndexError)
+    }
+
+    /// Opens the environment and claims the lock, in the backend's fault vocabulary.
+    fn open(base: &Utf8Path, options: HannoyIndexOptions) -> Result<Self, IndexFault> {
         let lockfile = base.with_extension("lock");
 
         let lock = File::create(&lockfile)?;
@@ -197,6 +222,73 @@ impl HannoyIndex {
             options,
             _lock: lock,
         })
+    }
+
+    /// Inserts every embedding under its row key inside one write transaction.
+    fn insert<'embedding>(
+        &self,
+        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+    ) -> Result<(), IndexFault> {
+        let mut wtxn = self.env.write_txn()?;
+
+        for embedding in embeddings {
+            self.writer.add_item(
+                &mut wtxn,
+                u32::try_from(embedding.id.as_u64()).map_err(IndexFault::RowOutOfRange)?,
+                embedding.components.as_array(),
+            )?;
+        }
+
+        wtxn.commit()?;
+        Ok(())
+    }
+
+    /// Links the inserted items into the HNSW graph inside one write transaction.
+    fn link(&self, rng: impl Rng + SeedableRng) -> Result<(), IndexFault> {
+        let mut wtxn = self.env.write_txn()?;
+
+        let mut rng = Compat::new(rng);
+        let mut builder = self.writer.builder(&mut rng);
+        builder
+            .ef_construction(self.options.ef_construction)
+            .build::<M, M0>(&mut wtxn)?;
+
+        wtxn.commit()?;
+        Ok(())
+    }
+
+    /// Searches the configured breadth around a query vector.
+    fn nns_by_vector(
+        &self,
+        query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
+        limit: usize,
+    ) -> Result<Vec<(u32, f32)>, IndexFault> {
+        let rtxn = self.env.read_txn()?;
+        let reader = Reader::open(&rtxn, INDEX, self.db)?;
+
+        Ok(reader
+            .nns(limit)
+            .ef_search(self.options.ef_search)
+            .by_vector(&rtxn, query.as_array())?
+            .into_nns())
+    }
+
+    /// Searches the configured breadth around an indexed item.
+    fn nns_by_item(&self, id: NodeRowId, limit: usize) -> Result<Vec<(u32, f32)>, IndexFault> {
+        let rtxn = self.env.read_txn()?;
+        let reader = Reader::open(&rtxn, INDEX, self.db)?;
+
+        // hannoy's by_item excludes the queried item from its results,
+        // so `limit` maps through unchanged.
+        reader
+            .nns(limit)
+            .ef_search(self.options.ef_search)
+            .by_item(
+                &rtxn,
+                u32::try_from(id.as_u64()).map_err(IndexFault::RowOutOfRange)?,
+            )?
+            .map(hannoy::Searched::into_nns)
+            .ok_or(IndexFault::RowNotIndexed(id))
     }
 
     /// Maps one search result onto the seam's contract.
@@ -234,31 +326,11 @@ impl NearestNeighboursIndex for HannoyIndex {
         &mut self,
         embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
     ) -> Result<(), Self::Error> {
-        let mut wtxn = self.env.write_txn()?;
-
-        for embedding in embeddings {
-            self.writer.add_item(
-                &mut wtxn,
-                u32::try_from(embedding.id.as_u64()).map_err(HannoyIndexError::RowOutOfRange)?,
-                embedding.components.as_array(),
-            )?;
-        }
-
-        wtxn.commit()?;
-        Ok(())
+        self.insert(embeddings).map_err(HannoyIndexError)
     }
 
     fn build(&mut self, rng: impl Rng + SeedableRng) -> Result<(), Self::Error> {
-        let mut wtxn = self.env.write_txn()?;
-
-        let mut rng = Compat::new(rng);
-        let mut builder = self.writer.builder(&mut rng);
-        builder
-            .ef_construction(self.options.ef_construction)
-            .build::<M, M0>(&mut wtxn)?;
-
-        wtxn.commit()?;
-        Ok(())
+        self.link(rng).map_err(HannoyIndexError)
     }
 
     fn search_by_vector(
@@ -266,14 +338,7 @@ impl NearestNeighboursIndex for HannoyIndex {
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
-        let rtxn = self.env.read_txn()?;
-        let reader = Reader::open(&rtxn, INDEX, self.db)?;
-
-        let results = reader
-            .nns(limit)
-            .ef_search(self.options.ef_search)
-            .by_vector(&rtxn, query.as_array())?
-            .into_nns();
+        let results = self.nns_by_vector(query, limit).map_err(HannoyIndexError)?;
 
         Ok(Self::finish_search(results))
     }
@@ -283,22 +348,8 @@ impl NearestNeighboursIndex for HannoyIndex {
         id: NodeRowId,
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
-        let rtxn = self.env.read_txn()?;
-        let reader = Reader::open(&rtxn, INDEX, self.db)?;
+        let results = self.nns_by_item(id, limit).map_err(HannoyIndexError)?;
 
-        // hannoy's by_item excludes the queried item from its results,
-        // so `limit` maps through unchanged.
-        let Some(results) = reader
-            .nns(limit)
-            .ef_search(self.options.ef_search)
-            .by_item(
-                &rtxn,
-                u32::try_from(id.as_u64()).map_err(HannoyIndexError::RowOutOfRange)?,
-            )?
-        else {
-            return Err(HannoyIndexError::RowNotIndexed(id));
-        };
-
-        Ok(Self::finish_search(results.into_nns()))
+        Ok(Self::finish_search(results))
     }
 }

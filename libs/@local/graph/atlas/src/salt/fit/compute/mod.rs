@@ -37,7 +37,7 @@ use crate::{
     },
     integrity::Sha256Digest,
     math::AlignedVecN,
-    progress::Progress,
+    progress::{Progress, Stage},
     salt::{
         knn::{artifact::KnnArchive, recall::RecallSpotCheck},
         landmark::artifact::LandmarkSkeletonArchive,
@@ -123,8 +123,8 @@ pub(super) fn run<I, O, P>(
     scratch: &ScratchDirectory,
     inputs: &Inputs,
     ingested: Ingested,
-    progress: &P,
-) -> Result<PublishedGeneration, StageError>
+    progress: P,
+) -> Result<PublishedGeneration<P>, StageError>
 where
     I: ByteStable,
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
@@ -143,17 +143,18 @@ where
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
     let (classifier, classifier_artifacts) = context.acquire_classifier(&inputs.classifier)?;
-    progress.stage_completed("classifier");
+    progress.stage_completed(Stage::Classifier);
     let policy = context.stage_policy(&classifier, &ingested.relations)?;
-    progress.stage_completed("policy");
+    progress.stage_completed(Stage::Policy);
     let adjacency = context.stage_adjacency(rows.len())?;
+    progress.stage_completed(Stage::Adjacency);
     let relations =
         context.stage_relations(rows.len(), &ingested.instances, &ingested.multi_typed)?;
-    progress.stage_completed("relations");
+    progress.stage_completed(Stage::Relations);
     let knn = context.build_neighbour_table(rows)?;
-    progress.stage_completed("knn");
+    progress.stage_completed(Stage::Knn);
     let semantic = context.stage_semantic(&knn.artifact)?;
-    progress.stage_completed("semantic");
+    progress.stage_completed(Stage::Semantic);
 
     let prior_marks = inputs
         .prior
@@ -162,7 +163,7 @@ where
         .transpose()?;
     let landmarks =
         context.build_landmark_skeleton(rows, &semantic.artifact, prior_marks.as_ref())?;
-    progress.stage_completed("landmarks");
+    progress.stage_completed(Stage::Landmarks);
 
     let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
     let placement = context.stage_placement(&PlacementInputs {
@@ -173,10 +174,10 @@ where
         indexes: &relations.indexes,
         resolution: &resolution,
     })?;
-    progress.stage_completed("projector");
+    progress.stage_completed(Stage::Projector);
 
     let lod = context.stage_lod::<I>(&ingested.node_types, &ingested.type_parents)?;
-    progress.stage_completed("lod");
+    progress.stage_completed(Stage::Lod);
 
     let repository = assemble(
         inputs,
@@ -196,8 +197,9 @@ where
 
     let _span = tracing::info_span!("seal").entered();
     let published = staging.seal(&repository)?;
-    progress.stage_completed("seal");
-    Ok(published)
+    progress.stage_completed(Stage::Seal);
+
+    Ok(published.with_progress(progress))
 }
 
 /// Binds every staged file and evidence value into the repository the seal publishes.

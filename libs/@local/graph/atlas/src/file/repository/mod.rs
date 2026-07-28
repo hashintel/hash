@@ -77,7 +77,7 @@ impl core::error::Error for UnknownRepositoryVersion {}
 /// in const position); names read from disk or documents own their text.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub(crate) struct FileName(Cow<'static, str>);
+pub struct FileName(Cow<'static, str>);
 
 impl FileName {
     /// Wraps a plain, visible file name.
@@ -156,7 +156,7 @@ impl TryFrom<String> for FileName {
 
 /// A name that is not a plain, visible file name.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct InvalidFileName;
+pub struct InvalidFileName;
 
 impl core::fmt::Display for InvalidFileName {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

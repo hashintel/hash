@@ -55,7 +55,7 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AffinityCurve, NonNegative, Positive, UnitFraction},
-    progress::Progress,
+    progress::{self, Progress},
     salt::{
         embedding::CardEmbedder,
         importance::RankingConfig,
@@ -425,7 +425,7 @@ pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
 
 /// The supplied classifier artifact could not be admitted.
 #[derive(Debug)]
-pub(crate) enum ClassifierSupplyError {
+pub enum ClassifierSupplyError {
     /// The file could not be read.
     Io(io::Error),
     /// The file is not a classifier artifact.
@@ -496,6 +496,20 @@ impl ClassifierInput {
     }
 }
 
+/// The supplied inputs of one fit run.
+///
+/// The classifier input is required; the reviewed verdicts and the prior generation are optional
+/// supplies whose absence the published metadata records.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct Supplies<'fit> {
+    /// The relation classifier's input: a fitted model, or the corpus to fit one from.
+    pub classifier: &'fit ClassifierInput,
+    /// The reviewed-verdicts document staged for the trainer's phase boundary.
+    pub verdicts: Option<&'fit SuppliedVerdicts> = None,
+    /// The generation seeding reuse.
+    pub prior: Option<&'fit Generation> = None,
+}
+
 /// Runs one fit over the dataset and publishes the generation.
 ///
 /// The stages run in the dataset's documented ingest order - nodes, edges, ontology - with every
@@ -531,25 +545,22 @@ impl ClassifierInput {
     reason = "the staging and scratch directories move into the compute closure whole; nothing \
               here can drop them earlier"
 )]
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the fit's supplies are each their own input; a parameter struct would only rename \
-              the list"
-)]
 pub(crate) async fn fit<D, E, P>(
     dataset: &D,
     embedder: &E,
     config: &FitConfig,
-    classifier: &ClassifierInput,
-    verdicts: Option<&SuppliedVerdicts>,
-    prior: Option<&Generation>,
+    Supplies {
+        classifier,
+        verdicts,
+        prior,
+    }: Supplies<'_>,
     root: &GenerationRoot,
-    progress: &P,
-) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
+    progress: P,
+) -> Result<PublishedGeneration<P>, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress,
+    P: Progress + Send + 'static,
 {
     let staging = root.stage()?;
     let scratch = root.scratch()?;
@@ -604,7 +615,7 @@ where
     };
 
     let ingested = ingest::run(dataset, embedder, config, &staging, &scratch, prior).await?;
-    progress.stage_completed("ingest");
+    progress.stage_completed(progress::Stage::Ingest);
 
     // Everything after the last dataset touch is CPU-and-file work:
     // it crosses onto the rayon pool as one owned unit.
@@ -615,9 +626,9 @@ where
         verdicts: verdicts.cloned(),
         prior: prior.cloned(),
     };
-    let progress = progress.clone();
+
     let published = offload(move || {
-        compute::run::<D::NodeId, D::OntologyId, P>(staging, &scratch, &inputs, ingested, &progress)
+        compute::run::<D::NodeId, D::OntologyId, P>(staging, &scratch, &inputs, ingested, progress)
     })
     .await?;
 
@@ -634,6 +645,7 @@ async fn offload<T: Send + 'static>(
 ) -> Result<T, StageError> {
     let span = tracing::Span::current();
     let (sender, receiver) = tokio::sync::oneshot::channel();
+
     rayon::spawn(move || {
         let _entered = span.entered();
         // The work owns everything it touches, and on unwind every

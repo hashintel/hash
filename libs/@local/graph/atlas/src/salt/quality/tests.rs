@@ -42,7 +42,7 @@ use crate::{
     progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
+        fit::{ClassifierInput, FitConfig, PlacementOptions, Supplies, fit},
         knn::table::Knn,
         landmark::select::SelectionOptions,
         policy::classifier::{
@@ -1534,11 +1534,12 @@ async fn runner_reports_a_published_generation() {
         &dataset,
         &HashEmbedder,
         &config,
-        &classifier,
-        None,
-        None,
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");

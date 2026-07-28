@@ -87,7 +87,7 @@ impl KnnArchive {
 
 /// An opened sparse matrix file does not hold a valid k-NN table.
 #[derive(Debug)]
-pub(crate) enum InvalidKnnFile {
+pub enum InvalidKnnFile {
     /// The file does not hold the table's matrix layout.
     Matrix(SprsMatrixError),
     /// The matrix violates a [`Knn`] invariant.

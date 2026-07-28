@@ -120,7 +120,7 @@ const impl Default for ProbeOptions {
 
 /// The probe could not run.
 #[derive(Debug)]
-pub(crate) enum ProbeError<E> {
+pub enum ProbeError<E> {
     /// The corpus cannot host disjoint anchor and comparison samples.
     Design {
         rows: usize,
@@ -265,7 +265,7 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 
 /// An unordered id-keyed delivery did not match its requests.
 #[derive(Debug)]
-pub(crate) enum DeliveryError<E> {
+pub enum DeliveryError<E> {
     /// The stream failed.
     Dataset(E),
     /// The stream delivered an id that was never requested.

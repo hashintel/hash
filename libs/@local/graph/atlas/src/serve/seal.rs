@@ -78,7 +78,7 @@ pub struct SealLimits {
     pub hard: Duration,
 }
 
-impl Default for SealLimits {
+const impl Default for SealLimits {
     fn default() -> Self {
         Self {
             soft: Duration::from_mins(10),

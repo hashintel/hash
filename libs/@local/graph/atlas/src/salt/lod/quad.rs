@@ -45,7 +45,7 @@ use crate::{
 
 /// Building the quadtree failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum QuadError {
+pub enum QuadError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
     /// The type column covers a different row count than the lod columns.

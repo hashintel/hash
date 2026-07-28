@@ -135,7 +135,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&foreign),
-        Err(OpenClassifierError::Header(_)),
+        Err(OpenClassifierError::Header),
     );
 
     let future = scratch("future-version.clsf");
@@ -144,7 +144,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&future),
-        Err(OpenClassifierError::Header(_)),
+        Err(OpenClassifierError::Header),
     );
 
     let torn = scratch("torn.clsf");

@@ -24,7 +24,7 @@ use super::{
     problem::ScaledProblem,
     receipt::{
         CandidateOutcome, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptCoordinates,
-        vector_digest,
+        ReceiptDetail, StartDigests, vector_digest,
     },
     resolution::objective_resolution,
     stable::{checked_dot, stable_l2},
@@ -132,7 +132,7 @@ pub(crate) struct SolverRun {
     pub control: SolverControl,
     /// Certificate evidence once the threshold was derived.
     pub certificate: Option<CertificateEvidence>,
-    /// One receipt per started outer iteration, completion facts included.
+    /// One receipt per started outer iteration under a debugging request; empty routinely.
     pub receipts: Vec<OuterReceipt>,
     /// The coordinate/version identity of the receipts and their digests.
     pub coordinates: ReceiptCoordinates,
@@ -141,8 +141,14 @@ pub(crate) struct SolverRun {
 /// Runs the bounded trust-region solve from `ζ = 0` over a prepared problem.
 ///
 /// `counters` carries the preparation charges; the returned control state carries the counters
-/// of the whole fit. The configuration is validated by its owner before the solve begins.
-pub(crate) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> SolverRun {
+/// of the whole fit. `detail` names whether receipts are stored at all: a routine fit stores
+/// none, and only an explicit debugging consumer requests them. The configuration is validated
+/// by its owner before the solve begins.
+pub(crate) fn solve(
+    problem: &ScaledProblem<'_>,
+    counters: WorkCounters,
+    detail: ReceiptDetail,
+) -> SolverRun {
     debug_assert!(
         problem.config.validate().is_ok(),
         "the solver configuration is validated",
@@ -170,6 +176,7 @@ pub(crate) fn solve(problem: &ScaledProblem<'_>, counters: WorkCounters) -> Solv
         &mut control,
         &mut certificate,
         &mut receipts,
+        detail,
     );
 
     SolverRun {
@@ -194,6 +201,7 @@ fn run(
     control: &mut SolverControl,
     certificate: &mut Option<CertificateEvidence>,
     receipts: &mut Vec<OuterReceipt>,
+    detail: ReceiptDetail,
 ) -> Result<Converged, SolverFailure> {
     let config = &problem.config;
 
@@ -220,26 +228,31 @@ fn run(
         }
         control.outer_iterations_started += 1;
 
-        receipts.push(OuterReceipt {
-            outer_iteration: control.outer_iterations_started,
-            radius: control.radius,
-            objective: accepted.objective,
-            gradient_norm,
-            zeta_digest: vector_digest(&accepted.zeta),
-            gradient_digest: vector_digest(&accepted.scaled_gradient),
-            counters: control.counters,
-            outcome: OuterOutcome::default(),
-        });
-
-        let recorded = &mut receipts
-            .last_mut()
-            .expect("the receipt of this iteration was just pushed")
-            .outcome;
+        // A debugging request stores one receipt per started outer iteration; the routine
+        // posture stores none and skips the diagnostic-only arithmetic below with them.
+        let mut recorded = if detail == ReceiptDetail::Digests {
+            receipts.push(OuterReceipt {
+                outer_iteration: control.outer_iterations_started,
+                radius: control.radius,
+                objective: accepted.objective,
+                gradient_norm,
+                digests: StartDigests {
+                    zeta: vector_digest(&accepted.zeta),
+                    gradient: vector_digest(&accepted.scaled_gradient),
+                },
+                counters: control.counters,
+                outcome: OuterOutcome::default(),
+            });
+            receipts.last_mut().map(|receipt| &mut receipt.outcome)
+        } else {
+            None
+        };
 
         let point = problem.point(&accepted.zeta);
         let inner = bounded_steihaug_cg(problem, &point, &accepted.scaled_gradient, control)?;
 
-        let predicted = record_inner_step(recorded, &accepted.scaled_gradient, &inner);
+        let predicted =
+            record_inner_step(recorded.as_deref_mut(), &accepted.scaled_gradient, &inner);
         if !predicted.is_finite() || predicted <= 0.0 {
             return Err(SolverFailure::InvalidPredictedReduction);
         }
@@ -266,7 +279,9 @@ fn run(
         let trial_point = problem.point(&trial_zeta);
         let trial_objective = problem.objective(&trial_point, &mut control.counters);
         if !trial_objective.is_finite() {
-            recorded.candidate = Some(CandidateOutcome::RejectedNonFinite);
+            if let Some(recorded) = recorded.as_deref_mut() {
+                recorded.candidate = Some(CandidateOutcome::RejectedNonFinite);
+            }
             control.counters.reject_non_finite_candidate();
             rejected(control, config)?;
             continue;
@@ -274,14 +289,19 @@ fn run(
 
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
-        recorded.actual_reduction = actual.is_finite().then_some(actual);
-        recorded.ratio = ratio.is_finite().then_some(ratio);
+        if let Some(recorded) = recorded.as_deref_mut() {
+            recorded.actual_reduction = actual.is_finite().then_some(actual);
+            recorded.ratio = ratio.is_finite().then_some(ratio);
+        }
         if !actual.is_finite() || !ratio.is_finite() {
             return Err(SolverFailure::InvalidAcceptanceRatio);
         }
 
         if ratio < config.eta_accept.get() {
-            recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
+            if let Some(recorded) = recorded.as_deref_mut() {
+                recorded.candidate = Some(CandidateOutcome::RejectedByRatio);
+            }
+
             control.counters.reject_finite_candidate();
             rejected(control, config)?;
             continue;
@@ -293,19 +313,24 @@ fn run(
             .gradient(&trial_point, &mut control.counters)
             .filter(|gradient| gradient.is_finite())
         else {
-            recorded.candidate = Some(CandidateOutcome::AcceptedGradientNonFinite);
+            if let Some(recorded) = recorded.as_deref_mut() {
+                recorded.candidate = Some(CandidateOutcome::AcceptedGradientNonFinite);
+            }
+
             control
                 .counters
                 .record_accepted_by_ratio_gradient_non_finite();
             return Err(SolverFailure::NonFiniteAcceptedCandidateGradient);
         };
 
-        recorded.candidate = Some(CandidateOutcome::Accepted);
-        recorded.curvature = Some(curvature_diagnostic(
-            inner.step(),
-            &trial_gradient,
-            &accepted.scaled_gradient,
-        ));
+        if let Some(recorded) = recorded {
+            recorded.candidate = Some(CandidateOutcome::Accepted);
+            recorded.curvature = Some(curvature_diagnostic(
+                inner.step(),
+                &trial_gradient,
+                &accepted.scaled_gradient,
+            ));
+        }
         *accepted = AcceptedPoint {
             zeta: trial_zeta,
             objective: trial_objective,
@@ -341,23 +366,19 @@ pub(super) fn derive_certificate(
     })
 }
 
-/// Records the inner-step summaries on the receipt and returns the predicted model reduction
-/// `−g·p − ½·p·Hp` from the returned step and product alone.
+/// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product
+/// alone, recording the inner-step summaries when a receipt is stored.
 ///
-/// A failed dot yields NaN, which the caller classifies as an invalid predicted reduction.
+/// The dots are algorithm inputs and always compute; the norms are diagnostic-only and compute
+/// solely for a stored receipt. A failed dot yields NaN, which the caller classifies as an
+/// invalid predicted reduction.
 fn record_inner_step(
-    recorded: &mut OuterOutcome,
+    recorded: Option<&mut OuterOutcome>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     inner: &CgOutcome,
 ) -> f64 {
-    recorded.tag = Some(inner.tag());
-    recorded.step_norm = stable_l2(inner.step());
-    recorded.hessian_step_norm = stable_l2(inner.hessian_step());
-
     let along_gradient = checked_dot(gradient, inner.step());
     let along_curvature = checked_dot(inner.step(), inner.hessian_step());
-    recorded.gradient_step = along_gradient;
-    recorded.step_curvature = along_curvature;
 
     let predicted = match (along_gradient, along_curvature) {
         (Some(gradient_term), Some(curvature_term)) => {
@@ -365,7 +386,15 @@ fn record_inner_step(
         }
         _ => f64::NAN,
     };
-    recorded.predicted_reduction = predicted.is_finite().then_some(predicted);
+
+    if let Some(recorded) = recorded {
+        recorded.tag = Some(inner.tag());
+        recorded.step_norm = stable_l2(inner.step());
+        recorded.hessian_step_norm = stable_l2(inner.hessian_step());
+        recorded.gradient_step = along_gradient;
+        recorded.step_curvature = along_curvature;
+        recorded.predicted_reduction = predicted.is_finite().then_some(predicted);
+    }
     predicted
 }
 

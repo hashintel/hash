@@ -57,7 +57,7 @@ use crate::{
 /// Every variant aborts the fit: a generation whose coordinates the configured placement could not
 /// produce publishes nothing.
 #[derive(Debug)]
-pub(crate) enum PlacementError {
+pub enum PlacementError {
     /// The projector objective rejects the fit's low-dimensional kernel or affinity offset.
     ObjectiveCurve { exponent: f32, offset: f32 },
     /// The configured architecture disagrees with the dataset's representation width.
@@ -152,7 +152,7 @@ impl From<CanonicalError> for PlacementError {
 /// corrupt, of another layout version, or of another dataset's id type, and the fit aborts rather
 /// than silently running without reuse.
 #[derive(Debug)]
-pub(crate) enum PriorError {
+pub enum PriorError {
     /// A prior card-embedding array failed to map.
     MapCards(OpenArrayError),
     /// The prior card files do not hold row-aligned digest and embedding columns.
@@ -220,7 +220,7 @@ impl Error for PriorError {
 /// Every variant is dataset- and provider-free, so the whole enum is `Send + 'static` and crosses
 /// the rayon offload boundary.
 #[derive(Debug)]
-pub(crate) enum StageError {
+pub enum StageError {
     /// A staged write, scratch directory, or digest pass failed.
     Io(io::Error),
     /// The norm spot check's sampling settings are unusable.
@@ -674,7 +674,7 @@ impl Error for StageError {
 /// `D` is the dataset's error, `E` the embedding provider's; both can only arise during ingest.
 /// Every compute-side failure arrives as [`FitError::Stage`].
 #[derive(Debug)]
-pub(crate) enum FitError<D, E> {
+pub enum FitError<D, E> {
     /// The dataset failed to deliver a stream item.
     Dataset(D),
     /// The card stream failed.

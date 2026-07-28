@@ -39,7 +39,7 @@ use crate::{
 
 /// A refresh tick failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum RefreshError {
+pub enum RefreshError {
     /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
     Diverged { row: NodeRowId, eta: f32 },
     /// A local scale came out non-finite at this row and rung.

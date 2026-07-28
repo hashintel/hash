@@ -187,7 +187,7 @@ fn type_rows_cte(editions: &str) -> String {
 
 /// A failure while reading from the graph store.
 #[derive(Debug)]
-pub(crate) enum PostgresDatasetError {
+pub enum PostgresDatasetError {
     /// The store rejected or aborted a query.
     Query(tokio_postgres::Error),
     /// A row referenced more type ordinals than the type table holds.

@@ -51,7 +51,7 @@ use crate::{
     salt::{
         CardEmbedder, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions, TrainingRow,
         TrainingSet,
-        fit::{ClassifierInput, FitConfig, PlacementOptions, fit},
+        fit::{ClassifierInput, FitConfig, PlacementOptions, Supplies, fit},
         fit_classifier,
         lod::stage::LodConfig,
         wire::{
@@ -298,11 +298,12 @@ async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
         &fixture_dataset(),
         &HashEmbedder,
         &fixture_config(),
-        &fixture_classifier(),
-        None,
-        None,
+        Supplies {
+            classifier: &fixture_classifier(),
+            ..
+        },
         &root,
-        &NoProgress,
+        NoProgress,
     )
     .await
     .expect("the fit should publish");

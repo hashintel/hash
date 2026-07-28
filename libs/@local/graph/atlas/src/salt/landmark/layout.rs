@@ -193,7 +193,7 @@ const impl Default for LayoutOptions {
 
 /// The graph stores no edges to optimize toward.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct EdgelessGraphError;
+pub struct EdgelessGraphError;
 
 impl fmt::Display for EdgelessGraphError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

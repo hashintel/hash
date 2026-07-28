@@ -11,7 +11,7 @@ use crate::{
 
 /// The quality run could not produce a report.
 #[derive(Debug)]
-pub(crate) enum QualityRunError<E> {
+pub enum QualityRunError<E> {
     /// The k-NN artifact could not be opened.
     OpenKnn(OpenSprsError),
     /// The opened k-NN file does not hold a valid table.

@@ -138,19 +138,13 @@ fn open_rejects_foreign_and_torn_bytes() {
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert_matches!(
-        LandmarkFile::open(&foreign),
-        Err(OpenLandmarkError::Header(_)),
-    );
+    assert_matches!(LandmarkFile::open(&foreign), Err(OpenLandmarkError::Header));
 
     let future = scratch("future-version.lndm");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert_matches!(
-        LandmarkFile::open(&future),
-        Err(OpenLandmarkError::Header(_)),
-    );
+    assert_matches!(LandmarkFile::open(&future), Err(OpenLandmarkError::Header));
 
     let torn = scratch("torn.lndm");
     let mut bytes = fixture_bytes();

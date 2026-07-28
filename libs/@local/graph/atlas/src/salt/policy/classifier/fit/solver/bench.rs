@@ -23,6 +23,7 @@ use super::{
     super::{FitConfig, TrainingRow, grouped_folds},
     prepare::prepare,
     problem::ScaledProblem,
+    receipt::ReceiptDetail,
     solve::solve,
     work::WorkCounters,
 };
@@ -296,7 +297,7 @@ pub async fn probe_fold(options: &ProbeOptions, seed: u64, fold: usize) {
         prepared,
         config: config.solver,
     };
-    let run = solve(&problem, counters);
+    let run = solve(&problem, counters, ReceiptDetail::Digests);
 
     println!("outcome: {:?}", run.outcome.as_ref().err());
     println!(
@@ -319,6 +320,10 @@ pub async fn probe_fold(options: &ProbeOptions, seed: u64, fold: usize) {
             receipt.objective,
             receipt.gradient_norm,
             receipt.outcome,
+        );
+        println!(
+            "  zeta {} gradient {}",
+            receipt.digests.zeta, receipt.digests.gradient
         );
     }
     println!("counters: {:?}", run.control.counters);

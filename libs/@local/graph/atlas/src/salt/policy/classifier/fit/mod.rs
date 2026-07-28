@@ -44,7 +44,8 @@ mod applicability;
 #[cfg(feature = "bench")]
 pub use self::solver::bench;
 pub use self::solver::{
-    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, WorkCounters,
+    CandidateOutcome, CgTag, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptDetail,
+    StartDigests, WorkCounters,
 };
 pub(crate) use self::solver::{
     CgStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
@@ -58,7 +59,7 @@ mod tests;
 
 /// A training input violated the corpus contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum TrainingSetError {
+pub enum TrainingSetError {
     /// The corpus holds no rows.
     Empty,
     /// The embedding and row counts differ.
@@ -107,7 +108,7 @@ impl Error for TrainingSetError {}
 
 /// The fit could not produce a valid classifier.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum FitError {
+pub enum FitError {
     /// The solver configuration violated a cross-field constraint.
     Config(SolverConfigError),
     /// The fold count cannot hold one validation portion out. At least 2 folds are required.
@@ -445,8 +446,22 @@ fn fit_model(
         prepared,
         config: config.solver,
     };
-    let run = solve(&problem, counters);
-    let converged = run.outcome.map_err(FitError::Solver)?;
+    let run = solve(&problem, counters, ReceiptDetail::None);
+    let converged = match run.outcome {
+        Ok(converged) => converged,
+        Err(failure) => {
+            // The typed terminal, the aggregate counters, and the fold identity are the whole
+            // routine failure diagnostic; the probe replays `seed:fold` when vectors are needed.
+            tracing::error!(
+                ?failure,
+                ?held_out,
+                outer_iterations_started = run.control.outer_iterations_started,
+                counters = ?run.control.counters,
+                "the classifier solve ended at a typed terminal",
+            );
+            return Err(FitError::Solver(failure));
+        }
+    };
 
     let point = problem.point(&converged.point.zeta);
     Ok((

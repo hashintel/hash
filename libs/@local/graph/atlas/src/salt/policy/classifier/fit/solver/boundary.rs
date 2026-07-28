@@ -4,16 +4,14 @@
 //! the interior iterate advanced to the boundary: the positive `τ` with `‖(p + τd)/Δ‖ = 1`. The
 //! crossing is found in radius-normalized coordinates `u = p/Δ`, `v = d/Δ` through the
 //! cancellation-free quadratic root `q = −½·(b + copysign(√(b² − 4ac), b))`, and the construction
-//! is validated rather than trusted: the normalized step must land within
-//! `boundary_residual_ulps · ulp(1)` of unit norm both as built and as returned after the radius
-//! rescaling. The matching Hessian product extends along the same `τ`, so a boundary step never
-//! charges a fresh Hessian-vector product.
+//! is validated rather than trusted: the normalized step must land within the gross-defect guard
+//! of unit norm both as built and as returned after the radius rescaling. The matching Hessian
+//! product extends along the same `τ`, so a boundary step never charges a fresh Hessian-vector
+//! product.
 //!
 //! Every arithmetic escape - a non-finite normalization, coefficient, discriminant, root, or
 //! product - returns [`None`]; the caller maps [`None`] onto its typed no-finite-boundary-step
 //! failure.
-
-use core::num::NonZeroU32;
 
 use super::{
     SOLVER_DIMENSIONS, flat,
@@ -21,11 +19,24 @@ use super::{
 };
 use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
 
+/// Unit-norm residual guard of the boundary construction: `2⁻⁴⁰` of unit norm.
+///
+/// The guard names one bug class: gross non-root τ defects - mis-built coefficients or signs,
+/// collapsed discriminants, catastrophic cancellation - whose residuals sit at the
+/// square-root-of-epsilon scale or far above. Exact root-sign selection is separately owned by
+/// the finite-positive-τ rule, because either mathematical root lies on the unit boundary.
+/// Honest striped-fold rounding stays orders of magnitude below the guard,
+/// and the margin is asymmetric on purpose: a false abort costs a production fit, while drift
+/// the guard admits is still gated by the final gradient certificate. The exact value is an
+/// implementation choice - not configuration, not persisted metadata, and not a cross-target
+/// identity.
+pub(super) const GROSS_DEFECT_GUARD: f64 = 4096.0 * f64::EPSILON;
+
 /// A validated step onto the numerical trust-region boundary.
 ///
-/// The step's radius-normalized norm lies within `boundary_residual_ulps · ulp(1)` of one, and
-/// the product rides the same crossing, so later logic trusts the tag carrying this payload
-/// instead of re-deriving boundary contact from a fresh norm.
+/// The step's radius-normalized norm lies within the gross-defect guard of one, and the product
+/// rides the same crossing, so later logic trusts the tag carrying this payload instead of
+/// re-deriving boundary contact from a fresh norm.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct BoundaryStep {
     /// The boundary step `p + τ·d` in scaled coordinates.
@@ -40,7 +51,7 @@ pub(super) struct BoundaryStep {
 /// `a = v·v`, `b = 2·u·v`, `c = u·u − 1` (the interior iterate keeps `c < 0`, so exactly one
 /// root is positive), and picks the finite positive `τ` from the paired roots `q/a` and `c/q`.
 /// The built `u + τv` and the returned `(Δ·(u + τv))/Δ` must both lie within
-/// `boundary_residual_ulps · ulp(1)` of unit norm.
+/// [`GROSS_DEFECT_GUARD`] of unit norm.
 ///
 /// Returns [`None`] when any normalization, coefficient, discriminant, root, boundary norm, or
 /// extended Hessian product falls outside its domain; the caller maps [`None`] onto its typed
@@ -51,7 +62,6 @@ pub(super) fn boundary_step(
     hessian_interior: &AlignedDVecN<SOLVER_DIMENSIONS>,
     hessian_direction: &AlignedDVecN<SOLVER_DIMENSIONS>,
     radius: f64,
-    boundary_residual_ulps: NonZeroU32,
 ) -> Option<BoundaryStep> {
     // u = p/Δ and v = d/Δ, rejected on any non-finite quotient.
     let normalized_interior = normalize(interior, radius)?;
@@ -80,12 +90,9 @@ pub(super) fn boundary_step(
         .into_iter()
         .find(|tau| tau.is_finite() && *tau > 0.0)?;
 
-    // ulp(1) is exactly f64::EPSILON; a u32 count times 2⁻⁵² stays far inside the finite range.
-    let tolerance = f64::from(boundary_residual_ulps.get()) * f64::EPSILON;
-
     let boundary = flat::advance(&normalized_interior, crossing, &normalized_direction);
     let norm = stable_l2(&boundary)?;
-    if (norm - 1.0).abs() > tolerance {
+    if (norm - 1.0).abs() > GROSS_DEFECT_GUARD {
         return None;
     }
 
@@ -93,10 +100,10 @@ pub(super) fn boundary_step(
     *step *= radius;
 
     // Revalidate the step exactly as a consumer would read it back: divided by the radius, the
-    // rounding of the rescaling roundtrip must still sit inside the boundary tolerance.
+    // rounding of the rescaling roundtrip must still sit inside the gross-defect guard.
     let returned = normalize(&step, radius)?;
     let returned_norm = stable_l2(&returned)?;
-    if (returned_norm - 1.0).abs() > tolerance {
+    if (returned_norm - 1.0).abs() > GROSS_DEFECT_GUARD {
         return None;
     }
 

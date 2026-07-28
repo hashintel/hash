@@ -48,7 +48,7 @@ const _: () = {
 
 /// An opened policy file does not hold a valid table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum InvalidPolicyFile {
+pub enum InvalidPolicyFile {
     /// The rows break the strictly ascending relation order.
     UnorderedRelations { index: usize },
     /// A policy carries a value outside its domain.

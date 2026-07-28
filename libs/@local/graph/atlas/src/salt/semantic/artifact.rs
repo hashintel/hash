@@ -52,7 +52,7 @@ impl WriteInto for SemanticGraph {
 
 /// An opened sparse matrix file does not hold a valid semantic graph.
 #[derive(Debug)]
-pub(crate) enum InvalidSemanticFile {
+pub enum InvalidSemanticFile {
     /// The file does not hold the graph's matrix layout.
     Matrix(SprsMatrixError),
     /// The matrix violates a [`SemanticGraph`] invariant.

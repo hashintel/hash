@@ -15,13 +15,13 @@ use super::{
     },
     AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
     basis::{self, HELMERT_V1},
-    boundary::{BoundaryStep, boundary_step},
+    boundary::{BoundaryStep, GROSS_DEFECT_GUARD, boundary_step},
     cg::{CgOutcome, CgTag, bounded_steihaug_cg, crossing},
     config::{SolverConfig, SolverConfigError},
     flat as flat_vectors,
     prepare::{PreparationError, PreparationSettings, prepare},
     problem::ScaledProblem,
-    receipt::{CandidateOutcome, CurvatureDiagnostic, vector_digest},
+    receipt::{CandidateOutcome, CurvatureDiagnostic, ReceiptDetail, vector_digest},
     resolution::objective_resolution,
     scale::Scaling,
     solve::{
@@ -54,11 +54,6 @@ fn flat(assignments: &[(usize, f64)]) -> BoxedDVecN<SOLVER_DIMENSIONS> {
         vector.as_array_mut()[index] = value;
     }
     vector
-}
-
-/// Eight ulps of boundary-residual tolerance.
-fn eight_ulps() -> NonZeroU32 {
-    NonZeroU32::new(8).expect("eight is nonzero")
 }
 
 const CAPACITY: usize = 4;
@@ -1023,7 +1018,6 @@ fn solver_config() -> SolverConfig {
         absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-10),
         objective_resolution_ulps: NonZeroU32::new(4).expect("four is nonzero"),
         curvature_guard_ulps: NonZeroU32::new(16).expect("sixteen is nonzero"),
-        boundary_residual_ulps: NonZeroU32::new(8).expect("eight is nonzero"),
         maximum_outer_iterations: NonZeroU64::new(100).expect("one hundred is nonzero"),
         maximum_cg_iterations: NonZeroU64::new(50).expect("fifty is nonzero"),
         maximum_hvp_requests: NonZeroU64::new(5_000).expect("five thousand is nonzero"),
@@ -1177,7 +1171,6 @@ fn boundary_step_crosses_exactly_from_the_origin() {
         &hessian_interior,
         &hessian_direction,
         4.0,
-        eight_ulps(),
     )
     .expect("the origin crossing is exact");
 
@@ -1195,7 +1188,7 @@ fn boundary_step_picks_the_far_crossing_for_a_backward_direction() {
     let direction = flat(&[(0, -1.0)]);
     let zero = flat(&[]);
 
-    let crossed = boundary_step(&interior, &direction, &zero, &zero, 2.0, eight_ulps())
+    let crossed = boundary_step(&interior, &direction, &zero, &zero, 2.0)
         .expect("the backward crossing is exact");
 
     // From p = e₀ along −e₀ the boundary sits at −Δ·e₀, a crossing of τ = 3.
@@ -1217,7 +1210,6 @@ fn boundary_step_advances_the_hessian_product_along_the_crossing() {
         &hessian_interior,
         &hessian_direction,
         2.0,
-        eight_ulps(),
     )
     .expect("the forward crossing is exact");
 
@@ -1227,7 +1219,7 @@ fn boundary_step_advances_the_hessian_product_along_the_crossing() {
     assert_eq!(crossed.hessian_step.as_array()[1], 0.5);
 }
 
-/// An irrational crossing under an odd radius passes both norm gates at eight ulps.
+/// An irrational crossing under an odd radius passes both norm gates of the gross-defect guard.
 #[test]
 fn boundary_step_survives_an_irrational_crossing() {
     let interior = flat(&[(0, 0.75)]);
@@ -1241,7 +1233,6 @@ fn boundary_step_survives_an_irrational_crossing() {
         &hessian_interior,
         &hessian_direction,
         3.0,
-        eight_ulps(),
     )
     .expect("the crossing passes both norm gates");
 
@@ -1261,15 +1252,12 @@ fn boundary_step_rejects_a_non_interior_iterate() {
 
     let on_boundary = flat(&[(0, 4.0)]);
     assert_eq!(
-        boundary_step(&on_boundary, &direction, &zero, &zero, 4.0, eight_ulps()),
+        boundary_step(&on_boundary, &direction, &zero, &zero, 4.0),
         None,
     );
 
     let beyond = flat(&[(0, 8.0)]);
-    assert_eq!(
-        boundary_step(&beyond, &direction, &zero, &zero, 4.0, eight_ulps()),
-        None,
-    );
+    assert_eq!(boundary_step(&beyond, &direction, &zero, &zero, 4.0), None,);
 }
 
 /// A zero direction violates `a > 0` and constructs nothing.
@@ -1278,10 +1266,7 @@ fn boundary_step_rejects_a_zero_direction() {
     let interior = flat(&[(0, 1.0)]);
     let zero = flat(&[]);
 
-    assert_eq!(
-        boundary_step(&interior, &zero, &zero, &zero, 4.0, eight_ulps()),
-        None,
-    );
+    assert_eq!(boundary_step(&interior, &zero, &zero, &zero, 4.0), None,);
 }
 
 /// An overflowing radius normalization is rejected before any coefficient forms.
@@ -1292,7 +1277,7 @@ fn boundary_step_rejects_a_non_finite_normalization() {
     let zero = flat(&[]);
 
     assert_eq!(
-        boundary_step(&interior, &direction, &zero, &zero, 0.5, eight_ulps()),
+        boundary_step(&interior, &direction, &zero, &zero, 0.5),
         None,
     );
 }
@@ -1312,7 +1297,6 @@ fn boundary_step_rejects_an_overflowing_hessian_extension() {
             &hessian_interior,
             &hessian_direction,
             4.0,
-            eight_ulps(),
         ),
         None,
     );
@@ -1323,7 +1307,7 @@ fn boundary_step_rejects_an_overflowing_hessian_extension() {
 fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     let zero = flat(&[]);
     // 2⁻¹⁰⁴⁰: a subnormal radius whose rescaled step components quantize on the 2⁻¹⁰⁷⁴ grid,
-    // mangling the returned geometry by ~2⁻²⁸ relative - far outside eight ulps.
+    // mangling the returned geometry by ~2⁻²⁸ relative - far outside the gross-defect guard.
     let radius = f64::from_bits(1_u64 << 34);
     let mut direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     direction.as_array_mut().fill(radius);
@@ -1332,13 +1316,10 @@ fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     // sound, so a rejection below can only come from the rescaling revalidation.
     let mut unit_direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     unit_direction.as_array_mut().fill(1.0);
-    boundary_step(&zero, &unit_direction, &zero, &zero, 1.0, eight_ulps())
+    boundary_step(&zero, &unit_direction, &zero, &zero, 1.0)
         .expect("the crossing is sound at a unit radius");
 
-    assert_eq!(
-        boundary_step(&zero, &direction, &zero, &zero, radius, eight_ulps()),
-        None,
-    );
+    assert_eq!(boundary_step(&zero, &direction, &zero, &zero, radius), None,);
 }
 
 /// A deterministic dense component: the Weyl sequence on the golden ratio at the given phase,
@@ -1444,45 +1425,27 @@ fn boundary_construction_replica(
     Some((step, built, returned_ulps))
 }
 
-/// A dense solver-dimension crossing rejected at eight ulps and admitted at sixty-four.
+/// A dense solver-dimension crossing constructs, and the replica ties it byte-for-byte.
 ///
-/// The pinned crossing rounds to a built residual of 25 ulp(1), a returned residual of 24, and
-/// an independent compensated reference of 23, with `‖interior‖ = 0.9392·Δ`,
-/// `‖direction‖ = 3.404·Δ`, `interior·direction ≈ −1.5624`, `Δ = 0.7`. A stricter valid gate
-/// therefore rejects a finite crossing a wider valid gate admits: the tolerance is a
-/// calibration decision at this dimension, not a formality.
-///
-/// The residuals are asserted exactly: they are pinned receipt data, empirically pinned on
-/// aarch64-apple-darwin. The operation sequence behind them is fixed, so an environment that
-/// rounds differently fails these assertions by name instead of silently shifting the receipt.
+/// The crossing has `‖interior‖ = 0.9392·Δ`, `‖direction‖ = 3.404·Δ`,
+/// `interior·direction ≈ −1.5624`, `Δ = 0.7`: a dense, cancellation-prone construction whose
+/// honest residuals sit orders of magnitude inside the gross-defect guard. The byte-tie keeps
+/// the replica honest: its reported residuals describe exactly the arithmetic that produced
+/// the admitted step.
 #[test]
-fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
+fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
     let radius = 0.7;
     let interior = spiked_dense(0.9392 * radius, 0.6);
     let direction = spiked_dense(3.404 * radius, 0.275);
     let hessian_interior = spiked_dense(0.5, 0.7);
     let hessian_direction = spiked_dense(1.0, 0.9);
 
+    let guard_ulps = GROSS_DEFECT_GUARD / f64::EPSILON;
     let (replica_step, built, returned) =
         boundary_construction_replica(&interior, &direction, radius)
-            .expect("the pinned crossing constructs");
-    assert_eq!(built, 25.0, "the built residual is pinned receipt data");
-    assert_eq!(
-        returned, 24.0,
-        "the returned residual is pinned receipt data"
-    );
-
-    assert_eq!(
-        boundary_step(
-            &interior,
-            &direction,
-            &hessian_interior,
-            &hessian_direction,
-            radius,
-            eight_ulps(),
-        ),
-        None,
-    );
+            .expect("the dense crossing constructs");
+    assert!(built < guard_ulps, "built residual {built} ulp");
+    assert!(returned < guard_ulps, "returned residual {returned} ulp");
 
     let admitted = boundary_step(
         &interior,
@@ -1490,9 +1453,8 @@ fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
         &hessian_interior,
         &hessian_direction,
         radius,
-        NonZeroU32::new(64).expect("sixty-four is nonzero"),
     )
-    .expect("the wider gate admits the crossing");
+    .expect("the guard admits the crossing");
 
     // The byte-tie keeps the replica honest: the residuals above describe exactly the
     // arithmetic that produced the admitted step.
@@ -1504,124 +1466,73 @@ fn boundary_step_dense_crossing_rejected_at_eight_admitted_at_sixty_four() {
     let mut normalized = admitted.step;
     *normalized /= radius;
     let reference = (compensated_l2(normalized.as_array()) - 1.0).abs() / f64::EPSILON;
-    assert_eq!(
-        reference, 23.0,
-        "the compensated reference is pinned receipt data"
+    assert!(
+        reference < guard_ulps,
+        "compensated reference {reference} ulp"
     );
 }
 
-/// The declared boundary-residual calibration sweep: the permanent receipt of the observed
-/// envelope at the admitted dimension, 6146.
-///
-/// The grid is the declared calibration domain over [`spiked_dense`] crossings: interior and
-/// direction phases `{k/40 : k = 0..39}`, radii `{9.5e-4, 0.3, 0.7, 1.0, 1.6e4}`, interior
-/// norm fractions `{0.31, 0.62, 0.87, 0.9392, 0.99, 0.999}`, and direction norm fractions
-/// `{1.0, 3.404, 9.7}` - 144,000 crossings, every one of which constructs. Residuals are the
-/// radius-normalized built and returned deviations of [`boundary_construction_replica`], in
-/// ulps of one, under the arithmetic the replica shares with [`boundary_step`]:
-/// [`checked_dot`]/[`checked_norm_squared`]/[`stable_l2`] over the house pinned striped
-/// folds.
-///
-/// The envelope is pinned exactly: largest built residual 44.0 ulp(1), attained at
-/// `(φ_i 0.55, φ_d 0.2, Δ 9.5e-4, f_i 0.9392, f_d 9.7)`; largest returned residual
-/// 44.5 ulp(1), attained at `(0.8, 0.125, 9.5e-4, 0.999, 9.7)`; none above 64; the partition
-/// counts classify `max(built, returned)` against the 8 and 64 gates. The pinned values are
-/// empirical receipt data on aarch64-apple-darwin. The sweep selects no production tolerance
-/// and claims no maximal error: it persists the procedure and what it observed.
-///
-/// Reproduce with:
-///
-/// ```text
-/// cargo nextest run -p hash-graph-atlas --all-features --lib \
-///     boundary_residual_calibration_sweep --run-ignored all
-/// ```
+/// Honest crossings across the historical calibration grid's corners sit far inside the guard.
 #[test]
-#[ignore = "the 144,000-crossing sweep is a calibration receipt, not a per-commit gate"]
-fn boundary_residual_calibration_sweep_pins_the_observed_envelope() {
-    let phases: Vec<f64> = (0..40_i32).map(|step| f64::from(step) / 40.0).collect();
-    let radii = [9.5e-4_f64, 0.3, 0.7, 1.0, 1.6e4];
-    let interior_fractions = [0.31_f64, 0.62, 0.87, 0.9392, 0.99, 0.999];
-    let direction_fractions = [1.0_f64, 3.404, 9.7];
-
-    let mut attempted = 0_u64;
-    let mut constructed = 0_u64;
-    let mut over_64 = 0_u64;
-    let mut in_window = 0_u64;
-    let mut within_8 = 0_u64;
-    let mut max_built = 0.0_f64;
-    let mut max_returned = 0.0_f64;
-
-    for &radius in &radii {
-        let directions: Vec<BoxedDVecN<SOLVER_DIMENSIONS>> = direction_fractions
-            .iter()
-            .flat_map(|&fraction| {
-                phases
-                    .iter()
-                    .map(move |&phase| spiked_dense(fraction * radius, phase))
-            })
-            .collect();
-        for &fraction in &interior_fractions {
-            for &phase in &phases {
-                let interior = spiked_dense(fraction * radius, phase);
-                for direction in &directions {
-                    attempted += 1;
-                    let Some((_, built, returned)) =
-                        boundary_construction_replica(&interior, direction, radius)
-                    else {
-                        continue;
-                    };
-                    constructed += 1;
-                    let peak = built.max(returned);
-                    if peak > 64.0 {
-                        over_64 += 1;
-                    } else if peak > 8.0 {
-                        in_window += 1;
-                    } else {
-                        within_8 += 1;
-                    }
-                    max_built = max_built.max(built);
-                    max_returned = max_returned.max(returned);
-                }
-            }
+fn honest_boundary_residuals_sit_inside_the_gross_defect_guard() {
+    let guard_ulps = GROSS_DEFECT_GUARD / f64::EPSILON;
+    for radius in [9.5e-4_f64, 0.7, 1.6e4] {
+        for interior_fraction in [0.31_f64, 0.9392, 0.999] {
+            let interior = spiked_dense(interior_fraction * radius, 0.55);
+            let direction = spiked_dense(9.7 * radius, 0.2);
+            let (_, built, returned) = boundary_construction_replica(&interior, &direction, radius)
+                .expect("the honest crossing constructs");
+            assert!(built < guard_ulps, "built {built} ulp at radius {radius}");
+            assert!(
+                returned < guard_ulps,
+                "returned {returned} ulp at radius {radius}"
+            );
         }
     }
+}
 
-    assert_eq!(attempted, 144_000);
-    assert_eq!(constructed, 144_000, "every declared crossing constructs");
-    assert_eq!(
-        max_built, 44.0,
-        "the largest built residual is pinned receipt data"
-    );
-    assert_eq!(
-        max_returned, 44.5,
-        "the largest returned residual is pinned receipt data"
-    );
-    assert_eq!(over_64, 0, "no crossing exceeds the wider gate");
-    assert_eq!(in_window, 17_947);
-    assert_eq!(within_8, 126_053);
+/// The guard rejects a collapsed discriminant: the double-root value solves no crossing.
+///
+/// A construction whose discriminant flushed to zero yields `τ = −b/(2a)`; on a real crossing
+/// that value lands the step far off unit norm, and the guard names the defect.
+#[test]
+fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
+    // u = 0.6·e₀, v = e₀ + e₁ at Δ = 1: a = 2, b = 1.2, c = −0.64, honest τ = 0.34.
+    let interior = flat(&[(0, 0.6)]);
+    let direction = flat(&[(0, 1.0), (1, 1.0)]);
+    let zero = flat(&[]);
 
-    // One exact parameter tuple attains each maximum.
-    let (_, built, _) = boundary_construction_replica(
-        &spiked_dense(0.9392 * 9.5e-4, 0.55),
-        &spiked_dense(9.7 * 9.5e-4, 0.2),
-        9.5e-4,
-    )
-    .expect("the built-maximum crossing constructs");
-    assert_eq!(
-        built, max_built,
-        "the pinned tuple attains the built maximum"
+    let collapsed = -1.2 / (2.0 * 2.0);
+    let step = flat_vectors::advance(&interior, collapsed, &direction);
+    let norm = stable_l2(&step).expect("the defective step is finite");
+    assert!((norm - 1.0).abs() > GROSS_DEFECT_GUARD);
+
+    // The honest construction of the same crossing passes both guard checks.
+    boundary_step(&interior, &direction, &zero, &zero, 1.0)
+        .expect("the honest crossing constructs");
+}
+
+/// The guard rejects the τ of a mis-built quadratic: an unhalved linear coefficient.
+#[test]
+fn the_gross_defect_guard_rejects_a_coefficient_defect() {
+    // The same crossing with b = u·v instead of 2·u·v: the τ solves the wrong equation.
+    let interior = flat(&[(0, 0.6)]);
+    let direction = flat(&[(0, 1.0), (1, 1.0)]);
+
+    let defective_linear = 0.6_f64;
+    let quadratic = 2.0_f64;
+    let constant = -0.64_f64;
+    let discriminant = defective_linear.mul_add(defective_linear, -4.0 * quadratic * constant);
+    let root = -0.5 * (defective_linear + discriminant.sqrt().copysign(defective_linear));
+    let tau = constant / root;
+    assert!(
+        tau > 0.0,
+        "the defective pairing still yields a forward tau"
     );
 
-    let (_, _, returned) = boundary_construction_replica(
-        &spiked_dense(0.999 * 9.5e-4, 0.8),
-        &spiked_dense(9.7 * 9.5e-4, 0.125),
-        9.5e-4,
-    )
-    .expect("the returned-maximum crossing constructs");
-    assert_eq!(
-        returned, max_returned,
-        "the pinned tuple attains the returned maximum"
-    );
+    let step = flat_vectors::advance(&interior, tau, &direction);
+    let norm = stable_l2(&step).expect("the defective step is finite");
+    assert!((norm - 1.0).abs() > GROSS_DEFECT_GUARD);
 }
 
 /// Rows whose targets all close to the uniform distribution: the origin is the minimizer.
@@ -1644,7 +1555,11 @@ fn run_solver(corpus: &Corpus, config: SolverConfig) -> SolverRun {
         &mut counters,
     )
     .expect("the fixture corpus prepares");
-    solve(&ScaledProblem { prepared, config }, counters)
+    solve(
+        &ScaledProblem { prepared, config },
+        counters,
+        ReceiptDetail::Digests,
+    )
 }
 
 /// A passing initial gradient certifies before any outer iteration starts.
@@ -1679,6 +1594,33 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     assert_eq!(counters.completed_joint_traversals, 2);
 }
 
+/// The routine posture stores no receipts: outcome, control, and certificate alone return.
+#[test]
+fn solve_stores_no_receipts_routinely() {
+    let corpus = valid_corpus();
+    let config = solver_config();
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(
+        corpus.embeddings(),
+        &corpus.rows,
+        config.preparation,
+        &mut counters,
+    )
+    .expect("the fixture corpus prepares");
+    let run = solve(
+        &ScaledProblem { prepared, config },
+        counters,
+        ReceiptDetail::None,
+    );
+
+    run.outcome.expect("the fixture corpus converges");
+    assert!(
+        run.control.outer_iterations_started > 0,
+        "outer iterations started"
+    );
+    assert!(run.receipts.is_empty(), "the routine posture stores none");
+}
+
 /// The full loop converges on the fixture corpus with truthful accounting throughout.
 #[test]
 fn solve_converges_on_the_fixture_corpus() {
@@ -1708,7 +1650,7 @@ fn solve_converges_on_the_fixture_corpus() {
     assert_eq!(first.outer_iteration, 1);
     assert_eq!(first.radius, config.radius_initial.get());
     assert_eq!(
-        first.zeta_digest,
+        first.digests.zeta,
         vector_digest(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero())
     );
     assert!(converged.point.objective < first.objective);
@@ -2281,7 +2223,7 @@ fn crossing_maps_a_failed_construction_onto_its_typed_failure() {
     let zero = flat(&[]);
 
     assert_matches!(
-        crossing(&interior, &zero, &zero, &zero, 4.0, eight_ulps()),
+        crossing(&interior, &zero, &zero, &zero, 4.0),
         Err(SolverFailure::NoFiniteBoundaryStep),
     );
 }
@@ -2384,9 +2326,9 @@ fn cg_routes_the_trust_boundary_crossing_through_its_call_site() {
         baseline.started_row_traversals + 1,
     );
 
-    // The returned payload satisfies the boundary contract it was validated against.
+    // The returned payload satisfies the gross-defect guard it was validated against.
     let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
-    assert!((step_norm / radius - 1.0).abs() <= 8.0 * f64::EPSILON);
+    assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
 }
 
@@ -2444,9 +2386,9 @@ fn cg_routes_the_curvature_guard_crossing_through_its_call_site() {
         baseline.started_row_traversals + 4,
     );
 
-    // The returned payload satisfies the boundary contract it was validated against.
+    // The returned payload satisfies the gross-defect guard it was validated against.
     let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
-    assert!((step_norm / radius - 1.0).abs() <= 8.0 * f64::EPSILON);
+    assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
 }
 

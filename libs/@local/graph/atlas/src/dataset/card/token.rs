@@ -18,7 +18,7 @@ pub(crate) trait Tokenizer {
 
 /// Text contains a token the encoding reserves for protocol use.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct ReservedTokenError {
+pub struct ReservedTokenError {
     /// The reserved token found in the text.
     pub token: &'static str,
 }

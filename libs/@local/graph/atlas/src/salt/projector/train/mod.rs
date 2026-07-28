@@ -84,7 +84,7 @@ pub(crate) const RUNGS: [NonNegative; 3] = [
 
 /// A training step failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum StepError {
+pub enum StepError {
     /// The forward pass produced a non-finite coordinate: training diverged at this corpus row.
     Diverged { row: NodeRowId },
 }

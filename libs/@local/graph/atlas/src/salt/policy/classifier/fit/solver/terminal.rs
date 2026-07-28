@@ -9,7 +9,7 @@
 
 /// The stage of the CG recurrence where a value left the finite domain.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum CgStage {
+pub enum CgStage {
     /// A component of the Hessian-vector product `Hζ[d]`.
     HvpVector,
     /// A residual, direction, product, or step norm.
@@ -32,7 +32,7 @@ pub(crate) enum CgStage {
 
 /// A typed non-publishing terminal of one solve.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum SolverFailure {
+pub enum SolverFailure {
     /// Starting another outer iteration would exceed its budget.
     OuterIterationBudget,
     /// Starting another CG iteration would exceed its per-outer budget.

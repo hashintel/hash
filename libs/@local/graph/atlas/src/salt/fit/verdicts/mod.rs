@@ -25,7 +25,7 @@ mod tests;
 
 /// The supplied verdicts file could not be admitted.
 #[derive(Debug)]
-pub(crate) enum SupplyError {
+pub enum SupplyError {
     /// The file could not be read.
     Io(io::Error),
     /// The bytes violate the reviewed-verdicts wire contract.

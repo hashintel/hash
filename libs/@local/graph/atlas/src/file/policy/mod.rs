@@ -152,7 +152,7 @@ const _: () = assert!(size_of::<PolicyRow>() == 32);
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
-pub(crate) struct FileHeader {
+pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     /// Alignment filler so the count sits on a natural boundary.

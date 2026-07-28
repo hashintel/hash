@@ -37,7 +37,7 @@ const impl Default for PostingsConfig {
 
 /// Building the postings failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum PostingsError {
+pub enum PostingsError {
     /// A node row's direct types name an ontology row outside the type domain.
     NodeType { row: u32, id: u64 },
     /// A type's direct parents name an ontology row outside the type domain.

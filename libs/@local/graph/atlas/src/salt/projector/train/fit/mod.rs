@@ -62,7 +62,7 @@ use crate::{
 ///
 /// Run length, phase boundary, refresh cadence, and the learning-rate envelope.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct TrainingSchedule {
+pub struct TrainingSchedule {
     steps: NonZero<usize>,
     boundary: usize,
     refresh_interval: NonZero<usize>,

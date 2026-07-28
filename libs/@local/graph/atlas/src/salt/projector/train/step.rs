@@ -47,7 +47,7 @@ use crate::{
 /// Values are the scaled batch sums the step actually descends; families absent from the batch
 /// report zero.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub(crate) struct LossBreakdown {
+pub struct LossBreakdown {
     /// Semantic attraction.
     pub semantic: f32,
     /// Ordinary negative repulsion.
@@ -65,7 +65,7 @@ pub(crate) struct LossBreakdown {
 impl LossBreakdown {
     /// Returns the composite objective value.
     #[must_use]
-    pub(crate) fn total(&self) -> f32 {
+    pub fn total(&self) -> f32 {
         let Self {
             semantic,
             ordinary,

@@ -13,7 +13,7 @@ use crate::{
 /// disk, and the remedy - reopening, re-probing, or correcting and re-running - starts from
 /// that id.
 #[derive(Debug)]
-pub(crate) enum RunnerError<D, E> {
+pub enum RunnerError<D, E> {
     /// The current-generation pointer could not be read.
     Current(CurrentError),
     /// The active generation could not be opened as the prior.
