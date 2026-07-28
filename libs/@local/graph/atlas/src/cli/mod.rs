@@ -260,7 +260,7 @@ pub enum FitError {
     /// The run failed.
     Run(RunError),
     /// The admission report could not be written.
-    Report(io::Error),
+    Io(io::Error),
 }
 
 impl fmt::Display for FitError {
@@ -268,7 +268,7 @@ impl fmt::Display for FitError {
         match self {
             Self::Connect(error) => fmt::Display::fmt(error, fmt),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
-            Self::Report(_) => fmt.write_str("the admission report could not be written"),
+            Self::Io(_) => fmt.write_str("the admission report could not be written"),
         }
     }
 }
@@ -278,8 +278,26 @@ impl Error for FitError {
         match self {
             Self::Connect(error) => error.source(),
             Self::Run(error) => error.source(),
-            Self::Report(error) => Some(error),
+            Self::Io(error) => Some(error),
         }
+    }
+}
+
+impl From<io::Error> for FitError {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+impl From<RunError> for FitError {
+    fn from(value: RunError) -> Self {
+        Self::Run(value)
+    }
+}
+
+impl From<ConnectError> for FitError {
+    fn from(value: ConnectError) -> Self {
+        Self::Connect(value)
     }
 }
 
@@ -382,14 +400,13 @@ pub async fn fit(args: FitArgs, dsn: &str) -> Result<(), FitError> {
         "starting the production run"
     );
 
-    let mut client = run::connect(dsn).await.map_err(FitError::Connect)?;
+    let mut client = run::connect(dsn).await?;
+
     let started = Instant::now();
-    let summary = run::live(&mut client, &args.root, options)
-        .await
-        .map_err(FitError::Run)?;
+    let summary = run::live(&mut client, &args.root, options).await?;
     let elapsed = started.elapsed();
 
-    std::fs::write(&args.report, &summary.report).map_err(FitError::Report)?;
+    std::fs::write(&args.report, &summary.report).map_err(FitError::Io)?;
 
     println!();
     println!("generation  {}", summary.generation);

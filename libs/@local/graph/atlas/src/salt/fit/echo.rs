@@ -679,16 +679,7 @@ struct SelectionOptionsDef {
     maximum_count: NonZero<u32>,
     #[serde(with = "unit_fraction")]
     retained_fraction: UnitFraction,
-    // Absent on documents published before the chunk was config;
-    // those runs drew under the compiled default, so echoing it
-    // records them faithfully.
-    #[serde(default = "default_parallel_chunk")]
     parallel_chunk: NonZero<usize>,
-}
-
-/// The compiled default seeding chunk, echoed for documents that predate the field.
-const fn default_parallel_chunk() -> NonZero<usize> {
-    crate::salt::landmark::select::PARALLEL_CHUNK
 }
 
 /// serde shadow of [`norm::SpotCheckOptions`].
@@ -812,10 +803,7 @@ struct PolicyOptionsDef {
     overrides: Vec<PolicyOverride>,
     #[serde(with = "CoincidentAdmissionDef")]
     admission: CoincidentAdmission,
-    // Documents published before these settings existed omit them;
-    // no classifier fit consumed them there, so the compiled defaults
-    // are a faithful echo of those runs.
-    #[serde(with = "assembly_config", default)]
+    #[serde(with = "assembly_config")]
     assembly: AssemblyConfig,
     #[serde(with = "classifier_fit_config")]
     classifier_fit: ClassifierFitConfig,
@@ -831,16 +819,7 @@ mod assembly_config {
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
         near_duplicate_epsilon: f64,
-        // Absent on documents published before subdivision existed;
-        // no grouping consumed the budget there, so the compiled
-        // default records those runs faithfully.
-        #[serde(default = "default_maximum_group_fraction")]
         maximum_group_fraction: f64,
-    }
-
-    /// The compiled default budget, echoed for documents that predate the field.
-    fn default_maximum_group_fraction() -> f64 {
-        AssemblyConfig::default().maximum_group_fraction
     }
 
     pub(super) fn serialize<S>(config: &AssemblyConfig, serializer: S) -> Result<S::Ok, S::Error>
@@ -1122,7 +1101,7 @@ pub(crate) struct FitConfigDef {
     #[serde(with = "NormCheckOptionsDef")]
     norm_check: norm::SpotCheckOptions,
     neighbours: NonZero<usize>,
-    #[serde(with = "KnnConstructionChoiceDef", default)]
+    #[serde(with = "KnnConstructionChoiceDef")]
     construction: KnnConstructionChoice,
     #[serde(with = "HannoyIndexOptionsDef")]
     index: HannoyIndexOptions,

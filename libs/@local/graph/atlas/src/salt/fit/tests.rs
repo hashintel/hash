@@ -268,25 +268,40 @@ fn config_echo_requires_the_classifier_fit_settings() {
         .expect_err("an echo without the classifier fit settings does not parse");
 }
 
-/// A config echo published before the group budget existed omits it.
-///
-/// It deserializes to the compiled default, and a tampered budget refuses to parse.
+/// A config echo names every setting; absence is a rupture, not a default.
+#[test]
+fn config_echo_requires_every_setting() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    for path in [
+        "/selection/parallel_chunk",
+        "/policy/assembly/maximum_group_fraction",
+        "/policy/assembly",
+        "/construction",
+    ] {
+        let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+        let (parent, field) = path.rsplit_once('/').expect("every path names a field");
+        let object = document
+            .pointer_mut(parent)
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("the echo carries the field's parent object");
+        assert!(object.remove(field).is_some(), "{path} rides the echo");
+
+        assert!(
+            serde_json::from_value::<Echo>(document).is_err(),
+            "an echo without {path} does not parse"
+        );
+    }
+}
+
+/// A config echo revalidates the group budget's domain.
 #[test]
 fn config_echo_validates_the_group_budget() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
     let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
-    let assembly = document
-        .pointer_mut("/policy/assembly")
-        .and_then(serde_json::Value::as_object_mut)
-        .expect("the echo carries the assembly settings");
-    assert!(assembly.remove("maximum_group_fraction").is_some());
-
-    let echoed: Echo =
-        serde_json::from_value(document.clone()).expect("the pre-budget echo still deserializes");
-    assert_eq!(echoed.0, config());
-
     document
         .pointer_mut("/policy/assembly")
         .and_then(serde_json::Value::as_object_mut)
