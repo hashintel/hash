@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.6.13"
+min_version = "2026.7.14"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -28,7 +28,12 @@ protoc            = "35.1"
 # CLI tools
 "cargo:cargo-codspeed" = "4.1.0"
 "cargo:cargo-hack"     = "0.6.45"
-"cargo:cargo-insta"    = "1.47.2"
+# cargo-insta publishes no linux-arm64 binary, so arm64 image builds compile it from source. Its
+# bundled Cargo.lock pins rustix 0.37.27, which fails to build under the repo's pinned nightly;
+# installing it on stable keeps `--locked` fully intact. TODO(SRE-878): remove the `install_env`
+# override once upstream refreshes its lockfile or ships arm64 binaries.
+# See https://linear.app/hash/issue/SRE-878
+"cargo:cargo-insta"    = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
 "cargo:cargo-llvm-cov" = "0.8.7"
 "cargo:cargo-nextest"  = "0.9.137"
 just                   = "1.51.0"
