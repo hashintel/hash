@@ -39,6 +39,7 @@ backend = "cargo:cargo-hack"
 [[tools."cargo:cargo-insta"]]
 version = "1.47.2"
 backend = "cargo:cargo-insta"
+options = { locked = "false" }
 
 [[tools."cargo:cargo-llvm-cov"]]
 version = "0.8.7"

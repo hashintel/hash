@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.6.13"
+min_version = "2026.7.14"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -28,7 +28,11 @@ protoc            = "35.1"
 # CLI tools
 "cargo:cargo-codspeed" = "4.1.0"
 "cargo:cargo-hack"     = "0.6.45"
-"cargo:cargo-insta"    = "1.47.2"
+# TODO(SRE-874): `locked = false` works around cargo-insta's stale bundled Cargo.lock, which fails
+# to compile under our pinned nightly toolchain when mise's cargo-install source fallback passes
+# `--locked` (hit on arm64, where no prebuilt binary exists). Drop once upstream refreshes its
+# lockfile (https://github.com/mitsuhiko/insta). See https://linear.app/hash/issue/SRE-874
+"cargo:cargo-insta"    = { version = "1.47.2", locked = false }
 "cargo:cargo-llvm-cov" = "0.8.7"
 "cargo:cargo-nextest"  = "0.9.137"
 just                   = "1.51.0"
