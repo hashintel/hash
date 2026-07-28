@@ -191,6 +191,7 @@ impl Classifier {
                 return Err(InvalidClassifierFile::Distance { index, value });
             }
         }
+
         if let Some(position) = distances
             .array_windows::<2>()
             .position(|[left, right]| left > right)

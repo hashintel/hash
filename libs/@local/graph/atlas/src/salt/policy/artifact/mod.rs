@@ -99,9 +99,7 @@ pub(crate) fn write_policies(
     write: impl io::Write,
 ) -> io::Result<Sha256Digest> {
     assert!(
-        policies
-            .array_windows::<2>()
-            .all(|[left, right]| left.relation.as_u64() < right.relation.as_u64()),
+        policies.is_sorted_by(|left, right| left.relation < right.relation),
         "the resolved table is strictly ascending by relation",
     );
 

@@ -51,9 +51,7 @@ impl MemoryDataset {
 
         for (row, node) in nodes.iter().enumerate() {
             assert!(
-                node.ontology
-                    .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
+                node.ontology.is_sorted(),
                 "node row {row} carries a type list that is not strictly ascending",
             );
             assert!(
@@ -71,9 +69,7 @@ impl MemoryDataset {
                 "edge row {row} references a node row outside the node stream",
             );
             assert!(
-                edge.ontology
-                    .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
+                edge.ontology.is_sorted(),
                 "edge row {row} carries a type list that is not strictly ascending",
             );
             assert!(
@@ -86,10 +82,7 @@ impl MemoryDataset {
 
         for (row, entry) in ontology.iter().enumerate() {
             assert!(
-                entry
-                    .parents
-                    .array_windows::<2>()
-                    .all(|[lhs, rhs]| lhs.as_u64() < rhs.as_u64()),
+                entry.parents.is_sorted(),
                 "ontology row {row} carries a parent list that is not strictly ascending",
             );
             assert!(

@@ -3,11 +3,11 @@
 //! A tile document borrows the generation's base-order columns and names its delivered set in one
 //! of [`DeliveredSet`]'s two shapes: contiguous base-position ranges in delivery order - what both
 //! modes produce unmasked (a non-root delta tile is its quad node's one run; the delta root and
-//! every total tile are bucket-major run lists) - or an ascending gathered position list, the shape
-//! a visibility mask leaves behind. Encoding gathers the column entries, assembles the per-point
-//! type masks from the postings membership, and lays everything into the `SALTILET` five-slot
-//! envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot, absent
-//! until the product wants density.
+//! every total tile are bucket-major run lists) - or a gathered position list in delivery order,
+//! the shape a visibility mask leaves behind. Encoding gathers the column entries, assembles the
+//! per-point type masks from the postings membership, and lays everything into the `SALTILET`
+//! five-slot envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot,
+//! absent until the product wants density.
 //!
 //! The document's consistency laws are producer contracts and panic when violated: the range
 //! lengths and the `HEAD`'s per-bucket runs must agree on the delivered count, trailer arrays cover
@@ -121,6 +121,12 @@ impl TileResponse<'_> {
     /// Each membership contributes by a linear merge of its ascending positions against the
     /// delivered set, never a per-point containment probe. A point matching no requested type keeps
     /// the zero mask; no sentinel exists.
+    ///
+    /// The merge needs the delivered set in ascending base-position order, which delivery order
+    /// does not supply: a range list numbers each point from its own range's start, and a gathered
+    /// list that does not already ascend is walked through a permutation of its point indices
+    /// sorted by position, built once and reused by every membership. Bits land on each point's
+    /// delivery index either way, so the column stays in delivery order.
     fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let delivered =
             usize::try_from(self.delivered.count()).expect("delivered counts fit usize");
@@ -129,12 +135,12 @@ impl TileResponse<'_> {
         buf.resize(base + delivered * stride, 0);
         let column = &mut buf[base..];
 
-        for (bit, membership) in masks.iter().enumerate() {
-            let byte = bit >> 3;
-            let flag = 1_u8 << (bit & 7);
+        match self.delivered {
+            DeliveredSet::Ranges(ranges) => {
+                for (bit, membership) in masks.iter().enumerate() {
+                    let byte = bit >> 3;
+                    let flag = 1_u8 << (bit & 7);
 
-            match self.delivered {
-                DeliveredSet::Ranges(ranges) => {
                     let mut base = 0_usize;
                     for range in ranges {
                         for position in membership.positions_in(range.clone()) {
@@ -144,20 +150,37 @@ impl TileResponse<'_> {
                         base += range.len();
                     }
                 }
-                DeliveredSet::Positions(list) => {
-                    let (Some(&lowest), Some(&highest)) = (list.first(), list.last()) else {
-                        continue;
-                    };
-                    let mut cursor = 0_usize;
+            }
+            DeliveredSet::Positions(list) => {
+                if list.is_empty() {
+                    return;
+                }
+
+                let ascending = (!list.is_sorted()).then(|| {
+                    let mut points: Vec<usize> = (0..list.len()).collect();
+                    points.sort_unstable_by_key(|&point| list[point]);
+                    points
+                });
+                let point_at = |rank: usize| ascending.as_ref().map_or(rank, |points| points[rank]);
+
+                let lowest = list[point_at(0)];
+                let highest = list[point_at(list.len() - 1)];
+
+                for (bit, membership) in masks.iter().enumerate() {
+                    let byte = bit >> 3;
+                    let flag = 1_u8 << (bit & 7);
+
+                    let mut rank = 0_usize;
                     for position in membership.positions_in(lowest..highest + 1) {
-                        while cursor < list.len() && list[cursor] < position {
-                            cursor += 1;
+                        while rank < list.len() && list[point_at(rank)] < position {
+                            rank += 1;
                         }
-                        if cursor == list.len() {
+                        if rank == list.len() {
                             break;
                         }
-                        if list[cursor] == position {
-                            column[cursor * stride + byte] |= flag;
+                        let point = point_at(rank);
+                        if list[point] == position {
+                            column[point * stride + byte] |= flag;
                         }
                     }
                 }
@@ -173,7 +196,11 @@ pub(crate) enum DeliveredSet<'doc> {
     ///
     /// The unmasked gather. Zero-length ranges are legal and deliver nothing.
     Ranges(&'doc [Range<u32>]),
-    /// Gathered base positions, ascending: the masked gather, visibility already applied.
+    /// Gathered base positions in delivery order: the masked gather, visibility already applied.
+    ///
+    /// Delivery order is the producer's and carries no relation to base order. Today's masked
+    /// walk gathers by ascending corpus bucket and so happens to ascend; the encoder does not
+    /// depend on it.
     Positions(&'doc [u32]),
 }
 

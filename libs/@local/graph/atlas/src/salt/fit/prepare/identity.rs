@@ -104,7 +104,7 @@ where
                 .cmp(self.ids[right as usize].as_bytes())
         });
         assert!(
-            order.array_windows::<2>().all(|&[left, right]| {
+            order.is_sorted_by(|&left, &right| {
                 self.ids[left as usize].as_bytes() < self.ids[right as usize].as_bytes()
             }),
             "two rows carry one id",

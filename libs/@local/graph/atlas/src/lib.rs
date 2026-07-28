@@ -53,6 +53,7 @@
     step_trait,
     variant_count,
     vec_from_fn,
+    exitcode_exit_method
 )]
 #![expect(
     dead_code,
