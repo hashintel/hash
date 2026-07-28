@@ -9,6 +9,34 @@
       "matchFileNames": ["libs/error-stack/Cargo.toml"],
       "matchPackageNames": ["anyhow"],
       "enabled": false
+    },
+    {
+      "description": "Open mise bump PRs without requiring dependency-dashboard approval",
+      "matchDepNames": ["jdx/mise"],
+      "dependencyDashboardApproval": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update mise version pins annotated with a `# renovate:` comment (mise-action `version` input, mise `min_version`)",
+      "managerFilePatterns": [
+        ".github/actions/install-tools/action.yml",
+        ".config/mise/config.toml"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:min_)?version\\s*[:=]\\s*\"?(?<currentValue>[0-9][^\\s\"]*)\"?"
+      ],
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Update MISE_VERSION pins annotated with a `# renovate:` comment in Dockerfiles",
+      "managerFilePatterns": ["**/Dockerfile"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\n\\s*(?:export )?MISE_VERSION=(?<currentValue>[0-9][^\\s]*)\\s"
+      ],
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
 }

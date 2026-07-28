@@ -14,6 +14,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    # renovate: datasource=github-releases depName=jdx/mise
     export MISE_VERSION=2026.7.0 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
     mise --version && \
     apt-get clean && \
