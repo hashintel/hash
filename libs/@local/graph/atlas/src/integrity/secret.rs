@@ -1,9 +1,54 @@
-use core::{fmt, ops::Deref, str::FromStr};
+use core::{convert::Infallible, fmt, ops::Deref, str::FromStr};
 
 use zerocopy::IntoBytes as _;
 use zeroize::Zeroize as _;
 
 use super::{ParseHexError, hex::HexBytes};
+
+/// A variable-length secret string.
+///
+/// Key-material hygiene by construction: the bytes zero on drop, and no path encodes them back
+/// out - [`fmt::Debug`] prints the length alone, [`fmt::Display`] a fixed placeholder, and the
+/// type has no `Serialize` - so a held secret cannot leak through logging or document dumps.
+/// Consuming the secret with [`expose`](Self::expose) is the one way to reach the held value.
+#[derive(Clone)]
+pub struct SecretString(String);
+
+impl SecretString {
+    /// Consumes the secret, handing the held value to its final consumer.
+    #[must_use]
+    pub(crate) fn expose(mut self) -> String {
+        core::mem::take(&mut self.0)
+    }
+}
+
+impl fmt::Debug for SecretString {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("SecretString")
+            .field("len", &self.0.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl fmt::Display for SecretString {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("[redacted]")
+    }
+}
+
+impl Drop for SecretString {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+impl FromStr for SecretString {
+    type Err = Infallible;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(value.to_owned()))
+    }
+}
 
 /// An `N`-byte secret configured in the canonical hexadecimal encoding.
 ///

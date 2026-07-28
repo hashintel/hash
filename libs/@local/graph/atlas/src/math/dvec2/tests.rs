@@ -4,7 +4,7 @@
               operators are single IEEE operations per component"
 )]
 
-use proptest::{prop_assert, prop_assert_eq, proptest};
+use proptest::{prop_assert, prop_assert_eq, property_test};
 
 use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
 
@@ -136,42 +136,41 @@ fn dvec2x4t_reduce_sums_each_axis() {
     assert_eq!(DVec2x4T::ZERO.reduce(), DVec2::ZERO);
 }
 
-proptest! {
-    /// Widening is exact for every finite f32 pair.
-    ///
-    /// Narrowing back reproduces the input bit for bit.
-    #[test]
-    fn widening_round_trips_exactly(
-        x in -1e30_f32..1e30,
-        y in -1e30_f32..1e30,
-    ) {
-        let vec = Vec2::new(x, y);
-        let widened = DVec2::from(vec);
+/// Widening is exact for every finite f32 pair.
+///
+/// Narrowing back reproduces the input bit for bit.
+#[property_test]
+fn widening_round_trips_exactly(
+    #[strategy = -1e30_f32..1e30] x: f32,
+    #[strategy = -1e30_f32..1e30] y: f32,
+) {
+    let vec = Vec2::new(x, y);
+    let widened = DVec2::from(vec);
 
-        prop_assert_eq!(widened.x(), f64::from(x));
-        prop_assert_eq!(widened.narrow(), Some(vec));
-    }
+    prop_assert_eq!(widened.x(), f64::from(x));
+    prop_assert_eq!(widened.narrow(), Some(vec));
+}
 
-    /// The products agree with their f32 counterparts computed on widened inputs.
-    ///
-    /// Products of exactly-widened values carry no f32 rounding.
-    #[test]
-    fn products_refine_the_f32_counterparts(
-        ax in -1e3_f32..1e3, ay in -1e3_f32..1e3,
-        bx in -1e3_f32..1e3, by in -1e3_f32..1e3,
-    ) {
-        let narrow_dot = f64::from(Vec2::new(ax, ay).dot(Vec2::new(bx, by)));
-        let wide_dot = DVec2::from(Vec2::new(ax, ay)).dot(DVec2::from(Vec2::new(bx, by)));
+/// The products agree with their f32 counterparts computed on widened inputs.
+///
+/// Products of exactly-widened values carry no f32 rounding.
+#[property_test]
+fn products_refine_the_f32_counterparts(
+    #[strategy = -1e3_f32..1e3] ax: f32,
+    #[strategy = -1e3_f32..1e3] ay: f32,
+    #[strategy = -1e3_f32..1e3] bx: f32,
+    #[strategy = -1e3_f32..1e3] by: f32,
+) {
+    let narrow_dot = f64::from(Vec2::new(ax, ay).dot(Vec2::new(bx, by)));
+    let wide_dot = DVec2::from(Vec2::new(ax, ay)).dot(DVec2::from(Vec2::new(bx, by)));
 
-        // The narrow path rounds each product at f32; those errors scale
-        // with the products' magnitudes, which cancellation can leave far
-        // above the result. The tolerance therefore follows the
-        // intermediates, not the (possibly tiny) final value.
-        let products =
-            (f64::from(ax) * f64::from(bx)).abs() + (f64::from(ay) * f64::from(by)).abs();
-        let tolerance = f64::from(f32::EPSILON) * 4.0 * (products + 1.0);
-        prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);
-    }
+    // The narrow path rounds each product at f32; those errors scale
+    // with the products' magnitudes, which cancellation can leave far
+    // above the result. The tolerance therefore follows the
+    // intermediates, not the (possibly tiny) final value.
+    let products = (f64::from(ax) * f64::from(bx)).abs() + (f64::from(ay) * f64::from(by)).abs();
+    let tolerance = f64::from(f32::EPSILON) * 4.0 * (products + 1.0);
+    prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);
 }
 
 #[test]

@@ -6,7 +6,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use proptest::{arbitrary::any, prop_assert_eq, proptest};
+use proptest::{arbitrary::any, prop_assert_eq, property_test};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
@@ -317,65 +317,64 @@ fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
     Some(node)
 }
 
-proptest! {
-    /// Every valid table and set cover roundtrips verbatim.
-    ///
-    /// The mapped locate agrees with the in-memory reference walk.
-    #[test]
-    fn written_tables_roundtrip(
-        // Children generated strictly deeper, so the pre-order rule
-        // holds by construction; the format admits shared children.
-        seeds in proptest::collection::vec(
-            (
-                any::<u64>(),
-                proptest::array::uniform4(proptest::option::of(any::<proptest::sample::Index>())),
-                0_u8..5,
-            ),
-            0..12,
+/// Every valid table and set cover roundtrips verbatim.
+///
+/// The mapped locate agrees with the in-memory reference walk.
+#[property_test]
+fn written_tables_roundtrip(
+    // Children generated strictly deeper, so the pre-order rule
+    // holds by construction; the format admits shared children.
+    #[strategy = proptest::collection::vec(
+        (
+            any::<u64>(),
+            proptest::array::uniform4(proptest::option::of(any::<proptest::sample::Index>())),
+            0_u8..5,
         ),
-        probe: u64,
-        probe_depth in 0_u8..=4,
-    ) {
-        let count = seeds.len();
-        let nodes: Vec<Node> = seeds
+        0..12,
+    )]
+    seeds: Vec<(u64, [Option<proptest::sample::Index>; 4], u8)>,
+    probe: u64,
+    #[strategy = 0_u8..=4] probe_depth: u8,
+) {
+    let count = seeds.len();
+    let nodes: Vec<Node> = seeds
+        .iter()
+        .enumerate()
+        .map(|(index, &(start, picks, _))| {
+            let children = picks.map(|child| {
+                child
+                    .map(|pick| index + 1 + pick.index(count - index))
+                    .filter(|&deeper| deeper < count)
+                    .map(|deeper| {
+                        u32::try_from(deeper).expect("test tables stay far below u32 indexes")
+                    })
+            });
+            Node::new(children, start, 2, 3)
+        })
+        .collect();
+    let sets = TypeSets::from_sets(
+        &seeds
             .iter()
-            .enumerate()
-            .map(|(index, &(start, picks, _))| {
-                let children = picks.map(|child| {
-                    child
-                        .map(|pick| index + 1 + pick.index(count - index))
-                        .filter(|&deeper| deeper < count)
-                        .map(|deeper| {
-                            u32::try_from(deeper).expect("test tables stay far below u32 indexes")
-                        })
-                });
-                Node::new(children, start, 2, 3)
-            })
-            .collect();
-        let sets = TypeSets::from_sets(
-            &seeds
-                .iter()
-                .map(|&(_, _, set_len)| (0..set_len).map(u32::from).collect())
-                .collect::<Vec<Vec<u32>>>(),
-        );
+            .map(|&(_, _, set_len)| (0..set_len).map(u32::from).collect())
+            .collect::<Vec<Vec<u32>>>(),
+    );
 
-        let mut bytes = Vec::new();
-        write_regions(&nodes, &sets, &mut bytes).expect("writing into a vector cannot fail");
-        let path = scratch(&format!("prop-{}.quad", uuid::Uuid::now_v7()));
-        fs::write(&path, bytes).expect("the scratch file is writable");
-        let file = QuadFile::open(&path).expect("the written file reopens");
-        // The mapping keeps the unlinked file's bytes alive, so failing
-        // assertions cannot strand scratch files.
-        fs::remove_file(&path).expect("the scratch file is removable");
+    let mut bytes = Vec::new();
+    write_regions(&nodes, &sets, &mut bytes).expect("writing into a vector cannot fail");
+    let path = scratch(&format!("prop-{}.quad", uuid::Uuid::now_v7()));
+    fs::write(&path, bytes).expect("the scratch file is writable");
+    let file = QuadFile::open(&path).expect("the written file reopens");
+    // The mapping keeps the unlinked file's bytes alive, so failing
+    // assertions cannot strand scratch files.
+    fs::remove_file(&path).expect("the scratch file is removable");
 
-        prop_assert_eq!(file.nodes(), nodes.as_slice());
-        for node in 0..count {
-            let index = u32::try_from(node).expect("test tables stay far below u32 indexes");
-            let stored: Vec<u32> = file.type_set(index).iter().map(|id| id.get()).collect();
-            prop_assert_eq!(stored, sets.set(node), "node {}'s set", node);
-        }
-
-        let cell = crate::morton::MortonKey::from_bits(probe).cell(depth(probe_depth));
-        prop_assert_eq!(file.locate(cell), locate_reference(&nodes, cell));
+    prop_assert_eq!(file.nodes(), nodes.as_slice());
+    for node in 0..count {
+        let index = u32::try_from(node).expect("test tables stay far below u32 indexes");
+        let stored: Vec<u32> = file.type_set(index).iter().map(|id| id.get()).collect();
+        prop_assert_eq!(stored, sets.set(node), "node {}'s set", node);
     }
+
+    let cell = crate::morton::MortonKey::from_bits(probe).cell(depth(probe_depth));
+    prop_assert_eq!(file.locate(cell), locate_reference(&nodes, cell));
 }

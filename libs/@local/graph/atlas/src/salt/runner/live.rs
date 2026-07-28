@@ -9,9 +9,9 @@
 //! carries, and [`Placement`] carries exactly the controls its placer consumes, so option
 //! combinations the pipeline cannot honor are unrepresentable.
 //!
-//! The run embeds cards with the crate's deterministic stand-in embedder while the
-//! embedding-provider seam is unbuilt; the embedder fingerprint recorded in the published
-//! artifacts discloses the substitution.
+//! The run embeds cards through the external embedding provider the shell constructs and
+//! supplies; the embedder fingerprint recorded in the published artifacts names the provider
+//! contract, and prior-generation reuse is guarded by fingerprint equality.
 //!
 //! Nothing here is API for consumers of the crate; the module exists for the
 //! [`cli`](crate::cli) operator commands, which re-export its vocabulary.
@@ -20,6 +20,7 @@ use core::num::NonZero;
 use std::io;
 
 use camino::{Utf8Path, Utf8PathBuf};
+use hash_graph_embeddings::OpenAiEmbeddingClient;
 use tokio_postgres::Client;
 
 use super::{Admission, PriorMode, RunnerError, RunnerOptions, run};
@@ -32,10 +33,11 @@ use crate::{
     math::{AffinityCurve, UnitFraction},
     progress::Progress,
     salt::{
+        embedding::external::{ExternalEmbeddingError, ExternalEmbeddingProvider},
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
-            annotations::SupplyError as AnnotationSupplyError, stub::StubEmbedder,
+            annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
         knn::descent::NnDescentOptions,
@@ -217,7 +219,7 @@ pub enum RunError {
     /// The radius must be finite and strictly above the Coincident radius.
     ProximalRadius(f32),
     /// The run could not reach a verdict.
-    Run(RunnerError<PostgresDatasetError, !>),
+    Run(RunnerError<PostgresDatasetError, ExternalEmbeddingError>),
 }
 
 impl core::fmt::Display for RunError {
@@ -357,7 +359,8 @@ fn placement_options(
 /// Runs one production generation over the store's snapshot at `axes`.
 ///
 /// The published generation lands in the generation root at `root`; the caller names the snapshot
-/// explicitly, so equal inputs describe the same run.
+/// explicitly, so equal inputs describe the same run. Cards embed through `embedder`, the
+/// provider the shell constructed with its credentials.
 ///
 /// # Errors
 ///
@@ -369,6 +372,7 @@ pub(crate) async fn live<P: Progress + Send + 'static>(
     root: GenerationRoot,
     axes: TemporalAxes,
     options: Options<P>,
+    embedder: &ExternalEmbeddingProvider<OpenAiEmbeddingClient>,
 ) -> Result<Summary, RunError> {
     let dataset = PostgresDataset::new(client, axes)
         .await
@@ -419,7 +423,7 @@ pub(crate) async fn live<P: Progress + Send + 'static>(
 
     let outcome = run(
         &dataset,
-        &StubEmbedder,
+        embedder,
         &classifier,
         verdicts.as_ref(),
         &root,

@@ -1,9 +1,10 @@
+use alloc::collections::BTreeSet;
 use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
-use proptest::{prop_assert_eq, proptest};
+use proptest::{prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
 
 use super::{
@@ -425,104 +426,102 @@ fn reference_contains(
         .any(|id| id.as_u64() == type_row)
 }
 
-proptest! {
-    /// Built postings roundtrip through the file and agree with the row-order reference.
-    ///
-    /// Agreement holds at every (type, position) pair, at every representation split the threshold
-    /// knob can pick.
-    #[test]
-    fn built_postings_uphold_the_membership_contract(
-        seeds in proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40),
-        threshold_log2 in 0_u8..8,
-    ) {
-        let domain = 5_usize;
-        let rows: Vec<SmallVec<OntologyRowId, 2>> = seeds
-            .iter()
-            .map(|set| set.iter().copied().map(OntologyRowId::new).collect())
-            .collect();
+/// Built postings roundtrip through the file and agree with the row-order reference.
+///
+/// Agreement holds at every (type, position) pair, at every representation split the threshold
+/// knob can pick.
+#[property_test]
+fn built_postings_uphold_the_membership_contract(
+    #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40)]
+    seeds: Vec<BTreeSet<u64>>,
+    #[strategy = 0_u8..8] threshold_log2: u8,
+) {
+    let domain = 5_usize;
+    let rows: Vec<SmallVec<OntologyRowId, 2>> = seeds
+        .iter()
+        .map(|set| set.iter().copied().map(OntologyRowId::new).collect())
+        .collect();
 
-        let points = u32::try_from(rows.len()).expect("test corpora stay far below u32");
+    let points = u32::try_from(rows.len()).expect("test corpora stay far below u32");
 
-        // A deterministic non-trivial permutation: reversal.
-        let row_of_position: Vec<u32> = (0..points).rev().collect();
+    // A deterministic non-trivial permutation: reversal.
+    let row_of_position: Vec<u32> = (0..points).rev().collect();
 
-        // Parents point strictly downward, so the graph is acyclic by
-        // construction: a type's parent is its predecessor for odd rows.
-        let parents: Vec<SmallVec<OntologyRowId, 2>> = (0..domain as u64)
-            .map(|type_row| {
-                if type_row & 1 == 1 {
-                    smallvec![OntologyRowId::new(type_row - 1)]
-                } else {
-                    smallvec![]
-                }
-            })
-            .collect();
-
-        let postings = Postings::build(
-            &rows,
-            &row_of_position,
-            &parents,
-            PostingsConfig {
-                dense_threshold: Log2::new(threshold_log2)
-                    .expect("the strategy draws below the shift width"),
-            },
-        )
-        .expect("generated rows stay in domain");
-
-        let dir = scratch(&format!("prop-{}", uuid::Uuid::now_v7()));
-        let path = dir.join("prop.post");
-        let mut file = fs::File::create(&path).expect("the fixture file should create");
-        postings.write_into(&mut file).expect("the postings should write");
-        drop(file);
-        let mapped = PostingsArchive::new(
-            PostingsFile::open(&path).expect("the fixture file should open"),
-        )
-        .expect("built postings always validate");
-        // The mapping keeps the unlinked file's bytes alive, so failing
-        // assertions cannot strand scratch files.
-        fs::remove_dir_all(&dir).expect("the scratch directory is removable");
-
-        prop_assert_eq!(mapped.points(), rows.len() as u64);
-        for type_row in 0..domain as u64 {
-            let membership = mapped
-                .membership(OntologyRowId::new(type_row))
-                .expect("the loop iterates the type domain");
-
-            let expected: Vec<u32> = (0..points)
-                .filter(|&position| {
-                    reference_contains(&rows, &row_of_position, position, type_row)
-                })
-                .collect();
-            let full: Vec<u32> = membership.positions_in(0..points).collect();
-            prop_assert_eq!(&full, &expected, "type {}'s member positions", type_row);
-            prop_assert_eq!(membership.count(), expected.len() as u64);
-
-            for position in 0..points {
-                prop_assert_eq!(
-                    membership.contains(position),
-                    reference_contains(&rows, &row_of_position, position, type_row),
-                    "type {} at position {}",
-                    type_row,
-                    position,
-                );
+    // Parents point strictly downward, so the graph is acyclic by
+    // construction: a type's parent is its predecessor for odd rows.
+    let parents: Vec<SmallVec<OntologyRowId, 2>> = (0..domain as u64)
+        .map(|type_row| {
+            if type_row & 1 == 1 {
+                smallvec![OntologyRowId::new(type_row - 1)]
+            } else {
+                smallvec![]
             }
+        })
+        .collect();
+
+    let postings = Postings::build(
+        &rows,
+        &row_of_position,
+        &parents,
+        PostingsConfig {
+            dense_threshold: Log2::new(threshold_log2)
+                .expect("the strategy draws below the shift width"),
+        },
+    )
+    .expect("generated rows stay in domain");
+
+    let dir = scratch(&format!("prop-{}", uuid::Uuid::now_v7()));
+    let path = dir.join("prop.post");
+    let mut file = fs::File::create(&path).expect("the fixture file should create");
+    postings
+        .write_into(&mut file)
+        .expect("the postings should write");
+    drop(file);
+    let mapped =
+        PostingsArchive::new(PostingsFile::open(&path).expect("the fixture file should open"))
+            .expect("built postings always validate");
+    // The mapping keeps the unlinked file's bytes alive, so failing
+    // assertions cannot strand scratch files.
+    fs::remove_dir_all(&dir).expect("the scratch directory is removable");
+
+    prop_assert_eq!(mapped.points(), rows.len() as u64);
+    for type_row in 0..domain as u64 {
+        let membership = mapped
+            .membership(OntologyRowId::new(type_row))
+            .expect("the loop iterates the type domain");
+
+        let expected: Vec<u32> = (0..points)
+            .filter(|&position| reference_contains(&rows, &row_of_position, position, type_row))
+            .collect();
+        let full: Vec<u32> = membership.positions_in(0..points).collect();
+        prop_assert_eq!(&full, &expected, "type {}'s member positions", type_row);
+        prop_assert_eq!(membership.count(), expected.len() as u64);
+
+        for position in 0..points {
+            prop_assert_eq!(
+                membership.contains(position),
+                reference_contains(&rows, &row_of_position, position, type_row),
+                "type {} at position {}",
+                type_row,
+                position,
+            );
         }
+    }
 
-        // The closure agrees with reachability over the downward
-        // parent chains: odd types descend from their even parent.
-        let closure = ClosureMap::new(&mapped).expect("downward parents are acyclic");
-        for ancestor in 0..domain as u64 {
-            for descendant in 0..domain as u64 {
-                let expected = ancestor == descendant
-                    || (descendant & 1 == 1 && descendant - 1 == ancestor);
-                prop_assert_eq!(
-                    closure.contains(OntologyRowId::new(ancestor), OntologyRowId::new(descendant)),
-                    Some(expected),
-                    "descent {} -> {}",
-                    ancestor,
-                    descendant,
-                );
-            }
+    // The closure agrees with reachability over the downward
+    // parent chains: odd types descend from their even parent.
+    let closure = ClosureMap::new(&mapped).expect("downward parents are acyclic");
+    for ancestor in 0..domain as u64 {
+        for descendant in 0..domain as u64 {
+            let expected =
+                ancestor == descendant || (descendant & 1 == 1 && descendant - 1 == ancestor);
+            prop_assert_eq!(
+                closure.contains(OntologyRowId::new(ancestor), OntologyRowId::new(descendant)),
+                Some(expected),
+                "descent {} -> {}",
+                ancestor,
+                descendant,
+            );
         }
     }
 }

@@ -5,7 +5,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use proptest::{arbitrary::any, prop_assert_eq, proptest};
+use proptest::{arbitrary::any, prop_assert_eq, property_test};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
@@ -295,62 +295,61 @@ fn open_rejects_foreign_and_torn_bytes() {
     assert_matches!(MortonFile::open(&torn), Err(OpenMortonError::Length { .. }),);
 }
 
-proptest! {
-    /// `run` agrees with a linear scan of the segment for every code column, cell, and stride.
-    #[test]
-    fn runs_agree_with_a_linear_scan(
-        mut bits in proptest::collection::vec(any::<u64>(), 0..64),
-        cuts in proptest::collection::vec(any::<proptest::sample::Index>(), 2),
-        stride in 1_u32..8,
-        probe: u64,
-        probe_depth in 0_u8..=6,
-    ) {
-        // Three segments cut from a sorted column: cuts inside the
-        // column keep each segment non-decreasing.
-        bits.sort_unstable();
-        let mut cuts: Vec<usize> = cuts.iter().map(|cut| cut.index(bits.len() + 1)).collect();
-        cuts.sort_unstable();
-        let lengths = [
-            cuts[0] as u64,
-            (cuts[1] - cuts[0]) as u64,
-            (bits.len() - cuts[1]) as u64,
-        ];
-        let posts = posts_of(&lengths);
-        let codes: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
+/// `run` agrees with a linear scan of the segment for every code column, cell, and stride.
+#[property_test]
+fn runs_agree_with_a_linear_scan(
+    #[strategy = proptest::collection::vec(any::<u64>(), 0..64)] mut bits: Vec<u64>,
+    #[strategy = proptest::collection::vec(any::<proptest::sample::Index>(), 2)] cuts: Vec<
+        proptest::sample::Index,
+    >,
+    #[strategy = 1_u32..8] stride: u32,
+    probe: u64,
+    #[strategy = 0_u8..=6] probe_depth: u8,
+) {
+    // Three segments cut from a sorted column: cuts inside the
+    // column keep each segment non-decreasing.
+    bits.sort_unstable();
+    let mut cuts: Vec<usize> = cuts.iter().map(|cut| cut.index(bits.len() + 1)).collect();
+    cuts.sort_unstable();
+    let lengths = [
+        cuts[0] as u64,
+        (cuts[1] - cuts[0]) as u64,
+        (bits.len() - cuts[1]) as u64,
+    ];
+    let posts = posts_of(&lengths);
+    let codes: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
 
-        let mut bytes = Vec::new();
-        write_regions(stride, &posts, &codes, &mut bytes)
-            .expect("writing into a vector cannot fail");
-        let path = scratch(&format!("prop-{}.mrtn", uuid::Uuid::now_v7()));
-        fs::write(&path, bytes).expect("the scratch file is writable");
-        let file = MortonFile::open(&path).expect("the written file reopens");
-        // The mapping keeps the unlinked file's bytes alive, so failing
-        // assertions cannot strand scratch files.
-        fs::remove_file(&path).expect("the scratch file is removable");
+    let mut bytes = Vec::new();
+    write_regions(stride, &posts, &codes, &mut bytes).expect("writing into a vector cannot fail");
+    let path = scratch(&format!("prop-{}.mrtn", uuid::Uuid::now_v7()));
+    fs::write(&path, bytes).expect("the scratch file is writable");
+    let file = MortonFile::open(&path).expect("the written file reopens");
+    // The mapping keeps the unlinked file's bytes alive, so failing
+    // assertions cannot strand scratch files.
+    fs::remove_file(&path).expect("the scratch file is removable");
 
-        let cell = MortonKey::from_bits(probe).cell(depth(probe_depth));
+    let cell = MortonKey::from_bits(probe).cell(depth(probe_depth));
 
-        for bucket in 0_u8..3 {
-            let bucket = depth(bucket);
-            let run = file.run(bucket, cell);
+    for bucket in 0_u8..3 {
+        let bucket = depth(bucket);
+        let run = file.run(bucket, cell);
 
-            // The reference: scan the segment linearly.
-            let expected: Vec<u64> = posts
-                .segment(bucket)
-                .filter(|&position| {
-                    let position =
-                        usize::try_from(position).expect("test columns fit the address space");
-                    cell.contains(codes[position])
-                })
-                .collect();
+        // The reference: scan the segment linearly.
+        let expected: Vec<u64> = posts
+            .segment(bucket)
+            .filter(|&position| {
+                let position =
+                    usize::try_from(position).expect("test columns fit the address space");
+                cell.contains(codes[position])
+            })
+            .collect();
 
-            prop_assert_eq!(
-                run.collect::<Vec<u64>>(),
-                expected,
-                "bucket {} of cell {:?}",
-                bucket.get(),
-                cell,
-            );
-        }
+        prop_assert_eq!(
+            run.collect::<Vec<u64>>(),
+            expected,
+            "bucket {} of cell {:?}",
+            bucket.get(),
+            cell,
+        );
     }
 }

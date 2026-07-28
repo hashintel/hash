@@ -3,7 +3,7 @@
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]
 
-use proptest::{prop_assert, prop_assume, proptest, strategy::Strategy};
+use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
@@ -660,60 +660,62 @@ fn similarity_strategy() -> impl Strategy<Value = Similarity> {
     )
 }
 
-proptest! {
-    /// A similarity scales all distances uniformly.
-    ///
-    /// For any two points separated by at least one unit, the distance ratio equals the scale up to
-    /// a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps
-    /// the subtraction's cancellation error small relative to the distance.
-    #[test]
-    fn apply_scales_distances_uniformly(
-        similarity in similarity_strategy(),
-        (left_x, left_y) in (-1e3_f32..1e3, -1e3_f32..1e3),
-        (right_x, right_y) in (-1e3_f32..1e3, -1e3_f32..1e3),
-    ) {
-        let left = Vec2::new(left_x, left_y);
-        let right = Vec2::new(right_x, right_y);
-        prop_assume!(left.distance(right) >= 1.0);
+/// A similarity scales all distances uniformly.
+///
+/// For any two points separated by at least one unit, the distance ratio equals the scale up to
+/// a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps
+/// the subtraction's cancellation error small relative to the distance.
+#[property_test]
+fn apply_scales_distances_uniformly(
+    #[strategy = similarity_strategy()] similarity: Similarity,
+    #[strategy = (-1e3_f32..1e3, -1e3_f32..1e3)] (left_x, left_y): (f32, f32),
+    #[strategy = (-1e3_f32..1e3, -1e3_f32..1e3)] (right_x, right_y): (f32, f32),
+) {
+    let left = Vec2::new(left_x, left_y);
+    let right = Vec2::new(right_x, right_y);
+    prop_assume!(left.distance(right) >= 1.0);
 
-        let ratio = similarity.apply(left).distance(similarity.apply(right))
-            / left.distance(right);
+    let ratio = similarity.apply(left).distance(similarity.apply(right)) / left.distance(right);
 
+    prop_assert!(
+        (ratio - similarity.scale()).abs() <= 1e-3 * similarity.scale(),
+        "distance ratio {} vs scale {}",
+        ratio,
+        similarity.scale(),
+    );
+}
+
+/// Fitting an exact similarity image of non-collinear points recovers the coefficients.
+///
+/// The sources are four well-spread base points jittered by at most `0.5`, far less than the
+/// base triangle's extent, so the points can never become collinear.
+#[property_test]
+fn fit_recovers_a_random_similarity(
+    #[strategy = similarity_strategy()] similarity: Similarity,
+    #[strategy = proptest::array::uniform8(-0.5_f32..0.5)] jitter: [f32; 8],
+) {
+    let source = [
+        Vec2::new(jitter[0], jitter[1]),
+        Vec2::new(8.0 + jitter[2], jitter[3]),
+        Vec2::new(jitter[4], 8.0 + jitter[5]),
+        Vec2::new(-8.0 + jitter[6], -8.0 + jitter[7]),
+    ];
+    let target = source.map(|point| similarity.apply(point));
+
+    let fitted = Similarity::fit(&source, &target, &[1.0; 4])
+        .expect("well-spread points with an exact image are well-conditioned");
+
+    // The target coordinates are f32-rounded images, so the recovered
+    // coefficients carry working-precision error scaled by their
+    // magnitude.
+    let expected = similarity.to_array();
+    for (index, (actual, expected)) in fitted.to_array().into_iter().zip(expected).enumerate() {
         prop_assert!(
-            (ratio - similarity.scale()).abs() <= 1e-3 * similarity.scale(),
-            "distance ratio {} vs scale {}", ratio, similarity.scale(),
+            (actual - expected).abs() <= 1e-3 * expected.abs().max(1.0),
+            "coefficient {}: expected {}, got {}",
+            index,
+            expected,
+            actual,
         );
-    }
-
-    /// Fitting an exact similarity image of non-collinear points recovers the coefficients.
-    ///
-    /// The sources are four well-spread base points jittered by at most `0.5`, far less than the
-    /// base triangle's extent, so the points can never become collinear.
-    #[test]
-    fn fit_recovers_a_random_similarity(
-        similarity in similarity_strategy(),
-        jitter in proptest::array::uniform8(-0.5_f32..0.5),
-    ) {
-        let source = [
-            Vec2::new(jitter[0], jitter[1]),
-            Vec2::new(8.0 + jitter[2], jitter[3]),
-            Vec2::new(jitter[4], 8.0 + jitter[5]),
-            Vec2::new(-8.0 + jitter[6], -8.0 + jitter[7]),
-        ];
-        let target = source.map(|point| similarity.apply(point));
-
-        let fitted = Similarity::fit(&source, &target, &[1.0; 4])
-            .expect("well-spread points with an exact image are well-conditioned");
-
-        // The target coordinates are f32-rounded images, so the recovered
-        // coefficients carry working-precision error scaled by their
-        // magnitude.
-        let expected = similarity.to_array();
-        for (index, (actual, expected)) in fitted.to_array().into_iter().zip(expected).enumerate() {
-            prop_assert!(
-                (actual - expected).abs() <= 1e-3 * expected.abs().max(1.0),
-                "coefficient {}: expected {}, got {}", index, expected, actual,
-            );
-        }
     }
 }

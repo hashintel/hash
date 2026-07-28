@@ -3,7 +3,7 @@
     reason = "exactness assertions are the point: inverse negation is a bit-precise contract"
 )]
 
-use proptest::{prop_assert, proptest, strategy::Strategy};
+use proptest::{prop_assert, property_test, strategy::Strategy};
 
 use crate::math::{
     Rotation, Vec2, Vec2x4T,
@@ -83,86 +83,102 @@ fn vec2_strategy() -> impl Strategy<Value = Vec2> {
     (-1e5_f32..1e5, -1e5_f32..1e5).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-proptest! {
-    /// Rotation preserves length.
-    ///
-    /// `|apply(v)| == |v|` up to rounding scaled by the vector's magnitude.
-    #[test]
-    fn apply_preserves_length(radians in angle(), vec in vec2_strategy()) {
-        let rotated = Rotation::from_radians(radians).apply(vec);
+/// Rotation preserves length.
+///
+/// `|apply(v)| == |v|` up to rounding scaled by the vector's magnitude.
+#[property_test]
+fn apply_preserves_length(
+    #[strategy = angle()] radians: f32,
+    #[strategy = vec2_strategy()] vec: Vec2,
+) {
+    let rotated = Rotation::from_radians(radians).apply(vec);
 
-        let length = vec.length();
-        prop_assert!(
-            (rotated.length() - length).abs() <= 16.0 * f32::EPSILON * length.max(1.0),
-            "|{:?}| = {} became {}", vec, length, rotated.length(),
-        );
+    let length = vec.length();
+    prop_assert!(
+        (rotated.length() - length).abs() <= 16.0 * f32::EPSILON * length.max(1.0),
+        "|{:?}| = {} became {}",
+        vec,
+        length,
+        rotated.length(),
+    );
+}
+
+/// Composition distributes over application.
+///
+/// `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled by the vector's magnitude.
+#[property_test]
+fn then_matches_sequential_application(
+    #[strategy = angle()] first_radians: f32,
+    #[strategy = angle()] second_radians: f32,
+    #[strategy = vec2_strategy()] vec: Vec2,
+) {
+    let first = Rotation::from_radians(first_radians);
+    let second = Rotation::from_radians(second_radians);
+
+    let composed = first.then(second).apply(vec);
+    let sequential = second.apply(first.apply(vec));
+
+    let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
+    prop_assert!(
+        (composed.x() - sequential.x()).abs() <= tolerance
+            && (composed.y() - sequential.y()).abs() <= tolerance,
+        "composed {:?} vs sequential {:?}",
+        composed,
+        sequential,
+    );
+}
+
+/// The inverse undoes the rotation.
+///
+/// `inverse().apply(apply(v)) == v` up to rounding scaled by the vector's magnitude.
+#[property_test]
+fn inverse_undoes_apply(
+    #[strategy = angle()] radians: f32,
+    #[strategy = vec2_strategy()] vec: Vec2,
+) {
+    let rotation = Rotation::from_radians(radians);
+
+    let round_tripped = rotation.inverse().apply(rotation.apply(vec));
+
+    let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
+    prop_assert!(
+        (round_tripped.x() - vec.x()).abs() <= tolerance
+            && (round_tripped.y() - vec.y()).abs() <= tolerance,
+        "{:?} round-tripped to {:?}",
+        vec,
+        round_tripped,
+    );
+}
+
+/// Renormalizing preserves the angle.
+///
+/// The cosine and sine keep their direction (compared componentwise rather than through
+/// `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
+#[property_test]
+fn renormalize_preserves_the_angle(
+    #[strategy = angle()] radians: f32,
+    #[strategy = 1_usize..64] compositions: usize,
+) {
+    let step = Rotation::from_radians(radians);
+    let mut chained = Rotation::IDENTITY;
+    for _ in 0..compositions {
+        chained = chained.then(step);
     }
 
-    /// Composition distributes over application.
-    ///
-    /// `a.then(b).apply(v) == b.apply(a.apply(v))` up to rounding scaled by the vector's magnitude.
-    #[test]
-    fn then_matches_sequential_application(
-        first_radians in angle(),
-        second_radians in angle(),
-        vec in vec2_strategy(),
-    ) {
-        let first = Rotation::from_radians(first_radians);
-        let second = Rotation::from_radians(second_radians);
+    let renormalized = chained.renormalize();
 
-        let composed = first.then(second).apply(vec);
-        let sequential = second.apply(first.apply(vec));
-
-        let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
-        prop_assert!(
-            (composed.x() - sequential.x()).abs() <= tolerance
-                && (composed.y() - sequential.y()).abs() <= tolerance,
-            "composed {:?} vs sequential {:?}", composed, sequential,
-        );
-    }
-
-    /// The inverse undoes the rotation.
-    ///
-    /// `inverse().apply(apply(v)) == v` up to rounding scaled by the vector's magnitude.
-    #[test]
-    fn inverse_undoes_apply(radians in angle(), vec in vec2_strategy()) {
-        let rotation = Rotation::from_radians(radians);
-
-        let round_tripped = rotation.inverse().apply(rotation.apply(vec));
-
-        let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
-        prop_assert!(
-            (round_tripped.x() - vec.x()).abs() <= tolerance
-                && (round_tripped.y() - vec.y()).abs() <= tolerance,
-            "{:?} round-tripped to {:?}", vec, round_tripped,
-        );
-    }
-
-    /// Renormalizing preserves the angle.
-    ///
-    /// The cosine and sine keep their direction (compared componentwise rather than through
-    /// `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
-    #[test]
-    fn renormalize_preserves_the_angle(radians in angle(), compositions in 1_usize..64) {
-        let step = Rotation::from_radians(radians);
-        let mut chained = Rotation::IDENTITY;
-        for _ in 0..compositions {
-            chained = chained.then(step);
-        }
-
-        let renormalized = chained.renormalize();
-
-        // The drifted vector's length stays within a couple of ulps of
-        // one per composition, so dividing it out moves each component by
-        // at most that relative amount.
-        let tolerance = 8.0
-            * f32::EPSILON
-            * f32::from(u8::try_from(compositions + 2).expect("bounded below 66"));
-        prop_assert!(
-            (renormalized.cos() - chained.cos()).abs() <= tolerance
-                && (renormalized.sin() - chained.sin()).abs() <= tolerance,
-            "({}, {}) renormalized to ({}, {})",
-            chained.cos(), chained.sin(), renormalized.cos(), renormalized.sin(),
-        );
-    }
+    // The drifted vector's length stays within a couple of ulps of
+    // one per composition, so dividing it out moves each component by
+    // at most that relative amount.
+    let tolerance =
+        8.0 * f32::EPSILON * f32::from(u8::try_from(compositions + 2).expect("bounded below 66"));
+    prop_assert!(
+        (renormalized.cos() - chained.cos()).abs() <= tolerance
+            && (renormalized.sin() - chained.sin()).abs() <= tolerance,
+        "({}, {}) renormalized to ({}, {})",
+        chained.cos(),
+        chained.sin(),
+        renormalized.cos(),
+        renormalized.sin(),
+    );
 }

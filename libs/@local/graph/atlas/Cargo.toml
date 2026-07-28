@@ -25,7 +25,7 @@ zerocopy       = { workspace = true, features = ["derive"], public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
-hash-graph-embeddings          = { workspace = true }
+hash-graph-embeddings          = { workspace = true, public = true }
 hash-graph-temporal-versioning = { workspace = true, features = ["postgres"] }
 hash-graph-types               = { workspace = true }
 hashql-core                    = { workspace = true }
@@ -60,7 +60,7 @@ tracing              = { workspace = true }
 tracing-subscriber   = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }
 unicode-segmentation = { workspace = true }
 unidecode            = { workspace = true }
-zeroize              = { workspace = true }
+zeroize              = { workspace = true, features = ["alloc"] }
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }

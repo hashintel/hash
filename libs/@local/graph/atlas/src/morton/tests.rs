@@ -1,4 +1,4 @@
-use proptest::{prop_assert, prop_assert_eq, proptest};
+use proptest::{prop_assert, prop_assert_eq, property_test};
 
 use super::{Depth, MortonCell, MortonKey};
 
@@ -92,60 +92,63 @@ fn prefixes_index_the_depth_grid_in_key_order() {
     assert_eq!(key.prefix(Depth::MAX), key.to_bits());
 }
 
-proptest! {
-    /// Interleaving then deinterleaving returns the axes exactly.
-    #[test]
-    fn round_trips_axes(x: u32, y: u32) {
-        prop_assert_eq!(MortonKey::new(x, y).coordinates(), [x, y]);
+/// Interleaving then deinterleaving returns the axes exactly.
+#[property_test]
+fn round_trips_axes(x: u32, y: u32) {
+    prop_assert_eq!(MortonKey::new(x, y).coordinates(), [x, y]);
+}
+
+/// Every key lies in its own containing cell at every depth.
+///
+/// The cell's address form agrees with the key's prefix.
+#[property_test]
+fn keys_lie_in_their_cells(bits: u64, #[strategy = 0_u8..=32] depth: u8) {
+    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let key = MortonKey::from_bits(bits);
+    let cell = key.cell(depth);
+
+    prop_assert!(cell.contains(key));
+    prop_assert!(cell.min_key() <= key);
+    prop_assert!(key <= cell.max_key());
+    prop_assert_eq!(cell.min_key().prefix(depth), key.prefix(depth));
+}
+
+/// Children partition the parent range contiguously, in key order.
+#[property_test]
+fn children_partition_the_parent(bits: u64, #[strategy = 0_u8..32] depth: u8) {
+    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let parent = MortonKey::from_bits(bits).cell(depth);
+    let children = parent
+        .children()
+        .expect("depths below the maximum subdivide");
+
+    prop_assert_eq!(children[0].min_key(), parent.min_key());
+    prop_assert_eq!(children[3].max_key(), parent.max_key());
+    for (previous, next) in children.iter().zip(&children[1..]) {
+        prop_assert_eq!(
+            previous.max_key().to_bits() + 1,
+            next.min_key().to_bits(),
+            "adjacent children meet without gap or overlap"
+        );
     }
+}
 
-    /// Every key lies in its own containing cell at every depth.
-    ///
-    /// The cell's address form agrees with the key's prefix.
-    #[test]
-    fn keys_lie_in_their_cells(bits: u64, depth in 0_u8..=32) {
-        let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
-        let key = MortonKey::from_bits(bits);
-        let cell = key.cell(depth);
+/// The child holding a key is indexed by the key's next axis bits.
+#[property_test]
+fn child_indexes_follow_the_axis_bits(bits: u64, #[strategy = 0_u8..32] depth: u8) {
+    let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
+    let key = MortonKey::from_bits(bits);
+    let children = key
+        .cell(depth)
+        .children()
+        .expect("depths below the maximum subdivide");
 
-        prop_assert!(cell.contains(key));
-        prop_assert!(cell.min_key() <= key);
-        prop_assert!(key <= cell.max_key());
-        prop_assert_eq!(cell.min_key().prefix(depth), key.prefix(depth));
-    }
+    let child_depth = Depth::new(depth.get() + 1)
+        .expect("one more subdivision stays within the documented domain");
+    let [x, y] = key.coordinates();
+    let axis_bit = |axis: u32| (axis >> (32 - u32::from(child_depth.get()))) & 1;
+    let index = ((axis_bit(y) << 1) | axis_bit(x)) as usize;
 
-    /// Children partition the parent range contiguously, in key order.
-    #[test]
-    fn children_partition_the_parent(bits: u64, depth in 0_u8..32) {
-        let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
-        let parent = MortonKey::from_bits(bits).cell(depth);
-        let children = parent.children().expect("depths below the maximum subdivide");
-
-        prop_assert_eq!(children[0].min_key(), parent.min_key());
-        prop_assert_eq!(children[3].max_key(), parent.max_key());
-        for (previous, next) in children.iter().zip(&children[1..]) {
-            prop_assert_eq!(
-                previous.max_key().to_bits() + 1,
-                next.min_key().to_bits(),
-                "adjacent children meet without gap or overlap"
-            );
-        }
-    }
-
-    /// The child holding a key is indexed by the key's next axis bits.
-    #[test]
-    fn child_indexes_follow_the_axis_bits(bits: u64, depth in 0_u8..32) {
-        let depth = Depth::new(depth).expect("the strategy stays within the documented domain");
-        let key = MortonKey::from_bits(bits);
-        let children = key.cell(depth).children().expect("depths below the maximum subdivide");
-
-        let child_depth = Depth::new(depth.get() + 1)
-            .expect("one more subdivision stays within the documented domain");
-        let [x, y] = key.coordinates();
-        let axis_bit = |axis: u32| (axis >> (32 - u32::from(child_depth.get()))) & 1;
-        let index = ((axis_bit(y) << 1) | axis_bit(x)) as usize;
-
-        prop_assert_eq!(children[index], key.cell(child_depth));
-        prop_assert!(children[index].contains(key));
-    }
+    prop_assert_eq!(children[index], key.cell(child_depth));
+    prop_assert!(children[index].contains(key));
 }

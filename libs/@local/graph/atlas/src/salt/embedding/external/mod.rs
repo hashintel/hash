@@ -5,7 +5,10 @@
 //! backends differ only in data: the [`EmbeddingContract`] naming the configuration the fingerprint
 //! commits to, and the [`RequestLimits`] the proxy packs requests under. One request never exceeds
 //! the document ceiling or the summed token ceiling; token counts are exact `cl100k_base` counts,
-//! the encoding of the embedding models this crate targets.
+//! the encoding of the embedding models this crate targets. The provider additionally gates
+//! admission on a byte estimate of the token count - UTF-8 bytes divided by four, measured
+//! bit-exact against its rejections - so requests stay under the token ceiling in both
+//! accountings.
 
 use core::{error::Error, fmt, iter::Peekable, num::NonZero, ops::ControlFlow};
 
@@ -83,7 +86,19 @@ pub(crate) struct RequestLimits {
     /// Maximum texts per request.
     pub documents: NonZero<usize> = DEFAULT_DOCUMENT_LIMIT,
     /// Maximum summed tokens per request.
+    ///
+    /// Held in both provider accountings: the exact `cl100k_base` count and the admission gate's
+    /// byte estimate (UTF-8 bytes divided by four).
     pub tokens: NonZero<usize> = DEFAULT_TOKEN_LIMIT,
+}
+
+/// The running cost of the request under assembly, in both provider accountings.
+#[derive(Default)]
+struct RequestCost {
+    /// Exact `cl100k_base` tokens.
+    tokens: usize,
+    /// UTF-8 bytes; the admission gate estimates tokens as bytes divided by four.
+    bytes: usize,
 }
 
 /// A [`CardEmbedder`] over an external [`EmbeddingGenerator`].
@@ -119,7 +134,7 @@ impl<G> ExternalEmbeddingProvider<G> {
     fn admit<'text>(
         &self,
         batch: &mut Vec<&'text str>,
-        token_count: &mut usize,
+        cost: &mut RequestCost,
         index: usize,
         iter: &mut Peekable<impl Iterator<Item = &'text str>>,
     ) -> ControlFlow<Result<(), ExternalEmbeddingError>> {
@@ -139,18 +154,22 @@ impl<G> ExternalEmbeddingProvider<G> {
                 }));
             }
         };
+        let bytes = next.len();
 
-        if tokens > self.limits.tokens.get() {
+        if tokens.max(bytes.div_ceil(4)) > self.limits.tokens.get() {
             return ControlFlow::Break(Err(ExternalEmbeddingError::OversizedText {
                 index,
-                tokens,
+                tokens: tokens.max(bytes.div_ceil(4)),
             }));
         }
-        if *token_count + tokens > self.limits.tokens.get() {
+        if cost.tokens + tokens > self.limits.tokens.get()
+            || (cost.bytes + bytes).div_ceil(4) > self.limits.tokens.get()
+        {
             return ControlFlow::Break(Ok(()));
         }
 
-        *token_count += tokens;
+        cost.tokens += tokens;
+        cost.bytes += bytes;
         batch.push(
             iter.next()
                 .unwrap_or_else(|| unreachable!("the peek just returned a text")),
@@ -180,10 +199,10 @@ impl<G: EmbeddingGenerator + Sync> CardEmbedder for ExternalEmbeddingProvider<G>
 
         while iter.peek().is_some() {
             batch.clear();
-            let mut token_count = 0;
+            let mut cost = RequestCost::default();
             loop {
                 let index = offset + batch.len();
-                match self.admit(&mut batch, &mut token_count, index, &mut iter) {
+                match self.admit(&mut batch, &mut cost, index, &mut iter) {
                     ControlFlow::Continue(()) => {}
                     ControlFlow::Break(Ok(())) => break,
                     ControlFlow::Break(Err(error)) => return Err(error),
@@ -233,7 +252,7 @@ fn canonical(
 
 /// An [`ExternalEmbeddingProvider`] workload failed.
 #[derive(Debug)]
-pub(crate) enum ExternalEmbeddingError {
+pub enum ExternalEmbeddingError {
     /// The generator failed a request.
     Provider(Report<EmbeddingError>),
     /// A request returned a different number of rows than it carried.
@@ -242,14 +261,14 @@ pub(crate) enum ExternalEmbeddingError {
     Dimensions { index: usize, actual: usize },
     /// A text contains a token the encoding reserves for protocol use.
     ReservedToken { index: usize, token: &'static str },
-    /// A single text exceeds the per-request token ceiling.
+    /// A single text exceeds the per-request token ceiling in the stricter provider accounting.
     OversizedText { index: usize, tokens: usize },
 }
 
 impl fmt::Display for ExternalEmbeddingError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Provider(report) => write!(fmt, "the embedding request failed: {report}"),
+            Self::Provider(_) => fmt.write_str("the embedding request failed"),
             Self::BatchCount { expected, actual } => {
                 write!(fmt, "a request for {expected} embeddings returned {actual}")
             }

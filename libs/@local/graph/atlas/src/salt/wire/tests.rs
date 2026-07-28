@@ -13,7 +13,7 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
-use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
+use proptest::{arbitrary::any, prop_assert, prop_assert_eq, property_test};
 
 use super::{
     Kind, Mode,
@@ -289,53 +289,52 @@ mod envelope {
     }
 }
 
-proptest! {
-    /// The directory laws hold for every present/absent payload mix.
-    ///
-    /// Sequential 8-aligned starts from the fixed payload origin, extents matching payload lengths,
-    /// zero padding, and a total length of the last present end aligned to 8.
-    #[test]
-    fn envelope_directory_laws(
-        payloads in proptest::collection::vec(
-            proptest::option::weighted(0.7, proptest::collection::vec(any::<u8>(), 0..64)),
-            1..12,
-        ),
-    ) {
-        // Slot 0 is always present.
-        let mut payloads = payloads;
-        if payloads[0].is_none() {
-            payloads[0] = Some(vec![0xFF]);
-        }
-
-        let slots = u16::try_from(payloads.len()).expect("the strategy draws at most 12 slots");
-        let mut envelope = EnvelopeWriter::new(Kind::Tile, slots);
-        for payload in &payloads {
-            match payload {
-                Some(bytes) => envelope.slot(|buf| buf.extend_from_slice(bytes)),
-                None => envelope.absent(),
-            }
-        }
-        let bytes = envelope.finish();
-
-        let mut cursor = 16 + 8 * payloads.len();
-        prop_assert_eq!(cursor & 7, 0);
-        for (slot, payload) in payloads.iter().enumerate() {
-            let (start, end) = directory(&bytes, slot);
-            if let Some(expected) = payload {
-                prop_assert_eq!(start as usize, cursor);
-                prop_assert_eq!(start & 7, 0);
-                prop_assert_eq!((end - start) as usize, expected.len());
-                prop_assert_eq!(&bytes[start as usize..end as usize], expected.as_slice());
-
-                let padded = (end as usize).next_multiple_of(8);
-                prop_assert!(bytes[end as usize..padded].iter().all(|&byte| byte == 0));
-                cursor = padded;
-            } else {
-                prop_assert_eq!((start, end), (0, 0));
-            }
-        }
-        prop_assert_eq!(bytes.len(), cursor);
+/// The directory laws hold for every present/absent payload mix.
+///
+/// Sequential 8-aligned starts from the fixed payload origin, extents matching payload lengths,
+/// zero padding, and a total length of the last present end aligned to 8.
+#[property_test]
+fn envelope_directory_laws(
+    #[strategy = proptest::collection::vec(
+        proptest::option::weighted(0.7, proptest::collection::vec(any::<u8>(), 0..64)),
+        1..12,
+    )]
+    payloads: Vec<Option<Vec<u8>>>,
+) {
+    // Slot 0 is always present.
+    let mut payloads = payloads;
+    if payloads[0].is_none() {
+        payloads[0] = Some(vec![0xFF]);
     }
+
+    let slots = u16::try_from(payloads.len()).expect("the strategy draws at most 12 slots");
+    let mut envelope = EnvelopeWriter::new(Kind::Tile, slots);
+    for payload in &payloads {
+        match payload {
+            Some(bytes) => envelope.slot(|buf| buf.extend_from_slice(bytes)),
+            None => envelope.absent(),
+        }
+    }
+    let bytes = envelope.finish();
+
+    let mut cursor = 16 + 8 * payloads.len();
+    prop_assert_eq!(cursor & 7, 0);
+    for (slot, payload) in payloads.iter().enumerate() {
+        let (start, end) = directory(&bytes, slot);
+        if let Some(expected) = payload {
+            prop_assert_eq!(start as usize, cursor);
+            prop_assert_eq!(start & 7, 0);
+            prop_assert_eq!((end - start) as usize, expected.len());
+            prop_assert_eq!(&bytes[start as usize..end as usize], expected.as_slice());
+
+            let padded = (end as usize).next_multiple_of(8);
+            prop_assert!(bytes[end as usize..padded].iter().all(|&byte| byte == 0));
+            cursor = padded;
+        } else {
+            prop_assert_eq!((start, end), (0, 0));
+        }
+    }
+    prop_assert_eq!(bytes.len(), cursor);
 }
 
 mod tile {

@@ -5,14 +5,26 @@ use std::{io, time::Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
 use clap::{Args, ValueHint};
+use error_stack::Report;
+use hash_graph_embeddings::{EmbeddingError, OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 use tokio_postgres::Client;
 
 use crate::{
     dataset::TemporalAxes,
+    integrity::SecretString,
     progress::NoProgress,
-    salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
+    salt::{
+        embedding::external::{EmbeddingContract, ExternalEmbeddingProvider, RequestLimits},
+        runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
+    },
     serve::GenerationRoot,
 };
+
+/// The embedding endpoint the fit dials.
+///
+/// One constant feeds both the client's base URL and the fingerprinted contract, so the recorded
+/// contract names the endpoint the requests actually hit.
+const EMBEDDING_ENDPOINT: &str = "https://api.openai.com/v1";
 
 /// Root and run settings of one fit.
 #[derive(Debug, Args)]
@@ -110,6 +122,10 @@ pub struct FitArgs {
     #[arg(long)]
     nn_descent: bool,
 
+    /// The OpenAI API key the embedding provider authenticates with.
+    #[arg(long, env = "OPENAI_API_KEY", hide_env_values = true)]
+    openai_api_key: SecretString,
+
     /// Where the admission report JSON lands.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
@@ -121,6 +137,8 @@ pub struct FitArgs {
 /// wrapped fault's, unchanged); the report variant names its own step.
 #[derive(Debug)]
 pub enum FitError {
+    /// The embedding provider could not be constructed.
+    Embedder(Report<EmbeddingError>),
     /// The run failed.
     Run(RunError),
     /// The admission report could not be written.
@@ -130,6 +148,7 @@ pub enum FitError {
 impl fmt::Display for FitError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Embedder(_) => fmt.write_str("the embedding provider could not be constructed"),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
         }
@@ -139,6 +158,7 @@ impl fmt::Display for FitError {
 impl Error for FitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::Embedder(report) => Some(report.current_context()),
             Self::Run(error) => error.source(),
             Self::Io(error) => Some(error),
         }
@@ -188,6 +208,7 @@ impl fmt::Display for Verdict<'_> {
 pub struct FitCommand {
     root: GenerationRoot,
     report: Utf8PathBuf,
+    openai_api_key: SecretString,
     options: Options<NoProgress>,
 }
 
@@ -224,8 +245,31 @@ impl FitCommand {
             "starting the production run"
         );
 
+        let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
+            api_key: self.openai_api_key.expose(),
+            base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
+        })
+        .map_err(FitError::Embedder)?;
+        let embedder = ExternalEmbeddingProvider::new(
+            generator,
+            &EmbeddingContract {
+                provider: "openai",
+                endpoint: EMBEDDING_ENDPOINT,
+                model: "text-embedding-3-large",
+                encoding: "float",
+            },
+            RequestLimits { .. },
+        );
+
         let started = Instant::now();
-        let summary = live(client, self.root, TemporalAxes::now(), self.options).await?;
+        let summary = live(
+            client,
+            self.root,
+            TemporalAxes::now(),
+            self.options,
+            &embedder,
+        )
+        .await?;
         let elapsed = started.elapsed();
 
         std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
@@ -266,6 +310,7 @@ impl FitCommand {
         Self {
             root: root.root,
             report: args.report,
+            openai_api_key: args.openai_api_key,
             options: Options {
                 seed: args.seed,
                 landmarks: args.landmarks,

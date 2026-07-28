@@ -1,5 +1,5 @@
 use hashql_core::id::Id as _;
-use proptest::{arbitrary::any, prop_assert, prop_assert_eq, proptest};
+use proptest::{arbitrary::any, prop_assert, prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
 use uuid::Uuid;
 
@@ -227,92 +227,93 @@ fn base_order_sorts_buckets_then_keys_then_ranks() {
     );
 }
 
-proptest! {
-    /// Coverage holds for every input.
-    ///
-    /// Each occupied cell at each depth of the schedule keeps a representative in the delivered
-    /// prefix.
-    #[test]
-    fn cascade_coverage_is_total(
-        bits in proptest::collection::vec(any::<u64>(), 1..48),
-        deepest in 0_u8..=6,
-        seed: u64,
-    ) {
-        let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
-        let ranking = seeded_ranking(keys.len(), seed);
-        let deepest = depth(deepest);
+/// Coverage holds for every input.
+///
+/// Each occupied cell at each depth of the schedule keeps a representative in the delivered
+/// prefix.
+#[property_test]
+fn cascade_coverage_is_total(
+    #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
+    #[strategy = 0_u8..=6] deepest: u8,
+    seed: u64,
+) {
+    let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
+    let ranking = seeded_ranking(keys.len(), seed);
+    let deepest = depth(deepest);
 
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
+    let buckets = cascade::buckets(&keys, &ranking, deepest);
 
-        prop_assert_eq!(cascade::verify_coverage(&keys, &buckets, deepest), Ok(()));
-    }
+    prop_assert_eq!(cascade::verify_coverage(&keys, &buckets, deepest), Ok(()));
+}
 
-    /// Below the catch-all, a bucket holds at most one point per cell of its own grid.
-    #[test]
-    fn buckets_claim_cells_once(
-        bits in proptest::collection::vec(any::<u64>(), 1..48),
-        deepest in 0_u8..=6,
-        seed: u64,
-    ) {
-        let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
-        let ranking = seeded_ranking(keys.len(), seed);
-        let deepest = depth(deepest);
+/// Below the catch-all, a bucket holds at most one point per cell of its own grid.
+#[property_test]
+fn buckets_claim_cells_once(
+    #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
+    #[strategy = 0_u8..=6] deepest: u8,
+    seed: u64,
+) {
+    let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
+    let ranking = seeded_ranking(keys.len(), seed);
+    let deepest = depth(deepest);
 
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
+    let buckets = cascade::buckets(&keys, &ranking, deepest);
 
-        for probe in 0..deepest.get() {
-            let probe = depth(probe);
-            let mut cells: Vec<u64> = keys
-                .iter()
-                .zip(&*buckets)
-                .filter(|&(_, bucket)| *bucket == probe)
-                .map(|(key, _)| key.prefix(probe))
-                .collect();
-            cells.sort_unstable();
-            let distinct = cells.len();
-            cells.dedup();
-
-            prop_assert_eq!(
-                cells.len(),
-                distinct,
-                "two bucket-{} points share a cell",
-                probe.get(),
-            );
-        }
-    }
-
-    /// The base order is the unique (bucket, key, rank) sort.
-    ///
-    /// Its permutations invert each other.
-    #[test]
-    fn base_order_is_the_unique_total_sort(
-        bits in proptest::collection::vec(any::<u64>(), 1..48),
-        deepest in 0_u8..=6,
-        seed: u64,
-    ) {
-        let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
-        let ranking = seeded_ranking(keys.len(), seed);
-        let deepest = depth(deepest);
-
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
-        let order = BaseOrder::new(&keys, &buckets, &ranking);
-
-        for (rank, &row) in order.row_of_position.iter().enumerate() {
-            prop_assert_eq!(order.position_of_row[row as usize] as usize, rank);
-        }
-
-        let sort_key = |row: u32| {
-            let row = row as usize;
-            (buckets[row], keys[row], ranking.rank_of_row[row])
-        };
-        for (previous, next) in order
-            .row_of_position
+    for probe in 0..deepest.get() {
+        let probe = depth(probe);
+        let mut cells: Vec<u64> = keys
             .iter()
-            .zip(&order.row_of_position[1..])
-        {
-            let (left, right) = (sort_key(*previous), sort_key(*next));
-            prop_assert!(left < right, "adjacent positions out of order: {left:?} vs {right:?}");
-        }
+            .zip(&*buckets)
+            .filter(|&(_, bucket)| *bucket == probe)
+            .map(|(key, _)| key.prefix(probe))
+            .collect();
+        cells.sort_unstable();
+        let distinct = cells.len();
+        cells.dedup();
+
+        prop_assert_eq!(
+            cells.len(),
+            distinct,
+            "two bucket-{} points share a cell",
+            probe.get(),
+        );
+    }
+}
+
+/// The base order is the unique (bucket, key, rank) sort.
+///
+/// Its permutations invert each other.
+#[property_test]
+fn base_order_is_the_unique_total_sort(
+    #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
+    #[strategy = 0_u8..=6] deepest: u8,
+    seed: u64,
+) {
+    let keys: Vec<MortonKey> = bits.iter().copied().map(MortonKey::from_bits).collect();
+    let ranking = seeded_ranking(keys.len(), seed);
+    let deepest = depth(deepest);
+
+    let buckets = cascade::buckets(&keys, &ranking, deepest);
+    let order = BaseOrder::new(&keys, &buckets, &ranking);
+
+    for (rank, &row) in order.row_of_position.iter().enumerate() {
+        prop_assert_eq!(order.position_of_row[row as usize] as usize, rank);
+    }
+
+    let sort_key = |row: u32| {
+        let row = row as usize;
+        (buckets[row], keys[row], ranking.rank_of_row[row])
+    };
+    for (previous, next) in order
+        .row_of_position
+        .iter()
+        .zip(&order.row_of_position[1..])
+    {
+        let (left, right) = (sort_key(*previous), sort_key(*next));
+        prop_assert!(
+            left < right,
+            "adjacent positions out of order: {left:?} vs {right:?}"
+        );
     }
 }
 
@@ -592,129 +593,127 @@ fn columns_round_trip_through_the_morton_file() {
     assert_eq!(file.run(depth(2), cell), 2..4);
 }
 
-proptest! {
-    /// Every finite point set builds.
-    ///
-    /// The result upholds the serving contract's structural laws.
-    #[test]
-    fn built_columns_uphold_the_contract_laws(
-        rows in proptest::collection::vec(
-            (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0),
-            1..48,
-        ),
-        seed: u64,
-        span_log2 in 0_u8..3,
-        max_tile_depth in 0_u8..4,
-    ) {
-        let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, _)| Vec2::new(x, y)).collect();
-        let importance: Vec<f32> = rows.iter().map(|&(_, _, i)| i).collect();
-        let priority = vec![0.0_f32; rows.len()];
-        let ids = identities(rows.len() as u128);
-        let config = LodConfig {
-            span: log2(span_log2),
-            max_tile_depth,
-        };
+/// Every finite point set builds.
+///
+/// The result upholds the serving contract's structural laws.
+#[property_test]
+fn built_columns_uphold_the_contract_laws(
+    #[strategy = proptest::collection::vec(
+        (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0),
+        1..48,
+    )]
+    rows: Vec<(f32, f32, f32)>,
+    seed: u64,
+    #[strategy = 0_u8..3] span_log2: u8,
+    #[strategy = 0_u8..4] max_tile_depth: u8,
+) {
+    let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, _)| Vec2::new(x, y)).collect();
+    let importance: Vec<f32> = rows.iter().map(|&(_, _, i)| i).collect();
+    let priority = vec![0.0_f32; rows.len()];
+    let ids = identities(rows.len() as u128);
+    let config = LodConfig {
+        span: log2(span_log2),
+        max_tile_depth,
+    };
 
-        let inputs = RankInputs::new(&importance, &priority, &ids)
-            .expect("the fixture columns agree");
-        let lod = Lod::build(&coordinates, inputs, seed, config)
-            .expect("finite non-empty coordinates build");
-        let deepest = config.deepest().expect("the schedule fits the key width");
+    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
+    let lod =
+        Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
+    let deepest = config.deepest().expect("the schedule fits the key width");
 
-        // Determinism: equal inputs give equal structures.
-        prop_assert_eq!(
-            &Lod::build(&coordinates, inputs, seed, config).expect("the rebuild builds"),
-            &lod,
-        );
+    // Determinism: equal inputs give equal structures.
+    prop_assert_eq!(
+        &Lod::build(&coordinates, inputs, seed, config).expect("the rebuild builds"),
+        &lod,
+    );
 
-        // Every column covers every row once.
-        prop_assert_eq!(lod.fenceposts.count(), rows.len() as u64);
-        prop_assert_eq!(lod.coordinates.len(), rows.len());
+    // Every column covers every row once.
+    prop_assert_eq!(lod.fenceposts.count(), rows.len() as u64);
+    prop_assert_eq!(lod.coordinates.len(), rows.len());
 
-        // Wire coordinates stay inside the frame.
-        for wire in &lod.coordinates {
-            prop_assert!((-1.0..=1.0).contains(&wire.x()));
-            prop_assert!((-1.0..=1.0).contains(&wire.y()));
-        }
+    // Wire coordinates stay inside the frame.
+    for wire in &lod.coordinates {
+        prop_assert!((-1.0..=1.0).contains(&wire.x()));
+        prop_assert!((-1.0..=1.0).contains(&wire.y()));
+    }
 
-        // The permutations invert each other, both ways.
-        for (position, &row) in lod.row_of_position.iter().enumerate() {
-            prop_assert_eq!(lod.position_of_row[row as usize] as usize, position);
-        }
-        for (rank, &position) in lod.position_of_rank.iter().enumerate() {
-            prop_assert_eq!(lod.rank_of_position[position as usize] as usize, rank);
-        }
+    // The permutations invert each other, both ways.
+    for (position, &row) in lod.row_of_position.iter().enumerate() {
+        prop_assert_eq!(lod.position_of_row[row as usize] as usize, position);
+    }
+    for (rank, &position) in lod.position_of_rank.iter().enumerate() {
+        prop_assert_eq!(lod.rank_of_position[position as usize] as usize, rank);
+    }
 
-        // Every segment of the code column is sorted: the morton
-        // file writer's input contract.
-        for bucket in 0..=deepest.get() {
-            let segment = lod.fenceposts.segment(depth(bucket));
-            let start = usize::try_from(segment.start).expect("test rows fit usize");
-            let end = usize::try_from(segment.end).expect("test rows fit usize");
-            prop_assert!(lod.codes[start..end].is_sorted());
-        }
+    // Every segment of the code column is sorted: the morton
+    // file writer's input contract.
+    for bucket in 0..=deepest.get() {
+        let segment = lod.fenceposts.segment(depth(bucket));
+        let start = usize::try_from(segment.start).expect("test rows fit usize");
+        let end = usize::try_from(segment.end).expect("test rows fit usize");
+        prop_assert!(lod.codes[start..end].is_sorted());
+    }
 
-        // The delivered prefix covers every occupied cell at every
-        // published depth - the coverage contract, asserted over the
-        // built columns, buckets reconstructed from the fenceposts.
-        let buckets: Vec<Depth> = (0..lod.fenceposts.count())
-            .map(|position| {
-                (0..=deepest.get())
-                    .map(depth)
-                    .find(|&bucket| lod.fenceposts.segment(bucket).contains(&position))
-                    .expect("every position falls in a segment")
-            })
-            .collect();
-        prop_assert_eq!(
-            cascade::verify_coverage(&lod.codes, &buckets, deepest),
-            Ok(()),
-        );
+    // The delivered prefix covers every occupied cell at every
+    // published depth - the coverage contract, asserted over the
+    // built columns, buckets reconstructed from the fenceposts.
+    let buckets: Vec<Depth> = (0..lod.fenceposts.count())
+        .map(|position| {
+            (0..=deepest.get())
+                .map(depth)
+                .find(|&bucket| lod.fenceposts.segment(bucket).contains(&position))
+                .expect("every position falls in a segment")
+        })
+        .collect();
+    prop_assert_eq!(
+        cascade::verify_coverage(&lod.codes, &buckets, deepest),
+        Ok(()),
+    );
 
-        // At most one delivered point per depth-d cell at every cut
-        // d below the deepest grid, jointly across buckets - the
-        // uniqueness claim the mass channel leans on. The
-        // cascade's represented rule guarantees it: a claim never
-        // lands in a cell holding an earlier-assigned point, so two
-        // points sharing a depth-d cell cannot both carry buckets at
-        // or below d unless the later one is a catch-all leftover
-        // (bucket = deepest, never delivered below the deepest cut).
-        for cut in 0..deepest.get() {
-            let cut = depth(cut);
-            let mut occupied = std::collections::HashSet::new();
-            for (position, code) in lod.codes.iter().enumerate() {
-                if buckets[position] <= cut {
-                    prop_assert!(
-                        occupied.insert(code.prefix(cut)),
-                        "two points delivered at cut {} share a cell",
-                        cut.get(),
-                    );
-                }
-            }
-        }
-
-        // At the deepest cut only catch-all co-residents remain: a
-        // cell holds at most one point claimed below the deepest
-        // grid.
+    // At most one delivered point per depth-d cell at every cut
+    // d below the deepest grid, jointly across buckets - the
+    // uniqueness claim the mass channel leans on. The
+    // cascade's represented rule guarantees it: a claim never
+    // lands in a cell holding an earlier-assigned point, so two
+    // points sharing a depth-d cell cannot both carry buckets at
+    // or below d unless the later one is a catch-all leftover
+    // (bucket = deepest, never delivered below the deepest cut).
+    for cut in 0..deepest.get() {
+        let cut = depth(cut);
         let mut occupied = std::collections::HashSet::new();
         for (position, code) in lod.codes.iter().enumerate() {
-            if buckets[position] < deepest {
+            if buckets[position] <= cut {
                 prop_assert!(
-                    occupied.insert(code.prefix(deepest)),
-                    "two sub-deepest claimants share a deepest-grid cell",
+                    occupied.insert(code.prefix(cut)),
+                    "two points delivered at cut {} share a cell",
+                    cut.get(),
                 );
             }
         }
-
-        // Evidence is internally consistent.
-        let evidence = lod.measurements(config);
-        prop_assert_eq!(
-            evidence.bucket_histogram.iter().sum::<u64>(),
-            rows.len() as u64,
-        );
-        prop_assert!(evidence.co_location_excess <= evidence.catch_all_population);
-        prop_assert!(evidence.max_tile_delta <= rows.len() as u64);
-        prop_assert!(evidence.max_tile_delta >= 1);
     }
+
+    // At the deepest cut only catch-all co-residents remain: a
+    // cell holds at most one point claimed below the deepest
+    // grid.
+    let mut occupied = std::collections::HashSet::new();
+    for (position, code) in lod.codes.iter().enumerate() {
+        if buckets[position] < deepest {
+            prop_assert!(
+                occupied.insert(code.prefix(deepest)),
+                "two sub-deepest claimants share a deepest-grid cell",
+            );
+        }
+    }
+
+    // Evidence is internally consistent.
+    let evidence = lod.measurements(config);
+    prop_assert_eq!(
+        evidence.bucket_histogram.iter().sum::<u64>(),
+        rows.len() as u64,
+    );
+    prop_assert!(evidence.co_location_excess <= evidence.catch_all_population);
+    prop_assert!(evidence.max_tile_delta <= rows.len() as u64);
+    prop_assert!(evidence.max_tile_delta >= 1);
 }
 
 /// Direct types for the hand-stage rows: distinct enough that every union is distinguishable.
@@ -897,151 +896,163 @@ fn quad_tree_round_trips_through_the_quad_file() {
     assert_eq!(stored, [2, 5, 9]);
 }
 
-proptest! {
-    /// Every built lod cuts into a tree upholding the serving contract's structural laws.
-    ///
-    /// Certified against linear-scan references.
-    #[test]
-    fn quad_trees_uphold_the_contract_laws(
-        rows in proptest::collection::vec(
-            (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0, 0_u64..6),
-            1..48,
-        ),
-        seed: u64,
-        span_log2 in 0_u8..3,
-        max_tile_depth in 0_u8..4,
-    ) {
-        let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, ..)| Vec2::new(x, y)).collect();
-        let importance: Vec<f32> = rows.iter().map(|&(_, _, i, _)| i).collect();
-        let priority = vec![0.0_f32; rows.len()];
-        let ids = identities(rows.len() as u128);
-        let types: Vec<SmallVec<OntologyRowId, 2>> = rows
-            .iter()
-            .map(|&(.., type_row)| smallvec![OntologyRowId::new(type_row)])
-            .collect();
-        let config = LodConfig {
-            span: log2(span_log2),
-            max_tile_depth,
-        };
+/// Every built lod cuts into a tree upholding the serving contract's structural laws.
+///
+/// Certified against linear-scan references.
+#[property_test]
+fn quad_trees_uphold_the_contract_laws(
+    #[strategy = proptest::collection::vec(
+        (-1.0e6_f32..1.0e6, -1.0e6_f32..1.0e6, 0.0_f32..8.0, 0_u64..6),
+        1..48,
+    )]
+    rows: Vec<(f32, f32, f32, u64)>,
+    seed: u64,
+    #[strategy = 0_u8..3] span_log2: u8,
+    #[strategy = 0_u8..4] max_tile_depth: u8,
+) {
+    let coordinates: Vec<Vec2> = rows.iter().map(|&(x, y, ..)| Vec2::new(x, y)).collect();
+    let importance: Vec<f32> = rows.iter().map(|&(_, _, i, _)| i).collect();
+    let priority = vec![0.0_f32; rows.len()];
+    let ids = identities(rows.len() as u128);
+    let types: Vec<SmallVec<OntologyRowId, 2>> = rows
+        .iter()
+        .map(|&(.., type_row)| smallvec![OntologyRowId::new(type_row)])
+        .collect();
+    let config = LodConfig {
+        span: log2(span_log2),
+        max_tile_depth,
+    };
 
-        let inputs = RankInputs::new(&importance, &priority, &ids)
-            .expect("the fixture columns agree");
-        let lod = Lod::build(&coordinates, inputs, seed, config)
-            .expect("finite non-empty coordinates build");
-        let deepest = config.deepest().expect("the schedule fits the key width");
+    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
+    let lod =
+        Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
+    let deepest = config.deepest().expect("the schedule fits the key width");
 
-        let tree = QuadTree::build(&lod, &types, config).expect("the built lod cuts");
+    let tree = QuadTree::build(&lod, &types, config).expect("the built lod cuts");
 
-        // Determinism: equal inputs give equal trees.
-        prop_assert_eq!(
-            &QuadTree::build(&lod, &types, config).expect("the rebuild cuts"),
-            &tree,
+    // Determinism: equal inputs give equal trees.
+    prop_assert_eq!(
+        &QuadTree::build(&lod, &types, config).expect("the rebuild cuts"),
+        &tree,
+    );
+
+    // Reconstruct each node's cell by walking the child links from
+    // the root; the walk also proves every node is reachable
+    // exactly once (the table is a tree, not a DAG).
+    let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
+    let mut cells: Vec<Option<MortonCell>> = vec![None; tree.nodes.len()];
+    let mut frontier = vec![(0_u32, root)];
+    while let Some((index, cell)) = frontier.pop() {
+        prop_assert!(
+            cells[index as usize].is_none(),
+            "node {} reached twice",
+            index
         );
-
-        // Reconstruct each node's cell by walking the child links from
-        // the root; the walk also proves every node is reachable
-        // exactly once (the table is a tree, not a DAG).
-        let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
-        let mut cells: Vec<Option<MortonCell>> = vec![None; tree.nodes.len()];
-        let mut frontier = vec![(0_u32, root)];
-        while let Some((index, cell)) = frontier.pop() {
-            prop_assert!(cells[index as usize].is_none(), "node {} reached twice", index);
-            cells[index as usize] = Some(cell);
-            let quadrants = cell.children();
-            for (quadrant, child) in tree.nodes[index as usize].children().into_iter().enumerate()
-            {
-                if let Some(child) = child {
-                    let quadrants = quadrants.expect("a node with children subdivides");
-                    frontier.push((child, quadrants[quadrant]));
-                }
+        cells[index as usize] = Some(cell);
+        let quadrants = cell.children();
+        for (quadrant, child) in tree.nodes[index as usize]
+            .children()
+            .into_iter()
+            .enumerate()
+        {
+            if let Some(child) = child {
+                let quadrants = quadrants.expect("a node with children subdivides");
+                frontier.push((child, quadrants[quadrant]));
             }
         }
-        let cells: Vec<MortonCell> = cells
-            .into_iter()
-            .collect::<Option<_>>()
-            .expect("every node is reachable from the root");
+    }
+    let cells: Vec<MortonCell> = cells
+        .into_iter()
+        .collect::<Option<_>>()
+        .expect("every node is reachable from the root");
 
-        // Buckets per position, reconstructed from the fenceposts.
-        let buckets: Vec<u8> = (0..lod.codes.len())
-            .map(|position| {
-                (0..=deepest.get())
-                    .find(|&bucket| {
-                        lod.fenceposts.segment(depth(bucket)).contains(&(position as u64))
-                    })
-                    .expect("every position falls in a segment")
-            })
+    // Buckets per position, reconstructed from the fenceposts.
+    let buckets: Vec<u8> = (0..lod.codes.len())
+        .map(|position| {
+            (0..=deepest.get())
+                .find(|&bucket| {
+                    lod.fenceposts
+                        .segment(depth(bucket))
+                        .contains(&(position as u64))
+                })
+                .expect("every position falls in a segment")
+        })
+        .collect();
+
+    // The runs partition the base order: every point is delivered
+    // exactly once across the incremental tile pyramid.
+    let mut delivered = vec![0_u32; lod.codes.len()];
+    for node in &tree.nodes {
+        for position in node.run() {
+            delivered[usize::try_from(position).expect("test rows fit usize")] += 1;
+        }
+    }
+    prop_assert!(delivered.iter().all(|&count| count == 1));
+
+    for (index, node) in tree.nodes.iter().enumerate() {
+        let cell = cells[index];
+        let inside: Vec<usize> = (0..lod.codes.len())
+            .filter(|&position| cell.contains(lod.codes[position]))
             .collect();
 
-        // The runs partition the base order: every point is delivered
-        // exactly once across the incremental tile pyramid.
-        let mut delivered = vec![0_u32; lod.codes.len()];
-        for node in &tree.nodes {
-            for position in node.run() {
-                delivered[usize::try_from(position).expect("test rows fit usize")] += 1;
-            }
-        }
-        prop_assert!(delivered.iter().all(|&count| count == 1));
+        // The subtree count is the cell's whole population.
+        prop_assert_eq!(node.points() as usize, inside.len());
 
-        for (index, node) in tree.nodes.iter().enumerate() {
-            let cell = cells[index];
-            let inside: Vec<usize> = (0..lod.codes.len())
-                .filter(|&position| cell.contains(lod.codes[position]))
-                .collect();
-
-            // The subtree count is the cell's whole population.
-            prop_assert_eq!(node.points() as usize, inside.len());
-
-            // The node rule: the root always, deeper cells exactly
-            // when a point escapes the parent's cut.
-            let cut = cell.depth().get() + span_log2;
-            if index > 0 {
-                prop_assert!(
-                    inside.iter().any(|&position| buckets[position] >= cut),
-                    "node {} has no point at or beyond its own cut",
-                    index,
-                );
-            }
-
-            // The own-bucket run against a linear scan: the root's cut
-            // spans buckets 0..=span_log2, a deeper node's exactly its
-            // own bucket.
-            let expected: Vec<u64> = inside
-                .iter()
-                .filter(|&&position| {
-                    if index == 0 {
-                        buckets[position] <= span_log2
-                    } else {
-                        buckets[position] == cut
-                    }
-                })
-                .map(|&position| position as u64)
-                .collect();
-            prop_assert_eq!(
-                node.run().collect::<Vec<u64>>(),
-                expected,
-                "node {}'s run",
+        // The node rule: the root always, deeper cells exactly
+        // when a point escapes the parent's cut.
+        let cut = cell.depth().get() + span_log2;
+        if index > 0 {
+            prop_assert!(
+                inside.iter().any(|&position| buckets[position] >= cut),
+                "node {} has no point at or beyond its own cut",
                 index,
             );
-
-            // The type set against a linear scan over the cell.
-            let mut expected: Vec<u32> = inside
-                .iter()
-                .flat_map(|&position| {
-                    let row = lod.row_of_position[position];
-                    types[row as usize].iter().map(|id| {
-                        u32::try_from(id.as_u64()).expect("test ordinals fit u32")
-                    })
-                })
-                .collect();
-            expected.sort_unstable();
-            expected.dedup();
-            prop_assert_eq!(tree.sets.set(index), expected.as_slice(), "node {}'s set", index);
         }
 
-        // Evidence agrees with the table.
-        let evidence = tree.measurements();
-        prop_assert_eq!(evidence.nodes, tree.nodes.len() as u64);
-        prop_assert!(evidence.leaves >= 1);
-        prop_assert!(evidence.depth.get() <= max_tile_depth);
+        // The own-bucket run against a linear scan: the root's cut
+        // spans buckets 0..=span_log2, a deeper node's exactly its
+        // own bucket.
+        let expected: Vec<u64> = inside
+            .iter()
+            .filter(|&&position| {
+                if index == 0 {
+                    buckets[position] <= span_log2
+                } else {
+                    buckets[position] == cut
+                }
+            })
+            .map(|&position| position as u64)
+            .collect();
+        prop_assert_eq!(
+            node.run().collect::<Vec<u64>>(),
+            expected,
+            "node {}'s run",
+            index,
+        );
+
+        // The type set against a linear scan over the cell.
+        let mut expected: Vec<u32> = inside
+            .iter()
+            .flat_map(|&position| {
+                let row = lod.row_of_position[position];
+                types[row as usize]
+                    .iter()
+                    .map(|id| u32::try_from(id.as_u64()).expect("test ordinals fit u32"))
+            })
+            .collect();
+        expected.sort_unstable();
+        expected.dedup();
+        prop_assert_eq!(
+            tree.sets.set(index),
+            expected.as_slice(),
+            "node {}'s set",
+            index
+        );
     }
+
+    // Evidence agrees with the table.
+    let evidence = tree.measurements();
+    prop_assert_eq!(evidence.nodes, tree.nodes.len() as u64);
+    prop_assert!(evidence.leaves >= 1);
+    prop_assert!(evidence.depth.get() <= max_tile_depth);
 }

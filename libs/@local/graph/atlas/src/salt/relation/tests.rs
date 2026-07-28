@@ -5,7 +5,7 @@
 )]
 
 use hashql_core::id::Id as _;
-use proptest::{prop_assert, prop_assert_eq, prop_compose, proptest};
+use proptest::{prop_assert, prop_assert_eq, prop_compose, property_test};
 
 use super::{
     ClassProbabilities, Policies, RelationConfidence, RelationIndexes, RelationInstance,
@@ -681,95 +681,101 @@ prop_compose! {
     }
 }
 
-proptest! {
-    /// The build is a function of the instance set, not its order.
-    ///
-    /// The output orders are the documented invariants.
-    #[test]
-    fn build_is_order_independent_and_sorted(instances in arbitrary_instances()) {
-        let policies = [
-            proximal_policy(0),
-            RelationPolicy {
-                selected: ClassProbabilities {
-                    coincident: 0.25,
-                    proximal: 0.25,
-                },
-                applicability: 0.5,
-                ..proximal_policy(1)
+/// The build is a function of the instance set, not its order.
+///
+/// The output orders are the documented invariants.
+#[property_test]
+fn build_is_order_independent_and_sorted(
+    #[strategy = arbitrary_instances()] instances: Vec<RelationInstance>,
+) {
+    let policies = [
+        proximal_policy(0),
+        RelationPolicy {
+            selected: ClassProbabilities {
+                coincident: 0.25,
+                proximal: 0.25,
             },
-            RelationPolicy {
-                strength: 2.0,
-                ..proximal_policy(2)
-            },
-        ];
-        let self_references = instances
+            applicability: 0.5,
+            ..proximal_policy(1)
+        },
+        RelationPolicy {
+            strength: 2.0,
+            ..proximal_policy(2)
+        },
+    ];
+    let self_references = instances
+        .iter()
+        .filter(|instance| instance.source == instance.target)
+        .count();
+
+    let kept = instances.clone();
+    let mut reversed = instances.clone();
+    reversed.reverse();
+
+    let forward = build_default(&policies, instances);
+    let backward = build_default(&policies, reversed);
+    assert_indexes_equal(&forward, &backward);
+
+    prop_assert_eq!(forward.measurements.self_references, self_references);
+
+    let relations: Vec<u64> = forward
+        .attraction
+        .groups()
+        .iter()
+        .map(|group| group.relation().as_u64())
+        .collect();
+    prop_assert!(relations.is_sorted_by(|one, other| one < other));
+
+    for group in forward.attraction.groups() {
+        prop_assert!(!group.edges().is_empty());
+        let keys: Vec<(u64, u64, u64)> = group
+            .edges()
             .iter()
-            .filter(|instance| instance.source == instance.target)
-            .count();
-
-        let kept = instances.clone();
-        let mut reversed = instances.clone();
-        reversed.reverse();
-
-        let forward = build_default(&policies, instances);
-        let backward = build_default(&policies, reversed);
-        assert_indexes_equal(&forward, &backward);
-
-        prop_assert_eq!(forward.measurements.self_references, self_references);
-
-        let relations: Vec<u64> = forward
-            .attraction
-            .groups()
-            .iter()
-            .map(|group| group.relation().as_u64())
+            .map(|edge| {
+                (
+                    edge.source.as_u64(),
+                    edge.target.as_u64(),
+                    edge.edge.as_u64(),
+                )
+            })
             .collect();
-        prop_assert!(relations.is_sorted_by(|one, other| one < other));
+        prop_assert!(keys.is_sorted());
+    }
 
-        for group in forward.attraction.groups() {
-            prop_assert!(!group.edges().is_empty());
-            let keys: Vec<(u64, u64, u64)> = group
-                .edges()
-                .iter()
-                .map(|edge| (edge.source.as_u64(), edge.target.as_u64(), edge.edge.as_u64()))
-                .collect();
-            prop_assert!(keys.is_sorted());
+    // The protection matrix mirrors every pair into both rows and
+    // stores each row's partners strictly ascending without self
+    // references.
+    let view = forward.protection.view();
+    let mut mirrored = 0;
+    for row in 0..ROWS as u64 {
+        let row = NodeRowId::new(row);
+        let partners: Vec<u64> = view.row(row).map(|entry| entry.partner.as_u64()).collect();
+        prop_assert!(partners.is_sorted_by(|one, other| one < other));
+        prop_assert!(partners.iter().all(|&partner| partner != row.as_u64()));
+        for entry in view.row(row) {
+            let evidence = view
+                .get(NodePair::new(row, entry.partner))
+                .expect("the mirrored direction stores the pair");
+            prop_assert_eq!(evidence, entry.evidence);
+            mirrored += 1;
         }
+    }
+    prop_assert_eq!(mirrored, view.entries());
 
-        // The protection matrix mirrors every pair into both rows and
-        // stores each row's partners strictly ascending without self
-        // references.
-        let view = forward.protection.view();
-        let mut mirrored = 0;
+    // The floor identity is exact: the stored two-component
+    // evidence reproduces every floored per-instance mass. The
+    // reference deliberately applies the floor inside the
+    // per-instance maximum, the form the identity factorizes.
+    for floor in [0.0_f32, 0.25, 0.5, 1.0] {
         for row in 0..ROWS as u64 {
-            let row = NodeRowId::new(row);
-            let partners: Vec<u64> = view.row(row).map(|entry| entry.partner.as_u64()).collect();
-            prop_assert!(partners.is_sorted_by(|one, other| one < other));
-            prop_assert!(partners.iter().all(|&partner| partner != row.as_u64()));
-            for entry in view.row(row) {
-                let evidence = view
-                    .get(NodePair::new(row, entry.partner))
-                    .expect("the mirrored direction stores the pair");
-                prop_assert_eq!(evidence, entry.evidence);
-                mirrored += 1;
-            }
-        }
-        prop_assert_eq!(mirrored, view.entries());
-
-        // The floor identity is exact: the stored two-component
-        // evidence reproduces every floored per-instance mass. The
-        // reference deliberately applies the floor inside the
-        // per-instance maximum, the form the identity factorizes.
-        for floor in [0.0_f32, 0.25, 0.5, 1.0] {
-            for row in 0..ROWS as u64 {
-                for entry in view.row(NodeRowId::new(row)) {
-                    let expected = forward_reference_mass(
-                        &kept,
-                        &policies,
-                        NodePair::new(NodeRowId::new(row), entry.partner),
-                        floor,
-                    );
-                    prop_assert_eq!(entry.evidence.mass(floor), expected);
-                }
+            for entry in view.row(NodeRowId::new(row)) {
+                let expected = forward_reference_mass(
+                    &kept,
+                    &policies,
+                    NodePair::new(NodeRowId::new(row), entry.partner),
+                    floor,
+                );
+                prop_assert_eq!(entry.evidence.mass(floor), expected);
             }
         }
     }

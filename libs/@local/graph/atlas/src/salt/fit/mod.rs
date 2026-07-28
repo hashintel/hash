@@ -90,7 +90,6 @@ mod error;
 mod ingest;
 pub(crate) mod prepare;
 mod role;
-pub(crate) mod stub;
 pub(crate) mod verdicts;
 
 #[cfg(test)]

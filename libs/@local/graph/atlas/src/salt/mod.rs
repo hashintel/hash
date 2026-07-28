@@ -35,7 +35,7 @@ pub(crate) use self::{
 };
 
 pub(crate) mod adjacency;
-mod embedding;
+pub(crate) mod embedding;
 // Crate-visible for the root `bench` facade's re-exports.
 pub(crate) mod fit;
 mod importance;

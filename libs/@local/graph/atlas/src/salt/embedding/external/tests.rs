@@ -11,7 +11,13 @@ use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator};
 use hash_graph_types::Embedding;
 
 use super::{EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits};
-use crate::{dataset::CANONICAL_DIMENSIONS, salt::embedding::CardEmbedder as _};
+use crate::{
+    dataset::{
+        CANONICAL_DIMENSIONS,
+        card::{Cl100kTokenizer, Tokenizer as _},
+    },
+    salt::embedding::CardEmbedder as _,
+};
 
 fn contract() -> EmbeddingContract<'static> {
     EmbeddingContract {
@@ -183,7 +189,8 @@ async fn splits_requests_at_the_document_ceiling() {
 )]
 async fn splits_requests_at_the_token_ceiling() {
     let generator = RecordingGenerator::default();
-    // Each fixture word counts one cl100k token, so a ceiling of two
+    // Each fixture word counts one cl100k token in at most four bytes, so
+    // the exact count is the binding accounting and a ceiling of two
     // tokens admits two words per request.
     let provider = ExternalEmbeddingProvider::new(
         generator,
@@ -195,18 +202,63 @@ async fn splits_requests_at_the_token_ceiling() {
     );
 
     let embeddings = provider
-        .embed(["alpha", "beta", "cat"])
+        .embed(["beta", "cat", "dog"])
         .await
         .expect("the fixture generator should embed every text");
 
     assert_eq!(
         provider.generator.requests(),
         [
-            vec!["alpha".to_owned(), "beta".to_owned()],
-            vec!["cat".to_owned()],
+            vec!["beta".to_owned(), "cat".to_owned()],
+            vec!["dog".to_owned()],
         ]
     );
     assert_eq!(embeddings.len(), 3);
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn splits_requests_at_the_byte_estimate_ceiling() {
+    // A word whose byte estimate exceeds its exact count: the provider's
+    // admission gate, not the tokenizer, is the binding accounting.
+    let word = " information";
+    let tokens = Cl100kTokenizer
+        .count_tokens(word)
+        .expect("the fixture word carries no reserved token");
+    assert!(
+        tokens * 4 < word.len(),
+        "the fixture must overshoot the byte estimate: {tokens} tokens over {} bytes",
+        word.len()
+    );
+
+    let generator = RecordingGenerator::default();
+    // Six estimated tokens per request: two twelve-byte words fit
+    // (⌈24 / 4⌉ = 6), a third crosses; the exact count alone would
+    // admit all five in one request.
+    let provider = ExternalEmbeddingProvider::new(
+        generator,
+        &contract(),
+        RequestLimits {
+            tokens: NonZero::new(6).expect("six is nonzero"),
+            ..
+        },
+    );
+
+    let embeddings = provider
+        .embed([word; 5])
+        .await
+        .expect("the fixture generator should embed every text");
+
+    let requests = provider.generator.requests();
+    assert_eq!(requests.iter().map(Vec::len).collect::<Vec<_>>(), [2, 2, 1]);
+    for request in &requests {
+        let bytes: usize = request.iter().map(String::len).sum();
+        assert!(bytes.div_ceil(4) <= 6);
+    }
+    assert_eq!(embeddings.len(), 5);
 }
 
 #[tokio::test]
@@ -224,13 +276,41 @@ async fn rejects_a_text_above_the_token_ceiling() {
         },
     );
 
-    let result = provider.embed(["alpha", "beta cat"]).await;
+    let result = provider.embed(["cat", "beta cat"]).await;
 
     assert_matches!(
         result,
         Err(ExternalEmbeddingError::OversizedText {
             index: 1,
             tokens: 2
+        })
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn rejects_a_text_above_the_byte_estimate_ceiling() {
+    let provider = ExternalEmbeddingProvider::new(
+        RecordingGenerator::default(),
+        &contract(),
+        RequestLimits {
+            tokens: NonZero::new(3).expect("three is nonzero"),
+            ..
+        },
+    );
+
+    // Two exact tokens in twenty-four bytes: legal by the tokenizer,
+    // above the ceiling in the gate's estimate (⌈24 / 4⌉ = 6).
+    let result = provider.embed([" information information"]).await;
+
+    assert_matches!(
+        result,
+        Err(ExternalEmbeddingError::OversizedText {
+            index: 0,
+            tokens: 6
         })
     );
 }

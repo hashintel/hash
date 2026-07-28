@@ -39,6 +39,6 @@ mod writer;
 pub use self::{
     hash::{Sha256, Sha256Digest},
     hex::{HexBytes, ParseHexError},
-    secret::SecretHexBytes,
+    secret::{SecretHexBytes, SecretString},
     writer::{Update, Writer},
 };

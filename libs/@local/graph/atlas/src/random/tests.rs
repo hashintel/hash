@@ -1,6 +1,6 @@
 use core::num::NonZero;
 
-use proptest::{arbitrary::any, prop_assert, proptest};
+use proptest::{arbitrary::any, prop_assert, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -166,74 +166,72 @@ fn acceptance_sample_size_rejects_degenerate_parameters() {
     }
 }
 
-proptest! {
-    /// The returned count is sufficient and minimal.
-    ///
-    /// `n` all-pass samples push the false-acceptance probability to the target or below, and `n -
-    /// 1` samples do not. This is the function's entire contract, certified over the whole
-    /// meaningful parameter space.
-    #[test]
-    fn acceptance_sample_size_is_sufficient_and_minimal(
-        defect_rate in 1e-6_f64..0.5,
-        confidence in 0.5_f64..(1.0 - 1e-9),
-    ) {
-        let samples = acceptance_sample_size(defect_rate, confidence)
-            .expect("parameters lie in the open unit interval");
-        let all_pass = |count: usize| {
-            (1.0 - defect_rate).powi(i32::try_from(count).expect("sample sizes fit i32"))
-        };
+/// The returned count is sufficient and minimal.
+///
+/// `n` all-pass samples push the false-acceptance probability to the target or below, and `n -
+/// 1` samples do not. This is the function's entire contract, certified over the whole
+/// meaningful parameter space.
+#[property_test]
+fn acceptance_sample_size_is_sufficient_and_minimal(
+    #[strategy = 1e-6_f64..0.5] defect_rate: f64,
+    #[strategy = 0.5_f64..(1.0 - 1e-9)] confidence: f64,
+) {
+    let samples = acceptance_sample_size(defect_rate, confidence)
+        .expect("parameters lie in the open unit interval");
+    let all_pass = |count: usize| {
+        (1.0 - defect_rate).powi(i32::try_from(count).expect("sample sizes fit i32"))
+    };
 
-        prop_assert!(all_pass(samples) <= 1.0 - confidence + 1e-12);
-        if samples > 0 {
-            prop_assert!(all_pass(samples - 1) > 1.0 - confidence - 1e-12);
-        }
+    prop_assert!(all_pass(samples) <= 1.0 - confidence + 1e-12);
+    if samples > 0 {
+        prop_assert!(all_pass(samples - 1) > 1.0 - confidence - 1e-12);
     }
+}
 
-    /// Stricter requirements never shrink the sample.
-    #[test]
-    fn acceptance_sample_size_is_monotone(
-        defect_rate in 1e-5_f64..0.4,
-        confidence in 0.5_f64..0.999,
-    ) {
-        let base = acceptance_sample_size(defect_rate, confidence)
-            .expect("parameters lie in the open unit interval");
-        let stricter_confidence = acceptance_sample_size(defect_rate, confidence + 5e-4)
-            .expect("parameters lie in the open unit interval");
-        let looser_defect = acceptance_sample_size(defect_rate * 1.5, confidence)
-            .expect("parameters lie in the open unit interval");
+/// Stricter requirements never shrink the sample.
+#[property_test]
+fn acceptance_sample_size_is_monotone(
+    #[strategy = 1e-5_f64..0.4] defect_rate: f64,
+    #[strategy = 0.5_f64..0.999] confidence: f64,
+) {
+    let base = acceptance_sample_size(defect_rate, confidence)
+        .expect("parameters lie in the open unit interval");
+    let stricter_confidence = acceptance_sample_size(defect_rate, confidence + 5e-4)
+        .expect("parameters lie in the open unit interval");
+    let looser_defect = acceptance_sample_size(defect_rate * 1.5, confidence)
+        .expect("parameters lie in the open unit interval");
 
-        prop_assert!(stricter_confidence >= base);
-        prop_assert!(looser_defect <= base);
-    }
+    prop_assert!(stricter_confidence >= base);
+    prop_assert!(looser_defect <= base);
+}
 
-    /// Draws respect any bound, including awkward ones near overflow.
-    #[test]
-    fn uniform_below_stays_in_range(seed in any::<u64>(), bound in 1_u64..) {
-        let bound = NonZero::new(bound).expect("the strategy starts at one");
-        let value = uniform_below(
-            &mut Xoshiro256PlusPlus::seed_from_u64(seed),
-            bound,
-        );
+/// Draws respect any bound, including awkward ones near overflow.
+#[property_test]
+fn uniform_below_stays_in_range(
+    #[strategy = any::<u64>()] seed: u64,
+    #[strategy = 1_u64..] bound: u64,
+) {
+    let bound = NonZero::new(bound).expect("the strategy starts at one");
+    let value = uniform_below(&mut Xoshiro256PlusPlus::seed_from_u64(seed), bound);
 
-        prop_assert!(value < bound.get());
-    }
+    prop_assert!(value < bound.get());
+}
 
-    /// Samples are always distinct, in range, and exactly `N` long for any covering population.
-    #[test]
-    fn sample_indices_is_a_valid_subset(seed in any::<u64>(), population in 8_usize..10_000) {
-        let picked = sample_indices::<8>(
-            &mut Xoshiro256PlusPlus::seed_from_u64(seed),
-            population,
-        )
+/// Samples are always distinct, in range, and exactly `N` long for any covering population.
+#[property_test]
+fn sample_indices_is_a_valid_subset(
+    #[strategy = any::<u64>()] seed: u64,
+    #[strategy = 8_usize..10_000] population: usize,
+) {
+    let picked = sample_indices::<8>(&mut Xoshiro256PlusPlus::seed_from_u64(seed), population)
         .expect("the population covers the sample");
 
-        let mut seen = picked;
-        seen.sort_unstable();
-        for [left, right] in seen.array_windows::<2>() {
-            prop_assert!(left < right);
-        }
-        prop_assert!(picked.iter().all(|&index| index < population));
+    let mut seen = picked;
+    seen.sort_unstable();
+    for [left, right] in seen.array_windows::<2>() {
+        prop_assert!(left < right);
     }
+    prop_assert!(picked.iter().all(|&index| index < population));
 }
 
 /// The quantile matches tabulated standard normal values.

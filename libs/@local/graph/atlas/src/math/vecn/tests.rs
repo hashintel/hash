@@ -13,7 +13,7 @@ use core::{
     simd::{Simd, f32x8, num::SimdFloat as _},
 };
 
-use proptest::{prop_assert, prop_assert_eq, prop_assume, proptest, strategy::Strategy};
+use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
 use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
@@ -468,56 +468,59 @@ fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
     proptest::array::uniform19(-1e3_f32..1e3)
 }
 
-proptest! {
-    /// The dot product commutes bit for bit.
-    ///
-    /// Both orders accumulate the same products in the same order.
-    #[test]
-    fn dot_is_commutative(left in components_strategy(), right in components_strategy()) {
-        prop_assert_eq!(
-            VecN::new(left).dot(VecN::from_ref(&right)),
-            VecN::new(right).dot(VecN::from_ref(&left)),
-        );
-    }
+/// The dot product commutes bit for bit.
+///
+/// Both orders accumulate the same products in the same order.
+#[property_test]
+fn dot_is_commutative(
+    #[strategy = components_strategy()] left: [f32; 19],
+    #[strategy = components_strategy()] right: [f32; 19],
+) {
+    prop_assert_eq!(
+        VecN::new(left).dot(VecN::from_ref(&right)),
+        VecN::new(right).dot(VecN::from_ref(&left)),
+    );
+}
 
-    /// The squared norm is non-negative: it accumulates squares.
-    #[test]
-    fn norm_squared_is_non_negative(components in components_strategy()) {
-        prop_assert!(VecN::new(components).norm_squared() >= 0.0);
-    }
+/// The squared norm is non-negative: it accumulates squares.
+#[property_test]
+fn norm_squared_is_non_negative(#[strategy = components_strategy()] components: [f32; 19]) {
+    prop_assert!(VecN::new(components).norm_squared() >= 0.0);
+}
 
-    /// Cosine distance lies in `[0, 2]`.
-    ///
-    /// The distance from a non-zero vector to itself is zero up to rounding.
-    #[test]
-    fn cosine_distance_stays_in_range_and_vanishes_on_self(
-        left in components_strategy(),
-        right in components_strategy(),
-    ) {
-        let left = VecN::new(left);
-        let right = VecN::new(right);
+/// Cosine distance lies in `[0, 2]`.
+///
+/// The distance from a non-zero vector to itself is zero up to rounding.
+#[property_test]
+fn cosine_distance_stays_in_range_and_vanishes_on_self(
+    #[strategy = components_strategy()] left: [f32; 19],
+    #[strategy = components_strategy()] right: [f32; 19],
+) {
+    let left = VecN::new(left);
+    let right = VecN::new(right);
 
-        let distance = left.cosine_distance(&right);
-        prop_assert!((0.0..=2.0).contains(&distance));
+    let distance = left.cosine_distance(&right);
+    prop_assert!((0.0..=2.0).contains(&distance));
 
-        prop_assume!(left.norm_squared() > 0.0);
-        prop_assert!(left.cosine_distance(&left) < 1e-6);
-    }
+    prop_assume!(left.norm_squared() > 0.0);
+    prop_assert!(left.cosine_distance(&left) < 1e-6);
+}
 
-    /// The fused SIMD dot product matches a plain-f64 reference loop.
-    ///
-    /// The tolerance is relative, plus a small absolute floor for cancelled sums.
-    #[test]
-    fn dot_matches_a_plain_f64_reference(
-        left in components_strategy(),
-        right in components_strategy(),
-    ) {
-        let expected = reference_dot(&left, &right.map(f64::from));
+/// The fused SIMD dot product matches a plain-f64 reference loop.
+///
+/// The tolerance is relative, plus a small absolute floor for cancelled sums.
+#[property_test]
+fn dot_matches_a_plain_f64_reference(
+    #[strategy = components_strategy()] left: [f32; 19],
+    #[strategy = components_strategy()] right: [f32; 19],
+) {
+    let expected = reference_dot(&left, &right.map(f64::from));
 
-        let actual = f64::from(VecN::new(left).dot(VecN::from_ref(&right)));
-        prop_assert!(
-            (actual - expected).abs() <= expected.abs().mul_add(1e-6, 1e-3),
-            "dot {} vs reference {}", actual, expected,
-        );
-    }
+    let actual = f64::from(VecN::new(left).dot(VecN::from_ref(&right)));
+    prop_assert!(
+        (actual - expected).abs() <= expected.abs().mul_add(1e-6, 1e-3),
+        "dot {} vs reference {}",
+        actual,
+        expected,
+    );
 }
