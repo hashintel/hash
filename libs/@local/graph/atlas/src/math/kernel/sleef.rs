@@ -373,11 +373,12 @@ mod tests {
     const F32_STRIDE: usize = 641;
     const F64_STRIDE: usize = 0x0400_0000_000D;
 
-    // Each bound is the kernel's accuracy tier rounded up to whole
-    // representation steps plus one step for the reference's own
-    // narrowing. A result past the bound is a behavior change, not
-    // measurement noise: a wrong constant or a swapped coefficient
-    // moves results by orders of magnitude.
+    // Each bound is the kernel's accuracy tier plus half a
+    // representation step for the reference's own correctly-rounded
+    // narrowing, rounded up to whole steps: 1.0 + 0.5 -> 2 and
+    // 3.5 + 0.5 -> 4. A result past the bound is a behavior change,
+    // not measurement noise: a wrong constant or a swapped
+    // coefficient moves results by orders of magnitude.
     const U10_F32_TOLERANCE: u64 = 2;
     const U35_F32_TOLERANCE: u64 = 4;
     const U10_F64_TOLERANCE: u128 = 2;

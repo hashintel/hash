@@ -94,11 +94,11 @@ impl core::error::Error for FencepostViolation {}
 pub(crate) struct Fenceposts([u64; Self::POSTS]);
 
 impl Fenceposts {
+    /// One more fencepost than segments, closing the last range.
+    pub(crate) const POSTS: usize = Self::SEGMENTS + 1;
     /// One segment per bucket the cascade can assign.
     ///
     /// Every depth from the whole domain to a fully pinned key.
-    pub(crate) const POSTS: usize = Self::SEGMENTS + 1;
-    /// One more fencepost than segments, closing the last range.
     pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
 
     /// Wraps a fencepost array.

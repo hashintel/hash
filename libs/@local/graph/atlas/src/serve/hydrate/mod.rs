@@ -39,6 +39,7 @@
 
 mod client;
 mod columns;
+pub(crate) mod compile;
 mod select;
 
 #[cfg(test)]

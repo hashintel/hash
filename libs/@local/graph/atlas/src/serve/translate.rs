@@ -25,7 +25,7 @@ use core::{error::Error, fmt};
 use hashql_core::id::Id as _;
 use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
-use super::{Atlas, WireRow, codec::RowCodec, scope::ScopeReach, visibility::VisibilityProof};
+use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
 use crate::{
     dataset::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
@@ -138,8 +138,9 @@ impl Atlas {
     /// consumed: each resolved id string moves into its response key, so translation allocates
     /// nothing per id.
     ///
-    /// The node domain resolves under every scope; the link domain resolves under
-    /// [`ScopeReach::Operator`], and answers absent keys under a restricted scope.
+    /// A node id resolves when the proof holds its row. A link id resolves when the proof holds
+    /// the link row and both of its endpoints, and answers an absent key otherwise - the same
+    /// answer an id of neither domain receives.
     ///
     /// # Errors
     ///
@@ -150,13 +151,11 @@ impl Atlas {
         request: TranslateRequest,
         limits: TranslateLimits,
         proof: &VisibilityProof,
-        reach: ScopeReach,
     ) -> Result<TranslateResponse, TranslateError> {
         translate(
             request,
             limits,
             proof,
-            reach,
             &TranslateColumns {
                 node_ids: &self.node_ids,
                 edge_ids: &self.edge_ids,
@@ -198,12 +197,11 @@ impl TranslateColumns<'_> {
 
 /// Resolves a request's ids against one generation's translate columns.
 ///
-/// Under the authority's visibility proof and scope reach.
+/// Under the authority's visibility proof.
 pub(super) fn translate(
     request: TranslateRequest,
     limits: TranslateLimits,
     proof: &VisibilityProof,
-    reach: ScopeReach,
     columns: &TranslateColumns<'_>,
 ) -> Result<TranslateResponse, TranslateError> {
     if request.entity_ids.len() > limits.entity_ids as usize {
@@ -238,9 +236,7 @@ pub(super) fn translate(
                     y: point.y(),
                 },
             );
-        } else if reach.serves_links()
-            && let Some(edge) = columns.edge_ids.row_of(key)
-        {
+        } else if let Some(edge) = columns.edge_ids.row_of(key) {
             let [source, target] = columns.endpoint_rows(edge);
             if proof.verify_edge(edge, source, target).is_none() {
                 // A hidden link row or endpoint hides the edge: an
@@ -256,8 +252,7 @@ pub(super) fn translate(
                 },
             );
         } else {
-            // Known to neither domain, or a link id under a scope that never reads the link
-            // table: an absent key by contract.
+            // Known to neither identity domain: an absent key by contract.
         }
     }
 

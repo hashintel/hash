@@ -28,8 +28,10 @@ use aide::{
     openapi::{Info, OpenApi},
 };
 use axum::{Extension, Router, body::Bytes};
+use hash_graph_postgres_store::store::PostgresStorePool;
 
-use crate::serve::{Atlas, GraphDatabaseClient, ScopeReach, ServeLimits, VisibilityProof};
+use self::visibility::Authority;
+use crate::serve::{Atlas, GraphDatabaseClient, ServeLimits, VisibilityLimits};
 
 mod current;
 mod edges;
@@ -42,6 +44,7 @@ mod reference;
 mod saltile;
 mod tile;
 mod translate;
+mod visibility;
 
 /// The OpenAPI document's top-level description.
 const API_DESCRIPTION: &str =
@@ -82,26 +85,24 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 /// The shared route state.
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
-/// connection detail hydration reads through, the visibility proof every assembly path masks by,
-/// and the scope those paths answer under.
+/// connection detail hydration reads through, and the authority every assembly path masks by -
+/// read per request through [`visibility::Visibility`].
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
-    scope: ScopeReach,
+    authority: Authority,
     remote: Arc<GraphDatabaseClient>,
-    proof: Arc<VisibilityProof>,
 }
 
 /// Builds the read API router over one opened generation.
 ///
 /// With the OpenAPI document generated at startup and served beside the API.
 ///
-/// The visibility proof scopes every corpus-bearing response the router serves: the caller
-/// supplies it, naming the process's authority explicitly - the graph binary deliberately
-/// constructs [`VisibilityProof::full_visibility`] for operator serving. The proof's constructor
-/// resolves the scope the routes answer under, so a restricted authority reaches the node-bearing
-/// surfaces alone.
+/// A visibility proof scopes every corpus-bearing response the router serves, and every request
+/// answers under the scope of the actor it names: `pool` is the store every read goes through and
+/// `visibility` the window a resolved scope is reused for. No request is served without an actor,
+/// and no actor is served another's rows.
 ///
 /// # Panics
 ///
@@ -111,14 +112,14 @@ pub fn router(
     atlas: Arc<Atlas>,
     limits: ServeLimits,
     details: Arc<GraphDatabaseClient>,
-    proof: VisibilityProof, // NOTE: shouldn't the proof be per user?
+    pool: Arc<PostgresStorePool>,
+    visibility: VisibilityLimits,
 ) -> Router {
     let state = AppState {
         atlas,
         limits,
-        scope: ScopeReach::from_proof(&proof),
+        authority: Authority::new(pool, visibility),
         remote: details,
-        proof: Arc::new(proof),
     };
 
     // Responses are declared explicitly per operation; the

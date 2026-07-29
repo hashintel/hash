@@ -40,9 +40,6 @@ pub(super) enum ProblemType {
     /// A surface the contract pins but this build does not serve.
     #[serde(rename = "/problems/atlas/unsupported-feature")]
     UnsupportedFeature,
-    /// A surface outside the reach of the caller's scope.
-    #[serde(rename = "/problems/atlas/unavailable-in-scope")]
-    UnavailableInScope,
     /// An edges body listing more tiles than the manifest's cap.
     #[serde(rename = "/problems/atlas/too-many-tiles")]
     TooManyTiles,
@@ -67,6 +64,12 @@ pub(super) enum ProblemType {
     /// mismatch, or oversize.
     #[serde(rename = "/problems/atlas/invalid-body")]
     InvalidBody,
+    /// A request that names no authenticated actor while the process resolves scopes per caller.
+    #[serde(rename = "/problems/atlas/missing-actor")]
+    MissingActor,
+    /// The caller's scope could not be resolved, so the process cannot say what they may see.
+    #[serde(rename = "/problems/atlas/visibility-unavailable")]
+    VisibilityUnavailable,
 }
 
 /// One RFC 9457 problem document.
@@ -194,24 +197,27 @@ pub(super) fn reject_generation(
     ))
 }
 
-/// The problem a link-bearing surface answers outside the reach of the bound scope.
+/// Refuses a request that names no authenticated actor.
 ///
-/// The refusal itself is the serving layer's: [`Atlas::assemble_edges`] and
-/// [`Atlas::assemble_locate`] take the reach as an argument and answer `OutOfScope` before they
-/// read the request, so this function decides nothing - it maps that answer onto the transport's
-/// vocabulary, and the handlers' rejection order is the serving layer's rejection order.
+/// The gateway authenticates the session and states the actor in a header, so a request arriving
+/// without one is malformed and answers 400. `detail` names which way the header failed, and echoes
+/// nothing else.
+pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'static> {
+    Problem::new(StatusCode::BAD_REQUEST, ProblemType::MissingActor, detail)
+}
+
+/// Refuses a request whose scope could not be resolved.
 ///
-/// The status is the 404 an unregistered route answers, so a deployment that refuses a surface by
-/// scope and one that omits it from the route table are answered alike; the `type` member names
-/// the scope as the ground.
-///
-/// [`Atlas::assemble_edges`]: crate::serve::Atlas::assemble_edges
-/// [`Atlas::assemble_locate`]: crate::serve::Atlas::assemble_locate
-pub(super) fn out_of_scope() -> Problem<'static> {
+/// The caller's permissions are unknown, so the answer is a 503: this process cannot say what the
+/// caller may see, and a later attempt may succeed. The cause stays in the server log, since a
+/// resolution failure names store internals; the client reads that the scope is unavailable.
+pub(super) fn visibility_unavailable(error: &(impl core::fmt::Debug + ?Sized)) -> Problem<'static> {
+    tracing::error!(?error, "resolving the caller's visibility failed");
+
     Problem::new(
-        StatusCode::NOT_FOUND,
-        ProblemType::UnavailableInScope,
-        "this surface is not served in the caller's scope",
+        StatusCode::SERVICE_UNAVAILABLE,
+        ProblemType::VisibilityUnavailable,
+        "the caller's scope could not be resolved",
     )
 }
 
@@ -232,7 +238,7 @@ pub(super) fn reject_variant(variant: &str) -> Result<(), Problem<'static>> {
 mod tests {
     use axum::http::StatusCode;
 
-    use super::{Problem, ProblemType, out_of_scope};
+    use super::{Problem, ProblemType};
 
     #[test]
     fn the_type_member_is_a_root_relative_uri() {
@@ -244,19 +250,6 @@ mod tests {
         let document = serde_json::to_value(&problem).expect("problem documents serialize");
 
         assert_eq!(document["type"], "/problems/atlas/unknown-generation");
-        assert_eq!(document["status"], 404);
-    }
-
-    /// The serving layer's out-of-scope answer maps onto the status an absent route answers.
-    ///
-    /// Which scopes reach which surfaces is the serving layer's statement and is witnessed there;
-    /// this pins the transport's half of it - the status and the type member a refused caller
-    /// reads.
-    #[test]
-    fn an_out_of_scope_surface_refuses_with_a_404_problem() {
-        let document = serde_json::to_value(out_of_scope()).expect("problem documents serialize");
-
-        assert_eq!(document["type"], "/problems/atlas/unavailable-in-scope");
         assert_eq!(document["status"], 404);
     }
 

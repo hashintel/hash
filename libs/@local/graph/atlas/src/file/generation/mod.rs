@@ -190,6 +190,7 @@ impl Error for ActivateError {
     Eq,
     PartialOrd,
     Ord,
+    Hash,
     serde::Serialize,
     serde::Deserialize,
     schemars::JsonSchema,

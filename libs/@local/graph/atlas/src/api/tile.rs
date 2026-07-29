@@ -11,6 +11,7 @@ use super::{
     extract::{Body, Coordinates, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
+    visibility::Visibility,
 };
 use crate::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
 
@@ -67,6 +68,7 @@ pub(super) struct CellPath {
 /// An absent body reads as the all-defaults query.
 pub(super) async fn handler(
     State(state): State<AppState>,
+    visibility: Visibility,
     Generation(VariantPath {
         generation,
         variant,
@@ -89,7 +91,7 @@ pub(super) async fn handler(
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.tile;
-    let proof = Arc::clone(&state.proof);
+    let proof = visibility.proof;
     let assembled = spawn(move || {
         atlas
             .assemble_tile(&request, limits, &proof)

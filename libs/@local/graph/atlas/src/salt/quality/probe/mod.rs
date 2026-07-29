@@ -77,9 +77,15 @@ const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[
 ];
 const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
     NonZero::new(2).expect("the default horizon factor is nonzero");
-// 64 shared pairs over 256 anchors read ~16K triplets; the binomial
-// standard error at that volume sits near a third of a point of
-// agreement, well under the differences worth acting on.
+// 64 shared pairs over 256 anchors read 16,384 triplet verdicts, but
+// the design is crossed rather than independent: one pair sample
+// serves every anchor and one anchor sample serves every pair, so the
+// mean's error does not shrink as 1/√16,384. The pair-driven variance
+// component shrinks only with the 64 pairs, which bounds the standard
+// error at 0.5/√64 = 0.0625 of agreement in the worst case - 16× the
+// 0.5/√16,384 = 0.0039 that reading the triplet count as independent
+// draws suggests. How much of the verdict variance is pair-driven is
+// not measured.
 const DEFAULT_TRIPLET_PAIRS: usize = 64;
 
 /// Pinned sampling and neighbourhood settings for one probe.
@@ -106,7 +112,8 @@ pub(crate) struct ProbeOptions {
     /// Comparison-point pairs sampled for the triplet readings.
     ///
     /// Every anchor reads the one shared pair sample, so the estimate's mean is unbiased while
-    /// pair-driven variance is shared across anchors. Zero disables the readings - and with them
+    /// pair-driven variance is shared across anchors: the reading's resolution tracks this count,
+    /// not the anchor-times-pair triplet total. Zero disables the readings - and with them
     /// admission: the verdict demands the full battery, so a triplet-free probe is report-only by
     /// construction. Defaults to 64.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,

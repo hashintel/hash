@@ -38,6 +38,14 @@ use core::num::NonZero;
 use hashql_core::id::{Id, IdSlice};
 
 use super::{PlacementClass, ResolvedVerdict};
+
+/// The weighted-quantile fraction at which the Proximal radius freezes.
+///
+/// The radius policy: both the pooled radius and every leave-one-out radius freeze at this
+/// fraction, so the two surfaces cannot drift apart. The per-type evidence quartiles are
+/// descriptive and keep their own literals; their first entry coinciding with this fraction is
+/// today's policy choice, not a shared definition.
+const RADIUS_FRACTION: f64 = 0.25;
 use crate::{
     identity::OntologyRowId,
     math::Vec2,
@@ -212,7 +220,7 @@ where
         weighted_quantile(
             population.iter().map(|&(z, weight, _)| (z, weight)),
             total,
-            0.25,
+            RADIUS_FRACTION,
         )
     });
 
@@ -233,7 +241,7 @@ where
                     .filter(|&&(_, _, owner)| owner != tag)
                     .map(|&(z, weight, _)| (z, weight)),
                 remaining,
-                0.25,
+                RADIUS_FRACTION,
             )
         });
     }

@@ -5,14 +5,14 @@ use core::{error::Error, fmt, time::Duration};
 
 use axum::Router;
 use clap::Args;
-use tokio_postgres::Client;
+use hash_graph_postgres_store::store::PostgresStorePool;
 
 use crate::{
     api,
     serve::{
         Atlas, CurrentError, EdgesLimits, GenerationRoot, GraphDatabaseClient, LocateLimits,
         OpenAtlasError, OpenOptions, SealLimits, ServeLimits, TileLimits, TranslateLimits,
-        VisibilityProof, WireSecret,
+        VisibilityLimits, WireSecret,
     },
 };
 
@@ -217,16 +217,20 @@ impl ServeCommand {
     /// `/status` liveness route included.
     ///
     /// The hosting binary owns the listener, lifecycle, middleware, the dialed store connection
-    /// `client` (detail trailers hydrate from the store on every serve), and the visibility proof
-    /// `proof` - the authority every response is masked by, named explicitly at the call site;
-    /// the router carries everything the atlas serves.
+    /// `pool` - every store read the serving process makes goes through it, detail trailers and
+    /// permission resolution alike - and `visibility`, the window a resolved scope is reused for.
+    /// The router carries everything the atlas serves.
     ///
     /// # Errors
     ///
     /// Returns a [`ServeError`] naming the step that failed: reading the current-generation
     /// pointer, the pointer being absent, the wire secret being unconfigured, or opening the
     /// generation's artifacts.
-    pub fn run(self, client: Client, proof: VisibilityProof) -> Result<Router, ServeError> {
+    pub fn run(
+        self,
+        pool: Arc<PostgresStorePool>,
+        visibility: VisibilityLimits,
+    ) -> Result<Router, ServeError> {
         crate::math::kernel::verify_cpu_baseline();
 
         let generation = self
@@ -246,13 +250,16 @@ impl ServeCommand {
             "serving the active generation"
         );
 
-        // The store rides every serve: detail trailers hydrate live.
-        let details = Arc::new(GraphDatabaseClient::new(client));
+        // The store rides every serve: detail trailers hydrate live and each caller's scope
+        // resolves through the same pool.
+        let details = Arc::new(GraphDatabaseClient::new(Arc::clone(&pool)));
         tracing::info!("detail trailers hydrate from the store");
 
-        Ok(api::router(atlas, self.limits, details, proof).route(
-            "/status",
-            axum::routing::get(async || axum::http::StatusCode::OK),
-        ))
+        Ok(
+            api::router(atlas, self.limits, details, pool, visibility).route(
+                "/status",
+                axum::routing::get(async || axum::http::StatusCode::OK),
+            ),
+        )
     }
 }

@@ -11,8 +11,9 @@ use tracing::Instrument as _;
 use super::{
     AppState,
     extract::{Body, Generation},
-    problem::{Problem, ProblemType, out_of_scope, reject_generation, reject_variant},
+    problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
+    visibility::Visibility,
 };
 use crate::serve::{GenerationId, LocateError, LocateRequest};
 
@@ -51,9 +52,7 @@ A source that does not name a visible node answers `unknown-entity`: nonexistent
 
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.
-
-The ego-graph is link-bearing, so the route answers the operator scope: a caller bound to a \
-     restricted scope is answered `unavailable-in-scope`.";
+";
 
 /// The generation/variant pair addressing one fitted layout.
 ///
@@ -73,6 +72,7 @@ pub(super) struct VariantPath {
 /// the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
+    visibility: Visibility,
     Generation(VariantPath {
         generation,
         variant,
@@ -87,11 +87,10 @@ pub(super) async fn handler(
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits;
-    let proof = Arc::clone(&state.proof);
-    let scope = state.scope;
+    let proof = visibility.proof;
     let assembled = spawn(move || {
         atlas
-            .assemble_locate(&request, limits, &proof, scope)
+            .assemble_locate(&request, limits, &proof)
             .map(|document| {
                 let entities = (
                     atlas.locate_node_entities(&document),
@@ -104,7 +103,6 @@ pub(super) async fn handler(
 
     let (document, entities) = match assembled {
         Ok(assembled) => assembled,
-        Err(LocateError::OutOfScope) => return Err(out_of_scope()),
         Err(error @ LocateError::UnknownEntity) => {
             return Err(Problem::new(
                 StatusCode::NOT_FOUND,
@@ -195,9 +193,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
-                "`unknown-generation`, `unknown-variant`, `unknown-entity` (identical for \
-                 nonexistent, inaccessible, unparsable, and out-of-range sources), or \
-                 `unavailable-in-scope` (the surface lies outside the caller's scope)",
+                "`unknown-generation`, `unknown-variant`, or `unknown-entity` (identical for \
+                 nonexistent, inaccessible, unparsable, and out-of-range sources)",
             )
         })
         .response_with::<501, Problem<'static>, _>(|response| {

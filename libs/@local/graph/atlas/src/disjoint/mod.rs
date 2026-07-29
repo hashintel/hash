@@ -10,14 +10,16 @@
 //! # Examples
 //!
 //! ```
-//! use hash_graph_atlas::disjoint::DisjointSet;
+//! use hash_graph_atlas::{disjoint::DisjointSet, identity::NodeRowId};
+//! use hashql_core::id::Id as _;
 //!
+//! let row = NodeRowId::from_u32;
 //! let mut components = DisjointSet::new(4);
-//! assert!(components.unite(0, 1));
-//! assert!(components.unite(2, 3));
-//! assert!(!components.unite(1, 0), "already one group");
-//! assert_eq!(components.find(0), components.find(1));
-//! assert_ne!(components.find(1), components.find(2));
+//! assert!(components.unite(row(0), row(1)));
+//! assert!(components.unite(row(2), row(3)));
+//! assert!(!components.unite(row(1), row(0)), "already one group");
+//! assert_eq!(components.find(row(0)), components.find(row(1)));
+//! assert_ne!(components.find(row(1)), components.find(row(2)));
 //! assert_eq!(components.groups(), 2);
 //! ```
 

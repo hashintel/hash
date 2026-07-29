@@ -37,13 +37,24 @@ use crate::disjoint::DisjointSet;
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///
-/// Calibrated against a fitted development corpus (985,932 rows, 30 stored neighbours per row): the
-/// multi-row group count is flat at 131.5K within 0.1% across thresholds in `[0.0012,
-/// 0.0028]` while coverage grows from 49% to 61%, so every value on that plateau produces the same
-/// grouping structure. At 0.002 - cosine similarity 0.998 - the grouping reads 131,560 groups
-/// covering 55.8% of the corpus at mean size 4.2. Below the plateau exact duplicates stay split;
-/// above roughly 0.0045 the components percolate (group count falls while sizes grow without
-/// bound). An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a
+/// The value is calibrated, not derived, and the calibration is per generation rather than
+/// universal. On two fits of the development corpus (985,932 rows, 30 stored neighbours per row)
+/// it sits on a plateau: `2ea9cb45…` reads 131,773, 131,760, and 131,147 multi-row groups at ε =
+/// 0.0012, 0.002, and 0.0028 - a 0.48% spread - while coverage grows from 48.7% to 60.9%, and
+/// `c1d00be7…` reproduces every one of those readings within 0.02%. At 0.002, cosine similarity
+/// 0.998, the first reads 131,760 groups covering 55.9% of the corpus at mean size 4.18. Below the
+/// plateau exact duplicates stay split; above roughly 0.0045 the components percolate, the group
+/// count falling while sizes grow without bound.
+///
+/// The plateau belongs to those fits and not to the construction: generation `bfc67cbc…` has none.
+/// It reads 85,794, 91,162, and 95,179 groups over the same three thresholds - a 10.9% rise across
+/// the interval - with the curve 34.9%, 30.8%, and 27.4% below the others at those three
+/// thresholds and coverage 39.0% to 53.3%,
+/// so there ε = 0.002 sits on a slope and neighbouring thresholds do not produce the same grouping
+/// structure. A clump-granularity reading is therefore comparable within one generation and not
+/// across generations; `report clumps` re-reads the curve for a new fit in seconds.
+///
+/// An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a
 /// different grouping construction and is not reproducible by ε-connected components over the
 /// k-NN table at any threshold; it anchors the scale of this value, not the value itself.
 pub(crate) const DEFAULT_EPSILON: f32 = 0.002;

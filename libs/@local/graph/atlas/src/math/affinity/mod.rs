@@ -75,7 +75,9 @@ impl AffinityCurve {
     /// The symmetric per-axis bound on every gradient component.
     ///
     /// Coefficients diverge as distances approach zero; the clamp bounds the displacement a single
-    /// sampled pair can cause, before the learning rate scales it.
+    /// sampled pair can cause, before the learning rate scales it. A displacement bound is only
+    /// meaningful relative to the frame it moves in: the clip and the caller's layout extent fix
+    /// one ratio, so a caller sizing its initial frame sizes it against this constant.
     pub const GRADIENT_CLIP: f32 = 4.0;
     /// Additive guard in the repulsion denominator.
     ///

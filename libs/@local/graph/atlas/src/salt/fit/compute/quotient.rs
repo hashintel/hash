@@ -495,8 +495,6 @@ mod tests {
         let path = super::materialize_distinct(&directory, matrix.view(), &quotient)
             .expect("the distinct matrix writes");
 
-        drop(directory);
-
         let file = ArrayFile::open(&path).expect("the distinct matrix reopens");
         let distinct: &[AlignedVecN<WIDTH>] = file.vectors().expect("the file is aligned f32 rows");
 
@@ -508,5 +506,13 @@ mod tests {
                 "distinct row {index} gathers corpus row {first}",
             );
         }
+
+        // The distinct matrix is scratch: its storage lives and dies with the directory.
+        drop(file);
+        drop(directory);
+        assert!(
+            ArrayFile::open(&path).is_err(),
+            "the scratch storage is removed with its directory",
+        );
     }
 }

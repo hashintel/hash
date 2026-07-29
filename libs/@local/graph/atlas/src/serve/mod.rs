@@ -22,13 +22,12 @@
 //! sets intersect the node mask, an edge delivers only when the proof holds its own link row and
 //! both endpoints, and row ingress factors through [`Atlas::resolve`], where decode failure,
 //! out-of-universe values, and mask misses collapse to one `None` - forbidden and nonexistent
-//! answer identical bytes. A transport without scoped sessions constructs
-//! [`VisibilityProof::full_visibility`] explicitly.
+//! answer identical bytes.
 //!
-//! [`ScopeReach`] accompanies the proof and names the surfaces the bound authority reaches. The
-//! proof states which rows are visible and carries no authenticated generation, scope, or
-//! permission epoch, so the link-bearing surfaces answer the operator scope and refuse a restricted
-//! one until a resolver supplies both masks under one complete epoch.
+//! Every surface answers under any proof, the link-bearing ones included: a proof carries a mask
+//! per identity domain, so the authorization of a link row is a statement the proof holds rather
+//! than something its endpoints imply. Refusals are per row - an unproven row is absent - so a
+//! scope that may see nothing receives a well-formed response that delivers nothing.
 //!
 //! # Architecture
 //!
@@ -37,8 +36,8 @@
 //! validation produces; `grid` is the bucket schedule and its addressing; `secret` the wire
 //! secret; `error` the open-failure taxonomy.
 //!
-//! The domain: `visibility` carries the proof and the resolution seam and `scope` the surfaces the
-//! bound authority reaches; `codec` the keyed row-id permutation; `walk` the schedule-driven point
+//! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
+//! permutation; `walk` the schedule-driven point
 //! delivery - full-visibility range assembly, the masked delivery chain, and the census;
 //! `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring resolution;
 //! `intern` the wire intern tables; `seal` the sealed visibility bitmaps; `hydrate` the live store
@@ -51,6 +50,7 @@
 
 use self::grid::Grid;
 pub use self::{
+    cache::VisibilityLimits,
     codec::WireRow,
     edges::{EdgesDocument, EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
@@ -61,7 +61,6 @@ pub use self::{
     locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     open::OpenOptions,
-    scope::ScopeReach,
     seal::SealLimits,
     secret::{WireSecret, WireSecretError},
     tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
@@ -70,6 +69,10 @@ pub use self::{
         TranslatedNode,
     },
     visibility::{VisibilityProof, VisibleRow},
+};
+pub(crate) use self::{
+    cache::{VisibilityCache, VisibilityKey},
+    hydrate::compile::{ProofError, visibility_proof},
 };
 use crate::{
     dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -87,6 +90,7 @@ pub use crate::{
     salt::wire::{Mode, tile::TileCoordinate},
 };
 
+mod cache;
 mod codec;
 mod colour;
 mod edges;
@@ -98,7 +102,6 @@ mod locate;
 mod manifest;
 mod neighbourhood;
 mod open;
-mod scope;
 mod seal;
 mod secret;
 mod tile;
@@ -184,7 +187,7 @@ pub struct Filter(serde_json::Value);
 ///     },
 /// )?);
 ///
-/// // An operator context without scoped sessions names its authority explicitly.
+/// // Authority over the whole corpus, stated deliberately.
 /// let proof = VisibilityProof::full_visibility();
 /// let bytes = atlas.tile(
 ///     &TileRequest {

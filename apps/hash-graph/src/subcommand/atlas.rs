@@ -1,12 +1,16 @@
+use alloc::sync::Arc;
 use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
 use hash_graph_atlas::cli;
-use hash_graph_postgres_store::store::DatabaseConnectionInfo;
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
+};
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
+use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -48,6 +52,9 @@ pub struct AtlasArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
+    #[clap(flatten)]
+    pub db_pool_config: DatabasePoolConfig,
+
     #[command(subcommand)]
     pub command: Option<AtlasCommand>,
 }
@@ -65,20 +72,28 @@ pub(crate) async fn run_atlas(
     address: AtlasAddress,
     root: cli::RootArgs,
     serve: cli::ServeArgs,
-    dsn: String,
+    db_info: &DatabaseConnectionInfo,
+    db_pool_config: &DatabasePoolConfig,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
-    // This process serves without scoped sessions: full visibility
-    // is the operator's explicit choice here, never a default the
-    // library assumes. Every response exposes the whole generation,
-    // so the surrounding deployment must restrict access to operators.
-    let proof = hash_graph_atlas::serve::VisibilityProof::full_visibility();
-    let client = cli::connect(&dsn)
-        .await
-        .map_err(Report::new)
-        .change_context(GraphError)?;
+    // One pool serves the process: detail trailers and the permission
+    // resolution behind every request read through it, so neither
+    // waits on a connection the other holds.
+    let pool = PostgresStorePool::new(
+        db_info,
+        db_pool_config,
+        NoTls,
+        PostgresStoreSettings::default(),
+    )
+    .await
+    .change_context(GraphError)?;
+
+    // Every request answers under the scope of the actor it names.
     let router = cli::ServeCommand::new(root, serve)
-        .run(client, proof)
+        .run(
+            Arc::new(pool),
+            hash_graph_atlas::serve::VisibilityLimits::default(),
+        )
         .map_err(Report::new)
         .change_context(GraphError)?
         .layer(HttpTracingLayer);
@@ -145,9 +160,16 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
 
     let lifecycle = ServerLifecycle::new();
     let shutdown = lifecycle.shutdown.clone();
-    let dsn = args.db_info.url();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(args.address, args.root, args.serve, dsn, shutdown).await
+        run_atlas(
+            args.address,
+            args.root,
+            args.serve,
+            &args.db_info,
+            &args.db_pool_config,
+            shutdown,
+        )
+        .await
     });
 
     // Wait for shutdown signal or unexpected server exit

@@ -187,12 +187,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
 
     assert_eq!(
         atlas
-            .edges(
-                &edges_request(full_grid()),
-                EdgesLimits::default(),
-                &proof,
-                ScopeReach::Operator,
-            )
+            .edges(&edges_request(full_grid()), EdgesLimits::default(), &proof,)
             .expect("the masked grid serves"),
         expected_edges_bytes(&generation, true, &sources, &targets, &rows),
     );
@@ -221,12 +216,7 @@ async fn translate_answers_missing_for_denied() {
         ],
     };
     let masked = atlas
-        .translate(
-            request.clone(),
-            TranslateLimits::default(),
-            &proof,
-            ScopeReach::Operator,
-        )
+        .translate(request.clone(), TranslateLimits::default(), &proof)
         .expect("the request is under the cap");
     assert!(!masked.nodes.contains_key(&entity_string_of(5)));
     assert!(masked.nodes.contains_key(&entity_string_of(6)));
@@ -236,12 +226,7 @@ async fn translate_answers_missing_for_denied() {
     // The full proof answers all four: the absences above are the
     // mask's, not the identity tables'.
     let full = atlas
-        .translate(
-            request,
-            TranslateLimits::default(),
-            &FULL,
-            ScopeReach::Operator,
-        )
+        .translate(request, TranslateLimits::default(), &FULL)
         .expect("the request is under the cap");
     assert_eq!(full.nodes.len(), 2);
     assert_eq!(full.edges.len(), 2);
@@ -298,12 +283,7 @@ async fn locate_filters_partners_under_the_mask() {
     let hidden_source = mask_hiding(&atlas, &[0]);
     assert_eq!(
         atlas
-            .assemble_locate(
-                &locate_request(entity_string_of(0)),
-                limits,
-                &hidden_source,
-                ScopeReach::Operator,
-            )
+            .assemble_locate(&locate_request(entity_string_of(0)), limits, &hidden_source,)
             .map(|_| ())
             .expect_err("the hidden source rejects"),
         crate::serve::LocateError::UnknownEntity,
@@ -317,7 +297,7 @@ async fn locate_filters_partners_under_the_mask() {
     };
     assert_eq!(
         atlas
-            .assemble_locate(&by_row, limits, &hidden_source, ScopeReach::Operator)
+            .assemble_locate(&by_row, limits, &hidden_source)
             .map(|_| ())
             .expect_err("the hidden source rejects by row too"),
         crate::serve::LocateError::UnknownEntity,
@@ -371,12 +351,7 @@ async fn a_hidden_link_row_is_withheld_from_the_edges_grid() {
 
     assert_eq!(
         atlas
-            .edges(
-                &edges_request(full_grid()),
-                EdgesLimits::default(),
-                &proof,
-                ScopeReach::Operator,
-            )
+            .edges(&edges_request(full_grid()), EdgesLimits::default(), &proof,)
             .expect("the masked grid serves"),
         expected_edges_bytes(&generation, true, &sources, &targets, &rows),
     );
@@ -444,7 +419,6 @@ async fn a_hidden_link_row_is_an_absent_key_in_translate() {
                 },
                 TranslateLimits::default(),
                 proof,
-                ScopeReach::Operator,
             )
             .expect("the request is under the cap")
     };
@@ -755,12 +729,7 @@ fn assert_edges_mask_by_intersection(
     let (sources, targets, rows) = wire_columns(atlas, &sources, &targets, &rows);
     assert_eq!(
         atlas
-            .edges(
-                &edges_request(full_grid()),
-                EdgesLimits::default(),
-                proof,
-                ScopeReach::Operator,
-            )
+            .edges(&edges_request(full_grid()), EdgesLimits::default(), proof,)
             .expect("the masked grid serves"),
         expected_edges_bytes(generation, true, &sources, &targets, &rows),
     );
@@ -785,7 +754,6 @@ fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, 
             },
             TranslateLimits::default(),
             proof,
-            ScopeReach::Operator,
         )
         .expect("the request is under the cap");
     for row in 0..universe {
@@ -965,16 +933,11 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
 
         // The nonexistent baselines, once per proof.
         let missing_entity = atlas
-            .assemble_locate(
-                &locate_request(ghost_id.clone()),
-                limits,
-                &proof,
-                ScopeReach::Operator,
-            )
+            .assemble_locate(&locate_request(ghost_id.clone()), limits, &proof)
             .map(|_| ())
             .expect_err("an unknown entity rejects");
         let missing_row = atlas
-            .assemble_locate(&by_row(ghost_wire), limits, &proof, ScopeReach::Operator)
+            .assemble_locate(&by_row(ghost_wire), limits, &proof)
             .map(|_| ())
             .expect_err("an out-of-image wire value rejects");
         let missing_translated = atlas
@@ -984,7 +947,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                 },
                 TranslateLimits::default(),
                 &proof,
-                ScopeReach::Operator,
             )
             .expect("the request is under the cap");
 
@@ -992,12 +954,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
 
             let denied = atlas
-                .assemble_locate(
-                    &locate_request(id.clone()),
-                    limits,
-                    &proof,
-                    ScopeReach::Operator,
-                )
+                .assemble_locate(&locate_request(id.clone()), limits, &proof)
                 .map(|_| ())
                 .expect_err("a hidden source rejects");
             assert_eq!(denied, missing_entity, "denied and missing are one error");
@@ -1008,7 +965,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                     &by_row(node_codec.encode(NodeRowId::from_u32(row)).get()),
                     limits,
                     &proof,
-                    ScopeReach::Operator,
                 )
                 .map(|_| ())
                 .expect_err("a hidden row's wire id rejects");
@@ -1024,7 +980,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                     },
                     TranslateLimits::default(),
                     &proof,
-                    ScopeReach::Operator,
                 )
                 .expect("the request is under the cap");
             assert_eq!(

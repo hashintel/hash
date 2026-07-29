@@ -1,10 +1,15 @@
-//! The store boundary: live detail reads over one Postgres connection.
+//! The store boundary: live detail reads over the serving store pool.
 //!
 //! One batched query per request, input order preserved through the ordinality column, absent
-//! entities simply missing from the result. The connection is dialed by the transport layer -
-//! the same `HASH_GRAPH_PG_*` configuration the graph binary speaks.
+//! entities simply missing from the result. A connection is held for the duration of one query and
+//! returned, so a request's hydration waits only on the store's own work.
 
-use tokio_postgres::Client;
+use alloc::sync::Arc;
+
+use error_stack::Report;
+use hash_graph_postgres_store::store::{AsClient, PostgresStorePool, error::StoreError};
+use hash_graph_store::pool::StorePool as _;
+use tokio_postgres::GenericClient as _;
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -193,34 +198,59 @@ const EDGES_LINK_QUERY: &str = "
 
 /// A detail hydration failed against the store.
 #[derive(Debug)]
-pub struct DetailError(tokio_postgres::Error);
+pub enum DetailError {
+    /// No connection was available for the query.
+    Connect(Report<StoreError>),
+    /// The store rejected the query.
+    Query(tokio_postgres::Error),
+}
 
 impl core::fmt::Display for DetailError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(fmt, "the detail hydration failed: {}", self.0)
+        match self {
+            Self::Connect(report) => {
+                write!(
+                    fmt,
+                    "the detail hydration reached no store connection: {report}"
+                )
+            }
+            Self::Query(error) => write!(fmt, "the detail hydration failed: {error}"),
+        }
     }
 }
 
 impl core::error::Error for DetailError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        Some(&self.0)
+        match self {
+            // A report is not an `Error`; its own display carries the chain.
+            Self::Connect(_) => None,
+            Self::Query(error) => Some(error),
+        }
     }
 }
 
-/// Live detail reads over one store connection.
+/// Live detail reads over the serving store pool.
 ///
-/// The connection is dialed by the transport layer - the same `HASH_GRAPH_PG_*` configuration the
-/// graph binary speaks - and the hydration path issues one batched query per request.
+/// The pool is the transport layer's, shared with every other store read the process makes, and the
+/// hydration path issues one batched query per request.
 #[derive(Debug)]
 pub struct GraphDatabaseClient {
-    postgres: Client,
+    pool: Arc<PostgresStorePool>,
 }
 
 impl GraphDatabaseClient {
     /// Wraps an established store connection.
     #[must_use]
-    pub const fn new(postgres: Client) -> Self {
-        Self { postgres }
+    pub const fn new(pool: Arc<PostgresStorePool>) -> Self {
+        Self { pool }
+    }
+
+    /// Holds one connection for the duration of one query.
+    async fn connection(&self) -> Result<impl AsClient, DetailError> {
+        self.pool
+            .acquire(None)
+            .await
+            .map_err(|report| DetailError::Connect(report.change_context(StoreError)))
     }
 
     /// Hydrates labels and icons for the delivered entities, aligned to the delivered order.
@@ -246,10 +276,12 @@ impl GraphDatabaseClient {
 
         let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
-            .postgres
+            .connection()
+            .await?
+            .as_client()
             .query(DETAIL_QUERY, &[&web_ids, &entity_uuids, &ICON_PROPERTY])
             .await
-            .map_err(DetailError)?;
+            .map_err(DetailError::Query)?;
 
         let mut labels = vec![None; entities.count()];
         let mut icons = vec![None; entities.count()];
@@ -291,10 +323,12 @@ impl GraphDatabaseClient {
 
         let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
-            .postgres
+            .connection()
+            .await?
+            .as_client()
             .query(LOCATE_DETAIL_QUERY, &[&web_ids, &entity_uuids])
             .await
-            .map_err(DetailError)?;
+            .map_err(DetailError::Query)?;
 
         let mut labels = vec![None; entities.count()];
         let mut type_url_columns = vec![Vec::new(); entities.count()];
@@ -348,10 +382,12 @@ impl GraphDatabaseClient {
 
         let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
-            .postgres
+            .connection()
+            .await?
+            .as_client()
             .query(LOCATE_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
-            .map_err(DetailError)?;
+            .map_err(DetailError::Query)?;
 
         let mut labels = vec![None; entities.count()];
         let mut type_url_columns = vec![Vec::new(); entities.count()];
@@ -405,10 +441,12 @@ impl GraphDatabaseClient {
 
         let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
         let rows = self
-            .postgres
+            .connection()
+            .await?
+            .as_client()
             .query(EDGES_LINK_QUERY, &[&web_ids, &entity_uuids])
             .await
-            .map_err(DetailError)?;
+            .map_err(DetailError::Query)?;
 
         let mut labels = vec![None; entities.count()];
         let mut first_type_urls = vec![None; entities.count()];

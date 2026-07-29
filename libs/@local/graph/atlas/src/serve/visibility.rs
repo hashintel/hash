@@ -29,15 +29,16 @@ use super::{Atlas, WireRow};
 use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
+    integrity::{Sha256, Sha256Digest, Update as _},
 };
 
 /// The server-held visibility proof: the visible node-row and link-row sets every assembly path
 /// masks by.
 ///
 /// A proof enters a handler by construction - the assembly signatures take one, so a missing proof
-/// is unrepresentable rather than defaulted. The two constructors mark the two legitimate origins:
-/// [`Self::full_visibility`] for operator serving without sessions, and [`Self::from_masks`] for
-/// server-held evaluated visibility masks.
+/// is unrepresentable rather than defaulted. [`Self::from_masks`] builds the proof of an evaluated
+/// scope, one mask per identity domain, and [`Self::full_visibility`] the proof that admits every
+/// row of every domain, for a context that holds authority over the whole corpus.
 ///
 /// Membership is fail-closed: a row a held mask does not admit is not visible, so a proof built
 /// against a smaller universe hides the excess rather than revealing it. The value authenticates
@@ -83,11 +84,12 @@ impl<T: Id> Rows<T> {
 impl VisibilityProof {
     /// Constructs the full-visibility proof: every row of every domain is visible.
     ///
-    /// This is the operator constructor. A process that serves without scoped sessions - the
-    /// standalone development server, operator tooling against a trusted port - constructs this
-    /// value explicitly at startup. Caller requirement: this value is never a default and never
-    /// the answer to a missing or failed session - the type performs no session resolution, so
-    /// only deliberate operator configuration may construct it.
+    /// The proof of authority over the whole corpus, which a caller states deliberately: the type
+    /// performs no session resolution, so this value carries no evidence of its own.
+    ///
+    /// Caller requirement: a served request answers under the proof of the scope that was resolved
+    /// for it. This value is the authority of a context that holds the corpus outright - operator
+    /// tooling over a trusted port, and the fixtures that assert unmasked delivery.
     #[must_use]
     pub const fn full_visibility() -> Self {
         Self {
@@ -114,6 +116,41 @@ impl VisibilityProof {
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
         }
+    }
+
+    /// Returns a digest of what this proof admits.
+    ///
+    /// Two proofs share a digest when they admit the same node rows, admit the same link rows, and
+    /// were built through the same constructor. The two domains absorb separately and rows absorb
+    /// in ascending order, so the digest is a function of the admitted sets alone. The
+    /// full-visibility value and a mask admitting every row of a generation carry different
+    /// digests, matching [`Self::is_full`].
+    ///
+    /// This names what a proof admits, never who may hold it: binding the digest to a generation,
+    /// an actor, or a permission epoch is its caller's contract.
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the digest pins one byte order so equal admitted sets digest equally on every \
+                  target"
+    )]
+    pub(super) fn digest(&self) -> Sha256Digest {
+        fn absorb<T: Id>(hasher: &mut Sha256, rows: &Rows<T>) {
+            match rows {
+                Rows::Full => hasher.update(b"full"),
+                Rows::Mask(mask) => {
+                    hasher.update(b"mask");
+                    for row in mask.iter() {
+                        hasher.update(&row.as_u64().to_le_bytes());
+                    }
+                }
+            }
+        }
+
+        let mut hasher = Sha256::new();
+        absorb(&mut hasher, &self.nodes);
+        absorb(&mut hasher, &self.edges);
+
+        hasher.finalize()
     }
 
     /// Returns whether this is the full-visibility proof, the masked paths' fast-path test.
