@@ -235,8 +235,26 @@ where
                     INSERT INTO entity_edge
                         SELECT * FROM entity_edge_tmp;
 
-                    INSERT INTO entity_embeddings
-                        SELECT * FROM entity_embeddings_tmp;
+                    -- The explicit list leaves out the generated `embedding_bits` column, which
+                    -- rejects inserts even when the staging table is empty.
+                    INSERT INTO entity_embeddings (
+                        web_id,
+                        entity_uuid,
+                        draft_id,
+                        property,
+                        embedding,
+                        updated_at_decision_time,
+                        updated_at_transaction_time
+                    )
+                        SELECT
+                            web_id,
+                            entity_uuid,
+                            draft_id,
+                            property,
+                            embedding,
+                            updated_at_decision_time,
+                            updated_at_transaction_time
+                        FROM entity_embeddings_tmp;
             ",
             )
             .instrument(tracing::info_span!(

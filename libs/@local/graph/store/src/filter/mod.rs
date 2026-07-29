@@ -135,12 +135,6 @@ pub enum Filter<'p, R: QueryRecord> {
     Less(FilterExpression<'p, R>, FilterExpression<'p, R>),
     LessOrEqual(FilterExpression<'p, R>, FilterExpression<'p, R>),
     #[serde(skip)]
-    CosineDistance(
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-        FilterExpression<'p, R>,
-    ),
-    #[serde(skip)]
     In(FilterExpression<'p, R>, FilterExpressionList<'p, R>),
     StartsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
     EndsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
@@ -1240,38 +1234,6 @@ where
                 lhs.apply_parameter_conversion(data_type_provider).await?;
                 rhs.apply_parameter_conversion(data_type_provider).await?;
 
-                match (lhs, rhs) {
-                    (
-                        FilterExpression::Parameter {
-                            parameter,
-                            convert: _,
-                        },
-                        FilterExpression::Path { path },
-                    )
-                    | (
-                        FilterExpression::Path { path },
-                        FilterExpression::Parameter {
-                            parameter,
-                            convert: _,
-                        },
-                    ) => {
-                        parameter.convert_to_parameter_type(&path.expected_type())?;
-                    }
-                    (..) => {}
-                }
-            }
-            Self::CosineDistance(lhs, rhs, max) => {
-                lhs.apply_parameter_conversion(data_type_provider).await?;
-                rhs.apply_parameter_conversion(data_type_provider).await?;
-                max.apply_parameter_conversion(data_type_provider).await?;
-
-                if let FilterExpression::Parameter {
-                    parameter,
-                    convert: _,
-                } = max
-                {
-                    parameter.convert_to_parameter_type(&ParameterType::Decimal)?;
-                }
                 match (lhs, rhs) {
                     (
                         FilterExpression::Parameter {
