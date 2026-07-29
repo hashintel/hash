@@ -16,7 +16,6 @@ import { useDocs } from "../shared/docs/use-docs";
 import { buildCsvContent, downloadCsv } from "../shared/export-utils";
 import { useSupplierPerformanceEnabled } from "../shared/feature-flags";
 import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
-import { useBaseMeasure } from "../shared/measure-context";
 import { ensureNodeStats } from "../shared/normalize-contract";
 import { countNoun } from "../shared/observation-labels";
 import { applyOutlierSelectionToStep } from "../shared/outlier-selection";
@@ -1549,7 +1548,6 @@ export const OpportunityBrief = ({
   const { timeRange } = useTimeRange();
   const { setAnalysisSettings, waccRate, storageCost } = useCostParams();
   const { excludeOutliers } = useOutlierSetting();
-  const { measure } = useBaseMeasure();
   const { basis: procurementBasis } = useProcurementBasis();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
   const [siteSummary, setSiteSummary] = useState<SiteSummary | null>(null);
@@ -1664,15 +1662,7 @@ export const OpportunityBrief = ({
       ),
       products: node.products,
     };
-  }, [
-    nodes,
-    stepId,
-    productId,
-    timeRange,
-    excludeOutliers,
-    measure,
-    procurementBasis,
-  ]);
+  }, [nodes, stepId, productId, timeRange, excludeOutliers, procurementBasis]);
 
   // Each consuming product's own (pre-dedup) node for this material/step, so the
   // brief can report per-product BOM membership and E2E binding leverage that the
@@ -1711,7 +1701,7 @@ export const OpportunityBrief = ({
       applyProcurementBasisToStep(step, procurementBasis),
       excludeOutliers,
     );
-  }, [step, excludeOutliers, measure, procurementBasis]);
+  }, [step, excludeOutliers, procurementBasis]);
 
   const filteredStep = useMemo(() => {
     if (!step) {
@@ -1723,7 +1713,7 @@ export const OpportunityBrief = ({
       excludeOutliers,
       procurementBasis,
     );
-  }, [step, timeRange, excludeOutliers, measure, procurementBasis]);
+  }, [step, timeRange, excludeOutliers, procurementBasis]);
 
   const brief = useMemo(() => {
     if (!filteredStep || !historicalStep) {

@@ -25,7 +25,6 @@ import { useDocs } from "./docs/use-docs";
 import { useSupplierPerformanceEnabled } from "./feature-flags";
 import { LoadingState, ErrorState } from "./load-state";
 import { MaterialTag } from "./material-tag";
-import { useBaseMeasure, type BaseMeasure } from "./measure-context";
 import { applyOutlierSelectionToStep } from "./outlier-selection";
 import { computePeriodDeltas } from "./period-trends";
 import { useProcurementBasis } from "./procurement-basis-context";
@@ -71,6 +70,7 @@ import { recomputeSupplierBlock } from "./supplier-otif";
 import { TIME_RANGE_OPTIONS, timeRangeLongLabel } from "./time-range";
 import { useTimeRange } from "./time-range-context";
 
+import type { BaseMeasure } from "./measure-context";
 import type {
   StepDetail as StepDetailType,
   StepStats,
@@ -404,8 +404,6 @@ export const StepDetailPanel = ({
   );
   const dataTableRef = useRef<DataTableSectionHandle>(null);
   const { excludeOutliers } = useOutlierSetting();
-  const { measure } = useBaseMeasure();
-  const effectiveMeasure = measureOverride ?? measure;
   const { basis: procurementBasis } = useProcurementBasis();
   const { products } = useRegistry();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
