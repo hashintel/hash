@@ -199,6 +199,9 @@ export const DispatchLane = ({
                 type="button"
                 className={eventMarker}
                 data-dispatch-marker-kind="selected-product-lane"
+                data-schedule-dispatch-event-ids={clusterDispatches
+                  .map((dispatch) => dispatch.id)
+                  .join(",")}
                 aria-pressed={selected}
                 style={{
                   boxShadow: selected ? "0 0 0 2px #0f172a" : undefined,

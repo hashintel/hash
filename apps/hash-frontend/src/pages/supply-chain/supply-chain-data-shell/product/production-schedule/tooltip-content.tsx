@@ -271,6 +271,7 @@ const deliverySummary = (
 ): string =>
   [
     delivery.delivery_number ? `Delivery ${delivery.delivery_number}` : null,
+    delivery.sales_order ? `Sales order ${delivery.sales_order}` : null,
     delivery.customer_name ?? delivery.ship_to ?? null,
     delivery.incoterms_2
       ? `Destination ${delivery.incoterms_2}`

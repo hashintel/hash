@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
 
+import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { ProductionScheduleView } from "./production-schedule";
 
 import type {
@@ -315,7 +322,11 @@ beforeAll(() => {
   HTMLElement.prototype.scrollTo = vi.fn();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+  vi.useRealTimers();
+});
 
 const selectOption = async (
   selectName: string,
@@ -926,5 +937,170 @@ describe("ProductionScheduleView", () => {
 
     expect(screen.queryByText("Dispatched as FG")).toBeNull();
     expect(screen.queryByText("Over-depleted inventory")).toBeNull();
+  });
+
+  it("selects and reveals a batch from an exact identifier search", async () => {
+    vi.useFakeTimers();
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+
+    fireEvent.change(
+      screen.getByRole("searchbox", {
+        name: "Search production timeline by identifier",
+      }),
+      { target: { value: "raw-batch" } },
+    );
+    await act(() => vi.advanceTimersByTimeAsync(200));
+
+    expect(
+      screen
+        .getByRole("button", { name: "Batch raw-batch" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("Selected batch");
+
+    await act(() => vi.advanceTimersByTimeAsync(500));
+    expect(
+      vi
+        .mocked(trackSupplyChainInteraction)
+        .mock.calls.filter(
+          ([properties]) =>
+            properties.interaction ===
+            "production_schedule_identifier_searched",
+        ),
+    ).toHaveLength(1);
+    expect(
+      vi
+        .mocked(trackSupplyChainInteraction)
+        .mock.calls.find(
+          ([properties]) =>
+            properties.interaction ===
+            "production_schedule_identifier_searched",
+        )?.[0],
+    ).not.toHaveProperty("query");
+  });
+
+  it("centers the rendered matching node in both scroll directions", async () => {
+    vi.useFakeTimers();
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+    const frame = screen.getByRole("region", {
+      name: "Scrollable production timeline",
+    });
+    const batch = screen.getByRole("button", { name: "Batch batch-1" });
+    Object.defineProperties(frame, {
+      clientHeight: { configurable: true, value: 600 },
+      clientWidth: { configurable: true, value: 800 },
+    });
+    frame.getBoundingClientRect = () =>
+      ({
+        bottom: 600,
+        height: 600,
+        left: 0,
+        right: 800,
+        top: 0,
+        width: 800,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    batch.getBoundingClientRect = () =>
+      ({
+        bottom: 430,
+        height: 30,
+        left: 600,
+        right: 700,
+        top: 400,
+        width: 100,
+        x: 600,
+        y: 400,
+        toJSON: () => ({}),
+      }) as DOMRect;
+
+    fireEvent.change(
+      screen.getByRole("searchbox", {
+        name: "Search production timeline by identifier",
+      }),
+      { target: { value: "batch-1" } },
+    );
+    await act(() => vi.advanceTimersByTimeAsync(200));
+
+    expect(frame.scrollLeft).toBeGreaterThan(0);
+    expect(frame.scrollTop).toBeGreaterThan(0);
+  });
+
+  it("keeps a selection on no-match, then clears query and selection together", async () => {
+    vi.useFakeTimers();
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+    const search = screen.getByRole("searchbox", {
+      name: "Search production timeline by identifier",
+    });
+    fireEvent.change(search, { target: { value: "raw-batch" } });
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    expect(
+      screen
+        .getByRole("button", { name: "Batch raw-batch" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.change(search, { target: { value: "not-present" } });
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    expect(screen.getByText("No matching timeline identifier")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("button", { name: "Batch raw-batch" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear input" }));
+    expect(search).toHaveProperty("value", "");
+    expect(
+      screen
+        .getByRole("button", { name: "Batch raw-batch" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+    expect(screen.queryByText("No matching timeline identifier")).toBeNull();
+  });
+
+  it("reveals a non-product dispatch matched by identifier", async () => {
+    vi.useFakeTimers();
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+
+    fireEvent.change(
+      screen.getByRole("searchbox", {
+        name: "Search production timeline by identifier",
+      }),
+      { target: { value: "dispatch-foreign-material" } },
+    );
+    await act(() => vi.advanceTimersByTimeAsync(200));
+
+    expect(
+      screen.getByRole("combobox", { name: "Lane display" }).textContent,
+    ).toContain("Lane");
+    expect(
+      screen
+        .getByRole("button", {
+          name: "Select dispatch for batch raw-batch",
+        })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
   });
 });

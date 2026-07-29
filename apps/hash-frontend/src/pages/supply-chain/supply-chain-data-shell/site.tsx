@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { isDwellType } from "../shared/categories";
-import { formatCost } from "../shared/cost";
+import { formatCost, useCostParams, useOutlierSetting } from "../shared/cost";
+import { downloadCsv } from "../shared/export-utils";
 import { useSupplierPerformanceEnabled } from "../shared/feature-flags";
 import {
   AnalysisSettingsPanel,
@@ -12,7 +13,9 @@ import {
 } from "../shared/header-actions";
 import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { useLowSampleSetting } from "../shared/low-sample-context";
+import { useProcurementBasis } from "../shared/procurement-basis-context";
 import { ScopeSelect } from "../shared/scope-select";
+import { SupplyChainSearchInput } from "../shared/search-input";
 import { StatChip } from "../shared/stat-chip";
 import { statusKey } from "../shared/status";
 import { StatusDialog } from "../shared/status-dialog";
@@ -31,6 +34,7 @@ import {
 import { OpportunitiesTable } from "./site/opportunities-table";
 import { PlanningTable } from "./site/planning-table";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
+import { buildSiteOverviewCsv } from "./site/site-overview-export";
 import { createSiteSearchMatchers } from "./site/site-search";
 import { SupplierTable } from "./site/supplier-table";
 import { TabButton } from "./site/tab-button";
@@ -99,101 +103,12 @@ const headerControls = css({
   gap: "2",
   flexShrink: 0,
 });
-const searchWrap = css({
+const searchControls = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   gap: "2",
-  w: "[320px]",
-  maxW: "[40vw]",
-  px: "3",
-  py: "1.5",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  borderRadius: "md",
-  bg: "bg.surface",
-  color: "fg.subtle",
-  transition: "colors",
-  _focusWithin: {
-    borderColor: "[#93c5fd]",
-    boxShadow: "[0 0 0 2px rgba(147, 197, 253, 0.25)]",
-  },
-  '&[data-active="true"]': {
-    bg: "[#eff6ff]",
-    borderColor: "[#2563eb]",
-    color: "[#2563eb]",
-  },
 });
-const searchInput = css({
-  flex: "1",
-  minW: "0",
-  bg: "[transparent]",
-  color: "fg.heading",
-  textStyle: "sm",
-  outline: "none",
-  _placeholder: { color: "fg.subtle" },
-});
-const clearSearchButton = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  w: "4",
-  h: "4",
-  flexShrink: 0,
-  color: "fg.subtle",
-  cursor: "pointer",
-  borderRadius: "sm",
-  _hover: { color: "fg.heading", bg: "bg.subtle" },
-});
-const clearSearchButtonHidden = css({
-  visibility: "hidden",
-  pointerEvents: "none",
-});
-
-const SiteSearchInput = ({
-  onChange,
-}: {
-  onChange: (query: string) => void;
-}) => {
-  const [value, setValue] = useState("");
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => onChange(value), 200);
-    return () => window.clearTimeout(timeout);
-  }, [value, onChange]);
-
-  return (
-    <div
-      className={searchWrap}
-      data-active={value ? "true" : undefined}
-      role="search"
-      style={value ? { borderColor: "#2563eb" } : undefined}
-    >
-      <Icon name="search" size="xs" />
-      <input
-        type="text"
-        value={value}
-        className={searchInput}
-        placeholder="Search..."
-        aria-label="Search site overview tables"
-        onChange={(event) => setValue(event.target.value)}
-      />
-      <button
-        type="button"
-        className={cx(clearSearchButton, !value && clearSearchButtonHidden)}
-        aria-label="Clear search"
-        disabled={!value}
-        onClick={() => {
-          setValue("");
-          onChange("");
-        }}
-      >
-        <Icon name="close" size="xs" />
-      </button>
-    </div>
-  );
-};
-
 const settingsCollapse = css({
   display: "grid",
   transition: "[grid-template-rows 180ms ease, opacity 160ms ease]",
@@ -291,10 +206,14 @@ export const SiteOverview = ({
   opportunityStatusActions = noopOpportunityStatusActions,
 }: SiteOverviewProps) => {
   const { timeRange } = useTimeRange();
+  const { currency, waccRate, storageCost } = useCostParams();
+  const { excludeOutliers } = useOutlierSetting();
+  const { basis: procurementBasis } = useProcurementBasis();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
   const siteSlug = siteId;
   const [tab, setTab] = useState<Tab>("dwell");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [searchInputValue, setSearchInputValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchParams] = useSearchParams();
   const { excludeLowSamples, setExcludeLowSamples } = useLowSampleSetting();
@@ -311,6 +230,14 @@ export const SiteOverview = ({
     node: SiteNode;
     title: string;
   } | null>(null);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setSearchQuery(searchInputValue),
+      200,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [searchInputValue]);
 
   const openStatus = useCallback(
     (node: SiteNode, title: string) => {
@@ -402,6 +329,7 @@ export const SiteOverview = ({
   const {
     loading,
     error,
+    historicalNodes,
     summaryStats,
     siteCurrency,
     monthlyCarryCost,
@@ -416,6 +344,44 @@ export const SiteOverview = ({
     supplierMode,
     supplierPerformanceEnabled,
   });
+  const handleExport = useCallback(() => {
+    const csv = buildSiteOverviewCsv({
+      dwellRows,
+      historicalNodes,
+      planningRows,
+      settings: {
+        currency,
+        excludeLowSamples,
+        excludeOutliers,
+        procurementBasis,
+        storageCost,
+        timeRange,
+        waccRate,
+      },
+      siteId: siteSlug,
+      statusHistory: opportunityStatusHistory,
+    });
+    downloadCsv(csv, `${siteSlug}_supply_chain_${timeRange}.csv`);
+    trackSupplyChainInteraction({
+      interaction: "csv_exported",
+      siteId,
+      source: "site_overview",
+    });
+  }, [
+    dwellRows,
+    currency,
+    excludeLowSamples,
+    excludeOutliers,
+    historicalNodes,
+    opportunityStatusHistory,
+    planningRows,
+    procurementBasis,
+    siteId,
+    siteSlug,
+    storageCost,
+    timeRange,
+    waccRate,
+  ]);
   const buildBriefHref = useCallback(
     (type: "dwell" | "planning", node: SiteNode, kind?: OpportunityKind) =>
       opportunityBriefHref(siteSlug, type, node, timeRange, searchParams, kind),
@@ -584,7 +550,21 @@ export const SiteOverview = ({
                 docContext="site"
               />
             </div>
-            <SiteSearchInput onChange={setSearchQuery} />
+            <div className={searchControls}>
+              <Button
+                variant="subtle"
+                tone="neutral"
+                size="sm"
+                onClick={handleExport}
+              >
+                Export
+              </Button>
+              <SupplyChainSearchInput
+                ariaLabel="Search site overview tables"
+                onChange={setSearchInputValue}
+                value={searchInputValue}
+              />
+            </div>
           </div>
         </div>
         <div
@@ -797,6 +777,11 @@ export const SiteOverview = ({
                   selectedStepStatusTarget.title
                 }`}
                 title={selectedStepStatusTarget.title}
+                entries={
+                  opportunityStatusHistory[
+                    statusKey(siteSlug, selectedStepStatusTarget.node)
+                  ] ?? []
+                }
                 inline
                 onClose={() => setStatusTarget(null)}
                 onSave={(entry) => {
@@ -826,6 +811,10 @@ export const SiteOverview = ({
             statusTarget.title
           }`}
           title={statusTarget.title}
+          entries={
+            opportunityStatusHistory[statusKey(siteSlug, statusTarget.node)] ??
+            []
+          }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
             opportunityStatusActions.onSaveStatus(statusTarget.node, entry);

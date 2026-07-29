@@ -1,12 +1,17 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
-import { usePortalContainerRef } from "@hashintel/ds-components";
+import {
+  Select,
+  usePortalContainerRef,
+  type SelectItem,
+} from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   STATUS_OPTIONS,
   statusCommentRequired,
+  type StatusEntry,
   type StatusOption,
 } from "./status";
 import { trackSupplyChainInteraction } from "./telemetry";
@@ -60,14 +65,47 @@ const body = css({
   flexDirection: "column",
   gap: "4",
 });
-const radioStack = css({ display: "flex", flexDirection: "column", gap: "2" });
-const radioLabel = css({
+const history = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  minH: "0",
+  maxH: "[min(240px,35dvh)]",
+  flexShrink: "1",
+  overflowY: "auto",
+});
+const historyEntry = css({
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "md",
+  px: "3",
+  py: "2",
+});
+const historyMeta = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
-  textStyle: "sm",
+  justifyContent: "space-between",
+  gap: "3",
+  textStyle: "xs",
+  color: "fg.subtle",
+});
+const historyCategory = css({
+  fontWeight: "medium",
   color: "fg.heading",
-  cursor: "pointer",
+});
+const historyComment = css({
+  mt: "1",
+  textStyle: "sm",
+  color: "fg.muted",
+  whiteSpace: "pre-wrap",
+});
+const fieldLabel = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  textStyle: "xs",
+  color: "fg.subtle",
 });
 const textarea = css({
   minH: "28",
@@ -122,10 +160,23 @@ const primaryButton = css({
 });
 
 const DEFAULT_STATUS: StatusOption = "Investigation started";
+const latestStatusCategory = (entries: readonly StatusEntry[]): StatusOption =>
+  entries.reduce<StatusEntry | undefined>(
+    (latestEntry, entry) =>
+      !latestEntry || entry.at > latestEntry.at ? entry : latestEntry,
+    undefined,
+  )?.category ?? DEFAULT_STATUS;
+const statusItems: SelectItem<StatusOption>[] = STATUS_OPTIONS.map(
+  (option) => ({
+    value: option,
+    text: option,
+  }),
+);
 
 export interface StatusDialogProps {
   /** Subtitle shown under the heading (e.g. the step / opportunity title). */
   title: string;
+  entries?: readonly StatusEntry[];
   onClose: () => void;
   onSave: (status: { category: StatusOption; text: string }) => void;
   /**
@@ -142,18 +193,21 @@ export interface StatusDialogProps {
  */
 export const StatusDialog = ({
   title,
+  entries = [],
   onClose,
   onSave,
   inline = false,
 }: StatusDialogProps) => {
-  const [category, setCategory] = useState<StatusOption>(DEFAULT_STATUS);
+  const [category, setCategory] = useState<StatusOption>(() =>
+    latestStatusCategory(entries),
+  );
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const statusSelectId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const portalRef = usePortalContainerRef();
 
   useEffect(() => {
-    setCategory(DEFAULT_STATUS);
     setText("");
     setError(null);
     const id = requestAnimationFrame(() => {
@@ -232,19 +286,52 @@ export const StatusDialog = ({
           </button>
         </div>
         <div className={body}>
-          <div className={radioStack}>
-            {STATUS_OPTIONS.map((option) => (
-              <label key={option} className={radioLabel}>
-                <input
-                  type="radio"
-                  name="status-category"
-                  value={option}
-                  checked={category === option}
-                  onChange={() => selectCategory(option)}
-                />
-                {option}
-              </label>
-            ))}
+          {entries.length > 0 && (
+            <section>
+              <div
+                className={history}
+                role="region"
+                aria-label="Previous status updates"
+                // A bounded overflow region must be keyboard-focusable to scroll.
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+              >
+                {[...entries]
+                  .sort((left, right) => left.at.localeCompare(right.at))
+                  .map((entry) => (
+                    <article
+                      key={`${entry.at}-${entry.user}-${entry.category}-${entry.text}`}
+                      className={historyEntry}
+                    >
+                      <div className={historyMeta}>
+                        <span>
+                          <span className={historyCategory}>
+                            {entry.category}
+                          </span>{" "}
+                          · {entry.user}
+                        </span>
+                        <time dateTime={entry.at}>
+                          {new Date(entry.at).toLocaleString()}
+                        </time>
+                      </div>
+                      <p className={historyComment}>
+                        {entry.text || "(no comment)"}
+                      </p>
+                    </article>
+                  ))}
+              </div>
+            </section>
+          )}
+          <div className={fieldLabel}>
+            <label htmlFor={statusSelectId}>Status</label>
+            <Select
+              items={statusItems}
+              value={category}
+              onChange={selectCategory}
+              required
+              size="sm"
+              htmlForId={statusSelectId}
+            />
           </div>
           <textarea
             ref={textareaRef}
@@ -257,7 +344,7 @@ export const StatusDialog = ({
               }
             }}
             placeholder="Add context, next actions, or why this is not feasible..."
-            required={statusCommentRequired(category)}
+            aria-required={statusCommentRequired(category)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "status-dialog-error" : undefined}
           />
