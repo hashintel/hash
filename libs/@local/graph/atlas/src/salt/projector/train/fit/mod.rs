@@ -29,6 +29,7 @@ use core::num::NonZero;
 use burn::{
     lr_scheduler::LrScheduler as _, optim::Optimizer as _, tensor::backend::AutodiffBackend,
 };
+use hashql_core::id::Id;
 use rand::Rng;
 
 use self::session::{Session, Training};
@@ -246,23 +247,23 @@ pub(crate) struct TrainOptions {
 /// Every view describes the same corpus rows; the run asserts the row domains agree and treats a
 /// mismatch as a wiring defect.
 #[derive(Debug, Clone)]
-pub(crate) struct TrainerInputs<'run> {
+pub(crate) struct TrainerInputs<'run, N, E> {
     /// The semantic graph.
-    pub semantic: SemanticGraphView<'run>,
+    pub semantic: SemanticGraphView<'run, N>,
     /// The protection evidence.
-    pub protection: ProtectionView<'run>,
+    pub protection: ProtectionView<'run, N>,
     /// The protection channel thresholds.
     pub protection_config: ProtectionConfig,
     /// The relation attraction evidence.
-    pub attraction: &'run AttractionIndex,
+    pub attraction: &'run AttractionIndex<N, E>,
     /// The 512-dimensional neighbour table local scales measure over.
-    pub knn: KnnView<'run>,
+    pub knn: KnnView<'run, N>,
     /// The per-row model input columns.
     pub columns: NodeColumns<'run>,
     /// The landmark skeleton's support anchors, corpus rows.
-    pub landmarks: &'run [SupportAnchor],
+    pub landmarks: &'run [SupportAnchor<N>],
     /// The temporal support anchors, corpus rows; empty for a first generation.
-    pub anchors: &'run [SupportAnchor],
+    pub anchors: &'run [SupportAnchor<N>],
     /// The resolved reviewed verdicts.
     pub verdicts: &'run [ResolvedVerdict],
 }
@@ -432,9 +433,15 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 ///
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it; all inputs come from one generation, so a mismatch is a wiring defect.
-pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
+pub(crate) fn fit<
+    N: Id,
+    E: Id,
+    B: AutodiffBackend<FloatElem = f32>,
+    R: Rng + ?Sized,
+    P: Progress,
+>(
     model: Projector<B>,
-    inputs: &TrainerInputs<'_>,
+    inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
@@ -459,9 +466,15 @@ pub(crate) fn fit<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progr
 ///
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
-pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
+pub(crate) fn fit_to_boundary<
+    N: Id,
+    E: Id,
+    B: AutodiffBackend<FloatElem = f32>,
+    R: Rng + ?Sized,
+    P: Progress,
+>(
     model: Projector<B>,
-    inputs: &TrainerInputs<'_>,
+    inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,
@@ -509,12 +522,14 @@ pub(crate) fn fit_to_boundary<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Siz
 /// Panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
 pub(crate) fn fit_from_boundary<
+    N: Id,
+    E: Id,
     B: AutodiffBackend<FloatElem = f32>,
     R: Rng + ?Sized,
     P: Progress,
 >(
     state: BoundaryState<B>,
-    inputs: &TrainerInputs<'_>,
+    inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     rng: &mut R,
     device: &B::Device,

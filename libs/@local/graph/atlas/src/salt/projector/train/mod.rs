@@ -39,8 +39,6 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-use hashql_core::id::Id as _;
-
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
@@ -59,7 +57,6 @@ pub(crate) use self::{
     step::LossBreakdown,
 };
 use crate::{
-    identity::NodeRowId,
     math::{NonNegative, Positive},
     salt::projector::{
         budget::Budget,
@@ -84,24 +81,26 @@ pub(crate) const RUNGS: [NonNegative; 3] = [
 
 /// A training step failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum StepError {
+pub enum StepError<N> {
     /// The forward pass produced a non-finite coordinate: training diverged at this corpus row.
-    Diverged { row: NodeRowId },
+    Diverged { row: N },
 }
 
-impl fmt::Display for StepError {
+impl<N> fmt::Display for StepError<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Diverged { row } => write!(
                 fmt,
-                "training diverged: row {} projected to a non-finite coordinate",
-                row.as_u64()
+                "training diverged: row {row} projected to a non-finite coordinate",
             ),
         }
     }
 }
 
-impl Error for StepError {}
+impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 
 /// Objective coefficients, one per loss family.
 ///

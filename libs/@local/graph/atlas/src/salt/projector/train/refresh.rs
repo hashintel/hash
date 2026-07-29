@@ -16,20 +16,22 @@
 use core::{error::Error, fmt, num::NonZero, ops::Range};
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
     RUNGS,
-    batch::NodeColumns,
+    batch::{NodeColumns, SupportAnchor},
     metrics::{DegreeDeciles, DisplacementSummary, TypeParticipants},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::NodeRowId,
     math::{NonNegative, Vec2},
+    progress::Progress,
     salt::{
         knn::table::KnnView,
         projector::{
+            loss::BatchRowId,
             miner::{HardNegativeMiner, MinedFrame, SpatialField, SpatialFieldError},
             model::{Projector, ProjectorInput},
             scale::LocalScales,
@@ -39,27 +41,30 @@ use crate::{
 
 /// A refresh tick failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum RefreshError {
+pub enum RefreshError<N> {
     /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
-    Diverged { row: NodeRowId, eta: f32 },
+    Diverged { row: N, eta: f32 },
     /// A local scale came out non-finite at this row and rung.
-    NonFiniteScale { row: NodeRowId, eta: f32 },
+    NonFiniteScale { row: N, eta: f32 },
     /// The corpus rows exceed the spatial index's `u32` item encoding.
     RowsExceedIndexDomain { rows: usize },
 }
 
-impl fmt::Display for RefreshError {
+impl<N> fmt::Display for RefreshError<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Diverged { row, eta } => write!(
                 fmt,
                 "training diverged: row {} projected to a non-finite coordinate at rung {eta}",
-                row.as_u64(),
+                row,
             ),
             Self::NonFiniteScale { row, eta } => write!(
                 fmt,
                 "training diverged: row {} measured a non-finite local scale at rung {eta}",
-                row.as_u64(),
+                row,
             ),
             Self::RowsExceedIndexDomain { rows } => write!(
                 fmt,
@@ -69,38 +74,148 @@ impl fmt::Display for RefreshError {
     }
 }
 
-impl Error for RefreshError {}
+impl<N> Error for RefreshError<N> where N: fmt::Debug + fmt::Display {}
 
 /// One refresh tick's artifacts.
 #[derive(Debug)]
-pub(crate) struct RefreshOutcome {
+pub(crate) struct RefreshOutcome<N> {
     /// Hard negatives mined at both lens extremes, pooled by maximum weight.
-    pub mined: MinedFrame,
+    pub mined: MinedFrame<N>,
     /// One local-scale table per rung, in [`RUNGS`] order.
     ///
     /// Present exactly when the tick ran with scales.
-    pub scales: Option<[LocalScales; RUNGS.len()]>,
+    pub scales: Option<[LocalScales<BatchRowId>; RUNGS.len()]>,
     /// The displacement field between the lens extremes.
     pub displacement: DisplacementSummary,
+}
+
+/// The corpus rows a run reports into [`Progress::projector_snapshot`].
+///
+/// An observer's appetite ([`Progress::projector_sample_size`]) buys a fixed set of rows, chosen
+/// before the loop and reported at every tick, so a watcher sees the same points moving rather
+/// than a fresh cloud each time. Landmark rows come first - they are the skeleton the placement
+/// hangs on, and a renderer draws them apart - and they take at most half the budget, so a
+/// landmark-rich corpus still shows its interior. The rest is an even stride over the corpus rows
+/// no landmark holds, so the two shares partition the sample by role: every reported point past
+/// the landmark prefix really is an ordinary row.
+///
+/// The choice is deterministic by construction and consumes no randomness: an observer cannot
+/// move the run's draws, so a run publishes the same placement whether or not anything watches.
+#[derive(Debug, Default)]
+pub(super) struct SnapshotSample<N> {
+    /// The sampled rows: the landmark share first, then the strided share.
+    rows: Vec<N>,
+    /// How many leading entries of `rows` are landmark rows.
+    landmarks: usize,
+}
+
+impl<N> SnapshotSample<N>
+where
+    N: Id,
+{
+    /// Chooses at most `budget` rows of a `rows`-row corpus to report.
+    ///
+    /// A zero budget - the default observer's - selects nothing, and every later report is a
+    /// no-op. Landmark rows outside the corpus are dropped rather than trusted; the trainer's own
+    /// admission rejects them, and a sample is not the place to discover it.
+    pub(super) fn select(rows: usize, landmarks: &[SupportAnchor<N>], budget: usize) -> Self {
+        if budget == 0 || rows == 0 {
+            // The silent observer's path: nothing is sorted, nothing is
+            // allocated, and every later report is a no-op.
+            return Self {
+                rows: Vec::new(),
+                landmarks: 0,
+            };
+        }
+
+        let mut anchored: Vec<_> = landmarks
+            .iter()
+            .map(|anchor| anchor.row)
+            .filter(|&row| row.as_usize() < rows)
+            .collect();
+        anchored.sort_unstable();
+        anchored.dedup();
+
+        // The interior keeps at least half the budget wherever it has the rows for it, and whatever
+        // the skeleton cannot fill comes back to it - a budget buys as many rows as the
+        // corpus has.
+        let interior = rows - anchored.len();
+        let skeleton_share = (budget - budget.div_ceil(2).min(interior)).min(anchored.len());
+        let interior_share = (budget - skeleton_share).min(interior);
+
+        let mut sample: Vec<_> = even_ranks(anchored.len(), skeleton_share)
+            .map(|rank| anchored[rank])
+            .collect();
+
+        // The corpus is not walked to find its unheld rows: the
+        // `rank`-th of them sits `rank` places along plus one for every
+        // landmark at or before it, and the ranks arrive in order, so
+        // one pass over the sorted landmarks resolves every pick.
+        let mut passed = 0;
+        sample.extend(even_ranks(interior, interior_share).map(|rank| {
+            while passed < anchored.len() && anchored[passed].as_usize() <= rank + passed {
+                passed += 1;
+            }
+
+            N::from_usize(rank + passed)
+        }));
+
+        Self {
+            rows: sample,
+            landmarks: skeleton_share,
+        }
+    }
+
+    /// Reports the sampled rows of one frame to the observer.
+    pub(super) fn report<P: Progress>(&self, frame: &IdSlice<N, Vec2>, progress: &P) {
+        if self.rows.is_empty() {
+            return;
+        }
+
+        let positions: Vec<Vec2> = self.rows.iter().map(|&row| frame[row]).collect();
+        progress.projector_snapshot(&positions, self.landmarks);
+    }
+}
+
+/// Picks `count` of `len` positions, evenly spread across the sequence.
+///
+/// Bresenham's accumulator: every position adds `count` and every crossing of `len` takes one, so a
+/// `count` at or below `len` picks exactly `count` positions at an even spacing - and the walk
+/// needs no division, which is also why the spacing is exact rather than rounded.
+fn even_ranks(len: usize, count: usize) -> impl Iterator<Item = usize> {
+    let mut accumulator = 0;
+    (0..len).filter(move |_rank| {
+        accumulator += count;
+
+        let crossed = accumulator >= len;
+        if crossed {
+            accumulator -= len;
+        }
+
+        crossed
+    })
 }
 
 /// The tick-invariant refresh state.
 ///
 /// The corpus inputs, the miner, and the telemetry axes, bound once per training run.
-pub(super) struct Refresh<'run> {
+pub(super) struct Refresh<'run, N> {
     /// The per-row model input columns.
     pub columns: NodeColumns<'run>,
     /// The neighbour table local scales measure over.
-    pub knn: KnnView<'run>,
+    pub knn: KnnView<'run, N>,
     /// The hard-negative miner.
-    pub miner: HardNegativeMiner<'run>,
+    pub miner: HardNegativeMiner<'run, N>,
     /// The per-type telemetry participants.
-    pub participants: TypeParticipants,
+    pub participants: TypeParticipants<N>,
     /// Rows per corpus-forward slice.
     pub forward_rows: NonZero<usize>,
 }
 
-impl Refresh<'_> {
+impl<N> Refresh<'_, N>
+where
+    N: Id,
+{
     /// Runs one refresh tick over the current model.
     ///
     /// `with_scales` selects the post-boundary shape: every rung is forwarded and measured into a
@@ -108,20 +223,27 @@ impl Refresh<'_> {
     /// segment and the vacuous-relation run consume no scale tables, so the middle rung's forward
     /// would be dead weight.
     ///
+    /// The tick is where the whole corpus exists in coordinates, so the tick reports `sample`'s
+    /// rows of the low rung's frame to `progress` - the same frame the miner and the displacement
+    /// summary read, retained no longer than they retain it.
+    ///
     /// # Errors
     ///
     /// Returns an error when a forward pass produces a non-finite coordinate or scale (training
     /// diverged), or when the corpus exceeds the spatial index's row encoding.
-    pub(super) fn tick<B: Backend<FloatElem = f32>>(
+    pub(super) fn tick<B: Backend<FloatElem = f32>, P: Progress>(
         &self,
         model: &Projector<B>,
-        deciles: &DegreeDeciles,
+        deciles: &DegreeDeciles<N>,
         with_scales: bool,
         device: &B::Device,
-    ) -> Result<RefreshOutcome, RefreshError> {
+        sample: &SnapshotSample<N>,
+        progress: &P,
+    ) -> Result<RefreshOutcome<N>, RefreshError<N>> {
         let [low_eta, middle_eta, high_eta] = RUNGS.map(NonNegative::get);
 
         let low = forward(model, self.columns, low_eta, self.forward_rows, device)?;
+        sample.report(&low, progress);
         let high = forward(model, self.columns, high_eta, self.forward_rows, device)?;
 
         let scales = if with_scales {
@@ -161,16 +283,20 @@ impl Refresh<'_> {
 /// # Errors
 ///
 /// Returns an error when a projected coordinate is non-finite: training diverged.
-pub(crate) fn forward<B: Backend<FloatElem = f32>>(
+pub(crate) fn forward<N, B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_>,
     eta: f32,
     forward_rows: NonZero<usize>,
     device: &B::Device,
-) -> Result<Vec<Vec2>, RefreshError> {
+) -> Result<IdVec<N, Vec2>, RefreshError<N>>
+where
+    N: Id,
+{
     let rows = columns.representations.len();
-    let mut frame = Vec::with_capacity(rows);
+    let mut frame = IdVec::with_capacity(rows);
     let mut start = 0;
+
     while start < rows {
         let end = (start + forward_rows.get()).min(rows);
         let coordinates = model.forward(slice_input(columns, start..end, eta, device));
@@ -188,7 +314,8 @@ pub(crate) fn forward<B: Backend<FloatElem = f32>>(
                 });
             }
         }
-        frame.extend_from_slice(points);
+
+        frame.extend_from_slice(IdSlice::from_raw(points));
         start = end;
     }
     Ok(frame)
@@ -200,25 +327,25 @@ pub(crate) fn forward<B: Backend<FloatElem = f32>>(
 ///
 /// Returns an error when a scale comes out non-finite: the frame holds pre-divergence coordinates
 /// whose distances overflow.
-pub(crate) fn scales(
-    frame: &[Vec2],
-    knn: &KnnView<'_>,
+pub(crate) fn scales<N>(
+    frame: &IdSlice<N, Vec2>,
+    knn: &KnnView<'_, N>,
     eta: f32,
-) -> Result<LocalScales, RefreshError> {
+) -> Result<LocalScales<N>, RefreshError<N>>
+where
+    N: Id,
+{
     LocalScales::compute(frame, knn).map_err(|error| RefreshError::NonFiniteScale {
-        row: NodeRowId::from_usize(error.row),
+        row: error.row,
         eta,
     })
 }
 
 /// Maps a spatial-index failure onto the tick's error.
-const fn field_error(error: SpatialFieldError, eta: f32) -> RefreshError {
+const fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
-        SpatialFieldError::NonFinite { row } => RefreshError::Diverged {
-            row: NodeRowId::from_usize(row),
-            eta,
-        },
+        SpatialFieldError::NonFinite { row } => RefreshError::Diverged { row, eta },
         SpatialFieldError::RowsExceedIndexDomain { rows } => {
             RefreshError::RowsExceedIndexDomain { rows }
         }

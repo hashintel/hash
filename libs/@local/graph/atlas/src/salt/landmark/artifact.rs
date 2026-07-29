@@ -9,7 +9,8 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use zerocopy::{FromBytes as _, IntoBytes as _, LE, U32, U64};
+use hashql_core::id::{Id, IdSlice};
+use zerocopy::{FromBytes as _, IntoBytes, LE, U32, U64};
 
 use super::{
     assignment::LandmarkAssignment,
@@ -19,6 +20,7 @@ use crate::{
     file::{
         WriteInto,
         landmark::{read::LandmarkFile, write::write_regions},
+        region::ByteStable,
     },
     identity::NodeRowId,
     integrity::{Sha256, Sha256Digest, Writer},
@@ -69,14 +71,27 @@ impl Error for InvalidLandmarkFile {}
 /// The three parts share one ordinal vocabulary by construction: the assignment was built against
 /// the selection (its ordinal domain is the selection's length), and the constructor pins the
 /// coordinates to the same domain.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct LandmarkSkeleton {
-    selection: LandmarkSelection,
-    assignment: LandmarkAssignment,
-    coordinates: Box<[Vec2]>,
+#[derive(PartialEq)]
+pub(crate) struct LandmarkSkeleton<N> {
+    selection: LandmarkSelection<N>,
+    assignment: LandmarkAssignment<N>,
+    coordinates: Box<IdSlice<N, Vec2>>,
 }
 
-impl LandmarkSkeleton {
+impl<N: Id> fmt::Debug for LandmarkSkeleton<N> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LandmarkSkeleton")
+            .field("selection", &self.selection)
+            .field("assignment", &self.assignment)
+            .field("coordinates", &self.coordinates)
+            .finish()
+    }
+}
+
+impl<N> LandmarkSkeleton<N>
+where
+    N: Id,
+{
     /// Assembles a skeleton from one fit's stage outputs.
     ///
     /// # Panics
@@ -85,9 +100,9 @@ impl LandmarkSkeleton {
     /// violate the contracts of the stages that produced them.
     #[must_use]
     pub(crate) fn new(
-        selection: LandmarkSelection,
-        assignment: LandmarkAssignment,
-        coordinates: Box<[Vec2]>,
+        selection: LandmarkSelection<N>,
+        assignment: LandmarkAssignment<N>,
+        coordinates: Box<IdSlice<N, Vec2>>,
     ) -> Self {
         assert_eq!(
             assignment.landmarks(),
@@ -114,7 +129,10 @@ impl LandmarkSkeleton {
     }
 }
 
-impl WriteInto for LandmarkSkeleton {
+impl<N> WriteInto for LandmarkSkeleton<N>
+where
+    N: Id + ByteStable,
+{
     type Error = io::Error;
 
     /// Writes the skeleton as a landmark file.
@@ -132,10 +150,12 @@ impl WriteInto for LandmarkSkeleton {
         };
 
         let expect = "the persisted encodings are transparent over their byteorder types";
-        let rows = <[U64<LE>]>::ref_from_bytes(self.selection.rows().as_bytes()).expect(expect);
+        let rows =
+            <[U64<LE>]>::ref_from_bytes(self.selection.rows().as_raw().as_bytes()).expect(expect);
         let assignment =
-            <[U32<LE>]>::ref_from_bytes(self.assignment.as_slice().as_bytes()).expect(expect);
-        write_regions(rows, assignment, &self.coordinates, &mut writer)?;
+            <[U32<LE>]>::ref_from_bytes(self.assignment.as_slice().as_raw().as_bytes())
+                .expect(expect);
+        write_regions(rows, assignment, self.coordinates.as_raw(), &mut writer)?;
 
         Ok(writer.accumulator.finalize())
     }

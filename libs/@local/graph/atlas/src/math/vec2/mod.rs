@@ -116,6 +116,10 @@ impl Vec2 {
         Some(unsafe { &*ptr })
     }
 
+    pub const fn as_array(&self) -> &[f32; 2] {
+        &self.0
+    }
+
     /// Returns the `x` component.
     #[inline]
     #[must_use]

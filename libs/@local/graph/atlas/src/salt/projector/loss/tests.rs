@@ -17,8 +17,8 @@ use burn::{
 use hashql_core::id::Id as _;
 
 use super::{
-    AffinityEnergy, BatchAnchor, BatchPair, BatchRelationEdge, BatchRelationEdges, BatchRowId,
-    GradientField, RelationEnergy, SupportOptions, SupportTargets, attraction_term,
+    AffinityEnergy, BatchAnchor, BatchRowId, GradientField, RelationEdge, RelationEdges,
+    RelationEnergy, SupportOptions, SupportTargets, attraction_term,
     energy::{CoincidentEnergy, ProximalEnergy},
     relation_term, repulsion_term, support_term,
 };
@@ -502,20 +502,20 @@ fn attraction_fixture() -> AttractionIndex {
 ///
 /// Converts every group into the batch-local shape under the identity row map: the fixture
 /// coordinates are corpus-length, so corpus rows and batch positions coincide.
-fn full_batch(index: &AttractionIndex) -> Vec<BatchRelationEdges> {
+fn full_batch(index: &AttractionIndex) -> Vec<RelationEdges> {
     let position = |row: NodeRowId| {
         BatchRowId::new(u32::try_from(row.as_u64()).expect("fixture rows fit the batch encoding"))
     };
     index
         .groups()
         .iter()
-        .map(|group| BatchRelationEdges {
+        .map(|group| RelationEdges {
             relation: group.relation(),
             weights: group.weights(),
             edges: group
                 .edges()
                 .iter()
-                .map(|edge| BatchRelationEdge {
+                .map(|edge| RelationEdge {
                     source: position(edge.source),
                     target: position(edge.target),
                     confidence: edge.confidence.value(),

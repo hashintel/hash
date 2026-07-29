@@ -22,13 +22,11 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 use kiddo::{NearestNeighbour, SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
-use zerocopy::{FromBytes as _, IntoBytes as _};
 
 use crate::{
-    identity::NodeRowId,
     math::{Positive, Vec2},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
@@ -123,14 +121,17 @@ impl MinerOptions {
 
 /// Building a spatial field over a coordinate frame failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum SpatialFieldError {
+pub(crate) enum SpatialFieldError<N> {
     /// A coordinate is NaN or infinite: the projection diverged.
-    NonFinite { row: usize },
+    NonFinite { row: N },
     /// The frame's rows exceed the index's `u32` item encoding.
     RowsExceedIndexDomain { rows: usize },
 }
 
-impl fmt::Display for SpatialFieldError {
+impl<N> fmt::Display for SpatialFieldError<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::NonFinite { row } => {
@@ -143,35 +144,38 @@ impl fmt::Display for SpatialFieldError {
     }
 }
 
-impl Error for SpatialFieldError {}
+impl<N> Error for SpatialFieldError<N> where N: fmt::Debug + fmt::Display {}
 
 /// The exact 2D neighbour index over one frame's detached coordinates.
 ///
 /// One field is built per lens extreme at every refresh tick and dropped with it; queries are
 /// read-only and thread-safe. Exactness is part of the contract: consumers account for no recall.
-pub(crate) struct SpatialField<'frame> {
+pub(crate) struct SpatialField<'frame, N> {
     tree: ImmutableKdTree<f32, u32, 2, 32>,
-    points: &'frame [[f32; 2]],
+    points: &'frame IdSlice<N, Vec2>,
 }
 
-impl fmt::Debug for SpatialField<'_> {
+impl<N> fmt::Debug for SpatialField<'_, N> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("SpatialField")
-            .field("rows", &self.points.len())
-            .finish_non_exhaustive()
+        fmt.debug_struct("SpatialField").finish_non_exhaustive()
     }
 }
 
-impl<'frame> SpatialField<'frame> {
+impl<'frame, N> SpatialField<'frame, N>
+where
+    N: Id,
+{
     /// Indexes one frame of projected coordinates, in row order.
     ///
     /// # Errors
     ///
     /// Returns an error when a coordinate is not finite (a diverged projection must fail the tick,
     /// not seed an index) or the row count exceeds the index's `u32` item encoding.
-    pub(crate) fn new(coordinates: &'frame [Vec2]) -> Result<Self, SpatialFieldError> {
+    pub(crate) fn new(coordinates: &'frame IdSlice<N, Vec2>) -> Result<Self, SpatialFieldError<N>> {
         if let Some(row) = coordinates.iter().position(|point| !point.is_finite()) {
-            return Err(SpatialFieldError::NonFinite { row });
+            return Err(SpatialFieldError::NonFinite {
+                row: N::from_usize(row),
+            });
         }
         if u32::try_from(coordinates.len()).is_err() {
             return Err(SpatialFieldError::RowsExceedIndexDomain {
@@ -181,11 +185,11 @@ impl<'frame> SpatialField<'frame> {
 
         // `Vec2` is transparently its interleaved component pair, so the
         // frame reinterprets without copying.
-        let points = <[[f32; 2]]>::ref_from_bytes(coordinates.as_bytes())
-            .expect("Vec2 is transparently [f32; 2]");
+        let points = zerocopy::transmute_ref!(coordinates.as_raw());
+
         Ok(Self {
             tree: ImmutableKdTree::new_from_slice(points),
-            points,
+            points: coordinates,
         })
     }
 
@@ -205,19 +209,20 @@ impl<'frame> SpatialField<'frame> {
     /// widens one losslessly.
     // The tree stores one content id per point, so the u32 domain halves
     // that storage against a 64-bit id.
-    fn nearest(&self, row: usize, count: usize) -> Vec<NearestNeighbour<f32, u32>> {
+    fn nearest(&self, row: N, count: usize) -> Vec<NearestNeighbour<f32, u32>> {
         let count = NonZero::new(count.min(self.points.len()))
             .expect("search sizes are at least one by construction");
 
         let mut nearest = self
             .tree
-            .nearest_n::<SquaredEuclidean>(&self.points[row], count);
+            .nearest_n::<SquaredEuclidean>(self.points[row].as_array(), count);
 
         nearest.sort_unstable_by(|left, right| {
             left.distance
                 .total_cmp(&right.distance)
                 .then(left.item.cmp(&right.item))
         });
+
         nearest
     }
 }
@@ -230,14 +235,17 @@ impl<'frame> SpatialField<'frame> {
 /// conflicts are further exclusions the admission contract names; the initial generation has no
 /// signed policies, so both sets are empty here.
 #[derive(Debug)]
-pub(crate) struct HardNegativeMiner<'view> {
-    semantic: SemanticGraphView<'view>,
-    protection: ProtectionView<'view>,
+pub(crate) struct HardNegativeMiner<'view, N> {
+    semantic: SemanticGraphView<'view, N>,
+    protection: ProtectionView<'view, N>,
     config: ProtectionConfig,
     options: MinerOptions,
 }
 
-impl<'view> HardNegativeMiner<'view> {
+impl<'view, N> HardNegativeMiner<'view, N>
+where
+    N: Id,
+{
     /// Binds the exclusion evidence and the mining schedule.
     ///
     /// # Panics
@@ -246,8 +254,8 @@ impl<'view> HardNegativeMiner<'view> {
     /// generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
-        semantic: SemanticGraphView<'view>,
-        protection: ProtectionView<'view>,
+        semantic: SemanticGraphView<'view, N>,
+        protection: ProtectionView<'view, N>,
         config: ProtectionConfig,
         options: MinerOptions,
     ) -> Self {
@@ -265,6 +273,39 @@ impl<'view> HardNegativeMiner<'view> {
         }
     }
 
+    /// Mines one row's admissible candidates in closeness-rank order.
+    fn mine_row(&self, field: &SpatialField<'_, N>, row: N) -> Vec<(N, f32)> {
+        let quota = self.options.neighbours().get();
+
+        let mut accepted = Vec::with_capacity(quota);
+
+        for neighbour in field.nearest(row, self.options.search_size()) {
+            let candidate = neighbour.item;
+            let candidate_id = N::from_u32(candidate);
+
+            if candidate_id == row {
+                continue;
+            }
+
+            if self.is_semantic_positive(row, candidate_id) {
+                continue;
+            }
+
+            let pair = NodePair::new(row, candidate_id);
+            if self.protection.judge(pair, self.config).hard {
+                continue;
+            }
+
+            let weight = self.options.weight(accepted.len());
+            accepted.push((candidate_id, weight));
+            if accepted.len() == quota {
+                break;
+            }
+        }
+
+        accepted
+    }
+
     /// Mines one frame: per row, the admissible closest projected points with their rank weights.
     ///
     /// Rows mine independently and in parallel; the result is a function of the inputs alone.
@@ -273,19 +314,19 @@ impl<'view> HardNegativeMiner<'view> {
     ///
     /// Panics when the frame's row domain disagrees with the exclusion evidence; both come from one
     /// generation, so a mismatch is a wiring defect.
-    pub(crate) fn mine(&self, field: &SpatialField<'_>) -> MinedFrame {
+    pub(crate) fn mine(&self, field: &SpatialField<'_, N>) -> MinedFrame<N> {
         assert_eq!(
             field.rows(),
             self.semantic.rows(),
             "the coordinate frame and the exclusion evidence should cover the same rows"
         );
 
-        let rows: Vec<Vec<(u32, f32)>> = (0..field.rows())
+        let rows: Vec<_> = (0..field.rows())
             .into_par_iter()
-            .map(|row| self.mine_row(field, row))
+            .map(|row| self.mine_row(field, N::from_usize(row)))
             .collect();
 
-        let mut offsets = Vec::with_capacity(rows.len() + 1);
+        let mut offsets = IdVec::<N, _>::with_capacity(rows.len() + 1);
         let mut targets = Vec::new();
         let mut weights = Vec::new();
 
@@ -305,39 +346,8 @@ impl<'view> HardNegativeMiner<'view> {
         }
     }
 
-    /// Mines one row's admissible candidates in closeness-rank order.
-    fn mine_row(&self, field: &SpatialField<'_>, row: usize) -> Vec<(u32, f32)> {
-        let quota = self.options.neighbours().get();
-        let row_id = NodeRowId::from_usize(row);
-
-        let mut accepted = Vec::with_capacity(quota);
-        for neighbour in field.nearest(row, self.options.search_size()) {
-            let candidate = neighbour.item;
-            let candidate_id = NodeRowId::from_u32(candidate);
-            if candidate_id == row_id {
-                continue;
-            }
-
-            if self.is_semantic_positive(row, candidate_id) {
-                continue;
-            }
-
-            let pair = NodePair::new(row_id, candidate_id);
-            if self.protection.judge(pair, self.config).hard {
-                continue;
-            }
-
-            let weight = self.options.weight(accepted.len());
-            accepted.push((candidate, weight));
-            if accepted.len() == quota {
-                break;
-            }
-        }
-        accepted
-    }
-
     /// Returns whether the pair is a semantic-positive edge.
-    fn is_semantic_positive(&self, row: usize, candidate: NodeRowId) -> bool {
+    fn is_semantic_positive(&self, row: N, candidate: N) -> bool {
         self.semantic.row(row).any(|edge| edge.id == candidate)
     }
 }
@@ -347,17 +357,20 @@ impl<'view> HardNegativeMiner<'view> {
 /// Rows keep their candidates in closeness-rank order after a mine and in ascending target order
 /// after a pool; the weights ride beside the targets either way, so consumers never reconstruct
 /// rank.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct MinedFrame {
+#[derive(Debug, PartialEq)]
+pub(crate) struct MinedFrame<N> {
     /// Per-row spans into the columns, `rows + 1` entries from zero.
-    offsets: Box<[usize]>,
+    offsets: Box<IdSlice<N, usize>>,
     /// Mined counterpart rows.
-    targets: Box<[u32]>,
+    targets: Box<[N]>,
     /// Rank weights, in `(0, maximum_weight]`.
     weights: Box<[f32]>,
 }
 
-impl MinedFrame {
+impl<N> MinedFrame<N>
+where
+    N: Id,
+{
     /// Returns the anchor row count.
     #[inline]
     #[must_use]
@@ -377,16 +390,16 @@ impl MinedFrame {
     /// # Panics
     ///
     /// Panics when `row` is not below [`rows`](Self::rows).
-    pub(crate) fn row(&self, row: usize) -> impl ExactSizeIterator<Item = (NodePair, f32)> + '_ {
-        let span = self.offsets[row]..self.offsets[row + 1];
-        let anchor = NodeRowId::from_usize(row);
+    pub(crate) fn row(&self, row: N) -> impl ExactSizeIterator<Item = (NodePair<N>, f32)> + '_
+    where
+        N: Id,
+    {
+        let span = self.offsets[row]..self.offsets[row.plus(1)];
 
         self.targets[span.clone()]
             .iter()
             .zip(&self.weights[span])
-            .map(move |(&target, &weight)| {
-                (NodePair::new(anchor, NodeRowId::from_u32(target)), weight)
-            })
+            .map(move |(&target, &weight)| (NodePair::new(row, target), weight))
     }
 
     /// Pools two frames of one refresh tick.
@@ -400,23 +413,29 @@ impl MinedFrame {
     /// Panics when the frames disagree about the row domain; both come from one refresh tick, so a
     /// mismatch is a wiring defect.
     #[must_use]
-    pub(crate) fn pool(&self, other: &Self) -> Self {
+    pub(crate) fn pool(&self, other: &Self) -> Self
+    where
+        N: Id,
+    {
         assert_eq!(
             self.rows(),
             other.rows(),
             "pooled frames should cover the same rows"
         );
 
-        let mut offsets = Vec::with_capacity(self.offsets.len());
+        let mut offsets = IdVec::<N, _>::with_capacity(self.offsets.len());
         let mut targets = Vec::new();
         let mut weights = Vec::new();
-        let mut merged: Vec<(u32, f32)> = Vec::new();
+        let mut merged: Vec<(N, f32)> = Vec::new();
 
         offsets.push(0);
         for row in 0..self.rows() {
+            let row = N::from_usize(row);
+
             merged.clear();
             for frame in [self, other] {
-                let span = frame.offsets[row]..frame.offsets[row + 1];
+                let span = frame.offsets[row]..frame.offsets[row.plus(1)];
+
                 merged.extend(
                     frame.targets[span.clone()]
                         .iter()

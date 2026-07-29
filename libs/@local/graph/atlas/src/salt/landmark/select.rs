@@ -28,7 +28,7 @@ use core::{
 };
 use std::collections::HashSet;
 
-use hashql_core::id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet};
+use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
 use rand::{Rng, RngExt as _, SeedableRng};
 use rayon::{
     iter::{
@@ -37,9 +37,8 @@ use rayon::{
     },
     slice::{ParallelSlice as _, ParallelSliceMut as _},
 };
-use zerocopy::{LE, U32};
 
-use crate::{identity::NodeRowId, math::UnitFraction};
+use crate::math::UnitFraction;
 
 /// A landmark-stratification axis.
 #[derive(
@@ -169,8 +168,8 @@ impl SamplingWeight {
 
 /// Selection metadata for one candidate node row.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct LandmarkCandidate {
-    pub row: NodeRowId,
+pub(crate) struct LandmarkCandidate<N> {
+    pub row: N,
     pub sampling_weight: SamplingWeight,
     /// The candidate's value on every stratification axis.
     pub axes: SubgroupAxes,
@@ -178,7 +177,7 @@ pub(crate) struct LandmarkCandidate {
     pub prior_landmark: bool,
 }
 
-impl LandmarkCandidate {
+impl<N> LandmarkCandidate<N> {
     /// Returns whether the candidate carries the subgroup's value.
     #[inline]
     const fn belongs_to(self, subgroup: Subgroup) -> bool {
@@ -210,63 +209,31 @@ pub(crate) struct SelectionOptions {
     pub parallel_chunk: NonZero<usize> = PARALLEL_CHUNK,
 }
 
-/// A reference to a landmark by its position in a [`LandmarkSelection`].
-///
-/// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the
-/// selection's ascending row order. The little-endian representation is the persisted form, so a
-/// column of these ordinals is written to and read from artifact files without conversion.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialOrd,
-    Ord,
-    zerocopy::ByteEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::FromBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-)]
-#[repr(transparent)]
-pub(crate) struct LandmarkOrdinal(U32<LE>);
-
-impl LandmarkOrdinal {
-    /// Creates an ordinal referencing the landmark at `position`.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(position: u32) -> Self {
-        Self(U32::new(position))
-    }
-
-    /// Returns the referenced selection position.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> u32 {
-        self.0.get()
-    }
-
-    /// Returns the ordinal as an index into a landmark-aligned column.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn usize(self) -> usize {
-        self.get() as usize
-    }
+hashql_core::id::newtype! {
+    /// A reference to a landmark by its position in a [`LandmarkSelection`].
+    ///
+    /// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the
+    /// selection's ascending row order. The little-endian representation is the persisted form, so a
+    /// column of these ordinals is written to and read from artifact files without conversion.
+    #[id(endian = little, unaligned, derive(Step), const)]
+    pub(crate) struct LandmarkOrdinal(u32)
 }
 
 /// Canonically ordered selected rows.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct LandmarkSelection {
-    rows: Box<[NodeRowId]>,
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct LandmarkSelection<N> {
+    rows: Box<IdSlice<LandmarkOrdinal, N>>,
     retained_count: usize,
 }
 
-impl LandmarkSelection {
+impl<N> LandmarkSelection<N>
+where
+    N: Id,
+{
     /// Borrows the selected rows, strictly ascending.
     #[inline]
     #[must_use]
-    pub(crate) fn rows(&self) -> &[NodeRowId] {
+    pub(crate) fn rows(&self) -> &IdSlice<LandmarkOrdinal, N> {
         &self.rows
     }
 
@@ -284,6 +251,30 @@ impl LandmarkSelection {
         self.retained_count
     }
 
+    /// Maps every selected row through `map`, preserving ordinals and the retained count.
+    ///
+    /// The selection's vocabulary is positional - ordinal `i` names the `i`-th selected row - so a
+    /// row translation composes without touching the assignment or the layout built against it.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the mapped rows break the strictly ascending row order; a strictly increasing
+    /// `map` preserves it.
+    #[must_use]
+    pub(crate) fn map_rows(&self, map: impl FnMut(N) -> N) -> Self {
+        let rows: Box<[N]> = self.rows.iter().copied().map(map).collect();
+        assert!(
+            rows.is_sorted(),
+            "the mapped selection keeps its strictly ascending row order",
+        );
+
+        let rows = IdSlice::from_boxed_slice(rows);
+        Self {
+            rows,
+            retained_count: self.retained_count,
+        }
+    }
+
     /// Returns the ordinal of a selected row, or `None` when the row is not a landmark.
     #[expect(
         clippy::cast_possible_truncation,
@@ -291,9 +282,10 @@ impl LandmarkSelection {
     )]
     #[inline]
     #[must_use]
-    pub(crate) fn ordinal(&self, row: NodeRowId) -> Option<LandmarkOrdinal> {
+    pub(crate) fn ordinal(&self, row: N) -> Option<LandmarkOrdinal> {
         let position = self.rows.binary_search(&row).ok()?;
-        Some(LandmarkOrdinal::new(position as u32))
+
+        Some(position)
     }
 }
 
@@ -400,12 +392,13 @@ impl Ord for RankedCandidate {
 ///
 /// One generator serves each `chunk` of candidates, seeded from the caller's generator in chunk
 /// order.
-fn priorities<R>(
-    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+fn priorities<N, R>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     chunk: NonZero<usize>,
     rng: &mut R,
 ) -> IdVec<CandidateId, f64>
 where
+    N: Id,
     R: Rng + SeedableRng,
 {
     let seeds: Vec<u64> = rng
@@ -433,10 +426,13 @@ where
     priorities
 }
 
-fn validate(
-    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+fn validate<N>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     minimums: &IdSlice<MinimumId, SubgroupMinimum>,
-) -> Result<(), SelectionError> {
+) -> Result<(), SelectionError>
+where
+    N: Id,
+{
     if candidates.is_empty() {
         return Err(SelectionError::EmptyCorpus);
     }
@@ -482,14 +478,16 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
 ///
 /// Workers filter in parallel and one exact selection cuts the (priority, index) total order at
 /// `count`: the result is the unique best set, independent of how the scan splits across threads.
-fn best_indices(
-    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+fn best_indices<N>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     priorities: &IdSlice<CandidateId, f64>,
     selected: &DenseBitSet<CandidateId>,
     count: usize,
     output: &mut Vec<CandidateId>,
-    predicate: impl Fn(LandmarkCandidate) -> bool + Sync,
-) {
+    predicate: impl Fn(LandmarkCandidate<N>) -> bool + Sync,
+) where
+    N: Id,
+{
     output.clear();
 
     if count == 0 {
@@ -518,9 +516,9 @@ fn best_indices(
 }
 
 /// Inserts the chosen indices and returns how many carried the prior landmark flag.
-fn mark(
+fn mark<N>(
     selected: &mut DenseBitSet<CandidateId>,
-    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+    candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     indices: &[CandidateId],
 ) -> usize {
     let mut retained = 0;
@@ -554,13 +552,14 @@ pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unw
 ///
 /// Returns an error for an empty corpus, unordered candidate rows, duplicate minimums, or minimums
 /// the corpus or capacity cannot satisfy.
-pub(crate) fn select_landmarks<R>(
-    candidates: &IdSlice<CandidateId, LandmarkCandidate>,
+pub(crate) fn select_landmarks<N, R>(
+    candidates: &IdSlice<CandidateId, LandmarkCandidate<N>>,
     minimums: &IdSlice<MinimumId, SubgroupMinimum>,
     options: SelectionOptions,
     mut rng: R,
-) -> Result<LandmarkSelection, SelectionError>
+) -> Result<LandmarkSelection<N>, SelectionError>
 where
+    N: Id,
     R: Rng + SeedableRng,
 {
     validate(candidates, minimums)?;
@@ -645,7 +644,7 @@ where
 
     let selected_rows: Vec<_> = selected.into_iter().map(|id| candidates[id].row).collect();
     Ok(LandmarkSelection {
-        rows: selected_rows.into_boxed_slice(),
+        rows: IdSlice::from_boxed_slice(selected_rows.into_boxed_slice()),
         retained_count,
     })
 }

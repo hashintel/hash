@@ -12,7 +12,7 @@ pub(super) use self::projector::{
 use self::{
     lod::LodOutputs,
     policy::{ClassifierArtifacts, PolicyArtifacts},
-    projector::{PlacementArtifacts, PlacementInputs},
+    projector::{DistinctInputs, PlacementArtifacts, PlacementInputs},
     relation::RelationArtifacts,
 };
 use super::{
@@ -143,6 +143,14 @@ where
         .vectors()
         .expect("the representation matrix was sealed as f32 rows of the projector width");
 
+    let (quotient, distinct_matrix) = build_quotient(&scratch, rows)?;
+    let distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>] =
+        distinct_matrix.as_ref().map_or(rows, |matrix| {
+            matrix
+                .vectors()
+                .expect("the distinct matrix was written as f32 rows of the projector width")
+        });
+
     let (classifier, classifier_artifacts) =
         context.acquire_classifier(&inputs.classifier, &progress)?;
     progress.stage_completed(Stage::Classifier);
@@ -150,12 +158,18 @@ where
     progress.stage_completed(Stage::Policy);
     let adjacency = context.stage_adjacency(rows.len())?;
     progress.stage_completed(Stage::Adjacency);
-    let relations =
-        context.stage_relations(rows.len(), &ingested.instances, &ingested.multi_typed)?;
+    let relations = context.stage_relations(
+        rows.len(),
+        &quotient,
+        &ingested.instances,
+        &ingested.multi_typed,
+    )?;
     progress.stage_completed(Stage::Relations);
-    let knn = context.build_neighbour_table(rows)?;
+    let (knn, distinct_knn) =
+        context.build_neighbour_table(distinct, &quotient, &quotient_scratch)?;
     progress.stage_completed(Stage::Knn);
-    let semantic = context.stage_semantic(&knn.artifact)?;
+    let (semantic, distinct_semantic) =
+        context.stage_semantic(&knn.artifact, &distinct_knn, &quotient, &quotient_scratch)?;
     progress.stage_completed(Stage::Semantic);
 
     let prior_marks = inputs
@@ -163,8 +177,12 @@ where
         .as_ref()
         .map(|generation| context.prior_landmark_marks::<I>(generation))
         .transpose()?;
-    let landmarks =
-        context.build_landmark_skeleton(rows, &semantic.artifact, prior_marks.as_ref())?;
+    let landmarks = context.build_landmark_skeleton(
+        distinct,
+        &distinct_semantic,
+        prior_marks.as_ref(),
+        &quotient,
+    )?;
     progress.stage_completed(Stage::Landmarks);
 
     let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
@@ -172,10 +190,14 @@ where
         &PlacementInputs {
             rows,
             skeleton: &landmarks.artifact,
-            knn: &knn.artifact,
-            semantic: &semantic.artifact,
-            indexes: &relations.indexes,
             resolution: &resolution,
+            distinct: DistinctInputs {
+                rows: distinct,
+                quotient: &quotient,
+                knn: &distinct_knn,
+                semantic: &distinct_semantic,
+                indexes: &relations.trainer,
+            },
         },
         &progress,
     )?;
@@ -205,6 +227,35 @@ where
     progress.stage_completed(Stage::Seal);
 
     Ok(published.with_progress(progress))
+}
+
+/// Builds the fit's training row domain: the corpus row quotient and its distinct matrix.
+///
+/// Byte-identical representation rows collapse onto their first occurrences, so the geometric
+/// stages measure distinct points while every published artifact stays over the corpus rows. The
+/// distinct matrix materializes under `directory` exactly when copies exist; an identity quotient
+/// trains over the corpus matrix directly.
+fn build_quotient(
+    directory: &ScratchDirectory,
+    rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+) -> Result<(quotient::RowQuotient, Option<ArrayFile>), StageError> {
+    let _span = tracing::info_span!("quotient").entered();
+    let quotient = quotient::RowQuotient::build(rows);
+
+    let matrix = if quotient.is_identity() {
+        None
+    } else {
+        let path = quotient::materialize_distinct(directory, rows, &quotient)?;
+        Some(ArrayFile::open(path).map_err(StageError::MapRepresentations)?)
+    };
+
+    tracing::info!(
+        rows = rows.len(),
+        distinct = quotient.distinct_len(),
+        "built the representation quotient"
+    );
+
+    Ok((quotient, matrix))
 }
 
 /// Binds every staged file and evidence value into the repository the seal publishes.

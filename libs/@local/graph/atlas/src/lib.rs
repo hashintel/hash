@@ -52,7 +52,9 @@
     portable_simd,
     step_trait,
     variant_count,
-    vec_from_fn
+    vec_from_fn,
+    const_destruct,
+    generic_atomic
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

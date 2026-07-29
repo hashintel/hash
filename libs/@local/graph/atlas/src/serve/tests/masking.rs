@@ -324,29 +324,204 @@ async fn locate_filters_partners_under_the_mask() {
     );
 }
 
+/// A hidden link row is withheld from the edges grid though both its endpoints are visible.
+///
+/// An edge carries its link entity's own authorization, which its endpoints do not imply. The
+/// fixture pins the distinction exactly: edge rows 3 and 4 are the reciprocal pair over the same
+/// endpoint pair, so hiding row 3 alone must leave an edge over those very endpoints delivered. No
+/// rule stated over endpoints can answer this response - it must drop both or neither - and a rule
+/// that over-drops loses row 4 with it.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_hidden_link_row_is_withheld_from_the_edges_grid() {
+    let (generation, atlas) = publish("masked-link-edges").await;
+    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
+    let hidden_link = 3_u32;
+    let proof = mask_hiding_rows(&atlas, &[], &[hidden_link]);
+
+    let endpoints: Vec<[u64; 2]> = FIXTURE_EDGES
+        .iter()
+        .map(|&(_, source, target)| [source, target])
+        .collect();
+    let visible: HashSet<u32> = (0..universe).collect();
+    let (sources, targets, rows) = qualifying_columns(&endpoints, &visible);
+    assert_eq!(
+        rows.len(),
+        FIXTURE_EDGES.len(),
+        "every node is visible, so every edge qualifies on endpoints"
+    );
+
+    // The expectation is the qualifying computation over the visible
+    // LINK set: every edge but row 3, its reciprocal included.
+    let mut kept_sources = Vec::new();
+    let mut kept_targets = Vec::new();
+    let mut kept_rows = Vec::new();
+    for ((&row, &source), &target) in rows.iter().zip(&sources).zip(&targets) {
+        if row != hidden_link {
+            kept_sources.push(source);
+            kept_targets.push(target);
+            kept_rows.push(row);
+        }
+    }
+    assert!(
+        kept_rows.contains(&4),
+        "the reciprocal edge over the same endpoints stays delivered"
+    );
+    let (sources, targets, rows) = wire_columns(&atlas, &kept_sources, &kept_targets, &kept_rows);
+
+    assert_eq!(
+        atlas
+            .edges(
+                &edges_request(full_grid()),
+                EdgesLimits::default(),
+                &proof,
+                ScopeReach::Operator,
+            )
+            .expect("the masked grid serves"),
+        expected_edges_bytes(&generation, true, &sources, &targets, &rows),
+    );
+}
+
+/// A hidden link row leaves the locate ego-graph's partner delivered by its other edge.
+///
+/// `ego(5)` is the reciprocal pair: partner 40 over edge rows 3 and 4. Hiding link row 3 withholds
+/// one direction while row 4 still delivers the partner, so the response keeps both rows and
+/// exactly one edge - a shape an endpoint-level rule cannot produce. `complete` stays true:
+/// visibility is not truncation.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_hidden_link_row_is_withheld_from_the_locate_ego_graph() {
+    let (_generation, atlas) = publish("masked-link-locate").await;
+    let limits = ServeLimits::default();
+    let source = atlas
+        .resolve_source(&FULL, &entity_string_of(5))
+        .expect("row 5 resolves");
+
+    // The control: both directions deliver under full visibility.
+    let full = atlas.locate_subgraph(source, limits.locate, &FULL);
+    assert_eq!(full.edges.len(), 2, "the reciprocal pair, both directions");
+
+    let proof = mask_hiding_rows(&atlas, &[], &[3]);
+    let masked = atlas.locate_subgraph(source, limits.locate, &proof);
+    assert_eq!(
+        masked.rows,
+        [NodeRowId::new(5), NodeRowId::new(40)],
+        "the partner stays: its other edge still delivers it"
+    );
+    assert_eq!(
+        masked
+            .edges
+            .iter()
+            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
+            .collect::<Vec<u32>>(),
+        [4],
+        "exactly the withheld link row leaves"
+    );
+    assert!(masked.complete, "visibility is not truncation");
+}
+
+/// A hidden link row is an absent key in translate, beside a delivered edge on the same endpoints.
+///
+/// Hidden and nonexistent are the same answer at this ingress, and the reciprocal link row proves
+/// the absence is the link row's own: the two edges name the same two entities, and only the hidden
+/// one is missing from the response.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_hidden_link_row_is_an_absent_key_in_translate() {
+    use crate::serve::translate::{TranslateLimits, TranslateRequest};
+
+    let (_generation, atlas) = publish("masked-link-translate").await;
+    let hidden = entity_string_of(EDGE_SEED + 3);
+    let reciprocal = entity_string_of(EDGE_SEED + 4);
+    let endpoint = entity_string_of(5);
+    let ids = vec![hidden.clone(), reciprocal.clone(), endpoint.clone()];
+
+    let translate = |proof: &VisibilityProof| {
+        atlas
+            .translate(
+                TranslateRequest {
+                    entity_ids: ids.clone(),
+                },
+                TranslateLimits::default(),
+                proof,
+                ScopeReach::Operator,
+            )
+            .expect("the request is under the cap")
+    };
+
+    // The control: under full visibility both link ids resolve, so the
+    // absence below is the link mask's.
+    let control = translate(&FULL);
+    assert!(control.edges.contains_key(&hidden));
+    assert!(control.edges.contains_key(&reciprocal));
+
+    let masked = translate(&mask_hiding_rows(&atlas, &[], &[3]));
+    assert!(
+        !masked.edges.contains_key(&hidden),
+        "the hidden link row is an absent key"
+    );
+    assert!(
+        masked.edges.contains_key(&reciprocal),
+        "the same endpoints still deliver their other edge"
+    );
+    assert!(
+        masked.nodes.contains_key(&endpoint),
+        "the endpoints themselves stay visible"
+    );
+}
+
 /// The proof's membership algebra is fail-closed at every boundary.
 ///
-/// Rows beyond a bitmap's capacity read hidden, edge visibility requires both endpoints, and the
-/// intersection removes exactly the hidden rows.
+/// Rows beyond a mask's domain read hidden in both domains, an edge delivers only with its own link
+/// row and both endpoints, and the intersection removes exactly the hidden rows.
 #[test]
 fn visibility_proof_is_fail_closed() {
-    use crate::bitset::BitSet;
+    use crate::{identity::EdgeRowId, serve::visibility::VisibleEdge};
 
-    let mut bitmap = BitSet::new(4);
-    bitmap.insert(1);
-    bitmap.insert(2);
-    let proof = VisibilityProof::from_bitmap(bitmap);
+    // Node rows 1 and 2 visible of four; link rows 0 and 2 visible of
+    // three.
+    let proof = VisibilityProof::from_bitmaps(domain_mask(4, &[0, 3]), domain_mask(3, &[1]));
 
     assert!(!proof.contains(NodeRowId::new(0)));
     assert!(proof.contains(NodeRowId::new(1)));
     assert!(!proof.contains(NodeRowId::new(3)));
-    // Beyond the bitmap's capacity: hidden, never a panic.
+    // Beyond the mask's domain: hidden, never a panic.
     assert!(!proof.contains(NodeRowId::new(4)));
     assert!(!proof.contains(NodeRowId::from_u32(u32::MAX)));
 
-    assert!(proof.edge_visible(NodeRowId::new(1), NodeRowId::new(2)));
-    assert!(!proof.edge_visible(NodeRowId::new(1), NodeRowId::new(3)));
-    assert!(!proof.edge_visible(NodeRowId::new(0), NodeRowId::new(1)));
+    let visible_endpoints = [NodeRowId::new(1), NodeRowId::new(2)];
+    let [source, target] = visible_endpoints;
+    assert_eq!(
+        proof
+            .verify_edge(EdgeRowId::new(0), source, target)
+            .map(VisibleEdge::get),
+        Some(EdgeRowId::new(0)),
+        "a visible link row over visible endpoints delivers, and the witness names it"
+    );
+    assert!(
+        proof
+            .verify_edge(EdgeRowId::new(1), source, target)
+            .is_none(),
+        "a hidden link row withholds its edge over visible endpoints"
+    );
+    assert!(
+        proof
+            .verify_edge(EdgeRowId::new(0), source, NodeRowId::new(3))
+            .is_none(),
+        "a hidden target withholds a visible link row"
+    );
+    assert!(
+        proof
+            .verify_edge(EdgeRowId::new(0), NodeRowId::new(0), target)
+            .is_none(),
+        "a hidden source withholds a visible link row"
+    );
+    assert!(
+        proof
+            .verify_edge(EdgeRowId::new(3), source, target)
+            .is_none(),
+        "a link row beyond the mask's domain is hidden, never a panic"
+    );
 
     let mut set = crate::bitset::BitSet::new(6);
     for index in 0..6 {
@@ -682,7 +857,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
         let delivered: Vec<u32> = masked
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
             .collect();
         assert_eq!(delivered, expected_edges, "ego({source_row}) edges");
 
@@ -740,7 +915,7 @@ fn assert_locate_delivers_the_visible_ego_graph(
             let capped_edges: Vec<u32> = capped
                 .edges
                 .iter()
-                .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
+                .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
                 .collect();
             assert_eq!(
                 capped_edges, expected_edges,

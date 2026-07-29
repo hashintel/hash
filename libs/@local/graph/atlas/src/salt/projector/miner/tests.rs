@@ -369,9 +369,9 @@ fn pooled_frames_keep_the_maximum_weight() {
     assert_eq!(pooled.rows(), 2);
     let row: Vec<_> = pooled.row(0).collect();
     assert_eq!(row.len(), 2);
-    assert_eq!(row[0].0.second().as_u64(), 1);
+    assert_eq!(row[0].0.rhs().as_u64(), 1);
     assert_eq!(row[0].1, 1.0);
-    assert_eq!(row[1].0.second().as_u64(), 2);
+    assert_eq!(row[1].0.rhs().as_u64(), 2);
     assert_eq!(row[1].1, 0.5);
     let row: Vec<_> = pooled.row(1).collect();
     assert_eq!(row.len(), 1);

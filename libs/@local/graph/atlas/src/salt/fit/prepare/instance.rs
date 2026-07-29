@@ -96,7 +96,7 @@ impl InstanceRecord {
 
     /// Decodes the reading as a relation instance.
     #[must_use]
-    pub(crate) fn instance(&self) -> RelationInstance {
+    pub(crate) fn instance(&self) -> RelationInstance<NodeRowId, EdgeRowId> {
         let scored = self.scored.get();
 
         RelationInstance {

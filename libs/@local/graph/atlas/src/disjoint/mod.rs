@@ -21,6 +21,8 @@
 //! assert_eq!(components.groups(), 2);
 //! ```
 
+use hashql_core::id::{Id, IdVec};
+
 #[cfg(test)]
 mod tests;
 
@@ -29,15 +31,18 @@ mod tests;
 /// Uses path halving and union by size, so both operations run in effectively constant amortized
 /// time.
 #[derive(Debug, Clone)]
-pub struct DisjointSet {
+pub struct DisjointSet<N> {
     // parent[i] == i marks a representative; size is meaningful only
     // at representatives.
-    parent: Vec<u32>,
-    size: Vec<u32>,
+    parent: IdVec<N, N>,
+    size: IdVec<N, u32>,
     groups: usize,
 }
 
-impl DisjointSet {
+impl<N> DisjointSet<N>
+where
+    N: Id,
+{
     /// Creates the discrete partition of `0..len`: every index alone.
     ///
     /// # Panics
@@ -55,8 +60,8 @@ impl DisjointSet {
             reason = "the assert above bounds the domain to u32"
         )]
         Self {
-            parent: (0..len as u32).collect(),
-            size: vec![1; len],
+            parent: (0..len as u32).map(N::from_u32).collect(),
+            size: IdVec::from_elem(1, len),
             groups: len,
         }
     }
@@ -91,18 +96,19 @@ impl DisjointSet {
     ///
     /// Panics when `index` lies outside the domain.
     #[must_use]
-    pub const fn find(&mut self, index: u32) -> u32 {
+    pub fn find(&mut self, index: N) -> N {
         let mut current = index;
+
         loop {
-            let parent = self.parent[current as usize];
+            let parent = self.parent[current];
             if parent == current {
                 return current;
             }
 
             // Path halving: point every visited index at its
             // grandparent, halving the path for later finds.
-            let grandparent = self.parent[parent as usize];
-            self.parent[current as usize] = grandparent;
+            let grandparent = self.parent[parent];
+            self.parent[current] = grandparent;
             current = grandparent;
         }
     }
@@ -115,7 +121,7 @@ impl DisjointSet {
     /// # Panics
     ///
     /// Panics when either index lies outside the domain.
-    pub const fn unite(&mut self, one: u32, other: u32) -> bool {
+    pub fn unite(&mut self, one: N, other: N) -> bool {
         let mut first = self.find(one);
         let mut second = self.find(other);
         if first == second {
@@ -125,12 +131,12 @@ impl DisjointSet {
         // Union by size: the smaller group's representative points at
         // the larger group's, keeping find paths logarithmic before
         // halving.
-        if self.size[first as usize] < self.size[second as usize] {
+        if self.size[first] < self.size[second] {
             core::mem::swap(&mut first, &mut second);
         }
 
-        self.parent[second as usize] = first;
-        self.size[first as usize] += self.size[second as usize];
+        self.parent[second] = first;
+        self.size[first] += self.size[second];
         self.groups -= 1;
         true
     }
@@ -141,8 +147,9 @@ impl DisjointSet {
     ///
     /// Panics when `index` lies outside the domain.
     #[must_use]
-    pub const fn group_size(&mut self, index: u32) -> u32 {
+    pub const fn group_size(&mut self, index: N) -> u32 {
         let representative = self.find(index);
-        self.size[representative as usize]
+
+        self.size[representative]
     }
 }

@@ -7,10 +7,11 @@ use super::{
         stage_rng,
     },
     Context,
+    quotient::{self, RowQuotient},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    file::sprs::read::SprsFile,
+    file::{generation::ScratchDirectory, sprs::read::SprsFile},
     math::AlignedVecN,
     salt::{
         knn::{
@@ -26,15 +27,19 @@ use crate::{
 };
 
 impl Context<'_> {
-    /// Constructs the neighbour lists over the mapped representations.
+    /// Constructs the neighbour lists over the distinct representation rows.
     ///
-    /// Admits them by exact recall, and stages the derived k-NN table, mapping it back for the
-    /// stages that consume it. One construction runs at the wider of the spot check's depth and
-    /// the stored width, so the admitted lists and the persisted table are the same lists.
+    /// Admits them by exact recall, stages the corpus row-domain expansion - every row carries its
+    /// representative's list, neighbours named by their first rows - and returns the staged table
+    /// beside the distinct table the training stages consume, mapped back from `scratch`. One
+    /// construction runs at the wider of the spot check's depth and the stored width, so the
+    /// admitted lists, the persisted expansion, and the training table are the same lists.
     pub(super) fn build_neighbour_table(
         &self,
-        rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    ) -> Result<Staged<KnnArchive, recall::RecallSpotCheck>, StageError> {
+        scratch: &ScratchDirectory,
+        distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        quotient: &RowQuotient,
+    ) -> Result<(Staged<KnnArchive, recall::RecallSpotCheck>, KnnArchive), StageError> {
         let _span = tracing::info_span!("knn").entered();
 
         let width = self
@@ -42,17 +47,20 @@ impl Context<'_> {
             .recall_check
             .neighbours
             .max(self.config.neighbours);
+
         let lists: NeighbourLists = {
             let _span = tracing::info_span!("knn-link").entered();
             let rng = stage_rng(self.config.seed, Stage::KnnLink);
+
             match self.config.construction {
                 KnnConstructionChoice::Index => IndexConstruction::new(HannoyIndex::new(
                     self.scratch.directory("knn")?,
                     self.config.index,
                 )?)
-                .construct(rows, width, rng)?,
+                .construct(distinct, width, rng)?,
+
                 KnnConstructionChoice::Descent(options) => {
-                    NnDescent::new(options).construct(rows, width, rng)?
+                    NnDescent::new(options).construct(distinct, width, rng)?
                 }
             }
         };
@@ -60,7 +68,7 @@ impl Context<'_> {
         let recall = tracing::info_span!("recall-check").in_scope(|| {
             recall::spot_check_lists::<HannoyIndexError>(
                 &lists,
-                rows,
+                distinct,
                 self.config.recall_check,
                 stage_rng(self.config.seed, Stage::RecallCheck),
             )
@@ -70,32 +78,60 @@ impl Context<'_> {
             return Err(StageError::RecallBelowMinimum(recall));
         }
 
-        let file = {
-            let _span = tracing::info_span!("knn-table").entered();
-            let table = Knn::from_lists::<HannoyIndexError>(&lists, self.config.neighbours)?;
+        let _table_span = tracing::info_span!("knn-table").entered();
+        let table = Knn::from_lists::<HannoyIndexError>(&lists, self.config.neighbours)?;
 
-            stage(self.staging, Role::Knn, &table)?
+        let (file, distinct_table) = if quotient.is_identity() {
+            // The distinct rows are the corpus: the table stages directly and both handles map the
+            // staged file.
+            let file = stage(self.staging, Role::Knn, &table)?;
+            let distinct_table = KnnArchive::new(SprsFile::open(
+                self.staging.path_of(&Role::Knn.file_name()),
+            )?)?;
+
+            (file, distinct_table)
+        } else {
+            let path = quotient::write_scratch(scratch, "knn.sprs", &table)?;
+            let distinct_table = KnnArchive::new(SprsFile::open(path)?)?;
+
+            let expanded = quotient::expand_neighbours(&distinct_table.view(), quotient);
+            let file = stage(self.staging, Role::Knn, &expanded)?;
+
+            (file, distinct_table)
         };
 
         let knn = KnnArchive::new(SprsFile::open(
             self.staging.path_of(&Role::Knn.file_name()),
         )?)?;
-        tracing::info!(recall = recall.recall(), "staged the admitted k-NN table");
+        tracing::info!(
+            recall = recall.recall(),
+            distinct = quotient.distinct_len(),
+            "staged the admitted k-NN table"
+        );
 
-        Ok(Staged {
-            file,
-            artifact: knn,
-            evidence: recall,
-        })
+        Ok((
+            Staged {
+                file,
+                artifact: knn,
+                evidence: recall,
+            },
+            distinct_table,
+        ))
     }
 
-    /// Smooths the mapped k-NN table into the staged fuzzy semantic graph.
+    /// Smooths the staged k-NN table into the staged fuzzy semantic graph, and the distinct table
+    /// into the training twin.
     ///
-    /// Maps it back for the stages that consume it.
+    /// The published graph weighs the published table, so the staged pair stays derivable one from
+    /// the other; the trainer's graph weighs the distinct table by the same kernel and maps back
+    /// from `scratch`.
     pub(super) fn stage_semantic(
         &self,
+        scratch: &ScratchDirectory,
         knn: &KnnArchive,
-    ) -> Result<Staged<SemanticGraphArchive>, StageError> {
+        distinct_knn: &KnnArchive,
+        quotient: &RowQuotient,
+    ) -> Result<(Staged<SemanticGraphArchive>, SemanticGraphArchive), StageError> {
         let file = {
             let _span = tracing::info_span!("semantic").entered();
             let graph = SemanticGraph::build(&knn.view(), self.config.smoothing);
@@ -105,12 +141,30 @@ impl Context<'_> {
         let semantic = SemanticGraphArchive::new(SprsFile::open(
             self.staging.path_of(&Role::Semantic.file_name()),
         )?)?;
+
+        let distinct = if quotient.is_identity() {
+            // One graph serves both domains; the second handle maps
+            // the same staged file.
+            SemanticGraphArchive::new(SprsFile::open(
+                self.staging.path_of(&Role::Semantic.file_name()),
+            )?)?
+        } else {
+            let _span = tracing::info_span!("semantic-distinct").entered();
+
+            let graph = SemanticGraph::build(&distinct_knn.view(), self.config.smoothing);
+            let path = quotient::write_scratch(scratch, "semantic.sprs", &graph)?;
+
+            SemanticGraphArchive::new(SprsFile::open(path)?)?
+        };
         tracing::info!("staged the semantic graph");
 
-        Ok(Staged {
-            file,
-            artifact: semantic,
-            evidence: (),
-        })
+        Ok((
+            Staged {
+                file,
+                artifact: semantic,
+                evidence: (),
+            },
+            distinct,
+        ))
     }
 }

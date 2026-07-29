@@ -1,9 +1,9 @@
 //! Per-node relation-gradient budgets in coordinate space.
 //!
-//! The relation objective must never overpower the semantic layout at any single node: before the
-//! relation gradient reaches shared model parameters, each node's relation contribution is scaled
-//! down to a budget proportional to that node's semantic gradient. The clip is pure 2D vector
-//! algebra over detached values:
+//! Enforced, the budget keeps the relation objective from overpowering the semantic layout at any
+//! single node: before the relation gradient reaches shared model parameters, each node's
+//! relation contribution is scaled down to a budget proportional to that node's semantic
+//! gradient. The clip is pure 2D vector algebra over detached values:
 //!
 //! ```text
 //! baseline = max(‖semantic‖, floor)
@@ -19,13 +19,18 @@
 //! With a single attractive relation branch, the trailing total-variation factor binds only when
 //! the positive factor also binds, and then shaves at most an ε-order amount; it stays separately
 //! measured because its activation rate is a required training metric.
+//!
+//! A run may instead observe the budget: relation gradients apply unchanged, and every outcome
+//! still records its norms against the same baseline convention with both factors exactly one.
+//! The recorded ratios then say what enforcement would have clipped, so runs differing only in
+//! mode are judged on one instrument.
 
 #[cfg(test)]
 mod tests;
 
 use burn::tensor::{Tensor, backend::AutodiffBackend};
 
-use crate::math::Vec2;
+use crate::math::{Positive, Vec2};
 
 /// Validated budget coefficients.
 ///
@@ -102,7 +107,7 @@ impl BudgetOptions {
     /// within `total · baseline`, and the intermediate positive step stays within `positive ·
     /// baseline`.
     #[must_use]
-    pub(crate) fn clip(self, semantic: Vec2, relation: Vec2) -> ClippedRelation {
+    pub(crate) fn clip(self, semantic: Vec2, relation: Vec2) -> BudgetOutcome {
         let semantic_norm = semantic.length();
         let baseline = semantic_norm.max(self.floor);
         let relation_norm = relation.length();
@@ -110,7 +115,7 @@ impl BudgetOptions {
         let clipped = relation * positive_factor;
         let total_factor = (self.total * baseline / (clipped.length() + self.epsilon)).min(1.0);
 
-        ClippedRelation {
+        BudgetOutcome {
             gradient: clipped * total_factor,
             baseline,
             semantic_norm,
@@ -121,9 +126,51 @@ impl BudgetOptions {
     }
 }
 
+/// The budget's governing mode.
+///
+/// Enforcement is the production clamp; observation turns the clamp off for a run judged by the
+/// recorded diagnostics. Both modes produce the same [`BudgetOutcome`] shape against the same
+/// baseline convention, so the recorded ratios compare across runs that differ only in mode.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) enum Budget {
+    /// The clamp runs: every node's relation gradient is scaled into its budget.
+    Enforced(BudgetOptions),
+    /// The clamp is off: relation gradients apply unchanged while the outcome records what
+    /// enforcement would have measured, with both factors exactly one.
+    Observed {
+        /// The semantic-baseline floor, shared with enforcement's baseline convention.
+        floor: Positive,
+    },
+}
+
+impl Budget {
+    /// Applies the budget to one node's relation gradient.
+    ///
+    /// Both inputs are coordinate-space gradients of the same node, scaled by their loss
+    /// coefficients. Enforced, the returned gradient satisfies both budget bounds; observed, it is
+    /// the relation gradient unchanged beside its diagnostics.
+    #[must_use]
+    pub(crate) fn apply(self, semantic: Vec2, relation: Vec2) -> BudgetOutcome {
+        match self {
+            Self::Enforced(options) => options.clip(semantic, relation),
+            Self::Observed { floor } => {
+                let semantic_norm = semantic.length();
+                BudgetOutcome {
+                    gradient: relation,
+                    baseline: semantic_norm.max(floor.get()),
+                    semantic_norm,
+                    relation_norm: relation.length(),
+                    positive_factor: 1.0,
+                    total_factor: 1.0,
+                }
+            }
+        }
+    }
+}
+
 /// One node's budget outcome: the applied gradient and its diagnostics.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct ClippedRelation {
+pub(crate) struct BudgetOutcome {
     /// The budgeted relation gradient, ready to add to the semantic one.
     pub gradient: Vec2,
     /// The semantic baseline `max(|semantic|, floor)`.
@@ -169,7 +216,7 @@ impl BudgetSummary {
     }
 
     /// Records one node's outcome.
-    pub(crate) fn record(&mut self, outcome: &ClippedRelation) {
+    pub(crate) fn record(&mut self, outcome: &BudgetOutcome) {
         self.nodes += 1;
         if outcome.positive_factor < 1.0 {
             self.clipped += 1;

@@ -7,6 +7,7 @@ use super::{
         role::{Role, stage, write_staged},
     },
     Context,
+    quotient::{self, RowQuotient},
 };
 use crate::{
     file::{array::ArrayFile, policy::read::PolicyFile, repository::RepositoryFile},
@@ -20,14 +21,18 @@ use crate::{
 
 /// The staged relation artifacts of one fit.
 ///
-/// Both index files beside the owned indexes the placement stage consumes.
+/// Both index files beside the owned indexes, in both row domains.
 pub(super) struct RelationArtifacts {
     pub attraction: RepositoryFile,
     pub protection: RepositoryFile,
     // Owned rather than mapped back: edge-scale, bounded by the
-    // retained instance count, and the placement stage wants the
-    // decoded form anyway.
+    // retained instance count. The corpus row-domain truth the staged
+    // files persist; the manifest's relation measurements read here.
     pub indexes: RelationIndexes,
+    // The placement stage's distinct-domain twin: endpoints mapped
+    // onto the representation quotient, duplicate readings collapsed
+    // to one assertion each. Never staged.
+    pub trainer: RelationIndexes,
 }
 
 impl Context<'_> {
@@ -52,7 +57,9 @@ impl Context<'_> {
 
     /// Assembles the spooled relation instances against the staged policy table.
     ///
-    /// Builds both relation indexes, and stages them.
+    /// Builds both relation indexes and stages them, then rebuilds the pair over the distinct row
+    /// domain for the placement stage: endpoints quotient-mapped, duplicate readings collapsed,
+    /// degrees and protection evidence re-derived by the same build over the collapsed set.
     ///
     /// `rows` is the node-row domain the protection matrix spans. The spool holds one reading per
     /// `(edge, relation)` pair; the policy table covers exactly the relation universe those
@@ -60,6 +67,7 @@ impl Context<'_> {
     pub(super) fn stage_relations(
         &self,
         rows: usize,
+        quotient: &RowQuotient,
         spool: &InstanceSpool,
         multi_typed: &[u64],
     ) -> Result<RelationArtifacts, StageError> {
@@ -72,7 +80,8 @@ impl Context<'_> {
             Policies::new(table.policies()).expect("the mapped table certified order and domains");
 
         let mapped = spool.map()?;
-        let mut instances: Vec<RelationInstance> = mapped
+        // NOTE: why do we materialize here? That makes no fucking sense
+        let mut instances: Vec<_> = mapped
             .records()
             .iter()
             .map(InstanceRecord::instance)
@@ -81,7 +90,17 @@ impl Context<'_> {
 
         let mut indexes =
             RelationIndexes::build(rows, policies, &mut instances, self.config.attraction)?;
+
+        let mut collapsed = quotient::collapse_instances(&instances, quotient);
         drop(instances);
+        let trainer = RelationIndexes::build(
+            quotient.distinct_len(),
+            policies,
+            &mut collapsed,
+            self.config.attraction,
+        )?;
+        drop(collapsed);
+
         // The histogram is a drain fact the build cannot see; it joins
         // the build measurements here on its way to the manifest.
         indexes.measurements.multi_typed_edges = multi_typed.to_vec();
@@ -97,11 +116,17 @@ impl Context<'_> {
             self_references = indexes.measurements.self_references,
             "staged the attraction and protection indexes"
         );
+        tracing::info!(
+            retained = trainer.measurements.retained_edges,
+            collapsed_self_references = trainer.measurements.self_references,
+            "built the distinct-domain trainer indexes"
+        );
 
         Ok(RelationArtifacts {
             attraction,
             protection,
             indexes,
+            trainer,
         })
     }
 }

@@ -33,7 +33,7 @@ use std::alloc::Allocator;
 
 use hashql_core::{
     heap::{ResetAllocator as _, Scratch},
-    id::{Id as _, IdSlice, bit_vec::DenseBitSet},
+    id::{Id, IdSlice, bit_vec::DenseBitSet},
 };
 use rayon::iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator};
 
@@ -56,28 +56,37 @@ use crate::{
 /// Distances order by [`f32::total_cmp`] and ties resolve by ascending row, so equal distances rank
 /// in one order in every pass.
 #[derive(Debug, Copy, Clone)]
-struct Ranked {
-    row: NodeRowId,
+struct Ranked<N> {
+    row: N,
     distance: f32,
 }
 
-impl PartialEq for Ranked {
+impl<N> PartialEq for Ranked<N>
+where
+    N: Id,
+{
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
 
-impl Eq for Ranked {}
+impl<N> Eq for Ranked<N> where N: Id {}
 
-impl PartialOrd for Ranked {
+impl<N> PartialOrd for Ranked<N>
+where
+    N: Id,
+{
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for Ranked {
+impl<N> Ord for Ranked<N>
+where
+    N: Id,
+{
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance
@@ -87,7 +96,13 @@ impl Ord for Ranked {
 }
 
 /// Offers `candidate` to a max-heap keeping the `bound` least entries.
-fn push_bounded<A: Allocator>(heap: &mut BinaryHeap<Ranked, A>, candidate: Ranked, bound: usize) {
+fn push_bounded<N, A: Allocator>(
+    heap: &mut BinaryHeap<Ranked<N>, A>,
+    candidate: Ranked<N>,
+    bound: usize,
+) where
+    N: Id,
+{
     if heap.len() < bound {
         heap.push(candidate);
         return;
@@ -130,13 +145,13 @@ pub(super) struct AnchorReading {
 }
 
 /// The corpus pass's shared inputs: every anchor against every non-anchor row.
-pub(super) struct CorpusPass<'pass> {
+pub(super) struct CorpusPass<'pass, N> {
     /// The representation matrix, in row order.
-    pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    pub representations: &'pass IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The coordinate frame, in row order.
-    pub coordinates: &'pass IdSlice<NodeRowId, Vec2>,
+    pub coordinates: &'pass IdSlice<N, Vec2>,
     /// The anchor rows every scan excludes.
-    pub anchor_mask: &'pass DenseBitSet<NodeRowId>,
+    pub anchor_mask: &'pass DenseBitSet<N>,
     /// Nearest rows kept per space: the largest neighbourhood size.
     pub search: usize,
     /// Prevalidated empty aggregates, one per neighbourhood size.
@@ -146,14 +161,17 @@ pub(super) struct CorpusPass<'pass> {
     /// Clump labels over the corpus rows.
     ///
     /// When the probe reads clump-granularity recall beside the plain reading.
-    pub clumps: Option<&'pass Clumps>,
+    pub clumps: Option<&'pass Clumps<N>>,
 }
 
-impl CorpusPass<'_> {
+impl<N> CorpusPass<'_, N>
+where
+    N: Id,
+{
     /// Ranks every anchor, yielding per-neighbourhood readings in anchor order.
     pub(super) fn run<'call>(
         &'call self,
-        anchor_rows: &'call [NodeRowId],
+        anchor_rows: &'call [N],
     ) -> impl ParallelIterator<Item = AnchorReading> + 'call {
         let mut negated_anchor_mask = self.anchor_mask.clone();
         negated_anchor_mask.negate();
@@ -172,8 +190,8 @@ impl CorpusPass<'_> {
     /// scan; the representation matrix is scanned once and the coordinate frame twice.
     fn anchor(
         &self,
-        anchor: NodeRowId,
-        negated_anchor_mask: &DenseBitSet<NodeRowId>,
+        anchor: N,
+        negated_anchor_mask: &DenseBitSet<N>,
         scratch: &mut Scratch,
     ) -> AnchorReading {
         scratch.reset();
@@ -280,8 +298,8 @@ impl CorpusPass<'_> {
     /// costs two small label sweeps per neighbourhood size.
     fn clump_cells(
         &self,
-        map_nearest: &[Ranked],
-        reference_nearest: &[Ranked],
+        map_nearest: &[Ranked<N>],
+        reference_nearest: &[Ranked<N>],
         scratch: &Scratch,
     ) -> Vec<ClumpAggregate> {
         let Some(clumps) = self.clumps else {
@@ -297,13 +315,13 @@ impl CorpusPass<'_> {
             reference_labels.extend(
                 reference_nearest[..k.get()]
                     .iter()
-                    .map(|member| clumps.clump(member.row.as_usize())),
+                    .map(|member| clumps.clump(member.row)),
             );
             map_labels.clear();
             map_labels.extend(
                 map_nearest[..k.get()]
                     .iter()
-                    .map(|member| clumps.clump(member.row.as_usize())),
+                    .map(|member| clumps.clump(member.row)),
             );
 
             let mut aggregate = ClumpAggregate::new(k);
@@ -351,7 +369,7 @@ pub(super) struct SampledPass<'pass> {
     ///
     /// When the probe reads the representation baseline at clump granularity beside the plain
     /// reading.
-    pub clumps: Option<&'pass Clumps>,
+    pub clumps: Option<&'pass Clumps<NodeRowId>>,
 }
 
 impl SampledPass<'_> {
@@ -484,15 +502,15 @@ impl SampledPass<'_> {
         for &k in self.neighbourhoods {
             reference_labels.clear();
             reference_labels.extend(
-                canonical_order[..k.get()].iter().map(|&universe| {
-                    clumps.clump(self.comparison_rows[universe as usize].as_usize())
-                }),
+                canonical_order[..k.get()]
+                    .iter()
+                    .map(|&universe| clumps.clump(self.comparison_rows[universe as usize])),
             );
             judged_labels.clear();
             judged_labels.extend(
-                representation_order[..k.get()].iter().map(|&universe| {
-                    clumps.clump(self.comparison_rows[universe as usize].as_usize())
-                }),
+                representation_order[..k.get()]
+                    .iter()
+                    .map(|&universe| clumps.clump(self.comparison_rows[universe as usize])),
             );
 
             let mut aggregate = ClumpAggregate::new(k);

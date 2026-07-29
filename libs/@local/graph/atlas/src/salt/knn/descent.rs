@@ -41,17 +41,14 @@ use core::{
     error::Error,
     fmt,
     num::NonZero,
-    sync::atomic::{AtomicU32, AtomicU64, Ordering},
+    sync::atomic::{Atomic, Ordering},
 };
 use std::sync::Mutex;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{Rng, RngExt as _, SeedableRng, seq::IndexedRandom as _};
 use rayon::{
-    iter::{
-        IndexedParallelIterator as _, IntoParallelIterator as _, IntoParallelRefIterator as _,
-        ParallelIterator as _,
-    },
+    iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
 };
 
@@ -61,7 +58,6 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::NodeRowId,
     math::AlignedVecN,
     random::{keyed_rng, sample_indices_vec},
 };
@@ -135,9 +131,9 @@ impl NnDescent {
 
 /// One resident list entry: a neighbour and its join-participation flag.
 #[derive(Debug, Copy, Clone)]
-struct Entry {
+struct Entry<N> {
     distance: f32,
-    id: u32,
+    id: N,
     new: bool,
 }
 
@@ -151,13 +147,16 @@ struct Entry {
 /// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy
 /// ordering for data read outside the lock, and no such read exists.
 #[derive(Debug)]
-struct RowList {
-    entries: Mutex<Vec<Entry>>,
-    worst: AtomicU32,
+struct RowList<N> {
+    entries: Mutex<Vec<Entry<N>>>,
+    worst: Atomic<u32>,
 }
 
-impl RowList {
-    fn new(mut entries: Vec<Entry>) -> Self {
+impl<N> RowList<N>
+where
+    N: Id,
+{
+    fn new(mut entries: Vec<Entry<N>>) -> Self {
         entries.sort_unstable_by(|lhs, rhs| {
             lhs.distance
                 .total_cmp(&rhs.distance)
@@ -167,7 +166,7 @@ impl RowList {
 
         Self {
             entries: Mutex::new(entries),
-            worst: AtomicU32::new(worst.to_bits()),
+            worst: Atomic::<u32>::new(worst.to_bits()),
         }
     }
 
@@ -176,7 +175,7 @@ impl RowList {
     /// The lock is held for the containment scan and the insertion together: membership and
     /// placement must be decided against one list state, or two concurrent offers of the same id
     /// could both pass the scan. The held section is O(width) over a width-bounded list.
-    fn offer(&self, id: u32, distance: f32) -> bool {
+    fn offer(&self, id: N, distance: f32) -> bool {
         if distance >= f32::from_bits(self.worst.load(Ordering::Relaxed)) {
             return false;
         }
@@ -212,7 +211,10 @@ impl RowList {
 ///
 /// The pool is ascending afterwards on every path - the retirement scan in [`sample_forward`]
 /// binary-searches it.
-fn sample_pool(pool: &mut Vec<u32>, count: usize, mut rng: impl Rng) {
+fn sample_pool<N>(pool: &mut Vec<N>, count: usize, mut rng: impl Rng)
+where
+    N: Id,
+{
     if pool.len() > count {
         *pool = pool.sample(&mut rng, count).copied().collect();
     }
@@ -224,31 +226,35 @@ fn sample_pool(pool: &mut Vec<u32>, count: usize, mut rng: impl Rng) {
 ///
 /// Sampling draws over a domain one short and shifts past the row itself, excluding it without
 /// rejection.
-fn initialize(
+fn initialize<N>(
     rows: usize,
     width: usize,
     seed: u64,
-    distance: &(impl Fn(u32, u32) -> f32 + Sync),
-) -> Vec<RowList> {
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the construction rejects row domains beyond u32 at entry"
-    )]
+    distance: &(impl Fn(N, N) -> f32 + Sync),
+) -> IdVec<N, RowList<N>>
+where
+    N: Id,
+{
     (0..rows)
         .into_par_iter()
         .map(|row| {
+            let row = N::from_usize(row);
+
             // A stream index of `u64::MAX`, which no join iteration
             // reaches, keeps the initial draw independent of every
             // iteration's draw.
             let sampled =
-                sample_indices_vec(keyed_rng(seed, row as u64, u64::MAX), rows - 1, width);
+                sample_indices_vec(keyed_rng(seed, row.as_u64(), u64::MAX), rows - 1, width);
+
             RowList::new(
                 sampled
                     .iter()
                     .map(|index| {
-                        let id = if index >= row { index + 1 } else { index } as u32;
+                        let index = N::from_usize(index);
+
+                        let id = if index >= row { index.plus(1) } else { index };
                         Entry {
-                            distance: distance(row as u32, id),
+                            distance: distance(row, id),
                             id,
                             new: true,
                         }
@@ -263,52 +269,63 @@ fn initialize(
 ///
 /// Splits each list by the *new* flag, samples each side to `cap`, and clears the flag on the
 /// sampled new entries so no join recompares them.
-fn sample_forward(
-    lists: &[RowList],
+fn sample_forward<N>(
+    lists: &IdSlice<N, RowList<N>>,
     cap: usize,
     seed: u64,
     iteration: usize,
-) -> (Vec<Vec<u32>>, Vec<Vec<u32>>) {
-    let mut forward_new: Vec<Vec<u32>> = Vec::with_capacity(lists.len());
-    let mut forward_old: Vec<Vec<u32>> = Vec::with_capacity(lists.len());
+) -> (IdVec<N, Vec<N>>, IdVec<N, Vec<N>>)
+where
+    N: Id,
+{
+    let mut forward_new: Vec<Vec<N>> = Vec::with_capacity(lists.len());
+    let mut forward_old: Vec<Vec<N>> = Vec::with_capacity(lists.len());
+
     lists
-        .par_iter()
-        .enumerate()
+        .par_iter_enumerated()
         .map(|(row, list)| {
-            let mut rng = keyed_rng(seed, row as u64, iteration as u64);
+            let mut rng = keyed_rng(seed, row.as_u64(), iteration as u64);
             let mut entries = list.entries.lock().expect("a sampling pass cannot panic");
-            let mut new: Vec<u32> = entries
+
+            let mut new: Vec<_> = entries
                 .iter()
                 .filter(|entry| entry.new)
                 .map(|entry| entry.id)
                 .collect();
-            let mut old: Vec<u32> = entries
+            let mut old: Vec<_> = entries
                 .iter()
                 .filter(|entry| !entry.new)
                 .map(|entry| entry.id)
                 .collect();
+
             sample_pool(&mut new, cap, &mut rng);
             sample_pool(&mut old, cap, &mut rng);
+
             for entry in entries.iter_mut() {
                 if entry.new && new.binary_search(&entry.id).is_ok() {
                     entry.new = false;
                 }
             }
+
             drop(entries);
             (new, old)
         })
         .unzip_into_vecs(&mut forward_new, &mut forward_old);
-    (forward_new, forward_old)
+
+    (IdVec::from_raw(forward_new), IdVec::from_raw(forward_old))
 }
 
 /// Transposes sampled candidate sets and limits each reverse pool.
-fn reverse(
-    forward: &[Vec<u32>],
+fn reverse<N>(
+    forward: &IdSlice<N, Vec<N>>,
     rows: usize,
     cap: usize,
     seed: u64,
     iteration: usize,
-) -> Vec<Vec<u32>> {
+) -> IdVec<N, Vec<N>>
+where
+    N: Id,
+{
     // A two-pass counting transpose, sequential on purpose: a
     // bucketed par-iter (every worker scanning the full forward set,
     // keeping its own target range) is the lock-free parallel shape,
@@ -316,24 +333,19 @@ fn reverse(
     // pass is cap-bounded bookkeeping dwarfed by the join's distance
     // kernels. Pushing sources in ascending order leaves every pool
     // sorted and the pass deterministic.
-    let mut counts = vec![0_usize; rows];
+    let mut counts = IdVec::<N, _>::from_elem(0_usize, rows);
     for targets in forward {
         for &target in targets {
-            counts[target as usize] += 1;
+            counts[target] += 1;
         }
     }
 
-    let mut pools: Vec<Vec<u32>> =
-        Vec::from_fn(counts.len(), |index| Vec::with_capacity(counts[index]));
+    let mut pools: IdVec<N, Vec<N>> =
+        IdVec::from_fn(counts.len(), |index| Vec::with_capacity(counts[index]));
 
-    for (source, targets) in forward.iter().enumerate() {
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "the construction rejects row domains beyond u32 at entry"
-        )]
-        let source = source as u32;
+    for (source, targets) in forward.iter_enumerated() {
         for &target in targets {
-            pools[target as usize].push(source);
+            pools[target].push(source);
         }
     }
 
@@ -348,20 +360,24 @@ fn reverse(
                 cap,
                 keyed_rng(!seed, target as u64, iteration as u64),
             );
+
             pool
         })
         .collect()
 }
 
-impl KnnConstruction for NnDescent {
+impl<N> KnnConstruction<N> for NnDescent
+where
+    N: Id,
+{
     type Error = NnDescentError;
 
     fn construct(
         &mut self,
-        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         mut rng: impl Rng + SeedableRng,
-    ) -> Result<NeighbourLists, Self::Error> {
+    ) -> Result<NeighbourLists<N>, Self::Error> {
         let rows = embeddings.len();
         if rows < 2 {
             return Err(NnDescentError::InsufficientRows { rows });
@@ -378,8 +394,8 @@ impl KnnConstruction for NnDescent {
         // cosine distance reduces to one minus the dot product - a third
         // of the full kernel's multiply-adds; the clamp absorbs
         // unit-norm rounding at the range's ends.
-        let distance = |lhs: u32, rhs: u32| -> f32 {
-            let dot = embeddings[lhs as usize].dot(&embeddings[rhs as usize]);
+        let distance = |lhs: N, rhs: N| -> f32 {
+            let dot = embeddings[lhs].dot(&embeddings[rhs]);
             (1.0 - dot).clamp(0.0, 2.0)
         };
 
@@ -403,28 +419,34 @@ impl KnnConstruction for NnDescent {
 
             // Local join: sampled new candidates meet every other
             // sampled candidate; each distance is offered both ways.
-            let accepted = AtomicU64::new(0);
+            let accepted = Atomic::<u64>::new(0);
             (0..rows).into_par_iter().for_each(|row| {
+                let row = N::from_usize(row);
+
                 let mut new = [forward_new[row].as_slice(), reverse_new[row].as_slice()].concat();
                 new.sort_unstable();
                 new.dedup();
+
                 let mut old = [forward_old[row].as_slice(), reverse_old[row].as_slice()].concat();
                 old.sort_unstable();
                 old.dedup();
 
                 let mut updates = 0;
-                let mut offer = |lhs: u32, rhs: u32| {
+                let mut offer = |lhs: N, rhs: N| {
                     if lhs == rhs {
                         return;
                     }
+
                     let separation = distance(lhs, rhs);
-                    updates += u64::from(lists[lhs as usize].offer(rhs, separation));
-                    updates += u64::from(lists[rhs as usize].offer(lhs, separation));
+                    updates += u64::from(lists[lhs].offer(rhs, separation));
+                    updates += u64::from(lists[rhs].offer(lhs, separation));
                 };
+
                 for (position, &lhs) in new.iter().enumerate() {
                     for &rhs in &new[position + 1..] {
                         offer(lhs, rhs);
                     }
+
                     for &rhs in &old {
                         offer(lhs, rhs);
                     }
@@ -438,21 +460,24 @@ impl KnnConstruction for NnDescent {
         }
 
         let placeholder = Neighbour {
-            id: NodeRowId::new(0),
+            id: N::MIN,
             distance: 0.0,
         };
+
         let mut entries = vec![placeholder; rows * width].into_boxed_slice();
         entries
             .par_chunks_mut(width)
             .enumerate()
             .for_each(|(row, slots)| {
+                let row = N::from_usize(row);
                 let list = lists[row]
                     .entries
                     .lock()
                     .expect("the join finished; no offer holds a lock");
+
                 for (slot, entry) in slots.iter_mut().zip(list.iter()) {
                     *slot = Neighbour {
-                        id: NodeRowId::from_u32(entry.id),
+                        id: entry.id,
                         distance: entry.distance,
                     };
                 }

@@ -1268,7 +1268,7 @@ where
     /// assert_eq!(realms.get(Universe::Type, 1), Some(&20));
     /// assert_eq!(realms.get(Universe::Type, 3), None);
     /// ```
-    pub fn get(&self, universe: Universe, index: usize) -> Option<&T> {
+    pub const fn get(&self, universe: Universe, index: usize) -> Option<&T> {
         self.of(universe).get(index)
     }
 
@@ -1291,7 +1291,7 @@ where
     ///
     /// assert_eq!(realms.of(Universe::Type), &vec![10, 40, 30]);
     /// ```
-    pub fn get_mut(&mut self, universe: Universe, index: usize) -> Option<&mut T> {
+    pub const fn get_mut(&mut self, universe: Universe, index: usize) -> Option<&mut T> {
         self.of_mut(universe).get_mut(index)
     }
 

@@ -20,7 +20,9 @@
 //! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
 //! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
 
-use hashql_core::id::Id as _;
+use core::marker::PhantomData;
+
+use hashql_core::id::Id;
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
@@ -29,7 +31,6 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
-use crate::identity::NodeRowId;
 
 pub(crate) mod artifact;
 mod bandwidth;
@@ -139,9 +140,12 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
 /// directed supports: at least the `k` outgoing edges of a `k`-neighbour table, plus one for every
 /// other row naming it.
 #[derive(Debug, Clone)]
-pub(crate) struct SemanticGraph(SemanticMatrix);
+pub(crate) struct SemanticGraph<N>(SemanticMatrix, PhantomData<N>);
 
-impl SemanticGraph {
+impl<N> SemanticGraph<N>
+where
+    N: Id,
+{
     /// Validates a weight matrix against the graph invariants.
     ///
     /// # Errors
@@ -151,7 +155,7 @@ impl SemanticGraph {
     /// two directions are missing or unequal.
     pub(crate) fn new(matrix: SemanticMatrix) -> Result<Self, SemanticValidationError> {
         validate(matrix.view())?;
-        Ok(Self(matrix))
+        Ok(Self(matrix, PhantomData))
     }
 
     /// Weighs a k-NN table into the symmetric semantic graph.
@@ -166,7 +170,7 @@ impl SemanticGraph {
         reason = "neighbour and entry counts stay far below exact f64 integer precision, and the \
                   corpus mean is a bandwidth floor scale whose low f32 bits are irrelevant"
     )]
-    pub(crate) fn build(knn: &KnnView<'_>, options: SmoothingOptions) -> Self {
+    pub(crate) fn build(knn: &KnnView<'_, N>, options: SmoothingOptions) -> Self {
         let rows = knn.rows();
         let neighbours = knn.neighbours();
         let (_, indices, distances) = knn.matrix().into_raw_storage();
@@ -219,8 +223,8 @@ impl SemanticGraph {
     /// Borrows the graph.
     #[inline]
     #[must_use]
-    pub(crate) fn view(&self) -> SemanticGraphView<'_> {
-        SemanticGraphView(self.0.view())
+    pub(crate) fn view(&self) -> SemanticGraphView<'_, N> {
+        SemanticGraphView::new_unchecked(self.0.view())
     }
 
     /// Borrows the weight matrix for sparse operations.
@@ -233,18 +237,21 @@ impl SemanticGraph {
 
 /// One semantic edge as seen from a row: the other endpoint and the symmetric weight.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct SemanticEdge {
+pub(crate) struct SemanticEdge<N> {
     /// The other endpoint's node row.
-    pub id: NodeRowId,
+    pub id: N,
     /// The undirected fuzzy weight, finite in `(0, 1]`.
     pub weight: f32,
 }
 
 /// Borrowed rows of one validated [`SemanticGraph`].
 #[derive(Debug, Clone)]
-pub(crate) struct SemanticGraphView<'view>(SemanticMatrixView<'view>);
+pub(crate) struct SemanticGraphView<'view, N>(SemanticMatrixView<'view>, PhantomData<N>);
 
-impl<'view> SemanticGraphView<'view> {
+impl<'view, N> SemanticGraphView<'view, N>
+where
+    N: Id,
+{
     /// Wraps a matrix whose invariants already hold.
     ///
     /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
@@ -252,7 +259,7 @@ impl<'view> SemanticGraphView<'view> {
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: SemanticMatrixView<'view>) -> Self {
-        Self(matrix)
+        Self(matrix, PhantomData)
     }
 
     /// Returns the node-row count.
@@ -281,10 +288,10 @@ impl<'view> SemanticGraphView<'view> {
     /// # Panics
     ///
     /// Panics when `row` is outside the graph's row domain.
-    pub(crate) fn row(&self, row: usize) -> impl Iterator<Item = SemanticEdge> + '_ {
+    pub(crate) fn row(&self, row: N) -> impl Iterator<Item = SemanticEdge<N>> + '_ {
         let (columns, weights) = self
             .0
-            .outer_view(row)
+            .outer_view(row.as_usize())
             .expect("the caller's row lies in the graph's row domain")
             .into_raw_storage();
 
@@ -292,7 +299,7 @@ impl<'view> SemanticGraphView<'view> {
             .iter()
             .zip(weights)
             .map(|(&column, &weight)| SemanticEdge {
-                id: NodeRowId::from_u32(column),
+                id: N::from_u32(column),
                 weight,
             })
     }

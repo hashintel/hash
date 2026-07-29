@@ -30,8 +30,11 @@
 //! and the bit-reproducible layout is the property the serial order buys. Parallelism belongs to
 //! the stages around it, not inside the epoch loop.
 
-use core::{array, error::Error, f32::consts::TAU, fmt, num::NonZero, simd::num::SimdFloat as _};
+use core::{
+    array, error::Error, f32::consts::TAU, fmt, iter::Step, num::NonZero, simd::num::SimdFloat as _,
+};
 
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{Rng, RngExt as _};
 
 use crate::{
@@ -203,6 +206,11 @@ impl fmt::Display for EdgelessGraphError {
 
 impl Error for EdgelessGraphError {}
 
+hashql_core::id::newtype! {
+    #[id(derive(Step), const)]
+    struct LandmarkEdgeId(u32)
+}
+
 /// Lays out one point per graph row, in row order.
 ///
 /// `graph` is the attraction structure - for the landmark skeleton, the quotient over the landmark
@@ -212,13 +220,17 @@ impl Error for EdgelessGraphError {}
 /// # Errors
 ///
 /// Returns an error when the graph stores no edges.
-pub(crate) fn layout_landmarks(
-    graph: &SemanticGraphView<'_>,
+pub(crate) fn layout_landmarks<N>(
+    graph: &SemanticGraphView<'_, N>,
     curve: AffinityCurve,
     options: LayoutOptions,
     mut rng: impl Rng,
-) -> Result<Box<[Vec2]>, EdgelessGraphError> {
-    let schedule = EdgeSchedule::build(graph, options.epochs).ok_or(EdgelessGraphError)?;
+) -> Result<Box<IdSlice<N, Vec2>>, EdgelessGraphError>
+where
+    N: Id,
+{
+    let schedule = EdgeSchedule::<N, LandmarkEdgeId>::build(graph, options.epochs)
+        .ok_or(EdgelessGraphError)?;
     let coordinates = initial_coordinates(graph.rows(), &mut rng);
     let vertices =
         NonZero::new(coordinates.len() as u64).expect("a semantic graph holds at least two rows");
@@ -258,27 +270,33 @@ const RADIAL_JITTER: f32 = 0.01;
     reason = "vertex ordinals lose angular precision only beyond exact f32 integers, where \
               adjacent initial angles are indistinguishable anyway"
 )]
-fn initial_coordinates(rows: usize, mut rng: impl Rng) -> Vec<Vec2> {
-    (0..rows)
-        .map(|vertex| {
-            let rotation = Rotation::from_radians(TAU * (vertex as f32) / (rows as f32));
-            let radius = INITIAL_RADIUS * RADIAL_JITTER.mul_add(rng.random::<f32>(), 1.0);
-            rotation.apply(Vec2::new(radius, 0.0))
-        })
-        .collect()
+fn initial_coordinates<N>(rows: usize, mut rng: impl Rng) -> IdVec<N, Vec2>
+where
+    N: Id,
+{
+    IdVec::from_fn(rows, |vertex: N| {
+        let rotation = Rotation::from_radians(TAU * (vertex.as_u64() as f32) / (rows as f32));
+
+        let radius = INITIAL_RADIUS * RADIAL_JITTER.mul_add(rng.random::<f32>(), 1.0);
+        rotation.apply(Vec2::new(radius, 0.0))
+    })
 }
 
 /// Sampled off-diagonal edges and their due schedule, in row order.
-struct EdgeSchedule {
-    heads: Vec<u32>,
-    tails: Vec<u32>,
+struct EdgeSchedule<N, E> {
+    heads: IdVec<E, N>,
+    tails: IdVec<E, N>,
     /// Epochs between samples of each edge: `maximum / weight`, at least one.
-    periods: Vec<f32>,
+    periods: IdVec<E, f32>,
     /// The epoch at which each edge is next due.
-    due: Vec<f32>,
+    due: IdVec<E, f32>,
 }
 
-impl EdgeSchedule {
+impl<N, E> EdgeSchedule<N, E>
+where
+    N: Id,
+    E: Id,
+{
     /// Extracts the edges due at least once within the epoch budget.
     ///
     /// Returns [`None`] when the graph stores no edges. Weights are finite in `(0, 1]` by the
@@ -289,19 +307,21 @@ impl EdgeSchedule {
         reason = "the matrix's u32 column index type bounds the square row domain, and epoch \
                   budgets lose schedule precision only beyond exact f32 integers"
     )]
-    fn build(graph: &SemanticGraphView<'_>, epochs: NonZero<u32>) -> Option<Self> {
+    fn build(graph: &SemanticGraphView<'_, N>, epochs: NonZero<u32>) -> Option<Self> {
         let (indptr, columns, weights) = graph.matrix().into_raw_storage();
         let maximum = weights.iter().copied().reduce(f32::max)?;
         let budget = epochs.get() as f32;
 
-        let mut heads = Vec::new();
-        let mut tails = Vec::new();
-        let mut periods = Vec::new();
+        let mut heads = IdVec::new();
+        let mut tails = IdVec::new();
+        let mut periods = IdVec::new();
         let position = |pointer: u64| {
             usize::try_from(pointer).expect("a resident graph's entries fit the address space")
         };
 
-        for (row, (&start, &end)) in indptr.iter().zip(&indptr[1..]).enumerate() {
+        for (row, &[start, end]) in indptr.array_windows::<2>().enumerate() {
+            let row = N::from_usize(row);
+
             for entry in position(start)..position(end) {
                 let period = maximum / weights[entry];
                 // Deadlines run to one below the budget, and an edge
@@ -310,8 +330,8 @@ impl EdgeSchedule {
                     continue;
                 }
 
-                heads.push(row as u32);
-                tails.push(columns[entry]);
+                heads.push(row);
+                tails.push(N::from_u32(columns[entry]));
                 periods.push(period);
             }
         }
@@ -327,9 +347,9 @@ impl EdgeSchedule {
 }
 
 /// The mutable optimization state of one layout run.
-struct Optimizer<R> {
-    coordinates: Vec<Vec2>,
-    schedule: EdgeSchedule,
+struct Optimizer<N, E, R> {
+    coordinates: IdVec<N, Vec2>,
+    schedule: EdgeSchedule<N, E>,
     curve: AffinityCurve,
     options: LayoutOptions,
     /// The vertex count, the bound of every negative draw.
@@ -337,17 +357,27 @@ struct Optimizer<R> {
     rng: R,
 }
 
-impl<R: Rng> Optimizer<R> {
+impl<N, E, R> Optimizer<N, E, R>
+where
+    N: Id,
+    E: Id,
+    R: Rng,
+{
     /// Runs the full epoch budget and returns the final coordinates.
     #[expect(
         clippy::cast_precision_loss,
         reason = "epoch budgets lose schedule precision only beyond exact f32 integers"
     )]
-    fn run(mut self) -> Vec<Vec2> {
+    fn run(mut self) -> IdVec<N, Vec2>
+    where
+        E: Step,
+    {
         let epochs = self.options.epochs.get();
+
         for epoch in 0..epochs {
             let learning_rate =
                 self.options.initial_learning_rate.get() * (1.0 - epoch as f32 / epochs as f32);
+
             self.step(epoch as f32, learning_rate);
         }
 
@@ -355,11 +385,14 @@ impl<R: Rng> Optimizer<R> {
     }
 
     /// Applies every edge due by `deadline`, batched four at a time.
-    fn step(&mut self, deadline: f32, learning_rate: f32) {
-        let mut pending = [0_usize; 4];
+    fn step(&mut self, deadline: f32, learning_rate: f32)
+    where
+        E: Step,
+    {
+        let mut pending = [E::from_usize(0); 4];
         let mut filled = 0_usize;
 
-        for edge in 0..self.schedule.due.len() {
+        for edge in E::MIN..self.schedule.due.bound() {
             if self.schedule.due[edge] > deadline {
                 continue;
             }
@@ -373,14 +406,14 @@ impl<R: Rng> Optimizer<R> {
 
             self.attract_x4(pending, learning_rate);
             for &edge in &pending {
-                self.repel(self.schedule.heads[edge] as usize, learning_rate);
+                self.repel(self.schedule.heads[edge], learning_rate);
             }
             filled = 0;
         }
 
         for &edge in &pending[..filled] {
             self.attract(edge, learning_rate);
-            self.repel(self.schedule.heads[edge] as usize, learning_rate);
+            self.repel(self.schedule.heads[edge], learning_rate);
         }
     }
 
@@ -388,9 +421,10 @@ impl<R: Rng> Optimizer<R> {
     ///
     /// Edges sharing a vertex within one batch see the batch's entry coordinates; their updates
     /// accumulate.
-    fn attract_x4(&mut self, edges: [usize; 4], learning_rate: f32) {
-        let heads = edges.map(|edge| self.schedule.heads[edge] as usize);
-        let tails = edges.map(|edge| self.schedule.tails[edge] as usize);
+    fn attract_x4(&mut self, edges: [E; 4], learning_rate: f32) {
+        let heads = edges.map(|edge| self.schedule.heads[edge]);
+        let tails = edges.map(|edge| self.schedule.tails[edge]);
+
         let from = Vec2x4T::from(heads.map(|head| self.coordinates[head]));
         let to = Vec2x4T::from(tails.map(|tail| self.coordinates[tail]));
 
@@ -403,9 +437,9 @@ impl<R: Rng> Optimizer<R> {
     }
 
     /// Applies the symmetric attraction update of one edge.
-    fn attract(&mut self, edge: usize, learning_rate: f32) {
-        let head = self.schedule.heads[edge] as usize;
-        let tail = self.schedule.tails[edge] as usize;
+    fn attract(&mut self, edge: E, learning_rate: f32) {
+        let head = self.schedule.heads[edge];
+        let tail = self.schedule.tails[edge];
 
         let gradient = self
             .curve
@@ -420,8 +454,9 @@ impl<R: Rng> Optimizer<R> {
     /// Draws apply in chunks of four against the anchor's position at chunk entry, with a scalar
     /// remainder. A draw of the anchor itself is a coincident pair and contributes no gradient, so
     /// no draw is rejected.
-    fn repel(&mut self, anchor: usize, learning_rate: f32) {
+    fn repel(&mut self, anchor: N, learning_rate: f32) {
         let mut remaining = self.options.negative_sample_rate.get();
+
         while remaining >= 4 {
             let position = Vec2x4T::from([self.coordinates[anchor]; 4]);
             let targets = Vec2x4T::from(array::from_fn(|_| self.draw_target()));
@@ -432,6 +467,7 @@ impl<R: Rng> Optimizer<R> {
             let step =
                 Vec2::new(gradients.xs().reduce_sum(), gradients.ys().reduce_sum()) * learning_rate;
             self.coordinates[anchor] += step;
+
             remaining -= 4;
         }
 
@@ -442,6 +478,7 @@ impl<R: Rng> Optimizer<R> {
                 target,
                 self.options.repulsion_strength.get(),
             );
+
             self.coordinates[anchor] += gradient * learning_rate;
         }
     }
@@ -452,6 +489,6 @@ impl<R: Rng> Optimizer<R> {
         reason = "vertex counts index an in-memory layout, which cannot outgrow the address space"
     )]
     fn draw_target(&mut self) -> Vec2 {
-        self.coordinates[uniform_below(&mut self.rng, self.vertices) as usize]
+        self.coordinates[N::from_u64(uniform_below(&mut self.rng, self.vertices))]
     }
 }

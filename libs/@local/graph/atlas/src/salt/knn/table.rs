@@ -1,8 +1,8 @@
 //! The validated k-nearest-neighbour table.
 
-use core::{error::Error, fmt, num::NonZero};
+use core::{error::Error, fmt, marker::PhantomData, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
@@ -10,7 +10,6 @@ use rayon::{
 use sprs::{CsMatI, CsMatViewI};
 
 use super::{Neighbour, construction::NeighbourLists, error::KnnError};
-use crate::identity::NodeRowId;
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -174,9 +173,12 @@ pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 /// A `0.0` distance is a stored value (duplicate embeddings are exactly coincident), never an
 /// absent entry.
 #[derive(Debug, Clone)]
-pub(crate) struct Knn(KnnMatrix);
+pub(crate) struct Knn<N>(KnnMatrix, PhantomData<N>);
 
-impl Knn {
+impl<N> Knn<N>
+where
+    N: Id,
+{
     /// Validates a neighbour matrix against the table invariants.
     ///
     /// # Errors
@@ -185,7 +187,7 @@ impl Knn {
     /// ragged, self-referencing, or carries a distance outside the finite `[0, 2]` range.
     pub(crate) fn new(matrix: KnnMatrix) -> Result<Self, KnnValidationError> {
         validate(matrix.view())?;
-        Ok(Self(matrix))
+        Ok(Self(matrix, PhantomData))
     }
 
     /// Slices each row's stored prefix from constructed lists and assembles the validated table.
@@ -198,9 +200,9 @@ impl Knn {
     /// Returns an error when the lists are narrower than the stored width or the assembled table
     /// violates a [`Knn`] invariant.
     pub(crate) fn from_lists<E: Send>(
-        lists: &NeighbourLists,
+        lists: &NeighbourLists<N>,
         neighbours: NonZero<usize>,
-    ) -> Result<Self, KnnError<E>> {
+    ) -> Result<Self, KnnError<N, E>> {
         let neighbours = neighbours.get();
         let rows = lists.rows();
         if rows < 2 {
@@ -234,9 +236,11 @@ impl Knn {
             .zip(distances.par_chunks_mut(neighbours))
             .enumerate()
             .try_for_each(|(row, (row_indices, row_distances))| {
+                let row = N::from_usize(row);
+
                 // CSR keys rows by ascending neighbour; the lists'
                 // distance ordering is recomputable from the values.
-                let mut found: Vec<Neighbour> = lists.row(row)[..neighbours].to_vec();
+                let mut found: Vec<_> = lists.row(row)[..neighbours].to_vec();
                 found.sort_unstable_by_key(|neighbour| neighbour.id.as_u64());
 
                 for (slot, neighbour) in row_indices.iter_mut().zip(&found) {
@@ -248,6 +252,7 @@ impl Knn {
                             rows,
                         });
                     }
+
                     *slot =
                         u32::try_from(column).expect("columns below the checked row bound fit u32");
                 }
@@ -258,7 +263,7 @@ impl Knn {
                 {
                     return Err(KnnError::DuplicateNeighbour {
                         row,
-                        neighbour: u64::from(duplicate),
+                        neighbour: duplicate as u64,
                     });
                 }
 
@@ -286,7 +291,7 @@ impl Knn {
             )
         };
 
-        Ok(Self::new(matrix)?)
+        Self::new(matrix).map_err(From::from)
     }
 
     /// Returns the node-row count.
@@ -311,8 +316,8 @@ impl Knn {
     /// Borrows the table.
     #[inline]
     #[must_use]
-    pub(crate) fn view(&self) -> KnnView<'_> {
-        KnnView(self.0.view())
+    pub(crate) fn view(&self) -> KnnView<'_, N> {
+        KnnView::new_unchecked(self.0.view())
     }
 
     /// Borrows the neighbour matrix for sparse operations.
@@ -332,9 +337,12 @@ impl Knn {
 
 /// Borrowed rows of one validated [`Knn`] table.
 #[derive(Debug, Clone)]
-pub(crate) struct KnnView<'view>(KnnMatrixView<'view>);
+pub(crate) struct KnnView<'view, N>(KnnMatrixView<'view>, PhantomData<N>);
 
-impl<'view> KnnView<'view> {
+impl<'view, N> KnnView<'view, N>
+where
+    N: Id,
+{
     /// Wraps a matrix whose invariants already hold.
     ///
     /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
@@ -342,7 +350,7 @@ impl<'view> KnnView<'view> {
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: KnnMatrixView<'view>) -> Self {
-        Self(matrix)
+        Self(matrix, PhantomData)
     }
 
     /// Returns the node-row count.
@@ -376,19 +384,20 @@ impl<'view> KnnView<'view> {
     /// # Panics
     ///
     /// Panics when `row` is outside the table's row domain.
-    pub(crate) fn row(&self, row: usize) -> impl Iterator<Item = Neighbour> + 'view {
+    pub(crate) fn row(&self, row: N) -> impl Iterator<Item = Neighbour<N>> + 'view {
         // outer_view reborrows at `&self`; the raw storage carries the
         // view's own lifetime.
         let (indptr, columns, distances) = self.0.into_raw_storage();
         let position = |pointer: u64| {
             usize::try_from(pointer).expect("a resident table's entries fit the address space")
         };
-        let range = position(indptr[row])..position(indptr[row + 1]);
+
+        let range = position(indptr[row.as_usize()])..position(indptr[row.as_usize() + 1]);
         columns[range.clone()]
             .iter()
             .zip(&distances[range])
             .map(|(&column, &distance)| Neighbour {
-                id: NodeRowId::from_u32(column),
+                id: N::from_u32(column),
                 distance,
             })
     }

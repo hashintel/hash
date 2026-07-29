@@ -118,6 +118,13 @@ pub struct FitArgs {
     )]
     vacuous_placement: bool,
 
+    /// Observe the relation-gradient budget instead of enforcing it.
+    ///
+    /// The clamp is off and relation gradients apply whole; the run's budget diagnostics still
+    /// record what enforcement would have clipped. Contradicts --baseline.
+    #[arg(long, conflicts_with = "baseline")]
+    observe_budget: bool,
+
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
     /// Either construction answers to the same recall admission.
@@ -371,6 +378,7 @@ impl FitCommand<NoProgress> {
                 steps: args.projector_steps,
                 asserted_radius: args.assert_proximal_radius,
                 vacuous: args.vacuous_placement,
+                observed_budget: args.observe_budget,
             }
         };
 

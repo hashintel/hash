@@ -13,12 +13,11 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::Corpus;
 use crate::{
-    identity::NodeRowId,
     random::uniform_below,
     salt::relation::protection::{NodePair, ProtectionConfig},
 };
@@ -28,12 +27,12 @@ use crate::{
 /// Row `i`'s candidates occupy the `i`-th fixed-width chunk, ascending within the chunk: the shape
 /// a mined neighbour list takes after canonical ordering, and the order the row-merge runner
 /// requires.
-pub struct JudgeProbes {
+pub struct JudgeProbes<N> {
     per_row: NonZero<usize>,
-    candidates: Vec<NodeRowId>,
+    candidates: Vec<N>,
 }
 
-impl JudgeProbes {
+impl<N> JudgeProbes<N> {
     /// Returns the probe-pair count over all rows.
     #[inline]
     #[must_use]
@@ -42,7 +41,7 @@ impl JudgeProbes {
     }
 }
 
-impl Corpus {
+impl<N, E> Corpus<N, E> {
     /// Synthesizes one mining sweep's worth of judge probes.
     ///
     /// Every node row queries `per_row` candidates. Each candidate is one of the row's linked
@@ -61,9 +60,11 @@ impl Corpus {
         per_row: NonZero<usize>,
         partner_fraction: f64,
         seed: u64,
-    ) -> JudgeProbes
+    ) -> JudgeProbes<N>
     where
         R: Rng + SeedableRng,
+        N: Id,
+        E: Id,
     {
         let mut rng = R::seed_from_u64(seed);
         let protection = self.protection().view();
@@ -75,9 +76,10 @@ impl Corpus {
             partners.clear();
             partners.extend(
                 protection
-                    .row(NodeRowId::from_usize(row))
+                    .row(N::from_usize(row))
                     .map(|entry| entry.partner),
             );
+
             let chunk = candidates.len();
             for _ in 0..per_row.get() {
                 let of_partner = !partners.is_empty() && rng.random::<f64>() < partner_fraction;
@@ -86,13 +88,16 @@ impl Corpus {
                         NonZero::new(partners.len() as u64).expect("the partner list is non-empty");
                     let position = usize::try_from(uniform_below(&mut rng, bound))
                         .expect("a resident row's partner count fits the address space");
+
                     partners[position]
                 } else {
-                    NodeRowId::new(uniform_below(&mut rng, row_bound))
+                    N::from_u64(uniform_below(&mut rng, row_bound))
                 };
+
                 candidates.push(candidate);
             }
-            candidates[chunk..].sort_unstable_by_key(|candidate| candidate.as_u64());
+
+            candidates[chunk..].sort_unstable();
         }
 
         JudgeProbes {
@@ -106,7 +111,11 @@ impl Corpus {
     /// One production `judge` call per pair. Returns the hard-protected count, which doubles as the
     /// cross-layout agreement check.
     #[must_use]
-    pub fn judge_pointwise(&self, probes: &JudgeProbes) -> usize {
+    pub fn judge_pointwise(&self, probes: &JudgeProbes<N>) -> usize
+    where
+        N: Id,
+        E: Id,
+    {
         let protection = self.protection().view();
         let config = ProtectionConfig::default();
 
@@ -116,7 +125,8 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let row = NodeRowId::from_usize(row);
+            let row = N::from_usize(row);
+
             for &candidate in chunk {
                 if protection.judge(NodePair::new(row, candidate), config).hard {
                     protected += 1;
@@ -132,7 +142,11 @@ impl Corpus {
     /// chunk. Returns the hard-protected count; equal probes yield the pointwise runner's count
     /// exactly.
     #[must_use]
-    pub fn judge_by_row(&self, probes: &JudgeProbes) -> usize {
+    pub fn judge_by_row(&self, probes: &JudgeProbes<N>) -> usize
+    where
+        N: Id,
+        E: Id,
+    {
         let protection = self.protection().view();
         let config = ProtectionConfig::default();
 
@@ -142,12 +156,14 @@ impl Corpus {
             .chunks_exact(probes.per_row.get())
             .enumerate()
         {
-            let mut partners = protection.row(NodeRowId::from_usize(row)).peekable();
+            let mut partners = protection.row(N::from_usize(row)).peekable();
+
             for &candidate in chunk {
                 while partners
                     .next_if(|entry| entry.partner.as_u64() < candidate.as_u64())
                     .is_some()
                 {}
+
                 if let Some(entry) = partners.peek()
                     && entry.partner.as_u64() == candidate.as_u64()
                     && config.hard().protects(entry.evidence)
@@ -156,6 +172,7 @@ impl Corpus {
                 }
             }
         }
+
         protected
     }
 }

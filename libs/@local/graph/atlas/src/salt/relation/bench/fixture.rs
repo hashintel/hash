@@ -3,7 +3,7 @@
 use core::num::NonZero;
 use std::sync::OnceLock;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rand::{Rng, RngExt as _, SeedableRng};
 
 use super::super::{
@@ -12,11 +12,7 @@ use super::super::{
     build::{self, ProtectionRecord},
     protection::ProtectionIndex,
 };
-use crate::{
-    identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    random::uniform_below,
-    salt::policy::ClassProbabilities,
-};
+use crate::{identity::OntologyRowId, random::uniform_below, salt::policy::ClassProbabilities};
 
 /// Cumulative specific-type link volumes measured in the live store.
 ///
@@ -76,17 +72,17 @@ impl Profile {
 /// materialize on first use and stay cached, so a corpus that only runs full builds keeps one copy
 /// resident (roughly 250 MB at the live scale of 2.2M links) and one that isolates stages keeps
 /// three.
-pub struct Corpus {
+pub struct Corpus<N, E> {
     rows: usize,
     links: usize,
     policies: Vec<RelationPolicy>,
-    instances: Vec<RelationInstance>,
-    grouped: OnceLock<Vec<RelationInstance>>,
-    records: OnceLock<Vec<ProtectionRecord>>,
+    instances: Vec<RelationInstance<N, E>>,
+    grouped: OnceLock<Vec<RelationInstance<N, E>>>,
+    records: OnceLock<Vec<ProtectionRecord<N>>>,
     protection: OnceLock<ProtectionIndex>,
 }
 
-impl Corpus {
+impl<N, E> Corpus<N, E> {
     /// Synthesizes a corpus of `links` links under `profile`.
     ///
     /// The row domain is the largest power of two at most half the link count (the live ratio: 2.2M
@@ -110,6 +106,8 @@ impl Corpus {
     pub fn synthesize<R>(profile: Profile, links: usize, seed: u64) -> Self
     where
         R: Rng + SeedableRng,
+        N: Id,
+        E: Id,
     {
         let mut rng = R::seed_from_u64(seed);
         let rows = 1_usize << (links / 2).max(64).ilog2();
@@ -117,7 +115,8 @@ impl Corpus {
         let hubs = (rows / 8).max(1);
 
         let endpoints = |rng: &mut R| {
-            let source = NodeRowId::new(uniform_below(&mut *rng, row_bound));
+            let source = N::from_u64(uniform_below(&mut *rng, row_bound));
+
             #[expect(
                 clippy::cast_precision_loss,
                 clippy::cast_possible_truncation,
@@ -126,18 +125,17 @@ impl Corpus {
                           lies in [1, hubs), so the floor fits every integer type in play"
             )]
             let rank = (hubs as f64).powf(rng.random::<f64>()) as u64 - 1;
-            let target = NodeRowId::new(rank.wrapping_mul(HUB_SCATTER) & (rows as u64 - 1));
+            let target = N::from_u64(rank.wrapping_mul(HUB_SCATTER) & (rows as u64 - 1));
             (source, target)
         };
-        let instance = |edge: u64, relation: usize, (source, target): (NodeRowId, NodeRowId)| {
-            RelationInstance {
-                edge: EdgeRowId::new(edge),
-                relation: OntologyRowId::from_usize(relation),
-                source,
-                target,
-                confidence: RelationConfidence::default(),
-                multiplicity: 1,
-            }
+
+        let instance = |edge: u64, relation: usize, (source, target): (N, N)| RelationInstance {
+            edge: E::from_u64(edge),
+            relation: OntologyRowId::from_usize(relation),
+            source,
+            target,
+            confidence: RelationConfidence::default(),
+            multiplicity: 1,
         };
 
         let mut instances = Vec::with_capacity(links * 2);
@@ -228,12 +226,16 @@ impl Corpus {
     }
 
     /// Borrows the instances in synthesis order.
-    pub(super) const fn instances(&self) -> &[RelationInstance] {
+    pub(super) const fn instances(&self) -> &[RelationInstance<N, E>] {
         self.instances.as_slice()
     }
 
     /// Borrows the group-sorted proper instances, sorting on first use.
-    pub(super) fn grouped(&self) -> &[RelationInstance] {
+    pub(super) fn grouped(&self) -> &[RelationInstance<N, E>]
+    where
+        N: Id,
+        E: Id,
+    {
         self.grouped.get_or_init(|| {
             let mut grouped = self.instances.clone();
             let proper = build::sort_by_group(&mut grouped);
@@ -243,12 +245,17 @@ impl Corpus {
     }
 
     /// Borrows the emitted protection records in emission order, emitting on first use.
-    pub(super) fn records(&self) -> &[ProtectionRecord] {
+    pub(super) fn records(&self) -> &[ProtectionRecord<N>]
+    where
+        N: Id,
+        E: Id,
+    {
         self.records.get_or_init(|| {
             let grouped = self.grouped();
             let ranges = build::resolve_groups(grouped, self.policies())
                 .expect("the synthesized corpus covers every relation");
-            let mut records = vec![ProtectionRecord::EMPTY; grouped.len()];
+
+            let mut records = vec![ProtectionRecord::empty(); grouped.len()];
             drop(build::build_groups(
                 grouped,
                 ranges,
@@ -266,7 +273,11 @@ impl Corpus {
     }
 
     /// Borrows the assembled protection index, assembling on first use.
-    pub(super) fn protection(&self) -> &ProtectionIndex {
+    pub(super) fn protection(&self) -> &ProtectionIndex
+    where
+        N: Id,
+        E: Id,
+    {
         self.protection.get_or_init(|| {
             let mut records = self.records().to_vec();
             build::assemble_protection(self.rows, &mut records)

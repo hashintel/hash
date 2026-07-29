@@ -67,7 +67,7 @@ impl<'atlas> Walk<'atlas> {
     }
 
     /// Returns whether the proof admits the row at base position `position`.
-    const fn admits(&self, position: u32) -> bool {
+    fn admits(&self, position: u32) -> bool {
         self.proof
             .contains(NodeRowId::from_u32(self.row_ids[position as usize]))
     }

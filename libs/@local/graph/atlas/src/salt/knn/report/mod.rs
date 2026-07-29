@@ -16,7 +16,6 @@
 //! An instrument returns its readings and its host renders them.
 
 use core::{
-    convert::Infallible,
     error::Error,
     fmt::{self, Display},
     num::NonZero,
@@ -34,7 +33,6 @@ use crate::{
 };
 
 pub(crate) mod backend;
-pub(crate) mod brute;
 pub(crate) mod descent;
 
 // Fixed reference size: an instrument compares settings against each
@@ -89,16 +87,16 @@ impl Error for SetupError {
 
 /// One construction audit's failure, in the construction's own error vocabulary.
 #[derive(Debug)]
-pub(crate) enum AuditError<E> {
+pub(crate) enum AuditError<N, E> {
     /// The published representations could not be read.
     Setup(SetupError),
     /// The exact reference could not be computed.
-    Reference(KnnError<Infallible>),
+    Reference(KnnError<N, !>),
     /// The audited construction failed.
     Construct(E),
 }
 
-impl<E: Display> Display for AuditError<E> {
+impl<N: Display, E: Display> Display for AuditError<N, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Setup(error) => Display::fmt(error, fmt),
@@ -108,7 +106,7 @@ impl<E: Display> Display for AuditError<E> {
     }
 }
 
-impl<E: Error + 'static> Error for AuditError<E> {
+impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for AuditError<N, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Setup(error) => error.source(),

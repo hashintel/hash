@@ -13,6 +13,7 @@ use super::{
         stage_rng,
     },
     Context,
+    quotient::{DistinctRowId, RowQuotient},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
@@ -60,13 +61,12 @@ impl Context<'_> {
         let skeleton = LandmarkSkeletonArchive::new(
             LandmarkFile::open(prior.path_of(&files.landmarks.name))
                 .map_err(PriorError::MapLandmarks)?,
-        )
-        .map_err(PriorError::InvalidLandmarks)?;
+        )?;
+
         let prior_ids = IdentityTableArchive::<I, NodeRowId>::new(
             IdentityFile::open(prior.path_of(&files.node_identities.name))
                 .map_err(PriorError::MapIdentities)?,
-        )
-        .map_err(PriorError::InvalidIdentities)?;
+        )?;
 
         let current = IdentityTableArchive::<I, NodeRowId>::new(IdentityFile::open(
             self.staging.path_of(&Role::NodeIdentities.file_name()),
@@ -95,27 +95,45 @@ impl Context<'_> {
 
     /// Selects, assigns, contracts, and lays out the landmark skeleton.
     ///
-    /// Stages it as one combined file and maps it back for the stages that consume it.
+    /// The skeleton builds over the distinct representation rows and publishes over the corpus row
+    /// domain: selected rows name their first corpus rows, and every corpus row takes its
+    /// representative's landmark. Stages it as one combined file and maps it back for the stages
+    /// that consume it.
     ///
-    /// Candidates are uniform over the corpus; `prior_marks` names the rows competing for the
-    /// retained share.
+    /// Candidates are uniform over the distinct rows; `prior_marks` names the corpus rows
+    /// competing for the retained share.
     pub(super) fn build_landmark_skeleton(
         &self,
-        rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
         semantic: &SemanticGraphArchive,
         prior_marks: Option<&DenseBitSet<NodeRowId>>,
+        quotient: &RowQuotient,
     ) -> Result<Staged<LandmarkSkeletonArchive, LandmarkEvidence>, StageError> {
         let _span = tracing::info_span!("landmarks").entered();
 
+        // A prior landmark translates as a representation: every copy
+        // of its bytes marks the one distinct row they share.
+        let prior_distinct = prior_marks.map(|marks| {
+            let mut distinct_marks: DenseBitSet<DistinctRowId> =
+                DenseBitSet::new_empty(quotient.distinct_len());
+            for (row, &distinct) in quotient.representatives().iter_enumerated() {
+                if marks.contains(row) {
+                    distinct_marks.insert(distinct);
+                }
+            }
+            distinct_marks
+        });
+        let prior_distinct = prior_distinct.as_ref();
+
         let selection = {
             let _span = tracing::info_span!("landmark-selection").entered();
-            let candidates: Vec<LandmarkCandidate> = (0..rows.len())
-                .map(NodeRowId::from_usize)
+            let candidates: Vec<LandmarkCandidate> = (0..distinct.len())
+                .map(DistinctRowId::from_usize)
                 .map(|row| LandmarkCandidate {
-                    row,
+                    row: row.as_training_row(),
                     sampling_weight: SamplingWeight::UNIFORM,
                     axes: SubgroupAxes::default(),
-                    prior_landmark: prior_marks.is_some_and(|marks| marks.contains(row)),
+                    prior_landmark: prior_distinct.is_some_and(|marks| marks.contains(row)),
                 })
                 .collect();
 
@@ -144,24 +162,31 @@ impl Context<'_> {
             assign_landmarks(
                 &mut index,
                 stage_rng(self.config.seed, Stage::LandmarkAssignment),
-                rows,
+                distinct,
                 &selection,
             )?
         };
 
-        let quotient = tracing::info_span!("quotient")
+        let contracted = tracing::info_span!("quotient")
             .in_scope(|| quotient_graph(&semantic.view(), &assignment, self.config.quotient))?;
         let coordinates = tracing::info_span!("landmark-layout").in_scope(|| {
             layout_landmarks(
-                &quotient.view(),
+                &contracted.view(),
                 self.config.curve,
                 self.config.layout,
                 stage_rng(self.config.seed, Stage::LandmarkLayout),
             )
         })?;
-        drop(quotient);
+        drop(contracted);
 
-        let skeleton = LandmarkSkeleton::new(selection, assignment, coordinates);
+        // Publication crosses back to the corpus row domain; the
+        // first-row map ascends strictly, so the selection's order and
+        // the assignment's ordinal vocabulary carry over unchanged.
+        let skeleton = LandmarkSkeleton::new(
+            selection.map_rows(|row| quotient.first_row(DistinctRowId::from_training_row(row))),
+            assignment.reindex(quotient.representatives().iter().copied()),
+            coordinates,
+        );
         let file = stage(self.staging, Role::Landmarks, &skeleton)?;
 
         let skeleton = LandmarkSkeletonArchive::new(LandmarkFile::open(

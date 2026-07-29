@@ -12,7 +12,7 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use rand::{Rng, SeedableRng};
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
@@ -21,8 +21,7 @@ use rayon::{
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour, error::KnnError};
 use crate::{
-    dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN,
-    salt::knn::table::KnnValidationError,
+    dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, salt::knn::table::KnnValidationError,
 };
 
 /// Every row's nearest non-self neighbours, at one uniform width.
@@ -31,15 +30,19 @@ use crate::{
 /// `(distance, id)` order, with distances on the `[0, 2]` cosine scale. The producing constructor
 /// guarantees the entries; the type only carries them.
 #[derive(Debug)]
-pub(crate) struct NeighbourLists {
-    entries: Box<[Neighbour]>,
+pub(crate) struct NeighbourLists<N> {
+    entries: Box<[Neighbour<N>]>,
     width: usize,
 }
 
-impl NeighbourLists {
+impl<N> NeighbourLists<N>
+where
+    N: Id,
+{
     /// Wraps row-major entries whose per-row contract the producer established.
-    pub(super) fn new(entries: Box<[Neighbour]>, width: usize) -> Self {
+    pub(super) fn new(entries: Box<[Neighbour<N>]>, width: usize) -> Self {
         debug_assert!(width > 0 && entries.len().is_multiple_of(width));
+
         Self { entries, width }
     }
 
@@ -69,8 +72,8 @@ impl NeighbourLists {
     /// Panics when `row` is outside the row domain.
     #[inline]
     #[must_use]
-    pub(crate) fn row(&self, row: usize) -> &[Neighbour] {
-        &self.entries[row * self.width..(row + 1) * self.width]
+    pub(crate) fn row(&self, row: N) -> &[Neighbour<N>] {
+        &self.entries[row.as_usize() * self.width..(row.as_usize() + 1) * self.width]
     }
 }
 
@@ -80,7 +83,10 @@ impl NeighbourLists {
 /// representations in node-row order, and the result holds each row's `width` nearest non-self
 /// neighbours. A `width` at or beyond the corpus is clamped to every non-self row. `rng` drives
 /// the constructor's randomized choices, so a seeded generator pins its sampling streams.
-pub(crate) trait KnnConstruction {
+pub(crate) trait KnnConstruction<N>
+where
+    N: Id,
+{
     type Error;
 
     /// Produces every row's `width` nearest non-self neighbours.
@@ -90,10 +96,10 @@ pub(crate) trait KnnConstruction {
     /// Returns a constructor error when the corpus is degenerate or the construction fails.
     fn construct(
         &mut self,
-        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         rng: impl Rng + SeedableRng,
-    ) -> Result<NeighbourLists, Self::Error>;
+    ) -> Result<NeighbourLists<N>, Self::Error>;
 }
 
 /// Adapts a [`NearestNeighboursIndex`] search backend to [`KnnConstruction`].
@@ -113,19 +119,20 @@ impl<I> IndexConstruction<I> {
     }
 }
 
-impl<I> KnnConstruction for IndexConstruction<I>
+impl<N, I> KnnConstruction<N> for IndexConstruction<I>
 where
-    I: NearestNeighboursIndex + Sync,
+    N: Id,
+    I: NearestNeighboursIndex<N> + Sync,
     I::Error: Send,
 {
-    type Error = KnnError<I::Error>;
+    type Error = KnnError<N, I::Error>;
 
     fn construct(
         &mut self,
-        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         rng: impl Rng + SeedableRng,
-    ) -> Result<NeighbourLists, Self::Error> {
+    ) -> Result<NeighbourLists<N>, Self::Error> {
         let rows = embeddings.len();
         if rows < 2 {
             return Err(KnnValidationError::InsufficientRows { rows }.into());
@@ -138,28 +145,32 @@ where
                     .iter()
                     .enumerate()
                     .map(|(row, components)| Embedding {
-                        id: NodeRowId::from_usize(row),
+                        id: N::from_usize(row),
                         components,
                     }),
             )
             .map_err(KnnError::Backend)?;
+
         self.0.build(rng).map_err(KnnError::Backend)?;
 
         let placeholder = Neighbour {
-            id: NodeRowId::new(0),
+            id: N::MIN,
             distance: 0.0,
         };
+
         let mut entries = vec![placeholder; rows * width].into_boxed_slice();
         entries
             .par_chunks_mut(width)
             .enumerate()
             .try_for_each(|(row, slots)| {
-                let found: Vec<Neighbour> = self
+                let row = N::from_usize(row);
+                let found: Vec<Neighbour<N>> = self
                     .0
-                    .search_by_id(NodeRowId::from_usize(row), width)
+                    .search_by_id(row, width)
                     .map_err(KnnError::Backend)?
                     .into_iter()
                     .collect();
+
                 if found.len() != width {
                     return Err(KnnError::SearchCount {
                         row,
@@ -182,6 +193,7 @@ where
                         neighbour: duplicate,
                     });
                 }
+
                 if let Some(&neighbour) = ids.last().filter(|&&last| last >= rows as u64) {
                     return Err(KnnError::NeighbourOutOfBounds {
                         row,

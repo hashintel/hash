@@ -22,7 +22,7 @@ use burn::tensor::{
     Tensor, TensorData,
     backend::{AutodiffBackend, Backend},
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 use super::{
     ObjectiveOptions, StepError,
@@ -30,13 +30,13 @@ use super::{
     metrics::{BudgetBreakdown, DegreeDeciles},
 };
 use crate::{
-    identity::{NodeRowId, OntologyRowId},
+    identity::OntologyRowId,
     math::{DVec2, Vec2},
     salt::projector::{
         budget::{self, BudgetOutcome},
         loss::{
-            GradientField, SupportTargets, attraction_term, relation_term, repulsion_term,
-            support_term,
+            BatchRowId, GradientField, SupportTargets, attraction_term, relation_term,
+            repulsion_term, support_term,
         },
         model::Projector,
     },
@@ -97,16 +97,19 @@ pub(crate) struct Objective<B: AutodiffBackend> {
 /// Bound once per training run; the loop composes the frozen relation energy into `options` at the
 /// phase boundary.
 #[derive(Debug)]
-pub(crate) struct Evaluation<'run> {
+pub(crate) struct Evaluation<'run, N> {
     /// The per-row model input columns of the whole corpus.
     pub columns: NodeColumns<'run>,
     /// The objective's numerical contract.
     pub options: ObjectiveOptions,
     /// The relation-degree decile axis of the budget metrics.
-    pub deciles: DegreeDeciles,
+    pub deciles: DegreeDeciles<N>,
 }
 
-impl Evaluation<'_> {
+impl<N> Evaluation<'_, N>
+where
+    N: Id,
+{
     /// Projects the batch rows and evaluates the composite objective.
     ///
     /// # Errors
@@ -120,10 +123,10 @@ impl Evaluation<'_> {
     pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
         &self,
         model: &Projector<B>,
-        batch: &Batch<A>,
+        batch: &Batch<N, A>,
         metrics: &mut BudgetBreakdown,
         device: &B::Device,
-    ) -> Result<Objective<B>, StepError> {
+    ) -> Result<Objective<B>, StepError<N>> {
         let coordinates = model.forward(batch.input(self.columns, device));
         evaluate(coordinates, batch, &self.options, &self.deciles, metrics)
     }
@@ -150,13 +153,16 @@ impl Evaluation<'_> {
     clippy::panic_in_result_fn,
     reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
 )]
-pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
+pub(crate) fn evaluate<N, B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
     coordinates: Tensor<B, 2>,
-    batch: &Batch<A>,
+    batch: &Batch<N, A>,
     options: &ObjectiveOptions,
-    deciles: &DegreeDeciles,
+    deciles: &DegreeDeciles<N>,
     metrics: &mut BudgetBreakdown,
-) -> Result<Objective<B>, StepError> {
+) -> Result<Objective<B>, StepError<N>>
+where
+    N: Id,
+{
     let frame_rows = coordinates.dims()[0];
     assert!(
         (batch.rows.len()..=batch.rows.len().next_multiple_of(ROW_ALIGNMENT.get()))
@@ -165,12 +171,13 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
     );
 
     let values = read_frame(coordinates.clone().inner(), &batch.rows)?;
-    // Zero-copy view over the readback: `Vec2` is a transparent
-    // `[f32; 2]`, so the row-major frame reinterprets in place. The
-    // hand-gradient paths speak the true batch domain: alignment
+
+    // Zero-copy view over the readback: `Vec2` is a transparent `[f32; 2]`, so the row-major frame
+    // reinterprets in place. The hand-gradient paths speak the true batch domain: alignment
     // padding stays behind the slice.
     let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
-    let frame = &frame[..batch.rows.len()];
+    let frame = IdSlice::from_raw(&frame[..batch.rows.len()]);
+
     let rows = frame.len();
     let coefficients = options.coefficients;
 
@@ -254,14 +261,17 @@ pub(crate) fn evaluate<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
 /// Evaluates the relation term per type, clips per node, and records the budget metrics.
 ///
 /// Returns the relation loss value and the flattened combined field.
-fn relation_pass<A: Allocator>(
-    frame: &[Vec2],
-    batch: &Batch<A>,
+fn relation_pass<N, A: Allocator>(
+    frame: &IdSlice<BatchRowId, Vec2>,
+    batch: &Batch<N, A>,
     options: &ObjectiveOptions,
-    semantic_field: &GradientField,
-    deciles: &DegreeDeciles,
+    semantic_field: &GradientField<BatchRowId>,
+    deciles: &DegreeDeciles<N>,
     metrics: &mut BudgetBreakdown,
-) -> (f32, Vec<f32>) {
+) -> (f32, Vec<f32>)
+where
+    N: Id,
+{
     let energy = options
         .relation
         .expect("relation edges arrive only after the boundary freezes the relation energy");
@@ -277,8 +287,8 @@ fn relation_pass<A: Allocator>(
     // types times batch rows.
     let mut relation_field = GradientField::new(rows);
     let mut scratch = GradientField::new(rows);
-    let mut contributions: Vec<(usize, OntologyRowId, Vec2)> = Vec::new();
-    let mut touched: Vec<usize> = Vec::new();
+    let mut contributions: Vec<(BatchRowId, OntologyRowId, Vec2)> = Vec::new();
+    let mut touched: Vec<BatchRowId> = Vec::new();
 
     // Accumulated in double precision across types.
     let mut value = 0.0_f64;
@@ -297,7 +307,7 @@ fn relation_pass<A: Allocator>(
             sampled
                 .edges
                 .iter()
-                .flat_map(|edge| [edge.source.usize(), edge.target.usize()]),
+                .flat_map(|edge| [edge.source, edge.target]),
         );
         touched.sort_unstable();
         touched.dedup();
@@ -307,26 +317,28 @@ fn relation_pass<A: Allocator>(
             if gradient == DVec2::ZERO {
                 continue;
             }
+
             relation_field.add(row, gradient);
             contributions.push((row, sampled.relation, narrow(gradient)));
         }
     }
 
-    let mut outcomes: Vec<Option<BudgetOutcome>> = vec![None; rows];
+    let mut outcomes: IdVec<BatchRowId, Option<BudgetOutcome>> = IdVec::from_elem(None, rows);
     let mut combined = Vec::with_capacity(rows * 2);
-    for (row, (&semantic, &relation)) in semantic_field
+
+    for ((row, &semantic), &relation) in semantic_field
         .as_slice()
-        .iter()
+        .iter_enumerated()
         .zip(relation_field.as_slice())
-        .enumerate()
     {
         let semantic = narrow(semantic);
         let relation = narrow(relation);
+
         let applied = if relation == Vec2::splat(0.0) {
             semantic
         } else {
             let outcome = options.budget.apply(semantic, relation);
-            metrics.record_node(deciles.decile(batch.rows[row].as_usize()), &outcome);
+            metrics.record_node(deciles.decile(batch.rows[row]), &outcome);
             outcomes[row] = Some(outcome);
             semantic + outcome.gradient
         };
@@ -367,14 +379,18 @@ fn relation_pass<A: Allocator>(
 ///
 /// Returns the raw row-major components; view them through [`Vec2::from_slice`] rather than
 /// copying.
-fn read_frame<B: Backend<FloatElem = f32>>(
+fn read_frame<N, B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
-    rows: &[NodeRowId],
-) -> Result<Vec<f32>, StepError> {
+    rows: &[N],
+) -> Result<Vec<f32>, StepError<N>>
+where
+    N: Id,
+{
     let values = coordinates
         .into_data()
         .to_vec::<f32>()
         .expect("the projector's coordinates are an f32 tensor");
+
     let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
     for (index, point) in frame.iter().enumerate() {
         if !point.is_finite() {
@@ -383,11 +399,15 @@ fn read_frame<B: Backend<FloatElem = f32>>(
             });
         }
     }
+
     Ok(values)
 }
 
 /// Flattens per-node gradients into the tensor's row-major layout.
-fn flatten(gradients: &[DVec2]) -> Vec<f32> {
+fn flatten<N>(gradients: &IdSlice<N, DVec2>) -> Vec<f32>
+where
+    N: Id,
+{
     let mut flat = Vec::with_capacity(gradients.len() * 2);
 
     for gradient in gradients {

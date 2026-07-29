@@ -7,14 +7,17 @@
 //! edge occupies exactly one outgoing slot, and a self-loop's one endpoint is both its source and
 //! its target.
 //!
-//! Edge visibility derives from endpoints, never independently granted: the ego graph tests the
-//! partner against the proof, and an induced subgraph's row set intersects the proof before edges
-//! qualify, so an edge with a hidden endpoint is never delivered and requires no edge-level check
-//! of its own.
+//! An edge delivers only when the proof holds its own link row and both of its endpoints. Both
+//! shapes reach their candidates through [`Neighbourhood::edge`], which answers [`None`] for an
+//! edge the proof withholds, so every collected edge carries its delivery proof in the type and
+//! neither walk states the rule a second time.
 
 use hashql_core::id::Id as _;
 
-use super::{Atlas, visibility::VisibilityProof};
+use super::{
+    Atlas,
+    visibility::{VisibilityProof, VisibleEdge},
+};
 use crate::{
     bitset::BitSet,
     dataset::ArchivedEntityId,
@@ -25,8 +28,8 @@ use crate::{
 /// One qualifying edge during assembly: the wire columns' row ids.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct DeliveredEdge {
-    /// The edge row id.
-    pub row: EdgeRowId,
+    /// The edge row id, proven deliverable under the proof this value was collected against.
+    pub row: VisibleEdge,
     /// The source node row id.
     pub source: NodeRowId,
     /// The target node row id.
@@ -73,13 +76,13 @@ impl<'atlas> Neighbourhood<'atlas> {
         }
     }
 
-    /// Collects the source's incident edges whose partners are visible, paired with their
-    /// link-entity identities, in no particular order.
+    /// Collects the source's incident edges the proof delivers, paired with their link-entity
+    /// identities, in no particular order.
     ///
     /// A self-loop occupies one slot in each direction's run; its incoming appearance is the
-    /// duplicate and is skipped, so every incident edge is collected exactly once. Hidden
-    /// partners drop before any selection: a response's cardinality is a function of the masked
-    /// view.
+    /// duplicate and is skipped, so every incident edge is collected exactly once. An edge the
+    /// proof withholds, for a hidden partner or for a hidden link row, drops before any selection:
+    /// a response's cardinality is a function of the masked view.
     ///
     /// # Panics
     ///
@@ -102,10 +105,9 @@ impl<'atlas> Neighbourhood<'atlas> {
 
         let mut edges = Vec::new();
         for edge in incident {
-            let delivered = self.edge(edge);
-            if !self.proof.contains(delivered.partner_of(node)) {
+            let Some(delivered) = self.edge(edge) else {
                 continue;
-            }
+            };
 
             edges.push((delivered, self.edge_identity(delivered.row)));
         }
@@ -116,8 +118,10 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// Collects every edge whose endpoints both lie in `delivered`, paired with its link-entity
     /// identity, in no particular order.
     ///
-    /// Caller requirement: `delivered` is already intersected with the visibility proof, so the
-    /// endpoint test is the whole visibility rule.
+    /// Caller requirement: `delivered` is already intersected with the visibility proof. The set
+    /// membership test answers the induced-subgraph question - which rows this response draws
+    /// edges between - and never stands in for the delivery rule, which the proof answers as each
+    /// candidate is read.
     pub(super) fn induced(&self, delivered: &BitSet) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
         let mut edges = Vec::new();
 
@@ -130,8 +134,9 @@ impl<'atlas> Neighbourhood<'atlas> {
             for edge in outgoing.iter() {
                 let [_, target] = self.endpoints[edge.as_usize()];
 
-                if delivered.contains(target.as_usize()) {
-                    let delivered_edge = self.edge(edge);
+                if delivered.contains(target.as_usize())
+                    && let Some(delivered_edge) = self.edge(edge)
+                {
                     edges.push((delivered_edge, self.edge_identity(delivered_edge.row)));
                 }
             }
@@ -148,9 +153,9 @@ impl<'atlas> Neighbourhood<'atlas> {
     ///
     /// Panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
-    pub(super) fn edge_identity(&self, row: EdgeRowId) -> ArchivedEntityId {
+    pub(super) fn edge_identity(&self, row: VisibleEdge) -> ArchivedEntityId {
         self.edge_ids
-            .id(row)
+            .id(row.get())
             .expect("open validated the identity rows against the adjacency's edges")
     }
 
@@ -194,14 +199,17 @@ impl<'atlas> Neighbourhood<'atlas> {
         self.ranks[position as usize]
     }
 
-    /// Reads edge `row`'s wire-column ids off the endpoint column.
-    const fn edge(&self, row: EdgeRowId) -> DeliveredEdge {
+    /// Reads edge `row`'s wire-column ids off the endpoint column, when the proof delivers it.
+    ///
+    /// [`None`] when the link row is hidden or either endpoint is: the value cannot be built for an
+    /// edge no response may name, which is why both walks filter by constructing.
+    fn edge(&self, row: EdgeRowId) -> Option<DeliveredEdge> {
         let [source, target] = self.endpoints[row.as_usize()];
 
-        DeliveredEdge {
-            row,
+        Some(DeliveredEdge {
+            row: self.proof.verify_edge(row, source, target)?,
             source,
             target,
-        }
+        })
     }
 }

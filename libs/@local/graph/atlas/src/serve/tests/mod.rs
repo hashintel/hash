@@ -1514,14 +1514,17 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         let delivered: Vec<u32> = subgraph
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
             .collect();
         assert_eq!(delivered, edge_rows, "ego({source_row}) edges");
         for &(edge, id) in &subgraph.edges {
-            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.as_usize()];
+            let (_, edge_source, edge_target) = FIXTURE_EDGES[edge.row.get().as_usize()];
             assert_eq!(edge.source.as_u64(), edge_source);
             assert_eq!(edge.target.as_u64(), edge_target);
-            assert_eq!(id, edge_identity_of(narrow_usize(edge.row.as_usize())));
+            assert_eq!(
+                id,
+                edge_identity_of(narrow_usize(edge.row.get().as_usize()))
+            );
         }
     }
 }
@@ -1575,7 +1578,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
         capped
             .edges
             .iter()
-            .map(|&(edge, _)| narrow_usize(edge.row.as_usize()))
+            .map(|&(edge, _)| narrow_usize(edge.row.get().as_usize()))
             .collect::<Vec<u32>>(),
         [2],
         "the self-loop is the nearest edge",
@@ -2715,18 +2718,39 @@ fn source_type_coverage_follows_the_subset_rule() {
     ));
 }
 
-/// A proof hiding exactly `hidden` among the atlas's node rows.
+/// A proof hiding exactly `hidden` among the atlas's node rows, and no link rows.
+///
+/// The link mask admits every link row of the generation, so a battery built on this helper varies
+/// the node axis alone.
 fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
-    let universe = atlas.row_ids().len();
-    let mut bitmap = crate::bitset::BitSet::new(universe);
-    for row in 0..universe {
-        let as_u32 = u32::try_from(row).expect("fixture universes fit u32");
-        if !hidden.contains(&as_u32) {
-            bitmap.insert(row);
-        }
+    mask_hiding_rows(atlas, hidden, &[])
+}
+
+/// A proof hiding `hidden_nodes` among the atlas's node rows and `hidden_edges` among its link
+/// rows.
+///
+/// Both masks are built by exclusion over the generation's own domains, so the proof differs from
+/// the full-visibility proof in exactly the listed rows.
+fn mask_hiding_rows(atlas: &Atlas, hidden_nodes: &[u32], hidden_edges: &[u32]) -> VisibilityProof {
+    VisibilityProof::from_bitmaps(
+        domain_mask(atlas.row_ids().len(), hidden_nodes),
+        domain_mask(atlas.endpoints.view().len(), hidden_edges),
+    )
+}
+
+/// A mask over the domain `[0, rows)` admitting every row except `hidden`.
+fn domain_mask<T: hashql_core::id::Id>(
+    rows: usize,
+    hidden: &[u32],
+) -> hashql_core::id::bit_vec::DenseBitSet<T> {
+    let mut mask = hashql_core::id::bit_vec::DenseBitSet::new_filled(rows);
+    for &row in hidden {
+        let row = usize::try_from(row).expect("fixture rows fit usize");
+        assert!(row < rows, "a fixture hides rows of the domain it masks");
+        mask.remove(T::from_usize(row));
     }
 
-    VisibilityProof::from_bitmap(bitmap)
+    mask
 }
 
 /// Returns a fixed generation identity for codec derivation.

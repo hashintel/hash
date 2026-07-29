@@ -23,18 +23,17 @@ use core::{alloc::Allocator, num::NonZero};
 use std::alloc::Global;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use rand::Rng;
 
 use super::BatchPlan;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::NodeRowId,
     math::{AlignedVecN, NonNegative, Vec2},
     random::sample_indices_vec,
     salt::{
         projector::{
-            loss::{BatchAnchor, BatchPair, BatchRelationEdge, BatchRelationEdges, BatchRowId},
+            loss::{BatchAnchor, BatchRowId, RelationEdge, RelationEdges},
             miner::MinedFrame,
             model::{NodeRole, ProjectorInput},
             sample::{
@@ -72,8 +71,8 @@ pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
 /// in the sum. Assembly converts drawn anchors into the batch-local [`BatchAnchor`] the support
 /// term consumes.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct SupportAnchor {
-    pub row: NodeRowId,
+pub(crate) struct SupportAnchor<N> {
+    pub row: N,
     pub target: Vec2,
     pub radius: f32,
     pub weight: f32,
@@ -89,31 +88,31 @@ pub(crate) struct SupportAnchor {
 /// The population vectors live in the draw's allocator; the relation draws' nested edge vectors
 /// stay global (see the module documentation).
 #[derive(Debug)]
-pub(crate) struct Populations<'index, A: Allocator = Global> {
+pub(crate) struct Populations<'index, N, E, A: Allocator = Global> {
     /// Semantic positive pairs.
     ///
     /// Unit weights, the proportional draw already accounts for the edge weight.
-    pub semantic: Vec<NodePair, A>,
+    pub semantic: Vec<NodePair<N>, A>,
     /// `W / m`: total positive edge weight over drawn pairs.
     pub semantic_scale: f32,
     /// Ordinary negative pairs; unit weights.
-    pub ordinary: Vec<NodePair, A>,
+    pub ordinary: Vec<NodePair<N>, A>,
     /// `W / m`: the commensurate-mass repulsion scale.
     pub ordinary_scale: f32,
     /// Mined hard-negative pairs with their bounded rank weights.
-    pub hard: Vec<(NodePair, f32), A>,
+    pub hard: Vec<(NodePair<N>, f32), A>,
     /// `N / m`: corpus rows over drawn query rows.
     pub hard_scale: f32,
     /// Per-type capped relation attraction draws.
-    pub relation: Vec<SampledRelationEdges<'index>, A>,
+    pub relation: Vec<SampledRelationEdges<'index, N, E>, A>,
     /// `G / g`: total relation groups over drawn groups.
     pub relation_scale: f32,
     /// Landmark anchors, rows in corpus space.
-    pub landmarks: Vec<SupportAnchor, A>,
+    pub landmarks: Vec<SupportAnchor<N>, A>,
     /// Landmark pool size over drawn anchors.
     pub landmark_scale: f32,
     /// Temporal anchors, rows in corpus space.
-    pub anchors: Vec<SupportAnchor, A>,
+    pub anchors: Vec<SupportAnchor<N>, A>,
     /// Anchor pool size over drawn anchors.
     pub anchor_scale: f32,
     /// The step's relation-lens rung.
@@ -122,16 +121,20 @@ pub(crate) struct Populations<'index, A: Allocator = Global> {
 
 /// The per-step population sampler over the built artifacts.
 #[derive(Debug)]
-pub(crate) struct BatchSampler<'view> {
-    semantic: SemanticEdgeSampler<'view>,
-    ordinary: OrdinaryNegativeSampler<'view>,
-    relation: RelationEdgeSampler<'view>,
+pub(crate) struct BatchSampler<'view, N, E> {
+    semantic: SemanticEdgeSampler<'view, N>,
+    ordinary: OrdinaryNegativeSampler<'view, N>,
+    relation: RelationEdgeSampler<'view, N, E>,
     plan: BatchPlan,
     rows: usize,
     groups: usize,
 }
 
-impl<'view> BatchSampler<'view> {
+impl<'view, N, E> BatchSampler<'view, N, E>
+where
+    N: Id,
+    E: Id,
+{
     /// Binds the samplers over one generation's artifacts.
     ///
     /// Returns [`None`] when the semantic graph holds no edge weight: a corpus without semantic
@@ -143,10 +146,10 @@ impl<'view> BatchSampler<'view> {
     /// both artifacts come from one generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
-        semantic: SemanticGraphView<'view>,
-        protection: ProtectionView<'view>,
+        semantic: SemanticGraphView<'view, N>,
+        protection: ProtectionView<'view, N>,
         config: ProtectionConfig,
-        attraction: &'view AttractionIndex,
+        attraction: &'view AttractionIndex<N, E>,
         plan: BatchPlan,
     ) -> Option<Self> {
         let rows = semantic.rows();
@@ -183,11 +186,11 @@ impl<'view> BatchSampler<'view> {
     pub(crate) fn draw(
         &self,
         eta: NonNegative,
-        mined: Option<&MinedFrame>,
-        landmarks: &[SupportAnchor],
-        anchors: &[SupportAnchor],
-        rng: &mut (impl Rng + ?Sized),
-    ) -> Populations<'view> {
+        mined: Option<&MinedFrame<N>>,
+        landmarks: &[SupportAnchor<N>],
+        anchors: &[SupportAnchor<N>],
+        rng: impl Rng,
+    ) -> Populations<'view, N, E> {
         self.draw_in(eta, mined, landmarks, anchors, rng, Global)
     }
 
@@ -203,33 +206,33 @@ impl<'view> BatchSampler<'view> {
     pub(crate) fn draw_in<A: Allocator + Clone>(
         &self,
         eta: NonNegative,
-        mined: Option<&MinedFrame>,
-        landmarks: &[SupportAnchor],
-        anchors: &[SupportAnchor],
-        rng: &mut (impl Rng + ?Sized),
+        mined: Option<&MinedFrame<N>>,
+        landmarks: &[SupportAnchor<N>],
+        anchors: &[SupportAnchor<N>],
+        mut rng: impl Rng,
         alloc: A,
-    ) -> Populations<'view, A> {
+    ) -> Populations<'view, N, E, A> {
         let semantic =
             self.semantic
-                .sample_in(self.plan.semantic_pairs.get(), &mut *rng, alloc.clone());
+                .sample_in(self.plan.semantic_pairs.get(), &mut rng, alloc.clone());
         let semantic_scale = self.semantic.total_weight() / semantic.len() as f32;
 
         let ordinary = self
             .ordinary
-            .sample_in(self.plan.ordinary_pairs, &mut *rng, alloc.clone());
+            .sample_in(self.plan.ordinary_pairs, &mut rng, alloc.clone());
         let ordinary_scale = if ordinary.is_empty() {
             0.0
         } else {
             self.semantic.total_weight() / ordinary.len() as f32
         };
 
-        let (hard, hard_scale) = self.draw_hard_in(mined, &mut *rng, alloc.clone());
+        let (hard, hard_scale) = self.draw_hard_in(mined, &mut rng, alloc.clone());
 
         let (relation, relation_scale) = if eta.get() > 0.0 && self.plan.relation_types != 0 {
             let drawn = self.relation.sample_in(
                 self.plan.relation_types,
                 self.plan.relation_cap,
-                &mut *rng,
+                &mut rng,
                 alloc.clone(),
             );
             if drawn.is_empty() {
@@ -245,11 +248,11 @@ impl<'view> BatchSampler<'view> {
         let (landmarks, landmark_scale) = draw_support_in(
             landmarks,
             self.plan.landmark_anchors,
-            &mut *rng,
+            &mut rng,
             alloc.clone(),
         );
         let (anchors, anchor_scale) =
-            draw_support_in(anchors, self.plan.temporal_anchors, &mut *rng, alloc);
+            draw_support_in(anchors, self.plan.temporal_anchors, &mut rng, alloc);
 
         Populations {
             semantic,
@@ -275,10 +278,10 @@ impl<'view> BatchSampler<'view> {
     )]
     fn draw_hard_in<A: Allocator>(
         &self,
-        mined: Option<&MinedFrame>,
-        rng: &mut (impl Rng + ?Sized),
+        mined: Option<&MinedFrame<N>>,
+        mut rng: impl Rng,
         alloc: A,
-    ) -> (Vec<(NodePair, f32), A>, f32) {
+    ) -> (Vec<(NodePair<N>, f32), A>, f32) {
         let Some(frame) = mined else {
             return (Vec::new_in(alloc), 0.0);
         };
@@ -296,8 +299,8 @@ impl<'view> BatchSampler<'view> {
         let queries = self.plan.hard_queries.min(self.rows);
 
         let mut pairs = Vec::new_in(alloc);
-        for query in sample_indices_vec(&mut *rng, self.rows, queries) {
-            pairs.extend(frame.row(query));
+        for query in sample_indices_vec(&mut rng, self.rows, queries) {
+            pairs.extend(frame.row(N::from_usize(query)));
         }
 
         (pairs, self.rows as f32 / queries as f32)
@@ -309,12 +312,15 @@ impl<'view> BatchSampler<'view> {
     clippy::cast_precision_loss,
     reason = "pool sizes stay far below f32's exact-integer range for ratio purposes"
 )]
-fn draw_support_in<A: Allocator>(
-    pool: &[SupportAnchor],
+fn draw_support_in<N, A: Allocator>(
+    pool: &[SupportAnchor<N>],
     requested: usize,
-    rng: &mut (impl Rng + ?Sized),
+    mut rng: impl Rng,
     alloc: A,
-) -> (Vec<SupportAnchor, A>, f32) {
+) -> (Vec<SupportAnchor<N>, A>, f32)
+where
+    N: Id,
+{
     let take = requested.min(pool.len());
     if take == 0 {
         return (Vec::new_in(alloc), 0.0);
@@ -322,7 +328,7 @@ fn draw_support_in<A: Allocator>(
 
     let mut drawn = Vec::with_capacity_in(take, alloc);
     drawn.extend(
-        sample_indices_vec(&mut *rng, pool.len(), take)
+        sample_indices_vec(&mut rng, pool.len(), take)
             .into_vec()
             .into_iter()
             .map(|index| pool[index]),
@@ -352,23 +358,23 @@ pub(crate) struct NodeColumns<'corpus> {
 /// The batch vectors live in the assembly's allocator; the relation entries' nested edge vectors
 /// and the gathered scales stay global (see the module documentation).
 #[derive(Debug)]
-pub(crate) struct Batch<A: Allocator = Global> {
+pub(crate) struct Batch<N, A: Allocator = Global> {
     /// The participating corpus rows, ascending and distinct.
-    pub rows: Box<[NodeRowId], A>,
+    pub rows: Box<[N], A>,
     /// Semantic positive pairs, batch-local.
-    pub semantic: Vec<BatchPair, A>,
+    pub semantic: Vec<NodePair<BatchRowId>, A>,
     /// See [`Populations::semantic_scale`].
     pub semantic_scale: f32,
     /// Ordinary negative pairs, batch-local.
-    pub ordinary: Vec<BatchPair, A>,
+    pub ordinary: Vec<NodePair<BatchRowId>, A>,
     /// See [`Populations::ordinary_scale`].
     pub ordinary_scale: f32,
     /// Hard-negative pairs with rank weights, batch-local.
-    pub hard: Vec<(BatchPair, f32), A>,
+    pub hard: Vec<(NodePair<BatchRowId>, f32), A>,
     /// See [`Populations::hard_scale`].
     pub hard_scale: f32,
     /// Relation draws with batch-local endpoints.
-    pub relation: Vec<BatchRelationEdges, A>,
+    pub relation: Vec<RelationEdges<BatchRowId>, A>,
     /// See [`Populations::relation_scale`].
     pub relation_scale: f32,
     /// Landmark anchors, batch-local.
@@ -382,12 +388,15 @@ pub(crate) struct Batch<A: Allocator = Global> {
     /// The participating rows' local scales, gathered from the corpus table.
     ///
     /// Present exactly when relation edges are.
-    pub scales: Option<LocalScales>,
+    pub scales: Option<LocalScales<BatchRowId>>,
     /// The step's relation-lens rung.
     pub eta: NonNegative,
 }
 
-impl Batch {
+impl<N> Batch<N>
+where
+    N: Id,
+{
     /// Re-indexes drawn populations into the batch-local row domain.
     ///
     /// `scales` is the corpus-wide local-scale table of the step's rung; the batch gathers the
@@ -400,23 +409,33 @@ impl Batch {
     /// outside the table; the draws and the tables come from one training run, so a mismatch is a
     /// wiring defect.
     #[must_use]
-    pub(crate) fn assemble(populations: Populations<'_>, scales: Option<&LocalScales>) -> Self {
+    pub(crate) fn assemble<E>(
+        populations: Populations<'_, N, E>,
+        scales: Option<&LocalScales<BatchRowId>>,
+    ) -> Self
+    where
+        E: Id,
+    {
         Self::assemble_in(populations, scales, Global)
     }
 }
 
-impl<A: Allocator> Batch<A> {
+impl<N, A: Allocator> Batch<N, A>
+where
+    N: Id,
+{
     /// Re-indexes drawn populations into the batch-local row domain, allocating in `alloc`.
     ///
     /// The populations may carry any allocator: re-indexing consumes their values, not their
     /// storage. Contract and panics as in [`Batch::assemble`].
     #[must_use]
-    pub(crate) fn assemble_in(
-        populations: Populations<'_, impl Allocator>,
-        scales: Option<&LocalScales>,
+    pub(crate) fn assemble_in<E>(
+        populations: Populations<'_, N, E, impl Allocator>,
+        scales: Option<&LocalScales<BatchRowId>>,
         alloc: A,
     ) -> Self
     where
+        E: Id,
         A: Clone,
     {
         assert!(
@@ -424,13 +443,13 @@ impl<A: Allocator> Batch<A> {
             "relation edges need the rung's local scales"
         );
 
-        let mut rows: Vec<NodeRowId, A> = Vec::new_in(alloc.clone());
+        let mut rows: Vec<N, A> = Vec::new_in(alloc.clone());
         for pair in populations.semantic.iter().chain(&populations.ordinary) {
-            rows.extend([pair.first(), pair.second()]);
+            rows.extend([pair.lhs(), pair.rhs()]);
         }
 
         for (pair, _) in &populations.hard {
-            rows.extend([pair.first(), pair.second()]);
+            rows.extend([pair.lhs(), pair.rhs()]);
         }
 
         for sampled in &populations.relation {
@@ -445,7 +464,7 @@ impl<A: Allocator> Batch<A> {
         rows.sort_unstable();
         rows.dedup();
 
-        let local = |id: NodeRowId| {
+        let local = |id: N| {
             let position = rows
                 .binary_search(&id)
                 .expect("every re-indexed row was collected above");
@@ -458,7 +477,7 @@ impl<A: Allocator> Batch<A> {
             populations
                 .semantic
                 .iter()
-                .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
+                .map(|pair| NodePair::new(local(pair.lhs()), local(pair.rhs()))),
         );
 
         let mut ordinary = Vec::with_capacity_in(populations.ordinary.len(), alloc.clone());
@@ -466,26 +485,25 @@ impl<A: Allocator> Batch<A> {
             populations
                 .ordinary
                 .iter()
-                .map(|pair| BatchPair::new(local(pair.first()), local(pair.second()))),
+                .map(|pair| NodePair::new(local(pair.lhs()), local(pair.rhs()))),
         );
 
         let mut hard = Vec::with_capacity_in(populations.hard.len(), alloc.clone());
-        hard.extend(populations.hard.iter().map(|&(pair, weight)| {
-            (
-                BatchPair::new(local(pair.first()), local(pair.second())),
-                weight,
-            )
-        }));
+        hard.extend(
+            populations.hard.iter().map(|&(pair, weight)| {
+                (NodePair::new(local(pair.lhs()), local(pair.rhs())), weight)
+            }),
+        );
 
         let mut relation = Vec::with_capacity_in(populations.relation.len(), alloc.clone());
         relation.extend(populations.relation.into_iter().map(|sampled| {
-            BatchRelationEdges {
+            RelationEdges {
                 relation: sampled.group.relation(),
                 weights: sampled.group.weights(),
                 edges: sampled
                     .edges
                     .into_iter()
-                    .map(|edge| BatchRelationEdge {
+                    .map(|edge| RelationEdge {
                         source: local(edge.source),
                         target: local(edge.target),
                         confidence: edge.confidence.value(),
@@ -495,7 +513,7 @@ impl<A: Allocator> Batch<A> {
             }
         }));
 
-        let localize = |anchor: &SupportAnchor| BatchAnchor {
+        let localize = |anchor: &SupportAnchor<N>| BatchAnchor {
             row: local(anchor.row),
             target: anchor.target,
             radius: anchor.radius,
@@ -508,11 +526,9 @@ impl<A: Allocator> Batch<A> {
         anchors.extend(populations.anchors.iter().map(localize));
 
         let scales = scales.map(|table| {
-            let gathered = rows
-                .iter()
-                .map(|row| table.as_slice()[row.as_usize()])
-                .collect();
-            LocalScales::new(gathered)
+            let gathered = rows.iter().map(|&row| table.as_slice()[row]).collect();
+
+            LocalScales::new(IdSlice::from_boxed_slice(gathered))
         });
 
         Self {

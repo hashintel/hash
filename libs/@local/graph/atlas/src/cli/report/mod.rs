@@ -1,54 +1,102 @@
 //! The report commands: analysis instruments over published generations, one submodule per
 //! report.
+//!
+//! Every instrument reads artifacts a fit already published and returns its readings; the host
+//! renders them. The certified refit and the live assessment also write their evidence record,
+//! because a bundle outlives the terminal it was read in.
 
-use core::{error::Error, fmt};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+};
 use std::io;
 
+use self::{
+    classifier::{ClassifierArgs, ClassifierVerdict},
+    clumps::ClumpArgs,
+    knn::{BackendArgs, BruteArgs, DescentArgs},
+    probe::ProbeArgs,
+    quality::{QualityArgs, QualityVerdict},
+};
+use crate::salt::{
+    knn::{
+        brute::BruteForceError,
+        descent::NnDescentError,
+        report::{AuditError, backend, brute, descent},
+    },
+    quality::report::{
+        calibration::{Calibration, CalibrationError},
+        live::AssessError,
+    },
+};
+
 mod classifier;
+mod clumps;
+mod knn;
 mod probe;
+mod quality;
 
-pub use self::{classifier::ClassifierArgs, probe::ProbeArgs};
-
-/// The report subcommands, one per instrument.
-#[derive(Debug, clap::Subcommand)]
-pub enum ReportCommand {
-    /// Refits a published generation's classifier from its staged corpus, certifies the bytes
-    /// against the deployed artifact, and writes the report bundle.
-    Classifier(ClassifierArgs),
-
-    /// Solves one fold subset from a published generation's frozen corpus and dumps every
-    /// receipt.
-    Probe(ProbeArgs),
+/// One report invocation's readings, in the instrument's own vocabulary.
+#[derive(Debug)]
+pub(crate) enum ReportVerdict {
+    /// The certified classifier refit.
+    Classifier(ClassifierVerdict),
+    /// The clump grouping's shape per candidate threshold.
+    Clumps(Calibration),
+    /// The search backend's grid readings.
+    KnnBackend(backend::Sweep),
+    /// The exact construction's reading.
+    KnnBrute(brute::Audit),
+    /// The NN-Descent constructions' readings.
+    KnnDescent(descent::Audit),
+    /// One live quality assessment.
+    Quality(QualityVerdict),
 }
 
-impl ReportCommand {
-    /// Runs the selected report.
-    ///
-    /// # Errors
-    ///
-    /// Returns a [`ReportError`] when a report bundle cannot be written.
-    pub async fn run(self) -> Result<(), ReportError> {
+impl Display for ReportVerdict {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Classifier(args) => args.run().await,
-            Self::Probe(args) => {
-                args.run().await;
-                Ok(())
-            }
+            Self::Classifier(verdict) => Display::fmt(verdict, fmt),
+            Self::Clumps(calibration) => Display::fmt(calibration, fmt),
+            Self::KnnBackend(sweep) => Display::fmt(sweep, fmt),
+            Self::KnnBrute(audit) => Display::fmt(audit, fmt),
+            Self::KnnDescent(audit) => Display::fmt(audit, fmt),
+            Self::Quality(verdict) => Display::fmt(verdict, fmt),
         }
     }
 }
 
 /// One report invocation's failure.
 #[derive(Debug)]
-pub enum ReportError {
+pub(crate) enum ReportError {
     /// The report bundle could not be written.
     Io(io::Error),
+    /// The store connection could not be dialed.
+    Connect(super::ConnectError),
+    /// The live assessment failed.
+    Assess(AssessError),
+    /// The clump calibration could not read its table.
+    Clumps(CalibrationError),
+    /// The backend sweep failed.
+    KnnBackend(backend::SweepError),
+    /// The exact construction audit failed.
+    KnnBrute(AuditError<BruteForceError>),
+    /// The NN-Descent audit failed.
+    KnnDescent(AuditError<NnDescentError>),
 }
 
-impl fmt::Display for ReportError {
+impl Display for ReportError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(_) => fmt.write_str("the report bundle could not be written"),
+            Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
+            // Each instrument's own chain names the step that failed;
+            // this level adds no step of its own.
+            Self::Assess(error) => Display::fmt(error, fmt),
+            Self::Clumps(error) => Display::fmt(error, fmt),
+            Self::KnnBackend(error) => Display::fmt(error, fmt),
+            Self::KnnBrute(error) => Display::fmt(error, fmt),
+            Self::KnnDescent(error) => Display::fmt(error, fmt),
         }
     }
 }
@@ -57,6 +105,80 @@ impl Error for ReportError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
+            Self::Connect(error) => Some(error),
+            Self::Assess(error) => error.source(),
+            Self::Clumps(error) => error.source(),
+            Self::KnnBackend(error) => error.source(),
+            Self::KnnBrute(error) => error.source(),
+            Self::KnnDescent(error) => error.source(),
+        }
+    }
+}
+
+/// The report subcommands, one per instrument.
+#[derive(Debug, clap::Subcommand)]
+pub(crate) enum ReportCommand {
+    /// Refits a published generation's classifier from its staged corpus, certifies the bytes
+    /// against the deployed artifact, and writes the report bundle.
+    Classifier(ClassifierArgs),
+
+    /// Reads the clump grouping's shape at every candidate ε over a published k-NN table.
+    Clumps(ClumpArgs),
+
+    /// Audits the exact tiled-product neighbour construction over the active generation.
+    KnnBrute(BruteArgs),
+
+    /// Sweeps the search backend's build and query breadths over the active generation.
+    KnnBackend(BackendArgs),
+
+    /// Audits NN-Descent neighbour constructions over the active generation.
+    KnnDescent(DescentArgs),
+
+    /// Solves one fold subset from a published generation's frozen corpus and dumps every
+    /// receipt.
+    Probe(ProbeArgs),
+
+    /// Assesses the active generation's map fidelity over the live store and writes the report.
+    Quality(QualityArgs),
+}
+
+impl ReportCommand {
+    /// Runs the selected report.
+    ///
+    /// The probe dumps its receipts as it solves, so it is the one instrument whose product is not
+    /// a verdict.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ReportError`] when the instrument fails or its record cannot be written.
+    pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, ReportError> {
+        match self {
+            Self::Classifier(args) => args.run().await.map(ReportVerdict::Classifier).map(Some),
+            Self::Clumps(args) => args
+                .run()
+                .map(ReportVerdict::Clumps)
+                .map(Some)
+                .map_err(ReportError::Clumps),
+            Self::KnnBackend(args) => args
+                .run()
+                .map(ReportVerdict::KnnBackend)
+                .map(Some)
+                .map_err(ReportError::KnnBackend),
+            Self::KnnBrute(args) => args
+                .run()
+                .map(ReportVerdict::KnnBrute)
+                .map(Some)
+                .map_err(ReportError::KnnBrute),
+            Self::KnnDescent(args) => args
+                .run()
+                .map(ReportVerdict::KnnDescent)
+                .map(Some)
+                .map_err(ReportError::KnnDescent),
+            Self::Probe(args) => {
+                args.run().await;
+                Ok(None)
+            }
+            Self::Quality(args) => args.run().await.map(ReportVerdict::Quality).map(Some),
         }
     }
 }

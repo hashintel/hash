@@ -25,7 +25,7 @@ use burn::{
     optim::{Adam, AdamConfig, GradientsParams, Optimizer, adaptor::OptimizerAdaptor},
     tensor::backend::AutodiffBackend,
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rand::Rng;
 
 use super::{
@@ -43,7 +43,7 @@ use crate::{
     progress::Progress,
     salt::{
         projector::{
-            loss::{ProximalEnergy, RelationEnergy},
+            loss::{BatchRowId, ProximalEnergy, RelationEnergy},
             miner::{HardNegativeMiner, MinedFrame},
             model::Projector,
             scale::LocalScales,
@@ -97,16 +97,20 @@ pub(super) fn scheduler(schedule: TrainingSchedule) -> CosineAnnealingLrSchedule
 /// The loop-invariant machinery of one run, derived from the inputs.
 // No Debug: the refresh machinery's spatial index does not implement
 // it.
-pub(super) struct Session<'run> {
-    inputs: &'run TrainerInputs<'run>,
+pub(super) struct Session<'run, N, E> {
+    inputs: &'run TrainerInputs<'run, N, E>,
     options: &'run TrainOptions,
-    sampler: BatchSampler<'run>,
-    refresh: Refresh<'run>,
-    evaluation: Evaluation<'run>,
+    sampler: BatchSampler<'run, N, E>,
+    refresh: Refresh<'run, N>,
+    evaluation: Evaluation<'run, N>,
     vacuous: bool,
 }
 
-impl<'run> Session<'run> {
+impl<'run, N, E> Session<'run, N, E>
+where
+    N: Id,
+    E: Id,
+{
     /// Admits the inputs and derives the run's machinery.
     ///
     /// # Errors
@@ -116,7 +120,7 @@ impl<'run> Session<'run> {
     /// boundary, Proximal force without reviewed coverage or a configured assertion, or Coincident
     /// force without any Proximal force).
     pub(super) fn new(
-        inputs: &'run TrainerInputs<'run>,
+        inputs: &'run TrainerInputs<'run, N, E>,
         options: &'run TrainOptions,
     ) -> Result<Self, TrainError> {
         let vacuous = admit(inputs, options)?;
@@ -200,8 +204,8 @@ impl<'run> Session<'run> {
             self.inputs.landmarks,
             progress.projector_sample_size(),
         );
-        let mut scales: Option<[LocalScales; RUNGS.len()]> = None;
-        let mut mined: Option<MinedFrame> = None;
+        let mut scales: Option<[LocalScales<BatchRowId>; RUNGS.len()]> = None;
+        let mut mined: Option<MinedFrame<N>> = None;
 
         for step_index in steps {
             if step_index == schedule.boundary {
@@ -299,14 +303,18 @@ const fn rung(step_index: usize, boundary: usize, vacuous: bool) -> usize {
 ///
 /// Panics when relation edges are drawn before a scale-bearing tick; the boundary always runs one,
 /// so a miss is a wiring defect.
-fn draw_batch<R: Rng + ?Sized>(
-    sampler: &BatchSampler<'_>,
+fn draw_batch<N, E>(
+    sampler: &BatchSampler<'_, N, E>,
     rung_index: usize,
-    mined: Option<&MinedFrame>,
-    scales: Option<&[LocalScales; RUNGS.len()]>,
-    inputs: &TrainerInputs<'_>,
-    rng: &mut R,
-) -> Batch {
+    mined: Option<&MinedFrame<N>>,
+    scales: Option<&[LocalScales<BatchRowId>; RUNGS.len()]>,
+    inputs: &TrainerInputs<'_, N, E>,
+    mut rng: impl Rng,
+) -> Batch<N>
+where
+    N: Id,
+    E: Id,
+{
     let populations = sampler.draw(
         RUNGS[rung_index],
         mined,
@@ -343,7 +351,11 @@ fn draw_batch<R: Rng + ?Sized>(
     reason = "a row-domain mismatch between one generation's artifacts is a wiring defect \
               contract, not a recoverable error"
 )]
-fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, TrainError> {
+fn admit<N, E>(inputs: &TrainerInputs<'_, N, E>, options: &TrainOptions) -> Result<bool, TrainError>
+where
+    N: Id,
+    E: Id,
+{
     let rows = inputs.columns.representations.len();
     assert_eq!(
         rows,
@@ -391,14 +403,18 @@ fn admit(inputs: &TrainerInputs<'_>, options: &TrainOptions) -> Result<bool, Tra
 ///
 /// On a vacuous run - no attraction force at all - there is nothing to measure or compose, a
 /// configured assertion included; the evidence records the fact and the relation term stays absent.
-fn freeze_radius<B: AutodiffBackend<FloatElem = f32>>(
+fn freeze_radius<N, E, B: AutodiffBackend<FloatElem = f32>>(
     model: &Projector<B>,
-    inputs: &TrainerInputs<'_>,
+    inputs: &TrainerInputs<'_, N, E>,
     options: &TrainOptions,
     vacuous: bool,
     step: usize,
     device: &B::Device,
-) -> Result<(Option<RelationEnergy>, BoundaryEvidence), TrainError> {
+) -> Result<(Option<RelationEnergy>, BoundaryEvidence), TrainError>
+where
+    N: Id,
+    E: Id,
+{
     if vacuous {
         return Ok((
             None,
@@ -470,7 +486,7 @@ struct ForceClasses {
 
 impl ForceClasses {
     /// Scans the groups for class weight backed by instances.
-    fn measure(index: &AttractionIndex) -> Self {
+    fn measure<N, E>(index: &AttractionIndex<N, E>) -> Self {
         let mut classes = Self {
             proximal: false,
             coincident: false,
@@ -491,7 +507,10 @@ impl ForceClasses {
 /// This is the coordinate-free core of the boundary measurement: the calibration's pair weights are
 /// positive exactly on these groups' instances, so a positive measured mass exists if and only if
 /// this holds.
-fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]) -> bool {
+fn reviewed_proximal_force<N, E>(
+    index: &AttractionIndex<N, E>,
+    verdicts: &[ResolvedVerdict],
+) -> bool {
     verdicts
         .iter()
         .filter(|verdict| verdict.placement == PlacementClass::Proximal)
@@ -511,6 +530,6 @@ fn reviewed_proximal_force(index: &AttractionIndex, verdicts: &[ResolvedVerdict]
 /// Whether a group can exert any force.
 ///
 /// Instances exist and the strength multiplier passes them through.
-fn exerts_force(group: &AttractionGroup) -> bool {
+fn exerts_force<N, E>(group: &AttractionGroup<N, E>) -> bool {
     !group.edges().is_empty() && group.weights().strength > 0.0
 }

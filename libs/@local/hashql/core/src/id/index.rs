@@ -5,15 +5,15 @@ use core::{
 
 use super::Id;
 
-pub trait IntoSliceIndex<I, T: ?Sized> {
+pub const trait IntoSliceIndex<I, T: ?Sized> {
     type SliceIndex: SliceIndex<T>;
 
     fn into_slice_index(self) -> Self::SliceIndex;
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for I
+const impl<I, T> IntoSliceIndex<I, [T]> for I
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = usize;
 
@@ -23,21 +23,32 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for (Bound<I>, Bound<I>)
+const fn map_bounds<I>(bound: Bound<I>) -> Bound<usize>
 where
-    I: Id,
+    I: [const] Id,
+{
+    match bound {
+        Bound::Included(index) => Bound::Included(index.as_usize()),
+        Bound::Excluded(index) => Bound::Excluded(index.as_usize()),
+        Bound::Unbounded => Bound::Unbounded,
+    }
+}
+
+const impl<I, T> IntoSliceIndex<I, [T]> for (Bound<I>, Bound<I>)
+where
+    I: [const] Id,
 {
     type SliceIndex = (Bound<usize>, Bound<usize>);
 
     #[inline]
     fn into_slice_index(self) -> Self::SliceIndex {
-        (self.0.map(Id::as_usize), self.1.map(Id::as_usize))
+        (map_bounds(self.0), map_bounds(self.1))
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for Range<I>
+const impl<I, T> IntoSliceIndex<I, [T]> for Range<I>
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = Range<usize>;
 
@@ -50,9 +61,9 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for RangeFrom<I>
+const impl<I, T> IntoSliceIndex<I, [T]> for RangeFrom<I>
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = RangeFrom<usize>;
 
@@ -64,9 +75,9 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for RangeFull
+const impl<I, T> IntoSliceIndex<I, [T]> for RangeFull
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = Self;
 
@@ -76,9 +87,9 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for RangeInclusive<I>
+const impl<I, T> IntoSliceIndex<I, [T]> for RangeInclusive<I>
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = RangeInclusive<usize>;
 
@@ -90,9 +101,9 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for RangeTo<I>
+const impl<I, T> IntoSliceIndex<I, [T]> for RangeTo<I>
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = RangeTo<usize>;
 
@@ -104,9 +115,9 @@ where
     }
 }
 
-impl<I, T> IntoSliceIndex<I, [T]> for RangeToInclusive<I>
+const impl<I, T> IntoSliceIndex<I, [T]> for RangeToInclusive<I>
 where
-    I: Id,
+    I: [const] Id,
 {
     type SliceIndex = RangeToInclusive<usize>;
 

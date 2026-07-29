@@ -242,8 +242,9 @@ pub(super) fn translate(
             && let Some(edge) = columns.edge_ids.row_of(key)
         {
             let [source, target] = columns.endpoint_rows(edge);
-            if !proof.edge_visible(source, target) {
-                // A hidden endpoint hides the edge: an absent key.
+            if proof.verify_edge(edge, source, target).is_none() {
+                // A hidden link row or endpoint hides the edge: an
+                // absent key.
                 continue;
             }
 

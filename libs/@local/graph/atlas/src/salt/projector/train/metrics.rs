@@ -18,7 +18,7 @@
 use alloc::collections::BTreeMap;
 use core::mem;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 use crate::{
     identity::OntologyRowId,
@@ -75,11 +75,14 @@ impl Decile {
 /// the buckets split the participating rows as evenly as ties allow. Rows without attraction
 /// evidence have no decile - they receive no relation gradient and appear in no decile bucket.
 #[derive(Debug)]
-pub(crate) struct DegreeDeciles {
-    deciles: Box<[Option<Decile>]>,
+pub(crate) struct DegreeDeciles<N> {
+    deciles: Box<IdSlice<N, Option<Decile>>>,
 }
 
-impl DegreeDeciles {
+impl<N> DegreeDeciles<N>
+where
+    N: Id,
+{
     /// Measures per-row degrees and their decile assignment.
     ///
     /// # Panics
@@ -87,12 +90,15 @@ impl DegreeDeciles {
     /// Panics when an attraction edge references a row at or beyond `rows`; the index and the row
     /// domain come from one generation, so a mismatch is a wiring defect.
     #[must_use]
-    pub(crate) fn new(index: &AttractionIndex, rows: usize) -> Self {
-        let mut degrees = vec![0_u32; rows];
+    pub(crate) fn new<E>(index: &AttractionIndex<N, E>, rows: usize) -> Self
+    where
+        E: Id,
+    {
+        let mut degrees = IdVec::from_elem(0_u32, rows);
         for group in index.groups() {
             for edge in group.edges() {
-                degrees[edge.source.as_usize()] += 1;
-                degrees[edge.target.as_usize()] += 1;
+                degrees[edge.source] += 1;
+                degrees[edge.target] += 1;
             }
         }
 
@@ -123,13 +129,15 @@ impl DegreeDeciles {
             })
             .collect();
 
-        Self { deciles }
+        Self {
+            deciles: IdSlice::from_boxed_slice(deciles),
+        }
     }
 
     /// Returns the row's decile, [`None`] for rows without attraction evidence.
     #[inline]
     #[must_use]
-    pub(crate) fn decile(&self, row: usize) -> Option<usize> {
+    pub(crate) fn decile(&self, row: N) -> Option<usize> {
         self.deciles[row].map(Decile::bucket)
     }
 }
@@ -197,25 +205,34 @@ impl BudgetBreakdown {
 /// instances count once. Built once per training run and reused by every telemetry tick, so the
 /// per-tick cost is the participant lists, not the edge lists.
 #[derive(Debug)]
-pub(crate) struct TypeParticipants {
-    types: Vec<(OntologyRowId, Box<[usize]>)>,
+pub(crate) struct TypeParticipants<N> {
+    types: Vec<(OntologyRowId, Box<[N]>)>,
 }
 
-impl TypeParticipants {
+impl<N> TypeParticipants<N>
+where
+    N: Id,
+{
     /// Collects each relation type's distinct participating rows.
     #[must_use]
-    pub(crate) fn new(index: &AttractionIndex) -> Self {
+    pub(crate) fn new<E>(index: &AttractionIndex<N, E>) -> Self
+    where
+        N: Id,
+        E: Id,
+    {
         let types = index
             .groups()
             .iter()
             .map(|group| {
-                let mut rows: Vec<usize> = group
+                let mut rows: Vec<_> = group
                     .edges()
                     .iter()
-                    .flat_map(|edge| [edge.source.as_usize(), edge.target.as_usize()])
+                    .flat_map(|edge| [edge.source, edge.target])
                     .collect();
+
                 rows.sort_unstable();
                 rows.dedup();
+
                 (group.relation(), rows.into_boxed_slice())
             })
             .collect();
@@ -224,7 +241,7 @@ impl TypeParticipants {
     }
 
     /// Iterates the types and their participants, ascending by ontology row.
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (OntologyRowId, &[usize])> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (OntologyRowId, &[N])> {
         self.types
             .iter()
             .map(|(relation, rows)| (*relation, &**rows))
@@ -360,26 +377,29 @@ impl DisplacementSummary {
     /// frames, the participants, and the deciles all describe one corpus, so a mismatch is a wiring
     /// defect.
     #[must_use]
-    pub(crate) fn measure(
-        low: &[Vec2],
-        high: &[Vec2],
-        participants: &TypeParticipants,
-        deciles: &DegreeDeciles,
-    ) -> Self {
+    pub(crate) fn measure<N>(
+        low: &IdSlice<N, Vec2>,
+        high: &IdSlice<N, Vec2>,
+        participants: &TypeParticipants<N>,
+        deciles: &DegreeDeciles<N>,
+    ) -> Self
+    where
+        N: Id,
+    {
         assert_eq!(
             low.len(),
             high.len(),
             "the two extreme frames should cover the same rows"
         );
 
-        let displacements: Vec<f32> = low
+        let displacements: IdVec<N, f32> = low
             .iter()
             .zip(high)
             .map(|(&low, &high)| low.distance(high))
             .collect();
 
         let mut summary = Self::default();
-        for (row, &displacement) in displacements.iter().enumerate() {
+        for (row, &displacement) in displacements.iter_enumerated() {
             summary.overall.record(displacement);
             if let Some(decile) = deciles.decile(row) {
                 summary.by_decile[decile].record(displacement);

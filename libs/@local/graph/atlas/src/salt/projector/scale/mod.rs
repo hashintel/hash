@@ -15,7 +15,7 @@ mod tests;
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
@@ -35,32 +35,38 @@ pub(crate) const LOCAL_SCALE_NEIGHBOURS: usize = 15;
 /// `row` is the smallest node row whose scale came out non-finite; the non-finite coordinate is
 /// that row's own or one of its selected neighbours'.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct NonFiniteScale {
+pub(crate) struct NonFiniteScale<N> {
     /// The smallest affected node row.
-    pub row: usize,
+    pub row: N,
 }
 
-impl fmt::Display for NonFiniteScale {
+impl<N> fmt::Display for NonFiniteScale<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Self { row } = self;
         write!(fmt, "the local scale of node row {row} is non-finite")
     }
 }
 
-impl Error for NonFiniteScale {}
+impl<N> Error for NonFiniteScale<N> where N: fmt::Debug + fmt::Display {}
 
 /// Validated per-node local radii in node-row order.
 ///
 /// Every value is a [`NonNegative`]: finite and at least zero, so dividing by a scale plus a
 /// positive ε is total.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct LocalScales(Box<[NonNegative]>);
+#[derive(Debug, PartialEq)]
+pub(crate) struct LocalScales<N>(Box<IdSlice<N, NonNegative>>);
 
-impl LocalScales {
+impl<N> LocalScales<N>
+where
+    N: Id,
+{
     /// Adopts scales whose element type carries the domain.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(scales: Box<[NonNegative]>) -> Self {
+    pub(crate) const fn new(scales: Box<IdSlice<N, NonNegative>>) -> Self {
         Self(scales)
     }
 
@@ -82,7 +88,10 @@ impl LocalScales {
         reason = "row-domain agreement is a wiring contract asserted at entry; the error channel \
                   is reserved for diverged coordinates, a runtime condition"
     )]
-    pub(crate) fn compute(coordinates: &[Vec2], knn: &KnnView<'_>) -> Result<Self, NonFiniteScale> {
+    pub(crate) fn compute(
+        coordinates: &IdSlice<N, Vec2>,
+        knn: &KnnView<'_, N>,
+    ) -> Result<Self, NonFiniteScale<N>> {
         assert_eq!(
             coordinates.len(),
             knn.rows(),
@@ -95,11 +104,13 @@ impl LocalScales {
 
         let scales: Vec<f32> = (0..coordinates.len())
             .into_par_iter()
-            .map(|row| row_scale(coordinates, knn, row))
+            .map(|row| row_scale(coordinates, knn, N::from_usize(row)))
             .collect();
 
         if let Some(row) = scales.iter().position(|scale| !scale.is_finite()) {
-            return Err(NonFiniteScale { row });
+            return Err(NonFiniteScale {
+                row: N::from_usize(row),
+            });
         }
 
         let scales = scales
@@ -111,13 +122,14 @@ impl LocalScales {
                 )
             })
             .collect();
-        Ok(Self(scales))
+
+        Ok(Self(IdSlice::from_boxed_slice(scales)))
     }
 
     /// Borrows the scales in node-row order.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[NonNegative] {
+    pub(crate) fn as_slice(&self) -> &IdSlice<N, NonNegative> {
         &self.0
     }
 
@@ -133,7 +145,7 @@ impl LocalScales {
     /// Panics when either row is outside the node-row domain.
     #[inline]
     #[must_use]
-    pub(crate) fn normalization(&self, source: usize, target: usize, epsilon: f32) -> f32 {
+    pub(crate) fn normalization(&self, source: N, target: N, epsilon: f32) -> f32 {
         ((self.0[source].get() + epsilon) * (self.0[target].get() + epsilon)).sqrt()
     }
 
@@ -191,21 +203,22 @@ pub(crate) const fn sorted_median(distances: &[f32]) -> f32 {
 /// (NaN sorts last under the total order), so per-row detection of neighbour divergence is
 /// deliberately not promised - corpus-level detection is complete regardless, because the diverged
 /// row itself always flags.
-fn row_scale(coordinates: &[Vec2], knn: &KnnView<'_>, row: usize) -> f32 {
+fn row_scale<N>(coordinates: &IdSlice<N, Vec2>, knn: &KnnView<'_, N>, row: N) -> f32
+where
+    N: Id,
+{
     // The nearest entries by (stored distance, row id); stored
     // distances are finite by the table's validation, so plain
     // lexicographic comparison is total.
-    let mut nearest = [(f32::INFINITY, u64::MAX); LOCAL_SCALE_NEIGHBOURS];
+    let mut nearest = [(f32::INFINITY, N::MAX); LOCAL_SCALE_NEIGHBOURS];
     for neighbour in knn.row(row) {
-        insert_nearest(&mut nearest, (neighbour.distance, neighbour.id.as_u64()));
+        insert_nearest(&mut nearest, (neighbour.distance, neighbour.id));
     }
 
     let count = knn.neighbours().min(LOCAL_SCALE_NEIGHBOURS);
 
     let mut distances = [0.0_f32; LOCAL_SCALE_NEIGHBOURS];
-    for (distance, &(_, id)) in distances.iter_mut().zip(&nearest[..count]) {
-        let neighbour =
-            usize::try_from(id).expect("a validated table's rows fit the address space");
+    for (distance, &(_, neighbour)) in distances.iter_mut().zip(&nearest[..count]) {
         *distance = coordinates[row].distance(coordinates[neighbour]);
     }
     distances[..count].sort_unstable_by(f32::total_cmp);

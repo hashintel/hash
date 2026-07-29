@@ -6500,6 +6500,7 @@ dependencies = [
  "pretty",
  "proptest",
  "rapidfuzz",
+ "rayon",
  "roaring 0.11.4",
  "rstest",
  "serde",

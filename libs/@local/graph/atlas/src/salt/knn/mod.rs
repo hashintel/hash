@@ -31,12 +31,12 @@
 
 use core::num::NonZero;
 
+use hashql_core::id::Id;
 use rand::{Rng, SeedableRng};
 
-use crate::{dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN};
+use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN};
 
 pub(crate) mod artifact;
-pub(crate) mod brute;
 pub(crate) mod construction;
 pub(crate) mod descent;
 pub(crate) mod error;
@@ -54,18 +54,18 @@ pub(crate) const DEFAULT_NEIGHBOURS: NonZero<usize> =
 
 /// One node row's projector representation, keyed for insertion.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct Embedding<'embedding> {
+pub(crate) struct Embedding<'embedding, N> {
     /// The node row the vector belongs to.
-    pub id: NodeRowId,
+    pub id: N,
     /// The l2-normalized projector representation.
     pub components: &'embedding AlignedVecN<PROJECTOR_DIMENSIONS>,
 }
 
 /// One search result: a neighbouring node row and its cosine distance.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct Neighbour {
+pub(crate) struct Neighbour<N> {
     /// The matched node row.
-    pub id: NodeRowId,
+    pub id: N,
     /// Cosine distance to the query, finite in `[0, 2]`.
     pub distance: f32,
 }
@@ -77,7 +77,10 @@ pub(crate) struct Neighbour {
 /// completes. Searches return neighbours in ascending `(distance, id)` order with distances on the
 /// crate's `[0, 2]` cosine scale; a search may return fewer than `limit` neighbours when the index
 /// holds fewer candidates.
-pub(crate) trait NearestNeighboursIndex {
+pub(crate) trait NearestNeighboursIndex<N>
+where
+    N: Id,
+{
     type Error;
 
     /// Ingests projector representations keyed by node row.
@@ -87,7 +90,7 @@ pub(crate) trait NearestNeighboursIndex {
     /// Returns a backend error when storage or key encoding fails.
     fn insert_many<'embedding>(
         &mut self,
-        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+        embeddings: impl IntoIterator<Item = Embedding<'embedding, N>>,
     ) -> Result<(), Self::Error>;
 
     /// Links the search structure over every inserted row.
@@ -112,7 +115,7 @@ pub(crate) trait NearestNeighboursIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error>;
+    ) -> Result<impl IntoIterator<Item = Neighbour<N>>, Self::Error>;
 
     /// Returns up to `limit` nearest neighbours of the stored row `id`, excluding the row itself.
     ///
@@ -121,7 +124,7 @@ pub(crate) trait NearestNeighboursIndex {
     /// Returns a backend error when `id` is not in the index or the search fails.
     fn search_by_id(
         &self,
-        id: NodeRowId,
+        id: N,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error>;
+    ) -> Result<impl IntoIterator<Item = Neighbour<N>>, Self::Error>;
 }

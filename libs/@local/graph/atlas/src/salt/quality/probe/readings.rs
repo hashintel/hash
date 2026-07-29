@@ -12,7 +12,6 @@ use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
-use crate::identity::NodeRowId;
 
 /// The probe's space pairs, in one pinned reporting order.
 ///
@@ -172,11 +171,11 @@ pub(crate) struct ClumpReadings {
 /// grids share the comparison rows as their universe. Each grid records its own universe in its
 /// aggregates, so a reading is never mistaken for a measurement at another scale.
 #[derive(Debug)]
-pub(crate) struct ProbeReadings {
+pub(crate) struct ProbeReadings<N> {
     /// Sampled anchor rows, in sampling order: the grids' anchor axis.
-    pub anchors: Box<[NodeRowId]>,
+    pub anchors: Box<[N]>,
     /// Sampled comparison rows, in sampling order: the sampled grids' shared universe.
-    pub comparisons: Box<[NodeRowId]>,
+    pub comparisons: Box<[N]>,
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
     /// The grids' neighbourhood axis.

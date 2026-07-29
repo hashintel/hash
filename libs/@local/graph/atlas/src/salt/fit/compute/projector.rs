@@ -30,6 +30,7 @@ use super::{
         stage_rng,
     },
     Context,
+    quotient::RowQuotient,
 };
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
@@ -96,18 +97,34 @@ pub(in crate::salt::fit) fn device() -> burn::backend::ndarray::NdArrayDevice {
 
 /// The mapped artifacts one placement consumes, bound once per fit.
 pub(super) struct PlacementInputs<'fit> {
-    /// The mapped representation matrix, one aligned row per node.
+    /// The mapped representation matrix, one aligned row per corpus node.
+    ///
+    /// The publication domain: ladder frames and the canonical coordinate column cover these rows.
     pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
-    /// The staged landmark skeleton.
+    /// The staged landmark skeleton, over the corpus row domain.
     pub skeleton: &'fit LandmarkSkeletonArchive,
-    /// The admitted neighbour table.
-    pub knn: &'fit KnnArchive,
-    /// The staged semantic graph.
-    pub semantic: &'fit SemanticGraphArchive,
-    /// The relation indexes, in the owned form the trainer consumes.
-    pub indexes: &'fit RelationIndexes,
     /// The supplied verdicts, resolved into the corpus row domain.
     pub resolution: &'fit VerdictResolution,
+    /// The distinct-row training domain.
+    pub distinct: DistinctInputs<'fit>,
+}
+
+/// The trainer's distinct-row view of the corpus.
+///
+/// The quotient and the artifacts built over it: training and the ladder's loss measurements run
+/// here, where byte-identical rows are one point, while publication evaluates the full corpus -
+/// identical representations project identically, so the two domains describe one field.
+pub(super) struct DistinctInputs<'fit> {
+    /// The distinct representation rows, first occurrences in corpus order.
+    pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    /// The corpus-to-distinct row quotient.
+    pub quotient: &'fit RowQuotient,
+    /// The distinct-domain neighbour table.
+    pub knn: &'fit KnnArchive,
+    /// The distinct-domain semantic graph.
+    pub semantic: &'fit SemanticGraphArchive,
+    /// The distinct-domain relation indexes.
+    pub indexes: &'fit RelationIndexes,
 }
 
 /// The supplied verdicts resolved into the corpus row domain.
@@ -178,27 +195,35 @@ impl Context<'_> {
                 })
             })?;
 
+        let distinct = &inputs.distinct;
         // Every corpus row is a knowledge entity: the dataset streams
-        // entities, and no other role projects yet.
+        // entities, and no other role projects yet. One column serves
+        // both domains - the trainer's is its distinct-length prefix.
         let roles = vec![NodeRole::KnowledgeEntity; inputs.rows.len()];
-        let landmarks = landmark_anchors(inputs.skeleton, options);
+        let landmarks = landmark_anchors(inputs.skeleton, options, distinct.quotient);
 
         let columns = NodeColumns {
             representations: inputs.rows,
             roles: &roles,
         };
+        let trainer_columns = NodeColumns {
+            representations: distinct.rows,
+            roles: &roles[..distinct.rows.len()],
+        };
         // Mass normalization: the configured coefficients are
         // corpus-free bases. The semantic and ordinary bases divide by
         // the total semantic edge weight, the hard-negative base by
-        // the corpus row count, and the support bases by their pool
-        // sizes, so each base weighs the same objective share on
-        // every corpus; the relation base is already mass-free. A
+        // the row count, and the support bases by their pool sizes,
+        // so each base weighs the same objective share on every
+        // corpus; the relation base is already mass-free. The masses
+        // are the training domain's - the distinct rows and their
+        // graph - matching the objective the trainer optimizes. A
         // weightless graph passes the bases through - the trainer
         // rejects it as evidence-free immediately after.
         let coefficients = normalized_coefficients(
             options.coefficients,
-            semantic_weight(&inputs.semantic.view()),
-            inputs.rows.len(),
+            semantic_weight(&distinct.semantic.view()),
+            distinct.rows.len(),
             landmarks.len(),
         );
         // A vacuous placement withholds the relation evidence: the
@@ -210,15 +235,15 @@ impl Context<'_> {
             tracing::info!("the placement is vacuous: the relation term stays absent");
             &vacuous
         } else {
-            &inputs.indexes.attraction
+            &distinct.indexes.attraction
         };
         let trainer_inputs = TrainerInputs {
-            semantic: inputs.semantic.view(),
-            protection: inputs.indexes.protection.view(),
+            semantic: distinct.semantic.view(),
+            protection: distinct.indexes.protection.view(),
             protection_config: options.protection,
             attraction,
-            knn: inputs.knn.view(),
-            columns,
+            knn: distinct.knn.view(),
+            columns: trainer_columns,
             landmarks: &landmarks,
             // No stage supplies temporal anchors; the pool is empty.
             anchors: &[],
@@ -349,11 +374,16 @@ impl Context<'_> {
         let mut losses = Vec::with_capacity(conditions.len());
         for (index, &eta) in conditions.iter().enumerate() {
             let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)?;
-            let scales = refresh::scales(&frame, &inputs.knn.view(), eta)?;
+            // The loss population is the training domain: the full
+            // frame gathers at the quotient's first rows - identical
+            // representations project identically, so the gather is
+            // the distinct rows' own frame.
+            let distinct_frame = gather_distinct(&frame, inputs.distinct.quotient);
+            let scales = refresh::scales(&distinct_frame, &inputs.distinct.knn.view(), eta)?;
             losses.push(relation_loss(
-                &frame,
+                &distinct_frame,
                 &scales,
-                &inputs.indexes.attraction,
+                &inputs.distinct.indexes.attraction,
                 energy,
             ));
             write_frame(rung_path(&ladder, index), &frame)?;
@@ -404,16 +434,26 @@ impl Context<'_> {
         )?;
 
         // Re-measured over the persisted bytes: the narrowing to `f32`
-        // and the alignment application are inside the measurement.
+        // and the alignment application are inside the measurement,
+        // ahead of the same distinct gather the rung losses used.
         let persisted_relation_loss = {
             let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
                 .map_err(StageError::MapCoordinates)?;
             let frame = file
                 .points()
                 .expect("the coordinate column was sealed as f32 pairs");
-            let scales =
-                refresh::scales(frame, &inputs.knn.view(), selection.measurement.condition)?;
-            relation_loss(frame, &scales, &inputs.indexes.attraction, energy)
+            let distinct_frame = gather_distinct(frame, inputs.distinct.quotient);
+            let scales = refresh::scales(
+                &distinct_frame,
+                &inputs.distinct.knn.view(),
+                selection.measurement.condition,
+            )?;
+            relation_loss(
+                &distinct_frame,
+                &scales,
+                &inputs.distinct.indexes.attraction,
+                energy,
+            )
         };
 
         // The schedule's first rung is bit-exactly `0.0` by
@@ -631,6 +671,9 @@ fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
 ///
 /// With the skeleton's own local ruler as its radius.
 ///
+/// Anchor rows are the trainer's: the skeleton publishes corpus rows, and each selected row maps
+/// to its distinct index through the quotient.
+///
 /// The radius is the median layout distance to the landmark's nearest skeleton neighbours - the
 /// same local-scale convention the relation loss normalizes by - so a landmark in a dense skeleton
 /// region holds its row tighter than one in a sparse region. A one-landmark skeleton has no ruler
@@ -638,6 +681,7 @@ fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
 fn landmark_anchors(
     skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,
+    quotient: &RowQuotient,
 ) -> Vec<SupportAnchor> {
     let coordinates = skeleton.coordinates();
 
@@ -647,11 +691,20 @@ fn landmark_anchors(
         .zip(coordinates)
         .enumerate()
         .map(|(ordinal, (&row, &target))| SupportAnchor {
-            row,
+            row: quotient.representative(row),
             target,
             radius: skeleton_scale(coordinates, ordinal),
             weight: options.landmark_support.weight(),
         })
+        .collect()
+}
+
+/// Gathers a corpus frame's rows at the quotient's first rows: the training domain's own frame.
+fn gather_distinct(frame: &[Vec2], quotient: &RowQuotient) -> Vec<Vec2> {
+    quotient
+        .first_rows()
+        .iter()
+        .map(|&row| frame[row.as_usize()])
         .collect()
 }
 

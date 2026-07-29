@@ -80,14 +80,14 @@
 //! ([`protection::ProtectionIndex`]): row `i` lists every protected partner of node row `i`, the
 //! shape hard-negative mining vets one projected point's candidates against.
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 
 use self::protection::NodePair;
 pub(crate) use self::{
     confidence::{EffectiveConfidence, RelationConfidence, Scored},
     error::RelationIndexError,
 };
-use crate::identity::{EdgeRowId, NodeRowId, OntologyRowId};
+use crate::identity::OntologyRowId;
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.
 #[cfg(test)]
@@ -116,26 +116,30 @@ mod tests;
 /// carries. The caller admits instances (security mode and conflict quarantine are upstream
 /// concerns); every instance handed to the build participates.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct RelationInstance {
+pub(crate) struct RelationInstance<N, E> {
     /// The edge row the instance was read from.
-    pub edge: EdgeRowId,
+    pub edge: E,
     /// The relation type, as an ontology row.
     pub relation: OntologyRowId,
     /// The node the link points from.
-    pub source: NodeRowId,
+    pub source: N,
     /// The node the link points to.
-    pub target: NodeRowId,
+    pub target: N,
     /// The link's confidence scores.
     pub confidence: RelationConfidence,
     /// The edge's total reading count across its relation types, at least 1.
     pub multiplicity: u32,
 }
 
-impl RelationInstance {
+impl<N, E> RelationInstance<N, E> {
     /// Returns the instance's canonical endpoint pair.
     #[inline]
     #[must_use]
-    pub(super) const fn pair(self) -> NodePair {
+    pub(super) const fn pair(self) -> NodePair<N>
+    where
+        N: [const] Id,
+        E: [const] Id,
+    {
         NodePair::new(self.source, self.target)
     }
 }
@@ -243,16 +247,16 @@ impl BuildMeasurements {
 /// group weights and the pair a protection evidence entry covers can never disagree about the
 /// underlying link.
 #[derive(Debug, Clone)]
-pub(crate) struct RelationIndexes {
+pub(crate) struct RelationIndexes<N, E> {
     /// Force-bearing instances grouped by relation type.
-    pub attraction: attraction::AttractionIndex,
+    pub attraction: attraction::AttractionIndex<N, E>,
     /// The symmetric per-row no-repel evidence matrix.
-    pub protection: protection::ProtectionIndex,
+    pub protection: protection::ProtectionIndex<N>,
     /// What the build dropped, and the threshold it judged pruning against.
     pub measurements: BuildMeasurements,
 }
 
-impl RelationIndexes {
+impl<N, E> RelationIndexes<N, E> {
     /// Builds both indexes from the generation's admitted link instances.
     ///
     /// `rows` is the node-row domain the protection matrix spans; every instance endpoint lies in
@@ -281,9 +285,13 @@ impl RelationIndexes {
     pub(crate) fn build(
         rows: usize,
         policies: Policies<'_>,
-        instances: &mut [RelationInstance],
+        instances: &mut [RelationInstance<N, E>],
         attraction: attraction::AttractionOptions,
-    ) -> Result<Self, error::RelationIndexError> {
+    ) -> Result<Self, error::RelationIndexError>
+    where
+        N: Id,
+        E: Id,
+    {
         build::build(rows, policies, instances, attraction)
     }
 }

@@ -59,6 +59,8 @@ pub const trait Id:
     + Hash
     + Debug
     + Display
+    + Send
+    + Sync
     + [const] TryFrom<u32, Error = IdError>
     + [const] TryFrom<u64, Error = IdError>
     + [const] TryFrom<usize, Error = IdError>

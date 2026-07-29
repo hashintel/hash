@@ -2,26 +2,21 @@
 
 use super::{
     EDGE_SEED, EdgesError, EdgesLimits, EdgesRequest, FULL, ScopeReach, ServeLimits,
-    VisibilityProof, edges_request, entity_string_of, full_grid, locate_request, publish,
+    VisibilityProof, domain_mask, edges_request, entity_string_of, full_grid, locate_request,
+    publish,
 };
 use crate::serve::LocateError;
 
 /// The scope reads which constructor built the proof, never how many rows it admits.
 ///
-/// A bitmap admitting every row of its universe resolves restricted: the authority that supplied
-/// a bitmap declared a scope, and collapsing an all-ones bitmap onto the operator scope would
-/// serve it the operator surface.
+/// Masks admitting every row of their domains resolve restricted: the authority that supplied
+/// masks declared a scope, and collapsing all-ones masks onto the operator scope would serve it
+/// the operator surface. Both domains are unmasked here, so neither one carries the verdict alone.
 #[test]
 fn the_scope_reads_the_proof_constructor_not_its_row_count() {
-    let mut every_row = crate::bitset::BitSet::new(8);
-    for row in 0..8 {
-        every_row.insert(row);
-    }
+    let every_row = VisibilityProof::from_bitmaps(domain_mask(8, &[]), domain_mask(8, &[]));
 
-    assert_eq!(
-        ScopeReach::from_proof(&VisibilityProof::from_bitmap(every_row)),
-        ScopeReach::Restricted,
-    );
+    assert_eq!(ScopeReach::from_proof(&every_row), ScopeReach::Restricted);
     assert_eq!(ScopeReach::from_proof(&FULL), ScopeReach::Operator);
 }
 

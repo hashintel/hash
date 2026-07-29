@@ -40,7 +40,7 @@ use crate::{
         policy::ClassProbabilities,
         projector::{
             artifact,
-            budget::BudgetOptions,
+            budget::{Budget, BudgetOptions},
             loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
             model::{Architecture, NodeRole, Projector},
@@ -312,8 +312,9 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
         )
         .expect("the fixture epsilon is valid"),
         support: SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid"),
-        budget: BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12)
-            .expect("the fixture budget is valid"),
+        budget: Budget::Enforced(
+            BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid"),
+        ),
         coefficients: Coefficients::new(
             Positive::ONE,
             non_negative!(0.5),

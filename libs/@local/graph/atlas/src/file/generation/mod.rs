@@ -368,6 +368,13 @@ impl ScratchDirectory {
 
         Ok(path)
     }
+
+    pub(crate) fn file(&self, name: &str) -> io::Result<(Utf8PathBuf, File)> {
+        let path = self.path.join(name);
+        fs::create_dir_all(&self.path)?;
+
+        File::create(&path).map(|file| (path, file))
+    }
 }
 
 impl Drop for ScratchDirectory {

@@ -1,3 +1,8 @@
+#![cfg_attr(
+    feature = "zerocopy",
+    expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")
+)]
+
 use core::{
     alloc::Allocator,
     fmt::{self, Debug},
@@ -6,6 +11,12 @@ use core::{
     ops::{Index, IndexMut},
     ptr,
     slice::{self, GetDisjointMutError, GetDisjointMutIndex, SliceIndex},
+};
+
+#[cfg(feature = "rayon")]
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator as _,
+    IntoParallelRefMutIterator as _, ParallelIterator as _,
 };
 
 use super::{Id, index::IntoSliceIndex, vec::IdVec};
@@ -29,6 +40,15 @@ use super::{Id, index::IntoSliceIndex, vec::IdVec};
 /// assert_eq!(slice[user_id], 20);
 /// ```
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(
+        zerocopy::FromBytes,
+        zerocopy::IntoBytes,
+        zerocopy::Immutable,
+        zerocopy::Unaligned
+    )
+)]
 #[repr(transparent)]
 pub struct IdSlice<I, T> {
     _marker: PhantomData<fn(&I)>,
@@ -192,12 +212,37 @@ where
         (0..length).map(I::from_usize)
     }
 
+    /// Returns a parallel iterator over all valid IDs for this slice.
+    ///
+    /// The parallel counterpart of [`Self::ids`].
+    #[cfg(feature = "rayon")]
+    pub fn par_ids(&self) -> impl IndexedParallelIterator<Item = I> + 'static {
+        let length = self.len();
+
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(length.saturating_sub(1));
+
+        (0..length).into_par_iter().map(I::from_usize)
+    }
+
     /// Returns an iterator over the elements.
     ///
     /// See [`slice::iter`] for details.
     #[inline]
     pub fn iter(&self) -> slice::Iter<'_, T> {
         self.raw.iter()
+    }
+
+    /// Returns a parallel iterator over the elements.
+    ///
+    /// The parallel counterpart of [`Self::iter`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_iter(&self) -> rayon::slice::Iter<'_, T>
+    where
+        T: Sync,
+    {
+        self.raw.par_iter()
     }
 
     /// Returns an iterator over ID-element pairs.
@@ -215,12 +260,42 @@ where
             .map(|(index, value)| (I::from_usize(index), value))
     }
 
+    /// Returns a parallel iterator over ID-element pairs.
+    ///
+    /// The parallel counterpart of [`Self::iter_enumerated`]: yields typed IDs instead of `usize`
+    /// indices.
+    #[cfg(feature = "rayon")]
+    pub fn par_iter_enumerated(&self) -> impl IndexedParallelIterator<Item = (I, &T)>
+    where
+        T: Sync,
+    {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
+        self.raw
+            .par_iter()
+            .enumerate()
+            .map(|(index, value)| (I::from_usize(index), value))
+    }
+
     /// Returns a mutable iterator over the elements.
     ///
     /// See [`slice::iter_mut`] for details.
     #[inline]
     pub fn iter_mut(&mut self) -> slice::IterMut<'_, T> {
         self.raw.iter_mut()
+    }
+
+    /// Returns a parallel mutable iterator over the elements.
+    ///
+    /// The parallel counterpart of [`Self::iter_mut`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_iter_mut(&mut self) -> rayon::slice::IterMut<'_, T>
+    where
+        T: Send,
+    {
+        self.raw.par_iter_mut()
     }
 
     /// Returns a mutable iterator over ID-element pairs.
@@ -234,6 +309,24 @@ where
 
         self.raw
             .iter_mut()
+            .enumerate()
+            .map(|(index, value)| (I::from_usize(index), value))
+    }
+
+    /// Returns a parallel mutable iterator over ID-element pairs.
+    ///
+    /// The parallel counterpart of [`Self::iter_enumerated_mut`]: yields typed IDs instead of
+    /// `usize` indices.
+    #[cfg(feature = "rayon")]
+    pub fn par_iter_enumerated_mut(&mut self) -> impl IndexedParallelIterator<Item = (I, &mut T)>
+    where
+        T: Send,
+    {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
+        self.raw
+            .par_iter_mut()
             .enumerate()
             .map(|(index, value)| (I::from_usize(index), value))
     }
@@ -270,6 +363,49 @@ where
         K: Ord,
     {
         self.raw.sort_unstable_by_key(func);
+    }
+
+    /// Searches for an item in the slice using binary search, returning the index of the item if
+    /// found.
+    ///
+    /// See [`slice::binary_search`](prim@slice#method.binary_search) for details.
+    ///
+    /// # Errors
+    ///
+    /// Returns the ID where a matching element could be inserted while maintaining sorted order.
+    #[inline]
+    pub fn binary_search(&self, item: &T) -> Result<I, I>
+    where
+        T: Ord,
+    {
+        self.raw
+            .binary_search(item)
+            .map(I::from_usize)
+            .map_err(I::from_usize)
+    }
+
+    #[inline]
+    pub fn partition_point(&self, predicate: impl Fn(&T) -> bool) -> I {
+        let index = self.raw.partition_point(predicate);
+        I::from_usize(index)
+    }
+
+    #[inline]
+    pub const fn last(&self) -> Option<&T> {
+        self.raw.last()
+    }
+
+    #[inline]
+    pub const fn first(&self) -> Option<&T> {
+        self.raw.first()
+    }
+
+    #[inline]
+    pub fn fill(&mut self, value: T)
+    where
+        T: Clone,
+    {
+        self.raw.fill(value);
     }
 }
 
@@ -391,7 +527,6 @@ where
 
 impl<I, T> Debug for IdSlice<I, T>
 where
-    I: Id,
     T: Debug,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -399,9 +534,10 @@ where
     }
 }
 
-impl<I, T, R> Index<R> for IdSlice<I, T>
+const impl<I, T, R> Index<R> for IdSlice<I, T>
 where
-    R: IntoSliceIndex<I, [T]>,
+    R: [const] IntoSliceIndex<I, [T]>,
+    <R as IntoSliceIndex<I, [T]>>::SliceIndex: [const] core::slice::SliceIndex<[T]>,
 {
     type Output = <R::SliceIndex as SliceIndex<[T]>>::Output;
 
@@ -410,9 +546,10 @@ where
     }
 }
 
-impl<I, T, R> IndexMut<R> for IdSlice<I, T>
+const impl<I, T, R> IndexMut<R> for IdSlice<I, T>
 where
-    R: IntoSliceIndex<I, [T]>,
+    R: [const] IntoSliceIndex<I, [T]>,
+    <R as IntoSliceIndex<I, [T]>>::SliceIndex: [const] core::slice::SliceIndex<[T]>,
 {
     fn index_mut(&mut self, index: R) -> &mut Self::Output {
         self.raw.index_mut(index.into_slice_index())
@@ -434,6 +571,32 @@ impl<'this, I, T> IntoIterator for &'this mut IdSlice<I, T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.raw.iter_mut()
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<'this, I, T> IntoParallelIterator for &'this IdSlice<I, T>
+where
+    T: Sync,
+{
+    type Item = &'this T;
+    type Iter = rayon::slice::Iter<'this, T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.raw.par_iter()
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<'this, I, T> IntoParallelIterator for &'this mut IdSlice<I, T>
+where
+    T: Send,
+{
+    type Item = &'this mut T;
+    type Iter = rayon::slice::IterMut<'this, T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.raw.par_iter_mut()
     }
 }
 

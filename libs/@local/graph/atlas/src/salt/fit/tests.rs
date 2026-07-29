@@ -68,6 +68,7 @@ use crate::{
         postings::artifact::PostingsArchive,
         projector::{
             artifact,
+            budget::Budget,
             loss::CoincidentEnergy,
             model::NodeRole,
             train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
@@ -282,6 +283,43 @@ fn config_echo_requires_every_setting() {
             "an echo without {path} does not parse"
         );
     }
+}
+
+/// The budget echoes in both modes, and the enforced wire form stays the bare array.
+///
+/// The bare four-constant array is the exact shape every generation published before the observed
+/// mode carries, so the pin is what keeps those manifests deserializing.
+#[test]
+fn budget_echo_round_trips_both_modes() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    let enforced = FitConfig {
+        placement: PlacementOptions::Projector(projector_options(Some(1.0))),
+        ..config()
+    };
+    let document = serde_json::to_value(Echo(enforced.clone())).expect("the echo serializes");
+    assert!(
+        document
+            .pointer("/placement/projector/budget")
+            .expect("the echo carries the budget")
+            .is_array(),
+        "the enforced budget echoes as the bare array",
+    );
+    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
+    assert_eq!(echoed.0, enforced);
+
+    let mut options = projector_options(Some(1.0));
+    options.budget = Budget::Observed {
+        floor: Positive::new(2.0e-4).expect("the fixture floor is positive"),
+    };
+    let observed = FitConfig {
+        placement: PlacementOptions::Projector(options),
+        ..config()
+    };
+    let document = serde_json::to_value(Echo(observed.clone())).expect("the echo serializes");
+    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
+    assert_eq!(echoed.0, observed);
 }
 
 /// A config echo revalidates the group budget's domain.

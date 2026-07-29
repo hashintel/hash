@@ -30,7 +30,7 @@
 
 use core::{cmp::Ordering, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdVec};
 
 use super::super::knn::table::KnnView;
 use crate::disjoint::DisjointSet;
@@ -53,49 +53,54 @@ pub(crate) const DEFAULT_EPSILON: f32 = 0.002;
 /// Every row carries a clump id in `0..clumps`; ids are assigned in ascending order of each clump's
 /// first row, so equal tables and thresholds label equally. A singleton row is its own clump.
 #[derive(Debug, Clone)]
-pub(crate) struct Clumps {
-    labels: Vec<u32>,
+pub(crate) struct Clumps<N> {
+    labels: IdVec<N, u32>,
     epsilon: f32,
     count: usize,
     groups: usize,
     grouped_rows: usize,
 }
 
-impl Clumps {
+impl<N> Clumps<N>
+where
+    N: Id,
+{
     /// Groups the table's rows at the `epsilon` distance threshold.
     ///
     /// An edge joins two rows when either row stores the other at cosine distance at most
     /// `epsilon`; exact-duplicate embeddings (distance 0) group at every threshold. A non-finite
     /// `epsilon` admits no edges.
-    pub(crate) fn from_knn(table: &KnnView<'_>, epsilon: f32) -> Self {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the table's row domain is bound to the u32 column encoding"
+    )]
+    pub(crate) fn from_knn(table: &KnnView<'_, N>, epsilon: f32) -> Self {
         let rows = table.rows();
-        let mut components = DisjointSet::new(rows);
+        let mut components = DisjointSet::<N>::new(rows);
 
         for row in 0..rows {
+            let row = N::from_usize(row);
+
             for neighbour in table.row(row) {
                 if neighbour.distance <= epsilon {
-                    #[expect(
-                        clippy::cast_possible_truncation,
-                        reason = "the table's row domain is bound to the u32 column encoding"
-                    )]
-                    components.unite(row as u32, neighbour.id.as_u64() as u32);
+                    components.unite(row, neighbour.id);
                 }
             }
         }
 
         // Dense relabelling by first row: deterministic in the
         // partition alone.
-        let mut labels = vec![0_u32; rows];
-        let mut label_of = vec![u32::MAX; rows];
+        let mut labels = IdVec::from_elem(0_u32, rows);
+        let mut label_of = IdVec::from_elem(u32::MAX, rows);
         let mut clumps = 0_u32;
 
-        for (row, slot) in labels.iter_mut().enumerate() {
+        for (row, slot) in labels.iter_enumerated_mut() {
             #[expect(
                 clippy::cast_possible_truncation,
                 reason = "the table's row domain is bound to the u32 column encoding"
             )]
-            let representative = components.find(row as u32);
-            let label = &mut label_of[representative as usize];
+            let representative = components.find(row);
+            let label = &mut label_of[representative];
             if *label == u32::MAX {
                 *label = clumps;
                 clumps += 1;
@@ -111,7 +116,7 @@ impl Clumps {
     ///
     /// The caller promises every label lies in `0..count` and that labels first appear in ascending
     /// order; the fixture paths that use this assert both.
-    fn from_dense_labels(labels: Vec<u32>, count: usize, epsilon: f32) -> Self {
+    fn from_dense_labels(labels: IdVec<N, u32>, count: usize, epsilon: f32) -> Self {
         let mut sizes = vec![0_u32; count];
         for &clump in &labels {
             sizes[clump as usize] += 1;
@@ -140,7 +145,7 @@ impl Clumps {
     /// Panics unless the labels are dense in first-row order: each new label is exactly one past
     /// the largest seen so far.
     #[cfg(test)]
-    pub(crate) fn from_labels(labels: Vec<u32>, epsilon: f32) -> Self {
+    pub(crate) fn from_labels(labels: IdVec<N, u32>, epsilon: f32) -> Self {
         let mut next = 0_u32;
         for &label in &labels {
             assert!(
@@ -163,7 +168,10 @@ impl Clumps {
     /// Panics when `row` is outside the labelled domain.
     #[inline]
     #[must_use]
-    pub(crate) const fn clump(&self, row: usize) -> u32 {
+    pub(crate) const fn clump(&self, row: N) -> u32
+    where
+        N: [const] Id,
+    {
         self.labels[row]
     }
 

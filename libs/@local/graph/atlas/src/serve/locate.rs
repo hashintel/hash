@@ -475,7 +475,7 @@ impl Atlas {
             sources.push(self.node_codec.encode(edge.source));
             targets.push(self.node_codec.encode(edge.target));
             edge_ids.push(id);
-            internal_rows.push(edge.row);
+            internal_rows.push(edge.row.get());
         }
 
         let palette = Palette::of(&request.colored_type_ids);

@@ -22,9 +22,9 @@ use proptest::{prop_assert, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{BudgetOptions, BudgetSummary, surrogate};
+use super::{Budget, BudgetOptions, BudgetSummary, surrogate};
 use crate::{
-    math::Vec2,
+    math::{Positive, Vec2},
     salt::projector::model::{Architecture, Projector, ProjectorInput},
 };
 
@@ -360,4 +360,47 @@ fn clip_satisfies_the_budget_inequalities(
     );
     // Clipping never grows a gradient.
     prop_assert!(applied <= outcome.relation_norm * bound);
+}
+
+/// An observed budget applies the relation gradient unchanged, with both factors exactly one.
+#[test]
+fn observed_budget_passes_gradients_through() {
+    let budget = Budget::Observed {
+        floor: Positive::new(0.25).expect("the fixture floor is positive"),
+    };
+    let relation = Vec2::new(-12.0, 3.5);
+
+    let outcome = budget.apply(Vec2::new(0.375, 0.0), relation);
+    assert_eq!(outcome.gradient, relation);
+    assert_eq!(outcome.positive_factor, 1.0);
+    assert_eq!(outcome.total_factor, 1.0);
+    assert_eq!(outcome.semantic_norm, 0.375);
+    assert_eq!(outcome.relation_norm, 12.5);
+    assert_eq!(outcome.baseline, 0.375);
+
+    // The floor binds exactly as enforcement's baseline convention.
+    let floored = budget.apply(Vec2::new(0.125, 0.0), relation);
+    assert_eq!(floored.baseline, 0.25);
+}
+
+/// Observed and enforced outcomes share the baseline convention on identical inputs.
+#[test]
+fn observed_baseline_matches_enforcement() {
+    let options = BudgetOptions::new(0.5, 0.5, 0.25, 1.0e-12).expect("the budget is valid");
+    let observed = Budget::Observed {
+        floor: Positive::new(0.25).expect("the fixture floor is positive"),
+    };
+
+    for semantic in [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(0.125, 0.0),
+        Vec2::new(0.0, 2.0),
+    ] {
+        let relation = Vec2::new(-1.5, 2.0);
+        let enforced = options.clip(semantic, relation);
+        let outcome = observed.apply(semantic, relation);
+        assert_eq!(outcome.baseline, enforced.baseline);
+        assert_eq!(outcome.semantic_norm, enforced.semantic_norm);
+        assert_eq!(outcome.relation_norm, enforced.relation_norm);
+    }
 }

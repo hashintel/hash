@@ -150,3 +150,90 @@ fn native_bytes_id_round_trips() {
     );
     assert_eq!(id.as_u64(), 0x1234);
 }
+
+#[cfg(feature = "rayon")]
+mod par {
+    use alloc::{vec, vec::Vec};
+
+    use rayon::iter::{IntoParallelIterator as _, ParallelExtend as _, ParallelIterator as _};
+
+    use super::UnboundedId;
+    use crate::id::{Id as _, IdVec};
+
+    #[test]
+    fn par_iter_enumerated_matches_serial() {
+        let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![10, 20, 30]);
+
+        let serial: Vec<(UnboundedId, u32)> = vec
+            .iter_enumerated()
+            .map(|(id, &value)| (id, value))
+            .collect();
+        let parallel: Vec<(UnboundedId, u32)> = vec
+            .par_iter_enumerated()
+            .map(|(id, &value)| (id, value))
+            .collect();
+
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn par_ids_matches_ids() {
+        let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![1, 2, 3, 4]);
+
+        let serial: Vec<UnboundedId> = vec.ids().collect();
+        let parallel: Vec<UnboundedId> = vec.par_ids().collect();
+
+        assert_eq!(parallel, serial);
+    }
+
+    #[test]
+    fn par_collect_and_extend_preserve_order() {
+        let collected: IdVec<UnboundedId, u32> = (0..64_u32).into_par_iter().collect();
+        assert_eq!(collected.as_raw(), (0..64).collect::<Vec<u32>>());
+
+        let mut extended: IdVec<UnboundedId, u32> = IdVec::new();
+        extended.par_extend((0..64_u32).into_par_iter());
+        assert_eq!(extended.as_raw(), collected.as_raw());
+    }
+
+    #[test]
+    fn into_par_iter_enumerated_yields_typed_ids() {
+        let vec: IdVec<UnboundedId, u32> = IdVec::from_raw(vec![7, 8]);
+
+        let pairs: Vec<(UnboundedId, u32)> = vec.into_par_iter_enumerated().collect();
+
+        assert_eq!(
+            pairs,
+            [
+                (UnboundedId::from_usize(0), 7),
+                (UnboundedId::from_usize(1), 8)
+            ]
+        );
+    }
+}
+
+#[cfg(feature = "zerocopy")]
+mod bytes {
+    use zerocopy::{FromBytes as _, IntoBytes as _};
+
+    use super::UnboundedId;
+    use crate::id::{IdArray, IdSlice};
+
+    #[test]
+    fn id_slice_writes_its_elements_bytes() {
+        let data: [u32; 3] = [1, 2, 3];
+        let slice = IdSlice::<UnboundedId, u32>::from_raw(&data);
+
+        assert_eq!(slice.as_bytes(), data.as_bytes());
+    }
+
+    #[test]
+    fn id_array_round_trips_through_bytes() {
+        let array = IdArray::<UnboundedId, u32, 3>::from_raw([4, 5, 6]);
+
+        let back = <IdArray<UnboundedId, u32, 3>>::read_from_bytes(array.as_bytes())
+            .expect("the encoding is its own byte source");
+
+        assert_eq!(back, array);
+    }
+}

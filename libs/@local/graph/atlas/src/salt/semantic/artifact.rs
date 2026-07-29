@@ -5,8 +5,10 @@
 //! over a whole-file mapping and validates the graph invariants once, so training and release
 //! evaluation read the same weights from the page cache without holding them on the heap.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
+
+use hashql_core::id::Id;
 
 use super::{SemanticGraph, SemanticGraphView, SemanticValidationError, validate};
 use crate::{
@@ -20,7 +22,10 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl WriteInto for SemanticGraph {
+impl<N> WriteInto for SemanticGraph<N>
+where
+    N: Id,
+{
     type Error = io::Error;
 
     /// Writes the graph as a sparse matrix file.
@@ -95,11 +100,15 @@ impl Error for InvalidSemanticFile {
 /// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
 /// so stages call it once and hold the view.
 #[derive(Debug)]
-pub(crate) struct SemanticGraphArchive {
+pub(crate) struct SemanticGraphArchive<N> {
     file: SprsFile,
+    _marker: PhantomData<N>,
 }
 
-impl SemanticGraphArchive {
+impl<N> SemanticGraphArchive<N>
+where
+    N: Id,
+{
     /// Opens the graph over its mapped file.
     ///
     /// # Errors
@@ -110,12 +119,15 @@ impl SemanticGraphArchive {
         let matrix = file.matrix().map_err(InvalidSemanticFile::Matrix)?;
         validate(matrix)?;
 
-        Ok(Self { file })
+        Ok(Self {
+            file,
+            _marker: PhantomData,
+        })
     }
 
     /// Borrows the validated graph.
     #[must_use]
-    pub(crate) fn view(&self) -> SemanticGraphView<'_> {
+    pub(crate) fn view(&self) -> SemanticGraphView<'_, N> {
         let matrix = self
             .file
             .matrix()

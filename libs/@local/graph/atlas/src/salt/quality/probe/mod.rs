@@ -204,7 +204,7 @@ pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus IdSlice<NodeRowId, N>,
     representations: &'corpus IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     coordinates: &'corpus IdSlice<NodeRowId, Vec2>,
-    clumps: Option<&'corpus Clumps>,
+    clumps: Option<&'corpus Clumps<NodeRowId>>,
 }
 
 impl<'corpus, N> ProbeCorpus<'corpus, N> {
@@ -246,7 +246,7 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     /// Panics when the grouping labels a different row count; both describe one generation, so a
     /// mismatch is a wiring defect.
     #[must_use]
-    pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps) -> Self {
+    pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps<NodeRowId>) -> Self {
         assert_eq!(
             clumps.rows(),
             self.node_ids.len(),
@@ -397,7 +397,7 @@ pub(crate) async fn probe<D: Dataset>(
     corpus: ProbeCorpus<'_, D::NodeId>,
     options: &ProbeOptions,
     mut rng: impl Rng,
-) -> Result<ProbeReadings, ProbeError<D::Error>> {
+) -> Result<ProbeReadings<NodeRowId>, ProbeError<D::Error>> {
     let rows = corpus.rows();
     validate_design(rows, options)?;
 

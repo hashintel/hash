@@ -613,13 +613,7 @@ fn draw_collects_pooled_mined_pairs() {
     let mut drawn: Vec<(u64, u64, u32)> = populations
         .hard
         .iter()
-        .map(|&(pair, weight)| {
-            (
-                pair.first().as_u64(),
-                pair.second().as_u64(),
-                weight.to_bits(),
-            )
-        })
+        .map(|&(pair, weight)| (pair.lhs().as_u64(), pair.rhs().as_u64(), weight.to_bits()))
         .collect();
     drawn.sort_unstable();
 
@@ -790,7 +784,7 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
     let budget = BudgetOptions::new(0.5, 0.5, 0.25, 1.0e-12).expect("the budget is valid");
-    let options = options(Some(relation_energy()), budget);
+    let options = options(Some(relation_energy()), Budget::Enforced(budget));
 
     let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
     assert_eq!(gradient, [-0.75, 0.0, 0.75, 0.0]);
@@ -816,6 +810,38 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     // Both endpoints have attraction degree one: rank 2 of 2
     // participating rows, decile (2-1)*10/2 = 5.
     assert_eq!(metrics.deciles()[5].nodes(), 2);
+}
+
+/// An observed budget applies the raw relation field and still records every bucket.
+#[test]
+fn observed_budget_applies_raw_gradients_and_records() {
+    // The enforced twin above clips this exact fixture to a combined
+    // (-0.75, 0); observed, the raw relation gradient (-0.5, 0) rides
+    // whole and the combined field is (-1.0, 0). The diagnostics still
+    // record both endpoints, with factors one and the enforced twin's
+    // baselines.
+    let (indexes, scales) = relation_fixture();
+    let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
+    let coordinates = [0.0, 0.0, 1.0, 0.0];
+    let deciles = DegreeDeciles::new(&indexes.attraction, 2);
+    let mut metrics = BudgetBreakdown::new();
+    let options = options(
+        Some(relation_energy()),
+        Budget::Observed {
+            floor: positive!(0.25),
+        },
+    );
+
+    let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
+    assert_eq!(gradient, [-1.0, 0.0, 1.0, 0.0]);
+
+    assert_eq!(metrics.overall().nodes(), 2);
+    assert_eq!(metrics.overall().clipped_fraction(), Some(0.0));
+    assert_eq!(metrics.overall().capped_fraction(), Some(0.0));
+    assert_eq!(metrics.overall().mean_cap_factor(), Some(1.0));
+    // Unclipped and applied ratios coincide: 0.5 / 0.5 = 1 both.
+    assert_eq!(metrics.overall().mean_unclipped_ratio(), Some(1.0));
+    assert_eq!(metrics.overall().mean_clipped_ratio(), Some(1.0));
 }
 
 #[test]

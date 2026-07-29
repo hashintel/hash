@@ -33,7 +33,7 @@ fn pair(one: u64, other: u64) -> NodePair {
 fn keys(pairs: &[NodePair]) -> Vec<(u64, u64)> {
     pairs
         .iter()
-        .map(|pair| (pair.first().as_u64(), pair.second().as_u64()))
+        .map(|pair| (pair.lhs().as_u64(), pair.rhs().as_u64()))
         .collect()
 }
 

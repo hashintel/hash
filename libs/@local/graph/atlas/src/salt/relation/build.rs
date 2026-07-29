@@ -2,7 +2,7 @@
 
 use core::ops::Range;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
@@ -16,7 +16,7 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
-use crate::{identity::NodeRowId, math::narrow_f32};
+use crate::math::narrow_f32;
 
 /// Instances per parallel emission chunk within one relation group.
 ///
@@ -35,12 +35,16 @@ pub(super) const EMISSION_CHUNK: usize = 1 << 14;
 ///
 /// See [`RelationIndexes::build`] for the contract; this is its implementation, composed from the
 /// named stages below so each stage stays measurable on its own.
-pub(super) fn build(
+pub(super) fn build<N, E>(
     rows: usize,
     policies: Policies<'_>,
-    instances: &mut [RelationInstance],
+    instances: &mut [RelationInstance<N, E>],
     attraction: AttractionOptions,
-) -> Result<RelationIndexes, RelationIndexError> {
+) -> Result<RelationIndexes<N, E>, RelationIndexError>
+where
+    N: Id,
+    E: Id,
+{
     // The check precedes every allocation sized by `rows`.
     if u32::try_from(rows).is_err() {
         return Err(RelationIndexError::TooManyRows { rows });
@@ -51,7 +55,7 @@ pub(super) fn build(
     let proper = &mut instances[..proper];
 
     let group_ranges = resolve_groups(proper, policies)?;
-    let mut records = vec![ProtectionRecord::EMPTY; proper.len()];
+    let mut records = vec![ProtectionRecord::empty(); proper.len()];
     let built = build_groups(
         proper,
         group_ranges,
@@ -99,7 +103,11 @@ pub(super) fn build(
 /// Self-references sort behind every proper instance, so the returned partition point drops them
 /// without moving memory. The remainder of the key is total under the edge stream's uniqueness
 /// contract, making the unstable parallel sort deterministic.
-pub(super) fn sort_by_group(instances: &mut [RelationInstance]) -> usize {
+pub(super) fn sort_by_group<N, E>(instances: &mut [RelationInstance<N, E>]) -> usize
+where
+    N: Id,
+    E: Id,
+{
     instances.par_sort_unstable_by_key(|instance| {
         (
             instance.source == instance.target,
@@ -121,8 +129,8 @@ pub(super) fn sort_by_group(instances: &mut [RelationInstance]) -> usize {
 /// # Errors
 ///
 /// Returns an error when an instance references a relation the policy table does not cover.
-pub(super) fn resolve_groups<'policy>(
-    proper: &[RelationInstance],
+pub(super) fn resolve_groups<'policy, N, E>(
+    proper: &[RelationInstance<N, E>],
     policies: Policies<'policy>,
 ) -> Result<Vec<(Range<usize>, &'policy RelationPolicy)>, RelationIndexError> {
     let mut group_ranges: Vec<(Range<usize>, &RelationPolicy)> = Vec::new();
@@ -146,19 +154,24 @@ pub(super) fn resolve_groups<'policy>(
 /// covers the complete admitted set - and the protection assembly orders and aggregates the
 /// records without revisiting instances or policies.
 #[derive(Debug, Copy, Clone)]
-pub(super) struct ProtectionRecord {
-    pair: NodePair,
+pub(super) struct ProtectionRecord<N> {
+    pair: NodePair<N>,
     discounted: f32,
     undiscounted: f32,
 }
 
-impl ProtectionRecord {
+impl<N> ProtectionRecord<N> {
     /// The zero record the build's scratch starts from; emission overwrites every slot.
-    pub(super) const EMPTY: Self = Self {
-        pair: NodePair::new(NodeRowId::new(0), NodeRowId::new(0)),
-        discounted: 0.0,
-        undiscounted: 0.0,
-    };
+    pub(crate) const fn empty() -> Self
+    where
+        N: [const] Id,
+    {
+        Self {
+            pair: NodePair::new(N::from_u64(0), N::from_u64(0)),
+            discounted: 0.0,
+            undiscounted: 0.0,
+        }
+    }
 }
 
 /// Per-group pruning tallies beside the group they describe.
@@ -176,13 +189,17 @@ pub(super) struct GroupMeasurements {
 /// `chunk` is the emission granularity; the index build passes [`EMISSION_CHUNK`], and the
 /// granularity claim on that constant is verified by benchmarking other values through this
 /// parameter.
-pub(super) fn build_groups(
-    proper: &[RelationInstance],
+pub(super) fn build_groups<N, E>(
+    proper: &[RelationInstance<N, E>],
     group_ranges: Vec<(Range<usize>, &RelationPolicy)>,
-    records: &mut [ProtectionRecord],
+    records: &mut [ProtectionRecord<N>],
     attraction: AttractionOptions,
     chunk: usize,
-) -> Vec<(AttractionGroup, GroupMeasurements)> {
+) -> Vec<(AttractionGroup<N, E>, GroupMeasurements)>
+where
+    N: Id,
+    E: Id,
+{
     // The resolved ranges are contiguous and ascending from zero, so the
     // record buffer carves into the groups' disjoint slices by length.
     let mut slices = Vec::with_capacity(group_ranges.len());
@@ -218,17 +235,20 @@ pub(super) fn build_groups(
 ///
 /// Panics when a record endpoint lies outside the `rows` domain, which the dataset row contract
 /// excludes.
-pub(super) fn assemble_protection(
+pub(super) fn assemble_protection<N>(
     rows: usize,
-    records: &mut [ProtectionRecord],
-) -> ProtectionIndex {
+    records: &mut [ProtectionRecord<N>],
+) -> ProtectionIndex<N>
+where
+    N: Id + Send,
+{
     records.par_sort_unstable_by_key(|record| record.pair);
 
     let mut indptr = vec![0_u64; rows + 1];
     for run in records.chunk_by(|one, other| one.pair == other.pair) {
         let pair = run[0].pair;
-        indptr[pair.first().as_usize() + 1] += 1;
-        indptr[pair.second().as_usize() + 1] += 1;
+        indptr[pair.lhs().as_usize() + 1] += 1;
+        indptr[pair.rhs().as_usize() + 1] += 1;
     }
     for row in 0..rows {
         indptr[row + 1] += indptr[row];
@@ -241,7 +261,7 @@ pub(super) fn assemble_protection(
     for run in records.chunk_by(|one, other| one.pair == other.pair) {
         let pair = run[0].pair;
         let value = pair_evidence(run);
-        for (row, partner) in [(pair.first(), pair.second()), (pair.second(), pair.first())] {
+        for (row, partner) in [(pair.lhs(), pair.rhs()), (pair.rhs(), pair.lhs())] {
             let slot = usize::try_from(cursor[row.as_usize()])
                 .expect("resident entries fit the address space");
             #[expect(
@@ -263,7 +283,7 @@ pub(super) fn assemble_protection(
 }
 
 /// Aggregates one canonical pair's contiguous records into evidence.
-fn pair_evidence(run: &[ProtectionRecord]) -> PairEvidence {
+fn pair_evidence<N>(run: &[ProtectionRecord<N>]) -> PairEvidence {
     let mut discounted = 0.0_f32;
     let mut undiscounted = 0.0_f32;
     for record in run {
@@ -295,13 +315,17 @@ struct GroupFactors {
 /// the target column sorts here, and a row's degree is the share sum over its run in each column,
 /// read as a prefix difference. Emission then parallelizes over `chunk`-sized chunks reading those
 /// shared columns.
-fn build_group(
-    instances: &[RelationInstance],
+fn build_group<N, E>(
+    instances: &[RelationInstance<N, E>],
     policy: &RelationPolicy,
-    records: &mut [ProtectionRecord],
+    records: &mut [ProtectionRecord<N>],
     attraction: AttractionOptions,
     chunk: usize,
-) -> (AttractionGroup, GroupMeasurements) {
+) -> (AttractionGroup<N, E>, GroupMeasurements)
+where
+    N: Id,
+    E: Id,
+{
     let relation = instances[0].relation;
     let weights = AttractionWeights {
         coincident: attraction.coincident_coefficient() * policy.attraction.coincident,
@@ -314,7 +338,7 @@ fn build_group(
         applicability: policy.applicability,
     };
 
-    let share = |instance: &RelationInstance| f64::from(instance.multiplicity.max(1)).recip();
+    let share = |instance: &RelationInstance<N, E>| f64::from(instance.multiplicity.max(1)).recip();
     let sources = DegreeColumn::new(
         instances
             .iter()
@@ -328,7 +352,7 @@ fn build_group(
             .collect(),
     );
 
-    let mut yielded: Vec<(Vec<AttractionEdge>, GroupMeasurements)> = instances
+    let mut yielded: Vec<(Vec<_>, GroupMeasurements)> = instances
         .par_chunks(chunk)
         .zip(records.par_chunks_mut(chunk))
         .map(|(chunk, records)| emit_chunk(chunk, records, &sources, &targets, factors, attraction))
@@ -399,14 +423,18 @@ impl DegreeColumn {
 ///
 /// Every instance writes its protection record - pruning-exempt - and the instances the pruning
 /// predicate retains emit attraction edges.
-fn emit_chunk(
-    chunk: &[RelationInstance],
-    records: &mut [ProtectionRecord],
+fn emit_chunk<N, E>(
+    chunk: &[RelationInstance<N, E>],
+    records: &mut [ProtectionRecord<N>],
     sources: &DegreeColumn,
     targets: &DegreeColumn,
     factors: GroupFactors,
     attraction: AttractionOptions,
-) -> (Vec<AttractionEdge>, GroupMeasurements) {
+) -> (Vec<AttractionEdge<N, E>>, GroupMeasurements)
+where
+    N: Id,
+    E: Id,
+{
     let mut edges = Vec::with_capacity(chunk.len());
     let mut measurements = GroupMeasurements::default();
     for (instance, record) in chunk.iter().zip(records) {

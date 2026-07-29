@@ -8,7 +8,7 @@
 //! construction.
 
 use super::EffectiveConfidence;
-use crate::identity::{EdgeRowId, NodeRowId, OntologyRowId};
+use crate::identity::OntologyRowId;
 
 /// Shared attraction settings of one generation, valid by construction.
 ///
@@ -73,13 +73,13 @@ impl AttractionOptions {
 /// The stored factors are the ones that vary per instance; the class weights and strength
 /// multiplier live on the owning [`AttractionGroup`].
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct AttractionEdge {
+pub(crate) struct AttractionEdge<N, E> {
     /// The edge row the instance was read from.
-    pub edge: EdgeRowId,
+    pub edge: E,
     /// The node the link points from.
-    pub source: NodeRowId,
+    pub source: N,
     /// The node the link points to.
-    pub target: NodeRowId,
+    pub target: N,
     /// The instance's effective confidence `c` with score provenance.
     pub confidence: EffectiveConfidence,
     /// The degree normalization `ν`, in `(0, 1]`.
@@ -117,18 +117,18 @@ impl AttractionWeights {
 
 /// One relation type's retained instances and shared weights.
 #[derive(Debug, Clone)]
-pub(crate) struct AttractionGroup {
+pub(crate) struct AttractionGroup<N, E> {
     relation: OntologyRowId,
     weights: AttractionWeights,
-    edges: Vec<AttractionEdge>,
+    edges: Vec<AttractionEdge<N, E>>,
 }
 
-impl AttractionGroup {
+impl<N, E> AttractionGroup<N, E> {
     /// Assembles a group; the builder upholds the documented edge order.
     pub(super) const fn new(
         relation: OntologyRowId,
         weights: AttractionWeights,
-        edges: Vec<AttractionEdge>,
+        edges: Vec<AttractionEdge<N, E>>,
     ) -> Self {
         Self {
             relation,
@@ -154,7 +154,7 @@ impl AttractionGroup {
     /// Borrows the retained instances, ascending by `(source, target, edge)`.
     #[inline]
     #[must_use]
-    pub(crate) const fn edges(&self) -> &[AttractionEdge] {
+    pub(crate) const fn edges(&self) -> &[AttractionEdge<N, E>] {
         self.edges.as_slice()
     }
 }
@@ -165,13 +165,13 @@ impl AttractionGroup {
 /// group. Within a group, edges ascend by `(source, target, edge)`. Both orders are total, so the
 /// index is identical for any input order of the same instances.
 #[derive(Debug, Clone)]
-pub(crate) struct AttractionIndex {
-    groups: Vec<AttractionGroup>,
+pub(crate) struct AttractionIndex<N, E> {
+    groups: Vec<AttractionGroup<N, E>>,
 }
 
-impl AttractionIndex {
+impl<N, E> AttractionIndex<N, E> {
     /// Assembles the index; the builder upholds the documented group order.
-    pub(super) const fn new(groups: Vec<AttractionGroup>) -> Self {
+    pub(super) const fn new(groups: Vec<AttractionGroup<N, E>>) -> Self {
         Self { groups }
     }
 
@@ -187,7 +187,7 @@ impl AttractionIndex {
     /// Borrows the relation groups, ascending by relation row.
     #[inline]
     #[must_use]
-    pub(crate) const fn groups(&self) -> &[AttractionGroup] {
+    pub(crate) const fn groups(&self) -> &[AttractionGroup<N, E>] {
         self.groups.as_slice()
     }
 

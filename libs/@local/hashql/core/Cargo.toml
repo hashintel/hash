@@ -17,8 +17,10 @@ anstyle   = { workspace = true, public = true }
 foldhash  = { workspace = true, public = true }
 hashbrown = { workspace = true, public = true }
 pretty    = { workspace = true, public = true }
+rayon     = { workspace = true, optional = true, public = true }
 smallvec  = { workspace = true, public = true }
 text-size = { workspace = true, public = true }
+zerocopy  = { workspace = true, optional = true, public = true, features = ["derive"] }
 
 # Private workspace dependencies
 
@@ -49,7 +51,9 @@ zerocopy                  = { workspace = true, features = ["derive"] }
 
 
 [features]
-serde = ["dep:serde", "text-size/serde"]
+serde    = ["dep:serde", "text-size/serde"]
+rayon    = ["dep:rayon"]
+zerocopy = ["dep:zerocopy"]
 
 [lints]
 workspace = true

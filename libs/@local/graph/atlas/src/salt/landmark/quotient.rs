@@ -26,7 +26,7 @@
 
 use core::{error::Error, fmt, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdVec};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
@@ -96,31 +96,35 @@ impl Error for QuotientError {
 }
 
 /// Corpus rows grouped by their assigned landmark, ascending within each group.
-struct GroupedRows {
+struct GroupedRows<N> {
     /// Group boundaries: landmark `l` owns `rows[starts[l]..starts[l + 1]]`.
-    starts: Vec<usize>,
-    rows: Vec<usize>,
+    starts: IdVec<LandmarkOrdinal, usize>,
+    rows: Vec<N>,
 }
 
-impl GroupedRows {
+impl<N> GroupedRows<N>
+where
+    N: Id,
+{
     /// Groups the assignment's rows by counting sort.
-    fn new(assignment: &LandmarkAssignment) -> Self {
+    fn new(assignment: &LandmarkAssignment<N>) -> Self {
         let ordinals = assignment.as_slice();
 
-        let mut starts = vec![0_usize; assignment.landmarks() + 1];
+        let mut starts = IdVec::from_elem(0_usize, assignment.landmarks() + 1);
         for ordinal in ordinals {
-            starts[ordinal.usize() + 1] += 1;
+            starts[ordinal.plus(1)] += 1;
         }
+
         let mut running = 0_usize;
         for slot in &mut starts {
             running += *slot;
             *slot = running;
         }
 
-        let mut rows = vec![0_usize; ordinals.len()];
+        let mut rows = vec![N::MIN; ordinals.len()];
         let mut cursors = starts.clone();
-        for (row, ordinal) in ordinals.iter().enumerate() {
-            let cursor = &mut cursors[ordinal.usize()];
+        for (row, &ordinal) in ordinals.iter_enumerated() {
+            let cursor = &mut cursors[ordinal];
             rows[*cursor] = row;
             *cursor += 1;
         }
@@ -129,12 +133,13 @@ impl GroupedRows {
     }
 
     /// Borrows one landmark's corpus rows, ascending.
-    fn rows_of(&self, landmark: usize) -> &[usize] {
+    fn rows_of(&self, landmark: LandmarkOrdinal) -> &[N] {
         assert!(
-            landmark + 1 < self.starts.len(),
+            landmark.as_usize() + 1 < self.starts.len(),
             "the landmark is in the grouped domain"
         );
-        &self.rows[self.starts[landmark]..self.starts[landmark + 1]]
+
+        &self.rows[self.starts[landmark]..self.starts[landmark.plus(1)]]
     }
 }
 
@@ -144,12 +149,15 @@ impl GroupedRows {
 /// records which slots to read and reset, so a task costs its own edges, not the landmark domain.
 /// Rows ascend within each task, so the per-pair addition order (and the sum, bit for bit) matches
 /// a serial pass at any thread count.
-fn strongest_neighbours(
-    semantic: &SemanticGraphView<'_>,
-    assignment: &LandmarkAssignment,
-    grouped: &GroupedRows,
+fn strongest_neighbours<N>(
+    semantic: &SemanticGraphView<'_, N>,
+    assignment: &LandmarkAssignment<N>,
+    grouped: &GroupedRows<N>,
     options: QuotientOptions,
-) -> Vec<Vec<(LandmarkOrdinal, f32)>> {
+) -> Vec<Vec<(LandmarkOrdinal, f32)>>
+where
+    N: Id,
+{
     let landmarks = assignment.landmarks();
     (0..landmarks)
         .into_par_iter()
@@ -220,11 +228,14 @@ fn strongest_neighbours(
 ///
 /// Returns an error when the assignment does not cover the graph's rows or when no edge crosses
 /// landmark boundaries.
-pub(crate) fn quotient_graph(
-    semantic: &SemanticGraphView<'_>,
-    assignment: &LandmarkAssignment,
+pub(crate) fn quotient_graph<N>(
+    semantic: &SemanticGraphView<'_, N>,
+    assignment: &LandmarkAssignment<N>,
     options: QuotientOptions,
-) -> Result<SemanticGraph, QuotientError> {
+) -> Result<SemanticGraph<N>, QuotientError>
+where
+    N: Id,
+{
     let rows = semantic.rows();
     if assignment.as_slice().len() != rows {
         return Err(QuotientError::AssignmentRows {
@@ -294,6 +305,7 @@ pub(crate) fn quotient_graph(
         indptr.push(indices.len() as u64);
     }
 
+    // NOTE: can't we use `new_unchecked` here?
     let matrix = SemanticMatrix::try_new((landmarks, landmarks), indptr, indices, weights)
         .map_err(|(_, _, _, error)| error)
         .expect("mirrored sorted pairs form a compressed sparse row structure");

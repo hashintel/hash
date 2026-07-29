@@ -35,7 +35,7 @@ mod tests;
 
 use core::num::NonZero;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 
 use super::{PlacementClass, ResolvedVerdict};
 use crate::{
@@ -111,13 +111,16 @@ pub(crate) struct ProximalCalibration {
 /// Panics when the scales do not cover the coordinate rows, or when an edge references a row
 /// outside them; the index, coordinates, and scales all describe one corpus, so a mismatch is a
 /// wiring defect.
-pub(crate) fn calibrate(
+pub(crate) fn calibrate<N, E>(
     verdicts: &[ResolvedVerdict],
-    index: &AttractionIndex,
-    coordinates: &[Vec2],
-    scales: &LocalScales,
+    index: &AttractionIndex<N, E>,
+    coordinates: &IdSlice<N, Vec2>,
+    scales: &LocalScales<N>,
     options: CalibrationOptions,
-) -> ProximalCalibration {
+) -> ProximalCalibration
+where
+    N: Id,
+{
     assert_eq!(
         scales.len(),
         coordinates.len(),
@@ -168,7 +171,8 @@ pub(crate) fn calibrate(
         // Accumulated in double precision, in the group's edge order.
         let mut mass = 0.0_f64;
         for edge in edges {
-            let (source, target) = (edge.source.as_usize(), edge.target.as_usize());
+            let (source, target) = (edge.source, edge.target);
+
             let distance = coordinates[source].distance(coordinates[target]);
             let normalization = scales.normalization(source, target, options.epsilon);
             let z = distance / normalization;

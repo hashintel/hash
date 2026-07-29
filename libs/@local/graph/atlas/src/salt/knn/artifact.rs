@@ -5,8 +5,10 @@
 //! whole-file mapping and validates the table invariants once, so later pipeline stages read the
 //! table without holding it on the heap.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
+
+use hashql_core::id::Id;
 
 use super::table::{Knn, KnnValidationError, KnnView, validate};
 use crate::{
@@ -20,7 +22,10 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl WriteInto for Knn {
+impl<N> WriteInto for Knn<N>
+where
+    N: Id,
+{
     type Error = io::Error;
 
     /// Writes the table as a sparse matrix file.
@@ -46,42 +51,6 @@ impl WriteInto for Knn {
         })?;
 
         Ok(writer.accumulator.finalize())
-    }
-}
-
-/// A published k-NN table opened over its mapped file.
-///
-/// Construction checks the table invariants once, so an open table only serves valid views; the
-/// matrix regions stay in the page cache under memory pressure and off the heap. Each
-/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
-/// so stages call it once and hold the view.
-#[derive(Debug)]
-pub(crate) struct KnnArchive {
-    file: SprsFile,
-}
-
-impl KnnArchive {
-    /// Opens the table over its mapped file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the file does not hold the table's matrix layout or the matrix
-    /// violates a [`Knn`] invariant.
-    pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidKnnFile> {
-        let matrix = file.matrix().map_err(InvalidKnnFile::Matrix)?;
-        validate(matrix)?;
-
-        Ok(Self { file })
-    }
-
-    /// Borrows the validated table.
-    #[must_use]
-    pub(crate) fn view(&self) -> KnnView<'_> {
-        let matrix = self
-            .file
-            .matrix()
-            .expect("construction viewed this immutable file's matrix");
-        KnnView::new_unchecked(matrix)
     }
 }
 
@@ -115,5 +84,48 @@ impl Error for InvalidKnnFile {
             Self::Matrix(error) => Some(error),
             Self::Invalid(invalid) => Some(invalid),
         }
+    }
+}
+
+/// A published k-NN table opened over its mapped file.
+///
+/// Construction checks the table invariants once, so an open table only serves valid views; the
+/// matrix regions stay in the page cache under memory pressure and off the heap. Each
+/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
+/// so stages call it once and hold the view.
+#[derive(Debug)]
+pub(crate) struct KnnArchive<N> {
+    file: SprsFile,
+    _marker: PhantomData<N>,
+}
+
+impl<N> KnnArchive<N>
+where
+    N: Id,
+{
+    /// Opens the table over its mapped file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the file does not hold the table's matrix layout or the matrix
+    /// violates a [`Knn`] invariant.
+    pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidKnnFile> {
+        let matrix = file.matrix().map_err(InvalidKnnFile::Matrix)?;
+        validate(matrix)?;
+
+        Ok(Self {
+            file,
+            _marker: PhantomData,
+        })
+    }
+
+    /// Borrows the validated table.
+    #[must_use]
+    pub(crate) fn view(&self) -> KnnView<'_, N> {
+        let matrix = self
+            .file
+            .matrix()
+            .expect("construction viewed this immutable file's matrix");
+        KnnView::new_unchecked(matrix)
     }
 }

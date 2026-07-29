@@ -17,6 +17,8 @@
 //! mining could vet candidates through: pointwise pair probes against per-row partner merges, over
 //! one synthesized mining sweep ([`JudgeProbes`]).
 
+use hashql_core::id::Id;
+
 pub use self::{
     fixture::{Corpus, Profile},
     judge::JudgeProbes,
@@ -57,14 +59,18 @@ pub struct BuildSummary {
 /// Cloning one costs a large memcpy at bench scales; do it in the benchmark harness's setup phase,
 /// outside the timed region.
 #[derive(Clone)]
-pub struct Scratch(Vec<super::RelationInstance>);
+pub struct Scratch<N, E>(Vec<super::RelationInstance<N, E>>);
 
-impl Scratch {
+impl<N, E> Scratch<N, E> {
     /// Runs the group sort alone, returning the proper instance count.
     ///
     /// The buffer should hold instances in synthesis order ([`Corpus::scratch`]): the sort has a
     /// sortedness fast path, so only an unsorted buffer measures the production pass.
-    pub fn sort_by_group(&mut self) -> usize {
+    pub fn sort_by_group(&mut self) -> usize
+    where
+        N: Id,
+        E: Id,
+    {
         build::sort_by_group(&mut self.0)
     }
 }
@@ -74,18 +80,21 @@ impl Scratch {
 /// The assembly reorders its input, so each timed run takes a fresh clone; clone in the benchmark
 /// harness's setup phase, outside the timed region.
 #[derive(Clone)]
-pub struct Records(Vec<ProtectionRecord>);
+pub struct Records<N>(Vec<ProtectionRecord<N>>);
 
-impl Corpus {
+impl<N> Records<N>
+where
+    N: Id,
+{
     /// Clones the instances in synthesis order, the full build's and the group sort's input state.
     #[must_use]
-    pub fn scratch(&self) -> Scratch {
+    pub fn scratch<E>(&self) -> Scratch<N, E> {
         Scratch(self.instances().to_vec())
     }
 
     /// Clones the emitted protection records in emission order, the assembly's input state.
     #[must_use]
-    pub fn records_scratch(&self) -> Records {
+    pub fn records_scratch<E>(&self) -> Records<N> {
         Records(self.records().to_vec())
     }
 
@@ -96,7 +105,15 @@ impl Corpus {
     /// Panics when the settings are not finite and non-negative, or the build rejects the corpus,
     /// which the synthesis contract excludes.
     #[must_use]
-    pub fn build_in(&self, scratch: &mut Scratch, coincident: f32, pruning: f32) -> BuildSummary {
+    pub fn build_in<E>(
+        &self,
+        scratch: &mut Scratch<N, E>,
+        coincident: f32,
+        pruning: f32,
+    ) -> BuildSummary
+    where
+        E: Id,
+    {
         let attraction = AttractionOptions::new(coincident, pruning)
             .expect("the sweep passes finite, non-negative settings");
         let indexes =
@@ -134,7 +151,7 @@ impl Corpus {
     }
 
     /// Runs the protection assembly alone: the record sort, the aggregation, and the scatter.
-    pub fn assemble_protection(&self, records: &mut Records) {
+    pub fn assemble_protection(&self, records: &mut Records<N>) {
         drop(build::assemble_protection(self.rows(), &mut records.0));
     }
 

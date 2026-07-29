@@ -4,7 +4,7 @@ use super::table::KnnValidationError;
 
 /// Building or spot-checking against a backend failed.
 #[derive(Debug)]
-pub enum KnnError<E> {
+pub enum KnnError<N, E> {
     /// The backend reported an error.
     Backend(E),
     /// The assembled table violates a [`Knn`](super::table::Knn) invariant.
@@ -19,27 +19,23 @@ pub enum KnnError<E> {
     ListsWidth { width: usize, neighbours: usize },
     /// A search returned a different neighbour count than the table stores per row.
     SearchCount {
-        row: usize,
+        row: N,
         expected: usize,
         actual: usize,
     },
     /// A search returned the same neighbour twice.
-    DuplicateNeighbour { row: usize, neighbour: u64 },
+    DuplicateNeighbour { row: N, neighbour: u64 },
     /// A search returned a row outside the generation's row domain.
-    NeighbourOutOfBounds {
-        row: usize,
-        neighbour: u64,
-        rows: usize,
-    },
+    NeighbourOutOfBounds { row: N, neighbour: u64, rows: usize },
 }
 
-impl<E> From<KnnValidationError> for KnnError<E> {
+impl<N, E> From<KnnValidationError> for KnnError<N, E> {
     fn from(invalid: KnnValidationError) -> Self {
         Self::Invalid(invalid)
     }
 }
 
-impl<E: fmt::Display> fmt::Display for KnnError<E> {
+impl<N: fmt::Display, E: fmt::Display> fmt::Display for KnnError<N, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Backend(error) => write!(fmt, "the search backend failed: {error}"),
@@ -86,7 +82,7 @@ impl<E: fmt::Display> fmt::Display for KnnError<E> {
     }
 }
 
-impl<E: Error + 'static> Error for KnnError<E> {
+impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for KnnError<N, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Backend(error) => Some(error),

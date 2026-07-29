@@ -8,7 +8,7 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use rand::{Rng, SeedableRng};
 use rayon::iter::{
     IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
@@ -27,25 +27,32 @@ use crate::{
 /// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection the
 /// assignment was built against, so consumers index landmark-domain tables without re-validation.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct LandmarkAssignment {
-    landmark_by_row: Box<[LandmarkOrdinal]>,
+pub(crate) struct LandmarkAssignment<N> {
+    landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
     landmarks: usize,
 }
 
-impl LandmarkAssignment {
+impl<N> LandmarkAssignment<N>
+where
+    N: Id,
+{
     /// Wraps precomputed ordinals, for fixtures.
     ///
     /// # Panics
     ///
     /// Panics when an ordinal lies at or beyond `landmarks`.
     #[cfg(test)]
-    pub(super) fn from_ordinals(landmark_by_row: Box<[LandmarkOrdinal]>, landmarks: usize) -> Self {
+    pub(super) fn from_ordinals(
+        landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
+        landmarks: usize,
+    ) -> Self {
         assert!(
             landmark_by_row
                 .iter()
                 .all(|ordinal| ordinal.usize() < landmarks),
             "every ordinal lies below the landmark count",
         );
+
         Self {
             landmark_by_row,
             landmarks,
@@ -59,14 +66,14 @@ impl LandmarkAssignment {
     /// Panics when `row` is outside the assigned corpus.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, row: NodeRowId) -> LandmarkOrdinal {
-        self.landmark_by_row[row.as_usize()]
+    pub(crate) fn get(&self, row: N) -> LandmarkOrdinal {
+        self.landmark_by_row[row]
     }
 
     /// Borrows every assignment ordinal in node-row order.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[LandmarkOrdinal] {
+    pub(crate) fn as_slice(&self) -> &IdSlice<N, LandmarkOrdinal> {
         &self.landmark_by_row
     }
 
@@ -76,22 +83,42 @@ impl LandmarkAssignment {
     pub(crate) const fn landmarks(&self) -> usize {
         self.landmarks
     }
+
+    /// Re-indexes the assignment through `rows`: entry `i` of the result is this assignment's
+    /// entry at the `i`-th yielded row.
+    ///
+    /// This expands an assignment built over a quotient domain onto the domain `rows` maps from:
+    /// every row of the wider domain takes its representative's landmark, under the unchanged
+    /// ordinal vocabulary.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a yielded row lies outside the assigned domain.
+    #[must_use]
+    pub(crate) fn reindex(&self, rows: impl ExactSizeIterator<Item = N>) -> Self {
+        let landmark_by_row: Vec<_> = rows.map(|row| self.landmark_by_row[row]).collect();
+
+        Self {
+            landmark_by_row: IdSlice::from_boxed_slice(landmark_by_row.into_boxed_slice()),
+            landmarks: self.landmarks,
+        }
+    }
 }
 
 /// The assignment inputs or backend misbehaved.
 #[derive(Debug)]
-pub enum AssignmentError<E> {
+pub enum AssignmentError<N, E> {
     /// A selected row lies outside the corpus.
-    UnknownRow { row: u64, rows: usize },
+    UnknownRow { row: N, rows: usize },
     /// The backend reported an error.
     Backend(E),
     /// A search over a nonempty index returned nothing.
-    MissingMatch { row: u64 },
+    MissingMatch { row: N },
     /// The backend returned a neighbour that is not a landmark.
-    ForeignNeighbour { row: u64, neighbour: u64 },
+    ForeignNeighbour { row: N, neighbour: N },
 }
 
-impl<E: fmt::Display> fmt::Display for AssignmentError<E> {
+impl<N: fmt::Display, E: fmt::Display> fmt::Display for AssignmentError<N, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownRow { row, rows } => {
@@ -112,7 +139,7 @@ impl<E: fmt::Display> fmt::Display for AssignmentError<E> {
     }
 }
 
-impl<E: Error + 'static> Error for AssignmentError<E> {
+impl<N, E: Error + 'static> Error for AssignmentError<N, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Backend(error) => Some(error),
@@ -134,20 +161,20 @@ impl<E: Error + 'static> Error for AssignmentError<E> {
 ///
 /// Returns an error when a selected row lies outside the corpus, the backend fails, or a search
 /// returns nothing or a non-landmark row.
-pub(crate) fn assign_landmarks<I>(
+pub(crate) fn assign_landmarks<N, I>(
     index: &mut I,
     rng: impl Rng + SeedableRng,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    selection: &LandmarkSelection,
-) -> Result<LandmarkAssignment, AssignmentError<I::Error>>
+    embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    selection: &LandmarkSelection<N>,
+) -> Result<LandmarkAssignment<N>, AssignmentError<N, I::Error>>
 where
-    I: NearestNeighboursIndex + Sync,
-    I::Error: Send,
+    N: Id,
+    I: NearestNeighboursIndex<N, Error: Send> + Sync,
 {
     for &row in selection.rows() {
-        if row.as_usize() >= embeddings.len() {
+        if row >= embeddings.bound() {
             return Err(AssignmentError::UnknownRow {
-                row: row.as_u64(),
+                row,
                 rows: embeddings.len(),
             });
         }
@@ -156,7 +183,7 @@ where
     index
         .insert_many(selection.rows().iter().map(|&row| Embedding {
             id: row,
-            components: &embeddings[row.as_usize()],
+            components: &embeddings[row],
         }))
         .map_err(AssignmentError::Backend)?;
     index.build(rng).map_err(AssignmentError::Backend)?;

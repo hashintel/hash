@@ -28,15 +28,17 @@
 //! protection answers whether repulsion is safe, so none of those factors enters the evidence.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use core::fmt;
+use core::{
+    fmt,
+    marker::{Destruct, PhantomData},
+};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
     file::sprs::{SprsValue, ValueTag},
-    identity::NodeRowId,
     math::NonNegative,
 };
 
@@ -219,42 +221,45 @@ impl ProtectionConfig {
 ///
 /// The two rows are stored with [`first`](Self::first) at most [`second`](Self::second), so a pair
 /// equals itself however its rows arrive, and the derived order is total over pairs.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct NodePair {
-    first: NodeRowId,
-    second: NodeRowId,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct NodePair<N> {
+    lhs: N,
+    rhs: N,
 }
 
-impl NodePair {
+impl<N> NodePair<N> {
     /// Creates the canonical pair of two rows, in either order.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(one: NodeRowId, other: NodeRowId) -> Self {
-        if one.as_u64() <= other.as_u64() {
-            Self {
-                first: one,
-                second: other,
-            }
+    pub(crate) const fn new(lhs: N, rhs: N) -> Self
+    where
+        N: [const] Id,
+    {
+        if lhs.as_u64() <= rhs.as_u64() {
+            Self { lhs, rhs }
         } else {
-            Self {
-                first: other,
-                second: one,
-            }
+            Self { lhs: rhs, rhs: lhs }
         }
     }
 
     /// Returns the smaller row.
     #[inline]
     #[must_use]
-    pub(crate) const fn first(self) -> NodeRowId {
-        self.first
+    pub(crate) const fn lhs(self) -> N
+    where
+        N: [const] Destruct,
+    {
+        self.lhs
     }
 
     /// Returns the larger row.
     #[inline]
     #[must_use]
-    pub(crate) const fn second(self) -> NodeRowId {
-        self.second
+    pub(crate) const fn rhs(self) -> N
+    where
+        N: [const] Destruct,
+    {
+        self.rhs
     }
 }
 
@@ -277,9 +282,9 @@ impl PairVerdict {
 
 /// One protected partner of a row.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct ProtectedPartner {
+pub(crate) struct ProtectedPartner<N> {
     /// The other endpoint's node row.
-    pub partner: NodeRowId,
+    pub partner: N,
     /// The pair's aggregated evidence.
     pub evidence: PairEvidence,
 }
@@ -409,9 +414,12 @@ fn validate_row(
 /// row references itself. A pair absent from the matrix has no admitted link between its rows and
 /// is unprotected under every configuration.
 #[derive(Debug, Clone)]
-pub(crate) struct ProtectionIndex(ProtectionMatrix);
+pub(crate) struct ProtectionIndex<N>(ProtectionMatrix, PhantomData<N>);
 
-impl ProtectionIndex {
+impl<N> ProtectionIndex<N>
+where
+    N: Id,
+{
     /// Validates an evidence matrix against the index invariants.
     ///
     /// # Errors
@@ -421,14 +429,14 @@ impl ProtectionIndex {
     /// are missing or unequal.
     pub(crate) fn new(matrix: ProtectionMatrix) -> Result<Self, ProtectionValidationError> {
         validate(matrix.view())?;
-        Ok(Self(matrix))
+        Ok(Self(matrix, PhantomData))
     }
 
     /// Borrows the index.
     #[inline]
     #[must_use]
-    pub(crate) fn view(&self) -> ProtectionView<'_> {
-        ProtectionView(self.0.view())
+    pub(crate) fn view(&self) -> ProtectionView<'_, N> {
+        ProtectionView::new_unchecked(self.0.view())
     }
 
     /// Borrows the evidence matrix for sparse operations.
@@ -441,9 +449,12 @@ impl ProtectionIndex {
 
 /// Borrowed rows of one validated [`ProtectionIndex`].
 #[derive(Debug, Clone)]
-pub(crate) struct ProtectionView<'view>(ProtectionMatrixView<'view>);
+pub(crate) struct ProtectionView<'view, N>(ProtectionMatrixView<'view>, PhantomData<N>);
 
-impl<'view> ProtectionView<'view> {
+impl<'view, N> ProtectionView<'view, N>
+where
+    N: Id,
+{
     /// Wraps a matrix whose invariants already hold.
     ///
     /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
@@ -451,7 +462,7 @@ impl<'view> ProtectionView<'view> {
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: ProtectionMatrixView<'view>) -> Self {
-        Self(matrix)
+        Self(matrix, PhantomData)
     }
 
     /// Returns the node-row count.
@@ -473,7 +484,7 @@ impl<'view> ProtectionView<'view> {
     /// # Panics
     ///
     /// Panics when `row` is outside the matrix's row domain.
-    pub(crate) fn row(&self, row: NodeRowId) -> impl Iterator<Item = ProtectedPartner> + '_ {
+    pub(crate) fn row(&self, row: N) -> impl Iterator<Item = ProtectedPartner<N>> + '_ {
         let (columns, evidence) = self
             .0
             .outer_view(row.as_usize())
@@ -484,7 +495,7 @@ impl<'view> ProtectionView<'view> {
             .iter()
             .zip(evidence)
             .map(|(&column, &evidence)| ProtectedPartner {
-                partner: NodeRowId::from_u32(column),
+                partner: N::from_u32(column),
                 evidence,
             })
     }
@@ -494,9 +505,9 @@ impl<'view> ProtectionView<'view> {
     /// Returns [`None`] when no admitted link connects the pair's rows, or either row lies outside
     /// the row domain. Time is one row resolution plus a binary search of that row's partners.
     #[must_use]
-    pub(crate) fn get(&self, pair: NodePair) -> Option<PairEvidence> {
+    pub(crate) fn get(&self, pair: NodePair<N>) -> Option<PairEvidence> {
         self.0
-            .get(pair.first().as_usize(), pair.second().as_usize())
+            .get(pair.lhs().as_usize(), pair.rhs().as_usize())
             .copied()
     }
 
@@ -505,7 +516,7 @@ impl<'view> ProtectionView<'view> {
     /// A channel protects when the pair's evidence mass under the channel's floor reaches the
     /// channel's threshold; a pair without link evidence is unprotected in both channels.
     #[must_use]
-    pub(crate) fn judge(&self, pair: NodePair, config: ProtectionConfig) -> PairVerdict {
+    pub(crate) fn judge(&self, pair: NodePair<N>, config: ProtectionConfig) -> PairVerdict {
         let Some(evidence) = self.get(pair) else {
             return PairVerdict::UNPROTECTED;
         };

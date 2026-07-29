@@ -27,88 +27,27 @@ mod energy;
 mod tests;
 
 use burn::tensor::{Int, Tensor, TensorData, backend::Backend};
+use hashql_core::id::{Id, IdSlice, IdVec};
 
 pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
 use crate::{
     identity::OntologyRowId,
     math::{DVec2, Vec2},
-    salt::{projector::scale::LocalScales, relation::attraction::AttractionWeights},
+    salt::{
+        projector::scale::LocalScales,
+        relation::{attraction::AttractionWeights, protection::NodePair},
+    },
 };
 
-/// A batch-local row position.
-///
-/// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain; this key names
-/// positions in that domain and nothing else. It is deliberately distinct from the corpus's
-/// `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is
-/// the wiring defect this type exists to prevent. The `u32` width is a representation bound: a
-/// batch indexes one step's participating rows.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct BatchRowId(u32);
-
-impl BatchRowId {
-    /// Creates a batch-local row key from its position.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(position: u32) -> Self {
-        Self(position)
-    }
-
-    /// Returns the position's numeric value.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn get(self) -> u32 {
-        self.0
-    }
-
-    /// Returns the position as a slice index.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-/// An unordered pair of batch-local rows in canonical order.
-///
-/// The two positions are stored with [`first`](Self::first) at most [`second`](Self::second), so a
-/// pair equals itself however its rows arrive - the batch-domain twin of the corpus's `NodePair`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct BatchPair {
-    first: BatchRowId,
-    second: BatchRowId,
-}
-
-impl BatchPair {
-    /// Creates the canonical pair of two positions, in either order.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn new(one: BatchRowId, other: BatchRowId) -> Self {
-        if one.get() <= other.get() {
-            Self {
-                first: one,
-                second: other,
-            }
-        } else {
-            Self {
-                first: other,
-                second: one,
-            }
-        }
-    }
-
-    /// Returns the smaller position.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn first(self) -> BatchRowId {
-        self.first
-    }
-
-    /// Returns the larger position.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn second(self) -> BatchRowId {
-        self.second
-    }
+hashql_core::id::newtype! {
+    /// A batch-local row position.
+    ///
+    /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain; this key names
+    /// positions in that domain and nothing else. It is deliberately distinct from the corpus's
+    /// `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is
+    /// the wiring defect this type exists to prevent. The `u32` width is a representation bound: a
+    /// batch indexes one step's participating rows.
+    pub(crate) struct BatchRowId(u32)
 }
 
 /// One relation type's drawn instances, re-indexed to the batch.
@@ -117,22 +56,22 @@ impl BatchPair {
 /// endpoints as batch positions, per-instance weight factors as plain values, and the group's
 /// shared factors inline rather than borrowed from the attraction index.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct BatchRelationEdges {
+pub(crate) struct RelationEdges<N> {
     /// The relation type the instances share.
     pub relation: OntologyRowId,
     /// The relation's shared weight factors.
     pub weights: AttractionWeights,
     /// The drawn instances, in group storage order.
-    pub edges: Vec<BatchRelationEdge>,
+    pub edges: Vec<RelationEdge<N>>,
 }
 
 /// One relation instance with batch-local endpoints.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct BatchRelationEdge {
+pub(crate) struct RelationEdge<N> {
     /// The instance's source position.
-    pub source: BatchRowId,
+    pub source: N,
     /// The instance's target position.
-    pub target: BatchRowId,
+    pub target: N,
     /// The effective confidence `c`, in `(0, 1]`; validated where the corpus edge was scored.
     pub confidence: f32,
     /// The degree normalization `ν`, in `(0, 1]`.
@@ -146,13 +85,16 @@ pub(crate) struct BatchRelationEdge {
 /// precision and accumulate in double precision; consumers narrow once at the working-precision
 /// seam. Reset and reuse the field across steps rather than reallocating.
 #[derive(Debug)]
-pub(crate) struct GradientField(Box<[DVec2]>);
+pub(crate) struct GradientField<N>(Box<IdSlice<N, DVec2>>);
 
-impl GradientField {
+impl<N> GradientField<N>
+where
+    N: Id,
+{
     /// Creates a zeroed field over `rows` nodes.
     #[must_use]
     pub(crate) fn new(rows: usize) -> Self {
-        Self(vec![DVec2::ZERO; rows].into_boxed_slice())
+        Self(IdVec::from_elem(DVec2::ZERO, rows).into_boxed_slice())
     }
 
     /// Zeroes every entry, keeping the allocation.
@@ -162,27 +104,27 @@ impl GradientField {
 
     /// Adds a gradient contribution to one node.
     #[inline]
-    pub(crate) fn accumulate(&mut self, row: usize, gradient: Vec2) {
+    pub(crate) fn accumulate(&mut self, row: N, gradient: Vec2) {
         self.0[row] += DVec2::from(gradient);
     }
 
     /// Adds a double-precision contribution moved from another field.
     #[inline]
-    pub(crate) fn add(&mut self, row: usize, gradient: DVec2) {
+    pub(crate) fn add(&mut self, row: N, gradient: DVec2) {
         self.0[row] += gradient;
     }
 
     /// Reads one node's accumulated gradient, zeroing the entry.
     #[inline]
     #[must_use]
-    pub(crate) fn take(&mut self, row: usize) -> DVec2 {
+    pub(crate) fn take(&mut self, row: N) -> DVec2 {
         core::mem::replace(&mut self.0[row], DVec2::ZERO)
     }
 
     /// Borrows the accumulated per-node gradients.
     #[inline]
     #[must_use]
-    pub(crate) fn as_slice(&self) -> &[DVec2] {
+    pub(crate) fn as_slice(&self) -> &IdSlice<N, DVec2> {
         &self.0
     }
 
@@ -204,13 +146,16 @@ impl GradientField {
 ///
 /// Panics when a pair references a row outside `coordinates` or `field`; pairs and coordinates come
 /// from one batch assembly, so a mismatch is a wiring defect.
-pub(crate) fn attraction_term(
-    coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
+pub(crate) fn attraction_term<N>(
+    coordinates: &IdSlice<N, Vec2>,
+    pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     energy: AffinityEnergy,
     scale: f32,
-    field: &mut GradientField,
-) -> f32 {
+    field: &mut GradientField<N>,
+) -> f32
+where
+    N: Id,
+{
     affinity_term(coordinates, pairs, scale, field, |distance_squared| {
         energy.attraction(distance_squared)
     })
@@ -226,31 +171,38 @@ pub(crate) fn attraction_term(
 ///
 /// Panics when a pair references a row outside `coordinates` or `field`; pairs and coordinates come
 /// from one batch assembly, so a mismatch is a wiring defect.
-pub(crate) fn repulsion_term(
-    coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
+pub(crate) fn repulsion_term<N>(
+    coordinates: &IdSlice<N, Vec2>,
+    pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     energy: AffinityEnergy,
     scale: f32,
-    field: &mut GradientField,
-) -> f32 {
+    field: &mut GradientField<N>,
+) -> f32
+where
+    N: Id,
+{
     affinity_term(coordinates, pairs, scale, field, |distance_squared| {
         energy.repulsion(distance_squared)
     })
 }
 
 /// The shared affinity-term loop: value plus chain rule through the squared distance.
-fn affinity_term(
-    coordinates: &[Vec2],
-    pairs: impl IntoIterator<Item = (BatchPair, f32)>,
+fn affinity_term<N>(
+    coordinates: &IdSlice<N, Vec2>,
+    pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     scale: f32,
-    field: &mut GradientField,
+    field: &mut GradientField<N>,
     evaluate: impl Fn(f32) -> (f32, f32),
-) -> f32 {
+) -> f32
+where
+    N: Id,
+{
     // Accumulated in double precision, products included.
     let mut total = 0.0_f64;
 
     for (pair, weight) in pairs {
-        let (left, right) = (pair.first().usize(), pair.second().usize());
+        let (left, right) = (pair.lhs(), pair.rhs());
+
         let difference = coordinates[left] - coordinates[right];
         let (value, derivative) = evaluate(difference.length_squared());
         let factor = scale * weight;
@@ -285,14 +237,17 @@ fn affinity_term(
 ///
 /// Panics when the scales do not cover the coordinate rows, or when an edge references a row
 /// outside them; all three come from one batch assembly, so a mismatch is a wiring defect.
-pub(crate) fn relation_term(
-    coordinates: &[Vec2],
-    scales: &LocalScales,
-    batch: &[BatchRelationEdges],
+pub(crate) fn relation_term<N>(
+    coordinates: &IdSlice<N, Vec2>,
+    scales: &LocalScales<N>,
+    batch: &[RelationEdges<N>],
     energy: RelationEnergy,
     scale: f32,
-    field: &mut GradientField,
-) -> f32 {
+    field: &mut GradientField<N>,
+) -> f32
+where
+    N: Id,
+{
     assert_eq!(
         scales.len(),
         coordinates.len(),
@@ -306,8 +261,9 @@ pub(crate) fn relation_term(
     for sampled in batch {
         let weights = sampled.weights;
         for edge in &sampled.edges {
-            let (source, target) = (edge.source.usize(), edge.target.usize());
+            let (source, target) = (edge.source, edge.target);
             let difference = coordinates[source] - coordinates[target];
+
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
             let (value, derivative) = energy.mixture(

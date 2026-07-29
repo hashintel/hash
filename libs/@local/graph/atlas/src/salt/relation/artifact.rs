@@ -11,10 +11,10 @@
 //! it the same way and validates the index invariants once, so relation-edge sampling reads groups
 //! and edges from the page cache.
 
-use core::{error::Error, fmt};
+use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use zerocopy::{F32, U32, U64};
 
 use super::{
@@ -31,11 +31,14 @@ use crate::{
             write::{WriteSprsError, write_matrix},
         },
     },
-    identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-impl WriteInto for ProtectionIndex {
+impl<N> WriteInto for ProtectionIndex<N>
+where
+    N: Id,
+{
     type Error = WriteSprsError;
 
     /// Writes the index as a sparse matrix file.
@@ -107,11 +110,15 @@ impl Error for InvalidProtectionFile {
 /// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
 /// so stages call it once and hold the view.
 #[derive(Debug)]
-pub(crate) struct ProtectionArchive {
+pub(crate) struct ProtectionArchive<N> {
     file: SprsFile,
+    _marker: PhantomData<N>,
 }
 
-impl ProtectionArchive {
+impl<N> ProtectionArchive<N>
+where
+    N: Id,
+{
     /// Opens the index over its mapped file.
     ///
     /// # Errors
@@ -123,21 +130,25 @@ impl ProtectionArchive {
         let matrix = file.matrix().map_err(InvalidProtectionFile::Matrix)?;
         validate(matrix)?;
 
-        Ok(Self { file })
+        Ok(Self {
+            file,
+            _marker: PhantomData,
+        })
     }
 
     /// Borrows the validated index.
     #[must_use]
-    pub(crate) fn view(&self) -> ProtectionView<'_> {
+    pub(crate) fn view(&self) -> ProtectionView<'_, N> {
         let matrix = self
             .file
             .matrix()
             .expect("construction viewed this immutable file's matrix");
+
         ProtectionView::new_unchecked(matrix)
     }
 }
 
-impl AttractionIndex {
+impl<N, E> AttractionIndex<N, E> {
     /// Writes the index as an attraction file.
     ///
     /// `rows` is the corpus row domain the edges index into; the index does not carry it, the
@@ -147,7 +158,11 @@ impl AttractionIndex {
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, rows: u64, write: impl io::Write) -> io::Result<Sha256Digest> {
+    pub(crate) fn write_into(&self, rows: u64, write: impl io::Write) -> io::Result<Sha256Digest>
+    where
+        N: Id,
+        E: Id,
+    {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
@@ -439,12 +454,20 @@ impl AttractionGroupView<'_> {
     ///
     /// Panics when `offset` is not below [`len`](Self::len).
     #[must_use]
-    pub(crate) const fn edge(&self, offset: usize) -> AttractionEdge {
+    pub(crate) const fn edge<N, E>(&self, offset: usize) -> AttractionEdge<N, E>
+    where
+        N: [const] Id,
+        E: [const] Id,
+    {
         decode(&self.records[offset])
     }
 
     /// Iterates the instances, ascending by `(source, target, edge)`.
-    pub(crate) fn edges(&self) -> impl ExactSizeIterator<Item = AttractionEdge> + '_ {
+    pub(crate) fn edges<N, E>(&self) -> impl ExactSizeIterator<Item = AttractionEdge<N, E>> + '_
+    where
+        N: Id,
+        E: Id,
+    {
         self.records.iter().map(decode)
     }
 }
@@ -454,14 +477,18 @@ impl AttractionGroupView<'_> {
     clippy::cast_possible_truncation,
     reason = "validation bounds the provenance bits well inside u8 at open"
 )]
-const fn decode(record: &EdgeRecord) -> AttractionEdge {
+const fn decode<N, E>(record: &EdgeRecord) -> AttractionEdge<N, E>
+where
+    N: [const] Id,
+    E: [const] Id,
+{
     let scored = Scored::from_bits(record.scored.get() as u8)
         .expect("the mapped index validated every provenance bit at open");
 
     AttractionEdge {
-        edge: EdgeRowId::new(record.edge.get()),
-        source: NodeRowId::new(record.source.get()),
-        target: NodeRowId::new(record.target.get()),
+        edge: E::from_u64(record.edge.get()),
+        source: N::from_u64(record.source.get()),
+        target: N::from_u64(record.target.get()),
         confidence: EffectiveConfidence::new(record.confidence.get(), scored)
             .expect("the mapped index validated every confidence at open"),
         normalization: record.normalization.get(),

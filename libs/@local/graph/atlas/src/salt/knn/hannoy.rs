@@ -16,14 +16,12 @@ use std::{
 
 use camino::Utf8Path;
 use hannoy::{Database, Reader, Writer, distances::Cosine};
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use heed::{Env, EnvOpenOptions};
 use rand::{Rng, SeedableRng};
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour};
-use crate::{
-    dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN, random::Compat,
-};
+use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, random::Compat};
 
 // HNSW connectivity, hannoy build-time const generics: M links per
 // node on the upper layers, M0 on the ground layer. M = 16 with
@@ -89,15 +87,21 @@ const impl Default for HannoyIndexOptions {
 // The private field keeps hannoy's and heed's types out of the public
 // interface: both are private dependencies.
 #[derive(Debug)]
-pub struct HannoyIndexError(IndexFault);
+pub struct HannoyIndexError<N>(IndexFault<N>);
 
-impl fmt::Display for HannoyIndexError {
+impl<N> fmt::Display for HannoyIndexError<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl Error for HannoyIndexError {
+impl<N> Error for HannoyIndexError<N>
+where
+    N: fmt::Debug + fmt::Display,
+{
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.0.source()
     }
@@ -105,7 +109,7 @@ impl Error for HannoyIndexError {
 
 /// The backend's concrete faults.
 #[derive(Debug)]
-enum IndexFault {
+enum IndexFault<N> {
     /// The index rejected an operation.
     Hannoy(hannoy::Error),
     /// The LMDB environment rejected an operation.
@@ -117,10 +121,13 @@ enum IndexFault {
     /// A node row does not fit hannoy's `u32` item-key space.
     RowOutOfRange(TryFromIntError),
     /// The searched row was never inserted.
-    RowNotIndexed(NodeRowId),
+    RowNotIndexed(N),
 }
 
-impl fmt::Display for IndexFault {
+impl<N> fmt::Display for IndexFault<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Hannoy(error) => write!(fmt, "the hannoy index failed: {error}"),
@@ -130,12 +137,15 @@ impl fmt::Display for IndexFault {
             Self::RowOutOfRange(error) => {
                 write!(fmt, "the node row exceeds the u32 item-key space: {error}")
             }
-            Self::RowNotIndexed(id) => write!(fmt, "node row {} is not indexed", id.as_u64()),
+            Self::RowNotIndexed(id) => write!(fmt, "node row {id} is not indexed"),
         }
     }
 }
 
-impl Error for IndexFault {
+impl<N> Error for IndexFault<N>
+where
+    N: fmt::Debug + fmt::Display,
+{
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Hannoy(error) => Some(error),
@@ -148,25 +158,25 @@ impl Error for IndexFault {
     }
 }
 
-impl From<hannoy::Error> for IndexFault {
+impl<N> From<hannoy::Error> for IndexFault<N> {
     fn from(error: hannoy::Error) -> Self {
         Self::Hannoy(error)
     }
 }
 
-impl From<heed::Error> for IndexFault {
+impl<N> From<heed::Error> for IndexFault<N> {
     fn from(error: heed::Error) -> Self {
         Self::Heed(error)
     }
 }
 
-impl From<io::Error> for IndexFault {
+impl<N> From<io::Error> for IndexFault<N> {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
 }
 
-impl From<TryLockError> for IndexFault {
+impl<N> From<TryLockError> for IndexFault<N> {
     fn from(error: TryLockError) -> Self {
         Self::Locked(error)
     }
@@ -191,12 +201,12 @@ impl HannoyIndex {
     pub(crate) fn new(
         base: impl AsRef<Utf8Path>,
         options: HannoyIndexOptions,
-    ) -> Result<Self, HannoyIndexError> {
+    ) -> Result<Self, HannoyIndexError<!>> {
         Self::open(base.as_ref(), options).map_err(HannoyIndexError)
     }
 
     /// Opens the environment and claims the lock, in the backend's fault vocabulary.
-    fn open(base: &Utf8Path, options: HannoyIndexOptions) -> Result<Self, IndexFault> {
+    fn open(base: &Utf8Path, options: HannoyIndexOptions) -> Result<Self, IndexFault<!>> {
         let lockfile = base.with_extension("lock");
 
         let lock = File::create(&lockfile)?;
@@ -225,10 +235,13 @@ impl HannoyIndex {
     }
 
     /// Inserts every embedding under its row key inside one write transaction.
-    fn insert<'embedding>(
+    fn insert<'embedding, N>(
         &self,
-        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
-    ) -> Result<(), IndexFault> {
+        embeddings: impl IntoIterator<Item = Embedding<'embedding, N>>,
+    ) -> Result<(), IndexFault<N>>
+    where
+        N: Id,
+    {
         let mut wtxn = self.env.write_txn()?;
 
         for embedding in embeddings {
@@ -244,7 +257,7 @@ impl HannoyIndex {
     }
 
     /// Links the inserted items into the HNSW graph inside one write transaction.
-    fn link(&self, rng: impl Rng + SeedableRng) -> Result<(), IndexFault> {
+    fn link(&self, rng: impl Rng + SeedableRng) -> Result<(), IndexFault<!>> {
         let mut wtxn = self.env.write_txn()?;
 
         let mut rng = Compat::new(rng);
@@ -262,7 +275,7 @@ impl HannoyIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
-    ) -> Result<Vec<(u32, f32)>, IndexFault> {
+    ) -> Result<Vec<(u32, f32)>, IndexFault<!>> {
         let rtxn = self.env.read_txn()?;
         let reader = Reader::open(&rtxn, INDEX, self.db)?;
 
@@ -274,7 +287,10 @@ impl HannoyIndex {
     }
 
     /// Searches the configured breadth around an indexed item.
-    fn nns_by_item(&self, id: NodeRowId, limit: usize) -> Result<Vec<(u32, f32)>, IndexFault> {
+    fn nns_by_item<N>(&self, id: N, limit: usize) -> Result<Vec<(u32, f32)>, IndexFault<N>>
+    where
+        N: Id,
+    {
         let rtxn = self.env.read_txn()?;
         let reader = Reader::open(&rtxn, INDEX, self.db)?;
 
@@ -292,7 +308,10 @@ impl HannoyIndex {
     }
 
     /// Maps one search result onto the seam's contract.
-    fn finish_search(mut results: Vec<(u32, f32)>) -> impl IntoIterator<Item = Neighbour> {
+    fn finish_search<N>(mut results: Vec<(u32, f32)>) -> impl IntoIterator<Item = Neighbour<N>>
+    where
+        N: Id,
+    {
         // hannoy returns ascending distances with unspecified ties; the
         // id tiebreak pins the seam's deterministic order.
         results.sort_unstable_by(|(lhs_id, lhs_distance), (rhs_id, rhs_distance)| {
@@ -302,7 +321,7 @@ impl HannoyIndex {
         });
 
         results.into_iter().map(|(id, distance)| Neighbour {
-            id: NodeRowId::from_u32(id),
+            id: N::from_u32(id),
             // hannoy's cosine distance is (1 - cos) / 2 ∈ [0, 1];
             // doubling restores the crate's [0, 2] scale exactly,
             // because scaling by a power of two is lossless.
@@ -319,12 +338,15 @@ impl fmt::Debug for HannoyIndex {
     }
 }
 
-impl NearestNeighboursIndex for HannoyIndex {
-    type Error = HannoyIndexError;
+impl<N> NearestNeighboursIndex<N> for HannoyIndex
+where
+    N: Id,
+{
+    type Error = HannoyIndexError<N>;
 
     fn insert_many<'embedding>(
         &mut self,
-        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+        embeddings: impl IntoIterator<Item = Embedding<'embedding, N>>,
     ) -> Result<(), Self::Error> {
         self.insert(embeddings).map_err(HannoyIndexError)
     }
@@ -337,7 +359,7 @@ impl NearestNeighboursIndex for HannoyIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<N>>, Self::Error> {
         let results = self.nns_by_vector(query, limit).map_err(HannoyIndexError)?;
 
         Ok(Self::finish_search(results))
@@ -345,9 +367,9 @@ impl NearestNeighboursIndex for HannoyIndex {
 
     fn search_by_id(
         &self,
-        id: NodeRowId,
+        id: N,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<N>>, Self::Error> {
         let results = self.nns_by_item(id, limit).map_err(HannoyIndexError)?;
 
         Ok(Self::finish_search(results))

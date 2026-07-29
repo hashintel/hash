@@ -24,7 +24,7 @@
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, default::Default, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use rand::Rng;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
@@ -34,7 +34,6 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::NodeRowId,
     math::AlignedVecN,
     random::{mean_sample_size, sample_indices_vec},
 };
@@ -137,28 +136,37 @@ impl RecallSpotCheck {
 }
 
 #[derive(Debug, Copy, Clone)]
-struct ExactNeighbour {
-    row: NodeRowId,
+struct ExactNeighbour<N> {
+    row: N,
     distance: f32,
 }
 
-impl PartialEq for ExactNeighbour {
+impl<N> PartialEq for ExactNeighbour<N>
+where
+    N: Id,
+{
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
 
-impl Eq for ExactNeighbour {}
+impl<N> Eq for ExactNeighbour<N> where N: Id {}
 
-impl PartialOrd for ExactNeighbour {
+impl<N> PartialOrd for ExactNeighbour<N>
+where
+    N: Id,
+{
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for ExactNeighbour {
+impl<N> Ord for ExactNeighbour<N>
+where
+    N: Id,
+{
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance
@@ -168,16 +176,18 @@ impl Ord for ExactNeighbour {
 }
 
 /// Returns the `limit` exact nearest non-self neighbours of `query`.
-fn exact_neighbours(
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-    query: NodeRowId,
+fn exact_neighbours<N>(
+    embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    query: N,
     limit: usize,
-) -> impl IntoIterator<Item = NodeRowId> {
-    let query_embedding = &embeddings[query.as_usize()];
+) -> impl IntoIterator<Item = N>
+where
+    N: Id,
+{
+    let query_embedding = &embeddings[query];
 
     let mut nearest = BinaryHeap::with_capacity(limit);
-    for (row, embedding) in embeddings.iter().enumerate() {
-        let row = NodeRowId::from_usize(row);
+    for (row, embedding) in embeddings.iter_enumerated() {
         if row == query {
             continue;
         }
@@ -209,14 +219,60 @@ fn exact_neighbours(
 /// The sample and its exact neighbour lists depend only on the corpus and the sampling draw, so one
 /// reference scores any number of backends or backend settings against identical queries.
 #[derive(Debug)]
-pub(crate) struct ExactReference {
+pub(crate) struct ExactReference<N> {
     /// Sampled rows and their exact neighbours, ascending within each row's list.
-    queries: Vec<(NodeRowId, Vec<NodeRowId>)>,
+    queries: Vec<(N, Vec<N>)>,
     /// Exact neighbours compared per row.
     neighbours_per_row: usize,
 }
 
-impl ExactReference {
+impl<N> ExactReference<N>
+where
+    N: Id,
+{
+    /// Samples query rows and computes their exact cosine rankings in parallel.
+    ///
+    /// `embeddings` holds the projector representations in row order; a mapped `f32[T, 512]`
+    /// artifact yields the slice directly. A `sample_size` beyond the corpus compares every row,
+    /// and a `neighbours` beyond the corpus compares every non-self row.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the corpus holds fewer than two rows.
+    pub(crate) fn new<E>(
+        embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+        neighbours: NonZero<usize>,
+        sample_size: NonZero<usize>,
+        rng: impl Rng,
+    ) -> Result<Self, KnnError<N, E>> {
+        let rows = embeddings.len();
+        if rows < 2 {
+            return Err(KnnValidationError::InsufficientRows { rows }.into());
+        }
+
+        let neighbours_per_row = neighbours.get().min(rows - 1);
+        let sampled_rows = sample_size.get().min(rows);
+
+        let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
+        let queries = sample
+            .par_iter()
+            .map(|&row| {
+                let id = N::from_usize(row);
+                let mut exact: Vec<_> = exact_neighbours(embeddings, id, neighbours_per_row)
+                    .into_iter()
+                    .collect();
+                exact.sort_unstable();
+
+                (id, exact)
+            })
+            .collect();
+
+        Ok(Self {
+            queries,
+            neighbours_per_row,
+        })
+    }
+
     /// Returns the sampled query count.
     #[inline]
     #[must_use]
@@ -231,61 +287,18 @@ impl ExactReference {
         self.neighbours_per_row
     }
 
-    /// Samples query rows and computes their exact cosine rankings in parallel.
-    ///
-    /// `embeddings` holds the projector representations in row order; a mapped `f32[T, 512]`
-    /// artifact yields the slice directly. A `sample_size` beyond the corpus compares every row,
-    /// and a `neighbours` beyond the corpus compares every non-self row.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the corpus holds fewer than two rows.
-    pub(crate) fn new<E>(
-        embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-        neighbours: NonZero<usize>,
-        sample_size: NonZero<usize>,
-        rng: impl Rng,
-    ) -> Result<Self, KnnError<E>> {
-        let rows = embeddings.len();
-        if rows < 2 {
-            return Err(KnnValidationError::InsufficientRows { rows }.into());
-        }
-
-        let neighbours_per_row = neighbours.get().min(rows - 1);
-        let sampled_rows = sample_size.get().min(rows);
-
-        let sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
-        let queries = sample
-            .par_iter()
-            .map(|&row| {
-                let id = NodeRowId::from_usize(row);
-                let mut exact: Vec<NodeRowId> =
-                    exact_neighbours(embeddings, id, neighbours_per_row)
-                        .into_iter()
-                        .collect();
-                exact.sort_unstable();
-                (id, exact)
-            })
-            .collect();
-
-        Ok(Self {
-            queries,
-            neighbours_per_row,
-        })
-    }
-
     /// Scores constructed lists against the reference rankings.
     ///
     /// Sampled rows read their list prefix at the reference depth and compare in parallel; lists
     /// narrower than the reference depth score what they hold. The reading carries raw counts and
     /// the per-row spread; admission criteria live with the caller.
-    pub(crate) fn score_lists(&self, lists: &NeighbourLists) -> Scoring {
+    pub(crate) fn score_lists(&self, lists: &NeighbourLists<N>) -> Scoring {
         let depth = self.neighbours_per_row.min(lists.width());
         let (matched, squares) = self
             .queries
             .par_iter()
-            .map(|(id, exact)| {
-                let mut approximate: Vec<NodeRowId> = lists.row(id.as_usize())[..depth]
+            .map(|&(id, ref exact)| {
+                let mut approximate: Vec<N> = lists.row(id)[..depth]
                     .iter()
                     .map(|neighbour| neighbour.id)
                     .collect();
@@ -333,9 +346,9 @@ impl ExactReference {
     /// # Errors
     ///
     /// Returns an error when the backend fails a query.
-    pub(crate) fn score<I>(&self, index: &I) -> Result<Scoring, KnnError<I::Error>>
+    pub(crate) fn score<I>(&self, index: &I) -> Result<Scoring, KnnError<N, I::Error>>
     where
-        I: NearestNeighboursIndex + Sync,
+        I: NearestNeighboursIndex<N> + Sync,
         I::Error: Send,
     {
         let (matched, squares) = self
@@ -344,7 +357,7 @@ impl ExactReference {
             .map(|(id, exact)| {
                 // A neighbour outside the row domain can never match an exact neighbour;
                 // malformedness is the table build's concern, the spot check only scores.
-                let mut approximate: Vec<NodeRowId> = index
+                let mut approximate: Vec<N> = index
                     .search_by_id(*id, self.neighbours_per_row)
                     .map_err(KnnError::Backend)?
                     .into_iter()
@@ -364,7 +377,7 @@ impl ExactReference {
                 )]
                 let row_recall = matches as f64 / self.neighbours_per_row as f64;
 
-                Ok::<_, KnnError<I::Error>>((matches as u64, row_recall * row_recall))
+                Ok::<_, KnnError<N, I::Error>>((matches as u64, row_recall * row_recall))
             })
             .try_reduce(
                 || (0, 0.0),
@@ -453,12 +466,15 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
 ///
 /// Returns an error when the corpus holds fewer than two rows or the margin or confidence is
 /// degenerate ([`SampleBudget`](KnnError::SampleBudget)).
-pub(crate) fn spot_check_lists<E>(
-    lists: &NeighbourLists,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+pub(crate) fn spot_check_lists<N, E>(
+    lists: &NeighbourLists<N>,
+    embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     options: SpotCheckOptions,
     mut rng: impl Rng,
-) -> Result<RecallSpotCheck, KnnError<E>> {
+) -> Result<RecallSpotCheck, KnnError<N, E>>
+where
+    N: Id,
+{
     let rows = embeddings.len();
     let pilot = ExactReference::new(embeddings, options.neighbours, options.pilot, &mut rng)?;
     let piloted = pilot.score_lists(lists);
@@ -505,14 +521,15 @@ pub(crate) fn spot_check_lists<E>(
 ///
 /// Returns an error when the corpus holds fewer than two rows, the margin or confidence is
 /// degenerate ([`SampleBudget`](KnnError::SampleBudget)), or the backend fails a query.
-pub(crate) fn spot_check<I>(
+pub(crate) fn spot_check<N, I>(
     index: &I,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     options: SpotCheckOptions,
     mut rng: impl Rng,
-) -> Result<RecallSpotCheck, KnnError<I::Error>>
+) -> Result<RecallSpotCheck, KnnError<N, I::Error>>
 where
-    I: NearestNeighboursIndex + Sync,
+    N: Id,
+    I: NearestNeighboursIndex<N> + Sync,
     I::Error: Send,
 {
     let rows = embeddings.len();
