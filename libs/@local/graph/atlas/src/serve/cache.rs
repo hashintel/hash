@@ -1,24 +1,38 @@
-//! Visibility caching: one resolved proof per generation, actor, and request filter.
+//! Resolved visibility, held per scope for a bounded window.
 //!
-//! Resolving an actor's visible rows costs a store round trip, so the result is held for a bounded
-//! window instead of resolved per tile. Concurrent requests for one scope resolve once: the first
-//! miss runs the resolution and every request arriving during it receives that same result, so a
-//! burst of tile requests cannot multiply into a burst of store queries.
+//! Resolving one actor's visible rows costs a store round trip, and a single map view issues one
+//! request per tile. [`VisibilityCache`] holds each resolution so those requests share it, and
+//! collapses a burst: while one resolution is in flight, every request for the same scope waits on
+//! it and receives its result, so N concurrent tile requests cost one store query.
 //!
-//! Entries key on the generation, the authenticated actor, and the request filter's digest. The
-//! filter belongs in the key because a filtered request and an unfiltered one describe different
-//! views for the same actor, and two callers presenting the same filter describe the same view -
-//! keying on the filter's content lets them share one entry.
+//! A scope is a [`VisibilityKey`] - a generation, an authenticated actor, and the digest of the
+//! request filter when there is one. Two callers presenting the same filter for the same actor and
+//! generation share one entry; a filtered request and an unfiltered one are different scopes.
 //!
-//! Each entry carries a [`PermissionEpoch`], the digest of what the proof admits. The epoch is the
-//! identity a caller pins progressive state to: re-resolving an unchanged permission set yields an
-//! equal epoch, so a caller keeps its state across refetches and moves only when what it may see
-//! moves. Time bounds how long an entry is reused; it does not enter the epoch.
+//! Each entry carries a [`PermissionEpoch`] alongside its proof: the digest of what that proof
+//! admits. Re-resolving an unchanged permission set reproduces the epoch, and any change to what
+//! the actor may see produces a different one, so an epoch is the identity a caller pins
+//! progressive state to across refetches. Two entries resolved minutes apart from the same
+//! permissions carry one epoch, because the epoch reads the admitted rows and nothing else.
 //!
-//! The window here is the reuse window alone. A held entry serves requests until it elapses, and a
-//! caller-presented token carries its own authenticated issue time whose bound
-//! [`seal::open`](super::seal::open) enforces, so the two ages are judged where each one's evidence
-//! lives.
+//! [`VisibilityLimits`] bounds reuse: past the soft window an entry keeps answering while a refresh
+//! runs behind it, and at the hard window it stops answering. A sealed token presented by a caller
+//! carries its own authenticated issue time, and [`seal::open`](super::seal::open) bounds that age
+//! against the token's own evidence.
+//!
+//! # Examples
+//!
+//! Nothing in this module is public, so the sketch below stands in for a compiled example.
+//!
+//! ```ignore
+//! let cache = VisibilityCache::new(VisibilityLimits::default());
+//! let scope = VisibilityKey { generation, actor, filter: None };
+//!
+//! // The first request resolves; a second inside the window reads the held entry.
+//! let entry = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
+//! let again = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
+//! assert_eq!(entry.epoch, again.epoch);
+//! ```
 
 use alloc::sync::Arc;
 use core::{
@@ -38,13 +52,19 @@ use crate::{
 
 /// The digest of a request filter.
 ///
-/// Two filters share a digest when they select the same view, so one entry serves both. The digest
-/// is the filter's identity in a cache key and carries no filter content.
+/// Filters selecting the same view share a digest, so one held entry answers both. The digest is
+/// fixed-width and content-derived: equal filter bytes always produce equal digests, on any host
+/// and in any process, which is what lets it bind a scope inside a sealed token as well as name one
+/// in a key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct FilterDigest(Sha256Digest);
 
 impl FilterDigest {
-    /// Digests a filter's canonical bytes.
+    /// Digests one filter's canonical bytes.
+    ///
+    /// `canonical` is the filter exactly as the request presented it. Two requests carrying
+    /// byte-equal filters share a scope; a request whose filter differs by so much as a space
+    /// describes a different scope and resolves on its own.
     pub(crate) fn of(canonical: &[u8]) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(b"filter");
@@ -53,7 +73,7 @@ impl FilterDigest {
         Self(hasher.finalize())
     }
 
-    /// Returns the digest's bytes, the form a binding or a key carries.
+    /// Returns the digest's bytes.
     pub(crate) const fn digest(self) -> Sha256Digest {
         self.0
     }
@@ -61,25 +81,32 @@ impl FilterDigest {
 
 /// The identity of a resolved permission set.
 ///
-/// Equal epochs mean equal visible row sets, so a caller may hold state pinned to one epoch for as
-/// long as the epoch holds. The epoch is a function of the admitted rows alone: re-resolving the
-/// same permissions reproduces it, and a change to what an actor may see replaces it.
+/// Equal epochs mean equal visible row sets, so state a caller built under one epoch stays valid
+/// for as long as that epoch answers. The epoch is a function of the admitted rows: it survives
+/// re-resolution, generation-independent timing, and refreshes, and it changes when what the actor
+/// may see changes.
+///
+/// The full-visibility proof and a mask admitting every row of a generation carry different epochs,
+/// matching the proofs themselves - one is authority over the corpus, the other a scope that
+/// happens to cover it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct PermissionEpoch(Sha256Digest);
 
 impl PermissionEpoch {
-    /// Reads the epoch of `proof`.
+    /// Reads the epoch `proof` admits.
     pub(crate) fn of(proof: &VisibilityProof) -> Self {
         Self(proof.digest())
     }
 
-    /// Returns the epoch's digest, the form a binding or a caller-visible identity carries.
+    /// Returns the epoch's digest, the form a caller-visible identity carries.
     pub(crate) const fn digest(self) -> Sha256Digest {
         self.0
     }
 }
 
-/// The scope an entry answers for.
+/// One scope: whose view of which generation, under which filter.
+///
+/// Equal keys name the same view, so they share one held entry.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct VisibilityKey {
     /// The generation whose row ids the proof indexes.
@@ -90,7 +117,7 @@ pub(crate) struct VisibilityKey {
     pub filter: Option<FilterDigest>,
 }
 
-/// One actor's resolved visibility with the identity a caller pins state to.
+/// One resolved scope: the rows it may see, and the identity of that permission set.
 #[derive(Debug, Clone)]
 pub(crate) struct ResolvedVisibility {
     /// The rows the actor may see.
@@ -127,12 +154,44 @@ impl ResolvedVisibility {
     }
 }
 
-/// How long resolved visibility is reused, and how many scopes are held.
+/// How long a resolved scope is reused, and how many scopes are held at once.
 ///
-/// The windows bound reuse alone: `soft` is where a held entry starts refreshing behind the answer
-/// it still serves, `hard` is where it stops being served at all. A sealed token's own age is
-/// judged by [`SealLimits`](super::SealLimits) against the issue time it carries, so the two ages
-/// never share a knob.
+/// [`Self::hard`] is the setting to choose first: it is the ceiling on how long a request may still
+/// be answered under permissions that have since changed, which makes it the deployment's tolerated
+/// revocation lag. A ten-minute hard window means a revoked permission takes effect within ten
+/// minutes for a scope in continuous use, and on the next request for one that was idle.
+///
+/// [`Self::soft`] is where an entry begins refreshing behind the answer it still serves. The gap
+/// between the two windows is what the refresh runs in, so store latency lands on no request while
+/// a scope stays in use.
+///
+/// [`Self::entries`] bounds how many scopes are held. A deployment with more concurrently active
+/// actors than entries still answers every request; the scopes that fall out resolve again, one
+/// store round trip each.
+///
+/// A sealed token's own age is judged by [`SealLimits`](super::SealLimits) against the issue time
+/// it carries, so these windows govern reuse only.
+///
+/// # Examples
+///
+/// Revocation taking effect within a minute, refreshing fifteen seconds before expiry:
+///
+/// ```
+/// use core::time::Duration;
+///
+/// use hash_graph_atlas::serve::VisibilityLimits;
+///
+/// let limits = VisibilityLimits {
+///     hard: Duration::from_secs(60),
+///     soft: Duration::from_secs(45),
+///     ..VisibilityLimits::default()
+/// };
+///
+/// assert_eq!(limits.entries, VisibilityLimits::default().entries);
+/// ```
+///
+/// The cost of a short window is store traffic: each active scope re-resolves once per window, so
+/// halving it doubles the resolutions a steady population of actors produces.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VisibilityLimits {
     /// How many scopes are held before the least valuable is dropped.
@@ -144,27 +203,34 @@ pub struct VisibilityLimits {
 }
 
 impl Default for VisibilityLimits {
+    /// A ten-minute revocation lag, refreshing at eight, holding 4096 scopes.
+    ///
+    /// The two-minute gap between the windows is the refresh's room: a scope in continuous use is
+    /// re-resolved at eight minutes and keeps answering from the held proof while that runs, so the
+    /// hard window is reached only by a scope whose refresh failed or that stopped being asked for.
+    /// The entry count is an unvalidated starting point - it bounds concurrent hot scopes, and the
+    /// measurement that revises it is the cache's own hit rate against the deployment's
+    /// active-actor count.
     fn default() -> Self {
         Self {
             entries: 4096,
-            soft: Duration::from_mins(5),
+            soft: Duration::from_mins(8),
             hard: Duration::from_mins(10),
         }
     }
 }
 
-/// Resolved visibility held for a bounded window, keyed by scope.
+/// Resolved scopes, held for their reuse window.
 ///
-/// Capacity counts entries: one entry per scope, however many rows its proof admits.
+/// One entry per scope, whatever its proof admits, so the capacity bound counts scopes rather than
+/// rows or bytes. A scope whose entry is gone resolves again on its next request and reproduces its
+/// epoch when its permissions have not moved, so eviction costs one store round trip and nothing
+/// else.
 ///
-/// Eviction admits by estimated frequency, which suits the key's unbounded cardinality: the filter
-/// belongs to the key, so a client exploring filters emits a stream of scopes it asks for once, and
-/// the budget stays with the scopes that come back. A newly active scope pays an extra resolution
-/// or two while the cache is full, since admission wants a frequency above the coldest resident's
-/// and each miss raises it.
-///
-/// A scope whose entry is gone resolves again on its next request, and reproduces its epoch when
-/// its permissions have not moved.
+/// Admission favours the scopes that come back. A filter belongs to a scope's key, so a client
+/// exploring filters produces a stream of scopes asked for once each; those cost one resolution
+/// apiece and leave returning callers' entries in place. A newly active scope pays an extra
+/// resolution or two before it is admitted while the cache is full.
 #[derive(Debug)]
 pub(crate) struct VisibilityCache {
     entries: moka::future::Cache<VisibilityKey, ResolvedVisibility>,
@@ -172,12 +238,7 @@ pub(crate) struct VisibilityCache {
 }
 
 impl VisibilityCache {
-    /// Builds a cache under `limits`.
-    ///
-    /// An entry serves requests for the whole of [`VisibilityLimits::hard`]. Past
-    /// [`VisibilityLimits::soft`] it also carries a refresh: the request that finds it stale is
-    /// answered from the held proof and a resolution runs behind it, so store latency lands on no
-    /// request until the hard window removes the entry outright.
+    /// Builds a cache holding scopes under `limits`.
     pub(crate) fn new(
         VisibilityLimits {
             entries,
@@ -202,15 +263,18 @@ impl VisibilityCache {
         self.entries.get(key).await
     }
 
-    /// Returns the entry for `key` at `now`, running `resolve` when no held entry answers.
+    /// Returns the scope `key` names at `now`, resolving it through `resolve` when needed.
     ///
-    /// With no entry held the resolution runs inline, and one resolution serves however many
-    /// requests arrive during it. A held entry answers without resolving: `resolve` is handed over
-    /// as the miss path's initializer and an initializer that is never polled never calls it.
+    /// A held entry inside the soft window answers immediately, and `resolve` goes uncalled: it is
+    /// handed over as the initializer of the miss path, which an entry that answers never reaches.
     ///
-    /// A held entry past the soft window answers as well, and one caller takes the refresh: the
-    /// resolution runs behind the answer and replaces the entry when it lands, so a stale entry
-    /// costs the request nothing.
+    /// An entry past the soft window answers too, and one caller takes the refresh: the resolution
+    /// runs behind the answer that was already returned and replaces the entry when it lands. So a
+    /// request that crosses the horizon costs what a hit costs, and the epoch it receives is the
+    /// one it already had.
+    ///
+    /// With nothing held, the resolution runs inline and every request arriving during it receives
+    /// its result: a burst of tile requests for one scope costs one store round trip.
     ///
     /// An unchanged permission set reproduces the epoch it had, so a caller pinned to that epoch
     /// keeps its state across a refresh.

@@ -10,6 +10,7 @@ use super::{
     extract::Generation,
     headers,
     problem::{Problem, reject_generation},
+    visibility::Visibility,
 };
 use crate::serve::{GenerationId, Manifest};
 
@@ -35,8 +36,13 @@ pub(super) struct GenerationPath {
 /// `GET /v1/atlas/generation/{generation}/manifest`.
 ///
 /// Immutable bootstrap data: configuration and snapshot provenance, no corpus-derived aggregates.
+///
+/// The document is the same for every caller, and fetching it resolves the caller's scope: a client
+/// bootstraps here, so the resolution lands on the request that expects to wait rather than on the
+/// first tile.
 pub(super) async fn handler(
     State(state): State<AppState>,
+    _visibility: Visibility,
     Generation(GenerationPath { generation }): Generation<GenerationPath>,
 ) -> Result<impl IntoApiResponse, Problem<'static>> {
     reject_generation(&state, generation)?;

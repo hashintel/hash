@@ -107,8 +107,11 @@ pub struct EdgesLimits {
     pub tiles: u32 = 256,
     /// Most edges one response delivers.
     ///
-    /// Beyond it the rank-ordered cap truncates and `HEAD` reports `complete: false`. Defaults to
-    /// `0x4000` - roughly 200 KiB of columns.
+    /// Beyond it the rank-ordered cap truncates and `HEAD` reports `complete: false`.
+    ///
+    /// One delivered edge spends 40 bytes of columns: a 4-byte source, a 4-byte target, and its
+    /// 32-byte link entity id. The default cap of `0x4000` edges bounds one response's columns at
+    /// 640 KiB.
     pub edges: u32 = 0x4000,
 }
 

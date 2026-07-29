@@ -14,9 +14,8 @@
 //! transform a caller's filter through [`PropertyProtectionFilterConfig`] before compiling it, so a
 //! filter over a protected property cannot enumerate the entity types that configuration excludes.
 //! This path compiles a caller filter as well, and a proof is observable - the rows it admits are
-//! the rows the surfaces deliver - so it applies the same transformation under the same condition.
-//! The configuration is a parameter rather than a default: a resolver that cannot be built without
-//! it cannot be wired without it.
+//! the rows the surfaces deliver - so it applies the same transformation under the same condition,
+//! from a configuration its caller supplies.
 //!
 //! The proof admits exactly the rows the query returned. Permissions evaluate against the live
 //! decision-time axes, so the proof reflects policy as it stands at request time; entities the

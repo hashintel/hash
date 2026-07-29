@@ -1,15 +1,14 @@
-//! The authority a request answers under, and the extractor that resolves it.
+//! One request's visibility, resolved from the actor it names.
 //!
-//! Every corpus-bearing response is masked by a [`VisibilityProof`], and [`Visibility`] is where a
-//! handler receives the one its request answers under: the scope of the actor the request names,
-//! resolved from the store and held in the visibility cache for its reuse window. Every response is
-//! somebody's scope.
+//! Every corpus-bearing response is masked by a [`VisibilityProof`], and [`Visibility`] is that
+//! proof for one request: the scope of the actor the request names, resolved through the store and
+//! held in the visibility cache for its reuse window.
 //!
-//! The actor comes from the `X-Authenticated-User-Actor-Id` header, the same trust boundary the
-//! graph's REST API stands on: the gateway authenticates the session and states the actor, and this
-//! process believes the header. A request that omits it under session authority is refused rather
-//! than served anonymously - the missing-header case is a client defect here, exactly as it is
-//! there, because no atlas surface is public.
+//! The actor is named by the `X-Authenticated-User-Actor-Id` header, the trust boundary the graph's
+//! REST API stands on: the gateway authenticates the session and states the actor, and this process
+//! takes the header as that statement. A request carrying no such header is malformed and answers
+//! 400; a request whose scope the store cannot resolve answers 503. Both refusals land before any
+//! assembly reads the request.
 
 use alloc::sync::Arc;
 use core::str::FromStr as _;
@@ -36,7 +35,10 @@ const ACTOR_HEADER: &str = "X-Authenticated-User-Actor-Id";
 
 /// Where a request's visibility comes from: the store, through the cache.
 ///
-/// The store a scope resolves against, and the scopes already resolved.
+/// The resolution state behind every [`Visibility`].
+///
+/// One cache and one store handle serve the whole router, so concurrent requests for one scope
+/// resolve once and a returning caller is answered from the held entry.
 #[derive(Clone)]
 pub(super) struct Authority {
     /// The store permission resolution reads through.
@@ -116,8 +118,8 @@ impl OperationInput for Visibility {}
 
 /// Reads the actor the gateway authenticated.
 ///
-/// Absent, non-ASCII, and unparsable answer alike: the header is the request's own defect, and its
-/// content is echoed no further than the parse failure.
+/// Absent, non-ASCII and unparsable headers answer one problem: the request is malformed, and the
+/// detail names which of the three it was.
 fn actor(parts: &Parts) -> Result<AuthenticatedActor, Problem<'static>> {
     let header = parts
         .headers
