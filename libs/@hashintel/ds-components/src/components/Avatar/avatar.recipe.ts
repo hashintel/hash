@@ -12,8 +12,8 @@ export const styles = cva({
     verticalAlign: "middle",
     fontWeight: "medium",
     lineHeight: "none",
-    backgroundColor: "neutral.s20",
-    color: "neutral.s80",
+    borderWidth: "[1px]",
+    borderStyle: "solid",
     width: "var(--avatar-size)",
     height: "var(--avatar-size)",
     minWidth: "var(--avatar-size)",
@@ -50,16 +50,26 @@ export const styles = cva({
         fontSize: "base",
       },
     },
+    tone: {
+      neutral: {
+        backgroundColor: "neutral.s20",
+        color: "neutral.s80",
+        borderColor: "bd.subtle",
+      },
+      brand: {
+        backgroundColor: "blue.s100",
+        color: "fg.onSolid",
+        borderColor: "[white]",
+      },
+    },
     // Resets intrinsic <button>/<a> styling and adds a focus ring
     interactive: {
       true: {
         cursor: "pointer",
         appearance: "none",
-        border: "0",
         padding: "0",
         margin: "0",
         textDecoration: "none",
-        color: "neutral.s80",
         "&:focus-visible": {
           outline: "2px solid",
           outlineColor: "blue.a60",
@@ -71,6 +81,7 @@ export const styles = cva({
   },
   defaultVariants: {
     size: "md",
+    tone: "neutral",
     interactive: false,
   },
 });

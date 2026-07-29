@@ -33,48 +33,60 @@ const row = css({
   alignItems: "center",
 });
 
+const defaultRow = (
+  variant: AvatarProps["variant"],
+  tone: AvatarProps["tone"],
+) => (
+  <div key={`${tone}-${variant}`} className={row}>
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Christian Busch"
+      src={sampleImage}
+      placeholder={{ initials: "CB" }}
+      onClick={noop}
+    />
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Christian"
+      placeholder={{ initials: "C" }}
+      onClick={noop}
+    />
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Christian Busch"
+      placeholder={{ initials: "CB" }}
+      onClick={noop}
+    />
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Settings"
+      placeholder={{ icon: "gear" }}
+      onClick={noop}
+    />
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Fox"
+      placeholder={{ custom: "🦊" }}
+      onClick={noop}
+    />
+    <Avatar
+      variant={variant}
+      tone={tone}
+      alt="Christian Busch"
+      placeholder={{ initials: "CB" }}
+    />
+  </div>
+);
+
 export const Default: Story<AvatarProps> = () => (
   <div className={column}>
-    {variants.map((variant) => (
-      <div key={variant} className={row}>
-        <Avatar
-          variant={variant}
-          alt="Christian Busch"
-          src={sampleImage}
-          placeholder={{ initials: "CB" }}
-          onClick={noop}
-        />
-        <Avatar
-          variant={variant}
-          alt="Christian"
-          placeholder={{ initials: "C" }}
-          onClick={noop}
-        />
-        <Avatar
-          variant={variant}
-          alt="Christian Busch"
-          placeholder={{ initials: "CB" }}
-          onClick={noop}
-        />
-        <Avatar
-          variant={variant}
-          alt="Settings"
-          placeholder={{ icon: "gear" }}
-          onClick={noop}
-        />
-        <Avatar
-          variant={variant}
-          alt="Fox"
-          placeholder={{ custom: "🦊" }}
-          onClick={noop}
-        />
-        <Avatar
-          variant={variant}
-          alt="Christian Busch"
-          placeholder={{ initials: "CB" }}
-        />
-      </div>
-    ))}
+    {variants.map((variant) => defaultRow(variant, "neutral"))}
+    {defaultRow("circle", "brand")}
   </div>
 );
 
