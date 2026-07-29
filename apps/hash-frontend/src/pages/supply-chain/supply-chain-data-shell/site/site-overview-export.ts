@@ -12,7 +12,7 @@ import {
 
 import type { ProcurementBasis } from "../../shared/procurement-basis-context";
 import type { TimeRange } from "../../shared/time-range";
-import type { DetailColumn, SiteNode } from "../../shared/types";
+import type { DetailColumn, Product, SiteNode } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
 
 type ExportValue = string | number | null;
@@ -32,6 +32,7 @@ export interface SiteOverviewExportInput {
   dwellRows: readonly DwellRow[];
   historicalNodes: readonly SiteNode[];
   planningRows: readonly PlanningRow[];
+  products: readonly Product[];
   settings: SiteOverviewExportSettings;
   siteId: string;
   statusHistory: StatusStore;
@@ -40,9 +41,9 @@ export interface SiteOverviewExportInput {
 const identityColumns = [
   ["category", "Category"],
   ["step_type", "Step type"],
-  ["step", "Step"],
+  ["material_name", "Material name"],
+  ["material", "Material number"],
   ["plant", "Plant"],
-  ["material", "Material"],
   ["product_names", "Products"],
   ["supplier_name", "Supplier"],
   ["supplier_id", "Supplier ID"],
@@ -172,6 +173,27 @@ const planningSourceLabel = (node: SiteNode): string | null => {
     .join(" | ");
 };
 
+const buildMaterialNamesByNumber = (
+  products: readonly Product[],
+  nodes: readonly SiteNode[],
+): ReadonlyMap<string, string> => {
+  const materialNames = new Map<string, string>();
+
+  for (const product of products) {
+    if (product.material && product.name.trim()) {
+      materialNames.set(product.material, product.name.trim());
+    }
+  }
+  for (const node of nodes) {
+    const materialName = node.material_name?.trim();
+    if (node.material && materialName) {
+      materialNames.set(node.material, materialName);
+    }
+  }
+
+  return materialNames;
+};
+
 const unroundedNumericColumns = new Set([
   "period_material_value",
   "unit_price",
@@ -212,6 +234,7 @@ const rowToExportRecord = ({
   category,
   historicalNode,
   node,
+  materialNamesByNumber,
   settings,
   siteId,
   statusHistory,
@@ -219,6 +242,7 @@ const rowToExportRecord = ({
   category: "Dwell" | "Planning";
   historicalNode: SiteNode;
   node: DwellRow | PlanningRow;
+  materialNamesByNumber: ReadonlyMap<string, string>;
   settings: SiteOverviewExportSettings;
   siteId: string;
   statusHistory: StatusStore;
@@ -231,9 +255,11 @@ const rowToExportRecord = ({
   return roundExportValues({
     category,
     step_type: STEP_TYPE_LABELS[node.type],
-    step: node.label,
-    plant: node.plant,
+    material_name: node.material
+      ? (materialNamesByNumber.get(node.material) ?? null)
+      : null,
     material: node.material,
+    plant: node.plant,
     product_names: node.products.map((product) => product.name).join("; "),
     supplier_name: node.supplier_name ?? null,
     supplier_id: node.supplier_id ?? null,
@@ -280,6 +306,7 @@ export const buildSiteOverviewExportRows = ({
   dwellRows,
   historicalNodes,
   planningRows,
+  products,
   settings,
   siteId,
   statusHistory,
@@ -287,6 +314,11 @@ export const buildSiteOverviewExportRows = ({
   const historicalNodesByKey = new Map(
     historicalNodes.map((node) => [siteNodeKey(node), node]),
   );
+  const materialNamesByNumber = buildMaterialNamesByNumber(products, [
+    ...historicalNodes,
+    ...dwellRows,
+    ...planningRows,
+  ]);
   const exportRow = (
     node: DwellRow | PlanningRow,
     category: "Dwell" | "Planning",
@@ -294,6 +326,7 @@ export const buildSiteOverviewExportRows = ({
     rowToExportRecord({
       category,
       historicalNode: historicalNodesByKey.get(siteNodeKey(node)) ?? node,
+      materialNamesByNumber,
       node,
       settings,
       siteId,

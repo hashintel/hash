@@ -107,7 +107,7 @@ const searchControls = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: "2",
+  gap: "3",
 });
 const settingsCollapse = css({
   display: "grid",
@@ -349,6 +349,7 @@ export const SiteOverview = ({
       dwellRows,
       historicalNodes,
       planningRows,
+      products,
       settings: {
         currency,
         excludeLowSamples,
@@ -375,6 +376,7 @@ export const SiteOverview = ({
     historicalNodes,
     opportunityStatusHistory,
     planningRows,
+    products,
     procurementBasis,
     siteId,
     siteSlug,
@@ -551,17 +553,15 @@ export const SiteOverview = ({
               />
             </div>
             <div className={searchControls}>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="sm"
-                onClick={handleExport}
-              >
-                Export
+              <Button variant="subtle" size="sm" onClick={handleExport}>
+                <span className={css({ textStyle: "xs", color: "fg.subtle" })}>
+                  Export
+                </span>
               </Button>
               <SupplyChainSearchInput
                 ariaLabel="Search site overview tables"
                 onChange={setSearchInputValue}
+                size="sm"
                 value={searchInputValue}
               />
             </div>

@@ -194,6 +194,8 @@ export interface GraphNode {
   label: string;
   type: StepType;
   material: string | null;
+  /** Human-readable material description; optional only for legacy artifacts. */
+  material_name?: string | null;
   plant: string;
   stats: StepStats;
   plan: number | null;

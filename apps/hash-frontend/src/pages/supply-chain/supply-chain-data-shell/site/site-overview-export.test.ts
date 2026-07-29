@@ -39,6 +39,7 @@ const baseNode: SiteNode = {
   label: "Raw material dwell",
   type: "raw_material_dwell",
   material: "MAT-1",
+  material_name: "Material One",
   plant: "SITE-1",
   stats,
   plan: 12,
@@ -114,6 +115,7 @@ describe("site overview export", () => {
       dwellRows: [dwellRow],
       historicalNodes: [baseNode, planningRow],
       planningRows: [planningRow],
+      products: [{ id: "product-1", material: "FG-1", name: "Product, One" }],
       settings: {
         currency: "GBP",
         excludeLowSamples: true,
@@ -132,6 +134,9 @@ describe("site overview export", () => {
     expect(rows[0]).toMatchObject({
       category: "Dwell",
       step_type: "Raw material dwell",
+      material_name: "Material One",
+      material: "MAT-1",
+      plant: "SITE-1",
       opportunity_status: "Investigating",
       latest_status_category: "Investigation update",
       mean_current: 20,
@@ -174,8 +179,16 @@ describe("site overview export", () => {
   it("orders and trims columns for spreadsheet review", () => {
     const labels = SITE_OVERVIEW_EXPORT_COLUMNS.map((column) => column.label);
 
+    expect(labels.slice(0, 5)).toEqual([
+      "Category",
+      "Step type",
+      "Material name",
+      "Material number",
+      "Plant",
+    ]);
     expect(labels).not.toEqual(
       expect.arrayContaining([
+        "Step",
         "Step ID",
         "Site",
         "Product IDs",
