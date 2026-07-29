@@ -2,7 +2,7 @@
 //!
 //! One run trains the conditioned projector end to end. It opens with a semantic-only segment at
 //! the zero rung; at the configured boundary step it freezes the Proximal radius from data - the
-//! force-mass-weighted 75th percentile of the locally normalized distance `z` over the
+//! force-mass-weighted 25th percentile of the locally normalized distance `z` over the
 //! reviewed-Proximal attraction pairs, measured against the boundary's own coordinates - composes
 //! the relation energy, and opens the rung ladder, round-robining the steps across the lens rungs
 //! with the relation term scaled by each step's rung. Refresh ticks at a configured cadence

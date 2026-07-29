@@ -286,16 +286,29 @@ the fixtures under `fixtures/wire/`.
 
 Cargo features (all disabled by default):
 
-- `gpu` - trains the projector on the Metal GPU backend. Compiles
-  anywhere; running a fit with it requires an Apple GPU. Without it,
-  fitting uses the CPU backend that CI exercises.
-- `bench` - exposes the measurement seams the bench and example
-  targets consume; combined with `gpu` those seams gain their
-  Metal-backed flavor.
+- `gpu` - trains the projector on the Metal GPU backend and runs the brute-force construction audit on it. Compiles anywhere; running with it requires an Apple GPU. Without it, fitting uses the CPU backend that CI exercises.
+- `bench` - exposes the measurement seams the `[[bench]]` targets consume; combined with `gpu` those seams gain their Metal-backed flavor.
+- `cli` - builds the standalone `hash-graph-atlas` binary: the fit path with its live dashboard, and the lab instruments under `report`.
 
-The operator commands (`cli` module) and the read API (`api` module)
-build unconditionally; the `hash-graph` binary's `atlas` subcommand is
-their one entry point.
+The operator commands (`cli` module) and the read API (`api` module) build unconditionally, so the `hash-graph` binary consumes them feature-free; the feature gates only the standalone binary's shell.
+
+The lab instruments read published artifacts and print their readings - the clump-threshold calibration, the neighbour-construction audits, the search-backend sweep, the certified classifier refit, the fold probe, and one live quality assessment:
+
+```sh
+cargo run -p hash-graph-atlas --features cli --release -- \
+  report clumps --table /var/lib/hash/atlas/<generation>/knn.sprs
+```
+
+```text
+rows 985932  neighbours 30
+
+  epsilon       clumps       groups   grouped_rows   coverage  mean_size
+   0.0005       716583       117106         386455      39.2%       3.30
+   0.0012       637115       131773         480590      48.7%       3.65
+   0.0020       566791       131760         550901      55.9%       4.18
+```
+
+Every instrument's defaults are the deployed settings, so a bare invocation re-derives the evidence a configured default was pinned on. `hash-graph-atlas report --help` lists them; serving stays exclusive to the `hash-graph` binary.
 
 ## License
 

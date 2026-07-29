@@ -15,9 +15,8 @@
 //!
 //! - Every multiply-accumulate is a fused [`mul_add`](std::simd::StdFloat::mul_add). A fused
 //!   multiply-add has exactly one correctly rounded result, defined by IEEE 754 independently of
-//!   how a target lowers it: hardware FMA where present (aarch64 always; x86-64 from the v3
-//!   baseline the workspace pins), a software path with the same single rounding elsewhere. Targets
-//!   differ in speed, never in bits.
+//!   how a target lowers it, and both baselines the crate builds for lower it in hardware (aarch64
+//!   FMLA; x86-64 the v3 baseline's FMA). Targets differ in speed, never in bits.
 //! - Every step is plain `f32`/`f64` lane arithmetic, bit shifts, and lane selects, with one
 //!   rounding per operation as IEEE 754 requires; no step depends on a target-specific instruction.
 //!

@@ -14,8 +14,8 @@
 //! usual tradeoff: pay the shuffle once on entry and keep the hot loop axis-parallel.
 //!
 //! A borrowed point slice splits in place into batches via [`Vec2x4::from_slice`]: the aligned
-//! middle is processed four vectors at a time while the unaligned edges stay scalar, so bulk
-//! passes over `&[Vec2]` vectorize without copying.
+//! middle is processed four vectors at a time while the unaligned edges are handled one vector at a
+//! time, so bulk passes over `&[Vec2]` vectorize without copying.
 //!
 //! Because both batch types match [`Simd<f32, 8>`](Simd) in size and meet its alignment,
 //! [`to_simd`](Vec2x4T::to_simd) and the [`From`] conversions compile to a single full-width vector
@@ -940,12 +940,9 @@ impl Index<usize> for Vec2x4 {
     }
 }
 
-// Both batch layouts must be usable as backing storage for `Simd<f32, 8>`:
-// identical size, and at least its alignment. `Simd`'s alignment is
-// target-dependent (it can be below 32 on targets without 256-bit vectors),
-// so the alignment check is a lower bound rather than an equality.
-// The lane views borrow `Simd<f32, 4>` groups at offsets 0 and 16, so the half-width
-// alignment must not exceed the offset.
+// Both batch layouts must be usable as backing storage for `Simd<f32, 8>`: identical size, and at
+// least its alignment, which the `align(32)` on each type supplies. The lane views borrow
+// `Simd<f32, 4>` groups at byte offsets 0 and 16, so the half-width alignment must not exceed 16.
 const _: () = assert!(align_of::<Simd<f32, 4>>() <= 16);
 const _: () = assert!(size_of::<Vec2x4T>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(size_of::<Vec2x4>() == size_of::<Simd<f32, 8>>());

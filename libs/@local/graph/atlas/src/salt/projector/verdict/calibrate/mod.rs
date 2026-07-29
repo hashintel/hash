@@ -2,9 +2,12 @@
 //!
 //! At the end of semantic-only training the Proximal radius is set from data: measure the locally
 //! normalized distance `z` over the pairs of every reviewed-Proximal relation type and freeze the
-//! radius at the 75th percentile, so the Proximal energy acts primarily on the outlying quarter.
-//! "Outlying quarter" is meant in the units that matter: each pair's `z` is weighted by the force
-//! the training loop will actually apply to it,
+//! radius at the 25th percentile, so the Proximal energy pulls on the outlying three quarters.
+//! The low quartile anchors the boundary in the population the semantic baseline already
+//! satisfies - reviewed pairs the embedding placed together - and everything beyond it feels the
+//! pull, so reviewed geometry moves at the lens instead of being policed at its fringe.
+//! "Outlying three quarters" is meant in the units that matter: each pair's `z` is weighted by
+//! the force the training loop will actually apply to it,
 //!
 //! ```text
 //! w = min(cap, n) / n · c · ν · p_P · h
@@ -89,7 +92,7 @@ pub(crate) struct TypeCalibration {
 pub(crate) struct ProximalCalibration {
     /// The frozen radius `u_P`.
     ///
-    /// The weighted 75th percentile of `z` over all reviewed-Proximal pairs. [`None`] when no pair
+    /// The weighted 25th percentile of `z` over all reviewed-Proximal pairs. [`None`] when no pair
     /// carries mass - the caller decides whether that is an error (proximal mass exists elsewhere,
     /// nothing reviewed to calibrate from) or a vacuous no-op.
     pub radius: Option<f32>,
@@ -205,7 +208,7 @@ pub(crate) fn calibrate(
         weighted_quantile(
             population.iter().map(|&(z, weight, _)| (z, weight)),
             total,
-            0.75,
+            0.25,
         )
     });
 
@@ -226,7 +229,7 @@ pub(crate) fn calibrate(
                     .filter(|&&(_, _, owner)| owner != tag)
                     .map(|&(z, weight, _)| (z, weight)),
                 remaining,
-                0.75,
+                0.25,
             )
         });
     }

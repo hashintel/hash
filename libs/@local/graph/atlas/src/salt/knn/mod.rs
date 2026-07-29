@@ -36,14 +36,13 @@ use rand::{Rng, SeedableRng};
 use crate::{dataset::PROJECTOR_DIMENSIONS, identity::NodeRowId, math::AlignedVecN};
 
 pub(crate) mod artifact;
-#[cfg(feature = "bench")]
-pub mod bench;
 pub(crate) mod brute;
 pub(crate) mod construction;
 pub(crate) mod descent;
 pub(crate) mod error;
 pub(crate) mod hannoy;
 pub(crate) mod recall;
+pub(crate) mod report;
 pub(crate) mod table;
 
 #[cfg(test)]

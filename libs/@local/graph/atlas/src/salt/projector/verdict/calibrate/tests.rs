@@ -122,7 +122,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
 }
 
 #[test]
-fn radius_is_the_weighted_p75() {
+fn radius_is_the_weighted_p25() {
     // Four disjoint pairs (all ν = 0.5, weight 0.5) at z = 1, 2, 3, 4.
     let instances = (0..4)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
@@ -151,8 +151,8 @@ fn radius_is_the_weighted_p75() {
 
     // Total mass 2.0. Cumulative weight crosses 0.25/0.5/0.75 of it at
     // z = 1, 2, and 3: the smallest z whose cumulative 0.5-steps reach
-    // 0.5, 1.0, and 1.5.
-    assert_eq!(outcome.radius, Some(3.0));
+    // 0.5, 1.0, and 1.5. The radius is the low quartile.
+    assert_eq!(outcome.radius, Some(1.0));
     assert_eq!(outcome.types[0].mass, 2.0);
     assert_eq!(outcome.types[0].quantiles, Some([1.0, 2.0, 3.0]));
     assert_eq!(outcome.types[0].radius_without, None);
@@ -160,8 +160,8 @@ fn radius_is_the_weighted_p75() {
 
 #[test]
 fn cap_bounds_a_high_volume_type() {
-    // Type 5: eight disjoint pairs at z = 1. Type 9: two disjoint
-    // pairs at z = 5. All ν = 0.5.
+    // Type 5: eight disjoint pairs at z = 5. Type 9: two disjoint
+    // pairs at z = 1. All ν = 0.5.
     let mut instances: Vec<_> = (0..8)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
         .collect();
@@ -173,35 +173,35 @@ fn cap_bounds_a_high_volume_type() {
     for pair in 0..8_u16 {
         let x = f32::from(pair) * 10.0;
         coordinates.push(Vec2::new(x, 0.0));
-        coordinates.push(Vec2::new(x + 1.0, 0.0));
+        coordinates.push(Vec2::new(x + 5.0, 0.0));
     }
     coordinates.extend([
         Vec2::new(200.0, 0.0),
-        Vec2::new(205.0, 0.0),
+        Vec2::new(201.0, 0.0),
         Vec2::new(300.0, 0.0),
-        Vec2::new(305.0, 0.0),
+        Vec2::new(301.0, 0.0),
     ]);
     let scales = unit_scales(20);
     let verdicts = [proximal_verdict(5), proximal_verdict(9)];
 
     // Cap 2: type 5's pairs sample at 2/8, so both types weigh 1.0 and
-    // the p75 threshold (1.5) is crossed by type 9's first pair.
+    // type 9's first pair crosses the p25 threshold (0.5).
     let capped = calibrate(&verdicts, &index, &coordinates, &scales, options(2));
-    assert_eq!(capped.radius, Some(5.0));
+    assert_eq!(capped.radius, Some(1.0));
     assert_eq!(capped.types[0].mass, 1.0);
     assert_eq!(capped.types[1].mass, 1.0);
 
     // The leave-one-out spread names type 9 as the radius's owner:
-    // without type 5 the two z = 5 pairs cross 0.75 of their 1.0 mass
-    // at the second pair; without type 9 the 0.125-steps over z = 1
-    // reach 0.75 at the sixth.
-    assert_eq!(capped.types[0].radius_without, Some(5.0));
-    assert_eq!(capped.types[1].radius_without, Some(1.0));
+    // without type 5 the two z = 1 pairs still cross a quarter of
+    // their 1.0 mass at the first pair; without type 9 only z = 5
+    // remains.
+    assert_eq!(capped.types[0].radius_without, Some(1.0));
+    assert_eq!(capped.types[1].radius_without, Some(5.0));
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
     let uncapped = calibrate(&verdicts, &index, &coordinates, &scales, options(8));
-    assert_eq!(uncapped.radius, Some(1.0));
+    assert_eq!(uncapped.radius, Some(5.0));
 }
 
 #[test]
@@ -256,12 +256,11 @@ fn hubs_are_discounted_by_degree() {
     );
     assert_eq!(peers.mass, 1.5);
 
-    // Pooled p50 lands on the peers' z = 1: their 1.5 mass alone
-    // crosses half the total. With undiscounted weights the hub's four
-    // pairs would weigh 2.0 and drag the median to z = 2.
+    // The pooled p25 lands on the peers' z = 1: their 1.5 mass alone
+    // covers the quarter threshold before any hub pair enters.
     let total = hub.mass + peers.mass;
-    assert!(1.5 >= 0.5 * total);
-    assert_eq!(outcome.radius, Some(2.0));
+    assert!(1.5 >= 0.25 * total);
+    assert_eq!(outcome.radius, Some(1.0));
 
     // Without the hub only the peers' z = 1 remains; without the
     // peers only the hub's z = 2 does.

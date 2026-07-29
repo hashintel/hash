@@ -6,10 +6,12 @@
 //! ([`crate::api`]) the graph binary hosts. And the standalone `hash-graph-atlas` binary, whose
 //! shell the `cli` feature gates: its command line carries the fit command over its own store
 //! flags ([`PostgresArgs`]) plus the report instruments ([`ReportCommand`], one subcommand per
-//! report - the certified classifier bundle, the fold probe) over a generation root's staged
-//! artifacts;
-//! serving stays exclusive to the graph binary. The store flags mirror the graph's
-//! `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry point.
+//! report - the certified classifier bundle, the fold probe, the clump-threshold calibration, the
+//! neighbour-construction audits, and one live quality assessment) over a generation root's
+//! published artifacts; serving stays exclusive to the graph binary. The store flags mirror the
+//! graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry
+//! point, and the instruments are the standalone binary's alone: nothing outside this crate names
+//! them.
 //!
 //! A command produces its verdict rather than printing one ([`FitVerdict`]), and its host renders
 //! it: the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the
@@ -40,12 +42,12 @@ mod shell;
 #[cfg(feature = "cli")]
 mod tui;
 
+pub(crate) use self::report::ReportCommand;
 #[cfg(feature = "cli")]
 pub use self::shell::main;
 pub use self::{
     fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
-    report::{ClassifierArgs, ProbeArgs, ReportCommand, ReportError},
     serve::{ServeArgs, ServeCommand, ServeError},
 };
 pub use crate::salt::runner::live::{ClassifierSource, Options, Placement, RunError, Summary};

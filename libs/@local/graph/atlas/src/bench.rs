@@ -8,8 +8,5 @@
 
 pub use crate::{
     math::kernel::bench as kernel,
-    salt::{
-        knn::bench as knn, lod::bench as lod, projector::bench as projector,
-        quality::bench as quality, relation::bench as relation,
-    },
+    salt::{lod::bench as lod, projector::bench as projector, relation::bench as relation},
 };

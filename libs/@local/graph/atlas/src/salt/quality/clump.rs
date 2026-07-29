@@ -14,7 +14,8 @@
 //! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
 //! was pinned on, and the grouping is judged against measured corpus structure (group count,
 //! coverage, size distribution) and against the flagged subgroups it is expected to resolve. The
-//! `clump_sweep` example re-derives the calibration readings against any published k-NN table.
+//! [`calibration`](super::report::calibration) instrument re-derives the readings against any
+//! published k-NN table.
 //!
 //! [`ClumpAggregate`] is the collapsed counterpart of the plain recall reading: both neighbour
 //! lists relabel onto clump ids and overlap as multisets, so same-component siblings satisfy each

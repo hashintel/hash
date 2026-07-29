@@ -184,8 +184,7 @@ fn from_slice_matches_from_points_at_every_alignment_offset() {
 
 #[test]
 fn from_slice_rejects_non_finite_in_batch_and_remainder() {
-    // Position 2 falls in the SIMD-folded body, position 9 in the scalar
-    // remainder of an 11-point slice.
+    // Position 2 falls in the batched body, position 9 in the remainder of an 11-point slice.
     for position in [2, 9] {
         let mut points = scattered_points(11);
         points[position] = Vec2::new(f32::NAN, 0.0);
@@ -360,7 +359,7 @@ fn union_contains_both_operands_corners(
     }
 }
 
-// The SIMD fold agrees with the scalar fold on arbitrary point vectors, empty included.
+/// The slice fold agrees with the per-point fold on arbitrary point vectors, empty included.
 ///
 /// Both compute the same exact min/max corners (or the same rejection).
 #[property_test]
@@ -373,12 +372,12 @@ fn from_slice_equals_from_points_on_arbitrary_points(
     );
 }
 
-/// The batched lanes and the scalar tail of `normalize_into` round identically.
+/// The batched lanes and the remainder of `normalize_into` round identically.
 ///
-/// Mapping a slice equals mapping every point alone (a single-point slice takes the scalar
-/// path), so the output is independent of how points fall into batches.
+/// Mapping a slice equals mapping every point alone (a single-point slice is all remainder), so the
+/// output is independent of how points fall into batches.
 #[property_test]
-fn normalize_into_agrees_between_batched_and_scalar_paths(
+fn normalize_into_agrees_between_batched_body_and_remainder(
     #[strategy = points_strategy()] points: Vec<Vec2>,
     #[strategy = bounds_strategy()] world: Bounds2,
     #[strategy = bounds_strategy()] frame: Bounds2,

@@ -462,8 +462,8 @@ fn from_slice_rejects_what_would_break_the_invariant() {
 
 /// Components bounded to the well-conditioned `-1e3..1e3` range, in the fixed dimension 19.
 ///
-/// Two full 8-lane chunks plus a remainder of three, crossing the SIMD chunk boundary in both the
-/// batched body and the scalar tail.
+/// Two full 8-lane chunks plus a remainder of three, so every fold exercises both the batched body
+/// and the remainder.
 fn components_strategy() -> impl Strategy<Value = [f32; 19]> {
     proptest::array::uniform19(-1e3_f32..1e3)
 }

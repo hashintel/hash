@@ -48,7 +48,7 @@ const DEFAULT_MAP_SIZE: usize = 1 << 40;
 // in parallel; the seed pins the level stream, not the link order), so the margin must clear that
 // spread. Search breadth measured inert: 64 -> 256 bought +0.002-0.005 on every build at 2.2x query
 // cost, so 128 stays - it is 2.5x the deepest query in this crate (the 50-neighbour recall audit)
-// and above hannoy's default of 100. Sweep harness: `bench::knn::sweep` (`examples/knn_sweep.rs`);
+// and above hannoy's default of 100. Sweep instrument: `report::backend` (`report knn-backend`);
 // raise construction before search on a failed recall check.
 const DEFAULT_EF_CONSTRUCTION: usize = 256;
 const DEFAULT_EF_SEARCH: usize = 128;

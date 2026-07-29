@@ -24,8 +24,8 @@ impl Similarity {
     /// This is the movement a fitted alignment could not explain: after [`fit`](Self::fit) it
     /// measures how far the two point sets differ beyond scale, rotation, and translation. The
     /// transform is applied with coefficients widened to `f64` and the squared distances accumulate
-    /// in double precision, so corpus-scale sums keep their accuracy; pairs fold four at a time
-    /// with the trailing `len % 4` handled scalar.
+    /// in double precision, so corpus-scale sums keep their accuracy; pairs fold four at a time,
+    /// and the trailing `len % 4` fold one at a time.
     ///
     /// Returns [`None`] when the slice lengths differ, no pairs are given, or any coordinate is not
     /// finite (a non-finite input surfaces as a non-finite sum, which is rejected rather than

@@ -6,7 +6,7 @@ use crate::file::generation::GenerationId;
 
 /// Root, generation, and fold-assignment settings of one probe.
 #[derive(Debug, Args)]
-pub struct ProbeArgs {
+pub(crate) struct ProbeArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 

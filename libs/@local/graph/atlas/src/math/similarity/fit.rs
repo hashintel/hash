@@ -34,10 +34,10 @@ impl Similarity {
     /// |apply(source[i]) - target[i]|^2)`, in closed form: the weighted covariance between the
     /// centred point sets determines the rotation and scale, and the translation recovers the
     /// target centroid from the transformed source centroid. Pairs are folded four at a time with
-    /// SIMD lanes, the trailing `len % 4` pairs are handled scalar, and every sum is accumulated in
-    /// double precision before the result narrows to the working `f32` coefficients. Zero-weight
-    /// pairs leave the fit unchanged. For large inputs, [`fit_par`](Self::fit_par) runs the same
-    /// accumulation across rayon workers.
+    /// SIMD lanes, the trailing `len % 4` pairs are handled one at a time, and every sum is
+    /// accumulated in double precision before the result narrows to the working `f32` coefficients.
+    /// Zero-weight pairs leave the fit unchanged. For large inputs, [`fit_par`](Self::fit_par)
+    /// runs the same accumulation across rayon workers.
     ///
     /// Returns [`None`] when the slice lengths differ, fewer than two pairs are given, any
     /// coordinate or weight is not finite, any weight is negative, the total weight is not a normal
@@ -211,7 +211,7 @@ impl FitSums {
     ///
     /// The slices carry equal lengths; the `fit` entry points check this once before accumulating.
     /// Pairs are folded four at a time on double-precision lanes, with the trailing `len % 4` pairs
-    /// handled scalar.
+    /// handled one at a time.
     fn from_slices(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Self {
         let (source_batches, source_rest) = source.as_chunks::<4>();
         let (target_batches, target_rest) = target.as_chunks::<4>();

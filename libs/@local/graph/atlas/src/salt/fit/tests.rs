@@ -51,8 +51,12 @@ use crate::{
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
+        knn::{artifact::KnnArchive, table::KnnView},
         ladder::CanonicalError,
-        landmark::{artifact::LandmarkSkeletonArchive, select::SelectionOptions},
+        landmark::{
+            artifact::LandmarkSkeletonArchive,
+            select::{LandmarkOrdinal, SelectionOptions},
+        },
         policy::{
             GeometryClass, PolicyOverride, PolicySource, Posterior,
             artifact::PolicyTableArchive,
@@ -70,6 +74,7 @@ use crate::{
             verdict::{PlacementClass, ReviewedVerdicts},
         },
         relation::artifact::{AttractionArchive, ProtectionArchive},
+        semantic::artifact::SemanticGraphArchive,
     },
 };
 
@@ -1568,6 +1573,229 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         }),
         "the published column should be the aligned canonical projection",
     );
+}
+
+/// A corpus whose representation stream carries byte-identical copies.
+///
+/// Rows 1 and 40..=43 carry row 0's representation, rows 44..=46 carry row 2's, and row 47 carries
+/// row 3's: 39 distinct representations over 48 rows, with copies both adjacent to their first row
+/// and at the far end of the stream. Edge 100 relates two distinct representations, edge 101
+/// relates two rows of one representation, and edge 102 restates edge 100's representation pair
+/// through a copy: the collapsed trainer view keeps one reading of the pair and drops the
+/// self-reading, while the published index keeps all three edges.
+fn duplicate_dataset() -> MemoryDataset {
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xD0B1);
+
+    let mut embeddings: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> = Vec::with_capacity(NODES);
+    for row in 0..NODES {
+        let embedding = match row {
+            1 | 40..=43 => embeddings[0].clone(),
+            44..=46 => embeddings[2].clone(),
+            47 => embeddings[3].clone(),
+            _ => representation(&mut rng),
+        };
+        embeddings.push(embedding);
+    }
+
+    let nodes = embeddings
+        .into_iter()
+        .enumerate()
+        .map(|(row, embedding)| Node {
+            id: U64::<LE>::new(row as u64),
+            ontology: smallvec![OntologyRowId::from_usize(row & 1)],
+            embedding,
+            confidence: None,
+        })
+        .collect();
+
+    let edge = |id: u64, source: u64, target: u64| Edge {
+        id: U64::<LE>::new(id),
+        source: NodeRowId::new(source),
+        target: NodeRowId::new(target),
+        ontology: smallvec![OntologyRowId::new(2)],
+        embedding: None,
+        confidence: None,
+        source_confidence: None,
+        target_confidence: None,
+    };
+    let edges = vec![
+        edge(100, 0, 4),
+        edge(101, 0, 1),
+        Edge {
+            confidence: Some(0.75),
+            ..edge(102, 1, 4)
+        },
+    ];
+
+    let ontology = vec![
+        Ontology {
+            id: U64::<LE>::new(0),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(1),
+            parents: smallvec![],
+        },
+        Ontology {
+            id: U64::<LE>::new(2),
+            parents: smallvec![OntologyRowId::new(0)],
+        },
+    ];
+
+    let cards = HashMap::from([
+        (0, Card::verbatim("Person entity card".to_owned())),
+        (1, Card::verbatim("Company entity card".to_owned())),
+        (2, Card::verbatim("Employment link card".to_owned())),
+    ]);
+
+    MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
+}
+
+/// Asserts the rows of one duplicate cluster publish as one point of the quotient.
+///
+/// The cluster's first entry is its representation's first occurrence; every other member shares
+/// its neighbour list, its landmark ordinal, and its published coordinate bit for bit.
+fn assert_cluster_shares_one_point(
+    table: &KnnView<'_>,
+    assignment: &[LandmarkOrdinal],
+    placed: &[Vec2],
+    cluster: &[usize],
+) {
+    let first = cluster[0];
+    let reference: Vec<(NodeRowId, u32)> = table
+        .row(first)
+        .map(|neighbour| (neighbour.id, neighbour.distance.to_bits()))
+        .collect();
+    for &row in &cluster[1..] {
+        let list: Vec<(NodeRowId, u32)> = table
+            .row(row)
+            .map(|neighbour| (neighbour.id, neighbour.distance.to_bits()))
+            .collect();
+        assert_eq!(
+            list, reference,
+            "rows {first} and {row} should share one neighbour list",
+        );
+        assert_eq!(
+            assignment[row].usize(),
+            assignment[first].usize(),
+            "rows {first} and {row} should share one landmark ordinal",
+        );
+        assert_eq!(
+            placed[row].x().to_bits(),
+            placed[first].x().to_bits(),
+            "rows {first} and {row} should share one x coordinate",
+        );
+        assert_eq!(
+            placed[row].y().to_bits(),
+            placed[first].y().to_bits(),
+            "rows {first} and {row} should share one y coordinate",
+        );
+    }
+}
+
+/// Byte-identical rows share one training seat and publish over the full row domain.
+///
+/// The placement trains over the corpus's 39 distinct representations and publication expands
+/// back to all 48 rows: every published artifact covers the row domain, every published neighbour
+/// and selected landmark is a representation's first row, and the rows of one duplicate cluster
+/// share their neighbour list, their landmark ordinal, and their published coordinate bit for bit
+/// - the distinct-domain training evidence and the full-domain column describe one field.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
+    let root = GenerationRoot::new(scratch("duplicates")).expect("the root should open");
+    let dataset = duplicate_dataset();
+
+    // The Proximal override gives the link type full force and the
+    // asserted radius freezes the boundary: the whole trained path
+    // runs over the quotient's distinct domain.
+    let config = FitConfig {
+        placement: PlacementOptions::Projector(projector_options(Some(1.0))),
+        policy: PolicyOptions {
+            overrides: vec![PolicyOverride {
+                relation: OntologyRowId::new(2),
+                source: PolicySource::Human,
+                distribution: Posterior::new([0.0, 1.0, 0.0])
+                    .expect("the asserted distribution sums to one"),
+            }],
+            ..
+        },
+        ..config()
+    };
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config,
+        Supplies {
+            classifier: &fixture_input(),
+            ..
+        },
+        &root,
+        NoProgress,
+    )
+    .await
+    .expect("a corpus with byte-identical rows should publish");
+
+    // The fixture's clusters; a row outside every copy list is its own
+    // representation's first row.
+    let clusters: [&[usize]; 3] = [&[0, 1, 40, 41, 42, 43], &[2, 44, 45, 46], &[3, 47]];
+    let is_first_row = |row: usize| !clusters.iter().any(|cluster| cluster[1..].contains(&row));
+
+    // Every published artifact covers the full row domain.
+    let knn = KnnArchive::new(
+        SprsFile::open(published.path().join("knn.sprs")).expect("the table should map"),
+    )
+    .expect("the table should validate");
+    let table = knn.view();
+    assert_eq!(table.rows(), NODES);
+
+    let semantic = SemanticGraphArchive::new(
+        SprsFile::open(published.path().join("semantic.sprs")).expect("the graph should map"),
+    )
+    .expect("the graph should validate");
+    assert_eq!(semantic.view().rows(), NODES);
+
+    let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))
+        .expect("the coordinates should map");
+    let placed = coordinates.points().expect("the coordinates are 2D points");
+    assert_eq!(placed.len(), NODES);
+
+    let skeleton = LandmarkSkeletonArchive::new(
+        LandmarkFile::open(published.path().join("landmarks.lndm"))
+            .expect("the skeleton should map"),
+    )
+    .expect("the skeleton should validate");
+    assert_eq!(skeleton.rows(), NODES as u64);
+    assert_eq!(skeleton.landmarks(), u64::from(LANDMARKS));
+    let assignment = skeleton.assignment();
+    assert_eq!(assignment.len(), NODES);
+
+    // Publication names rows by their representation's first
+    // occurrence: every neighbour and every selected landmark is a
+    // first row.
+    for row in 0..NODES {
+        for neighbour in table.row(row) {
+            let neighbour_row = neighbour.id.as_usize();
+            assert!(
+                is_first_row(neighbour_row),
+                "row {row}'s neighbour {neighbour_row} should be a first row",
+            );
+        }
+    }
+    assert!(
+        skeleton
+            .selected_rows()
+            .iter()
+            .all(|&row| is_first_row(row.as_usize())),
+        "every selected landmark should be a first row",
+    );
+
+    // The rows of one cluster are one point of the quotient: one
+    // neighbour list, one landmark ordinal, one published coordinate.
+    for cluster in clusters {
+        assert_cluster_shares_one_point(&table, assignment, placed, cluster);
+    }
 }
 
 /// The vacuous placement unblocks a Proximal corpus lacking reviewed coverage.

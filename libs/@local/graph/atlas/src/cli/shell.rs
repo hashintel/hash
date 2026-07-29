@@ -91,7 +91,7 @@ impl core::error::Error for DashboardError {
     clippy::print_stderr,
     reason = "the rendered failure chain is the binary shell's product"
 )]
-fn render_failure(error: &dyn core::error::Error) -> std::process::ExitCode {
+fn render_failure(error: impl core::error::Error) -> std::process::ExitCode {
     eprintln!("error: {error}");
     let mut source = error.source();
     while let Some(cause) = source {
@@ -102,10 +102,10 @@ fn render_failure(error: &dyn core::error::Error) -> std::process::ExitCode {
     std::process::ExitCode::FAILURE
 }
 
-/// Renders one fit's verdict.
+/// Renders a command's verdict.
 #[cfg(feature = "cli")]
 #[expect(clippy::print_stdout, reason = "the verdict is the command's product")]
-fn render_verdict(verdict: &super::FitVerdict) {
+fn render_verdict(verdict: impl core::fmt::Display) {
     println!("{verdict}");
 }
 
@@ -193,10 +193,10 @@ pub async fn main() -> std::process::ExitCode {
             tui: true,
         } => match fit_on_dashboard(root, store, *args).await {
             Ok(verdict) => {
-                render_verdict(&verdict);
+                render_verdict(verdict);
                 std::process::ExitCode::SUCCESS
             }
-            Err(error) => render_failure(&error),
+            Err(error) => render_failure(error),
         },
 
         Command::Fit {
@@ -207,20 +207,27 @@ pub async fn main() -> std::process::ExitCode {
         } => {
             let mut client = match store.connect().await {
                 Ok(client) => client,
-                Err(error) => return render_failure(&error),
+                Err(error) => return render_failure(error),
             };
+
             match super::FitCommand::new(root, *args).run(&mut client).await {
                 Ok(verdict) => {
-                    render_verdict(&verdict);
+                    render_verdict(verdict);
                     std::process::ExitCode::SUCCESS
                 }
-                Err(error) => render_failure(&error),
+                Err(error) => render_failure(error),
             }
         }
 
         Command::Report { command } => match command.run().await {
-            Ok(()) => std::process::ExitCode::SUCCESS,
-            Err(error) => render_failure(&error),
+            // The probe dumps its receipts as it solves and hands back no
+            // verdict to render.
+            Ok(None) => std::process::ExitCode::SUCCESS,
+            Ok(Some(verdict)) => {
+                render_verdict(verdict);
+                std::process::ExitCode::SUCCESS
+            }
+            Err(error) => render_failure(error),
         },
     }
 }

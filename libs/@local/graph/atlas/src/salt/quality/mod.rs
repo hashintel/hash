@@ -21,8 +21,6 @@
 //! readings are exact over their probe sets and estimates of the corpus-wide quantity; the report
 //! carries the probe sizes so a reading is never mistaken for a corpus-complete measurement.
 
-#[cfg(feature = "bench")]
-pub mod bench;
 pub(crate) mod clump;
 pub(crate) mod error;
 pub(crate) mod metric;

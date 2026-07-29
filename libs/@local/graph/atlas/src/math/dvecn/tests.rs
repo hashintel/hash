@@ -165,9 +165,9 @@ fn add_widened_matches_scalar_reference() {
 
 #[test]
 fn div_assign_divides_every_component() {
-    // N = 11 crosses one full 8-lane group plus a remainder, so both
-    // the SIMD and scalar paths divide; the operation is a plain IEEE
-    // division either way, so the results are bit-equal.
+    // N = 11 crosses one full 8-lane group plus a remainder, so both the batched body and the
+    // remainder divide; the operation is a plain IEEE division either way, so the results are
+    // bit-equal.
     let components = core::array::from_fn::<f64, 11, _>(|index| {
         f64::from(u8::try_from(index).expect("test sizes are small")).mul_add(0.75, -4.0)
     });

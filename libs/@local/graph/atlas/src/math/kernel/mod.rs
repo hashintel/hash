@@ -53,10 +53,9 @@ pub(crate) fn verify_cpu_baseline() {
 
 /// Fused multiply-add, correctly rounded on every target.
 ///
-/// The fusion is semantic: targets without FMA hardware take a software path with the same single
-/// rounding, so every lane matches scalar [`f32::mul_add`] bit for bit on every platform.
-/// Hardware presence changes speed, never bits; x86-64 builds ride the workspace's x86-64-v3
-/// baseline for the hardware lowering.
+/// The fusion is semantic: one rounding per lane, so every lane matches scalar [`f32::mul_add`] bit
+/// for bit. Both baselines the crate builds for lower it in hardware (aarch64 FMLA; x86-64 the
+/// workspace's x86-64-v3 FMA), and lowering changes speed, never bits.
 #[inline(always)]
 pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
     use std::simd::StdFloat as _;
@@ -159,15 +158,16 @@ mod tests {
 
     use super::{exp_f32x8, exp_f64x4, mul_add_f32x4, mul_add_f64x4, mul_add_f64x8, pow_f32x4};
 
-    /// `mul_add_f32x4` matches scalar [`f32::mul_add`] bit for bit, per lane.
+    /// `mul_add_f32x4` rounds once per lane, against scalar [`f32::mul_add`] as the reference.
     ///
-    /// Lane 0 is fusion-discriminating: `a = b = 1 + 2⁻¹²` and `c = -(1 + 2⁻¹¹)` make `a·b` round
-    /// to `1 + 2⁻¹¹` under tie-to-even before the add (the exact product carries a `2⁻²⁴` term,
-    /// exactly half the `f32` ulp at this magnitude), so an unfused `a * b + c` gives `0.0` where
-    /// the fused result is `2⁻²⁴`. Lane 1 is its sign-negated twin, mirroring the same tie around
-    /// zero. Lanes 2 and 3 are ordinary non-dyadic values.
+    /// Lane 0 discriminates the fusion, so an unfused `lhs * rhs + accumulator` body fails here: `a
+    /// = b = 1 + 2⁻¹²` and `c = -(1 + 2⁻¹¹)` make `a·b` round to `1 + 2⁻¹¹` under tie-to-even
+    /// before the add (the exact product carries a `2⁻²⁴` term, exactly half the `f32` ulp at this
+    /// magnitude), so `a * b + c` gives `0.0` where the fused result is `2⁻²⁴`. Lane 1 is its
+    /// sign-negated twin, mirroring the same tie around zero. Lanes 2 and 3 are ordinary non-dyadic
+    /// values.
     #[test]
-    fn mul_add_f32x4_matches_scalar_mul_add() {
+    fn mul_add_f32x4_rounds_once_per_lane() {
         let factor = 1.0_f32 + (-12.0_f32).exp2();
         let offset = -(1.0_f32 + (-11.0_f32).exp2());
 
@@ -188,14 +188,15 @@ mod tests {
         }
     }
 
-    /// `mul_add_f64x4` matches scalar [`f64::mul_add`] bit for bit, per lane.
+    /// `mul_add_f64x4` rounds once per lane, against scalar [`f64::mul_add`] as the reference.
     ///
-    /// Lane 0 is fusion-discriminating: `a = b = 1 + 2⁻²⁷` and `c = -(1 + 2⁻²⁶)` make the exact
-    /// product's `2⁻⁵⁴` term round away (a quarter of the `f64` ulp at this magnitude) before the
-    /// add, so an unfused `a * b + c` gives `0.0` where the fused result is `2⁻⁵⁴`. Lane 1 is its
-    /// sign-negated twin. Lanes 2 and 3 are ordinary non-dyadic values.
+    /// Lane 0 discriminates the fusion, so an unfused `lhs * rhs + accumulator` body fails here: `a
+    /// = b = 1 + 2⁻²⁷` and `c = -(1 + 2⁻²⁶)` make the exact product's `2⁻⁵⁴` term round away (a
+    /// quarter of the `f64` ulp at this magnitude) before the add, so `a * b + c` gives `0.0` where
+    /// the fused result is `2⁻⁵⁴`. Lane 1 is its sign-negated twin. Lanes 2 and 3 are ordinary
+    /// non-dyadic values.
     #[test]
-    fn mul_add_f64x4_matches_scalar_mul_add() {
+    fn mul_add_f64x4_rounds_once_per_lane() {
         let factor = 1.0_f64 + (-27.0_f64).exp2();
         let offset = -(1.0_f64 + (-26.0_f64).exp2());
 
@@ -216,12 +217,12 @@ mod tests {
         }
     }
 
-    /// `mul_add_f64x8` matches scalar [`f64::mul_add`] bit for bit, per lane.
+    /// `mul_add_f64x8` rounds once per lane, against scalar [`f64::mul_add`] as the reference.
     ///
     /// Lanes 0 and 1 repeat the `f64x4` fusion-discriminating pair and its sign-negated twin; the
     /// remaining six lanes are ordinary non-dyadic values.
     #[test]
-    fn mul_add_f64x8_matches_scalar_mul_add() {
+    fn mul_add_f64x8_rounds_once_per_lane() {
         let factor = 1.0_f64 + (-27.0_f64).exp2();
         let offset = -(1.0_f64 + (-26.0_f64).exp2());
 
