@@ -138,7 +138,9 @@ backend = "npm:@redocly/cli"
 [[tools."npm:renovate"]]
 version = "43.212.4"
 backend = "npm:renovate"
-options = { trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]' }
+
+[tools."npm:renovate".options]
+trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
 
 [[tools."npm:turbo"]]
 version = "2.6.3"
@@ -181,7 +183,7 @@ version = "nightly-2026-07-13"
 backend = "core:rust"
 
 [tools.rust.options]
-components = "clippy,llvm-tools-preview,miri,rust-analyzer,rust-src,rustc-codegen-cranelift-preview,rustfmt"
+components = "clippy,llvm-tools,miri,rust-analyzer,rust-src,rustc-codegen-cranelift,rustfmt"
 
 [[tools.sentry-cli]]
 version = "2.52.0"
