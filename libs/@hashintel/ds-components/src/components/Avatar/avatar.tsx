@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
 import { Icon, type IconName } from "../Icon/icon";
@@ -38,32 +38,16 @@ const placeholderIconSize: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
-const imageClass = css({
-  position: "absolute",
-  inset: "0",
-  width: "full",
-  height: "full",
-  objectFit: "cover",
-});
-
-const placeholderClass = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-});
-
-export const Avatar = (props: AvatarProps) => {
-  const {
-    className,
-    variant,
-    src,
-    alt,
-    size = "md",
-    tone = "neutral",
-    placeholder,
-    ...rest
-  } = props;
-
+export const Avatar = ({
+  className,
+  variant,
+  src,
+  alt,
+  size = "md",
+  tone = "neutral",
+  placeholder,
+  ...rest
+}: AvatarProps) => {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   const showImage = !isEmptyString(src) && failedSrc !== src;
@@ -72,10 +56,18 @@ export const Avatar = (props: AvatarProps) => {
   const asButton = !asLink && rest.onClick != null;
   const interactive = asLink || asButton;
 
+  const classes = styles({
+    variant,
+    size,
+    tone,
+    interactive,
+    hasImage: showImage,
+  });
+
   let placeholderContent: React.ReactNode;
   if ("initials" in placeholder) {
     placeholderContent = (
-      <span className={css({ textTransform: "uppercase" })}>
+      <span className={classes.initials}>
         {placeholder.initials.slice(0, 2)}
       </span>
     );
@@ -89,12 +81,12 @@ export const Avatar = (props: AvatarProps) => {
 
   const content = (
     <>
-      <span aria-hidden="true" className={placeholderClass}>
+      <span aria-hidden="true" className={classes.placeholder}>
         {placeholderContent}
       </span>
       {showImage ? (
         <img
-          className={imageClass}
+          className={classes.image}
           src={src}
           alt=""
           draggable="false"
@@ -107,7 +99,7 @@ export const Avatar = (props: AvatarProps) => {
 
   const sharedProps = {
     ...rest,
-    className: cx(styles({ variant, size, tone, interactive }), className),
+    className: cx(classes.root, className),
     "aria-label": alt,
   };
 
