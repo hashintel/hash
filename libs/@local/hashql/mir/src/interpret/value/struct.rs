@@ -508,14 +508,14 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
 
     /// Returns the field names pushed so far.
     #[must_use]
-    pub fn fields(&self) -> &[Symbol<'heap>] {
+    pub const fn fields(&self) -> &[Symbol<'heap>] {
         // SAFETY: `fields[..initialized]` is fully initialized by invariant.
         unsafe { self.fields[..self.initialized].assume_init_ref() }
     }
 
     /// Returns the field values pushed so far.
     #[must_use]
-    pub fn values(&self) -> &[Value<'heap, A>] {
+    pub const fn values(&self) -> &[Value<'heap, A>] {
         // SAFETY: `values[..initialized]` is fully initialized by invariant.
         unsafe { self.values[..self.initialized].assume_init_ref() }
     }

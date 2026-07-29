@@ -11,6 +11,8 @@
 
     // Library Features
     allocator_api,
+    const_convert,
+    const_trait_impl,
     iter_array_chunks,
     maybe_uninit_fill,
     impl_trait_in_assoc_type,

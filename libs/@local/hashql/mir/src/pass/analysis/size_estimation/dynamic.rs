@@ -78,7 +78,7 @@ impl Eval {
     }
 
     /// Borrows the footprint, resolving `Copy` variants against the domain.
-    pub(crate) fn as_ref<'domain, A: Allocator>(
+    pub(crate) const fn as_ref<'domain, A: Allocator>(
         &'domain self,
         domain: &'domain BodyFootprint<A>,
     ) -> &'domain Footprint {
