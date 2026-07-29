@@ -123,15 +123,6 @@ export default {
 
 export const Default: Story<ChipProps> = (args) => (
   <div className={column}>
-    <KitchenSinkChip
-      color={args.color}
-      variant={args.variant}
-      size={args.size}
-      shape={args.shape}
-    >
-      {args.children}
-    </KitchenSinkChip>
-
     {variants.map((variant) => (
       <div className={row} key={variant}>
         <div className={rowLabel}>{variant}</div>
@@ -215,6 +206,14 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
 
   return (
     <div className={column}>
+      <div className={row}>
+        <div className={rowLabel}>no affix</div>
+        <Chip {...base}>Static</Chip>
+        <Chip {...base} onClick={noop}>
+          Clickable
+        </Chip>
+      </div>
+
       {affixStyles.map((style) => (
         <div className={row} key={style.label}>
           <div className={rowLabel}>{style.label}</div>
@@ -239,6 +238,7 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
           </Chip>
           <Chip
             {...base}
+            onClick={noop}
             prefix={{
               iconName: "sparkles",
               variant: style.variant,

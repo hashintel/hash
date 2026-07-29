@@ -3,7 +3,7 @@ import { cva, sva } from "@hashintel/ds-helpers/css";
 export const chipVariants = ["fill", "fillLight", "outline", "subtle"] as const;
 
 export const styles = sva({
-  slots: ["root", "label", "removeButton"],
+  slots: ["root", "label", "centerButton", "removeButton"],
   base: {
     root: {
       display: "inline-flex",
@@ -31,6 +31,28 @@ export const styles = sva({
       minWidth: "0",
       paddingBlock: "var(--chip-padding-y)",
       paddingInline: "var(--chip-padding-x)",
+    },
+    centerButton: {
+      display: "inline-flex",
+      alignItems: "center",
+      alignSelf: "stretch",
+      minWidth: "0",
+      cursor: "pointer",
+      appearance: "none",
+      border: "none",
+      background: "[transparent]",
+      color: "[inherit]",
+      font: "inherit",
+      paddingInline: "var(--chip-padding-x)",
+      transition: "[background 0.15s ease]",
+      _hover: {
+        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      },
+      "&:focus-visible": {
+        outline: "2px solid",
+        outlineColor: "black.a60",
+        outlineOffset: "[-2px]",
+      },
     },
     removeButton: {
       display: "inline-flex",
@@ -156,10 +178,19 @@ export const styles = sva({
       true: { root: { cursor: "pointer" } },
     },
     hasPrefix: {
-      true: { root: { paddingInlineStart: "0" } },
+      true: {
+        root: { paddingInlineStart: "0" },
+        centerButton: { paddingInlineStart: "0" },
+      },
     },
     hasSuffix: {
-      true: { root: { paddingInlineEnd: "0" } },
+      true: {
+        root: { paddingInlineEnd: "0" },
+        centerButton: { paddingInlineEnd: "0" },
+      },
+    },
+    segmented: {
+      true: { root: { paddingInlineStart: "0", paddingInlineEnd: "0" } },
     },
   },
   compoundVariants: [

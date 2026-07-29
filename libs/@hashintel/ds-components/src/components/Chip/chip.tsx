@@ -114,70 +114,82 @@ export const Chip = ({
   removeable,
 }: ChipProps) => {
   const showRemove = !!removeable?.removeable;
+  const prefixInteractive = !!prefix?.onClick;
+  const suffixInteractive = !!suffix?.onClick;
 
-  // A chip can be clickable as a whole and/or expose interactive affixes. To
-  // avoid nesting <button>s, the root is only a native button when nothing
-  // inside it is independently interactive.
   const hasInteractiveAffix =
-    !!prefix?.onClick || !!suffix?.onClick || showRemove;
+    prefixInteractive || suffixInteractive || showRemove;
   const clickable = !!onClick;
+  const rootIsButton = clickable && !hasInteractiveAffix;
+  const segmentedButton = clickable && hasInteractiveAffix;
 
   const classes = styles({
     size,
     color,
     variant,
     shape,
-    clickable,
+    clickable: rootIsButton,
     hasPrefix: !!prefix,
     hasSuffix: !!suffix || showRemove,
+    segmented: segmentedButton,
   });
-
-  const content = (
-    <>
-      {prefix ? <ChipAffix affix={prefix} side="prefix" size={size} /> : null}
-      <span className={classes.label}>{children}</span>
-      {suffix ? <ChipAffix affix={suffix} side="suffix" size={size} /> : null}
-      {showRemove ? (
-        <button
-          type="button"
-          aria-label="Remove"
-          className={classes.removeButton}
-          onClick={removeable.onRemove}
-        >
-          <Icon name="close" size={iconSizeMap[size]} />
-        </button>
-      ) : null}
-    </>
-  );
 
   const rootClassName = cx(classes.root, className);
 
-  if (clickable && !hasInteractiveAffix) {
+  const prefixNode = prefix && (
+    <ChipAffix affix={prefix} side="prefix" size={size} />
+  );
+  const suffixNode = suffix && (
+    <ChipAffix affix={suffix} side="suffix" size={size} />
+  );
+  const removeNode = showRemove && (
+    <button
+      type="button"
+      aria-label="Remove"
+      className={classes.removeButton}
+      onClick={removeable.onRemove}
+    >
+      <Icon name="close" size={iconSizeMap[size]} />
+    </button>
+  );
+  const label = <span className={classes.label}>{children}</span>;
+
+  if (rootIsButton) {
     return (
       <button type="button" className={rootClassName} onClick={onClick}>
-        {content}
+        {prefixNode}
+        {label}
+        {suffixNode}
       </button>
     );
   }
 
-  if (clickable) {
+  if (segmentedButton) {
     return (
-      <div
-        className={rootClassName}
-        role="button"
-        tabIndex={0}
-        onClick={onClick}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onClick();
-          }
-        }}
-      >
-        {content}
+      <div className={rootClassName}>
+        {prefixInteractive && prefixNode}
+        <button
+          type="button"
+          className={classes.centerButton}
+          onClick={onClick}
+        >
+          {prefix && !prefixInteractive && prefixNode}
+          {label}
+          {suffix && !suffixInteractive && suffixNode}
+        </button>
+        {suffixInteractive && suffixNode}
+        {removeNode}
       </div>
     );
   }
 
-  return <div className={rootClassName}>{content}</div>;
+  // Not clickable: a plain container.
+  return (
+    <div className={rootClassName}>
+      {prefixNode}
+      {label}
+      {suffixNode}
+      {removeNode}
+    </div>
+  );
 };
