@@ -183,8 +183,18 @@ const transparentImage = svgAvatar(
 const whiteImage = svgAvatar(
   `<rect width="80" height="80" fill="#ffffff"/><circle cx="40" cy="40" r="22" fill="#3b82f6"/>`,
 );
+// Shape on a dark green canvas — a dark image against the light border/page
+const darkGreenImage = svgAvatar(
+  `<rect width="80" height="80" fill="#0a5c2c"/><circle cx="40" cy="40" r="22" fill="#f59e0b"/>`,
+);
 
-const imageColumns = ["Error", "Loading", "Transparent bg", "White bg"];
+const imageColumns = [
+  "Error",
+  "Loading",
+  "Transparent img",
+  "White img",
+  "Dark green img",
+];
 
 const imageCells = (
   variant: AvatarProps["variant"],
@@ -224,6 +234,15 @@ const imageCells = (
     size="lg"
     alt="White background image"
     src={whiteImage}
+    placeholder={{ initials: "CB" }}
+  />,
+  <Avatar
+    key="dark-green"
+    variant={variant}
+    tone={tone}
+    size="lg"
+    alt="Dark green background image"
+    src={darkGreenImage}
     placeholder={{ initials: "CB" }}
   />,
 ];

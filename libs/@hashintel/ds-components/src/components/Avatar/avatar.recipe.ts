@@ -19,6 +19,14 @@ export const styles = sva({
       width: "var(--avatar-size)",
       height: "var(--avatar-size)",
       minWidth: "var(--avatar-size)",
+      // A loaded image gets the neutral fill and border on every tone (the
+      // attribute selector outweighs the tone variant). The fill is covered by
+      // the image, so this only neutralises the 1px border ring — keeping the
+      // translucent border reading grey rather than tinted by the tone fill.
+      "&[data-loaded='true']": {
+        backgroundColor: "neutral.s20",
+        borderColor: "bd.subtle",
+      },
     },
     image: {
       position: "absolute",
@@ -26,6 +34,13 @@ export const styles = sva({
       width: "full",
       height: "full",
       objectFit: "cover",
+      // Transparent images (e.g. logos) render on white, not the tone fill. Hidden
+      // until loaded so the placeholder — not a white box — shows while loading.
+      backgroundColor: "[white]",
+      opacity: "0",
+      "&[data-loaded='true']": {
+        opacity: "1",
+      },
     },
     placeholder: {
       display: "inline-flex",

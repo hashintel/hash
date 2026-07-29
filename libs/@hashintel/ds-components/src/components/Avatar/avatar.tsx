@@ -49,13 +49,23 @@ export const Avatar = ({
   ...rest
 }: AvatarProps) => {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [trackedSrc, setTrackedSrc] = useState(src);
 
   // Re-attempt loading whenever `src` changes, even for a URL that failed before
   if (src !== trackedSrc) {
     setTrackedSrc(src);
     setFailed(false);
+    setLoaded(false);
   }
+
+  // A cached image can finish before React attaches `onLoad`, so reflect an
+  // already-complete image synchronously when the element mounts
+  const imageRef = (node: HTMLImageElement | null) => {
+    if (node?.complete && node.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  };
 
   const showImage = !isEmptyString(src) && !failed;
 
@@ -93,11 +103,15 @@ export const Avatar = ({
       </span>
       {showImage ? (
         <img
+          key={src}
+          ref={imageRef}
           className={classes.image}
+          data-loaded={loaded}
           src={src}
           alt=""
           draggable="false"
           referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
         />
       ) : null}
@@ -108,6 +122,7 @@ export const Avatar = ({
     ...rest,
     className: cx(classes.root, className),
     "aria-label": alt,
+    "data-loaded": loaded,
   };
 
   if (asLink) {
