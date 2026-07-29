@@ -1,4 +1,5 @@
 import { computePeriodCost } from "../../shared/cost";
+import { computeIqrFences } from "../../shared/outlier-selection/iqr";
 
 import type {
   BatchRow,
@@ -534,11 +535,18 @@ function simulateBatch(
   };
 }
 
-function mean(values: number[]): number | null {
+function mean(values: number[], excludeOutliers = false): number | null {
   if (values.length === 0) {
     return null;
   }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const fences = excludeOutliers ? computeIqrFences(values) : null;
+  const meanValues = fences
+    ? values.filter((value) => value >= fences.lower && value <= fences.upper)
+    : values;
+  if (meanValues.length === 0) {
+    return null;
+  }
+  return meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -683,10 +691,12 @@ export function aggregateSimulation(
   options: {
     windowMonths?: number;
     activeSegments?: Set<SegmentId>;
+    excludeOutliers?: boolean;
   } = {},
 ): SimulationResult {
   const windowMonths = options.windowMonths ?? 12;
   const activeSegments = options.activeSegments;
+  const excludeOutliers = options.excludeOutliers ?? false;
   const isActive = (step: SegmentId) =>
     !activeSegments || activeSegments.has(step);
   const routeBatches = routeCode
@@ -822,8 +832,8 @@ export function aggregateSimulation(
     (left, right) => left - right,
   );
 
-  const baselineMean = mean(baselineTotals);
-  const simulatedMean = mean(simulatedTotals);
+  const baselineMean = mean(baselineTotals, excludeOutliers);
+  const simulatedMean = mean(simulatedTotals, excludeOutliers);
   const daysSaved =
     baselineMean != null && simulatedMean != null
       ? Math.max(0, baselineMean - simulatedMean)
@@ -839,10 +849,10 @@ export function aggregateSimulation(
   const sortedSegMedian = (vals: number[]) =>
     [...vals].sort((left, right) => left - right);
   const simulatedStagesMean = buildStages(
-    mean(segs.procToPS) ?? 0,
-    mean(segs.prodStartToFinish) ?? 0,
-    mean(segs.prodFinishToQa) ?? 0,
-    mean(segs.qaToCustomer) ?? 0,
+    mean(segs.procToPS, excludeOutliers) ?? 0,
+    mean(segs.prodStartToFinish, excludeOutliers) ?? 0,
+    mean(segs.prodFinishToQa, excludeOutliers) ?? 0,
+    mean(segs.qaToCustomer, excludeOutliers) ?? 0,
     activeSegments,
   );
   const simulatedStagesMedian = buildStages(

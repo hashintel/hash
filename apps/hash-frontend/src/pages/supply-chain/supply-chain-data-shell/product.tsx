@@ -519,7 +519,11 @@ export const Overview = ({
           return endDate != null && endDate.slice(0, 7) >= cutoff;
         })
       : bt.batches;
-    const filteredBT = recomputeBatchTimelines(filteredBatches, bt, false);
+    const filteredBT = recomputeBatchTimelines(
+      filteredBatches,
+      bt,
+      excludeOutliers,
+    );
     return {
       ...graph,
       nodes: filteredNodes,
@@ -798,6 +802,7 @@ export const Overview = ({
             <E2EWhatIf
               graph={filteredGraph}
               timeRange={timeRange}
+              excludeOutliers={excludeOutliers}
               onCollapse={() => setPipelineExpanded(false)}
               onStepDrill={onStepSelect}
               activeSegments={activeSegments}

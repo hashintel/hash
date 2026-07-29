@@ -21,6 +21,7 @@ import type { GraphData } from "../../shared/types";
 interface E2EWhatIfProps {
   graph: GraphData;
   timeRange: TimeRange;
+  excludeOutliers: boolean;
   onCollapse: () => void;
   onStepDrill: (stepId: string) => void;
   /** Segments currently included in totals, KPIs and the lever list. */
@@ -110,6 +111,7 @@ const kpiGrid = css({
 export const E2EWhatIf = ({
   graph,
   timeRange,
+  excludeOutliers,
   onCollapse,
   onStepDrill,
   activeSegments,
@@ -151,7 +153,7 @@ export const E2EWhatIf = ({
         leverDefs,
         activeRoute || null,
         { waccRate, storageCost },
-        { windowMonths, activeSegments },
+        { windowMonths, activeSegments, excludeOutliers },
       ),
     [
       graph.nodes,
@@ -163,6 +165,7 @@ export const E2EWhatIf = ({
       storageCost,
       windowMonths,
       activeSegments,
+      excludeOutliers,
     ],
   );
 
