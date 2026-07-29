@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -49,14 +49,12 @@ export const Avatar = ({
   ...rest
 }: AvatarProps) => {
   const [failed, setFailed] = useState(false);
+  const [trackedSrc, setTrackedSrc] = useState(src);
 
   // Re-attempt loading whenever `src` changes, even for a URL that failed before
-  const prevSrcRef = useRef(src);
-  if (prevSrcRef.current !== src) {
-    prevSrcRef.current = src;
-    if (failed) {
-      setFailed(false);
-    }
+  if (src !== trackedSrc) {
+    setTrackedSrc(src);
+    setFailed(false);
   }
 
   const showImage = !isEmptyString(src) && !failed;
