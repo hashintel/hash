@@ -89,6 +89,20 @@ const impl Default for HannoyIndexOptions {
 #[derive(Debug)]
 pub struct HannoyIndexError<N>(IndexFault<N>);
 
+impl<N> HannoyIndexError<N> {
+    /// Maps the row the error names into another row domain.
+    pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> HannoyIndexError<M> {
+        HannoyIndexError(self.0.map_rows(row))
+    }
+}
+
+impl HannoyIndexError<!> {
+    /// Widens the never-typed error into any row domain: no variant names a row.
+    pub(crate) fn widen<N>(self) -> HannoyIndexError<N> {
+        HannoyIndexError(self.0.widen())
+    }
+}
+
 impl<N> fmt::Display for HannoyIndexError<N>
 where
     N: fmt::Display,
@@ -155,6 +169,27 @@ where
             Self::RowOutOfRange(error) => Some(error),
             Self::RowNotIndexed(_) => None,
         }
+    }
+}
+
+impl<N> IndexFault<N> {
+    /// Maps the row the fault names into another row domain.
+    fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> IndexFault<M> {
+        match self {
+            Self::Hannoy(error) => IndexFault::Hannoy(error),
+            Self::Heed(error) => IndexFault::Heed(error),
+            Self::Io(error) => IndexFault::Io(error),
+            Self::Locked(error) => IndexFault::Locked(error),
+            Self::RowOutOfRange(error) => IndexFault::RowOutOfRange(error),
+            Self::RowNotIndexed(unindexed) => IndexFault::RowNotIndexed(row(unindexed)),
+        }
+    }
+}
+
+impl IndexFault<!> {
+    /// Widens the never-typed fault into any row domain: no variant names a row.
+    fn widen<N>(self) -> IndexFault<N> {
+        self.map_rows(|row| row)
     }
 }
 
@@ -352,7 +387,8 @@ where
     }
 
     fn build(&mut self, rng: impl Rng + SeedableRng) -> Result<(), Self::Error> {
-        self.link(rng).map_err(HannoyIndexError)
+        self.link(rng)
+            .map_err(|fault| HannoyIndexError(fault.widen()))
     }
 
     fn search_by_vector(
@@ -360,7 +396,9 @@ where
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
     ) -> Result<impl IntoIterator<Item = Neighbour<N>>, Self::Error> {
-        let results = self.nns_by_vector(query, limit).map_err(HannoyIndexError)?;
+        let results = self
+            .nns_by_vector(query, limit)
+            .map_err(|fault| HannoyIndexError(fault.widen()))?;
 
         Ok(Self::finish_search(results))
     }

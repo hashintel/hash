@@ -1,4 +1,4 @@
-//! The neighbour-construction reports: the backend sweep and the two construction audits.
+//! The neighbour-construction reports: the backend sweep and the NN-Descent audit.
 //!
 //! Each command reads the root's active generation and prints its readings. The grid arguments
 //! default to the settings the deployed configuration was pinned on, so an invocation without flags
@@ -6,10 +6,12 @@
 
 use clap::Args;
 
-use crate::salt::knn::{
-    brute::BruteForceError,
-    descent::NnDescentError,
-    report::{AuditError, backend, brute, descent},
+use crate::{
+    identity::NodeRowId,
+    salt::knn::{
+        descent::NnDescentError,
+        report::{AuditError, backend, descent},
+    },
 };
 
 /// Grid and root settings of one backend sweep.
@@ -88,37 +90,9 @@ impl DescentArgs {
     ///
     /// Returns the audit's failure when the representations cannot be read, the reference cannot
     /// be computed, or a construction fails.
-    pub(super) fn run(self) -> Result<descent::Audit, AuditError<NnDescentError>> {
+    pub(super) fn run(self) -> Result<descent::Audit, AuditError<NodeRowId, NnDescentError>> {
         crate::math::kernel::verify_cpu_baseline();
 
         descent::audit(&self.root.root, &self.seeds, &self.candidates)
-    }
-}
-
-/// Root and bound settings of one brute-force audit.
-#[derive(Debug, Args)]
-pub(crate) struct BruteArgs {
-    #[command(flatten)]
-    root: crate::cli::RootArgs,
-
-    /// Audit only the corpus prefix of this many rows; the whole corpus is audited without it.
-    ///
-    /// Both the rows and the candidate columns shrink with the bound, so full-corpus wall
-    /// extrapolates quadratically from a bounded reading.
-    #[arg(long)]
-    rows: Option<usize>,
-}
-
-impl BruteArgs {
-    /// Audits the exact tiled-product construction over the active generation's representations.
-    ///
-    /// # Errors
-    ///
-    /// Returns the audit's failure when the representations cannot be read, the reference cannot
-    /// be computed, or the construction fails.
-    pub(super) fn run(self) -> Result<brute::Audit, AuditError<BruteForceError>> {
-        crate::math::kernel::verify_cpu_baseline();
-
-        brute::audit(&self.root.root, self.rows)
     }
 }

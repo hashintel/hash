@@ -6,7 +6,6 @@
 //! candidate cap is the knob the audit sweeps.
 
 use core::{
-    convert::Infallible,
     fmt::{self, Display},
     time::Duration,
 };
@@ -15,6 +14,7 @@ use std::time::Instant;
 use super::{AuditError, REFERENCE_ROWS, Seconds, open_representations, representation_rows};
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
+    identity::NodeRowId,
     salt::{
         fit::{Stage, stage_rng},
         knn::{
@@ -103,7 +103,7 @@ pub(crate) fn audit(
     root: &GenerationRoot,
     seeds: &[u64],
     candidates: &[usize],
-) -> Result<Audit, AuditError<NnDescentError>> {
+) -> Result<Audit, AuditError<NodeRowId, NnDescentError>> {
     let (id, file) = open_representations(root).map_err(AuditError::Setup)?;
     let embeddings = representation_rows(&file).map_err(AuditError::Setup)?;
 
@@ -111,7 +111,7 @@ pub(crate) fn audit(
     let width = check.neighbours.max(DEFAULT_NEIGHBOURS);
 
     let started = Instant::now();
-    let reference = ExactReference::new::<Infallible>(
+    let reference = ExactReference::new::<!>(
         embeddings,
         check.neighbours,
         REFERENCE_ROWS,

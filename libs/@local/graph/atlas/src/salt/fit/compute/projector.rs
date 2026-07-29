@@ -18,7 +18,7 @@ use std::{
 
 use burn::{backend::Autodiff, module::AutodiffModule as _};
 use camino::{Utf8Path, Utf8PathBuf};
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -30,7 +30,7 @@ use super::{
         stage_rng,
     },
     Context,
-    quotient::RowQuotient,
+    quotient::{DistinctRowId, RowQuotient},
 };
 use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
@@ -43,7 +43,7 @@ use crate::{
             FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
         },
     },
-    identity::{NodeRowId, OntologyRowId},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{AlignedVecN, NonNegative, Positive, Vec2},
     progress::Progress,
@@ -100,7 +100,7 @@ pub(super) struct PlacementInputs<'fit> {
     /// The mapped representation matrix, one aligned row per corpus node.
     ///
     /// The publication domain: ladder frames and the canonical coordinate column cover these rows.
-    pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    pub rows: &'fit IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The staged landmark skeleton, over the corpus row domain.
     pub skeleton: &'fit LandmarkSkeletonArchive,
     /// The supplied verdicts, resolved into the corpus row domain.
@@ -116,15 +116,15 @@ pub(super) struct PlacementInputs<'fit> {
 /// identical representations project identically, so the two domains describe one field.
 pub(super) struct DistinctInputs<'fit> {
     /// The distinct representation rows, first occurrences in corpus order.
-    pub rows: &'fit [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    pub rows: &'fit IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The corpus-to-distinct row quotient.
     pub quotient: &'fit RowQuotient,
     /// The distinct-domain neighbour table.
-    pub knn: &'fit KnnArchive,
+    pub knn: &'fit KnnArchive<DistinctRowId>,
     /// The distinct-domain semantic graph.
-    pub semantic: &'fit SemanticGraphArchive,
+    pub semantic: &'fit SemanticGraphArchive<DistinctRowId>,
     /// The distinct-domain relation indexes.
-    pub indexes: &'fit RelationIndexes,
+    pub indexes: &'fit RelationIndexes<DistinctRowId, EdgeRowId>,
 }
 
 /// The supplied verdicts resolved into the corpus row domain.
@@ -204,11 +204,11 @@ impl Context<'_> {
 
         let columns = NodeColumns {
             representations: inputs.rows,
-            roles: &roles,
+            roles: IdSlice::from_raw(&roles),
         };
         let trainer_columns = NodeColumns {
             representations: distinct.rows,
-            roles: &roles[..distinct.rows.len()],
+            roles: IdSlice::from_raw(&roles[..distinct.rows.len()]),
         };
         // Mass normalization: the configured coefficients are
         // corpus-free bases. The semantic and ordinary bases divide by
@@ -261,7 +261,13 @@ impl Context<'_> {
             forward_rows: options.forward_rows,
         };
 
-        let fitted = self.train(options, &trainer_inputs, &train_options, progress)?;
+        let fitted = self.train(
+            options,
+            &trainer_inputs,
+            distinct.quotient,
+            &train_options,
+            progress,
+        )?;
         let checkpoint = self.stage_checkpoint(&fitted.model)?;
 
         // Inference runs on the inner backend. The lens is trained
@@ -308,10 +314,14 @@ impl Context<'_> {
     }
 
     /// Runs the training loop under its own span.
+    ///
+    /// Training speaks distinct rows; its failure surface translates through the quotient onto
+    /// corpus rows.
     fn train<P: Progress>(
         &self,
         options: &ProjectorOptions,
-        inputs: &TrainerInputs<'_>,
+        inputs: &TrainerInputs<'_, DistinctRowId, EdgeRowId>,
+        quotient: &RowQuotient,
         train_options: &TrainOptions,
         progress: &P,
     ) -> Result<train::Fitted<TrainerBackend>, StageError> {
@@ -329,7 +339,8 @@ impl Context<'_> {
             &mut stage_rng(self.config.seed, Stage::ProjectorDraws),
             &device,
             progress,
-        )?;
+        )
+        .map_err(|error| error.map_rows(|row| quotient.first_row(row)))?;
         tracing::info!(
             steps = options.schedule.steps().get(),
             "trained the projector"
@@ -363,7 +374,7 @@ impl Context<'_> {
         &self,
         options: &ProjectorOptions,
         model: &Projector<TrainerInner>,
-        columns: NodeColumns<'_>,
+        columns: NodeColumns<'_, NodeRowId>,
         inputs: &PlacementInputs<'_>,
         energy: RelationEnergy,
     ) -> Result<(LadderEvidence, Sha256Digest), StageError> {
@@ -379,7 +390,8 @@ impl Context<'_> {
             // representations project identically, so the gather is
             // the distinct rows' own frame.
             let distinct_frame = gather_distinct(&frame, inputs.distinct.quotient);
-            let scales = refresh::scales(&distinct_frame, &inputs.distinct.knn.view(), eta)?;
+            let scales = refresh::scales(&distinct_frame, &inputs.distinct.knn.view(), eta)
+                .map_err(|error| error.map_rows(|row| inputs.distinct.quotient.first_row(row)))?;
             losses.push(relation_loss(
                 &distinct_frame,
                 &scales,
@@ -442,12 +454,14 @@ impl Context<'_> {
             let frame = file
                 .points()
                 .expect("the coordinate column was sealed as f32 pairs");
-            let distinct_frame = gather_distinct(frame, inputs.distinct.quotient);
+            let distinct_frame =
+                gather_distinct(IdSlice::from_raw(frame), inputs.distinct.quotient);
             let scales = refresh::scales(
                 &distinct_frame,
                 &inputs.distinct.knn.view(),
                 selection.measurement.condition,
-            )?;
+            )
+            .map_err(|error| error.map_rows(|row| inputs.distinct.quotient.first_row(row)))?;
             relation_loss(
                 &distinct_frame,
                 &scales,
@@ -682,17 +696,15 @@ fn landmark_anchors(
     skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,
     quotient: &RowQuotient,
-) -> Vec<SupportAnchor> {
+) -> Vec<SupportAnchor<DistinctRowId>> {
     let coordinates = skeleton.coordinates();
 
     skeleton
         .selected_rows()
-        .iter()
-        .zip(coordinates)
-        .enumerate()
-        .map(|(ordinal, (&row, &target))| SupportAnchor {
+        .iter_enumerated()
+        .map(|(ordinal, &row)| SupportAnchor {
             row: quotient.representative(row),
-            target,
+            target: coordinates[ordinal],
             radius: skeleton_scale(coordinates, ordinal),
             weight: options.landmark_support.weight(),
         })
@@ -700,11 +712,14 @@ fn landmark_anchors(
 }
 
 /// Gathers a corpus frame's rows at the quotient's first rows: the training domain's own frame.
-fn gather_distinct(frame: &[Vec2], quotient: &RowQuotient) -> Vec<Vec2> {
+fn gather_distinct(
+    frame: &IdSlice<NodeRowId, Vec2>,
+    quotient: &RowQuotient,
+) -> IdVec<DistinctRowId, Vec2> {
     quotient
         .first_rows()
         .iter()
-        .map(|&row| frame[row.as_usize()])
+        .map(|&row| frame[row])
         .collect()
 }
 
@@ -723,10 +738,13 @@ fn gather_distinct(frame: &[Vec2], quotient: &RowQuotient) -> Vec<Vec2> {
 // neighbour choices cannot change the result - an exact index
 // reproduces the brute-force output bit for bit. Measure at a
 // raised capacity before acting.
-fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
+fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> f32
+where
+    N: Id,
+{
     let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
     let mut count = 0_usize;
-    for (other, &coordinate) in coordinates.iter().enumerate() {
+    for (other, &coordinate) in coordinates.iter_enumerated() {
         if other == ordinal {
             continue;
         }
@@ -740,10 +758,13 @@ fn skeleton_scale(coordinates: &[Vec2], ordinal: usize) -> f32 {
 }
 
 /// Sums the semantic graph's positive edge weight in double precision.
-fn semantic_weight(view: &SemanticGraphView<'_>) -> f64 {
+fn semantic_weight<N>(view: &SemanticGraphView<'_, N>) -> f64
+where
+    N: Id,
+{
     let mut total = 0.0_f64;
     for row in 0..view.rows() {
-        for edge in view.row(row) {
+        for edge in view.row(N::from_usize(row)) {
             total += f64::from(edge.weight);
         }
     }
@@ -802,7 +823,10 @@ fn rung_path(ladder: &Utf8Path, index: usize) -> Utf8PathBuf {
 }
 
 /// Writes one rung's frame as a scratch array file.
-fn write_frame(path: impl AsRef<Utf8Path>, frame: &[Vec2]) -> Result<(), StageError> {
+fn write_frame<N>(path: impl AsRef<Utf8Path>, frame: &IdSlice<N, Vec2>) -> Result<(), StageError>
+where
+    N: Id,
+{
     let mut writer = BufWriter::new(File::create(path.as_ref().as_std_path())?);
     let mut array = ArrayWriter::new(&mut writer, ArrayVariant::F32, &[Dim::new(2)])?;
     for point in frame {
@@ -820,20 +844,24 @@ fn write_frame(path: impl AsRef<Utf8Path>, frame: &[Vec2]) -> Result<(), StageEr
 ///
 /// The per-instance formula is the batch relation term's with the estimator scale at one; the twin
 /// lives at [`relation_term`](crate::salt::projector::loss::relation_term).
-fn relation_loss(
-    frame: &[Vec2],
-    scales: &LocalScales,
-    index: &AttractionIndex,
+fn relation_loss<N, E>(
+    frame: &IdSlice<N, Vec2>,
+    scales: &LocalScales<N>,
+    index: &AttractionIndex<N, E>,
     energy: RelationEnergy,
-) -> f64 {
+) -> f64
+where
+    N: Id,
+    E: Id,
+{
     let epsilon = energy.epsilon();
 
     let mut total = 0.0_f64;
     for group in index.groups() {
         let weights = group.weights();
         for edge in group.edges() {
-            let source = row_index(edge.source);
-            let target = row_index(edge.target);
+            let source = edge.source;
+            let target = edge.target;
             let difference = frame[source] - frame[target];
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
@@ -848,11 +876,6 @@ fn relation_loss(
         }
     }
     total
-}
-
-/// Narrows a node row to a slice position.
-fn row_index(row: NodeRowId) -> usize {
-    usize::try_from(row.as_u64()).expect("rows fit the address space")
 }
 
 #[cfg(test)]

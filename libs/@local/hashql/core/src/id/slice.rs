@@ -600,6 +600,22 @@ where
     }
 }
 
+impl<I, T, A> Clone for Box<IdSlice<I, T>, A>
+where
+    I: Id,
+    T: Clone,
+    A: Allocator + Clone,
+{
+    fn clone(&self) -> Self {
+        let raw = self
+            .as_raw()
+            .to_vec_in(Self::allocator(self).clone())
+            .into_boxed_slice();
+
+        IdSlice::from_boxed_slice(raw)
+    }
+}
+
 impl<I, T> ToOwned for IdSlice<I, T>
 where
     I: Id,

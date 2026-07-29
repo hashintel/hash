@@ -19,7 +19,7 @@ use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     module::AutodiffModule as _,
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -88,17 +88,17 @@ const fn first_cluster(row: usize) -> bool {
 
 /// One training corpus's owned artifacts.
 struct Corpus {
-    graph: SemanticGraph,
-    indexes: RelationIndexes,
-    knn: Knn,
+    graph: SemanticGraph<NodeRowId>,
+    indexes: RelationIndexes<NodeRowId, EdgeRowId>,
+    knn: Knn<NodeRowId>,
     storage: BoxedVecN<CAPACITY>,
     roles: Vec<NodeRole>,
-    landmarks: Vec<SupportAnchor>,
+    landmarks: Vec<SupportAnchor<NodeRowId>>,
     verdicts: Vec<ResolvedVerdict>,
 }
 
 impl Corpus {
-    fn inputs(&self) -> TrainerInputs<'_> {
+    fn inputs(&self) -> TrainerInputs<'_, NodeRowId, EdgeRowId> {
         TrainerInputs {
             semantic: self.graph.view(),
             protection: self.indexes.protection.view(),
@@ -106,9 +106,11 @@ impl Corpus {
             attraction: &self.indexes.attraction,
             knn: self.knn.view(),
             columns: NodeColumns {
-                representations: AlignedVecN::from_slice(&self.storage.as_array()[..CAPACITY])
-                    .expect("boxed storage is aligned"),
-                roles: &self.roles,
+                representations: IdSlice::from_raw(
+                    AlignedVecN::from_slice(&self.storage.as_array()[..CAPACITY])
+                        .expect("boxed storage is aligned"),
+                ),
+                roles: IdSlice::from_raw(&self.roles),
             },
             landmarks: &self.landmarks,
             anchors: &[],
@@ -120,7 +122,7 @@ impl Corpus {
 /// Builds the two-cluster corpus with the given relation evidence.
 fn corpus_with(
     policies: &[RelationPolicy],
-    instances: Vec<RelationInstance>,
+    instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
     verdicts: Vec<ResolvedVerdict>,
     options: AttractionOptions,
 ) -> Corpus {
@@ -209,7 +211,7 @@ fn proximal_verdict() -> ResolvedVerdict {
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
-fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph {
+fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<NodeRowId> {
     let mut adjacency = vec![Vec::new(); rows];
     for &(one, other, weight) in edges {
         adjacency[one].push((other, weight));
@@ -233,7 +235,7 @@ fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph {
 }
 
 /// A complete-graph neighbour table: cluster mates near, others far.
-fn knn_table() -> Knn {
+fn knn_table() -> Knn<NodeRowId> {
     let mut indptr = vec![0_u64];
     let mut columns = Vec::new();
     let mut values = Vec::new();
@@ -272,7 +274,12 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An unscored instance of `relation` between `source` and `target`.
-fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInstance {
+fn instance(
+    edge: u64,
+    relation: u64,
+    source: u64,
+    target: u64,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -350,7 +357,7 @@ fn model() -> Projector<TestBackend> {
 }
 
 /// Forwards the trained corpus at a rung.
-fn project(trained: &Projector<TestBackend>, corpus: &Corpus, eta: f32) -> Vec<Vec2> {
+fn project(trained: &Projector<TestBackend>, corpus: &Corpus, eta: f32) -> IdVec<NodeRowId, Vec2> {
     refresh::forward(
         &trained.valid(),
         corpus.inputs().columns,
@@ -362,11 +369,14 @@ fn project(trained: &Projector<TestBackend>, corpus: &Corpus, eta: f32) -> Vec<V
 }
 
 /// Mean pairwise distance over the given row pairs.
-fn mean_distance(layout: &[Vec2], pairs: impl Iterator<Item = (usize, usize)>) -> f32 {
+fn mean_distance<N>(layout: &IdSlice<N, Vec2>, pairs: impl Iterator<Item = (usize, usize)>) -> f32
+where
+    N: Id,
+{
     let mut total = 0.0;
     let mut count = 0.0;
     for (one, other) in pairs {
-        total += layout[one].distance(layout[other]);
+        total += layout[N::from_usize(one)].distance(layout[N::from_usize(other)]);
         count += 1.0;
     }
     total / count
@@ -437,7 +447,7 @@ fn landmark_support_keeps_the_frame() {
 
     let layout = project(&fitted.model, &corpus, 0.0);
     for anchor in &corpus.landmarks {
-        let distance = layout[anchor.row.as_usize()].distance(anchor.target);
+        let distance = layout[anchor.row].distance(anchor.target);
         assert!(
             distance < anchor.radius,
             "row {} should hold near its landmark: distance {distance}",
@@ -534,7 +544,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let after = project(&fitted.model, &corpus, 0.0);
 
     for anchor in &corpus.landmarks {
-        let row = anchor.row.as_usize();
+        let row = anchor.row;
         // The step's direction, not its magnitude: an Adam step can overshoot
         // a nearby target in one move, but the force it took the step under
         // must still point the row toward its landmark.

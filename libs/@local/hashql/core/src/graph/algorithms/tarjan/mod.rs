@@ -291,12 +291,18 @@ where
     M: Metadata<N, S>,
 {
     /// Returns the SCC identifier containing the given node.
-    pub fn scc(&self, node: N) -> S {
+    pub const fn scc(&self, node: N) -> S
+    where
+        N: [const] Id,
+    {
         self.data.nodes[node]
     }
 
     /// Returns the metadata annotation for the given SCC.
-    pub fn annotation(&self, scc: S) -> &M::Annotation {
+    pub const fn annotation(&self, scc: S) -> &M::Annotation
+    where
+        S: [const] Id,
+    {
         &self.data.components[scc].annotation
     }
 

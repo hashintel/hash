@@ -302,7 +302,6 @@ where
     /// Returns [`None`] when the graph stores no edges. Weights are finite in `(0, 1]` by the
     /// graph's invariants, so the schedule re-validates nothing.
     #[expect(
-        clippy::cast_possible_truncation,
         clippy::cast_precision_loss,
         reason = "the matrix's u32 column index type bounds the square row domain, and epoch \
                   budgets lose schedule precision only beyond exact f32 integers"
@@ -484,10 +483,6 @@ where
     }
 
     /// Draws one uniform vertex and returns its coordinates.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "vertex counts index an in-memory layout, which cannot outgrow the address space"
-    )]
     fn draw_target(&mut self) -> Vec2 {
         self.coordinates[N::from_u64(uniform_below(&mut self.rng, self.vertices))]
     }

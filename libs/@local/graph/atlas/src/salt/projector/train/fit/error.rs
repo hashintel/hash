@@ -7,7 +7,7 @@ use crate::salt::projector::train::{StepError, refresh::RefreshError};
 
 /// A training run failed.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum TrainError {
+pub enum TrainError<N> {
     /// The semantic graph carries no edge weight: there is no layout evidence to train against.
     NoSemanticEvidence,
     /// The schedule's boundary is step zero.
@@ -26,9 +26,9 @@ pub enum TrainError {
     /// The frozen Proximal radius does not exceed the Coincident one.
     DegenerateRadius { radius: f32, coincident: f32 },
     /// A refresh tick or boundary measurement failed.
-    Refresh(RefreshError),
+    Refresh(RefreshError<N>),
     /// A training step failed.
-    Step(StepError),
+    Step(StepError<N>),
     /// A resumed ladder was handed a schedule differing from the one its opening segment ran under.
     ///
     /// So the scheduler position and the phase boundary no longer describe the same run.
@@ -38,9 +38,32 @@ pub enum TrainError {
     },
 }
 
-impl fmt::Display for TrainError {
+impl<N> TrainError<N> {
+    /// Maps the rows the error names into another row domain.
+    pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> TrainError<M> {
+        match self {
+            Self::NoSemanticEvidence => TrainError::NoSemanticEvidence,
+            Self::UnbaselinedRadius => TrainError::UnbaselinedRadius,
+            Self::MissingProximalReviews => TrainError::MissingProximalReviews,
+            Self::CoincidentWithoutProximal => TrainError::CoincidentWithoutProximal,
+            Self::DegenerateRadius { radius, coincident } => {
+                TrainError::DegenerateRadius { radius, coincident }
+            }
+            Self::Refresh(error) => TrainError::Refresh(error.map_rows(row)),
+            Self::Step(error) => TrainError::Step(error.map_rows(row)),
+            Self::ScheduleChanged { opening, resumed } => {
+                TrainError::ScheduleChanged { opening, resumed }
+            }
+        }
+    }
+}
+
+impl<N> fmt::Display for TrainError<N>
+where
+    N: fmt::Display,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match self {
             Self::NoSemanticEvidence => {
                 fmt.write_str("the semantic graph carries no edge weight to train against")
             }
@@ -73,7 +96,10 @@ impl fmt::Display for TrainError {
     }
 }
 
-impl Error for TrainError {
+impl<N> Error for TrainError<N>
+where
+    N: fmt::Debug + fmt::Display + 'static,
+{
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Refresh(error) => Some(error),
@@ -88,14 +114,14 @@ impl Error for TrainError {
     }
 }
 
-impl From<RefreshError> for TrainError {
-    fn from(error: RefreshError) -> Self {
+impl<N> From<RefreshError<N>> for TrainError<N> {
+    fn from(error: RefreshError<N>) -> Self {
         Self::Refresh(error)
     }
 }
 
-impl From<StepError> for TrainError {
-    fn from(error: StepError) -> Self {
+impl<N> From<StepError<N>> for TrainError<N> {
+    fn from(error: StepError<N>) -> Self {
         Self::Step(error)
     }
 }

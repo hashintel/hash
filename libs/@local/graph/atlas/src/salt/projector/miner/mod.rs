@@ -133,7 +133,7 @@ where
     N: fmt::Display,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match self {
             Self::NonFinite { row } => {
                 write!(fmt, "the coordinate at row {row} is not finite")
             }

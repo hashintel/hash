@@ -20,6 +20,16 @@ use crate::{
     salt::{embedding::CardEmbeddingView, policy::GeometryClass},
 };
 
+hashql_core::id::newtype! {
+    /// A row's dense position within one partitioned subset.
+    ///
+    /// The disjoint-set domain of one [`partition`] call: subset positions, not corpus rows. The
+    /// key exists so a subset position and the `u32` row encodings it groups cannot stand in for
+    /// one another.
+    #[id(const)]
+    struct SubsetRowId(u32)
+}
+
 /// Returns the card's geometry-vote total as the row weight.
 #[expect(
     clippy::cast_precision_loss,
@@ -81,16 +91,15 @@ fn partition(
     pairs: &[(u32, u32, f64)],
     ranks: Ranks,
 ) -> Vec<Vec<u32>> {
-    let mut local_of: HashMap<u32, u32> = HashMap::with_capacity(subset.len());
+    let mut local_of: HashMap<u32, SubsetRowId> = HashMap::with_capacity(subset.len());
     for (local, &row) in subset.iter().enumerate() {
-        let local = u32::try_from(local).expect("the row domain is bound to u32");
-        local_of.insert(row, local);
+        local_of.insert(row, SubsetRowId::from_usize(local));
     }
 
-    let mut components = DisjointSet::new(subset.len());
-    let mut first_of_key: HashMap<u32, u32> = HashMap::new();
+    let mut components: DisjointSet<SubsetRowId> = DisjointSet::new(subset.len());
+    let mut first_of_key: HashMap<u32, SubsetRowId> = HashMap::new();
     for (local, &row) in subset.iter().enumerate() {
-        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let local = SubsetRowId::from_usize(local);
         let row_axes = &axes[row as usize];
 
         let mut join = |key: u32| match first_of_key.entry(key) {
@@ -122,9 +131,9 @@ fn partition(
     }
 
     let mut parts: Vec<Vec<u32>> = Vec::new();
-    let mut part_of_representative: HashMap<u32, usize> = HashMap::new();
+    let mut part_of_representative: HashMap<SubsetRowId, usize> = HashMap::new();
     for (local, &row) in subset.iter().enumerate() {
-        let local = u32::try_from(local).expect("the row domain is bound to u32");
+        let local = SubsetRowId::from_usize(local);
         let representative = components.find(local);
         let part = *part_of_representative
             .entry(representative)

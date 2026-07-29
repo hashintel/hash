@@ -78,7 +78,10 @@ use alloc::collections::BinaryHeap;
 use core::{hint::black_box, num::NonZero, time::Duration};
 
 use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterion_main};
-use hash_graph_atlas::bench::relation::{Corpus, Profile};
+use hash_graph_atlas::{
+    bench::relation::{Corpus, Profile},
+    identity::{EdgeRowId, NodeRowId},
+};
 use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -576,7 +579,8 @@ const JUDGE_LINKS: usize = 275_000;
 /// The two access layouts a mined sweep's protection vetting can take,
 /// per hit rate.
 fn bench_judge(criterion: &mut Criterion) {
-    let corpus = Corpus::synthesize::<Xoshiro256PlusPlus>(Profile::Live, JUDGE_LINKS, SEED);
+    let corpus: Corpus<NodeRowId, EdgeRowId> =
+        Corpus::synthesize::<Xoshiro256PlusPlus>(Profile::Live, JUDGE_LINKS, SEED);
     let per_row = NonZero::new(K).expect("the candidate width is positive");
 
     let mut group = criterion.benchmark_group("miner_index/judge");

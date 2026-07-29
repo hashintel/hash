@@ -10,12 +10,22 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::DisjointSet;
 
+hashql_core::id::newtype! {
+    /// The tests' index domain.
+    struct TestId(u32)
+}
+
+/// Shorthand for the tests' typed indices.
+fn id(index: u32) -> TestId {
+    TestId::new(index)
+}
+
 #[test]
 fn discrete_partition_keeps_indices_apart() {
-    let mut components = DisjointSet::new(5);
+    let mut components: DisjointSet<TestId> = DisjointSet::new(5);
     assert_eq!(components.len(), 5);
     assert_eq!(components.groups(), 5);
-    for index in 0..5 {
+    for index in (0..5).map(id) {
         assert_eq!(components.find(index), index);
         assert_eq!(components.group_size(index), 1);
     }
@@ -23,20 +33,20 @@ fn discrete_partition_keeps_indices_apart() {
 
 #[test]
 fn chains_connect_transitively() {
-    let mut components = DisjointSet::new(6);
-    assert!(components.unite(0, 1));
-    assert!(components.unite(1, 2));
-    assert!(components.unite(4, 5));
+    let mut components: DisjointSet<TestId> = DisjointSet::new(6);
+    assert!(components.unite(id(0), id(1)));
+    assert!(components.unite(id(1), id(2)));
+    assert!(components.unite(id(4), id(5)));
 
-    assert_eq!(components.find(0), components.find(2));
-    assert_ne!(components.find(2), components.find(3));
-    assert_eq!(components.find(4), components.find(5));
+    assert_eq!(components.find(id(0)), components.find(id(2)));
+    assert_ne!(components.find(id(2)), components.find(id(3)));
+    assert_eq!(components.find(id(4)), components.find(id(5)));
     assert_eq!(components.groups(), 3);
-    assert_eq!(components.group_size(1), 3);
-    assert_eq!(components.group_size(3), 1);
+    assert_eq!(components.group_size(id(1)), 3);
+    assert_eq!(components.group_size(id(3)), 1);
 
     // Re-uniting inside one group changes nothing.
-    assert!(!components.unite(2, 0));
+    assert!(!components.unite(id(2), id(0)));
     assert_eq!(components.groups(), 3);
 }
 
@@ -46,7 +56,7 @@ fn random_unions_match_reference_partition() {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
     let len = 64_u32;
 
-    let mut components = DisjointSet::new(len as usize);
+    let mut components: DisjointSet<TestId> = DisjointSet::new(len as usize);
     // Reference: every index maps to a label; a union relabels one
     // whole side. Quadratic and obviously correct.
     let mut labels: Vec<u32> = (0..len).collect();
@@ -54,7 +64,7 @@ fn random_unions_match_reference_partition() {
     for _ in 0..96 {
         let one = rng.random_range(0..len);
         let other = rng.random_range(0..len);
-        components.unite(one, other);
+        components.unite(id(one), id(other));
         let (from, to) = (labels[one as usize], labels[other as usize]);
         if from != to {
             for label in &mut labels {
@@ -74,10 +84,10 @@ fn random_unions_match_reference_partition() {
     }
     assert_eq!(components.groups(), reference_groups.len());
     for group in reference_groups.values() {
-        let representative = components.find(group[0]);
+        let representative = components.find(id(group[0]));
         for &member in group {
-            assert_eq!(components.find(member), representative);
+            assert_eq!(components.find(id(member)), representative);
         }
-        assert_eq!(components.group_size(group[0]), group.len() as u32);
+        assert_eq!(components.group_size(id(group[0])), group.len() as u32);
     }
 }

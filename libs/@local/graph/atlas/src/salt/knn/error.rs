@@ -29,6 +29,53 @@ pub enum KnnError<N, E> {
     NeighbourOutOfBounds { row: N, neighbour: u64, rows: usize },
 }
 
+impl<N, E> KnnError<N, E> {
+    /// Maps the rows the error names into another row domain, and the backend error with them.
+    pub(crate) fn map_rows<M, F>(
+        self,
+        row: impl FnOnce(N) -> M,
+        backend: impl FnOnce(E) -> F,
+    ) -> KnnError<M, F> {
+        match self {
+            Self::Backend(error) => KnnError::Backend(backend(error)),
+            Self::Invalid(invalid) => KnnError::Invalid(invalid),
+            Self::TooManyRows { rows } => KnnError::TooManyRows { rows },
+            Self::TooManyEntries { rows, neighbours } => {
+                KnnError::TooManyEntries { rows, neighbours }
+            }
+            Self::SampleBudget { margin, confidence } => {
+                KnnError::SampleBudget { margin, confidence }
+            }
+            Self::ListsWidth { width, neighbours } => KnnError::ListsWidth { width, neighbours },
+            Self::SearchCount {
+                row: searched,
+                expected,
+                actual,
+            } => KnnError::SearchCount {
+                row: row(searched),
+                expected,
+                actual,
+            },
+            Self::DuplicateNeighbour {
+                row: searched,
+                neighbour,
+            } => KnnError::DuplicateNeighbour {
+                row: row(searched),
+                neighbour,
+            },
+            Self::NeighbourOutOfBounds {
+                row: searched,
+                neighbour,
+                rows,
+            } => KnnError::NeighbourOutOfBounds {
+                row: row(searched),
+                neighbour,
+                rows,
+            },
+        }
+    }
+}
+
 impl<N, E> From<KnnValidationError> for KnnError<N, E> {
     fn from(invalid: KnnValidationError) -> Self {
         Self::Invalid(invalid)

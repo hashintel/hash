@@ -17,6 +17,7 @@ use std::path::Path;
 
 use crate::{
     file::sprs::read::{OpenSprsError, SprsFile},
+    identity::NodeRowId,
     salt::{
         knn::artifact::{InvalidKnnFile, KnnArchive},
         quality::clump::{Clumps, DEFAULT_EPSILON},
@@ -151,7 +152,7 @@ pub(crate) fn calibrate(
     path: impl AsRef<Path>,
     epsilons: &[f32],
 ) -> Result<Calibration, CalibrationError> {
-    let table = KnnArchive::new(
+    let table: KnnArchive<NodeRowId> = KnnArchive::new(
         SprsFile::open(path).map_err(|error| CalibrationError(CalibrationFault::Open(error)))?,
     )
     .map_err(|error| CalibrationError(CalibrationFault::Archive(error)))?;

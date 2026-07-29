@@ -13,11 +13,12 @@ use hashql_core::id::Id as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Corpus, Profile};
+use crate::identity::{EdgeRowId, NodeRowId};
 
 const LINKS: usize = 4_096;
 const SEED: u64 = 42;
 
-fn corpus(profile: Profile) -> Corpus {
+fn corpus(profile: Profile) -> Corpus<NodeRowId, EdgeRowId> {
     Corpus::synthesize::<Xoshiro256PlusPlus>(profile, LINKS, SEED)
 }
 
@@ -141,7 +142,7 @@ fn pruning_sweep_is_monotone() {
 }
 
 /// Counts the corpus's self-referencing instances directly.
-fn summary_self_references(corpus: &Corpus) -> usize {
+fn summary_self_references(corpus: &Corpus<NodeRowId, EdgeRowId>) -> usize {
     corpus
         .instances()
         .iter()

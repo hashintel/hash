@@ -42,7 +42,12 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An unscored instance of `relation` between `source` and `target`.
-fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInstance {
+fn instance(
+    edge: u64,
+    relation: u64,
+    source: u64,
+    target: u64,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -54,7 +59,10 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
 }
 
 /// The instance with its link score set.
-fn scored(mut base: RelationInstance, link: f32) -> RelationInstance {
+fn scored(
+    mut base: RelationInstance<NodeRowId, EdgeRowId>,
+    link: f32,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     base.confidence.link = Some(link);
     base
 }
@@ -62,9 +70,9 @@ fn scored(mut base: RelationInstance, link: f32) -> RelationInstance {
 fn build(
     rows: usize,
     policies: &[RelationPolicy],
-    mut instances: Vec<RelationInstance>,
+    mut instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
     attraction: AttractionOptions,
-) -> RelationIndexes {
+) -> RelationIndexes<NodeRowId, EdgeRowId> {
     RelationIndexes::build(
         rows,
         Policies::new(policies).expect("the fixture policies are certified"),
@@ -74,11 +82,14 @@ fn build(
     .expect("the fixture instances satisfy the input contract")
 }
 
-fn build_default(policies: &[RelationPolicy], instances: Vec<RelationInstance>) -> RelationIndexes {
+fn build_default(
+    policies: &[RelationPolicy],
+    instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
+) -> RelationIndexes<NodeRowId, EdgeRowId> {
     build(ROWS, policies, instances, AttractionOptions::default())
 }
 
-fn pair(one: u64, other: u64) -> NodePair {
+fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
@@ -540,7 +551,7 @@ fn uncovered_relations_are_rejected() {
 #[test]
 fn row_domains_beyond_the_column_encoding_are_rejected() {
     let policies = [proximal_policy(0)];
-    let result = RelationIndexes::build(
+    let result = RelationIndexes::<NodeRowId, EdgeRowId>::build(
         1 << 33,
         Policies::new(&policies).expect("the fixture policies are certified"),
         &mut [],
@@ -577,7 +588,7 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
     // through several fixed emission chunks: source runs cross chunk
     // boundaries, and every degree must still count the whole group.
     let nodes = 3 * build::EMISSION_CHUNK + 7;
-    let instances: Vec<RelationInstance> = (0..nodes - 1)
+    let instances: Vec<RelationInstance<NodeRowId, EdgeRowId>> = (0..nodes - 1)
         .map(|link| instance(link as u64, 0, link as u64, link as u64 + 1))
         .collect();
 
@@ -619,7 +630,10 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
 }
 
 /// Asserts two builds produced identical indexes, component by component.
-fn assert_indexes_equal(one: &RelationIndexes, other: &RelationIndexes) {
+fn assert_indexes_equal(
+    one: &RelationIndexes<NodeRowId, EdgeRowId>,
+    other: &RelationIndexes<NodeRowId, EdgeRowId>,
+) {
     assert_eq!(one.measurements, other.measurements);
     let (one_protection, other_protection) = (one.protection.matrix(), other.protection.matrix());
     assert_eq!(
@@ -660,7 +674,7 @@ prop_compose! {
             ),
             0..48,
         ),
-    ) -> Vec<RelationInstance> {
+    ) -> Vec<RelationInstance<NodeRowId, EdgeRowId>> {
         raw.into_iter()
             .enumerate()
             .map(|(edge, (relation, source, target, link, source_score, target_score))| {
@@ -686,7 +700,7 @@ prop_compose! {
 /// The output orders are the documented invariants.
 #[property_test]
 fn build_is_order_independent_and_sorted(
-    #[strategy = arbitrary_instances()] instances: Vec<RelationInstance>,
+    #[strategy = arbitrary_instances()] instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
 ) {
     let policies = [
         proximal_policy(0),
@@ -1029,9 +1043,9 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
 ///
 /// The pre-factorization form of the protection evidence.
 fn forward_reference_mass(
-    instances: &[RelationInstance],
+    instances: &[RelationInstance<NodeRowId, EdgeRowId>],
     policies: &[RelationPolicy],
-    pair: NodePair,
+    pair: NodePair<NodeRowId>,
     floor: f32,
 ) -> f32 {
     let mut mass = 0.0_f32;
@@ -1053,7 +1067,10 @@ fn forward_reference_mass(
 }
 
 /// The instance carrying `multiplicity` readings of its edge.
-fn multi(mut base: RelationInstance, multiplicity: u32) -> RelationInstance {
+fn multi(
+    mut base: RelationInstance<NodeRowId, EdgeRowId>,
+    multiplicity: u32,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     base.multiplicity = multiplicity;
     base
 }
@@ -1113,7 +1130,7 @@ fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
     );
     let separate = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 1, 1, 2)]);
 
-    let realized = |indexes: &RelationIndexes| -> f64 {
+    let realized = |indexes: &RelationIndexes<NodeRowId, EdgeRowId>| -> f64 {
         indexes
             .attraction
             .groups()
@@ -1148,7 +1165,7 @@ fn protection_evidence_ignores_multiplicity() {
     let single = build_default(&policies, vec![instance(0, 0, 1, 2)]);
     let quartered = build_default(&policies, vec![multi(instance(0, 0, 1, 2), 4)]);
 
-    let evidence = |indexes: &RelationIndexes| {
+    let evidence = |indexes: &RelationIndexes<NodeRowId, EdgeRowId>| {
         indexes
             .protection
             .view()

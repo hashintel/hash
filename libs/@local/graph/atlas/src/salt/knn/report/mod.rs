@@ -3,10 +3,9 @@
 //! Each instrument reopens the active generation's projector representation artifact, replays the
 //! production fit's random streams for the stage it measures, and scores one construction against
 //! an exact reference. [`backend`] sweeps the hannoy backend over its `ef_construction` ×
-//! `ef_search` grid, [`descent`] audits NN-Descent constructions across candidate caps, and
-//! [`brute`] audits the exact tiled-product construction. An instrument observes the construction
-//! stage rather than participating in it: no fit consumes anything here, and a reading describes a
-//! generation that is already published.
+//! `ef_search` grid and [`descent`] audits NN-Descent constructions across candidate caps. An
+//! instrument observes the construction stage rather than participating in it: no fit consumes
+//! anything here, and a reading describes a generation that is already published.
 //!
 //! Every instrument replays [`stage_rng`](crate::salt::fit::stage_rng) per fit seed, so a grid
 //! point reproduces what a live fit at that seed and setting would have measured, and a repeated
@@ -22,12 +21,15 @@ use core::{
     time::Duration,
 };
 
+use hashql_core::id::IdSlice;
+
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
         array::{ArrayFile, OpenArrayError},
         generation::{CurrentError, GenerationId, GenerationRoot, OpenError},
     },
+    identity::NodeRowId,
     math::AlignedVecN,
     salt::knn::error::KnnError,
 };
@@ -106,7 +108,7 @@ impl<N: Display, E: Display> Display for AuditError<N, E> {
     }
 }
 
-impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for AuditError<N, E> {
+impl<N: fmt::Debug + fmt::Display + 'static, E: Error + 'static> Error for AuditError<N, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Setup(error) => error.source(),
@@ -166,6 +168,8 @@ fn open_representations(root: &GenerationRoot) -> Result<(GenerationId, ArrayFil
 /// Returns [`SetupError::Width`] when the artifact holds another element type or width.
 fn representation_rows(
     file: &ArrayFile,
-) -> Result<&[AlignedVecN<PROJECTOR_DIMENSIONS>], SetupError> {
-    file.vectors().ok_or(SetupError::Width)
+) -> Result<&IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>, SetupError> {
+    file.vectors()
+        .map(IdSlice::from_raw)
+        .ok_or(SetupError::Width)
 }

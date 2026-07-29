@@ -5,6 +5,8 @@
 //! Nothing here touches the dataset or the embedding provider: every input is a staged file or a
 //! value [`Ingested`] carried across the boundary, and every failure is a [`StageError`].
 
+use hashql_core::id::IdSlice;
+
 #[cfg(test)]
 pub(super) use self::projector::{
     TrainerInner as PlacementInner, device as placement_device, resolve_supplied,
@@ -13,6 +15,7 @@ use self::{
     lod::LodOutputs,
     policy::{ClassifierArtifacts, PolicyArtifacts},
     projector::{DistinctInputs, PlacementArtifacts, PlacementInputs},
+    quotient::DistinctRowId,
     relation::RelationArtifacts,
 };
 use super::{
@@ -35,6 +38,7 @@ use crate::{
             },
         },
     },
+    identity::NodeRowId,
     integrity::Sha256Digest,
     math::AlignedVecN,
     progress::{Progress, Stage},
@@ -103,8 +107,8 @@ struct Computed {
     policy: PolicyArtifacts,
     adjacency: RepositoryFile,
     relations: RelationArtifacts,
-    knn: Staged<KnnArchive, RecallSpotCheck>,
-    semantic: Staged<SemanticGraphArchive>,
+    knn: Staged<KnnArchive<NodeRowId>, RecallSpotCheck>,
+    semantic: Staged<SemanticGraphArchive<NodeRowId>>,
     landmarks: Staged<LandmarkSkeletonArchive, LandmarkEvidence>,
     placement: PlacementArtifacts,
     lod: LodOutputs,
@@ -139,17 +143,19 @@ where
 
     let representations = ArrayFile::open(staging.path_of(&Role::Representations.file_name()))
         .map_err(StageError::MapRepresentations)?;
-    let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
-        .vectors()
-        .expect("the representation matrix was sealed as f32 rows of the projector width");
+    let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
+        representations
+            .vectors()
+            .expect("the representation matrix was sealed as f32 rows of the projector width"),
+    );
 
-    let (quotient, distinct_matrix) = build_quotient(&scratch, rows)?;
-    let distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>] =
-        distinct_matrix.as_ref().map_or(rows, |matrix| {
+    let (quotient, distinct_matrix) = build_quotient(scratch, rows)?;
+    let distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> =
+        IdSlice::from_raw(distinct_matrix.as_ref().map_or(rows.as_raw(), |matrix| {
             matrix
                 .vectors()
                 .expect("the distinct matrix was written as f32 rows of the projector width")
-        });
+        }));
 
     let (classifier, classifier_artifacts) =
         context.acquire_classifier(&inputs.classifier, &progress)?;
@@ -165,11 +171,10 @@ where
         &ingested.multi_typed,
     )?;
     progress.stage_completed(Stage::Relations);
-    let (knn, distinct_knn) =
-        context.build_neighbour_table(distinct, &quotient, &quotient_scratch)?;
+    let (knn, distinct_knn) = context.build_neighbour_table(scratch, distinct, &quotient)?;
     progress.stage_completed(Stage::Knn);
     let (semantic, distinct_semantic) =
-        context.stage_semantic(&knn.artifact, &distinct_knn, &quotient, &quotient_scratch)?;
+        context.stage_semantic(scratch, &knn.artifact, &distinct_knn, &quotient)?;
     progress.stage_completed(Stage::Semantic);
 
     let prior_marks = inputs
@@ -237,7 +242,7 @@ where
 /// trains over the corpus matrix directly.
 fn build_quotient(
     directory: &ScratchDirectory,
-    rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
 ) -> Result<(quotient::RowQuotient, Option<ArrayFile>), StageError> {
     let _span = tracing::info_span!("quotient").entered();
     let quotient = quotient::RowQuotient::build(rows);

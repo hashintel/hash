@@ -70,10 +70,6 @@ where
     /// An edge joins two rows when either row stores the other at cosine distance at most
     /// `epsilon`; exact-duplicate embeddings (distance 0) group at every threshold. A non-finite
     /// `epsilon` admits no edges.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the table's row domain is bound to the u32 column encoding"
-    )]
     pub(crate) fn from_knn(table: &KnnView<'_, N>, epsilon: f32) -> Self {
         let rows = table.rows();
         let mut components = DisjointSet::<N>::new(rows);
@@ -95,10 +91,6 @@ where
         let mut clumps = 0_u32;
 
         for (row, slot) in labels.iter_enumerated_mut() {
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "the table's row domain is bound to the u32 column encoding"
-            )]
             let representative = components.find(row);
             let label = &mut label_of[representative];
             if *label == u32::MAX {

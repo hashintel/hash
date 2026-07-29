@@ -5,14 +5,13 @@
 )]
 use core::{assert_matches, num::NonZero};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use rand::{Rng, RngExt as _, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     DEFAULT_NEIGHBOURS, Embedding, NearestNeighboursIndex, Neighbour,
     artifact::{InvalidKnnFile, KnnArchive},
-    brute::{BruteForce, BruteForceOptions},
     construction::{IndexConstruction, KnnConstruction as _, NeighbourLists},
     descent::{NnDescent, NnDescentOptions},
     error::KnnError,
@@ -61,9 +60,11 @@ impl Matrix {
         }
     }
 
-    fn view(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
-        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
-            .expect("boxed storage is aligned")
+    fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
+        IdSlice::from_raw(
+            AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
+                .expect("boxed storage is aligned"),
+        )
     }
 }
 
@@ -91,8 +92,8 @@ impl ExactIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         exclude: Option<usize>,
-    ) -> Vec<Neighbour> {
-        let mut all: Vec<Neighbour> = self
+    ) -> Vec<Neighbour<NodeRowId>> {
+        let mut all: Vec<Neighbour<NodeRowId>> = self
             .rows
             .iter()
             .enumerate()
@@ -110,13 +111,13 @@ impl ExactIndex {
         all
     }
 
-    fn ranked_by_id(&self, id: NodeRowId) -> Vec<Neighbour> {
+    fn ranked_by_id(&self, id: NodeRowId) -> Vec<Neighbour<NodeRowId>> {
         let row = usize::try_from(id.as_u64()).expect("test rows fit usize");
         self.ranked(&self.rows[row], Some(row))
     }
 }
 
-impl NearestNeighboursIndex for ExactIndex {
+impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
     type Error = !;
 
     #[expect(
@@ -125,7 +126,7 @@ impl NearestNeighboursIndex for ExactIndex {
     )]
     fn insert_many<'embedding>(
         &mut self,
-        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+        embeddings: impl IntoIterator<Item = Embedding<'embedding, NodeRowId>>,
     ) -> Result<(), Self::Error> {
         for embedding in embeddings {
             assert_eq!(
@@ -150,7 +151,7 @@ impl NearestNeighboursIndex for ExactIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let mut ranked = self.ranked(query, None);
         ranked.truncate(limit);
         Ok(ranked)
@@ -160,7 +161,7 @@ impl NearestNeighboursIndex for ExactIndex {
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let mut ranked = self.ranked_by_id(id);
         ranked.truncate(limit);
         Ok(ranked)
@@ -191,7 +192,7 @@ macro_rules! delegate_all_but_search_by_id {
 
         fn insert_many<'embedding>(
             &mut self,
-            embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+            embeddings: impl IntoIterator<Item = Embedding<'embedding, NodeRowId>>,
         ) -> Result<(), Self::Error> {
             self.0.insert_many(embeddings)
         }
@@ -204,48 +205,48 @@ macro_rules! delegate_all_but_search_by_id {
             &self,
             query: &crate::math::AlignedVecN<PROJECTOR_DIMENSIONS>,
             limit: usize,
-        ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+        ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
             self.0.search_by_vector(query, limit)
         }
     };
 }
 
-impl NearestNeighboursIndex for FarthestIndex {
+impl NearestNeighboursIndex<NodeRowId> for FarthestIndex {
     delegate_all_but_search_by_id!();
 
     fn search_by_id(
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let ranked = self.0.ranked_by_id(id);
         let skip = ranked.len().saturating_sub(limit);
         Ok(ranked.into_iter().skip(skip))
     }
 }
 
-impl NearestNeighboursIndex for ShortIndex {
+impl NearestNeighboursIndex<NodeRowId> for ShortIndex {
     delegate_all_but_search_by_id!();
 
     fn search_by_id(
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let mut ranked = self.0.ranked_by_id(id);
         ranked.truncate(limit.saturating_sub(1));
         Ok(ranked)
     }
 }
 
-impl NearestNeighboursIndex for DoubledIndex {
+impl NearestNeighboursIndex<NodeRowId> for DoubledIndex {
     delegate_all_but_search_by_id!();
 
     fn search_by_id(
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let mut ranked = self.0.ranked_by_id(id);
         ranked.truncate(limit);
         ranked[1] = ranked[0];
@@ -253,14 +254,14 @@ impl NearestNeighboursIndex for DoubledIndex {
     }
 }
 
-impl NearestNeighboursIndex for EscapingIndex {
+impl NearestNeighboursIndex<NodeRowId> for EscapingIndex {
     delegate_all_but_search_by_id!();
 
     fn search_by_id(
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let rows = self.0.rows.len() as u64;
         let mut ranked = self.0.ranked_by_id(id);
         ranked.truncate(limit);
@@ -271,14 +272,14 @@ impl NearestNeighboursIndex for EscapingIndex {
     }
 }
 
-impl NearestNeighboursIndex for MixedIndex {
+impl NearestNeighboursIndex<NodeRowId> for MixedIndex {
     delegate_all_but_search_by_id!();
 
     fn search_by_id(
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let ranked = self.0.ranked_by_id(id);
         let skip = (id.as_u64() & 7) as usize;
         Ok(ranked
@@ -333,11 +334,11 @@ fn test_rng() -> Xoshiro256PlusPlus {
 /// Constructs lists over `embeddings` through an initially empty backend.
 fn lists_via<I>(
     index: I,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     width: NonZero<usize>,
-) -> Result<NeighbourLists, KnnError<I::Error>>
+) -> Result<NeighbourLists<NodeRowId>, KnnError<NodeRowId, I::Error>>
 where
-    I: NearestNeighboursIndex + Sync,
+    I: NearestNeighboursIndex<NodeRowId> + Sync,
     I::Error: Send,
 {
     IndexConstruction::new(index).construct(embeddings, width, test_rng())
@@ -359,14 +360,17 @@ fn build_matches_hand_computed_neighbours() {
     assert_eq!(knn.neighbours(), 2);
 
     let embeddings = matrix.view();
-    let distance = |left: usize, right: usize| embeddings[left].cosine_distance(&embeddings[right]);
+    let distance = |left: usize, right: usize| {
+        embeddings[NodeRowId::from_usize(left)]
+            .cosine_distance(&embeddings[NodeRowId::from_usize(right)])
+    };
     let diagonal = distance(0, 2);
     assert!((f64::from(diagonal) - (1.0 - 0.5_f64.sqrt())).abs() < 1e-6);
 
     let view = knn.view();
     let stored: Vec<Vec<(u64, f32)>> = (0..4)
         .map(|row| {
-            view.row(row)
+            view.row(NodeRowId::from_usize(row))
                 .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
                 .collect()
         })
@@ -392,7 +396,7 @@ fn build_rejects_unsatisfiable_shapes() {
     assert_matches!(
         lists_via(
             ExactIndex::from_rows(&[]),
-            &matrix.view()[..1],
+            IdSlice::<NodeRowId, _>::from_raw(&matrix.view().as_raw()[..1]),
             two_neighbours()
         ),
         Err(KnnError::Invalid(KnnValidationError::InsufficientRows {
@@ -490,7 +494,7 @@ fn descent_converges_on_known_geometry() {
     let exact = ExactIndex::from_rows(&rows);
     let mut matched = 0;
     for row in 0..64 {
-        let entries = lists.row(row);
+        let entries = lists.row(NodeRowId::from_usize(row));
         assert!(
             entries.is_sorted_by(|left, right| {
                 (left.distance, left.id.as_u64()) <= (right.distance, right.id.as_u64())
@@ -575,7 +579,7 @@ fn descent_passes_the_admission_gate() {
     assert_eq!(knn.rows(), 128);
     assert_eq!(knn.neighbours(), 30);
 
-    let check = recall::spot_check_lists::<!>(
+    let check = recall::spot_check_lists::<_, !>(
         &lists,
         embeddings,
         recall::SpotCheckOptions { .. },
@@ -590,87 +594,13 @@ fn descent_passes_the_admission_gate() {
 }
 
 #[test]
-fn brute_force_matches_the_exact_reference() {
-    let rows = fan_fixture(64, 0.02);
-    let matrix = Matrix::new(&rows);
-    let embeddings = matrix.view();
-    let width = NonZero::new(4).expect("four is nonzero");
-
-    // Tiny tiles force multiple ragged bands and running merges, the
-    // shapes the defaults never exercise on fixture corpora.
-    let mut construction = BruteForce::<burn::backend::NdArray>::new(
-        burn::backend::ndarray::NdArrayDevice::default(),
-        BruteForceOptions {
-            row_tile: 7,
-            column_chunk: 13,
-        },
-    );
-    let lists = construction
-        .construct(embeddings, width, test_rng())
-        .expect("the fixture is well-formed");
-    assert_eq!(lists.rows(), 64);
-    assert_eq!(lists.width(), 4);
-
-    // The fan is symmetric, so a row's two sides tie exactly and the
-    // two arithmetics may order a tie differently; the neighbour SET
-    // is the exact claim, and per-id distances pin the values.
-    let exact = ExactIndex::from_rows(&rows);
-    for row in 0..64 {
-        let entries = lists.row(row);
-        let reference: Vec<Neighbour> = exact
-            .ranked_by_id(NodeRowId::from_usize(row))
-            .into_iter()
-            .take(4)
-            .collect();
-
-        let mut ids: Vec<u64> = entries
-            .iter()
-            .map(|neighbour| neighbour.id.as_u64())
-            .collect();
-        let mut expected: Vec<u64> = reference
-            .iter()
-            .map(|neighbour| neighbour.id.as_u64())
-            .collect();
-        ids.sort_unstable();
-        expected.sort_unstable();
-        assert_eq!(ids, expected, "row {row}: the exact neighbour set");
-
-        for entry in entries {
-            let matched = reference
-                .iter()
-                .find(|neighbour| neighbour.id == entry.id)
-                .expect("the set assertion admitted the id");
-            assert!(
-                (entry.distance - matched.distance).abs() < 1e-5,
-                "row {row}: tensor accumulation stays within rounding of the scalar kernel"
-            );
-        }
-    }
-}
-
-#[test]
-fn brute_force_rejects_degenerate_corpora() {
-    let rows = plane_fixture();
-    let matrix = Matrix::new(&rows);
-
-    assert_matches!(
-        BruteForce::<burn::backend::NdArray>::new(
-            burn::backend::ndarray::NdArrayDevice::default(),
-            BruteForceOptions::default(),
-        )
-        .construct(&matrix.view()[..1], two_neighbours(), test_rng()),
-        Err(super::brute::BruteForceError::InsufficientRows { rows: 1 }),
-    );
-}
-
-#[test]
 fn descent_rejects_degenerate_corpora() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
 
     assert_matches!(
         NnDescent::new(NnDescentOptions::default()).construct(
-            &matrix.view()[..1],
+            IdSlice::<NodeRowId, _>::from_raw(&matrix.view().as_raw()[..1]),
             two_neighbours(),
             test_rng()
         ),
@@ -702,14 +632,14 @@ fn validation_rejects_each_broken_invariant() {
     // Row 0 referencing itself.
     let matrix = KnnMatrix::new((2, 2), vec![0, 1, 2], vec![0, 0], vec![0.5, 0.5]);
     assert_eq!(
-        Knn::new(matrix).expect_err("self reference"),
+        Knn::<NodeRowId>::new(matrix).expect_err("self reference"),
         KnnValidationError::SelfNeighbour { row: 0 }
     );
 
     // A distance beyond the cosine range.
     let matrix = KnnMatrix::new((3, 3), vec![0, 1, 2, 3], vec![1, 2, 0], vec![2.5, 1.0, 1.0]);
     assert_eq!(
-        Knn::new(matrix).expect_err("distance beyond 2"),
+        Knn::<NodeRowId>::new(matrix).expect_err("distance beyond 2"),
         KnnValidationError::DistanceOutOfRange {
             row: 0,
             neighbour: 1,
@@ -725,7 +655,7 @@ fn validation_rejects_each_broken_invariant() {
         vec![f32::NAN, 1.0, 1.0],
     );
     assert_matches!(
-        Knn::new(matrix).expect_err("non-finite distance"),
+        Knn::<NodeRowId>::new(matrix).expect_err("non-finite distance"),
         KnnValidationError::NonFiniteDistance {
             row: 0,
             neighbour: 1,
@@ -741,7 +671,7 @@ fn validation_rejects_each_broken_invariant() {
         vec![0.5, 0.5, 0.5, 0.5],
     );
     assert_eq!(
-        Knn::new(matrix).expect_err("ragged rows"),
+        Knn::<NodeRowId>::new(matrix).expect_err("ragged rows"),
         KnnValidationError::RaggedRow {
             row: 0,
             expected: 1,
@@ -752,14 +682,14 @@ fn validation_rejects_each_broken_invariant() {
     // Column-compressed storage.
     let matrix = KnnMatrix::new_csc((2, 2), vec![0, 1, 2], vec![1, 0], vec![0.5, 0.5]);
     assert_eq!(
-        Knn::new(matrix).expect_err("column compression"),
+        Knn::<NodeRowId>::new(matrix).expect_err("column compression"),
         KnnValidationError::ColumnCompressed,
     );
 
     // A rectangular domain.
     let matrix = KnnMatrix::new((2, 3), vec![0, 1, 2], vec![1, 2], vec![0.5, 0.5]);
     assert_eq!(
-        Knn::new(matrix).expect_err("rectangular domain"),
+        Knn::<NodeRowId>::new(matrix).expect_err("rectangular domain"),
         KnnValidationError::NotSquare {
             rows: 2,
             columns: 3
@@ -769,7 +699,7 @@ fn validation_rejects_each_broken_invariant() {
     // An empty neighbour set.
     let matrix = KnnMatrix::new((2, 2), vec![0, 0, 0], vec![], vec![]);
     assert_eq!(
-        Knn::new(matrix).expect_err("empty rows"),
+        Knn::<NodeRowId>::new(matrix).expect_err("empty rows"),
         KnnValidationError::NeighbourBounds {
             neighbours: 0,
             rows: 2,
@@ -994,6 +924,7 @@ fn published_table_reopens_mapped() {
     assert_eq!(reopened.rows(), owned.rows());
     assert_eq!(reopened.neighbours(), owned.neighbours());
     for row in 0..owned.rows() {
+        let row = NodeRowId::from_usize(row);
         let owned_row: Vec<(u64, f32)> = owned
             .row(row)
             .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
@@ -1045,7 +976,9 @@ fn published_table_reopens_mapped() {
     let tampered_path = dir.join("tampered.sprs");
     std::fs::write(&tampered_path, &tampered).expect("the tampered file writes");
     assert_matches!(
-        KnnArchive::new(SprsFile::open(&tampered_path).expect("the tampered file parses")),
+        KnnArchive::<NodeRowId>::new(
+            SprsFile::open(&tampered_path).expect("the tampered file parses")
+        ),
         Err(InvalidKnnFile::Invalid(
             KnnValidationError::DistanceOutOfRange { row: 0, .. },
         )),
@@ -1100,12 +1033,11 @@ fn hannoy_honours_the_seam_contract() {
                 }),
         )
         .expect("insertion succeeds");
-    index
-        .build(Xoshiro256PlusPlus::seed_from_u64(42))
+    NearestNeighboursIndex::<NodeRowId>::build(&mut index, Xoshiro256PlusPlus::seed_from_u64(42))
         .expect("the build succeeds");
 
     let query_row = 3_usize;
-    let found: Vec<Neighbour> = index
+    let found: Vec<Neighbour<NodeRowId>> = index
         .search_by_id(NodeRowId::new(3), 10)
         .expect("the search succeeds")
         .into_iter()
@@ -1120,7 +1052,8 @@ fn hannoy_honours_the_seam_contract() {
     );
     for neighbour in &found {
         let row = usize::try_from(neighbour.id.as_u64()).expect("test rows fit usize");
-        let exact = embeddings[query_row].cosine_distance(&embeddings[row]);
+        let exact = embeddings[NodeRowId::from_usize(query_row)]
+            .cosine_distance(&embeddings[NodeRowId::from_usize(row)]);
         assert!(
             (0.0..=2.0).contains(&neighbour.distance),
             "distances arrive on the [0, 2] cosine scale",
@@ -1134,8 +1067,8 @@ fn hannoy_honours_the_seam_contract() {
         );
     }
 
-    let by_vector: Vec<Neighbour> = index
-        .search_by_vector(&embeddings[query_row], 5)
+    let by_vector: Vec<Neighbour<NodeRowId>> = index
+        .search_by_vector(&embeddings[NodeRowId::from_usize(query_row)], 5)
         .expect("the search succeeds")
         .into_iter()
         .collect();
@@ -1181,7 +1114,7 @@ fn hannoy_honours_the_seam_contract() {
     assert_eq!(knn.rows(), 128);
     assert_eq!(knn.neighbours(), 30);
 
-    let check = recall::spot_check_lists::<!>(
+    let check = recall::spot_check_lists::<_, !>(
         &lists,
         embeddings,
         recall::SpotCheckOptions { .. },

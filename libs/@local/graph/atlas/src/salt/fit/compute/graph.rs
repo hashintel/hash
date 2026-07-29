@@ -1,4 +1,6 @@
 //! The neighbour and semantic graph stages.
+use hashql_core::id::IdSlice;
+
 use super::{
     super::{
         KnnConstructionChoice, Stage,
@@ -7,11 +9,12 @@ use super::{
         stage_rng,
     },
     Context,
-    quotient::{self, RowQuotient},
+    quotient::{self, DistinctRowId, RowQuotient},
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{generation::ScratchDirectory, sprs::read::SprsFile},
+    identity::NodeRowId,
     math::AlignedVecN,
     salt::{
         knn::{
@@ -37,10 +40,18 @@ impl Context<'_> {
     pub(super) fn build_neighbour_table(
         &self,
         scratch: &ScratchDirectory,
-        distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+        distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         quotient: &RowQuotient,
-    ) -> Result<(Staged<KnnArchive, recall::RecallSpotCheck>, KnnArchive), StageError> {
+    ) -> Result<
+        (
+            Staged<KnnArchive<NodeRowId>, recall::RecallSpotCheck>,
+            KnnArchive<DistinctRowId>,
+        ),
+        StageError,
+    > {
         let _span = tracing::info_span!("knn").entered();
+        // Construction speaks distinct rows; the published failure surface speaks corpus rows.
+        let corpus = |row: DistinctRowId| quotient.first_row(row);
 
         let width = self
             .config
@@ -48,16 +59,17 @@ impl Context<'_> {
             .neighbours
             .max(self.config.neighbours);
 
-        let lists: NeighbourLists = {
+        let lists: NeighbourLists<DistinctRowId> = {
             let _span = tracing::info_span!("knn-link").entered();
             let rng = stage_rng(self.config.seed, Stage::KnnLink);
 
             match self.config.construction {
-                KnnConstructionChoice::Index => IndexConstruction::new(HannoyIndex::new(
-                    self.scratch.directory("knn")?,
-                    self.config.index,
-                )?)
-                .construct(distinct, width, rng)?,
+                KnnConstructionChoice::Index => IndexConstruction::new(
+                    HannoyIndex::new(self.scratch.directory("knn")?, self.config.index)
+                        .map_err(HannoyIndexError::widen)?,
+                )
+                .construct(distinct, width, rng)
+                .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?,
 
                 KnnConstructionChoice::Descent(options) => {
                     NnDescent::new(options).construct(distinct, width, rng)?
@@ -65,21 +77,25 @@ impl Context<'_> {
             }
         };
 
-        let recall = tracing::info_span!("recall-check").in_scope(|| {
-            recall::spot_check_lists::<HannoyIndexError>(
-                &lists,
-                distinct,
-                self.config.recall_check,
-                stage_rng(self.config.seed, Stage::RecallCheck),
-            )
-        })?;
+        let recall = tracing::info_span!("recall-check")
+            .in_scope(|| {
+                recall::spot_check_lists::<_, HannoyIndexError<DistinctRowId>>(
+                    &lists,
+                    distinct,
+                    self.config.recall_check,
+                    stage_rng(self.config.seed, Stage::RecallCheck),
+                )
+            })
+            .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?;
 
         if !recall.meets_minimum() {
             return Err(StageError::RecallBelowMinimum(recall));
         }
 
         let _table_span = tracing::info_span!("knn-table").entered();
-        let table = Knn::from_lists::<HannoyIndexError>(&lists, self.config.neighbours)?;
+        let table =
+            Knn::from_lists::<HannoyIndexError<DistinctRowId>>(&lists, self.config.neighbours)
+                .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?;
 
         let (file, distinct_table) = if quotient.is_identity() {
             // The distinct rows are the corpus: the table stages directly and both handles map the
@@ -128,10 +144,16 @@ impl Context<'_> {
     pub(super) fn stage_semantic(
         &self,
         scratch: &ScratchDirectory,
-        knn: &KnnArchive,
-        distinct_knn: &KnnArchive,
+        knn: &KnnArchive<NodeRowId>,
+        distinct_knn: &KnnArchive<DistinctRowId>,
         quotient: &RowQuotient,
-    ) -> Result<(Staged<SemanticGraphArchive>, SemanticGraphArchive), StageError> {
+    ) -> Result<
+        (
+            Staged<SemanticGraphArchive<NodeRowId>>,
+            SemanticGraphArchive<DistinctRowId>,
+        ),
+        StageError,
+    > {
         let file = {
             let _span = tracing::info_span!("semantic").entered();
             let graph = SemanticGraph::build(&knn.view(), self.config.smoothing);

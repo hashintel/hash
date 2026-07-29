@@ -14,7 +14,7 @@ use burn::{
     backend::{Autodiff, NdArray, ndarray::NdArrayDevice},
     tensor::{Tensor, TensorData},
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 
 use super::{
     AffinityEnergy, BatchAnchor, BatchRowId, GradientField, RelationEdge, RelationEdges,
@@ -31,6 +31,7 @@ use crate::{
         relation::{
             Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
             attraction::{AttractionIndex, AttractionOptions},
+            protection::NodePair,
         },
     },
 };
@@ -70,17 +71,22 @@ fn relation_energy(epsilon: f32) -> RelationEnergy {
         .expect("test relation parameters are valid")
 }
 
-fn pair(one: u32, other: u32) -> BatchPair {
-    BatchPair::new(BatchRowId::new(one), BatchRowId::new(other))
+fn pair(one: u32, other: u32) -> NodePair<BatchRowId> {
+    NodePair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
 
-fn scales(values: &[f32]) -> LocalScales {
-    LocalScales::new(
-        values
-            .iter()
-            .map(|&value| NonNegative::new(value).expect("test scales are finite and non-negative"))
-            .collect(),
-    )
+/// Reads one accumulated gradient by batch position.
+fn gradient(field: &GradientField<BatchRowId>, row: usize) -> DVec2 {
+    field.as_slice()[BatchRowId::from_usize(row)]
+}
+
+fn scales(values: &[f32]) -> LocalScales<BatchRowId> {
+    let values: Box<[NonNegative]> = values
+        .iter()
+        .map(|&value| NonNegative::new(value).expect("test scales are finite and non-negative"))
+        .collect();
+
+    LocalScales::new(IdSlice::from_boxed_slice(values))
 }
 
 /// Central finite difference of `value` in one scalar argument.
@@ -290,14 +296,14 @@ fn relation_mixture_is_the_weighted_class_sum() {
 #[test]
 fn gradient_field_accumulates_and_resets() {
     let mut field = GradientField::new(3);
-    field.accumulate(0, Vec2::new(1.0, -2.0));
-    field.accumulate(0, Vec2::new(0.5, 0.5));
-    field.accumulate(2, Vec2::new(-1.0, 4.0));
+    field.accumulate(BatchRowId::new(0), Vec2::new(1.0, -2.0));
+    field.accumulate(BatchRowId::new(0), Vec2::new(0.5, 0.5));
+    field.accumulate(BatchRowId::new(2), Vec2::new(-1.0, 4.0));
 
     assert_eq!(field.rows(), 3);
-    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(1.5, -1.5)));
-    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
-    assert_eq!(field.as_slice()[2], DVec2::from(Vec2::new(-1.0, 4.0)));
+    assert_eq!(gradient(&field, 0), DVec2::from(Vec2::new(1.5, -1.5)));
+    assert_eq!(gradient(&field, 1), DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(gradient(&field, 2), DVec2::from(Vec2::new(-1.0, 4.0)));
 
     field.reset();
     assert!(field.as_slice().iter().all(|&entry| entry == DVec2::ZERO));
@@ -312,11 +318,17 @@ fn attraction_term_matches_hand_computed_gradient() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let mut field = GradientField::new(2);
 
-    let value = attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+    let value = attraction_term(
+        IdSlice::from_raw(&coordinates),
+        [(pair(0, 1), 1.0)],
+        energy,
+        1.0,
+        &mut field,
+    );
 
     assert_eq!(value, 0.0);
-    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(-0.5, 0.0)));
-    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::new(0.5, 0.0)));
+    assert_eq!(gradient(&field, 0), DVec2::from(Vec2::new(-0.5, 0.0)));
+    assert_eq!(gradient(&field, 1), DVec2::from(Vec2::new(0.5, 0.0)));
 }
 
 #[test]
@@ -326,14 +338,26 @@ fn attraction_pulls_and_repulsion_pushes() {
     let toward = coordinates[0] - coordinates[1];
 
     let mut field = GradientField::new(2);
-    attraction_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+    attraction_term(
+        IdSlice::from_raw(&coordinates),
+        [(pair(0, 1), 1.0)],
+        energy,
+        1.0,
+        &mut field,
+    );
     // The loss gradient ascends distance; the descent step moves the
     // endpoints together.
-    assert!(field.as_slice()[0].dot(DVec2::from(toward)) > 0.0);
+    assert!(gradient(&field, 0).dot(DVec2::from(toward)) > 0.0);
 
     let mut field = GradientField::new(2);
-    repulsion_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
-    assert!(field.as_slice()[0].dot(DVec2::from(toward)) < 0.0);
+    repulsion_term(
+        IdSlice::from_raw(&coordinates),
+        [(pair(0, 1), 1.0)],
+        energy,
+        1.0,
+        &mut field,
+    );
+    assert!(gradient(&field, 0).dot(DVec2::from(toward)) < 0.0);
 }
 
 #[test]
@@ -342,13 +366,19 @@ fn coincident_pair_contributes_value_but_no_gradient() {
     let coordinates = [Vec2::new(0.5, 0.5), Vec2::new(0.5, 0.5)];
     let mut field = GradientField::new(2);
 
-    let value = repulsion_term(&coordinates, [(pair(0, 1), 1.0)], energy, 1.0, &mut field);
+    let value = repulsion_term(
+        IdSlice::from_raw(&coordinates),
+        [(pair(0, 1), 1.0)],
+        energy,
+        1.0,
+        &mut field,
+    );
 
     // A coincident negative pair is maximally improbable placement, so
     // its value is large - but it has no direction to push along.
     assert!(value > 0.0);
-    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::splat(0.0)));
-    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(gradient(&field, 0), DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(gradient(&field, 1), DVec2::from(Vec2::splat(0.0)));
 }
 
 /// A varied four-node frame with no coincident or symmetric pairs.
@@ -376,14 +406,26 @@ fn attraction_term_gradient_matches_finite_differences() {
 
     let coordinates = frame();
     let mut field = GradientField::new(4);
-    attraction_term(&coordinates, pairs, energy, scale, &mut field);
+    attraction_term(
+        IdSlice::from_raw(&coordinates),
+        pairs,
+        energy,
+        scale,
+        &mut field,
+    );
 
     for row in 0..4 {
         for axis in 0..2 {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    attraction_term(perturbed, pairs, energy, scale, &mut scratch)
+                    attraction_term(
+                        IdSlice::from_raw(perturbed),
+                        pairs,
+                        energy,
+                        scale,
+                        &mut scratch,
+                    )
                 },
                 &coordinates,
                 row,
@@ -391,7 +433,7 @@ fn attraction_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                component(field.as_slice()[row], axis),
+                component(gradient(&field, row), axis),
                 difference,
                 &format!("attraction node {row} axis {axis}"),
             );
@@ -407,14 +449,26 @@ fn repulsion_term_gradient_matches_finite_differences() {
 
     let coordinates = frame();
     let mut field = GradientField::new(4);
-    repulsion_term(&coordinates, pairs, energy, scale, &mut field);
+    repulsion_term(
+        IdSlice::from_raw(&coordinates),
+        pairs,
+        energy,
+        scale,
+        &mut field,
+    );
 
     for row in 0..4 {
         for axis in 0..2 {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    repulsion_term(perturbed, pairs, energy, scale, &mut scratch)
+                    repulsion_term(
+                        IdSlice::from_raw(perturbed),
+                        pairs,
+                        energy,
+                        scale,
+                        &mut scratch,
+                    )
                 },
                 &coordinates,
                 row,
@@ -422,7 +476,7 @@ fn repulsion_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                component(field.as_slice()[row], axis),
+                component(gradient(&field, row), axis),
                 difference,
                 &format!("repulsion node {row} axis {axis}"),
             );
@@ -433,7 +487,7 @@ fn repulsion_term_gradient_matches_finite_differences() {
 /// Builds an attraction index over four nodes and two relations.
 ///
 /// One mixed-class relation (Coincident coefficient 1) and one pure Proximal relation.
-fn attraction_fixture() -> AttractionIndex {
+fn attraction_fixture() -> AttractionIndex<NodeRowId, EdgeRowId> {
     let policies = [
         RelationPolicy {
             relation: OntologyRowId::new(3),
@@ -502,7 +556,7 @@ fn attraction_fixture() -> AttractionIndex {
 ///
 /// Converts every group into the batch-local shape under the identity row map: the fixture
 /// coordinates are corpus-length, so corpus rows and batch positions coincide.
-fn full_batch(index: &AttractionIndex) -> Vec<RelationEdges> {
+fn full_batch(index: &AttractionIndex<NodeRowId, EdgeRowId>) -> Vec<RelationEdges<BatchRowId>> {
     let position = |row: NodeRowId| {
         BatchRowId::new(u32::try_from(row.as_u64()).expect("fixture rows fit the batch encoding"))
     };
@@ -551,7 +605,7 @@ fn relation_term_matches_hand_computed_values() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        &coordinates,
+        IdSlice::from_raw(&coordinates),
         &rho,
         proximal_only,
         relation_energy(0.25),
@@ -561,10 +615,10 @@ fn relation_term_matches_hand_computed_values() {
 
     // value = 0.5 (ν) · temperature (0.5) · softplus(0) = 0.25 ln 2.
     assert!(0.25_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-6);
-    assert_eq!(field.as_slice()[0], DVec2::from(Vec2::new(-0.25, 0.0)));
-    assert_eq!(field.as_slice()[2], DVec2::from(Vec2::new(0.25, 0.0)));
-    assert_eq!(field.as_slice()[1], DVec2::from(Vec2::splat(0.0)));
-    assert_eq!(field.as_slice()[3], DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(gradient(&field, 0), DVec2::from(Vec2::new(-0.25, 0.0)));
+    assert_eq!(gradient(&field, 2), DVec2::from(Vec2::new(0.25, 0.0)));
+    assert_eq!(gradient(&field, 1), DVec2::from(Vec2::splat(0.0)));
+    assert_eq!(gradient(&field, 3), DVec2::from(Vec2::splat(0.0)));
 }
 
 #[test]
@@ -577,14 +631,28 @@ fn relation_term_gradient_matches_finite_differences() {
 
     let coordinates = frame();
     let mut field = GradientField::new(4);
-    relation_term(&coordinates, &rho, &batch, energy, scale, &mut field);
+    relation_term(
+        IdSlice::from_raw(&coordinates),
+        &rho,
+        &batch,
+        energy,
+        scale,
+        &mut field,
+    );
 
     for row in 0..4 {
         for axis in 0..2 {
             let difference = coordinate_difference(
                 |perturbed| {
                     let mut scratch = GradientField::new(4);
-                    relation_term(perturbed, &rho, &batch, energy, scale, &mut scratch)
+                    relation_term(
+                        IdSlice::from_raw(perturbed),
+                        &rho,
+                        &batch,
+                        energy,
+                        scale,
+                        &mut scratch,
+                    )
                 },
                 &coordinates,
                 row,
@@ -592,7 +660,7 @@ fn relation_term_gradient_matches_finite_differences() {
                 1e-3,
             );
             assert_derivative_close(
-                component(field.as_slice()[row], axis),
+                component(gradient(&field, row), axis),
                 difference,
                 &format!("relation node {row} axis {axis}"),
             );
@@ -609,7 +677,7 @@ fn relation_term_skips_gradient_at_coincident_points() {
     let mut field = GradientField::new(4);
 
     let value = relation_term(
-        &coordinates,
+        IdSlice::from_raw(&coordinates),
         &rho,
         &batch,
         relation_energy(0.25),

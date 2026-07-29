@@ -154,7 +154,7 @@ fn strongest_neighbours<N>(
     assignment: &LandmarkAssignment<N>,
     grouped: &GroupedRows<N>,
     options: QuotientOptions,
-) -> Vec<Vec<(LandmarkOrdinal, f32)>>
+) -> IdVec<LandmarkOrdinal, Vec<(LandmarkOrdinal, f32)>>
 where
     N: Id,
 {
@@ -162,13 +162,14 @@ where
     (0..landmarks)
         .into_par_iter()
         .map_init(
-            || (vec![0.0_f64; landmarks], Vec::new()),
-            |(inflow, touched), left| {
+            || (IdVec::from_elem(0.0_f64, landmarks), Vec::new()),
+            |(inflow, touched): &mut (IdVec<LandmarkOrdinal, f64>, _), left| {
+                let left = LandmarkOrdinal::from_usize(left);
                 for &row in grouped.rows_of(left) {
                     for edge in semantic.row(row) {
-                        let right = assignment.as_slice()[edge.id.as_usize()];
-                        if right.usize() != left {
-                            let slot = &mut inflow[right.usize()];
+                        let right = assignment.as_slice()[edge.id];
+                        if right != left {
+                            let slot = &mut inflow[right];
                             if *slot == 0.0 {
                                 touched.push(right);
                             }
@@ -180,7 +181,7 @@ where
                 let mut strongest: Vec<(LandmarkOrdinal, f64)> = touched
                     .drain(..)
                     .map(|column| {
-                        let weight = core::mem::replace(&mut inflow[column.usize()], 0.0);
+                        let weight = core::mem::replace(&mut inflow[column], 0.0);
                         (column, weight)
                     })
                     .collect();
@@ -232,7 +233,7 @@ pub(crate) fn quotient_graph<N>(
     semantic: &SemanticGraphView<'_, N>,
     assignment: &LandmarkAssignment<N>,
     options: QuotientOptions,
-) -> Result<SemanticGraph<N>, QuotientError>
+) -> Result<SemanticGraph<LandmarkOrdinal>, QuotientError>
 where
     N: Id,
 {
@@ -252,16 +253,10 @@ where
     // column)'s run by the probabilistic union: a symmetric edge list
     // sorted straight into compressed sparse rows.
     let mut edges: Vec<(u32, u32, f32)> = Vec::new();
-    for (left, strongest) in strongest_by_landmark.into_iter().enumerate() {
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "positions in the ordinal-indexed table lie below the assignment's \
-                      u32-bounded landmark count"
-        )]
-        let left = left as u32;
+    for (left, strongest) in strongest_by_landmark.into_iter_enumerated() {
         for (right, weight) in strongest {
-            edges.push((left, right.get(), weight));
-            edges.push((right.get(), left, weight));
+            edges.push((left.get(), right.get(), weight));
+            edges.push((right.get(), left.get(), weight));
         }
     }
 

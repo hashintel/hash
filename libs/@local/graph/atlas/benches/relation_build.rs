@@ -41,7 +41,10 @@ use core::{hint::black_box, time::Duration};
 use codspeed_criterion_compat::{
     BatchSize, Criterion, Throughput, criterion_group, criterion_main,
 };
-use hash_graph_atlas::bench::relation::{Corpus, Profile, production_chunk};
+use hash_graph_atlas::{
+    bench::relation::{Corpus, Profile, production_chunk},
+    identity::{EdgeRowId, NodeRowId},
+};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
@@ -58,7 +61,7 @@ fn links() -> usize {
     })
 }
 
-fn corpus(profile: Profile) -> Corpus {
+fn corpus(profile: Profile) -> Corpus<NodeRowId, EdgeRowId> {
     Corpus::synthesize::<Xoshiro256PlusPlus>(profile, links(), SEED)
 }
 

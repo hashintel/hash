@@ -116,6 +116,8 @@ impl Vec2 {
         Some(unsafe { &*ptr })
     }
 
+    /// Returns the components as a `[f32; 2]` array.
+    #[must_use]
     pub const fn as_array(&self) -> &[f32; 2] {
         &self.0
     }

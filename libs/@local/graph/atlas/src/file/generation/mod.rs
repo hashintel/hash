@@ -357,6 +357,11 @@ pub(crate) struct ScratchDirectory {
 }
 
 impl ScratchDirectory {
+    /// Adopts an existing directory as a scratch root; dropping the value removes it.
+    pub(crate) const fn rooted(path: Utf8PathBuf) -> Self {
+        Self { path }
+    }
+
     /// Creates (or reuses) a named subdirectory and returns its path.
     ///
     /// # Errors

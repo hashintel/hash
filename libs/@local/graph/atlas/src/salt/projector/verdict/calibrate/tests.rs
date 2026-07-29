@@ -6,7 +6,7 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 
 use super::{CalibrationOptions, ProximalCalibration, calibrate};
 use crate::{
@@ -43,7 +43,12 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An unscored instance of `relation` between `source` and `target`.
-fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInstance {
+fn instance(
+    edge: u64,
+    relation: u64,
+    source: u64,
+    target: u64,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -57,8 +62,8 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
 fn attraction_index(
     rows: usize,
     policies: &[RelationPolicy],
-    mut instances: Vec<RelationInstance>,
-) -> AttractionIndex {
+    mut instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
+) -> AttractionIndex<NodeRowId, EdgeRowId> {
     RelationIndexes::build(
         rows,
         Policies::new(policies).expect("the fixture policies are certified"),
@@ -83,8 +88,10 @@ fn scale(value: f32) -> NonNegative {
     NonNegative::new(value).expect("test scales are finite and non-negative")
 }
 
-fn unit_scales(rows: usize) -> LocalScales {
-    LocalScales::new(vec![scale(0.75); rows].into_boxed_slice())
+fn unit_scales(rows: usize) -> LocalScales<NodeRowId> {
+    LocalScales::new(IdSlice::from_boxed_slice(
+        vec![scale(0.75); rows].into_boxed_slice(),
+    ))
 }
 
 fn options(cap: usize) -> CalibrationOptions {
@@ -100,12 +107,15 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     // d = 5 (a 3-4-5 triangle); normalization = √((0.75 + 0.25) ·
     // (24.75 + 0.25)) = √(25) = 5, so z = 1 exactly.
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
-    let scales = LocalScales::new(Box::new([scale(0.75), scale(24.75)]));
+    let scales = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
+        scale(0.75),
+        scale(24.75),
+    ])));
 
     let outcome = calibrate(
         &[proximal_verdict(5)],
         &index,
-        &coordinates,
+        IdSlice::from_raw(&coordinates),
         &scales,
         options(4),
     );
@@ -144,7 +154,7 @@ fn radius_is_the_weighted_p25() {
     let outcome = calibrate(
         &[proximal_verdict(5)],
         &index,
-        &coordinates,
+        IdSlice::from_raw(&coordinates),
         &scales,
         options(4),
     );
@@ -186,7 +196,13 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 2: type 5's pairs sample at 2/8, so both types weigh 1.0 and
     // type 9's first pair crosses the p25 threshold (0.5).
-    let capped = calibrate(&verdicts, &index, &coordinates, &scales, options(2));
+    let capped = calibrate(
+        &verdicts,
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(2),
+    );
     assert_eq!(capped.radius, Some(1.0));
     assert_eq!(capped.types[0].mass, 1.0);
     assert_eq!(capped.types[1].mass, 1.0);
@@ -200,7 +216,13 @@ fn cap_bounds_a_high_volume_type() {
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
-    let uncapped = calibrate(&verdicts, &index, &coordinates, &scales, options(8));
+    let uncapped = calibrate(
+        &verdicts,
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(8),
+    );
     assert_eq!(uncapped.radius, Some(5.0));
 }
 
@@ -238,7 +260,7 @@ fn hubs_are_discounted_by_degree() {
     let outcome = calibrate(
         &[proximal_verdict(5), proximal_verdict(9)],
         &index,
-        &coordinates,
+        IdSlice::from_raw(&coordinates),
         &scales,
         options(4),
     );
@@ -287,7 +309,13 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
         },
     ];
 
-    let outcome = calibrate(&verdicts, &index, &coordinates, &scales, options(4));
+    let outcome = calibrate(
+        &verdicts,
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(4),
+    );
 
     assert_eq!(outcome.radius, None);
     assert_eq!(outcome.types.len(), 1);
@@ -304,7 +332,13 @@ fn no_verdicts_yield_no_radius() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let scales = unit_scales(2);
 
-    let outcome = calibrate(&[], &index, &coordinates, &scales, options(4));
+    let outcome = calibrate(
+        &[],
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(4),
+    );
 
     assert_eq!(
         outcome,

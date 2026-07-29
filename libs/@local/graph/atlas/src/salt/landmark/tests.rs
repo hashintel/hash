@@ -10,7 +10,7 @@
 use core::{assert_matches, num::NonZero};
 use std::{fs, path::PathBuf};
 
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::{Id, IdSlice};
 use rand::{Rng, SeedableRng};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
@@ -52,7 +52,7 @@ fn in_pool<T: Send>(threads: usize, task: impl FnOnce() -> T + Send) -> T {
         .install(task)
 }
 
-fn candidate(row: u64) -> LandmarkCandidate {
+fn candidate(row: u64) -> LandmarkCandidate<NodeRowId> {
     LandmarkCandidate {
         row: NodeRowId::new(row),
         sampling_weight: SamplingWeight::UNIFORM,
@@ -61,7 +61,7 @@ fn candidate(row: u64) -> LandmarkCandidate {
     }
 }
 
-fn candidates(count: u64) -> Vec<LandmarkCandidate> {
+fn candidates(count: u64) -> Vec<LandmarkCandidate<NodeRowId>> {
     (0..count).map(candidate).collect()
 }
 
@@ -74,11 +74,11 @@ fn options(maximum: u32) -> SelectionOptions {
 
 /// Calls [`select_landmarks`] over plain fixture slices.
 fn select<R: Rng + SeedableRng>(
-    candidates: &[LandmarkCandidate],
+    candidates: &[LandmarkCandidate<NodeRowId>],
     minimums: &[SubgroupMinimum],
     options: SelectionOptions,
     rng: R,
-) -> Result<LandmarkSelection, SelectionError> {
+) -> Result<LandmarkSelection<NodeRowId>, SelectionError> {
     select_landmarks(
         IdSlice::from_raw(candidates),
         IdSlice::from_raw(minimums),
@@ -98,7 +98,7 @@ fn selection_is_deterministic_under_a_seed() {
     assert_eq!(first, second);
     assert_eq!(first.len(), 10);
     assert!(
-        first.rows().is_sorted_by(|left, right| left < right),
+        first.rows().iter().is_sorted_by(|left, right| left < right),
         "selected rows are strictly ascending"
     );
 
@@ -377,12 +377,12 @@ impl ExactIndex {
     }
 }
 
-impl NearestNeighboursIndex for ExactIndex {
+impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
     type Error = !;
 
     fn insert_many<'embedding>(
         &mut self,
-        embeddings: impl IntoIterator<Item = Embedding<'embedding>>,
+        embeddings: impl IntoIterator<Item = Embedding<'embedding, NodeRowId>>,
     ) -> Result<(), Self::Error> {
         self.rows.extend(embeddings.into_iter().map(|embedding| {
             let mut boxed = BoxedVecN::zero();
@@ -402,8 +402,8 @@ impl NearestNeighboursIndex for ExactIndex {
         &self,
         query: &AlignedVecN<PROJECTOR_DIMENSIONS>,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
-        let mut all: Vec<Neighbour> = self
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
+        let mut all: Vec<Neighbour<NodeRowId>> = self
             .rows
             .iter()
             .map(|(id, stored)| Neighbour {
@@ -424,7 +424,7 @@ impl NearestNeighboursIndex for ExactIndex {
         &self,
         id: NodeRowId,
         limit: usize,
-    ) -> Result<impl IntoIterator<Item = Neighbour>, Self::Error> {
+    ) -> Result<impl IntoIterator<Item = Neighbour<NodeRowId>>, Self::Error> {
         let stored = self
             .rows
             .iter()
@@ -435,7 +435,7 @@ impl NearestNeighboursIndex for ExactIndex {
                 copy
             })
             .expect("searched ids are inserted rows");
-        let mut found: Vec<Neighbour> = self
+        let mut found: Vec<Neighbour<NodeRowId>> = self
             .search_by_vector(&stored, limit + 1)?
             .into_iter()
             .filter(|neighbour| neighbour.id != id)
@@ -491,14 +491,17 @@ impl Matrix {
         }
     }
 
-    fn view(&self) -> &[AlignedVecN<PROJECTOR_DIMENSIONS>] {
-        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
-            .expect("boxed storage is aligned")
+    fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
+        IdSlice::from_raw(
+            AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
+                .expect("boxed storage is aligned"),
+        )
     }
 }
 
-fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection {
-    let candidates: Vec<LandmarkCandidate> = rows.iter().map(|&row| candidate(row)).collect();
+fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection<NodeRowId> {
+    let candidates: Vec<LandmarkCandidate<NodeRowId>> =
+        rows.iter().map(|&row| candidate(row)).collect();
     let capacity = u32::try_from(rows.len()).expect("test fixtures are small");
     select(&candidates, &[], options(capacity), rng()).expect("selecting every candidate succeeds")
 }
@@ -521,7 +524,10 @@ fn assignment_maps_rows_to_their_nearest_landmark() {
     let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
         .expect("the exact backend assigns every row");
 
-    assert_eq!(assignment.as_slice(), &*ordinals(&[0, 0, 1, 1, 2, 2]));
+    assert_eq!(
+        assignment.as_slice().as_raw(),
+        &*ordinals(&[0, 0, 1, 1, 2, 2])
+    );
     assert_eq!(assignment.get(NodeRowId::new(3)), LandmarkOrdinal::new(1));
     assert_eq!(assignment.landmarks(), 3);
 }
@@ -535,17 +541,17 @@ fn assignment_rejects_landmarks_outside_the_corpus() {
 
     assert_matches!(
         result,
-        Err(AssignmentError::UnknownRow { row: 99, rows: 6 }),
+        Err(AssignmentError::UnknownRow { row, rows: 6 }) if row == NodeRowId::new(99),
     );
 }
 
 /// An assignment straight from ordinals, for quotient fixtures.
-fn assignment_of(positions: &[u32], landmarks: usize) -> LandmarkAssignment {
-    LandmarkAssignment::from_ordinals(ordinals(positions), landmarks)
+fn assignment_of(positions: &[u32], landmarks: usize) -> LandmarkAssignment<NodeRowId> {
+    LandmarkAssignment::from_ordinals(IdSlice::from_boxed_slice(ordinals(positions)), landmarks)
 }
 
 /// A semantic graph over `count` rows from undirected weighted edges.
-fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph {
+fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph<NodeRowId> {
     let mut rows: Vec<Vec<(u32, f32)>> = vec![Vec::new(); count];
     for &(left, right, weight) in edges {
         rows[left as usize].push((right, weight));
@@ -571,7 +577,7 @@ fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph
 ///
 /// Edges within clusters carry weight 1.0, one bridge edge (1, 2) carries 0.5, and one weaker
 /// bridge (3, 4) carries 0.25.
-fn corpus_graph() -> SemanticGraph {
+fn corpus_graph() -> SemanticGraph<NodeRowId> {
     semantic_from_edges(
         6,
         &[
@@ -599,11 +605,11 @@ fn quotient_contracts_cross_landmark_edges() {
     let view = quotient.view();
     assert_eq!(view.rows(), 3);
     let row0: Vec<(u64, f32)> = view
-        .row(0)
+        .row(LandmarkOrdinal::new(0))
         .map(|edge| (edge.id.as_u64(), edge.weight))
         .collect();
     let row1: Vec<(u64, f32)> = view
-        .row(1)
+        .row(LandmarkOrdinal::new(1))
         .map(|edge| (edge.id.as_u64(), edge.weight))
         .collect();
     assert_eq!(row0, [(1, 1.0)]);
@@ -638,7 +644,10 @@ fn quotient_keeps_only_the_strongest_neighbours() {
     // to 1.0 within their own rows), so their edges to L0 survive from
     // the other direction.
     assert!(
-        quotient.view().row(0).any(|edge| edge.id.as_u64() == 1),
+        quotient
+            .view()
+            .row(LandmarkOrdinal::new(0))
+            .any(|edge| edge.id.as_u64() == 1),
         "the strongest edge survives the cap"
     );
 }
@@ -742,7 +751,7 @@ fn layout_is_deterministic_under_a_seed() {
 }
 
 /// Two 3-cliques with no edge between them.
-fn clique_pair() -> SemanticGraph {
+fn clique_pair() -> SemanticGraph<NodeRowId> {
     semantic_from_edges(
         6,
         &[
@@ -760,12 +769,17 @@ fn clique_pair() -> SemanticGraph {
 const CLIQUES: [&[usize]; 2] = [&[0, 1, 2], &[3, 4, 5]];
 
 /// Longest pairwise distance inside either clique.
-fn widest_within(coordinates: &[Vec2]) -> f32 {
+fn widest_within<N>(coordinates: &IdSlice<N, Vec2>) -> f32
+where
+    N: Id,
+{
     let mut widest = 0.0_f32;
     for clique in CLIQUES {
         for (position, &left) in clique.iter().enumerate() {
             for &right in &clique[position + 1..] {
-                widest = widest.max(coordinates[left].distance(coordinates[right]));
+                widest = widest.max(
+                    coordinates[N::from_usize(left)].distance(coordinates[N::from_usize(right)]),
+                );
             }
         }
     }
@@ -773,11 +787,15 @@ fn widest_within(coordinates: &[Vec2]) -> f32 {
 }
 
 /// Shortest distance between the two cliques.
-fn narrowest_across(coordinates: &[Vec2]) -> f32 {
+fn narrowest_across<N>(coordinates: &IdSlice<N, Vec2>) -> f32
+where
+    N: Id,
+{
     let mut narrowest = f32::INFINITY;
     for &left in CLIQUES[0] {
         for &right in CLIQUES[1] {
-            narrowest = narrowest.min(coordinates[left].distance(coordinates[right]));
+            narrowest = narrowest
+                .min(coordinates[N::from_usize(left)].distance(coordinates[N::from_usize(right)]));
         }
     }
     narrowest
@@ -791,7 +809,7 @@ fn layout_separates_clusters() {
         .expect("the fixture graph lays out");
 
     assert_eq!(coordinates.len(), 6);
-    for point in &coordinates {
+    for point in coordinates.iter() {
         assert!(
             point.x().is_finite() && point.y().is_finite(),
             "every optimized coordinate is finite",
@@ -846,8 +864,8 @@ fn layout_drops_edges_weaker_than_the_epoch_budget() {
         .expect("the fixture graph lays out");
     assert_eq!(coordinates.len(), 4);
 
-    let attracted = coordinates[0].distance(coordinates[1]);
-    let dropped = coordinates[2].distance(coordinates[3]);
+    let attracted = coordinates[NodeRowId::new(0)].distance(coordinates[NodeRowId::new(1)]);
+    let dropped = coordinates[NodeRowId::new(2)].distance(coordinates[NodeRowId::new(3)]);
     assert!(attracted < 2.0, "the scheduled pair gathers ({attracted})");
     assert!(
         dropped > 6.0,
@@ -868,7 +886,7 @@ fn layout_leaves_edgeless_rows_on_the_initial_circle() {
     // force acts on an edgeless row, so it stays in that annulus (the
     // bounds carry rounding slop from the trigonometric placement).
     for &isolated in &[2_usize, 3] {
-        let radius = coordinates[isolated].length();
+        let radius = coordinates[NodeRowId::from_usize(isolated)].length();
         assert!(
             (4.999..=5.051).contains(&radius),
             "row {isolated} sits at radius {radius}, off the initial annulus",
@@ -878,7 +896,7 @@ fn layout_leaves_edgeless_rows_on_the_initial_circle() {
     // The connected pair starts half a circle apart (distance ~10) and
     // attraction draws it in.
     assert!(
-        coordinates[0].distance(coordinates[1]) < 2.0,
+        coordinates[NodeRowId::new(0)].distance(coordinates[NodeRowId::new(1)]) < 2.0,
         "the connected pair gathers",
     );
 }
@@ -905,7 +923,11 @@ fn scratch(name: &str) -> PathBuf {
 /// A skeleton from real stage outputs over the clustered fixture.
 ///
 /// Alongside the stage outputs it was assembled from.
-fn fixture_skeleton() -> (LandmarkSkeleton, LandmarkAssignment, Box<[Vec2]>) {
+fn fixture_skeleton() -> (
+    LandmarkSkeleton<NodeRowId>,
+    LandmarkAssignment<NodeRowId>,
+    Box<IdSlice<LandmarkOrdinal, Vec2>>,
+) {
     let matrix = Matrix::new(&clustered_embeddings());
     let selection = selection_of(&[0, 2, 4]);
     let assignment = assign_landmarks(&mut ExactIndex::new(), rng(), matrix.view(), &selection)
@@ -941,7 +963,7 @@ fn skeleton_round_trips_through_its_file() {
     assert_eq!(mapped.landmarks(), 3);
     assert_eq!(mapped.rows(), 6);
     assert_eq!(
-        mapped.selected_rows(),
+        mapped.selected_rows().as_raw(),
         [NodeRowId::new(0), NodeRowId::new(2), NodeRowId::new(4)],
     );
     assert_eq!(mapped.assignment(), assignment.as_slice());
@@ -996,5 +1018,9 @@ fn skeleton_assembly_rejects_disagreeing_parts() {
     let (_, assignment, _) = fixture_skeleton();
     let selection = selection_of(&[0, 2, 4]);
 
-    let _skeleton = LandmarkSkeleton::new(selection, assignment, Box::from([Vec2::ZERO]));
+    let _skeleton = LandmarkSkeleton::new(
+        selection,
+        assignment,
+        IdSlice::from_boxed_slice(Box::from([Vec2::ZERO])),
+    );
 }

@@ -18,7 +18,7 @@ use burn::{
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Tensor, TensorData, backend::AutodiffBackend},
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use proptest::{prop_assert, prop_assert_eq, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -45,8 +45,8 @@ use crate::{
         projector::{
             budget::{Budget, BudgetOptions},
             loss::{
-                AffinityEnergy, BatchPair, BatchRowId, CoincidentEnergy, ProximalEnergy,
-                RelationEnergy, SupportOptions,
+                AffinityEnergy, BatchRowId, CoincidentEnergy, ProximalEnergy, RelationEnergy,
+                SupportOptions,
             },
             miner::{HardNegativeMiner, MinerOptions, SpatialField},
             model::{Architecture, NodeRole, Projector},
@@ -68,17 +68,17 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
 
-fn pair(one: u64, other: u64) -> NodePair {
+fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
 /// A batch-local pair, for asserting re-indexed populations.
-fn local(one: u32, other: u32) -> BatchPair {
-    BatchPair::new(BatchRowId::new(one), BatchRowId::new(other))
+fn local(one: u32, other: u32) -> NodePair<BatchRowId> {
+    NodePair::new(BatchRowId::new(one), BatchRowId::new(other))
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
-fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph {
+fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<NodeRowId> {
     let mut adjacency = vec![Vec::new(); rows];
     for &(one, other, weight) in edges {
         adjacency[one].push((other, weight));
@@ -119,7 +119,12 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An unscored instance of `relation` between `source` and `target`.
-fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInstance {
+fn instance(
+    edge: u64,
+    relation: u64,
+    source: u64,
+    target: u64,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -133,8 +138,8 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
 fn relation_indexes(
     rows: usize,
     policies: &[RelationPolicy],
-    mut instances: Vec<RelationInstance>,
-) -> RelationIndexes {
+    mut instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
+) -> RelationIndexes<NodeRowId, EdgeRowId> {
     RelationIndexes::build(
         rows,
         Policies::new(policies).expect("the fixture policies are certified"),
@@ -205,7 +210,7 @@ fn loose_budget() -> Budget {
 }
 
 /// Empty populations to splice fixture families into.
-fn empty_populations<'index>(eta: NonNegative) -> Populations<'index> {
+fn empty_populations<'index>(eta: NonNegative) -> Populations<'index, NodeRowId, EdgeRowId> {
     Populations {
         semantic: Vec::new(),
         semantic_scale: 0.0,
@@ -235,9 +240,9 @@ fn leaf(coordinates: &[f32], rows: usize) -> Tensor<TestBackend, 2> {
 /// Runs the objective on a leaf and returns its gradient, flattened.
 fn leaf_gradient(
     coordinates: &[f32],
-    batch: &Batch,
+    batch: &Batch<NodeRowId>,
     options: &ObjectiveOptions,
-    deciles: &DegreeDeciles,
+    deciles: &DegreeDeciles<NodeRowId>,
     metrics: &mut BudgetBreakdown,
 ) -> Vec<f32> {
     let leaf = leaf(coordinates, batch.rows.len());
@@ -252,7 +257,7 @@ fn leaf_gradient(
 }
 
 /// Deciles over an index that does not touch the objective fixtures.
-fn unused_deciles() -> DegreeDeciles {
+fn unused_deciles() -> DegreeDeciles<NodeRowId> {
     let indexes = relation_indexes(2, &[proximal_policy(3)], vec![instance(0, 3, 0, 1)]);
     DegreeDeciles::new(&indexes.attraction, 2)
 }
@@ -276,11 +281,15 @@ fn degree_deciles_rank_participating_rows() {
     );
     let deciles = DegreeDeciles::new(&indexes.attraction, 7);
 
-    assert_eq!(deciles.decile(0), Some(8));
+    assert_eq!(deciles.decile(NodeRowId::new(0)), Some(8));
     for row in 1..=5 {
-        assert_eq!(deciles.decile(row), Some(6), "row {row}");
+        assert_eq!(deciles.decile(NodeRowId::new(row)), Some(6), "row {row}");
     }
-    assert_eq!(deciles.decile(6), None, "no attraction evidence");
+    assert_eq!(
+        deciles.decile(NodeRowId::new(6)),
+        None,
+        "no attraction evidence"
+    );
 }
 
 #[test]
@@ -418,14 +427,14 @@ fn allocator_seam_draws_and_assembles_identically() {
     );
 
     // Row r holds r / 2.
-    let table = LocalScales::new(Box::new([
+    let table = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
         non_negative!(0.0),
         non_negative!(0.5),
         non_negative!(1.0),
         non_negative!(1.5),
         non_negative!(2.0),
         non_negative!(2.5),
-    ]));
+    ])));
     let assembled = Batch::assemble(global, Some(&table));
     let assembled_in = Batch::assemble_in(system, Some(&table), std::alloc::System);
 
@@ -565,7 +574,8 @@ fn draw_collects_pooled_mined_pairs() {
         Vec2::new(2.0, 0.0),
         Vec2::new(3.0, 0.0),
     ];
-    let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
+    let field =
+        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(
         graph.view(),
         indexes.protection.view(),
@@ -600,14 +610,8 @@ fn draw_collects_pooled_mined_pairs() {
     let populations = sampler.draw(non_negative!(0.0), Some(&frame), &[], &[], &mut rng(11));
 
     let mut expected: Vec<(u64, u64, u32)> = (0..frame.rows())
-        .flat_map(|row| frame.row(row))
-        .map(|(pair, weight)| {
-            (
-                pair.first().as_u64(),
-                pair.second().as_u64(),
-                weight.to_bits(),
-            )
-        })
+        .flat_map(|row| frame.row(NodeRowId::from_usize(row)))
+        .map(|(pair, weight)| (pair.lhs().as_u64(), pair.rhs().as_u64(), weight.to_bits()))
         .collect();
     expected.sort_unstable();
     let mut drawn: Vec<(u64, u64, u32)> = populations
@@ -640,7 +644,7 @@ fn assemble_reindexes_into_the_local_domain() {
     populations.landmark_scale = 1.0;
 
     // Scale table over ten corpus rows, row r holding r / 2.
-    let table = LocalScales::new(Box::new([
+    let table = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
         non_negative!(0.0),
         non_negative!(0.5),
         non_negative!(1.0),
@@ -651,7 +655,7 @@ fn assemble_reindexes_into_the_local_domain() {
         non_negative!(3.5),
         non_negative!(4.0),
         non_negative!(4.5),
-    ]));
+    ])));
 
     let batch = Batch::assemble(populations, Some(&table));
 
@@ -735,13 +739,23 @@ fn objective_matches_the_hand_computed_semantic_field() {
 ///
 /// Rows {0, 1} at unit distance, one semantic pair, and one single-edge Proximal group whose hand
 /// factors are exactly `c = 1`, `ν = 0.5`, class weights `(0, 1)`, strength one.
-fn relation_fixture() -> (RelationIndexes, LocalScales) {
+fn relation_fixture() -> (
+    RelationIndexes<NodeRowId, EdgeRowId>,
+    LocalScales<NodeRowId>,
+) {
     let indexes = relation_indexes(2, &[proximal_policy(7)], vec![instance(0, 7, 0, 1)]);
-    let scales = LocalScales::new(Box::new([non_negative!(0.5), non_negative!(0.5)]));
+    let scales = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
+        non_negative!(0.5),
+        non_negative!(0.5),
+    ])));
     (indexes, scales)
 }
 
-fn relation_batch(indexes: &RelationIndexes, scales: &LocalScales, eta: NonNegative) -> Batch {
+fn relation_batch(
+    indexes: &RelationIndexes<NodeRowId, EdgeRowId>,
+    scales: &LocalScales<NodeRowId>,
+    eta: NonNegative,
+) -> Batch<NodeRowId> {
     let group = &indexes.attraction.groups()[0];
 
     // Pin the hand-derivation's fixture facts before using them.
@@ -1006,7 +1020,12 @@ fn type_participants_deduplicate_and_order_rows() {
     let participants = TypeParticipants::new(&indexes.attraction);
     let collected: Vec<(u64, Vec<usize>)> = participants
         .iter()
-        .map(|(relation, rows)| (relation.as_u64(), rows.to_vec()))
+        .map(|(relation, rows)| {
+            (
+                relation.as_u64(),
+                rows.iter().map(|row| row.as_usize()).collect(),
+            )
+        })
         .collect();
     assert_eq!(
         collected,
@@ -1028,7 +1047,12 @@ fn displacement_summary_reports_every_axis() {
 
     let low = [Vec2::splat(0.0), Vec2::splat(0.0), Vec2::splat(0.0)];
     let high = [Vec2::new(1.0, 0.0), Vec2::splat(0.0), Vec2::new(3.0, 4.0)];
-    let summary = DisplacementSummary::measure(&low, &high, &participants, &deciles);
+    let summary = DisplacementSummary::measure(
+        IdSlice::from_raw(&low),
+        IdSlice::from_raw(&high),
+        &participants,
+        &deciles,
+    );
 
     let overall = summary.overall();
     assert_eq!(overall.moments().count(), 3);
@@ -1103,11 +1127,13 @@ fn padding_columns() -> (BoxedVecN<PADDING_CAPACITY>, Vec<NodeRole>) {
 fn padding_column_view<'corpus>(
     storage: &'corpus BoxedVecN<PADDING_CAPACITY>,
     roles: &'corpus [NodeRole],
-) -> NodeColumns<'corpus> {
+) -> NodeColumns<'corpus, NodeRowId> {
     NodeColumns {
-        representations: AlignedVecN::from_slice(&storage.as_array()[..PADDING_CAPACITY])
-            .expect("boxed storage is aligned"),
-        roles,
+        representations: IdSlice::from_raw(
+            AlignedVecN::from_slice(&storage.as_array()[..PADDING_CAPACITY])
+                .expect("boxed storage is aligned"),
+        ),
+        roles: IdSlice::from_raw(roles),
     }
 }
 
@@ -1320,7 +1346,9 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
         &[proximal_policy(7)],
         vec![instance(0, 7, 0, 1)],
     );
-    let scales = LocalScales::new(vec![non_negative!(0.5); PADDING_ROWS].into_boxed_slice());
+    let scales = LocalScales::new(IdSlice::from_boxed_slice(
+        vec![non_negative!(0.5); PADDING_ROWS].into_boxed_slice(),
+    ));
     let group = &indexes.attraction.groups()[0];
 
     let mut populations = empty_populations(non_negative!(1.0));
@@ -1465,9 +1493,13 @@ fn identity_frame(rows: usize) -> Vec<Vec2> {
 }
 
 /// The rows one sample reports out of an identity frame, with the landmark count.
-fn sampled_rows(sample: &SnapshotSample, rows: usize, appetite: usize) -> (Vec<usize>, usize) {
+fn sampled_rows(
+    sample: &SnapshotSample<NodeRowId>,
+    rows: usize,
+    appetite: usize,
+) -> (Vec<usize>, usize) {
     let observer = RecordingSnapshots::new(appetite);
-    sample.report(&identity_frame(rows), &observer);
+    sample.report(IdSlice::from_raw(&identity_frame(rows)), &observer);
 
     let mut snapshots = observer.snapshots();
     assert!(snapshots.len() <= 1, "one frame reports at most once");
@@ -1486,7 +1518,7 @@ fn sampled_rows(sample: &SnapshotSample, rows: usize, appetite: usize) -> (Vec<u
 }
 
 /// One landmark on a corpus row; only the row participates in a snapshot sample.
-fn landmark(row: usize) -> SupportAnchor {
+fn landmark(row: usize) -> SupportAnchor<NodeRowId> {
     SupportAnchor {
         row: NodeRowId::from_usize(row),
         target: Vec2::ZERO,
@@ -1520,7 +1552,7 @@ fn a_snapshot_sample_never_repeats_a_landmark_row() {
 
 #[test]
 fn landmarks_take_at_most_half_a_snapshot_budget() {
-    let landmarks: Vec<SupportAnchor> = (0..60).map(landmark).collect();
+    let landmarks: Vec<SupportAnchor<NodeRowId>> = (0..60).map(landmark).collect();
     let sample = SnapshotSample::select(100, &landmarks, 10);
     let (rows, landmarks) = sampled_rows(&sample, 100, 10);
 
@@ -1543,7 +1575,7 @@ fn an_observer_with_no_appetite_is_never_reported_to() {
     let sample = SnapshotSample::select(8, &[landmark(0)], 0);
     let observer = RecordingSnapshots::new(0);
 
-    sample.report(&identity_frame(8), &observer);
+    sample.report(IdSlice::from_raw(&identity_frame(8)), &observer);
 
     // Not an empty snapshot - no snapshot: the silent observer's
     // reporting path allocates nothing.
@@ -1570,7 +1602,7 @@ fn a_snapshot_sample_strides_the_rows_no_landmark_holds(
     #[strategy = proptest::collection::vec(0_usize..48, 0..12)] anchors: Vec<usize>,
     #[strategy = 0_usize..24] budget: usize,
 ) {
-    let landmarks: Vec<SupportAnchor> = anchors.iter().copied().map(landmark).collect();
+    let landmarks: Vec<SupportAnchor<NodeRowId>> = anchors.iter().copied().map(landmark).collect();
     let sample = SnapshotSample::select(rows, &landmarks, budget);
     let (reported, skeleton) = sampled_rows(&sample, rows, budget);
 

@@ -23,7 +23,7 @@ use burn::{
     optim::{AdamConfig, GradientsParams, Optimizer as _},
     prelude::Backend,
 };
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -65,21 +65,21 @@ const LANDMARK_POOL: usize = 4096;
 /// One synthesized corpus at the trainer's live shape.
 pub struct Fixture {
     rows: usize,
-    graph: SemanticGraph,
-    indexes: RelationIndexes,
+    graph: SemanticGraph<NodeRowId>,
+    indexes: RelationIndexes<NodeRowId, EdgeRowId>,
     representations: MatrixN<PROJECTOR_DIMENSIONS>,
     roles: Vec<NodeRole>,
-    scales: LocalScales,
-    landmarks: Vec<SupportAnchor>,
-    mined: MinedFrame,
+    scales: LocalScales<NodeRowId>,
+    landmarks: Vec<SupportAnchor<NodeRowId>>,
+    mined: MinedFrame<NodeRowId>,
     plan: BatchPlan,
 }
 
 /// One drawn step's populations, opaque to the bench target.
-pub struct Drawn<'fixture>(Populations<'fixture>);
+pub struct Drawn<'fixture>(Populations<'fixture, NodeRowId, EdgeRowId>);
 
 /// One assembled batch, opaque to the bench target.
-pub struct Assembled(Batch);
+pub struct Assembled(Batch<NodeRowId>);
 
 impl Assembled {
     /// Returns the batch's participating row count.
@@ -91,7 +91,7 @@ impl Assembled {
 
 /// The production sampler bound over the fixture, opaque to the bench target.
 pub struct Sampler<'fixture> {
-    sampler: BatchSampler<'fixture>,
+    sampler: BatchSampler<'fixture, NodeRowId, EdgeRowId>,
     fixture: &'fixture Fixture,
 }
 
@@ -116,7 +116,8 @@ impl Fixture {
                     NonNegative::new(scale_of(row))
                         .expect("the synthetic scales are positive and finite")
                 })
-                .collect(),
+                .collect::<IdVec<NodeRowId, _>>()
+                .into_boxed_slice(),
         );
         let landmarks = landmark_pool(rows, &mut rng);
         let plan = crate::salt::fit::ProjectorOptions::ratified().plan;
@@ -132,7 +133,8 @@ impl Fixture {
         })
         .take(rows)
         .collect();
-        let field = SpatialField::new(&coordinates).expect("the synthetic frame is finite");
+        let field = SpatialField::new(IdSlice::from_raw(&coordinates))
+            .expect("the synthetic frame is finite");
         let mined = HardNegativeMiner::new(
             graph.view(),
             indexes.protection.view(),
@@ -215,7 +217,7 @@ impl Sampler<'_> {
 /// the session binds it once per run; the timed phases never pay setup.
 pub struct Stepper<'fixture> {
     flavor: StepFlavor,
-    evaluation: Evaluation<'fixture>,
+    evaluation: Evaluation<'fixture, NodeRowId>,
 }
 
 enum StepFlavor {
@@ -253,8 +255,8 @@ impl<'fixture> Stepper<'fixture> {
             flavor,
             evaluation: Evaluation {
                 columns: NodeColumns {
-                    representations: fixture.representations.rows(),
-                    roles: &fixture.roles,
+                    representations: IdSlice::from_raw(fixture.representations.rows()),
+                    roles: IdSlice::from_raw(&fixture.roles),
                 },
                 options: objective_options(),
                 deciles: DegreeDeciles::new(&fixture.indexes.attraction, fixture.rows),
@@ -336,7 +338,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         }
     }
 
-    fn input(&self, batch: &Assembled, evaluation: &Evaluation<'_>) {
+    fn input(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) {
         let input = batch
             .0
             .input::<Autodiff<B>>(evaluation.columns, &self.device);
@@ -344,7 +346,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         B::sync(&self.device).expect("the measured device should complete its queue");
     }
 
-    fn forward(&self, batch: &Assembled, evaluation: &Evaluation<'_>) -> f32 {
+    fn forward(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.as_ref().expect("the model is always present");
         let input = batch
             .0
@@ -352,7 +354,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         model.forward(input).sum().into_scalar()
     }
 
-    fn refresh(&self, batch: &Assembled, evaluation: &Evaluation<'_>) -> f32 {
+    fn refresh(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self
             .model
             .as_ref()
@@ -362,7 +364,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         model.forward(input).sum().into_scalar()
     }
 
-    fn objective(&self, batch: &Assembled, evaluation: &Evaluation<'_>) -> f32 {
+    fn objective(&self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.as_ref().expect("the model is always present");
         let mut metrics = BudgetBreakdown::default();
         let objective = evaluation
@@ -374,7 +376,7 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
         total
     }
 
-    fn step(&mut self, batch: &Assembled, evaluation: &Evaluation<'_>) -> f32 {
+    fn step(&mut self, batch: &Assembled, evaluation: &Evaluation<'_, NodeRowId>) -> f32 {
         let model = self.model.take().expect("the model is always present");
         let mut metrics = BudgetBreakdown::default();
         let objective = evaluation
@@ -419,7 +421,7 @@ fn objective_options() -> ObjectiveOptions {
     clippy::integer_division_remainder_used,
     reason = "the synthetic topology cycles by row position"
 )]
-fn semantic_graph(rows: usize, rng: &mut Xoshiro256PlusPlus) -> SemanticGraph {
+fn semantic_graph(rows: usize, rng: &mut Xoshiro256PlusPlus) -> SemanticGraph<NodeRowId> {
     let mut adjacency: Vec<Vec<(usize, f32)>> = vec![Vec::new(); rows];
     for row in 0..rows {
         for stride in [1_usize, 7, 31] {
@@ -453,7 +455,7 @@ fn semantic_graph(rows: usize, rng: &mut Xoshiro256PlusPlus) -> SemanticGraph {
     clippy::integer_division_remainder_used,
     reason = "the synthetic topology cycles by row position"
 )]
-fn relation_indexes(rows: usize) -> RelationIndexes {
+fn relation_indexes(rows: usize) -> RelationIndexes<NodeRowId, EdgeRowId> {
     let policies: Vec<RelationPolicy> = (0..RELATION_TYPES)
         .map(|relation| RelationPolicy {
             relation: OntologyRowId::new(100 + relation as u64),
@@ -470,7 +472,7 @@ fn relation_indexes(rows: usize) -> RelationIndexes {
         })
         .collect();
 
-    let mut instances: Vec<RelationInstance> = (0..rows)
+    let mut instances: Vec<RelationInstance<NodeRowId, EdgeRowId>> = (0..rows)
         .map(|index| {
             let source = index;
             let mut target = (index * 7 + 3) % rows;
@@ -530,7 +532,7 @@ fn columns(
 }
 
 /// Synthesizes the landmark anchor pool.
-fn landmark_pool(rows: usize, rng: &mut Xoshiro256PlusPlus) -> Vec<SupportAnchor> {
+fn landmark_pool(rows: usize, rng: &mut Xoshiro256PlusPlus) -> Vec<SupportAnchor<NodeRowId>> {
     core::iter::repeat_with(|| SupportAnchor {
         row: NodeRowId::new(rng.random_range(0..rows as u64)),
         target: Vec2::new(

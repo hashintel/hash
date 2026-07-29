@@ -14,19 +14,21 @@ use std::io;
 use self::{
     classifier::{ClassifierArgs, ClassifierVerdict},
     clumps::ClumpArgs,
-    knn::{BackendArgs, BruteArgs, DescentArgs},
+    knn::{BackendArgs, DescentArgs},
     probe::ProbeArgs,
     quality::{QualityArgs, QualityVerdict},
 };
-use crate::salt::{
-    knn::{
-        brute::BruteForceError,
-        descent::NnDescentError,
-        report::{AuditError, backend, brute, descent},
-    },
-    quality::report::{
-        calibration::{Calibration, CalibrationError},
-        live::AssessError,
+use crate::{
+    identity::NodeRowId,
+    salt::{
+        knn::{
+            descent::NnDescentError,
+            report::{AuditError, backend, descent},
+        },
+        quality::report::{
+            calibration::{Calibration, CalibrationError},
+            live::AssessError,
+        },
     },
 };
 
@@ -45,8 +47,6 @@ pub(crate) enum ReportVerdict {
     Clumps(Calibration),
     /// The search backend's grid readings.
     KnnBackend(backend::Sweep),
-    /// The exact construction's reading.
-    KnnBrute(brute::Audit),
     /// The NN-Descent constructions' readings.
     KnnDescent(descent::Audit),
     /// One live quality assessment.
@@ -59,7 +59,6 @@ impl Display for ReportVerdict {
             Self::Classifier(verdict) => Display::fmt(verdict, fmt),
             Self::Clumps(calibration) => Display::fmt(calibration, fmt),
             Self::KnnBackend(sweep) => Display::fmt(sweep, fmt),
-            Self::KnnBrute(audit) => Display::fmt(audit, fmt),
             Self::KnnDescent(audit) => Display::fmt(audit, fmt),
             Self::Quality(verdict) => Display::fmt(verdict, fmt),
         }
@@ -79,10 +78,8 @@ pub(crate) enum ReportError {
     Clumps(CalibrationError),
     /// The backend sweep failed.
     KnnBackend(backend::SweepError),
-    /// The exact construction audit failed.
-    KnnBrute(AuditError<BruteForceError>),
     /// The NN-Descent audit failed.
-    KnnDescent(AuditError<NnDescentError>),
+    KnnDescent(AuditError<NodeRowId, NnDescentError>),
 }
 
 impl Display for ReportError {
@@ -95,7 +92,6 @@ impl Display for ReportError {
             Self::Assess(error) => Display::fmt(error, fmt),
             Self::Clumps(error) => Display::fmt(error, fmt),
             Self::KnnBackend(error) => Display::fmt(error, fmt),
-            Self::KnnBrute(error) => Display::fmt(error, fmt),
             Self::KnnDescent(error) => Display::fmt(error, fmt),
         }
     }
@@ -109,7 +105,6 @@ impl Error for ReportError {
             Self::Assess(error) => error.source(),
             Self::Clumps(error) => error.source(),
             Self::KnnBackend(error) => error.source(),
-            Self::KnnBrute(error) => error.source(),
             Self::KnnDescent(error) => error.source(),
         }
     }
@@ -124,9 +119,6 @@ pub(crate) enum ReportCommand {
 
     /// Reads the clump grouping's shape at every candidate ε over a published k-NN table.
     Clumps(ClumpArgs),
-
-    /// Audits the exact tiled-product neighbour construction over the active generation.
-    KnnBrute(BruteArgs),
 
     /// Sweeps the search backend's build and query breadths over the active generation.
     KnnBackend(BackendArgs),
@@ -164,11 +156,6 @@ impl ReportCommand {
                 .map(ReportVerdict::KnnBackend)
                 .map(Some)
                 .map_err(ReportError::KnnBackend),
-            Self::KnnBrute(args) => args
-                .run()
-                .map(ReportVerdict::KnnBrute)
-                .map(Some)
-                .map_err(ReportError::KnnBrute),
             Self::KnnDescent(args) => args
                 .run()
                 .map(ReportVerdict::KnnDescent)

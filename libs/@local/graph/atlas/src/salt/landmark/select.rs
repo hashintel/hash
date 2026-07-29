@@ -180,7 +180,7 @@ pub(crate) struct LandmarkCandidate<N> {
 impl<N> LandmarkCandidate<N> {
     /// Returns whether the candidate carries the subgroup's value.
     #[inline]
-    const fn belongs_to(self, subgroup: Subgroup) -> bool {
+    const fn belongs_to(&self, subgroup: Subgroup) -> bool {
         self.axes[subgroup.dimension] == subgroup.value
     }
 }
@@ -261,25 +261,24 @@ where
     /// Panics when the mapped rows break the strictly ascending row order; a strictly increasing
     /// `map` preserves it.
     #[must_use]
-    pub(crate) fn map_rows(&self, map: impl FnMut(N) -> N) -> Self {
-        let rows: Box<[N]> = self.rows.iter().copied().map(map).collect();
+    pub(crate) fn map_rows<M>(&self, map: impl FnMut(N) -> M) -> LandmarkSelection<M>
+    where
+        M: Id,
+    {
+        let rows: Box<[M]> = self.rows.iter().copied().map(map).collect();
         assert!(
             rows.is_sorted(),
             "the mapped selection keeps its strictly ascending row order",
         );
 
         let rows = IdSlice::from_boxed_slice(rows);
-        Self {
+        LandmarkSelection {
             rows,
             retained_count: self.retained_count,
         }
     }
 
     /// Returns the ordinal of a selected row, or `None` when the row is not a landmark.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the selection length is bounded by the u32 capacity at construction"
-    )]
     #[inline]
     #[must_use]
     pub(crate) fn ordinal(&self, row: N) -> Option<LandmarkOrdinal> {
@@ -524,7 +523,7 @@ fn mark<N>(
     let mut retained = 0;
 
     for &index in indices {
-        let candidate = candidates[index];
+        let candidate = &candidates[index];
 
         selected.insert(index);
         if candidate.prior_landmark {

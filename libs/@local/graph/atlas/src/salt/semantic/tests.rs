@@ -16,6 +16,7 @@ use super::{
 };
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
+    identity::NodeRowId,
     math::kernel::exp_f32x8,
     salt::knn::table::{Knn, KnnMatrix},
 };
@@ -25,7 +26,7 @@ fn options() -> SmoothingOptions {
 }
 
 /// Builds a validated k-NN table from uniform per-row neighbour lists.
-fn knn_from_rows(rows: &[Vec<(u32, f32)>]) -> Knn {
+fn knn_from_rows(rows: &[Vec<(u32, f32)>]) -> Knn<NodeRowId> {
     let count = rows.len();
     let neighbours = rows[0].len();
     let mut indices = Vec::with_capacity(count * neighbours);
@@ -46,7 +47,7 @@ fn knn_from_rows(rows: &[Vec<(u32, f32)>]) -> Knn {
 }
 
 /// Brute-force cosine k-NN over random points on the unit circle arc.
-fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn {
+fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn<NodeRowId> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     let points: Vec<[f32; 2]> = core::iter::repeat_with(|| {
         let angle = rng.random::<f32>() * core::f32::consts::FRAC_PI_2;
@@ -88,14 +89,20 @@ fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn {
     reason = "the reference deliberately mirrors the naive scalar kernel, independent of the SIMD \
               path under test"
 )]
-fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, usize), f32> {
+fn scalar_reference(
+    knn: &Knn<NodeRowId>,
+    options: &SmoothingOptions,
+) -> HashMap<(usize, usize), f32> {
     let view = knn.view();
     let rows = view.rows();
     let neighbours = view.neighbours();
     let target = (neighbours as f64).log2();
 
     let all_distances: Vec<f32> = (0..rows)
-        .flat_map(|row| view.row(row).map(|neighbour| neighbour.distance))
+        .flat_map(|row| {
+            view.row(NodeRowId::from_usize(row))
+                .map(|neighbour| neighbour.distance)
+        })
         .collect();
     let corpus_mean = (all_distances
         .iter()
@@ -105,7 +112,10 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
 
     let mut directed = HashMap::new();
     for row in 0..rows {
-        let distances: Vec<f32> = view.row(row).map(|neighbour| neighbour.distance).collect();
+        let distances: Vec<f32> = view
+            .row(NodeRowId::from_usize(row))
+            .map(|neighbour| neighbour.distance)
+            .collect();
         let rho = distances
             .iter()
             .copied()
@@ -148,7 +158,7 @@ fn scalar_reference(knn: &Knn, options: &SmoothingOptions) -> HashMap<(usize, us
         let sigma =
             sigma.max(options.bandwidth_floor * if rho > 0.0 { row_mean } else { corpus_mean });
 
-        for neighbour in view.row(row) {
+        for neighbour in view.row(NodeRowId::from_usize(row)) {
             let adjusted = neighbour.distance - rho;
             let membership = if adjusted > 0.0 {
                 (-adjusted / sigma).exp().max(f32::MIN_POSITIVE)
@@ -279,7 +289,7 @@ fn agrees_with_the_scalar_reference() {
     let view = graph.view();
     let mut compared = 0;
     for row in 0..view.rows() {
-        for edge in view.row(row) {
+        for edge in view.row(NodeRowId::from_usize(row)) {
             let expected = reference
                 .get(&(row, edge.id.as_usize()))
                 .expect("every built edge appears in the reference union");
@@ -302,12 +312,12 @@ fn every_edge_is_stored_twice_with_equal_weight() {
     let view = graph.view();
 
     for row in 0..view.rows() {
-        for edge in view.row(row) {
+        for edge in view.row(NodeRowId::from_usize(row)) {
             assert_ne!(edge.id.as_usize(), row);
             assert!(edge.weight > 0.0 && edge.weight <= 1.0);
 
             let reverse = view
-                .row(edge.id.as_usize())
+                .row(edge.id)
                 .find(|reverse| reverse.id.as_usize() == row)
                 .expect("every edge is stored in both rows");
             assert_eq!(reverse.weight, edge.weight);
@@ -322,9 +332,9 @@ fn union_support_covers_every_directed_edge() {
     let view = graph.view();
 
     for row in 0..knn.rows() {
-        for neighbour in knn.view().row(row) {
+        for neighbour in knn.view().row(NodeRowId::from_usize(row)) {
             assert!(
-                view.row(row)
+                view.row(NodeRowId::from_usize(row))
                     .any(|edge| edge.id.as_usize() == neighbour.id.as_usize()),
                 "the directed edge ({row}, {}) is missing from the union",
                 neighbour.id.as_u64(),
@@ -348,7 +358,7 @@ fn one_sided_edges_keep_their_directed_membership() {
     let reference = scalar_reference(&knn, &options());
 
     let view = graph.view();
-    for edge in view.row(2) {
+    for edge in view.row(NodeRowId::new(2)) {
         let expected = reference[&(2, edge.id.as_usize())];
         assert!(
             (edge.weight - expected).abs() <= 1e-4,
@@ -381,7 +391,7 @@ fn published_graph_reopens_mapped() {
     let path = dir.join("semantic.sprs");
     std::fs::write(&path, &bytes).expect("the graph file writes");
 
-    let mapped = super::artifact::SemanticGraphArchive::new(
+    let mapped = super::artifact::SemanticGraphArchive::<NodeRowId>::new(
         SprsFile::open(&path).expect("the published file reopens"),
     )
     .expect("the published file opens as a semantic graph");
@@ -391,6 +401,7 @@ fn published_graph_reopens_mapped() {
     assert_eq!(reopened.rows(), owned.rows());
     assert_eq!(reopened.entries(), owned.entries());
     for row in 0..owned.rows() {
+        let row = NodeRowId::from_usize(row);
         let owned_row: Vec<(u64, f32)> = owned
             .row(row)
             .map(|edge| (edge.id.as_u64(), edge.weight))
@@ -421,7 +432,7 @@ fn symmetric_pair(weight_forward: f32, weight_reverse: f32) -> SemanticMatrix {
 #[test]
 fn validation_rejects_invariant_violations() {
     assert_eq!(
-        SemanticGraph::new(symmetric_pair(0.5, 0.25))
+        SemanticGraph::<NodeRowId>::new(symmetric_pair(0.5, 0.25))
             .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::AsymmetricWeight {
             row: 0,
@@ -432,7 +443,7 @@ fn validation_rejects_invariant_violations() {
     );
 
     assert_eq!(
-        SemanticGraph::new(symmetric_pair(1.5, 1.5))
+        SemanticGraph::<NodeRowId>::new(symmetric_pair(1.5, 1.5))
             .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::WeightOutOfRange {
             row: 0,
@@ -442,7 +453,7 @@ fn validation_rejects_invariant_violations() {
     );
 
     assert_matches!(
-        SemanticGraph::new(symmetric_pair(f32::NAN, 0.5))
+        SemanticGraph::<NodeRowId>::new(symmetric_pair(f32::NAN, 0.5))
             .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::NonFiniteWeight {
             row: 0,
@@ -455,7 +466,8 @@ fn validation_rejects_invariant_violations() {
         .map_err(|(_, _, _, error)| error)
         .expect("the self-edge matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(self_edge).expect_err("the invariant violation must be rejected"),
+        SemanticGraph::<NodeRowId>::new(self_edge)
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::SelfEdge { row: 0 },
     );
 
@@ -463,7 +475,8 @@ fn validation_rejects_invariant_violations() {
         .map_err(|(_, _, _, error)| error)
         .expect("the one-sided matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(one_sided).expect_err("the invariant violation must be rejected"),
+        SemanticGraph::<NodeRowId>::new(one_sided)
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::AsymmetricSupport { row: 0, column: 1 },
     );
 }
@@ -474,7 +487,8 @@ fn validation_rejects_degenerate_domains() {
         .map_err(|(_, _, _, error)| error)
         .expect("the single-row matrix is structurally valid");
     assert_eq!(
-        SemanticGraph::new(single).expect_err("the invariant violation must be rejected"),
+        SemanticGraph::<NodeRowId>::new(single)
+            .expect_err("the invariant violation must be rejected"),
         SemanticValidationError::InsufficientRows { rows: 1 },
     );
 }

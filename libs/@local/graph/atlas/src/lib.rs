@@ -42,9 +42,11 @@
     const_cmp,
     const_convert,
     const_default,
+    const_destruct,
     const_index,
     const_ops,
     const_try,
+    generic_atomic,
     impl_trait_in_assoc_type,
     iter_intersperse,
     iter_map_windows,
@@ -52,9 +54,6 @@
     portable_simd,
     step_trait,
     variant_count,
-    vec_from_fn,
-    const_destruct,
-    generic_atomic
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

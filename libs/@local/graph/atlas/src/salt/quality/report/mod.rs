@@ -543,8 +543,8 @@ impl QualityReport {
 /// Panics when `anchor_types` and the readings disagree about the anchor count; both describe one
 /// probe, so a mismatch is a wiring defect.
 #[must_use]
-pub(crate) fn assess(
-    readings: &ProbeReadings,
+pub(crate) fn assess<N>(
+    readings: &ProbeReadings<N>,
     anchor_types: &[SmallVec<OntologyRowId, 2>],
     thresholds: &QualityThresholds,
 ) -> QualityReport {
@@ -647,8 +647,8 @@ pub(crate) fn assess(
 ///
 /// Every breach is re-evaluated at clump granularity when clump readings exist: the same factor
 /// rule over the collapsed recalls decides the flag's resolution.
-fn subgroup_reports(
-    readings: &ProbeReadings,
+fn subgroup_reports<N>(
+    readings: &ProbeReadings<N>,
     overall: &[MetricRow],
     clump_overall: Option<&[ClumpAggregate]>,
     members: &BTreeMap<OntologyRowId, Vec<usize>>,
@@ -722,8 +722,8 @@ fn subgroup_reports(
 /// Every row merges the sampled representation-versus-canonical cells of the subgroup's anchors,
 /// plain and - when clump readings exist - collapsed, so the audit stratification and its triage
 /// evidence travel together.
-fn baseline_subgroup_reports(
-    readings: &ProbeReadings,
+fn baseline_subgroup_reports<N>(
+    readings: &ProbeReadings<N>,
     rungs: &[usize],
     members: &BTreeMap<OntologyRowId, Vec<usize>>,
 ) -> Vec<BaselineSubgroupReport> {
@@ -776,7 +776,7 @@ fn baseline_subgroup_reports(
 }
 
 /// Reads each neighbourhood size's density distortion from the radii.
-fn density_rows(readings: &ProbeReadings, rungs: &[usize]) -> Vec<DensityRow> {
+fn density_rows<N>(readings: &ProbeReadings<N>, rungs: &[usize]) -> Vec<DensityRow> {
     rungs
         .iter()
         .enumerate()

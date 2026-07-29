@@ -2,7 +2,7 @@ use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -536,7 +536,7 @@ async fn fit_publishes_a_complete_generation() {
             .iter()
             .zip(skeleton.assignment())
             .all(|(point, ordinal)| {
-                let landmark = skeleton.coordinates()[ordinal.usize()];
+                let landmark = skeleton.coordinates()[*ordinal];
                 point.x().to_bits() == landmark.x().to_bits()
                     && point.y().to_bits() == landmark.y().to_bits()
             }),
@@ -1372,7 +1372,7 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
 // the certificate compares the published column against the checkpoint
 // bit for bit, and a cross-backend comparison would measure kernel
 // flavor instead of publish fidelity.
-fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<Vec2> {
+fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> IdVec<NodeRowId, Vec2> {
     let checkpoint = fs::read(published.join("projector.mpk")).expect("the checkpoint reads");
     let model = artifact::open_model::<PlacementInner>(
         checkpoint.as_slice(),
@@ -1383,16 +1383,18 @@ fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> Vec<
 
     let representations =
         ArrayFile::open(published.join("representations.arr")).expect("the matrix maps");
-    let rows: &[AlignedVecN<PROJECTOR_DIMENSIONS>] = representations
-        .vectors()
-        .expect("the matrix holds projector-width rows");
+    let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
+        representations
+            .vectors()
+            .expect("the matrix holds projector-width rows"),
+    );
     let roles = vec![NodeRole::KnowledgeEntity; rows.len()];
 
     refresh::forward(
         &model,
         NodeColumns {
             representations: rows,
-            roles: &roles,
+            roles: IdSlice::from_raw(&roles),
         },
         eta,
         options.forward_rows,
@@ -1694,19 +1696,19 @@ fn duplicate_dataset() -> MemoryDataset {
 /// The cluster's first entry is its representation's first occurrence; every other member shares
 /// its neighbour list, its landmark ordinal, and its published coordinate bit for bit.
 fn assert_cluster_shares_one_point(
-    table: &KnnView<'_>,
-    assignment: &[LandmarkOrdinal],
-    placed: &[Vec2],
+    table: &KnnView<'_, NodeRowId>,
+    assignment: &IdSlice<NodeRowId, LandmarkOrdinal>,
+    placed: &IdSlice<NodeRowId, Vec2>,
     cluster: &[usize],
 ) {
     let first = cluster[0];
     let reference: Vec<(NodeRowId, u32)> = table
-        .row(first)
+        .row(NodeRowId::from_usize(first))
         .map(|neighbour| (neighbour.id, neighbour.distance.to_bits()))
         .collect();
     for &row in &cluster[1..] {
         let list: Vec<(NodeRowId, u32)> = table
-            .row(row)
+            .row(NodeRowId::from_usize(row))
             .map(|neighbour| (neighbour.id, neighbour.distance.to_bits()))
             .collect();
         assert_eq!(
@@ -1714,18 +1716,18 @@ fn assert_cluster_shares_one_point(
             "rows {first} and {row} should share one neighbour list",
         );
         assert_eq!(
-            assignment[row].usize(),
-            assignment[first].usize(),
+            assignment[NodeRowId::from_usize(row)],
+            assignment[NodeRowId::from_usize(first)],
             "rows {first} and {row} should share one landmark ordinal",
         );
         assert_eq!(
-            placed[row].x().to_bits(),
-            placed[first].x().to_bits(),
+            placed[NodeRowId::from_usize(row)].x().to_bits(),
+            placed[NodeRowId::from_usize(first)].x().to_bits(),
             "rows {first} and {row} should share one x coordinate",
         );
         assert_eq!(
-            placed[row].y().to_bits(),
-            placed[first].y().to_bits(),
+            placed[NodeRowId::from_usize(row)].y().to_bits(),
+            placed[NodeRowId::from_usize(first)].y().to_bits(),
             "rows {first} and {row} should share one y coordinate",
         );
     }
@@ -1788,7 +1790,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     let table = knn.view();
     assert_eq!(table.rows(), NODES);
 
-    let semantic = SemanticGraphArchive::new(
+    let semantic = SemanticGraphArchive::<NodeRowId>::new(
         SprsFile::open(published.path().join("semantic.sprs")).expect("the graph should map"),
     )
     .expect("the graph should validate");
@@ -1813,7 +1815,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     // occurrence: every neighbour and every selected landmark is a
     // first row.
     for row in 0..NODES {
-        for neighbour in table.row(row) {
+        for neighbour in table.row(NodeRowId::from_usize(row)) {
             let neighbour_row = neighbour.id.as_usize();
             assert!(
                 is_first_row(neighbour_row),
@@ -1832,7 +1834,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     // The rows of one cluster are one point of the quotient: one
     // neighbour list, one landmark ordinal, one published coordinate.
     for cluster in clusters {
-        assert_cluster_shares_one_point(&table, assignment, placed, cluster);
+        assert_cluster_shares_one_point(&table, assignment, IdSlice::from_raw(placed), cluster);
     }
 }
 
@@ -2154,7 +2156,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     // and the published index: edge row 0's lone link score combines
     // with two neutral factors.
     let scored = employment
-        .edges()
+        .edges::<NodeRowId, EdgeRowId>()
         .find(|edge| edge.edge.as_u64() == 0)
         .expect("edge row 0 is retained under relation 2");
     assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
@@ -2162,7 +2164,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert!(!scored.confidence.scored().source());
     assert!(!scored.confidence.scored().target());
 
-    let neutral = membership.edge(0);
+    let neutral = membership.edge::<NodeRowId, EdgeRowId>(0);
     assert_eq!(neutral.edge.as_u64(), 1);
     assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
     assert!(!neutral.confidence.scored().link());
@@ -2245,7 +2247,7 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_attraction_reads_back(&attraction);
 
     // The protection index and the quadtree publish beside them.
-    let _protection = ProtectionArchive::new(
+    let _protection = ProtectionArchive::<NodeRowId>::new(
         SprsFile::open(published.path().join("protection.sprs"))
             .expect("the protection index should map"),
     )

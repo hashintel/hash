@@ -179,6 +179,7 @@ impl<'heap> Compilation<'heap> {
         })
     }
 
+    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub(crate) fn context(&self) -> CodeExecutionContext<'_, 'heap, &'heap Heap> {
         CodeExecutionContext {
             env: &self.env,

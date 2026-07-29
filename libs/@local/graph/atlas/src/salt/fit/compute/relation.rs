@@ -7,15 +7,15 @@ use super::{
         role::{Role, stage, write_staged},
     },
     Context,
-    quotient::{self, RowQuotient},
+    quotient::{self, DistinctRowId, RowQuotient},
 };
 use crate::{
     file::{array::ArrayFile, policy::read::PolicyFile, repository::RepositoryFile},
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId},
     salt::{
         adjacency::Adjacency,
         policy::artifact::PolicyTableArchive,
-        relation::{Policies, RelationIndexes, RelationInstance},
+        relation::{Policies, RelationIndexes},
     },
 };
 
@@ -28,11 +28,11 @@ pub(super) struct RelationArtifacts {
     // Owned rather than mapped back: edge-scale, bounded by the
     // retained instance count. The corpus row-domain truth the staged
     // files persist; the manifest's relation measurements read here.
-    pub indexes: RelationIndexes,
+    pub indexes: RelationIndexes<NodeRowId, EdgeRowId>,
     // The placement stage's distinct-domain twin: endpoints mapped
     // onto the representation quotient, duplicate readings collapsed
     // to one assertion each. Never staged.
-    pub trainer: RelationIndexes,
+    pub trainer: RelationIndexes<DistinctRowId, EdgeRowId>,
 }
 
 impl Context<'_> {
@@ -80,7 +80,9 @@ impl Context<'_> {
             Policies::new(table.policies()).expect("the mapped table certified order and domains");
 
         let mapped = spool.map()?;
-        // NOTE: why do we materialize here? That makes no fucking sense
+        // The spool maps read-only encoded records and the index build sorts its instance slice
+        // in place, so the readings decode into owned storage once; the mapping unmaps before
+        // the sorts run.
         let mut instances: Vec<_> = mapped
             .records()
             .iter()

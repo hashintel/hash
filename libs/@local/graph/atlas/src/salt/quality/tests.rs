@@ -14,7 +14,7 @@ use core::{assert_matches, future::ready, num::NonZero};
 use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::{SmallVec, smallvec};
@@ -55,7 +55,7 @@ use crate::{
 ///
 /// A chained near-duplicate triple {0, 1, 2}, an exact-duplicate pair {3, 4}, and a far singleton
 /// 5.
-fn clump_fixture() -> Knn {
+fn clump_fixture() -> Knn<NodeRowId> {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
     let distances: Vec<f32> = vec![
@@ -81,15 +81,30 @@ fn clumps_group_chains_and_duplicates() {
     assert_eq!(clumps.clumps(), 3);
     assert_eq!(clumps.groups(), 2);
     assert_eq!(clumps.grouped_rows(), 5);
-    assert_eq!(clumps.clump(0), clumps.clump(1));
-    assert_eq!(clumps.clump(1), clumps.clump(2));
-    assert_eq!(clumps.clump(3), clumps.clump(4));
-    assert_ne!(clumps.clump(0), clumps.clump(3));
-    assert_ne!(clumps.clump(5), clumps.clump(3));
+    assert_eq!(
+        clumps.clump(NodeRowId::new(0)),
+        clumps.clump(NodeRowId::new(1))
+    );
+    assert_eq!(
+        clumps.clump(NodeRowId::new(1)),
+        clumps.clump(NodeRowId::new(2))
+    );
+    assert_eq!(
+        clumps.clump(NodeRowId::new(3)),
+        clumps.clump(NodeRowId::new(4))
+    );
+    assert_ne!(
+        clumps.clump(NodeRowId::new(0)),
+        clumps.clump(NodeRowId::new(3))
+    );
+    assert_ne!(
+        clumps.clump(NodeRowId::new(5)),
+        clumps.clump(NodeRowId::new(3))
+    );
     // Dense ids follow first-row order.
-    assert_eq!(clumps.clump(0), 0);
-    assert_eq!(clumps.clump(3), 1);
-    assert_eq!(clumps.clump(5), 2);
+    assert_eq!(clumps.clump(NodeRowId::new(0)), 0);
+    assert_eq!(clumps.clump(NodeRowId::new(3)), 1);
+    assert_eq!(clumps.clump(NodeRowId::new(5)), 2);
 }
 
 #[test]
@@ -99,15 +114,24 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
     // At the boundary value 0.05 the {0, 1, 2} chain still connects
     // (0 and 2 join through 1), and {3, 4} always group.
     let boundary = Clumps::from_knn(&table.view(), 0.05);
-    assert_eq!(boundary.clump(0), boundary.clump(2));
+    assert_eq!(
+        boundary.clump(NodeRowId::new(0)),
+        boundary.clump(NodeRowId::new(2))
+    );
     assert_eq!(boundary.groups(), 2);
 
     // Epsilon 0 groups exactly the coincident embeddings.
     let exact = Clumps::from_knn(&table.view(), 0.0);
     assert_eq!(exact.groups(), 1);
     assert_eq!(exact.grouped_rows(), 2);
-    assert_eq!(exact.clump(3), exact.clump(4));
-    assert_ne!(exact.clump(0), exact.clump(1));
+    assert_eq!(
+        exact.clump(NodeRowId::new(3)),
+        exact.clump(NodeRowId::new(4))
+    );
+    assert_ne!(
+        exact.clump(NodeRowId::new(0)),
+        exact.clump(NodeRowId::new(1))
+    );
 
     // A non-finite threshold admits no edges.
     let none = Clumps::from_knn(&table.view(), f32::NAN);
@@ -125,22 +149,28 @@ fn default_epsilon_groups_duplicates_not_neighbours() {
     let clumps = Clumps::from_knn(&table.view(), super::clump::DEFAULT_EPSILON);
 
     assert_eq!(clumps.epsilon(), super::clump::DEFAULT_EPSILON);
-    assert_eq!(clumps.clump(3), clumps.clump(4));
-    assert_ne!(clumps.clump(0), clumps.clump(1));
+    assert_eq!(
+        clumps.clump(NodeRowId::new(3)),
+        clumps.clump(NodeRowId::new(4))
+    );
+    assert_ne!(
+        clumps.clump(NodeRowId::new(0)),
+        clumps.clump(NodeRowId::new(1))
+    );
     assert_eq!(clumps.groups(), 1);
     assert_eq!(clumps.grouped_rows(), 2);
 }
 
 #[test]
 fn hand_built_labels_read_like_a_grouping() {
-    let clumps = Clumps::from_labels(vec![0, 0, 1, 2, 2, 2], 0.25);
+    let clumps = Clumps::<NodeRowId>::from_labels(IdVec::from_raw(vec![0, 0, 1, 2, 2, 2]), 0.25);
 
     assert_eq!(clumps.rows(), 6);
     assert_eq!(clumps.epsilon(), 0.25);
     assert_eq!(clumps.clumps(), 3);
     assert_eq!(clumps.groups(), 2);
     assert_eq!(clumps.grouped_rows(), 5);
-    assert_eq!(clumps.clump(3), 2);
+    assert_eq!(clumps.clump(NodeRowId::new(3)), 2);
 }
 
 /// Hand-computed multiset overlap.
@@ -648,7 +678,7 @@ async fn clump_readings_match_a_sorting_reference() {
 
     // Singleton labels: the multiset overlap is the shared-row count,
     // so the collapsed reading equals plain recall anchor by anchor.
-    let singletons = Clumps::from_labels((0..40).collect(), 0.0);
+    let singletons = Clumps::<NodeRowId>::from_labels((0..40).collect(), 0.0);
     let readings = probe(
         &fixture.dataset(),
         fixture.corpus().with_clumps(&singletons),
@@ -675,7 +705,7 @@ async fn clump_readings_match_a_sorting_reference() {
     // circle collapse onto shared labels, and the readings replay
     // from sorted orderings collapsed the same way.
     let labels: Vec<u32> = (0..10_u32).flat_map(|block| [block; 4]).collect();
-    let grouped = Clumps::from_labels(labels.clone(), 0.2);
+    let grouped = Clumps::<NodeRowId>::from_labels(IdVec::from_raw(labels.clone()), 0.2);
     let readings = probe(
         &fixture.dataset(),
         fixture.corpus().with_clumps(&grouped),
@@ -733,7 +763,7 @@ async fn clump_readings_match_a_sorting_reference() {
 ///
 /// Six single-query anchors at k = 1 over a universe of 8, each a plain hit (rank 0) or a horizon
 /// miss (rank 7), reused for all four grids.
-fn flag_fixture(hits: &[bool]) -> ProbeReadings {
+fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     let cells: Vec<Vec<NeighbourhoodAggregate>> = hits
         .iter()
         .map(|&hit| {

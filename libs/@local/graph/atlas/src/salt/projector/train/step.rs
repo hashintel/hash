@@ -99,7 +99,7 @@ pub(crate) struct Objective<B: AutodiffBackend> {
 #[derive(Debug)]
 pub(crate) struct Evaluation<'run, N> {
     /// The per-row model input columns of the whole corpus.
-    pub columns: NodeColumns<'run>,
+    pub columns: NodeColumns<'run, N>,
     /// The objective's numerical contract.
     pub options: ObjectiveOptions,
     /// The relation-degree decile axis of the budget metrics.
@@ -381,7 +381,7 @@ where
 /// copying.
 fn read_frame<N, B: Backend<FloatElem = f32>>(
     coordinates: Tensor<B, 2>,
-    rows: &[N],
+    rows: &IdSlice<BatchRowId, N>,
 ) -> Result<Vec<f32>, StepError<N>>
 where
     N: Id,
@@ -394,8 +394,11 @@ where
     let frame = Vec2::from_slice(&values).expect("a [rows, 2] tensor reads back an even length");
     for (index, point) in frame.iter().enumerate() {
         if !point.is_finite() {
+            // Alignment padding trails the batch rows; a padded point diverging names the
+            // last real row.
+            let batch_row = BatchRowId::from_usize(index.min(rows.len() - 1));
             return Err(StepError::Diverged {
-                row: rows[index.min(rows.len() - 1)],
+                row: rows[batch_row],
             });
         }
     }

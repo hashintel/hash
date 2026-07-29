@@ -23,6 +23,7 @@ use crate::{
         policy::read::OpenPolicyError,
         sprs::{read::OpenSprsError, write::WriteSprsError},
     },
+    identity::NodeRowId,
     salt::{
         adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
@@ -63,11 +64,11 @@ pub enum PlacementError {
     /// The configured architecture disagrees with the dataset's representation width.
     RepresentationWidth { configured: usize },
     /// Projector training failed.
-    Train(TrainError),
+    Train(TrainError<NodeRowId>),
     /// The projector checkpoint could not be encoded or staged.
     Checkpoint(CheckpointError),
     /// A whole-corpus inference pass failed.
-    Projection(RefreshError),
+    Projection(RefreshError<NodeRowId>),
     /// The ladder measurement rejected its fields.
     Ladder(LadderError),
     /// The configured canonical condition was refused.
@@ -116,8 +117,8 @@ impl Error for PlacementError {
     }
 }
 
-impl From<TrainError> for PlacementError {
-    fn from(error: TrainError) -> Self {
+impl From<TrainError<NodeRowId>> for PlacementError {
+    fn from(error: TrainError<NodeRowId>) -> Self {
         Self::Train(error)
     }
 }
@@ -128,8 +129,8 @@ impl From<CheckpointError> for PlacementError {
     }
 }
 
-impl From<RefreshError> for PlacementError {
-    fn from(error: RefreshError) -> Self {
+impl From<RefreshError<NodeRowId>> for PlacementError {
+    fn from(error: RefreshError<NodeRowId>) -> Self {
         Self::Projection(error)
     }
 }
@@ -228,11 +229,11 @@ pub enum StageError {
     /// Sampled representation rows violate the source contract.
     RepresentationDefects(NormSpotCheck),
     /// The search backend failed.
-    Index(HannoyIndexError),
+    Index(HannoyIndexError<NodeRowId>),
     /// The search backend fell below the configured recall minimum.
     RecallBelowMinimum(recall::RecallSpotCheck),
     /// The k-NN table failed to assemble or admit.
-    Knn(KnnError<HannoyIndexError>),
+    Knn(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
     /// The NN-Descent construction failed.
     Descent(NnDescentError),
     /// The assembled corpus violates the classifier's training-set contract.
@@ -274,7 +275,7 @@ pub enum StageError {
     /// The landmark selection rejected its input.
     Selection(SelectionError),
     /// The landmark assignment failed.
-    Assignment(AssignmentError<HannoyIndexError>),
+    Assignment(AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>),
     /// The quotient contraction rejected its input.
     Quotient(QuotientError),
     /// The quotient graph stores no edges to lay out against.
@@ -320,8 +321,8 @@ impl From<SpotCheckError> for StageError {
     }
 }
 
-impl From<HannoyIndexError> for StageError {
-    fn from(error: HannoyIndexError) -> Self {
+impl From<HannoyIndexError<NodeRowId>> for StageError {
+    fn from(error: HannoyIndexError<NodeRowId>) -> Self {
         Self::Index(error)
     }
 }
@@ -362,8 +363,8 @@ impl From<WriteSprsError> for StageError {
     }
 }
 
-impl From<KnnError<HannoyIndexError>> for StageError {
-    fn from(error: KnnError<HannoyIndexError>) -> Self {
+impl From<KnnError<NodeRowId, HannoyIndexError<NodeRowId>>> for StageError {
+    fn from(error: KnnError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
         Self::Knn(error)
     }
 }
@@ -404,8 +405,8 @@ impl From<SelectionError> for StageError {
     }
 }
 
-impl From<AssignmentError<HannoyIndexError>> for StageError {
-    fn from(error: AssignmentError<HannoyIndexError>) -> Self {
+impl From<AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>> for StageError {
+    fn from(error: AssignmentError<NodeRowId, HannoyIndexError<NodeRowId>>) -> Self {
         Self::Assignment(error)
     }
 }
@@ -470,8 +471,8 @@ impl From<PlacementError> for StageError {
     }
 }
 
-impl From<TrainError> for StageError {
-    fn from(error: TrainError) -> Self {
+impl From<TrainError<NodeRowId>> for StageError {
+    fn from(error: TrainError<NodeRowId>) -> Self {
         Self::Placement(error.into())
     }
 }
@@ -482,8 +483,8 @@ impl From<CheckpointError> for StageError {
     }
 }
 
-impl From<RefreshError> for StageError {
-    fn from(error: RefreshError) -> Self {
+impl From<RefreshError<NodeRowId>> for StageError {
+    fn from(error: RefreshError<NodeRowId>) -> Self {
         Self::Placement(error.into())
     }
 }

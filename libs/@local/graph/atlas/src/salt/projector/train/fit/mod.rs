@@ -259,7 +259,7 @@ pub(crate) struct TrainerInputs<'run, N, E> {
     /// The 512-dimensional neighbour table local scales measure over.
     pub knn: KnnView<'run, N>,
     /// The per-row model input columns.
-    pub columns: NodeColumns<'run>,
+    pub columns: NodeColumns<'run, N>,
     /// The landmark skeleton's support anchors, corpus rows.
     pub landmarks: &'run [SupportAnchor<N>],
     /// The temporal support anchors, corpus rows; empty for a first generation.
@@ -446,7 +446,7 @@ pub(crate) fn fit<
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<Fitted<B>, TrainError> {
+) -> Result<Fitted<B>, TrainError<N>> {
     let state = fit_to_boundary(model, inputs, options, rng, device, progress)?;
     fit_from_boundary(state, inputs, options, rng, device, progress)
 }
@@ -479,7 +479,7 @@ pub(crate) fn fit_to_boundary<
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<BoundaryState<B>, TrainError> {
+) -> Result<BoundaryState<B>, TrainError<N>> {
     let schedule = options.schedule;
     let mut session = Session::new(inputs, options)?;
     let training = session.run(
@@ -534,7 +534,7 @@ pub(crate) fn fit_from_boundary<
     rng: &mut R,
     device: &B::Device,
     progress: &P,
-) -> Result<Fitted<B>, TrainError> {
+) -> Result<Fitted<B>, TrainError<N>> {
     if options.schedule != state.schedule {
         return Err(TrainError::ScheduleChanged {
             opening: state.schedule,

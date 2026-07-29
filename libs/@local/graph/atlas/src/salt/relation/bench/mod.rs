@@ -82,19 +82,20 @@ impl<N, E> Scratch<N, E> {
 #[derive(Clone)]
 pub struct Records<N>(Vec<ProtectionRecord<N>>);
 
-impl<N> Records<N>
+impl<N, E> Corpus<N, E>
 where
     N: Id,
+    E: Id,
 {
     /// Clones the instances in synthesis order, the full build's and the group sort's input state.
     #[must_use]
-    pub fn scratch<E>(&self) -> Scratch<N, E> {
+    pub fn scratch(&self) -> Scratch<N, E> {
         Scratch(self.instances().to_vec())
     }
 
     /// Clones the emitted protection records in emission order, the assembly's input state.
     #[must_use]
-    pub fn records_scratch<E>(&self) -> Records<N> {
+    pub fn records_scratch(&self) -> Records<N> {
         Records(self.records().to_vec())
     }
 
@@ -105,15 +106,12 @@ where
     /// Panics when the settings are not finite and non-negative, or the build rejects the corpus,
     /// which the synthesis contract excludes.
     #[must_use]
-    pub fn build_in<E>(
+    pub fn build_in(
         &self,
         scratch: &mut Scratch<N, E>,
         coincident: f32,
         pruning: f32,
-    ) -> BuildSummary
-    where
-        E: Id,
-    {
+    ) -> BuildSummary {
         let attraction = AttractionOptions::new(coincident, pruning)
             .expect("the sweep passes finite, non-negative settings");
         let indexes =
@@ -140,7 +138,7 @@ where
     pub fn emit_groups(&self, chunk: usize) {
         let ranges = build::resolve_groups(self.grouped(), self.policies())
             .expect("the synthesized corpus covers every relation");
-        let mut records = vec![ProtectionRecord::EMPTY; self.grouped().len()];
+        let mut records = vec![ProtectionRecord::empty(); self.grouped().len()];
         drop(build::build_groups(
             self.grouped(),
             ranges,

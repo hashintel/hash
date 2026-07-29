@@ -8,8 +8,11 @@
     reason = "medians of exactly representable distances are exact contracts"
 )]
 
+use hashql_core::id::IdSlice;
+
 use super::{LocalScales, NonFiniteScale};
 use crate::{
+    identity::NodeRowId,
     math::Vec2,
     salt::knn::table::{Knn, KnnMatrix},
 };
@@ -18,7 +21,7 @@ use crate::{
 ///
 /// Every row lists every other row, with `distances(row)` supplying that row's stored distances in
 /// ascending column order.
-fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<f32>) -> Knn {
+fn complete_table(rows: usize, distances: impl Fn(usize) -> Vec<f32>) -> Knn<NodeRowId> {
     let neighbours = rows - 1;
     let mut indptr = Vec::with_capacity(rows + 1);
     let mut columns = Vec::with_capacity(rows * neighbours);
@@ -65,9 +68,10 @@ fn selects_neighbours_by_stored_distance_not_storage_order() {
     )]
     let coordinates: Vec<Vec2> = (0..rows).map(|row| Vec2::new(row as f32, 0.0)).collect();
 
-    let scales = LocalScales::compute(&coordinates, &table.view()).expect("the fixture is finite");
+    let scales = LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view())
+        .expect("the fixture is finite");
 
-    assert_eq!(scales.as_slice()[0].get(), 9.0);
+    assert_eq!(scales.as_slice()[NodeRowId::new(0)].get(), 9.0);
     assert_eq!(scales.len(), rows);
 }
 
@@ -81,10 +85,11 @@ fn even_neighbour_counts_use_the_midpoint() {
         Vec2::new(0.0, 4.0),
     ];
 
-    let scales = LocalScales::compute(&coordinates, &table.view()).expect("the fixture is finite");
+    let scales = LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view())
+        .expect("the fixture is finite");
 
     // Row 0's 2D distances are {3, 4}: median 3.5.
-    assert_eq!(scales.as_slice()[0].get(), 3.5);
+    assert_eq!(scales.as_slice()[NodeRowId::new(0)].get(), 3.5);
 }
 
 /// Detection completes through the diverged row itself.
@@ -103,8 +108,10 @@ fn diverged_row_flags_itself_even_when_observers_stay_finite() {
     ];
 
     assert_eq!(
-        LocalScales::compute(&coordinates, &table.view()),
-        Err(NonFiniteScale { row: 3 })
+        LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view()),
+        Err(NonFiniteScale {
+            row: NodeRowId::new(3)
+        })
     );
 }
 
@@ -120,7 +127,9 @@ fn rejects_non_finite_coordinates() {
 
     // Row 2's coordinate poisons rows 0, 1, and 2; row 0 is smallest.
     assert_eq!(
-        LocalScales::compute(&coordinates, &table.view()),
-        Err(NonFiniteScale { row: 0 })
+        LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view()),
+        Err(NonFiniteScale {
+            row: NodeRowId::new(0)
+        })
     );
 }

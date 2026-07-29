@@ -25,13 +25,11 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::NodeRowId,
     math::{NonNegative, Vec2},
     progress::Progress,
     salt::{
         knn::table::KnnView,
         projector::{
-            loss::BatchRowId,
             miner::{HardNegativeMiner, MinedFrame, SpatialField, SpatialFieldError},
             model::{Projector, ProjectorInput},
             scale::LocalScales,
@@ -50,21 +48,36 @@ pub enum RefreshError<N> {
     RowsExceedIndexDomain { rows: usize },
 }
 
+impl<N> RefreshError<N> {
+    /// Maps the row the error names into another row domain.
+    pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> RefreshError<M> {
+        match self {
+            Self::Diverged { row: diverged, eta } => RefreshError::Diverged {
+                row: row(diverged),
+                eta,
+            },
+            Self::NonFiniteScale { row: diverged, eta } => RefreshError::NonFiniteScale {
+                row: row(diverged),
+                eta,
+            },
+            Self::RowsExceedIndexDomain { rows } => RefreshError::RowsExceedIndexDomain { rows },
+        }
+    }
+}
+
 impl<N> fmt::Display for RefreshError<N>
 where
     N: fmt::Display,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match self {
             Self::Diverged { row, eta } => write!(
                 fmt,
-                "training diverged: row {} projected to a non-finite coordinate at rung {eta}",
-                row,
+                "training diverged: row {row} projected to a non-finite coordinate at rung {eta}",
             ),
             Self::NonFiniteScale { row, eta } => write!(
                 fmt,
-                "training diverged: row {} measured a non-finite local scale at rung {eta}",
-                row,
+                "training diverged: row {row} measured a non-finite local scale at rung {eta}",
             ),
             Self::RowsExceedIndexDomain { rows } => write!(
                 fmt,
@@ -84,7 +97,7 @@ pub(crate) struct RefreshOutcome<N> {
     /// One local-scale table per rung, in [`RUNGS`] order.
     ///
     /// Present exactly when the tick ran with scales.
-    pub scales: Option<[LocalScales<BatchRowId>; RUNGS.len()]>,
+    pub scales: Option<[LocalScales<N>; RUNGS.len()]>,
     /// The displacement field between the lens extremes.
     pub displacement: DisplacementSummary,
 }
@@ -201,7 +214,7 @@ fn even_ranks(len: usize, count: usize) -> impl Iterator<Item = usize> {
 /// The corpus inputs, the miner, and the telemetry axes, bound once per training run.
 pub(super) struct Refresh<'run, N> {
     /// The per-row model input columns.
-    pub columns: NodeColumns<'run>,
+    pub columns: NodeColumns<'run, N>,
     /// The neighbour table local scales measure over.
     pub knn: KnnView<'run, N>,
     /// The hard-negative miner.
@@ -285,7 +298,7 @@ where
 /// Returns an error when a projected coordinate is non-finite: training diverged.
 pub(crate) fn forward<N, B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
-    columns: NodeColumns<'_>,
+    columns: NodeColumns<'_, N>,
     eta: f32,
     forward_rows: NonZero<usize>,
     device: &B::Device,
@@ -309,7 +322,7 @@ where
         for (offset, point) in points.iter().enumerate() {
             if !point.is_finite() {
                 return Err(RefreshError::Diverged {
-                    row: NodeRowId::from_usize(start + offset),
+                    row: N::from_usize(start + offset),
                     eta,
                 });
             }
@@ -342,7 +355,7 @@ where
 }
 
 /// Maps a spatial-index failure onto the tick's error.
-const fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
+fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
         SpatialFieldError::NonFinite { row } => RefreshError::Diverged { row, eta },
@@ -353,18 +366,25 @@ const fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N
 }
 
 /// Materializes one row slice's model input at a rung on `device`.
-fn slice_input<B: Backend>(
-    columns: NodeColumns<'_>,
+fn slice_input<N, B: Backend>(
+    columns: NodeColumns<'_, N>,
     range: Range<usize>,
     eta: f32,
     device: &B::Device,
-) -> ProjectorInput<B> {
+) -> ProjectorInput<B>
+where
+    N: Id,
+{
     let rows = range.len();
+    let range = N::from_usize(range.start)..N::from_usize(range.end);
     let mut representation = Vec::with_capacity(rows * PROJECTOR_DIMENSIONS);
     let mut roles = Vec::with_capacity(rows);
-    for row in range {
-        representation.extend_from_slice(columns.representations[row].as_array());
-        roles.push(i64::from(columns.roles[row].index()));
+    for (vector, role) in columns.representations[range.clone()]
+        .iter()
+        .zip(&columns.roles[range])
+    {
+        representation.extend_from_slice(vector.as_array());
+        roles.push(i64::from(role.index()));
     }
 
     ProjectorInput {

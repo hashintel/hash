@@ -342,11 +342,11 @@ where
 /// The representation matrix and the role column are the two per-row inputs the projector consumes;
 /// they always travel together, cover the same rows, and stay borrowed from the mapped artifacts.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct NodeColumns<'corpus> {
+pub(crate) struct NodeColumns<'corpus, N> {
     /// Normalized representations, one aligned row per node.
-    pub representations: &'corpus [AlignedVecN<PROJECTOR_DIMENSIONS>],
+    pub representations: &'corpus IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The projection role of each node row.
-    pub roles: &'corpus [NodeRole],
+    pub roles: &'corpus IdSlice<N, NodeRole>,
 }
 
 /// One assembled minibatch, re-indexed to the batch-local row domain.
@@ -359,8 +359,8 @@ pub(crate) struct NodeColumns<'corpus> {
 /// and the gathered scales stay global (see the module documentation).
 #[derive(Debug)]
 pub(crate) struct Batch<N, A: Allocator = Global> {
-    /// The participating corpus rows, ascending and distinct.
-    pub rows: Box<[N], A>,
+    /// The participating corpus rows, ascending and distinct: the batch-to-corpus row map.
+    pub rows: Box<IdSlice<BatchRowId, N>, A>,
     /// Semantic positive pairs, batch-local.
     pub semantic: Vec<NodePair<BatchRowId>, A>,
     /// See [`Populations::semantic_scale`].
@@ -411,7 +411,7 @@ where
     #[must_use]
     pub(crate) fn assemble<E>(
         populations: Populations<'_, N, E>,
-        scales: Option<&LocalScales<BatchRowId>>,
+        scales: Option<&LocalScales<N>>,
     ) -> Self
     where
         E: Id,
@@ -431,7 +431,7 @@ where
     #[must_use]
     pub(crate) fn assemble_in<E>(
         populations: Populations<'_, N, E, impl Allocator>,
-        scales: Option<&LocalScales<BatchRowId>>,
+        scales: Option<&LocalScales<N>>,
         alloc: A,
     ) -> Self
     where
@@ -532,7 +532,7 @@ where
         });
 
         Self {
-            rows: rows.into_boxed_slice(),
+            rows: IdSlice::from_boxed_slice(rows.into_boxed_slice()),
             semantic,
             semantic_scale: populations.semantic_scale,
             ordinary,
@@ -565,7 +565,7 @@ where
     #[must_use]
     pub(crate) fn input<B: Backend>(
         &self,
-        columns: NodeColumns<'_>,
+        columns: NodeColumns<'_, N>,
         device: &B::Device,
     ) -> ProjectorInput<B> {
         self.input_aligned(columns, device, ROW_ALIGNMENT)
@@ -586,7 +586,7 @@ where
     #[must_use]
     pub(crate) fn input_aligned<B: Backend>(
         &self,
-        columns: NodeColumns<'_>,
+        columns: NodeColumns<'_, N>,
         device: &B::Device,
         alignment: NonZero<usize>,
     ) -> ProjectorInput<B> {
@@ -601,14 +601,14 @@ where
         let mut representation = Vec::with_capacity(padded * PROJECTOR_DIMENSIONS);
         let mut role_values = Vec::with_capacity(padded);
 
-        for row in &self.rows {
-            representation.extend_from_slice(columns.representations[row.as_usize()].as_array());
-            role_values.push(i64::from(columns.roles[row.as_usize()].index()));
+        for &row in self.rows.iter() {
+            representation.extend_from_slice(columns.representations[row].as_array());
+            role_values.push(i64::from(columns.roles[row].index()));
         }
 
-        if let Some(last) = self.rows.last() {
-            let pattern = columns.representations[last.as_usize()].as_array();
-            let role = i64::from(columns.roles[last.as_usize()].index());
+        if let Some(&last) = self.rows.iter().next_back() {
+            let pattern = columns.representations[last].as_array();
+            let role = i64::from(columns.roles[last].index());
             for _ in rows..padded {
                 representation.extend_from_slice(pattern);
                 role_values.push(role);

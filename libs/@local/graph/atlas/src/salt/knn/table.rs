@@ -263,7 +263,7 @@ where
                 {
                     return Err(KnnError::DuplicateNeighbour {
                         row,
-                        neighbour: duplicate as u64,
+                        neighbour: u64::from(duplicate),
                     });
                 }
 

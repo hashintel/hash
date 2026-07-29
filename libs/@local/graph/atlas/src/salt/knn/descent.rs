@@ -491,16 +491,18 @@ where
 mod tests {
     use core::sync::atomic::Ordering;
 
-    use super::{Entry, RowList, sample_pool};
-    use crate::random::keyed_rng;
+    use hashql_core::id::Id as _;
 
-    fn list(pairs: &[(f32, u32)]) -> RowList {
+    use super::{Entry, RowList, sample_pool};
+    use crate::{identity::NodeRowId, random::keyed_rng};
+
+    fn list(pairs: &[(f32, u32)]) -> RowList<NodeRowId> {
         RowList::new(
             pairs
                 .iter()
                 .map(|&(distance, id)| Entry {
                     distance,
-                    id,
+                    id: NodeRowId::from_u32(id),
                     new: false,
                 })
                 .collect(),
@@ -510,10 +512,10 @@ mod tests {
     #[test]
     fn offer_displaces_the_worst_entry() {
         let row = list(&[(0.1, 7), (0.5, 3), (0.9, 11)]);
-        assert!(row.offer(4, 0.3));
+        assert!(row.offer(NodeRowId::from_u32(4), 0.3));
 
         let entries = row.entries.lock().expect("the test holds the only handle");
-        let ids: Vec<u32> = entries.iter().map(|entry| entry.id).collect();
+        let ids: Vec<u64> = entries.iter().map(|entry| entry.id.as_u64()).collect();
         let accepted_is_new = entries[1].new;
         drop(entries);
         assert_eq!(ids, [7, 4, 3]);
@@ -527,9 +529,18 @@ mod tests {
     #[test]
     fn offer_rejects_duplicates_and_non_improvements() {
         let row = list(&[(0.1, 7), (0.5, 3), (0.9, 11)]);
-        assert!(!row.offer(3, 0.2), "a present id cannot enter twice");
-        assert!(!row.offer(4, 0.9), "a tie with the worst does not displace");
-        assert!(!row.offer(4, 1.5), "a worse candidate does not displace");
+        assert!(
+            !row.offer(NodeRowId::from_u32(3), 0.2),
+            "a present id cannot enter twice"
+        );
+        assert!(
+            !row.offer(NodeRowId::from_u32(4), 0.9),
+            "a tie with the worst does not displace"
+        );
+        assert!(
+            !row.offer(NodeRowId::from_u32(4), 1.5),
+            "a worse candidate does not displace"
+        );
 
         let entries = row.entries.lock().expect("the test holds the only handle");
         assert_eq!(entries.len(), 3);
@@ -537,11 +548,23 @@ mod tests {
 
     #[test]
     fn sample_pool_sorts_every_path() {
-        let mut small = vec![9_u32, 2, 5];
+        let mut small = vec![
+            NodeRowId::from_u32(9),
+            NodeRowId::from_u32(2),
+            NodeRowId::from_u32(5),
+        ];
         sample_pool(&mut small, 8, keyed_rng(1, 2, 3));
-        assert_eq!(small, [2, 5, 9], "an under-cap pool is kept whole, sorted");
+        assert_eq!(
+            small,
+            [
+                NodeRowId::from_u32(2),
+                NodeRowId::from_u32(5),
+                NodeRowId::from_u32(9)
+            ],
+            "an under-cap pool is kept whole, sorted"
+        );
 
-        let mut large: Vec<u32> = (0..100).rev().collect();
+        let mut large: Vec<NodeRowId> = (0..100).rev().map(NodeRowId::from_u32).collect();
         sample_pool(&mut large, 10, keyed_rng(1, 2, 3));
         assert_eq!(large.len(), 10);
         assert!(

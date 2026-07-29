@@ -43,7 +43,7 @@ use crate::{
     progress::Progress,
     salt::{
         projector::{
-            loss::{BatchRowId, ProximalEnergy, RelationEnergy},
+            loss::{ProximalEnergy, RelationEnergy},
             miner::{HardNegativeMiner, MinedFrame},
             model::Projector,
             scale::LocalScales,
@@ -122,7 +122,7 @@ where
     pub(super) fn new(
         inputs: &'run TrainerInputs<'run, N, E>,
         options: &'run TrainOptions,
-    ) -> Result<Self, TrainError> {
+    ) -> Result<Self, TrainError<N>> {
         let vacuous = admit(inputs, options)?;
 
         let rows = inputs.columns.representations.len();
@@ -197,14 +197,14 @@ where
         rng: &mut R,
         device: &B::Device,
         progress: &P,
-    ) -> Result<Training<B>, TrainError> {
+    ) -> Result<Training<B>, TrainError<N>> {
         let schedule = self.options.schedule;
         let sample = SnapshotSample::select(
             self.inputs.columns.representations.len(),
             self.inputs.landmarks,
             progress.projector_sample_size(),
         );
-        let mut scales: Option<[LocalScales<BatchRowId>; RUNGS.len()]> = None;
+        let mut scales: Option<[LocalScales<N>; RUNGS.len()]> = None;
         let mut mined: Option<MinedFrame<N>> = None;
 
         for step_index in steps {
@@ -254,7 +254,7 @@ where
                 mined.as_ref(),
                 scales.as_ref(),
                 self.inputs,
-                rng,
+                &mut *rng,
             );
 
             let objective =
@@ -307,9 +307,9 @@ fn draw_batch<N, E>(
     sampler: &BatchSampler<'_, N, E>,
     rung_index: usize,
     mined: Option<&MinedFrame<N>>,
-    scales: Option<&[LocalScales<BatchRowId>; RUNGS.len()]>,
+    scales: Option<&[LocalScales<N>; RUNGS.len()]>,
     inputs: &TrainerInputs<'_, N, E>,
-    mut rng: impl Rng,
+    rng: impl Rng,
 ) -> Batch<N>
 where
     N: Id,
@@ -351,7 +351,10 @@ where
     reason = "a row-domain mismatch between one generation's artifacts is a wiring defect \
               contract, not a recoverable error"
 )]
-fn admit<N, E>(inputs: &TrainerInputs<'_, N, E>, options: &TrainOptions) -> Result<bool, TrainError>
+fn admit<N, E>(
+    inputs: &TrainerInputs<'_, N, E>,
+    options: &TrainOptions,
+) -> Result<bool, TrainError<N>>
 where
     N: Id,
     E: Id,
@@ -410,7 +413,7 @@ fn freeze_radius<N, E, B: AutodiffBackend<FloatElem = f32>>(
     vacuous: bool,
     step: usize,
     device: &B::Device,
-) -> Result<(Option<RelationEnergy>, BoundaryEvidence), TrainError>
+) -> Result<(Option<RelationEnergy>, BoundaryEvidence), TrainError<N>>
 where
     N: Id,
     E: Id,

@@ -147,7 +147,7 @@ where
     ///
     /// Panics when `index` lies outside the domain.
     #[must_use]
-    pub const fn group_size(&mut self, index: N) -> u32 {
+    pub fn group_size(&mut self, index: N) -> u32 {
         let representative = self.find(index);
 
         self.size[representative]

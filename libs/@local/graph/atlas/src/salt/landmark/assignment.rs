@@ -10,14 +10,11 @@ use core::{error::Error, fmt};
 
 use hashql_core::id::{Id, IdSlice};
 use rand::{Rng, SeedableRng};
-use rayon::iter::{
-    IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
-};
+use rayon::iter::ParallelIterator as _;
 
 use super::select::{LandmarkOrdinal, LandmarkSelection};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    identity::NodeRowId,
     math::AlignedVecN,
     salt::knn::{Embedding, NearestNeighboursIndex},
 };
@@ -26,10 +23,24 @@ use crate::{
 ///
 /// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection the
 /// assignment was built against, so consumers index landmark-domain tables without re-validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment<N> {
     landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
     landmarks: usize,
+}
+
+// Not derived: the boxed slice clones through the `Id` machinery, which the derive's `N: Clone`
+// bound cannot prove.
+impl<N> Clone for LandmarkAssignment<N>
+where
+    N: Id,
+{
+    fn clone(&self) -> Self {
+        Self {
+            landmark_by_row: self.landmark_by_row.clone(),
+            landmarks: self.landmarks,
+        }
+    }
 }
 
 impl<N> LandmarkAssignment<N>
@@ -49,7 +60,7 @@ where
         assert!(
             landmark_by_row
                 .iter()
-                .all(|ordinal| ordinal.usize() < landmarks),
+                .all(|ordinal| ordinal.as_usize() < landmarks),
             "every ordinal lies below the landmark count",
         );
 
@@ -95,10 +106,13 @@ where
     ///
     /// Panics when a yielded row lies outside the assigned domain.
     #[must_use]
-    pub(crate) fn reindex(&self, rows: impl ExactSizeIterator<Item = N>) -> Self {
+    pub(crate) fn reindex<M>(&self, rows: impl ExactSizeIterator<Item = N>) -> LandmarkAssignment<M>
+    where
+        M: Id,
+    {
         let landmark_by_row: Vec<_> = rows.map(|row| self.landmark_by_row[row]).collect();
 
-        Self {
+        LandmarkAssignment {
             landmark_by_row: IdSlice::from_boxed_slice(landmark_by_row.into_boxed_slice()),
             landmarks: self.landmarks,
         }
@@ -116,6 +130,33 @@ pub enum AssignmentError<N, E> {
     MissingMatch { row: N },
     /// The backend returned a neighbour that is not a landmark.
     ForeignNeighbour { row: N, neighbour: N },
+}
+
+impl<N, E> AssignmentError<N, E> {
+    /// Maps the rows the error names into another row domain, and the backend error with them.
+    pub(crate) fn map_rows<M, F>(
+        self,
+        mut row: impl FnMut(N) -> M,
+        backend: impl FnOnce(E) -> F,
+    ) -> AssignmentError<M, F> {
+        match self {
+            Self::UnknownRow { row: unknown, rows } => AssignmentError::UnknownRow {
+                row: row(unknown),
+                rows,
+            },
+            Self::Backend(error) => AssignmentError::Backend(backend(error)),
+            Self::MissingMatch { row: searched } => {
+                AssignmentError::MissingMatch { row: row(searched) }
+            }
+            Self::ForeignNeighbour {
+                row: searched,
+                neighbour,
+            } => AssignmentError::ForeignNeighbour {
+                row: row(searched),
+                neighbour: row(neighbour),
+            },
+        }
+    }
 }
 
 impl<N: fmt::Display, E: fmt::Display> fmt::Display for AssignmentError<N, E> {
@@ -139,7 +180,7 @@ impl<N: fmt::Display, E: fmt::Display> fmt::Display for AssignmentError<N, E> {
     }
 }
 
-impl<N, E: Error + 'static> Error for AssignmentError<N, E> {
+impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for AssignmentError<N, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Backend(error) => Some(error),
@@ -189,10 +230,8 @@ where
     index.build(rng).map_err(AssignmentError::Backend)?;
 
     let landmark_by_row = embeddings
-        .par_iter()
-        .enumerate()
+        .par_iter_enumerated()
         .map(|(row, components)| {
-            let row = NodeRowId::from_usize(row);
             if let Some(ordinal) = selection.ordinal(row) {
                 return Ok(ordinal);
             }
@@ -202,19 +241,19 @@ where
                 .map_err(AssignmentError::Backend)?
                 .into_iter()
                 .next()
-                .ok_or(AssignmentError::MissingMatch { row: row.as_u64() })?;
+                .ok_or(AssignmentError::MissingMatch { row })?;
 
             selection
                 .ordinal(nearest.id)
                 .ok_or(AssignmentError::ForeignNeighbour {
-                    row: row.as_u64(),
-                    neighbour: nearest.id.as_u64(),
+                    row,
+                    neighbour: nearest.id,
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(LandmarkAssignment {
-        landmark_by_row: landmark_by_row.into_boxed_slice(),
+        landmark_by_row: IdSlice::from_boxed_slice(landmark_by_row.into_boxed_slice()),
         landmarks: selection.len(),
     })
 }

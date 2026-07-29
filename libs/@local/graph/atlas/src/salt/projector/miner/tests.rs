@@ -11,7 +11,7 @@
 
 use core::num::NonZero;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFieldError};
 use crate::{
@@ -42,7 +42,7 @@ fn options(neighbours: usize, margin: usize, maximum_weight: f32, exponent: f32)
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
-fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph {
+fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<NodeRowId> {
     let mut adjacency = vec![Vec::new(); rows];
     for &(one, other, weight) in edges {
         adjacency[one].push((other, weight));
@@ -90,7 +90,7 @@ fn instance(
     source: u64,
     target: u64,
     link: Option<f32>,
-) -> RelationInstance {
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -104,7 +104,10 @@ fn instance(
     }
 }
 
-fn relation_indexes(rows: usize, instances: Vec<RelationInstance>) -> RelationIndexes {
+fn relation_indexes(
+    rows: usize,
+    instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
+) -> RelationIndexes<NodeRowId, EdgeRowId> {
     let mut instances = instances;
     RelationIndexes::build(
         rows,
@@ -142,8 +145,8 @@ fn line_frame() -> Vec<Vec2> {
 /// in order, accept up to the quota with rank weights.
 fn reference_mine(
     coordinates: &[Vec2],
-    semantic: &SemanticGraph,
-    protection: &ProtectionView<'_>,
+    semantic: &SemanticGraph<NodeRowId>,
+    protection: &ProtectionView<'_, NodeRowId>,
     config: ProtectionConfig,
     options: MinerOptions,
 ) -> Vec<Vec<(u32, f32)>> {
@@ -168,7 +171,11 @@ fn reference_mine(
                     continue;
                 }
                 let candidate_id = NodeRowId::from_usize(candidate);
-                if semantic.view().row(row).any(|edge| edge.id == candidate_id) {
+                if semantic
+                    .view()
+                    .row(NodeRowId::from_usize(row))
+                    .any(|edge| edge.id == candidate_id)
+                {
                     continue;
                 }
                 let pair = crate::salt::relation::protection::NodePair::new(
@@ -198,8 +205,10 @@ fn spatial_field_rejects_non_finite_coordinates() {
     coordinates[3] = Vec2::new(f32::NAN, 0.0);
 
     assert_eq!(
-        SpatialField::new(&coordinates).err(),
-        Some(SpatialFieldError::NonFinite { row: 3 }),
+        SpatialField::new(IdSlice::from_raw(&coordinates)).err(),
+        Some(SpatialFieldError::NonFinite {
+            row: NodeRowId::new(3)
+        }),
     );
 }
 
@@ -217,7 +226,8 @@ fn mined_rows_match_a_brute_force_reference() {
     let config = hard_config(0.5);
     let options = options(3, 2, 1.0, 1.0);
 
-    let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
+    let field =
+        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(semantic.view(), indexes.protection.view(), config, options);
     let negatives = miner.mine(&field);
 
@@ -232,12 +242,12 @@ fn mined_rows_match_a_brute_force_reference() {
     assert_eq!(negatives.rows(), 8);
     for (row, expected) in reference.iter().enumerate() {
         let actual: Vec<_> = negatives
-            .row(row)
+            .row(NodeRowId::from_usize(row))
             .map(|(pair, weight)| {
-                let target = if pair.first().as_usize() == row {
-                    pair.second()
+                let target = if pair.lhs().as_usize() == row {
+                    pair.rhs()
                 } else {
-                    pair.first()
+                    pair.lhs()
                 };
                 (
                     u32::try_from(target.as_u64()).expect("fixture rows fit u32"),
@@ -260,29 +270,29 @@ fn mined_rows_match_a_brute_force_reference() {
     for row in 0..8_usize {
         assert!(
             negatives
-                .row(row)
-                .all(|(pair, _)| { pair.first().as_usize() != pair.second().as_usize() })
+                .row(NodeRowId::from_usize(row))
+                .all(|(pair, _)| { pair.lhs().as_usize() != pair.rhs().as_usize() })
         );
     }
     assert!(
         negatives
-            .row(4)
-            .all(|(pair, _)| pair.second().as_usize() != 5)
+            .row(NodeRowId::new(4))
+            .all(|(pair, _)| pair.rhs().as_usize() != 5)
     );
     assert!(
         negatives
-            .row(5)
-            .all(|(pair, _)| pair.first().as_usize() != 4)
+            .row(NodeRowId::new(5))
+            .all(|(pair, _)| pair.lhs().as_usize() != 4)
     );
     assert!(
         negatives
-            .row(1)
-            .any(|(pair, _)| pair.second().as_usize() == 2)
+            .row(NodeRowId::new(1))
+            .any(|(pair, _)| pair.rhs().as_usize() == 2)
     );
     assert!(
         negatives
-            .row(1)
-            .all(|(pair, _)| pair.first().as_usize() != 0)
+            .row(NodeRowId::new(1))
+            .all(|(pair, _)| pair.lhs().as_usize() != 0)
     );
 }
 
@@ -295,7 +305,8 @@ fn rank_weights_are_dyadic_at_unit_exponent() {
     let indexes = relation_indexes(5, Vec::new());
     let options = options(4, 2, 1.0, 1.0);
 
-    let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
+    let field =
+        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),
@@ -304,7 +315,10 @@ fn rank_weights_are_dyadic_at_unit_exponent() {
     );
     let negatives = miner.mine(&field);
 
-    let weights: Vec<f32> = negatives.row(0).map(|(_, weight)| weight).collect();
+    let weights: Vec<f32> = negatives
+        .row(NodeRowId::new(0))
+        .map(|(_, weight)| weight)
+        .collect();
     assert_eq!(weights, [1.0, 0.75, 0.5, 0.25]);
 }
 
@@ -316,7 +330,8 @@ fn fully_explained_neighbourhoods_yield_honest_short_sets() {
     let semantic = semantic_graph(4, &[(0, 1, 0.5), (0, 2, 0.5), (0, 3, 0.5)]);
     let indexes = relation_indexes(4, Vec::new());
 
-    let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
+    let field =
+        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),
@@ -325,9 +340,9 @@ fn fully_explained_neighbourhoods_yield_honest_short_sets() {
     );
     let negatives = miner.mine(&field);
 
-    assert_eq!(negatives.row(0).len(), 0);
+    assert_eq!(negatives.row(NodeRowId::new(0)).len(), 0);
     // The other rows still mine their own admissible neighbours.
-    assert!(negatives.row(3).len() > 0);
+    assert!(negatives.row(NodeRowId::new(3)).len() > 0);
 }
 
 #[test]
@@ -337,7 +352,8 @@ fn mining_is_deterministic() {
     let indexes = relation_indexes(8, vec![instance(0, 0, 4, 5, None)]);
     let options = options(3, 2, 1.0, 1.0);
 
-    let field = SpatialField::new(&coordinates).expect("the fixture frame is finite");
+    let field =
+        SpatialField::new(IdSlice::from_raw(&coordinates)).expect("the fixture frame is finite");
     let miner = HardNegativeMiner::new(
         semantic.view(),
         indexes.protection.view(),
@@ -354,26 +370,26 @@ fn pooled_frames_keep_the_maximum_weight() {
     // target 1 mined only in the second; row 1 mined only in the
     // first. Pooled rows order by ascending target.
     let first = MinedFrame {
-        offsets: vec![0, 1, 2].into_boxed_slice(),
-        targets: vec![2, 0].into_boxed_slice(),
+        offsets: IdSlice::from_boxed_slice(vec![0, 1, 2].into_boxed_slice()),
+        targets: vec![NodeRowId::new(2), NodeRowId::new(0)].into_boxed_slice(),
         weights: vec![0.5, 1.0].into_boxed_slice(),
     };
     let second = MinedFrame {
-        offsets: vec![0, 2, 2].into_boxed_slice(),
-        targets: vec![2, 1].into_boxed_slice(),
+        offsets: IdSlice::from_boxed_slice(vec![0, 2, 2].into_boxed_slice()),
+        targets: vec![NodeRowId::new(2), NodeRowId::new(1)].into_boxed_slice(),
         weights: vec![0.25, 1.0].into_boxed_slice(),
     };
 
     let pooled = first.pool(&second);
 
     assert_eq!(pooled.rows(), 2);
-    let row: Vec<_> = pooled.row(0).collect();
+    let row: Vec<_> = pooled.row(NodeRowId::new(0)).collect();
     assert_eq!(row.len(), 2);
     assert_eq!(row[0].0.rhs().as_u64(), 1);
     assert_eq!(row[0].1, 1.0);
     assert_eq!(row[1].0.rhs().as_u64(), 2);
     assert_eq!(row[1].1, 0.5);
-    let row: Vec<_> = pooled.row(1).collect();
+    let row: Vec<_> = pooled.row(NodeRowId::new(1)).collect();
     assert_eq!(row.len(), 1);
     assert_eq!(row[0].1, 1.0);
 

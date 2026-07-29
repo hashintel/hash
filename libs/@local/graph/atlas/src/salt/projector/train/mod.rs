@@ -86,12 +86,21 @@ pub enum StepError<N> {
     Diverged { row: N },
 }
 
+impl<N> StepError<N> {
+    /// Maps the row the error names into another row domain.
+    pub(crate) fn map_rows<M>(self, row: impl FnOnce(N) -> M) -> StepError<M> {
+        match self {
+            Self::Diverged { row: diverged } => StepError::Diverged { row: row(diverged) },
+        }
+    }
+}
+
 impl<N> fmt::Display for StepError<N>
 where
     N: fmt::Display,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
+        match self {
             Self::Diverged { row } => write!(
                 fmt,
                 "training diverged: row {row} projected to a non-finite coordinate",

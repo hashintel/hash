@@ -26,11 +26,11 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
 
-fn pair(one: u64, other: u64) -> NodePair {
+fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
-fn keys(pairs: &[NodePair]) -> Vec<(u64, u64)> {
+fn keys(pairs: &[NodePair<NodeRowId>]) -> Vec<(u64, u64)> {
     pairs
         .iter()
         .map(|pair| (pair.lhs().as_u64(), pair.rhs().as_u64()))
@@ -38,7 +38,7 @@ fn keys(pairs: &[NodePair]) -> Vec<(u64, u64)> {
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
-fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph {
+fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<NodeRowId> {
     let mut adjacency = vec![Vec::new(); rows];
     for &(one, other, weight) in edges {
         adjacency[one].push((other, weight));
@@ -79,7 +79,12 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An unscored instance of `relation` between `source` and `target`.
-fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInstance {
+fn instance(
+    edge: u64,
+    relation: u64,
+    source: u64,
+    target: u64,
+) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
         relation: OntologyRowId::new(relation),
@@ -93,8 +98,8 @@ fn instance(edge: u64, relation: u64, source: u64, target: u64) -> RelationInsta
 fn relation_indexes(
     rows: usize,
     policies: &[RelationPolicy],
-    mut instances: Vec<RelationInstance>,
-) -> RelationIndexes {
+    mut instances: Vec<RelationInstance<NodeRowId, EdgeRowId>>,
+) -> RelationIndexes<NodeRowId, EdgeRowId> {
     RelationIndexes::build(
         rows,
         Policies::new(policies).expect("the fixture policies are certified"),
@@ -275,7 +280,10 @@ fn relation_sampling_is_seeded() {
 ///
 /// Four rows, a semantic edge `(0, 1)`, and a link `(2, 3)` whose evidence protects it from
 /// ordinary repulsion under the default configuration.
-fn negative_fixture() -> (SemanticGraph, RelationIndexes) {
+fn negative_fixture() -> (
+    SemanticGraph<NodeRowId>,
+    RelationIndexes<NodeRowId, EdgeRowId>,
+) {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
     let policies = [proximal_policy(7)];
     let indexes = relation_indexes(4, &policies, vec![instance(0, 7, 2, 3)]);

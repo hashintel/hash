@@ -10,7 +10,7 @@ use core::{error::Error, fmt};
 use std::io;
 
 use hashql_core::id::{Id, IdSlice};
-use zerocopy::{FromBytes as _, IntoBytes, LE, U32, U64};
+use zerocopy::{FromBytes as _, IntoBytes as _, LE, U32, U64};
 
 use super::{
     assignment::LandmarkAssignment,
@@ -75,12 +75,12 @@ impl Error for InvalidLandmarkFile {}
 pub(crate) struct LandmarkSkeleton<N> {
     selection: LandmarkSelection<N>,
     assignment: LandmarkAssignment<N>,
-    coordinates: Box<IdSlice<N, Vec2>>,
+    coordinates: Box<IdSlice<LandmarkOrdinal, Vec2>>,
 }
 
 impl<N: Id> fmt::Debug for LandmarkSkeleton<N> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LandmarkSkeleton")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("LandmarkSkeleton")
             .field("selection", &self.selection)
             .field("assignment", &self.assignment)
             .field("coordinates", &self.coordinates)
@@ -102,7 +102,7 @@ where
     pub(crate) fn new(
         selection: LandmarkSelection<N>,
         assignment: LandmarkAssignment<N>,
-        coordinates: Box<IdSlice<N, Vec2>>,
+        coordinates: Box<IdSlice<LandmarkOrdinal, Vec2>>,
     ) -> Self {
         assert_eq!(
             assignment.landmarks(),
@@ -225,25 +225,27 @@ impl LandmarkSkeletonArchive {
         self.file.rows()
     }
 
-    /// Views the selected node rows, strictly ascending: position `i` is landmark ordinal `i`.
+    /// Views the selected node rows, strictly ascending, keyed by landmark ordinal.
     #[must_use]
-    pub(crate) fn selected_rows(&self) -> &[NodeRowId] {
-        <[NodeRowId]>::ref_from_bytes(self.file.selected_rows().as_bytes())
-            .expect("the persisted encoding is transparent over its byteorder type")
+    pub(crate) fn selected_rows(&self) -> &IdSlice<LandmarkOrdinal, NodeRowId> {
+        IdSlice::from_raw(
+            <[NodeRowId]>::ref_from_bytes(self.file.selected_rows().as_bytes())
+                .expect("the persisted encoding is transparent over its byteorder type"),
+        )
     }
 
-    /// Views the assignment.
-    ///
-    /// Entry `i` is node row `i`'s landmark ordinal, inside the landmark domain.
+    /// Views the assignment: every node row's landmark ordinal, inside the landmark domain.
     #[must_use]
-    pub(crate) fn assignment(&self) -> &[LandmarkOrdinal] {
-        <[LandmarkOrdinal]>::ref_from_bytes(self.file.assignment().as_bytes())
-            .expect("the persisted encoding is transparent over its byteorder type")
+    pub(crate) fn assignment(&self) -> &IdSlice<NodeRowId, LandmarkOrdinal> {
+        IdSlice::from_raw(
+            <[LandmarkOrdinal]>::ref_from_bytes(self.file.assignment().as_bytes())
+                .expect("the persisted encoding is transparent over its byteorder type"),
+        )
     }
 
-    /// Views the layout coordinates, finite, in ordinal order.
+    /// Views the layout coordinates, finite, keyed by landmark ordinal.
     #[must_use]
-    pub(crate) fn coordinates(&self) -> &[Vec2] {
-        self.file.coordinates()
+    pub(crate) fn coordinates(&self) -> &IdSlice<LandmarkOrdinal, Vec2> {
+        IdSlice::from_raw(self.file.coordinates())
     }
 }

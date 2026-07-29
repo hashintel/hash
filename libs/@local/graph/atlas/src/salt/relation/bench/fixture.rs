@@ -79,7 +79,7 @@ pub struct Corpus<N, E> {
     instances: Vec<RelationInstance<N, E>>,
     grouped: OnceLock<Vec<RelationInstance<N, E>>>,
     records: OnceLock<Vec<ProtectionRecord<N>>>,
-    protection: OnceLock<ProtectionIndex>,
+    protection: OnceLock<ProtectionIndex<N>>,
 }
 
 impl<N, E> Corpus<N, E> {
@@ -273,7 +273,7 @@ impl<N, E> Corpus<N, E> {
     }
 
     /// Borrows the assembled protection index, assembling on first use.
-    pub(super) fn protection(&self) -> &ProtectionIndex
+    pub(super) fn protection(&self) -> &ProtectionIndex<N>
     where
         N: Id,
         E: Id,

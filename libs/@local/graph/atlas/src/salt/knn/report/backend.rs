@@ -12,7 +12,6 @@
 
 use alloc::borrow::Cow;
 use core::{
-    convert::Infallible,
     error::Error,
     fmt::{self, Display},
     time::Duration,
@@ -20,7 +19,7 @@ use core::{
 use std::{io, time::Instant};
 
 use camino::Utf8Path;
-use hashql_core::id::Id as _;
+use hashql_core::id::IdSlice;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{REFERENCE_ROWS, Seconds, SetupError, open_representations, representation_rows};
@@ -226,11 +225,11 @@ pub(crate) enum SweepError {
     /// The scratch directory for an index could not be created or removed.
     Scratch(io::Error),
     /// The exact reference could not be computed.
-    Reference(KnnError<Infallible>),
+    Reference(KnnError<NodeRowId, !>),
     /// The index could not be opened, filled, or linked.
-    Index(HannoyIndexError),
+    Index(HannoyIndexError<NodeRowId>),
     /// A scored query failed against the built index.
-    Query(KnnError<HannoyIndexError>),
+    Query(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
 }
 
 impl Display for SweepError {
@@ -265,10 +264,10 @@ impl Error for SweepError {
 /// pass fails.
 fn build_index(
     directory: &Utf8Path,
-    embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
+    embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     ef_construction: usize,
     rng: Xoshiro256PlusPlus,
-) -> Result<Duration, HannoyIndexError> {
+) -> Result<Duration, HannoyIndexError<NodeRowId>> {
     let started = Instant::now();
 
     let mut index = HannoyIndex::new(
@@ -277,13 +276,13 @@ fn build_index(
             ef_construction,
             ..
         },
-    )?;
+    )
+    .map_err(HannoyIndexError::widen)?;
     index.insert_many(
         embeddings
-            .iter()
-            .enumerate()
+            .iter_enumerated()
             .map(|(row, components)| Embedding {
-                id: NodeRowId::from_usize(row),
+                id: row,
                 components,
             }),
     )?;
@@ -301,7 +300,7 @@ fn build_index(
 /// Returns a [`SweepError`] when the environment cannot reopen or a sampled query fails.
 fn score_grid(
     directory: &Utf8Path,
-    references: &[(u64, ExactReference)],
+    references: &[(u64, ExactReference<NodeRowId>)],
     ef_construction: usize,
     options: &Options,
 ) -> Result<Vec<Point>, SweepError> {
@@ -315,7 +314,7 @@ fn score_grid(
                 ..
             },
         )
-        .map_err(SweepError::Index)?;
+        .map_err(|error| SweepError::Index(error.widen()))?;
 
         for (sample_seed, reference) in references {
             let started = Instant::now();
@@ -360,14 +359,14 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
     // Every distinct seed's sample, in first-appearance order: each
     // build scores against all of them, so build quality and sample
     // hardness read separately.
-    let mut references: Vec<(u64, ExactReference)> = Vec::new();
+    let mut references: Vec<(u64, ExactReference<NodeRowId>)> = Vec::new();
     let mut reference_costs = Vec::new();
     for &seed in &*options.seeds {
         if references.iter().any(|&(known, _)| known == seed) {
             continue;
         }
         let measured = Instant::now();
-        let reference = ExactReference::new::<Infallible>(
+        let reference = ExactReference::new::<!>(
             embeddings,
             check.neighbours,
             REFERENCE_ROWS,

@@ -39,6 +39,7 @@ hashql_core::id::newtype! {
     /// [`NodeRowId`]: a corpus row and its representation's distinct row are different keys, and
     /// confusing them is the wiring defect this type exists to prevent. The `u32` width matches
     /// the store's row encoding, which bounds the corpus and with it the quotient.
+    #[id(const)]
     pub(super) struct DistinctRowId(u32)
 }
 
@@ -88,15 +89,14 @@ impl RowQuotient {
     ///
     /// Panics when the corpus exceeds `u32::MAX` rows; row identifiers are `u32` throughout the
     /// store.
-    pub(super) fn build<const N: usize>(rows: &[AlignedVecN<N>]) -> Self {
+    pub(super) fn build<const N: usize>(rows: &IdSlice<NodeRowId, AlignedVecN<N>>) -> Self {
         u32::try_from(rows.len()).expect("the corpus row count fits the store's u32 row domain");
 
         let mut lookup: HashMap<&[u8], DistinctRowId> = HashMap::with_capacity(rows.len());
         let mut representative = IdVec::with_capacity(rows.len());
         let mut first_rows = IdVec::new();
 
-        for (row, vector) in rows.iter().enumerate() {
-            let row = NodeRowId::from_usize(row);
+        for (row, vector) in rows.iter_enumerated() {
             let distinct = *lookup
                 .entry(vector.as_bytes())
                 .or_insert_with(|| first_rows.push(row));
@@ -111,7 +111,7 @@ impl RowQuotient {
     }
 
     /// Number of distinct representation rows.
-    pub(super) fn distinct_len(&self) -> usize {
+    pub(super) const fn distinct_len(&self) -> usize {
         self.first_rows.len()
     }
 
@@ -119,27 +119,27 @@ impl RowQuotient {
     ///
     /// An identity quotient lets a fit skip the distinct detour entirely: the corpus and the
     /// distinct domain are the same rows in the same order.
-    pub(super) fn is_identity(&self) -> bool {
+    pub(super) const fn is_identity(&self) -> bool {
         self.first_rows.len() == self.representative.len()
     }
 
     /// Returns the distinct row representing a corpus row.
-    pub(super) fn representative(&self, row: NodeRowId) -> DistinctRowId {
+    pub(super) const fn representative(&self, row: NodeRowId) -> DistinctRowId {
         self.representative[row]
     }
 
     /// Returns the first corpus row of a distinct row.
-    pub(super) fn first_row(&self, distinct: DistinctRowId) -> NodeRowId {
+    pub(super) const fn first_row(&self, distinct: DistinctRowId) -> NodeRowId {
         self.first_rows[distinct]
     }
 
     /// The distinct row of every corpus row, in corpus order.
-    pub(super) fn representatives(&self) -> &IdSlice<NodeRowId, DistinctRowId> {
+    pub(super) const fn representatives(&self) -> &IdSlice<NodeRowId, DistinctRowId> {
         &self.representative
     }
 
     /// The first corpus row of every distinct row, strictly ascending.
-    pub(super) fn first_rows(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
+    pub(super) const fn first_rows(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
         &self.first_rows
     }
 }
@@ -154,7 +154,7 @@ impl RowQuotient {
 /// Returns an error when the file cannot be created or written.
 pub(super) fn materialize_distinct<const N: usize>(
     directory: &ScratchDirectory,
-    rows: &[AlignedVecN<N>],
+    rows: &IdSlice<NodeRowId, AlignedVecN<N>>,
     quotient: &RowQuotient,
 ) -> io::Result<Utf8PathBuf> {
     let (path, file) = directory.file("quotient-distinct.arr")?;
@@ -166,7 +166,7 @@ pub(super) fn materialize_distinct<const N: usize>(
     )?;
 
     for &row in quotient.first_rows() {
-        writer.write_row(rows[row.as_usize()].as_bytes())?;
+        writer.write_row(rows[row].as_bytes())?;
     }
     writer.finish()?;
 
@@ -179,7 +179,10 @@ pub(super) fn materialize_distinct<const N: usize>(
 /// first corpus row. The gather preserves every table invariant: `first_rows` ascends strictly, so
 /// row entries stay strictly ascending, and no entry names its own row - a distinct list excludes
 /// its own index, and expanded entries name first rows only.
-pub(super) fn expand_neighbours(table: &KnnView<'_>, quotient: &RowQuotient) -> Knn {
+pub(super) fn expand_neighbours(
+    table: &KnnView<'_, DistinctRowId>,
+    quotient: &RowQuotient,
+) -> Knn<NodeRowId> {
     let rows = quotient.representatives().len();
     let neighbours = table.neighbours();
     let entries = rows
@@ -305,9 +308,11 @@ mod tests {
             }
         }
 
-        fn view(&self) -> &[AlignedVecN<WIDTH>] {
-            AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * WIDTH])
-                .expect("boxed storage is aligned")
+        fn view(&self) -> &hashql_core::id::IdSlice<NodeRowId, AlignedVecN<WIDTH>> {
+            hashql_core::id::IdSlice::from_raw(
+                AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * WIDTH])
+                    .expect("boxed storage is aligned"),
+            )
         }
     }
 
@@ -406,7 +411,8 @@ mod tests {
         )
         .map_err(|(_, _, _, error)| error)
         .expect("the fixture matrix is compressed");
-        let table = Knn::new(matrix).expect("the fixture table is valid");
+        let table: Knn<super::DistinctRowId> =
+            Knn::new(matrix).expect("the fixture table is valid");
 
         let expanded = super::expand_neighbours(&table.view(), &quotient);
 
@@ -415,7 +421,7 @@ mod tests {
         let view = expanded.view();
         let lists: Vec<(u64, f32)> = (0..5)
             .flat_map(|row| {
-                view.row(row)
+                view.row(NodeRowId::from_usize(row))
                     .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
             })
             .collect();
@@ -481,6 +487,7 @@ mod tests {
             .expect("the temp directory is utf-8")
             .join(format!("hash-graph-atlas-quotient-{}", std::process::id()));
         std::fs::create_dir_all(&directory).expect("the temp directory is writable");
+        let directory = crate::file::generation::ScratchDirectory::rooted(directory);
 
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0)]);
         let quotient = RowQuotient::build(matrix.view());
@@ -494,7 +501,7 @@ mod tests {
         for (index, &first) in quotient.first_rows().iter().enumerate() {
             assert_eq!(
                 distinct[index].as_bytes(),
-                matrix.view()[first.as_usize()].as_bytes(),
+                matrix.view()[first].as_bytes(),
                 "distinct row {index} gathers corpus row {first}",
             );
         }

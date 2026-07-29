@@ -30,7 +30,7 @@ use crate::{
     integrity::Sha256Digest,
     math::AlignedVecN,
     salt::{
-        knn::hannoy::HannoyIndex,
+        knn::hannoy::{HannoyIndex, HannoyIndexError},
         landmark::{
             artifact::{LandmarkSkeleton, LandmarkSkeletonArchive},
             assignment::assign_landmarks,
@@ -104,12 +104,15 @@ impl Context<'_> {
     /// competing for the retained share.
     pub(super) fn build_landmark_skeleton(
         &self,
-        distinct: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
-        semantic: &SemanticGraphArchive,
+        distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+        semantic: &SemanticGraphArchive<DistinctRowId>,
         prior_marks: Option<&DenseBitSet<NodeRowId>>,
         quotient: &RowQuotient,
     ) -> Result<Staged<LandmarkSkeletonArchive, LandmarkEvidence>, StageError> {
         let _span = tracing::info_span!("landmarks").entered();
+        // The skeleton builds over distinct rows; the published failure surface speaks corpus
+        // rows.
+        let corpus = |row: DistinctRowId| quotient.first_row(row);
 
         // A prior landmark translates as a representation: every copy
         // of its bytes marks the one distinct row they share.
@@ -127,10 +130,10 @@ impl Context<'_> {
 
         let selection = {
             let _span = tracing::info_span!("landmark-selection").entered();
-            let candidates: Vec<LandmarkCandidate> = (0..distinct.len())
+            let candidates: Vec<LandmarkCandidate<DistinctRowId>> = (0..distinct.len())
                 .map(DistinctRowId::from_usize)
                 .map(|row| LandmarkCandidate {
-                    row: row.as_training_row(),
+                    row,
                     sampling_weight: SamplingWeight::UNIFORM,
                     axes: SubgroupAxes::default(),
                     prior_landmark: prior_distinct.is_some_and(|marks| marks.contains(row)),
@@ -158,13 +161,15 @@ impl Context<'_> {
         let assignment = {
             let _span = tracing::info_span!("landmark-assignment").entered();
             let mut index =
-                HannoyIndex::new(self.scratch.directory("assignment")?, self.config.index)?;
+                HannoyIndex::new(self.scratch.directory("assignment")?, self.config.index)
+                    .map_err(HannoyIndexError::widen)?;
             assign_landmarks(
                 &mut index,
                 stage_rng(self.config.seed, Stage::LandmarkAssignment),
                 distinct,
                 &selection,
-            )?
+            )
+            .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?
         };
 
         let contracted = tracing::info_span!("quotient")
@@ -183,7 +188,7 @@ impl Context<'_> {
         // first-row map ascends strictly, so the selection's order and
         // the assignment's ordinal vocabulary carry over unchanged.
         let skeleton = LandmarkSkeleton::new(
-            selection.map_rows(|row| quotient.first_row(DistinctRowId::from_training_row(row))),
+            selection.map_rows(|row| quotient.first_row(row)),
             assignment.reindex(quotient.representatives().iter().copied()),
             coordinates,
         );
@@ -231,8 +236,8 @@ fn place_at_landmarks(
         ArrayVariant::F32,
         &[Dim::new(skeleton.assignment().len() as u64), Dim::new(2)],
     )?;
-    for ordinal in skeleton.assignment() {
-        writer.write_row(coordinates[ordinal.usize()].as_bytes())?;
+    for &ordinal in skeleton.assignment() {
+        writer.write_row(coordinates[ordinal].as_bytes())?;
     }
     writer.finish()
 }
