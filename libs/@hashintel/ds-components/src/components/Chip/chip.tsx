@@ -50,8 +50,6 @@ export type ChipProps = {
   | { suffix?: PrefixOrSuffix }
 >;
 
-// Icons render small so they read as an accent rather than dominating the
-// label (md chips use 12px icons, per the design spec).
 const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xxs",
   xs: "xs",
@@ -124,7 +122,15 @@ export const Chip = ({
     !!prefix?.onClick || !!suffix?.onClick || showRemove;
   const clickable = !!onClick;
 
-  const classes = styles({ size, color, variant, shape, clickable });
+  const classes = styles({
+    size,
+    color,
+    variant,
+    shape,
+    clickable,
+    hasPrefix: !!prefix,
+    hasSuffix: !!suffix || showRemove,
+  });
 
   const content = (
     <>

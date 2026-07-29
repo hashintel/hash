@@ -237,6 +237,28 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
           >
             Both
           </Chip>
+          <Chip
+            {...base}
+            prefix={{
+              iconName: "sparkles",
+              variant: style.variant,
+              onClick: noop,
+            }}
+            suffix={{
+              iconName: "check",
+              variant: style.variant,
+              onClick: noop,
+            }}
+          >
+            Clickable
+          </Chip>
+          <Chip
+            {...base}
+            prefix={{ iconName: "sparkles", variant: style.variant }}
+            removeable={{ removeable: true, onRemove: noop }}
+          >
+            Removeable
+          </Chip>
         </div>
       ))}
 

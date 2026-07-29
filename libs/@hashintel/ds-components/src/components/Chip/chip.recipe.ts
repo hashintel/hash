@@ -14,12 +14,9 @@ export const styles = sva({
       whiteSpace: "nowrap",
       userSelect: "none",
       overflow: "clip",
-      border: "var(--form-border-width) solid transparent",
-      // Divider colour shared by the prefix/suffix `straight` treatment and the
-      // remove button. `bd.subtle` reads a touch lighter than the outer border
-      // (`bd.solid`), per the design; `black` (a solid chip) overrides it to a
-      // `currentColor`-keyed line below. (Set as the raw var because Panda
-      // doesn't resolve token paths assigned to a custom property.)
+      border: "var(--chip-border-width) solid transparent",
+      paddingInlineStart: "var(--chip-padding-x)",
+      paddingInlineEnd: "var(--chip-padding-x)",
       "--chip-divider": "var(--colors-color-palette-bd-subtle)",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
@@ -32,15 +29,9 @@ export const styles = sva({
       overflow: "hidden",
       textOverflow: "ellipsis",
       minWidth: "0",
-      // The label carries the text's side padding, so a bare label sits
-      // `2 * --chip-px` from the edge while a prefix/suffix icon sits flush at
-      // just `--chip-px` (the tighter inset the design uses for icons). It also
-      // provides the gap between the label and any adjacent affix.
-      paddingInline: "var(--chip-px)",
+      paddingBlock: "var(--chip-padding-y)",
+      paddingInline: "var(--chip-padding-x)",
     },
-    // The remove button is a trailing zone separated by a 1px divider, matching
-    // a `straight` suffix. The divider is a box-shadow so it survives the button
-    // reset and adapts to the chip's text colour.
     removeButton: {
       display: "inline-flex",
       alignItems: "center",
@@ -52,7 +43,9 @@ export const styles = sva({
       border: "none",
       background: "[transparent]",
       color: "[inherit]",
-      paddingInlineStart: "var(--chip-px)",
+      paddingBlock: "var(--chip-padding-y)",
+      paddingInlineStart: "var(--chip-padding-x)",
+      paddingInlineEnd: "var(--chip-padding-x)",
       boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
       transition: "[background 0.15s ease]",
       _hover: {
@@ -66,19 +59,14 @@ export const styles = sva({
     },
   },
   variants: {
-    // Chips are compact: a tight line-height and small vertical padding keep the
-    // md size ~20px tall. `--form-*` / `--chip-px` are consumed by the affix zone
-    // styles below (circle/angle bleed calculations).
     size: {
       xxs: {
         root: {
           fontSize: "xxs",
           lineHeight: "[1.3]",
-          "--form-border-width": "1px",
-          "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-0\\.5)",
-          paddingBlock: "var(--form-padding-y)",
-          paddingInline: "var(--chip-px)",
+          "--chip-border-width": "1px",
+          "--chip-padding-y": "[1px]",
+          "--chip-padding-x": "var(--spacing-0\\.5)",
           borderRadius: "sm",
         },
       },
@@ -86,11 +74,9 @@ export const styles = sva({
         root: {
           fontSize: "xs",
           lineHeight: "[1.3]",
-          "--form-border-width": "1px",
-          "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1)",
-          paddingBlock: "var(--form-padding-y)",
-          paddingInline: "var(--chip-px)",
+          "--chip-border-width": "1px",
+          "--chip-padding-y": "[1px]",
+          "--chip-padding-x": "var(--spacing-1)",
           borderRadius: "sm",
         },
       },
@@ -98,11 +84,9 @@ export const styles = sva({
         root: {
           fontSize: "xs",
           lineHeight: "[1.35]",
-          "--form-border-width": "1px",
-          "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1)",
-          paddingBlock: "var(--form-padding-y)",
-          paddingInline: "var(--chip-px)",
+          "--chip-border-width": "1px",
+          "--chip-padding-y": "[1px]",
+          "--chip-padding-x": "var(--spacing-1)",
           borderRadius: "md",
         },
       },
@@ -110,11 +94,9 @@ export const styles = sva({
         root: {
           fontSize: "xs",
           lineHeight: "[1.4]",
-          "--form-border-width": "1px",
-          "--form-padding-y": "[1px]",
-          "--chip-px": "var(--spacing-1)",
-          paddingBlock: "var(--form-padding-y)",
-          paddingInline: "var(--chip-px)",
+          "--chip-border-width": "1px",
+          "--chip-padding-y": "[1px]",
+          "--chip-padding-x": "var(--spacing-1)",
           borderRadius: "md",
         },
       },
@@ -122,18 +104,13 @@ export const styles = sva({
         root: {
           fontSize: "sm",
           lineHeight: "[1.4]",
-          "--form-border-width": "1px",
-          "--form-padding-y": "[2px]",
-          "--chip-px": "var(--spacing-1\\.5)",
-          paddingBlock: "var(--form-padding-y)",
-          paddingInline: "var(--chip-px)",
+          "--chip-border-width": "1px",
+          "--chip-padding-y": "[2px]",
+          "--chip-padding-x": "var(--spacing-1\\.5)",
           borderRadius: "md",
         },
       },
     },
-    // Each colour switches the active colour palette; the variant styles below
-    // reference palette-relative tokens (`colorPalette.*`). `black` maps to the
-    // neutral palette and is overridden to a solid treatment in compound variants.
     color: {
       grey: { root: { colorPalette: "neutral" } },
       red: { root: { colorPalette: "red" } },
@@ -145,9 +122,6 @@ export const styles = sva({
       pink: { root: { colorPalette: "pink" } },
       black: { root: { colorPalette: "neutral" } },
     },
-    // All variants share a tonal language: a palette-toned surface with the
-    // palette's `fg.link` (~s110) text. The outer border uses `bd.solid`, a
-    // touch stronger than the `bd.subtle` prefix/suffix divider.
     variant: {
       fill: {
         root: {
@@ -181,9 +155,14 @@ export const styles = sva({
     clickable: {
       true: { root: { cursor: "pointer" } },
     },
+    hasPrefix: {
+      true: { root: { paddingInlineStart: "0" } },
+    },
+    hasSuffix: {
+      true: { root: { paddingInlineEnd: "0" } },
+    },
   },
   compoundVariants: [
-    // ── Clickable hover feedback, per variant (tonal darken) ──
     {
       clickable: true,
       variant: "fill",
@@ -293,17 +272,13 @@ export const styles = sva({
   },
 });
 
-// A prefix/suffix slot. `naked` adds no styling beyond the flex base. `straight`
-// separates the affix with a 1px divider (a box-shadow reading `--chip-divider`,
-// so it survives the button reset). `circle` is a bordered, brighter badge.
-// `angle` is a full-height tinted zone that bleeds past the chip's padding +
-// border. `interactive` layers a button reset on top.
 export const affixStyles = cva({
   base: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: "0",
+    paddingBlock: "var(--chip-padding-y)",
   },
   variants: {
     treatment: {
@@ -313,23 +288,21 @@ export const affixStyles = cva({
       },
       angle: {
         alignSelf: "stretch",
-        paddingInline: "var(--chip-px)",
-        marginBlock:
-          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
+        paddingInline: "var(--chip-padding-x)",
+        marginBlock: "[calc(-1 * var(--chip-border-width))]",
         backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
       },
       // A brighter (`bgSolid.min`) segment that bleeds to the chip edge and
       // inherits the chip's border-radius, so its outer corners match the chip
       // (fully round on `round`, the small radius on `default`). A box-shadow
       // ring gives its inner (rounded) edge a border and survives the button
-      // reset. `--chip-px` cancellation + `overflow: clip` on the root keep the
-      // outer corners aligned; the per-side bleed is set in compound variants.
+      // reset. `overflow: clip` on the root keeps the outer corners aligned; the
+      // per-side border-width bleed is set in compound variants.
       circle: {
         alignSelf: "stretch",
         borderRadius: "[inherit]",
         paddingInline: "[0.75em]",
-        marginBlock:
-          "[calc(-1 * var(--form-padding-y) - var(--form-border-width))]",
+        marginBlock: "[calc(-1 * var(--chip-border-width))]",
         backgroundColor: "colorPalette.bgSolid.min",
         boxShadow: "[inset 0 0 0 1px var(--chip-divider)]",
       },
@@ -358,14 +331,22 @@ export const affixStyles = cva({
     },
   },
   compoundVariants: [
-    // straight → a 1px divider on the inner edge (no bleed, no fill). Only the
-    // divider→content side is padded here; the label→divider gap comes from the
-    // label's own padding.
+    {
+      treatment: "naked",
+      side: "prefix",
+      css: { paddingInlineStart: "var(--chip-padding-x)" },
+    },
+    {
+      treatment: "naked",
+      side: "suffix",
+      css: { paddingInlineEnd: "var(--chip-padding-x)" },
+    },
     {
       treatment: "straight",
       side: "prefix",
       css: {
-        paddingInlineEnd: "var(--chip-px)",
+        paddingInlineStart: "var(--chip-padding-x)",
+        paddingInlineEnd: "var(--chip-padding-x)",
         boxShadow: "[inset -1px 0 0 0 var(--chip-divider)]",
       },
     },
@@ -373,34 +354,31 @@ export const affixStyles = cva({
       treatment: "straight",
       side: "suffix",
       css: {
-        paddingInlineStart: "var(--chip-px)",
+        paddingInlineStart: "var(--chip-padding-x)",
+        paddingInlineEnd: "var(--chip-padding-x)",
         boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
       },
     },
-    // circle → bleed to the outer edge so the segment fills the chip's cap.
     {
       treatment: "circle",
       side: "prefix",
       css: {
-        marginInlineStart:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        marginInlineStart: "[calc(-1 * var(--chip-border-width))]",
       },
     },
     {
       treatment: "circle",
       side: "suffix",
       css: {
-        marginInlineEnd:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
+        marginInlineEnd: "[calc(-1 * var(--chip-border-width))]",
       },
     },
     {
       treatment: "angle",
       side: "prefix",
       css: {
-        marginInlineStart:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
-        paddingInlineEnd: "[calc(var(--chip-px) + 0.5em)]",
+        marginInlineStart: "[calc(-1 * var(--chip-border-width))]",
+        paddingInlineEnd: "[calc(var(--chip-padding-x) + 0.5em)]",
         clipPath: "[polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%)]",
       },
     },
@@ -408,9 +386,8 @@ export const affixStyles = cva({
       treatment: "angle",
       side: "suffix",
       css: {
-        marginInlineEnd:
-          "[calc(-1 * var(--chip-px) - var(--form-border-width))]",
-        paddingInlineStart: "[calc(var(--chip-px) + 0.5em)]",
+        marginInlineEnd: "[calc(-1 * var(--chip-border-width))]",
+        paddingInlineStart: "[calc(var(--chip-padding-x) + 0.5em)]",
         clipPath: "[polygon(0.5em 0, 100% 0, 100% 100%, 0 100%)]",
       },
     },
