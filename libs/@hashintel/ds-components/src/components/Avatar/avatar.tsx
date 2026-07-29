@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -48,9 +48,18 @@ export const Avatar = ({
   placeholder,
   ...rest
 }: AvatarProps) => {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  const showImage = !isEmptyString(src) && failedSrc !== src;
+  // Re-attempt loading whenever `src` changes, even for a URL that failed before
+  const prevSrcRef = useRef(src);
+  if (prevSrcRef.current !== src) {
+    prevSrcRef.current = src;
+    if (failed) {
+      setFailed(false);
+    }
+  }
+
+  const showImage = !isEmptyString(src) && !failed;
 
   const asLink = !isEmptyString(rest.href);
   const asButton = !asLink && rest.onClick != null;
@@ -91,7 +100,7 @@ export const Avatar = ({
           alt=""
           draggable="false"
           referrerPolicy="no-referrer"
-          onError={() => setFailedSrc(src ?? null)}
+          onError={() => setFailed(true)}
         />
       ) : null}
     </>
