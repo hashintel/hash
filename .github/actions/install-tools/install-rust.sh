@@ -84,13 +84,7 @@ for component in $COMPONENTS; do
   for mirror in "${MIRRORS[@]}"; do
     if install_component "$component" "$mirror"; then
       # Verify component was installed
-      verify_name="$component"
-      case "$component" in
-        "llvm-tools-preview") verify_name="llvm-tools" ;;
-        "rustc-codegen-cranelift-preview") verify_name="rustc-codegen-cranelift" ;;
-      esac
-
-      if rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$verify_name"; then
+      if rustup component list --toolchain "$TOOLCHAIN_CHANNEL" --installed | grep -q "^$component"; then
         echo -e "${GREEN}✅ Component ${YELLOW}${component}${GREEN} installed successfully with: ${mirror}${NC}"
         COMPONENT_INSTALLED=true
         break
