@@ -146,6 +146,17 @@ pub enum QualityMetric {
               for implementors"
 )]
 pub trait Progress {
+    /// The observer a stage hands to machinery that owns its reporter.
+    ///
+    /// A backend that reports through a foreign builder cannot lend this observer: the builder
+    /// takes its reporter by value and keeps it for the call. An observer answers with whatever
+    /// it can give away - [`NoProgress`] when nothing crosses, or a handle onto its own sink -
+    /// and what crosses observes exactly what that answer observes.
+    type Detached: Progress + Send + Sync + 'static;
+
+    /// Hands out this observer's detached half.
+    fn detach(&self) -> Self::Detached;
+
     /// The card-embedding stage resolved its reuse split: `stats.reused` unique texts serve from
     /// the prior generation, `stats.embedded` go to the provider.
     fn embedding_started(&self, stats: &CardEmbeddingStats) {}
@@ -206,6 +217,12 @@ impl<T> Progress for &T
 where
     T: Progress,
 {
+    type Detached = T::Detached;
+
+    fn detach(&self) -> Self::Detached {
+        T::detach(self)
+    }
+
     fn embedding_started(&self, stats: &CardEmbeddingStats) {
         T::embedding_started(self, stats);
     }
@@ -267,4 +284,10 @@ where
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct NoProgress;
 
-impl Progress for NoProgress {}
+impl Progress for NoProgress {
+    type Detached = Self;
+
+    fn detach(&self) -> Self {
+        Self
+    }
+}

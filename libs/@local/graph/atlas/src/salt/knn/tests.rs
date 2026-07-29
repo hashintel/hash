@@ -146,11 +146,11 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
         Ok(())
     }
 
-    fn build<P>(&mut self, _rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+    fn build<P>(&mut self, _rng: impl Rng + SeedableRng, _progress: &P) -> Result<(), Self::Error>
     where
-        P: Progress + Send + Sync + 'static,
+        P: Progress,
     {
-        Ok(progress)
+        Ok(())
     }
 
     fn search_by_vector(
@@ -203,9 +203,9 @@ macro_rules! delegate_all_but_search_by_id {
             self.0.insert_many(embeddings)
         }
 
-        fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+        fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: &P) -> Result<(), Self::Error>
         where
-            P: crate::progress::Progress + Send + Sync + 'static,
+            P: crate::progress::Progress,
         {
             self.0.build(rng, progress)
         }
@@ -385,6 +385,13 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
+    /// The log is shared, so a detached half records into the same fixture.
+    type Detached = Self;
+
+    fn detach(&self) -> Self {
+        self.clone()
+    }
+
     fn knn_build_phase(&self, phase: &str) {
         self.push(Reported::Phase(phase.to_owned()));
     }
@@ -428,9 +435,7 @@ where
     I: NearestNeighboursIndex<NodeRowId> + Sync,
     I::Error: Send,
 {
-    IndexConstruction::new(index)
-        .construct(embeddings, width, test_rng(), &NoProgress)
-        .map(|(lists, _)| lists)
+    IndexConstruction::new(index).construct(embeddings, width, test_rng(), &NoProgress)
 }
 
 #[test]
@@ -574,7 +579,7 @@ fn descent_converges_on_known_geometry() {
     let embeddings = matrix.view();
     let width = NonZero::new(4).expect("four is nonzero");
 
-    let (lists, _) = NnDescent::new(NnDescentOptions::default())
+    let lists = NnDescent::new(NnDescentOptions::default())
         .construct(embeddings, width, test_rng(), &NoProgress)
         .expect("the fixture is well-formed");
     assert_eq!(lists.rows(), 64);
@@ -659,7 +664,7 @@ fn descent_passes_the_admission_gate() {
     let width = recall::SpotCheckOptions::default()
         .neighbours
         .max(DEFAULT_NEIGHBOURS);
-    let (lists, _) = NnDescent::new(NnDescentOptions::default())
+    let lists = NnDescent::new(NnDescentOptions::default())
         .construct(embeddings, width, test_rng(), &NoProgress)
         .expect("the fixture is well-formed");
 
@@ -707,7 +712,7 @@ fn descent_clamps_the_width_to_the_corpus() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
 
-    let (lists, _) = NnDescent::new(NnDescentOptions::default())
+    let lists = NnDescent::new(NnDescentOptions::default())
         .construct(
             matrix.view(),
             NonZero::new(16).expect("sixteen is nonzero"),
@@ -729,12 +734,12 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
     let progress = RecordingProgress::default();
 
     // The backend starts empty: the construction is what fills it.
-    let (_, progress) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+    IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(
             matrix.view(),
             NonZero::new(4).expect("four is nonzero"),
             test_rng(),
-            progress,
+            &progress,
         )
         .expect("the fixture is well-formed");
 
@@ -761,15 +766,15 @@ fn watching_a_construction_does_not_change_its_lists() {
     let matrix = Matrix::new(&rows);
     let width = NonZero::new(4).expect("four is nonzero");
 
-    let (watched, _) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+    let watched = IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(
             matrix.view(),
             width,
             test_rng(),
-            RecordingProgress::default(),
+            &RecordingProgress::default(),
         )
         .expect("the fixture is well-formed");
-    let (unwatched, _) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+    let unwatched = IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(matrix.view(), width, test_rng(), &NoProgress)
         .expect("the fixture is well-formed");
 
@@ -795,12 +800,12 @@ fn an_observed_descent_reports_every_iteration_it_ran() {
     let options = NnDescentOptions::default();
     let progress = RecordingProgress::default();
 
-    let (_, progress) = NnDescent::new(options)
+    NnDescent::new(options)
         .construct(
             matrix.view(),
             NonZero::new(4).expect("four is nonzero"),
             test_rng(),
-            progress,
+            &progress,
         )
         .expect("the fixture is well-formed");
 
@@ -1254,7 +1259,7 @@ fn hannoy_honours_the_seam_contract() {
     NearestNeighboursIndex::<NodeRowId>::build(
         &mut index,
         Xoshiro256PlusPlus::seed_from_u64(42),
-        NoProgress,
+        &NoProgress,
     )
     .expect("the build succeeds");
 
@@ -1308,7 +1313,7 @@ fn hannoy_honours_the_seam_contract() {
     // from the same lists.
     let construction_base = base.join("construction");
     std::fs::create_dir_all(&construction_base).expect("the temp directory is writable");
-    let (lists, _) = IndexConstruction::new(
+    let lists = IndexConstruction::new(
         HannoyIndex::new(
             &construction_base,
             HannoyIndexOptions {
@@ -1369,7 +1374,7 @@ fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
     let matrix = Matrix::new(&rows);
     let progress = RecordingProgress::default();
 
-    let (lists, progress) = IndexConstruction::new(
+    let lists = IndexConstruction::new(
         HannoyIndex::new(
             &base,
             HannoyIndexOptions {
@@ -1383,7 +1388,7 @@ fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
         matrix.view(),
         NonZero::new(4).expect("four is nonzero"),
         Xoshiro256PlusPlus::seed_from_u64(42),
-        progress,
+        &progress,
     )
     .expect("the construction succeeds");
     assert_eq!(lists.rows(), 128);

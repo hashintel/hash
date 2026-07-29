@@ -129,7 +129,7 @@ pub(crate) fn audit(
     for &seed in seeds {
         for &maximum_candidates in candidates {
             let started = Instant::now();
-            let (lists, NoProgress) = NnDescent::new(NnDescentOptions {
+            let lists = NnDescent::new(NnDescentOptions {
                 maximum_candidates,
                 ..
             })

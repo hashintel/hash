@@ -393,10 +393,10 @@ where
         embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         mut rng: impl Rng + SeedableRng,
-        progress: P,
-    ) -> Result<(NeighbourLists<N>, P), Self::Error>
+        progress: &P,
+    ) -> Result<NeighbourLists<N>, Self::Error>
     where
-        P: Progress + Send + Sync + 'static,
+        P: Progress + Sync,
     {
         let rows = embeddings.len();
         if rows < 2 {
@@ -512,7 +512,7 @@ where
                 }
             });
 
-        Ok((NeighbourLists::new(entries, width), progress))
+        Ok(NeighbourLists::new(entries, width))
     }
 }
 

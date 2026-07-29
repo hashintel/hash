@@ -128,12 +128,12 @@ pub(super) fn run<I, O, P>(
     scratch: &ScratchDirectory,
     inputs: &Inputs,
     ingested: Ingested,
-    progress: P,
-) -> Result<PublishedGeneration<P>, StageError>
+    progress: &P,
+) -> Result<PublishedGeneration, StageError>
 where
     I: ByteStable,
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
-    P: Progress + Send + Sync + 'static,
+    P: Progress + Sync,
 {
     let context = Context {
         staging: &staging,
@@ -158,7 +158,7 @@ where
         }));
 
     let (classifier, classifier_artifacts) =
-        context.acquire_classifier(&inputs.classifier, &progress)?;
+        context.acquire_classifier(&inputs.classifier, progress)?;
     progress.stage_completed(Stage::Classifier);
     let policy = context.stage_policy(&classifier, &ingested.relations)?;
     progress.stage_completed(Stage::Policy);
@@ -171,7 +171,7 @@ where
         &ingested.multi_typed,
     )?;
     progress.stage_completed(Stage::Relations);
-    let (knn, distinct_knn, progress) =
+    let (knn, distinct_knn) =
         context.build_neighbour_table(scratch, distinct, &quotient, progress)?;
 
     progress.stage_completed(Stage::Knn);
@@ -206,7 +206,7 @@ where
                 indexes: &relations.trainer,
             },
         },
-        &progress,
+        progress,
     )?;
     progress.stage_completed(Stage::Projector);
 
@@ -233,7 +233,7 @@ where
     let published = staging.seal(&repository)?;
     progress.stage_completed(Stage::Seal);
 
-    Ok(published.with_progress(progress))
+    Ok(published)
 }
 
 /// Builds the fit's training row domain: the corpus row quotient and its distinct matrix.

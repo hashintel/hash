@@ -1181,6 +1181,13 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
+    /// The fixture watches training steps, so nothing crosses into owning machinery.
+    type Detached = NoProgress;
+
+    fn detach(&self) -> NoProgress {
+        NoProgress
+    }
+
     fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {
         self.steps
             .lock()

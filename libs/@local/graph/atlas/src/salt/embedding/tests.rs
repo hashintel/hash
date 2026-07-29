@@ -160,6 +160,13 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
+    /// The fixture watches the reuse split, so nothing crosses into owning machinery.
+    type Detached = NoProgress;
+
+    fn detach(&self) -> NoProgress {
+        NoProgress
+    }
+
     fn embedding_started(&self, stats: &CardEmbeddingStats) {
         self.splits
             .lock()

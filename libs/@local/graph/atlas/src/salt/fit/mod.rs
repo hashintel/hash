@@ -557,12 +557,12 @@ pub(crate) async fn fit<D, E, P>(
         prior,
     }: Supplies<'_>,
     root: &GenerationRoot,
-    progress: P,
-) -> Result<PublishedGeneration<P>, FitError<D::Error, E::Error>>
+    progress: &P,
+) -> Result<PublishedGeneration, FitError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Send + Sync + 'static,
+    P: Progress + Sync,
 {
     let staging = root.stage()?;
     let scratch = root.scratch()?;
@@ -603,7 +603,7 @@ where
                 supplied.document(),
                 embedder,
                 config.policy.assembly,
-                &progress,
+                progress,
             )
             .await
             .map_err(FitError::Assembly)?;
@@ -622,7 +622,7 @@ where
     };
 
     let ingested = ingest::run(
-        dataset, embedder, config, &staging, &scratch, prior, &progress,
+        dataset, embedder, config, &staging, &scratch, prior, progress,
     )
     .await?;
     progress.stage_completed(progress::Stage::Ingest);
@@ -637,8 +637,13 @@ where
         prior: prior.cloned(),
     };
 
+    // The compute half leaves this stack for the rayon pool, so it takes the observer's detached
+    // half rather than a borrow the spawn cannot hold.
+    let detached = progress.detach();
     let published = offload(move || {
-        compute::run::<D::NodeId, D::OntologyId, P>(staging, &scratch, &inputs, ingested, progress)
+        compute::run::<D::NodeId, D::OntologyId, P::Detached>(
+            staging, &scratch, &inputs, ingested, &detached,
+        )
     })
     .await?;
 

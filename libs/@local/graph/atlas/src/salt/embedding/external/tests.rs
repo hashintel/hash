@@ -92,6 +92,13 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
+    /// The fixture watches embedding batches, so nothing crosses into owning machinery.
+    type Detached = NoProgress;
+
+    fn detach(&self) -> NoProgress {
+        NoProgress
+    }
+
     fn embedding_batch(&self, batch: Batch) {
         self.batches
             .lock()

@@ -30,10 +30,9 @@ use crate::{
     },
 };
 
-type NeighbourTable<P> = (
+type NeighbourTable = (
     Staged<KnnArchive<NodeRowId>, recall::RecallSpotCheck>,
     KnnArchive<DistinctRowId>,
-    P,
 );
 
 impl Context<'_> {
@@ -49,10 +48,10 @@ impl Context<'_> {
         scratch: &ScratchDirectory,
         distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         quotient: &RowQuotient,
-        progress: P,
-    ) -> Result<NeighbourTable<P>, StageError>
+        progress: &P,
+    ) -> Result<NeighbourTable, StageError>
     where
-        P: Progress + Send + Sync + 'static,
+        P: Progress + Sync,
     {
         let _span = tracing::info_span!("knn").entered();
         // Construction speaks distinct rows; the published failure surface speaks corpus rows.
@@ -64,7 +63,7 @@ impl Context<'_> {
             .neighbours
             .max(self.config.neighbours);
 
-        let (lists, progress) = {
+        let lists = {
             let _span = tracing::info_span!("knn-link").entered();
             let rng = stage_rng(self.config.seed, Stage::KnnLink);
 
@@ -141,7 +140,6 @@ impl Context<'_> {
                 evidence: recall,
             },
             distinct_table,
-            progress,
         ))
     }
 

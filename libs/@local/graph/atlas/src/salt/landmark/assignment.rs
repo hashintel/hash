@@ -232,7 +232,7 @@ where
     // and this index links the landmark selection inside the landmark
     // stage, which reports its progress by completion alone.
     index
-        .build(rng, NoProgress)
+        .build(rng, &NoProgress)
         .map_err(AssignmentError::Backend)?;
 
     let landmark_by_row = embeddings

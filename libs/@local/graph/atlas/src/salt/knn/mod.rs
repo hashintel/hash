@@ -101,15 +101,15 @@ where
     ///
     /// The link is the construction's long phase and only the backend knows its parts, so a
     /// backend reports them as they begin through
-    /// [`knn_build_phase`](Progress::knn_build_phase). `progress` arrives owned because a backend
-    /// hands it to machinery that outlives the call's borrows.
+    /// [`knn_build_phase`](Progress::knn_build_phase). A backend that hands the reporting on to
+    /// machinery owning it takes the observer's detached half, never this borrow.
     ///
     /// # Errors
     ///
     /// Returns a backend error when construction fails.
-    fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+    fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: &P) -> Result<(), Self::Error>
     where
-        P: Progress + Send + Sync + 'static;
+        P: Progress;
 
     /// Returns up to `limit` nearest neighbours of `query`.
     ///

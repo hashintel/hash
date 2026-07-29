@@ -53,7 +53,7 @@
     pointer_is_aligned_to,
     portable_simd,
     step_trait,
-    variant_count,nonpoison_mutex,sync_nonpoison
+    variant_count
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

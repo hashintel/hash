@@ -124,10 +124,10 @@ where
         embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         rng: impl Rng + SeedableRng,
-        progress: P,
-    ) -> Result<(NeighbourLists<N>, P), Self::Error>
+        progress: &P,
+    ) -> Result<NeighbourLists<N>, Self::Error>
     where
-        P: Progress + Send + Sync + 'static;
+        P: Progress + Sync;
 }
 
 /// Adapts a [`NearestNeighboursIndex`] search backend to [`KnnConstruction`].
@@ -160,10 +160,10 @@ where
         embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         rng: impl Rng + SeedableRng,
-        progress: P,
-    ) -> Result<(NeighbourLists<N>, P), Self::Error>
+        progress: &P,
+    ) -> Result<NeighbourLists<N>, Self::Error>
     where
-        P: Progress + Send + Sync + 'static,
+        P: Progress + Sync,
     {
         let rows = embeddings.len();
         if rows < 2 {
@@ -190,7 +190,7 @@ where
             }))
             .map_err(KnnError::Backend)?;
 
-        let progress = self.0.build(rng, progress).map_err(KnnError::Backend)?;
+        self.0.build(rng, progress).map_err(KnnError::Backend)?;
 
         let placeholder = Neighbour {
             id: N::MIN,
@@ -254,7 +254,7 @@ where
                 Ok(())
             })?;
 
-        Ok((NeighbourLists::new(entries, width), progress))
+        Ok(NeighbourLists::new(entries, width))
     }
 }
 

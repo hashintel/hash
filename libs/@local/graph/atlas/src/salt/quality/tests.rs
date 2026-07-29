@@ -1569,7 +1569,7 @@ async fn runner_reports_a_published_generation() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");

@@ -287,7 +287,7 @@ fn build_index(
                 components,
             }),
     )?;
-    index.build(rng, NoProgress)?;
+    index.build(rng, &NoProgress)?;
 
     Ok(started.elapsed())
 }

@@ -39,7 +39,7 @@ use crate::{
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
     },
-    progress::Progress,
+    progress::{NoProgress, Progress},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -1467,6 +1467,13 @@ impl RecordingSnapshots {
 }
 
 impl Progress for RecordingSnapshots {
+    /// The fixture watches snapshots, so nothing crosses into owning machinery.
+    type Detached = NoProgress;
+
+    fn detach(&self) -> NoProgress {
+        NoProgress
+    }
+
     fn projector_sample_size(&self) -> usize {
         self.appetite
     }

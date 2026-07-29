@@ -397,12 +397,12 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
     fn build<P>(
         &mut self,
         _: impl rand::Rng + rand::SeedableRng,
-        progress: P,
-    ) -> Result<P, Self::Error>
+        _progress: &P,
+    ) -> Result<(), Self::Error>
     where
-        P: crate::progress::Progress + Send + Sync + 'static,
+        P: crate::progress::Progress,
     {
-        Ok(progress)
+        Ok(())
     }
 
     fn search_by_vector(

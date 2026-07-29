@@ -155,6 +155,13 @@ impl Observer {
 }
 
 impl Progress for Observer {
+    /// The channel is the observer: a detached half reports into the same dashboard.
+    type Detached = Self;
+
+    fn detach(&self) -> Self {
+        self.clone()
+    }
+
     fn embedding_started(&self, stats: &CardEmbeddingStats) {
         self.report(Observation::EmbeddingStarted(*stats));
     }

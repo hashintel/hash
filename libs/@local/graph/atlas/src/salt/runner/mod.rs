@@ -112,12 +112,12 @@ pub(crate) async fn run<D, E, P>(
     verdicts: Option<&SuppliedVerdicts>,
     root: &GenerationRoot,
     options: &RunnerOptions,
-    progress: P,
+    progress: &P,
 ) -> Result<Outcome, RunnerError<D::Error, E::Error>>
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Clone + Send + Sync + 'static,
+    P: Progress + Sync,
 {
     let prior = match options.prior {
         PriorMode::FromActive => root
@@ -143,7 +143,6 @@ where
     .await?;
 
     let id = published.id();
-    let progress = published.progress;
 
     let generation = root
         .open(id)

@@ -568,6 +568,13 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
+    /// The fixture watches folds, so nothing crosses into owning machinery.
+    type Detached = NoProgress;
+
+    fn detach(&self) -> NoProgress {
+        NoProgress
+    }
+
     fn classifier_started(&self, folds: usize) {
         self.announced
             .lock()

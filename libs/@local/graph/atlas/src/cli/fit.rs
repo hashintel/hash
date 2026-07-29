@@ -285,7 +285,7 @@ impl<P> FitCommand<P> {
 
 impl<P> FitCommand<P>
 where
-    P: Progress + Clone + Send + Sync + 'static,
+    P: Progress + Sync,
 {
     /// Runs one production generation over the live store and returns its verdict.
     ///
@@ -332,7 +332,8 @@ where
                 encoding: "float",
             },
             RequestLimits { .. },
-            self.options.progress.clone(),
+            // The provider holds its observer across every request, so it takes the detached half.
+            self.options.progress.detach(),
         );
         // Before the store is read: a refused key is minutes cheaper here than
         // at the first workload request.

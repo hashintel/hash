@@ -309,7 +309,7 @@ async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");

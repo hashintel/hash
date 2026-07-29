@@ -258,7 +258,7 @@ async fn passing_run_activates_the_generation() {
         None,
         &root,
         &options(7, QualityThresholds { .. }),
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the run should reach a verdict");
@@ -307,7 +307,7 @@ async fn refused_run_leaves_a_candidate() {
                 ..
             },
         ),
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the run should reach a verdict");
@@ -340,7 +340,7 @@ async fn prior_modes_route_reuse() {
         None,
         &root,
         &options(7, QualityThresholds { .. }),
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the first run should reach a verdict");
@@ -353,7 +353,7 @@ async fn prior_modes_route_reuse() {
         None,
         &root,
         &options(11, QualityThresholds { .. }),
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the reuse run should reach a verdict");
@@ -379,7 +379,7 @@ async fn prior_modes_route_reuse() {
             prior: PriorMode::Fresh,
             ..options(13, QualityThresholds { .. })
         },
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fresh run should reach a verdict");

@@ -431,7 +431,7 @@ impl StagedGeneration {
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,
-    ) -> Result<PublishedGeneration<()>, SealError> {
+    ) -> Result<PublishedGeneration, SealError> {
         let mut expected = BTreeSet::<FileName>::new();
         for file in repository.files.files() {
             if file.name.as_str() == METADATA_FILE {
@@ -484,7 +484,6 @@ impl StagedGeneration {
         Ok(PublishedGeneration {
             id,
             path: destination,
-            progress: (),
         })
     }
 
@@ -530,13 +529,12 @@ pub(crate) fn document_digest(bytes: &[u8]) -> Sha256Digest {
 
 /// One published generation: its identity and directory.
 #[derive(Debug)]
-pub(crate) struct PublishedGeneration<P> {
+pub(crate) struct PublishedGeneration {
     pub id: GenerationId,
     pub path: Utf8PathBuf,
-    pub progress: P,
 }
 
-impl<P> PublishedGeneration<P> {
+impl PublishedGeneration {
     /// Returns the generation's identity.
     #[inline]
     #[must_use]
@@ -549,16 +547,5 @@ impl<P> PublishedGeneration<P> {
     #[must_use]
     pub(crate) fn path(&self) -> &Utf8Path {
         &self.path
-    }
-
-    /// Returns a new `PublishedGeneration` with the given progress value.
-    #[inline]
-    #[must_use]
-    pub(crate) fn with_progress<P2>(self, progress: P2) -> PublishedGeneration<P2> {
-        PublishedGeneration {
-            id: self.id,
-            path: self.path,
-            progress,
-        }
     }
 }

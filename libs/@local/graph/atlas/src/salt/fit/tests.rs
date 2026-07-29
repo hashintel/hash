@@ -465,7 +465,7 @@ async fn fit_publishes_a_complete_generation() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -655,7 +655,7 @@ async fn policy_artifacts_publish_and_read_back() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -720,7 +720,7 @@ async fn lod_columns_publish_in_base_order() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -826,7 +826,7 @@ async fn supplied_verdicts_publish_verbatim() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -988,7 +988,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1103,7 +1103,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1121,7 +1121,7 @@ async fn prior_generation_seeds_reuse_and_retention() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1183,7 +1183,7 @@ async fn override_supersedes_the_classifier() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1232,7 +1232,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &first_root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the first fit should publish");
@@ -1245,7 +1245,7 @@ async fn equal_seeds_publish_equal_generations() {
             ..
         },
         &second_root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the second fit should publish");
@@ -1296,7 +1296,7 @@ async fn defective_corpus_publishes_nothing() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -1464,7 +1464,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1547,7 +1547,7 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
@@ -1772,7 +1772,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("a corpus with byte-identical rows should publish");
@@ -1874,7 +1874,7 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &refused,
-        NoProgress,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -1908,7 +1908,7 @@ async fn vacuous_placement_trains_without_reviews() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the vacuous placement should publish");
@@ -1999,7 +1999,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await;
     assert!(
@@ -2201,7 +2201,7 @@ async fn edge_artifacts_publish_and_read_back() {
             ..
         },
         &root,
-        NoProgress,
+        &NoProgress,
     )
     .await
     .expect("the fit should publish");
