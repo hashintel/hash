@@ -1,392 +1,136 @@
-import { Avatar as BaseAvatar } from "@ark-ui/react/avatar";
+import { useState } from "react";
 
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
-import type { ReactNode } from "react";
+import { isEmptyString } from "../../util/string";
+import { Icon, type IconName } from "../Icon/icon";
+import { styles } from "./avatar.recipe";
 
-export interface AvatarProps {
+import type { FormInputSize } from "../../util/form-shared";
+import type { ExclusifyUnion } from "type-fest";
+
+export type AvatarProps = {
+  className?: string;
+  variant: "circle" | "square";
   /** Image source URL */
   src?: string;
-  /** Alt text for the image */
-  alt?: string;
-  /** Fallback content - typically initials or icon */
-  fallback?: ReactNode;
-  /** Size of the avatar */
-  size?: "16" | "20" | "24" | "32" | "40" | "48" | "64";
-  /** Shape of the avatar */
-  shape?: "circle" | "square";
-  /** Indicator configuration */
-  indicator?: {
-    /** Color scheme of the indicator */
-    colorScheme?:
-      | "red"
-      | "orange"
-      | "yellow"
-      | "green"
-      | "blue"
-      | "purple"
-      | "pink"
-      | "gray"
-      | "white";
-    /** Whether the indicator is squared (with border and rounded corners) */
-    squared?: boolean;
-    /** Optional image to display in the indicator */
-    image?: string;
+  /** For ex: "Firstname Lastname", "Organization", "Shortname (online)" */
+  alt: string;
+  size?: FormInputSize;
+  /** What to show when no image is loaded or defined. Initials will be truncated to up to 2 characters max */
+  placeholder:
+    | { initials: string }
+    | { icon: IconName }
+    | { custom: React.ReactNode };
+} & ExclusifyUnion<
+  | { onClick?: React.ButtonHTMLAttributes<Element>["onClick"] }
+  | { href?: string; target?: "_blank" }
+> &
+  React.AriaAttributes;
+
+/** The icon size to render inside each avatar size */
+const placeholderIconSize: Record<FormInputSize, FormInputSize> = {
+  xxs: "xxs",
+  xs: "xs",
+  sm: "xs",
+  md: "sm",
+  lg: "md",
+};
+
+const imageClass = css({
+  position: "absolute",
+  inset: "0",
+  width: "full",
+  height: "full",
+  objectFit: "cover",
+});
+
+const placeholderClass = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+export const Avatar = (props: AvatarProps) => {
+  const {
+    className,
+    variant,
+    src,
+    alt,
+    size = "md",
+    placeholder,
+    ...rest
+  } = props;
+
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  const showImage = !isEmptyString(src) && failedSrc !== src;
+
+  const asLink = !isEmptyString(rest.href);
+  const asButton = !asLink && rest.onClick != null;
+  const interactive = asLink || asButton;
+
+  let placeholderContent: React.ReactNode;
+  if ("initials" in placeholder) {
+    placeholderContent = (
+      <span className={css({ textTransform: "uppercase" })}>
+        {placeholder.initials.slice(0, 2)}
+      </span>
+    );
+  } else if ("icon" in placeholder) {
+    placeholderContent = (
+      <Icon name={placeholder.icon} size={placeholderIconSize[size]} />
+    );
+  } else {
+    placeholderContent = placeholder.custom;
+  }
+
+  const content = (
+    <>
+      <span aria-hidden="true" className={placeholderClass}>
+        {placeholderContent}
+      </span>
+      {showImage ? (
+        <img
+          className={imageClass}
+          src={src}
+          alt=""
+          draggable="false"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedSrc(src ?? null)}
+        />
+      ) : null}
+    </>
+  );
+
+  const sharedProps = {
+    ...rest,
+    className: cx(styles({ variant, size, interactive }), className),
+    "aria-label": alt,
   };
-  /** Callback when image loading status changes */
-  onStatusChange?: (details: {
-    status: "error" | "loaded" | "loading";
-  }) => void;
-  /** ID for the avatar */
-  id?: string;
-}
 
-const avatarRootRecipe = cva({
-  base: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: "0",
-    backgroundColor: "bd.solid",
-    border: "1px solid",
-    borderColor: "bd.subtle",
-    overflow: "hidden",
-  },
-  variants: {
-    size: {
-      "16": {
-        width: "[16px]",
-        height: "[16px]",
-      },
-      "20": {
-        width: "[20px]",
-        height: "[20px]",
-      },
-      "24": {
-        width: "[24px]",
-        height: "[24px]",
-      },
-      "32": {
-        width: "[32px]",
-        height: "[32px]",
-      },
-      "40": {
-        width: "[40px]",
-        height: "[40px]",
-      },
-      "48": {
-        width: "[48px]",
-        height: "[48px]",
-      },
-      "64": {
-        width: "[64px]",
-        height: "[64px]",
-      },
-    },
-    shape: {
-      circle: {
-        borderRadius: "full",
-      },
-      square: {},
-    },
-  },
-  compoundVariants: [
-    // Square border radius by size
-    { shape: "square", size: "16", css: { borderRadius: "sm" } },
-    { shape: "square", size: "20", css: { borderRadius: "sm" } },
-    { shape: "square", size: "24", css: { borderRadius: "md" } },
-    { shape: "square", size: "32", css: { borderRadius: "md" } },
-    { shape: "square", size: "40", css: { borderRadius: "lg" } },
-    { shape: "square", size: "48", css: { borderRadius: "xl" } },
-    { shape: "square", size: "64", css: { borderRadius: "2xl" } },
-  ],
-  defaultVariants: {
-    size: "32",
-    shape: "circle",
-  },
-});
+  if (asLink) {
+    return (
+      <a {...(sharedProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>
+        {content}
+      </a>
+    );
+  }
 
-const avatarImageRecipe = cva({
-  base: {
-    position: "absolute",
-    inset: "[0]",
-    width: "[100%]",
-    height: "[100%]",
-    objectFit: "cover",
-    objectPosition: "center",
-  },
-});
-
-const avatarFallbackRecipe = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "[100%]",
-    height: "[100%]",
-    fontWeight: "medium",
-    color: "fg.heading",
-    textAlign: "center",
-  },
-  variants: {
-    size: {
-      "16": {
-        fontSize: "[7px]",
-        "& svg": {
-          width: "[10px]",
-          height: "[10px]",
-        },
-      },
-      "20": {
-        fontSize: "[8px]",
-        "& svg": {
-          width: "[10px]",
-          height: "[10px]",
-        },
-      },
-      "24": {
-        fontSize: "[10px]",
-        "& svg": {
-          width: "[12px]",
-          height: "[12px]",
-        },
-      },
-      "32": {
-        fontSize: "[14px]",
-        "& svg": {
-          width: "[18px]",
-          height: "[18px]",
-        },
-      },
-      "40": {
-        fontSize: "[18px]",
-        "& svg": {
-          width: "[24px]",
-          height: "[24px]",
-        },
-      },
-      "48": {
-        fontSize: "[20px]",
-        "& svg": {
-          width: "[28px]",
-          height: "[28px]",
-        },
-      },
-      "64": {
-        fontSize: "[24px]",
-        "& svg": {
-          width: "[32px]",
-          height: "[32px]",
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    size: "32",
-  },
-});
-
-const avatarIndicatorRootRecipe = cva({
-  base: {
-    position: "absolute",
-    bottom: "[-2px]",
-    right: "[-2px]",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: "0",
-    overflow: "hidden",
-  },
-  variants: {
-    size: {
-      "16": {
-        width: "[8px]",
-        height: "[8px]",
-      },
-      "20": {
-        width: "[8px]",
-        height: "[8px]",
-      },
-      "24": {
-        width: "[12px]",
-        height: "[12px]",
-      },
-      "32": {
-        width: "[12px]",
-        height: "[12px]",
-      },
-      "40": {
-        width: "[16px]",
-        height: "[16px]",
-      },
-      "48": {
-        width: "[16px]",
-        height: "[16px]",
-      },
-      "64": {
-        width: "[20px]",
-        height: "[20px]",
-      },
-    },
-    colorScheme: {
-      red: {
-        backgroundColor: "red.s50",
-      },
-      orange: {
-        backgroundColor: "orange.s50",
-      },
-      yellow: {
-        backgroundColor: "yellow.s50",
-      },
-      green: {
-        backgroundColor: "green.s50",
-      },
-      blue: {
-        backgroundColor: "blue.s50",
-      },
-      purple: {
-        backgroundColor: "purple.s50",
-      },
-      pink: {
-        backgroundColor: "pink.s50",
-      },
-      gray: {
-        backgroundColor: "neutral.s50",
-      },
-      white: {
-        backgroundColor: "bg.surface",
-      },
-    },
-    squared: {
-      true: {},
-      false: {
-        borderRadius: "full",
-      },
-    },
-  },
-  compoundVariants: [
-    // Squared indicators with border and radius by size
-    {
-      squared: true,
-      size: "16",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "xs",
-      },
-    },
-    {
-      squared: true,
-      size: "20",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "xs",
-      },
-    },
-    {
-      squared: true,
-      size: "24",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "xs",
-      },
-    },
-    {
-      squared: true,
-      size: "32",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "xs",
-      },
-    },
-    {
-      squared: true,
-      size: "40",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "sm",
-      },
-    },
-    {
-      squared: true,
-      size: "48",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "sm",
-      },
-    },
-    {
-      squared: true,
-      size: "64",
-      css: {
-        border: "1px solid",
-        borderColor: "bd.solid",
-        borderRadius: "md",
-      },
-    },
-  ],
-  defaultVariants: {
-    size: "32",
-    colorScheme: "green",
-    squared: false,
-  },
-});
-
-const avatarIndicatorImageRecipe = cva({
-  base: {
-    position: "absolute",
-    inset: "[0]",
-    width: "[100%]",
-    height: "[100%]",
-    objectFit: "cover",
-    objectPosition: "center",
-  },
-});
-
-export const Avatar: React.FC<AvatarProps> = ({
-  src,
-  alt = "avatar",
-  fallback = "?",
-  size = "32",
-  shape = "circle",
-  indicator,
-  onStatusChange,
-  id,
-}) => {
-  return (
-    <div className={css({ position: "relative", display: "inline-flex" })}>
-      <BaseAvatar.Root
-        onStatusChange={onStatusChange}
-        id={id}
-        className={avatarRootRecipe({ size, shape })}
+  if (asButton) {
+    return (
+      <button
+        {...(sharedProps as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+        type="button"
       >
-        <BaseAvatar.Image src={src} alt={alt} className={avatarImageRecipe()} />
-        <BaseAvatar.Fallback className={avatarFallbackRecipe({ size })}>
-          {fallback}
-        </BaseAvatar.Fallback>
-      </BaseAvatar.Root>
-      {indicator && (
-        <BaseAvatar.Root
-          className={avatarIndicatorRootRecipe({
-            size,
-            colorScheme: indicator.colorScheme ?? "green",
-            squared: indicator.squared ?? false,
-          })}
-        >
-          {indicator.image && (
-            <BaseAvatar.Image
-              src={indicator.image}
-              className={avatarIndicatorImageRecipe()}
-            />
-          )}
-        </BaseAvatar.Root>
-      )}
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div {...(sharedProps as React.HTMLAttributes<HTMLDivElement>)} role="img">
+      {content}
     </div>
   );
 };

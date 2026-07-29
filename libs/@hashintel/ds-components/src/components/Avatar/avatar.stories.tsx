@@ -1,180 +1,97 @@
+import { css } from "@hashintel/ds-helpers/css";
+
+import { formInputSizes } from "../../util/form-shared";
 import { Avatar, type AvatarProps } from "./avatar";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
-// User icon SVG
-const UserIcon = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    stroke="currentColor"
-  >
-    <circle cx="12" cy="8" r="4" strokeWidth="2" />
-    <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" strokeWidth="2" />
-  </svg>
-);
+const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
-type AvatarStoryArgs = Omit<AvatarProps, "indicator"> & {
-  indicatorEnabled?: boolean;
-  indicatorColorScheme?:
-    | "red"
-    | "orange"
-    | "yellow"
-    | "green"
-    | "blue"
-    | "purple"
-    | "pink"
-    | "gray"
-    | "white";
-  indicatorSquared?: boolean;
-  indicatorImage?: string;
-};
+const variants = ["circle", "square"] as const;
 
-const renderAvatar = (args: AvatarStoryArgs) => {
-  const {
-    indicatorEnabled,
-    indicatorColorScheme,
-    indicatorSquared,
-    indicatorImage,
-    ...avatarProps
-  } = args;
-
-  const indicator = indicatorEnabled
-    ? {
-        colorScheme: indicatorColorScheme,
-        squared: indicatorSquared,
-        image: indicatorImage,
-      }
-    : undefined;
-
-  return <Avatar {...avatarProps} indicator={indicator} />;
+const noop = () => {
+  /* story click handler */
 };
 
 export default {
-  title: "Legacy/Avatar",
+  title: "Components/Avatar",
   parameters: {
     layout: "centered",
+    controls: { disabled: true },
   },
-  argTypes: {
-    size: {
-      name: "Size",
-      control: { type: "select" },
-      options: ["16", "20", "24", "32", "40", "48", "64"],
-      description: "Size of the avatar in pixels",
-    },
-    shape: {
-      name: "Shape",
-      control: { type: "radio" },
-      options: ["circle", "square"],
-      description: "Shape of the avatar",
-    },
-    src: {
-      name: "Image URL",
-      control: { type: "text" },
-      description: "Image source URL",
-    },
-    alt: {
-      name: "Alt Text",
-      control: { type: "text" },
-      description: "Alt text for the image",
-    },
-    fallback: {
-      name: "Fallback",
-      control: { type: "text" },
-      description: "Fallback content (initials or icon)",
-    },
-    indicatorEnabled: {
-      name: "Enabled",
-      control: { type: "boolean" },
-      description: "Enable or disable the status indicator",
-      table: {
-        category: "Indicator",
-      },
-    },
-    indicatorColorScheme: {
-      name: "Color Scheme",
-      control: { type: "select" },
-      options: [
-        "red",
-        "orange",
-        "yellow",
-        "green",
-        "blue",
-        "purple",
-        "pink",
-        "gray",
-        "white",
-      ],
-      description: "Color scheme of the status indicator",
-      table: {
-        category: "Indicator",
-      },
-      if: { arg: "indicatorEnabled" },
-    },
-    indicatorSquared: {
-      name: "Squared",
-      control: { type: "boolean" },
-      description: "Whether the indicator is squared with border",
-      table: {
-        category: "Indicator",
-      },
-      if: { arg: "indicatorEnabled" },
-    },
-    indicatorImage: {
-      name: "Image URL",
-      control: { type: "text" },
-      description: "Optional image URL to display in the indicator",
-      table: {
-        category: "Indicator",
-      },
-      if: { arg: "indicatorEnabled" },
-    },
-  },
-  args: {
-    size: "32",
-    shape: "circle",
-  },
-} satisfies StoryDefault<AvatarStoryArgs>;
+} satisfies StoryDefault<AvatarProps>;
 
-export const Default: Story<AvatarStoryArgs> = (args) => renderAvatar(args);
-Default.args = {
-  src: "https://i.pravatar.cc/300",
-  alt: "User avatar",
-  size: "32",
-  shape: "circle",
-  indicatorEnabled: true,
-  indicatorColorScheme: "green",
-  indicatorSquared: false,
-};
+const column = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[24px]",
+});
 
-export const WithInitials: Story<AvatarStoryArgs> = (args) =>
-  renderAvatar(args);
-WithInitials.args = {
-  fallback: "AT",
-  size: "32",
-  shape: "circle",
-};
+const row = css({
+  display: "flex",
+  gap: "[16px]",
+  alignItems: "center",
+});
 
-export const WithIcon: Story<AvatarStoryArgs> = (args) => renderAvatar(args);
-WithIcon.args = {
-  fallback: UserIcon,
-  size: "32",
-  shape: "circle",
-};
-
-export const AllSizes: Story<AvatarStoryArgs> = (args) => (
-  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-    <Avatar {...args} size="16" />
-    <Avatar {...args} size="20" />
-    <Avatar {...args} size="24" />
-    <Avatar {...args} size="32" />
-    <Avatar {...args} size="40" />
-    <Avatar {...args} size="48" />
-    <Avatar {...args} size="64" />
+export const Default: Story<AvatarProps> = () => (
+  <div className={column}>
+    {variants.map((variant) => (
+      <div key={variant} className={row}>
+        <Avatar
+          variant={variant}
+          alt="Christian Busch"
+          src={sampleImage}
+          placeholder={{ initials: "CB" }}
+          onClick={noop}
+        />
+        <Avatar
+          variant={variant}
+          alt="Christian"
+          placeholder={{ initials: "C" }}
+          onClick={noop}
+        />
+        <Avatar
+          variant={variant}
+          alt="Christian Busch"
+          placeholder={{ initials: "CB" }}
+          onClick={noop}
+        />
+        <Avatar
+          variant={variant}
+          alt="Settings"
+          placeholder={{ icon: "gear" }}
+          onClick={noop}
+        />
+        <Avatar
+          variant={variant}
+          alt="Fox"
+          placeholder={{ custom: "🦊" }}
+          onClick={noop}
+        />
+        <Avatar
+          variant={variant}
+          alt="Christian Busch"
+          placeholder={{ initials: "CB" }}
+        />
+      </div>
+    ))}
   </div>
 );
-AllSizes.args = {
-  src: "https://i.pravatar.cc/300",
-  shape: "circle",
-};
+
+export const Sizes: Story<AvatarProps> = () => (
+  <div className={column}>
+    {variants.map((variant) => (
+      <div key={variant} className={row}>
+        {formInputSizes.map((size) => (
+          <Avatar
+            key={size}
+            variant={variant}
+            size={size}
+            alt="Christian Busch"
+            placeholder={{ initials: "CB" }}
+          />
+        ))}
+      </div>
+    ))}
+  </div>
+);
