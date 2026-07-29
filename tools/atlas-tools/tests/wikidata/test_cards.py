@@ -393,43 +393,40 @@ class TestProseSanitizationDiagnostics:
         assert totals["known_tokens_retained"] == {}
 
     def test_dropped_sentences_are_counted_per_card_and_per_corpus(self, tmp_path: Path) -> None:
-        def test_dropped_sentences_are_counted_per_card_and_per_corpus(
-            self, tmp_path: Path
-        ) -> None:
-            config, result = self._extraction_with_description(
-                "this item is a part of that item. Use P212 instead."
-            )
-            paths = emit_cards(result, config, tmp_path)
-            manifest = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))
-            totals = manifest["details"]["prose_sanitization"]
-            assert totals["dropped_sentences"] == 1
-            assert totals["dropped_tokens"] == {"P212": 1}
-            assert totals["fields_emptied"] == 0
-            per_card = manifest["details"]["cards"]["P361"]["sanitization"]
-            assert per_card["dropped_sentences"] == 1
-            assert per_card["dropped_tokens"] == {"P212": 1}
+        config, result = self._extraction_with_description(
+            "this item is a part of that item. Use P212 instead."
+        )
+        paths = emit_cards(result, config, tmp_path)
+        manifest = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))
+        totals = manifest["details"]["prose_sanitization"]
+        assert totals["dropped_sentences"] == 1
+        assert totals["dropped_tokens"] == {"P212": 1}
+        assert totals["fields_emptied"] == 0
+        per_card = manifest["details"]["cards"]["P361"]["sanitization"]
+        assert per_card["dropped_sentences"] == 1
+        assert per_card["dropped_tokens"] == {"P212": 1}
 
-        def test_urls_are_stripped_from_prose_and_counted(self, tmp_path: Path) -> None:
-            # P1060's shape: a trailing link-out to a source ontology. The URL
-            # goes; the gloss before it stays; the linter's URL backstop stays
-            # quiet.
-            url = "http://purl.obolibrary.org/obo/RO_0002451"
-            config, result = self._extraction_with_description(
-                f'this item is a part of that item, equivalent to "part of" in the ontology {url}'
-            )
-            paths = emit_cards(result, config, tmp_path)
-            rows = {
-                json.loads(line)["pid"]: json.loads(line)
-                for line in paths.cards.cards_jsonl.read_text(encoding="utf-8").splitlines()
-            }
-            text = rows["P361"]["card_text"]
-            assert "http" not in text
-            assert 'equivalent to "part of" in the ontology' in text
-            totals = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))["details"][
-                "prose_sanitization"
-            ]
-            assert totals["removed_urls"] == {url: 1}
-            assert totals["fields_emptied"] == 0
+    def test_urls_are_stripped_from_prose_and_counted(self, tmp_path: Path) -> None:
+        # P1060's shape: a trailing link-out to a source ontology. The URL
+        # goes; the gloss before it stays; the linter's URL backstop stays
+        # quiet.
+        url = "http://purl.obolibrary.org/obo/RO_0002451"
+        config, result = self._extraction_with_description(
+            f'this item is a part of that item, equivalent to "part of" in the ontology {url}'
+        )
+        paths = emit_cards(result, config, tmp_path)
+        rows = {
+            json.loads(line)["pid"]: json.loads(line)
+            for line in paths.cards.cards_jsonl.read_text(encoding="utf-8").splitlines()
+        }
+        text = rows["P361"]["card_text"]
+        assert "http" not in text
+        assert 'equivalent to "part of" in the ontology' in text
+        totals = json.loads(paths.cards.manifest.read_text(encoding="utf-8"))["details"][
+            "prose_sanitization"
+        ]
+        assert totals["removed_urls"] == {url: 1}
+        assert totals["fields_emptied"] == 0
 
     def test_emptied_field_over_budget_fails_the_run(self, tmp_path: Path) -> None:
         # The whole description is one confirmed-identifier sentence, so
@@ -452,7 +449,7 @@ class TestProseSanitizationDiagnostics:
         record = next(record for record in result.records if record.pid == "P361")
         record.labels[EN] = "part of (see P361)"
 
-        with pytest.raises(IdentifierLeakError, match="^P361: "):
+        with pytest.raises(IdentifierLeakError, match=r"^P361: "):
             emit_cards(result, config, tmp_path)
 
 

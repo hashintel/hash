@@ -28,6 +28,7 @@ use crate::{
     file::generation::{GenerationId, GenerationRoot},
     identity::NodeRowId,
     math::AlignedVecN,
+    progress::NoProgress,
     salt::{
         fit::{Stage, stage_rng},
         knn::{
@@ -286,7 +287,7 @@ fn build_index(
                 components,
             }),
     )?;
-    index.build(rng)?;
+    index.build(rng, NoProgress)?;
 
     Ok(started.elapsed())
 }

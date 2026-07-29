@@ -133,7 +133,7 @@ pub(super) fn run<I, O, P>(
 where
     I: ByteStable,
     O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
-    P: Progress + Sync,
+    P: Progress + Send + Sync + 'static,
 {
     let context = Context {
         staging: &staging,
@@ -171,7 +171,9 @@ where
         &ingested.multi_typed,
     )?;
     progress.stage_completed(Stage::Relations);
-    let (knn, distinct_knn) = context.build_neighbour_table(scratch, distinct, &quotient)?;
+    let (knn, distinct_knn, progress) =
+        context.build_neighbour_table(scratch, distinct, &quotient, progress)?;
+
     progress.stage_completed(Stage::Knn);
     let (semantic, distinct_semantic) =
         context.stage_semantic(scratch, &knn.artifact, &distinct_knn, &quotient)?;

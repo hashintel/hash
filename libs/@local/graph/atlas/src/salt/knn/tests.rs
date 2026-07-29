@@ -3,7 +3,9 @@
     reason = "bit-exact assertions are contracts; fixtures use exactly representable values or \
               compare cross-path results of the same kernel"
 )]
+use alloc::sync::Arc;
 use core::{assert_matches, num::NonZero};
+use std::sync::Mutex;
 
 use hashql_core::id::{Id as _, IdSlice};
 use rand::{Rng, RngExt as _, SeedableRng};
@@ -31,6 +33,7 @@ use crate::{
     },
     identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN},
+    progress::{Batch, DescentIteration, NoProgress, Progress},
 };
 
 /// Fixture capacity in components: the largest test corpus.
@@ -143,8 +146,11 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
         Ok(())
     }
 
-    fn build(&mut self, _rng: impl Rng + SeedableRng) -> Result<(), Self::Error> {
-        Ok(())
+    fn build<P>(&mut self, _rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+    where
+        P: Progress + Send + Sync + 'static,
+    {
+        Ok(progress)
     }
 
     fn search_by_vector(
@@ -197,8 +203,11 @@ macro_rules! delegate_all_but_search_by_id {
             self.0.insert_many(embeddings)
         }
 
-        fn build(&mut self, rng: impl Rng + SeedableRng) -> Result<(), Self::Error> {
-            self.0.build(rng)
+        fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+        where
+            P: crate::progress::Progress + Send + Sync + 'static,
+        {
+            self.0.build(rng, progress)
         }
 
         fn search_by_vector(
@@ -331,6 +340,84 @@ fn test_rng() -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(0x0A75)
 }
 
+/// One observation a construction reported.
+#[derive(Debug, Clone, PartialEq)]
+enum Reported {
+    /// A batch of rows entered the backend.
+    Insert(Batch),
+    /// The backend named a build phase.
+    Phase(String),
+    /// An NN-Descent iteration completed.
+    Descent(DescentIteration),
+    /// A batch of rows came back out.
+    Readback(Batch),
+}
+
+/// An observer keeping every observation a construction reported, in arrival order.
+///
+/// Cloneable and shareable because the seam hands the backend an observer of its own: every clone
+/// records into the one log, so the backend's phases and the loops around it arrive interleaved as
+/// the construction reported them.
+#[derive(Debug, Clone, Default)]
+struct RecordingProgress(Arc<Mutex<Vec<Reported>>>);
+
+impl RecordingProgress {
+    /// Records one observation.
+    fn push(&self, reported: Reported) {
+        self.0
+            .lock()
+            .expect("no reporter panicked holding the log")
+            .push(reported);
+    }
+
+    /// Every observation so far, in arrival order.
+    fn reported(&self) -> Vec<Reported> {
+        self.0
+            .lock()
+            .expect("no reporter panicked holding the log")
+            .clone()
+    }
+
+    /// The batches one loop reported, in arrival order.
+    fn batches(&self, select: fn(&Reported) -> Option<Batch>) -> Vec<Batch> {
+        self.reported().iter().filter_map(select).collect()
+    }
+}
+
+impl Progress for RecordingProgress {
+    fn knn_build_phase(&self, phase: &str) {
+        self.push(Reported::Phase(phase.to_owned()));
+    }
+
+    fn knn_insert(&self, batch: Batch) {
+        self.push(Reported::Insert(batch));
+    }
+
+    fn descent_iteration(&self, iteration: DescentIteration) {
+        self.push(Reported::Descent(iteration));
+    }
+
+    fn knn_readback(&self, batch: Batch) {
+        self.push(Reported::Readback(batch));
+    }
+}
+
+/// The insertion's batch, when the observation is one.
+const fn inserted(reported: &Reported) -> Option<Batch> {
+    match reported {
+        Reported::Insert(batch) => Some(*batch),
+        Reported::Phase(_) | Reported::Descent(_) | Reported::Readback(_) => None,
+    }
+}
+
+/// The readback's batch, when the observation is one.
+const fn readback(reported: &Reported) -> Option<Batch> {
+    match reported {
+        Reported::Readback(batch) => Some(*batch),
+        Reported::Phase(_) | Reported::Descent(_) | Reported::Insert(_) => None,
+    }
+}
+
 /// Constructs lists over `embeddings` through an initially empty backend.
 fn lists_via<I>(
     index: I,
@@ -341,7 +428,9 @@ where
     I: NearestNeighboursIndex<NodeRowId> + Sync,
     I::Error: Send,
 {
-    IndexConstruction::new(index).construct(embeddings, width, test_rng())
+    IndexConstruction::new(index)
+        .construct(embeddings, width, test_rng(), &NoProgress)
+        .map(|(lists, _)| lists)
 }
 
 #[test]
@@ -485,8 +574,8 @@ fn descent_converges_on_known_geometry() {
     let embeddings = matrix.view();
     let width = NonZero::new(4).expect("four is nonzero");
 
-    let lists = NnDescent::new(NnDescentOptions::default())
-        .construct(embeddings, width, test_rng())
+    let (lists, _) = NnDescent::new(NnDescentOptions::default())
+        .construct(embeddings, width, test_rng(), &NoProgress)
         .expect("the fixture is well-formed");
     assert_eq!(lists.rows(), 64);
     assert_eq!(lists.width(), 4);
@@ -570,8 +659,8 @@ fn descent_passes_the_admission_gate() {
     let width = recall::SpotCheckOptions::default()
         .neighbours
         .max(DEFAULT_NEIGHBOURS);
-    let lists = NnDescent::new(NnDescentOptions::default())
-        .construct(embeddings, width, test_rng())
+    let (lists, _) = NnDescent::new(NnDescentOptions::default())
+        .construct(embeddings, width, test_rng(), &NoProgress)
         .expect("the fixture is well-formed");
 
     let knn = Knn::from_lists::<!>(&lists, DEFAULT_NEIGHBOURS)
@@ -602,7 +691,8 @@ fn descent_rejects_degenerate_corpora() {
         NnDescent::new(NnDescentOptions::default()).construct(
             IdSlice::<NodeRowId, _>::from_raw(&matrix.view().as_raw()[..1]),
             two_neighbours(),
-            test_rng()
+            test_rng(),
+            &NoProgress
         ),
         Err(super::descent::NnDescentError::InsufficientRows { rows: 1 }),
     );
@@ -617,14 +707,142 @@ fn descent_clamps_the_width_to_the_corpus() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
 
-    let lists = NnDescent::new(NnDescentOptions::default())
+    let (lists, _) = NnDescent::new(NnDescentOptions::default())
         .construct(
             matrix.view(),
             NonZero::new(16).expect("sixteen is nonzero"),
             test_rng(),
+            &NoProgress,
         )
         .expect("the clamped construction succeeds");
     assert_eq!(lists.width(), 3, "the width clamps to every non-self row");
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn an_observed_construction_reports_its_insertion_then_its_readback() {
+    let rows = fan_fixture(64, 0.02);
+    let matrix = Matrix::new(&rows);
+    let progress = RecordingProgress::default();
+
+    // The backend starts empty: the construction is what fills it.
+    let (_, progress) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+        .construct(
+            matrix.view(),
+            NonZero::new(4).expect("four is nonzero"),
+            test_rng(),
+            progress,
+        )
+        .expect("the fixture is well-formed");
+
+    // A corpus below the report cadence reports each loop once, as its
+    // last row lands, and this backend names no build phases: so the
+    // whole log is the two loops' completions, insertion first.
+    let complete = Batch {
+        done: 64,
+        total: 64,
+    };
+    assert_eq!(
+        progress.reported(),
+        vec![Reported::Insert(complete), Reported::Readback(complete)],
+    );
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn watching_a_construction_does_not_change_its_lists() {
+    let rows = fan_fixture(64, 0.02);
+    let matrix = Matrix::new(&rows);
+    let width = NonZero::new(4).expect("four is nonzero");
+
+    let (watched, _) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+        .construct(
+            matrix.view(),
+            width,
+            test_rng(),
+            RecordingProgress::default(),
+        )
+        .expect("the fixture is well-formed");
+    let (unwatched, _) = IndexConstruction::new(ExactIndex::from_rows(&[]))
+        .construct(matrix.view(), width, test_rng(), &NoProgress)
+        .expect("the fixture is well-formed");
+
+    assert_eq!(watched.rows(), unwatched.rows());
+    for row in 0..watched.rows() {
+        let row = NodeRowId::from_usize(row);
+        assert_eq!(
+            watched.row(row),
+            unwatched.row(row),
+            "row {row} differs between a watched and an unwatched construction",
+        );
+    }
+}
+
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn an_observed_descent_reports_every_iteration_it_ran() {
+    let rows = fan_fixture(64, 0.02);
+    let matrix = Matrix::new(&rows);
+    let options = NnDescentOptions::default();
+    let progress = RecordingProgress::default();
+
+    let (_, progress) = NnDescent::new(options)
+        .construct(
+            matrix.view(),
+            NonZero::new(4).expect("four is nonzero"),
+            test_rng(),
+            progress,
+        )
+        .expect("the fixture is well-formed");
+
+    let iterations: Vec<DescentIteration> = progress
+        .reported()
+        .into_iter()
+        .filter_map(|reported| match reported {
+            Reported::Descent(iteration) => Some(iteration),
+            Reported::Insert(_) | Reported::Phase(_) | Reported::Readback(_) => None,
+        })
+        .collect();
+
+    assert!(
+        iterations.len() < options.maximum_iterations,
+        "the fan fixture's join exhausts itself before the iteration cap",
+    );
+    for (position, iteration) in iterations.iter().enumerate() {
+        assert_eq!(
+            iteration.iteration,
+            position + 1,
+            "iterations report in order, one-based",
+        );
+        assert_eq!(iteration.threshold, options.termination);
+        assert!(
+            iteration.accepted_per_entry.is_finite() && iteration.accepted_per_entry >= 0.0,
+            "an accepted rate of {} is not a reading",
+            iteration.accepted_per_entry,
+        );
+    }
+
+    // The reading is a convergence reading: the join accepts less as
+    // the lists sharpen, and the last iteration is the one that met the
+    // termination threshold.
+    let [first, last] = [iterations.first(), iterations.last()].map(|reading| {
+        reading
+            .expect("the construction ran at least one iteration")
+            .accepted_per_entry
+    });
+    assert!(
+        last < first,
+        "the accepted rate {last} did not fall below the first iteration's {first}",
+    );
 }
 
 #[test]
@@ -1033,8 +1251,12 @@ fn hannoy_honours_the_seam_contract() {
                 }),
         )
         .expect("insertion succeeds");
-    NearestNeighboursIndex::<NodeRowId>::build(&mut index, Xoshiro256PlusPlus::seed_from_u64(42))
-        .expect("the build succeeds");
+    NearestNeighboursIndex::<NodeRowId>::build(
+        &mut index,
+        Xoshiro256PlusPlus::seed_from_u64(42),
+        NoProgress,
+    )
+    .expect("the build succeeds");
 
     let query_row = 3_usize;
     let found: Vec<Neighbour<NodeRowId>> = index
@@ -1086,7 +1308,7 @@ fn hannoy_honours_the_seam_contract() {
     // from the same lists.
     let construction_base = base.join("construction");
     std::fs::create_dir_all(&construction_base).expect("the temp directory is writable");
-    let lists = IndexConstruction::new(
+    let (lists, _) = IndexConstruction::new(
         HannoyIndex::new(
             &construction_base,
             HannoyIndexOptions {
@@ -1104,6 +1326,7 @@ fn hannoy_honours_the_seam_contract() {
             .neighbours
             .max(DEFAULT_NEIGHBOURS),
         Xoshiro256PlusPlus::seed_from_u64(42),
+        &NoProgress,
     )
     .expect("the construction succeeds");
     assert_eq!(lists.rows(), 128);
@@ -1128,5 +1351,81 @@ fn hannoy_honours_the_seam_contract() {
     );
 
     drop(index);
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "LMDB maps files through FFI Miri cannot execute")]
+fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
+    let dir = std::env::temp_dir().join(format!(
+        "hash-graph-atlas-knn-watched-{}",
+        std::process::id()
+    ));
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("the temp directory is writable");
+    let base = camino::Utf8PathBuf::from_path_buf(dir.clone()).expect("the temp path is UTF-8");
+
+    let rows = fan_fixture(128, 0.01);
+    let matrix = Matrix::new(&rows);
+    let progress = RecordingProgress::default();
+
+    let (lists, progress) = IndexConstruction::new(
+        HannoyIndex::new(
+            &base,
+            HannoyIndexOptions {
+                map_size: 64 << 20,
+                ..
+            },
+        )
+        .expect("the environment opens on a fresh directory"),
+    )
+    .construct(
+        matrix.view(),
+        NonZero::new(4).expect("four is nonzero"),
+        Xoshiro256PlusPlus::seed_from_u64(42),
+        progress,
+    )
+    .expect("the construction succeeds");
+    assert_eq!(lists.rows(), 128);
+
+    let reported = progress.reported();
+    let phases: Vec<&str> = reported
+        .iter()
+        .filter_map(|observation| match observation {
+            Reported::Phase(phase) => Some(phase.as_str()),
+            Reported::Insert(_) | Reported::Descent(_) | Reported::Readback(_) => None,
+        })
+        .collect();
+    assert!(
+        !phases.is_empty() && phases.iter().all(|phase| !phase.is_empty()),
+        "the backend named no build phase: {phases:?}",
+    );
+
+    // The construction's order, and the reason the phases are worth
+    // reporting: the rows all enter the backend, the backend links them
+    // under its own named phases - the long part - and only then does
+    // every row's list come back out.
+    let inserted_last = reported
+        .iter()
+        .rposition(|observation| inserted(observation).is_some());
+    let phase_first = reported
+        .iter()
+        .position(|observation| matches!(observation, Reported::Phase(_)));
+    let read_first = reported
+        .iter()
+        .position(|observation| readback(observation).is_some());
+    assert!(
+        inserted_last < phase_first && phase_first < read_first,
+        "insertion {inserted_last:?}, phases {phase_first:?} and readback {read_first:?} are out \
+         of the construction's order",
+    );
+
+    let complete = Batch {
+        done: 128,
+        total: 128,
+    };
+    assert_eq!(progress.batches(inserted).last(), Some(&complete));
+    assert_eq!(progress.batches(readback).last(), Some(&complete));
+
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }

@@ -18,15 +18,17 @@
 //! `filter` receives an `Unsupported` rejection.
 //!
 //! Every assembly path takes a [`VisibilityProof`] - the server-held statement of which node rows
-//! the bound scope may see. Responses compute over the masked view:
-//! delivered sets intersect the proof, edges inherit visibility from their endpoints, and row
-//! ingress factors through [`Atlas::resolve`], where decode failure, out-of-universe values, and
-//! mask misses collapse to one `None` - forbidden and nonexistent answer identical bytes. A
-//! transport without scoped sessions constructs [`VisibilityProof::full_visibility`] explicitly.
+//! and which link rows the bound scope may see. Responses compute over the masked view: delivered
+//! sets intersect the node mask, an edge delivers only when the proof holds its own link row and
+//! both endpoints, and row ingress factors through [`Atlas::resolve`], where decode failure,
+//! out-of-universe values, and mask misses collapse to one `None` - forbidden and nonexistent
+//! answer identical bytes. A transport without scoped sessions constructs
+//! [`VisibilityProof::full_visibility`] explicitly.
 //!
-//! [`ScopeReach`] accompanies the proof and names the surfaces the bound authority reaches.
-//! Edge sets derive from node visibility, which states nothing about the link rows themselves, so
-//! the link-bearing surfaces answer the operator scope and refuse a restricted one.
+//! [`ScopeReach`] accompanies the proof and names the surfaces the bound authority reaches. The
+//! proof states which rows are visible and carries no authenticated generation, scope, or
+//! permission epoch, so the link-bearing surfaces answer the operator scope and refuse a restricted
+//! one until a resolver supplies both masks under one complete epoch.
 //!
 //! # Architecture
 //!

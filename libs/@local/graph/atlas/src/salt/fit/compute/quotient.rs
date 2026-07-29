@@ -487,12 +487,15 @@ mod tests {
             .expect("the temp directory is utf-8")
             .join(format!("hash-graph-atlas-quotient-{}", std::process::id()));
         std::fs::create_dir_all(&directory).expect("the temp directory is writable");
+
         let directory = crate::file::generation::ScratchDirectory::rooted(directory);
 
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0)]);
         let quotient = RowQuotient::build(matrix.view());
         let path = super::materialize_distinct(&directory, matrix.view(), &quotient)
             .expect("the distinct matrix writes");
+
+        drop(directory);
 
         let file = ArrayFile::open(&path).expect("the distinct matrix reopens");
         let distinct: &[AlignedVecN<WIDTH>] = file.vectors().expect("the file is aligned f32 rows");

@@ -272,6 +272,7 @@ sprs                               = { version = "0.11.4" }
 sqruff-lib                         = { version = "0.37.3" }
 sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
+steppe                             = { version = "0.4.1", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }

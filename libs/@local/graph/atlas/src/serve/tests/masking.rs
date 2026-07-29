@@ -480,7 +480,7 @@ fn visibility_proof_is_fail_closed() {
 
     // Node rows 1 and 2 visible of four; link rows 0 and 2 visible of
     // three.
-    let proof = VisibilityProof::from_bitmaps(domain_mask(4, &[0, 3]), domain_mask(3, &[1]));
+    let proof = VisibilityProof::from_masks(domain_mask(4, &[0, 3]), domain_mask(3, &[1]));
 
     assert!(!proof.contains(NodeRowId::new(0)));
     assert!(proof.contains(NodeRowId::new(1)));
@@ -523,12 +523,13 @@ fn visibility_proof_is_fail_closed() {
         "a link row beyond the mask's domain is hidden, never a panic"
     );
 
-    let mut set = crate::bitset::BitSet::new(6);
-    for index in 0..6 {
-        set.insert(index);
-    }
+    let mut set = hashql_core::id::bit_vec::DenseBitSet::new_filled(6);
     proof.intersect(&mut set);
-    assert_eq!(set.iter().collect::<Vec<_>>(), [1, 2]);
+    assert_eq!(
+        set.iter().collect::<Vec<_>>(),
+        [1, 2].map(NodeRowId::new),
+        "the intersection removes exactly the hidden rows"
+    );
 
     assert_eq!(proof.visible_below(4), 2);
     assert_eq!(FULL.visible_below(48), 48);

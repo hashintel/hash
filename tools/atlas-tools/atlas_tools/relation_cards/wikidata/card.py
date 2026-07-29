@@ -114,7 +114,7 @@ _IDENTIFIER_TOKEN = re.compile(r"(?<![A-Za-z0-9])[PQ]\d+(?![A-Za-z0-9\u2080-\u20
 # first. Trailing sentence punctuation is peeled back off the match so
 # the sentence splitter still sees intact boundaries.
 _URL_TOKEN = re.compile(r"(?i)(?<![A-Za-z0-9])[a-z][a-z0-9+.-]*://\S+")
-_URL_TRAILING_PUNCT = ".,;:!?)]}\"'“”‘’"
+_URL_TRAILING_PUNCT = ".,;:!?)]}\"'\u201c\u201d\u2018\u2019"
 
 # Characters that may sit between a label and its own parenthesized
 # identifier: whitespace, opening brackets, and straight or typographic

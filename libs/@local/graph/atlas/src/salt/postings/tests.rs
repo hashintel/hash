@@ -376,15 +376,19 @@ fn closure_expands_the_fixture_graph() {
 
     let closure = ClosureMap::new(&mapped).expect("the fixture graph is acyclic");
     assert_eq!(closure.types(), 4);
-    assert_eq!(closure.stride(), 1);
 
     // Descendant rows, hand-derived: 0 is everyone's ancestor, 3 is
     // everyone's leaf.
-    assert_eq!(closure.descendants(id(0)), Some(&[0b1111_u64] as &[u64]));
-    assert_eq!(closure.descendants(id(1)), Some(&[0b1010_u64] as &[u64]));
-    assert_eq!(closure.descendants(id(2)), Some(&[0b1100_u64] as &[u64]));
-    assert_eq!(closure.descendants(id(3)), Some(&[0b1000_u64] as &[u64]));
-    assert!(closure.descendants(id(4)).is_none());
+    let descendants = |row| {
+        closure
+            .descendants(row)
+            .map(|descendants| descendants.iter().collect::<Vec<_>>())
+    };
+    assert_eq!(descendants(id(0)), Some(vec![id(0), id(1), id(2), id(3)]));
+    assert_eq!(descendants(id(1)), Some(vec![id(1), id(3)]));
+    assert_eq!(descendants(id(2)), Some(vec![id(2), id(3)]));
+    assert_eq!(descendants(id(3)), Some(vec![id(3)]));
+    assert!(descendants(id(4)).is_none());
 
     // A type descends from itself; descent is not symmetric.
     assert_eq!(closure.contains(id(0), id(0)), Some(true));

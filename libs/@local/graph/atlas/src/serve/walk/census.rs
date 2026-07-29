@@ -4,9 +4,11 @@
 //! population, no extent, and no resolution, so a scope's numbers carry no evidence of what the
 //! mask removed.
 
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+
 use super::Walk;
 use crate::{
-    bitset::BitSet,
+    identity::NodeRowId,
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell},
 };
@@ -57,10 +59,15 @@ impl Walk<'_> {
     /// A tile's delivered set is mode-independent - its cumulative delta set equals its total
     /// set - so the gather is one run scan per bucket of the cumulative schedule, deduplicated by
     /// the set itself.
-    pub(in crate::serve) fn delivered_rows_into(&self, z: u8, cell: MortonCell, set: &mut BitSet) {
+    pub(in crate::serve) fn delivered_rows_into(
+        &self,
+        z: u8,
+        cell: MortonCell,
+        set: &mut DenseBitSet<NodeRowId>,
+    ) {
         for depth in self.grid.cut_buckets(z) {
             for position in self.run(depth, cell) {
-                set.insert(self.row_ids[position as usize] as usize);
+                set.insert(NodeRowId::from_u32(self.row_ids[position as usize]));
             }
         }
     }

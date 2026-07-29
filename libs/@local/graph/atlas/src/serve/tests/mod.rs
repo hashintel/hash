@@ -25,7 +25,10 @@ use super::{
     OpenOptions, ScopeReach, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery,
     TileRequest, VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
-use crate::identity::{NodeRowId, OntologyRowId};
+use crate::{
+    bitset::CompressedBitSet,
+    identity::{NodeRowId, OntologyRowId},
+};
 
 mod backfill;
 mod backfill_channel;
@@ -2732,25 +2735,24 @@ fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
 /// Both masks are built by exclusion over the generation's own domains, so the proof differs from
 /// the full-visibility proof in exactly the listed rows.
 fn mask_hiding_rows(atlas: &Atlas, hidden_nodes: &[u32], hidden_edges: &[u32]) -> VisibilityProof {
-    VisibilityProof::from_bitmaps(
+    VisibilityProof::from_masks(
         domain_mask(atlas.row_ids().len(), hidden_nodes),
         domain_mask(atlas.endpoints.view().len(), hidden_edges),
     )
 }
 
 /// A mask over the domain `[0, rows)` admitting every row except `hidden`.
-fn domain_mask<T: hashql_core::id::Id>(
-    rows: usize,
-    hidden: &[u32],
-) -> hashql_core::id::bit_vec::DenseBitSet<T> {
-    let mut mask = hashql_core::id::bit_vec::DenseBitSet::new_filled(rows);
+fn domain_mask<T: Id>(rows: usize, hidden: &[u32]) -> CompressedBitSet<T> {
+    let rows = u32::try_from(rows).expect("fixture domains fit u32");
     for &row in hidden {
-        let row = usize::try_from(row).expect("fixture rows fit usize");
         assert!(row < rows, "a fixture hides rows of the domain it masks");
-        mask.remove(T::from_usize(row));
     }
 
-    mask
+    CompressedBitSet::from_rows(
+        (0..rows)
+            .filter(|row| !hidden.contains(row))
+            .map(T::from_u32),
+    )
 }
 
 /// Returns a fixed generation identity for codec derivation.

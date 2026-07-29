@@ -59,6 +59,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     math::AlignedVecN,
+    progress::{DescentIteration, Progress},
     random::{keyed_rng, sample_indices_vec},
 };
 
@@ -366,18 +367,37 @@ where
         .collect()
 }
 
+/// One iteration's accepted updates per stored list entry.
+///
+/// The convergence reading the iteration is judged by: it falls toward
+/// [`termination`](NnDescentOptions::termination) as the join exhausts itself. A join offers each
+/// pair to both sides and one entry can be displaced repeatedly, so the reading is a rate and not
+/// a share - an early iteration stands above `1`.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "an accepted-update count and an entry count both stay far below exact f64 integer \
+              precision"
+)]
+fn accepted_per_entry(accepted: u64, entries: usize) -> f64 {
+    accepted as f64 / entries as f64
+}
+
 impl<N> KnnConstruction<N> for NnDescent
 where
     N: Id,
 {
     type Error = NnDescentError;
 
-    fn construct(
+    fn construct<P>(
         &mut self,
         embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         width: NonZero<usize>,
         mut rng: impl Rng + SeedableRng,
-    ) -> Result<NeighbourLists<N>, Self::Error> {
+        progress: P,
+    ) -> Result<(NeighbourLists<N>, P), Self::Error>
+    where
+        P: Progress + Send + Sync + 'static,
+    {
         let rows = embeddings.len();
         if rows < 2 {
             return Err(NnDescentError::InsufficientRows { rows });
@@ -454,7 +474,16 @@ where
                 accepted.fetch_add(updates, Ordering::Relaxed);
             });
 
-            if accepted.load(Ordering::Relaxed) <= threshold {
+            let accepted = accepted.load(Ordering::Relaxed);
+            // Reported before the break, so the iteration that converged is
+            // the last one observed rather than the last one unobserved.
+            progress.descent_iteration(DescentIteration {
+                iteration: iteration + 1,
+                accepted_per_entry: accepted_per_entry(accepted, rows * width),
+                threshold: self.options.termination,
+            });
+
+            if accepted <= threshold {
                 break;
             }
         }
@@ -483,7 +512,7 @@ where
                 }
             });
 
-        Ok(NeighbourLists::new(entries, width))
+        Ok((NeighbourLists::new(entries, width), progress))
     }
 }
 

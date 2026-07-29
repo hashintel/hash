@@ -101,14 +101,18 @@ pub struct Batch {
 
 /// One NN-Descent iteration's convergence reading.
 ///
-/// The construction stops when `accepted_fraction` falls to `threshold`.
+/// The construction stops when `accepted_per_entry` falls to `threshold`.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct DescentIteration {
     /// One-based index of the completed iteration.
     pub iteration: usize,
-    /// Fraction of attempted neighbour updates the iteration accepted.
-    pub accepted_fraction: f64,
-    /// The convergence threshold the fraction is falling toward.
+    /// Neighbour updates the iteration accepted, per stored list entry.
+    ///
+    /// Not a share of anything: a local join offers a pair to both sides and one entry can be
+    /// displaced repeatedly inside one iteration, so an early reading stands above `1`. What the
+    /// reading carries is convergence - it falls as the lists stop changing.
+    pub accepted_per_entry: f64,
+    /// The convergence threshold the reading is falling toward.
     pub threshold: f64,
 }
 
@@ -196,6 +200,67 @@ pub trait Progress {
 
     /// A pipeline stage completed.
     fn stage_completed(&self, stage: Stage) {}
+}
+
+impl<T> Progress for &T
+where
+    T: Progress,
+{
+    fn embedding_started(&self, stats: &CardEmbeddingStats) {
+        T::embedding_started(self, stats);
+    }
+
+    fn embedding_batch(&self, batch: Batch) {
+        T::embedding_batch(self, batch);
+    }
+
+    fn knn_build_phase(&self, phase: &str) {
+        T::knn_build_phase(self, phase);
+    }
+
+    fn knn_insert(&self, batch: Batch) {
+        T::knn_insert(self, batch);
+    }
+
+    fn descent_iteration(&self, iteration: DescentIteration) {
+        T::descent_iteration(self, iteration);
+    }
+
+    fn knn_readback(&self, batch: Batch) {
+        T::knn_readback(self, batch);
+    }
+
+    fn knn_recall(&self, check: &RecallSpotCheck) {
+        T::knn_recall(self, check);
+    }
+
+    fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {
+        T::projector_step(self, step, steps, loss);
+    }
+
+    fn projector_sample_size(&self) -> usize {
+        T::projector_sample_size(self)
+    }
+
+    fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
+        T::projector_snapshot(self, positions, landmarks);
+    }
+
+    fn classifier_started(&self, folds: usize) {
+        T::classifier_started(self, folds);
+    }
+
+    fn classifier_fold_completed(&self, fold: usize) {
+        T::classifier_fold_completed(self, fold);
+    }
+
+    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+        T::quality_probe(self, metric, value);
+    }
+
+    fn stage_completed(&self, stage: Stage) {
+        T::stage_completed(self, stage);
+    }
 }
 
 /// The silent observer: every observation is a no-op.

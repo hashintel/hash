@@ -8,10 +8,12 @@
 //! Backend distances are rescaled onto the crate's `[0, 2]` cosine scale before they cross the
 //! seam, and results are ordered by ascending `(distance, id)`.
 
+use alloc::sync::Arc;
 use core::{error::Error, fmt, num::TryFromIntError};
 use std::{
     fs::{File, TryLockError},
     io,
+    sync::nonpoison::Mutex,
 };
 
 use camino::Utf8Path;
@@ -21,7 +23,28 @@ use heed::{Env, EnvOpenOptions};
 use rand::{Rng, SeedableRng};
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour};
-use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, random::Compat};
+use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, progress::Progress, random::Compat};
+
+/// Reports the backend's own build phases to the run's observer.
+///
+/// hannoy names its build steps through [`steppe::Progress`], whose implementors are `'static`, so
+/// the bridge owns an observer instead of borrowing the run's - which is why
+/// [`NearestNeighboursIndex::build`] takes one by value. Only the step's name crosses the seam:
+/// hannoy hands its counted sub-step once, before its counter has moved, so the position it
+/// carries is always zero and reporting it would describe the phase's progress falsely.
+struct BuildPhases<P>(Arc<Mutex<Option<P>>>);
+
+impl<P> steppe::Progress for BuildPhases<P>
+where
+    P: Progress + Send + Sync + 'static,
+{
+    fn update(&self, sub_progress: impl steppe::Step) {
+        let guard = self.0.lock();
+        if let Some(progress) = &*guard {
+            progress.knn_build_phase(&sub_progress.name());
+        }
+    }
+}
 
 // HNSW connectivity, hannoy build-time const generics: M links per
 // node on the upper layers, M0 on the ground layer. M = 16 with
@@ -292,17 +315,33 @@ impl HannoyIndex {
     }
 
     /// Links the inserted items into the HNSW graph inside one write transaction.
-    fn link(&self, rng: impl Rng + SeedableRng) -> Result<(), IndexFault<!>> {
+    fn link<P>(&self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, IndexFault<!>>
+    where
+        P: Progress + Send + Sync + 'static,
+    {
         let mut wtxn = self.env.write_txn()?;
 
+        // NOTE: there's gotta be a better way to do this
+        let progress = Arc::new(Mutex::new(Some(progress)));
+        let held_progress = Arc::clone(&progress);
+
         let mut rng = Compat::new(rng);
-        let mut builder = self.writer.builder(&mut rng);
+        let mut builder = self
+            .writer
+            .builder(&mut rng)
+            .progress(BuildPhases(progress));
+
         builder
             .ef_construction(self.options.ef_construction)
             .build::<M, M0>(&mut wtxn)?;
 
         wtxn.commit()?;
-        Ok(())
+
+        let progress = held_progress
+            .lock()
+            .take()
+            .unwrap_or_else(|| unreachable!());
+        Ok(progress)
     }
 
     /// Searches the configured breadth around a query vector.
@@ -386,8 +425,11 @@ where
         self.insert(embeddings).map_err(HannoyIndexError)
     }
 
-    fn build(&mut self, rng: impl Rng + SeedableRng) -> Result<(), Self::Error> {
-        self.link(rng)
+    fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+    where
+        P: Progress + Send + Sync + 'static,
+    {
+        self.link(rng, progress)
             .map_err(|fault| HannoyIndexError(fault.widen()))
     }
 

@@ -15,6 +15,7 @@ use super::{AuditError, REFERENCE_ROWS, Seconds, open_representations, represent
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
     identity::NodeRowId,
+    progress::NoProgress,
     salt::{
         fit::{Stage, stage_rng},
         knn::{
@@ -128,11 +129,16 @@ pub(crate) fn audit(
     for &seed in seeds {
         for &maximum_candidates in candidates {
             let started = Instant::now();
-            let lists = NnDescent::new(NnDescentOptions {
+            let (lists, NoProgress) = NnDescent::new(NnDescentOptions {
                 maximum_candidates,
                 ..
             })
-            .construct(embeddings, width, stage_rng(seed, Stage::KnnLink))
+            .construct(
+                embeddings,
+                width,
+                stage_rng(seed, Stage::KnnLink),
+                &NoProgress,
+            )
             .map_err(AuditError::Construct)?;
             let construct_wall = started.elapsed();
 

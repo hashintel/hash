@@ -388,7 +388,7 @@ fn placement_options(
 /// Returns a [`RunError`] naming the step that failed: opening the snapshot transaction, admitting
 /// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents,
 /// validating the asserted Proximal radius, or the run itself.
-pub(crate) async fn live<P: Progress + Send + Sync + 'static>(
+pub(crate) async fn live<P: Progress + Clone + Send + Sync + 'static>(
     client: &mut Client,
     root: GenerationRoot,
     axes: TemporalAxes,

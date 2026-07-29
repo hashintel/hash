@@ -34,7 +34,7 @@ use core::num::NonZero;
 use hashql_core::id::Id;
 use rand::{Rng, SeedableRng};
 
-use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN};
+use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, progress::Progress};
 
 pub(crate) mod artifact;
 pub(crate) mod construction;
@@ -99,10 +99,17 @@ where
     /// seed, but linking applies updates in parallel and unordered, so same-seed builds can
     /// differ. The recall spot check downstream is the arbiter of a construction, never a replay.
     ///
+    /// The link is the construction's long phase and only the backend knows its parts, so a
+    /// backend reports them as they begin through
+    /// [`knn_build_phase`](Progress::knn_build_phase). `progress` arrives owned because a backend
+    /// hands it to machinery that outlives the call's borrows.
+    ///
     /// # Errors
     ///
     /// Returns a backend error when construction fails.
-    fn build(&mut self, rng: impl Rng + SeedableRng) -> Result<(), Self::Error>;
+    fn build<P>(&mut self, rng: impl Rng + SeedableRng, progress: P) -> Result<P, Self::Error>
+    where
+        P: Progress + Send + Sync + 'static;
 
     /// Returns up to `limit` nearest neighbours of `query`.
     ///

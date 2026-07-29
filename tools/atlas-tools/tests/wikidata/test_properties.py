@@ -19,6 +19,7 @@ from atlas_tools.wikidata.examples import (
 )
 from atlas_tools.wikidata.model import Constraints, Pid, PropertyRecord, Qid
 from atlas_tools.wikidata.properties.api import (
+    ExtractionResult,
     LadderSkip,
     LadderSuccess,
     chunk_ids,
@@ -847,7 +848,7 @@ def test_concurrent_mining_is_byte_deterministic(config: Config, taxonomy: Taxon
     # Worker count is pure pacing: fetches overlap, but selection and
     # diagnostics assemble in record order, so the mined result is
     # identical at any concurrency.
-    def mine(workers: int):
+    def mine(workers: int) -> ExtractionResult:
         run_config = config.model_copy(deep=True)
         run_config.extraction = config.extraction.model_copy(update={"example_workers": workers})
         return extract_properties(run_config, FixtureTransport(RESPONSES), taxonomy=taxonomy)

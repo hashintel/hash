@@ -6,11 +6,12 @@
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
 //! low megabytes while `T` stays in the low thousands.
 
-use hashql_core::id::Id as _;
-
-use crate::{
-    bitset::BitMatrix, identity::OntologyRowId, salt::postings::artifact::PostingsArchive,
+use hashql_core::id::{
+    Id as _,
+    bit_vec::{BitMatrix, RowRef},
 };
+
+use crate::{identity::OntologyRowId, salt::postings::artifact::PostingsArchive};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
@@ -39,9 +40,9 @@ impl core::error::Error for ParentCycle {}
 /// Row `t` marks every type whose instances a filter or coloring request naming `t` matches: `t`
 /// itself and every type reaching `t` through parent edges - a `T` by `T` [`BitMatrix`], so a
 /// request's expansion ORs whole rows word-wise.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
-    bits: BitMatrix,
+    bits: BitMatrix<OntologyRowId, OntologyRowId>,
 }
 
 impl ClosureMap {
@@ -63,6 +64,7 @@ impl ClosureMap {
         // Every type descends from itself: a request naming `t`
         // matches instances of `t` directly.
         for type_row in 0..types {
+            let type_row = OntologyRowId::from_usize(type_row);
             bits.insert(type_row, type_row);
         }
 
@@ -88,7 +90,10 @@ impl ClosureMap {
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
                 let parent = parent as usize;
-                bits.or_row_into(type_row, parent);
+                bits.union_rows(
+                    OntologyRowId::from_usize(type_row),
+                    OntologyRowId::from_usize(parent),
+                );
 
                 pending[parent] -= 1;
                 if pending[parent] == 0 {
@@ -110,24 +115,13 @@ impl ClosureMap {
     #[inline]
     #[must_use]
     pub(crate) const fn types(&self) -> usize {
-        self.bits.rows()
-    }
-
-    /// Returns the words per row: the length expansion scratch rows allocate at.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn stride(&self) -> usize {
-        self.bits.stride()
+        self.bits.row_domain_size()
     }
 
     /// Borrows `type_row`'s descendant row, when the row is in domain.
-    ///
-    /// `ceil(T/64)` words, LSB-first.
     #[must_use]
-    pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<&[u64]> {
-        let row = type_row.index_below(self.bits.rows())?;
-
-        Some(self.bits.row(row))
+    pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<RowRef<'_, OntologyRowId>> {
+        (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).
@@ -139,9 +133,9 @@ impl ClosureMap {
         ancestor: OntologyRowId,
         descendant: OntologyRowId,
     ) -> Option<bool> {
-        let row = ancestor.index_below(self.bits.rows())?;
-        let column = descendant.index_below(self.bits.columns())?;
+        let in_domain = ancestor.as_usize() < self.bits.row_domain_size()
+            && descendant.as_usize() < self.bits.col_domain_size();
 
-        Some(self.bits.contains(row, column))
+        in_domain.then(|| self.bits.contains(ancestor, descendant))
     }
 }

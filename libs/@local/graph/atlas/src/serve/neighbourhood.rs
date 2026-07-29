@@ -12,14 +12,13 @@
 //! edge the proof withholds, so every collected edge carries its delivery proof in the type and
 //! neither walk states the rule a second time.
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use super::{
     Atlas,
     visibility::{VisibilityProof, VisibleEdge},
 };
 use crate::{
-    bitset::BitSet,
     dataset::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
@@ -122,19 +121,22 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// membership test answers the induced-subgraph question - which rows this response draws
     /// edges between - and never stands in for the delivery rule, which the proof answers as each
     /// candidate is read.
-    pub(super) fn induced(&self, delivered: &BitSet) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
+    pub(super) fn induced(
+        &self,
+        delivered: &DenseBitSet<NodeRowId>,
+    ) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
         let mut edges = Vec::new();
 
-        for row in delivered.iter() {
+        for row in delivered {
             let outgoing = self
                 .adjacency
-                .outgoing(NodeRowId::from_usize(row))
+                .outgoing(row)
                 .expect("delivered rows lie inside the adjacency's node domain");
 
             for edge in outgoing.iter() {
                 let [_, target] = self.endpoints[edge.as_usize()];
 
-                if delivered.contains(target.as_usize())
+                if delivered.contains(target)
                     && let Some(delivered_edge) = self.edge(edge)
                 {
                     edges.push((delivered_edge, self.edge_identity(delivered_edge.row)));

@@ -44,6 +44,8 @@ use alloc::collections::BinaryHeap;
 use core::{cmp::Reverse, f64::consts::TAU, num::NonZero, ops::Range};
 use std::collections::HashSet;
 
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+
 use super::{
     cascade,
     order::BaseOrder,
@@ -51,8 +53,8 @@ use super::{
     stage::{Lod, LodConfig},
 };
 use crate::{
-    bitset::BitSet,
     file::morton::Fenceposts,
+    identity::{BasePosition, KeyOrdinal, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
     random::{keyed_rng, uniform_below},
@@ -378,7 +380,7 @@ pub struct WalkBench {
     /// The deepest tile zoom the schedule serves.
     max_zoom: u8,
     /// Bit `r` set means row `r` is visible.
-    visible: BitSet,
+    visible: DenseBitSet<NodeRowId>,
 }
 
 /// Builds both directions of the corpus-wide `(key, rank)` order.
@@ -525,10 +527,7 @@ impl WalkBench {
         .expect("finite synthetic coordinates admit a world frame");
 
         let (position_of_key, key_order_of_position) = key_order(&lod.codes, &lod.rank_of_position);
-        let mut visible = BitSet::new(points);
-        for row in 0..points {
-            visible.insert(row);
-        }
+        let visible = DenseBitSet::new_filled(points);
 
         Self {
             segments: segments(&lod.fenceposts),
@@ -602,10 +601,7 @@ impl WalkBench {
         let rank_of_position = row_of_position.clone().into_boxed_slice();
         let (position_of_key, key_order_of_position) = key_order(&codes, &rank_of_position);
         let position_of_row = positions_of_rows(&row_of_position, rows);
-        let mut visible = BitSet::new(rows);
-        for row in 0..rows {
-            visible.insert(row);
-        }
+        let visible = DenseBitSet::new_filled(rows);
 
         Self {
             codes,
@@ -644,10 +640,10 @@ impl WalkBench {
     pub fn mask_uniform(&mut self, visible: f64, seed: u64) {
         let rows = self.row_of_position.len();
         let mut rng = keyed_rng(seed, 0x0DD5_EED5, 1);
-        let mut mask = BitSet::new(rows);
+        let mut mask = DenseBitSet::new_empty(rows);
         for row in 0..rows {
             if uniform(&mut rng) < visible {
-                mask.insert(row);
+                mask.insert(NodeRowId::from_usize(row));
             }
         }
         self.visible = mask;
@@ -670,7 +666,7 @@ impl WalkBench {
     pub fn mask_clustered(&mut self, visible: f64, seed: u64) {
         let rows = self.row_of_position.len();
         let mut rng = keyed_rng(seed, 0x00C1_0575, 2);
-        let mut hidden = BitSet::new(rows);
+        let mut hidden = DenseBitSet::new_empty(rows);
         let quota = ((1.0 - visible) * rows as f64) as usize;
 
         let mut count = 0;
@@ -692,7 +688,7 @@ impl WalkBench {
             let ranges = self.narrowed(cell);
             'block: for range in ranges {
                 for position in range {
-                    let row = self.row_of_position[position] as usize;
+                    let row = NodeRowId::from_u32(self.row_of_position[position]);
                     if !hidden.contains(row) {
                         hidden.insert(row);
                         count += 1;
@@ -704,8 +700,9 @@ impl WalkBench {
             }
         }
 
-        let mut mask = BitSet::new(rows);
+        let mut mask = DenseBitSet::new_empty(rows);
         for row in 0..rows {
+            let row = NodeRowId::from_usize(row);
             if !hidden.contains(row) {
                 mask.insert(row);
             }
@@ -722,9 +719,9 @@ impl WalkBench {
     ///
     /// Panics when a row lies beyond the corpus row domain.
     pub fn mask_rows(&mut self, visible: impl IntoIterator<Item = u32>) {
-        let mut mask = BitSet::new(self.row_of_position.len());
+        let mut mask = DenseBitSet::new_empty(self.row_of_position.len());
         for row in visible {
-            mask.insert(row as usize);
+            mask.insert(NodeRowId::from_u32(row));
         }
         self.visible = mask;
     }
@@ -756,7 +753,7 @@ impl WalkBench {
             for position in range.clone() {
                 if self
                     .visible
-                    .contains(self.row_of_position[position] as usize)
+                    .contains(NodeRowId::from_u32(self.row_of_position[position]))
                 {
                     keys.push(self.codes[position].to_bits());
                 }
@@ -850,7 +847,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent(&self, z: u8, x: u32, y: u32) -> Selection {
-        let taken = BitSet::new(0);
+        let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled)
     }
@@ -868,7 +865,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn chained(&self, z: u8, x: u32, y: u32) -> Selection {
-        let mut taken = BitSet::new(self.codes.len());
+        let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         let mut scanned = 0_usize;
 
@@ -885,7 +882,7 @@ impl WalkBench {
             );
             scanned += ancestor.scanned;
             for &position in &delivered {
-                taken.insert(position as usize);
+                taken.insert(BasePosition::from_u32(position));
             }
             if ancestor.natural + ancestor.tail < ancestor.budget {
                 return Selection {
@@ -910,7 +907,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
-        let taken = BitSet::new(0);
+        let taken = DenseBitSet::new_empty(0);
         let mut delivered = Vec::new();
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled);
         delivered
@@ -927,7 +924,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn chained_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
-        let mut taken = BitSet::new(self.codes.len());
+        let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
         for level in 0..z {
@@ -942,7 +939,7 @@ impl WalkBench {
                 FillTarget::Scheduled,
             );
             for &position in &delivered {
-                taken.insert(position as usize);
+                taken.insert(BasePosition::from_u32(position));
             }
             if ancestor.natural + ancestor.tail < ancestor.budget {
                 return Vec::new();
@@ -969,7 +966,7 @@ impl WalkBench {
         for (position, code) in self.codes.iter().enumerate() {
             if self
                 .visible
-                .contains(self.row_of_position[position] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position]))
             {
                 codes.push(code.to_bits());
             }
@@ -1029,7 +1026,7 @@ impl WalkBench {
         for position in 0..self.codes.len() {
             if self
                 .visible
-                .contains(self.row_of_position[position] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position]))
             {
                 positions
                     .push(u32::try_from(position).expect("positions share the u32 row domain"));
@@ -1080,7 +1077,7 @@ impl WalkBench {
     fn collect(&self, position: usize, points: &mut Vec<VisiblePoint>) {
         if !self
             .visible
-            .contains(self.row_of_position[position] as usize)
+            .contains(NodeRowId::from_u32(self.row_of_position[position]))
         {
             return;
         }
@@ -1129,7 +1126,7 @@ impl WalkBench {
         let mut ranks: Vec<u32> = Vec::with_capacity(self.visible.count());
         for (position, code) in self.codes.iter().enumerate() {
             let row = self.row_of_position[position];
-            if self.visible.contains(row as usize) {
+            if self.visible.contains(NodeRowId::from_u32(row)) {
                 keys.push(*code);
                 rows.push(row);
                 ranks.push(self.rank_of_position[position]);
@@ -1165,9 +1162,9 @@ impl WalkBench {
             at += length;
         }
 
-        let mut visible = BitSet::new(self.visible.len());
+        let mut visible = DenseBitSet::new_empty(self.visible.domain_size());
         for &row in &rows {
-            visible.insert(row as usize);
+            visible.insert(NodeRowId::from_u32(row));
         }
 
         let codes: Box<[MortonKey]> = order
@@ -1185,7 +1182,7 @@ impl WalkBench {
             .iter()
             .map(|&entry| ranks[entry as usize])
             .collect();
-        let position_of_row = positions_of_rows(&row_of_position, self.visible.len());
+        let position_of_row = positions_of_rows(&row_of_position, self.visible.domain_size());
         let (position_of_key, key_order_of_position) = key_order(&codes, &rank_of_position);
 
         Self {
@@ -1396,13 +1393,14 @@ impl WalkBench {
     /// Panics if the corpus columns no longer form aligned permutations of the `u32` row domain.
     #[must_use]
     pub fn merged_generation(&self, layout: GenerationLayout) -> ServedGeneration {
-        let mut visible_by_position = BitSet::new(self.codes.len());
-        for row in self.visible.iter() {
-            visible_by_position.insert(self.position_of_row[row] as usize);
+        let mut visible_by_position = DenseBitSet::new_empty(self.codes.len());
+        for row in &self.visible {
+            visible_by_position
+                .insert(BasePosition::from_u32(self.position_of_row[row.as_usize()]));
         }
         let base_positions: Vec<u32> = visible_by_position
             .iter()
-            .map(|position| u32::try_from(position).expect("positions share the u32 row domain"))
+            .map(BasePosition::as_u32)
             .collect();
 
         let mut runs: Ranges = core::array::from_fn(|_| 0..0);
@@ -1463,7 +1461,7 @@ impl WalkBench {
     pub fn filtered_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let positions = self.position_of_key.iter().copied().filter(|&position| {
             self.visible
-                .contains(self.row_of_position[position as usize] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position as usize]))
         });
         self.generation_from_key_order(layout, positions)
     }
@@ -1476,14 +1474,16 @@ impl WalkBench {
     /// order. For `N` corpus rows and `V` visible rows, this costs `O(N / 64 + V)`.
     #[must_use]
     pub fn indexed_generation(&self, layout: GenerationLayout) -> ServedGeneration {
-        let mut visible_by_key = BitSet::new(self.codes.len());
-        for row in self.visible.iter() {
-            let position = self.position_of_row[row];
-            visible_by_key.insert(self.key_order_of_position[position as usize] as usize);
+        let mut visible_by_key = DenseBitSet::new_empty(self.codes.len());
+        for row in &self.visible {
+            let position = self.position_of_row[row.as_usize()];
+            visible_by_key.insert(KeyOrdinal::from_u32(
+                self.key_order_of_position[position as usize],
+            ));
         }
         let positions = visible_by_key
             .iter()
-            .map(|ordinal| self.position_of_key[ordinal]);
+            .map(|ordinal| self.position_of_key[ordinal.as_usize()]);
         self.generation_from_key_order(layout, positions)
     }
 
@@ -1494,7 +1494,10 @@ impl WalkBench {
     /// and bucket distribution each cost `O(V)`.
     #[must_use]
     pub fn radix_generation(&self, layout: GenerationLayout) -> ServedGeneration {
-        let positions = self.visible.iter().map(|row| self.position_of_row[row]);
+        let positions = self
+            .visible
+            .iter()
+            .map(|row| self.position_of_row[row.as_usize()]);
         let positions = radix_key_order(positions, &self.key_order_of_position);
         self.generation_from_key_order(layout, positions)
     }
@@ -1559,7 +1562,7 @@ impl WalkBench {
         for (position, code) in self.codes.iter().enumerate() {
             if self
                 .visible
-                .contains(self.row_of_position[position] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position]))
             {
                 keys.push(*code);
                 positions
@@ -1635,7 +1638,7 @@ impl WalkBench {
         for (position, code) in self.codes.iter().enumerate() {
             if self
                 .visible
-                .contains(self.row_of_position[position] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position]))
             {
                 keys.push(*code);
             }
@@ -1789,7 +1792,7 @@ impl WalkBench {
             if cell.contains(*code)
                 && self
                     .visible
-                    .contains(self.row_of_position[position] as usize)
+                    .contains(NodeRowId::from_u32(self.row_of_position[position]))
             {
                 cells.insert(code.prefix(depth));
             }
@@ -1873,7 +1876,7 @@ impl WalkBench {
         let pyramid = view.pyramid;
         let ChainBuffers { own, mut inside } = buffers;
         let key = cell_of(z, x, y).min_key();
-        let mut taken = BitSet::new(self.codes.len());
+        let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
         // Chain deliveries by the deepest chain level whose cell holds them: a position counts
         // inside every level at or above its entry.
@@ -1910,7 +1913,7 @@ impl WalkBench {
             scanned += ancestor.scanned;
 
             for &position in &delivered {
-                taken.insert(position as usize);
+                taken.insert(BasePosition::from_u32(position));
                 let depth = shared_depth(self.codes[position as usize], key).min(z);
                 nesting[usize::from(depth)] += 1;
                 if rule == FillRule::CoverageCells {
@@ -3024,7 +3027,7 @@ impl WalkBench {
     /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn crowding(&self, z: u8, x: u32, y: u32) -> Crowding {
-        let mut taken = BitSet::new(self.codes.len());
+        let mut taken = DenseBitSet::new_empty(self.codes.len());
         let mut delivered = Vec::new();
 
         for level in 0..z {
@@ -3039,17 +3042,17 @@ impl WalkBench {
                 FillTarget::Scheduled,
             );
             for &position in &delivered {
-                taken.insert(position as usize);
+                taken.insert(BasePosition::from_u32(position));
             }
         }
 
         delivered.clear();
-        let none = BitSet::new(0);
+        let none = DenseBitSet::new_empty(0);
         self.walk(z, x, y, &none, &mut delivered, FillTarget::Scheduled);
 
         let duplicates = delivered
             .iter()
-            .filter(|&&position| taken.contains(position as usize))
+            .filter(|&&position| taken.contains(BasePosition::from_u32(position)))
             .count();
         Crowding {
             delivered: delivered.len(),
@@ -3066,7 +3069,7 @@ impl WalkBench {
         z: u8,
         x: u32,
         y: u32,
-        taken: &BitSet,
+        taken: &DenseBitSet<BasePosition>,
         out: &mut Vec<u32>,
         fill: FillTarget,
     ) -> Selection {
@@ -3177,14 +3180,15 @@ impl WalkBench {
 
     /// Returns whether the position's row is visible and the position is untaken.
     ///
-    /// A `taken` set sized zero excludes nothing: positions beyond its capacity are absent by
+    /// A `taken` set sized zero excludes nothing: positions beyond its domain are absent by
     /// definition.
-    fn admits(&self, taken: &BitSet, position: usize) -> bool {
-        let taken = position < taken.len() && taken.contains(position);
+    fn admits(&self, taken: &DenseBitSet<BasePosition>, position: usize) -> bool {
+        let taken =
+            position < taken.domain_size() && taken.contains(BasePosition::from_usize(position));
         !taken
             && self
                 .visible
-                .contains(self.row_of_position[position] as usize)
+                .contains(NodeRowId::from_u32(self.row_of_position[position]))
     }
 
     /// Narrows every bucket's segment to the codes inside `cell`.

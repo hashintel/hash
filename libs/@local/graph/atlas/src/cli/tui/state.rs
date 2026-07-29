@@ -12,7 +12,9 @@ use std::time::Instant;
 
 use crate::{
     math::Vec2,
-    progress::{Batch, CardEmbeddingStats, LossBreakdown, Stage},
+    progress::{
+        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, RecallSpotCheck, Stage,
+    },
 };
 
 /// Log lines the dashboard keeps behind the visible tail.
@@ -81,6 +83,27 @@ pub(super) struct ProjectorTraining {
     pub last: LossBreakdown,
 }
 
+/// What the neighbour-table construction is doing, from its latest observation.
+///
+/// A construction runs one part at a time and always in this order - every row into the search
+/// backend, the backend's own linking (or NN-Descent's iterations, which need no backend), every
+/// row's list back out, then the recall verdict - so each observation replaces the last instead of
+/// accumulating. The model carries the construction's newest word, which is what the stage is
+/// doing.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) enum KnnActivity {
+    /// Rows entering the search backend.
+    Inserting(Batch),
+    /// The backend's build phase, in the backend's own vocabulary.
+    Building(String),
+    /// The latest NN-Descent iteration's convergence reading.
+    Descending(DescentIteration),
+    /// Rows whose neighbour lists have come back out.
+    Reading(Batch),
+    /// The construction's measured recall against the exact reference sample.
+    Measured(RecallSpotCheck),
+}
+
 /// One placement snapshot: where the sampled corpus rows sit right now.
 ///
 /// `positions[..landmarks]` are the landmark rows - the skeleton the placement hangs on - and the
@@ -97,7 +120,9 @@ pub(super) struct PlacementMap {
 /// One thing the run reported: a progress observation, or a line it logged.
 ///
 /// This is the model's whole input vocabulary. Each variant carries what one [`Progress`] method
-/// was handed, owned, so a reporting thread parts with it and never waits on the renderer.
+/// was handed, owned, so a reporting thread parts with it and never waits on the renderer - except
+/// [`Knn`](Self::Knn), where one stage's five observations arrive as the one activity vocabulary
+/// they fold into.
 ///
 /// [`Progress`]: crate::progress::Progress
 #[derive(Debug)]
@@ -119,6 +144,8 @@ pub(super) enum Observation {
         /// The step's objective, family by family.
         loss: LossBreakdown,
     },
+    /// The neighbour-table construction reported its latest activity.
+    Knn(KnnActivity),
     /// A refresh tick reported where the sampled rows sit.
     ProjectorSnapshot {
         /// The sampled positions, landmark rows first.
@@ -143,6 +170,8 @@ pub(super) struct RunState {
     embedding: Option<EmbeddingWorkload>,
     /// The classifier fit's folds, once it announces them.
     classifier: Option<ClassifierFolds>,
+    /// The neighbour-table construction's latest activity, once it reports one.
+    knn: Option<KnnActivity>,
     /// The placement's training, once its first step reports.
     projector: Option<ProjectorTraining>,
     /// The placement's sampled rows, once a refresh tick reports them.
@@ -159,6 +188,7 @@ impl RunState {
             completed: [None; Stage::ALL.len()],
             embedding: None,
             classifier: None,
+            knn: None,
             projector: None,
             placement: None,
             log: VecDeque::with_capacity(LOG_CAPACITY),
@@ -172,6 +202,7 @@ impl RunState {
             Observation::EmbeddingBatch(batch) => self.advance_embedding(batch),
             Observation::ClassifierStarted(folds) => self.start_classifier(folds),
             Observation::ClassifierFoldCompleted => self.complete_classifier_fold(),
+            Observation::Knn(activity) => self.report_knn(activity),
             Observation::ProjectorStep { step, steps, loss } => {
                 self.advance_projector(step, steps, &loss);
             }
@@ -227,6 +258,14 @@ impl RunState {
         };
 
         folds.done = folds.done.saturating_add(1);
+    }
+
+    /// Records what the neighbour-table construction is doing now.
+    ///
+    /// Each activity replaces the last: the construction's loops, phases and verdict happen in one
+    /// order, so nothing behind the newest one is still in flight.
+    pub(super) fn report_knn(&mut self, activity: KnnActivity) {
+        self.knn = Some(activity);
     }
 
     /// Records one training step of the placement.
@@ -330,6 +369,11 @@ impl RunState {
         self.classifier
     }
 
+    /// The neighbour-table construction's latest activity, once it has reported one.
+    pub(super) const fn knn(&self) -> Option<&KnnActivity> {
+        self.knn.as_ref()
+    }
+
     /// The placement's training, once its first step has reported.
     pub(super) const fn projector(&self) -> Option<&ProjectorTraining> {
         self.projector.as_ref()
@@ -356,13 +400,34 @@ mod tests {
     use core::time::Duration;
 
     use super::{
-        ClassifierFolds, EmbeddingWorkload, LOG_CAPACITY, LOSS_CAPACITY, PlacementMap, RunState,
-        StageStatus,
+        ClassifierFolds, EmbeddingWorkload, KnnActivity, LOG_CAPACITY, LOSS_CAPACITY, PlacementMap,
+        RunState, StageStatus,
     };
     use crate::{
         math::Vec2,
-        progress::{Batch, CardEmbeddingStats, LossBreakdown, Stage},
+        progress::{Batch, CardEmbeddingStats, LossBreakdown, RecallSpotCheck, Stage},
     };
+
+    /// A spot check whose aggregate recall is `recall`, over ten thousand compared neighbours.
+    fn check(recall: f64) -> RecallSpotCheck {
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "the fixture's recall is chosen to scale to a whole match count"
+        )]
+        let matched = (recall * 10_000.0).round() as u64;
+
+        RecallSpotCheck {
+            sampled_rows: 200,
+            neighbours_per_row: 50,
+            matched,
+            expected: 10_000,
+            deviation: 0.289,
+            minimum_recall: 0.89,
+            margin: 0.012,
+            confidence: 0.99,
+        }
+    }
 
     /// A breakdown whose composite total is `total`, carried by its semantic term.
     fn loss(total: f32) -> LossBreakdown {
@@ -493,6 +558,36 @@ mod tests {
         state.complete_classifier_fold();
 
         assert_eq!(state.classifier(), None);
+    }
+
+    #[test]
+    fn each_construction_activity_replaces_the_one_before_it() {
+        let mut state = RunState::new();
+        assert_eq!(state.knn(), None);
+
+        // The construction's own order: rows in, the backend's linking,
+        // rows out, then the verdict.
+        state.report_knn(KnnActivity::Inserting(Batch {
+            done: 4_096,
+            total: 9_000,
+        }));
+        state.report_knn(KnnActivity::Building("building the graph".to_owned()));
+        state.report_knn(KnnActivity::Reading(Batch {
+            done: 9_000,
+            total: 9_000,
+        }));
+
+        assert_eq!(
+            state.knn(),
+            Some(&KnnActivity::Reading(Batch {
+                done: 9_000,
+                total: 9_000,
+            })),
+        );
+
+        state.report_knn(KnnActivity::Measured(check(0.9021)));
+
+        assert_eq!(state.knn(), Some(&KnnActivity::Measured(check(0.9021))));
     }
 
     #[test]

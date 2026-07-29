@@ -14,7 +14,7 @@ use crate::serve::LocateError;
 /// the operator surface. Both domains are unmasked here, so neither one carries the verdict alone.
 #[test]
 fn the_scope_reads_the_proof_constructor_not_its_row_count() {
-    let every_row = VisibilityProof::from_bitmaps(domain_mask(8, &[]), domain_mask(8, &[]));
+    let every_row = VisibilityProof::from_masks(domain_mask(8, &[]), domain_mask(8, &[]));
 
     assert_eq!(ScopeReach::from_proof(&every_row), ScopeReach::Restricted);
     assert_eq!(ScopeReach::from_proof(&FULL), ScopeReach::Operator);

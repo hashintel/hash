@@ -16,10 +16,11 @@ use crate::{
     file::{generation::ScratchDirectory, sprs::read::SprsFile},
     identity::NodeRowId,
     math::AlignedVecN,
+    progress::Progress,
     salt::{
         knn::{
             artifact::KnnArchive,
-            construction::{IndexConstruction, KnnConstruction as _, NeighbourLists},
+            construction::{IndexConstruction, KnnConstruction as _},
             descent::NnDescent,
             hannoy::{HannoyIndex, HannoyIndexError},
             recall,
@@ -29,6 +30,12 @@ use crate::{
     },
 };
 
+type NeighbourTable<P> = (
+    Staged<KnnArchive<NodeRowId>, recall::RecallSpotCheck>,
+    KnnArchive<DistinctRowId>,
+    P,
+);
+
 impl Context<'_> {
     /// Constructs the neighbour lists over the distinct representation rows.
     ///
@@ -37,18 +44,16 @@ impl Context<'_> {
     /// beside the distinct table the training stages consume, mapped back from `scratch`. One
     /// construction runs at the wider of the spot check's depth and the stored width, so the
     /// admitted lists, the persisted expansion, and the training table are the same lists.
-    pub(super) fn build_neighbour_table(
+    pub(super) fn build_neighbour_table<P>(
         &self,
         scratch: &ScratchDirectory,
         distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
         quotient: &RowQuotient,
-    ) -> Result<
-        (
-            Staged<KnnArchive<NodeRowId>, recall::RecallSpotCheck>,
-            KnnArchive<DistinctRowId>,
-        ),
-        StageError,
-    > {
+        progress: P,
+    ) -> Result<NeighbourTable<P>, StageError>
+    where
+        P: Progress + Send + Sync + 'static,
+    {
         let _span = tracing::info_span!("knn").entered();
         // Construction speaks distinct rows; the published failure surface speaks corpus rows.
         let corpus = |row: DistinctRowId| quotient.first_row(row);
@@ -59,7 +64,7 @@ impl Context<'_> {
             .neighbours
             .max(self.config.neighbours);
 
-        let lists: NeighbourLists<DistinctRowId> = {
+        let (lists, progress) = {
             let _span = tracing::info_span!("knn-link").entered();
             let rng = stage_rng(self.config.seed, Stage::KnnLink);
 
@@ -68,11 +73,11 @@ impl Context<'_> {
                     HannoyIndex::new(self.scratch.directory("knn")?, self.config.index)
                         .map_err(HannoyIndexError::widen)?,
                 )
-                .construct(distinct, width, rng)
+                .construct(distinct, width, rng, progress)
                 .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?,
 
                 KnnConstructionChoice::Descent(options) => {
-                    NnDescent::new(options).construct(distinct, width, rng)?
+                    NnDescent::new(options).construct(distinct, width, rng, progress)?
                 }
             }
         };
@@ -87,6 +92,10 @@ impl Context<'_> {
                 )
             })
             .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?;
+
+        // Reported before the gate: a construction the floor rejects was
+        // measured, and the measurement is what an operator is watching for.
+        progress.knn_recall(&recall);
 
         if !recall.meets_minimum() {
             return Err(StageError::RecallBelowMinimum(recall));
@@ -132,6 +141,7 @@ impl Context<'_> {
                 evidence: recall,
             },
             distinct_table,
+            progress,
         ))
     }
 

@@ -5905,6 +5905,7 @@ dependencies = [
  "siphasher",
  "smallvec 2.0.0-alpha.12",
  "sprs",
+ "steppe",
  "tiktoken-rs",
  "tokio",
  "tokio-postgres",

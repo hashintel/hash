@@ -25,11 +25,12 @@ use ratatui::{
 };
 
 use super::state::{
-    ClassifierFolds, EmbeddingWorkload, PlacementMap, ProjectorTraining, RunState, StageStatus,
+    ClassifierFolds, EmbeddingWorkload, KnnActivity, PlacementMap, ProjectorTraining, RunState,
+    StageStatus,
 };
 use crate::{
     math::{Bounds2, Positive, Vec2},
-    progress::Stage,
+    progress::{Batch, Stage},
 };
 
 /// The dashboard's one accent color, carried by the running stage and the frame titles.
@@ -268,10 +269,10 @@ fn counter(run: &RunState, stage: Stage) -> Option<String> {
     match stage {
         Stage::Ingest => run.embedding().map(embedding_counter),
         Stage::Classifier => run.classifier().map(classifier_counter),
+        Stage::Knn => run.knn().map(knn_counter),
         Stage::Policy
         | Stage::Adjacency
         | Stage::Relations
-        | Stage::Knn
         | Stage::Semantic
         | Stage::Landmarks
         | Stage::Lod
@@ -279,6 +280,39 @@ fn counter(run: &RunState, stage: Stage) -> Option<String> {
         | Stage::Admission => None,
         Stage::Projector => run.projector().map(projector_counter),
     }
+}
+
+/// The neighbour-table counter: whichever part of the construction reported last.
+///
+/// The stage runs a batched loop, then a phase the backend names, then a loop again, then its
+/// verdict, so the row carries whichever of those the construction is inside - one counter for a
+/// stage that counts four different things.
+fn knn_counter(activity: &KnnActivity) -> String {
+    match activity {
+        KnnActivity::Inserting(batch) => batch_counter(*batch, "inserted"),
+        KnnActivity::Building(phase) => phase.clone(),
+        KnnActivity::Descending(iteration) => format!(
+            "descent {} {:.4} -> {:.4}",
+            iteration.iteration, iteration.accepted_per_entry, iteration.threshold,
+        ),
+        KnnActivity::Reading(batch) => batch_counter(*batch, "read"),
+        KnnActivity::Measured(check) => format!("recall {:.4}", check.recall()),
+    }
+}
+
+/// One batched loop's counter: its position as a bar, and what the covered rows did.
+///
+/// The two loops of a construction count rows to the same total, so each says which one it is.
+fn batch_counter(batch: Batch, covered: &str) -> String {
+    let Some(total) = NonZero::new(batch.total) else {
+        return String::new();
+    };
+
+    format!(
+        "{} {}/{total} {covered}",
+        counter_bar(batch.done, total),
+        batch.done,
+    )
 }
 
 /// The placement counter: the schedule's steps as a bar, once training has begun.
@@ -624,9 +658,11 @@ mod tests {
 
     use super::{ACCENT, SKELETON, curve, duration, frame, map_bounds, step_bounds, value_bounds};
     use crate::{
-        cli::tui::state::RunState,
+        cli::tui::state::{KnnActivity, RunState},
         math::Vec2,
-        progress::{Batch, CardEmbeddingStats, LossBreakdown, Stage},
+        progress::{
+            Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, RecallSpotCheck, Stage,
+        },
     };
 
     /// The drawn frame as one string per row, trailing blanks trimmed.
@@ -832,6 +868,72 @@ mod tests {
         assert!(
             drawn[2].starts_with("│ ⠋ classifier  ██████░░ 3/4 folds"),
             "{drawn:#?}"
+        );
+    }
+
+    #[expect(
+        clippy::non_ascii_literal,
+        reason = "the assertions read the dashboard's own glyphs"
+    )]
+    #[test]
+    fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
+        let mut state = RunState::new();
+        for stage in [
+            Stage::Ingest,
+            Stage::Classifier,
+            Stage::Policy,
+            Stage::Adjacency,
+            Stage::Relations,
+        ] {
+            state.complete_at(stage, Duration::from_secs(1));
+        }
+
+        state.report_knn(KnnActivity::Inserting(Batch {
+            done: 3_000,
+            total: 4_000,
+        }));
+        // Three quarters of the corpus is in, so six of the eight cells
+        // are lit and the row says which loop is counting.
+        assert!(
+            draw(&state, 0)[6].starts_with("│ ⠋ knn         ██████░░ 3000/4000 inserted"),
+            "{:#?}",
+            draw(&state, 0),
+        );
+
+        // A phase the backend named replaces the bar: the linking counts
+        // nothing this side of the seam.
+        state.report_knn(KnnActivity::Building("building the graph".to_owned()));
+        assert!(
+            draw(&state, 0)[6].starts_with("│ ⠋ knn         building the graph"),
+            "{:#?}",
+            draw(&state, 0),
+        );
+
+        state.report_knn(KnnActivity::Descending(DescentIteration {
+            iteration: 3,
+            accepted_per_entry: 0.0142,
+            threshold: 0.001,
+        }));
+        assert!(
+            draw(&state, 0)[6].starts_with("│ ⠋ knn         descent 3 0.0142 -> 0.0010"),
+            "{:#?}",
+            draw(&state, 0),
+        );
+
+        state.report_knn(KnnActivity::Measured(RecallSpotCheck {
+            sampled_rows: 200,
+            neighbours_per_row: 50,
+            matched: 9_021,
+            expected: 10_000,
+            deviation: 0.289,
+            minimum_recall: 0.89,
+            margin: 0.012,
+            confidence: 0.99,
+        }));
+        assert!(
+            draw(&state, 0)[6].starts_with("│ ⠋ knn         recall 0.9021"),
+            "{:#?}",
+            draw(&state, 0),
         );
     }
 

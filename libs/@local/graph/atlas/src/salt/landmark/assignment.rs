@@ -16,6 +16,7 @@ use super::select::{LandmarkOrdinal, LandmarkSelection};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     math::AlignedVecN,
+    progress::NoProgress,
     salt::knn::{Embedding, NearestNeighboursIndex},
 };
 
@@ -227,7 +228,12 @@ where
             components: &embeddings[row],
         }))
         .map_err(AssignmentError::Backend)?;
-    index.build(rng).map_err(AssignmentError::Backend)?;
+    // Unobserved: the backend's build phases are a knn-stage observation,
+    // and this index links the landmark selection inside the landmark
+    // stage, which reports its progress by completion alone.
+    index
+        .build(rng, NoProgress)
+        .map_err(AssignmentError::Backend)?;
 
     let landmark_by_row = embeddings
         .par_iter_enumerated()

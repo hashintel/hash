@@ -1,3 +1,4 @@
+use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
@@ -157,33 +158,33 @@ fn violated_list_invariants_are_rejected() {
     let dir = scratch("violations");
 
     // An odd row dimension pairs no runs.
-    assert!(matches!(
+    assert_matches!(
         open_structure(&dir, "odd.sprs", (1, 1), &[0, 0], &[]),
         Err(InvalidAdjacencyFile::OddRows { rows: 1 }),
-    ));
+    );
 
     // An odd entry count holds no two slots per edge.
-    assert!(matches!(
+    assert_matches!(
         open_structure(&dir, "slots.sprs", (2, 1), &[0, 1, 1], &[0]),
         Err(InvalidAdjacencyFile::Slots { entries: 1 }),
-    ));
+    );
 
     // A column dimension beyond the edge-domain bound is not the
     // canonical artifact.
-    assert!(matches!(
+    assert_matches!(
         open_structure(&dir, "bound.sprs", (2, 5), &[0, 1, 2], &[0, 0]),
         Err(InvalidAdjacencyFile::Bound {
             columns: 5,
             edges: 1,
         }),
-    ));
+    );
 
     // An edge in two slots of one direction: both outgoing runs hold
     // edge 0.
-    assert!(matches!(
+    assert_matches!(
         open_structure(&dir, "duplicate.sprs", (4, 1), &[0, 1, 1, 2, 2], &[0, 0]),
-        Err(InvalidAdjacencyFile::Duplicate { edge: 0 }),
-    ));
+        Err(InvalidAdjacencyFile::Duplicate { edge }) if edge == EdgeRowId::MIN
+    );
 
     // A valued matrix is not the structure-only artifact.
     let path = dir.join("valued.sprs");
@@ -194,10 +195,10 @@ fn violated_list_invariants_are_rejected() {
     let valued = CsMatViewI::<'_, f32, u64, u64>::try_new((2, 1), &[0, 1, 2], &[0, 0], &[1.0, 2.0])
         .expect("the valued matrix is a valid compressed matrix");
     write_matrix(&valued, &mut writer).expect("the valued matrix should write");
-    assert!(matches!(
+    assert_matches!(
         AdjacencyArchive::new(SprsFile::open(&path).expect("the valued file should open")),
         Err(InvalidAdjacencyFile::Matrix(_)),
-    ));
+    );
 }
 
 /// A fencepost column anchored past zero passes the compressed-row check.
@@ -237,10 +238,10 @@ fn shifted_fencepost_column_is_rejected() {
     }
     fs::write(&path, &bytes).expect("the shifted file should write");
 
-    assert!(matches!(
+    assert_matches!(
         AdjacencyArchive::new(SprsFile::open(&path).expect("the shifted file should open")),
         Err(InvalidAdjacencyFile::Start),
-    ));
+    );
 }
 
 #[test]

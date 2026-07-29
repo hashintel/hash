@@ -27,7 +27,7 @@ use hashql_core::id::{Id, bit_vec::DenseBitSet};
 
 use super::{Atlas, WireRow};
 use crate::{
-    bitset::BitSet,
+    bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
 };
 
@@ -36,14 +36,13 @@ use crate::{
 ///
 /// A proof enters a handler by construction - the assembly signatures take one, so a missing proof
 /// is unrepresentable rather than defaulted. The two constructors mark the two legitimate origins:
-/// [`Self::full_visibility`] for operator serving without sessions, and [`Self::from_bitmaps`] for
-/// server-held evaluated visibility bitmaps.
+/// [`Self::full_visibility`] for operator serving without sessions, and [`Self::from_masks`] for
+/// server-held evaluated visibility masks.
 ///
-/// Membership is fail-closed at the domain edge: a row beyond a held mask's domain is not visible,
-/// so a proof built against a smaller universe hides the excess rather than revealing it. The
-/// value authenticates nothing: same-domain masks from the wrong universe mask the wrong rows
-/// undetected, so holding the proof to the generation it was evaluated for is the caller's
-/// contract.
+/// Membership is fail-closed: a row a held mask does not admit is not visible, so a proof built
+/// against a smaller universe hides the excess rather than revealing it. The value authenticates
+/// nothing: masks from the wrong universe mask the wrong rows undetected, so holding the proof to
+/// the generation it was evaluated for is the caller's contract.
 #[derive(Debug, Clone)]
 pub struct VisibilityProof {
     nodes: Rows<NodeRowId>,
@@ -59,18 +58,19 @@ enum Rows<T: Id> {
     /// Every row of the domain is visible.
     Full,
     /// Exactly the set rows are visible.
-    Mask(DenseBitSet<T>),
+    Mask(CompressedBitSet<T>),
 }
 
 impl<T: Id> Rows<T> {
     /// Returns whether `row` is visible.
     ///
-    /// Fail-closed past the domain edge: a row at or beyond the mask's domain reads hidden rather
-    /// than panicking, so a mask evaluated against a narrower universe hides the excess.
+    /// Fail-closed at every edge: a row the mask does not admit is hidden, including one above the
+    /// mask's representable domain, so a mask evaluated against a narrower universe hides the
+    /// excess.
     fn contains(&self, row: T) -> bool {
         match self {
             Self::Full => true,
-            Self::Mask(mask) => row.as_usize() < mask.domain_size() && mask.contains(row),
+            Self::Mask(mask) => mask.contains(row),
         }
     }
 
@@ -96,24 +96,19 @@ impl VisibilityProof {
         }
     }
 
-    /// Constructs a proof from server-held visibility bitmaps, one per domain.
+    /// Constructs a proof from server-held visibility masks, one per domain.
     ///
-    /// A set bit means the row is visible: `nodes` masks the node rows, `edges` the link rows.
-    /// Both are required, because neither implies the other - the link rows a caller may read are
-    /// not a function of the node rows it may read.
+    /// An admitted row is visible: `nodes` masks the node rows, `edges` the link rows. Both are
+    /// required, because neither implies the other - the link rows a caller may read are not a
+    /// function of the node rows it may read.
     ///
-    /// Caller requirement: the bitmaps are server-held state (a fresh visibility evaluation or a
-    /// verified sealed blob), never client-supplied values - the constructor accepts any bitmaps
-    /// and verifies no origin. Rows at or beyond a bitmap's domain read as hidden.
-    ///
-    /// The constructor is crate-internal: the masks are typed by domain, and the types that carry
-    /// that typing are not part of this crate's public interface, so a restricted proof is built
-    /// beside the evaluation that produced it. Operator serving crosses the boundary through
-    /// [`Self::full_visibility`] alone.
+    /// Caller requirement: the masks are server-held state (a fresh visibility evaluation or a
+    /// verified sealed blob), never client-supplied values - the constructor accepts any masks and
+    /// verifies no origin. A row either mask does not admit is hidden.
     #[must_use]
-    pub(crate) const fn from_bitmaps(
-        nodes: DenseBitSet<NodeRowId>,
-        edges: DenseBitSet<EdgeRowId>,
+    pub const fn from_masks(
+        nodes: CompressedBitSet<NodeRowId>,
+        edges: CompressedBitSet<EdgeRowId>,
     ) -> Self {
         Self {
             nodes: Rows::Mask(nodes),
@@ -124,7 +119,7 @@ impl VisibilityProof {
     /// Returns whether this is the full-visibility proof, the masked paths' fast-path test.
     ///
     /// This reads which constructor built the value, never how many rows its masks admit: masks
-    /// admitting every row of their domains are still a declared scope, and reading them as the
+    /// admitting every row of a generation are still a declared scope, and reading them as the
     /// operator proof would serve that scope the operator surface.
     pub(super) const fn is_full(&self) -> bool {
         self.nodes.is_full() && self.edges.is_full()
@@ -136,29 +131,22 @@ impl VisibilityProof {
     }
 
     /// Removes every hidden row from `set`, leaving the visible subset.
-    pub(super) fn intersect(&self, set: &mut BitSet) {
+    pub(super) fn intersect(&self, set: &mut DenseBitSet<NodeRowId>) {
         if self.nodes.is_full() {
             return;
         }
 
-        let mut visible = BitSet::new(set.len());
-        for row in set.iter() {
-            if self.contains(NodeRowId::from_usize(row)) {
-                visible.insert(row);
-            }
+        let hidden: Vec<NodeRowId> = set.iter().filter(|&row| !self.contains(row)).collect();
+        for row in hidden {
+            set.remove(row);
         }
-
-        *set = visible;
     }
 
     /// Counts the visible node rows of the universe `[0, n)`.
     pub(super) fn visible_below(&self, n: u64) -> u64 {
         match &self.nodes {
             Rows::Full => n,
-            Rows::Mask(mask) => mask
-                .iter()
-                .take_while(|row| (row.as_usize() as u64) < n)
-                .count() as u64,
+            Rows::Mask(mask) => mask.iter().take_while(|row| row.as_u64() < n).count() as u64,
         }
     }
 

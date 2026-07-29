@@ -1,21 +1,30 @@
-//! Positional identity: typed references into the dense row domains.
+//! Positional identity: typed references into the dense row and order domains.
 //!
 //! Every artifact column, bitmap, and wire structure in the crate indexes one of a few dense
-//! zero-based row domains - nodes, edges, ontology types - and a bare integer names none of them.
-//! This module carries the row-id types that keep those domains distinct in signatures and
-//! [`Column`], the element-typed view over one array artifact. The ids share the
-//! [`hashql_core::id::Id`] contract; every id is a dense zero-based position, so conversions are
-//! total within the id encoding and the arithmetic never wraps. Content identity - which entity
-//! or type a row is - lives with the dataset and the identity tables; a row id here names a
-//! position in one generation's streams, valid only against the generation that assigned it.
+//! zero-based domains - node rows, edge rows, ontology-type rows, base positions, and key ordinals
+//! and a bare integer names none of them. This module carries the id types that keep those
+//! domains distinct in signatures and [`Column`], the element-typed view over one array artifact.
+//! The ids share the [`hashql_core::id::Id`] contract; every id is a dense zero-based index, so
+//! conversions are total within the id encoding and the arithmetic never wraps. Content identity -
+//! which entity or type a row is - lives with the dataset and the identity tables; an id here names
+//! an index in one generation's streams, valid only against the generation that assigned it.
+//!
+//! Rows and orders are different domains over the same points: a row names a stream entry, while a
+//! base position and a key ordinal name slots in two permutations of it. The generation's own
+//! columns convert between them.
 //!
 //! Row ids persist: the in-memory form is the little-endian byte form, so a column of these ids
 //! is written to and read from artifact files without conversion.
 
 pub(crate) use self::column::{Column, Element};
-pub use self::{edge::EdgeRowId, node::NodeRowId, ontology::OntologyRowId};
+pub use self::{
+    edge::EdgeRowId, key::KeyOrdinal, node::NodeRowId, ontology::OntologyRowId,
+    position::BasePosition,
+};
 
 mod column;
 mod edge;
+mod key;
 mod node;
 mod ontology;
+mod position;

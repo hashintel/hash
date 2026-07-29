@@ -11,10 +11,12 @@
 //! ladder: [`Chain`] re-derives every ancestor's delivery first, so a level's fill starts where
 //! the chain left off.
 
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+
 use super::{super::grid, DeliveredPoints, Walk};
 use crate::{
-    bitset::BitSet,
     file::quad::Node,
+    identity::BasePosition,
     morton::Depth,
     salt::wire::{Mode, tile::TileCoordinate},
 };
@@ -31,7 +33,7 @@ pub(in crate::serve) struct MaskedDelivery {
     /// The tail's length.
     pub backfilled: u32,
     /// Every position any chain level delivered.
-    pub taken: BitSet,
+    pub taken: DenseBitSet<BasePosition>,
     /// An ancestor's fill spent the subtree: nothing below this tile is left to deliver.
     pub dry: bool,
 }
@@ -54,7 +56,7 @@ struct LevelDelivery {
 struct Chain<'walk, 'atlas> {
     walk: &'walk Walk<'atlas>,
     /// Every position any delivered level took, across the whole chain.
-    taken: BitSet,
+    taken: DenseBitSet<BasePosition>,
     /// The current level's delivered positions, ascending.
     out: Vec<u32>,
     /// The current level's per-bucket natural counts.
@@ -68,7 +70,7 @@ impl<'walk, 'atlas> Chain<'walk, 'atlas> {
 
         Self {
             walk,
-            taken: BitSet::new(universe),
+            taken: DenseBitSet::new_empty(universe),
             out: Vec::new(),
             runs: Vec::new(),
         }
@@ -97,8 +99,10 @@ impl<'walk, 'atlas> Chain<'walk, 'atlas> {
             budget += run.len();
             let before = self.out.len();
             for position in run {
-                if self.walk.admits(position) && !self.taken.contains(position as usize) {
-                    self.taken.insert(position as usize);
+                if self.walk.admits(position)
+                    && !self.taken.contains(BasePosition::from_u32(position))
+                {
+                    self.taken.insert(BasePosition::from_u32(position));
                     self.out.push(position);
                 }
             }
@@ -115,8 +119,10 @@ impl<'walk, 'atlas> Chain<'walk, 'atlas> {
                 let depth =
                     Depth::new(bucket).expect("the deepest occupied bucket wraps by contract");
                 for position in self.walk.run(depth, cell) {
-                    if self.walk.admits(position) && !self.taken.contains(position as usize) {
-                        self.taken.insert(position as usize);
+                    if self.walk.admits(position)
+                        && !self.taken.contains(BasePosition::from_u32(position))
+                    {
+                        self.taken.insert(BasePosition::from_u32(position));
                         self.out.push(position);
                         backfilled += 1;
                         if delivered + backfilled as usize == budget {
@@ -227,7 +233,7 @@ impl Walk<'_> {
                     let depth =
                         Depth::new(bucket).expect("the deepest occupied bucket wraps by contract");
                     for position in self.run(depth, cell) {
-                        if chain.taken.contains(position as usize) {
+                        if chain.taken.contains(BasePosition::from_u32(position)) {
                             cumulative.push(position);
                             backfilled += 1;
                         }
@@ -256,7 +262,11 @@ impl Walk<'_> {
     /// visible points this response's fill already delivered - reads unoccupied: the client never
     /// fetches a tile that has nothing left to say, and the bitmask carries no evidence that
     /// hidden points exist.
-    pub(in crate::serve) fn visible_children(&self, node: &Node, taken: &BitSet) -> u8 {
+    pub(in crate::serve) fn visible_children(
+        &self,
+        node: &Node,
+        taken: &DenseBitSet<BasePosition>,
+    ) -> u8 {
         let mut bits = 0_u8;
 
         for (index, quadrant) in node.children().iter().enumerate() {
@@ -271,14 +281,14 @@ impl Walk<'_> {
 
     /// Returns whether any node in the quad subtree rooted at `index` delivers a visible,
     /// untaken row.
-    fn subtree_has_visible(&self, index: u32, taken: &BitSet) -> bool {
+    fn subtree_has_visible(&self, index: u32, taken: &DenseBitSet<BasePosition>) -> bool {
         let nodes = self.quad.nodes();
 
         let mut stack = vec![index];
         while let Some(index) = stack.pop() {
             let node = &nodes[index as usize];
             for position in super::narrow_run(node.run()) {
-                if self.admits(position) && !taken.contains(position as usize) {
+                if self.admits(position) && !taken.contains(BasePosition::from_u32(position)) {
                     return true;
                 }
             }

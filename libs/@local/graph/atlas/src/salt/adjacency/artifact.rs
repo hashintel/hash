@@ -2,10 +2,9 @@
 
 use core::ops::Range;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use crate::{
-    bitset::BitSet,
     file::sprs::{
         IndexVariant, SprsIndex,
         read::{SprsFile, SprsMatrixError},
@@ -30,7 +29,7 @@ pub enum InvalidAdjacencyFile {
     /// The fencepost column does not start at slot zero.
     Start,
     /// An edge row occupies two slots of one direction.
-    Duplicate { edge: u64 },
+    Duplicate { edge: EdgeRowId },
 }
 
 impl core::fmt::Display for InvalidAdjacencyFile {
@@ -258,7 +257,11 @@ where
     // the edge count whenever entries exist, so the bit domain covers
     // every walked value.
     let capacity = usize::try_from(edges).expect("resident edge domains fit usize");
-    let mut seen = [BitSet::new(capacity), BitSet::new(capacity)];
+    let mut seen = [
+        DenseBitSet::new_empty(capacity),
+        DenseBitSet::new_empty(capacity),
+    ];
+
     for run in 0..usize::try_from(rows).expect("resident node domains fit usize") {
         let start = usize::try_from(fenceposts[run]).expect("slots fit the address space");
         let end = usize::try_from(fenceposts[run + 1]).expect("slots fit the address space");
@@ -267,11 +270,12 @@ where
         let direction = &mut seen[run & 1];
 
         for &value in &values[start..end] {
-            let value: u64 = value.into();
-            let edge = usize::try_from(value).expect("checked against the edge domain");
+            let edge = EdgeRowId::from_usize(value.index());
+
             if direction.contains(edge) {
-                return Err(InvalidAdjacencyFile::Duplicate { edge: value });
+                return Err(InvalidAdjacencyFile::Duplicate { edge });
             }
+
             direction.insert(edge);
         }
     }

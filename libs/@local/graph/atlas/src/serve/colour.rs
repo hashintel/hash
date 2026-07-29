@@ -15,6 +15,7 @@
 //! ontology newer than the snapshot, a corpus whose ontology ids are not store identities -
 //! reads as zero bits in every point's mask, never as an error.
 
+use hashql_core::id::bit_vec::RowRef;
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
 use super::Atlas;
@@ -153,8 +154,7 @@ fn resolve_mask(
     // Every closure row carries its own bit, so one set bit means no
     // proper descendant exists and the stored membership is the whole
     // match set.
-    let matched: u32 = descendants.iter().map(|&word| word.count_ones()).sum();
-    if matched == 1 {
+    if descendants.count() == 1 {
         return MaskSource::Stored(row);
     }
 
@@ -164,31 +164,28 @@ fn resolve_mask(
 /// Materializes the dense union of every set type's membership.
 ///
 /// `ceil(N/32)` words, LSB-first over base positions.
-fn union_membership(postings: &PostingsArchive, descendants: &[u64]) -> Vec<u32> {
+fn union_membership(
+    postings: &PostingsArchive,
+    descendants: RowRef<'_, OntologyRowId>,
+) -> Vec<u32> {
     use crate::salt::postings::artifact::Membership;
 
     let points = usize::try_from(postings.points()).expect("point domains fit usize");
     let mut bitmap = vec![0_u32; points.div_ceil(u32::BITS as usize)];
 
-    for (index, &word) in descendants.iter().enumerate() {
-        let mut bits = word;
-        while bits != 0 {
-            let type_row = index as u64 * u64::from(u64::BITS) + u64::from(bits.trailing_zeros());
-            bits &= bits - 1;
-
-            let membership = postings
-                .membership(OntologyRowId::new(type_row))
-                .expect("closure rows lie inside the postings' type domain");
-            match membership {
-                Membership::Dense(words) => {
-                    for (union, &dense) in bitmap.iter_mut().zip(words) {
-                        *union |= dense;
-                    }
+    for type_row in &descendants {
+        let membership = postings
+            .membership(type_row)
+            .expect("closure rows lie inside the postings' type domain");
+        match membership {
+            Membership::Dense(words) => {
+                for (union, &dense) in bitmap.iter_mut().zip(words) {
+                    *union |= dense;
                 }
-                Membership::List(positions) => {
-                    for &position in positions {
-                        bitmap[position as usize >> 5] |= 1 << (position & 31);
-                    }
+            }
+            Membership::List(positions) => {
+                for &position in positions {
+                    bitmap[position as usize >> 5] |= 1 << (position & 31);
                 }
             }
         }

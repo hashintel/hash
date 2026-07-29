@@ -5,6 +5,8 @@
 
 use core::{error::Error, fmt};
 
+use hashql_core::id::bit_vec::DenseBitSet;
+
 use super::{
     Atlas, Filter, TileCoordinate, WireRow, grid,
     hydrate::{DeliveredEntities, EdgeLinkDetails},
@@ -15,7 +17,6 @@ use super::{
     walk::Walk,
 };
 use crate::{
-    bitset::BitSet,
     dataset::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
@@ -350,8 +351,8 @@ impl Atlas {
         &self,
         walk: &Walk<'_>,
         tiles: &[TileCoordinate],
-    ) -> Result<BitSet, EdgesError> {
-        let mut delivered = BitSet::new(self.rows.len());
+    ) -> Result<DenseBitSet<NodeRowId>, EdgesError> {
+        let mut delivered = DenseBitSet::new_empty(self.rows.len());
         let maximum = self.grid.max_tile_depth();
         for &coordinate in tiles {
             if coordinate.z > maximum {

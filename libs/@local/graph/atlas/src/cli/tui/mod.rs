@@ -40,10 +40,13 @@ use ratatui::{
 };
 use tracing_subscriber::fmt::MakeWriter;
 
-use self::state::{Observation, RunState};
+use self::state::{KnnActivity, Observation, RunState};
 use crate::{
     math::Vec2,
-    progress::{Batch, CardEmbeddingStats, LossBreakdown, Progress, Stage},
+    progress::{
+        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, Progress, RecallSpotCheck,
+        Stage,
+    },
 };
 
 /// How long the renderer waits for a key before drawing the next frame.
@@ -166,6 +169,26 @@ impl Progress for Observer {
 
     fn classifier_fold_completed(&self, _fold: usize) {
         self.report(Observation::ClassifierFoldCompleted);
+    }
+
+    fn knn_build_phase(&self, phase: &str) {
+        self.report(Observation::Knn(KnnActivity::Building(phase.to_owned())));
+    }
+
+    fn knn_insert(&self, batch: Batch) {
+        self.report(Observation::Knn(KnnActivity::Inserting(batch)));
+    }
+
+    fn descent_iteration(&self, iteration: DescentIteration) {
+        self.report(Observation::Knn(KnnActivity::Descending(iteration)));
+    }
+
+    fn knn_readback(&self, batch: Batch) {
+        self.report(Observation::Knn(KnnActivity::Reading(batch)));
+    }
+
+    fn knn_recall(&self, check: &RecallSpotCheck) {
+        self.report(Observation::Knn(KnnActivity::Measured(*check)));
     }
 
     fn projector_step(&self, step: usize, steps: usize, loss: &LossBreakdown) {
