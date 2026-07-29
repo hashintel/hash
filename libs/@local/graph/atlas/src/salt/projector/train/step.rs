@@ -33,7 +33,7 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     math::{DVec2, Vec2},
     salt::projector::{
-        budget::{self, ClippedRelation},
+        budget::{self, BudgetOutcome},
         loss::{
             GradientField, SupportTargets, attraction_term, relation_term, repulsion_term,
             support_term,
@@ -312,7 +312,7 @@ fn relation_pass<A: Allocator>(
         }
     }
 
-    let mut outcomes: Vec<Option<ClippedRelation>> = vec![None; rows];
+    let mut outcomes: Vec<Option<BudgetOutcome>> = vec![None; rows];
     let mut combined = Vec::with_capacity(rows * 2);
     for (row, (&semantic, &relation)) in semantic_field
         .as_slice()
@@ -325,7 +325,7 @@ fn relation_pass<A: Allocator>(
         let applied = if relation == Vec2::splat(0.0) {
             semantic
         } else {
-            let outcome = options.budget.clip(semantic, relation);
+            let outcome = options.budget.apply(semantic, relation);
             metrics.record_node(deciles.decile(batch.rows[row].as_usize()), &outcome);
             outcomes[row] = Some(outcome);
             semantic + outcome.gradient
@@ -344,7 +344,7 @@ fn relation_pass<A: Allocator>(
         let factor = outcome.positive_factor * outcome.total_factor;
         metrics.record_type(
             relation,
-            &ClippedRelation {
+            &BudgetOutcome {
                 gradient: gradient * factor,
                 relation_norm: gradient.length(),
                 ..outcome

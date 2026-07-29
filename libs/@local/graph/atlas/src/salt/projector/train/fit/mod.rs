@@ -45,7 +45,7 @@ use crate::{
     salt::{
         knn::table::KnnView,
         projector::{
-            budget::BudgetOptions,
+            budget::Budget,
             loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
             model::Projector,
@@ -230,7 +230,7 @@ pub(crate) struct TrainOptions {
     /// The support-term constants.
     pub support: SupportOptions,
     /// The per-node relation-gradient budget.
-    pub budget: BudgetOptions,
+    pub budget: Budget,
     /// The objective coefficients.
     pub coefficients: Coefficients,
     /// The hard-negative mining schedule.

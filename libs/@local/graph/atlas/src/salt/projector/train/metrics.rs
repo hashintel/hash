@@ -24,7 +24,7 @@ use crate::{
     identity::OntologyRowId,
     math::Vec2,
     salt::{
-        projector::budget::{BudgetSummary, ClippedRelation},
+        projector::budget::{BudgetOutcome, BudgetSummary},
         relation::attraction::AttractionIndex,
     },
 };
@@ -154,7 +154,7 @@ impl BudgetBreakdown {
     }
 
     /// Records one relation-active node's outcome.
-    pub(crate) fn record_node(&mut self, decile: Option<usize>, outcome: &ClippedRelation) {
+    pub(crate) fn record_node(&mut self, decile: Option<usize>, outcome: &BudgetOutcome) {
         self.overall.record(outcome);
         if let Some(decile) = decile {
             self.by_decile[decile].record(outcome);
@@ -162,7 +162,7 @@ impl BudgetBreakdown {
     }
 
     /// Records one relation type's share of a node's outcome.
-    pub(crate) fn record_type(&mut self, relation: OntologyRowId, outcome: &ClippedRelation) {
+    pub(crate) fn record_type(&mut self, relation: OntologyRowId, outcome: &BudgetOutcome) {
         self.by_type
             .entry(relation.as_u64())
             .or_default()

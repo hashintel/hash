@@ -62,7 +62,7 @@ use crate::{
     identity::NodeRowId,
     math::{NonNegative, Positive},
     salt::projector::{
-        budget::BudgetOptions,
+        budget::Budget,
         loss::{AffinityEnergy, RelationEnergy, SupportOptions},
     },
 };
@@ -224,7 +224,7 @@ pub(crate) struct ObjectiveOptions {
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
     /// The per-node relation-gradient budget.
-    pub budget: BudgetOptions,
+    pub budget: Budget,
     /// The objective coefficients.
     pub coefficients: Coefficients,
 }

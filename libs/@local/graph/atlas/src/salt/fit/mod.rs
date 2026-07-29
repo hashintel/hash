@@ -72,7 +72,7 @@ use crate::{
         },
         postings::build::PostingsConfig,
         projector::{
-            budget::BudgetOptions,
+            budget::{Budget, BudgetOptions},
             loss::{CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
             model::Architecture,
@@ -184,12 +184,13 @@ pub(crate) struct ProjectorOptions {
     pub affinity_offset: f32,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
-    /// The per-node relation-gradient budget.
+    /// The per-node relation-gradient budget, enforced as a clamp or observed as diagnostics.
     ///
     /// The floor doubles as the relation budget of nodes whose semantic pairs are not co-drawn -
     /// in a sampled batch that is most of them - so it is sized to the typical per-draw semantic
-    /// gradient, not to ε.
-    pub budget: BudgetOptions,
+    /// gradient, not to ε. An observed budget applies no clamp and keeps the floor as the
+    /// diagnostics' baseline convention.
+    pub budget: Budget,
     /// The objective coefficients' mass bases.
     ///
     /// The placement stage normalizes them at assembly: the semantic and ordinary bases divide by
@@ -258,8 +259,10 @@ impl ProjectorOptions {
             affinity_offset: 1.0e-3,
             support: SupportOptions::new(3.0, 1.0e-3)
                 .expect("the ratified support constants are valid"),
-            budget: BudgetOptions::new(0.10, 0.10, 2.0e-4, 1.0e-12)
-                .expect("the ratified budget is valid"),
+            budget: Budget::Enforced(
+                BudgetOptions::new(0.10, 0.10, 2.0e-4, 1.0e-12)
+                    .expect("the ratified budget is valid"),
+            ),
             coefficients: Coefficients::new(
                 Positive::ONE,
                 const { NonNegative::new(5.0).expect("the ratified repulsion is non-negative") },
