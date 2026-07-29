@@ -43,7 +43,7 @@ use crate::{
     salt::{
         policy::ClassProbabilities,
         projector::{
-            budget::BudgetOptions,
+            budget::{Budget, BudgetOptions},
             loss::{
                 AffinityEnergy, BatchPair, BatchRowId, CoincidentEnergy, ProximalEnergy,
                 RelationEnergy, SupportOptions,
@@ -188,7 +188,7 @@ fn coefficients() -> Coefficients {
     )
 }
 
-fn options(relation: Option<RelationEnergy>, budget: BudgetOptions) -> ObjectiveOptions {
+fn options(relation: Option<RelationEnergy>, budget: Budget) -> ObjectiveOptions {
     ObjectiveOptions {
         affinity: affinity(),
         relation,
@@ -198,8 +198,10 @@ fn options(relation: Option<RelationEnergy>, budget: BudgetOptions) -> Objective
     }
 }
 
-fn loose_budget() -> BudgetOptions {
-    BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid")
+fn loose_budget() -> Budget {
+    Budget::Enforced(
+        BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid"),
+    )
 }
 
 /// Empty populations to splice fixture families into.
