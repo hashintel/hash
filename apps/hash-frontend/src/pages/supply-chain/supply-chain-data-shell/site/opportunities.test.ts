@@ -235,6 +235,32 @@ describe("buildSiteOpportunities", () => {
     ).toBe("Good sample");
   });
 
+  it("labels QA opportunity samples by effective timing grain", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "qa-campaign",
+          type: "qa_hold",
+          timing_grain: "campaign",
+          stats: stats({ n: 12, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "qa-batch",
+          type: "qa_hold",
+          timing_grain: undefined,
+          stats: stats({ n: 20, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-campaign")?.sampleLabel,
+    ).toBe("Campaigns 12");
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-batch")?.sampleLabel,
+    ).toBe("Batches 20");
+  });
+
   it("distinguishes low and limited current samples", () => {
     const opportunities = build({
       planningRows: [

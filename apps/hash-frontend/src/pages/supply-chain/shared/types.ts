@@ -39,6 +39,8 @@ export type StepType =
   | "transit"
   | "destination_dwell";
 
+export type TimingGrain = "campaign" | "batch";
+
 export interface CostData {
   unit_price: number | null;
   currency: string | null;
@@ -203,7 +205,8 @@ export interface GraphNode {
   observations?: Observation[];
   /** Client-derived Tukey-kept timing points used only for mean trends. */
   mean_observations?: Observation[];
-  timing_grain?: "campaign" | null;
+  /** QA timing grain; omitted interpreted as batch. */
+  timing_grain?: TimingGrain | null;
   /** Client-side cache of combined procurement node observations from the wire. */
   procurement_observations?: ProcurementNodeObservation[];
   monthly?: MonthlyBucket[];
@@ -413,7 +416,7 @@ export interface BindingScore {
 
 export interface GraphData {
   /** Procurement planning data contract version. */
-  schema_version?: "1.2";
+  schema_version?: "1.2" | "1.3";
   analysis_settings?: AnalysisSettings | null;
   product_id: string;
   product_name: string;
@@ -614,7 +617,7 @@ export interface SiteData {
 
 export interface StepDetail {
   /** Procurement planning data contract version. */
-  schema_version?: "1.2";
+  schema_version?: "1.2" | "1.3";
   id: string;
   label: string;
   type: StepType;
@@ -634,8 +637,11 @@ export interface StepDetail {
   pct_exceeding_plan?: number | null;
   cost: CostData | null;
   material_value?: MaterialValueData | null;
-  /** Observation grain for timing. Campaign timing is one canonical QA observation per campaign. */
-  timing_grain?: "campaign" | null;
+  /**
+   * QA observation grain. Campaign timing is one observation per
+   * campaign; omitted is interpreted as batch.
+   */
+  timing_grain?: TimingGrain | null;
   /**
    * Canonical campaign-level timing records. When present these take precedence
    * over `detail_rows`, which remains the underlying batch evidence.
@@ -804,7 +810,7 @@ export interface ProcurementSupplierBlock {
  */
 export interface SiteSupplierPerformance {
   /** Procurement planning data contract version. */
-  schema_version?: "1.2";
+  schema_version?: "1.2" | "1.3";
   generated_at: string;
   overall: {
     n_lines: number;
@@ -858,7 +864,7 @@ export interface SiteSummaryRollups {
 
 /** `site/{siteId}/summary.json` — the precomputed site overview artifact. */
 export interface SiteSummary {
-  schema_version?: "1.2";
+  schema_version?: "1.2" | "1.3";
   analysis_settings?: AnalysisSettings | null;
   site_id: string;
   generated_at: string;

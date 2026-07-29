@@ -1,4 +1,4 @@
-import type { StepType } from "./types";
+import type { StepType, TimingGrain } from "./types";
 
 export type CountDimension = "timing" | "yield" | "consumption" | "supplier";
 
@@ -8,7 +8,7 @@ interface CountContext {
   type: StepType;
   dimension?: CountDimension;
   selectedComponent?: boolean;
-  timingGrain?: "campaign" | null;
+  timingGrain?: TimingGrain | null;
 }
 
 interface CountTooltipContext extends CountContext {
@@ -26,6 +26,15 @@ function isDirectShip(ctx: Pick<CountContext, "id" | "label">): boolean {
   );
 }
 
+export function effectiveTimingGrain(
+  ctx: Pick<CountContext, "type" | "timingGrain">,
+): TimingGrain | null {
+  if (ctx.timingGrain) {
+    return ctx.timingGrain;
+  }
+  return ctx.type === "qa_hold" ? "batch" : null;
+}
+
 export function countNoun(ctx: CountContext): string {
   if (ctx.dimension === "yield") {
     return "production orders";
@@ -36,8 +45,12 @@ export function countNoun(ctx: CountContext): string {
   if (ctx.dimension === "supplier") {
     return "schedule lines";
   }
-  if (ctx.timingGrain === "campaign") {
+  const grain = effectiveTimingGrain(ctx);
+  if (grain === "campaign") {
     return "campaigns";
+  }
+  if (grain === "batch") {
+    return "batches";
   }
   return "events";
 }
@@ -85,9 +98,7 @@ export function dateAnchorLabel(ctx: CountContext): string {
     case "production":
       return "schedule start";
     case "qa_hold":
-      return ctx.timingGrain === "campaign"
-        ? "campaign reference date"
-        : "production receipt date";
+      return "QA release date";
     case "post_qa_ship":
       return "QA release date";
     case "transit":
@@ -121,9 +132,9 @@ function eventMethodology(ctx: CountContext): string {
     case "production":
       return "each production schedule campaign contributes one duration event.";
     case "qa_hold":
-      return ctx.timingGrain === "campaign"
-        ? "each campaign contributes one timing observation; batch rows are supporting evidence."
-        : "each finished-good batch contributes one QA-hold event.";
+      return effectiveTimingGrain(ctx) === "campaign"
+        ? "each campaign contributes one timing observation, measured from campaign end; batch rows are supporting evidence."
+        : "each finished-good batch contributes one QA-hold event, measured from batch receipt.";
     case "post_qa_ship":
       return "each dispatch (customer delivery or hub transfer) contributes one post-QA dwell event.";
     case "transit":
@@ -139,8 +150,12 @@ export function countTooltip(ctx: CountTooltipContext): string {
   const label = shortCountLabel(ctx.count, ctx);
   const period = rangeLabel(ctx.rangeLabel);
   const base = `${label} in ${period}. Filtered by ${dateAnchorLabel(ctx)}; ${eventMethodology(ctx)}`;
-  if (ctx.nCampaigns != null && ctx.nBatches != null) {
+  const grain = effectiveTimingGrain(ctx);
+  if (grain === "campaign" && ctx.nCampaigns != null && ctx.nBatches != null) {
     return `${base} All-time source coverage: ${ctx.nCampaigns} campaigns across ${ctx.nBatches} batches.`;
+  }
+  if (grain === "batch" && ctx.nBatches != null) {
+    return `${base} All-time source coverage: ${ctx.nBatches} batches.`;
   }
   if (ctx.nBatches != null && ctx.nMovements != null) {
     return `${base} All-time source coverage: ${ctx.nBatches} batches, ${ctx.nMovements} movements.`;

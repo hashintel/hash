@@ -8,18 +8,22 @@ export const qaDoc: DocEntry = {
   render: () => (
     <>
       <Lead>
-        QA hold measures the time a production campaign waits between production
-        completion and QA release &mdash; the quality inspection and hold
-        period.
+        QA hold measures the quality inspection and hold period between
+        production completion and QA release.
       </Lead>
       <P>
-        <Term>What it measures:</Term> the time between a production campaign
-        finishing and the associated QA release. The full 'data' table also
-        shows the time between each batch's production finish and QA release.
+        <Term>Composite-tested materials:</Term> one observation per production
+        campaign, measured from the final batch receipt in that campaign to its
+        QA release. The full 'data' table retains each batch as supporting
+        evidence.
       </P>
       <P>
-        <Term>Time filtering:</Term> observations are anchored to the campaign
-        end date.
+        <Term>Other materials:</Term> one observation per finished-good batch,
+        measured from that batch's production receipt to its QA release.
+      </P>
+      <P>
+        <Term>Time filtering:</Term> both observation series are anchored to the
+        QA release date.
       </P>
       <P>
         The wait that follows QA release &mdash; from release to dispatch
