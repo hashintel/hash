@@ -293,7 +293,7 @@ export const AnalysisSettingsPanel = ({
               checked={excludeOutliers}
               onChange={(event) => setExcludeOutliers(event.target.checked)}
             />
-            Exclude outliers
+            Exclude outliers from mean
           </label>
           {children}
         </div>

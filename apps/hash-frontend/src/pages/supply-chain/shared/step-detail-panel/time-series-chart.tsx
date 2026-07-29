@@ -181,6 +181,7 @@ export const TimeSeriesChart = ({
                 type: step.type,
                 dimension,
                 selectedComponent: selectedComponent != null,
+                timingGrain: step.timing_grain,
               });
               const base =
                 count != null ? `${_label}: ${count} ${noun}` : String(_label);

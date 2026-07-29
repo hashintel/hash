@@ -10,10 +10,10 @@ import {
   applyOutlierSelectionToNode,
   applyOutlierSelectionToStep,
 } from "./outlier-selection";
+import { computeStats } from "./stats";
 
-// Characterization tests for the client-side Tukey 1.5x IQR outlier rule.
-// Behaviour pinned here MUST survive the contract refactor (the selected-view
-// semantics stay even as the duplicated outlier paths were collapsed).
+// Regression tests for mean-only client-side Tukey 1.5x IQR filtering.
+// Raw observations, counts, and percentile statistics remain unchanged.
 
 describe("applyOutlierSelectionToStep", () => {
   // One clear high outlier (100) far beyond the Tukey upper fence.
@@ -30,10 +30,14 @@ describe("applyOutlierSelectionToStep", () => {
       obs("2026-04", 100),
     ]);
 
-  it("drops out-of-fence points and recomputes stats when excluding outliers", () => {
+  it("filters only the mean while retaining raw observations and percentiles", () => {
     const selected = applyOutlierSelectionToStep(withOutlier(), true);
-    expect(selected.durations).toEqual([10, 11, 12, 13, 14, 15, 16, 17]);
-    expect(selected.stats.n).toBe(8);
+    expect(selected.durations).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 100]);
+    expect(selected.observations).toHaveLength(9);
+    expect(selected.stats.n).toBe(9);
+    expect(selected.stats.mean).toBe(13.5);
+    expect(selected.stats.p95).toBe(withOutlier().stats.p95);
+    expect(selected.stats.max).toBe(100);
     expect(selected.excluded_count).toBe(1);
     expect(selected.excluded_pct).toBeCloseTo(100 / 9, 1);
   });
@@ -82,12 +86,13 @@ describe("applyOutlierSelectionToStep", () => {
     // Headline untouched, secondary loses its outlier.
     expect(selected.stats.n).toBe(4);
     expect(selected.excluded_count).toBe(0);
-    expect(selected.complete_timing?.stats.n).toBe(8);
+    expect(selected.complete_timing?.stats.n).toBe(9);
+    expect(selected.complete_timing?.stats.max).toBe(200);
     expect(
       selected.complete_timing?.observations.map(
         (observation) => observation.value,
       ),
-    ).not.toContain(200);
+    ).toContain(200);
   });
 
   it("leaves complete_timing untouched when including outliers", () => {
@@ -102,9 +107,6 @@ describe("applyOutlierSelectionToStep", () => {
 });
 
 describe("applyOutlierSelectionToNode", () => {
-  // Shipped v1 data carries a single base series (no raw_*/filtered_*), so today
-  // both toggle states return the base series untouched. The fixture uses a tight
-  // distribution so this invariant also holds once Tukey IQR filtering lands.
   it("returns the base series when including outliers", () => {
     const out = applyOutlierSelectionToNode(makeNode(), false);
     expect(out.observations?.map((observation) => observation.value)).toEqual([
@@ -117,5 +119,28 @@ describe("applyOutlierSelectionToNode", () => {
     expect(out.observations?.map((observation) => observation.value)).toEqual([
       10, 12, 11, 13,
     ]);
+  });
+
+  it("keeps raw P95 while filtering an outlier from the mean", () => {
+    const observations = [
+      obs("2026-01", 10),
+      obs("2026-01", 11),
+      obs("2026-02", 12),
+      obs("2026-02", 13),
+      obs("2026-03", 14),
+      obs("2026-03", 15),
+      obs("2026-04", 16),
+      obs("2026-04", 17),
+      obs("2026-04", 100),
+    ];
+    const node = makeNode({
+      observations,
+      stats: computeStats(observations.map((observation) => observation.value)),
+    });
+    const selected = applyOutlierSelectionToNode(node, true);
+
+    expect(selected.stats.p95).toBe(node.stats.p95);
+    expect(selected.observations).toHaveLength(9);
+    expect(selected.mean_observations).toHaveLength(8);
   });
 });

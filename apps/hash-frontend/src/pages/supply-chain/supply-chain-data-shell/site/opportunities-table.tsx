@@ -129,6 +129,10 @@ const sampleGood = css({
   color: "status.success.fg.body",
   bg: "status.success.bg.subtle",
 });
+const sampleLimited = css({
+  color: "status.warning.fg.body",
+  bg: "status.warning.bg.subtle",
+});
 const sampleBad = css({
   color: "status.error.fg.body",
   bg: "status.error.bg.subtle",
@@ -300,6 +304,9 @@ function sampleTooltip(opportunity: SiteOpportunity) {
 function sampleClass(label: string): string {
   if (label === "Good sample") {
     return sampleGood;
+  }
+  if (label === "Limited sample") {
+    return sampleLimited;
   }
   return sampleBad;
 }
@@ -659,7 +666,13 @@ export const OpportunitiesTable = ({
                               sampleClass(opportunity.confidenceLabel),
                             )}
                           >
-                            {opportunity.confidenceLabel}
+                            {opportunity.confidenceLabel === "Low sample"
+                              ? "low"
+                              : opportunity.confidenceLabel === "Limited sample"
+                                ? "limited"
+                                : opportunity.confidenceLabel === "Good sample"
+                                  ? "good"
+                                  : opportunity.confidenceLabel}
                           </span>
                         </Tooltip>
                       </td>

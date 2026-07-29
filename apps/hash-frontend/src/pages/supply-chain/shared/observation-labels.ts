@@ -8,12 +8,14 @@ interface CountContext {
   type: StepType;
   dimension?: CountDimension;
   selectedComponent?: boolean;
+  timingGrain?: "campaign" | null;
 }
 
 interface CountTooltipContext extends CountContext {
   count: number;
   rangeLabel?: string | null;
   nBatches?: number | null;
+  nCampaigns?: number | null;
   nMovements?: number | null;
 }
 
@@ -33,6 +35,9 @@ export function countNoun(ctx: CountContext): string {
   }
   if (ctx.dimension === "supplier") {
     return "schedule lines";
+  }
+  if (ctx.timingGrain === "campaign") {
+    return "campaigns";
   }
   return "events";
 }
@@ -80,7 +85,9 @@ export function dateAnchorLabel(ctx: CountContext): string {
     case "production":
       return "schedule start";
     case "qa_hold":
-      return "production receipt date";
+      return ctx.timingGrain === "campaign"
+        ? "campaign reference date"
+        : "production receipt date";
     case "post_qa_ship":
       return "QA release date";
     case "transit":
@@ -114,7 +121,9 @@ function eventMethodology(ctx: CountContext): string {
     case "production":
       return "each production schedule campaign contributes one duration event.";
     case "qa_hold":
-      return "each finished-good batch contributes one QA-hold event.";
+      return ctx.timingGrain === "campaign"
+        ? "each campaign contributes one timing observation; batch rows are supporting evidence."
+        : "each finished-good batch contributes one QA-hold event.";
     case "post_qa_ship":
       return "each dispatch (customer delivery or hub transfer) contributes one post-QA dwell event.";
     case "transit":
@@ -130,6 +139,9 @@ export function countTooltip(ctx: CountTooltipContext): string {
   const label = shortCountLabel(ctx.count, ctx);
   const period = rangeLabel(ctx.rangeLabel);
   const base = `${label} in ${period}. Filtered by ${dateAnchorLabel(ctx)}; ${eventMethodology(ctx)}`;
+  if (ctx.nCampaigns != null && ctx.nBatches != null) {
+    return `${base} All-time source coverage: ${ctx.nCampaigns} campaigns across ${ctx.nBatches} batches.`;
+  }
   if (ctx.nBatches != null && ctx.nMovements != null) {
     return `${base} All-time source coverage: ${ctx.nBatches} batches, ${ctx.nMovements} movements.`;
   }

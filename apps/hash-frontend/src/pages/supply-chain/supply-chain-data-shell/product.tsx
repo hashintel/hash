@@ -802,6 +802,7 @@ export const Overview = ({
             <E2EWhatIf
               graph={filteredGraph}
               timeRange={timeRange}
+              excludeOutliers={excludeOutliers}
               onCollapse={() => setPipelineExpanded(false)}
               onStepDrill={onStepSelect}
               activeSegments={activeSegments}
