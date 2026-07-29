@@ -14,7 +14,6 @@
     formatting_options,
     macro_metavar_expr,
     pattern,
-    string_from_utf8_lossy_owned,
     try_trait_v2,
     vec_from_fn,
 )]
