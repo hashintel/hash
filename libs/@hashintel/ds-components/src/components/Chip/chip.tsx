@@ -48,7 +48,8 @@ export type ChipProps = {
       };
     }
   | { suffix?: PrefixOrSuffix }
->;
+> &
+  React.AriaAttributes;
 
 const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xxs",
@@ -92,7 +93,12 @@ const ChipAffix = ({
 
   if (affix.onClick) {
     return (
-      <button type="button" className={className} onClick={affix.onClick}>
+      <button
+        type="button"
+        data-chip-segment={side}
+        className={className}
+        onClick={affix.onClick}
+      >
         {content}
       </button>
     );
@@ -112,6 +118,7 @@ export const Chip = ({
   prefix,
   suffix,
   removeable,
+  ...ariaAttributes
 }: ChipProps) => {
   const showRemove = !!removeable?.removeable;
   const prefixInteractive = !!prefix?.onClick;
@@ -123,6 +130,15 @@ export const Chip = ({
   const rootIsButton = clickable && !hasInteractiveAffix;
   const segmentedButton = clickable && hasInteractiveAffix;
 
+  // Circle/angle affixes bleed with a rounded/slanted edge, leaving a gap next
+  // to the label. When such an affix is a separate button beside the clickable
+  // centre, underlap the centre's hover tint beneath it to fill that gap; for an
+  // angle affix the underlap is additionally slanted to hug the affix's slant.
+  const isBleeding = (affix: PrefixOrSuffix | undefined) =>
+    affix?.variant === "circle" || affix?.variant === "angle";
+  const isAngle = (affix: PrefixOrSuffix | undefined) =>
+    affix?.variant === "angle";
+
   const classes = styles({
     size,
     color,
@@ -132,6 +148,13 @@ export const Chip = ({
     hasPrefix: !!prefix,
     hasSuffix: !!suffix || showRemove,
     segmented: segmentedButton,
+    centerRoundStart: segmentedButton && !prefixInteractive,
+    centerRoundEnd: segmentedButton && !suffixInteractive && !showRemove,
+    centerUnderStart:
+      segmentedButton && prefixInteractive && isBleeding(prefix),
+    centerUnderEnd: segmentedButton && suffixInteractive && isBleeding(suffix),
+    centerAngleStart: segmentedButton && prefixInteractive && isAngle(prefix),
+    centerAngleEnd: segmentedButton && suffixInteractive && isAngle(suffix),
   });
 
   const rootClassName = cx(classes.root, className);
@@ -142,11 +165,18 @@ export const Chip = ({
   const suffixNode = suffix && (
     <ChipAffix affix={suffix} side="suffix" size={size} />
   );
+  // The remove button is styled exactly as an interactive `straight` suffix
+  // affix, so it shares the affix's divider, hover, and focus styles.
   const removeNode = showRemove && (
     <button
       type="button"
       aria-label="Remove"
-      className={classes.removeButton}
+      data-chip-segment="remove"
+      className={affixStyles({
+        treatment: "straight",
+        side: "suffix",
+        interactive: true,
+      })}
       onClick={removeable.onRemove}
     >
       <Icon name="close" size={iconSizeMap[size]} />
@@ -156,7 +186,12 @@ export const Chip = ({
 
   if (rootIsButton) {
     return (
-      <button type="button" className={rootClassName} onClick={onClick}>
+      <button
+        type="button"
+        className={rootClassName}
+        onClick={onClick}
+        {...ariaAttributes}
+      >
         {prefixNode}
         {label}
         {suffixNode}
@@ -166,10 +201,11 @@ export const Chip = ({
 
   if (segmentedButton) {
     return (
-      <div className={rootClassName}>
+      <div className={rootClassName} {...ariaAttributes}>
         {prefixInteractive && prefixNode}
         <button
           type="button"
+          data-chip-segment="center"
           className={classes.centerButton}
           onClick={onClick}
         >
@@ -185,7 +221,7 @@ export const Chip = ({
 
   // Not clickable: a plain container.
   return (
-    <div className={rootClassName}>
+    <div className={rootClassName} {...ariaAttributes}>
       {prefixNode}
       {label}
       {suffixNode}

@@ -28,12 +28,16 @@ const shapes: NonNullable<ChipProps["shape"]>[] = ["default", "round"];
 
 type AffixVariant = "straight" | "circle" | "angle" | "naked";
 
-// The affix `variant`s, plus the default (unset) treatment.
-const affixStyles: { label: string; variant?: AffixVariant }[] = [
-  { label: "default" },
-  { label: "naked", variant: "naked" },
+// The affix `variant`s, plus an optional chip `shape` for the row.
+const affixStyles: {
+  label: string;
+  variant?: AffixVariant;
+  shape?: NonNullable<ChipProps["shape"]>;
+}[] = [
   { label: "straight", variant: "straight" },
+  { label: "naked", variant: "naked" },
   { label: "circle", variant: "circle" },
+  { label: "circle (round)", variant: "circle", shape: "round" },
   { label: "angle", variant: "angle" },
 ];
 
@@ -214,87 +218,84 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
         </Chip>
       </div>
 
-      {affixStyles.map((style) => (
-        <div className={row} key={style.label}>
-          <div className={rowLabel}>{style.label}</div>
-          <Chip
-            {...base}
-            prefix={{ iconName: "sparkles", variant: style.variant }}
-          >
-            Prefix
-          </Chip>
-          <Chip
-            {...base}
-            suffix={{ iconName: "check", variant: style.variant }}
-          >
-            Suffix
-          </Chip>
-          <Chip
-            {...base}
-            prefix={{ iconName: "sparkles", variant: style.variant }}
-            suffix={{ iconName: "check", variant: style.variant }}
-          >
-            Both
-          </Chip>
-          <Chip
-            {...base}
-            onClick={noop}
-            prefix={{
-              iconName: "sparkles",
-              variant: style.variant,
-              onClick: noop,
-            }}
-            suffix={{
-              iconName: "check",
-              variant: style.variant,
-              onClick: noop,
-            }}
-          >
-            Clickable
-          </Chip>
-          <Chip
-            {...base}
-            prefix={{ iconName: "sparkles", variant: style.variant }}
-            removeable={{ removeable: true, onRemove: noop }}
-          >
-            Removeable
-          </Chip>
-        </div>
-      ))}
-
-      {/* The circle segment inherits the chip's border-radius, so on `round`
-          its outer corners become fully rounded. */}
-      <div className={row}>
-        <div className={rowLabel}>circle (round)</div>
-        <Chip
-          {...base}
-          shape="round"
-          prefix={{ iconName: "sparkles", variant: "circle" }}
-        >
-          Prefix
-        </Chip>
-        <Chip
-          {...base}
-          shape="round"
-          suffix={{ iconName: "check", variant: "circle" }}
-        >
-          Suffix
-        </Chip>
-        <Chip
-          {...base}
-          shape="round"
-          prefix={{ iconName: "sparkles", variant: "circle" }}
-          suffix={{ iconName: "check", variant: "circle" }}
-        >
-          Both
-        </Chip>
-      </div>
+      {affixStyles.map((style) => {
+        // An entry may pin the row's shape (e.g. circle on `round`); otherwise
+        // follow the story's shape control.
+        const shape = style.shape ?? base.shape;
+        return (
+          <div className={row} key={style.label}>
+            <div className={rowLabel}>{style.label}</div>
+            <Chip
+              {...base}
+              shape={shape}
+              prefix={{ iconName: "sparkles", variant: style.variant }}
+            >
+              Prefix
+            </Chip>
+            <Chip
+              {...base}
+              shape={shape}
+              suffix={{ iconName: "check", variant: style.variant }}
+            >
+              Suffix
+            </Chip>
+            <Chip
+              {...base}
+              shape={shape}
+              onClick={noop}
+              prefix={{ iconName: "sparkles", variant: style.variant }}
+              suffix={{ iconName: "check", variant: style.variant }}
+            >
+              Clickable
+            </Chip>
+            <Chip
+              {...base}
+              shape={shape}
+              onClick={noop}
+              prefix={{ iconName: "sparkles", variant: style.variant }}
+              suffix={{
+                iconName: "check",
+                variant: style.variant,
+                onClick: noop,
+              }}
+            >
+              2 clickable
+            </Chip>
+            <Chip
+              {...base}
+              shape={shape}
+              onClick={noop}
+              prefix={{
+                iconName: "sparkles",
+                variant: style.variant,
+                onClick: noop,
+              }}
+              suffix={{
+                iconName: "check",
+                variant: style.variant,
+                onClick: noop,
+              }}
+            >
+              3 clickable
+            </Chip>
+            <Chip
+              {...base}
+              shape={shape}
+              prefix={{ iconName: "sparkles", variant: style.variant }}
+              removeable={{ removeable: true, onRemove: noop }}
+            >
+              Removeable
+            </Chip>
+          </div>
+        );
+      })}
 
       <div className={row}>
         {affixStyles.map((style) => (
           <Chip
             {...base}
             key={style.label}
+            shape={style.shape ?? base.shape}
             prefix={{ children: "beta", variant: style.variant }}
             suffix={{ children: "v2", variant: style.variant }}
           >

@@ -3,7 +3,7 @@ import { cva, sva } from "@hashintel/ds-helpers/css";
 export const chipVariants = ["fill", "fillLight", "outline", "subtle"] as const;
 
 export const styles = sva({
-  slots: ["root", "label", "centerButton", "removeButton"],
+  slots: ["root", "label", "centerButton"],
   base: {
     root: {
       display: "inline-flex",
@@ -13,17 +13,108 @@ export const styles = sva({
       fontWeight: "medium",
       whiteSpace: "nowrap",
       userSelect: "none",
+      // Own the stacking context so the centre's z-index:-1 hover tint paints
+      // above the chip's (semi-transparent) background — not below it — while
+      // still sitting behind the affixes.
+      isolation: "isolate",
       overflow: "clip",
+      // Extend the clip past the padding box by the border width so a circle
+      // affix's outer ring (which bleeds into the border region) is not clipped
+      // away — otherwise only its inner edge would show/darken on hover.
+      overflowClipMargin: "[var(--chip-border-width)]",
+      outline: "none",
       border: "var(--chip-border-width) solid transparent",
       paddingInlineStart: "var(--chip-padding-x)",
       paddingInlineEnd: "var(--chip-padding-x)",
       "--chip-divider": "var(--colors-color-palette-bd-subtle)",
+      "--chip-divider-hover": "var(--colors-color-palette-bd-solid)",
+      // The circle affix reads a distinct divider that matches the chip's
+      // border at rest (so its now-visible outer ring is seamless with it) and
+      // darkens a step further on hover.
+      "--chip-circle-divider": "var(--colors-color-palette-bd-solid)",
+      "--chip-circle-divider-hover":
+        "var(--colors-color-palette-bd-solid-hover)",
+      // The circle badge's background, and its hovered value. The badge reads
+      // `--chip-circle-bg`; hovering the button that owns the circle (the affix
+      // itself, or the clickable root / centre it lives inside) swaps in the
+      // hover value so an absorbed/whole-chip circle darkens like a standalone
+      // clickable one.
+      "--chip-circle-bg": "var(--colors-color-palette-bg-solid-min)",
+      "--chip-circle-bg-hover":
+        "[color-mix(in srgb, currentColor 12%, var(--colors-color-palette-bg-solid-min))]",
+      // The angle affix's parallelogram tint and its hovered value. The tint is
+      // read via `--chip-angle-bg`; hovering the button that owns the angle (the
+      // affix itself, or the clickable root / centre it lives in) swaps in the
+      // hover value so an absorbed/whole-chip angle darkens to the same colour a
+      // standalone clickable one gets — not a lighter one.
+      "--chip-angle-bg": "[color-mix(in srgb, currentColor 12%, transparent)]",
+      "--chip-angle-bg-hover":
+        "[color-mix(in srgb, currentColor 20%, transparent)]",
+      // Thin border drawn along a separate angle affix's slant when it (or the
+      // label beside it) is hovered; transparent otherwise. Its colour is a
+      // touch lighter than the divider-hover it derives from.
+      "--chip-angle-border": "[transparent]",
+      "--chip-angle-border-hover":
+        "[color-mix(in srgb, var(--chip-divider-hover) 80%, transparent)]",
+      "--chip-divider-shadow": "[0 0 0 0 transparent]",
+      // The affix/label hover tint, referenced by the straight affix's hover
+      // gradient so the 1px divider strip stays untinted (matching the divider
+      // when the label is hovered).
+      "--chip-hover-tint":
+        "[color-mix(in srgb, currentColor 12%, transparent)]",
+      // A lighter label-hover tint used only beside an angle affix, so the
+      // hovered label/wedge stays a touch lighter than the affix's ~12%
+      // parallelogram and the slant keeps its contrast instead of blending in.
+      "--chip-hover-tint-soft":
+        "[color-mix(in srgb, currentColor 5%, transparent)]",
+      "--chip-ring-color":
+        "[color-mix(in srgb, var(--colors-color-palette-fg-link) 65%, transparent)]",
+      "--chip-ring-soft": "[3px]",
+      // A segment ring's "round" outer corner, capped at ~half the chip height.
+      // A radii-full (round-shape) chip would otherwise put a ~9999px radius on
+      // the two corners of a short side; border-radius overflow-scaling then
+      // shrinks every corner — including the 3px inner ones — toward zero, so
+      // the soft inner corners render sharp. Capping keeps a semicircle cap
+      // while leaving the 3px corners intact.
+      "--chip-ring-cap":
+        "[min(var(--chip-radius), calc(0.5lh + var(--chip-padding-y)))]",
+      "--chip-ring-start": "var(--chip-ring-soft)",
+      "--chip-ring-end": "var(--chip-ring-soft)",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       "&:focus-visible": {
-        outline: "2px solid",
-        outlineColor: "black.a60",
+        boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
       },
+      "&:has(:focus-visible)": {
+        overflow: "visible",
+      },
+      // A segment divider is a box-shadow (reading `--chip-divider`) living on
+      // the affix / remove button. Darken it when either of the two segments it
+      // separates is hovered: the segment itself (or, for an absorbed affix, its
+      // hovered centre via inheritance), the centre's later siblings, or a
+      // prefix whose following centre is hovered.
+      "& [data-chip-segment]:hover": {
+        "--chip-divider": "var(--chip-divider-hover)",
+        "--chip-circle-divider": "var(--chip-circle-divider-hover)",
+      },
+      '& [data-chip-segment="center"]:hover ~ [data-chip-segment]': {
+        "--chip-divider": "var(--chip-divider-hover)",
+        "--chip-circle-divider": "var(--chip-circle-divider-hover)",
+        "--chip-angle-border": "var(--chip-angle-border-hover)",
+      },
+      '& [data-chip-segment="prefix"]:has(~ [data-chip-segment="center"]:hover)':
+        {
+          "--chip-divider": "var(--chip-divider-hover)",
+          "--chip-circle-divider": "var(--chip-circle-divider-hover)",
+          "--chip-angle-border": "var(--chip-angle-border-hover)",
+        },
+      // The angle divider only separates a *separate* (interactive) affix from
+      // the label, so set it on a hovered prefix/suffix affix — not the centre,
+      // whose hover would otherwise border an angle connected to (inside) it.
+      '& [data-chip-segment="prefix"]:hover, & [data-chip-segment="suffix"]:hover':
+        {
+          "--chip-angle-border": "var(--chip-angle-border-hover)",
+        },
     },
     label: {
       overflow: "hidden",
@@ -37,46 +128,68 @@ export const styles = sva({
       alignItems: "center",
       alignSelf: "stretch",
       minWidth: "0",
+      position: "relative",
       cursor: "pointer",
       appearance: "none",
       border: "none",
       background: "[transparent]",
       color: "[inherit]",
       font: "inherit",
+      outline: "none",
       paddingInline: "var(--chip-padding-x)",
-      transition: "[background 0.15s ease]",
-      _hover: {
-        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      "--chip-under-start": "[0px]",
+      "--chip-under-end": "[0px]",
+      "--chip-clip-start": "[0px]",
+      "--chip-clip-end": "[0px]",
+      "--chip-under-tint": "var(--chip-hover-tint)",
+      // The hover tint lives on a ::before rather than the button background so
+      // it can underlap an adjacent interactive circle/angle affix (via the
+      // --chip-under-* insets) and paint behind it (z-index -1). That fills the
+      // affix's rounded/slanted gap beside the label — which would otherwise
+      // stay the untinted chip background — while the affix's opaque badge
+      // still covers its own area. For an angle affix the --chip-clip-* insets
+      // slant the ::before's matching edge along the affix's slant, so the tint
+      // fills only the (chip-background) wedge and never bleeds under the
+      // affix's semi-transparent parallelogram.
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        top: "0",
+        bottom: "0",
+        left: "[calc(-1 * var(--chip-under-start))]",
+        right: "[calc(-1 * var(--chip-under-end))]",
+        zIndex: "[-1]",
+        clipPath:
+          "[polygon(var(--chip-clip-start) 0, 100% 0, calc(100% - var(--chip-clip-end)) 100%, 0 100%)]",
+        background: "var(--chip-under-tint)",
+        opacity: "0",
+        transition: "[opacity 0.15s ease]",
+        pointerEvents: "none",
       },
-      "&:focus-visible": {
-        outline: "2px solid",
-        outlineColor: "black.a60",
-        outlineOffset: "[-2px]",
+      "&:hover::before": {
+        opacity: "[1]",
       },
-    },
-    removeButton: {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      flexShrink: "0",
-      alignSelf: "stretch",
-      cursor: "pointer",
-      appearance: "none",
-      border: "none",
-      background: "[transparent]",
-      color: "[inherit]",
-      paddingBlock: "var(--chip-padding-y)",
-      paddingInlineStart: "var(--chip-padding-x)",
-      paddingInlineEnd: "var(--chip-padding-x)",
-      boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
-      transition: "[background 0.15s ease]",
-      _hover: {
-        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+      // Darken an absorbed circle/angle affix (a non-interactive one sharing
+      // this button with the label) on hover, as if it were clicked directly.
+      // No angle border here: an absorbed angle is connected to the label.
+      "&:hover": {
+        "--chip-circle-bg": "var(--chip-circle-bg-hover)",
+        "--chip-circle-divider": "var(--chip-circle-divider-hover)",
+        "--chip-angle-bg": "var(--chip-angle-bg-hover)",
       },
-      "&:focus-visible": {
-        outline: "2px solid",
-        outlineColor: "black.a60",
-        outlineOffset: "[-2px]",
+      // Raise the ring itself (the ::after) over sibling affixes so it paints
+      // above e.g. a circle affix's opaque background. Raising the whole button
+      // instead would make it a stacking context, lifting its z-index:-1 ::before
+      // hover tint above the affixes too — tinting over them when focused+hovered.
+      "&:focus-visible::after": {
+        content: '""',
+        position: "absolute",
+        inset: "0",
+        zIndex: "[1]",
+        borderRadius:
+          "[var(--chip-ring-start) var(--chip-ring-end) var(--chip-ring-end) var(--chip-ring-start)]",
+        boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
+        pointerEvents: "none",
       },
     },
   },
@@ -89,6 +202,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1px]",
           "--chip-padding-x": "var(--spacing-0\\.5)",
+          "--chip-radius": "var(--radii-sm)",
           borderRadius: "sm",
         },
       },
@@ -99,6 +213,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1px]",
           "--chip-padding-x": "var(--spacing-1)",
+          "--chip-radius": "var(--radii-sm)",
           borderRadius: "sm",
         },
       },
@@ -109,6 +224,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1px]",
           "--chip-padding-x": "var(--spacing-1)",
+          "--chip-radius": "var(--radii-md)",
           borderRadius: "md",
         },
       },
@@ -119,6 +235,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[1px]",
           "--chip-padding-x": "var(--spacing-1)",
+          "--chip-radius": "var(--radii-md)",
           borderRadius: "md",
         },
       },
@@ -129,6 +246,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[2px]",
           "--chip-padding-x": "var(--spacing-1\\.5)",
+          "--chip-radius": "var(--radii-md)",
           borderRadius: "md",
         },
       },
@@ -172,10 +290,24 @@ export const styles = sva({
     // `round` is declared after `size` so it wins the border-radius cascade.
     shape: {
       default: {},
-      round: { root: { borderRadius: "full" } },
+      round: {
+        root: { borderRadius: "full", "--chip-radius": "var(--radii-full)" },
+      },
     },
     clickable: {
-      true: { root: { cursor: "pointer" } },
+      // The whole chip is one button: hovering it darkens any circle/angle affix
+      // it contains, as if clicked directly. No angle border: those angles are
+      // all connected to the label inside this single button.
+      true: {
+        root: {
+          cursor: "pointer",
+          _hover: {
+            "--chip-circle-bg": "var(--chip-circle-bg-hover)",
+            "--chip-circle-divider": "var(--chip-circle-divider-hover)",
+            "--chip-angle-bg": "var(--chip-angle-bg-hover)",
+          },
+        },
+      },
     },
     hasPrefix: {
       true: {
@@ -191,6 +323,45 @@ export const styles = sva({
     },
     segmented: {
       true: { root: { paddingInlineStart: "0", paddingInlineEnd: "0" } },
+    },
+    // Round the centre button's outer corners on an edge it actually owns (no
+    // interactive affix sits between it and that edge), so its box-shadow focus
+    // ring follows the chip's rounded end there.
+    centerRoundStart: {
+      true: { centerButton: { "--chip-ring-start": "var(--chip-ring-cap)" } },
+    },
+    centerRoundEnd: {
+      true: { centerButton: { "--chip-ring-end": "var(--chip-ring-cap)" } },
+    },
+    // Underlap the label's hover tint beneath an adjacent interactive
+    // circle/angle affix so it fills that affix's rounded/slanted gap. Only set
+    // for a separate (interactive) bleeding affix — an absorbed one already sits
+    // over the centre's own tint.
+    centerUnderStart: {
+      true: { centerButton: { "--chip-under-start": "[0.5em]" } },
+    },
+    centerUnderEnd: {
+      true: { centerButton: { "--chip-under-end": "[0.5em]" } },
+    },
+    // For an angle affix (not a circle), also slant the underlap's matching edge
+    // so the tint stops at the affix's slant instead of bleeding under it, and
+    // lighten the label/wedge hover tint so it stays distinct from the affix's
+    // parallelogram rather than blending into a uniform block.
+    centerAngleStart: {
+      true: {
+        centerButton: {
+          "--chip-clip-start": "var(--chip-under-start)",
+          "--chip-under-tint": "var(--chip-hover-tint-soft)",
+        },
+      },
+    },
+    centerAngleEnd: {
+      true: {
+        centerButton: {
+          "--chip-clip-end": "var(--chip-under-end)",
+          "--chip-under-tint": "var(--chip-hover-tint-soft)",
+        },
+      },
     },
   },
   compoundVariants: [
@@ -259,6 +430,12 @@ export const styles = sva({
         root: {
           "--chip-divider":
             "[color-mix(in srgb, currentColor 25%, transparent)]",
+          "--chip-divider-hover":
+            "[color-mix(in srgb, currentColor 45%, transparent)]",
+          "--chip-circle-divider":
+            "[color-mix(in srgb, currentColor 45%, transparent)]",
+          "--chip-circle-divider-hover":
+            "[color-mix(in srgb, currentColor 60%, transparent)]",
         },
       },
     },
@@ -310,18 +487,50 @@ export const affixStyles = cva({
     justifyContent: "center",
     flexShrink: "0",
     paddingBlock: "var(--chip-padding-y)",
+    // The affix's only box-shadow is its (optional) divider, set per treatment /
+    // side via the inherited `--chip-divider-shadow`. The focus ring is a
+    // separate `::after` on interactive affixes — a non-interactive absorbed
+    // affix never focuses, so it never draws one.
+    boxShadow: "[var(--chip-divider-shadow)]",
   },
   variants: {
     treatment: {
-      naked: {},
+      naked: {
+        alignSelf: "stretch",
+      },
       straight: {
         alignSelf: "stretch",
       },
+      // The slanted parallelogram tint lives on a ::before (its clip-path is set
+      // per side) so the affix box — and the focus-ring ::after on an
+      // interactive one — stay un-clipped. A clip-path on the button itself
+      // would clip that ring away. isolation + z-index:-1 keep the tint behind
+      // the icon while it sits above the chip background. The ::after is a thin
+      // divider drawn along the slant (a 1px-wide clip-path strip, per side),
+      // shown via --chip-angle-border when the angle is next to / inside a
+      // hovered element; on an interactive one it doubles as the focus ring, so
+      // :focus-visible drops the strip clip/background (below) to reveal it.
       angle: {
         alignSelf: "stretch",
         paddingInline: "var(--chip-padding-x)",
         marginBlock: "[calc(-1 * var(--chip-border-width))]",
-        backgroundColor: "[color-mix(in srgb, currentColor 12%, transparent)]",
+        position: "relative",
+        isolation: "isolate",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          zIndex: "[-1]",
+          backgroundColor: "var(--chip-angle-bg)",
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          zIndex: "[-1]",
+          backgroundColor: "var(--chip-angle-border)",
+          pointerEvents: "none",
+        },
       },
       // A brighter (`bgSolid.min`) segment that bleeds to the chip edge and
       // inherits the chip's border-radius, so its outer corners match the chip
@@ -331,16 +540,26 @@ export const affixStyles = cva({
       // per-side border-width bleed is set in compound variants.
       circle: {
         alignSelf: "stretch",
-        borderRadius: "[inherit]",
+        borderRadius: "[var(--chip-radius)]",
         paddingInline: "[0.75em]",
         marginBlock: "[calc(-1 * var(--chip-border-width))]",
-        backgroundColor: "colorPalette.bgSolid.min",
-        boxShadow: "[inset 0 0 0 1px var(--chip-divider)]",
+        backgroundColor:
+          "[var(--chip-circle-bg, var(--colors-color-palette-bg-solid-min))]",
+        // Match the root's hover transition (background/border 0.15s ease) so a
+        // circle inside a clickable root/centre fades its fill and ring in sync
+        // with the label background rather than snapping.
+        transition: "[background-color 0.15s ease, box-shadow 0.15s ease]",
+        "--chip-divider-shadow": "[inset 0 0 0 1px var(--chip-circle-divider)]",
+        // The circle badge is rounded on every corner, so its ring is too.
+        "--chip-ring-start": "var(--chip-ring-cap)",
+        "--chip-ring-end": "var(--chip-ring-cap)",
       },
     },
     side: {
-      prefix: {},
-      suffix: {},
+      // The affix sits at the chip edge on its side, so its focus ring rounds to
+      // the chip radius there; the inner edge keeps the soft radius.
+      prefix: { "--chip-ring-start": "var(--chip-ring-cap)" },
+      suffix: { "--chip-ring-end": "var(--chip-ring-cap)" },
     },
     interactive: {
       true: {
@@ -349,14 +568,23 @@ export const affixStyles = cva({
         font: "inherit",
         color: "[inherit]",
         border: "none",
+        outline: "none",
+        position: "relative",
         _hover: {
           backgroundColor:
             "[color-mix(in srgb, currentColor 12%, transparent)]",
         },
         "&:focus-visible": {
-          outline: "2px solid",
-          outlineColor: "black.a60",
-          outlineOffset: "[-2px]",
+          zIndex: "[1]",
+        },
+        "&:focus-visible::after": {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          borderRadius:
+            "[var(--chip-ring-start) var(--chip-ring-end) var(--chip-ring-end) var(--chip-ring-start)]",
+          boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
+          pointerEvents: "none",
         },
       },
     },
@@ -365,12 +593,18 @@ export const affixStyles = cva({
     {
       treatment: "naked",
       side: "prefix",
-      css: { paddingInlineStart: "var(--chip-padding-x)" },
+      css: {
+        paddingInlineStart: "var(--chip-padding-x)",
+        paddingInlineEnd: "var(--chip-padding-x)",
+      },
     },
     {
       treatment: "naked",
       side: "suffix",
-      css: { paddingInlineEnd: "var(--chip-padding-x)" },
+      css: {
+        paddingInlineStart: "var(--chip-padding-x)",
+        paddingInlineEnd: "var(--chip-padding-x)",
+      },
     },
     {
       treatment: "straight",
@@ -378,7 +612,7 @@ export const affixStyles = cva({
       css: {
         paddingInlineStart: "var(--chip-padding-x)",
         paddingInlineEnd: "var(--chip-padding-x)",
-        boxShadow: "[inset -1px 0 0 0 var(--chip-divider)]",
+        "--chip-divider-shadow": "[inset -1px 0 0 0 var(--chip-divider)]",
       },
     },
     {
@@ -387,7 +621,34 @@ export const affixStyles = cva({
       css: {
         paddingInlineStart: "var(--chip-padding-x)",
         paddingInlineEnd: "var(--chip-padding-x)",
-        boxShadow: "[inset 1px 0 0 0 var(--chip-divider)]",
+        "--chip-divider-shadow": "[inset 1px 0 0 0 var(--chip-divider)]",
+      },
+    },
+    // Straight affix hover: fill with the tint but leave the 1px divider strip
+    // untinted (hard-stop gradient), so the divider composites over the chip
+    // background — matching its colour when the label is hovered.
+    {
+      treatment: "straight",
+      side: "prefix",
+      interactive: true,
+      css: {
+        _hover: {
+          backgroundColor: "[transparent]",
+          backgroundImage:
+            "[linear-gradient(to left, transparent 1px, var(--chip-hover-tint) 1px)]",
+        },
+      },
+    },
+    {
+      treatment: "straight",
+      side: "suffix",
+      interactive: true,
+      css: {
+        _hover: {
+          backgroundColor: "[transparent]",
+          backgroundImage:
+            "[linear-gradient(to right, transparent 1px, var(--chip-hover-tint) 1px)]",
+        },
       },
     },
     {
@@ -410,7 +671,14 @@ export const affixStyles = cva({
       css: {
         marginInlineStart: "[calc(-1 * var(--chip-border-width))]",
         paddingInlineEnd: "[calc(var(--chip-padding-x) + 0.5em)]",
-        clipPath: "[polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%)]",
+        "&::before": {
+          clipPath: "[polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%)]",
+        },
+        // 1px strip hugging the fill's slant edge.
+        "&::after": {
+          clipPath:
+            "[polygon(calc(100% - 1px) 0, 100% 0, calc(100% - 0.5em) 100%, calc(100% - 0.5em - 1px) 100%)]",
+        },
       },
     },
     {
@@ -419,7 +687,47 @@ export const affixStyles = cva({
       css: {
         marginInlineEnd: "[calc(-1 * var(--chip-border-width))]",
         paddingInlineStart: "[calc(var(--chip-padding-x) + 0.5em)]",
-        clipPath: "[polygon(0.5em 0, 100% 0, 100% 100%, 0 100%)]",
+        "&::before": {
+          clipPath: "[polygon(0.5em 0, 100% 0, 100% 100%, 0 100%)]",
+        },
+        "&::after": {
+          clipPath: "[polygon(0.5em 0, calc(0.5em + 1px) 0, 1px 100%, 0 100%)]",
+        },
+      },
+    },
+    // Angle already carries a static ~12% tint, so the generic hover tint would
+    // be a no-op; deepen the parallelogram to the hover tint when clickable.
+    {
+      treatment: "angle",
+      interactive: true,
+      css: {
+        // Keep the box transparent (the generic interactive hover would tint the
+        // whole rectangle, including the wedge); darken only the parallelogram.
+        _hover: {
+          backgroundColor: "[transparent]",
+          "--chip-angle-bg": "var(--chip-angle-bg-hover)",
+        },
+        // The ::after doubles as the focus ring here; drop the slant strip's
+        // clip/background on focus so the ring paints as a full un-clipped box.
+        "&:focus-visible::after": {
+          clipPath: "[none]",
+          backgroundColor: "[transparent]",
+        },
+      },
+    },
+    // The circle badge is opaque; darken it in place on hover (via
+    // `--chip-circle-bg-hover`, an opaque mix) rather than replacing it with the
+    // translucent generic tint, which would let the chip background show
+    // through the badge.
+    {
+      treatment: "circle",
+      interactive: true,
+      css: {
+        // Set backgroundColor directly (not via --chip-circle-bg) so it beats
+        // the generic interactive hover's translucent tint on the same property.
+        _hover: {
+          backgroundColor: "[var(--chip-circle-bg-hover)]",
+        },
       },
     },
   ],
