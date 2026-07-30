@@ -3,15 +3,15 @@ import { Fragment, type ReactNode } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
-import { Avatar, type AvatarProps } from "./avatar";
+import { Avatar } from "./avatar";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
-const noop = () => {
-  /* story click handler */
-};
+const noop = () => {};
+
+type AvatarProps = React.ComponentProps<typeof Avatar>;
 
 export default {
   title: "Components/Avatar",
@@ -81,12 +81,12 @@ const placeholderColumns = [
 ];
 
 const defaultCells = (
-  variant: AvatarProps["variant"],
+  shape: AvatarProps["shape"],
   tone: AvatarProps["tone"],
 ): ReactNode[] => [
   <Avatar
     key="image"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Christian Busch"
     src={sampleImage}
@@ -95,7 +95,7 @@ const defaultCells = (
   />,
   <Avatar
     key="initial-1"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Christian"
     placeholder={{ initials: "C" }}
@@ -103,7 +103,7 @@ const defaultCells = (
   />,
   <Avatar
     key="initials-2"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Christian Busch"
     placeholder={{ initials: "CB" }}
@@ -111,7 +111,7 @@ const defaultCells = (
   />,
   <Avatar
     key="icon"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Settings"
     placeholder={{ icon: "gear" }}
@@ -119,7 +119,7 @@ const defaultCells = (
   />,
   <Avatar
     key="custom"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Fox"
     placeholder={{ custom: "🦊" }}
@@ -127,7 +127,7 @@ const defaultCells = (
   />,
   <Avatar
     key="static"
-    variant={variant}
+    shape={shape}
     tone={tone}
     alt="Christian Busch"
     placeholder={{ initials: "CB" }}
@@ -145,11 +145,11 @@ export const Default: Story<AvatarProps> = () => (
   />
 );
 
-const sizeCells = (variant: AvatarProps["variant"]): ReactNode[] =>
+const sizeCells = (shape: AvatarProps["shape"]): ReactNode[] =>
   formInputSizes.map((size) => (
     <Avatar
       key={size}
-      variant={variant}
+      shape={shape}
       size={size}
       alt="Christian Busch"
       placeholder={{ initials: "CB" }}
@@ -197,12 +197,12 @@ const imageColumns = [
 ];
 
 const imageCells = (
-  variant: AvatarProps["variant"],
+  shape: AvatarProps["shape"],
   tone: AvatarProps["tone"],
 ): ReactNode[] => [
   <Avatar
     key="error"
-    variant={variant}
+    shape={shape}
     tone={tone}
     size="lg"
     alt="Failed to load"
@@ -211,7 +211,7 @@ const imageCells = (
   />,
   <Avatar
     key="loading"
-    variant={variant}
+    shape={shape}
     tone={tone}
     size="lg"
     alt="Loading"
@@ -220,7 +220,7 @@ const imageCells = (
   />,
   <Avatar
     key="transparent"
-    variant={variant}
+    shape={shape}
     tone={tone}
     size="lg"
     alt="Transparent image"
@@ -229,7 +229,7 @@ const imageCells = (
   />,
   <Avatar
     key="white"
-    variant={variant}
+    shape={shape}
     tone={tone}
     size="lg"
     alt="White background image"
@@ -238,7 +238,7 @@ const imageCells = (
   />,
   <Avatar
     key="dark-green"
-    variant={variant}
+    shape={shape}
     tone={tone}
     size="lg"
     alt="Dark green background image"

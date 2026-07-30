@@ -9,7 +9,7 @@ import { styles } from "./avatar.recipe";
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
 
-export type AvatarProps = {
+type AvatarProps = {
   className?: string;
   /** Image source URL */
   src?: string;
@@ -21,7 +21,7 @@ export type AvatarProps = {
     | { initials: string }
     | { icon: IconName }
     | { custom: React.ReactNode };
-  variant: "circle" | "square";
+  shape: "circle" | "square";
   tone?: Extract<Tone, "neutral" | "brand">;
 } & ExclusifyUnion<
   | { onClick?: React.ButtonHTMLAttributes<Element>["onClick"] }
@@ -40,7 +40,7 @@ const placeholderIconSize: Record<FormInputSize, FormInputSize> = {
 
 export const Avatar = ({
   className,
-  variant,
+  shape,
   src,
   alt,
   size = "md",
@@ -74,7 +74,7 @@ export const Avatar = ({
   const interactive = asLink || asButton;
 
   const classes = styles({
-    variant,
+    shape,
     size,
     tone,
     interactive,
