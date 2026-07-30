@@ -5,6 +5,8 @@ export const entityTypedef = gql`
   scalar ClosedMultiEntityTypesDefinitions
   scalar SummarizeEntitiesParams
   scalar SummarizeEntitiesResponse
+  scalar QueryEntitiesTableParams
+  scalar QueryEntitiesTableResponse
   scalar CreatedByIdsMap
   scalar EntityId
   scalar EntityMetadata
@@ -115,6 +117,10 @@ export const entityTypedef = gql`
     summarizeEntities(
       request: SummarizeEntitiesParams!
     ): SummarizeEntitiesResponse!
+
+    queryEntitiesTable(
+      request: QueryEntitiesTableParams!
+    ): QueryEntitiesTableResponse!
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
 

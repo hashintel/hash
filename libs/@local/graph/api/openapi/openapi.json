@@ -1823,6 +1823,54 @@
         }
       }
     },
+    "/entities/query/table": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "query_entities_table",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryEntitiesTableParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntitiesTableResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Provided query is invalid"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/entities/search": {
       "post": {
         "tags": [
@@ -4932,6 +4980,548 @@
           "entityId": {
             "$ref": "#/components/schemas/EntityId"
           }
+        }
+      },
+      "EntityTableCursor": {
+        "type": "string",
+        "description": "An opaque continuation token for the entities table"
+      },
+      "EntityTableFilter": {
+        "type": "object",
+        "description": "The scope of the entities table.",
+        "properties": {
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "description": "The types the rows are narrowed to, as the versioned selections a\nfilter UI works with.\n\nLeft out for no narrowing at all, where the table spans every type its\nscope holds. An empty list narrows to nothing and matches no rows.",
+            "nullable": true
+          },
+          "excludedTypeBaseUrls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseUrl"
+            },
+            "description": "Types the table never shows, whatever\n[`entity_type_ids`](Self::entity_type_ids) selects.\n\nEntities carrying one of these types are left out entirely — of the\nrows, the count, and the type summary alike — so a selection cannot\nbring them back. Base URLs rather than versioned ids on purpose: an\nexclusion is meant to hide a type regardless of which version an\nentity carries, and it covers inherited types as well as direct ones."
+          },
+          "includeArchived": {
+            "type": "boolean"
+          },
+          "propertyFilters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTablePropertyFilter"
+            },
+            "description": "Conditions on property columns, all of which a row has to satisfy."
+          },
+          "webs": {
+            "$ref": "#/components/schemas/EntityTableWebScope"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EntityTableLinkEndpoint": {
+        "type": "object",
+        "description": "One endpoint of a link row: its identity, display label, and direct types.",
+        "required": [
+          "entityId",
+          "entityTypeIds"
+        ],
+        "properties": {
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "description": "The endpoint's direct types."
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "EntityTablePropertyFilter": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "hasAnyValue"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "isEmpty"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "isTrue"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "isFalse"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "equals"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/EntityTablePropertyValue"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "notEquals"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/EntityTablePropertyValue"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "greaterThan"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/Real"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "greaterThanOrEqual"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/Real"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "lessThan"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/Real"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "lessThanOrEqual"
+                ]
+              },
+              "value": {
+                "$ref": "#/components/schemas/Real"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Matches anywhere inside the property's text.",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "containsSegment"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "startsWith"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "property",
+              "value",
+              "type"
+            ],
+            "properties": {
+              "property": {
+                "$ref": "#/components/schemas/BaseUrl"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "endsWith"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "A filter on one of the table's property columns, mirroring the operators the table's filter\nUI offers.\n\nThe `type` tag selects the operator, `property` names the column, and each operator carries\nexactly the value fields it needs, so a value-less operator with a value (or the reverse) is\nunrepresentable.",
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "EntityTablePropertyValue": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Real"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "A property value a table filter compares against."
+      },
+      "EntityTableRow": {
+        "type": "object",
+        "description": "One row of the entities table, built entirely from materialized columns\nplus the raw property object.",
+        "required": [
+          "entityId",
+          "entityEditionId",
+          "entityTypeIds",
+          "entityTypeTitles",
+          "createdAtTransactionTime",
+          "createdAtDecisionTime",
+          "editionCreatedAtDecisionTime",
+          "createdBy",
+          "lastEditedBy",
+          "archived",
+          "properties",
+          "propertiesMetadata"
+        ],
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "createdAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdAtTransactionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "editionCreatedAtDecisionTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "entityEditionId": {
+            "$ref": "#/components/schemas/EntityEditionId"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/EntityId"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "description": "The entity's direct types, parallel to\n[`entity_type_titles`](Self::entity_type_titles)."
+          },
+          "entityTypeTitles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "label": {
+            "type": "string"
+          },
+          "lastEditedBy": {
+            "$ref": "#/components/schemas/ActorEntityUuid"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          "propertiesMetadata": {
+            "$ref": "#/components/schemas/PropertyObjectMetadata"
+          },
+          "sourceEntity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTableLinkEndpoint"
+              }
+            ]
+          },
+          "targetEntity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTableLinkEndpoint"
+              }
+            ]
+          }
+        }
+      },
+      "EntityTableSortKey": {
+        "type": "string",
+        "description": "Sort key of the entities table, closed over the materialized, indexable\ncolumns. Extending the table's sortable columns means adding a variant\nhere, never a free-form path.",
+        "enum": [
+          "createdAtDecisionTime",
+          "editionCreatedAtDecisionTime",
+          "label",
+          "typeTitle",
+          "archived"
+        ]
+      },
+      "EntityTableSorting": {
+        "type": "object",
+        "required": [
+          "key",
+          "ordering"
+        ],
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/EntityTableSortKey"
+          },
+          "ordering": {
+            "$ref": "#/components/schemas/Ordering"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EntityTableSummary": {
+        "type": "object",
+        "description": "The summary of the entities table.\n\nThe two halves have different scopes on purpose: [`count`] reflects the\npage's full filters, where the type maps span the whole scope so a filter\nUI can widen a narrowed selection.\n\n[`count`]: Self::count",
+        "required": [
+          "count",
+          "entityTypeIds",
+          "entityTypeTitles"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "How many entities match the page's full filters.",
+            "minimum": 0
+          },
+          "entityTypeIds": {
+            "type": "object",
+            "description": "How many entities in the scope carry each (direct) type.",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "entityTypeTitles": {
+            "type": "object",
+            "description": "The display titles of the types in [`entity_type_ids`].\n\n[`entity_type_ids`]: Self::entity_type_ids",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "EntityTableWebScope": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Only the listed webs, where an empty list matches no rows at all.",
+            "required": [
+              "webs",
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "include"
+                ]
+              },
+              "webs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebId"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Every web the actor may see except the listed ones.",
+            "required": [
+              "webs",
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "exclude"
+                ]
+              },
+              "webs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WebId"
+                }
+              }
+            }
+          }
+        ],
+        "description": "Which webs the table draws rows from.\n\nThe default is [`Exclude`] with an empty list: every web the actor may\nsee.\n\n[`Exclude`]: Self::Exclude",
+        "discriminator": {
+          "propertyName": "type"
         }
       },
       "EntityTemporalMetadata": {
@@ -8232,6 +8822,92 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/EntityPermissions"
             }
+          }
+        }
+      },
+      "QueryEntitiesTableParams": {
+        "type": "object",
+        "description": "Parameters for [`EntityStore::query_entities_table`].\n\n[`EntityStore::query_entities_table`]: crate::entity::EntityStore::query_entities_table",
+        "required": [
+          "filter",
+          "limit"
+        ],
+        "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            },
+            "description": "Converts the rows' property values at each conversion's path into its\ntarget data type, mirroring [`QueryEntitiesParams::conversions`].\n\n[`QueryEntitiesParams::conversions`]: crate::entity::QueryEntitiesParams::conversions"
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTableCursor"
+              }
+            ]
+          },
+          "filter": {
+            "$ref": "#/components/schemas/EntityTableFilter"
+          },
+          "includeEntityTypes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IncludeEntityTypeOption"
+              }
+            ]
+          },
+          "includeSummary": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sort": {
+            "$ref": "#/components/schemas/EntityTableSorting"
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryEntitiesTableResponse": {
+        "type": "object",
+        "required": [
+          "rows"
+        ],
+        "properties": {
+          "closedMultiEntityTypes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ClosedMultiEntityTypeMap"
+            }
+          },
+          "cursor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTableCursor"
+              }
+            ]
+          },
+          "definitions": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTypeResolveDefinitions"
+              }
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityTableRow"
+            }
+          },
+          "summary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityTableSummary"
+              }
+            ]
           }
         }
       },

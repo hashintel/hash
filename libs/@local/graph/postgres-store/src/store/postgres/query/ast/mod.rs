@@ -28,7 +28,7 @@ pub use self::{
         UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowDefinition,
     },
     identifier::Identifier,
-    non_empty::{EmptyVec, NonEmptyVec},
+    non_empty::{EmptyVecError, NonEmptyVec},
     set_quantifier::SetQuantifier,
     statement::{
         OnConflict, SelectClause, SelectQuantifier, SelectStatement, SetOperator, SimpleSelect,

@@ -21,9 +21,9 @@ pub struct NonEmptyVec<T>(Vec<T>);
 
 #[derive(Debug, PartialEq, Eq, derive_more::Display)]
 #[display("the vector must not be empty")]
-pub struct EmptyVec;
+pub struct EmptyVecError;
 
-impl Error for EmptyVec {}
+impl Error for EmptyVecError {}
 
 impl<T> NonEmptyVec<T> {
     pub fn push(&mut self, value: T) {
@@ -61,11 +61,11 @@ impl<T> From<T> for NonEmptyVec<T> {
 }
 
 impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
-    type Error = EmptyVec;
+    type Error = EmptyVecError;
 
     fn try_from(values: Vec<T>) -> Result<Self, Self::Error> {
         if values.is_empty() {
-            return Err(EmptyVec);
+            return Err(EmptyVecError);
         }
         Ok(Self(values))
     }
@@ -130,7 +130,7 @@ mod tests {
         assert_eq!(
             NonEmptyVec::<u32>::try_from(Vec::new())
                 .expect_err("an empty vector should be rejected"),
-            EmptyVec
+            EmptyVecError
         );
 
         let mut values = NonEmptyVec::from(1);

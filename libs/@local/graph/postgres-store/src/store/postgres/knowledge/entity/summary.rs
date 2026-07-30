@@ -23,6 +23,34 @@ use uuid::Uuid;
 
 use crate::store::postgres::query::SelectCompiler;
 
+/// Which summary dimensions to aggregate.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "the flags mirror the wire contract's independent include switches"
+)]
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct EntitySummaryRequest {
+    pub count: bool,
+    pub web_ids: bool,
+    pub created_by_ids: bool,
+    pub edition_created_by_ids: bool,
+    pub type_ids: bool,
+    pub type_titles: bool,
+}
+
+impl From<&SummarizeEntitiesParams<'_>> for EntitySummaryRequest {
+    fn from(params: &SummarizeEntitiesParams<'_>) -> Self {
+        Self {
+            count: params.include_count,
+            web_ids: params.include_web_ids,
+            created_by_ids: params.include_created_by_ids,
+            edition_created_by_ids: params.include_edition_created_by_ids,
+            type_ids: params.include_type_ids,
+            type_titles: params.include_type_titles,
+        }
+    }
+}
+
 /// Aggregated `include_*` summaries of an entity query.
 ///
 /// Each map is populated only when its flag was requested. `type_ids` and `type_titles`
@@ -105,7 +133,7 @@ struct TypeColumns {
 }
 
 impl EntitySummaryQuery {
-    /// Adds the selections required for the summaries requested in `params` to the
+    /// Adds the selections required for the summaries requested in `request` to the
     /// `compiler`, or returns [`None`] when no summary is requested.
     ///
     /// Must run *before* limit, sorting, or record selections are added to the compiler:
@@ -113,14 +141,14 @@ impl EntitySummaryQuery {
     /// and a limit would truncate the aggregates.
     pub(crate) fn new(
         compiler: &mut SelectCompiler<'_, '_, Entity>,
-        params: &SummarizeEntitiesParams<'_>,
+        request: EntitySummaryRequest,
     ) -> Option<Self> {
-        if !(params.include_count
-            || params.include_web_ids
-            || params.include_created_by_ids
-            || params.include_edition_created_by_ids
-            || params.include_type_ids
-            || params.include_type_titles)
+        if !(request.count
+            || request.web_ids
+            || request.created_by_ids
+            || request.edition_created_by_ids
+            || request.type_ids
+            || request.type_titles)
         {
             return None;
         }
@@ -128,29 +156,27 @@ impl EntitySummaryQuery {
         Some(Self {
             edition_id_column: compiler.add_selection_path(&EntityQueryPath::EditionId),
             web_id_column: compiler.add_selection_path(&EntityQueryPath::WebId),
-            created_by_column: params
-                .include_created_by_ids
+            created_by_column: request
+                .created_by_ids
                 .then(|| compiler.add_selection_path(&EntityQueryPath::CreatedById)),
-            edition_created_by_column: params
-                .include_edition_created_by_ids
+            edition_created_by_column: request
+                .edition_created_by_ids
                 .then(|| compiler.add_selection_path(&EntityQueryPath::EditionCreatedById)),
-            type_columns: (params.include_type_ids || params.include_type_titles).then(|| {
-                TypeColumns {
-                    versioned_urls: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::VersionedUrl,
-                        inheritance_depth: None,
-                    }),
-                    direct_types: compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
-                    type_titles: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::Title,
-                        inheritance_depth: None,
-                    }),
-                }
+            type_columns: (request.type_ids || request.type_titles).then(|| TypeColumns {
+                versioned_urls: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::VersionedUrl,
+                    inheritance_depth: None,
+                }),
+                direct_types: compiler.add_selection_path(&EntityQueryPath::DirectTypeCount),
+                type_titles: compiler.add_selection_path(&EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::Title,
+                    inheritance_depth: None,
+                }),
             }),
-            include_count: params.include_count,
-            include_web_ids: params.include_web_ids,
+            include_count: request.count,
+            include_web_ids: request.web_ids,
         })
     }
 
@@ -184,42 +210,70 @@ impl EntitySummaryQuery {
         }
         let hit_columns = hit_columns.join(", ");
 
+        // With both count and types requested, the count rides along in the
+        // type branch. When the type branch is the only other consumer of
+        // `hits`, this keeps the CTE at a single reference — the inlined,
+        // parallel aggregate plan — where a dedicated count branch would force
+        // materialization. With further dimensions the fold is merely free.
+        let fold_count_into_types = self.count_folds_into_types();
+
+        let fold_column = if fold_count_into_types {
+            ", NULL::int8 AS first_type_matches"
+        } else {
+            ""
+        };
+
         let mut branches = Vec::new();
-        if self.include_count {
+        if self.include_count && !fold_count_into_types {
             branches.push(format!(
                 "SELECT {}::int4 AS dimension, NULL::uuid AS dimension_id, NULL::text AS \
-                 dimension_type, count(*) AS matches, NULL::text AS dimension_title FROM hits",
+                 dimension_type, count(*) AS matches, NULL::text AS dimension_title{fold_column} \
+                 FROM hits",
                 Dimension::Count as i32
             ));
         }
         if self.include_web_ids {
             branches.push(format!(
-                "SELECT {}::int4, web_id, NULL::text, count(*), NULL::text FROM hits GROUP BY \
-                 web_id",
+                "SELECT {}::int4, web_id, NULL::text, count(*), NULL::text{fold_column} FROM hits \
+                 GROUP BY web_id",
                 Dimension::WebIds as i32
             ));
         }
         if self.created_by_column.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, created_by, NULL::text, count(*), NULL::text FROM hits GROUP BY \
-                 created_by",
+                "SELECT {}::int4, created_by, NULL::text, count(*), NULL::text{fold_column} FROM \
+                 hits GROUP BY created_by",
                 Dimension::CreatedByIds as i32
             ));
         }
         if self.edition_created_by_column.is_some() {
             branches.push(format!(
-                "SELECT {}::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits \
-                 GROUP BY edition_created_by",
+                "SELECT {}::int4, edition_created_by, NULL::text, count(*), \
+                 NULL::text{fold_column} FROM hits GROUP BY edition_created_by",
                 Dimension::EditionCreatedByIds as i32
             ));
         }
         if self.type_columns.is_some() {
-            branches.push(format!(
-                "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT \
-                 unnest(versioned_urls[1:direct_types]) AS type_id, \
-                 unnest(type_titles[1:direct_types]) AS title FROM hits) AS t GROUP BY t.type_id",
-                Dimension::TypeIds as i32
-            ));
+            if fold_count_into_types {
+                // Every hit has exactly one first type, so summing this column
+                // over all type groups recovers the exact hit count.
+                branches.push(format!(
+                    "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title), count(*) \
+                     FILTER (WHERE t.ord = 1) FROM (SELECT unnest(versioned_urls[1:direct_types]) \
+                     AS type_id, unnest(type_titles[1:direct_types]) AS title, \
+                     generate_subscripts(versioned_urls[1:direct_types], 1) AS ord FROM hits) AS \
+                     t GROUP BY t.type_id",
+                    Dimension::TypeIds as i32
+                ));
+            } else {
+                branches.push(format!(
+                    "SELECT {}::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT \
+                     unnest(versioned_urls[1:direct_types]) AS type_id, \
+                     unnest(type_titles[1:direct_types]) AS title FROM hits) AS t GROUP BY \
+                     t.type_id",
+                    Dimension::TypeIds as i32
+                ));
+            }
         }
 
         format!(
@@ -284,6 +338,13 @@ impl EntitySummaryQuery {
                     let type_id = row
                         .try_get::<_, VersionedUrl>(2)
                         .change_context(QueryError)?;
+                    if self.count_folds_into_types()
+                        && let Some(count) = &mut summaries.count
+                    {
+                        *count +=
+                            usize::try_from(row.try_get::<_, i64>(5).change_context(QueryError)?)
+                                .change_context(QueryError)?;
+                    }
                     if let Some(type_ids) = &mut summaries.type_ids {
                         type_ids.insert(type_id.clone(), matches);
                     }
@@ -303,6 +364,16 @@ impl EntitySummaryQuery {
         }
 
         Ok(summaries)
+    }
+
+    /// Whether the hit count is aggregated inside the type branch instead of
+    /// its own `hits` pass.
+    ///
+    /// With the type branch as the only other consumer, a dedicated count
+    /// branch would be a second reference to the `hits` CTE, which forces
+    /// PostgreSQL to materialize it and abandons the parallel aggregate plan.
+    const fn count_folds_into_types(&self) -> bool {
+        self.include_count && self.type_columns.is_some()
     }
 
     fn column_count(&self) -> usize {
@@ -361,6 +432,7 @@ mod tests {
             include_web_ids: true,
         };
 
+        // Count and types together fold the count into the type branch.
         pretty_assertions::assert_eq!(
             trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Required)),
             trim_whitespace(
@@ -372,22 +444,48 @@ mod tests {
                     c5 AS direct_types,
                     c6 AS type_titles
                  FROM ( SELECT 1 ) AS raw (c0, c1, c2, c3, c4, c5, c6))
-                 SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
-                        NULL::text AS dimension_type, count(*) AS matches,
-                        NULL::text AS dimension_title FROM hits
+                 SELECT 1::int4, web_id, NULL::text, count(*), NULL::text,
+                        NULL::int8 AS first_type_matches FROM hits GROUP BY web_id
                  UNION ALL
-                 SELECT 1::int4, web_id, NULL::text, count(*), NULL::text FROM hits GROUP BY web_id
-                 UNION ALL
-                 SELECT 2::int4, created_by, NULL::text, count(*), NULL::text FROM hits
+                 SELECT 2::int4, created_by, NULL::text, count(*), NULL::text,
+                        NULL::int8 AS first_type_matches FROM hits
                   GROUP BY created_by
                  UNION ALL
-                 SELECT 3::int4, edition_created_by, NULL::text, count(*), NULL::text FROM hits
+                 SELECT 3::int4, edition_created_by, NULL::text, count(*), NULL::text,
+                        NULL::int8 AS first_type_matches FROM hits
                   GROUP BY edition_created_by
                  UNION ALL
-                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title) FROM (SELECT
+                 SELECT 4::int4, NULL::uuid, t.type_id, count(*), min(t.title),
+                        count(*) FILTER (WHERE t.ord = 1) FROM (SELECT
                   unnest(versioned_urls[1:direct_types]) AS type_id,
-                  unnest(type_titles[1:direct_types]) AS title FROM hits) AS t
+                  unnest(type_titles[1:direct_types]) AS title,
+                  generate_subscripts(versioned_urls[1:direct_types], 1) AS ord FROM hits) AS t
                   GROUP BY t.type_id"
+            ),
+        );
+    }
+
+    #[test]
+    fn statement_count_without_types_keeps_the_count_branch() {
+        let summary_query = EntitySummaryQuery {
+            edition_id_column: 0,
+            web_id_column: 1,
+            created_by_column: None,
+            edition_created_by_column: None,
+            type_columns: None,
+            include_count: true,
+            include_web_ids: false,
+        };
+
+        pretty_assertions::assert_eq!(
+            trim_whitespace(&summary_query.statement("SELECT 1", Deduplication::Required)),
+            trim_whitespace(
+                "WITH hits AS (SELECT DISTINCT ON (c0)
+                    c1 AS web_id
+                 FROM ( SELECT 1 ) AS raw (c0, c1))
+                 SELECT 0::int4 AS dimension, NULL::uuid AS dimension_id,
+                        NULL::text AS dimension_type, count(*) AS matches,
+                        NULL::text AS dimension_title FROM hits"
             ),
         );
     }

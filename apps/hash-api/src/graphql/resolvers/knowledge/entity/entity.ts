@@ -11,6 +11,7 @@ import {
   serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
   serializeSearchEntitiesResponse,
+  queryEntitiesTable,
   summarizeEntities,
   type CreateEntityParameters,
 } from "@local/hash-graph-sdk/entity";
@@ -46,6 +47,7 @@ import type {
   MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
   Query,
+  QueryQueryEntitiesTableArgs,
   QuerySummarizeEntitiesArgs,
   QueryIsEntityPublicArgs,
   QueryQueryEntitiesArgs,
@@ -146,6 +148,18 @@ export const summarizeEntitiesResolver: ResolverFn<
   QuerySummarizeEntitiesArgs
 > = async (_, { request }, graphQLContext) =>
   summarizeEntities(
+    graphQLContextToImpureGraphContext(graphQLContext),
+    graphQLContext.authentication,
+    request,
+  );
+
+export const queryEntitiesTableResolver: ResolverFn<
+  Query["queryEntitiesTable"],
+  Record<string, never>,
+  GraphQLContext,
+  QueryQueryEntitiesTableArgs
+> = async (_, { request }, graphQLContext) =>
+  queryEntitiesTable(
     graphQLContextToImpureGraphContext(graphQLContext),
     graphQLContext.authentication,
     request,
