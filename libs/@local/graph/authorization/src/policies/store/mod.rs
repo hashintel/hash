@@ -540,8 +540,8 @@ pub trait PrincipalStore {
     /// The timestamp is captured by the same statement that looks up the actor, so both are
     /// obtained in a single round trip.
     ///
-    /// Callers which resolve an actor without needing a clock reading — role assignment, policy
-    /// resolution, principal creation — use [`determine_actor`] and pay for the lookup alone.
+    /// Where an actor must be resolved but no clock reading is required, [`determine_actor`]
+    /// performs the lookup alone.
     ///
     /// [`determine_actor`]: Self::determine_actor
     ///

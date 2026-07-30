@@ -2787,7 +2787,8 @@ where
             SELECT ontology_id
             FROM ontology_ids
             WHERE base_url = $1 AND version = $2
-          ) AND transaction_time @> $4::timestamptz
+          ) AND upper(transaction_time) IS NULL
+            AND transaction_time @> $4::timestamptz
           RETURNING transaction_time;
         ";
 
