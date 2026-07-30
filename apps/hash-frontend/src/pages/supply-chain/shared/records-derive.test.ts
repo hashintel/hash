@@ -100,6 +100,40 @@ describe("deriveTimingFromRecords", () => {
     expect(out.n_batches).toBe(5);
   });
 
+  it("uses detail_rows as canonical observations for omitted-grain batch QA", () => {
+    const step = recordsOnlyStep({
+      type: "qa_hold",
+      timing_grain: undefined,
+      n_batches: 2,
+      campaign_rows: undefined,
+      detail_rows: {
+        columns: [],
+        rows: [
+          {
+            qa_decision_date: "2026-01-12",
+            prod_to_qa_decision_days: 4,
+          },
+          {
+            qa_decision_date: "2026-02-15",
+            prod_to_qa_decision_days: 8,
+          },
+        ],
+      },
+      ref_date_col: "qa_decision_date",
+      value_col: "prod_to_qa_decision_days",
+    });
+
+    const out = ensureStepStats(step);
+
+    expect(out.observations).toEqual([
+      { date: "2026-01-12", value: 4 },
+      { date: "2026-02-15", value: 8 },
+    ]);
+    expect(out.stats.n).toBe(2);
+    expect(out.n_batches).toBe(2);
+    expect(out.campaign_rows).toBeUndefined();
+  });
+
   it("rehydrates observations/durations/monthly/stats from detail_rows", () => {
     const derived = deriveTimingFromRecords(recordsOnlyStep());
     expect(

@@ -327,6 +327,7 @@ export function useSiteOverviewRows({
   return {
     loading,
     error,
+    historicalNodes,
     filteredNodes,
     summaryStats,
     siteCurrency,

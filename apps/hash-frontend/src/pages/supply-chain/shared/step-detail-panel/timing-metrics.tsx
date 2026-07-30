@@ -11,6 +11,7 @@ import {
   formatNumber,
 } from "../cost";
 import { useBaseMeasure, selectStat, MEASURE_LABELS } from "../measure-context";
+import { effectiveTimingGrain } from "../observation-labels";
 import { type PeriodComparison, computeCostComparison } from "../period-trends";
 import { planSourceLabel } from "../planning-param";
 import { useProcurementBasis } from "../procurement-basis-context";
@@ -325,7 +326,10 @@ export const KeyMetricsRow = ({
             </span>
             {pep != null && (
               <span className={badge}>
-                {step.timing_grain === "campaign"
+                {effectiveTimingGrain({
+                  type: step.type,
+                  timingGrain: step.timing_grain,
+                }) === "campaign"
                   ? "of campaigns"
                   : "of batches"}
               </span>
