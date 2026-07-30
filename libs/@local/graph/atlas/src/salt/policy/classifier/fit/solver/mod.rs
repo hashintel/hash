@@ -21,7 +21,7 @@
 
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, BoxedDVecN},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN},
     salt::policy::GeometryClass,
 };
 
@@ -127,5 +127,12 @@ impl ContrastVector {
     fn is_finite(&self) -> bool {
         self.coefficients.iter().all(|row| row.is_finite())
             && self.intercepts.iter().all(|value| value.is_finite())
+    }
+
+    /// Contrast logits `t = T·x̄`: one wide dot plus the intercept per contrast row.
+    fn logits(&self, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> [f64; CONTRAST_ROWS] {
+        core::array::from_fn(|row| {
+            embedding.dot_wide(&self.coefficients[row]) + self.intercepts[row]
+        })
     }
 }

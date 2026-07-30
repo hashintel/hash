@@ -219,7 +219,7 @@ fn run(
             evidence.gradient_threshold
         };
 
-        // A passing accepted gradient always returns before CG runs.
+        // A passing accepted gradient always returns before the inner solve runs.
         if gradient_norm <= threshold {
             return certify(problem, accepted, control, threshold);
         }

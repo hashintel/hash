@@ -1,7 +1,7 @@
 //! Validated steps onto the numerical trust-region boundary.
 //!
-//! When the inner CG solve leaves the trust region or meets non-positive curvature, its step is
-//! the interior iterate advanced to the boundary: the positive `τ` with `‖(p + τd)/Δ‖ = 1`. The
+//! When the inner solve's step leaves the trust region, the returned step is an interior
+//! iterate advanced to the boundary: the positive `τ` with `‖(p + τd)/Δ‖ = 1`. The
 //! crossing is found in radius-normalized coordinates `u = p/Δ`, `v = d/Δ` through the
 //! cancellation-free quadratic root `q = −½·(b + copysign(√(b² − 4ac), b))`, and the construction
 //! is validated rather than trusted: the normalized step must land within the gross-defect guard

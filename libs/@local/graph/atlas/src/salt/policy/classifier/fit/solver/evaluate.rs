@@ -24,7 +24,8 @@
 //! vector evaluations report [`None`].
 
 use super::{
-    CONTRAST_ROWS, ContrastVector, LEADING_CLASSES, basis, prepare::Prepared, work::WorkCounters,
+    CONTRAST_ROWS, ContrastVector, LEADING_CLASSES, basis, prepare::Prepared, target::ClosedTarget,
+    work::WorkCounters,
 };
 use crate::{dataset::CANONICAL_DIMENSIONS, math::AlignedVecN, salt::policy::GeometryClass};
 
@@ -59,7 +60,7 @@ struct RowPrelude {
 impl RowPrelude {
     /// Runs the shared logits path for one row.
     fn new(parameters: &ContrastVector, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> Self {
-        let logits = basis::expand(contrast_logits(parameters, embedding));
+        let logits = basis::expand(parameters.logits(embedding));
         let reference = logits[GeometryClass::COUNT - 1];
         let delta: [f64; LEADING_CLASSES] = core::array::from_fn(|class| logits[class] - reference);
 
@@ -95,40 +96,32 @@ impl RowPrelude {
         }
         value
     }
-}
 
-/// Contrast logits `t = T·x̄`: one wide dot plus the intercept per contrast row.
-fn contrast_logits(
-    parameters: &ContrastVector,
-    embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
-) -> [f64; CONTRAST_ROWS] {
-    core::array::from_fn(|row| {
-        embedding.dot_wide(&parameters.coefficients[row]) + parameters.intercepts[row]
-    })
-}
+    /// Accumulates one row's weighted gradient residual `w·Bᵀ(p − q)·x̄ᵀ`.
+    fn accumulate_residual(
+        &self,
+        gradient: &mut ContrastVector,
+        target: &ClosedTarget,
+        weight: f64,
+        embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
+    ) {
+        let mut residual = [0.0_f64; GeometryClass::COUNT];
 
-/// Accumulates one row's weighted gradient residual `w·Bᵀ(p − q)·x̄ᵀ`.
-fn accumulate_residual(
-    gradient: &mut ContrastVector,
-    prelude: &RowPrelude,
-    target: [f64; GeometryClass::COUNT],
-    weight: f64,
-    embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
-) {
-    let mut residual = [0.0_f64; GeometryClass::COUNT];
+        for ((out, probability), component) in residual
+            .iter_mut()
+            .zip(self.probabilities)
+            .zip(target.components())
+        {
+            *out = probability - component;
+        }
 
-    for ((out, probability), component) in
-        residual.iter_mut().zip(prelude.probabilities).zip(target)
-    {
-        *out = probability - component;
-    }
+        let contrast = basis::reduce(residual);
+        for (row_slot, weight_share) in contrast.into_iter().enumerate() {
+            let scaled = weight * weight_share;
 
-    let contrast = basis::reduce(residual);
-    for (row_slot, weight_share) in contrast.into_iter().enumerate() {
-        let scaled = weight * weight_share;
-
-        gradient.coefficients[row_slot].add_scaled(embedding, scaled);
-        gradient.intercepts[row_slot] += scaled;
+            gradient.coefficients[row_slot].add_scaled(embedding, scaled);
+            gradient.intercepts[row_slot] += scaled;
+        }
     }
 }
 
@@ -156,10 +149,10 @@ impl Prepared<'_> {
             data_loss = row
                 .weight
                 .mul_add(prelude.loss(self.targets[row_index].leading()), data_loss);
-            accumulate_residual(
+
+            prelude.accumulate_residual(
                 &mut gradient,
-                &prelude,
-                self.targets[row_index].components(),
+                &self.targets[row_index],
                 row.weight,
                 embedding,
             );
@@ -220,10 +213,9 @@ impl Prepared<'_> {
             counters.visit_row();
 
             let prelude = RowPrelude::new(parameters, embedding);
-            accumulate_residual(
+            prelude.accumulate_residual(
                 &mut gradient,
-                &prelude,
-                self.targets[row_index].components(),
+                &self.targets[row_index],
                 row.weight,
                 embedding,
             );
@@ -256,7 +248,7 @@ impl Prepared<'_> {
             let prelude = RowPrelude::new(parameters, embedding);
 
             // ν = U·x̄, then z = B·ν in class space.
-            let projected = basis::expand(contrast_logits(direction, embedding));
+            let projected = basis::expand(direction.logits(embedding));
 
             // (diag(p) − ppᵀ)·z = p ⊙ (z − (pᵀz)·1), folded in class order.
             let mut alignment = 0.0_f64;
@@ -389,6 +381,7 @@ impl Prepared<'_> {
             .iter()
             .map(|embedding| {
                 let prelude = RowPrelude::new(parameters, embedding);
+
                 prelude
                     .probabilities
                     .into_iter()

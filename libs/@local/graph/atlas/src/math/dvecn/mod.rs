@@ -2,7 +2,7 @@
 //!
 //! [`DVecN`] is the `f64` twin of [`VecN`], for the few consumers whose algorithms demand
 //! double precision throughout, such as classifier logits feeding the bounded trust-region
-//! Newton-CG solver.
+//! exact-Newton solver.
 //! Its reductions ([`softmax`](DVecN::softmax), [`log_sum_exp`](DVecN::log_sum_exp)) shift,
 //! exponentiate, and fold four lanes at a time; the exponential goes through
 //! [`kernel::exp_f64x4`](super::kernel), which currently lowers to one libm call per lane.
