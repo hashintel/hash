@@ -9,7 +9,7 @@
 
 use core::simd::f64x8;
 
-use super::{DCholeskyError, DSquareMatrix};
+use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
 
 /// A deterministic integer pattern in `[−5, 5]`.
 fn pattern(row: usize, column: usize) -> f64 {
@@ -196,6 +196,38 @@ fn factoring_identical_bytes_yields_identical_bytes() {
 
     for (left, right) in first.components().iter().zip(second.components()) {
         assert_eq!(left.to_bits(), right.to_bits());
+    }
+}
+
+#[test]
+fn both_dots_reduce_equal_inputs_to_identical_bits() {
+    // Two aligned rows carry the operands; the shifted copy hands the plain-slice dot a start
+    // the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and whole lanes.
+    const ORDER: usize = 40;
+    let mut storage = DSquareMatrix::zeroed(ORDER);
+    for column in 0..ORDER {
+        storage.row_mut(0)[column] = pattern(3, column);
+        storage.row_mut(1)[column] = pattern(7, column);
+    }
+
+    let mut shifted = [0.0; ORDER + 1];
+    shifted[1..].copy_from_slice(storage.row(1));
+
+    for length in 0..=ORDER {
+        let left = DSquareRowBlock::from_slice(&storage.row(0)[..length]);
+        let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..length]);
+
+        let through_views = left.dot(aligned).to_bits();
+        assert_eq!(
+            through_views,
+            left.dot_vector(&storage.row(1)[..length]).to_bits(),
+            "the dots disagreed at length {length}",
+        );
+        assert_eq!(
+            through_views,
+            left.dot_vector(&shifted[1..=length]).to_bits(),
+            "the shifted start changed the bits at length {length}",
+        );
     }
 }
 

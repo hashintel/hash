@@ -37,6 +37,10 @@
 //! [`BoxedVecN`] owns SIMD-aligned heap storage and hands out [`AlignedVecN`] references. [`DVecN`]
 //! is the double-precision twin for the few consumers whose algorithms need it.
 //!
+//! Dense solves: [`DSquareMatrix`] is the runtime-order square `f64` matrix;
+//! [`DSquareMatrix::cholesky`] factors it deterministically into the [`DCholeskyFactor`] that
+//! answers symmetric positive-definite linear systems.
+//!
 //! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
 //! attraction/repulsion gradients over batches; its parameters come from [`AffinityCurve::fit`].
 //!
@@ -64,6 +68,7 @@
 
 mod affinity;
 mod bounds;
+mod dsquare;
 mod dvec2;
 mod dvecn;
 pub(crate) mod kernel;
@@ -87,6 +92,7 @@ pub(crate) use self::scalar::{
 pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
     bounds::Bounds2,
+    dsquare::{DCholeskyError, DCholeskyFactor, DSquareMatrix},
     dvec2::{DVec2, DVec2x4T},
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     matrixn::MatrixN,
