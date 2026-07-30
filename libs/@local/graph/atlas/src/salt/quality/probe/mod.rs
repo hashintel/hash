@@ -44,7 +44,8 @@ pub(crate) use self::{
     error::{DeliveryError, ProbeError},
     options::ProbeOptions,
     readings::{
-        ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, Rung, SpacePair, SpacePairArray,
+        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, Rung, SpacePair,
+        SpacePairArray,
     },
 };
 use self::{

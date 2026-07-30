@@ -79,6 +79,15 @@ impl FilterDigest {
     pub(crate) const fn digest(self) -> Sha256Digest {
         self.0
     }
+
+    /// Restores a digest that travelled, as an authority token's does.
+    ///
+    /// The bytes are a digest this process or another already computed over a filter's canonical
+    /// form; nothing here recomputes it. A wrong value names a scope no filter produces, which the
+    /// filter store then fails to resolve.
+    pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
+        Self(digest)
+    }
 }
 
 /// The identity of a resolved permission set.
@@ -169,8 +178,9 @@ impl Resolution {
     }
 }
 
-/// One resolved scope: the rows it may see, the census of them, and the identity of that permission
-/// set.
+/// One resolved scope.
+///
+/// The rows the scope may see, the census of them, and the identity of that permission set.
 #[derive(Debug, Clone)]
 pub(crate) struct ResolvedVisibility {
     /// The rows the actor may see.
@@ -341,10 +351,10 @@ impl VisibilityCache {
     /// request that crosses the horizon costs what a hit costs, and the proof it receives is the
     /// one it already had.
     ///
-    /// An entry past the hard window answers nothing: it is dropped before the read, so this call
-    /// resolves inline and the answer is a resolution no older than `now`. The window is measured
-    /// from the resolution the entry carries, so a slow resolution shortens the entry's reuse
-    /// rather than extending its window.
+    /// An entry past the hard window answers nothing: it is dropped and resolved again, so the
+    /// answer is a resolution no older than `now`. The window is judged on the caller's `now` - the
+    /// clock `resolved_at` came from - and measured from the resolution the entry carries, so a
+    /// slow resolution shortens the entry's reuse rather than extending its window.
     ///
     /// A refresh publishes only over the entry it refreshed, and only while that entry is the
     /// newest held: a refresh that lands after a newer resolution, or after the entry it refreshed
@@ -376,24 +386,17 @@ impl VisibilityCache {
         F: Future<Output = Result<Resolution, E>> + Send + 'static,
         E: Send + Sync + 'static,
     {
-        // An entry past its window stops answering here rather than at moka's expiry, whose clock
-        // starts when the resolution finished. Dropping it before the read below cannot recurse:
-        // what that read inserts is resolved at `now`.
-        if let Some(held) = self.entries.get(&key).await
-            && held.is_expired(now, self.hard)
-        {
-            self.entries.invalidate(&key).await;
-        }
-
         let refresh = resolve.clone();
-        let entry = self
-            .entries
-            .try_get_with(key, async move {
-                resolve()
-                    .await
-                    .map(|resolution| ResolvedVisibility::new(resolution, now))
-            })
-            .await?;
+        let mut entry = self.held_or_resolved(key, now, resolve.clone()).await?;
+
+        // The window is judged on the caller's clock - the one `resolved_at` came from - and not on
+        // moka's, whose expiry would start when the resolution finished. Judging it after the read
+        // rather than before costs the answering path one lookup instead of two, and the retry
+        // cannot loop: what it inserts is dated `now`.
+        if entry.is_expired(now, self.hard) {
+            self.entries.invalidate(&key).await;
+            entry = self.held_or_resolved(key, now, resolve).await?;
+        }
 
         // A resolution that just ran is not stale, so this is the held-entry path alone.
         if entry.is_stale(now, self.soft) && entry.claim_refresh() {
@@ -434,6 +437,31 @@ impl VisibilityCache {
         }
 
         Ok(entry)
+    }
+
+    /// Answers from the entry held for `key`, resolving inline when none is held.
+    ///
+    /// Concurrent callers of one key share one inline resolution: the initializer runs once and
+    /// every waiter receives its result, which is what keeps a burst of tile requests for one scope
+    /// to a single store round trip.
+    async fn held_or_resolved<R, F, E>(
+        &self,
+        key: VisibilityKey,
+        now: Instant,
+        resolve: R,
+    ) -> Result<ResolvedVisibility, Arc<E>>
+    where
+        R: FnOnce() -> F + Send + 'static,
+        F: Future<Output = Result<Resolution, E>> + Send + 'static,
+        E: Send + Sync + 'static,
+    {
+        self.entries
+            .try_get_with(key, async move {
+                resolve()
+                    .await
+                    .map(|resolution| ResolvedVisibility::new(resolution, now))
+            })
+            .await
     }
 }
 

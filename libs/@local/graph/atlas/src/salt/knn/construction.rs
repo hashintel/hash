@@ -15,7 +15,7 @@ use core::{
     sync::atomic::{Atomic, Ordering},
 };
 
-use hashql_core::id::{Id, IdSlice};
+use hashql_core::id::{Id, IdMatrix, IdSlice};
 use rand::{Rng, SeedableRng};
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
@@ -46,6 +46,12 @@ const fn reports_at(done: usize, total: usize) -> bool {
     done.is_multiple_of(REPORT_CADENCE) || done == total
 }
 
+hashql_core::id::newtype! {
+    /// One slot of a row's neighbour list, ascending by `(distance, id)`.
+    #[id(const)]
+    pub(crate) struct NeighbourSlot(u32)
+}
+
 /// Every row's nearest non-self neighbours, at one uniform width.
 ///
 /// Row-major storage: row `i` holds exactly [`width`](Self::width) entries in ascending
@@ -53,8 +59,7 @@ const fn reports_at(done: usize, total: usize) -> bool {
 /// guarantees the entries; the type only carries them.
 #[derive(Debug)]
 pub(crate) struct NeighbourLists<N> {
-    entries: Box<[Neighbour<N>]>,
-    width: usize,
+    entries: IdMatrix<N, NeighbourSlot, Neighbour<N>>,
 }
 
 impl<N> NeighbourLists<N>
@@ -62,29 +67,28 @@ where
     N: Id,
 {
     /// Wraps row-major entries whose per-row contract the producer established.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `width` is zero or does not divide the entry count exactly.
     pub(super) fn new(entries: Box<[Neighbour<N>]>, width: usize) -> Self {
-        debug_assert!(width > 0 && entries.len().is_multiple_of(width));
-
-        Self { entries, width }
+        Self {
+            entries: IdMatrix::from_flat(entries.into_vec(), width),
+        }
     }
 
     /// Returns the row count.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the width divides the entry count exactly by construction"
-    )]
     #[inline]
     #[must_use]
-    pub(crate) fn rows(&self) -> usize {
-        self.entries.len() / self.width
+    pub(crate) const fn rows(&self) -> usize {
+        self.entries.rows()
     }
 
     /// Returns the neighbours held per row.
     #[inline]
     #[must_use]
     pub(crate) const fn width(&self) -> usize {
-        self.width
+        self.entries.columns()
     }
 
     /// Returns row `row`'s neighbours in ascending `(distance, id)` order.
@@ -94,8 +98,11 @@ where
     /// Panics when `row` is outside the row domain.
     #[inline]
     #[must_use]
-    pub(crate) fn row(&self, row: N) -> &[Neighbour<N>] {
-        &self.entries[row.as_usize() * self.width..(row.as_usize() + 1) * self.width]
+    pub(crate) const fn row(&self, row: N) -> &[Neighbour<N>]
+    where
+        N: [const] Id,
+    {
+        self.entries.row(row).as_raw()
     }
 }
 

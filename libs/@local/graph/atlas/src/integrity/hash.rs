@@ -42,6 +42,9 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
 impl Sha256Digest {
+    /// The digest width, bytes.
+    pub const BYTES: usize = DIGEST_BYTES;
+
     /// Adopts `bytes` as a digest without computing anything.
     ///
     /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this

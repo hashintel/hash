@@ -24,8 +24,8 @@ use super::{
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
-        ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair,
-        ReadingGrid, Rung, probe, sample_pairs,
+        AnchorOrdinal, ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings,
+        RadiusPair, ReadingGrid, Rung, probe, sample_pairs,
     },
     report::{QualityThresholds, ThresholdOverrides, assess},
     runner::{QualityRunOptions, run},
@@ -601,7 +601,7 @@ async fn corpus_readings_match_a_sorting_reference() {
         assert_eq!(
             *readings
                 .map_representation
-                .anchor(index, Rung::from_usize(0)),
+                .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0)),
             expected,
             "anchor {anchor} disagrees with the sorting reference",
         );
@@ -651,6 +651,30 @@ async fn corpus_readings_match_a_sorting_reference() {
     }
 }
 
+/// Asserts the collapsed reading reproduces plain recall for the first `anchors` anchors.
+///
+/// Under singleton labels the collapse is the identity, so any disagreement is a defect in the
+/// collapse itself rather than in the grouping.
+fn assert_singleton_collapse_matches_plain_recall(
+    clumps: &ClumpReadings,
+    readings: &ProbeReadings<NodeRowId>,
+    anchors: usize,
+) {
+    for anchor in 0..anchors {
+        let origin = (AnchorOrdinal::from_usize(anchor), Rung::from_usize(0));
+        assert_eq!(
+            clumps
+                .map_representation
+                .anchor(origin.0, origin.1)
+                .recall(),
+            readings
+                .map_representation
+                .anchor(origin.0, origin.1)
+                .recall(),
+        );
+    }
+}
+
 /// The probe's clump collapse.
 ///
 /// Singleton labels reproduce plain recall exactly, and a grouped labelling agrees with a sorting
@@ -696,18 +720,7 @@ async fn clump_readings_match_a_sorting_reference() {
     assert_eq!(clumps.epsilon, 0.0);
     assert_eq!(clumps.count, 40);
     assert_eq!(clumps.groups, 0);
-    for anchor in 0..6 {
-        assert_eq!(
-            clumps
-                .map_representation
-                .anchor(anchor, Rung::from_usize(0))
-                .recall(),
-            readings
-                .map_representation
-                .anchor(anchor, Rung::from_usize(0))
-                .recall(),
-        );
-    }
+    assert_singleton_collapse_matches_plain_recall(clumps, &readings, 6);
 
     // Blocks of four rows form one clump each: neighbours on the
     // circle collapse onto shared labels, and the readings replay
@@ -757,7 +770,9 @@ async fn clump_readings_match_a_sorting_reference() {
         let mut expected = ClumpAggregate::new(k.try_into().expect("nonzero"));
         expected.observe(&mut reference_labels, &mut map_labels);
 
-        let cell = clumps.map_representation.anchor(index, Rung::from_usize(0));
+        let cell = clumps
+            .map_representation
+            .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0));
         assert_eq!(
             *cell, expected,
             "anchor {anchor} disagrees with the collapsed sorting reference",
@@ -767,7 +782,7 @@ async fn clump_readings_match_a_sorting_reference() {
             cell.recall()
                 >= readings
                     .map_representation
-                    .anchor(index, Rung::from_usize(0))
+                    .anchor(AnchorOrdinal::from_usize(index), Rung::from_usize(0))
                     .recall()
         );
     }

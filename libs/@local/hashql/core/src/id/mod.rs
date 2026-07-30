@@ -1,6 +1,7 @@
 mod array;
 pub mod bit_vec;
 mod index;
+mod matrix;
 mod slice;
 pub mod snapshot_vec;
 #[cfg(test)]
@@ -19,8 +20,8 @@ use ::core::sync::atomic;
 pub use hashql_macros::{Id, define_id as newtype};
 
 pub use self::{
-    array::IdArray, index::IntoSliceIndex, slice::IdSlice, snapshot_vec::IdSnapshotVec,
-    union_find::IdUnionFind, vec::IdVec,
+    array::IdArray, index::IntoSliceIndex, matrix::IdMatrix, slice::IdSlice,
+    snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
 };
 
 /// Represents errors that can occur when converting values to an [`Id`].

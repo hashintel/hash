@@ -6,7 +6,7 @@
 
 use core::{mem, num::NonZero};
 
-use hashql_core::id::{Id, IdArray, IdSlice};
+use hashql_core::id::{Id, IdArray, IdMatrix, IdSlice};
 
 use super::super::{
     clump::ClumpAggregate,
@@ -20,7 +20,18 @@ hashql_core::id::newtype! {
     /// them. Cells are addressed by rung, and the rung's neighbourhood size lives in
     /// [`ProbeReadings::neighbourhoods`], so a rung index and a neighbourhood size can never
     /// stand in for one another.
+    #[id(const)]
     pub(crate) struct Rung(u32)
+}
+
+hashql_core::id::newtype! {
+    /// One position on the grids' anchor axis, in sampling order.
+    ///
+    /// An ordinal addresses a sampled anchor's readings; the anchor's row id lives at the same
+    /// position of [`ProbeReadings::anchors`], so an ordinal and a corpus row can never stand in
+    /// for one another.
+    #[id(const)]
+    pub(crate) struct AnchorOrdinal(u32)
 }
 
 /// The probe's space pairs, in one pinned reporting order.
@@ -52,36 +63,34 @@ pub(crate) type SpacePairArray<T> = IdArray<SpacePair, T, { SpacePair::COUNT }>;
 /// aggregates for the space-pair grids, clump aggregates for the collapsed corpus grid.
 #[derive(Debug, Clone)]
 pub(crate) struct ReadingGrid<A = NeighbourhoodAggregate> {
-    cells: Box<[A]>,
-    rungs: usize,
+    cells: IdMatrix<AnchorOrdinal, Rung, A>,
 }
 
 impl<A> ReadingGrid<A> {
-    /// Flattens per-anchor cell rows into a grid.
+    /// Gathers per-anchor cell rows into a grid.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a row's cell count differs from `rungs`; every anchor reads the same rungs, so
+    /// a ragged row is a wiring defect.
     pub(in crate::salt::quality) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
         Self {
-            cells: rows.into_iter().flatten().collect(),
-            rungs,
+            cells: IdMatrix::from_rows(rows, rungs),
         }
     }
 
     /// Returns the anchor count.
-    #[expect(
-        clippy::integer_division,
-        clippy::integer_division_remainder_used,
-        reason = "the grid is rectangular by construction, so the division is exact"
-    )]
     #[inline]
     #[must_use]
     pub(crate) const fn anchors(&self) -> usize {
-        self.cells.len() / self.rungs
+        self.cells.rows()
     }
 
     /// Returns the rung count of the neighbourhood axis.
     #[inline]
     #[must_use]
     pub(crate) const fn rungs(&self) -> usize {
-        self.rungs
+        self.cells.columns()
     }
 
     /// Borrows one anchor's reading at one rung.
@@ -91,13 +100,8 @@ impl<A> ReadingGrid<A> {
     /// Panics when `anchor` or `rung` lies outside the grid.
     #[inline]
     #[must_use]
-    pub(crate) fn anchor(&self, anchor: usize, rung: Rung) -> &A {
-        assert!(
-            rung.as_usize() < self.rungs,
-            "the rung must lie inside the grid",
-        );
-
-        &self.cells[anchor * self.rungs + rung.as_usize()]
+    pub(crate) const fn anchor(&self, anchor: AnchorOrdinal, rung: Rung) -> &A {
+        &self.cells[(anchor, rung)]
     }
 }
 
@@ -108,13 +112,17 @@ impl ReadingGrid<NeighbourhoodAggregate> {
     ///
     /// # Panics
     ///
-    /// Panics when `rung` lies outside the grid.
+    /// Panics when `rung` lies outside the grid or the grid holds no anchor.
     #[must_use]
     pub(crate) fn overall(&self, rung: Rung) -> NeighbourhoodAggregate {
-        let mut merged = self.anchor(0, rung).clone();
+        let mut column = self.cells.column(rung);
+        let mut merged = column
+            .next()
+            .expect("the grid holds at least one anchor")
+            .clone();
 
-        for anchor in 1..self.anchors() {
-            merged.merge(self.anchor(anchor, rung));
+        for cell in column {
+            merged.merge(cell);
         }
 
         merged
@@ -126,12 +134,13 @@ impl ReadingGrid<ClumpAggregate> {
     ///
     /// # Panics
     ///
-    /// Panics when `rung` lies outside the grid.
+    /// Panics when `rung` lies outside the grid or the grid holds no anchor.
     #[must_use]
     pub(crate) fn overall(&self, rung: Rung) -> ClumpAggregate {
-        let mut merged = *self.anchor(0, rung);
-        for anchor in 1..self.anchors() {
-            merged.merge(self.anchor(anchor, rung));
+        let mut column = self.cells.column(rung);
+        let mut merged = *column.next().expect("the grid holds at least one anchor");
+        for cell in column {
+            merged.merge(cell);
         }
         merged
     }

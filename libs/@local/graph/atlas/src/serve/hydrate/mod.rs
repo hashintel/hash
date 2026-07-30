@@ -27,7 +27,11 @@
 //! surfaces also name the base URL behind the label, which states that the entity has a value at
 //! that path without delivering it.
 //!
-//! The tile trailer's per-point rules mirror the client's own display logic:
+//! The tile trailer's per-point rules are the graph's own display resolution rather than a second
+//! implementation of a client's: the label is the value the store's label column resolved from the
+//! type's `labelProperty`, and the icon follows the SDK's display-field rule. Where the graph's
+//! resolution and a client's differ, the value delivered here is the graph's, and convergence is
+//! the graph's to make - this surface re-derives neither rule.
 //!
 //! - Label: `entity_edition_cache.labels[1]`, the entity's display label; `null` when the entity
 //!   has none.

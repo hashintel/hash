@@ -59,7 +59,7 @@ pub(crate) use self::{
 };
 use super::{
     clump::ClumpAggregate,
-    probe::{ProbeReadings, ReadingGrid, Rung},
+    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Rung},
 };
 use crate::identity::OntologyRowId;
 
@@ -108,10 +108,13 @@ pub(crate) fn assess<N>(
 
     // Membership by ontology row; the map iterates ascending, so
     // subgroups and flags order deterministically.
-    let mut members: BTreeMap<OntologyRowId, Vec<usize>> = BTreeMap::new();
+    let mut members: BTreeMap<OntologyRowId, Vec<AnchorOrdinal>> = BTreeMap::new();
     for (anchor, types) in anchor_types.iter().enumerate() {
         for &ontology in types {
-            members.entry(ontology).or_default().push(anchor);
+            members
+                .entry(ontology)
+                .or_default()
+                .push(AnchorOrdinal::from_usize(anchor));
         }
     }
 
@@ -186,7 +189,7 @@ fn subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     overall: &[MetricRow],
     clump_overall: Option<&[ClumpAggregate]>,
-    members: &BTreeMap<OntologyRowId, Vec<usize>>,
+    members: &BTreeMap<OntologyRowId, Vec<AnchorOrdinal>>,
     thresholds: &QualityThresholds,
 ) -> (Vec<SubgroupReport>, Vec<SubgroupFlag>) {
     let mut subgroups = Vec::with_capacity(members.len());
@@ -261,7 +264,7 @@ fn subgroup_reports<N>(
 /// evidence travel together.
 fn baseline_subgroup_reports<N>(
     readings: &ProbeReadings<N>,
-    members: &BTreeMap<OntologyRowId, Vec<usize>>,
+    members: &BTreeMap<OntologyRowId, Vec<AnchorOrdinal>>,
 ) -> Vec<BaselineSubgroupReport> {
     members
         .iter()

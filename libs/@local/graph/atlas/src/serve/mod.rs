@@ -113,6 +113,7 @@ mod translate;
 mod visibility;
 mod walk;
 
+mod authorization;
 #[cfg(test)]
 mod tests;
 

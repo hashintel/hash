@@ -31,7 +31,10 @@ use crate::serve::{
     VisibilityProof, visibility_proof,
 };
 
-/// The header naming the authenticated actor, as the graph's REST API names it.
+/// The header naming the authenticated actor.
+///
+/// The spelling is fixed by parity with the graph's REST API, which accepts this name. Headers this
+/// crate introduces carry no prefix.
 const ACTOR_HEADER: &str = "X-Authenticated-User-Actor-Id";
 
 /// Where a request's visibility comes from: the store, through the cache.

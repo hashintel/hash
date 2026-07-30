@@ -30,6 +30,7 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
 };
 
+mod authorization;
 mod backfill;
 mod backfill_channel;
 mod density;
