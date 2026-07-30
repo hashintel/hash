@@ -270,7 +270,11 @@ fn counter(run: &RunState, stage: Stage) -> Option<String> {
         Stage::Ingest => run.embedding().map(embedding_counter),
         Stage::Classifier => run
             .classifier()
-            .map(|folds| classifier_counter(folds, run.classifier_regularization())),
+            .map(|folds| classifier_counter(folds, run.classifier_regularization()))
+            .or_else(|| {
+                run.assembly_boundary()
+                    .map(|epsilon| format!("ε {epsilon:.2e}"))
+            }),
         Stage::Knn => run.knn().map(knn_counter),
         Stage::Policy
         | Stage::Adjacency
@@ -870,6 +874,32 @@ mod tests {
 
         assert!(
             drawn[2].starts_with("│ ⠋ classifier  ██████░░ 3/4 folds"),
+            "{drawn:#?}"
+        );
+    }
+
+    #[expect(
+        clippy::non_ascii_literal,
+        reason = "the assertions read the dashboard's own glyphs"
+    )]
+    #[test]
+    fn the_classifier_row_carries_the_derived_boundary_until_the_folds_start() {
+        let mut state = RunState::new();
+        state.complete_at(Stage::Ingest, Duration::from_secs(1));
+        state.derive_assembly_boundary(3.6218e-4);
+
+        let drawn = draw(&state, 0);
+
+        assert!(
+            drawn[2].starts_with("│ ⠋ classifier  ε 3.62e-4"),
+            "{drawn:#?}"
+        );
+
+        // The folds counter supersedes the boundary the moment the fit announces itself.
+        state.start_classifier(4);
+        let drawn = draw(&state, 0);
+        assert!(
+            drawn[2].starts_with("│ ⠋ classifier  ░░░░░░░░ 0/4 folds"),
             "{drawn:#?}"
         );
     }

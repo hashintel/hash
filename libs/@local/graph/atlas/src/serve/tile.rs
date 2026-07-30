@@ -11,6 +11,7 @@ use type_system::ontology::id::VersionedUrl;
 use super::{
     Atlas, Filter, Mode, TileCoordinate,
     colour::{MaskSet, Palette},
+    density::ViewOccupancy,
     grid,
     hydrate::{DeliveredEntities, NodeDetails},
     visibility::VisibilityProof,
@@ -202,6 +203,15 @@ impl Atlas {
     #[must_use]
     pub fn census(&self, proof: &VisibilityProof) -> ViewCensus {
         Walk::of(self, proof).visible_census(self.grid.cut(0), self.positions(), self.bounds)
+    }
+
+    /// Aggregates the Morton occupancy of `proof`'s visible view.
+    ///
+    /// The delivery-cut policy's input: one pass over the code column, paid only where a fresh
+    /// bootstrap resolves its offset, never on the request path.
+    #[must_use]
+    pub(crate) fn visible_occupancy(&self, proof: &VisibilityProof) -> ViewOccupancy {
+        Walk::of(self, proof).visible_occupancy()
     }
 
     /// Assembles one tile request into its owned document.

@@ -853,7 +853,7 @@ struct PolicyOptionsDef {
     classifier_fit: ClassifierFitConfig,
 }
 
-/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the threshold's domain.
+/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the budget's domain.
 mod assembly_config {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
@@ -862,16 +862,18 @@ mod assembly_config {
     /// The assembly settings' wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
-        near_duplicate_epsilon: f64,
         maximum_group_fraction: f64,
     }
 
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` contract passes the field by reference"
+    )]
     pub(super) fn serialize<S>(config: &AssemblyConfig, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         Record {
-            near_duplicate_epsilon: config.near_duplicate_epsilon,
             maximum_group_fraction: config.maximum_group_fraction,
         }
         .serialize(serializer)
@@ -882,11 +884,6 @@ mod assembly_config {
         D: serde::Deserializer<'de>,
     {
         let record = Record::deserialize(deserializer)?;
-        if !record.near_duplicate_epsilon.is_finite() || record.near_duplicate_epsilon <= 0.0 {
-            return Err(D::Error::custom(
-                "the near-duplicate threshold must be positive and finite",
-            ));
-        }
         if !(record.maximum_group_fraction > 0.0 && record.maximum_group_fraction <= 1.0) {
             return Err(D::Error::custom(
                 "the group budget must be a fraction in (0, 1]",
@@ -894,7 +891,6 @@ mod assembly_config {
         }
 
         Ok(AssemblyConfig {
-            near_duplicate_epsilon: record.near_duplicate_epsilon,
             maximum_group_fraction: record.maximum_group_fraction,
         })
     }

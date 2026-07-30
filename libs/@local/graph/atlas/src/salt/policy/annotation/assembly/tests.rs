@@ -64,20 +64,22 @@ struct ProgrammedEmbedder;
 impl ProgrammedEmbedder {
     /// The polar angle of each card's programmed embedding.
     ///
-    /// Alpha and beta lie `0.05` radians apart, within the default near-duplicate threshold (`1 -
-    /// cos(0.05) ≈ 1.25e-3`); beta and delta lie `0.06` radians apart, also within it but farther
-    /// (`1 - cos(0.06) ≈ 1.80e-3`); beta and gamma lie `0.10` radians apart, outside it (`1 -
-    /// cos(0.10) ≈ 5.0e-3`).
+    /// Alpha and beta lie `0.005` radians apart (`1 - cos(0.005) ≈ 1.25e-5`): a true
+    /// near-duplicate pair, decades below every other distance. Beta and delta lie `0.006`
+    /// radians apart (`≈ 1.8e-5`), a farther member of the same duplicate cluster; the next
+    /// distance up in any corpus here is `≥ 1.0e-2`, so the boundary derivation finds the void
+    /// between the cluster and the bulk.
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
             "has part" => 0.3,
             "alpha" => 1.0,
-            "beta" => 1.05,
-            "delta" => 1.11,
+            "beta" => 1.005,
+            "delta" => 1.011,
             "gamma" => 1.15,
             "Employed By" => 2.0,
             "holdout" => 2.5,
+            "sigma" => 2.9,
             _ => panic!("no programmed embedding for the card titled {title}"),
         }
     }
@@ -610,7 +612,7 @@ async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
         ("http://www.wikidata.org/entity/P91a", "gamma", "f-1"),
         ("http://www.wikidata.org/entity/P91b", "Employed By", "f-2"),
         ("http://www.wikidata.org/entity/P91c", "part of", "f-3"),
-        ("http://www.wikidata.org/entity/P91d", "has part", "f-4"),
+        ("http://www.wikidata.org/entity/P91d", "sigma", "f-4"),
     ]
     .map(|(identity, title, family)| {
         let mut card = wikidata_card(identity, title, family, &[vote("overlay")]);
@@ -640,22 +642,27 @@ async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
 
 #[tokio::test]
 async fn subdivision_cuts_near_duplicates_farthest_first() {
-    // A near-duplicate chain: alpha-beta at ~1.25e-3, beta-delta at
-    // ~1.80e-3. The budget admits pairs; the cut drops the farther
-    // link and keeps the nearer one.
+    // A near-duplicate triangle - alpha-beta at ~1.25e-5, beta-delta
+    // at ~1.8e-5, alpha-delta at ~6.05e-5 - against three far cards
+    // supplying the corpus bulk. The derived boundary joins the whole
+    // triangle; the budget rejects it, and the cut drops the farther
+    // links and keeps the nearest pair.
     let cards: Vec<Value> = [
         ("http://www.wikidata.org/entity/P92a", "alpha", "f-1"),
         ("http://www.wikidata.org/entity/P92b", "beta", "f-2"),
         ("http://www.wikidata.org/entity/P92c", "delta", "f-3"),
+        ("http://www.wikidata.org/entity/P92d", "Employed By", "f-4"),
+        ("http://www.wikidata.org/entity/P92e", "part of", "f-5"),
+        ("http://www.wikidata.org/entity/P92f", "has part", "f-6"),
     ]
     .map(|(identity, title, family)| wikidata_card(identity, title, family, &[vote("overlay")]))
     .into();
 
-    let assembled = assemble_under(&cards, 0.7).await;
+    let assembled = assemble_under(&cards, 0.4).await;
 
     let evidence = assembled.evidence();
-    assert_eq!(evidence.near_duplicate_pairs, 2);
-    assert_eq!(evidence.fold_groups, 2);
+    assert_eq!(evidence.near_duplicate_pairs, 3);
+    assert_eq!(evidence.fold_groups, 5);
     assert_eq!(evidence.subdivided_groups, 1);
     assert_eq!(evidence.oversized_accepted, 0);
     assert_eq!(
@@ -664,7 +671,7 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
     );
 
     let rows = assembled.rows();
-    assert_eq!(rows.len(), 3);
+    assert_eq!(rows.len(), 6);
     assert_eq!(
         rows[0].group,
         group_digest(&[
@@ -673,10 +680,14 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
         ])
     );
     assert_eq!(rows[1].group, rows[0].group);
-    assert_eq!(
-        rows[2].group,
-        group_digest(&["http://www.wikidata.org/entity/P92c"])
-    );
+    for (row, identity) in [
+        (2, "http://www.wikidata.org/entity/P92c"),
+        (3, "http://www.wikidata.org/entity/P92d"),
+        (4, "http://www.wikidata.org/entity/P92e"),
+        (5, "http://www.wikidata.org/entity/P92f"),
+    ] {
+        assert_eq!(rows[row].group, group_digest(&[identity]));
+    }
 }
 
 #[tokio::test]

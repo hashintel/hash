@@ -80,7 +80,7 @@ use crate::{
     dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
     identity::{Column, EdgeRowId, NodeRowId, OntologyRowId},
-    math::{Bounds2, Vec2},
+    math::{Bounds2, Log2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
         fit::prepare::identity::IdentityTableArchive,
@@ -203,6 +203,12 @@ pub struct Filter(serde_json::Value);
 #[derive(Debug)]
 pub struct Atlas {
     generation: Generation,
+    /// The server secret this generation was opened with.
+    ///
+    /// Every wire-facing derivation keys from it: the row-id codec's round keys at open, and the
+    /// authority token key at router construction. Held for the generation's lifetime, which is
+    /// the retention its type documents.
+    wire_secret: WireSecret,
     /// The validated bucket schedule and its addressing.
     grid: Grid,
     quad: QuadFile,
@@ -253,6 +259,24 @@ impl Atlas {
     #[must_use]
     pub const fn generation(&self) -> GenerationId {
         self.generation.id()
+    }
+
+    /// Views the server secret this generation was opened with.
+    pub(crate) const fn wire_secret(&self) -> &WireSecret {
+        &self.wire_secret
+    }
+
+    /// Configures the delivery-cut policy over this generation's schedule, aiming for `band`.
+    ///
+    /// [`None`] for the schedules no offset deepens - a terminal root, or a schedule already at
+    /// the key width - where every scope serves the recorded cut, [`CutOffset::ZERO`].
+    pub(crate) fn density_policy(&self, band: DensityBand) -> Option<DensityPolicy> {
+        DensityPolicy::new(
+            band,
+            Log2::new(self.grid.span_log2()).expect("the validated schedule's span fits the key"),
+            self.grid.max_tile_depth(),
+        )
+        .ok()
     }
 
     /// Views the wire-coordinate column in base order.

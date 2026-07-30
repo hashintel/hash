@@ -201,6 +201,8 @@ impl Atlas {
 
         Ok(Self {
             generation,
+            wire_secret: options.wire_secret.clone(), /* NOTE: why don't you just take ownership
+                                                       * of Option if you need to clone? */
             grid,
             quad,
             morton,

@@ -10,6 +10,7 @@ use tracing::Instrument as _;
 
 use super::{
     AppState,
+    authorization::Authorized,
     extract::{Body, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
@@ -64,6 +65,9 @@ pub(super) struct VariantPath {
 /// request's subject, so the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
+    _authority: Authorized, /* Note: ??? shouldn't `Authorized(visibility)`? This goes literally
+                             * against rule (1): make invalid state unrepresentable. Congrats:
+                             * you just did the opposite. */
     visibility: Visibility,
     Generation(VariantPath {
         generation,
@@ -163,6 +167,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`too-many-tiles`, `invalid-generation`, `missing-body`, `invalid-body`, or \
                  `invalid-coordinate`",
             )
+        })
+        .response_with::<401, Problem<'static>, _>(|response| {
+            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
         })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(

@@ -180,6 +180,8 @@ fn classifier_evidence() -> ClassifierEvidence {
             fold_groups: 1_088,
             near_duplicate_pairs: 12,
             near_duplicate_epsilon: 2.0e-3,
+            near_duplicate_void: [4.0e-4, 1.0e-2],
+            near_duplicate_ceiling: 6.25e-2,
             subdivided_groups: 1,
             oversized_accepted: 0,
             deepest_relaxation: Relaxation::Family,

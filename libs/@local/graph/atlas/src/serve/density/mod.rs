@@ -152,6 +152,16 @@ impl CutOffset {
     pub const fn get(self) -> u8 {
         self.0
     }
+
+    /// Wraps an offset the token authority unsealed.
+    ///
+    /// The construction invariant - a value exists only where a policy resolved it - crosses the
+    /// seal on the token's tag: a sealed offset was resolved at its mint, and nothing else
+    /// constructs one here.
+    pub(crate) const fn carried(offset: u8) -> Self {
+        // NOTE: why not just zerocopy this struct?
+        Self(offset)
+    }
 }
 
 /// A generation whose recorded schedule leaves no delivery-cut offset to resolve.

@@ -170,6 +170,10 @@ impl Progress for Observer {
         self.report(Observation::EmbeddingBatch(batch));
     }
 
+    fn assembly_boundary_derived(&self, epsilon: f64) {
+        self.report(Observation::AssemblyBoundary(epsilon));
+    }
+
     fn classifier_started(&self, folds: usize) {
         self.report(Observation::ClassifierStarted(folds));
     }

@@ -149,6 +149,9 @@ pub trait Progress {
     /// The provider finished another embedding chunk.
     fn embedding_batch(&self, batch: Batch) {}
 
+    /// The corpus assembly derived its near-duplicate boundary.
+    fn assembly_boundary_derived(&self, epsilon: f64) {}
+
     /// The neighbour-table construction entered a named backend phase.
     ///
     /// The names are the backend's own open vocabulary (the HNSW backend reports its build
@@ -217,6 +220,10 @@ where
 
     fn embedding_batch(&self, batch: Batch) {
         T::embedding_batch(self, batch);
+    }
+
+    fn assembly_boundary_derived(&self, epsilon: f64) {
+        T::assembly_boundary_derived(self, epsilon);
     }
 
     fn knn_build_phase(&self, phase: &str) {

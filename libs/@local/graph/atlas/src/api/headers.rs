@@ -11,11 +11,11 @@ use aide::openapi;
 /// to prevent.
 pub(super) const REVALIDATE: &str = "private, no-cache";
 
-/// The manifest posture: immutable for the generation's lifetime.
+/// The authority token header: minted on the manifest response, presented back on data requests.
 ///
-/// The generation id in the path names frozen bytes, so the year-long `max-age` never serves a
-/// stale document.
-pub(super) const IMMUTABLE: &str = "private, max-age=31536000, immutable";
+/// The canonical spelling is `Atlas-Authority`; the constant is lowercase because static header
+/// names are, and header matching is case-insensitive either way.
+pub(super) const AUTHORITY: &str = "atlas-authority";
 
 /// The query-response posture: the client's application-layer cache is the cache.
 ///

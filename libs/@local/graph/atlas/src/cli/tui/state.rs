@@ -131,6 +131,8 @@ pub(super) enum Observation {
     EmbeddingStarted(CardEmbeddingStats),
     /// The provider returned another embedding chunk.
     EmbeddingBatch(Batch),
+    /// The corpus assembly derived its near-duplicate boundary.
+    AssemblyBoundary(f64),
     /// The classifier fit announced its cross-validation folds.
     ClassifierStarted(usize),
     /// One cross-validation fold landed.
@@ -170,6 +172,8 @@ pub(super) struct RunState {
     completed: [Option<Duration>; Stage::ALL.len()],
     /// The embedding workload in flight, from the last split the run resolved.
     embedding: Option<EmbeddingWorkload>,
+    /// The assembly's derived near-duplicate boundary, once the grouping derives it.
+    assembly_boundary: Option<f64>,
     /// The classifier fit's folds, once it announces them.
     classifier: Option<ClassifierFolds>,
     /// The classifier fit's selected regularization strength, once chosen.
@@ -191,6 +195,7 @@ impl RunState {
             started: Instant::now(),
             completed: [None; Stage::ALL.len()],
             embedding: None,
+            assembly_boundary: None,
             classifier: None,
             classifier_regularization: None,
             knn: None,
@@ -205,6 +210,7 @@ impl RunState {
         match observation {
             Observation::EmbeddingStarted(stats) => self.start_embedding(&stats),
             Observation::EmbeddingBatch(batch) => self.advance_embedding(batch),
+            Observation::AssemblyBoundary(epsilon) => self.derive_assembly_boundary(epsilon),
             Observation::ClassifierStarted(folds) => self.start_classifier(folds),
             Observation::ClassifierFoldCompleted => self.complete_classifier_fold(),
             Observation::ClassifierRegularization(regularization) => {
@@ -271,6 +277,11 @@ impl RunState {
     /// Records the classifier fit's selected regularization strength.
     pub(super) const fn select_regularization(&mut self, regularization: f64) {
         self.classifier_regularization = Some(regularization);
+    }
+
+    /// Records the assembly's derived near-duplicate boundary.
+    pub(super) const fn derive_assembly_boundary(&mut self, epsilon: f64) {
+        self.assembly_boundary = Some(epsilon);
     }
 
     /// Records what the neighbour-table construction is doing now.
@@ -385,6 +396,11 @@ impl RunState {
     /// The classifier fit's selected regularization strength, once chosen.
     pub(super) const fn classifier_regularization(&self) -> Option<f64> {
         self.classifier_regularization
+    }
+
+    /// The assembly's derived near-duplicate boundary, once derived.
+    pub(super) const fn assembly_boundary(&self) -> Option<f64> {
+        self.assembly_boundary
     }
 
     /// The neighbour-table construction's latest activity, once it has reported one.

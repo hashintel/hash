@@ -4,6 +4,10 @@
 //! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
 //! what [`TokenAuthority`] produces. A test that only round-tripped `mint` through `open` would
 //! pass for a module that agrees with itself about the wrong bytes.
+#![expect(
+    clippy::min_ident_chars,
+    reason = "`k` is the delivery-cut offset's name throughout the density contract"
+)]
 
 use core::time::Duration;
 use std::time::SystemTime;
@@ -23,22 +27,23 @@ use zerocopy::IntoBytes as _;
 use crate::{
     integrity::{SecretHexBytes, Sha256Digest},
     serve::{
-        authorization::{AuthorityError, TokenAuthority},
-        cache::{FilterDigest, VisibilityKey},
+        authorization::{AuthorityError, Scope, TokenAuthority},
+        cache::FilterDigest,
+        density::CutOffset,
     },
 };
 
 /// The envelope's nonce width.
-const NONCE_BYTES: usize = 24;
+const NONCE_BYTES: usize = 24; // NOTE: magic number <3
 
 /// The clear header's width: one version byte, eight issue-time bytes, the nonce.
-const HEADER_BYTES: usize = 1 + 8 + NONCE_BYTES;
+const HEADER_BYTES: usize = 1 + 8 + NONCE_BYTES; // NOTE: magic number <3
 
-/// The sealed plaintext's width: an actor uuid, a presence byte, a filter digest.
-const PLAINTEXT_BYTES: usize = 16 + 1 + Sha256Digest::BYTES;
+/// The sealed plaintext's width: an actor uuid, a presence byte, a filter digest, the offset.
+const PLAINTEXT_BYTES: usize = 16 + 1 + Sha256Digest::BYTES + 1; // NOTE: magic number <3
 
 /// Poly1305's tag width.
-const TAG_BYTES: usize = 16;
+const TAG_BYTES: usize = 16; // NOTE: magic number <3
 
 /// The expansion label.
 const LABEL: &[u8] = b"atlas.authorization.v0";
@@ -48,6 +53,9 @@ const LABEL: &[u8] = b"atlas.authorization.v0";
 /// The battery reads the layout by documented offset rather than through the module's own zerocopy
 /// types, which is what keeps it an independent check on the byte order.
 const NONCE_OFFSET: usize = 1 + 8;
+
+// NOTE: why are you seemingly testing here if... zerocopy is implemented. Aren't part of these
+// tests like tautological af?
 
 /// A deterministic CSPRNG for the fixtures.
 ///
@@ -74,13 +82,18 @@ fn issued_at() -> SystemTime {
     SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
 }
 
-/// The scope of one actor, with the filter digest `filter` when present.
-fn scope(actor: u128, filter: Option<&[u8]>) -> VisibilityKey {
-    VisibilityKey {
-        generation: generation(),
+/// The view of one actor, resolved at offset `k`, over the filter digest of `filter` when present.
+fn scope(actor: u128, k: u8, filter: Option<&[u8]>) -> Scope {
+    Scope {
         actor: AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(actor))),
         filter: filter.map(FilterDigest::of),
+        k: CutOffset::carried(k),
     }
+}
+
+/// The actor identity `actor` names, as a token's presenter.
+fn presenter(actor: u128) -> AuthenticatedActor {
+    AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(actor)))
 }
 
 /// Derives the sealing key independently: HKDF-SHA256, generation digest as salt, one label.
@@ -108,8 +121,8 @@ fn header(now: SystemTime, nonce: &[u8]) -> Vec<u8> {
     bytes
 }
 
-/// Assembles the sealed plaintext by hand: actor uuid, presence byte, filter digest.
-fn plaintext(actor: u128, filter: Option<&[u8]>) -> Vec<u8> {
+/// Assembles the sealed plaintext by hand: actor uuid, presence byte, filter digest, offset byte.
+fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(PLAINTEXT_BYTES);
     bytes.extend_from_slice(&Uuid::from_u128(actor).into_bytes());
     if let Some(canonical) = filter {
@@ -119,6 +132,7 @@ fn plaintext(actor: u128, filter: Option<&[u8]>) -> Vec<u8> {
         bytes.push(0);
         bytes.extend_from_slice(&[0; Sha256Digest::BYTES]);
     }
+    bytes.push(k);
 
     bytes
 }
@@ -150,15 +164,16 @@ fn seal_raw(plaintext: &[u8], now: SystemTime, nonce: &[u8; NONCE_BYTES]) -> Vec
 ///
 /// The associated data is the clear header's own bytes, so this case pins that too: an
 /// implementation that authenticated a re-encoded form of the same fields would produce a different
-/// tag and fail here. Both presence values seal to the same 98 bytes - the digest field is zeroed
-/// rather than omitted when absent, so a filter's presence never shows in the length.
+/// tag and fail here. Filtered and unfiltered, at either offset, the envelope is the same fixed 99
+/// bytes - the digest field is zeroed rather than omitted when absent, so a filter's presence never
+/// shows in the length.
 #[test]
 fn a_minted_token_matches_an_independent_envelope() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
-    for filter in [None, Some(b"{\"kind\":\"all\"}".as_slice())] {
+    for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
         let minted = authority
-            .mint(&secret(), scope(11, filter), issued_at())
+            .mint(scope(11, k, filter), issued_at())
             .expect("the seeded generator is infallible");
 
         // The nonce is public, so the reimplementation takes it from the envelope under test and
@@ -170,7 +185,7 @@ fn a_minted_token_matches_an_independent_envelope() {
             .encrypt(
                 XNonce::from_slice(nonce),
                 Payload {
-                    msg: &plaintext(11, filter),
+                    msg: &plaintext(11, k, filter),
                     aad: &header,
                 },
             )
@@ -183,7 +198,7 @@ fn a_minted_token_matches_an_independent_envelope() {
         assert_eq!(
             minted.len(),
             HEADER_BYTES + PLAINTEXT_BYTES + TAG_BYTES,
-            "the envelope is a fixed 98 bytes"
+            "the envelope is a fixed 99 bytes"
         );
     }
 }
@@ -196,9 +211,9 @@ fn a_minted_token_matches_an_independent_envelope() {
 #[test]
 fn an_independent_open_recovers_the_scope() {
     let canonical = b"{\"kind\":\"all\"}".as_slice();
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
-        .mint(&secret(), scope(11, Some(canonical)), issued_at())
+        .mint(scope(11, 5, Some(canonical)), issued_at())
         .expect("the seeded generator is infallible");
 
     let (clear, body) = minted.split_at(HEADER_BYTES);
@@ -214,7 +229,7 @@ fn an_independent_open_recovers_the_scope() {
 
     assert_eq!(
         recovered,
-        plaintext(11, Some(canonical)),
+        plaintext(11, 5, Some(canonical)),
         "the sealed plaintext is not the assembled bytes"
     );
 }
@@ -225,32 +240,32 @@ fn an_independent_open_recovers_the_scope() {
 /// `open` accepts. With the mint-side byte comparison this closes the loop in both directions.
 #[test]
 fn a_hand_assembled_envelope_opens() {
-    let authority = TokenAuthority::new(generation(), rng());
-    let blob = seal_raw(&plaintext(11, None), issued_at(), &[9; NONCE_BYTES]);
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
+    let blob = seal_raw(&plaintext(11, 0, None), issued_at(), &[9; NONCE_BYTES]);
 
     assert_eq!(
         authority
-            .open(&secret(), &blob, issued_at(), Duration::from_mins(10))
+            .open(&blob, presenter(11), issued_at())
             .expect("a hand-assembled envelope opens"),
-        scope(11, None),
+        scope(11, 0, None),
         "the opened scope differs from the sealed one"
     );
 }
 
-/// A token opens to the scope it was minted for, filtered or not.
+/// A token opens to the view it was minted for, filtered or not, at either offset.
 #[test]
 fn a_minted_token_opens_to_its_scope() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
-    for filter in [None, Some(b"{\"kind\":\"all\"}".as_slice())] {
-        let scope = scope(11, filter);
+    for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
+        let scope = scope(11, k, filter);
         let minted = authority
-            .mint(&secret(), scope, issued_at())
+            .mint(scope, issued_at())
             .expect("the seeded generator is infallible");
 
         assert_eq!(
             authority
-                .open(&secret(), &minted, issued_at(), Duration::from_mins(10))
+                .open(&minted, presenter(11), issued_at())
                 .expect("a fresh token opens"),
             scope,
             "the opened scope differs from the minted one"
@@ -265,16 +280,16 @@ fn a_minted_token_opens_to_its_scope() {
 /// whichever direction the edit moves the clock.
 #[test]
 fn a_rewritten_issue_time_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let mut minted = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     // Move the recorded second, which the tag covers.
     minted[1] = minted[1].wrapping_add(1);
 
     assert_eq!(
-        authority.open(&secret(), &minted, issued_at(), Duration::from_mins(10)),
+        authority.open(&minted, presenter(11), issued_at()),
         Err(AuthorityError::Authentication),
         "an edited header opened"
     );
@@ -283,33 +298,27 @@ fn a_rewritten_issue_time_refuses() {
 /// A token older than the hard window refuses, and so does a future-dated one.
 #[test]
 fn a_token_outside_the_window_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let hard = Duration::from_mins(10);
 
     assert_eq!(
-        authority.open(&secret(), &minted, issued_at() + hard, hard),
+        authority.open(&minted, presenter(11), issued_at() + hard),
         Err(AuthorityError::Stale),
         "a token at the hard window opened"
     );
     assert_eq!(
-        authority.open(
-            &secret(),
-            &minted,
-            issued_at() - Duration::from_secs(1),
-            hard
-        ),
+        authority.open(&minted, presenter(11), issued_at() - Duration::from_secs(1)),
         Err(AuthorityError::Stale),
         "a future-dated token opened"
     );
     authority
         .open(
-            &secret(),
             &minted,
+            presenter(11),
             issued_at() + hard - Duration::from_secs(1),
-            hard,
         )
         .expect("a token one second inside the window opens");
 }
@@ -320,20 +329,22 @@ fn a_token_outside_the_window_refuses() {
 /// comparison, and it holds for a token whose plaintext is otherwise identical.
 #[test]
 fn a_foreign_generation_refuses() {
-    let minting = TokenAuthority::new(generation(), rng());
+    let minting = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = minting
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let foreign = TokenAuthority::new(
         "1a".repeat(32)
             .parse()
             .expect("64 hexadecimal digits name a generation"),
+        &secret(),
+        Duration::from_mins(10),
         rng(),
     );
 
     assert_eq!(
-        foreign.open(&secret(), &minted, issued_at(), Duration::from_mins(10)),
+        foreign.open(&minted, presenter(11), issued_at()),
         Err(AuthorityError::Authentication),
         "a token from another generation opened"
     );
@@ -342,16 +353,11 @@ fn a_foreign_generation_refuses() {
 /// A blob too short for a header refuses as an envelope fault.
 #[test]
 fn a_truncated_blob_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
     for length in [0, 1, HEADER_BYTES - 1] {
         assert_eq!(
-            authority.open(
-                &secret(),
-                &vec![0; length],
-                issued_at(),
-                Duration::from_mins(10)
-            ),
+            authority.open(&vec![0; length], presenter(11), issued_at()),
             Err(AuthorityError::Envelope),
             "a {length}-byte blob opened"
         );
@@ -361,18 +367,19 @@ fn a_truncated_blob_refuses() {
 /// A token opened under another secret refuses at the tag.
 #[test]
 fn a_foreign_secret_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
+    let foreign = TokenAuthority::new(
+        generation(),
+        &SecretHexBytes::new([0xA5; 32]),
+        Duration::from_mins(10),
+        rng(),
+    );
     assert_eq!(
-        authority.open(
-            &SecretHexBytes::new([0xA5; 32]),
-            &minted,
-            issued_at(),
-            Duration::from_mins(10)
-        ),
+        foreign.open(&minted, presenter(11), issued_at()),
         Err(AuthorityError::Authentication),
         "a token opened under another secret"
     );
@@ -384,9 +391,9 @@ fn a_foreign_secret_refuses() {
 /// header, so its edit fails through the associated data; the other two fail as ciphertext.
 #[test]
 fn a_tampered_byte_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     for (region, index) in [
@@ -397,7 +404,7 @@ fn a_tampered_byte_refuses() {
         let mut tampered = minted.clone();
         tampered[index] ^= 1;
         assert_eq!(
-            authority.open(&secret(), &tampered, issued_at(), Duration::from_mins(10)),
+            authority.open(&tampered, presenter(11), issued_at()),
             Err(AuthorityError::Authentication),
             "a token with a tampered {region} byte opened"
         );
@@ -411,24 +418,25 @@ fn a_tampered_byte_refuses() {
 /// secret, which is what "before the key" means observably.
 #[test]
 fn a_foreign_version_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let mut minted = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     minted[0] = 1;
 
     assert_eq!(
-        authority.open(&secret(), &minted, issued_at(), Duration::from_mins(10)),
+        authority.open(&minted, presenter(11), issued_at()),
         Err(AuthorityError::Envelope),
         "a foreign version opened"
     );
+    let foreign = TokenAuthority::new(
+        generation(),
+        &SecretHexBytes::new([0xA5; 32]),
+        Duration::from_mins(10),
+        rng(),
+    );
     assert_eq!(
-        authority.open(
-            &SecretHexBytes::new([0xA5; 32]),
-            &minted,
-            issued_at(),
-            Duration::from_mins(10)
-        ),
+        foreign.open(&minted, presenter(11), issued_at()),
         Err(AuthorityError::Envelope),
         "the version check consulted the key"
     );
@@ -442,17 +450,16 @@ fn a_foreign_version_refuses() {
 /// canonical plaintext opens, so these refuse on the plaintext's form alone.
 #[test]
 fn a_malformed_plaintext_refuses() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let open = |plaintext: &[u8]| {
         authority.open(
-            &secret(),
             &seal_raw(plaintext, issued_at(), &[9; NONCE_BYTES]),
+            presenter(11),
             issued_at(),
-            Duration::from_mins(10),
         )
     };
 
-    let canonical = plaintext(11, None);
+    let canonical = plaintext(11, 5, None);
     let truncated = canonical[..PLAINTEXT_BYTES - 1].to_vec();
     let mut extended = canonical.clone();
     extended.push(0);
@@ -468,6 +475,83 @@ fn a_malformed_plaintext_refuses() {
     }
 }
 
+/// A valid token presented by an actor it does not name refuses.
+///
+/// The tag proves the server minted the token, not that the presenter is its subject: without this
+/// refusal a leaked token would grant any authenticated actor the subject's scope.
+#[test]
+fn a_foreign_actor_refuses() {
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
+    let minted = authority
+        .mint(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+
+    assert_eq!(
+        authority.open(&minted, presenter(12), issued_at()),
+        Err(AuthorityError::Actor),
+        "another actor's presentation opened"
+    );
+}
+
+/// An expired token no longer opens, yet still carries its view state for a re-mint.
+///
+/// The property the carried read exists for: hard invalidation forces a fresh mint without
+/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale
+/// while `carried` still reads the sealed state - and a token re-minted from that state opens,
+/// sealing the same view.
+#[test]
+fn an_expired_token_still_carries_its_scope() {
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
+    let minted = authority
+        .mint(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+    let later = issued_at() + Duration::from_mins(11);
+
+    assert_eq!(
+        authority.open(&minted, presenter(11), later),
+        Err(AuthorityError::Stale),
+        "an expired token opened"
+    );
+
+    let carried = authority
+        .carried(&minted, presenter(11))
+        .expect("an expired token still carries its state");
+    assert_eq!(carried, scope(11, 5, None), "the carried state differs");
+
+    let renewed = authority
+        .mint(carried, later)
+        .expect("the seeded generator is infallible");
+    assert_eq!(
+        authority
+            .open(&renewed, presenter(11), later)
+            .expect("the renewed token opens"),
+        scope(11, 5, None),
+        "the renewal perturbed the view"
+    );
+}
+
+/// The carried read forgives staleness alone: the tag and the actor still refuse.
+#[test]
+fn a_carried_read_still_enforces_tag_and_actor() {
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
+    let minted = authority
+        .mint(scope(11, 5, None), issued_at())
+        .expect("the seeded generator is infallible");
+
+    let mut tampered = minted.clone();
+    tampered[HEADER_BYTES] ^= 1;
+    assert_eq!(
+        authority.carried(&tampered, presenter(11)),
+        Err(AuthorityError::Authentication),
+        "a tampered token carried"
+    );
+    assert_eq!(
+        authority.carried(&minted, presenter(12)),
+        Err(AuthorityError::Actor),
+        "another actor's presentation carried"
+    );
+}
+
 /// Two mints draw two nonces.
 ///
 /// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, so the property
@@ -475,12 +559,12 @@ fn a_malformed_plaintext_refuses() {
 /// tokens open.
 #[test]
 fn two_mints_draw_distinct_nonces() {
-    let authority = TokenAuthority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let first = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let second = authority
-        .mint(&secret(), scope(11, None), issued_at())
+        .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     assert_ne!(
@@ -490,7 +574,7 @@ fn two_mints_draw_distinct_nonces() {
     );
     for minted in [&first, &second] {
         authority
-            .open(&secret(), minted, issued_at(), Duration::from_mins(10))
+            .open(minted, presenter(11), issued_at())
             .expect("an equal-scope token opens");
     }
 }
