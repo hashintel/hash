@@ -29,6 +29,7 @@ import {
   VisualizerHeader,
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
+import { displaysFilesOnly } from "./entities-visualizer/shared/displays-files-only";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import {
   type SummarySource,
@@ -70,28 +71,6 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-
-/**
- * @todo: avoid having to maintain this list, potentially by
- * adding an `isFile` boolean to the generated ontology IDs file.
- */
-const allFileEntityTypeOntologyIds = [
-  systemEntityTypes.file,
-  systemEntityTypes.imageFile,
-  systemEntityTypes.documentFile,
-  systemEntityTypes.docxDocument,
-  systemEntityTypes.pdfDocument,
-  systemEntityTypes.presentationFile,
-  systemEntityTypes.pptxPresentation,
-];
-
-const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
-  ({ entityTypeId }) => entityTypeId,
-) as VersionedUrl[];
-
-const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
-  ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
-);
 
 const tableSortKeyByColumnKey = {
   entityLabel: "label",
@@ -372,20 +351,33 @@ export const EntitiesVisualizer: FunctionComponent<{
     subgraph,
   } = visualizerData;
 
+  /**
+   * The types of the entities on display, taken from whichever read has rows.
+   *
+   * Deliberately not keyed on the active view. {@link displaysFilesOnly} reads
+   * this and the effect below switches the view on that answer, so a
+   * view-dependent source would feed the effect its own output: a page of files
+   * would switch to Grid, whose read has no rows yet, which switches back.
+   *
+   * The row type lists and the map they are looked up in always come from the
+   * same read.
+   */
   const closedMultiEntityTypes = useMemo(() => {
-    const typesRootMap = usesTableEndpoint
-      ? tableQuery.closedMultiEntityTypes
-      : closedMultiEntityTypesRootMap;
+    const [typesRootMap, rowTypeIdLists] = tableQuery.tableData
+      ? [
+          tableQuery.closedMultiEntityTypes,
+          tableQuery.tableData.rows.map((row) =>
+            row.entityTypes.map((rowEntityType) => rowEntityType.entityTypeId),
+          ),
+        ]
+      : [
+          closedMultiEntityTypesRootMap,
+          entities?.map((entity) => entity.metadata.entityTypeIds) ?? [],
+        ];
 
     if (!typesRootMap) {
       return [];
     }
-
-    const rowTypeIdLists = usesTableEndpoint
-      ? (tableQuery.tableData?.rows.map((row) =>
-          row.entityTypes.map((rowEntityType) => rowEntityType.entityTypeId),
-        ) ?? [])
-      : (entities?.map((entity) => entity.metadata.entityTypeIds) ?? []);
 
     const relevantEntityTypesMap = new Map<string, ClosedMultiEntityType>();
 
@@ -410,7 +402,6 @@ export const EntitiesVisualizer: FunctionComponent<{
 
     return Array.from(relevantEntityTypesMap.values());
   }, [
-    usesTableEndpoint,
     tableQuery.closedMultiEntityTypes,
     tableQuery.tableData,
     entities,
@@ -548,21 +539,12 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const isDisplayingFilesOnly = useMemo(
     () =>
-      /**
-       * To allow the `Grid` view to come into view on first render where
-       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
-       * matches a `File` entity type from a statically defined list.
-       */
-      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
-      (entityTypeBaseUrl &&
-        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
-      /**
-       * Otherwise we check the fetched `entityTypes` as a fallback.
-       */
-      (closedMultiEntityTypes.length &&
-        closedMultiEntityTypes.every(({ allOf }) =>
-          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
-        )),
+      displaysFilesOnly({
+        closedMultiEntityTypes,
+        entityTypeBaseUrl,
+        entityTypeId,
+        isSpecialEntityTypeLookup,
+      }),
     [
       entityTypeBaseUrl,
       entityTypeId,
