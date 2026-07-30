@@ -1,7 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 export const styles = sva({
-  slots: ["root", "image", "placeholder", "initials"],
+  slots: ["root", "image", "placeholder", "initials", "icon"],
   base: {
     root: {
       position: "relative",
@@ -12,13 +12,15 @@ export const styles = sva({
       overflow: "clip",
       userSelect: "none",
       verticalAlign: "middle",
-      fontWeight: "medium",
+      fontWeight: "[470]",
       lineHeight: "none",
+      // Hairline default; lg and custom bump the weight up (see those variants)
       borderWidth: "[1px]",
       borderStyle: "solid",
       width: "var(--avatar-size)",
-      height: "var(--avatar-size)",
       minWidth: "var(--avatar-size)",
+      aspectRatio: "1",
+      containerType: "inline-size",
       // A loaded image gets the neutral fill and border on every tone
       "&[data-loaded='true']": {
         backgroundColor: "neutral.s20",
@@ -43,6 +45,7 @@ export const styles = sva({
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
+      fontSize: "[45cqw]",
     },
     initials: {
       textTransform: "uppercase",
@@ -58,13 +61,19 @@ export const styles = sva({
         root: {
           "--avatar-size": "16px",
           "--avatar-radius": "0.25rem",
-          fontSize: "[8px]",
+          fontWeight: "medium",
+        },
+        placeholder: {
+          fontSize: "[7px]",
         },
       },
       xs: {
         root: {
           "--avatar-size": "20px",
           "--avatar-radius": "0.25rem",
+          fontWeight: "medium",
+        },
+        placeholder: {
           fontSize: "[9px]",
         },
       },
@@ -72,6 +81,9 @@ export const styles = sva({
         root: {
           "--avatar-size": "24px",
           "--avatar-radius": "0.375rem",
+          fontWeight: "medium",
+        },
+        placeholder: {
           fontSize: "[11px]",
         },
       },
@@ -79,6 +91,8 @@ export const styles = sva({
         root: {
           "--avatar-size": "32px",
           "--avatar-radius": "0.375rem",
+        },
+        placeholder: {
           fontSize: "sm",
         },
       },
@@ -86,7 +100,28 @@ export const styles = sva({
         root: {
           "--avatar-size": "48px",
           "--avatar-radius": "0.5rem",
-          fontSize: "base",
+          borderWidth: "[1.5px]",
+        },
+        placeholder: {
+          fontSize: "[20px]",
+        },
+      },
+      // Consumer sets --avatar-size (a length); width, typography, the square
+      // border radius, and the placeholder icon all derive from it.
+      custom: {
+        root: {
+          "--avatar-radius":
+            "min(calc(1.5px * sqrt(var(--avatar-size) / 1px)), calc(var(--avatar-size) * 0.35))",
+          // 1px to a 3px cap
+          borderWidth: "[max(1px, min(calc(var(--avatar-size) / 64), 3px))]",
+        },
+        // Icon scales to ~half the avatar width, matching the discrete sizes'
+        // icon:avatar ratio. `:is(svg)` lifts specificity above <Icon>'s own
+        // equal-specificity --icon-size (which would otherwise win on source order).
+        icon: {
+          "&:is(svg)": {
+            "--icon-size": "[50cqw]",
+          },
         },
       },
     },

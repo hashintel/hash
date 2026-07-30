@@ -145,23 +145,46 @@ export const Default: Story<AvatarProps> = () => (
   />
 );
 
-const sizeCells = (shape: AvatarProps["shape"]): ReactNode[] =>
-  formInputSizes.map((size) => (
+// With size="custom" the consumer sets --avatar-size and the component derives
+// the box (aspect-ratio squares it), typography, and border radius — here 100×100.
+const customSizeClass = css({
+  "--avatar-size": "100px",
+});
+
+const sizeCells = (
+  shape: AvatarProps["shape"],
+  placeholder: AvatarProps["placeholder"],
+  alt = "Christian Busch",
+): ReactNode[] => [
+  ...formInputSizes.map((size) => (
     <Avatar
       key={size}
       shape={shape}
       size={size}
-      alt="Christian Busch"
-      placeholder={{ initials: "CB" }}
+      alt={alt}
+      placeholder={placeholder}
     />
-  ));
+  )),
+  <Avatar
+    key="custom"
+    shape={shape}
+    size="custom"
+    className={customSizeClass}
+    alt={alt}
+    placeholder={placeholder}
+  />,
+];
 
 export const Sizes: Story<AvatarProps> = () => (
   <LabeledGrid
-    columnLabels={[...formInputSizes]}
+    columnLabels={[...formInputSizes, "Custom"]}
     rows={[
-      { label: "Circle", cells: sizeCells("circle") },
-      { label: "Square", cells: sizeCells("square") },
+      { label: "Circle", cells: sizeCells("circle", { initials: "CB" }) },
+      { label: "Square", cells: sizeCells("square", { initials: "CB" }) },
+      {
+        label: "Circle · icon",
+        cells: sizeCells("circle", { icon: "gear" }, "Settings"),
+      },
     ]}
   />
 );

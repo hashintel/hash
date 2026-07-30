@@ -15,7 +15,7 @@ type AvatarProps = {
   src?: string;
   /** For ex: "Firstname Lastname", "Organization", "Shortname (online)" */
   alt: string;
-  size?: FormInputSize;
+  size?: FormInputSize | "custom";
   /** What to show when no image is loaded or defined. Initials will be truncated to up to 2 characters max */
   placeholder:
     | { initials: string }
@@ -90,7 +90,11 @@ export const Avatar = ({
     );
   } else if ("icon" in placeholder) {
     placeholderContent = (
-      <Icon name={placeholder.icon} size={placeholderIconSize[size]} />
+      <Icon
+        name={placeholder.icon}
+        className={classes.icon}
+        size={size === "custom" ? undefined : placeholderIconSize[size]}
+      />
     );
   } else {
     placeholderContent = placeholder.custom;
