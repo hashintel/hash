@@ -27,13 +27,19 @@ export const ATLAS_AUTHORITY_HEADER = "Atlas-Authority";
 
 /**
  * The path this API mounts the atlas surface at.
- *
- * One constant because two places decide by it: {@link setupAtlasProxy} mounts here, and the body
- * parsing middleware must skip exactly this prefix so the request stream reaches the mount
- * unconsumed - see {@link setupAtlasProxy} for why re-serialising a body breaks this surface
- * specifically. Two independently written prefixes would be two places for that pairing to drift.
  */
 export const ATLAS_MOUNT_PATH = "/atlas";
+
+/**
+ * Whether `path` addresses the atlas mount, and so must reach it with its body unread.
+ *
+ * Two places decide by this: the body parsing middleware skips these paths, and
+ * {@link setupAtlasProxy} mounts on them - see there for what a parsed body costs this surface. One
+ * exported predicate rather than a prefix written out twice, because the two only work as a pair:
+ * a mount whose parser skip has drifted still answers, and answers a re-serialised document.
+ */
+export const isAtlasPath = (path: string) =>
+  path === ATLAS_MOUNT_PATH || path.startsWith(`${ATLAS_MOUNT_PATH}/`);
 
 /**
  * Resolves the atlas listener's address from the environment.

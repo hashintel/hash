@@ -48,7 +48,7 @@ import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
 import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
 import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
 import { setupAnalysisHandler } from "./analysis/setup-analysis-handler";
-import { ATLAS_MOUNT_PATH, setupAtlasProxy } from "./atlas-proxy";
+import { isAtlasPath, setupAtlasProxy } from "./atlas-proxy";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
@@ -608,15 +608,13 @@ const main = async () => {
       // webhooks typically need the raw body for signature verification
       return rawParser(req, res, next);
     }
-    if (
-      req.path === ATLAS_MOUNT_PATH ||
-      req.path.startsWith(`${ATLAS_MOUNT_PATH}/`)
-    ) {
-      // The atlas proxy has to come after `authMiddleware` (it states the resolved actor as a
-      // header), so it cannot be moved above this parser the way the proxies above it are. Skipping
-      // the prefix here is the same exemption by another means: the atlas digests request bodies it
-      // is handed, and a parse-then-re-serialise round trip does not preserve JSON text, so this
-      // surface needs the stream unconsumed rather than re-streamed. See `setupAtlasProxy`.
+    if (isAtlasPath(req.path)) {
+      // The atlas proxy has to come after `authMiddleware`, which is where the actor it states as a
+      // header comes from, so it cannot be moved above this parser the way the proxies above it
+      // are. Skipping the prefix is the same exemption by another means: the atlas digests the
+      // request body it is handed, a parse-then-re-serialise round trip does not preserve JSON
+      // text, and the digest of the filter document is sealed into an authority token the client
+      // re-presents. See `setupAtlasProxy`.
       return next();
     }
     return jsonParser(req, res, next);

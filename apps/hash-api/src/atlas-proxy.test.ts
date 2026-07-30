@@ -9,6 +9,7 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import {
   ATLAS_ACTOR_HEADER,
   ATLAS_AUTHORITY_HEADER,
+  isAtlasPath,
   setupAtlasProxy,
 } from "./atlas-proxy";
 
@@ -39,6 +40,29 @@ const SPOOFED_ACTOR = "22222222-2222-4222-8222-222222222222";
  * teach a number that goes stale; the contract is retain and present, unchanged.
  */
 const MINTED_TOKEN = "minted-opaque-authority-token";
+
+/**
+ * A filter document written in four ways a re-serialisation does not preserve.
+ *
+ * Shaped like the document the generation manifest takes as its request body, and deliberately
+ * noncanonical: the indentation and the space before `:` are dropped by `JSON.stringify`, `1.0`
+ * comes back as `1`, `\u0041` comes back as `A`, and the integer-like keys `"10"` and `"2"` come
+ * back in ascending numeric order rather than the order they were written in. The document's meaning
+ * is beside the point - the proxy cannot read it either way - so what the assertion needs is text
+ * whose parse is lossy in every direction the hop could round-trip it.
+ *
+ * The manifest seals this document's digest into the authority token, and the client's own filter
+ * state is the bytes it sent. So a hop that delivers a different spelling of the same value answers
+ * a document the caller never sent, and the caller re-presenting its own bytes then digests
+ * differently from the token it holds.
+ */
+const NONCANONICAL_FILTER = `{
+  "all" : [
+    { "equal": [ { "path": ["type", "versionedUrl"] }, { "parameter": "\\u0041pple" } ] },
+    { "greater": [ { "path": ["depth"] }, { "parameter": 1.0 } ] }
+  ],
+  "weights": { "10": 1.0, "2": 3 }
+}`;
 
 const silentLogger = {
   info: () => {},
@@ -94,16 +118,29 @@ const resolving =
   };
 
 /**
- * Mounts the proxy in `index.ts`'s composition: session resolution first, then the body parsers,
- * then the route.
+ * Mounts the proxy in `index.ts`'s composition: session resolution first, then the JSON parser that
+ * skips the atlas prefix, then the route.
  *
- * The order is the point of the fixture - the proxy sits past the parsers, so a JSON body reaches
- * the atlas only if the route re-streams what the parser consumed.
+ * The composition is the point of the fixture. The proxy sits past the parser, so it can only be a
+ * body's second reader, and the skip is what leaves the stream unread for it - which is why the
+ * skip decision is imported from the module under test rather than restated here. A copy of the
+ * predicate would keep passing while production drifted.
+ *
+ * `parseAtlasBodies` composes the app the way it was before the skip existed, so a test can hold
+ * the parser responsible instead of describing it.
  */
-const startApi = async (session: User | undefined) => {
+const startApi = async (
+  session: User | undefined,
+  { parseAtlasBodies = false }: { parseAtlasBodies?: boolean } = {},
+) => {
   const app = express();
+  const jsonParser = bodyParser.json();
   app.use(resolving(session));
-  app.use(bodyParser.json());
+  app.use((req, res, next) =>
+    !parseAtlasBodies && isAtlasPath(req.path)
+      ? next()
+      : jsonParser(req, res, next),
+  );
   setupAtlasProxy(app, silentLogger);
 
   const server = await listen(createServer(app));
@@ -198,7 +235,7 @@ describe("the atlas proxy's actor header", () => {
 });
 
 describe("a request body", () => {
-  it("survives the body parser and reaches the atlas", async () => {
+  it("reaches the atlas", async () => {
     const api = await startApi(sessionUser);
     received.length = 0;
 
@@ -213,6 +250,48 @@ describe("a request body", () => {
     expect(received).toHaveLength(1);
     expect(JSON.parse(received[0]!.body)).toEqual(tiles);
     expect(received[0]!.actor).toBe(SESSION_ACTOR);
+
+    await close(api.server);
+  });
+
+  it("arrives byte for byte, however it was spelled", async () => {
+    const api = await startApi(sessionUser);
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: NONCANONICAL_FILTER,
+    });
+
+    expect(response.status).toBe(200);
+    expect(received).toHaveLength(1);
+    expect(received[0]!.body).toBe(NONCANONICAL_FILTER);
+
+    await close(api.server);
+  });
+
+  it("loses its spelling once the parser has read it, which is what the skip is for", async () => {
+    // The transparency in the test above belongs to the parser skip, not to the proxy: a body the
+    // parser consumed can only be re-serialised from `req.body`, and `JSON.stringify` renders one
+    // canonical spelling of a value with no memory of the text it came from. Composing the app the
+    // pre-skip way states that here, so removing the skip from `index.ts` cannot leave a suite that
+    // still claims the bytes cross unmodified.
+    const api = await startApi(sessionUser, { parseAtlasBodies: true });
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: NONCANONICAL_FILTER,
+    });
+
+    expect(response.status).toBe(200);
+    expect(received).toHaveLength(1);
+    expect(received[0]!.body).not.toBe(NONCANONICAL_FILTER);
+    expect(received[0]!.body).toBe(
+      JSON.stringify(JSON.parse(NONCANONICAL_FILTER)),
+    );
 
     await close(api.server);
   });
@@ -241,10 +320,9 @@ describe("the authority token's path back to the browser", () => {
     // The expose header is only half of it: the value itself has to survive the hop.
     //
     // The manifest is a `POST` route whose body is optional, and the client's mint and renewal both
-    // send none - so this is the exact request shape that crosses the hop. A bodyless POST is the one
-    // shape the body re-streaming must leave alone: `fixRequestBody` writes a body only for a stated
-    // content type, and stating one here would both invent a document and cost the caller a
-    // preflight.
+    // send none - so this is the exact request shape that crosses the hop. It states no content type
+    // either, because a request with no document to describe has no type to state, and stating one
+    // would cost the caller a preflight for nothing.
     const api = await startApi(sessionUser);
     received.length = 0;
 
