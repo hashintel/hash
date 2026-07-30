@@ -231,6 +231,7 @@ const imageCells = (
     alt="Failed to load"
     src={brokenImage}
     placeholder={{ initials: "CB" }}
+    onClick={noop}
   />,
   <Avatar
     key="loading"
@@ -240,6 +241,7 @@ const imageCells = (
     alt="Loading"
     src={loadingImage}
     placeholder={{ initials: "CB" }}
+    onClick={noop}
   />,
   <Avatar
     key="transparent"
@@ -249,6 +251,7 @@ const imageCells = (
     alt="Transparent image"
     src={transparentImage}
     placeholder={{ initials: "CB" }}
+    onClick={noop}
   />,
   <Avatar
     key="white"
@@ -258,6 +261,7 @@ const imageCells = (
     alt="White background image"
     src={whiteImage}
     placeholder={{ initials: "CB" }}
+    onClick={noop}
   />,
   <Avatar
     key="dark-green"
@@ -267,6 +271,7 @@ const imageCells = (
     alt="Dark green background image"
     src={darkGreenImage}
     placeholder={{ initials: "CB" }}
+    onClick={noop}
   />,
 ];
 

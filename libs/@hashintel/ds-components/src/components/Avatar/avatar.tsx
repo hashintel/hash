@@ -78,7 +78,7 @@ export const Avatar = ({
     size,
     tone,
     interactive,
-    hasImage: showImage,
+    imageLoaded: loaded,
   });
 
   let placeholderContent: React.ReactNode;

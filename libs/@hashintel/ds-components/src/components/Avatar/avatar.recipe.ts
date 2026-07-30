@@ -177,7 +177,10 @@ export const styles = sva({
       },
       false: {},
     },
-    hasImage: {
+    // Whether the image has actually loaded and is visible (drives the neutral
+    // fill via data-loaded). Overlays key off this so hover/active feedback
+    // matches the visible background, not merely whether a src was provided.
+    imageLoaded: {
       true: {},
       false: {},
     },
@@ -186,11 +189,22 @@ export const styles = sva({
     {
       interactive: true,
       tone: "brand",
-      hasImage: false,
+      imageLoaded: false,
       css: {
         root: {
           "&:hover::after": { backgroundColor: "[rgba(255,255,255,0.16)]" },
           "&:active::after": { backgroundColor: "[rgba(255,255,255,0.3)]" },
+        },
+      },
+    },
+    {
+      // Placeholder sits on the light neutral fill, so soften the hover tint.
+      interactive: true,
+      tone: "neutral",
+      imageLoaded: false,
+      css: {
+        root: {
+          "&:hover::after": { backgroundColor: "neutral.a45" },
         },
       },
     },
@@ -226,6 +240,6 @@ export const styles = sva({
     size: "md",
     tone: "neutral",
     interactive: false,
-    hasImage: false,
+    imageLoaded: false,
   },
 });
