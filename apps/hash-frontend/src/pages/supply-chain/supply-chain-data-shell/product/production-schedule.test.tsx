@@ -961,7 +961,7 @@ describe("ProductionScheduleView", () => {
         .getByRole("button", { name: "Batch raw-batch" })
         .getAttribute("aria-pressed"),
     ).toBe("true");
-    expect(screen.getByRole("status").textContent).toContain("Selected batch");
+    expect(screen.getByRole("status").textContent).toContain("Found batch");
 
     await act(() => vi.advanceTimersByTimeAsync(500));
     expect(
@@ -1058,7 +1058,7 @@ describe("ProductionScheduleView", () => {
 
     fireEvent.change(search, { target: { value: "not-present" } });
     await act(() => vi.advanceTimersByTimeAsync(200));
-    expect(screen.getByText("No matching timeline identifier")).toBeTruthy();
+    expect(screen.getByText("No matching batch or order")).toBeTruthy();
     expect(
       screen
         .getByRole("button", { name: "Batch raw-batch" })
@@ -1072,7 +1072,7 @@ describe("ProductionScheduleView", () => {
         .getByRole("button", { name: "Batch raw-batch" })
         .getAttribute("aria-pressed"),
     ).toBe("false");
-    expect(screen.queryByText("No matching timeline identifier")).toBeNull();
+    expect(screen.queryByText("No matching batch or order")).toBeNull();
   });
 
   it("reveals a non-product dispatch matched by identifier", async () => {

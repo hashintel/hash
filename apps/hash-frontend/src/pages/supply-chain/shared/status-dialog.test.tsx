@@ -4,7 +4,31 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { StatusDialog } from "./status-dialog";
 
+import type { ReactNode } from "react";
+
 vi.mock("@hashintel/ds-components", () => ({
+  Button: ({
+    "aria-label": ariaLabel,
+    children,
+    className,
+    onClick,
+    type,
+  }: {
+    "aria-label"?: string;
+    children?: ReactNode;
+    className?: string;
+    onClick?: () => void;
+    type?: "button" | "reset" | "submit";
+  }) => (
+    <button
+      aria-label={ariaLabel}
+      className={className}
+      onClick={onClick}
+      type={type === "submit" ? "submit" : "button"}
+    >
+      {children}
+    </button>
+  ),
   Select: ({
     htmlForId,
     items,
@@ -86,7 +110,7 @@ describe("StatusDialog", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
       target: { value: "Investigation concluded" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
 
     expect(screen.getByText("Add a comment for this status.")).toBeTruthy();
     expect(onSave).not.toHaveBeenCalled();
@@ -94,7 +118,7 @@ describe("StatusDialog", () => {
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "Issue resolved" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Post" }));
 
     expect(onSave).toHaveBeenCalledWith({
       category: "Investigation concluded",
