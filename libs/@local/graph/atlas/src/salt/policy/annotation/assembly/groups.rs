@@ -11,7 +11,7 @@ use hashql_core::id::Id as _;
 
 use super::{
     super::{Card, VoteCounts},
-    AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, Relaxation,
+    AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, NEAR_DUPLICATE_CEILING_FRACTION, Relaxation,
 };
 use crate::{
     disjoint::DisjointSet,
@@ -288,10 +288,80 @@ fn subdivide(
     groups
 }
 
+/// The derived near-duplicate boundary with its grounds.
+struct NearDuplicateBoundary {
+    /// The cosine-distance threshold under which two rows join; zero when no void was found.
+    epsilon: f64,
+    /// The winning void's edges; zeros when no void was found.
+    void: [f64; 2],
+    /// The search region's top: the median pairwise distance scaled by the fraction.
+    ceiling: f64,
+}
+
+/// Derives the near-duplicate boundary from every pairwise cosine distance.
+///
+/// Sorts the distances and scans `(0, ceiling]` for the widest multiplicative void between
+/// consecutive distances, the trailing void up to the ceiling included and the leading gap from
+/// zero excluded; the boundary is the winning void's geometric midpoint, maximally far from the
+/// evidence on both sides, and ties keep the lowest void so a near-duplicate stays near. Exact
+/// coincidences (distances ≤ 0 after rounding) join under any non-negative boundary and carry no
+/// void evidence, and an empty region - no low tail below the ceiling - derives a zero boundary:
+/// no duplicate structure, no near-duplicate edges.
+fn near_duplicate_boundary(mut distances: Vec<f64>) -> NearDuplicateBoundary {
+    if distances.is_empty() {
+        return NearDuplicateBoundary {
+            epsilon: 0.0,
+            void: [0.0; 2],
+            ceiling: 0.0,
+        };
+    }
+
+    distances.sort_unstable_by(f64::total_cmp);
+    let ceiling = distances[usize::midpoint(0, distances.len())] * NEAR_DUPLICATE_CEILING_FRACTION;
+    if !ceiling.is_finite() {
+        return NearDuplicateBoundary {
+            epsilon: 0.0,
+            void: [0.0; 2],
+            ceiling,
+        };
+    }
+
+    let low = distances.partition_point(|distance| distance.total_cmp(&0.0).is_le());
+    let high = distances.partition_point(|distance| distance.total_cmp(&ceiling).is_le());
+    let region = &distances[low..high];
+    let Some(&last) = region.last() else {
+        return NearDuplicateBoundary {
+            epsilon: 0.0,
+            void: [0.0; 2],
+            ceiling,
+        };
+    };
+
+    let mut void = None;
+    let mut widest = 0.0;
+    for window in region.windows(2) {
+        let ratio = window[1] / window[0];
+        if ratio > widest {
+            void = Some([window[0], window[1]]);
+            widest = ratio;
+        }
+    }
+    if ceiling / last > widest {
+        void = Some([last, ceiling]);
+    }
+
+    let void = void.unwrap_or([last, ceiling]);
+    NearDuplicateBoundary {
+        epsilon: (void[0] * void[1]).sqrt(),
+        void,
+        ceiling,
+    }
+}
+
 /// Assigns every trained row its validation-group digest.
 ///
-/// The returned digests align with `trained`; the evidence gains the group count and the
-/// near-duplicate pair count.
+/// The returned digests align with `trained`; the evidence gains the group count, the derived
+/// near-duplicate boundary with its grounds, and the near-duplicate pair count.
 #[expect(
     clippy::cast_precision_loss,
     reason = "row and group counts are far below f64's 2^53 exact-integer range"
@@ -333,7 +403,8 @@ pub(super) fn validation_groups(
         });
     }
 
-    let mut pairs = Vec::new();
+    // T(rows - 1) unordered pairs; the product is even, so the midpoint halves it exactly.
+    let mut distances = Vec::with_capacity(usize::midpoint(0, rows * rows.saturating_sub(1)));
     for left in 0..rows {
         let embedding = view
             .embedding(OntologyRowId::from_usize(left))
@@ -344,8 +415,20 @@ pub(super) fn validation_groups(
                 .embedding(OntologyRowId::from_usize(right))
                 .expect("the table holds one row per trained card");
 
-            let distance = f64::from(embedding.cosine_distance(other));
-            if distance <= config.near_duplicate_epsilon {
+            distances.push(f64::from(embedding.cosine_distance(other)));
+        }
+    }
+
+    let boundary = near_duplicate_boundary(distances.clone());
+
+    let mut pairs = Vec::new();
+    let mut pair_distances = distances.into_iter();
+    for left in 0..rows {
+        for right in (left + 1)..rows {
+            let distance = pair_distances
+                .next()
+                .expect("one distance was recorded per unordered row pair");
+            if distance <= boundary.epsilon {
                 let node =
                     |value: usize| u32::try_from(value).expect("the row domain is bound to u32");
                 pairs.push((node(left), node(right), distance));
@@ -353,6 +436,9 @@ pub(super) fn validation_groups(
         }
     }
     evidence.near_duplicate_pairs = pairs.len();
+    evidence.near_duplicate_epsilon = boundary.epsilon;
+    evidence.near_duplicate_void = boundary.void;
+    evidence.near_duplicate_ceiling = boundary.ceiling;
 
     // A single row cannot leak against itself: the budget never
     // falls under one row.

@@ -44,9 +44,17 @@
 //! union-find joins cards through every value-keyed leakage axis - relation family, inverse pair
 //! (through the named identity, on or off corpus), base URL - and through near-duplication of the
 //! rendered cards themselves: two rows join when the cosine distance `1 - cos` between their
-//! embeddings is at most [`AssemblyConfig::near_duplicate_epsilon`], and the exact all-pairs graph
-//! is affordable at annotation-corpus scale. The group label is the SHA-256 over the component's
-//! member identity URLs in ascending byte order, so it is stable under any traversal order.
+//! embeddings is at most a boundary derived from the corpus, and the exact all-pairs graph is
+//! affordable at annotation-corpus scale. The boundary is the geometric midpoint of the widest
+//! multiplicative void among the sorted pairwise distances within
+//! `(0, median · NEAR_DUPLICATE_CEILING_FRACTION]`, the trailing void up to the ceiling included
+//! and the leading gap from zero excluded: a duplicate cluster sits decades below the corpus
+//! bulk, and the void between them is the boundary's evidence. A corpus without such structure
+//! over-joins only its few closest pairs, and subdivision cuts far near-duplicate edges first,
+//! so the failure direction is toward more conservative validation. The derived boundary, its
+//! void, and its ceiling are recorded in the evidence. The group label is the SHA-256 over the
+//! component's member identity URLs in ascending byte order, so it is stable under any traversal
+//! order.
 //!
 //! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows would
 //! starve grouped validation, so subdivision relaxes its axes in information order - the axis whose
@@ -85,6 +93,15 @@ mod tests;
 /// The Dirichlet smoothing strength: the Jeffreys prior for a three-class multinomial.
 const DIRICHLET_ALPHA: f64 = 0.5;
 
+/// The near-duplicate search region's top, as a fraction of the median pairwise distance.
+///
+/// The boundary derivation looks for a duplicate/bulk void strictly below the corpus's typical
+/// inter-card distance; the median is that typical distance by construction, and the quarter
+/// stands the region off from the bulk's lower tail. The boundary lands on the widest void
+/// within the region, so the fraction only bounds the search: any value materially below one and
+/// above the duplicate scale finds the same void on a corpus with duplicate structure.
+const NEAR_DUPLICATE_CEILING_FRACTION: f64 = 0.25;
+
 /// The prose language every corpus card must declare.
 ///
 /// A constant and not a config field: the template renders exactly one language - its sentence
@@ -98,13 +115,6 @@ const CARD_LANGUAGE: &str = "en";
 /// Assembly settings.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct AssemblyConfig {
-    /// The cosine-distance threshold under which two rendered cards count as near-duplicates.
-    ///
-    /// Near-duplicates share a validation group. On the `1 - cos` scale in `[0, 2]`; positive.
-    /// The threshold is the near-tie boundary established for this embedding family, so a retrain on
-    /// another family revises it.
-    pub near_duplicate_epsilon: f64 = 2.0e-3,
-
     /// The largest fraction of the trained rows one validation group may hold, in `(0, 1]`.
     ///
     /// Beyond it, subdivision relaxes the group's weakest axes.
@@ -190,10 +200,16 @@ pub(crate) struct AssemblyEvidence {
     pub severely_truncated: usize,
     /// Indivisible validation groups over the trained rows, after subdivision.
     pub fold_groups: usize,
-    /// Near-duplicate pairs found at the configured threshold.
+    /// Near-duplicate pairs found at the derived boundary.
     pub near_duplicate_pairs: usize,
-    /// The threshold the near-duplicate derivation ran under.
+    /// The derived cosine-distance boundary under which rows joined as near-duplicates.
     pub near_duplicate_epsilon: f64,
+    /// The winning void's edges the boundary bisects geometrically; zeros when none was found.
+    #[serde(default)]
+    pub near_duplicate_void: [f64; 2],
+    /// The derivation's search ceiling: the median pairwise distance scaled by the fraction.
+    #[serde(default)]
+    pub near_duplicate_ceiling: f64,
     /// Over-budget components subdivision split.
     #[serde(default)]
     pub subdivided_groups: usize,
@@ -322,7 +338,9 @@ where
         severely_truncated: 0,
         fold_groups: 0,
         near_duplicate_pairs: 0,
-        near_duplicate_epsilon: config.near_duplicate_epsilon,
+        near_duplicate_epsilon: 0.0,
+        near_duplicate_void: [0.0; 2],
+        near_duplicate_ceiling: 0.0,
         subdivided_groups: 0,
         oversized_accepted: 0,
         deepest_relaxation: Relaxation::None,
@@ -379,6 +397,7 @@ where
     evidence.unique_texts = reused + embedded;
 
     let groups = validation_groups(&trained, table.view(), config, &mut evidence);
+    progress.assembly_boundary_derived(evidence.near_duplicate_epsilon);
 
     let rows = trained
         .iter()
