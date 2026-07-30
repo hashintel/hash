@@ -1,11 +1,12 @@
 //! Analytical objective, gradient, and Hessian-vector products over a prepared corpus.
 //!
-//! All four evaluations share one per-row logits path: contrast logits `t = T·x̄`, class logits
+//! All evaluations share one per-row logits path: contrast logits `t = T·x̄`, class logits
 //! `ℓ = B·t`, reference differences `δ_c = ℓ_c − ℓ_ref` against the last class, one stable
 //! log-sum-exp over the reference differences and zero in class order, and probabilities from
 //! the same shifted exponentials. The
-//! objective, the gradient residual `p − q`, and the Hessian curvature `diag(p) − ppᵀ` all read
-//! these shared bytes, so no evaluation can disagree with another about a row's logits.
+//! objective, the gradient residual `p − q`, the Hessian curvature `diag(p) − ppᵀ`, and the
+//! per-row contrast curvature blocks of the exact Newton assembly all read these shared bytes,
+//! so no evaluation can disagree with another about a row's logits.
 //!
 //! The evaluated quantities are normalized by the total weight `S`:
 //!
@@ -27,6 +28,23 @@ use super::{
 };
 use crate::{dataset::CANONICAL_DIMENSIONS, math::AlignedVecN, salt::policy::GeometryClass};
 
+/// Objective value and gradient from one joint traversal.
+#[derive(Debug)]
+pub(super) struct JointEvaluation {
+    pub objective: f64,
+    pub gradient: ContrastVector,
+}
+
+/// Per-row curvature blocks and intercept Hessian columns from one Newton-assembly traversal.
+#[derive(Debug)]
+pub(super) struct CurvatureEvaluation {
+    /// The unweighted contrast curvature `Cᵢ` per row, packed as `(c11, c21, c22)`.
+    pub blocks: Vec<[f64; 3]>,
+    /// The normalized Hessian columns `H[0|e_k]` of the intercept unit directions: coefficient
+    /// coupling in the coefficient rows, intercept curvature in the intercepts.
+    pub intercept_columns: [ContrastVector; CONTRAST_ROWS],
+}
+
 /// One shared per-row logits evaluation.
 struct RowPrelude {
     /// Reference differences `δ_c` of the leading classes; the reference's own is zero by
@@ -38,14 +56,37 @@ struct RowPrelude {
     probabilities: [f64; GeometryClass::COUNT],
 }
 
-/// Objective value and gradient from one joint traversal.
-#[derive(Debug)]
-pub(super) struct JointEvaluation {
-    pub objective: f64,
-    pub gradient: ContrastVector,
-}
-
 impl RowPrelude {
+    /// Runs the shared logits path for one row.
+    fn new(parameters: &ContrastVector, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> Self {
+        let logits = basis::expand(contrast_logits(parameters, embedding));
+        let reference = logits[GeometryClass::COUNT - 1];
+        let delta: [f64; LEADING_CLASSES] = core::array::from_fn(|class| logits[class] - reference);
+
+        // Stable shifted fold over the reference differences and zero in class order; the shift
+        // keeps every exponential in [0, 1] and a NaN input propagates through the exponentials
+        // into every output.
+        let shift = delta.into_iter().reduce(f64::max).unwrap_or(0.0).max(0.0);
+        let exponentials: [f64; GeometryClass::COUNT] = core::array::from_fn(|class| {
+            if class < LEADING_CLASSES {
+                (delta[class] - shift).exp()
+            } else {
+                (-shift).exp()
+            }
+        });
+
+        let mut total = 0.0_f64;
+        for exponential in exponentials {
+            total += exponential;
+        }
+
+        Self {
+            delta,
+            log_normalizer: shift + total.ln(),
+            probabilities: core::array::from_fn(|class| exponentials[class] / total),
+        }
+    }
+
     /// The reference-difference data loss `logsumexp(δ, 0) − Σ_c u_cδ_c`, folded in class order.
     fn loss(&self, leading: [f64; LEADING_CLASSES]) -> f64 {
         let mut value = self.log_normalizer;
@@ -64,38 +105,6 @@ fn contrast_logits(
     core::array::from_fn(|row| {
         embedding.dot_wide(&parameters.coefficients[row]) + parameters.intercepts[row]
     })
-}
-
-/// Runs the shared logits path for one row.
-fn row_prelude(
-    parameters: &ContrastVector,
-    embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
-) -> RowPrelude {
-    let logits = basis::expand(contrast_logits(parameters, embedding));
-    let reference = logits[GeometryClass::COUNT - 1];
-    let delta: [f64; LEADING_CLASSES] = core::array::from_fn(|class| logits[class] - reference);
-
-    // Stable shifted fold over the reference differences and zero in class order; the shift
-    // keeps every exponential in [0, 1] and a NaN input propagates through the exponentials
-    // into every output.
-    let shift = delta.into_iter().reduce(f64::max).unwrap_or(0.0).max(0.0);
-    let exponentials: [f64; GeometryClass::COUNT] = core::array::from_fn(|class| {
-        if class < LEADING_CLASSES {
-            (delta[class] - shift).exp()
-        } else {
-            (-shift).exp()
-        }
-    });
-    let mut total = 0.0_f64;
-    for exponential in exponentials {
-        total += exponential;
-    }
-
-    RowPrelude {
-        delta,
-        log_normalizer: shift + total.ln(),
-        probabilities: core::array::from_fn(|class| exponentials[class] / total),
-    }
 }
 
 /// Accumulates one row's weighted gradient residual `w·Bᵀ(p − q)·x̄ᵀ`.
@@ -143,7 +152,7 @@ impl Prepared<'_> {
             }
             counters.visit_row();
 
-            let prelude = row_prelude(parameters, embedding);
+            let prelude = RowPrelude::new(parameters, embedding);
             data_loss = row
                 .weight
                 .mul_add(prelude.loss(self.targets[row_index].leading()), data_loss);
@@ -182,7 +191,7 @@ impl Prepared<'_> {
             }
             counters.visit_row();
 
-            let prelude = row_prelude(parameters, embedding);
+            let prelude = RowPrelude::new(parameters, embedding);
             data_loss = row
                 .weight
                 .mul_add(prelude.loss(self.targets[row_index].leading()), data_loss);
@@ -210,7 +219,7 @@ impl Prepared<'_> {
             }
             counters.visit_row();
 
-            let prelude = row_prelude(parameters, embedding);
+            let prelude = RowPrelude::new(parameters, embedding);
             accumulate_residual(
                 &mut gradient,
                 &prelude,
@@ -244,7 +253,7 @@ impl Prepared<'_> {
             }
             counters.visit_row();
 
-            let prelude = row_prelude(parameters, embedding);
+            let prelude = RowPrelude::new(parameters, embedding);
 
             // ν = U·x̄, then z = B·ν in class space.
             let projected = basis::expand(contrast_logits(direction, embedding));
@@ -288,6 +297,87 @@ impl Prepared<'_> {
         Some(product)
     }
 
+    /// Evaluates the per-row contrast curvature blocks and intercept Hessian columns.
+    ///
+    /// One traversal serves the exact Newton assembly: for every row it computes the contrast
+    /// curvature `Cᵢ = Bᵀ(diag(pᵢ) − pᵢpᵢᵀ)B` through the moments `m_k = Σ_c p_c·B[c,k]` and
+    /// `q_kl = Σ_c p_c·B[c,k]·B[c,l]` as `C[k,l] = q_kl − m_k·m_l`, and accumulates the
+    /// normalized Hessian columns of the intercept unit directions,
+    /// `H[0|e_k] = (1/S)·Σᵢ wᵢ·(Cᵢe_k)·[x̄ᵢᵀ | 1]` - the coefficient coupling block and the
+    /// intercept curvature block of the Newton system in one pass. Intercepts carry no
+    /// regularization, so the columns are complete as accumulated.
+    ///
+    /// Rows accumulate in ascending original index and classes fold in discriminant order, as
+    /// every other evaluation here. Returns [`None`] for a non-finite request, which visits no
+    /// rows; computed values may be non-finite when the arithmetic overflows, and the caller
+    /// maps them onto its typed outcome.
+    pub(super) fn curvature_pass(
+        &self,
+        parameters: &ContrastVector,
+        counters: &mut WorkCounters,
+    ) -> Option<CurvatureEvaluation> {
+        if !parameters.is_finite() {
+            return None;
+        }
+
+        let mut blocks = Vec::with_capacity(self.rows.len());
+        let mut intercept_columns: [ContrastVector; CONTRAST_ROWS] =
+            core::array::from_fn(|_index| ContrastVector::zero());
+        for (row_index, (embedding, row)) in self.embeddings.iter().zip(self.rows).enumerate() {
+            if row_index == 0 {
+                counters.start_newton_traversal();
+            }
+            counters.visit_row();
+
+            let prelude = RowPrelude::new(parameters, embedding);
+
+            let mut moment = [0.0_f64; CONTRAST_ROWS];
+            let mut square = [0.0_f64; 3];
+            for (class, probability) in prelude.probabilities.into_iter().enumerate() {
+                let basis_row = basis::HELMERT_V1[class];
+                moment[0] = probability.mul_add(basis_row[0], moment[0]);
+                moment[1] = probability.mul_add(basis_row[1], moment[1]);
+                square[0] = (probability * basis_row[0]).mul_add(basis_row[0], square[0]);
+                square[1] = (probability * basis_row[1]).mul_add(basis_row[0], square[1]);
+                square[2] = (probability * basis_row[1]).mul_add(basis_row[1], square[2]);
+            }
+            let block = [
+                moment[0].mul_add(-moment[0], square[0]),
+                moment[1].mul_add(-moment[0], square[1]),
+                moment[1].mul_add(-moment[1], square[2]),
+            ];
+
+            // Column k of Cᵢ in packed lower-triangle order: (c11, c21) and (c21, c22).
+            let scaled = [
+                [row.weight * block[0], row.weight * block[1]],
+                [row.weight * block[1], row.weight * block[2]],
+            ];
+            for (column, contributions) in intercept_columns.iter_mut().zip(scaled) {
+                for (slot, &value) in contributions.iter().enumerate() {
+                    column.coefficients[slot].add_scaled(embedding, value);
+                    column.intercepts[slot] += value;
+                }
+            }
+
+            blocks.push(block);
+        }
+        counters.complete_newton_traversal();
+
+        for column in &mut intercept_columns {
+            for coefficient_row in &mut column.coefficients {
+                **coefficient_row /= self.total_weight;
+            }
+            for intercept in &mut column.intercepts {
+                *intercept /= self.total_weight;
+            }
+        }
+
+        Some(CurvatureEvaluation {
+            blocks,
+            intercept_columns,
+        })
+    }
+
     /// Reports every row's data-Hessian curvature scale `max_c p_c(1−p_c)` at the parameters.
     ///
     /// The scale reads the same shared logits path as the objective, gradient, and
@@ -298,7 +388,7 @@ impl Prepared<'_> {
         self.embeddings
             .iter()
             .map(|embedding| {
-                let prelude = row_prelude(parameters, embedding);
+                let prelude = RowPrelude::new(parameters, embedding);
                 prelude
                     .probabilities
                     .into_iter()

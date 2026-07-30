@@ -455,6 +455,20 @@ impl<const N: usize> DVecN<N> {
         }
     }
 
+    /// Multiplies every component by the matching component of `factor`.
+    #[inline]
+    pub fn multiply_components(&mut self, factor: &Self) {
+        let (chunks, remainder) = self.0.as_chunks_mut::<8>();
+        let (factor_chunks, factor_remainder) = factor.0.as_chunks::<8>();
+
+        for (chunk, scale) in chunks.iter_mut().zip(factor_chunks) {
+            *chunk = (f64x8::from_array(*chunk) * f64x8::from_array(*scale)).to_array();
+        }
+        for (component, &scale) in remainder.iter_mut().zip(factor_remainder) {
+            *component *= scale;
+        }
+    }
+
     /// Adds the squared deviation of a working-precision vector from `mean`, component-wise.
     ///
     /// Each `f32` component of `value` widens to `f64` exactly, so the update `self += (value -
@@ -810,6 +824,20 @@ impl<const N: usize> AlignedDVecN<N> {
         }
         for (component, &scale) in remainder.iter_mut().zip(divisor_remainder) {
             *component /= scale;
+        }
+    }
+
+    /// Multiplies every component by the matching component of `factor`.
+    #[inline]
+    pub fn multiply_components(&mut self, factor: &Self) {
+        let (lanes, remainder) = self.lanes_mut();
+        let (factor_lanes, factor_remainder) = factor.lanes();
+
+        for (lane_group, scale) in lanes.iter_mut().zip(factor_lanes) {
+            *lane_group *= *scale;
+        }
+        for (component, &scale) in remainder.iter_mut().zip(factor_remainder) {
+            *component *= scale;
         }
     }
 

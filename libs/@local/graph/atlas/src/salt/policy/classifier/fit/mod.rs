@@ -8,8 +8,10 @@
 //!     + (λ / 2) · squared_norm(W),
 //! ```
 //!
-//! through the deterministic bounded trust-region Newton-CG [`solver`], which operates in
-//! contrast coordinates and certifies every solution against its gradient threshold. Whole
+//! through the deterministic bounded trust-region exact-Newton [`solver`], which operates in
+//! contrast coordinates and certifies every solution against its gradient threshold. The data
+//! Gram matrix behind the solver's row-space factorization assembles once per fit and every
+//! fold solve reads its subset through a member view. Whole
 //! relation groups are assigned to seeded, size-balanced folds before fitting, so
 //! near-duplicate corpus entries never straddle a train/validation split. The penalty strength
 //! λ is selected over those folds ([`regularization`]): every candidate's fold models fit in
@@ -33,7 +35,7 @@ use std::collections::HashMap;
 use self::{
     objective::Parameters,
     regularization::RegularizationReading,
-    solver::{ReceiptDetail, ScaledProblem, WorkCounters, prepare, solve},
+    solver::{Gram, GramView, ReceiptDetail, ScaledProblem, WorkCounters, prepare, solve},
 };
 use super::Classifier;
 use crate::{
@@ -46,7 +48,8 @@ use crate::{
 
 mod applicability;
 pub(crate) use self::solver::{
-    CgStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
+    NewtonStage, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
+    SolverFailure,
 };
 mod calibration;
 mod objective;
@@ -283,7 +286,7 @@ impl<'training> TrainingSet<'training> {
 /// selected configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
-    /// The bounded trust-region Newton-CG solver configuration, preparation knobs included.
+    /// The bounded trust-region exact-Newton solver configuration, preparation knobs included.
     pub solver: SolverConfig = SolverConfig { .. },
     /// Grouped cross-validation fold count. At least 2.
     pub folds: usize = 5,
@@ -362,12 +365,18 @@ pub(crate) fn fit<P: Progress + Sync>(
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
     progress.classifier_started(config.folds);
 
-    let selection = regularization::select(training, &folds, config, progress)?;
+    // One Gram assembly serves every fold solve and the deployment fit; the assembly charge
+    // rides the deployment fit's counters, and fold solves read the shared matrix uncharged.
+    let mut assembly_counters = WorkCounters::default();
+    let gram = Gram::assemble(training.embeddings, &mut assembly_counters);
+
+    let selection = regularization::select(training, &folds, config, &gram, progress)?;
     progress.classifier_regularization_selected(selection.regularization.get());
 
     let mut deployment = config;
     deployment.solver.preparation.regularization = selection.regularization;
-    let (final_parameters, iterations) = fit_model(training, &folds, None, deployment)?;
+    let (final_parameters, iterations) =
+        fit_model(training, &folds, None, deployment, &gram, assembly_counters)?;
 
     let out_of_fold_logits = selection.out_of_fold_logits;
     let temperature = calibration::fit_temperature(training.rows(), &out_of_fold_logits);
@@ -409,9 +418,12 @@ fn fit_model(
     folds: &[usize],
     held_out: Option<usize>,
     config: FitConfig,
+    gram: &Gram,
+    counters: WorkCounters,
 ) -> Result<(Parameters, u64), FitError> {
     // The held-out fold's complement materializes densely: the solver
     // traverses whole corpora, and fold membership is not its contract.
+    // The member indices double as the fold's window onto the Gram matrix.
     let subset = held_out.map(|held_out| {
         let members: Vec<usize> = folds
             .iter()
@@ -427,20 +439,27 @@ fn fit_model(
             *embedding_rows[position].as_array_mut() = *training.embedding(member).as_array();
             rows.push(training.rows()[member]);
         }
-        (embeddings, rows)
+        (members, embeddings, rows)
     });
-    let (embeddings, rows) = subset.as_ref().map_or(
-        (training.embeddings, training.rows),
-        |(embeddings, rows)| (embeddings.rows(), rows.as_slice()),
-    );
 
-    let mut counters = WorkCounters::default();
+    let (embeddings, rows, gram_view) = match subset.as_ref() {
+        Some((members, embeddings, rows)) => (
+            embeddings.rows(),
+            rows.as_slice(),
+            GramView::subset(gram, members),
+        ),
+        None => (training.embeddings, training.rows, GramView::full(gram)),
+    };
+
+    let mut counters = counters;
     let prepared = prepare(embeddings, rows, config.solver.preparation, &mut counters)
         .map_err(FitError::Preparation)?;
     let problem = ScaledProblem {
         prepared,
+        gram: gram_view,
         config: config.solver,
     };
+
     let run = solve(&problem, counters, ReceiptDetail::None);
     let converged = match run.outcome {
         Ok(converged) => converged,

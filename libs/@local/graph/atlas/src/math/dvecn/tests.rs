@@ -621,6 +621,35 @@ fn divide_components_divides_each_coordinate_in_lanes_and_remainder() {
 }
 
 #[test]
+fn multiply_components_multiplies_each_coordinate_in_lanes_and_remainder() {
+    let multiplicand =
+        core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(3.0, 1.0));
+    let factor = core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(0.5, 2.0));
+
+    let mut product = DVecN::new(multiplicand);
+    product.multiply_components(DVecN::from_ref(&factor));
+
+    let mut product_aligned = aligned(&multiplicand);
+    product_aligned.multiply_components(&aligned(&factor));
+
+    for (index, ((&result, &result_aligned), (&left, &right))) in product
+        .as_array()
+        .iter()
+        .zip(product_aligned.as_array())
+        .zip(multiplicand.iter().zip(&factor))
+        .enumerate()
+    {
+        let expected = left * right;
+        assert_eq!(result.to_bits(), expected.to_bits(), "component {index}");
+        assert_eq!(
+            result_aligned.to_bits(),
+            expected.to_bits(),
+            "aligned {index}"
+        );
+    }
+}
+
+#[test]
 fn scalar_multiply_and_divide_assign_scale_every_component() {
     let components =
         core::array::from_fn::<f64, 19, _>(|index| coordinate(index).mul_add(1.25, -3.0));

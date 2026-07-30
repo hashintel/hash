@@ -15,10 +15,11 @@ use super::{
     },
     AUGMENTED_DIMENSIONS, CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
     basis::{self, HELMERT_V1},
-    boundary::{BoundaryStep, GROSS_DEFECT_GUARD, boundary_step},
-    cg::{CgOutcome, CgTag, bounded_steihaug_cg, crossing},
+    boundary::{GROSS_DEFECT_GUARD, boundary_step},
     config::{SolverConfig, SolverConfigError},
     flat as flat_vectors,
+    gram::{Gram, GramView},
+    newton::{NewtonOutcome, NewtonTag, factor_block, newton_step},
     prepare::{PreparationError, PreparationSettings, prepare},
     problem::ScaledProblem,
     receipt::{CandidateOutcome, CurvatureDiagnostic, ReceiptDetail, vector_digest},
@@ -29,7 +30,7 @@ use super::{
     },
     stable::{checked_dot, checked_norm_squared, stable_l2},
     target::{ClosedTarget, ClosedTargetError},
-    terminal::{CgStage, SolverFailure},
+    terminal::{NewtonStage, SolverFailure},
     work::WorkCounters,
 };
 use crate::{
@@ -1022,13 +1023,11 @@ fn solver_config() -> SolverConfig {
         expansion_factor: greater_than_one!(2.0),
         eta_accept: open_unit_fraction!(0.1),
         eta_expand: open_unit_fraction!(0.75),
-        relative_cg_residual_tolerance: open_unit_fraction!(0.1),
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-6),
         absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-10),
         objective_resolution_ulps: NonZeroU32::new(4).expect("four is nonzero"),
         curvature_guard_ulps: NonZeroU32::new(16).expect("sixteen is nonzero"),
         maximum_outer_iterations: NonZeroU64::new(100).expect("one hundred is nonzero"),
-        maximum_cg_iterations: NonZeroU64::new(50).expect("fifty is nonzero"),
         maximum_hvp_requests: NonZeroU64::new(5_000).expect("five thousand is nonzero"),
         maximum_objective_requests: 200,
         maximum_gradient_requests: 200,
@@ -1564,8 +1563,13 @@ fn run_solver(corpus: &Corpus, config: SolverConfig) -> SolverRun {
         &mut counters,
     )
     .expect("the fixture corpus prepares");
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
     solve(
-        &ScaledProblem { prepared, config },
+        &ScaledProblem {
+            prepared,
+            gram: GramView::full(&gram),
+            config,
+        },
         counters,
         ReceiptDetail::Digests,
     )
@@ -1588,13 +1592,15 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     );
     assert!((converged.point.objective - 3.0_f64.ln()).abs() < 1.0e-12);
 
-    // No outer iteration started: no receipts, no CG work, and the reserve was consumed by the
-    // final certificate alone.
+    // No outer iteration started: no receipts, no inner work, and the reserve was consumed by
+    // the final certificate alone.
     assert_eq!(run.control.outer_iterations_started, 0);
     assert!(run.receipts.is_empty());
     assert!(!run.control.final_reserve);
     let counters = run.control.counters;
     assert_eq!(counters.hvp_requests, 0);
+    assert_eq!(counters.factorizations, 0);
+    assert_eq!(counters.gram_assemblies, 1);
     assert_eq!(counters.joint_passes, 2);
     assert_eq!(counters.objective_requests, 2);
     assert_eq!(counters.gradient_requests, 2);
@@ -1616,8 +1622,13 @@ fn solve_stores_no_receipts_routinely() {
         &mut counters,
     )
     .expect("the fixture corpus prepares");
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
     let run = solve(
-        &ScaledProblem { prepared, config },
+        &ScaledProblem {
+            prepared,
+            gram: GramView::full(&gram),
+            config,
+        },
         counters,
         ReceiptDetail::None,
     );
@@ -1686,18 +1697,33 @@ fn solve_converges_on_the_fixture_corpus() {
             + counters.joint_passes
             + counters.objective_only_passes
             + counters.gradient_only_passes
-            + counters.completed_hvp_traversals,
+            + counters.completed_hvp_traversals
+            + counters.completed_newton_traversals,
     );
+    // Three assembly traversals and one factorization per started outer.
+    assert_eq!(
+        counters.completed_newton_traversals,
+        3 * run.control.outer_iterations_started,
+    );
+    assert_eq!(
+        counters.factorizations,
+        run.control.outer_iterations_started
+    );
+    assert_eq!(counters.gram_assemblies, 1);
     assert!(counters.candidate_acceptances >= 1);
     assert!(!run.control.final_reserve);
 
-    // Every receipt completed its inner solve; classified candidates carry their scalar facts.
+    // Every receipt completed its inner solve; classified candidates carry their scalar facts,
+    // and every priced Newton point carries its oracle residual.
     for receipt in &run.receipts {
         let outcome = &receipt.outcome;
         assert!(outcome.tag.is_some());
         assert_matches!(outcome.step_norm, Some(norm) if norm > 0.0);
         assert_matches!(outcome.predicted_reduction, Some(predicted) if predicted > 0.0);
         assert!(outcome.candidate.is_some());
+        if outcome.tag != Some(NewtonTag::CauchyBoundary) {
+            assert_matches!(outcome.newton_residual, Some(residual) if residual >= 0.0);
+        }
     }
 
     // Strict convexity: every accepted step carries positive curvature, dot and normalized.
@@ -1763,55 +1789,33 @@ fn solve_fails_the_outer_iteration_budget() {
     assert!(run.control.final_reserve);
 }
 
-/// The CG budgets fail in declared order, and the receipt of the dying outer already exists.
+/// The inner Newton budgets fail where their work would exceed them, receipts already stored.
 #[test]
-fn solve_orders_the_inner_cg_budgets() {
+fn solve_orders_the_inner_newton_budgets() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
-        // The subject is the refusal order under verbatim budgets; parity strength keeps the
-        // CG allowance at the configured maximum.
-        preparation: PreparationSettings {
-            regularization: DPositive::ONE,
-            ..settings()
-        },
-        relative_cg_residual_tolerance: open_unit_fraction!(1.0e-9),
         absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
     };
 
-    // The first outer reaches the trust boundary inside its two-iteration budget; the second
-    // needs six. With the CG-start and HVP budgets binding at the same iteration, the CG-start
-    // budget fails first.
-    let cg_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_cg_iterations: NonZeroU64::new(2).expect("two is nonzero"),
-            maximum_hvp_requests: NonZeroU64::new(4).expect("four is nonzero"),
-            ..strict
-        },
-    );
-    assert_matches!(cg_starved.outcome, Err(SolverFailure::CgIterationBudget));
-    assert_eq!(cg_starved.control.counters.hvp_requests, 4);
-    assert_eq!(cg_starved.receipts.len(), 2);
-    // The dying outer never finished its inner solve: its completion carries no tag.
-    assert_eq!(cg_starved.receipts[1].outcome.tag, None);
-    assert!(cg_starved.receipts[0].outcome.tag.is_some());
-
-    // HVP budget second: the receipt of the dying outer already exists.
+    // One priced product per interior outer: the second outer's pricing preflight finds the
+    // budget consumed. The dying outer never finished its inner solve: no tag.
     let hvp_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_hvp_requests: NonZeroU64::new(3).expect("three is nonzero"),
+            maximum_hvp_requests: NonZeroU64::new(1).expect("one is nonzero"),
             ..strict
         },
     );
     assert_matches!(hvp_starved.outcome, Err(SolverFailure::HvpBudget));
-    assert_eq!(hvp_starved.control.counters.hvp_requests, 3);
+    assert_eq!(hvp_starved.control.counters.hvp_requests, 1);
     assert_eq!(hvp_starved.receipts.len(), 2);
+    assert!(hvp_starved.receipts[0].outcome.tag.is_some());
+    assert_eq!(hvp_starved.receipts[1].outcome.tag, None);
 
-    // Unreserved row traversals third: at the floor of three, preparation plus initialization
-    // plus the reserve leave nothing for a first Hessian-vector product.
+    // At the row floor of three, preparation plus initialization plus the reserve leave
+    // nothing for the three assembly traversals: the inner solve refuses before any assembly.
     let row_starved = run_solver(
         &corpus,
         SolverConfig {
@@ -1821,7 +1825,25 @@ fn solve_orders_the_inner_cg_budgets() {
     );
     assert_matches!(row_starved.outcome, Err(SolverFailure::RowPassBudget));
     assert_eq!(row_starved.control.counters.hvp_requests, 0);
+    assert_eq!(row_starved.control.counters.completed_newton_traversals, 0);
     assert_eq!(row_starved.control.counters.started_row_traversals, 2);
+
+    // Enough rows for the assembly, none left for the pricing product: the preflight before
+    // the oracle request refuses with the assembly already charged.
+    let pricing_starved = run_solver(
+        &corpus,
+        SolverConfig {
+            maximum_row_traversals: 6,
+            ..strict
+        },
+    );
+    assert_matches!(pricing_starved.outcome, Err(SolverFailure::RowPassBudget));
+    assert_eq!(pricing_starved.control.counters.hvp_requests, 0);
+    assert_eq!(
+        pricing_starved.control.counters.completed_newton_traversals,
+        3
+    );
+    assert_eq!(pricing_starved.control.counters.started_row_traversals, 5);
 }
 
 /// Candidate preflight prices the objective, then the gradient, then the rows - reserve intact.
@@ -1863,13 +1885,13 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
     );
     assert_eq!(gradient_starved.control.counters.objective_requests, 1);
 
-    // With a loose CG tolerance the inner solve finishes on one product, and the preflight then
-    // finds a single unreserved traversal where the candidate needs two.
+    // The inner solve finishes on three assembly traversals and one priced product, and the
+    // candidate preflight then finds a single unreserved traversal where the candidate needs
+    // two.
     let row_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_row_traversals: 5,
-            relative_cg_residual_tolerance: open_unit_fraction!(0.999_999),
+            maximum_row_traversals: 8,
             ..strict
         },
     );
@@ -1884,14 +1906,20 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
 }
 
 /// The rejection budget fails at equality and precedes radius underflow.
+///
+/// The fixture's first full Newton step lands where curvature has risen against the model: its
+/// measured ratio is `0.99048`, so an acceptance threshold of `0.995` rejects it
+/// deterministically. At a streak budget of one the count wins; at the default budget the
+/// rejection at the minimum radius underflows - the two terminals in their declared order.
 #[test]
 fn solve_orders_rejection_budget_before_radius_underflow() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
-        radius_minimum: DPositive::ONE,
-        radius_initial: DPositive::ONE,
-        eta_accept: open_unit_fraction!(1.0 - 1.0e-9),
-        eta_expand: open_unit_fraction!(1.0 - 1.0e-10),
+        radius_minimum: d_positive!(2.0),
+        radius_initial: d_positive!(2.0),
+        radius_maximum: d_positive!(1.0e4),
+        eta_accept: open_unit_fraction!(0.995),
+        eta_expand: open_unit_fraction!(0.999),
         absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
@@ -1913,24 +1941,22 @@ fn solve_orders_rejection_budget_before_radius_underflow() {
         1
     );
 
-    // Early steps overachieve their model (curvature falls along the step, so ρ > 1) and are
-    // accepted even against this threshold; the radius expands, a later candidate is rejected,
-    // the shrink clips back to the minimum, and the one permitted attempt there underflows.
+    // Under the default streak budget the same rejection happens at the minimum radius, and
+    // the radius test follows the streak test: underflow.
     let radius_starved = run_solver(&corpus, strict);
     assert_matches!(radius_starved.outcome, Err(SolverFailure::RadiusUnderflow));
-    assert!(radius_starved.control.counters.candidate_acceptances >= 1);
     assert_eq!(
         radius_starved.control.counters.candidate_ratio_rejections,
-        2
+        1
     );
-    assert_eq!(radius_starved.control.radius, 1.0);
-    // Both rejected outers carry their classification and ratio in the completion record.
+    assert_eq!(radius_starved.control.radius, 2.0);
+    // The rejected outer carries its classification and ratio in the completion record.
     let rejections = radius_starved
         .receipts
         .iter()
         .filter(|receipt| receipt.outcome.candidate == Some(CandidateOutcome::RejectedByRatio));
     for receipt in rejections {
-        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio < 1.0 - 1.0e-9);
+        assert_matches!(receipt.outcome.ratio, Some(ratio) if ratio < 0.995);
     }
 }
 
@@ -1972,19 +1998,22 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
     assert_eq!(run.control.counters.candidate_acceptances, 1);
     assert_eq!(run.control.radius, 2.0e-3);
     assert_eq!(run.receipts[0].radius, 1.0e-3);
+    // The Newton point sits far outside the tiny radius, so the crossing is a boundary tag.
+    assert_matches!(
+        run.receipts[0].outcome.tag,
+        Some(NewtonTag::CauchyBoundary | NewtonTag::DoglegBoundary),
+    );
 }
 
-/// A valid degenerate corpus drives the full machine into the typed non-finite CG terminal.
+/// A valid degenerate corpus drives the full machine into the typed non-finite Newton terminal.
 ///
-/// Weights of `f64::MAX / 4` keep `S` and every preparation aggregate finite, but `3·S`
-/// overflows, the initial-diagonal normalizer flushes to zero, and the subnormal `λ/S` share
-/// underflows: every coefficient curvature is zero and only the constant intercept curvature
-/// survives. The derived floor `⅓·10⁻³¹⁰` rescues the coefficient scales at `√(⅓·10⁻³¹⁰)`. The
-/// initial scaled gradient stays finite and fails its relative certificate; CG's first
-/// Hessian-vector product applies the tiny coefficient scales a second time, the physical
-/// direction overflows, and the machine reaches `NonFiniteCg { HvpVector }`.
+/// Weights of `f64::MAX / 4` keep `S` and every preparation aggregate finite, and the initial
+/// scaled gradient stays finite yet fails its relative certificate, so an inner solve must run.
+/// The per-row factor scale `wᵢ/λ` then overflows against the subnormal regularization, the
+/// weighted curvature block leaves the finite domain, and the machine reaches
+/// `NonFiniteNewton { Weights }` with the curvature traversal already honestly charged.
 #[test]
-fn solve_reaches_the_non_finite_cg_terminal_on_a_degenerate_scale() {
+fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
     let subnormal = f64::from_bits(1);
     let mut corpus = Corpus::new();
     for _ in 0..3 {
@@ -2006,17 +2035,19 @@ fn solve_reaches_the_non_finite_cg_terminal_on_a_degenerate_scale() {
 
     assert_matches!(
         run.outcome,
-        Err(SolverFailure::NonFiniteCg {
-            stage: CgStage::HvpVector,
+        Err(SolverFailure::NonFiniteNewton {
+            stage: NewtonStage::Weights,
         }),
     );
 
-    // The rejected product was charged as a request only: no traversal, no rows. The receipt
-    // exists with an empty completion: the iteration died inside its first inner product.
+    // The overflow fired after the curvature traversal and before any oracle product or
+    // factorization. The receipt exists with an empty completion: the iteration died inside
+    // its inner assembly.
     let counters = run.control.counters;
-    assert_eq!(counters.hvp_requests, 1);
-    assert_eq!(counters.completed_hvp_traversals, 0);
-    assert_eq!(counters.started_row_traversals, 2);
+    assert_eq!(counters.hvp_requests, 0);
+    assert_eq!(counters.completed_newton_traversals, 1);
+    assert_eq!(counters.factorizations, 0);
+    assert_eq!(counters.started_row_traversals, 3);
     assert_eq!(run.receipts.len(), 1);
     assert_eq!(run.receipts[0].outcome.tag, None);
 }
@@ -2077,10 +2108,10 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
         .coordinates
         .expect("a debugging request carries the coordinate identity");
 
-    // The identity pins its literal v1 values, not merely shared-source agreement.
+    // The identity pins its literal v2 values, not merely shared-source agreement.
     assert_eq!(
         coordinates.domain_tag,
-        "salt-policy-classifier-solver-flat-v1"
+        "salt-policy-classifier-solver-flat-v2"
     );
     assert_eq!(
         coordinates.coordinate_system,
@@ -2136,7 +2167,12 @@ fn certify_reproves_the_certificate_freshly() {
         &mut counters,
     )
     .expect("the fixture corpus prepares");
-    let problem = ScaledProblem { prepared, config };
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
+    let problem = ScaledProblem {
+        prepared,
+        gram: GramView::full(&gram),
+        config,
+    };
 
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let point = problem.point(&origin);
@@ -2238,53 +2274,116 @@ fn rejected_orders_streak_budget_then_underflow_with_one_clipped_attempt() {
     );
 }
 
-/// A failed boundary construction maps onto its typed failure.
+/// The `2×2` PSD factor reproduces its block on the numerical rank and zeroes dropped columns.
 #[test]
-fn crossing_maps_a_failed_construction_onto_its_typed_failure() {
-    let interior = flat(&[(0, 1.0)]);
-    let zero = flat(&[]);
+fn factor_block_reproduces_psd_blocks_and_drops_rank() {
+    // A full-rank SPD block factors exactly on exactly-representable entries.
+    assert_eq!(factor_block(4.0, 2.0, 5.0), [2.0, 1.0, 2.0]);
 
-    assert_matches!(
-        crossing(&interior, &zero, &zero, &zero, 4.0),
-        Err(SolverFailure::NoFiniteBoundaryStep),
-    );
+    // A rank-one block: the trailing pivot cancels to zero and its column drops.
+    assert_eq!(factor_block(1.0, 2.0, 4.0), [1.0, 2.0, 0.0]);
+
+    // A non-positive leading entry zeroes the first column; the trailing direction survives.
+    assert_eq!(factor_block(0.0, 0.0, 9.0), [0.0, 0.0, 3.0]);
+    assert_eq!(factor_block(-1.0e-17, 3.0, 9.0), [0.0, 0.0, 3.0]);
+
+    // Wholly degenerate blocks factor to zero.
+    assert_eq!(factor_block(0.0, 0.0, 0.0), [0.0, 0.0, 0.0]);
+    assert_eq!(factor_block(0.0, 0.0, -1.0e-17), [0.0, 0.0, 0.0]);
 }
 
-/// The CG outcome accessors return the payload of every variant.
+/// Gram entries are the exact-product dots, symmetric, and a fold view reads the full matrix
+/// bit for bit as a direct dot over the member embeddings.
 #[test]
-fn cg_outcome_accessors_agree_with_their_payloads() {
-    let interior = CgOutcome::ResidualConverged {
-        step: flat(&[(0, 1.0)]),
-        hessian_step: flat(&[(1, 2.0)]),
-    };
-    assert_eq!(interior.step().as_array()[0], 1.0);
-    assert_eq!(interior.hessian_step().as_array()[1], 2.0);
-    assert!(!interior.is_boundary());
+fn gram_views_read_the_assembled_dots_bit_for_bit() {
+    let corpus = valid_corpus();
+    let mut counters = WorkCounters::default();
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
+    assert_eq!(counters.gram_assemblies, 1);
+    assert_eq!(gram.order(), 3);
 
-    let trust = CgOutcome::TrustBoundary(BoundaryStep {
-        step: flat(&[(0, 3.0)]),
-        hessian_step: flat(&[(1, 4.0)]),
-    });
-    assert_eq!(trust.step().as_array()[0], 3.0);
-    assert_eq!(trust.hessian_step().as_array()[1], 4.0);
-    assert!(trust.is_boundary());
+    let embeddings = corpus.embeddings();
+    for i in 0..3 {
+        for j in 0..3 {
+            assert_eq!(
+                gram.entry(i, j).to_bits(),
+                embeddings[i].dot_accumulated(&embeddings[j]).to_bits(),
+                "entry ({i}, {j}) is the exact-product dot",
+            );
+        }
+    }
 
-    let guarded = CgOutcome::CurvatureGuardBoundary(BoundaryStep {
-        step: flat(&[(0, 5.0)]),
-        hessian_step: flat(&[(1, 6.0)]),
-    });
-    assert_eq!(guarded.step().as_array()[0], 5.0);
-    assert_eq!(guarded.hessian_step().as_array()[1], 6.0);
-    assert!(guarded.is_boundary());
+    let members = [0_usize, 2];
+    let view = GramView::subset(&gram, &members);
+    assert_eq!(view.order(), 2);
+    for row in 0..2 {
+        for column in 0..2 {
+            assert_eq!(
+                view.entry(row, column).to_bits(),
+                embeddings[members[row]]
+                    .dot_accumulated(&embeddings[members[column]])
+                    .to_bits(),
+                "the view entry ({row}, {column}) equals the member dot bit for bit",
+            );
+        }
+    }
 }
 
-/// Prepares the corpus and drives one inner CG solve at the origin under the validated
+/// The curvature pass's intercept columns are the oracle's Hessian columns.
+///
+/// The pass accumulates `H[0|e_k]` through the moment identity `C = q − mmᵀ`; the oracle
+/// evaluates the same columns through its shifted-probability path. Agreement at a generic
+/// point ties the Newton assembly to the finite-difference-certified oracle at the block
+/// level, with rounding as the only separation.
+#[test]
+fn curvature_pass_matches_the_oracle_intercept_columns() {
+    let corpus = valid_corpus();
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(corpus.embeddings(), &corpus.rows, settings(), &mut counters)
+        .expect("the fixture corpus prepares");
+
+    let point = solver_parameters();
+    let evaluation = prepared
+        .curvature_pass(&point, &mut counters)
+        .expect("the fixture request is finite");
+    assert_eq!(evaluation.blocks.len(), 3);
+    assert_eq!(counters.completed_newton_traversals, 1);
+
+    for (slot, column) in evaluation.intercept_columns.iter().enumerate() {
+        let mut direction = ContrastVector::zero();
+        direction.intercepts[slot] = 1.0;
+        let product = prepared
+            .hessian_vector(&point, &direction, &mut counters)
+            .expect("the oracle request is finite");
+
+        for (column_row, product_row) in column.coefficients.iter().zip(&product.coefficients) {
+            for (left, right) in column_row.as_array().iter().zip(product_row.as_array()) {
+                assert!(
+                    (left - right).abs() <= 1.0e-13 * right.abs().max(1.0),
+                    "column {slot} coefficient {left:e} tracks the oracle {right:e}",
+                );
+            }
+        }
+        for (left, right) in column.intercepts.iter().zip(product.intercepts) {
+            assert!(
+                (left - right).abs() <= 1.0e-13 * right.abs().max(1.0),
+                "column {slot} intercept {left:e} tracks the oracle {right:e}",
+            );
+        }
+    }
+}
+
+/// Prepares the corpus and drives one inner Newton solve at the origin under the validated
 /// configuration, returning the outcome with the counters before and after the solve. The
 /// control radius is the configuration's initial radius.
-fn cg_at_origin(
+fn newton_at_origin(
     corpus: &Corpus,
     config: SolverConfig,
-) -> (Result<CgOutcome, SolverFailure>, WorkCounters, WorkCounters) {
+) -> (
+    Result<NewtonOutcome, SolverFailure>,
+    WorkCounters,
+    WorkCounters,
+) {
     config
         .validate()
         .expect("the witness configuration is valid");
@@ -2296,8 +2395,13 @@ fn cg_at_origin(
         &mut counters,
     )
     .expect("the witness corpus prepares");
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
     let radius = config.radius_initial.get();
-    let problem = ScaledProblem { prepared, config };
+    let problem = ScaledProblem {
+        prepared,
+        gram: GramView::full(&gram),
+        config,
+    };
     let point = problem.point(&BoxedDVecN::zero());
     let (_objective, gradient) = problem
         .joint(&point, &mut counters)
@@ -2310,20 +2414,67 @@ fn cg_at_origin(
         counters,
         final_reserve: true,
     };
-    let outcome = bounded_steihaug_cg(&problem, &point, &gradient, &mut control);
+    let outcome = newton_step(&problem, &point, &gradient, &mut control);
     (outcome, baseline, control.counters)
 }
 
-/// A small trust radius exits the inner solve through the trust-boundary crossing at its call
-/// site.
+/// The interior Newton point inverts the oracle within its recorded residual.
 ///
-/// At the origin the scaled Hessian is near-identity, so the first update step carries the
-/// scaled gradient norm (about 1.4) against a radius of `1e-4`: the first iterate crosses, the
-/// validated crossing returns through the trust-boundary arm, and the returned step rides the
-/// boundary within one ulp of the radius. One Hessian-vector product is charged for the one
-/// started iteration; the returned boundary step charges none.
+/// The residual reads the step's Hessian product from the finite-difference-certified oracle,
+/// so the factorization is proven against an implementation it shares no arithmetic with. At
+/// the origin the scaled system is near-identity, so backward-stable factorization keeps the
+/// relative residual within a few ulps; the bound carries three orders of margin over that
+/// derivation. Work is fixed: three assembly traversals, one factorization, one priced
+/// product.
 #[test]
-fn cg_routes_the_trust_boundary_crossing_through_its_call_site() {
+fn newton_step_inverts_the_oracle_within_its_residual() {
+    let corpus = valid_corpus();
+    let config = SolverConfig {
+        radius_initial: d_positive!(1.0e4),
+        ..solver_config()
+    };
+
+    let (outcome, baseline, counters) = newton_at_origin(&corpus, config);
+    let outcome = outcome.expect("the wide radius keeps the Newton point interior");
+    assert_eq!(outcome.tag(), NewtonTag::NewtonInterior);
+    assert!(!outcome.is_boundary());
+
+    let residual = outcome.residual().expect("the interior point is priced");
+    assert!(
+        residual <= 1.0e-12,
+        "the near-identity fixture keeps the oracle residual at rounding scale, got {residual:e}",
+    );
+    assert!(outcome.hessian_step().is_finite());
+
+    assert_eq!(
+        counters.completed_newton_traversals,
+        baseline.completed_newton_traversals + 3,
+    );
+    assert_eq!(counters.factorizations, baseline.factorizations + 1);
+    assert_eq!(counters.hvp_requests, baseline.hvp_requests + 1);
+    assert_eq!(
+        counters.started_row_traversals,
+        baseline.started_row_traversals + 4,
+    );
+
+    // The engine is deterministic: a second identical solve returns identical bytes.
+    let (again, _, _) = newton_at_origin(&corpus, config);
+    let again = again.expect("the identical solve succeeds identically");
+    assert_eq!(outcome.step().as_array(), again.step().as_array());
+    assert_eq!(
+        outcome.hessian_step().as_array(),
+        again.hessian_step().as_array(),
+    );
+}
+
+/// A small trust radius exits the inner solve through the steepest-descent crossing.
+///
+/// At the origin the scaled gradient norm is about `1.4`, so both the Newton point and the
+/// Cauchy point sit far outside a radius of `1e-4`: the crossing follows `−g` from the origin
+/// through the validated boundary construction, prices one oracle product for the Cauchy
+/// curvature, and never requests the Newton product.
+#[test]
+fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
     let corpus = valid_corpus();
     let config = SolverConfig {
         radius_initial: d_positive!(1.0e-4),
@@ -2331,21 +2482,17 @@ fn cg_routes_the_trust_boundary_crossing_through_its_call_site() {
     };
     let radius = config.radius_initial.get();
 
-    let (outcome, baseline, counters) = cg_at_origin(&corpus, config);
+    let (outcome, baseline, counters) = newton_at_origin(&corpus, config);
     let outcome = outcome.expect("the small-radius solve exits through the boundary");
-    assert_eq!(outcome.tag(), CgTag::TrustBoundary);
+    assert_eq!(outcome.tag(), NewtonTag::CauchyBoundary);
     assert!(outcome.is_boundary());
+    assert_eq!(outcome.residual(), None);
 
-    // One started iteration charged one product and one traversal; the boundary step rode the
-    // iteration's own product.
+    // One priced product served the Cauchy curvature; the crossing rode it.
     assert_eq!(counters.hvp_requests, baseline.hvp_requests + 1);
     assert_eq!(
-        counters.completed_hvp_traversals,
-        baseline.completed_hvp_traversals + 1,
-    );
-    assert_eq!(
-        counters.started_row_traversals,
-        baseline.started_row_traversals + 1,
+        counters.completed_newton_traversals,
+        baseline.completed_newton_traversals + 3,
     );
 
     // The returned payload satisfies the gross-defect guard it was validated against.
@@ -2354,64 +2501,165 @@ fn cg_routes_the_trust_boundary_crossing_through_its_call_site() {
     assert!(outcome.hessian_step().is_finite());
 }
 
-/// A valid near-parallel corpus exits the inner solve through the curvature guard at its call
-/// site.
+/// A radius between the Cauchy and Newton lengths exits through the dogleg leg.
 ///
-/// Three rows whose two leading coordinates differ by one f32 ulp leave two contrast directions
-/// with curvature near `4e-15` against order-one elsewhere. The residual the first three
-/// iterations leave behind points into that near-null space with rounding-level contamination:
-/// the fourth direction's curvature collapses to `2.7e-49` against a guard of `2.7e-48`
-/// (cosine `9.4e-8` at the widest valid guard), and the guard fires while the iterate sits
-/// strictly inside the radius. The widest valid `curvature_guard_ulps`, a tiny valid
-/// regularization, and a large valid radius chain make the branch reachable: the witness proves
-/// routing and accounting, not a production curvature regime.
+/// The witness derives its radius from the fixture's own measured geometry: the Newton length
+/// from a wide-radius solve, the Cauchy length from the oracle's own products. The crossing
+/// lands on the boundary within the gross-defect guard, prices both oracle products, and
+/// carries the Newton residual.
 #[test]
-fn cg_routes_the_curvature_guard_crossing_through_its_call_site() {
-    let ulp32 = f32::EPSILON;
-    let mut corpus = Corpus::new();
-    corpus.push(&[1.0, 1.0 + ulp32], [0.75, 0.125, 0.125], 1.0);
-    corpus.push(&[1.0, 1.0], [0.125, 0.75, 0.125], 1.0);
-    corpus.push(&[1.0, 1.0 - ulp32], [0.125, 0.125, 0.75], 1.0);
-
-    let config = SolverConfig {
-        preparation: PreparationSettings {
-            regularization: d_positive!(1.0e-30),
-            curvature_relative_floor: d_positive!(1.0e-300),
-            target_sum_tolerance_ulps: one_ulp(),
-        },
-        relative_cg_residual_tolerance: open_unit_fraction!(1.0e-12),
-        curvature_guard_ulps: NonZeroU32::new(u32::MAX).expect("the maximum is nonzero"),
-        radius_initial: d_positive!(1.0e8),
-        radius_maximum: d_positive!(1.0e8),
+fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
+    let corpus = valid_corpus();
+    let wide = SolverConfig {
+        radius_initial: d_positive!(1.0e4),
         ..solver_config()
     };
-    let radius = config.radius_initial.get();
 
-    let (outcome, baseline, counters) = cg_at_origin(&corpus, config);
-    let outcome = outcome.expect("the guard trip advances to a validated boundary");
+    let (outcome, _, _) = newton_at_origin(&corpus, wide);
+    let newton_norm = stable_l2(
+        outcome
+            .expect("the wide radius keeps the Newton point interior")
+            .step(),
+    )
+    .expect("the Newton step is finite");
 
-    // The tag is the branch identity: the guard check precedes the radius check inside an
-    // iteration, so this arm returning at all proves the trust-boundary predicate did not
-    // steal the exit, and the validated crossing proves the iterate was strictly interior.
-    assert_eq!(outcome.tag(), CgTag::CurvatureGuardBoundary);
+    // The Cauchy length `(g·g / g·Hg)·‖g‖` from the oracle at the origin.
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(
+        corpus.embeddings(),
+        &corpus.rows,
+        wide.preparation,
+        &mut counters,
+    )
+    .expect("the witness corpus prepares");
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
+    let problem = ScaledProblem {
+        prepared,
+        gram: GramView::full(&gram),
+        config: wide,
+    };
+    let point = problem.point(&BoxedDVecN::zero());
+    let (_objective, gradient) = problem
+        .joint(&point, &mut counters)
+        .expect("the origin joint request is finite");
+    let hessian_gradient = problem
+        .hessian_vector(&point, &gradient, &mut counters)
+        .expect("the origin product is finite");
+    let gradient_square = checked_norm_squared(&gradient).expect("the gradient is finite");
+    let curvature = checked_dot(&gradient, &hessian_gradient).expect("the curvature is finite");
+    let gradient_norm = stable_l2(&gradient).expect("the gradient is finite");
+    let cauchy_norm = gradient_square / curvature * gradient_norm;
+
+    // The dogleg premise of the witness: the fixture's Cauchy point sits strictly inside the
+    // Newton length.
+    assert!(
+        cauchy_norm < 0.9 * newton_norm,
+        "the fixture separates the dogleg legs (cauchy {cauchy_norm:e}, newton {newton_norm:e})",
+    );
+
+    let radius = f64::midpoint(cauchy_norm, newton_norm);
+    let between = SolverConfig {
+        radius_initial: DPositive::new(radius).expect("the measured radius is positive"),
+        radius_maximum: d_positive!(1.0e4),
+        ..solver_config()
+    };
+
+    let (outcome, baseline, counters) = newton_at_origin(&corpus, between);
+    let outcome = outcome.expect("the between radius exits through the dogleg leg");
+    assert_eq!(outcome.tag(), NewtonTag::DoglegBoundary);
     assert!(outcome.is_boundary());
+    assert_matches!(outcome.residual(), Some(residual) if residual <= 1.0e-12);
 
-    // Four started iterations charged four products and four traversals; the boundary step
-    // rode the tripping iteration's own product.
-    assert_eq!(counters.hvp_requests, baseline.hvp_requests + 4);
-    assert_eq!(
-        counters.completed_hvp_traversals,
-        baseline.completed_hvp_traversals + 4,
-    );
-    assert_eq!(
-        counters.started_row_traversals,
-        baseline.started_row_traversals + 4,
-    );
+    // Both oracle products priced: the Cauchy curvature and the Newton product.
+    assert_eq!(counters.hvp_requests, baseline.hvp_requests + 2);
 
     // The returned payload satisfies the gross-defect guard it was validated against.
     let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
     assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
+}
+
+/// Saturated rows drop their curvature columns and the solve proceeds on the survivors.
+///
+/// At a point whose leading coefficient drives two rows' logits to exact probability vertices,
+/// those rows' curvature blocks collapse to rounding residue and their factor columns drop,
+/// while the third row stays interior. The capacitance keeps its unit diagonal on the dropped
+/// columns, and the Newton point still inverts the oracle.
+#[test]
+fn newton_step_survives_saturated_rows() {
+    let corpus = valid_corpus();
+    let config = SolverConfig {
+        radius_initial: d_positive!(1.0e8),
+        radius_maximum: d_positive!(1.0e8),
+        ..solver_config()
+    };
+    config
+        .validate()
+        .expect("the witness configuration is valid");
+
+    let mut counters = WorkCounters::default();
+    let prepared = prepare(
+        corpus.embeddings(),
+        &corpus.rows,
+        config.preparation,
+        &mut counters,
+    )
+    .expect("the witness corpus prepares");
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
+    let problem = ScaledProblem {
+        prepared,
+        gram: GramView::full(&gram),
+        config,
+    };
+
+    // Rows 0 and 2 carry a nonzero leading coordinate: their reference differences reach
+    // `±O(10³)` and the shifted exponentials underflow to exact vertices; row 1 stays interior.
+    let mut point = ContrastVector::zero();
+    point.coefficients[0].as_array_mut()[0] = 4000.0;
+    let (_objective, gradient) = problem
+        .joint(&point, &mut counters)
+        .expect("the saturated point evaluates finitely");
+
+    let mut control = SolverControl {
+        radius: config.radius_initial.get(),
+        consecutive_rejections: 0,
+        outer_iterations_started: 0,
+        counters,
+        final_reserve: true,
+    };
+    let outcome = newton_step(&problem, &point, &gradient, &mut control)
+        .expect("rank-dropped rows leave the capacitance solvable");
+    assert_eq!(outcome.tag(), NewtonTag::NewtonInterior);
+    assert_matches!(outcome.residual(), Some(residual) if residual <= 1.0e-9);
+}
+
+/// Same corpus, same configuration: two solves produce byte-identical receipts and iterates.
+#[test]
+fn solve_is_deterministic_run_to_run() {
+    let corpus = valid_corpus();
+    let first = run_solver(&corpus, solver_config());
+    let second = run_solver(&corpus, solver_config());
+
+    assert_eq!(first.receipts, second.receipts);
+    assert_eq!(
+        first.accepted.objective.to_bits(),
+        second.accepted.objective.to_bits(),
+    );
+    let first_bits: Vec<u64> = first
+        .accepted
+        .zeta
+        .as_array()
+        .iter()
+        .map(|value| value.to_bits())
+        .collect();
+    let second_bits: Vec<u64> = second
+        .accepted
+        .zeta
+        .as_array()
+        .iter()
+        .map(|value| value.to_bits())
+        .collect();
+    assert_eq!(first_bits, second_bits);
 }
 
 /// The flat vector operations keep their declared componentwise shapes.
@@ -2491,7 +2739,12 @@ fn scaled_problem_applies_the_hessian_sandwich_in_order() {
         .expect("the fixture request is finite");
     let manual = prepared.scaling.divide(&manual_product.to_flat());
 
-    let problem = ScaledProblem { prepared, config };
+    let gram = Gram::assemble(corpus.embeddings(), &mut counters);
+    let problem = ScaledProblem {
+        prepared,
+        gram: GramView::full(&gram),
+        config,
+    };
     let scaled = problem
         .hessian_vector(&point, &direction, &mut counters)
         .expect("the fixture request is finite");

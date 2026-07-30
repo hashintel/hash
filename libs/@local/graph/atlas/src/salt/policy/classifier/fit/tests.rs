@@ -12,7 +12,8 @@ use super::{
     objective::{PARAMETER_COUNT, Parameters},
     regularization,
     solver::{
-        PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
+        Gram, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
+        SolverFailure, WorkCounters,
     },
     split_parameters,
 };
@@ -244,10 +245,25 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
         ..config()
     };
 
-    let (weak, _) = fit_model(training, &[0, 0, 0], None, regularized(d_positive!(0.1)))
-        .expect("the weak fit converges");
-    let (strong, _) = fit_model(training, &[0, 0, 0], None, regularized(d_positive!(10.0)))
-        .expect("the strong fit converges");
+    let gram = Gram::assemble(corpus.embeddings(), &mut WorkCounters::default());
+    let (weak, _) = fit_model(
+        training,
+        &[0, 0, 0],
+        None,
+        regularized(d_positive!(0.1)),
+        &gram,
+        WorkCounters::default(),
+    )
+    .expect("the weak fit converges");
+    let (strong, _) = fit_model(
+        training,
+        &[0, 0, 0],
+        None,
+        regularized(d_positive!(10.0)),
+        &gram,
+        WorkCounters::default(),
+    )
+    .expect("the strong fit converges");
 
     assert!(coefficient_norm(&strong) < coefficient_norm(&weak));
 }
@@ -258,8 +274,16 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[1.0], [0.0, 0.5, 0.5], 1.0, b"one");
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
-    let error = fit_model(corpus.training(), &[0, 0], None, config())
-        .expect_err("a class without mass cannot fit");
+    let gram = Gram::assemble(corpus.embeddings(), &mut WorkCounters::default());
+    let error = fit_model(
+        corpus.training(),
+        &[0, 0],
+        None,
+        config(),
+        &gram,
+        WorkCounters::default(),
+    )
+    .expect_err("a class without mass cannot fit");
     assert_matches!(
         error,
         FitError::Preparation(PreparationError::MissingClassMass {

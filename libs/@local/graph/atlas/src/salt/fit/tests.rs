@@ -232,13 +232,11 @@ fn classifier_fit_echo_round_trips_every_knob() {
             expansion_factor: greater_than_one!(2.5),
             eta_accept: open_unit_fraction!(0.05),
             eta_expand: open_unit_fraction!(0.8),
-            relative_cg_residual_tolerance: open_unit_fraction!(0.2),
             relative_scaled_gradient_tolerance: open_unit_fraction!(2.0e-6),
             absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-9),
             objective_resolution_ulps: NonZero::new(5).expect("five is nonzero"),
             curvature_guard_ulps: NonZero::new(17).expect("seventeen is nonzero"),
             maximum_outer_iterations: NonZero::new(501).expect("the budget is nonzero"),
-            maximum_cg_iterations: NonZero::new(101).expect("the budget is nonzero"),
             maximum_hvp_requests: NonZero::new(50_001).expect("the budget is nonzero"),
             maximum_objective_requests: 2_001,
             maximum_gradient_requests: 2_002,
@@ -255,6 +253,32 @@ fn classifier_fit_echo_round_trips_every_knob() {
     let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
     let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
     assert_eq!(echoed.0, config);
+}
+
+/// A solver echo written before the exact-Newton engine still decodes: the retired inner-CG
+/// knobs are ignored as unknown fields.
+///
+/// The fixture pins the two retired field names verbatim inside an otherwise-default solver
+/// echo, so this decode is the standing witness that pre-Newton metadata documents parse under
+/// the current binary.
+#[test]
+fn config_echo_decodes_the_retired_solver_knobs() {
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
+
+    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+    let solver = document
+        .pointer_mut("/policy/classifier_fit/solver")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the echo carries the solver object");
+    solver.insert(
+        "relative_cg_residual_tolerance".to_owned(),
+        serde_json::json!(0.1),
+    );
+    solver.insert("maximum_cg_iterations".to_owned(), serde_json::json!(100));
+
+    let echoed: Echo = serde_json::from_value(document).expect("the pre-Newton echo decodes");
+    assert_eq!(echoed.0, config());
 }
 
 /// A config echo names every setting; absence is a rupture, not a default.

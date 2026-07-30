@@ -1,9 +1,9 @@
 //! Validated solver-loop configuration.
 //!
-//! [`SolverConfig`] carries every knob of the trust-region Newton-CG loop: the radius domain,
-//! shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp counts, and
-//! the inclusive work budgets. Per-field domains travel in the field types - the validated
-//! scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a
+//! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius
+//! domain, shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp
+//! counts, and the inclusive work budgets. Per-field domains travel in the field types - the
+//! validated scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a
 //! configuration value that exists is in domain. [`validate`](SolverConfig::validate) checks
 //! only what no field type can carry alone: the radius ordering, the acceptance-threshold
 //! ordering, and the reserved-work floors, in declared order, reporting the first violation.
@@ -15,7 +15,7 @@
 //! floors of two, two, and three - one initialized joint evaluation, one reserved final
 //! certificate, and the preparation traversal are the least work any valid fit performs.
 
-use core::num::{NonZeroU32, NonZeroU64};
+use core::num::NonZero;
 
 use super::prepare::PreparationSettings;
 use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
@@ -42,7 +42,7 @@ pub enum SolverConfigError {
     TraversalBudget { value: u64 },
 }
 
-/// Trust-region Newton-CG loop configuration.
+/// Trust-region exact-Newton loop configuration.
 ///
 /// Every field carries a default; `SolverConfig { .. }` is the deployment configuration and
 /// satisfies [`validate`](Self::validate). The budget defaults sit an order beyond the
@@ -78,10 +78,6 @@ pub(crate) struct SolverConfig {
     pub eta_expand: OpenUnitFraction = const {
         OpenUnitFraction::new(0.75).expect("three quarters is interior")
     },
-    /// CG residual tolerance relative to the initial residual norm.
-    pub relative_cg_residual_tolerance: OpenUnitFraction = const {
-        OpenUnitFraction::new(0.1).expect("a tenth is interior")
-    },
     /// Gradient-certificate tolerance relative to the initial scaled gradient norm.
     pub relative_scaled_gradient_tolerance: OpenUnitFraction = const {
         OpenUnitFraction::new(1.0e-6).expect("the relative tolerance is interior")
@@ -91,27 +87,20 @@ pub(crate) struct SolverConfig {
         DNonNegative::new(1.0e-10).expect("the absolute floor is non-negative")
     },
     /// Objective-resolution width in ulps of the accepted objective's spacing.
-    pub objective_resolution_ulps: NonZeroU32 = const {
-        NonZeroU32::new(4).expect("four is nonzero")
+    pub objective_resolution_ulps: NonZero<u32> = const {
+        NonZero::<u32>::new(4).expect("four is nonzero")
     },
-    /// Curvature-guard width in ulps of the direction-scale product.
-    pub curvature_guard_ulps: NonZeroU32 = const {
-        NonZeroU32::new(16).expect("sixteen is nonzero")
+    /// Dogleg Cauchy-curvature guard width in ulps of the gradient-scale product `‖g‖·‖Hg‖`.
+    pub curvature_guard_ulps: NonZero<u32> = const {
+        NonZero::<u32>::new(16).expect("sixteen is nonzero")
     },
     /// Inclusive maximum of started outer iterations.
-    pub maximum_outer_iterations: NonZeroU64 = const {
-        NonZeroU64::new(500).expect("five hundred is nonzero")
-    },
-    /// Inclusive maximum of CG iterations per outer solve, priced at parity strength `1.0`.
-    ///
-    /// The effective per-solve allowance scales with the configured regularization strength;
-    /// see [`cg_iteration_allowance`](Self::cg_iteration_allowance).
-    pub maximum_cg_iterations: NonZeroU64 = const {
-        NonZeroU64::new(100).expect("one hundred is nonzero")
+    pub maximum_outer_iterations: NonZero<u64> = const {
+        NonZero::<u64>::new(500).expect("five hundred is nonzero")
     },
     /// Inclusive maximum of Hessian-vector-product requests.
-    pub maximum_hvp_requests: NonZeroU64 = const {
-        NonZeroU64::new(50_000).expect("fifty thousand is nonzero")
+    pub maximum_hvp_requests: NonZero<u64> = const {
+        NonZero::<u64>::new(50_000).expect("fifty thousand is nonzero")
     },
     /// Inclusive maximum of objective requests; at least two.
     pub maximum_objective_requests: u64 = 2_000,
@@ -120,8 +109,8 @@ pub(crate) struct SolverConfig {
     /// Inclusive maximum of started row traversals; at least three.
     pub maximum_row_traversals: u64 = 500_000,
     /// Inclusive maximum of consecutive rejected candidates.
-    pub maximum_consecutive_rejections: NonZeroU64 = const {
-        NonZeroU64::new(30).expect("thirty is nonzero")
+    pub maximum_consecutive_rejections: NonZero<u64> = const {
+        NonZero::<u64>::new(30).expect("thirty is nonzero")
     },
 }
 
@@ -190,26 +179,5 @@ impl SolverConfig {
                 .get()
                 .max(self.relative_scaled_gradient_tolerance.get() * initial_norm),
         )
-    }
-
-    /// The CG depth afforded at the configured regularization strength.
-    ///
-    /// [`maximum_cg_iterations`](Self::maximum_cg_iterations) prices the parity strength `1.0`,
-    /// where the preparation scaling renders the initial scaled Hessian near-identity. Below
-    /// parity the ridge `λ/S` is a rank-deficient corpus's smallest curvature, the scaled
-    /// condition number grows as `1/λ`, and the CG iteration need as `1/√λ`, so the allowance
-    /// follows it. The HVP and row-traversal budgets stay strength-independent, so the absolute
-    /// ceiling on work survives a weak candidate.
-    pub(super) fn cg_iteration_allowance(&self) -> u64 {
-        let strength = self.preparation.regularization.get();
-        let scale = strength.recip().max(1.0).sqrt();
-        #[expect(
-            clippy::cast_precision_loss,
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            reason = "the product is positive, and rounding or saturation only widens an \
-                      allowance the strength-independent budgets still fence"
-        )]
-        return ((self.maximum_cg_iterations.get() as f64) * scale).ceil() as u64;
     }
 }

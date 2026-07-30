@@ -3,7 +3,6 @@
 //! Nothing here is pipeline machinery: a report observes a solve, it never participates in one.
 
 mod probe;
-mod trace;
 
 #[cfg(test)]
 mod tests;

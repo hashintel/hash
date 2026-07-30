@@ -8,7 +8,7 @@ use crate::{
     salt::policy::classifier::fit::solver::report::{ProbeCorpus, ProbeSettings},
 };
 
-/// Corpus, fold-assignment, strength, and trace settings of one probe.
+/// Corpus, fold-assignment, strength, and census settings of one probe.
 #[derive(Debug, Args)]
 #[command(group(
     clap::ArgGroup::new("corpus")
@@ -49,19 +49,14 @@ pub(crate) struct ProbeArgs {
     #[arg(long)]
     strength: Option<f64>,
 
-    /// The outer iteration whose inner recurrence is traced; without it, the stalling outer
-    /// traces when the solve ends at the CG iteration budget.
+    /// The outer iteration whose accepted state is replayed for the curvature census.
     #[arg(long)]
-    trace_outer: Option<u64>,
-
-    /// Instrumented-recurrence depth; defaults to four times the CG iteration allowance.
-    #[arg(long)]
-    trace_depth: Option<u64>,
+    census_outer: Option<u64>,
 }
 
 impl ProbeArgs {
-    /// Reconstructs the frozen corpus, solves the fold subset solo, and dumps every receipt;
-    /// a budget-refused solve additionally traces its stalling inner recurrence.
+    /// Reconstructs the frozen corpus, solves the fold subset solo, and dumps every receipt
+    /// with its curvature censuses.
     ///
     /// # Panics
     ///
@@ -85,8 +80,7 @@ impl ProbeArgs {
                 seed: self.seed,
                 fold: self.fold,
                 strength: self.strength,
-                trace_outer: self.trace_outer,
-                trace_depth: self.trace_depth,
+                census_outer: self.census_outer,
             },
         )
         .await;

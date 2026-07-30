@@ -58,7 +58,7 @@ mod tests;
     reason = "the generation runner and precedence resolution consume the fit surface"
 )]
 pub(crate) use self::fit::{
-    CgStage, Fit, FitConfig, FitError, FitEvidence, PreparationError, PreparationSettings,
+    Fit, FitConfig, FitError, FitEvidence, NewtonStage, PreparationError, PreparationSettings,
     SolverConfig, SolverConfigError, SolverFailure, TrainingRow, TrainingSet, TrainingSetError,
     fit,
 };

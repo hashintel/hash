@@ -48,6 +48,12 @@ pub(crate) struct WorkCounters {
     pub completed_gradient_traversals: u64,
     /// Hessian-vector-product traversals that visited every row.
     pub completed_hvp_traversals: u64,
+    /// Newton-assembly traversals that visited every row.
+    pub completed_newton_traversals: u64,
+    /// Gram matrices assembled over a corpus.
+    pub gram_assemblies: u64,
+    /// Capacitance Cholesky factorizations.
+    pub factorizations: u64,
     /// Trial candidates rejected for a non-finite objective.
     pub candidate_non_finite_rejections: u64,
     /// Trial candidates rejected by their acceptance ratio.
@@ -128,6 +134,11 @@ impl WorkCounters {
         self.started_row_traversals += 1;
     }
 
+    /// Charges the start of a Newton-assembly traversal at its first row access.
+    pub(super) const fn start_newton_traversal(&mut self) {
+        self.started_row_traversals += 1;
+    }
+
     /// Charges one examined row of an evaluation traversal.
     pub(super) const fn visit_row(&mut self) {
         self.row_visits += 1;
@@ -151,6 +162,21 @@ impl WorkCounters {
     /// Records a Hessian-vector-product traversal that visited every row.
     pub(super) const fn complete_hvp_traversal(&mut self) {
         self.completed_hvp_traversals += 1;
+    }
+
+    /// Records a Newton-assembly traversal that visited every row.
+    pub(super) const fn complete_newton_traversal(&mut self) {
+        self.completed_newton_traversals += 1;
+    }
+
+    /// Records one assembled Gram matrix.
+    pub(super) const fn record_gram_assembly(&mut self) {
+        self.gram_assemblies += 1;
+    }
+
+    /// Records one capacitance Cholesky factorization.
+    pub(super) const fn record_factorization(&mut self) {
+        self.factorizations += 1;
     }
 
     /// Records a trial candidate rejected for a non-finite objective.

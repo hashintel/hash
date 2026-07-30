@@ -16,7 +16,7 @@
 
 use zerocopy::IntoBytes as _;
 
-use super::{SOLVER_DIMENSIONS, cg::CgTag, work::WorkCounters};
+use super::{SOLVER_DIMENSIONS, newton::NewtonTag, work::WorkCounters};
 use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
     math::AlignedDVecN,
@@ -103,8 +103,11 @@ pub(crate) enum CurvatureDiagnostic {
 /// also [`None`]; the terminal outcome of the run names the failure.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct OuterOutcome {
-    /// The inner CG outcome tag.
-    pub tag: Option<CgTag>,
+    /// The inner Newton outcome tag.
+    pub tag: Option<NewtonTag>,
+    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of the priced Newton point: the
+    /// per-outer certificate of the factorization against the oracle.
+    pub newton_residual: Option<f64>,
     /// Norm of the returned step `‖p‖`.
     pub step_norm: Option<f64>,
     /// Norm of the returned product `‖Hp‖`.
@@ -144,7 +147,7 @@ pub(crate) struct ReceiptCoordinates {
 impl ReceiptCoordinates {
     /// The identity of receipts and digests produced by this solver.
     pub(super) const CURRENT: Self = Self {
-        domain_tag: "salt-policy-classifier-solver-flat-v1",
+        domain_tag: "salt-policy-classifier-solver-flat-v2",
         coordinate_system: "scaled-helmert-v1-contrast-major",
         dimensions: SOLVER_DIMENSIONS as u64,
     };

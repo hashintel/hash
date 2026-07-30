@@ -215,13 +215,20 @@ impl<const N: usize> VecN<N> {
     }
 
     /// Sums the products of the two vectors' components in double precision.
+    ///
+    /// Each `f32` component widens exactly, the products accumulate in `f64`, and the returned
+    /// sum carries no narrowing: this is the exact-product kernel behind [`dot`](Self::dot) and
+    /// the entry kernel of Gram matrices over `f32` data whose downstream arithmetic runs in
+    /// `f64`. The fold shape is fixed - eight lanes at a time into two interleaved fused
+    /// accumulators, one horizontal reduction, then a scalar remainder - so equal inputs reduce
+    /// to identical bits.
     // Lane-width choice: `f64x8` is wider than 128-bit NEON registers, so
     // the compiler unrolls it fourfold; with the two independent
     // accumulators that keeps sixteen f64 FMA chains in flight, which
     // covers the latency-times-throughput product of current cores. On
     // AVX-2 the same shape is a two-register unroll.
     #[inline]
-    fn dot_accumulated(&self, other: &Self) -> f64 {
+    pub(crate) fn dot_accumulated(&self, other: &Self) -> f64 {
         let (chunks_left, remainder_left) = self.0.as_chunks::<8>();
         let (chunks_right, remainder_right) = other.0.as_chunks::<8>();
 
@@ -501,6 +508,13 @@ impl<const N: usize> AlignedVecN<N> {
     #[must_use]
     pub fn dot_wide(&self, coefficients: &AlignedDVecN<N>) -> f64 {
         VecN::from_ref(self.as_array()).dot_wide(DVecN::from_ref(coefficients.as_array()))
+    }
+
+    /// Sums the component products in double precision; see [`VecN::dot_accumulated`].
+    #[inline]
+    #[must_use]
+    pub(crate) fn dot_accumulated(&self, other: &Self) -> f64 {
+        VecN::from_ref(self.as_array()).dot_accumulated(VecN::from_ref(other.as_array()))
     }
 
     /// Returns whether every component is finite; see [`VecN::is_finite`].

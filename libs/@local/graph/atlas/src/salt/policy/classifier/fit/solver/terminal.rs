@@ -3,31 +3,28 @@
 //! Every way a solve ends short of a certified minimizer is a named [`SolverFailure`]: an
 //! exhausted resource budget, a reduction indistinguishable from rounding noise, or arithmetic
 //! that left the finite domain. Failures carry enough structure to be matched on - a non-finite
-//! CG value names its [`CgStage`] - and none of them publishes a model. Validation failures
-//! before the solve live with their owners, [`SolverConfigError`](super::config::SolverConfigError)
+//! Newton value names its [`NewtonStage`] - and none of them publishes a model. Validation
+//! failures before the solve live with their owners,
+//! [`SolverConfigError`](super::config::SolverConfigError)
 //! and [`PreparationError`](super::prepare::PreparationError).
 
-/// The stage of the CG recurrence where a value left the finite domain.
+/// The stage of the exact Newton solve where a value left the finite domain.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CgStage {
-    /// A component of the Hessian-vector product `Hζ[d]`.
-    HvpVector,
-    /// A residual, direction, product, or step norm.
-    Norm,
-    /// A residual square `r·r`.
-    Dot,
-    /// The curvature `d·h` or its guard scale.
-    Curvature,
-    /// The step length `α = r·r / κ`.
-    Alpha,
-    /// A component of the residual update `r − α·h`.
-    Residual,
-    /// The conjugacy coefficient `β = r'·r' / r·r`.
-    Beta,
-    /// A component of the direction update `r' + β·d`.
-    Direction,
-    /// A component of the step updates `p + α·d` or `Hp + α·h`.
-    Update,
+pub enum NewtonStage {
+    /// A per-row curvature block, its weighted factor, or the physical gradient.
+    Weights,
+    /// A capacitance entry `I + ŨᵀŨ`.
+    Capacitance,
+    /// The capacitance Cholesky factor.
+    Factor,
+    /// A capacitance solve output.
+    Solve,
+    /// The intercept Schur system or its solution.
+    InterceptSchur,
+    /// The assembled Newton point, its scaled image, or its priced Hessian product.
+    NewtonPoint,
+    /// The dogleg fallback's Cauchy curvature, guard, or steepest-descent arithmetic.
+    Dogleg,
 }
 
 /// A typed non-publishing terminal of one solve.
@@ -35,8 +32,6 @@ pub enum CgStage {
 pub enum SolverFailure {
     /// Starting another outer iteration would exceed its budget.
     OuterIterationBudget,
-    /// Starting another CG iteration would exceed its per-outer budget.
-    CgIterationBudget,
     /// Another Hessian-vector product would exceed its budget.
     HvpBudget,
     /// Another objective request would exceed its budget net of the final reserve.
@@ -55,11 +50,14 @@ pub enum SolverFailure {
     RadiusUnderflow,
     /// The accepted scaled-gradient norm is not finite.
     NonFiniteAcceptedGradientNorm,
-    /// A CG value left the finite domain at the named stage.
-    NonFiniteCg {
-        /// The recurrence stage that produced the non-finite value.
-        stage: CgStage,
+    /// A Newton value left the finite domain at the named stage.
+    NonFiniteNewton {
+        /// The solve stage that produced the non-finite value.
+        stage: NewtonStage,
     },
+    /// The intercept Schur system is not positive-definite: no row carries interior
+    /// probabilities, so the corpus offers the intercepts no curvature.
+    SingularInterceptCurvature,
     /// No finite positive boundary crossing could be constructed.
     NoFiniteBoundaryStep,
     /// A ratio-accepted candidate's fresh gradient is not finite.

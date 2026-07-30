@@ -3,36 +3,31 @@
 //! The probe reconstructs the classifier training set from staged annotation artifacts
 //! ([`replay`](crate::salt::policy::classifier::report::replay)) - a published generation's or
 //! a supplied directory's - re-runs the bounded solver over one fold subset, and dumps every
-//! receipt: the terminal is the observation. The fold-assignment seed and the regularization
-//! strength are the caller's, so any assignment and any candidate strength - the production CV
-//! candidates included - can be probed.
+//! receipt: the terminal is the observation, and each receipt carries the outer's Newton
+//! residual, the per-outer certificate of the factorization against the oracle. The
+//! fold-assignment seed and the regularization strength are the caller's, so any assignment and
+//! any candidate strength - the production CV candidates included - can be probed.
 //!
-//! When the solve ends at the CG iteration budget (or a traced outer is requested), the probe
-//! replays the outer trajectory to the stalling iteration - certifying every replayed outer
-//! against the production receipts' digests - and runs the instrumented inner recurrence there
-//! ([`trace`](super::trace)): true-versus-recursive residual, Ritz spectrum, and the per-row
-//! curvature-scale census separate a smeared spectrum from rounding drift.
+//! The per-row curvature-scale census prints at the origin and at the final accepted point, and
+//! a requested outer replays the production trajectory to that iteration - certifying every
+//! replayed outer against the production receipts' digests - and prints the census there.
 //!
 //! Failures panic with the failing step's error: a probe run has no recovery path, and the
 //! error is the diagnosis.
 
 use camino::Utf8Path;
 
-use super::{
-    super::{
-        super::grouped_folds,
-        SOLVER_DIMENSIONS,
-        cg::bounded_steihaug_cg,
-        flat,
-        prepare::prepare,
-        problem::ScaledProblem,
-        receipt::{OuterReceipt, ReceiptDetail, vector_digest},
-        solve::{AcceptedPoint, SolverControl, rejected, solve},
-        stable::checked_dot,
-        terminal::SolverFailure,
-        work::WorkCounters,
-    },
-    trace::{CgTrace, TraceTermination, ritz_values, traced_cg},
+use super::super::{
+    super::grouped_folds,
+    SOLVER_DIMENSIONS, flat,
+    gram::{Gram, GramView},
+    newton::newton_step,
+    prepare::prepare,
+    problem::ScaledProblem,
+    receipt::{OuterReceipt, ReceiptDetail, vector_digest},
+    solve::{AcceptedPoint, SolverControl, rejected, solve},
+    stable::checked_dot,
+    work::WorkCounters,
 };
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
@@ -67,20 +62,17 @@ pub(crate) struct ProbeSettings {
     pub fold: usize,
     /// Regularization-strength override; a CV candidate's fold solve probes through this.
     pub strength: Option<f64>,
-    /// The outer iteration whose inner recurrence is traced; defaults to the stalling outer
-    /// when the solve ends at the CG iteration budget.
-    pub trace_outer: Option<u64>,
-    /// Instrumented-recurrence depth; defaults to four times the CG iteration allowance.
-    pub trace_depth: Option<u64>,
+    /// The outer iteration whose accepted state is replayed for the curvature census.
+    pub census_outer: Option<u64>,
 }
 
 /// Solves one fold subset solo and dumps every receipt: the terminal-diagnosis probe.
 ///
 /// # Panics
 ///
-/// Panics when the corpus cannot be opened or fails reconstruction, or when a requested trace
-/// cannot certify its replayed trajectory against the production receipts; the probed solve
-/// itself may fail - its terminal is the observation.
+/// Panics when the corpus cannot be opened or fails reconstruction, or when a requested replay
+/// cannot certify its trajectory against the production receipts; the probed solve itself may
+/// fail - its terminal is the observation.
 #[expect(
     clippy::print_stdout,
     clippy::use_debug,
@@ -139,7 +131,10 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
         &mut counters,
     )
     .expect("the fold corpus prepares");
-    // The replay of a traced outer re-enters the solve with these exact charges.
+    // A solo solve assembles its own Gram over the fold subset; the entries equal the
+    // production fold view's bit for bit, one independent dot per pair either way.
+    let gram = Gram::assemble(fold_embeddings.rows(), &mut counters);
+    // The replay of a census outer re-enters the solve with these exact charges.
     let prepared_counters = counters;
 
     println!(
@@ -159,10 +154,9 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
 
     let problem = ScaledProblem {
         prepared,
+        gram: GramView::full(&gram),
         config: config.solver,
     };
-    let allowance = problem.config.cg_iteration_allowance();
-    println!("cg iteration allowance {allowance}");
 
     let run = solve(&problem, counters, ReceiptDetail::Digests);
 
@@ -202,30 +196,8 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
         );
     }
 
-    // The traced outer: the caller's, or the stalling one when the CG budget refused.
-    let target = settings.trace_outer.or_else(|| {
-        matches!(run.outcome, Err(SolverFailure::CgIterationBudget))
-            .then_some(run.control.outer_iterations_started)
-    });
-    let Some(target) = target else {
-        return;
-    };
-    assert!(
-        target >= 1 && target <= run.control.outer_iterations_started,
-        "the traced outer {target} is one of the {} started outer iterations",
-        run.control.outer_iterations_started,
-    );
-
-    println!("\n=== inner-recurrence trace at outer {target} ===");
-    let (accepted, radius) = replay_to_outer(&problem, prepared_counters, &run.receipts, target);
-    let point = problem.point(&accepted.zeta);
-    println!(
-        "replay certified through outer {target}: objective {:.15e} radius {:e}",
-        accepted.objective, radius,
-    );
-
-    // Curvature census at the origin (every row uniform) and at the traced iterate: the pair
-    // exposes the saturation cliff between the fit's start and its stall.
+    // Curvature census at the origin (every row uniform) and at the final accepted point: the
+    // pair exposes the saturation drift across the solve.
     let weights: Vec<f64> = problem.prepared.rows.iter().map(|row| row.weight).collect();
     let origin_point = problem.point(&BoxedDVecN::<SOLVER_DIMENSIONS>::zero());
     print_curvature_census(
@@ -233,31 +205,34 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
         &problem.prepared.row_curvature_scales(&origin_point),
         &weights,
     );
+    let final_point = problem.point(&run.accepted.zeta);
     print_curvature_census(
-        "row curvature scales max_c p(1-p) at traced outer",
-        &problem.prepared.row_curvature_scales(&point),
+        "row curvature scales max_c p(1-p) at final accepted point",
+        &problem.prepared.row_curvature_scales(&final_point),
         &weights,
     );
 
-    let depth = settings
-        .trace_depth
-        .unwrap_or_else(|| allowance.saturating_mul(4));
-    let mut trace_counters = WorkCounters::default();
-    let trace = traced_cg(
-        &problem,
-        &point,
-        &accepted.scaled_gradient,
-        radius,
-        depth,
-        &mut trace_counters,
+    let Some(target) = settings.census_outer else {
+        return;
+    };
+    assert!(
+        target >= 1 && target <= run.control.outer_iterations_started,
+        "the census outer {target} is one of the {} started outer iterations",
+        run.control.outer_iterations_started,
     );
-    print_trace(&trace, allowance, depth);
 
-    let (alphas, betas) = trace.krylov_coefficients();
-    match ritz_values(&alphas, &betas) {
-        Some(values) => print_ritz(&values),
-        None => println!("ritz spectrum: no completed iterations"),
-    }
+    println!("\n=== curvature census at outer {target} ===");
+    let (accepted, radius) = replay_to_outer(&problem, prepared_counters, &run.receipts, target);
+    let point = problem.point(&accepted.zeta);
+    println!(
+        "replay certified through outer {target}: objective {:.15e} radius {:e}",
+        accepted.objective, radius,
+    );
+    print_curvature_census(
+        "row curvature scales max_c p(1-p) at replayed outer",
+        &problem.prepared.row_curvature_scales(&point),
+        &weights,
+    );
 }
 
 /// Replays the production outer trajectory to the start of `target`, certifying every replayed
@@ -320,7 +295,7 @@ fn replay_to_outer(
         // The body below mirrors the production outer loop stage for stage; every terminal the
         // production solve survived is an expect here.
         let point = problem.point(&accepted.zeta);
-        let inner = bounded_steihaug_cg(problem, &point, &accepted.scaled_gradient, &mut control)
+        let inner = newton_step(problem, &point, &accepted.scaled_gradient, &mut control)
             .expect("the production solve completed this inner solve");
 
         let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
@@ -398,93 +373,4 @@ fn print_curvature_census(label: &str, scales: &[f64], weights: &[f64]) {
             weight_below / total_weight,
         );
     }
-}
-
-/// Prints the traced recurrence: a bounded selection of iterations and the termination.
-#[expect(
-    clippy::print_stdout,
-    clippy::use_debug,
-    reason = "the probe's receipt dump is its whole output"
-)]
-fn print_trace(trace: &CgTrace, allowance: u64, depth: u64) {
-    println!(
-        "trace: residual base {:e} tolerance {:e} depth {depth} (allowance {allowance})",
-        trace.residual_base, trace.tolerance,
-    );
-    let last = trace.iterations.last().map_or(0, |entry| entry.iteration);
-    for entry in &trace.iterations {
-        let selected = entry.iteration <= 15
-            || entry.iteration.is_multiple_of(10)
-            || entry.iteration == last
-            || entry.iteration == allowance
-            || entry.iteration == allowance + 1;
-        if !selected {
-            continue;
-        }
-        let marker = if entry.iteration <= allowance {
-            ' '
-        } else {
-            '+'
-        };
-        println!(
-            "  {marker}{:>5} alpha {:.6e} beta {} |r_rec| {:.6e} |r_true| {:.6e} gap/true {:.3e} \
-             |p| {:.6e}",
-            entry.iteration,
-            entry.alpha,
-            entry
-                .beta
-                .map_or_else(|| "-".to_owned(), |beta| format!("{beta:.6e}")),
-            entry.recursive_residual_norm,
-            entry.true_residual_norm,
-            entry.residual_gap / entry.true_residual_norm,
-            entry.step_norm,
-        );
-    }
-    match trace.boundary_contact {
-        Some(iteration) => println!("  boundary contact at iteration {iteration} (not enforced)"),
-        None => println!("  no boundary contact within the traced depth"),
-    }
-    match trace.termination {
-        TraceTermination::Converged { iteration } => {
-            println!("  termination: converged at iteration {iteration}");
-        }
-        other @ (TraceTermination::DepthExhausted
-        | TraceTermination::CurvatureGuard { .. }
-        | TraceTermination::NonFinite { .. }) => println!("  termination: {other:?}"),
-    }
-}
-
-/// Prints the Ritz spectrum: extremes, non-positive count, and the cumulative decade census.
-#[expect(
-    clippy::print_stdout,
-    reason = "the probe's receipt dump is its whole output"
-)]
-fn print_ritz(values: &[f64]) {
-    let minimum = values.first().copied().unwrap_or(f64::NAN);
-    let maximum = values.last().copied().unwrap_or(f64::NAN);
-    let non_positive = values.iter().filter(|value| **value <= 0.0).count();
-    println!(
-        "ritz spectrum: order {} min {minimum:e} max {maximum:e} spread {:e} non-positive {}",
-        values.len(),
-        maximum / minimum,
-        non_positive,
-    );
-    for threshold in [1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 0.5, 1.0] {
-        let below = values.iter().filter(|value| **value < threshold).count();
-        println!("  < {threshold:>7.0e}: {below:>5} values");
-    }
-    let smallest: Vec<String> = values
-        .iter()
-        .take(12)
-        .map(|value| format!("{value:.6e}"))
-        .collect();
-    let largest: Vec<String> = values
-        .iter()
-        .rev()
-        .take(4)
-        .rev()
-        .map(|value| format!("{value:.6e}"))
-        .collect();
-    println!("  smallest {}", smallest.join(" "));
-    println!("  largest {}", largest.join(" "));
 }

@@ -1,7 +1,8 @@
 //! The solve-ready problem: a prepared corpus evaluated in scaled coordinates.
 //!
 //! [`ScaledProblem`] bundles one validated [`Prepared`] corpus with one validated
-//! [`SolverConfig`] and exposes the physical evaluations transformed into the solver's scaled
+//! [`SolverConfig`] and the corpus's [`GramView`], and exposes the physical evaluations
+//! transformed into the solver's scaled
 //! coordinates: with the preparation diagonal `D`, points map as `θ(ζ) = D⁻¹ζ`, gradients as
 //! `gζ = D⁻¹gθ`, and Hessian-vector products as `Hζ[v] = D⁻¹·Hθ[D⁻¹v]`. Physical evaluation
 //! receives `θ(ζ)` only at this boundary, so every quantity the loop compares or accumulates
@@ -11,7 +12,8 @@
 //! no traversals.
 
 use super::{
-    ContrastVector, SOLVER_DIMENSIONS, config::SolverConfig, prepare::Prepared, work::WorkCounters,
+    ContrastVector, SOLVER_DIMENSIONS, config::SolverConfig, gram::GramView, prepare::Prepared,
+    work::WorkCounters,
 };
 use crate::math::{AlignedDVecN, BoxedDVecN};
 
@@ -20,6 +22,8 @@ use crate::math::{AlignedDVecN, BoxedDVecN};
 pub(crate) struct ScaledProblem<'corpus> {
     /// The validated corpus with its closed targets and preparation-time diagonal.
     pub prepared: Prepared<'corpus>,
+    /// The corpus's window onto the fit-level Gram matrix, row for row.
+    pub gram: GramView<'corpus>,
     /// The validated solver-loop configuration.
     pub config: SolverConfig,
 }

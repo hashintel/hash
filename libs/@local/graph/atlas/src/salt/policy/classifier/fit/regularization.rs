@@ -17,7 +17,10 @@ use core::{
 
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
-use super::{FitConfig, FitError, TrainingSet, calibration, fit_model, objective};
+use super::{
+    FitConfig, FitError, TrainingSet, calibration, fit_model, objective,
+    solver::{Gram, WorkCounters},
+};
 use crate::{math::DPositive, progress::Progress, salt::policy::GeometryClass};
 
 /// The candidate strengths, ascending.
@@ -87,6 +90,7 @@ pub(super) fn select<P: Progress + Sync>(
     training: TrainingSet<'_>,
     folds: &[usize],
     config: FitConfig,
+    gram: &Gram,
     progress: &P,
 ) -> Result<Selection, FitError> {
     let pending: Vec<_> = iter::repeat_with(|| Atomic::<usize>::new(CANDIDATES.len()))
@@ -103,7 +107,15 @@ pub(super) fn select<P: Progress + Sync>(
         .map(|(candidate, fold)| {
             let mut candidate_config = config;
             candidate_config.solver.preparation.regularization = CANDIDATES[candidate];
-            let (parameters, _) = fit_model(training, folds, Some(fold), candidate_config)?;
+            let (parameters, _) = fit_model(
+                training,
+                folds,
+                Some(fold),
+                candidate_config,
+                gram,
+                WorkCounters::default(),
+            )?;
+
             if pending[fold].fetch_sub(1, Ordering::AcqRel) == 1 {
                 progress.classifier_fold_completed(fold);
             }

@@ -1,16 +1,16 @@
 //! The outer trust-region state machine.
 //!
 //! [`solve`] drives the loop over one [`ScaledProblem`]: every fit starts at `ζ = 0`, and each
-//! outer iteration certifies the accepted gradient, runs the bounded inner CG solve, prices the
-//! candidate against the predicted model reduction, and accepts or rejects it by ratio. The
+//! outer iteration certifies the accepted gradient, runs the exact Newton inner solve, prices
+//! the candidate against the predicted model reduction, and accepts or rejects it by ratio. The
 //! accepted point moves only on acceptance; rejection shrinks the trust radius toward its
 //! minimum and an expanded radius requires a validated boundary step. Success is
 //! [`Converged`] - a fresh reserved joint evaluation re-proving the certificate - and every
 //! other terminal is a typed [`SolverFailure`] in the normative precedence order: validation,
-//! accepted-gradient success, outer budget, inner CG, invalid predicted reduction, resolution
-//! construction, resolution stall, candidate preflight in objective/gradient/row order,
-//! candidate numerical failure, ratio classification, then rejection budget before radius
-//! underflow.
+//! accepted-gradient success, outer budget, inner Newton, invalid predicted reduction,
+//! resolution construction, resolution stall, candidate preflight in objective/gradient/row
+//! order, candidate numerical failure, ratio classification, then rejection budget before
+//! radius underflow.
 //!
 //! One joint traversal stays reserved for the final certificate and is excluded from every
 //! availability check until the success path consumes it, so a solve can always afford to prove
@@ -18,9 +18,9 @@
 
 use super::{
     SOLVER_DIMENSIONS,
-    cg::{CgOutcome, bounded_steihaug_cg},
     config::SolverConfig,
     flat,
+    newton::{NewtonOutcome, newton_step},
     problem::ScaledProblem,
     receipt::{
         CandidateOutcome, CurvatureDiagnostic, OuterOutcome, OuterReceipt, ReceiptCoordinates,
@@ -250,7 +250,7 @@ fn run(
         };
 
         let point = problem.point(&accepted.zeta);
-        let inner = bounded_steihaug_cg(problem, &point, &accepted.scaled_gradient, control)?;
+        let inner = newton_step(problem, &point, &accepted.scaled_gradient, control)?;
 
         let predicted =
             record_inner_step(recorded.as_deref_mut(), &accepted.scaled_gradient, &inner);
@@ -376,7 +376,7 @@ pub(super) fn derive_certificate(
 fn record_inner_step(
     recorded: Option<&mut OuterOutcome>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
-    inner: &CgOutcome,
+    inner: &NewtonOutcome,
 ) -> f64 {
     let along_gradient = checked_dot(gradient, inner.step());
     let along_curvature = checked_dot(inner.step(), inner.hessian_step());
@@ -390,6 +390,7 @@ fn record_inner_step(
 
     if let Some(recorded) = recorded {
         recorded.tag = Some(inner.tag());
+        recorded.newton_residual = inner.residual();
         recorded.step_norm = stable_l2(inner.step());
         recorded.hessian_step_norm = stable_l2(inner.hessian_step());
         recorded.gradient_step = along_gradient;

@@ -27,10 +27,11 @@ use crate::{
 
 pub(super) mod basis;
 mod boundary;
-mod cg;
 mod config;
 mod evaluate;
 mod flat;
+mod gram;
+mod newton;
 mod prepare;
 mod problem;
 mod receipt;
@@ -48,9 +49,10 @@ mod tests;
 
 pub(crate) use self::{
     config::{SolverConfig, SolverConfigError},
+    gram::{Gram, GramView},
     prepare::{PreparationError, PreparationSettings},
     receipt::ReceiptDetail,
-    terminal::{CgStage, SolverFailure},
+    terminal::{NewtonStage, SolverFailure},
     work::WorkCounters,
 };
 pub(super) use self::{prepare::prepare, problem::ScaledProblem, solve::solve};
