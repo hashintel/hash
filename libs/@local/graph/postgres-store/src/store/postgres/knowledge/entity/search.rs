@@ -348,8 +348,10 @@ where
         include_drafts: bool,
         include_entity_types: bool,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
-        let response = self
-            .query_entities_impl(
+        // The box cuts the hydration subtree out of the search future's type, whose layout
+        // otherwise overflows rustc's recursion depth.
+        let response = Box::pin(
+            self.query_entities_impl(
                 actor_id,
                 QueryEntitiesParams {
                     filter: Filter::Any(
@@ -386,8 +388,9 @@ where
                         .then_some(IncludeEntityTypeOption::Closed),
                     include_permissions: false,
                 },
-            )
-            .await?;
+            ),
+        )
+        .await?;
 
         // The hydration filter names exactly the ranked ids, so a row without a rank cannot
         // occur — dropping it beats `Option`'s None-first ordering, which would put it on top.
