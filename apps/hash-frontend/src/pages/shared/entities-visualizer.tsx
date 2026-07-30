@@ -268,9 +268,16 @@ export const EntitiesVisualizer: FunctionComponent<{
   );
   const [tableSummaryError, setTableSummaryError] = useState<Error>();
 
+  /**
+   * The table's summary keeps serving the other views once it has arrived: it
+   * describes the scope rather than the view, so refetching it on a view change
+   * would gate Grid and Graph behind a round trip the page has already paid
+   * for. Only a view change that happens before any summary arrived falls back
+   * to fetching one, since no other read produces it.
+   */
   const summarySource = useMemo<SummarySource>(
     () =>
-      usesTableEndpoint && !isTypePinned
+      !isTypePinned && (usesTableEndpoint || tableSummary !== null)
         ? { mode: "external", summary: tableSummary, error: tableSummaryError }
         : { mode: "fetch" },
     [usesTableEndpoint, isTypePinned, tableSummary, tableSummaryError],
@@ -352,29 +359,37 @@ export const EntitiesVisualizer: FunctionComponent<{
   } = visualizerData;
 
   /**
-   * The types of the entities on display, taken from whichever read has rows.
+   * The types of the entities on display, taken from whichever read has rows
+   * that still answer the current request.
    *
    * Deliberately not keyed on the active view. {@link displaysFilesOnly} reads
    * this and the effect below switches the view on that answer, so a
    * view-dependent source would feed the effect its own output: a page of files
    * would switch to Grid, whose read has no rows yet, which switches back.
    *
+   * The table read keeps its rows while it is disabled, so they are only used
+   * while they belong to the current request — otherwise a filter change made
+   * outside the Table view would keep answering from the rows it replaced.
+   *
    * The row type lists and the map they are looked up in always come from the
    * same read.
    */
   const closedMultiEntityTypes = useMemo(() => {
-    const { typesRootMap, rowTypeIdLists } = tableQuery.tableData
-      ? {
-          typesRootMap: tableQuery.closedMultiEntityTypes,
-          rowTypeIdLists: tableQuery.tableData.rows.map((row) =>
-            row.entityTypes.map((rowEntityType) => rowEntityType.entityTypeId),
-          ),
-        }
-      : {
-          typesRootMap: closedMultiEntityTypesRootMap,
-          rowTypeIdLists:
-            entities?.map((entity) => entity.metadata.entityTypeIds) ?? [],
-        };
+    const { typesRootMap, rowTypeIdLists } =
+      tableQuery.tableData && !tableQuery.dataIsStale
+        ? {
+            typesRootMap: tableQuery.closedMultiEntityTypes,
+            rowTypeIdLists: tableQuery.tableData.rows.map((row) =>
+              row.entityTypes.map(
+                (rowEntityType) => rowEntityType.entityTypeId,
+              ),
+            ),
+          }
+        : {
+            typesRootMap: closedMultiEntityTypesRootMap,
+            rowTypeIdLists:
+              entities?.map((entity) => entity.metadata.entityTypeIds) ?? [],
+          };
 
     if (!typesRootMap) {
       return [];
@@ -405,6 +420,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   }, [
     tableQuery.closedMultiEntityTypes,
     tableQuery.tableData,
+    tableQuery.dataIsStale,
     entities,
     closedMultiEntityTypesRootMap,
   ]);
@@ -459,7 +475,10 @@ export const EntitiesVisualizer: FunctionComponent<{
   useEffect(() => {
     setDataLoading(entitiesData.loading);
 
-    if (!entitiesData.loading) {
+    // A standing-by query reports no data and no loading, which would overwrite
+    // the held state with an empty result and cold-start the view it was held
+    // for.
+    if (!entitiesData.loading && !entitiesData.skipped) {
       setVisualizerData(entitiesData);
     }
   }, [entitiesData]);

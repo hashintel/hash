@@ -209,8 +209,13 @@ export const useEntitiesTableQuery = (params: {
 
   // The request minus the page, so a page can be requested against it and the
   // accumulated sequence recognised across renders.
+  //
+  // Deliberately independent of `enabled`, which only decides whether to send
+  // the request. Folding it in here would make the request key null while
+  // disabled, so an accumulation from before could not be told apart from one
+  // whose filters have since changed — see {@link EntitiesTableQueryData.dataIsStale}.
   const baseRequest = useMemo(() => {
-    if (!enabled || awaitingPinnedTypes || unresolvablePins) {
+    if (awaitingPinnedTypes || unresolvablePins) {
       return null;
     }
 
@@ -254,7 +259,6 @@ export const useEntitiesTableQuery = (params: {
       includeEntityTypes: "resolvedWithDataTypeChildren" as const,
     };
   }, [
-    enabled,
     awaitingPinnedTypes,
     unresolvablePins,
     conversions,
@@ -314,7 +318,7 @@ export const useEntitiesTableQuery = (params: {
     queryEntitiesTableQuery,
     {
       fetchPolicy: "cache-and-network",
-      skip: !variables,
+      skip: !enabled || !variables,
       variables: variables ?? undefined,
     },
   );
