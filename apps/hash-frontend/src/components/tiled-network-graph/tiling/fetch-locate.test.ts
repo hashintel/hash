@@ -4,6 +4,7 @@ import { enterPrincipal } from "../../../shared/principal-scoped-state";
 import { fetchLocate } from "./fetch-locate";
 import {
   ATLAS_AUTHORITY_HEADER,
+  ATLAS_RETIRED_GENERATION_PROBLEM,
   clearAtlasSessionCache,
   getAtlasSessionRevision,
   getSaltileSession,
@@ -73,9 +74,30 @@ const unauthorized = (): Response =>
     { status: 401, headers: { "content-type": "application/problem+json" } },
   );
 
+/**
+ * The atlas's refusal for a generation it no longer serves: the re-pin signal.
+ *
+ * The `type` is the server's own URI, and the transport reads it - a `404` alone does not say which
+ * refusal arrived, and the other one this route can answer must not replace a session. A fixture
+ * inventing a slug here would model a server nobody runs, and would model it in the direction that
+ * makes the test pass.
+ */
 const notFound = (): Response =>
   new Response(
-    JSON.stringify({ type: "stale-generation", detail: "no longer served" }),
+    JSON.stringify({
+      type: ATLAS_RETIRED_GENERATION_PROBLEM,
+      detail: "no longer served",
+    }),
+    { status: 404, headers: { "content-type": "application/problem+json" } },
+  );
+
+/** The atlas's refusal for a source id naming no visible node: a `404` that ends nothing. */
+const unknownEntity = (): Response =>
+  new Response(
+    JSON.stringify({
+      type: "/problems/atlas/unknown-entity",
+      detail: "the entity id does not name a visible node",
+    }),
     { status: 404, headers: { "content-type": "application/problem+json" } },
   );
 
@@ -149,6 +171,40 @@ describe("fetchLocate and its session", () => {
     expect(getAtlasSessionRevision()).toBe(before + 1);
     expect(notified).toHaveBeenCalledTimes(1);
     expect(bootstraps(seen)).toHaveLength(2);
+    unsubscribe();
+  });
+
+  it("keeps the session when the source names no visible node", async () => {
+    // Locate is the one route whose ordinary miss is a `404`: an entity outside this generation, or one
+    // the caller may not see, answers `unknown-entity`. Read as a re-pin it would drop the session,
+    // move the revision, discard every painted tile, and re-issue the locate only to be refused the
+    // same way - a whole view lost to a search result. Nothing about the session is wrong here, so
+    // nothing about it moves, and the refusal is the caller's to render.
+    const generation = genHex(0x73);
+    let locates = 0;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, TOKEN_A),
+      [`/atlas/locate/${generation}/plain`]: () => {
+        locates += 1;
+        return unknownEntity();
+      },
+    });
+
+    await getSaltileSession(BASE);
+    const pinned = getAtlasSessionRevision();
+    const notified = vi.fn();
+    const unsubscribe = subscribeToAtlasSessionRevision(notified);
+    const settled = seen.length;
+
+    await expect(fetchLocate(1, { baseUrl: BASE, retry: 0 })).rejects.toThrow();
+
+    expect(getAtlasSessionRevision()).toBe(pinned);
+    expect(notified).not.toHaveBeenCalled();
+    expect(bootstraps(seen.slice(settled))).toHaveLength(0);
+    // One attempt, not two: there is no successor session for a second one to run under.
+    expect(locates).toBe(1);
     unsubscribe();
   });
 

@@ -13,7 +13,11 @@ import {
 } from "../atlas-decode/fixtures";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import { fetchEdgesForTiles } from "./fetch-edges-for-tiles";
-import { clearAtlasSessionCache, FetchTileError } from "./fetch-tile";
+import {
+  ATLAS_RETIRED_GENERATION_PROBLEM,
+  clearAtlasSessionCache,
+  FetchTileError,
+} from "./fetch-tile";
 
 const BASE = "http://api.test/atlas";
 
@@ -113,9 +117,19 @@ const saltile = (buffer: ArrayBuffer): Response =>
     headers: { "content-type": SALTILE_MEDIA_TYPE },
   });
 
+/**
+ * The atlas's refusal for a generation it no longer serves: the re-pin signal.
+ *
+ * The `type` is the server's own URI, and the transport reads it rather than branching on the status:
+ * `404` also carries refusals that end nothing. A fixture inventing a slug here would model a server
+ * nobody runs.
+ */
 const notFound = (): Response =>
   new Response(
-    JSON.stringify({ type: "stale-generation", detail: "no longer served" }),
+    JSON.stringify({
+      type: ATLAS_RETIRED_GENERATION_PROBLEM,
+      detail: "no longer served",
+    }),
     {
       status: 404,
       headers: { "content-type": "application/problem+json" },

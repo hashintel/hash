@@ -1053,9 +1053,13 @@ export const NetworkGraphView = ({
   // issued under the retired session, and clearing the delay timer stops one that
   // has not been issued yet.
   //
-  // Every step is idempotent, which is what makes it safe during render: React
-  // may discard and repeat this render, and re-clearing null state, re-clearing a
-  // cleared timer and re-bumping a monotonic sequence all land in the same place.
+  // React may discard and repeat this render, and not every step lands in the
+  // same place when it does: clearing already-null state and an already-cleared
+  // timer do, but the three sequences are monotonic, so a repeat advances them
+  // again. What every repeat preserves is the predicate those sequences are read
+  // through — an in-flight locate or hover compares the sequence it captured
+  // against the current one and keeps its result only when they are equal, so a
+  // further bump retires more continuations and cannot re-admit a retired one.
   // The bumps have to happen here rather than in an effect for the same reason
   // the clears do — a locate issued from this render's handlers would otherwise
   // carry a sequence the reset has not yet retired.
