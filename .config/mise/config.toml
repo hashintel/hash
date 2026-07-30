@@ -1,4 +1,5 @@
-min_version = "2026.6.13"
+# renovate: datasource=github-releases depName=jdx/mise
+min_version = "2026.7.14"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -27,17 +28,26 @@ protoc            = "35.1"
 # CLI tools
 "cargo:cargo-codspeed" = "4.1.0"
 "cargo:cargo-hack"     = "0.6.45"
-"cargo:cargo-insta"    = "1.47.2"
+# cargo-insta publishes no linux-arm64 binary, so arm64 image builds compile it from source. Its
+# bundled Cargo.lock pins rustix 0.37.27, which fails to build under the repo's pinned nightly;
+# installing it on stable keeps `--locked` fully intact. TODO(SRE-878): remove the `install_env`
+# override once upstream refreshes its lockfile or ships arm64 binaries.
+# See https://linear.app/hash/issue/SRE-878
+"cargo:cargo-insta"    = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
 "cargo:cargo-llvm-cov" = "0.8.7"
 "cargo:cargo-nextest"  = "0.9.137"
 just                   = "1.51.0"
 markdownlint-cli2      = "0.22.1"
 "npm:@napi-rs/cli"     = "3.7.0"
 "npm:@redocly/cli"     = "2.31.5"
-"npm:renovate"         = "43.212.4"
-oxfmt                  = "0.50.0"
-"pipx:sqlfluff"        = "3.4.2"
-sentry-cli             = "2.52.0"
-taplo                  = "0.10.0"
-"ubi:terrastruct/d2"   = "0.7.1"
-yq                     = "4.53.2"
+# TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
+# ships (https://github.com/yarnpkg/berry/issues/7182). That exact version was published without
+# provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was
+# verified against the source tag. See https://linear.app/hash/issue/SRE-871
+"npm:renovate"       = { version = "43.212.4", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
+oxfmt                = "0.50.0"
+"pipx:sqlfluff"      = "3.4.2"
+sentry-cli           = "2.52.0"
+taplo                = "0.10.0"
+"ubi:terrastruct/d2" = "0.7.1"
+yq                   = "4.53.2"

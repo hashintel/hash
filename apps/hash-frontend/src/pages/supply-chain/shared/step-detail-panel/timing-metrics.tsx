@@ -5,6 +5,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { isDwellType } from "../categories";
 import {
   useCostParams,
+  computePeriodMaterialValue,
   computePeriodCost,
   formatCost,
   formatNumber,
@@ -45,6 +46,13 @@ const cellCenter = css({
   flexDirection: "column",
 });
 const cellPlain = css({ flex: "1", p: "3" });
+const cellSeparated = css({
+  flex: "1",
+  p: "3",
+  borderLeftWidth: "1px",
+  borderLeftStyle: "solid",
+  borderLeftColor: "bd.subtle",
+});
 const label = css({
   textStyle: "xs",
   fontWeight: "medium",
@@ -74,11 +82,6 @@ const valueBase = css({
 });
 const valueDanger = css({ color: "status.error.fg.body" });
 const valueStrong = css({ color: "fg.max" });
-const valueMuted = css({
-  textStyle: "base",
-  fontWeight: "medium",
-  color: "fg.subtle",
-});
 const badge = css({
   textStyle: "xs",
   fontWeight: "medium",
@@ -105,10 +108,13 @@ const badgeNeutral = css({
   borderColor: "bd.subtle",
   borderRadius: "sm",
   px: "1.5",
-  h: "4",
+  py: "0.5",
+  minH: "4",
   lineHeight: "[11px]",
   display: "inline-flex",
   alignItems: "center",
+  whiteSpace: "nowrap",
+  flexShrink: "0",
 });
 const policyCard = css({
   borderWidth: "1px",
@@ -219,7 +225,7 @@ export const KeyMetricsRow = ({
   // Secondary procurement lead-time figure. `complete_timing` carries the other
   // basis after load-time row derivation (full-receipt when the headline is
   // first, and vice-versa once the basis swap runs), so this cell shows the
-  // counterpart and its gap vs the headline.
+  // counterpart and its gap from the currently selected receipt basis.
   const secondaryStats = step.complete_timing?.stats;
   const secondaryValue = secondaryStats
     ? selectStat(secondaryStats, effectiveMeasure)
@@ -231,6 +237,8 @@ export const KeyMetricsRow = ({
       : null;
   const secondaryLabel =
     basis === "complete" ? "First receipt" : "Full receipt";
+  const headlineBasisLabel =
+    basis === "complete" ? "full receipt" : "first receipt";
 
   const showCost = isDwellType(step.type) && step.cost != null;
   const costComparison = useMemo(() => {
@@ -263,6 +271,22 @@ export const KeyMetricsRow = ({
         storageCost,
       )
     : null;
+  const materialValue = unfilteredStep.material_value;
+  const periodMaterialValue = computePeriodMaterialValue(
+    materialValue,
+    timeRange,
+  );
+  const materialValueTitle = materialValue
+    ? [
+        `Unit cost: ${formatCost(materialValue.unit_cost, materialValue.currency)}`,
+        materialValue.uom ? `per ${materialValue.uom}` : null,
+        materialValue.unit_cost_source
+          ? `source: ${materialValue.unit_cost_source}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("; ")
+    : undefined;
 
   const planNote = step.plan_note;
   const planLabel = planNote ? planSourceLabel(planNote) : null;
@@ -299,26 +323,12 @@ export const KeyMetricsRow = ({
                 ? `${formatNumber(pep, { maximumFractionDigits: 0 })}%`
                 : "–"}
             </span>
-            {pep != null && <span className={badge}>of batches</span>}
-          </div>
-        </div>
-
-        <div className={cellCenter}>
-          <div className={label}>Median vs previous period</div>
-          <div className={valueRow}>
-            {comparison?.medianPctChange != null ? (
-              <DeltaWithTooltip
-                delta={comparison.medianPctChange}
-                previousValue={
-                  comparison.previousStats?.median != null
-                    ? `${formatNumber(comparison.previousStats.median, { maximumFractionDigits: 1 })}`
-                    : null
-                }
-                unit="d"
-                previousRange={previousPeriodLabel(comparison.previousRange)}
-              />
-            ) : (
-              <span className={valueMuted}>–</span>
+            {pep != null && (
+              <span className={badge}>
+                {step.timing_grain === "campaign"
+                  ? "of campaigns"
+                  : "of batches"}
+              </span>
             )}
           </div>
         </div>
@@ -334,7 +344,9 @@ export const KeyMetricsRow = ({
               </span>
               {secondaryGap != null && Math.abs(secondaryGap) >= 0.5 && (
                 <span className={badgeNeutral}>
-                  {`${secondaryGap > 0 ? "+" : "\u2212"}${formatNumber(Math.abs(secondaryGap), { maximumFractionDigits: 0 })}d vs headline`}
+                  {`${formatNumber(Math.abs(secondaryGap), { maximumFractionDigits: 0 })}d ${
+                    secondaryGap > 0 ? "later" : "earlier"
+                  } than ${headlineBasisLabel}`}
                 </span>
               )}
             </div>
@@ -371,6 +383,19 @@ export const KeyMetricsRow = ({
                   />
                 </span>
               )}
+            </div>
+          </div>
+        )}
+
+        {materialValue && (
+          <div className={cellSeparated} title={materialValueTitle}>
+            <div className={labelWide}>Value</div>
+            <div className={valueRow}>
+              <span className={cx(valueBase, valueStrong)}>
+                {formatCost(periodMaterialValue, materialValue.currency, {
+                  compact: true,
+                })}
+              </span>
             </div>
           </div>
         )}

@@ -45,6 +45,17 @@ export interface CostData {
   unit_price_source?: string | null;
 }
 
+export interface MaterialValueData {
+  unit_cost: number;
+  currency: string;
+  unit_cost_source: string | null;
+  uom: string | null;
+  monthly: Array<{
+    month: string;
+    quantity: number;
+  }>;
+}
+
 /**
  * Source provenance for a step's durations. Attached by the corresponding
  * `extract_*` function on the backend so the UI can show users where the
@@ -188,7 +199,11 @@ export interface GraphNode {
   /** Client-derived from the active timing series and `plan`; omitted on the wire. */
   pct_exceeding_plan?: number | null;
   cost: CostData | null;
+  material_value?: MaterialValueData | null;
   observations?: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean trends. */
+  mean_observations?: Observation[];
+  timing_grain?: "campaign" | null;
   /** Client-side cache of combined procurement node observations from the wire. */
   procurement_observations?: ProcurementNodeObservation[];
   monthly?: MonthlyBucket[];
@@ -197,6 +212,7 @@ export interface GraphNode {
   /** Client-computed exclusion rate (%) under the current outlier setting. */
   excluded_pct?: number;
   n_batches?: number;
+  n_campaigns?: number;
   n_movements?: number;
   /** Recomputed client-side from `yield_series` under window + outlier; not shipped by the generator. */
   yield_summary?: YieldSummary | null;
@@ -397,7 +413,7 @@ export interface BindingScore {
 
 export interface GraphData {
   /** Procurement planning data contract version. */
-  schema_version?: "1.1";
+  schema_version?: "1.2";
   analysis_settings?: AnalysisSettings | null;
   product_id: string;
   product_name: string;
@@ -460,6 +476,8 @@ export interface ProcurementNodeObservation {
 export interface TimingSeries {
   label?: string;
   observations: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean calculations. */
+  mean_observations?: Observation[];
   monthly: MonthlyBucket[];
   stats: StepStats;
 }
@@ -596,12 +614,14 @@ export interface SiteData {
 
 export interface StepDetail {
   /** Procurement planning data contract version. */
-  schema_version?: "1.1";
+  schema_version?: "1.2";
   id: string;
   label: string;
   type: StepType;
   durations: number[];
   observations: Observation[];
+  /** Client-derived Tukey-kept timing points used only for mean trends. */
+  mean_observations?: Observation[];
   monthly: MonthlyBucket[];
   stats: StepStats;
   /** Client-computed by the Tukey IQR outlier selection (lib/utils); not shipped by the generator. */
@@ -613,12 +633,19 @@ export interface StepDetail {
   /** Client-derived from the active timing series and `plan`; omitted on the wire. */
   pct_exceeding_plan?: number | null;
   cost: CostData | null;
+  material_value?: MaterialValueData | null;
+  /** Observation grain for timing. Campaign timing is one canonical QA observation per campaign. */
+  timing_grain?: "campaign" | null;
+  /**
+   * Canonical campaign-level timing records. When present these take precedence
+   * over `detail_rows`, which remains the underlying batch evidence.
+   */
+  campaign_rows?: DetailRows | null;
   detail_rows?: DetailRows | null;
   ref_date_col?: string | null;
   /**
-   * Canonical value column within `detail_rows.rows`. With `ref_date_col`, the
-   * timing series (observations/durations/monthly/stats) is fully derivable from
-   * `detail_rows` on load.
+   * Canonical value column within the selected timing rows. Campaign timing
+   * derives from `campaign_rows`; legacy timing derives from `detail_rows`.
    */
   value_col?: string | null;
   /**
@@ -633,6 +660,7 @@ export interface StepDetail {
    * the inactive first/last receipt basis after deriving both from detail rows.
    */
   complete_timing?: TimingSeries | null;
+  n_campaigns?: number;
   n_batches?: number;
   n_movements?: number;
   yield_data?: YieldData | null;
@@ -776,7 +804,7 @@ export interface ProcurementSupplierBlock {
  */
 export interface SiteSupplierPerformance {
   /** Procurement planning data contract version. */
-  schema_version?: "1.1";
+  schema_version?: "1.2";
   generated_at: string;
   overall: {
     n_lines: number;
@@ -830,7 +858,7 @@ export interface SiteSummaryRollups {
 
 /** `site/{siteId}/summary.json` — the precomputed site overview artifact. */
 export interface SiteSummary {
-  schema_version?: "1.1";
+  schema_version?: "1.2";
   analysis_settings?: AnalysisSettings | null;
   site_id: string;
   generated_at: string;

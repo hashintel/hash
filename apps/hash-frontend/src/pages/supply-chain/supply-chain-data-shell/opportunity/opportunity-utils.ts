@@ -7,6 +7,7 @@ import {
 } from "../../shared/cost";
 import { computeTrend, computePeriodDeltas } from "../../shared/period-trends";
 import { summarizeProcurementPlanning } from "../../shared/procurement-planning";
+import { sampleTier } from "../../shared/sample-confidence";
 import { percentileOf } from "../../shared/stats";
 import { recomputeSupplierBlock } from "../../shared/supplier-otif";
 import {
@@ -265,7 +266,6 @@ export interface PlanningOpportunityBrief {
   tailTrendNote: string | null;
 }
 
-const LOW_SAMPLE_N = 10;
 const WARNING_SAMPLE_N = 30;
 const STALE_OBSERVATION_DAYS = 60;
 
@@ -638,10 +638,11 @@ function buildEvidenceFlags(
   },
 ): EvidenceFlag[] {
   const flags: EvidenceFlag[] = [];
-  if (step.stats.n > 0 && step.stats.n < LOW_SAMPLE_N) {
+  const currentTier = sampleTier(step.stats.n);
+  if (currentTier === "low" || currentTier === "limited") {
     flags.push({
-      severity: "warning",
-      label: "Low sample",
+      severity: currentTier === "low" ? "warning" : "info",
+      label: currentTier === "low" ? "Low sample" : "Limited sample",
       detail: `Only ${formatNumber(step.stats.n)} observations are in the selected period.`,
     });
   }
@@ -660,10 +661,12 @@ function buildEvidenceFlags(
         "Potential cost impact cannot be calculated without a material unit cost.",
     });
   }
-  if (options.trend.previousN > 0 && options.trend.previousN < LOW_SAMPLE_N) {
+  const previousTier = sampleTier(options.trend.previousN);
+  if (previousTier === "low" || previousTier === "limited") {
     flags.push({
       severity: "info",
-      label: "Trend sample",
+      label:
+        previousTier === "low" ? "Low trend sample" : "Limited trend sample",
       detail: `Previous comparison period has ${formatNumber(options.trend.previousN)} observations.`,
     });
   }
@@ -758,7 +761,8 @@ function buildConfidence(
   const hasLowConfidenceWarning = flags.some(
     (flag) => flag.severity === "warning" && flag.label !== "Stale recent data",
   );
-  if (step.stats.n < LOW_SAMPLE_N || hasLowConfidenceWarning) {
+  const tier = sampleTier(step.stats.n);
+  if (tier === "low" || tier === "none" || hasLowConfidenceWarning) {
     return {
       label: "Low",
       caveats,

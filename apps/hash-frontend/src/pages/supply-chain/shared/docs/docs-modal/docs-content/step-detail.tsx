@@ -49,6 +49,12 @@ export const stepDetailDoc: DocEntry = {
           difference from observed timing and the source note where the plan is
           not the default planned-delivery-time field.
         </LI>
+        <LI>
+          <Term>Value</Term>, when available, is the actual quantity received,
+          produced, released or transported during the selected period
+          multiplied by the unit cost, to help in understanding the scale of
+          impact of miscalibrated parameters.
+        </LI>
       </UL>
 
       <H4>Evidence and actions</H4>
@@ -76,11 +82,11 @@ export const stepDetailDoc: DocEntry = {
           <Term>Time range</Term> buttons (3m, 6m, 12) filter the panel.
         </LI>
         <LI>
-          <Term>Outlier count</Term> appears in the header when the Exclude
-          outliers setting removes timing observations from the current step.
-          See{" "}
+          <Term>Outlier count</Term> appears in the header when values are
+          excluded from the mean. The raw observations and percentile statistics
+          remain unchanged. See{" "}
           <CrossRef to={{ section: "settings", sub: "outliers" }}>
-            Exclude outliers
+            Exclude outliers from mean
           </CrossRef>
           .
         </LI>

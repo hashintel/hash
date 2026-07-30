@@ -4,7 +4,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 
 import { StatusActionButton } from "../../shared/action-buttons";
 import { getCategoryColor } from "../../shared/categories";
-import { formatNumber } from "../../shared/cost";
+import { formatCost, formatNumber } from "../../shared/cost";
 import {
   MEASURE_LABELS,
   selectStat,
@@ -12,6 +12,7 @@ import {
 } from "../../shared/measure-context";
 import { PlanningWarningIndicator } from "../../shared/planning-warning-indicator";
 import { procurementStepDisplayLabel } from "../../shared/procurement-planning-ui";
+import { combinedSampleTier } from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -26,7 +27,6 @@ import { siteNodeDisplayLabel, sortPlanningRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
 import {
-  LOW_SAMPLE_N,
   type PlanningRow,
   type SortKey,
   type SortDir,
@@ -62,13 +62,6 @@ function planningStepLabel(row: PlanningRow): string {
     : label;
 }
 
-function isLowSample(row: PlanningRow): boolean {
-  return (
-    (row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N) ||
-    (row.previousTrendN > 0 && row.previousTrendN < LOW_SAMPLE_N)
-  );
-}
-
 const PlanningSampleTooltip = ({
   currentN,
   previousN,
@@ -78,17 +71,9 @@ const PlanningSampleTooltip = ({
 }) => {
   return (
     <span>
-      {currentN > 0 && currentN < LOW_SAMPLE_N
-        ? `Current period has ${currentN} observations`
-        : ""}
-      {currentN > 0 &&
-      currentN < LOW_SAMPLE_N &&
-      previousN > 0 &&
-      previousN < LOW_SAMPLE_N
-        ? "; "
-        : ""}
-      {previousN > 0 && previousN < LOW_SAMPLE_N
-        ? `Previous comparison period has ${previousN} observations`
+      Current period has {currentN} observations
+      {previousN > 0
+        ? `; previous comparison period has ${previousN} observations`
         : ""}
     </span>
   );
@@ -241,6 +226,16 @@ export const PlanningTable = ({
             </th>
             <th className={threshold.thRight}>
               <ColumnHeader
+                label="Value"
+                sort={{
+                  active: sort.key === "materialValue",
+                  dir: sort.dir,
+                  onToggle: () => toggleSort("materialValue"),
+                }}
+              />
+            </th>
+            <th className={threshold.thRight}>
+              <ColumnHeader
                 label="Planned"
                 sort={{
                   active: sort.key === "planned",
@@ -307,6 +302,10 @@ export const PlanningTable = ({
             const deviationPct = row.deviationPct;
             const hasDeviation = deviationPct != null;
             const isOver = deviationPct != null && deviationPct > 0;
+            const sampleLevel = combinedSampleTier(
+              row.stats.n,
+              row.previousTrendN,
+            );
             return (
               <tr
                 key={siteNodeKey(row)}
@@ -341,6 +340,13 @@ export const PlanningTable = ({
                 <td className={threshold.td}>{basisLabel(row)}</td>
                 <td className={threshold.td}>
                   <ProductTags products={row.products} maxVisible={12} />
+                </td>
+                <td className={cx(threshold.tdRight, threshold.valueStrong)}>
+                  {formatCost(
+                    row.periodMaterialValue,
+                    row.material_value?.currency ?? null,
+                    { compact: true },
+                  )}
                 </td>
                 <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                   {formatNumber(row.plan, { maximumFractionDigits: 0 })}d
@@ -386,10 +392,10 @@ export const PlanningTable = ({
                 >
                   <span className={threshold.stackedCell}>
                     <TrendIndicator pctChange={row.trendPct} />
-                    {isLowSample(row) && (
+                    {(sampleLevel === "low" || sampleLevel === "limited") && (
                       <span className={threshold.badgeWrap}>
                         <LowSampleBadge
-                          label="low sample"
+                          label={`${sampleLevel} sample`}
                           title={
                             <PlanningSampleTooltip
                               currentN={row.stats.n}
@@ -428,7 +434,7 @@ export const PlanningTable = ({
           })}
           {displayedRows.length === 0 && (
             <tr>
-              <td colSpan={10} className={threshold.emptyCell}>
+              <td colSpan={11} className={threshold.emptyCell}>
                 {rows.length === 0
                   ? "No planning parameter data for this site."
                   : "No planning parameter data matches the current filters."}

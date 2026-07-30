@@ -29,12 +29,12 @@ const triggerButton = css({
   justifyContent: "center",
   p: "0.5",
   borderRadius: "sm",
-  color: "fg.subtle",
   cursor: "pointer",
   transition: "colors",
   _hover: { bg: "bg.subtle" },
 });
 const triggerActive = css({ color: "[#2563eb]" });
+const triggerInactive = css({ color: "fg.subtle" });
 
 const content = css({
   display: "flex",
@@ -206,7 +206,10 @@ export const FilterMenu = ({
         <button
           type="button"
           aria-label={`Filter by ${header}`}
-          className={cx(triggerButton, isActive && triggerActive)}
+          className={cx(
+            triggerButton,
+            isActive ? triggerActive : triggerInactive,
+          )}
         >
           <Icon name="filter" size="xs" />
         </button>

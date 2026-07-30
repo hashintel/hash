@@ -61,7 +61,7 @@ const makeBatch = (
 });
 
 const schedule: ProductionScheduleV12 = {
-  schema_version: "1.1",
+  schema_version: "1.2",
   artifact_type: "production_schedule",
   artifact_version: "1.2",
   product_id: "product",

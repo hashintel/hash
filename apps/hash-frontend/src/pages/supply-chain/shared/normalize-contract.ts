@@ -104,10 +104,8 @@ function buildMonthlyFromObservations(obs: Observation[]): MonthlyBucket[] {
 }
 
 /**
- * Single-source records derive. When a step ships only the canonical
- * `detail_rows` (+ `value_col`/`ref_date_col`) and no precomputed timing series,
- * rehydrate observations/durations/monthly/stats from the rows. A strict no-op
- * whenever `observations` are already present.
+ * Single-source records derive. Campaign rows are the canonical timing source
+ * when present; detail rows remain batch evidence and the v1.2 fallback.
  */
 function ensureTimingSeriesStats<
   T extends {
@@ -223,13 +221,15 @@ function fillMonthlyTiming(
 export function deriveTimingFromRecords(step: StepDetail): StepDetail;
 export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire;
 export function deriveTimingFromRecords(step: StepDetailWire): StepDetailWire {
+  const campaignRows =
+    step.timing_grain === "campaign" ? step.campaign_rows?.rows : undefined;
   const existingObservations = step.observations ?? [];
-  if (existingObservations.length > 0) {
+  if (!campaignRows?.length && existingObservations.length > 0) {
     return step;
   }
   const valueCol = step.value_col;
   const dateCol = step.ref_date_col;
-  const rows = step.detail_rows?.rows;
+  const rows = campaignRows?.length ? campaignRows : step.detail_rows?.rows;
   if (!valueCol || !dateCol || !rows || rows.length === 0) {
     return step;
   }

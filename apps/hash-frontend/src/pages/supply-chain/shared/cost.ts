@@ -1,5 +1,10 @@
 import { createContext, useContext } from "react";
 
+import { cutoffForRange } from "./time-range";
+
+import type { TimeRange } from "./time-range";
+import type { MaterialValueData } from "./types";
+
 export const DEFAULT_WACC = 0.1;
 export const DEFAULT_STORAGE_COST = 0.4; // currency units/tonne/day
 export const DEFAULT_CURRENCY = "USD";
@@ -168,6 +173,26 @@ export function computePeriodCost(
       ) ?? 0),
     0,
   );
+}
+
+/**
+ * Standard material value passing through a step in the selected whole-calendar
+ * month range. This deliberately uses the independent material-flow series,
+ * rather than timing observations affected by outlier or procurement controls.
+ */
+export function computePeriodMaterialValue(
+  materialValue: MaterialValueData | null | undefined,
+  timeRange: TimeRange,
+): number | null {
+  if (!materialValue) {
+    return null;
+  }
+  const cutoff = cutoffForRange(timeRange);
+  const quantity = materialValue.monthly.reduce(
+    (sum, bucket) => (bucket.month >= cutoff ? sum + bucket.quantity : sum),
+    0,
+  );
+  return quantity * materialValue.unit_cost;
 }
 
 /** Recompute daily carrying cost from mean quantity and unit price. */

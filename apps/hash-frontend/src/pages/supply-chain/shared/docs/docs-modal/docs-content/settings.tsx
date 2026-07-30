@@ -68,13 +68,12 @@ export const settingsSection: DocSectionDef = {
             </SettingRow>
           </Anchor>
           <Anchor id="outliers">
-            <SettingRow name="Exclude outliers">
-              Excludes values falling significantly outside the normal
-              distribution. This is done by computing the interquartile range
-              (IQR), i.e. the values falling between 25% and 75% of
-              observations, and then excluding any values which are greater than
-              1.5x IQR above the third quartile or less than 1.5x IQR below the
-              first quartile (aka Tukey fences).
+            <SettingRow name="Exclude outliers from mean">
+              Excludes outliers from every mean shown. Specifically, this
+              excludes values outside the Tukey fences (removing values which
+              fall greater than 1.5x the interquartile range below Q1 or greater
+              than 1.5x the interquartile range above Q3). Does not affect the
+              median, percentiles (P75, P95) or minimum and maximum.
             </SettingRow>
           </Anchor>
 
