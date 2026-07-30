@@ -75,7 +75,7 @@ fn config(seed: u64) -> FitConfig {
 
 fn repository() -> SaltRepository {
     SaltRepository {
-        version: RepositoryVersion::V1,
+        version: RepositoryVersion::V2,
         files: SaltFiles {
             representations: file("representations.arr"),
             card_embeddings: file("card-embeddings.arr"),
@@ -147,7 +147,9 @@ fn evidence() -> Evidence {
             expected: 8,
             deviation: 0.0,
             minimum_recall: 0.89,
-            margin: 0.012,
+            // The four-row fixture is a census of its corpus: an
+            // exhaustive sample carries no sampling error to bound.
+            resolution: 0.0,
             confidence: 0.99,
         },
         landmarks: LandmarkEvidence {

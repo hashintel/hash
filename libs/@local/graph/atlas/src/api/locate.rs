@@ -37,8 +37,8 @@ The source is delivered first, partners follow ascending by row id, and edges ar
 The HEAD also carries the source's first visible zoom and its tile there (the fly-to target), the \
      source's entity id as 32 raw bytes, and two completeness flags: `typeIdsComplete` (the \
      request's `coloredTypeIds` cover every direct type of the source) and `propertiesComplete` \
-     (the trailer's source property map is the entity's whole set). `coloredTypeIds` behaves \
-     exactly as on the tile route.
+     (the trailer's source property map is the entity's whole deliverable set - every property no \
+     protection withholds). `coloredTypeIds` behaves exactly as on the tile route.
 
 The response always carries the detail trailer, read from the store at request time. Every node \
      carries a label and a first direct type; the source additionally carries its properties, \

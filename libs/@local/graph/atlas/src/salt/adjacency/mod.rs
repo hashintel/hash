@@ -91,9 +91,9 @@ fn insert_edge<I: Copy>(
 
 /// A unit-value array carried as its length alone.
 ///
-/// Sparse-matrix storage wants one value slot per structural entry; a structure-only matrix
-/// holds units, so the array is fully described by its length and dereferences to a conjured
-/// `&[()]` without owning storage.
+/// Sparse-matrix storage wants one value slot per structural entry, and a structure-only matrix's
+/// entries are units. A unit occupies no bytes, so the length is the whole value: `n` of them are
+/// recoverable from `n`, and holding the count costs what holding the array would have cost.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct UnitSlice {
     length: usize,

@@ -67,11 +67,6 @@ const apiUrl = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5001";
 
 const apiDomain = new URL(apiUrl).hostname;
 
-// Origin of the `hash-graph atlas` tile server. The `/atlas-api` rewrite below
-// proxies to it so the browser (network graph view) reaches it same-origin,
-// avoiding the CORS block on a direct cross-origin tile request.
-const atlasApiOrigin = process.env.ATLAS_API_ORIGIN ?? "http://127.0.0.1:4003";
-
 /**
  * @todo: import the page `entityTypeId` from `@local/hash-isomorphic-utils/ontology-types`
  * when the `next.config.js` supports imports from modules
@@ -89,12 +84,6 @@ export default withSentryConfig(
     {
       async rewrites() {
         return [
-          {
-            // Proxy Atlas tile requests to the hash-graph atlas server so the
-            // network graph view fetches tiles same-origin (see `atlasApiOrigin`).
-            source: "/atlas-api/:path*",
-            destination: `${atlasApiOrigin}/:path*`,
-          },
           {
             source: "/pages",
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,

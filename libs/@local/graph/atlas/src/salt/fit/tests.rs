@@ -51,7 +51,7 @@ use crate::{
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
-        knn::{artifact::KnnArchive, table::KnnView},
+        knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
         ladder::CanonicalError,
         landmark::{
             artifact::LandmarkSkeletonArchive,
@@ -507,7 +507,10 @@ async fn fit_publishes_a_complete_generation() {
 
     // The recorded evidence passed - a published generation implies it.
     assert!(repository.metadata.evidence.norm.passes());
-    assert!(repository.metadata.evidence.recall.meets_minimum());
+    assert_eq!(
+        repository.metadata.evidence.recall.admission(),
+        RecallAdmission::Admitted,
+    );
     assert_eq!(repository.metadata.evidence.landmarks.selected, LANDMARKS);
 
     // Without a prior generation every unique card text embeds fresh.

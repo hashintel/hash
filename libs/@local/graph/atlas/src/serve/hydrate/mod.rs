@@ -2,8 +2,30 @@
 //!
 //! Detail hydrates at request time from Postgres, inline in the trailer - no published label
 //! columns. Reads are live (`now()`, not the snapshot's decision time): text edited after publish
-//! shows on snapshot geometry. Hydration queries only post-intersection ids, so it opens no new
-//! auth surface.
+//! shows on snapshot geometry.
+//!
+//! # What a trailer carries
+//!
+//! Two guarantees compose here, at two altitudes. Hydration reads only post-intersection ids, so
+//! every hydrated entity is one the request's proof admits: that is the guarantee about *rows*.
+//! Inside an admitted row, the deployment's property protection decides which *fields* may leave
+//! the store, and an entity's **deliverable set** is what it leaves: every property no protection
+//! withholds.
+//! Property values reach a trailer from the deliverable set, and the caps, counts, and completeness
+//! flags below are stated over that set.
+//!
+//! The store's protection is a per-actor condition, and this surface evaluates none: the queries
+//! remove the protected keys for every caller, which withholds at least what the store withholds
+//! from any actor, the owner of a protected value included. A trailer's property map is therefore
+//! one function of the entity, identical for every caller the row admits.
+//!
+//! Labels stand outside that rule, here and on the graph's own read path. A label is a property
+//! value materialized per edition: `entity_edition_cache.labels[1]` is extracted from the whole
+//! properties object through the type's `labelProperty` path, with no actor in the derivation, so a
+//! type whose label property is protected carries that value in its label column. A deployment that
+//! protects a label property makes that true of its labels with no code change here. The locate
+//! surfaces also name the base URL behind the label, which states that the entity has a value at
+//! that path without delivering it.
 //!
 //! The tile trailer's per-point rules mirror the client's own display logic:
 //!
@@ -23,11 +45,11 @@
 //! objects and arrays never survive the store-side filter. An over-cap entity drops properties
 //! reverse-lexicographically by base URL with its label property - the base URL whose value
 //! provides the display label, resolved through the same canonical type order the label cache
-//! uses - protected to the very end, so the label survives every cap that admits at least one
-//! property. Survivors emit ascending by name, the wire's map-key order. A number ships as an
-//! integer when the store renders it integral and it fits `i64`, as a double otherwise. Each
-//! hydration also counts the entity's *whole* property set, so completeness - nothing filtered,
-//! nothing capped - is attested per entity, never guessed.
+//! uses - dropped very last, so the label survives every cap that admits at least one property.
+//! Survivors emit ascending by name, the wire's map-key order. A number ships as an integer when
+//! the store renders it integral and it fits `i64`, as a double otherwise. Each hydration also
+//! counts the entity's *whole deliverable* set, so completeness - nothing filtered, nothing
+//! capped - is attested per entity, never guessed.
 //!
 //! An id that resolves to no visible entity - deleted since publish, archived, drafted - reads
 //! `null` in every column and `false` in every completeness flag, mirroring the zero-mask rule

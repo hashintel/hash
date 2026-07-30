@@ -4,7 +4,7 @@
               compare cross-path results of the same kernel"
 )]
 use alloc::sync::Arc;
-use core::{assert_matches, num::NonZero};
+use core::{assert_matches, num::NonZero, time::Duration};
 use std::sync::Mutex;
 
 use hashql_core::id::{Id as _, IdSlice};
@@ -34,6 +34,7 @@ use crate::{
     identity::NodeRowId,
     math::{AlignedVecN, BoxedVecN},
     progress::{Batch, DescentIteration, NoProgress, Progress},
+    random::normal_quantile,
 };
 
 /// Fixture capacity in components: the largest test corpus.
@@ -680,8 +681,9 @@ fn descent_passes_the_admission_gate() {
         Xoshiro256PlusPlus::seed_from_u64(9),
     )
     .expect("the spot check completes");
-    assert!(
-        check.meets_minimum(),
+    assert_eq!(
+        check.admission(),
+        recall::RecallAdmission::Admitted,
         "recall {} misses the admission minimum",
         check.recall(),
     );
@@ -952,7 +954,7 @@ fn spot_check_scores_an_exact_backend_perfectly() {
     assert_eq!(check.matched, 56);
     assert_eq!(check.expected, 56);
     assert_eq!(check.recall(), 1.0);
-    assert!(check.meets_minimum());
+    assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
 }
 
 #[test]
@@ -978,7 +980,7 @@ fn spot_check_fails_a_degraded_backend() {
     assert_eq!(check.neighbours_per_row, 50);
     assert_eq!(check.matched, 60 * 41);
     assert_eq!(check.expected, 60 * 50);
-    assert!(!check.meets_minimum());
+    assert_eq!(check.admission(), recall::RecallAdmission::Refused);
 }
 
 #[test]
@@ -1003,7 +1005,11 @@ fn spot_check_honours_configured_options() {
     )
     .expect("the degraded backend still answers every query");
     assert_eq!(check.minimum_recall, 0.8);
-    assert!(check.meets_minimum(), "recall 0.82 passes a 0.8 minimum");
+    assert_eq!(
+        check.admission(),
+        recall::RecallAdmission::Admitted,
+        "recall 0.82 passes a 0.8 minimum",
+    );
 
     // The comparison depth is the k of the measured recall@k.
     let rows = fan_fixture(8, 0.15);
@@ -1029,39 +1035,36 @@ fn spot_check_honours_configured_options() {
     miri,
     ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
 )]
-fn spot_check_rejects_a_meaningless_sampling_budget() {
+fn spot_check_rejects_a_degenerate_confidence() {
     let rows = fan_fixture(4, 0.15);
     let matrix = Matrix::new(&rows);
     let index = ExactIndex::from_rows(&rows);
     let result = recall::spot_check(
         &index,
         matrix.view(),
-        recall::SpotCheckOptions { margin: 0.0, .. },
+        recall::SpotCheckOptions {
+            confidence: 1.0,
+            ..
+        },
         Xoshiro256PlusPlus::seed_from_u64(42),
     );
-    assert_matches!(
-        result,
-        Err(KnnError::SampleBudget {
-            margin: 0.0,
-            confidence: 0.99,
-        }),
-    );
+    assert_matches!(result, Err(KnnError::SampleConfidence { confidence: 1.0 }),);
 }
 
-/// A pilot whose spread already resolves the margin decides the check without a second sample.
+/// A backend far above the floor resolves its clearance at the pilot's size.
 #[test]
 #[cfg_attr(
     miri,
     ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
 )]
-fn spot_check_stops_at_a_decisive_pilot() {
+fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
     let index = ExactIndex::from_rows(&rows);
 
-    // An exact backend reads recall 1.0 on every pilot row: zero
-    // spread requires zero further samples, so the verdict comes from
-    // the pilot alone.
+    // An exact backend reads recall 1.0 on every pilot row: zero spread
+    // over a clearance of 0.11 sizes zero rows, and the pilot's own
+    // size is the floor the verdict sample draws at.
     let check = recall::spot_check(
         &index,
         matrix.view(),
@@ -1076,30 +1079,32 @@ fn spot_check_stops_at_a_decisive_pilot() {
     assert_eq!(check.sampled_rows, 4);
     assert_eq!(check.deviation, 0.0);
     assert_eq!(check.recall(), 1.0);
-    assert!(check.meets_minimum());
+    assert_eq!(check.resolution, 0.0);
+    assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
 }
 
-/// A pilot too spread to resolve the margin triggers a correctly sized second sample.
+/// A minimum close to the measured recall sizes the verdict sample up to the corpus.
 #[test]
 #[cfg_attr(
     miri,
     ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
 )]
-fn spot_check_resizes_an_uncertain_pilot() {
+fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
     let index = MixedIndex(ExactIndex::from_rows(&rows));
 
     // Row `i` matches exactly `50 - (i & 7)` of its exact top 50, so
     // per-row recall ramps 0.86..1.0 and any pilot mixing residues
-    // measures real spread. Under the tight margin the requirement
-    // far exceeds the corpus, capping at an exhaustive second sample:
+    // measures real spread. Against a minimum a third of a percent
+    // below the aggregate, the clearance the pilot measures sizes a
+    // sample far past the corpus, so the verdict sample is exhaustive:
     // ids 0..59 sum their residues to 7 · 28 + 6 = 202 skipped rows.
     let check = recall::spot_check(
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            margin: 0.001,
+            minimum_recall: 0.93,
             pilot: NonZero::new(4).expect("four is nonzero"),
             ..
         },
@@ -1107,10 +1112,70 @@ fn spot_check_resizes_an_uncertain_pilot() {
     )
     .expect("the mixed backend answers every query");
 
-    assert_eq!(check.sampled_rows, 60, "the second sample is exhaustive");
+    assert_eq!(check.sampled_rows, 60, "the verdict sample is exhaustive");
     assert_eq!(check.matched, 60 * 50 - 202);
     assert_eq!(check.expected, 60 * 50);
     assert!(check.deviation > 0.0);
+    // A census of the corpus leaves no sampling error to bound, so the
+    // aggregate itself clears the minimum.
+    assert_eq!(check.resolution, 0.0);
+    assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
+}
+
+/// A budget that buys nothing leaves the verdict sample at the pilot's size, and a shortfall it
+/// cannot demonstrate reads as unresolved rather than refused.
+#[test]
+#[cfg_attr(
+    miri,
+    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
+)]
+fn spot_check_stops_at_the_sampling_budget() {
+    let rows = fan_fixture(60, 0.02);
+    let matrix = Matrix::new(&rows);
+    let index = MixedIndex(ExactIndex::from_rows(&rows));
+
+    // The same ramp against a minimum above its aggregate: the sizing
+    // asks for the corpus, the budget affords nothing beyond the pilot's
+    // own size, and four rows cannot separate 0.94 from what they read.
+    let check = recall::spot_check(
+        &index,
+        matrix.view(),
+        recall::SpotCheckOptions {
+            minimum_recall: 0.94,
+            pilot: NonZero::new(4).expect("four is nonzero"),
+            budget: Duration::ZERO,
+            ..
+        },
+        Xoshiro256PlusPlus::seed_from_u64(42),
+    )
+    .expect("the mixed backend answers every query");
+
+    assert_eq!(
+        check.sampled_rows, 4,
+        "the budget buys no rows past the pilot"
+    );
+    // The four drawn rows skip 18 of their 200 exact neighbours, so the
+    // aggregate reads 0.91 - below the minimum, and by less than the
+    // 0.047 such a sample resolves. A shortfall the sample cannot
+    // demonstrate is not a refusal.
+    assert_eq!(check.matched, 200 - 18);
+    assert_eq!(check.recall(), 0.91);
+    assert!(check.recall() < check.minimum_recall);
+    assert!(check.resolution > check.minimum_recall - check.recall());
+    assert_eq!(check.admission(), recall::RecallAdmission::Unresolved);
+
+    // The recorded resolution is the achieved half-width: the normal
+    // quantile of the configured confidence over the sample's own
+    // spread, narrowed by the finite-population factor.
+    let quantile = normal_quantile(check.confidence).expect("0.99 is in domain");
+    let correction = ((60.0 - 4.0) / 59.0_f64).sqrt();
+    let expected = quantile * check.deviation / 2.0 * correction;
+    assert!(
+        (check.resolution - expected).abs() < 1e-12,
+        "resolution {} does not follow the recorded deviation {}",
+        check.resolution,
+        check.deviation,
+    );
 }
 
 #[test]
@@ -1349,8 +1414,9 @@ fn hannoy_honours_the_seam_contract() {
         Xoshiro256PlusPlus::seed_from_u64(9),
     )
     .expect("the spot check completes");
-    assert!(
-        check.meets_minimum(),
+    assert_eq!(
+        check.admission(),
+        recall::RecallAdmission::Admitted,
         "recall {} misses the admission minimum",
         check.recall(),
     );

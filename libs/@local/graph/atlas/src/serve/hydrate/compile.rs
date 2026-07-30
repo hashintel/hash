@@ -101,11 +101,33 @@ impl Error for ProofError {
     }
 }
 
+/// Returns whether a request resolves to the whole generation without asking the store.
+///
+/// True for an unconstrained view: the caller narrows nothing and the actor's policies compile to
+/// the tautology, so the query would return every entity id the store holds and the proof it built
+/// would admit every row. The two conditions are read where they are decided rather than inferred
+/// from the actor's kind - an actor's administrative standing is a statement about its policies,
+/// and the compiled filter is where those policies have already been resolved.
+///
+/// [`Filter::for_policies`] yields an empty [`Filter::All`] on exactly one path, an unconstrained
+/// permit meeting no forbid; every other shape carries a conjunct, a disjunct, or a negation. A
+/// caller filter keeps the query, since a caller that narrows its view asked for the narrowed view.
+const fn admits_every_row(
+    filter: Option<&Filter<'_, Entity>>,
+    policy_filter: &Filter<'_, Entity>,
+) -> bool {
+    filter.is_none() && matches!(policy_filter, Filter::All(conjuncts) if conjuncts.is_empty())
+}
+
 /// Resolves the rows `actor` may view into a [`VisibilityProof`] over `atlas`.
 ///
 /// `filter` narrows the view the proof admits. A request without one resolves the actor's whole
 /// viewable set; a request with one resolves its intersection with that set, so the proof describes
 /// the view the request asked for.
+///
+/// An unconstrained view answers without the store: when the actor's policies compile to the
+/// tautology and the request narrows nothing, every row is visible, and the proof is
+/// [`VisibilityProof::full_visibility`] rather than one mask bit per row of the generation.
 ///
 /// A row is visible when the query returned its entity id. The two masks stay separate because the
 /// link rows an actor may read are not a function of the node rows it may read.
@@ -146,6 +168,10 @@ where
         policy_components.actor_id(),
         policy_components.optimization_data(ActionName::ViewEntity),
     );
+
+    if admits_every_row(filter, &policy_filter) {
+        return Ok(VisibilityProof::full_visibility());
+    }
 
     // The store's read path transforms a caller's filter whenever protection is configured and the
     // actor is not an instance admin; the same condition governs here, since the same filter
@@ -212,4 +238,105 @@ where
     );
 
     Ok(VisibilityProof::from_masks(nodes, edges))
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_graph_authorization::policies::{
+        Effect, OptimizationData, resource::ResourceConstraint,
+    };
+    use hash_graph_store::filter::Filter;
+    use type_system::{
+        knowledge::{Entity, entity::id::EntityId},
+        principal::actor_group::WebId,
+    };
+    use uuid::Uuid;
+
+    use super::admits_every_row;
+
+    /// The compiled tautology plus no caller filter is the unconstrained view.
+    ///
+    /// The bug class is a short-circuit that reads a shape the policy compiler does not reserve for
+    /// unconstrained permits: the expectation therefore comes from
+    /// [`Filter::for_policies`](hash_graph_store::filter::Filter::for_policies) itself, not from a
+    /// hand-built filter, so a change in what that constructor emits fails here rather than serving
+    /// a scoped caller the operator's rows.
+    #[test]
+    fn only_an_unconstrained_permit_admits_every_row() {
+        let optimization = OptimizationData::default();
+
+        let unconstrained =
+            Filter::<Entity>::for_policies([(Effect::Permit, None)], None, &optimization);
+        assert!(
+            admits_every_row(None, &unconstrained),
+            "an unconstrained permit with no caller filter admits every row: {unconstrained:?}"
+        );
+
+        // A web-scoped permit is the same actor shape with one resource constraint, and it must
+        // keep the query.
+        let web = ResourceConstraint::Web {
+            web_id: WebId::new(Uuid::nil()),
+        };
+        let scoped =
+            Filter::<Entity>::for_policies([(Effect::Permit, Some(&web))], None, &optimization);
+        assert!(!admits_every_row(None, &scoped));
+
+        // A blank forbid denies everything, and no permit at all denies everything: neither is the
+        // tautology, and reading either as one would invert the decision.
+        let forbidden =
+            Filter::<Entity>::for_policies([(Effect::Forbid, None)], None, &optimization);
+        assert!(!admits_every_row(None, &forbidden));
+        let silent = Filter::<Entity>::for_policies([], None, &optimization);
+        assert!(!admits_every_row(None, &silent));
+
+        // An unconstrained permit met by a forbid compiles to a negation, which the store must
+        // still evaluate.
+        let partly = Filter::<Entity>::for_policies(
+            [(Effect::Permit, None), (Effect::Forbid, Some(&web))],
+            None,
+            &optimization,
+        );
+        assert!(!admits_every_row(None, &partly));
+
+        // A scoped permit met by a forbid is the one shape that compiles to a NON-EMPTY
+        // conjunction. It is the dangerous neighbour of the tautology: reading the constructor
+        // rather than the conjunction's emptiness would answer this scoped actor with the whole
+        // generation.
+        let elsewhere = ResourceConstraint::Web {
+            web_id: WebId::new(Uuid::from_u128(1)),
+        };
+        let scoped_with_forbid = Filter::<Entity>::for_policies(
+            [
+                (Effect::Permit, Some(&web)),
+                (Effect::Forbid, Some(&elsewhere)),
+            ],
+            None,
+            &optimization,
+        );
+        assert!(
+            matches!(&scoped_with_forbid, Filter::All(conjuncts) if !conjuncts.is_empty()),
+            "the fixture builds the non-empty conjunction it is here to reject: \
+             {scoped_with_forbid:?}"
+        );
+        assert!(!admits_every_row(None, &scoped_with_forbid));
+    }
+
+    /// A caller filter keeps the query even under the tautology.
+    ///
+    /// The bug class is a short-circuit that answers the filtered request with the whole
+    /// generation: an operator asking for a narrowed view would receive every row instead, which is
+    /// a wrong answer rather than a leak.
+    #[test]
+    fn a_caller_filter_keeps_the_query() {
+        let optimization = OptimizationData::default();
+        let unconstrained =
+            Filter::<Entity>::for_policies([(Effect::Permit, None)], None, &optimization);
+        let requested = Filter::<Entity>::for_entity_by_entity_id(EntityId {
+            web_id: WebId::new(Uuid::nil()),
+            entity_uuid: type_system::knowledge::entity::id::EntityUuid::new(Uuid::nil()),
+            draft_id: None,
+        });
+
+        assert!(!admits_every_row(Some(&requested), &unconstrained));
+    }
 }

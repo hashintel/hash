@@ -40,7 +40,7 @@ use crate::{
             annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
-        knn::descent::NnDescentOptions,
+        knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
         projector::{
             budget::Budget,
@@ -163,8 +163,11 @@ pub struct Summary {
     pub nodes: u64,
     /// Edges the dataset streamed.
     pub edges: u64,
-    /// The admitted neighbour backend's measured recall.
-    pub recall: f64,
+    /// The neighbour backend's recall evidence, admission reading included.
+    ///
+    /// A published generation carries either an admitted reading or an unresolved one; the
+    /// difference is what the sample demonstrated, not whether a number was measured.
+    pub recall: RecallSpotCheck,
     /// Unique card texts copied from the prior generation.
     pub reused: usize,
     /// Unique card texts submitted to the provider.
@@ -459,7 +462,7 @@ pub(crate) async fn live<P: Progress + Sync>(
         generation: outcome.generation.id().to_string(),
         nodes: metadata.snapshot.nodes,
         edges: metadata.snapshot.edges,
-        recall: metadata.evidence.recall.recall(),
+        recall: metadata.evidence.recall,
         reused: metadata.evidence.cards.reused,
         embedded: metadata.evidence.cards.embedded,
         passes: outcome.report.passes(),

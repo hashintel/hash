@@ -140,8 +140,7 @@ pub(crate) struct LadderOptions {
     pub conditions: Conditions = Conditions::REFERENCE,
     /// The condition whose aligned field publishes as the canonical coordinates.
     ///
-    /// Defaults to `1.0`, the full-strength lens, matching the reference pipeline's canonical
-    /// condition.
+    /// `1.0` is the full-strength lens, matching the reference pipeline's canonical condition.
     pub canonical: f32 = 1.0,
 }
 

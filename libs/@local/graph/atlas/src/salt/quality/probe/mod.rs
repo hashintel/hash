@@ -91,23 +91,23 @@ const DEFAULT_TRIPLET_PAIRS: usize = 64;
 /// Pinned sampling and neighbourhood settings for one probe.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProbeOptions {
-    /// Sampled anchor rows: the queries every reading aggregates over. Defaults to 256.
+    /// Sampled anchor rows: the queries every reading aggregates over.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
     /// Sampled comparison rows: the shared universe the sampled pass ranks.
     ///
     /// More rows sharpen the canonical readings toward finer neighbourhood scales and grow the
-    /// canonical fetch linearly. Defaults to 4096.
+    /// canonical fetch linearly.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Neighbourhood sizes to read at, in reporting order; must be non-empty.
     ///
     /// The trend across sizes is itself evidence: recall rising with `k` is the near-tie
-    /// reshuffling fingerprint. Defaults to 15, 30, and 50.
+    /// reshuffling fingerprint.
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
     /// Horizon multiplier for the intrusion and extrusion readings.
     ///
     /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
     /// `factor · k` (clamped to the universe), separating genuinely foreign points from reshuffling
-    /// near the neighbourhood boundary. Defaults to 2.
+    /// near the neighbourhood boundary.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
     /// Comparison-point pairs sampled for the triplet readings.
     ///
@@ -115,7 +115,7 @@ pub(crate) struct ProbeOptions {
     /// pair-driven variance is shared across anchors: the reading's resolution tracks this count,
     /// not the anchor-times-pair triplet total. Zero disables the readings - and with them
     /// admission: the verdict demands the full battery, so a triplet-free probe is report-only by
-    /// construction. Defaults to 64.
+    /// construction.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 

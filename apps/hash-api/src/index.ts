@@ -597,12 +597,6 @@ const main = async () => {
     app.use("/oauth2/fallbacks", authRouteRateLimiter, hydraProxy);
   }
 
-  /**
-   * Proxy to the atlas server — saltile bodies stream through
-   * untouched, so this stays ahead of the body parsers.
-   */
-  setupAtlasProxy(app, logger);
-
   /** END PROXIES */
 
   /** Body parsing middleware */
@@ -861,6 +855,10 @@ const main = async () => {
 
   // Entity clustering
   app.post("/entities/embeddings/clusters", clusterEntitiesHandler);
+
+  // The atlas REST surface, proxied to the `hash-graph atlas` server under this API's own session
+  // resolution: the actor reaches the atlas as a header this API states, never as caller input.
+  setupAtlasProxy(app, logger);
 
   // Integrations
   app.get("/oauth/linear", authRouteRateLimiter, oAuthLinear);

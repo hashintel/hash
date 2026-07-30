@@ -205,8 +205,8 @@ where
     /// The query point is in the index, so `row` itself leads the result. The secondary row order
     /// pins ties: equal distances are returned in one order regardless of tree traversal.
     ///
-    /// Items are frame row indexes in the tree's compact `u32` domain; [`NodeRowId::from_u32`]
-    /// widens one losslessly.
+    /// Items are frame row indexes in the tree's compact `u32` domain;
+    /// [`NodeRowId::from_u32`](crate::identity::NodeRowId::from_u32) widens one losslessly.
     // The tree stores one content id per point, so the u32 domain halves
     // that storage against a 64-bit id.
     fn nearest(&self, row: N, count: usize) -> Vec<NearestNeighbour<f32, u32>> {

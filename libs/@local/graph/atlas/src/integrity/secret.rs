@@ -156,9 +156,10 @@ mod tests {
 
     /// Neither rendering of a held key encodes its bytes.
     ///
-    /// The width and the placeholder are what a log line or a document dump may carry; the bytes
-    /// reach a rendering only through the deref to the hexadecimal form, which is a deliberate
-    /// exposure rather than an accident of formatting.
+    /// Both renderings are checked against every eight-byte window of the canonical form, so a
+    /// partial disclosure fails as loudly as a whole one. The dereferenced inner value is outside
+    /// this witness: [`HexBytes`] renders every byte, and a rendering taken through the deref is
+    /// what the type documentation covers.
     #[test]
     fn hex_secrets_redact_both_renderings() {
         let secret =

@@ -40,7 +40,7 @@ pub(crate) mod descent;
 // Fixed reference size: an instrument compares settings against each
 // other, so its samples are sized once (SE ~0.007 at the measured
 // per-row deviation, resolving the construction effect) rather than
-// per-reading like the production check's two-stage procedure.
+// per-reading like the production check's staged sizing.
 const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference size is nonzero");
 
 /// One instrument's setup failure: the published representations could not be read.

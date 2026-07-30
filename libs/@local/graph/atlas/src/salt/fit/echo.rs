@@ -15,7 +15,7 @@
 //!
 //! [serde remote pattern]: https://serde.rs/remote-derive.html
 
-use core::num::NonZero;
+use core::{num::NonZero, time::Duration};
 
 use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
@@ -38,6 +38,33 @@ use crate::{
         semantic::SmoothingOptions,
     },
 };
+
+/// Serializes a [`Duration`] as whole and fractional seconds.
+///
+/// Refuses a negative, infinite, or `NaN` reading on deserialize: the wire carries an allowance of
+/// wall clock, and only a finite non-negative span is one.
+mod seconds {
+    use core::time::Duration;
+
+    use serde::{Deserialize as _, de::Error as _};
+
+    pub(super) fn serialize<S>(budget: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_f64(budget.as_secs_f64())
+    }
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let seconds = f64::deserialize(deserializer)?;
+        Duration::try_from_secs_f64(seconds).map_err(|error| {
+            D::Error::custom(format_args!("{seconds} is not a span of seconds: {error}"))
+        })
+    }
+}
 
 /// Serializes a [`Log2`] as its plain exponent.
 ///
@@ -739,9 +766,10 @@ struct NnDescentOptionsDef {
 struct RecallCheckOptionsDef {
     neighbours: NonZero<usize>,
     minimum_recall: f64,
-    margin: f64,
     confidence: f64,
     pilot: NonZero<usize>,
+    #[serde(with = "seconds")]
+    budget: Duration,
 }
 
 /// serde shadow of [`SmoothingOptions`].

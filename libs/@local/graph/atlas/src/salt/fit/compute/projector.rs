@@ -71,9 +71,10 @@ use crate::{
 ///
 /// The CPU backend stays the fixture and determinism harness, so tests run without the feature.
 ///
-/// The Metal flavor is the unfused `CubeBackend`: under the fused `burn::backend::Metal` alias,
-/// `burn-fusion`'s stream ordering (0.21.0, ordering.rs:65) panics out of bounds on this
-/// workload's dynamic relation-batch shapes, killing the device service thread.
+/// The Metal flavor is the unfused `burn::backend::wgpu::CubeBackend`: under the fused
+/// `burn::backend::Metal` alias, `burn-fusion`'s stream ordering (0.21.0, ordering.rs:65) panics
+/// out of bounds on this workload's dynamic relation-batch shapes, killing the device service
+/// thread.
 #[cfg(feature = "gpu")]
 pub(in crate::salt::fit) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
@@ -210,22 +211,7 @@ impl Context<'_> {
             representations: distinct.rows,
             roles: IdSlice::from_raw(&roles[..distinct.rows.len()]),
         };
-        // Mass normalization: the configured coefficients are
-        // corpus-free bases. The semantic and ordinary bases divide by
-        // the total semantic edge weight, the hard-negative base by
-        // the row count, and the support bases by their pool sizes,
-        // so each base weighs the same objective share on every
-        // corpus; the relation base is already mass-free. The masses
-        // are the training domain's - the distinct rows and their
-        // graph - matching the objective the trainer optimizes. A
-        // weightless graph passes the bases through - the trainer
-        // rejects it as evidence-free immediately after.
-        let coefficients = normalized_coefficients(
-            options.coefficients,
-            semantic_weight(&distinct.semantic.view()),
-            distinct.rows.len(),
-            landmarks.len(),
-        );
+
         // A vacuous placement withholds the relation evidence: the
         // trainer sees no force at all, so no radius freezes and no
         // reviewed verdicts are demanded, while the published relation
@@ -237,6 +223,7 @@ impl Context<'_> {
         } else {
             &distinct.indexes.attraction
         };
+
         let trainer_inputs = TrainerInputs {
             semantic: distinct.semantic.view(),
             protection: distinct.indexes.protection.view(),
@@ -249,6 +236,22 @@ impl Context<'_> {
             anchors: &[],
             verdicts: &inputs.resolution.resolved,
         };
+
+        // Mass normalization: the configured coefficients are corpus-free bases. The semantic and
+        // ordinary bases divide by the total semantic edge weight, the hard-negative base
+        // by the row count, and the support bases by the pools the trainer receives, so each base
+        // weighs the same objective share on every corpus; the relation base is already mass-free.
+        // The masses are the training domain's - the distinct rows and their graph -
+        // matching the objective the trainer optimizes. A weightless graph passes the bases
+        // through - the trainer rejects it as evidence-free immediately after.
+        let coefficients = normalized_coefficients(
+            options.coefficients,
+            semantic_weight(&distinct.semantic.view()),
+            distinct.rows.len(),
+            trainer_inputs.anchors.len(),
+            trainer_inputs.landmarks.len(),
+        );
+
         let train_options = TrainOptions {
             schedule: options.schedule,
             plan: options.plan,
@@ -773,12 +776,12 @@ where
 
 /// Normalizes the configured coefficient bases by their objective masses.
 ///
-/// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, landmark
-/// by the anchor pool size.
+/// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, and each
+/// support base by its own pool size: the anchor base by the temporal anchor pool, the landmark
+/// base by the landmark pool.
 ///
 /// The relation base passes through, and a pool of zero keeps its base inert rather than dividing
-/// by nothing - the current pipeline supplies no temporal anchors, so that pool is empty. A
-/// weightless graph passes every base through unchanged.
+/// by nothing. A weightless graph passes every base through unchanged.
 #[expect(
     clippy::cast_precision_loss,
     reason = "corpus and pool counts remain exactly representable in f64 far beyond any corpus"
@@ -787,6 +790,7 @@ fn normalized_coefficients(
     bases: Coefficients,
     weight: f64,
     rows: usize,
+    anchor_pool: usize,
     landmark_pool: usize,
 ) -> Coefficients {
     if weight <= 0.0 {
@@ -812,7 +816,7 @@ fn normalized_coefficients(
         scaled(bases.ordinary(), weight),
         scaled(bases.hard(), rows as f64),
         bases.relation(),
-        scaled(bases.anchor(), 0.0),
+        scaled(bases.anchor(), anchor_pool as f64),
         scaled(bases.landmark(), landmark_pool as f64),
     )
 }

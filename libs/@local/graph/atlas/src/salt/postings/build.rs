@@ -89,7 +89,8 @@ impl Postings {
     /// `types` holds each node row's direct types in **row** order, exactly as the dataset streams
     /// them (ascending, deduplicated); `row_of_position` is the lod's gather order, so membership
     /// lands in base delivery order. `parents` holds each ontology row's direct parents in
-    /// ontology-row order - the dataset's `Ontology::parents` contract, restated in file shape -
+    /// ontology-row order - the [`Ontology::parents`](crate::dataset::Ontology::parents) contract,
+    /// restated in file shape -
     /// and its length is the type domain `T`. Walking positions ascending makes every list run
     /// sorted by construction: no sort pass exists.
     ///

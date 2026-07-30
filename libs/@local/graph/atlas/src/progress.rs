@@ -20,7 +20,7 @@
 //! [`NoProgress`] is the silent observer, for runs nothing watches.
 
 use crate::math::Vec2;
-pub use crate::salt::{CardEmbeddingStats, LossBreakdown, RecallSpotCheck};
+pub use crate::salt::{CardEmbeddingStats, LossBreakdown, RecallAdmission, RecallSpotCheck};
 
 /// One pipeline stage of a run, in the order the runner drives them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

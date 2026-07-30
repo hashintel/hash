@@ -37,7 +37,7 @@
 //! - A list run holds strictly ascending base positions below `N`; a dense run holds exactly
 //!   `ceil(N/32)` words with every bit at or beyond `N` clear.
 //! - A parent list holds strictly ascending ontology rows below `T`: direct parents only, exactly
-//!   the dataset's `Ontology::parents` contract.
+//!   the [`Ontology::parents`](crate::dataset::Ontology::parents) contract.
 
 pub(crate) mod artifact;
 pub(crate) mod build;

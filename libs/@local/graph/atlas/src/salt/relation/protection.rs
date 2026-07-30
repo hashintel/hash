@@ -219,8 +219,8 @@ impl ProtectionConfig {
 
 /// An unordered pair of node rows in canonical order.
 ///
-/// The two rows are stored with [`first`](Self::first) at most [`second`](Self::second), so a pair
-/// equals itself however its rows arrive, and the derived order is total over pairs.
+/// The two rows are stored with [`lhs`](Self::lhs) at most [`rhs`](Self::rhs), so a pair equals
+/// itself however its rows arrive, and the derived order is total over pairs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct NodePair<N> {
     lhs: N,

@@ -13,8 +13,8 @@ pub enum KnnError<N, E> {
     TooManyRows { rows: usize },
     /// The requested table shape overflows the entry count.
     TooManyEntries { rows: usize, neighbours: usize },
-    /// A sampling budget cannot size a sample.
-    SampleBudget { margin: f64, confidence: f64 },
+    /// A confidence level outside the open unit interval has no quantile to size a sample with.
+    SampleConfidence { confidence: f64 },
     /// Constructed lists are narrower than the table's stored width.
     ListsWidth { width: usize, neighbours: usize },
     /// A search returned a different neighbour count than the table stores per row.
@@ -43,9 +43,7 @@ impl<N, E> KnnError<N, E> {
             Self::TooManyEntries { rows, neighbours } => {
                 KnnError::TooManyEntries { rows, neighbours }
             }
-            Self::SampleBudget { margin, confidence } => {
-                KnnError::SampleBudget { margin, confidence }
-            }
+            Self::SampleConfidence { confidence } => KnnError::SampleConfidence { confidence },
             Self::ListsWidth { width, neighbours } => KnnError::ListsWidth { width, neighbours },
             Self::SearchCount {
                 row: searched,
@@ -94,10 +92,10 @@ impl<N: fmt::Display, E: fmt::Display> fmt::Display for KnnError<N, E> {
                 fmt,
                 "{rows} rows with {neighbours} neighbours each overflow the entry count",
             ),
-            Self::SampleBudget { margin, confidence } => write!(
+            Self::SampleConfidence { confidence } => write!(
                 fmt,
-                "a margin of {margin} at confidence {confidence} does not size a sample; the \
-                 margin must be positive and finite and the confidence strictly inside (0, 1)",
+                "a confidence of {confidence} does not size a sample; the confidence must lie \
+                 strictly inside (0, 1)",
             ),
             Self::ListsWidth { width, neighbours } => write!(
                 fmt,
@@ -136,7 +134,7 @@ impl<N: fmt::Debug + fmt::Display, E: Error + 'static> Error for KnnError<N, E> 
             Self::Invalid(invalid) => Some(invalid),
             Self::TooManyRows { .. }
             | Self::TooManyEntries { .. }
-            | Self::SampleBudget { .. }
+            | Self::SampleConfidence { .. }
             | Self::ListsWidth { .. }
             | Self::SearchCount { .. }
             | Self::DuplicateNeighbour { .. }

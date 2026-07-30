@@ -16,7 +16,9 @@ pub struct DeliveredEntities {
 }
 
 impl DeliveredEntities {
-    /// Wraps one delivered set's gathered identities.
+    /// Takes one delivered set's identities in delivered order.
+    ///
+    /// The order is the hydration key: every detail column the store answers aligns to it.
     pub(in crate::serve) const fn new(ids: Vec<ArchivedEntityId>) -> Self {
         Self { ids }
     }
@@ -105,7 +107,7 @@ pub struct LocateNodeDetails {
     /// `None` marks a source the store no longer serves; a resolved source without simple
     /// properties reads an empty list.
     source_properties: Option<Vec<(String, SimpleValue)>>,
-    /// Whether the source's surviving properties are the entity's whole set.
+    /// Whether the source's surviving properties are the entity's whole deliverable set.
     ///
     /// `false` when the simple-value filter or the cap dropped anything, and when the store no
     /// longer serves the source.
@@ -157,7 +159,7 @@ impl LocateNodeDetails {
         self.source_properties.as_ref()
     }
 
-    /// Returns whether the source's surviving properties are the entity's whole set.
+    /// Returns whether the source's surviving properties are the entity's whole deliverable set.
     #[inline]
     pub(in crate::serve) const fn source_properties_complete(&self) -> bool {
         self.source_properties_complete
@@ -184,7 +186,7 @@ pub struct LocateLinkDetails {
     ///
     /// `None` marks a link the store no longer serves.
     properties: Vec<Option<Vec<(String, SimpleValue)>>>,
-    /// Whether each edge's surviving properties are the link entity's whole set.
+    /// Whether each edge's surviving properties are the link entity's whole deliverable set.
     properties_complete: Vec<bool>,
 }
 

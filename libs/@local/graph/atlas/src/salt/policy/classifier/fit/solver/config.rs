@@ -52,74 +52,71 @@ pub enum SolverConfigError {
 pub(crate) struct SolverConfig {
     /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
     pub preparation: PreparationSettings = PreparationSettings { .. },
-    /// Smallest admissible trust radius `Δ_min`. Defaults to `1e-8`.
+    /// Smallest admissible trust radius `Δ_min`.
     pub radius_minimum: DPositive = const {
         DPositive::new(1.0e-8).expect("the radius floor is positive")
     },
-    /// Starting trust radius `Δ_initial`. Defaults to one.
+    /// Starting trust radius `Δ_initial`.
     pub radius_initial: DPositive = DPositive::ONE,
-    /// Largest admissible trust radius `Δ_max`. Defaults to `1e4`.
+    /// Largest admissible trust radius `Δ_max`.
     pub radius_maximum: DPositive = const {
         DPositive::new(1.0e4).expect("the radius cap is positive")
     },
-    /// Radius contraction factor on rejection. Defaults to `0.25`.
+    /// Radius contraction factor on rejection.
     pub shrink_factor: OpenUnitFraction = const {
         OpenUnitFraction::new(0.25).expect("a quarter is interior")
     },
-    /// Radius growth factor on an expanded boundary step. Defaults to `2`.
+    /// Radius growth factor on an expanded boundary step.
     pub expansion_factor: GreaterThanOne = const {
         GreaterThanOne::new(2.0).expect("doubling expands")
     },
-    /// Acceptance ratio threshold `η_accept`; equality accepts. Defaults to `0.1`.
+    /// Acceptance ratio threshold `η_accept`; equality accepts.
     pub eta_accept: OpenUnitFraction = const {
         OpenUnitFraction::new(0.1).expect("a tenth is interior")
     },
     /// Expansion ratio threshold `η_expand`; equality expands a tagged boundary step.
-    /// Defaults to `0.75`.
     pub eta_expand: OpenUnitFraction = const {
         OpenUnitFraction::new(0.75).expect("three quarters is interior")
     },
-    /// CG residual tolerance relative to the initial residual norm. Defaults to `0.1`.
+    /// CG residual tolerance relative to the initial residual norm.
     pub relative_cg_residual_tolerance: OpenUnitFraction = const {
         OpenUnitFraction::new(0.1).expect("a tenth is interior")
     },
     /// Gradient-certificate tolerance relative to the initial scaled gradient norm.
-    /// Defaults to `1e-6`.
     pub relative_scaled_gradient_tolerance: OpenUnitFraction = const {
         OpenUnitFraction::new(1.0e-6).expect("the relative tolerance is interior")
     },
-    /// Absolute floor of the gradient certificate; zero disables it. Defaults to `1e-10`.
+    /// Absolute floor of the gradient certificate; zero disables it.
     pub absolute_scaled_gradient_tolerance: DNonNegative = const {
         DNonNegative::new(1.0e-10).expect("the absolute floor is non-negative")
     },
     /// Objective-resolution width in ulps of the accepted objective's spacing.
-    /// Defaults to four.
     pub objective_resolution_ulps: NonZeroU32 = const {
         NonZeroU32::new(4).expect("four is nonzero")
     },
-    /// Curvature-guard width in ulps of the direction-scale product. Defaults to sixteen.
+    /// Curvature-guard width in ulps of the direction-scale product.
     pub curvature_guard_ulps: NonZeroU32 = const {
         NonZeroU32::new(16).expect("sixteen is nonzero")
     },
-    /// Inclusive maximum of started outer iterations. Defaults to `500`.
+    /// Inclusive maximum of started outer iterations.
     pub maximum_outer_iterations: NonZeroU64 = const {
         NonZeroU64::new(500).expect("five hundred is nonzero")
     },
-    /// Inclusive maximum of CG iterations per outer solve. Defaults to `100`.
+    /// Inclusive maximum of CG iterations per outer solve.
     pub maximum_cg_iterations: NonZeroU64 = const {
         NonZeroU64::new(100).expect("one hundred is nonzero")
     },
-    /// Inclusive maximum of Hessian-vector-product requests. Defaults to `50_000`.
+    /// Inclusive maximum of Hessian-vector-product requests.
     pub maximum_hvp_requests: NonZeroU64 = const {
         NonZeroU64::new(50_000).expect("fifty thousand is nonzero")
     },
-    /// Inclusive maximum of objective requests; at least two. Defaults to `2_000`.
+    /// Inclusive maximum of objective requests; at least two.
     pub maximum_objective_requests: u64 = 2_000,
-    /// Inclusive maximum of gradient requests; at least two. Defaults to `2_000`.
+    /// Inclusive maximum of gradient requests; at least two.
     pub maximum_gradient_requests: u64 = 2_000,
-    /// Inclusive maximum of started row traversals; at least three. Defaults to `500_000`.
+    /// Inclusive maximum of started row traversals; at least three.
     pub maximum_row_traversals: u64 = 500_000,
-    /// Inclusive maximum of consecutive rejected candidates. Defaults to thirty.
+    /// Inclusive maximum of consecutive rejected candidates.
     pub maximum_consecutive_rejections: NonZeroU64 = const {
         NonZeroU64::new(30).expect("thirty is nonzero")
     },

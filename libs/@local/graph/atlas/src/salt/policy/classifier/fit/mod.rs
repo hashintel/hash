@@ -280,7 +280,7 @@ impl<'training> TrainingSet<'training> {
 pub(crate) struct FitConfig {
     /// The bounded trust-region Newton-CG solver configuration, preparation knobs included.
     pub solver: SolverConfig = SolverConfig { .. },
-    /// Grouped cross-validation fold count. At least 2. Defaults to 5.
+    /// Grouped cross-validation fold count. At least 2.
     pub folds: usize = 5,
     /// Fold-assignment seed.
     pub seed: u64 = 0,

@@ -14,6 +14,18 @@ use crate::salt::wire::WIRE_VERSION;
 /// with enforcement. Request-validation limits let a client validate before sending;
 /// response-shaping limits and the seal windows say what delivery truncates and when sealed
 /// values expire.
+///
+/// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for,
+/// what it must expect back, when it should refresh - and the block carries nothing a client cannot
+/// act on. The visibility cache's windows and capacity govern no client behaviour and are absent
+/// for that reason.
+///
+/// The seal windows are safe to publish because a validity bound is discoverable by the party the
+/// bound applies to: the holder of a sealed blob reads its issue time from the clear envelope, and
+/// presenting the blob is itself the test of whether it still opens. Publication therefore states a
+/// threshold that holder could measure, and states nothing at all to a caller holding no blob. What
+/// would be a disclosure is a refusal that distinguishes its cause; a seal refusal names none, and
+/// every cause answers one uniform state-required refusal.
 // Never built freehand outside tests: `ServeLimits::manifest_limits` is the one derivation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -33,8 +45,7 @@ pub struct ManifestLimits {
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
     /// The sealed-blob asynchronous-refresh horizon, seconds.
-    pub seal_soft_seconds: u64, /* NOTE: isn't seal = security, isn't there a potential security
-                                 * issue in publishing this? */
+    pub seal_soft_seconds: u64,
     /// The sealed-blob rejection bound, seconds.
     pub seal_hard_seconds: u64,
 }

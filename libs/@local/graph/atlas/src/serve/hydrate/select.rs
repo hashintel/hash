@@ -1,7 +1,11 @@
 //! The property-selection policy.
 //!
 //! Pure functions over hydrated property sets: parsing the store's simple-value rendering and
-//! applying the per-entity cap with its label protection.
+//! applying the per-entity cap, which drops the label property last.
+//!
+//! The cap is a size rule, not an access rule: the sets reaching it carry no protected property,
+//! because the queries remove those keys before any value crosses the connection
+//! ([`client`](super::client)).
 
 use super::columns::SimpleValue;
 
@@ -50,9 +54,9 @@ pub(in crate::serve) fn select_properties(
         // ascending sort the whole rule: the tail beyond the cap is
         // exactly the reverse-lexicographic drop set.
         entries.sort_by(|left, right| {
-            let protected = |name: &str| Some(name) != label_property;
-            protected(&left.0)
-                .cmp(&protected(&right.0))
+            let ranks_after_label = |name: &str| Some(name) != label_property;
+            ranks_after_label(&left.0)
+                .cmp(&ranks_after_label(&right.0))
                 .then_with(|| left.0.cmp(&right.0))
         });
         entries.truncate(cap);

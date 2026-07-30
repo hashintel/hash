@@ -134,11 +134,11 @@ pub(crate) struct PolicyOverride {
 /// enforcing admission configures them from its precision release evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentAdmission {
-    /// Whether admission is enforced. Defaults to unenforced.
+    /// Whether admission is enforced.
     pub enforced: bool = false,
-    /// Minimum mixed Coincident probability `τ_C`. Defaults to 1.
+    /// Minimum mixed Coincident probability `τ_C`.
     pub class_probability_threshold: UnitFraction = UnitFraction::ONE,
-    /// Minimum applicability `τ_A`. Defaults to 1.
+    /// Minimum applicability `τ_A`.
     pub applicability_threshold: UnitFraction = UnitFraction::ONE,
 }
 

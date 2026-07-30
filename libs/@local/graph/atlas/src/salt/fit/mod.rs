@@ -156,6 +156,8 @@ impl LandmarkSupport {
     }
 }
 
+const _: () = assert!(LandmarkSupport::new(LandmarkSupport::default().weight()).is_some());
+
 /// Every setting of the projector placement.
 ///
 /// The model, its training run, and the condition ladder that publishes the canonical field.
@@ -295,7 +297,8 @@ impl ProjectorOptions {
 
 /// How one fit produces its canonical coordinates.
 ///
-/// The published metadata's `Placement` mirrors this configuration, recording what actually ran.
+/// The published metadata's [`Placement`](crate::file::salt::metadata::Placement) mirrors this
+/// configuration, recording what actually ran.
 /// The default is the trained projector under the reference options: the conditioned model is the
 /// pipeline's architecture, and the landmark baseline is the configured fallback - a placer for
 /// fits that deliberately skip training.
@@ -349,8 +352,10 @@ pub(crate) struct FitConfig {
     pub neighbours: NonZero<usize> = knn::DEFAULT_NEIGHBOURS,
     /// The k-NN list constructor.
     pub construction: KnnConstructionChoice = KnnConstructionChoice::Index,
-    /// The HNSW backend serving the assignment search, and the k-NN construction when
-    /// [`construction`](Self::construction) routes through it.
+    /// The HNSW backend serving the assignment search.
+    ///
+    /// It serves the k-NN construction too, when [`construction`](Self::construction) routes
+    /// through it.
     pub index: HannoyIndexOptions = HannoyIndexOptions::default(),
     /// The exact-recall spot check admitting the backend.
     pub recall_check: recall::SpotCheckOptions = recall::SpotCheckOptions::default(),

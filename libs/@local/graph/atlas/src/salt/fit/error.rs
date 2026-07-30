@@ -230,7 +230,7 @@ pub enum StageError {
     RepresentationDefects(NormSpotCheck),
     /// The search backend failed.
     Index(HannoyIndexError<NodeRowId>),
-    /// The search backend fell below the configured recall minimum.
+    /// The search backend's recall is demonstrably below the configured minimum.
     RecallBelowMinimum(recall::RecallSpotCheck),
     /// The k-NN table failed to assemble or admit.
     Knn(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
@@ -519,6 +519,10 @@ fn map_back(fmt: &mut fmt::Formatter<'_>, artifact: &str, error: &dyn fmt::Displ
 }
 
 impl fmt::Display for StageError {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one display arm per stage failure; the taxonomy is the length"
+    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(fmt, "a staged write failed: {error}"),
@@ -532,9 +536,11 @@ impl fmt::Display for StageError {
             Self::Index(error) => write!(fmt, "the search backend failed: {error}"),
             Self::RecallBelowMinimum(check) => write!(
                 fmt,
-                "the search backend's recall {:.4} falls below the {:.4} minimum",
+                "the search backend's recall {:.4} falls below the {:.4} minimum by more than the \
+                 {:.4} its sample resolves",
                 check.recall(),
                 check.minimum_recall,
+                check.resolution,
             ),
             Self::Descent(error) => {
                 write!(fmt, "the NN-Descent construction failed: {error}")

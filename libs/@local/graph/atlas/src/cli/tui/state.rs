@@ -424,7 +424,9 @@ mod tests {
             expected: 10_000,
             deviation: 0.289,
             minimum_recall: 0.89,
-            margin: 0.012,
+            // z(0.99) · 0.289 / sqrt(200), the resolution such a sample
+            // reaches.
+            resolution: 0.0475,
             confidence: 0.99,
         }
     }

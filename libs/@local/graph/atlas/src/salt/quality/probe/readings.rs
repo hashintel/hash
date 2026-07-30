@@ -93,8 +93,8 @@ impl<A> ReadingGrid<A> {
     }
 }
 
-// `overall` repeats per cell type: a one-method merge trait would be
-// indirection serving only these two eight-line bodies.
+// `overall` is implemented per cell type rather than through a shared
+// merge trait.
 impl ReadingGrid<NeighbourhoodAggregate> {
     /// Merges every anchor's reading at one neighbourhood size.
     ///

@@ -121,7 +121,7 @@ fn files() -> SaltFiles {
 
 fn repository() -> SaltRepository {
     SaltRepository {
-        version: RepositoryVersion::V1,
+        version: RepositoryVersion::V2,
         files: files(),
         metadata: SaltMetadata {
             snapshot: Snapshot {
@@ -225,7 +225,10 @@ fn evidence() -> Evidence {
             expected: 192_450,
             deviation: 0.32,
             minimum_recall: 0.89,
-            margin: 0.012,
+            // z(0.99) · 0.32 / sqrt(3849) over a corpus far larger than
+            // the sample: the fixture reads as a build admitted at
+            // 0.9021 - 0.012.
+            resolution: 0.012,
             confidence: 0.99,
         },
         landmarks: LandmarkEvidence {
@@ -312,7 +315,7 @@ fn version_leads_the_document() {
     let json = serde_json::to_string(&repository()).expect("the repository should serialize");
 
     assert!(
-        json.starts_with(r#"{"version":1"#),
+        json.starts_with(r#"{"version":2"#),
         "the version should lead the document: {json}"
     );
 }

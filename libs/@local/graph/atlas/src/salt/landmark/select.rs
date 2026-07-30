@@ -142,7 +142,7 @@ pub(crate) struct SubgroupMinimum {
 pub(crate) struct SamplingWeight(f64);
 
 impl SamplingWeight {
-    /// The uniform weight.
+    /// The neutral sampling weight: every row draws with equal likelihood.
     pub(crate) const UNIFORM: Self = Self(1.0);
 
     /// Validates a weight.
@@ -196,7 +196,7 @@ pub(crate) struct SelectionOptions {
     pub maximum_count: NonZero<u32>,
     /// Fraction of the capacity reserved for prior landmarks when enough are on offer.
     ///
-    /// Retention stabilizes generation-to-generation orientation. Defaults to 0.25.
+    /// Retention stabilizes generation-to-generation orientation.
     // The default is an unvalidated starting point; the temporal-drift
     // and landmark rank-correlation criteria revise it from evidence.
     pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
@@ -204,8 +204,7 @@ pub(crate) struct SelectionOptions {
     ///
     /// Which stream draws for which candidate is fixed by this value, so equal seeds reproduce
     /// equal selections only under an equal chunk; the manifest echo records it beside the seed.
-    /// Defaults to 4096, which gives each task enough work that per-task overhead disappears
-    /// against the scans.
+    /// The chunk is sized so that per-task overhead disappears against the scans.
     pub parallel_chunk: NonZero<usize> = PARALLEL_CHUNK,
 }
 

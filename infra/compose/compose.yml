@@ -670,10 +670,6 @@ services:
       HASH_OTLP_ENDPOINT: "http://otel-collector:4317"
       RUST_BACKTRACE: 1
     ports:
-      # Loopback only: the atlas serves the full corpus to any caller, so
-      # other machines reach it solely through hash-api's operator-gated
-      # /v1/atlas proxy, never this port. In-container bind stays 0.0.0.0
-      # (the published port and healthcheck need it).
       - "127.0.0.1:${HASH_GRAPH_ATLAS_PORT:-4003}:4003"
     healthcheck:
       test: ["CMD", "/hash-graph", "atlas", "--healthcheck"]

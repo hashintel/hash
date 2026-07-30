@@ -669,6 +669,26 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
         self.property_filters.get(property)
     }
 
+    /// Returns the base URL of every protected property, in arbitrary order.
+    ///
+    /// The protection each URL carries is a per-actor condition, so this answers *which* properties
+    /// are protected and never *whether* a given actor may read one. A caller that cannot evaluate
+    /// the conditions - it compiles no filter - can still withhold the whole set unconditionally,
+    /// which is stricter than the store's own masking for every actor.
+    ///
+    /// ```
+    /// use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
+    /// use type_system::ontology::id::BaseUrl;
+    ///
+    /// let config = PropertyProtectionFilterConfig::hash_default();
+    /// let protected: Vec<&str> = config.protected_properties().map(BaseUrl::as_str).collect();
+    ///
+    /// assert_eq!(protected, ["https://hash.ai/@h/types/property-type/email/"]);
+    /// ```
+    pub fn protected_properties(&self) -> impl Iterator<Item = &BaseUrl> {
+        self.property_filters.keys()
+    }
+
     /// Returns true if this configuration has any protection rules.
     #[must_use]
     pub fn is_empty(&self) -> bool {

@@ -136,30 +136,30 @@ impl core::error::Error for ThresholdDomainError {}
 /// validation ([`ThresholdOverrides`]).
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
-    /// Minimum recall floor. Defaults to the permissive zero.
+    /// Minimum recall floor; the permissive zero imposes none.
     pub minimum_recall: UnitFraction = UnitFraction::ZERO,
-    /// Minimum trustworthiness floor. Defaults to the permissive zero.
+    /// Minimum trustworthiness floor; the permissive zero imposes none.
     pub minimum_trustworthiness: UnitFraction = UnitFraction::ZERO,
-    /// Minimum continuity floor. Defaults to the permissive zero.
+    /// Minimum continuity floor; the permissive zero imposes none.
     pub minimum_continuity: UnitFraction = UnitFraction::ZERO,
-    /// Maximum intrusion-rate ceiling. Defaults to the permissive one.
+    /// Maximum intrusion-rate ceiling; the permissive one imposes none.
     pub maximum_intrusion_rate: UnitFraction = UnitFraction::ONE,
     /// Maximum density-distortion spread.
     ///
-    /// Defaults to the permissive f32 maximum. The ceiling fails when the reading is absent - a
-    /// demand for evidence that was never produced is a configuration contradiction, surfaced at
-    /// the verdict.
+    /// The permissive `f32` maximum imposes no ceiling. The ceiling fails when the reading is
+    /// absent - a demand for evidence that was never produced is a configuration contradiction,
+    /// surfaced at the verdict.
     pub maximum_density_spread: NonNegative = PERMISSIVE_DENSITY_SPREAD,
     /// Minimum map-versus-representation triplet agreement floor.
     ///
-    /// Defaults to the permissive zero; it fails when the triplet readings are disabled.
+    /// The permissive zero imposes no floor; it fails when the triplet readings are disabled.
     pub minimum_triplet_agreement: UnitFraction = UnitFraction::ZERO,
     /// A subgroup flags when its degradation exceeds this factor times the overall degradation.
     ///
-    /// Defaults to 2, the normative subgroup rule: no important subgroup may suffer more than
-    /// twice the overall degradation.
+    /// `2` is the normative subgroup rule: no important subgroup may suffer more than twice the
+    /// overall degradation.
     pub subgroup_degradation_factor: f64 = DEFAULT_DEGRADATION_FACTOR,
-    /// Subgroups with fewer anchors never flag. Defaults to 8.
+    /// Subgroups with fewer anchors never flag.
     pub minimum_subgroup_anchors: usize = DEFAULT_MINIMUM_SUBGROUP_ANCHORS,
 }
 
@@ -811,8 +811,8 @@ fn density_rows<N>(readings: &ProbeReadings<N>, rungs: &[usize]) -> Vec<DensityR
         .collect()
 }
 
-// Median and MAD stay private here: shared statistics vocabulary
-// graduates on its second consumer, never speculatively.
+// Statistics vocabulary promotes to a shared module on its second
+// consumer; median and MAD have one.
 /// Returns the median, averaging the middle pair over even lengths; [`None`] on empty input.
 ///
 /// Sorts `values` in place.

@@ -23,7 +23,7 @@ use crate::{
             construction::{IndexConstruction, KnnConstruction as _},
             descent::NnDescent,
             hannoy::{HannoyIndex, HannoyIndexError},
-            recall,
+            recall::{self, RecallAdmission},
             table::Knn,
         },
         semantic::{SemanticGraph, artifact::SemanticGraphArchive},
@@ -96,8 +96,19 @@ impl Context<'_> {
         // measured, and the measurement is what an operator is watching for.
         progress.knn_recall(&recall);
 
-        if !recall.meets_minimum() {
-            return Err(StageError::RecallBelowMinimum(recall));
+        match recall.admission() {
+            RecallAdmission::Admitted => {}
+            // A build that ran out of measurement has not failed: the
+            // sample publishes with the resolution it reached, and the
+            // warning is what says so to whoever ran it.
+            RecallAdmission::Unresolved => tracing::warn!(
+                recall = recall.recall(),
+                minimum_recall = recall.minimum_recall,
+                resolution = recall.resolution,
+                sampled_rows = recall.sampled_rows,
+                "the recall sample does not resolve the admission minimum"
+            ),
+            RecallAdmission::Refused => return Err(StageError::RecallBelowMinimum(recall)),
         }
 
         let _table_span = tracing::info_span!("knn-table").entered();

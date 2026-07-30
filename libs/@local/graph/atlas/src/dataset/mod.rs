@@ -18,6 +18,10 @@
 //! enough to persist them into the identity artifacts that let serving translate rows back to graph
 //! identities. The pipeline itself computes on rows alone.
 //!
+//! The node and edge streams cover disjoint entities: an entity occupies a node row or an edge
+//! row, never both. An implementation that draws both streams' source identifiers from one id space
+//! therefore yields disjoint identifier sets, so an identifier resolves to at most one row domain.
+//!
 //! # Snapshot semantics
 //!
 //! All streams of one dataset observe a single frozen view of the graph: two streams never disagree

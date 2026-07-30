@@ -927,7 +927,7 @@ mod tests {
             expected: 10_000,
             deviation: 0.289,
             minimum_recall: 0.89,
-            margin: 0.012,
+            resolution: 0.0475,
             confidence: 0.99,
         }));
         assert!(

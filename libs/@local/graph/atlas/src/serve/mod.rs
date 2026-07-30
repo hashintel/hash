@@ -37,7 +37,8 @@
 //! secret; `error` the open-failure taxonomy.
 //!
 //! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
-//! permutation; `walk` the schedule-driven point
+//! permutation; `density` the public band that resolves one scope's delivery cut; `walk` the
+//! schedule-driven point
 //! delivery - full-visibility range assembly, the masked delivery chain, and the census;
 //! `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring resolution;
 //! `intern` the wire intern tables; `seal` the sealed visibility bitmaps; `hydrate` the live store
@@ -52,6 +53,7 @@ use self::grid::Grid;
 pub use self::{
     cache::VisibilityLimits,
     codec::WireRow,
+    density::{CutOffset, DensityBand, DensityPolicy, DensityPolicyError, ViewOccupancy},
     edges::{EdgesDocument, EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
     hydrate::{
@@ -93,6 +95,7 @@ pub use crate::{
 mod cache;
 mod codec;
 mod colour;
+mod density;
 mod edges;
 mod error;
 mod grid;

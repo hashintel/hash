@@ -32,6 +32,7 @@ use crate::{
 
 mod backfill;
 mod backfill_channel;
+mod density;
 mod frame_channel;
 mod masking;
 mod metadata_channel;

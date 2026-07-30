@@ -101,12 +101,13 @@ pub(crate) struct AssemblyConfig {
     /// The cosine-distance threshold under which two rendered cards count as near-duplicates.
     ///
     /// Near-duplicates share a validation group. On the `1 - cos` scale in `[0, 2]`; positive.
-    /// Defaults to `2e-3`, the near-tie threshold established for this embedding family.
+    /// The threshold is the near-tie boundary established for this embedding family, so a retrain on
+    /// another family revises it.
     pub near_duplicate_epsilon: f64 = 2.0e-3,
 
     /// The largest fraction of the trained rows one validation group may hold, in `(0, 1]`.
     ///
-    /// Beyond it, subdivision relaxes the group's weakest axes. Defaults to `0.1`.
+    /// Beyond it, subdivision relaxes the group's weakest axes.
     pub maximum_group_fraction: f64 = 0.1,
 }
 

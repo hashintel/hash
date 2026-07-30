@@ -58,7 +58,8 @@ pub(crate) struct LocateResponse<'doc> {
     /// a source the store no longer serves: coverage of an unreadable type list cannot be
     /// attested.
     pub type_ids_complete: bool,
-    /// `HEAD` key 9: whether the trailer's source property map is the entity's whole set.
+    /// `HEAD` key 9: whether the trailer's source property map is the entity's whole deliverable
+    /// set.
     ///
     /// `false` when the simple-value filter or the property cap dropped anything, and for a source
     /// the store no longer serves.
@@ -257,7 +258,8 @@ pub(crate) struct LocateTrailer<'doc> {
     /// Trailer key 9: per-edge property completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s property map is the link
-    /// entity's whole set - unset means the simple-value filter or the cap dropped something, or
+    /// entity's whole deliverable set - unset means the simple-value filter or the cap dropped
+    /// something, or
     /// the store no longer serves the link.
     pub link_properties_complete: &'doc [bool],
 }

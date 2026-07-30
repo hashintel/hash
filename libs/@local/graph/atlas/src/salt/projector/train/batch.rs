@@ -15,7 +15,7 @@
 //! standard library's allocator pattern: [`BatchSampler::draw_in`] and [`Batch::assemble_in`]
 //! place every population and batch vector in the caller's allocator, and the plain methods are
 //! defaulting wrappers over the global one. The allocator covers the batch spine; the structures
-//! nested inside draws (the relation draws' and [`BatchRelationEdges`]' edge vectors, the
+//! nested inside draws (the relation draws' and [`RelationEdges`]' edge vectors, the
 //! gathered [`LocalScales`]) and the tensor buffers of [`Batch::input`] - consumed by the
 //! backend - stay global.
 

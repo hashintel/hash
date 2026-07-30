@@ -16,8 +16,10 @@
 //! table build needs only the lists.
 //!
 //! A construction is accepted by exact comparison: [`recall::spot_check_lists`] intersects
-//! sampled rows of the produced lists with brute-force [`AlignedVecN`] cosine rankings and judges
-//! aggregate recall against a configured minimum ([`recall::SpotCheckOptions`]).
+//! sampled rows of the produced lists with brute-force [`AlignedVecN`] cosine rankings and reads
+//! the aggregate recall's one-sided bound against a configured minimum
+//! ([`recall::SpotCheckOptions`]), so an admission stands on what the sample demonstrates rather
+//! than on a point estimate.
 //!
 //! The validated table publishes as one sparse matrix file ([`crate::file::sprs`]) holding its
 //! matrix verbatim; [`artifact::KnnArchive`] reopens it over a whole-file mapping, so stages after

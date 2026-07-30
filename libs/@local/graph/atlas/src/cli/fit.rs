@@ -12,7 +12,7 @@ use tokio_postgres::Client;
 use crate::{
     dataset::TemporalAxes,
     integrity::SecretString,
-    progress::{NoProgress, Progress},
+    progress::{NoProgress, Progress, RecallAdmission},
     salt::{
         embedding::external::{
             EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
@@ -233,7 +233,20 @@ impl fmt::Display for FitVerdict {
         writeln!(fmt, "generation  {}", self.summary.generation)?;
         writeln!(fmt, "nodes       {}", self.summary.nodes)?;
         writeln!(fmt, "edges       {}", self.summary.edges)?;
-        writeln!(fmt, "recall      {:.4}", self.summary.recall)?;
+        // The reading, not the number: an unresolved sample published a
+        // recall the floor could not judge, and the operator is the one
+        // who decides what to do about that.
+        writeln!(
+            fmt,
+            "recall      {:.4} +/-{:.4} {}",
+            self.summary.recall.recall(),
+            self.summary.recall.resolution,
+            match self.summary.recall.admission() {
+                RecallAdmission::Admitted => "admitted",
+                RecallAdmission::Unresolved => "unresolved",
+                RecallAdmission::Refused => "refused",
+            },
+        )?;
         writeln!(
             fmt,
             "cards       {} reused, {} embedded",

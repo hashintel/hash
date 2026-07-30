@@ -176,15 +176,13 @@ const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwra
 // evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LayoutOptions {
-    /// Optimization epochs. Defaults to 500.
+    /// Optimization epochs.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
     /// Learning rate at epoch zero; it decays linearly toward zero across the epoch budget.
-    ///
-    /// Defaults to 1.
     pub initial_learning_rate: LearningRate = DEFAULT_INITIAL_LEARNING_RATE,
-    /// Weight of repulsive updates. Defaults to 1.
+    /// Weight of repulsive updates.
     pub repulsion_strength: RepulsionStrength = DEFAULT_REPULSION_STRENGTH,
-    /// Vertices repelled per sampled edge. Defaults to 5.
+    /// Vertices repelled per sampled edge.
     pub negative_sample_rate: NonZero<u32> = DEFAULT_NEGATIVE_SAMPLE_RATE,
 }
 

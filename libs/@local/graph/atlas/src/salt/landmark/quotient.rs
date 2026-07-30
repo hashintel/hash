@@ -39,7 +39,7 @@ const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
 /// Contraction settings.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuotientOptions {
-    /// Strongest directed edges each landmark row keeps before the symmetric union. Defaults to 64.
+    /// Strongest directed edges each landmark row keeps before the symmetric union.
     // The default is an unvalidated starting point (legacy required
     // the value as config, setting no precedent). It bounds quotient
     // memory at roughly `M · 64` directed edges before the union; the

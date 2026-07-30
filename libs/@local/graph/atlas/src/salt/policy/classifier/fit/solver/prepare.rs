@@ -75,13 +75,12 @@ pub enum PreparationError {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct PreparationSettings {
     /// L2 penalty `λ` on contrast coefficients; intercepts are never regularized.
-    /// Defaults to one.
     pub regularization: DPositive = DPositive::ONE,
-    /// Unit-sum tolerance for raw targets, in ulps of one. Defaults to sixteen.
+    /// Unit-sum tolerance for raw targets, in ulps of one.
     pub target_sum_tolerance_ulps: NonZero<u32> = const {
         NonZero::new(16).expect("sixteen is nonzero")
     },
-    /// Floor on the initial Hessian diagonal, in curvature units. Defaults to `1e-12`.
+    /// Floor on the initial Hessian diagonal, in curvature units.
     pub curvature_floor: DPositive = const {
         DPositive::new(1.0e-12).expect("the floor is positive")
     },

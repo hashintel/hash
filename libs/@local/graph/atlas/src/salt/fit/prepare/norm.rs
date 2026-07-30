@@ -36,18 +36,27 @@ const DEFAULT_TOLERANCE: f64 = 1e-4;
 const DEFAULT_DEFECT_RATE: f64 = 0.01;
 const DEFAULT_CONFIDENCE: f64 = 0.999;
 
+// The two magnitudes the argument above turns on: the squared-norm perturbation of
+// narrowing one row to f32, and the deviation of the nearest real failure mode - a
+// prefix that kept 1/6 of the parent vector's unit energy.
+const NARROWING_PERTURBATION: f64 = 1e-6;
+const UNRENORMALIZED_DEVIATION: f64 = 1.0 - 1.0 / 6.0;
+const _: () = assert!(
+    DEFAULT_TOLERANCE > NARROWING_PERTURBATION && DEFAULT_TOLERANCE < UNRENORMALIZED_DEVIATION
+);
+
 /// Pinned tolerance and sampling settings for one norm spot check.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
-    /// Admitted deviation of a row's squared norm from one, two-sided. Defaults to 1e-4.
+    /// Admitted deviation of a row's squared norm from one, two-sided.
     pub tolerance: f64 = DEFAULT_TOLERANCE,
     /// Defect rate the sample size certifies, strictly inside `(0, 1)`.
     ///
-    /// See [`acceptance_sample_size`]. Smaller rates grow the sample. Defaults to 0.01.
+    /// See [`acceptance_sample_size`]. Smaller rates grow the sample.
     pub defect_rate: f64 = DEFAULT_DEFECT_RATE,
     /// Confidence of the certification, strictly inside `(0, 1)`; see [`acceptance_sample_size`].
     ///
-    /// Higher confidence grows the sample. Defaults to 0.999.
+    /// Higher confidence grows the sample.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
 }
 

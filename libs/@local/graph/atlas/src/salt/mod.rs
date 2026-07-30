@@ -49,7 +49,8 @@ pub(crate) mod lod;
 pub(crate) mod policy;
 // The root `progress` facade re-exports these observation types.
 pub use self::{
-    embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+    embedding::CardEmbeddingStats,
+    knn::recall::{RecallAdmission, RecallSpotCheck},
     projector::train::step::LossBreakdown,
 };
 // Crate-visible for the serving surface's TYPE_MASK reads.
