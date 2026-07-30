@@ -104,6 +104,13 @@ export const hexToRgb = (hex: string): RgbColor => {
   ];
 };
 
+/** Mix `rgb` toward white by `amount` (0–1), lightening it. */
+export const lightenRgb = (rgb: RgbColor, amount: number): RgbColor => [
+  Math.round(rgb[0] + (255 - rgb[0]) * amount),
+  Math.round(rgb[1] + (255 - rgb[1]) * amount),
+  Math.round(rgb[2] + (255 - rgb[2]) * amount),
+];
+
 /** Resolution (px) each icon is rasterised at in the mask atlas. */
 export const DETAIL_ICON_TEXTURE = 64;
 

@@ -283,6 +283,15 @@ export class CompactNodeLayer extends CompositeLayer<
         lineWidthMinPixels: EDGE_MIN_WIDTH,
       });
 
+    // The emphasised edge's endpoints that aren't the active node — a hovered/selected
+    // edge's far node, or both ends of a lone selected edge. Redrawn on top of the
+    // other neighbour rings below so the connected node reads above them, matching its
+    // edge-connection outline (drawn on top). The active-node endpoint needs no lift:
+    // its fill is already the top-most grow ring.
+    const neighbourEdgeHoverNodes = edgeHoverNodes.filter(
+      (point) => point.id !== activeNode?.id,
+    );
+
     return [
       // The faint "all edges" of the detail view, drawn behind everything so nodes
       // and the hovered-edge highlight sit on top. Absent in the compact view.
@@ -484,6 +493,20 @@ export class CompactNodeLayer extends CompositeLayer<
       // hidden — can re-apply the border on top of that opaque redraw.
       ...(showGrowHighlights && edgeHoverNodes.length > 0
         ? [
+            // The neighbour endpoint(s) redrawn as a filled grow ring above the other
+            // neighbour rings, so the node the emphasised edge connects to reads on top
+            // of them rather than being covered — matching its edge-connection outline,
+            // drawn on top next.
+            ...(neighbourEdgeHoverNodes.length > 0
+              ? [
+                  growRing({
+                    idSuffix: "edge-hover-neighbour-fill",
+                    data: neighbourEdgeHoverNodes,
+                    radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
+                    radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
+                  }),
+                ]
+              : []),
             ...(activeNode
               ? [
                   edgeHoverRing({
@@ -499,9 +522,7 @@ export class CompactNodeLayer extends CompositeLayer<
               : []),
             edgeHoverRing({
               idSuffix: "edge-hover-outline-neighbour",
-              data: edgeHoverNodes.filter(
-                (point) => point.id !== activeNode?.id,
-              ),
+              data: neighbourEdgeHoverNodes,
               radiusMultiplier: NEIGHBOUR_RADIUS_MULTIPLIER,
               radiusMinPixels: NEIGHBOUR_MIN_RADIUS,
             }),

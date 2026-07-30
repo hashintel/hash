@@ -31,6 +31,7 @@ import {
   EDGE_WIDTH,
   hexToRgb,
   iconTextureUrl,
+  lightenRgb,
   RGBA_OPAQUE,
   trimPathBothEnds,
 } from "./network-graph-util";
@@ -64,6 +65,7 @@ import type {
   NetworkGraphId,
   NetworkGraphPoint,
   NetworkGraphEdge,
+  RgbColor,
 } from "./network-graph-util";
 import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 
@@ -361,16 +363,25 @@ const COMPACT_DIMMED_EDGES_LAYER_ID = "compact-nodes-dimmed-selected-edges";
 const COMPACT_DIMMED_NEIGHBOURS_LAYER_ID =
   "compact-nodes-dimmed-selected-neighbours";
 /**
- * The compact sublayers whose picks are already a highlight element — an edge, a
- * neighbour ring, or the active node's ring. A primary pick on any of these is kept as
- * is; only a plain crowd-node (or empty) pick is a candidate for snapping to a nearby
- * highlight edge (see `applyPickPriority`).
+ * The compact sublayers carrying a node highlight — the active node's ring, a
+ * neighbour ring, or the backgrounded selection's neighbour ring. Resolved together as
+ * one nearest-wins pick so a node under the pointer wins over an edge crossing it and
+ * the hovered node stays stable when neighbours sit close (see `applyPickPriority`).
  */
-const COMPACT_HIGHLIGHT_LAYER_IDS = new Set<string>([
-  COMPACT_EDGES_LAYER_ID,
-  COMPACT_NEIGHBOURS_LAYER_ID,
+const COMPACT_HIGHLIGHT_NODE_LAYER_IDS = [
   COMPACT_ACTIVE_NODE_LAYER_ID,
-]);
+  COMPACT_NEIGHBOURS_LAYER_ID,
+  COMPACT_DIMMED_NEIGHBOURS_LAYER_ID,
+];
+/**
+ * The compact sublayers carrying a selection edge — the selection's own incident edges
+ * (while it owns the highlight) and its faded edges (while backgrounded by a hover).
+ * The fallback when no neighbourhood node is under the pointer (see `applyPickPriority`).
+ */
+const COMPACT_HIGHLIGHT_EDGE_LAYER_IDS = [
+  COMPACT_EDGES_LAYER_ID,
+  COMPACT_DIMMED_EDGES_LAYER_ID,
+];
 const DETAIL_MAX_NODES = 1500;
 const DETAIL_MAX_EDGES = 400;
 /** Extra viewport margin (px) within which nodes are still included, so one straddling the edge isn't culled. */
@@ -396,6 +407,16 @@ const ARROW_HEAD_LENGTH_PX = ARROW_SIZE_PX * ARROW_HEAD_LENGTH_RATIO;
  * so they simply sit a little further in.
  */
 const PAN_NODE_MARGIN_PX = DETAIL_NODE_DIAMETER / 2;
+
+/**
+ * Grey for the backgrounded selected edge (and its arrow) in the detail view: {@link
+ * DIMMED_EDGE_COLOR} lightened slightly toward white, so a selected-then-backgrounded
+ * edge keeps its selected width yet reads a touch softer than a plain dimmed edge.
+ */
+const BACKGROUNDED_SELECTED_EDGE_COLOR: RgbColor = lightenRgb(
+  DIMMED_EDGE_COLOR,
+  0.2,
+);
 
 /** One direction arrow: where its tip sits and how it's oriented. */
 interface EdgeArrow {
@@ -902,14 +923,19 @@ export const NetworkGraph = ({
     [resolvePoint],
   );
 
-  // Clear a hover whose node has left the graph (e.g. tiling swapped the node
-  // set), so its grow ring/label doesn't linger under a stationary pointer until
-  // the next pointer move re-picks. `selected` is derived from props and heals on
-  // its own; `hovered` is internal state, so reconcile it here.
+  // A hover whose node has left the graph (e.g. tiling swapped the node set)
+  // must not keep its grow ring/label under a stationary pointer. Derive the
+  // effective hover so a departed node drops on the same render, rather than
+  // clearing `hovered` from an effect (which cascades a second render).
+  // `selected` is derived from props and heals on its own.
+  const hoveredNode = hovered && resolvePoint(hovered.id) ? hovered : null;
+
+  // When that node leaves, forget its id so `onNodeHover` change-detection
+  // re-fires on the next pick. Raw `hovered` state lingers harmlessly until the
+  // next pointer event replaces it.
   useEffect(() => {
     if (hovered && !resolvePoint(hovered.id)) {
       lastHoveredIdRef.current = null;
-      setHovered(null);
     }
   }, [hovered, resolvePoint]);
 
@@ -978,12 +1004,12 @@ export const NetworkGraph = ({
 
   // A live pointer hover inside the graph (a node or an edge) suppresses the
   // external hover entirely, so an internal hover always takes precedence.
-  const internalHoverActive = hovered != null || hoveredEdge != null;
+  const internalHoverActive = hoveredNode != null || hoveredEdge != null;
 
   // The node driving the active hover highlight: the internal pointer hover, else —
   // when nothing is hovered inside the graph — the externally-hovered node.
   const activeHoveredNode =
-    hovered ?? (internalHoverActive ? null : externalHoveredPoint);
+    hoveredNode ?? (internalHoverActive ? null : externalHoveredPoint);
 
   // The node whose neighbourhood is highlighted: hovered (internal or external),
   // else selected.
@@ -1408,7 +1434,9 @@ export const NetworkGraph = ({
   // Mirror into a ref so the imperative zoom/reveal callbacks read the latest bounds
   // without re-creating as points stream in.
   const panBoundsRef = useRef(panBounds);
-  panBoundsRef.current = panBounds;
+  useEffect(() => {
+    panBoundsRef.current = panBounds;
+  }, [panBounds]);
 
   /**
    * The node ids at the two ends of the selected edge (compact view), so those nodes get
@@ -1437,31 +1465,23 @@ export const NetworkGraph = ({
     !isDetailZoom && (selectedPoint != null || selectedParts.edgeId != null);
 
   /**
-   * Whether the selected node owns the active highlight in the compact view — a node is
-   * selected and nothing else is hovered, so its edges are drawn and interactive. While
-   * this holds, a thin highlight edge takes pointer priority over the crowd (see
-   * `applyPickPriority`), matching when the edge layer is pickable.
-   */
-  const compactSelectionActive =
-    compactHasSelection && dimmedSelectedNode == null;
-
-  /**
-   * Give the selected node's neighbourhood priority when resolving a pointer pick in the
-   * compact view, so its edges and neighbours win over the crowd — and over a node
-   * hovered elsewhere. Two cases:
+   * Resolve a pointer pick in the compact view while a node is selected, giving the
+   * selection's neighbourhood priority over the crowd — and, within it, a node priority
+   * over an edge crossing it.
    *
-   * - The selection owns the active highlight (nothing else hovered): deck already draws
-   *   its edges and neighbour rings above the crowd, so a direct overlap resolves to
-   *   them; on top of that, when the primary pick lands on a plain crowd node (or empty
-   *   space) this snaps to a highlight edge within tolerance, so a thin edge wins over a
-   *   node beneath or beside it. A primary already on a highlight element is kept as is.
-   * - A different node is hovered, so the selection is backgrounded (dimmed): its faded
-   *   edges and neighbour rings sit *below* the hovered node's highlight, so z-order
-   *   alone wouldn't pick them. Here we prefer a pick on those (dimmed) layers over the
-   *   primary, so hovering the selection's neighbour/edge re-highlights it rather than
-   *   the hovered node overlapping it.
+   * Nodes are resolved first, with a single nearest-wins pick across the active node's
+   * ring, its neighbours' rings, and — while the selection is backgrounded by a hover —
+   * the backgrounded selection's neighbour rings. Because the active node is drawn
+   * topmost, the node directly under the pointer stays stably hovered even where two
+   * neighbours sit close together (the pick can't flip to a merely-nearby one), and it
+   * wins over an edge overlapping it.
    *
-   * Returns the primary pick unchanged unless a node is selected (compact).
+   * With no neighbourhood node under the pointer, it falls back to the selection's edges
+   * (its own while it owns the highlight, its faded ones while backgrounded — those sit
+   * below the hovered node's highlight, so z-order alone wouldn't pick them), so a thin
+   * connection still wins over the crowd beneath or beside it.
+   *
+   * Returns the primary pick unchanged unless there's a compact selection.
    */
   const applyPickPriority = useCallback(
     (
@@ -1490,34 +1510,30 @@ export const NetworkGraph = ({
         }
         return primary;
       }
-      if (compactSelectionActive) {
-        // A primary already on the selection's on-top highlight is kept; otherwise snap
-        // a near-miss to its thin edge.
-        const layerId = primary?.layer?.id;
-        if (layerId != null && COMPACT_HIGHLIGHT_LAYER_IDS.has(layerId)) {
-          return primary;
-        }
-        const edge = deckRef.current?.pickObject({
-          x,
-          y,
-          radius,
-          layerIds: [COMPACT_EDGES_LAYER_ID],
-        });
-        return edge?.object ? edge : primary;
-      }
-      // Backgrounded selection: prefer its dimmed neighbourhood over the hovered node.
-      const selection = deckRef.current?.pickObject({
+      // A node is selected. Resolve any neighbourhood node under the pointer first — the
+      // active node, a neighbour, or the backgrounded selection's neighbour — so a node
+      // beats an edge crossing it, and the hovered node stays stable amongst close
+      // neighbours (nearest-wins across all three layers, active drawn topmost).
+      const node = deckRef.current?.pickObject({
         x,
         y,
         radius,
-        layerIds: [
-          COMPACT_DIMMED_NEIGHBOURS_LAYER_ID,
-          COMPACT_DIMMED_EDGES_LAYER_ID,
-        ],
+        layerIds: COMPACT_HIGHLIGHT_NODE_LAYER_IDS,
       });
-      return selection?.object ? selection : primary;
+      if (node?.object) {
+        return node;
+      }
+      // No neighbourhood node under the pointer: fall back to the selection's edges, so
+      // a thin connection still wins over the crowd beneath or beside it.
+      const edge = deckRef.current?.pickObject({
+        x,
+        y,
+        radius,
+        layerIds: COMPACT_HIGHLIGHT_EDGE_LAYER_IDS,
+      });
+      return edge?.object ? edge : primary;
     },
-    [compactHasSelection, compactSelectionActive, selectedEdgeEndpointIds],
+    [compactHasSelection, selectedEdgeEndpointIds],
   );
 
   const handlePointerDown = useCallback((event: React.PointerEvent) => {
@@ -2621,6 +2637,75 @@ export const NetworkGraph = ({
       }));
   }, [isDetailZoom, detailEdgePaths, highlight, currentZoom]);
 
+  /**
+   * The selected edge while a *different* edge owns the active emphasis (another edge
+   * hovered): its bundled path trimmed like a prominent edge (source at the node rim,
+   * target back by the arrow gap), but drawn by its own layer at the selected (hover)
+   * width in a lightened grey — so the selection keeps its thickness and arrow yet reads
+   * as backgrounded, ceding the dark prominent styling to the hovered edge. Detail view
+   * only; null unless an edge is selected and backgrounded this way.
+   */
+  const backgroundedSelectedEdgePath = useMemo<BundledEdge | null>(() => {
+    if (
+      !isDetailZoom ||
+      !selectedEdgeHoverable ||
+      !activeEdge ||
+      activeEdge.edgeId === selectedEdgeHoverable.edgeId
+    ) {
+      return null;
+    }
+    const scale = currentZoom == null ? null : 2 ** currentZoom;
+    const sourceTrim = scale == null ? 0 : DETAIL_NODE_DIAMETER / 2 / scale;
+    const targetTrim =
+      scale == null ? 0 : (DETAIL_NODE_DIAMETER / 2 + arrowGapPx) / scale;
+    return {
+      edgeId: selectedEdgeHoverable.edgeId,
+      path: trimPathBothEnds(
+        selectedEdgeHoverable.path,
+        sourceTrim,
+        targetTrim,
+      ),
+    };
+  }, [
+    isDetailZoom,
+    selectedEdgeHoverable,
+    activeEdge,
+    currentZoom,
+    arrowGapPx,
+  ]);
+
+  /**
+   * The backgrounded selected edge's direction arrow, placed at its target like the
+   * prominent edges' arrows (from the untrimmed bundled path, backed off the node by
+   * radius + gap). Drawn grey by its own layer so the selection keeps its arrowhead.
+   * Null whenever {@link backgroundedSelectedEdgePath} is.
+   */
+  const backgroundedSelectedArrow = useMemo<EdgeArrow | null>(() => {
+    if (!backgroundedSelectedEdgePath || !selectedEdgeHoverable) {
+      return null;
+    }
+    const { path } = selectedEdgeHoverable;
+    const target = path[path.length - 1];
+    const previous = path[path.length - 2];
+    if (!target || !previous) {
+      return null;
+    }
+    const dx = target[0] - previous[0];
+    const dy = target[1] - previous[1];
+    const length = Math.hypot(dx, dy);
+    if (length < 1e-9) {
+      return null;
+    }
+    const ux = dx / length;
+    const uy = dy / length;
+    const back = DETAIL_NODE_DIAMETER / 2 + arrowGapPx;
+    return {
+      position: target,
+      offset: [-ux * back, -uy * back],
+      angle: -(Math.atan2(uy, ux) * 180) / Math.PI,
+    };
+  }, [backgroundedSelectedEdgePath, selectedEdgeHoverable, arrowGapPx]);
+
   const layers = useMemo(() => {
     // The active edge's endpoint nodes, outlined in the edge's colour — only while
     // that edge is drawn (see `activeEdgeShown`).
@@ -2708,6 +2793,27 @@ export const NetworkGraph = ({
         ]
       : [compact];
 
+    // The backgrounded selection: the selected edge kept at its (hover) width but in a
+    // lightened grey, drawn below the prominent edges so the hovered edge reads on top.
+    // Not pickable — the faint background copy beneath stays the pick target.
+    if (backgroundedSelectedEdgePath) {
+      nodeLayers.push(
+        new PathLayer<BundledEdge>({
+          id: "selected-edge-backgrounded",
+          data: [backgroundedSelectedEdgePath],
+          pickable: false,
+          getPath: (edge) => edge.path,
+          getColor: [...BACKGROUNDED_SELECTED_EDGE_COLOR, RGBA_OPAQUE],
+          getWidth: EDGE_HOVER_WIDTH,
+          widthUnits: "pixels",
+          widthMinPixels: EDGE_MIN_WIDTH,
+          capRounded: true,
+          jointRounded: true,
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+
     // The prominent bundled edges, drawn above the detailed nodes so a highlighted
     // connection reads over any node it crosses. `depthCompare: "always"` lets it
     // paint over the depth-writing nodes. Detail view only.
@@ -2755,6 +2861,28 @@ export const NetworkGraph = ({
           sizeUnits: "pixels",
           getColor: [...DIMMED_EDGE_COLOR, RGBA_OPAQUE],
           opacity: SELECTED_DIM_OPACITY,
+          parameters: { depthCompare: "always", depthWriteEnabled: false },
+        }),
+      );
+    }
+    // The backgrounded selected edge's arrowhead, in its lightened grey at full opacity,
+    // so the edge keeps the arrow of its selected state. Drawn before the active arrows
+    // so a hovered edge's arrow reads on top where they meet.
+    if (arrowAtlas && backgroundedSelectedArrow) {
+      nodeLayers.push(
+        new IconLayer<EdgeArrow>({
+          id: "selected-edge-backgrounded-arrow",
+          data: [backgroundedSelectedArrow],
+          pickable: false,
+          iconAtlas: arrowAtlas.url,
+          iconMapping: arrowAtlas.mapping,
+          getIcon: () => "arrow",
+          getPosition: (arrow) => arrow.position,
+          getPixelOffset: (arrow) => arrow.offset,
+          getAngle: (arrow) => arrow.angle,
+          getSize: ARROW_SIZE_PX,
+          sizeUnits: "pixels",
+          getColor: [...BACKGROUNDED_SELECTED_EDGE_COLOR, RGBA_OPAQUE],
           parameters: { depthCompare: "always", depthWriteEnabled: false },
         }),
       );
@@ -2843,6 +2971,8 @@ export const NetworkGraph = ({
     highlight,
     trimmedBackgroundEdgePaths,
     trimmedHighlightEdgePaths,
+    backgroundedSelectedEdgePath,
+    backgroundedSelectedArrow,
     trimmedHighlightLines,
     compactNeighbours,
     arrows,
