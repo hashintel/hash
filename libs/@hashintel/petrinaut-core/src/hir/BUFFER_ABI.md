@@ -37,8 +37,11 @@ The emitter and engine use the same input slot order:
 Runtime arguments:
 
 ```ts
+(f64, u64, u8, placeBases, indices, placeCounts) => number | boolean;
+
 placeBases: Int32Array; // one byte offset per colored input arc
 indices: Int32Array; // one selected token index per input token slot
+placeCounts: Uint32Array; // dense counts for every place in the frame
 ```
 
 An attribute read compiles to:
@@ -50,6 +53,12 @@ read view at base + fieldByteOffset
 
 Dynamic indexes into transition input tokens are rejected. Static `.map(...)`
 over transition token tuples is unrolled.
+
+The optional third Lambda parameter exposes count-only place states. A read
+such as `places.Queue.count` compiles directly to
+`placeCounts[__places[ordinal]]`; `__places` is resolved once when the
+artifact is instantiated. `HirLambdaArtifact.placeIds` stores the referenced
+net-local place IDs in ordinal order, including for subnet instances.
 
 ## Transition outputs
 
@@ -115,13 +124,13 @@ compile to loops over `placeCounts` and `placeOffsets`.
 
 ## Artifact validation
 
-Artifacts are `version: 4` and carry a fingerprint of the sanitized SDCPN and
+Artifacts are `version: 5` and carry a fingerprint of the sanitized SDCPN and
 extension settings used for compilation.
 
 The engine rejects stale artifacts by checking:
 
 - artifact version and compilation-input fingerprint;
-- lambda `inputSlotCount`;
+- lambda `inputSlotCount` and resolvable `placeIds`;
 - kernel `inputSlotCount`;
 - kernel `outputByteCount`;
 - metric `placeNames` resolution.

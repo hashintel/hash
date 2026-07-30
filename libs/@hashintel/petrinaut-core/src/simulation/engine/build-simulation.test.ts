@@ -33,6 +33,7 @@ function callLambda(
     new Uint8Array(0),
     new Int32Array(0),
     new Int32Array(0),
+    new Uint32Array(0),
   );
 }
 
@@ -521,7 +522,8 @@ describe("buildSimulation", () => {
                 ],
                 outputArcs: [{ placeId: "port-out", weight: 1 }],
                 lambdaType: "predicate",
-                lambdaCode: "",
+                lambdaCode:
+                  'export default Lambda((input, parameters, places) => places["Port In"].count > 0);',
                 transitionKernelCode: "",
                 x: 50,
                 y: 0,

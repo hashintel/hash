@@ -70,7 +70,7 @@ export type CompiledTransition = {
   name: string;
   inputPlaces: readonly CompiledTransitionInputPlace[];
   outputPlaces: readonly CompiledTransitionPlace[];
-  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
+  /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices, placeCounts) => number |
    * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
   lambdaFn: HirCompiledBufferLambda;
   /** Buffer-ABI kernel writing into `kernelStaging`, or null when the

@@ -1,5 +1,5 @@
 import { SDCPNItemError } from "../../errors";
-import { materializeEngineFrame } from "../frames/internal-frame";
+import { readEngineFrame } from "../frames/internal-frame";
 import {
   executeBufferKernel,
   fillPlaceBases,
@@ -7,7 +7,6 @@ import {
 } from "./buffer-transition";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
 import type { EngineFrame, SimulationInstance } from "./types";
@@ -34,8 +33,8 @@ export function computePossibleTransition(
   add: Record<PlaceID, Uint8Array[]>;
   newRngState: number;
 } {
-  const snapshot = materializeEngineFrame(simulation.frameLayout, frame);
-  const transitionState = snapshot.transitions[transitionId];
+  const frameView = readEngineFrame(simulation.frameLayout, frame);
+  const transitionState = frameView.getTransitionState(transitionId);
   if (!transitionState) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
@@ -49,7 +48,7 @@ export function computePossibleTransition(
 
   // Gather input places with their weights relative to this transition.
   const inputPlaces = transition.inputPlaces.map((inputPlace) => {
-    const placeState = snapshot.places[inputPlace.placeId];
+    const placeState = frameView.getPlaceState(inputPlace.placeId);
     if (!placeState) {
       throw new Error(
         `Place with ID ${inputPlace.placeId} not found in current marking.`,
@@ -84,11 +83,7 @@ export function computePossibleTransition(
   const { timeSinceLastFiringMs } = transitionState;
 
   // Shared views over the frame's token byte region.
-  const tokenViews = createTokenRegionViews(
-    snapshot.buffer.buffer,
-    snapshot.buffer.byteOffset,
-    snapshot.buffer.byteLength,
-  );
+  const tokenViews = frameView.tokenViews;
 
   const inputPlacesWithTokenValues = inputPlaces.filter(
     (place) => place.strideBytes > 0 && place.arcType !== "inhibitor",
@@ -133,6 +128,7 @@ export function computePossibleTransition(
         tokenViews.u8,
         transition.placeBases,
         transition.indices,
+        frameView.placeCounts,
       );
     } catch (err) {
       throw new SDCPNItemError(

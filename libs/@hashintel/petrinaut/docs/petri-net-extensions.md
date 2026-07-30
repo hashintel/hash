@@ -195,6 +195,21 @@ export default Lambda((tokensByPlace, parameters) => {
 
 The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
 
+For a guard or rate that depends on the total number of tokens in a place,
+Lambda functions may take an optional third `places` argument. It contains
+every place in the current net, including uncoloured places, and exposes its
+current token count:
+
+```ts
+export default Lambda((tokensByPlace, parameters, places) => {
+  const totalWaiting = places.Waiting.count + places.Retrying.count;
+  return totalWaiting < parameters.queue_limit;
+});
+```
+
+This argument is count-only; use `tokensByPlace` when you need attributes from
+the particular coloured tokens selected for the transition.
+
 ## Inhibitor arcs
 
 An inhibitor arc is a special input arc that **prevents** a transition from firing when the source place has tokens equal to or greater than the arc weight -- the opposite of a normal arc.

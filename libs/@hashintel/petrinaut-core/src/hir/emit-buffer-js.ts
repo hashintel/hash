@@ -5,7 +5,7 @@
  * Emitted functions read token attributes straight out of the engine's packed
  * token bytes at statically-resolved offsets:
  *
- *   lambda: (f64, u64, u8, placeBases, indices) => number | boolean
+ *   lambda: (f64, u64, u8, placeBases, indices, placeCounts) => number | boolean
  *   kernel: (f64, u64, u8, placeBases, indices, outF64, outU64, outU8, sink) => void
  *   metric: (f64, u64, u8, placeCounts, placeOffsets) => number
  *
@@ -41,6 +41,12 @@ export type BufferProgram = {
   source: string;
   /** Expected `indices.length` — engine-side sanity check. */
   inputSlotCount: number;
+};
+
+export type BufferLambdaProgram = BufferProgram & {
+  /** Net-local place IDs referenced by the optional third Lambda parameter,
+   * in emitted-ordinal order. */
+  placeIds: string[];
 };
 
 export type BufferKernelProgram = BufferProgram & {
@@ -91,6 +97,10 @@ type MetricPlaceRef = {
   elements: HirTokenElementInfo[];
 };
 
+type CountPlaceRef = {
+  ordinal: number;
+};
+
 type Value =
   /** A JS expression producing a number or boolean. */
   | { kind: "scalar"; code: string }
@@ -110,6 +120,10 @@ type Value =
   | { kind: "metricState" }
   /** `state.places` in a metric program. */
   | { kind: "placesRecord" }
+  /** Optional third `places` parameter in a transition Lambda. */
+  | { kind: "lambdaPlacesRecord" }
+  /** `places.<Name>` in a transition Lambda (count-only). */
+  | ({ kind: "lambdaPlaceState" } & CountPlaceRef)
   /** `state.places.<Name>` — `count`/`tokens` read through `__places`. */
   | ({ kind: "placeState" } & MetricPlaceRef)
   /** `state.places.<Name>.tokens` — a dynamically-sized token array. */
@@ -167,15 +181,39 @@ class BufferEmitter {
     string,
     { name: string; elements: HirTokenElementInfo[] }
   > | null;
+  private readonly lambdaPlaceByName: Map<
+    string,
+    { name: string; id: string }
+  > | null;
   private readonly metricOrdinalByName = new Map<string, number>();
+  private readonly lambdaOrdinalByName = new Map<string, number>();
+  readonly lambdaPlaceIds: string[] = [];
 
   constructor(
     readonly inputSlots: HirArcSlot[],
     metricContext: HirMetricContext | null = null,
+    lambdaContext: HirLambdaContext | null = null,
   ) {
     this.metricPlaceByName = metricContext
       ? new Map(metricContext.places.map((place) => [place.name, place]))
       : null;
+    this.lambdaPlaceByName = lambdaContext
+      ? new Map(lambdaContext.places.map((place) => [place.name, place]))
+      : null;
+  }
+
+  private lambdaPlaceRef(name: string): CountPlaceRef {
+    const place = this.lambdaPlaceByName?.get(name);
+    if (!place) {
+      throw new BailError();
+    }
+    let ordinal = this.lambdaOrdinalByName.get(name);
+    if (ordinal === undefined) {
+      ordinal = this.lambdaPlaceIds.length;
+      this.lambdaPlaceIds.push(place.id);
+      this.lambdaOrdinalByName.set(name, ordinal);
+    }
+    return { ordinal };
   }
 
   /** Resolves a place display name to its arc slot (last arc wins, matching
@@ -396,6 +434,21 @@ class BufferEmitter {
         }
         if (target.kind === "placesRecord") {
           return { kind: "placeState", ...this.metricPlaceRef(expr.field) };
+        }
+        if (target.kind === "lambdaPlacesRecord") {
+          return {
+            kind: "lambdaPlaceState",
+            ...this.lambdaPlaceRef(expr.field),
+          };
+        }
+        if (target.kind === "lambdaPlaceState") {
+          if (expr.field === "count") {
+            return {
+              kind: "scalar",
+              code: `placeCounts[__places[${target.ordinal}]]`,
+            };
+          }
+          throw new BailError();
         }
         if (target.kind === "placeState") {
           if (expr.field === "count") {
@@ -772,11 +825,20 @@ class BufferEmitter {
   }
 }
 
-function initialEnv(fn: HirFunction): Map<string, Value> {
+function initialEnv(
+  fn: HirFunction,
+  options: { bindLambdaPlaces?: boolean } = {},
+): Map<string, Value> {
   const env = new Map<string, Value>();
   const tokensParam = fn.params[0];
   if (tokensParam) {
     env.set(tokensParam.name, { kind: "inputRecord" });
+  }
+  if (options.bindLambdaPlaces) {
+    const placesParam = fn.params[2];
+    if (placesParam) {
+      env.set(placesParam.name, { kind: "lambdaPlacesRecord" });
+    }
   }
   return env;
 }
@@ -796,20 +858,27 @@ function slotCount(inputSlots: HirArcSlot[]): number {
 export function emitBufferLambdaJs(
   fn: HirFunction,
   context: HirLambdaContext,
-): BufferProgram | null {
+): BufferLambdaProgram | null {
   try {
-    const emitter = new BufferEmitter(context.inputSlots);
-    const result = emitter.eval(foldHir(fn.body), initialEnv(fn));
+    const emitter = new BufferEmitter(context.inputSlots, null, context);
+    const result = emitter.eval(
+      foldHir(fn.body),
+      initialEnv(fn, { bindLambdaPlaces: true }),
+    );
     if (result.kind !== "scalar") {
       return null;
     }
     const source = [
-      `(f64, u64, u8, placeBases, indices) => {`,
+      `(f64, u64, u8, placeBases, indices, placeCounts) => {`,
       ...emitter.lines.map((line) => `  ${line}`),
       `  return ${result.code};`,
       `}`,
     ].join("\n");
-    return { source, inputSlotCount: slotCount(context.inputSlots) };
+    return {
+      source,
+      inputSlotCount: slotCount(context.inputSlots),
+      placeIds: emitter.lambdaPlaceIds,
+    };
   } catch (error) {
     if (error instanceof BailError) {
       return null;

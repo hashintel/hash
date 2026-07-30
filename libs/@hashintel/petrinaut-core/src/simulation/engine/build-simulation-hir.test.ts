@@ -83,8 +83,9 @@ const sdcpn: SDCPN = {
       lambdaType: "stochastic",
       inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p2", weight: 1 }],
-      lambdaCode: `export default Lambda((input, parameters) => {
+      lambdaCode: `export default Lambda((input, parameters, places) => {
   const { x } = input.Source[0];
+  if (places.Source.count + places.Target.count === 0) return 0;
   if (x > 0) return parameters.rate;
   return 0.5;
 });`,
@@ -140,11 +141,12 @@ describe("buildSimulation with HIR artifacts", () => {
   it("compiles buffer programs for all three surfaces", () => {
     const { artifacts, failures } = compileHirArtifacts(sdcpn);
     expect(failures).toEqual([]);
-    expect(artifacts.version).toBe(4);
+    expect(artifacts.version).toBe(5);
     expect(artifacts.fingerprint).toMatch(/^[0-9a-f]{16}$/);
     expect(typeof artifacts.dynamics.de1!.source).toBe("string");
     expect(typeof artifacts.lambdas.t1!.source).toBe("string");
     expect(artifacts.lambdas.t1!.inputSlotCount).toBe(1);
+    expect(artifacts.lambdas.t1!.placeIds).toEqual(["p1", "p2"]);
     expect(typeof artifacts.kernels.t1!.source).toBe("string");
     expect(artifacts.kernels.t1!.inputSlotCount).toBe(1);
     // One output token: x(f64) + v(f64) + generation(f64) → 24-byte stride.

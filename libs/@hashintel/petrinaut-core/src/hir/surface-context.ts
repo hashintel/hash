@@ -98,7 +98,17 @@ export type HirLambdaContext = {
   inputPlaces: HirPlaceBinding[];
   /** Buffer-ABI input slot layout (see module doc). */
   inputSlots: HirArcSlot[];
+  /** Every place in the containing net, available to the Lambda's optional
+   * third `places` parameter. Duplicate display names use the last place. */
+  places: HirLambdaPlaceInfo[];
   lambdaType: "predicate" | "stochastic";
+};
+
+export type HirLambdaPlaceInfo = {
+  /** Display name used as the property key in user code. */
+  name: string;
+  /** Net-local ID, resolved to a dense frame-place index at instantiation. */
+  id: string;
 };
 
 export type HirKernelContext = {
@@ -309,11 +319,16 @@ export function buildLambdaContext(
     collectColors(sdcpn, extensions),
     { includeZeroElementColors: false },
   );
+  const placesByName = new Map<string, HirLambdaPlaceInfo>();
+  for (const place of net.places) {
+    placesByName.set(place.name, { name: place.name, id: place.id });
+  }
   return {
     surface: "lambda",
     parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
     inputPlaces: bindings,
     inputSlots: slots,
+    places: [...placesByName.values()],
     lambdaType: getEffectiveTransitionLambdaType(transition, availability),
   };
 }

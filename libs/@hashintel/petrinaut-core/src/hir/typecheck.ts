@@ -174,6 +174,21 @@ class Typechecker {
     if (tokensParam) {
       env.set(tokensParam.name, this.tokensParamType());
     }
+    if (this.context.surface === "lambda") {
+      const placesParam = fn.params[2];
+      if (placesParam) {
+        env.set(placesParam.name, {
+          kind: "record",
+          fields: this.context.places.map((place) => ({
+            name: place.name,
+            type: {
+              kind: "record",
+              fields: [{ name: "count", type: HIR_TYPE_INT }],
+            },
+          })),
+        });
+      }
+    }
     const returnType = this.infer(fn.body, env);
     this.checkReturnType(fn, returnType);
     return returnType;

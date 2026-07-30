@@ -79,10 +79,14 @@ outside the supported HIR subset is a blocking diagnostic.
 
 ```ts
 {
-  version: 4,
+  version: 5,
   fingerprint: string,
   dynamics: Record<string, { source: string }>,
-  lambdas: Record<string, { source: string; inputSlotCount: number }>,
+  lambdas: Record<string, {
+    source: string;
+    inputSlotCount: number;
+    placeIds: string[];
+  }>,
   kernels: Record<string, {
     source: string;
     inputSlotCount: number;
@@ -102,6 +106,7 @@ The emitted programs use shared views over packed token bytes:
 
 - `f64`, `u64`, `u8` token-region views;
 - `placeBases` and `indices` for transition input selections;
+- `placeCounts` for direct count reads in transition Lambdas;
 - output staging bytes for kernels;
 - `placeCounts` and `placeOffsets` for metrics;
 - a per-run string pool;

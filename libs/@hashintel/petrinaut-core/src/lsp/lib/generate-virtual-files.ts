@@ -179,6 +179,17 @@ export function generateVirtualFiles(
   const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
     componentPortsEnabled: extensions.subnets,
   });
+  const placesByName = new Map(
+    sdcpn.places.map((place) => [place.name, place] as const),
+  );
+  const placesStateProperties = [...placesByName.values()]
+    .map(
+      (place) => `  ${JSON.stringify(place.name)}: { readonly count: number };`,
+    )
+    .join("\n");
+  const placesStateType = `{
+${placesStateProperties}
+}`;
 
   // Generate parameters type definition
   const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
@@ -377,7 +388,8 @@ export function generateVirtualFiles(
           ...allImports,
           ``,
           `export type Input = ${inputType};`,
-          `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
+          `export type Places = ${placesStateType};`,
+          `export type Lambda = (fn: (input: Input, parameters: Parameters, places: Places) => ${lambdaReturnType}) => void;`,
         ].join("\n"),
       });
 
