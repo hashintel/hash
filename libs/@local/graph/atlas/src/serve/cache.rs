@@ -34,7 +34,10 @@
 //! assert_eq!(entry.digest, again.digest);
 //! // The digest is the cache's own; nothing outside this module reads it.
 //! ```
-
+#![expect(
+    clippy::empty_enums,
+    reason = "zerocopy's FromBytes derive expands to an empty enum for its validation machinery"
+)]
 use alloc::sync::Arc;
 use core::{
     future::Future,
@@ -43,8 +46,8 @@ use core::{
 };
 use std::time::Instant;
 
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use moka::ops::compute::Op;
+use type_system::principal::actor::ActorEntityUuid;
 
 use super::{Atlas, ViewCensus, VisibilityProof};
 use crate::{
@@ -58,7 +61,20 @@ use crate::{
 /// fixed-width and content-derived: equal filter bytes always produce equal digests, on any host
 /// and in any process, which is what lets it bind a scope inside a sealed token as well as name one
 /// in a key.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
 pub(crate) struct FilterDigest(Sha256Digest);
 
 impl FilterDigest {
@@ -134,7 +150,7 @@ pub(crate) struct VisibilityKey {
     /// The generation whose row ids the proof indexes.
     pub generation: GenerationId,
     /// The actor whose policies the proof resolves.
-    pub actor: AuthenticatedActor,
+    pub actor: ActorEntityUuid,
     /// The request filter's identity, when the request carries one.
     pub filter: Option<FilterDigest>,
 }
@@ -150,17 +166,24 @@ pub(crate) struct Resolution {
     proof: VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits.
     census: ViewCensus,
+    /// The canonical bytes of the filter [`Self::proof`] was resolved over, absent when
+    /// unfiltered.
+    ///
+    /// Held so a refresh can recompile the filter without a client round trip: the client is the
+    /// document's durable holder, and this copy lives exactly as long as the entry it resolved.
+    filter: Option<Arc<[u8]>>,
 }
 
 impl Resolution {
-    /// Censuses `proof` over `atlas` and pairs them.
+    /// Censuses `proof` over `atlas` and pairs them with the `filter` they were resolved over.
     ///
     /// The census walks the base column once for a masked proof and reads the artifacts for an
     /// unmasked one, so the cost lands on the resolution rather than on the requests that share it.
-    pub(crate) fn of(atlas: &Atlas, proof: VisibilityProof) -> Self {
+    pub(crate) fn of(atlas: &Atlas, proof: VisibilityProof, filter: Option<Arc<[u8]>>) -> Self {
         Self {
             census: atlas.census(&proof),
             proof,
+            filter,
         }
     }
 
@@ -174,6 +197,7 @@ impl Resolution {
         Self {
             proof,
             census: ViewCensus::EMPTY,
+            filter: None,
         }
     }
 }
@@ -189,6 +213,9 @@ pub(crate) struct ResolvedVisibility {
     pub census: ViewCensus,
     /// The identity of what [`Self::proof`] admits.
     pub digest: ProofDigest,
+    /// The canonical bytes of the filter [`Self::proof`] was resolved over, absent when
+    /// unfiltered.
+    filter: Option<Arc<[u8]>>,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
     /// Held while a refresh of this entry is in flight, so one refresh runs per entry.
@@ -197,14 +224,27 @@ pub(crate) struct ResolvedVisibility {
 
 impl ResolvedVisibility {
     /// Builds an entry around a freshly resolved scope.
-    fn new(Resolution { proof, census }: Resolution, resolved_at: Instant) -> Self {
+    fn new(
+        Resolution {
+            proof,
+            census,
+            filter,
+        }: Resolution,
+        resolved_at: Instant,
+    ) -> Self {
         Self {
             digest: ProofDigest::of(&proof),
             proof: Arc::new(proof),
             census,
+            filter,
             resolved_at,
             refreshing: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Returns the canonical bytes of the filter the entry was resolved over.
+    pub(crate) fn filter_document(&self) -> Option<Arc<[u8]>> {
+        self.filter.clone()
     }
 
     /// Returns whether this entry has reached its refresh horizon by `now`.
@@ -476,7 +516,6 @@ mod tests {
     };
     use std::time::Instant;
 
-    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
     use hashql_core::id::Id as _;
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
@@ -507,7 +546,7 @@ mod tests {
                 .repeat(32)
                 .parse()
                 .expect("64 hexadecimal digits name a generation"),
-            actor: AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(actor))),
+            actor: ActorEntityUuid::new(Uuid::from_u128(actor)),
             filter: None,
         }
     }

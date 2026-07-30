@@ -29,10 +29,15 @@ use aide::{
 };
 use axum::{Extension, Router, body::Bytes};
 use hash_graph_postgres_store::store::PostgresStorePool;
+use rand::rngs::SysRng;
 
 use self::visibility::Authority;
-use crate::serve::{Atlas, GraphDatabaseClient, ServeLimits, VisibilityLimits};
+use crate::serve::{
+    Atlas, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits, VisibilityLimits,
+    authorization::TokenAuthority,
+};
 
+mod authorization;
 mod current;
 mod edges;
 mod extract;
@@ -85,13 +90,19 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 /// The shared route state.
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
-/// connection detail hydration reads through, and the authority every assembly path masks by -
-/// read per request through [`visibility::Visibility`].
+/// connection detail hydration reads through, the authority every assembly path masks by - read
+/// per request through [`visibility::Visibility`] - and the token authority the manifest mints
+/// from, whose sealed scope is the identity every data route resolves its visibility under.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
     visibility: VisibilityLimits,
+    tokens: Arc<TokenAuthority<SysRng>>,
+    /// The delivery-cut policy a fresh bootstrap resolves `k` under.
+    ///
+    /// [`None`] for the schedules no offset deepens, where every scope serves the recorded cut.
+    density: Option<DensityPolicy>,
     authority: Authority,
     remote: Arc<GraphDatabaseClient>,
 }
@@ -103,7 +114,8 @@ struct AppState {
 /// A visibility proof scopes every corpus-bearing response the router serves, and every request
 /// answers under the scope of the actor it names: `pool` is the store every read goes through and
 /// `visibility` the window a resolved scope is reused for. No request is served without an actor,
-/// and no actor is served another's rows.
+/// and no actor is served another's rows. The authority token's key derives from the secret the
+/// atlas was opened with: the manifest mints one per fetch, and the data routes refuse without one.
 ///
 /// # Panics
 ///
@@ -117,6 +129,13 @@ pub fn router(
     visibility: VisibilityLimits,
 ) -> Router {
     let state = AppState {
+        tokens: Arc::new(TokenAuthority::new(
+            atlas.generation(),
+            atlas.wire_secret().hex_bytes(),
+            visibility.hard,
+            SysRng,
+        )),
+        density: atlas.density_policy(DensityBand::default()),
         atlas,
         limits,
         visibility,
@@ -145,7 +164,10 @@ pub fn router(
         )
         .api_route(
             "/v1/atlas/generation/{generation}/manifest",
-            get_with(manifest::handler, manifest::document),
+            // Both methods answer identically: browsers cannot attach a body to a GET, so the
+            // filter document travels by POST, while a bodyless bootstrap or renewal stays a GET.
+            get_with(manifest::handler, manifest::document)
+                .post_with(manifest::handler, manifest::document),
         )
         .api_route(
             "/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}",

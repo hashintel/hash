@@ -1,18 +1,26 @@
-//! The authority gate: a data route answers only under a fresh token naming its actor.
+//! Authority token transport: the `Atlas-Authority` header codec and its two readings.
 //!
-//! The manifest response mints the token and sends it hex-encoded in the `Atlas-Authority` header;
+//! The manifest response mints a token and sends it hex-encoded in the `Atlas-Authority` header;
 //! every data request presents it back in the same header. The judgment - tag, window, actor - is
-//! [`TokenAuthority::open`]'s; this module owns the transport alone: the header's hexadecimal
-//! codec, and the collapse of every refusal into one uniform `401` problem, so a caller learns
-//! that it must re-fetch the manifest and nothing about why.
+//! [`TokenAuthority::open`]'s; this module owns the transport and the two ways a route reads a
+//! presentation. [`admit`] is the data routes' reading: it returns the sealed [`Scope`] only under
+//! a fresh token naming the requesting actor, and collapses every refusal into one uniform `401`
+//! problem, so a caller learns that it must re-fetch the manifest and nothing about why.
+//! [`Presented`] is the manifest's reading: it distinguishes an absent token from a refused one
+//! and never rejects, because the manifest judges the generation before it judges continuity.
 //!
 //! [`TokenAuthority::open`]: crate::serve::authorization::TokenAuthority::open
 
-use core::future::{Future, ready};
+use core::future::{self, Future};
 use std::time::SystemTime;
 
 use aide::operation::OperationInput;
-use axum::{extract::FromRequestParts, http::request::Parts};
+use axum::{
+    extract::FromRequestParts,
+    http::{HeaderValue, request::Parts},
+};
+use rand::TryCryptoRng;
+use type_system::principal::actor::ActorEntityUuid;
 
 use super::{
     AppState, headers,
@@ -21,149 +29,248 @@ use super::{
 };
 use crate::{
     integrity::HexBytes,
-    serve::authorization::{Scope, TOKEN_BYTES},
+    serve::authorization::{Scope, TOKEN_BYTES, TokenAuthority},
 };
 
-/// Encodes one minted envelope for the `Atlas-Authority` header.
-pub(super) fn encode(token: Vec<u8>) -> String {
-    HexBytes::new(
-        <[u8; TOKEN_BYTES]>::try_from(token).expect("a minted envelope has the envelope's width"),
-    )
-    .to_string() // NOTE: why is this a function?! why is token here a `Vec`? shouldn't Authority just return an array? (it can and should)
+/// Judges one presentation for admission: the sealed scope under a fresh, actor-matching token.
+///
+/// [`None`] for every other presentation - an absent header, a value outside the codec, or a token
+/// [`TokenAuthority::open`] refuses.
+fn judge<R>(
+    header: Option<&HeaderValue>,
+    tokens: &TokenAuthority<R>,
+    actor: ActorEntityUuid,
+    now: SystemTime,
+) -> Option<Scope>
+where
+    R: TryCryptoRng,
+{
+    let token: HexBytes<TOKEN_BYTES> = header?.to_str().ok()?.parse().ok()?;
+
+    tokens.open(&token.into_inner(), actor, now).ok()
 }
 
-/// A presented token's view state, read for a re-mint.
+/// Admits one data request: the sealed [`Scope`] under a fresh token naming the requesting actor.
 ///
-/// [`None`] when no token was presented, or when the presented one refuses for any cause: a
-/// manifest fetch with a bad token is a fresh bootstrap, never a refusal, because the manifest is
-/// the one route that repairs a client's state. The tag and the actor are still enforced by the
-/// read itself; only staleness is forgiven, which is the point - an expired token is the expected
-/// presentation at a refresh.
-pub(super) struct Carried(pub Option<Scope>);
+/// Runs inside [`Visibility`]'s extraction, ahead of the scope resolution, so an unauthorized
+/// request costs one AEAD open and never a store round trip. It also runs ahead of the handler
+/// body's generation check: a token minted under a retired generation fails the tag under the
+/// current key and answers `401` here, so a re-pinned client discovers the new generation at its
+/// manifest renewal (`404` `unknown-generation`), never at the data routes it retries. The client
+/// recovery contract rests on that order - the generation judgment stays in the handler body.
+///
+/// # Errors
+///
+/// One uniform `401` problem for every token refusal cause, and the `400` missing-actor problem
+/// for a request that names no authenticated actor.
+///
+/// [`Visibility`]: super::visibility::Visibility
+pub(super) fn admit(parts: &Parts, state: &AppState) -> Result<Scope, Problem<'static>> {
+    let actor = actor(parts)?;
 
-impl FromRequestParts<AppState> for Carried {
+    judge(
+        parts.headers.get(headers::AUTHORITY),
+        &state.tokens,
+        ActorEntityUuid::from(actor),
+        SystemTime::now(),
+    )
+    .ok_or_else(unauthorized)
+}
+
+/// A presented token's continuity reading, for the manifest's re-mint.
+///
+/// Extraction never rejects on the token: the manifest judges the generation first, so a retired
+/// generation answers `404` whatever the presentation, and the refusal of a present-but-invalid
+/// token is the handler's to give after that check. The window is forgiven - an expired token is
+/// the expected presentation at a refresh - while the tag and the actor are not: a token that
+/// fails either reads as [`Presented::Refused`], never as a fresh bootstrap.
+#[derive(Debug)]
+pub(super) enum Presented {
+    /// No token in the header: a fresh bootstrap.
+    Absent,
+    /// An authentic same-actor token, staleness forgiven.
+    ///
+    /// The sealed scope carries into the re-mint.
+    Carried(Scope),
+    /// A present and unacceptable token.
+    ///
+    /// Outside the codec, failing the tag, or naming another actor.
+    Refused,
+}
+
+/// Reads one presentation for continuity.
+fn read<R>(
+    header: Option<&HeaderValue>,
+    tokens: &TokenAuthority<R>,
+    actor: ActorEntityUuid,
+) -> Presented
+where
+    R: TryCryptoRng,
+{
+    let Some(value) = header else {
+        return Presented::Absent;
+    };
+
+    value
+        .to_str()
+        .ok()
+        .and_then(|text| text.parse::<HexBytes<TOKEN_BYTES>>().ok())
+        .and_then(|token| tokens.carried(&token.into_inner(), actor).ok())
+        .map_or(Presented::Refused, Presented::Carried)
+}
+
+impl FromRequestParts<AppState> for Presented {
     type Rejection = Problem<'static>;
 
     fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        ready(actor(parts).map(|actor| {
-            Self(
-                parts
-                    .headers
-                    .get(headers::AUTHORITY)
-                    .and_then(|value| value.to_str().ok())
-                    .and_then(|text| text.parse::<HexBytes<TOKEN_BYTES>>().ok())
-                    .and_then(|token| state.tokens.carried(&token.into_inner(), actor).ok()),
+        future::ready(actor(parts).map(|actor| {
+            read(
+                parts.headers.get(headers::AUTHORITY),
+                &state.tokens,
+                ActorEntityUuid::from(actor),
             )
         }))
     }
 }
 
-impl OperationInput for Carried {}
-
-// NOTE: we don't say gate in docs... again rust-doc skill
-/// The gate: extraction succeeds only under a fresh token naming the requesting actor.
-///
-/// Runs before the scope resolution in every data handler's argument list, so an unauthorized
-/// request costs one AEAD open and never a store round trip. It also runs before the handler
-/// body's generation check: a token minted under a retired generation fails the tag under the
-/// current key and answers `401` here, so a re-pinned client discovers the new generation at its
-/// manifest renewal (`404` `unknown-generation`), never at the data routes it retries. The client
-/// recovery contract rests on that order - do not hoist the generation judgment ahead of this
-/// gate.
-pub(super) struct Authorized;
-
-impl FromRequestParts<AppState> for Authorized {
-    type Rejection = Problem<'static>;
-
-    fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        ready(admit(parts, state)) // NOTE: never bare, always `future::ready`...
-    }
-}
-
-/// Judges one request's presentation: the header codec here, the token's judgment the authority's.
-fn admit(parts: &Parts, state: &AppState) -> Result<Authorized, Problem<'static>> {
-    // NOTE: def before use
-    let actor = actor(parts)?;
-    let token: HexBytes<TOKEN_BYTES> = parts
-        .headers
-        .get(headers::AUTHORITY)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|text| text.parse().ok())
-        .ok_or_else(unauthorized)?;
-
-    state
-        .tokens
-        .open(&token.into_inner(), actor, SystemTime::now())
-        .map_err(|_error| unauthorized())?;
-
-    Ok(Authorized)
-}
-
-impl OperationInput for Authorized {}
+impl OperationInput for Presented {}
 
 #[cfg(test)]
 mod tests {
-    use core::time::Duration;
+    use core::{assert_matches, time::Duration};
     use std::time::SystemTime;
 
-    use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+    use axum::http::HeaderValue;
     use rand::{SeedableRng as _, rngs::ChaCha20Rng};
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::{TOKEN_BYTES, encode};
+    use super::{Presented, judge, read};
     use crate::{
         integrity::{HexBytes, SecretHexBytes},
         serve::{
             CutOffset,
-            authorization::{Scope, TokenAuthority},
+            authorization::{Scope, TOKEN_BYTES, TokenAuthority},
         },
     };
 
-    /// A minted token survives the header codec: encode, parse, open.
-    ///
-    /// The envelope's own judgment is the serve battery's; this pins the one thing the api layer
-    /// adds - that the hexadecimal form the manifest sends decodes back to the bytes the gate
-    /// opens.
-    #[test]
-    fn the_header_codec_round_trips() {
-        let issued_at = SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000);
-        let actor = AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(11)));
-        let generation = "07"
-            .repeat(32)
-            .parse()
-            .expect("64 hexadecimal digits name a generation");
-        let authority = TokenAuthority::new(
-            generation,
+    /// The fixture issue time: a round wall-clock second.
+    fn issued_at() -> SystemTime {
+        SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
+    }
+
+    /// The fixture authority, accepting tokens for ten minutes.
+    fn authority() -> TokenAuthority<ChaCha20Rng> {
+        TokenAuthority::new(
+            "07".repeat(32)
+                .parse()
+                .expect("64 hexadecimal digits name a generation"),
             &SecretHexBytes::new([0x5A; 32]),
             Duration::from_mins(10),
             ChaCha20Rng::from_seed([7; 32]),
-        );
-        let scope = Scope {
-            actor,
-            filter: None,
-            k: CutOffset::ZERO,
-        };
+        )
+    }
 
-        let header = encode(
-            authority
-                .mint(scope, issued_at)
-                .expect("the seeded generator is infallible"),
+    /// The actor identity `actor` names.
+    fn presenter(actor: u128) -> ActorEntityUuid {
+        ActorEntityUuid::new(Uuid::from_u128(actor))
+    }
+
+    /// The header value carrying a freshly minted token for `actor`.
+    fn minted(tokens: &TokenAuthority<ChaCha20Rng>, actor: u128) -> HeaderValue {
+        let scope = Scope::new(presenter(actor), None, CutOffset::ZERO);
+        let token = tokens
+            .mint(scope, issued_at())
+            .expect("the seeded generator is infallible");
+
+        HeaderValue::try_from(HexBytes::new(token).to_string())
+            .expect("hexadecimal is a valid header value")
+    }
+
+    /// An absent header reads as a fresh bootstrap, never as a refusal.
+    #[test]
+    fn an_absent_token_reads_as_a_fresh_bootstrap() {
+        assert_matches!(read(None, &authority(), presenter(11)), Presented::Absent);
+    }
+
+    /// A present header outside the codec reads as refused, never as a fresh bootstrap.
+    ///
+    /// The distinction the manifest's case split stands on: a client that presented something is
+    /// answered loudly, so a corrupted retention never silently becomes another view.
+    #[test]
+    fn a_garbage_header_reads_as_refused() {
+        let tokens = authority();
+
+        for garbage in ["", "zz", &"ab".repeat(TOKEN_BYTES)] {
+            assert_matches!(
+                read(
+                    Some(&HeaderValue::from_str(garbage).expect("a visible ASCII string")),
+                    &tokens,
+                    presenter(11),
+                ),
+                Presented::Refused,
+                "a garbage header did not read as refused"
+            );
+        }
+    }
+
+    /// Another actor's authentic token reads as refused, never as a fresh bootstrap.
+    ///
+    /// The witnessed hole this pins shut: an actor switch that leaves a stale token behind must
+    /// answer loudly rather than mint the new actor a fresh view under a `200` the client reads
+    /// as continuity.
+    #[test]
+    fn a_foreign_actors_token_reads_as_refused() {
+        let tokens = authority();
+        let header = minted(&tokens, 11);
+
+        assert_matches!(
+            read(Some(&header), &tokens, presenter(12)),
+            Presented::Refused
         );
-        let token: HexBytes<TOKEN_BYTES> = header.parse().expect("the header form parses back");
+    }
+
+    /// An expired token still reads as carried, and its sealed scope is intact.
+    #[test]
+    fn an_expired_token_reads_as_carried() {
+        let tokens = authority();
+        let header = minted(&tokens, 11);
+
+        let Presented::Carried(scope) = read(Some(&header), &tokens, presenter(11)) else {
+            panic!("an authentic token did not read as carried");
+        };
+        assert_eq!(
+            scope,
+            Scope::new(presenter(11), None, CutOffset::ZERO),
+            "the carried scope differs from the minted one"
+        );
+    }
+
+    /// Admission enforces the window the continuity reading forgives.
+    ///
+    /// The same presentation diverges at the two readings: past the hard window a data request
+    /// refuses while the manifest still carries the sealed view into a fresh mint.
+    #[test]
+    fn an_expired_token_refuses_at_admission_yet_reads_as_carried() {
+        let tokens = authority();
+        let header = minted(&tokens, 11);
+        let expired = issued_at() + Duration::from_mins(11);
 
         assert_eq!(
-            authority
-                .open(&token.into_inner(), actor, issued_at)
-                .expect("the decoded token opens"),
-            scope,
-            "the opened scope differs from the minted one"
+            judge(Some(&header), &tokens, presenter(11), expired),
+            None,
+            "an expired token admitted a data request"
+        );
+        assert_matches!(
+            read(Some(&header), &tokens, presenter(11)),
+            Presented::Carried(_)
+        );
+        assert_matches!(
+            judge(Some(&header), &tokens, presenter(11), issued_at()),
+            Some(_)
         );
     }
 }

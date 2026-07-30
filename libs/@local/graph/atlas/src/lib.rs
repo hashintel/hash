@@ -44,7 +44,7 @@
 //! let atlas = Arc::new(Atlas::open(
 //!     &root,
 //!     id,
-//!     &OpenOptions {
+//!     OpenOptions {
 //!         wire_secret: secret,
 //!     },
 //! )?);

@@ -34,11 +34,13 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
     zerocopy::FromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
+    zerocopy::Unaligned,
     zerocopy::KnownLayout,
     schemars::JsonSchema,
 )]
 #[serde(transparent)]
 #[schemars(transparent)]
+#[repr(transparent)]
 pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
 impl Sha256Digest {

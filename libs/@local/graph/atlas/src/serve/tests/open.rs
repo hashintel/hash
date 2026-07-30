@@ -209,7 +209,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     let (root, generation) = fit_fixture("open-consistency").await;
     store_identities(&generation);
 
-    let open = || Atlas::open(&root, generation.id(), &test_open_options());
+    let open = || Atlas::open(&root, generation.id(), test_open_options());
     let files = &generation.repository().files;
 
     // The control: the untampered fixture opens, so every rejection

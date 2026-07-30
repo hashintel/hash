@@ -69,6 +69,8 @@ pub(crate) enum ProofError {
     Policies(Report<ContextCreationError>),
     /// The caller's filter does not compile against the entity query surface.
     Filter(Report<SelectCompilerError>),
+    /// The scope's held filter document does not parse.
+    Document(serde_json::Error),
     /// The policy filter does not compile against the entity query surface.
     PolicyFilter(Report<SelectCompilerError>),
     /// The store rejected the visibility query.
@@ -83,6 +85,7 @@ impl fmt::Display for ProofError {
             Self::Connect(_) => fmt.write_str("the resolution reached no store connection"),
             Self::Policies(_) => fmt.write_str("the actor's policy set could not be assembled"),
             Self::Filter(_) => fmt.write_str("the request filter does not compile"),
+            Self::Document(_) => fmt.write_str("the scope's held filter document does not parse"),
             Self::PolicyFilter(_) => fmt.write_str("the policy filter does not compile"),
             Self::Query(_) => fmt.write_str("the store rejected the visibility query"),
             Self::Rows(_) => fmt.write_str("the visibility query stopped partway through its rows"),
@@ -96,6 +99,7 @@ impl Error for ProofError {
             Self::Connect(report) => Some(report.current_context()),
             Self::Policies(report) => Some(report.current_context()),
             Self::Filter(report) | Self::PolicyFilter(report) => Some(report.current_context()),
+            Self::Document(error) => Some(error),
             Self::Query(error) | Self::Rows(error) => Some(error),
         }
     }

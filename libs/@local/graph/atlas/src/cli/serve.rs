@@ -223,7 +223,7 @@ impl ServeCommand {
             wire_secret: self.secret.ok_or(ServeError::Secret)?,
         };
         let atlas =
-            Arc::new(Atlas::open(&self.root, generation, &options).map_err(ServeError::Open)?);
+            Arc::new(Atlas::open(&self.root, generation, options).map_err(ServeError::Open)?);
         tracing::info!(
             root = %self.root.path(),
             generation = %atlas.generation(),

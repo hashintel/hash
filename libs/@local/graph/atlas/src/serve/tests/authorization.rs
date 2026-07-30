@@ -2,8 +2,9 @@
 //!
 //! These cases rebuild the envelope from the primitives - HKDF for the key, the header's byte
 //! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
-//! what [`TokenAuthority`] produces. A test that only round-tripped `mint` through `open` would
-//! pass for a module that agrees with itself about the wrong bytes.
+//! what [`TokenAuthority`] produces, in both directions. Every width below is a hand-summed
+//! literal rather than a `size_of` over the production layout types, which is what keeps the
+//! battery an independent check on the byte order: agreement is asserted, never inherited.
 #![expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -16,7 +17,6 @@ use chacha20poly1305::{
     KeyInit as _, XChaCha20Poly1305, XNonce,
     aead::{Aead as _, Payload},
 };
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hkdf::Hkdf;
 use rand::{SeedableRng as _, rngs::ChaCha20Rng};
 use sha2::Sha256;
@@ -25,7 +25,7 @@ use uuid::Uuid;
 use zerocopy::IntoBytes as _;
 
 use crate::{
-    integrity::{SecretHexBytes, Sha256Digest},
+    integrity::SecretHexBytes,
     serve::{
         authorization::{AuthorityError, Scope, TokenAuthority},
         cache::FilterDigest,
@@ -33,29 +33,47 @@ use crate::{
     },
 };
 
-/// The envelope's nonce width.
-const NONCE_BYTES: usize = 24; // NOTE: magic number <3
+/// The format version's width.
+const VERSION_BYTES: usize = 1;
 
-/// The clear header's width: one version byte, eight issue-time bytes, the nonce.
-const HEADER_BYTES: usize = 1 + 8 + NONCE_BYTES; // NOTE: magic number <3
+/// The issue time's width: whole seconds as a little-endian unsigned 64-bit integer.
+const ISSUED_AT_BYTES: usize = 8;
+
+/// The nonce width: `XChaCha20`'s 192-bit extended nonce.
+const NONCE_BYTES: usize = 24;
+
+/// The clear header's width.
+const HEADER_BYTES: usize = VERSION_BYTES + ISSUED_AT_BYTES + NONCE_BYTES;
+
+/// An actor uuid's width.
+const ACTOR_BYTES: usize = 16;
+
+/// The filter presence byte's width.
+const PRESENCE_BYTES: usize = 1;
+
+/// A SHA-256 digest's width.
+const DIGEST_BYTES: usize = 32;
+
+/// The delivery-cut offset's width.
+const OFFSET_BYTES: usize = 1;
 
 /// The sealed plaintext's width: an actor uuid, a presence byte, a filter digest, the offset.
-const PLAINTEXT_BYTES: usize = 16 + 1 + Sha256Digest::BYTES + 1; // NOTE: magic number <3
+const PLAINTEXT_BYTES: usize = ACTOR_BYTES + PRESENCE_BYTES + DIGEST_BYTES + OFFSET_BYTES;
 
 /// Poly1305's tag width.
-const TAG_BYTES: usize = 16; // NOTE: magic number <3
+const TAG_BYTES: usize = 16;
+
+/// The whole envelope's width.
+///
+/// Where a hand-assembled envelope meets a production signature, the compiler unifies this sum
+/// with the production width, so a layout drift fails the build before it fails a case.
+const ENVELOPE_BYTES: usize = HEADER_BYTES + PLAINTEXT_BYTES + TAG_BYTES;
+
+/// The offset of the nonce inside the clear header: past the version byte and the issue time.
+const NONCE_OFFSET: usize = VERSION_BYTES + ISSUED_AT_BYTES;
 
 /// The expansion label.
 const LABEL: &[u8] = b"atlas.authorization.v0";
-
-/// The offset of the nonce inside the clear header: past the version byte and the issue time.
-///
-/// The battery reads the layout by documented offset rather than through the module's own zerocopy
-/// types, which is what keeps it an independent check on the byte order.
-const NONCE_OFFSET: usize = 1 + 8;
-
-// NOTE: why are you seemingly testing here if... zerocopy is implemented. Aren't part of these
-// tests like tautological af?
 
 /// A deterministic CSPRNG for the fixtures.
 ///
@@ -84,16 +102,16 @@ fn issued_at() -> SystemTime {
 
 /// The view of one actor, resolved at offset `k`, over the filter digest of `filter` when present.
 fn scope(actor: u128, k: u8, filter: Option<&[u8]>) -> Scope {
-    Scope {
-        actor: AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(actor))),
-        filter: filter.map(FilterDigest::of),
-        k: CutOffset::carried(k),
-    }
+    Scope::new(
+        ActorEntityUuid::new(Uuid::from_u128(actor)),
+        filter.map(FilterDigest::of),
+        CutOffset::new(k),
+    )
 }
 
 /// The actor identity `actor` names, as a token's presenter.
-fn presenter(actor: u128) -> AuthenticatedActor {
-    AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_u128(actor)))
+fn presenter(actor: u128) -> ActorEntityUuid {
+    ActorEntityUuid::new(Uuid::from_u128(actor))
 }
 
 /// Derives the sealing key independently: HKDF-SHA256, generation digest as salt, one label.
@@ -107,42 +125,43 @@ fn key() -> [u8; 32] {
 }
 
 /// Assembles the clear header by hand: version, issue time in little-endian seconds, nonce.
-fn header(now: SystemTime, nonce: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(HEADER_BYTES);
-    bytes.push(0);
-    bytes.extend_from_slice(
+fn header(now: SystemTime, nonce: &[u8]) -> [u8; HEADER_BYTES] {
+    let mut bytes = [0_u8; HEADER_BYTES];
+    bytes[0] = 0;
+    bytes[VERSION_BYTES..NONCE_OFFSET].copy_from_slice(
         &now.duration_since(SystemTime::UNIX_EPOCH)
             .expect("the fixture instant is after the epoch")
             .as_secs()
             .to_le_bytes(),
     );
-    bytes.extend_from_slice(nonce);
+    bytes[NONCE_OFFSET..].copy_from_slice(nonce);
 
     bytes
 }
 
 /// Assembles the sealed plaintext by hand: actor uuid, presence byte, filter digest, offset byte.
-fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(PLAINTEXT_BYTES);
-    bytes.extend_from_slice(&Uuid::from_u128(actor).into_bytes());
+fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> [u8; PLAINTEXT_BYTES] {
+    let mut bytes = [0_u8; PLAINTEXT_BYTES];
+    bytes[..ACTOR_BYTES].copy_from_slice(&Uuid::from_u128(actor).into_bytes());
     if let Some(canonical) = filter {
-        bytes.push(1);
-        bytes.extend_from_slice(&FilterDigest::of(canonical).digest().to_bytes());
-    } else {
-        bytes.push(0);
-        bytes.extend_from_slice(&[0; Sha256Digest::BYTES]);
+        bytes[ACTOR_BYTES] = 1;
+        bytes[ACTOR_BYTES + PRESENCE_BYTES..PLAINTEXT_BYTES - OFFSET_BYTES]
+            .copy_from_slice(&FilterDigest::of(canonical).digest().to_bytes());
     }
-    bytes.push(k);
+    bytes[PLAINTEXT_BYTES - OFFSET_BYTES] = k;
 
     bytes
 }
 
-/// Seals an arbitrary plaintext under the independent implementation.
+/// Seals a plaintext under the independent implementation.
 ///
-/// The production mint cannot emit a malformed plaintext, so the format negatives need their own
-/// sealer. The same path gives the refusal cases their positive complement: a hand-assembled
-/// envelope the production `open` accepts.
-fn seal_raw(plaintext: &[u8], now: SystemTime, nonce: &[u8; NONCE_BYTES]) -> Vec<u8> {
+/// The counterpart of the byte-compared mint: a hand-assembled envelope the production `open` is
+/// expected to accept.
+fn seal_raw(
+    plaintext: &[u8; PLAINTEXT_BYTES],
+    now: SystemTime,
+    nonce: &[u8; NONCE_BYTES],
+) -> [u8; ENVELOPE_BYTES] {
     let clear = header(now, nonce);
     let body = XChaCha20Poly1305::new(&key().into())
         .encrypt(
@@ -154,8 +173,9 @@ fn seal_raw(plaintext: &[u8], now: SystemTime, nonce: &[u8; NONCE_BYTES]) -> Vec
         )
         .expect("the fixture payload encrypts");
 
-    let mut blob = clear;
-    blob.extend_from_slice(&body);
+    let mut blob = [0_u8; ENVELOPE_BYTES];
+    blob[..HEADER_BYTES].copy_from_slice(&clear);
+    blob[HEADER_BYTES..].copy_from_slice(&body);
 
     blob
 }
@@ -180,24 +200,28 @@ fn a_minted_token_matches_an_independent_envelope() {
         // derives everything else - which is why this case needs no control over the entropy
         // source.
         let nonce = &minted[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES];
-        let header = header(issued_at(), nonce);
+        let clear = header(issued_at(), nonce);
         let body = XChaCha20Poly1305::new(&key().into())
             .encrypt(
                 XNonce::from_slice(nonce),
                 Payload {
                     msg: &plaintext(11, k, filter),
-                    aad: &header,
+                    aad: &clear,
                 },
             )
             .expect("the fixture payload encrypts");
 
-        let mut expected = header;
+        let mut expected = clear.to_vec();
         expected.extend_from_slice(&body);
 
-        assert_eq!(minted, expected, "the envelope is not the assembled bytes");
+        assert_eq!(
+            minted.as_slice(),
+            expected.as_slice(),
+            "the envelope is not the assembled bytes"
+        );
         assert_eq!(
             minted.len(),
-            HEADER_BYTES + PLAINTEXT_BYTES + TAG_BYTES,
+            ENVELOPE_BYTES,
             "the envelope is a fixed 99 bytes"
         );
     }
@@ -234,41 +258,24 @@ fn an_independent_open_recovers_the_scope() {
     );
 }
 
-/// A hand-assembled envelope opens to the scope it names.
+/// A hand-assembled envelope opens to the scope it names, filtered or not.
 ///
-/// The refusal cases' positive complement: the independent implementation seals, the production
-/// `open` accepts. With the mint-side byte comparison this closes the loop in both directions.
+/// The independent implementation seals, the production `open` accepts and resolves the scope.
+/// With the mint-side byte comparison this closes the loop in both directions, so the round trip
+/// through the production pair alone needs no case of its own.
 #[test]
 fn a_hand_assembled_envelope_opens() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
-    let blob = seal_raw(&plaintext(11, 0, None), issued_at(), &[9; NONCE_BYTES]);
-
-    assert_eq!(
-        authority
-            .open(&blob, presenter(11), issued_at())
-            .expect("a hand-assembled envelope opens"),
-        scope(11, 0, None),
-        "the opened scope differs from the sealed one"
-    );
-}
-
-/// A token opens to the view it was minted for, filtered or not, at either offset.
-#[test]
-fn a_minted_token_opens_to_its_scope() {
-    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
-        let scope = scope(11, k, filter);
-        let minted = authority
-            .mint(scope, issued_at())
-            .expect("the seeded generator is infallible");
+        let blob = seal_raw(&plaintext(11, k, filter), issued_at(), &[9; NONCE_BYTES]);
 
         assert_eq!(
             authority
-                .open(&minted, presenter(11), issued_at())
-                .expect("a fresh token opens"),
-            scope,
-            "the opened scope differs from the minted one"
+                .open(&blob, presenter(11), issued_at())
+                .expect("a hand-assembled envelope opens"),
+            scope(11, k, filter),
+            "the opened scope differs from the sealed one"
         );
     }
 }
@@ -286,7 +293,7 @@ fn a_rewritten_issue_time_refuses() {
         .expect("the seeded generator is infallible");
 
     // Move the recorded second, which the tag covers.
-    minted[1] = minted[1].wrapping_add(1);
+    minted[VERSION_BYTES] = minted[VERSION_BYTES].wrapping_add(1);
 
     assert_eq!(
         authority.open(&minted, presenter(11), issued_at()),
@@ -350,20 +357,6 @@ fn a_foreign_generation_refuses() {
     );
 }
 
-/// A blob too short for a header refuses as an envelope fault.
-#[test]
-fn a_truncated_blob_refuses() {
-    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
-
-    for length in [0, 1, HEADER_BYTES - 1] {
-        assert_eq!(
-            authority.open(&vec![0; length], presenter(11), issued_at()),
-            Err(AuthorityError::Envelope),
-            "a {length}-byte blob opened"
-        );
-    }
-}
-
 /// A token opened under another secret refuses at the tag.
 #[test]
 fn a_foreign_secret_refuses() {
@@ -401,77 +394,13 @@ fn a_tampered_byte_refuses() {
         ("ciphertext", HEADER_BYTES),
         ("tag", minted.len() - 1),
     ] {
-        let mut tampered = minted.clone();
+        let mut tampered = minted;
         tampered[index] ^= 1;
         assert_eq!(
             authority.open(&tampered, presenter(11), issued_at()),
             Err(AuthorityError::Authentication),
             "a token with a tampered {region} byte opened"
         );
-    }
-}
-
-/// A foreign format version refuses as an envelope fault, before any cryptography.
-///
-/// The header parse validates the version discriminant, so the cause is
-/// [`AuthorityError::Envelope`] rather than authentication - and it stays that under a wrong
-/// secret, which is what "before the key" means observably.
-#[test]
-fn a_foreign_version_refuses() {
-    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
-    let mut minted = authority
-        .mint(scope(11, 5, None), issued_at())
-        .expect("the seeded generator is infallible");
-    minted[0] = 1;
-
-    assert_eq!(
-        authority.open(&minted, presenter(11), issued_at()),
-        Err(AuthorityError::Envelope),
-        "a foreign version opened"
-    );
-    let foreign = TokenAuthority::new(
-        generation(),
-        &SecretHexBytes::new([0xA5; 32]),
-        Duration::from_mins(10),
-        rng(),
-    );
-    assert_eq!(
-        foreign.open(&minted, presenter(11), issued_at()),
-        Err(AuthorityError::Envelope),
-        "the version check consulted the key"
-    );
-}
-
-/// A malformed plaintext refuses as an envelope fault, reachable only through the reference.
-///
-/// The production mint cannot emit these, so [`seal_raw`] seals them by hand: a truncated scope, an
-/// extended one, and an unknown presence byte, each failing the scope parse after the tag has
-/// passed. [`a_hand_assembled_envelope_opens`] is the control - the same sealing path with a
-/// canonical plaintext opens, so these refuse on the plaintext's form alone.
-#[test]
-fn a_malformed_plaintext_refuses() {
-    let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
-    let open = |plaintext: &[u8]| {
-        authority.open(
-            &seal_raw(plaintext, issued_at(), &[9; NONCE_BYTES]),
-            presenter(11),
-            issued_at(),
-        )
-    };
-
-    let canonical = plaintext(11, 5, None);
-    let truncated = canonical[..PLAINTEXT_BYTES - 1].to_vec();
-    let mut extended = canonical.clone();
-    extended.push(0);
-    let mut unknown_presence = canonical;
-    unknown_presence[16] = 2;
-
-    for (case, body) in [
-        ("a truncated plaintext", &truncated),
-        ("an extended plaintext", &extended),
-        ("an unknown presence byte", &unknown_presence),
-    ] {
-        assert_eq!(open(body), Err(AuthorityError::Envelope), "{case} opened");
     }
 }
 
@@ -538,7 +467,7 @@ fn a_carried_read_still_enforces_tag_and_actor() {
         .mint(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
-    let mut tampered = minted.clone();
+    let mut tampered = minted;
     tampered[HEADER_BYTES] ^= 1;
     assert_eq!(
         authority.carried(&tampered, presenter(11)),

@@ -67,6 +67,9 @@ pub(super) enum ProblemType {
     /// A request that names no authenticated actor while the process resolves scopes per caller.
     #[serde(rename = "/problems/atlas/missing-actor")]
     MissingActor,
+    /// A request whose authority token is absent, malformed, foreign, or stale.
+    #[serde(rename = "/problems/atlas/unauthorized")]
+    Unauthorized,
     /// The caller's scope could not be resolved, so the process cannot say what they may see.
     #[serde(rename = "/problems/atlas/visibility-unavailable")]
     VisibilityUnavailable,
@@ -204,6 +207,21 @@ pub(super) fn reject_generation(
 /// nothing else.
 pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'static> {
     Problem::new(StatusCode::BAD_REQUEST, ProblemType::MissingActor, detail)
+}
+
+/// Refuses a request that presents no acceptable authority token.
+///
+/// One uniform answer for every cause - an absent header, a malformed encoding, a failed tag, a
+/// stale issue time, or an actor mismatch - so a caller learns that its presentation refused and
+/// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out,
+/// so no cause is logged.
+pub(super) fn unauthorized() -> Problem<'static> {
+    Problem::new(
+        StatusCode::UNAUTHORIZED,
+        ProblemType::Unauthorized,
+        "the request presents no acceptable authority token; re-fetch the manifest presenting the \
+         held token to renew, or without one to bootstrap afresh",
+    )
 }
 
 /// Refuses a request whose scope could not be resolved.

@@ -77,7 +77,7 @@ impl Atlas {
     pub fn open(
         root: &GenerationRoot,
         id: GenerationId,
-        options: &OpenOptions,
+        OpenOptions { wire_secret }: OpenOptions,
     ) -> Result<Self, OpenAtlasError> {
         let generation = root.open(id).map_err(|error| match error {
             OpenError::Unpublished(id) => OpenAtlasError::Unpublished(id),
@@ -186,7 +186,7 @@ impl Atlas {
         let universe = u32::try_from(rows.len()).map_err(|_error| OpenAtlasError::Universe {
             rows: rows.len() as u64,
         })?;
-        let node_codec = RowCodec::derive(&options.wire_secret, id, NODE_LABEL, universe);
+        let node_codec = RowCodec::derive(&wire_secret, id, NODE_LABEL, universe);
 
         // The wire column maps the validated row column once, so every position-driven gather
         // reads permuted ids for free.
@@ -201,8 +201,7 @@ impl Atlas {
 
         Ok(Self {
             generation,
-            wire_secret: options.wire_secret.clone(), /* NOTE: why don't you just take ownership
-                                                       * of Option if you need to clone? */
+            wire_secret,
             grid,
             quad,
             morton,

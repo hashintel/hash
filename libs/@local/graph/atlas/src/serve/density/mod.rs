@@ -43,6 +43,10 @@
 //! The stored form is the count profile itself and nothing besides: a row count is not an input a
 //! policy may read, so the aggregate does not carry one. Two views whose profiles agree are one
 //! value, which is the equality a resolution's determinism is stated over.
+#![expect(
+    clippy::empty_enums,
+    reason = "zerocopy's FromBytes derive expands to an empty enum for its validation machinery"
+)]
 
 #[cfg(test)]
 mod tests;
@@ -135,9 +139,26 @@ const impl Default for DensityBand {
 
 /// One delivery-cut offset: the depth every zoom's cut gains for one scope.
 ///
-/// A value exists only where a policy resolved it, so the cut it deepens stays inside the key width
-/// by construction.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+/// A density policy resolves the offset once, at bootstrap, and a sealed authority token carries
+/// it across refreshes, so a view keeps one resolution for as long as its client holds a token.
+/// Production construction is [`Self::ZERO`], a policy's resolution, or the authenticated read of
+/// a sealed token, so a served offset was decided by the public-band rule and a client cannot
+/// forge one past the seal.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
 pub struct CutOffset(u8);
 
 impl CutOffset {
@@ -153,13 +174,9 @@ impl CutOffset {
         self.0
     }
 
-    /// Wraps an offset the token authority unsealed.
-    ///
-    /// The construction invariant - a value exists only where a policy resolved it - crosses the
-    /// seal on the token's tag: a sealed offset was resolved at its mint, and nothing else
-    /// constructs one here.
-    pub(crate) const fn carried(offset: u8) -> Self {
-        // NOTE: why not just zerocopy this struct?
+    /// Wraps a raw offset, for fixtures alone.
+    #[cfg(test)]
+    pub(crate) const fn new(offset: u8) -> Self {
         Self(offset)
     }
 }

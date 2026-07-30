@@ -125,6 +125,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`too-many-entity-ids`, `invalid-generation`, `missing-body`, or `invalid-body`",
             )
         })
+        .response_with::<401, Problem<'static>, _>(|response| {
+            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
+        })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation` or `unknown-variant`: re-bootstrap through `current`",

@@ -10,7 +10,6 @@ use tracing::Instrument as _;
 
 use super::{
     AppState,
-    authorization::Authorized,
     extract::{Body, Generation},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
@@ -73,7 +72,6 @@ pub(super) struct VariantPath {
 /// the body is required.
 pub(super) async fn handler(
     State(state): State<AppState>,
-    _authority: Authorized,
     visibility: Visibility,
     Generation(VariantPath {
         generation,

@@ -419,7 +419,7 @@ async fn publish(name: &str) -> (Generation, Atlas) {
     let (root, generation) = fit_fixture(name).await;
     store_identities(&generation);
     let atlas =
-        Atlas::open(&root, generation.id(), &test_open_options()).expect("the atlas should open");
+        Atlas::open(&root, generation.id(), test_open_options()).expect("the atlas should open");
 
     (generation, atlas)
 }
@@ -794,7 +794,7 @@ fn open_rejects_an_unpublished_generation() {
         .parse()
         .expect("the zero digest parses");
     assert_matches!(
-        Atlas::open(&root, id, &test_open_options()),
+        Atlas::open(&root, id, test_open_options()),
         Err(OpenAtlasError::Unpublished(unpublished)) if unpublished == id,
     );
 }
@@ -1680,7 +1680,7 @@ async fn foreign_key_widths_fail_the_open() {
     use crate::salt::fit::prepare::identity::InvalidIdentityFile;
 
     let (root, generation) = fit_fixture("foreign-width-fails").await;
-    let error = Atlas::open(&root, generation.id(), &test_open_options())
+    let error = Atlas::open(&root, generation.id(), test_open_options())
         .expect_err("a foreign key width must fail the open");
     assert!(
         matches!(

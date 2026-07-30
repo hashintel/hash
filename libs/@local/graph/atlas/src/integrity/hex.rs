@@ -75,6 +75,7 @@ const fn decode_nibble(byte: u8, index: usize) -> Result<u8, ParseHexError> {
     zerocopy::FromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
+    zerocopy::Unaligned,
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]

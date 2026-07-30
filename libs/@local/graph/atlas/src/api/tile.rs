@@ -179,6 +179,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                  or `invalid-body` (a body that is not this operation's JSON shape)",
             )
         })
+        .response_with::<401, Problem<'static>, _>(|response| {
+            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
+        })
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation` or `unknown-variant`: re-read `current` and retry",

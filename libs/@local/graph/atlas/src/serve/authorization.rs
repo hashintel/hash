@@ -1,37 +1,27 @@
 //! The authority token: one view's sealed identity and state, carried by a client across requests.
 //!
-//! A token seals what names an authorized view and what was resolved for it: the actor and the
-//! filter digest - the visibility proof's identity, since the proof is resolved *over* the filter -
-//! beside every view parameter derived at bootstrap, today the delivery-cut offset `k`. All of it
-//! is encrypted under a key derived per generation; the tag proves the server minted it. The client
-//! holds its token for as long as it wants the view, the server keeps no token state, and
-//! re-minting extracts the sealed state from the presented token, so a refresh renews authority
-//! without perturbing the view.
+//! A token seals the [`Scope`] that names an authorized view: the actor, the filter digest - the
+//! visibility proof's identity, resolved over the filter at bootstrap - and the view state derived
+//! for that proof, today the delivery-cut offset `k`. The plaintext is encrypted under a
+//! per-generation key and the tag proves this server minted it. The server keeps no token state:
+//! a re-mint reads the sealed state out of the presented token, so a refresh renews authority
+//! while the view stays fixed.
 //!
-//! The filter *document* deliberately does not travel in the token: it is too large to roundtrip,
-//! and a digest is not a recoverable form of it - many documents may hash to one value, so treating
-//! the digest as the filter would be information loss. The document lives in two places instead:
-//! durably with the client, which holds exactly two pieces of state - this token, verified, and
-//! its own filter, unverified - and server-side inside the visibility cache entry it was resolved
-//! over, which is what lets the soft window revalidate a filtered scope without a client round
-//! trip. When an entry has expired, the client re-presents the document, and the sealed digest is
-//! the check that it is this view's filter. One actor may hold several active filters as several
-//! tokens, distinguished exactly by their digests. The filter may change at a re-manifest - the
-//! derived view state carries regardless, so a filter change never perturbs `k` - never in flight:
-//! while a run is pinned, delivered state accumulates under one filter, and the boundary where it
-//! may change is exactly the boundary where the token re-mints.
+//! The filter travels as its digest. The client holds the filter document itself and re-presents
+//! it when a server-side entry has expired; the sealed digest is the check that the presented
+//! document is this view's filter. One actor may hold several active filters as several tokens,
+//! distinguished by their digests. A filter binds at the manifest, where the token re-mints: a
+//! pinned run accumulates delivered state under one filter for its whole lifetime.
 //!
 //! # The envelope
 //!
-//! `header | ciphertext | tag`, where the header is [`AuthorityHeader`] in the clear and the tag is
-//! Poly1305's. Every field has a fixed width, so reading one is a zerocopy cast:
-//! [`SealedAuthority`] resolves a blob into a header and a body in one step, and a blob shorter
-//! than a header refuses as [`AuthorityError::Envelope`].
+//! `header | ciphertext | trailer`, [`TOKEN_BYTES`] wide, with every field at a fixed offset:
+//! [`SealedAuthority`] is the envelope as a type, and a blob resolves into one by a zerocopy cast.
+//! The header is [`AuthorityHeader`] in the clear, the ciphertext seals the [`Scope`] itself -
+//! the scope is its own byte-level form - and the trailer is Poly1305's tag.
 //!
-//! The associated data is the header's own bytes, so both sides authenticate an identical form. The
-//! clear header is fixed at mint: a rewritten `issued_at` invalidates the tag.
-//!
-//! The tag authenticates the plaintext, which is where the scope travels.
+//! The associated data is the header's own bytes, so both sides authenticate an identical form.
+//! The clear header is fixed at mint: a rewritten `issued_at` invalidates the tag.
 //!
 //! # The key
 //!
@@ -54,14 +44,13 @@
     reason = "zerocopy's TryFromBytes derive expands to an empty enum for the discriminant check, \
               which is the validation this type exists for"
 )]
-use core::time::Duration;
+use core::{ops::Deref, time::Duration};
 use std::{sync::nonpoison::Mutex, time::SystemTime};
 
 use chacha20poly1305::{
-    AeadCore, KeyInit as _, KeySizeUser, XChaCha20Poly1305, XNonce,
-    aead::{Aead as _, Payload, generic_array::typenum::Unsigned},
+    AeadCore, KeyInit as _, KeySizeUser, Tag, XChaCha20Poly1305, XNonce,
+    aead::{AeadInPlace as _, generic_array::typenum::Unsigned},
 };
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hkdf::Hkdf;
 use rand::{TryCryptoRng, TryRng as _};
 use sha2::Sha256;
@@ -70,17 +59,10 @@ use uuid::Uuid;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{CutOffset, GenerationId, cache::FilterDigest};
-use crate::integrity::{SecretHexBytes, Sha256Digest};
+use crate::integrity::SecretHexBytes;
 
 /// The HKDF expansion label: one sealed value, one label, versioned in place.
 const LABEL: &[u8] = b"atlas.authorization.v0";
-
-/// The token envelope's width: the clear header, the sealed scope, and the AEAD's tag.
-///
-/// Derived from the layout types and the cipher's own tag size, so it moves when they do.
-pub(crate) const TOKEN_BYTES: usize = size_of::<AuthorityHeader>()
-    + size_of::<ScopeToken>()
-    + <<XChaCha20Poly1305 as AeadCore>::TagSize as Unsigned>::USIZE;
 
 /// The nonce width: the cipher's own.
 const NONCE_BYTES: usize = <<XChaCha20Poly1305 as AeadCore>::NonceSize as Unsigned>::USIZE;
@@ -88,144 +70,8 @@ const NONCE_BYTES: usize = <<XChaCha20Poly1305 as AeadCore>::NonceSize as Unsign
 /// The sealing key's width: the cipher's own.
 const KEY_BYTES: usize = <<XChaCha20Poly1305 as KeySizeUser>::KeySize as Unsigned>::USIZE;
 
-/// The envelope's format version.
-///
-/// Parsing admits exactly the layout this module writes. Increment on any layout change.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-    zerocopy::TryFromBytes,
-)]
-#[repr(u8)]
-enum MessageVersion {
-    V0 = 0,
-}
-
-/// Whether a scope carries a request filter.
-///
-/// Parsing admits `0` and `1`, so a tampered presence byte refuses as
-/// [`AuthorityError::Envelope`].
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-    zerocopy::TryFromBytes,
-)]
-#[repr(u8)]
-enum FilterPresence {
-    Absent = 0,
-    Present = 1,
-}
-
-/// The token envelope's clear header.
-///
-/// Thirty-three bytes carrying the format version, the issue time, and the nonce. The tag
-/// authenticates them verbatim, which fixes their values at mint.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-    zerocopy::TryFromBytes,
-)]
-#[repr(C)]
-struct AuthorityHeader {
-    version: MessageVersion,
-    /// The issue time as whole seconds since the Unix epoch.
-    ///
-    /// The wall clock narrows to seconds at this field, and every signature in this module speaks
-    /// [`SystemTime`]. The field's accuracy is bounded by clock agreement between the process that
-    /// mints and the process that opens, and the acceptance window it feeds is measured in
-    /// minutes. Truncation reads earlier than the instant it records, so a token expires
-    /// marginally early.
-    issued_at: U64<LE>,
-    nonce: [u8; NONCE_BYTES],
-}
-
-/// One sealed token, read in place.
-///
-/// The body is the ciphertext with Poly1305's tag appended, which is the form the AEAD produces and
-/// consumes.
-#[derive(zerocopy::Immutable, zerocopy::KnownLayout, zerocopy::TryFromBytes)]
-#[repr(C)]
-struct SealedAuthority {
-    header: AuthorityHeader,
-    body: [u8],
-}
-
-/// The sealed plaintext: one view's identity and derived state.
-///
-/// The [`TokenAuthority`] opening a token supplies the generation, whose key sealed it. The
-/// presence byte is the one validated discriminant; every other byte pattern is a valid value,
-/// trusted because the tag already vouched for it.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-    zerocopy::TryFromBytes,
-)]
-#[repr(C)]
-#[expect(
-    clippy::min_ident_chars,
-    reason = "`k` is the delivery-cut offset's name throughout the density contract"
-)]
-struct ScopeToken {
-    actor: [u8; 16], // NOTE: why is this not a proper type? Why not have this be properly typed?
-    filter: FilterPresence,
-    /// The filter's digest, zero throughout when [`FilterPresence::Absent`].
-    filter_digest: [u8; Sha256Digest::BYTES], /* NOTE: same here. Shouldn't this be a proper
-                                               * zerocopy type? */
-    /// The delivery-cut offset the view was resolved with.
-    k: u8, // NOTE: same here
-}
-
-/// One view's sealed identity and state: what a token carries and a mint seals.
-///
-/// The actor and filter digest name the visibility proof the view answers under; `k` is the state
-/// derived for it at bootstrap. A re-mint carries a presented token's `k` forward verbatim, which
-/// is what keeps the view stable across a refresh, while the filter digest re-derives from the
-/// filter the client presents at that boundary.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[expect(
-    clippy::min_ident_chars,
-    reason = "`k` is the delivery-cut offset's name throughout the density contract"
-)]
-pub(crate) struct Scope {
-    // NOTE: I believe most of this could be done w/ a repr(transparent) and deref, similar to what
-    // I already have had for ArchivedEntityUuid. Encode in types, don't just transfer between
-    // them... that defeats the point of zerocopy.
-    /// The actor the view is authorized for.
-    pub actor: AuthenticatedActor,
-    /// The digest of the filter the view's visibility proof was resolved over, absent when
-    /// unfiltered.
-    pub filter: Option<FilterDigest>,
-    /// The view's delivery-cut offset.
-    pub k: CutOffset,
-}
+/// The tag width: the cipher's own.
+const TAG_BYTES: usize = <<XChaCha20Poly1305 as AeadCore>::TagSize as Unsigned>::USIZE;
 
 /// One refused token, by cause.
 ///
@@ -233,10 +79,7 @@ pub(crate) struct Scope {
 /// refusal, so a caller learns that it must re-manifest and nothing about why.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum AuthorityError {
-    // NOTE: errors always at the top of the file.
     /// The blob is not this format.
-    ///
-    /// Too short for a header, a foreign format version, or an unknown discriminant.
     Envelope,
     /// The tag rejected the ciphertext under the header it arrived with.
     Authentication,
@@ -264,20 +107,249 @@ impl core::fmt::Display for AuthorityError {
 
 impl core::error::Error for AuthorityError {}
 
+/// The envelope's format version.
+///
+/// Parsing admits exactly the layout this module writes. Increment on any layout change.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(u8)]
+enum MessageVersion {
+    V0 = 0,
+}
+
+/// The token envelope's clear header.
+///
+/// The format version, the issue time, and the nonce. The tag authenticates them verbatim, which
+/// fixes their values at mint.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(C)]
+struct AuthorityHeader {
+    version: MessageVersion,
+    /// The issue time as whole seconds since the Unix epoch.
+    ///
+    /// The wall clock narrows to seconds at this field, and every signature in this module speaks
+    /// [`SystemTime`]. The field's accuracy is bounded by clock agreement between the process that
+    /// mints and the process that opens, and the acceptance window it feeds is measured in
+    /// minutes. Truncation reads earlier than the instant it records, so a token expires
+    /// marginally early.
+    issued_at: U64<LE>,
+    nonce: [u8; NONCE_BYTES],
+}
+
+/// The token envelope's trailer: the AEAD's tag over the ciphertext and the clear header.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(C)]
+struct AuthorityTrailer {
+    tag: [u8; TAG_BYTES],
+}
+
+/// The byte-level form of an [`ActorEntityUuid`].
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    zerocopy::ByteEq,
+    zerocopy::ByteHash,
+    zerocopy::IntoBytes,
+    zerocopy::FromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(transparent)]
+pub(crate) struct ArchivedActorEntityUuid([u8; 16]);
+
+impl From<ActorEntityUuid> for ArchivedActorEntityUuid {
+    #[inline]
+    fn from(actor: ActorEntityUuid) -> Self {
+        Self(Uuid::from(actor).into_bytes())
+    }
+}
+
+impl Deref for ArchivedActorEntityUuid {
+    type Target = ActorEntityUuid;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        const {
+            assert!(size_of::<Self>() == size_of::<ActorEntityUuid>());
+            assert!(align_of::<Self>() == align_of::<ActorEntityUuid>());
+        }
+
+        let ptr = &raw const *self;
+        // SAFETY: `Self` is `repr(transparent)` over `[u8; 16]`, and the target chain
+        // `ActorEntityUuid(EntityUuid)`, `EntityUuid(Uuid)`, `Uuid([u8; 16])` is
+        // `repr(transparent)` at every link.
+        unsafe { &*ptr.cast::<ActorEntityUuid>() }
+    }
+}
+
+/// A scope's request filter, by identity.
+///
+/// The discriminant is the presence and the payload is the digest, one validated field: parsing
+/// admits the two written forms and a tampered discriminant refuses as
+/// [`AuthorityError::Envelope`]. The absent form carries zeroed payload bytes, so a filter's
+/// presence never shows in the envelope's length.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(u8)]
+pub(crate) enum ScopeFilter {
+    Absent([u8; 32]),
+    Present(FilterDigest),
+}
+
+impl ScopeFilter {
+    /// Returns the filter's digest, absent when the scope is unfiltered.
+    pub(crate) const fn digest(self) -> Option<FilterDigest> {
+        match self {
+            Self::Present(digest) => Some(digest),
+            Self::Absent(_) => None,
+        }
+    }
+}
+
+impl From<Option<FilterDigest>> for ScopeFilter {
+    fn from(filter: Option<FilterDigest>) -> Self {
+        filter.map_or(Self::Absent([0; 32]), Self::Present)
+    }
+}
+
+/// One view's sealed identity and state: what a token carries and a mint seals.
+///
+/// The actor and filter digest name the visibility proof the view answers under; `k` is the state
+/// derived for it at bootstrap. A re-mint carries a presented token's `k` forward verbatim, which
+/// is what keeps the view stable across a refresh, while the filter digest re-derives from the
+/// filter the client presents at that boundary.
+///
+/// The scope is its own byte-level form - every field is a zerocopy type - so a mint seals it
+/// verbatim and an open reads it in place. The filter discriminant is the one validated byte;
+/// every other pattern is a valid value, trusted because the tag already vouched for it.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`k` is the delivery-cut offset's name throughout the density contract"
+)]
+#[repr(C)]
+pub(crate) struct Scope {
+    /// The actor the view is authorized for.
+    pub actor: ArchivedActorEntityUuid,
+    /// The digest of the filter the view's visibility proof was resolved over, absent when
+    /// unfiltered.
+    pub filter: ScopeFilter,
+    /// The view's delivery-cut offset.
+    pub k: CutOffset,
+}
+
+impl Scope {
+    /// Binds one view's identity and state.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
+    pub(crate) fn new(actor: ActorEntityUuid, filter: Option<FilterDigest>, k: CutOffset) -> Self {
+        Self {
+            actor: ArchivedActorEntityUuid::from(actor),
+            filter: ScopeFilter::from(filter),
+            k,
+        }
+    }
+}
+
+/// One sealed token: the envelope as a type, read in place.
+///
+/// Every field sits at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
+/// ciphertext, and trailer in one zerocopy cast, and the cast validates the format version.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+    zerocopy::TryFromBytes,
+)]
+#[repr(C)]
+struct SealedAuthority {
+    header: AuthorityHeader,
+    ciphertext: [u8; size_of::<Scope>()],
+    trailer: AuthorityTrailer,
+}
+
+impl SealedAuthority {
+    const SIZE: usize = size_of::<Self>();
+}
+
+/// The token envelope's width: the clear header, the sealed scope, and the tag.
+///
+/// Derived from the envelope type itself, so it moves when the layout does.
+pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
+
 /// Mints and opens the authority tokens of one generation.
 ///
-/// The whole judgment context in one value: the generation, its sealing key (derived once, at
+/// The whole judgment context in one value: the generation's sealing key (derived once, at
 /// construction), the acceptance window, and the entropy source - the latter behind its own lock,
 /// held for the nonce draw alone, so opening never contends with minting. A token opens under the
 /// authority whose generation sealed it, for the actor it names, within the window.
 #[derive(Debug)]
 pub(crate) struct TokenAuthority<R> {
-    // NOTE: doc etiquette
     /// This generation's sealing key.
     ///
-    /// The generation itself travels inside it, as the derivation's salt: a foreign generation's
-    /// token refuses at the tag, so no generation field needs comparing. As secret as the secret
-    /// it derives from, and typed accordingly: redacted rendering, zeroed on drop.
+    /// Derived once, at construction, with the generation digest as the derivation's salt.
     key: SecretHexBytes<KEY_BYTES>,
     /// The acceptance window: a token older than this at open refuses as stale.
     hard: Duration,
@@ -319,11 +391,14 @@ where
     ///
     /// Returns the generator's error when drawing the nonce fails: entropy failure refuses the
     /// mint rather than sealing under a predictable nonce.
-    pub(crate) fn mint(&self, scope: Scope, now: SystemTime) -> Result<Vec<u8>, R::Error> {
+    pub(crate) fn mint(
+        &self,
+        scope: Scope,
+        now: SystemTime,
+    ) -> Result<[u8; SealedAuthority::SIZE], R::Error> {
         let mut nonce = [0_u8; NONCE_BYTES];
         self.rng.lock().try_fill_bytes(&mut nonce)?;
 
-        // The only narrowing of the wall clock in this module: the wire carries an integer.
         let header = AuthorityHeader {
             version: MessageVersion::V0,
             issued_at: U64::new(
@@ -333,32 +408,28 @@ where
             nonce,
         };
 
-        let (filter, filter_digest) = scope.filter.map_or(
-            (FilterPresence::Absent, [0; Sha256Digest::BYTES]),
-            |filter| (FilterPresence::Present, filter.digest().to_bytes()),
-        );
-        let token = ScopeToken {
-            actor: Uuid::from(ActorEntityUuid::from(scope.actor)).into_bytes(),
-            filter,
-            filter_digest,
-            k: scope.k.get(),
-        };
+        let mut blob = [0_u8; SealedAuthority::SIZE];
+        header
+            .write_to_prefix(&mut blob)
+            .expect("the envelope begins with its header");
+        scope
+            .write_to_prefix(&mut blob[size_of::<AuthorityHeader>()..])
+            .expect("the envelope seals the scope past its header");
 
-        let body = XChaCha20Poly1305::new(self.key.as_bytes().into())
-            .encrypt(
+        let sealed_tag = XChaCha20Poly1305::new(self.key.as_bytes().into())
+            .encrypt_in_place_detached(
                 XNonce::from_slice(&nonce),
-                Payload {
-                    msg: token.as_bytes(),
-                    aad: header.as_bytes(),
-                },
+                header.as_bytes(),
+                &mut blob[size_of::<AuthorityHeader>()
+                    ..size_of::<AuthorityHeader>() + size_of::<Scope>()],
             )
             .unwrap_or_else(|_error| {
                 unreachable!("XChaCha20-Poly1305 encryption is infallible for in-memory payloads")
             });
 
-        let mut blob = Vec::with_capacity(size_of::<AuthorityHeader>() + body.len());
-        blob.extend_from_slice(header.as_bytes());
-        blob.extend_from_slice(&body);
+        sealed_tag
+            .write_to_suffix(&mut blob)
+            .expect("the envelope ends in its tag");
 
         Ok(blob)
     }
@@ -377,20 +448,17 @@ where
     /// the window, and [`AuthorityError::Actor`] for a presenter the token does not name.
     pub(crate) fn open(
         &self,
-        blob: &[u8],
-        actor: AuthenticatedActor,
+        blob: &[u8; TOKEN_BYTES],
+        actor: ActorEntityUuid,
         now: SystemTime,
     ) -> Result<Scope, AuthorityError> {
-        let (issued_at, token) = self.unseal(blob)?;
+        let (issued_at, scope) = self.unseal(blob)?;
 
-        // NOTE: comment etiquette
-        // The window is read after the tag, so every field it judges is one the tag has vouched
-        // for.
         if issued_at > now || now.saturating_duration_since(issued_at) >= self.hard {
             return Err(AuthorityError::Stale);
         }
 
-        Self::subject(token, actor)
+        Self::subject(scope, actor)
     }
 
     /// Reads the view state a presented token carries, for a re-mint.
@@ -408,54 +476,44 @@ where
     /// a presenter the token does not name.
     pub(crate) fn carried(
         &self,
-        blob: &[u8],
-        actor: AuthenticatedActor,
+        blob: &[u8; TOKEN_BYTES],
+        actor: ActorEntityUuid,
     ) -> Result<Scope, AuthorityError> {
-        let (_issued_at, token) = self.unseal(blob)?;
+        let (_issued_at, scope) = self.unseal(blob)?;
 
-        Self::subject(token, actor)
+        Self::subject(scope, actor)
     }
 
-    /// Parses and authenticates one envelope: the zerocopy casts and the tag, nothing judged.
-    fn unseal(&self, blob: &[u8]) -> Result<(SystemTime, ScopeToken), AuthorityError> {
+    /// Parses and authenticates one envelope: the zerocopy cast and the tag, nothing judged.
+    fn unseal(&self, blob: &[u8; TOKEN_BYTES]) -> Result<(SystemTime, Scope), AuthorityError> {
         let sealed =
             SealedAuthority::try_ref_from_bytes(blob).map_err(|_error| AuthorityError::Envelope)?;
 
-        let plaintext = XChaCha20Poly1305::new(self.key.as_bytes().into())
-            .decrypt(
+        let mut plaintext = sealed.ciphertext;
+        XChaCha20Poly1305::new(self.key.as_bytes().into())
+            .decrypt_in_place_detached(
                 &XNonce::from(sealed.header.nonce),
-                Payload {
-                    msg: &sealed.body,
-                    aad: sealed.header.as_bytes(),
-                },
+                sealed.header.as_bytes(),
+                &mut plaintext,
+                &Tag::from(sealed.trailer.tag),
             )
             .map_err(|_error| AuthorityError::Authentication)?;
 
-        let token = ScopeToken::try_read_from_bytes(&plaintext)
-            .map_err(|_error| AuthorityError::Envelope)?;
+        let scope =
+            Scope::try_read_from_bytes(&plaintext).map_err(|_error| AuthorityError::Envelope)?;
 
         Ok((
             SystemTime::UNIX_EPOCH + Duration::from_secs(sealed.header.issued_at.get()),
-            token,
+            scope,
         ))
     }
 
     /// Resolves the sealed state for `actor`, refusing a presenter the token does not name.
-    fn subject(token: ScopeToken, actor: AuthenticatedActor) -> Result<Scope, AuthorityError> {
-        let subject = AuthenticatedActor::Uuid(ActorEntityUuid::new(Uuid::from_bytes(token.actor)));
-        if subject != actor {
+    fn subject(scope: Scope, actor: ActorEntityUuid) -> Result<Scope, AuthorityError> {
+        if scope.actor != ArchivedActorEntityUuid::from(actor) {
             return Err(AuthorityError::Actor);
         }
 
-        Ok(Scope {
-            actor: subject,
-            filter: match token.filter {
-                FilterPresence::Present => Some(FilterDigest::from_digest(
-                    Sha256Digest::from_bytes_unchecked(token.filter_digest),
-                )),
-                FilterPresence::Absent => None,
-            },
-            k: CutOffset::carried(token.k),
-        })
+        Ok(scope)
     }
 }

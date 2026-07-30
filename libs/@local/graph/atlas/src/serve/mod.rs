@@ -73,7 +73,7 @@ pub use self::{
     walk::ViewCensus,
 };
 pub(crate) use self::{
-    cache::{Resolution, VisibilityCache, VisibilityKey},
+    cache::{FilterDigest, Resolution, VisibilityCache, VisibilityKey},
     hydrate::compile::{ProofError, visibility_proof},
 };
 use crate::{
@@ -182,7 +182,7 @@ pub struct Filter(serde_json::Value);
 /// let atlas = Arc::new(Atlas::open(
 ///     &root,
 ///     id,
-///     &OpenOptions {
+///     OpenOptions {
 ///         wire_secret: secret,
 ///     },
 /// )?);
