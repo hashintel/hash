@@ -24,7 +24,7 @@ use hash_graph_store::{
         EntityTableSummary, EntityTableWebScope, QueryEntitiesTableParams,
         QueryEntitiesTableResponse, TYPE_UNIVERSE_LIMIT,
     },
-    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::{EntityTypeQueryPath, IncludeEntityTypeOption},
     error::QueryError,
     filter::{
         Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, ParameterList,
@@ -643,7 +643,7 @@ where
                     .map(|endpoint| endpoint.entity_type_ids.clone())
             };
             Some(
-                self.get_closed_multi_entity_types(
+                self.get_closed_multi_entity_types_impl(
                     actor_id,
                     rows.iter()
                         .map(|row| row.entity_type_ids.clone())
@@ -655,7 +655,10 @@ where
                             rows.iter()
                                 .filter_map(|row| endpoint_types(&row.target_entity)),
                         ),
-                    QueryTemporalAxesUnresolved::live_only(),
+                    // The types are read at the page's instant rather than at a clock reading of
+                    // their own, so the chips describe the rows the page actually returned.
+                    &QueryTemporalAxesUnresolved::live_only()
+                        .resolve_with(policy_components.timestamp()),
                     None,
                 )
                 .await?

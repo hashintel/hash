@@ -90,6 +90,8 @@ impl PolicyComponents {
 
     /// Returns the store's clock reading captured while building these components.
     ///
+    /// Components always carry a reading, whether or not the operation goes on to use one.
+    ///
     /// This value is the time authority for the operation these components were built for: it
     /// should be used to resolve temporal axes and to derive written timestamps, so that all
     /// timestamps within one operation agree with each other and with the store's clock.
@@ -372,7 +374,8 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// Callers which already hold a clock reading from the store — e.g. because an earlier
     /// statement of the same operation returned one — should pass it here so the components share
     /// the operation's timestamp. When absent, a reading is captured while building the
-    /// components.
+    /// components: on the actor lookup where the actor still needs resolving, otherwise through a
+    /// statement of its own.
     pub const fn set_timestamp(&mut self, timestamp: Timestamp<()>) {
         self.timestamp = Some(timestamp);
     }
@@ -619,9 +622,20 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     fn into_future(mut self) -> Self::IntoFuture {
         async move {
+            // The components always carry a clock reading, so each arm resolves one: a reading the
+            // caller supplied is taken as-is, an actor which still needs resolving has the reading
+            // captured by its lookup statement, and only an already-resolved actor without a
+            // supplied reading pays for a statement of its own.
             let (actor_id, timestamp) = match (self.actor, self.timestamp) {
-                (AuthenticatedActor::Id(actor_id), timestamp) => (Some(actor_id), timestamp),
-                (AuthenticatedActor::Uuid(actor_uuid), timestamp @ Some(_)) => (
+                (AuthenticatedActor::Id(actor_id), Some(timestamp)) => (Some(actor_id), timestamp),
+                (AuthenticatedActor::Id(actor_id), None) => (
+                    Some(actor_id),
+                    self.store
+                        .current_timestamp()
+                        .await
+                        .change_context(ContextCreationError::StoreError)?,
+                ),
+                (AuthenticatedActor::Uuid(actor_uuid), Some(timestamp)) => (
                     self.store
                         .determine_actor(actor_uuid)
                         .await
@@ -630,25 +644,13 @@ where
                         })?,
                     timestamp,
                 ),
-                (AuthenticatedActor::Uuid(actor_uuid), None) => {
-                    let (actor_id, timestamp) = self
-                        .store
-                        .determine_actor_with_timestamp(actor_uuid)
-                        .await
-                        .change_context(ContextCreationError::DetermineActor {
-                            actor_id: actor_uuid,
-                        })?;
-                    (actor_id, Some(timestamp))
-                }
-            };
-
-            let timestamp = match timestamp {
-                Some(timestamp) => timestamp,
-                None => self
+                (AuthenticatedActor::Uuid(actor_uuid), None) => self
                     .store
-                    .current_timestamp()
+                    .determine_actor_with_timestamp(actor_uuid)
                     .await
-                    .change_context(ContextCreationError::StoreError)?,
+                    .change_context(ContextCreationError::DetermineActor {
+                        actor_id: actor_uuid,
+                    })?,
             };
 
             if let Some(actor_id) = actor_id {

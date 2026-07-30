@@ -1134,8 +1134,9 @@ where
             .with_actor(authenticated_actor)
             .with_action(params.action, MergePolicies::Yes);
         if let Some(timestamp) = timestamp {
-            // Forwarding the operation's reading keeps the builder from issuing a second clock
-            // query, which it would otherwise do for an already-resolved actor.
+            // An already-resolved actor has no lookup statement for the builder to capture a
+            // reading on, so forwarding the operation's own keeps it from querying the clock
+            // again — and keeps the permission check on the instant its caller reads at.
             policy_components_builder.set_timestamp(timestamp);
         }
         let policy_components = policy_components_builder

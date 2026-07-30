@@ -538,8 +538,12 @@ pub trait PrincipalStore {
     /// Determines the type of an actor by its ID, additionally reading the store's clock.
     ///
     /// The timestamp is captured by the same statement that looks up the actor, so both are
-    /// obtained in a single round trip. For the public actor no lookup is required and `None` is
-    /// returned as the actor; the clock is then read on its own.
+    /// obtained in a single round trip.
+    ///
+    /// Callers which resolve an actor without needing a clock reading — role assignment, policy
+    /// resolution, principal creation — use [`determine_actor`] and pay for the lookup alone.
+    ///
+    /// [`determine_actor`]: Self::determine_actor
     ///
     /// # Errors
     ///
@@ -557,7 +561,7 @@ pub trait PrincipalStore {
     ///
     /// The store's clock is the single time authority for all query-relevant timestamps, so
     /// callers which need a timestamp — e.g. to resolve temporal axes or to stamp written
-    /// records — must use this (or a value derived from another statement's clock reading, such
+    /// records — should use this (or a value derived from another statement's clock reading, such
     /// as [`determine_actor_with_timestamp`]) rather than the host's clock.
     ///
     /// [`determine_actor_with_timestamp`]: Self::determine_actor_with_timestamp
