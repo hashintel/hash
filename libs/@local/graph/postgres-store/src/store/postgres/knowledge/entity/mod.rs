@@ -2,6 +2,7 @@ mod delete;
 pub(crate) mod provenance;
 mod query;
 mod read;
+mod search;
 mod summary;
 
 use alloc::borrow::Cow;
@@ -26,10 +27,9 @@ use hash_graph_store::{
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
         PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesFilter,
-        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
-        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesParams,
+        SearchEntitiesResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{
@@ -107,8 +107,8 @@ use crate::store::{
             summary::{Deduplication, EntitySummaryQuery},
         },
         query::{
-            Distinctness, PostgresRecord as _, PostgresSorting as _, QUANTIZED_RANK_OVERFETCH,
-            SelectCompiler, StatementShape, bulk_insert,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler,
+            StatementShape, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
                 EntityTemporalMetadataRow, PostgresRow as _,
@@ -791,253 +791,6 @@ where
         }
 
         Ok(response)
-    }
-
-    /// Reads the entities whose combined embedding is closest to `params.embedding`.
-    ///
-    /// Two reads: one statement that ranks candidates with the permission and request filters in
-    /// place and re-scores them against the full vector, then the hydration of the survivors.
-    #[tracing::instrument(level = "info", skip(self, params))]
-    #[expect(clippy::too_many_lines)]
-    async fn search_entities_impl(
-        &self,
-        actor_id: ActorEntityUuid,
-        params: SearchEntitiesParams,
-    ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
-        let SearchEntitiesParams {
-            embedding,
-            maximum_semantic_distance,
-            limit,
-            include_entity_types,
-            filter:
-                SearchEntitiesFilter {
-                    entity_type_ids,
-                    web_ids,
-                    include_drafts,
-                },
-        } = params;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
-            .await
-            .change_context(QueryError)?;
-        let policy_filter = Filter::<Entity>::for_policies(
-            policy_components.extract_filter_policies(ActionName::ViewEntity),
-            policy_components.actor_id(),
-            policy_components.optimization_data(ActionName::ViewEntity),
-        );
-
-        // A search always runs against the current time and never returns archived entities.
-        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
-
-        let mut request_filters = vec![Filter::Equal(
-            FilterExpression::Path {
-                path: EntityQueryPath::Archived,
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Boolean(false),
-                convert: None,
-            },
-        )];
-        if !entity_type_ids.is_empty() {
-            request_filters.push(Filter::Any(
-                entity_type_ids
-                    .iter()
-                    .map(Filter::for_entity_by_type_id)
-                    .collect(),
-            ));
-        }
-        if !web_ids.is_empty() {
-            request_filters.push(Filter::In(
-                FilterExpression::Path {
-                    path: EntityQueryPath::WebId,
-                },
-                FilterExpressionList::ParameterList {
-                    parameters: ParameterList::WebIds(&web_ids),
-                },
-            ));
-        }
-        let request_filter = Filter::All(request_filters);
-
-        let web_id_path = EntityQueryPath::WebId;
-        let uuid_path = EntityQueryPath::Uuid;
-        let draft_id_path = EntityQueryPath::DraftId;
-        let embedding_path = EntityQueryPath::Embedding;
-
-        let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), include_drafts);
-        compiler
-            .add_filter(&policy_filter)
-            .change_context(QueryError)?;
-        compiler
-            .add_filter(&request_filter)
-            .change_context(QueryError)?;
-        compiler.add_selection_path(&web_id_path);
-        compiler.add_selection_path(&uuid_path);
-        compiler.add_selection_path(&draft_id_path);
-        let embeddings_alias = compiler
-            .rank_by_quantized_distance(&embedding_path, &embedding)
-            .change_context(QueryError)?;
-        // The search compares against the combined embedding over all of an entity's properties.
-        compiler.restrict_embedding_property(embeddings_alias, None);
-        let candidate_pool = limit.saturating_mul(QUANTIZED_RANK_OVERFETCH);
-        compiler.set_limit(candidate_pool);
-
-        // An HNSW scan stops after `ef_search` tuples (default 40) regardless of the statement's
-        // limit, so it must be allowed to produce the whole candidate pool. The iterative mode
-        // resumes the walk when the filters discard candidates, or when the pool exceeds the
-        // setting's range of 1 to 1000.
-        let settings = format!(
-            "SET LOCAL hnsw.ef_search = {};
-             SET LOCAL hnsw.iterative_scan = relaxed_order;",
-            candidate_pool.clamp(1, 1000)
-        );
-        self.as_client()
-            .batch_execute(&settings)
-            .instrument(tracing::info_span!(
-                "SET",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-                db.query.text = settings,
-            ))
-            .await
-            .change_context(QueryError)?;
-
-        // The candidate read ranks on the quantized embedding, so it becomes a CTE that the same
-        // statement re-scores against the full vector. Only the candidates have their out-of-line
-        // vector read that way, and the permission filter stays inside the ranking rather than
-        // being applied to its result.
-        let (candidate_statement, candidate_parameters) = compiler.compile();
-        let maximum_distance = maximum_semantic_distance.into_inner();
-
-        let mut parameters = candidate_parameters.to_vec();
-        let embedding_parameter = parameters.len() + 1;
-        parameters.push(&embedding);
-        let maximum_distance_parameter = parameters.len() + 1;
-        parameters.push(&maximum_distance);
-
-        // The candidate filters join to-many relations, so one entity can occupy several pool
-        // slots. `DISTINCT` collapses them, which requires the distance in the select list.
-        let statement = format!(
-            "WITH candidates AS ({candidate_statement})
-             SELECT DISTINCT
-                    candidates.web_id,
-                    candidates.entity_uuid,
-                    candidates.draft_id,
-                    entity_embeddings.embedding <=> ${embedding_parameter}::vector AS distance
-               FROM candidates
-               JOIN entity_embeddings
-                 ON entity_embeddings.web_id = candidates.web_id
-                AND entity_embeddings.entity_uuid = candidates.entity_uuid
-              WHERE entity_embeddings.property IS NULL
-                AND entity_embeddings.embedding <=> ${embedding_parameter}::vector <= \
-             ${maximum_distance_parameter}
-              ORDER BY distance
-              LIMIT {limit}"
-        );
-
-        let ranked = self
-            .as_client()
-            .query(&statement, &parameters)
-            .instrument(tracing::info_span!(
-                "SELECT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-                db.query.text = statement,
-            ))
-            .await
-            .change_context(QueryError)?
-            .into_iter()
-            .map(|row| EntityId {
-                web_id: row.get(0),
-                entity_uuid: row.get(1),
-                draft_id: row.get(2),
-            })
-            .collect::<Vec<_>>();
-
-        if ranked.len() < limit {
-            // Expected for actors whose filters pass few candidates: the iterative scan gives up
-            // at `hnsw.max_scan_tuples`. The event is what distinguishes that from a genuinely
-            // sparse result when a search returns fewer rows than requested.
-            tracing::debug!(
-                limit,
-                candidates = ranked.len(),
-                candidate_pool,
-                "the search returned fewer candidates than requested"
-            );
-        }
-
-        if ranked.is_empty() {
-            return Ok(SearchEntitiesResponse {
-                entities: Vec::new(),
-                closed_multi_entity_types: None,
-            });
-        }
-
-        let response = self
-            .query_entities_impl(
-                actor_id,
-                QueryEntitiesParams {
-                    filter: Filter::Any(
-                        ranked
-                            .iter()
-                            .map(|&entity_id| {
-                                let by_id = Filter::for_entity_by_entity_id(entity_id);
-                                if entity_id.draft_id.is_some() {
-                                    by_id
-                                } else {
-                                    // The shared filter leaves the draft dimension open for live
-                                    // ids, which would hydrate an entity's drafts alongside it
-                                    // when drafts are included.
-                                    Filter::All(vec![
-                                        by_id,
-                                        Filter::Not(Box::new(Filter::Exists {
-                                            path: EntityQueryPath::DraftId,
-                                        })),
-                                    ])
-                                }
-                            })
-                            .collect(),
-                    ),
-                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                    sorting: EntityQuerySorting {
-                        paths: vec![],
-                        cursor: None,
-                    },
-                    conversions: Vec::new(),
-                    // The filter already names exactly the entities to hydrate.
-                    limit: ranked.len(),
-                    include_drafts,
-                    include_entity_types: include_entity_types
-                        .then_some(IncludeEntityTypeOption::Closed),
-                    include_permissions: false,
-                },
-            )
-            .await?;
-
-        // Hydration does not preserve the ranking, so restore it from the candidate order. The
-        // hydration filter names exactly the ranked ids, so a row without a rank cannot occur —
-        // dropping it beats `Option`'s None-first ordering, which would put it on top.
-        let ranks = ranked
-            .iter()
-            .enumerate()
-            .map(|(rank, &entity_id)| (entity_id, rank))
-            .collect::<HashMap<_, _>>();
-        let mut entities = response.entities;
-        entities.retain(|entity| ranks.contains_key(&entity.metadata.record_id.entity_id));
-        entities.sort_by_key(|entity| {
-            ranks
-                .get(&entity.metadata.record_id.entity_id)
-                .copied()
-                .expect("the retained entities should all carry a rank")
-        });
-
-        Ok(SearchEntitiesResponse {
-            entities,
-            closed_multi_entity_types: response.closed_multi_entity_types,
-        })
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -2072,9 +1825,10 @@ where
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
-        // The ranked read and the hydration are separate statements. Under `READ COMMITTED` each
-        // would use its own MVCC snapshot, so a write committing in between could rank an entity
-        // that the hydration no longer returns.
+        // The search issues several statements — one candidate read per policy branch, the
+        // rerank, and the hydration. Under `READ COMMITTED` each would use its own MVCC
+        // snapshot, so a write committing in between could rank an entity that the hydration no
+        // longer returns.
         let transaction = self
             .begin_read_only_transaction()
             .await

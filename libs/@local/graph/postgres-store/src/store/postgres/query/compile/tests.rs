@@ -1709,9 +1709,191 @@ fn semantic_ordering_ranks_entity_types() {
     );
 }
 
-/// The exact statement the entity search issues: temporal axes, key selections, ranking, and the
-/// embedding-space restriction. The outer re-score references the CTE's columns by name, so this
-/// pins the output names and their order alongside the ranking shape.
+/// One branch of the permit disjunction as [`Filter::for_policy_branches`] shapes it — the permit
+/// with every forbid negated — compiled together with the request filter. A branch replaces the
+/// top-level permit disjunction with a conjunction; a permit can still hold a disjunction of its
+/// own, which then stays inside the branch.
+#[test]
+fn semantic_ordering_compiles_a_policy_branch() {
+    let permitted_webs = [WebId::new(Uuid::from_u128(1))];
+    let forbidden_uuid = Uuid::from_u128(2);
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+
+    let policy_branch = Filter::All(vec![
+        Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::WebId,
+            },
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::WebIds(&permitted_webs),
+            },
+        ),
+        Filter::Not(Box::new(Filter::Any(vec![Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(forbidden_uuid),
+                convert: None,
+            },
+        )]))),
+    ]);
+    let request_filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Archived,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Boolean(false),
+            convert: None,
+        },
+    );
+
+    compiler
+        .add_filter(&policy_branch)
+        .expect("the policy branch should compile");
+    compiler
+        .add_filter(&request_filter)
+        .expect("the request filter should compile");
+    let embeddings_alias = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.restrict_embedding_property(embeddings_alias, None);
+    compiler.set_limit(400);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_editions" AS "entity_editions_1_1_0"
+          ON "entity_editions_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        INNER JOIN "entity_embeddings" AS "entity_embeddings_2_1_0"
+          ON "entity_embeddings_2_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_2_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
+          AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+          AND ("entity_editions_1_1_0"."archived" = $3)
+          AND ("entity_embeddings_2_1_0"."property" IS NULL)
+        ORDER BY "entity_embeddings_2_1_0"."embedding_bits" <~> binary_quantize(($4::vector)) ASC
+        LIMIT 400
+        "#,
+        &[
+            &permitted_webs.as_slice(),
+            &forbidden_uuid,
+            &false,
+            &embedding,
+        ],
+    );
+}
+
+/// The branch split end to end: the policies go through [`Filter::for_policy_branches`] and
+/// every branch compiles to its own statement, so a change to the branch assembly shows up here
+/// as a changed statement.
+#[test]
+fn semantic_ordering_compiles_the_policy_branch_split() {
+    use hash_graph_authorization::policies::{
+        Effect, OptimizationData,
+        resource::{EntityResourceConstraint, ResourceConstraint},
+    };
+    use type_system::{
+        knowledge::entity::id::EntityUuid,
+        principal::actor::{ActorId, UserId},
+    };
+
+    let embedding = Embedding::from(vec![0.0; 3072]);
+    let actor_id = Some(ActorId::User(UserId::new(Uuid::from_u128(10))));
+
+    let permitted_entity = Uuid::from_u128(1);
+    let forbidden_entity = Uuid::from_u128(2);
+    let permit = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+        id: EntityUuid::new(permitted_entity),
+    });
+    let forbid = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+        id: EntityUuid::new(forbidden_entity),
+    });
+    let optimization_data = OptimizationData {
+        permitted_web_ids: vec![
+            WebId::new(Uuid::from_u128(3)),
+            WebId::new(Uuid::from_u128(4)),
+        ],
+        ..OptimizationData::default()
+    };
+
+    let branches = Filter::<Entity>::for_policy_branches(
+        [
+            (Effect::Permit, Some(&permit)),
+            (Effect::Forbid, Some(&forbid)),
+        ],
+        actor_id,
+        &optimization_data,
+    );
+    assert_eq!(
+        branches.len(),
+        2,
+        "the policies should split into an entity permit and a web permit branch"
+    );
+
+    let expectations: [(&str, &[&dyn ToSql]); 2] = [
+        (
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_embeddings" AS "entity_embeddings_1_1_0"
+              ON "entity_embeddings_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND (("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)
+              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND ("entity_embeddings_1_1_0"."property" IS NULL)
+            ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
+            LIMIT 400
+            "#,
+            &[&permitted_entity, &forbidden_entity, &embedding],
+        ),
+        (
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_embeddings" AS "entity_embeddings_1_1_0"
+              ON "entity_embeddings_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
+              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND ("entity_embeddings_1_1_0"."property" IS NULL)
+            ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
+            LIMIT 400
+            "#,
+            &[
+                &optimization_data.permitted_web_ids.as_slice(),
+                &forbidden_entity,
+                &embedding,
+            ],
+        ),
+    ];
+
+    for (branch, (expected_statement, expected_parameters)) in branches.iter().zip(expectations) {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+        compiler
+            .add_filter(branch)
+            .expect("the policy branch should compile");
+        let embeddings_alias = compiler
+            .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+            .expect("the embedding path should have a quantized form to rank on");
+        compiler.restrict_embedding_property(embeddings_alias, None);
+        compiler.set_limit(400);
+
+        test_compilation(&compiler, expected_statement, expected_parameters);
+    }
+}
+
+/// The statement core every branch key-read shares: temporal axes, key selections, ranking, and
+/// the embedding-space restriction. The per-branch policy and request filters are pinned
+/// separately. The key columns are read back positionally, so this pins their order alongside
+/// the ranking shape.
 #[test]
 fn semantic_ordering_production_shape() {
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();

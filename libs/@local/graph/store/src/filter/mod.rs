@@ -838,6 +838,15 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
     }
 }
 
+/// The permit and forbid filters of a policy set, separated so they can be assembled into a
+/// single filter or into per-permit branches.
+struct PolicyFilterParts<'p> {
+    permits: Vec<Filter<'p, Entity>>,
+    forbids: Vec<Filter<'p, Entity>>,
+    blank_permit: bool,
+    blank_forbid: bool,
+}
+
 impl<'p> Filter<'p, Entity> {
     /// Creates a `Filter` to search for a specific entities, identified by its [`EntityId`].
     #[must_use]
@@ -1049,7 +1058,96 @@ impl<'p> Filter<'p, Entity> {
         actor_id: Option<ActorId>,
         optimization_data: &'p OptimizationData,
     ) -> Self {
-        // Follow the same pattern as for_policies: separate permits and forbids
+        let PolicyFilterParts {
+            permits,
+            forbids,
+            blank_permit,
+            blank_forbid,
+        } = Self::policy_filter_parts(policies, actor_id, optimization_data);
+
+        if blank_forbid {
+            return Self::Any(Vec::new()); // Blank forbid = deny all
+        }
+
+        if blank_permit {
+            if forbids.is_empty() {
+                Self::All(Vec::new()) // Allow all
+            } else {
+                Self::Not(Box::new(Self::Any(forbids))) // Allow all except forbids
+            }
+        } else {
+            match (!permits.is_empty(), !forbids.is_empty()) {
+                (false, _) => Self::Any(Vec::new()), // No permits = deny all
+                (true, false) => Self::Any(permits), // Only permits
+                (true, true) => Self::All(vec![
+                    // Both permits and forbids
+                    Self::Any(permits),
+                    Self::Not(Box::new(Self::Any(forbids))),
+                ]),
+            }
+        }
+    }
+
+    /// Creates one filter per permitted access path instead of a single disjunction.
+    ///
+    /// Each branch pairs one permit with the negation of every forbid, so the union of the
+    /// branches' results equals the result of [`Self::for_policies`] over the same policies. A
+    /// blank permit collapses the branches into a single one holding only the negated forbids,
+    /// or no constraint at all. An empty vector means the policies deny all access. Permits that
+    /// duplicate an earlier one or that cannot match any entity, such as constraints on other
+    /// resource kinds, produce no branch.
+    #[must_use]
+    pub fn for_policy_branches(
+        policies: impl IntoIterator<Item = (Effect, Option<&'p ResourceConstraint>)>,
+        actor_id: Option<ActorId>,
+        optimization_data: &'p OptimizationData,
+    ) -> Vec<Self> {
+        let PolicyFilterParts {
+            permits,
+            forbids,
+            blank_permit,
+            blank_forbid,
+        } = Self::policy_filter_parts(policies, actor_id, optimization_data);
+
+        if blank_forbid {
+            return Vec::new();
+        }
+
+        let forbid_filter = (!forbids.is_empty()).then(|| Self::Not(Box::new(Self::Any(forbids))));
+
+        if blank_permit {
+            return vec![forbid_filter.unwrap_or_else(|| Self::All(Vec::new()))];
+        }
+
+        // An unmatchable or duplicated permit contributes nothing to the union, but its branch
+        // would still cost a read
+        let mut unique_permits: Vec<Self> = Vec::with_capacity(permits.len());
+        for permit in permits {
+            if matches!(permit, Self::Any(ref filters) if filters.is_empty())
+                || unique_permits.contains(&permit)
+            {
+                continue;
+            }
+            unique_permits.push(permit);
+        }
+
+        unique_permits
+            .into_iter()
+            .map(|permit| {
+                if let Some(forbid) = &forbid_filter {
+                    Self::All(vec![permit, forbid.clone()])
+                } else {
+                    permit
+                }
+            })
+            .collect()
+    }
+
+    fn policy_filter_parts(
+        policies: impl IntoIterator<Item = (Effect, Option<&'p ResourceConstraint>)>,
+        actor_id: Option<ActorId>,
+        optimization_data: &'p OptimizationData,
+    ) -> PolicyFilterParts<'p> {
         let mut permits = Vec::new();
         let mut forbids = Vec::new();
         let mut blank_permit = false;
@@ -1057,13 +1155,19 @@ impl<'p> Filter<'p, Entity> {
         for (effect, resource) in policies {
             match (resource, effect) {
                 (None, Effect::Permit) => blank_permit = true,
-                (None, Effect::Forbid) => return Self::Any(Vec::new()), // Blank forbid = deny all
+                // A blank forbid overrides every other policy, so the remaining ones don't matter
+                (None, Effect::Forbid) => {
+                    return PolicyFilterParts {
+                        permits: Vec::new(),
+                        forbids: Vec::new(),
+                        blank_permit: false,
+                        blank_forbid: true,
+                    };
+                }
                 (Some(resource), Effect::Permit) => {
-                    // Non-optimizable permits
                     permits.push(Self::for_resource_constraint(resource, actor_id));
                 }
                 (Some(resource), Effect::Forbid) => {
-                    // All forbids
                     forbids.push(Self::for_resource_constraint(resource, actor_id));
                 }
             }
@@ -1084,7 +1188,6 @@ impl<'p> Filter<'p, Entity> {
                 ));
             }
             entity_uuids => {
-                // Use the Vec directly for the IN clause
                 permits.push(Self::In(
                     FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
@@ -1111,7 +1214,6 @@ impl<'p> Filter<'p, Entity> {
                 ));
             }
             web_ids => {
-                // Use the Vec directly for the IN clause
                 permits.push(Self::In(
                     FilterExpression::Path {
                         path: EntityQueryPath::WebId,
@@ -1123,23 +1225,11 @@ impl<'p> Filter<'p, Entity> {
             }
         }
 
-        // Apply the same combination logic as for_policies
-        if blank_permit {
-            if forbids.is_empty() {
-                Self::All(Vec::new()) // Allow all
-            } else {
-                Self::Not(Box::new(Self::Any(forbids))) // Allow all except forbids
-            }
-        } else {
-            match (!permits.is_empty(), !forbids.is_empty()) {
-                (false, _) => Self::Any(Vec::new()), // No permits = deny all
-                (true, false) => Self::Any(permits), // Only permits
-                (true, true) => Self::All(vec![
-                    // Both permits and forbids
-                    Self::Any(permits),
-                    Self::Not(Box::new(Self::Any(forbids))),
-                ]),
-            }
+        PolicyFilterParts {
+            permits,
+            forbids,
+            blank_permit,
+            blank_forbid: false,
         }
     }
 
@@ -1561,15 +1651,18 @@ mod tests {
     mod policy_conversion {
         use hash_graph_authorization::policies::{
             Effect, OptimizationData, Policy, PolicyId,
-            resource::{EntityResourceConstraint, ResourceConstraint},
+            resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
         };
         use type_system::{
             knowledge::entity::{Entity, id::EntityUuid},
-            principal::actor::{ActorId, UserId},
+            principal::{
+                actor::{ActorId, UserId},
+                actor_group::WebId,
+            },
         };
         use uuid::Uuid;
 
-        use super::{Filter, FilterExpression, Parameter};
+        use super::{Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList};
         use crate::entity::EntityQueryPath;
 
         /// Helper to create a complete test policy.
@@ -1834,6 +1927,509 @@ mod tests {
                     assert!(permits.is_empty(), "Blank forbid should forbid everything");
                 }
                 other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn branches_split_permits() {
+            let entity_uuid_1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid_2 = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid_1 },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid_2 },
+                    )),
+                ),
+            ];
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+
+            assert_eq!(branches.len(), 2);
+            for (branch, expected) in branches.iter().zip([entity_uuid_1, entity_uuid_2]) {
+                match branch {
+                    Filter::Equal(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(uuid),
+                            ..
+                        },
+                    ) => assert_eq!(*uuid, Uuid::from(expected)),
+                    other => panic!("Expected a bare permit branch, got: {other:?}"),
+                }
+            }
+        }
+
+        #[test]
+        fn branches_carry_forbids() {
+            let permit_uuid_1 = EntityUuid::new(Uuid::new_v4());
+            let permit_uuid_2 = EntityUuid::new(Uuid::new_v4());
+            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: permit_uuid_1 },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: permit_uuid_2 },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Forbid,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: forbid_uuid },
+                    )),
+                ),
+            ];
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+
+            // Every branch pairs its permit with the shared forbids
+            assert_eq!(branches.len(), 2);
+            for (branch, expected) in branches.iter().zip([permit_uuid_1, permit_uuid_2]) {
+                match branch {
+                    Filter::All(conditions) => {
+                        assert_eq!(conditions.len(), 2);
+                        match &conditions[0] {
+                            Filter::Equal(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::Uuid,
+                                },
+                                FilterExpression::Parameter {
+                                    parameter: Parameter::Uuid(uuid),
+                                    ..
+                                },
+                            ) => assert_eq!(*uuid, Uuid::from(expected)),
+                            other => panic!("Unexpected permit filter: {other:?}"),
+                        }
+                        match &conditions[1] {
+                            Filter::Not(inner) => match &**inner {
+                                Filter::Any(forbids) => assert_eq!(forbids.len(), 1),
+                                other => panic!("Expected Any(forbids), got: {other:?}"),
+                            },
+                            other => panic!("Expected Not(Any(forbids)), got: {other:?}"),
+                        }
+                    }
+                    other => panic!("Expected All([permit, forbids]), got: {other:?}"),
+                }
+            }
+        }
+
+        #[test]
+        fn no_branches_without_permits() {
+            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policy = create_test_policy(
+                Effect::Forbid,
+                Some(ResourceConstraint::Entity(
+                    EntityResourceConstraint::Exact { id: forbid_uuid },
+                )),
+            );
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
+
+            assert!(
+                branches.is_empty(),
+                "policies without a permit should produce no branches"
+            );
+        }
+
+        #[test]
+        fn blank_permit_yields_single_branch() {
+            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let optimization_data = OptimizationData::default();
+
+            let unrestricted = create_test_policy(Effect::Permit, None);
+            let branches = Filter::<Entity>::for_policy_branches(
+                [policy_to_tuple(&unrestricted)],
+                actor_id,
+                &optimization_data,
+            );
+            match branches.as_slice() {
+                [Filter::All(conditions)] => {
+                    assert!(
+                        conditions.is_empty(),
+                        "a blank permit should yield one unconstrained branch"
+                    );
+                }
+                other => panic!("Expected a single All branch, got: {other:?}"),
+            }
+
+            let policies = [
+                create_test_policy(Effect::Permit, None),
+                create_test_policy(
+                    Effect::Forbid,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: forbid_uuid },
+                    )),
+                ),
+            ];
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+            match branches.as_slice() {
+                [Filter::Not(inner)] => match &**inner {
+                    Filter::Any(forbids) => assert_eq!(forbids.len(), 1),
+                    other => panic!("Expected Any(forbids), got: {other:?}"),
+                },
+                other => panic!("Expected a single Not(Any(forbids)) branch, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn blank_forbid_yields_no_branches() {
+            let permit_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: permit_uuid },
+                    )),
+                ),
+                create_test_policy(Effect::Forbid, None),
+            ];
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+
+            assert!(
+                branches.is_empty(),
+                "a blank forbid should deny access regardless of permits"
+            );
+        }
+
+        #[test]
+        fn blank_forbid_overrides_optimization_permits() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let optimization_data = OptimizationData {
+                permitted_entity_uuids: vec![EntityUuid::new(Uuid::new_v4())],
+                permitted_web_ids: vec![WebId::new(Uuid::new_v4())],
+                ..OptimizationData::default()
+            };
+            let policy = create_test_policy(Effect::Forbid, None);
+
+            let filter = Filter::<Entity>::for_policies(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
+            assert!(
+                matches!(filter, Filter::Any(ref permits) if permits.is_empty()),
+                "a blank forbid should deny access regardless of optimization permits"
+            );
+
+            let branches = Filter::<Entity>::for_policy_branches(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
+            assert!(
+                branches.is_empty(),
+                "a blank forbid should deny access regardless of optimization permits"
+            );
+        }
+
+        #[test]
+        fn optimization_permits_form_branches() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let single_web = OptimizationData {
+                permitted_web_ids: vec![WebId::new(Uuid::new_v4())],
+                ..OptimizationData::default()
+            };
+            let branches =
+                Filter::<Entity>::for_policy_branches(core::iter::empty(), actor_id, &single_web);
+            match branches.as_slice() {
+                [
+                    Filter::Equal(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::WebId,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(uuid),
+                            ..
+                        },
+                    ),
+                ] => assert_eq!(*uuid, Uuid::from(single_web.permitted_web_ids[0])),
+                other => panic!("Expected a single web equality branch, got: {other:?}"),
+            }
+
+            let multiple = OptimizationData {
+                permitted_entity_uuids: vec![EntityUuid::new(Uuid::new_v4())],
+                permitted_web_ids: vec![WebId::new(Uuid::new_v4()), WebId::new(Uuid::new_v4())],
+                ..OptimizationData::default()
+            };
+            let branches =
+                Filter::<Entity>::for_policy_branches(core::iter::empty(), actor_id, &multiple);
+            match branches.as_slice() {
+                [
+                    Filter::Equal(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        _,
+                    ),
+                    Filter::In(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::WebId,
+                        },
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::WebIds(webs),
+                        },
+                    ),
+                ] => assert_eq!(webs.len(), 2),
+                other => panic!(
+                    "Expected an entity equality branch and a web membership branch, got: \
+                     {other:?}"
+                ),
+            }
+        }
+
+        #[test]
+        fn unmatchable_permits_form_no_branch() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let matchable_uuid = EntityUuid::new(Uuid::new_v4());
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                        filter: EntityResourceFilter::Any {
+                            filters: Vec::new(),
+                        },
+                    })),
+                ),
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: matchable_uuid },
+                    )),
+                ),
+            ];
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+
+            assert_eq!(
+                branches.len(),
+                1,
+                "a permit that cannot match should produce no branch"
+            );
+            assert!(matches!(branches[0], Filter::Equal(..)));
+        }
+
+        #[test]
+        fn duplicate_permits_form_one_branch() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid = EntityUuid::new(Uuid::new_v4());
+
+            let duplicate = || {
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid },
+                    )),
+                )
+            };
+            let policies = [duplicate(), duplicate()];
+
+            let optimization_data = OptimizationData::default();
+            let branches = Filter::<Entity>::for_policy_branches(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
+
+            assert_eq!(
+                branches.len(),
+                1,
+                "identical permits should collapse into one branch"
+            );
+        }
+
+        /// Evaluates the filter shapes the policy constructors emit against a synthetic entity.
+        fn filter_matches(filter: &Filter<'_, Entity>, web_id: Uuid, entity_uuid: Uuid) -> bool {
+            match filter {
+                Filter::All(filters) => filters
+                    .iter()
+                    .all(|filter| filter_matches(filter, web_id, entity_uuid)),
+                Filter::Any(filters) => filters
+                    .iter()
+                    .any(|filter| filter_matches(filter, web_id, entity_uuid)),
+                Filter::Not(inner) => !filter_matches(inner, web_id, entity_uuid),
+                Filter::Equal(
+                    FilterExpression::Path { path },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(uuid),
+                        ..
+                    },
+                ) => match path {
+                    EntityQueryPath::Uuid => *uuid == entity_uuid,
+                    EntityQueryPath::WebId => *uuid == web_id,
+                    other => panic!("the evaluator should cover the path {other:?}"),
+                },
+                Filter::In(
+                    FilterExpression::Path { path },
+                    FilterExpressionList::ParameterList { parameters },
+                ) => match (path, parameters) {
+                    (EntityQueryPath::Uuid, ParameterList::EntityUuids(uuids)) => {
+                        uuids.iter().any(|uuid| Uuid::from(*uuid) == entity_uuid)
+                    }
+                    (EntityQueryPath::WebId, ParameterList::WebIds(webs)) => {
+                        webs.iter().any(|web| Uuid::from(*web) == web_id)
+                    }
+                    other => panic!("the evaluator should cover the expression {other:?}"),
+                },
+                other => panic!("the evaluator should cover the filter {other:?}"),
+            }
+        }
+
+        /// The union of the branches must select the same entities as the combined filter, for
+        /// every combination of blank and specific permits, forbids, and optimization data.
+        #[test]
+        fn branch_union_matches_for_policies() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::from_u128(100))));
+
+            let webs = [Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3)];
+            let entities = [
+                Uuid::from_u128(11),
+                Uuid::from_u128(12),
+                Uuid::from_u128(13),
+                Uuid::from_u128(14),
+            ];
+
+            let permit_sets: [&[Uuid]; 3] = [&[], &entities[..1], &entities[..2]];
+            let web_sets: [&[Uuid]; 3] = [&[], &webs[..1], &webs[..2]];
+            let uuid_sets: [&[Uuid]; 2] = [&[], &entities[2..3]];
+
+            for blank_permit in [false, true] {
+                for permit_uuids in permit_sets {
+                    for blank_forbid in [false, true] {
+                        for forbid_uuid in [None, Some(entities[1])] {
+                            for opt_webs in web_sets {
+                                for opt_uuids in uuid_sets {
+                                    let mut policies = Vec::new();
+                                    if blank_permit {
+                                        policies.push(create_test_policy(Effect::Permit, None));
+                                    }
+                                    for &uuid in permit_uuids {
+                                        policies.push(create_test_policy(
+                                            Effect::Permit,
+                                            Some(ResourceConstraint::Entity(
+                                                EntityResourceConstraint::Exact {
+                                                    id: EntityUuid::new(uuid),
+                                                },
+                                            )),
+                                        ));
+                                    }
+                                    if let Some(uuid) = forbid_uuid {
+                                        policies.push(create_test_policy(
+                                            Effect::Forbid,
+                                            Some(ResourceConstraint::Entity(
+                                                EntityResourceConstraint::Exact {
+                                                    id: EntityUuid::new(uuid),
+                                                },
+                                            )),
+                                        ));
+                                    }
+                                    if blank_forbid {
+                                        policies.push(create_test_policy(Effect::Forbid, None));
+                                    }
+
+                                    let optimization_data = OptimizationData {
+                                        permitted_entity_uuids: opt_uuids
+                                            .iter()
+                                            .copied()
+                                            .map(EntityUuid::new)
+                                            .collect(),
+                                        permitted_web_ids: opt_webs
+                                            .iter()
+                                            .copied()
+                                            .map(WebId::new)
+                                            .collect(),
+                                        ..OptimizationData::default()
+                                    };
+
+                                    let combined = Filter::<Entity>::for_policies(
+                                        policies.iter().map(policy_to_tuple),
+                                        actor_id,
+                                        &optimization_data,
+                                    );
+                                    let branches = Filter::<Entity>::for_policy_branches(
+                                        policies.iter().map(policy_to_tuple),
+                                        actor_id,
+                                        &optimization_data,
+                                    );
+
+                                    for &web_id in &webs {
+                                        for &entity_uuid in &entities {
+                                            assert_eq!(
+                                                branches.iter().any(|branch| filter_matches(
+                                                    branch,
+                                                    web_id,
+                                                    entity_uuid
+                                                )),
+                                                filter_matches(&combined, web_id, entity_uuid),
+                                                "the branch union should match the combined \
+                                                 filter for web {web_id}, entity {entity_uuid}, \
+                                                 blank_permit={blank_permit}, \
+                                                 permits={permit_uuids:?}, \
+                                                 forbid={forbid_uuid:?}, \
+                                                 blank_forbid={blank_forbid}, \
+                                                 opt_webs={opt_webs:?}, opt_uuids={opt_uuids:?}"
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
