@@ -1768,26 +1768,31 @@ fn solve_fails_the_outer_iteration_budget() {
 fn solve_orders_the_inner_cg_budgets() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
+        // The subject is the refusal order under verbatim budgets; parity strength keeps the
+        // CG allowance at the configured maximum.
+        preparation: PreparationSettings {
+            regularization: DPositive::ONE,
+            ..settings()
+        },
         relative_cg_residual_tolerance: open_unit_fraction!(1.0e-9),
         absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
         relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
         ..solver_config()
     };
 
-    // At the origin the preparation diagonal makes the scaled Hessian near-identity, so the
-    // first outer's CG converges in one iteration; the second outer's Hessian differs and needs
-    // more. With the CG-start and HVP budgets binding at the same iteration, the CG-start
+    // The first outer reaches the trust boundary inside its two-iteration budget; the second
+    // needs six. With the CG-start and HVP budgets binding at the same iteration, the CG-start
     // budget fails first.
     let cg_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_cg_iterations: NonZeroU64::new(1).expect("one is nonzero"),
-            maximum_hvp_requests: NonZeroU64::new(2).expect("two is nonzero"),
+            maximum_cg_iterations: NonZeroU64::new(2).expect("two is nonzero"),
+            maximum_hvp_requests: NonZeroU64::new(4).expect("four is nonzero"),
             ..strict
         },
     );
     assert_matches!(cg_starved.outcome, Err(SolverFailure::CgIterationBudget));
-    assert_eq!(cg_starved.control.counters.hvp_requests, 2);
+    assert_eq!(cg_starved.control.counters.hvp_requests, 4);
     assert_eq!(cg_starved.receipts.len(), 2);
     // The dying outer never finished its inner solve: its completion carries no tag.
     assert_eq!(cg_starved.receipts[1].outcome.tag, None);
@@ -1797,12 +1802,12 @@ fn solve_orders_the_inner_cg_budgets() {
     let hvp_starved = run_solver(
         &corpus,
         SolverConfig {
-            maximum_hvp_requests: NonZeroU64::new(1).expect("one is nonzero"),
+            maximum_hvp_requests: NonZeroU64::new(3).expect("three is nonzero"),
             ..strict
         },
     );
     assert_matches!(hvp_starved.outcome, Err(SolverFailure::HvpBudget));
-    assert_eq!(hvp_starved.control.counters.hvp_requests, 1);
+    assert_eq!(hvp_starved.control.counters.hvp_requests, 3);
     assert_eq!(hvp_starved.receipts.len(), 2);
 
     // Unreserved row traversals third: at the floor of three, preparation plus initialization

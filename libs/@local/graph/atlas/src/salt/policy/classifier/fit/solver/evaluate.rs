@@ -288,6 +288,26 @@ impl Prepared<'_> {
         Some(product)
     }
 
+    /// Reports every row's data-Hessian curvature scale `max_c p_c(1−p_c)` at the parameters.
+    ///
+    /// The scale reads the same shared logits path as the objective, gradient, and
+    /// Hessian-vector product, so the census cannot disagree with them about a row's
+    /// probabilities. A diagnostic observer for the solver's report probe: it visits every row
+    /// but charges no work counters, because it participates in no solve.
+    pub(super) fn row_curvature_scales(&self, parameters: &ContrastVector) -> Vec<f64> {
+        self.embeddings
+            .iter()
+            .map(|embedding| {
+                let prelude = row_prelude(parameters, embedding);
+                prelude
+                    .probabilities
+                    .into_iter()
+                    .map(|probability| probability * (1.0 - probability))
+                    .fold(0.0_f64, f64::max)
+            })
+            .collect()
+    }
+
     /// Adds the regularizer to the accumulated data loss and normalizes by the total weight.
     fn finish_objective(&self, data_loss: f64, parameters: &ContrastVector) -> f64 {
         // ‖A‖² through the house striped kernel, one row at a time in contrast order.

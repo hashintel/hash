@@ -94,6 +94,20 @@ const fn non_finite(stage: CgStage) -> SolverFailure {
     SolverFailure::NonFiniteCg { stage }
 }
 
+/// Logs the refused solve's residual position and returns the iteration-budget terminal.
+///
+/// The distance between the achieved residual and its target separates a budget that is merely
+/// shallow from a candidate whose conditioning no affordable budget would rescue.
+#[cold]
+fn iteration_budget_refusal(residual_norm: f64, tolerance: f64) -> SolverFailure {
+    tracing::warn!(
+        residual_norm,
+        tolerance,
+        "the CG iteration budget refused another iteration",
+    );
+    SolverFailure::CgIterationBudget
+}
+
 /// Advances the interior iterate to the boundary or fails with the typed outcome.
 pub(super) fn crossing(
     step: &AlignedDVecN<SOLVER_DIMENSIONS>,
@@ -137,6 +151,7 @@ pub(super) fn bounded_steihaug_cg(
     // The tolerance is fixed against the initial residual; both factors are finite.
     let tolerance = config.relative_cg_residual_tolerance.get() * residual_base;
 
+    let allowance = config.cg_iteration_allowance();
     let mut started: u64 = 0;
     loop {
         // The residual test runs first; equality returns.
@@ -145,10 +160,11 @@ pub(super) fn bounded_steihaug_cg(
             return Ok(CgOutcome::ResidualConverged { step, hessian_step });
         }
 
-        // Budgets in declared order: CG starts, HVP requests, unreserved row traversals. Every
-        // maximum is inclusive - a request fails only when it would exceed it.
-        if started == config.maximum_cg_iterations.get() {
-            return Err(SolverFailure::CgIterationBudget);
+        // Budgets in declared order: the strength-scaled CG allowance, HVP requests, unreserved
+        // row traversals. Every maximum is inclusive - a request fails only when it would exceed
+        // it.
+        if started == allowance {
+            return Err(iteration_budget_refusal(residual_norm, tolerance));
         }
         if control.counters.hvp_requests == config.maximum_hvp_requests.get() {
             return Err(SolverFailure::HvpBudget);

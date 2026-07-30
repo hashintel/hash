@@ -102,7 +102,10 @@ pub(crate) struct SolverConfig {
     pub maximum_outer_iterations: NonZeroU64 = const {
         NonZeroU64::new(500).expect("five hundred is nonzero")
     },
-    /// Inclusive maximum of CG iterations per outer solve.
+    /// Inclusive maximum of CG iterations per outer solve, priced at parity strength `1.0`.
+    ///
+    /// The effective per-solve allowance scales with the configured regularization strength;
+    /// see [`cg_iteration_allowance`](Self::cg_iteration_allowance).
     pub maximum_cg_iterations: NonZeroU64 = const {
         NonZeroU64::new(100).expect("one hundred is nonzero")
     },
@@ -187,5 +190,26 @@ impl SolverConfig {
                 .get()
                 .max(self.relative_scaled_gradient_tolerance.get() * initial_norm),
         )
+    }
+
+    /// The CG depth afforded at the configured regularization strength.
+    ///
+    /// [`maximum_cg_iterations`](Self::maximum_cg_iterations) prices the parity strength `1.0`,
+    /// where the preparation scaling renders the initial scaled Hessian near-identity. Below
+    /// parity the ridge `λ/S` is a rank-deficient corpus's smallest curvature, the scaled
+    /// condition number grows as `1/λ`, and the CG iteration need as `1/√λ`, so the allowance
+    /// follows it. The HVP and row-traversal budgets stay strength-independent, so the absolute
+    /// ceiling on work survives a weak candidate.
+    pub(super) fn cg_iteration_allowance(&self) -> u64 {
+        let strength = self.preparation.regularization.get();
+        let scale = strength.recip().max(1.0).sqrt();
+        #[expect(
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "the product is positive, and rounding or saturation only widens an \
+                      allowance the strength-independent budgets still fence"
+        )]
+        return ((self.maximum_cg_iterations.get() as f64) * scale).ceil() as u64;
     }
 }

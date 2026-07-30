@@ -516,8 +516,8 @@ fn fit_selects_regularization_and_records_the_curve() {
     assert_eq!(curve.len(), regularization::CANDIDATES.len());
     assert!(
         curve
-            .windows(2)
-            .all(|pair| pair[0].regularization < pair[1].regularization)
+            .array_windows::<2>()
+            .all(|[lhs, rhs]| lhs.regularization < rhs.regularization)
     );
 
     let winner = regularization::winner(curve);

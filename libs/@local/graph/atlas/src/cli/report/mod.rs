@@ -126,8 +126,9 @@ pub(crate) enum ReportCommand {
     /// Audits NN-Descent neighbour constructions over the active generation.
     KnnDescent(DescentArgs),
 
-    /// Solves one fold subset from a published generation's frozen corpus and dumps every
-    /// receipt.
+    /// Solves one fold subset from a frozen classifier corpus - a published generation's or
+    /// supplied artifacts' - and dumps every receipt; a budget-refused solve additionally
+    /// traces its stalling inner recurrence.
     Probe(ProbeArgs),
 
     /// Assesses the active generation's map fidelity over the live store and writes the report.

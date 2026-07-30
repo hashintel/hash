@@ -129,7 +129,9 @@ impl ClassifierReport {
         let config = frozen.fit();
         let refit: Fit = fit(training, config, &NoProgress).expect("the staged corpus refits");
 
-        let staged = frozen.staged_classifier_digest();
+        let staged = frozen
+            .staged_classifier_digest()
+            .expect("a published generation stages its classifier artifact");
         let recomputed = refit
             .classifier
             .write_into(std::io::sink())

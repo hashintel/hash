@@ -1,4 +1,4 @@
-//! Reconstruction of a published generation's frozen classifier corpus.
+//! Reconstruction of a frozen classifier corpus from staged annotation artifacts.
 //!
 //! The lab instruments (the fold probe, the classifier report) re-run classifier machinery over
 //! the exact bytes a production fit consumed. The staged `annotation-corpus.json` document
@@ -7,6 +7,11 @@
 //! and refuses to embed anything new. Serializing the reassembled table must reproduce the
 //! staged array files byte-for-byte (SHA-256 equality), so the replayed inputs are provably the
 //! bytes the production fit consumed.
+//!
+//! The artifacts come from a published generation ([`Frozen::load`]) or from a directory of
+//! supplied artifact files ([`Frozen::from_supplied`]). The supplied form exists for the fit
+//! that cannot publish: a failing fit stages no generation to probe, but its input artifacts
+//! exist on disk, and the byte certification holds either way.
 //!
 //! Failures panic with the failing step's error: a replay has no recovery path, and the error is
 //! the diagnosis.
@@ -106,7 +111,9 @@ pub(crate) struct Frozen {
     document_digest: Sha256Digest,
     staged_embeddings_digest: Sha256Digest,
     staged_hashes_digest: Sha256Digest,
-    staged_classifier_digest: Sha256Digest,
+    /// The staged classifier artifact's recorded identity; a supplied-artifact corpus stages
+    /// no classifier and carries none.
+    staged_classifier_digest: Option<Sha256Digest>,
     /// The generation's echoed assembly configuration; the replay binds it, never the
     /// compiled defaults.
     assembly: AssemblyConfig,
@@ -114,8 +121,9 @@ pub(crate) struct Frozen {
 }
 
 impl Frozen {
-    /// The staged classifier artifact's recorded identity.
-    pub(crate) const fn staged_classifier_digest(&self) -> Sha256Digest {
+    /// The staged classifier artifact's recorded identity; [`None`] for supplied artifacts,
+    /// which stage no classifier.
+    pub(crate) const fn staged_classifier_digest(&self) -> Option<Sha256Digest> {
         self.staged_classifier_digest
     }
 
@@ -171,9 +179,59 @@ impl Frozen {
             document_digest: corpus_digest,
             staged_embeddings_digest: embeddings_file.hash,
             staged_hashes_digest: hashes_file.hash,
-            staged_classifier_digest: files.classifier.hash,
+            staged_classifier_digest: Some(files.classifier.hash),
             assembly: config.policy.assembly,
             fit: config.policy.classifier_fit,
+        }
+    }
+
+    /// Opens supplied annotation artifacts directly, without a published generation.
+    ///
+    /// `directory` holds the three artifact files under their staged names:
+    /// `annotation-corpus.json`, `annotation-embeddings.arr`, and `annotation-hashes.arr`.
+    /// Supplied artifacts carry no configuration echo, so the assembly and fit configurations
+    /// are the compiled deployment defaults; [`reconstruct`](Self::reconstruct) still certifies
+    /// the reassembled table against the supplied bytes, so a default assembly that diverges
+    /// from the one that produced the artifacts fails the byte certification instead of
+    /// silently probing a different corpus.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an artifact file cannot be read or the corpus document fails validation.
+    pub(crate) fn from_supplied(directory: &Utf8Path) -> Self {
+        let embeddings_path = directory.join("annotation-embeddings.arr");
+        let hashes_path = directory.join("annotation-hashes.arr");
+
+        let supplied = SuppliedAnnotations::open(directory.join("annotation-corpus.json"))
+            .expect("the supplied corpus document parses");
+
+        let embeddings_digest = Sha256Digest::of(
+            std::fs::read(embeddings_path.as_std_path())
+                .expect("the supplied embedding array reads"),
+        );
+        let hashes_digest = Sha256Digest::of(
+            std::fs::read(hashes_path.as_std_path()).expect("the supplied hash column reads"),
+        );
+
+        // Supplied artifacts name no embedder; the fingerprint is minted from the supplied
+        // table's own digest and serves only as the reassembled table's identity label - it
+        // never enters the certified bytes.
+        let embedder = TableEmbedder::load(
+            EmbedderFingerprint::new(embeddings_digest),
+            &hashes_path,
+            &embeddings_path,
+        );
+
+        Self {
+            document_digest: supplied.hash(),
+            staged_document_digest: supplied.hash(),
+            supplied,
+            embedder,
+            staged_embeddings_digest: embeddings_digest,
+            staged_hashes_digest: hashes_digest,
+            staged_classifier_digest: None,
+            assembly: AssemblyConfig { .. },
+            fit: FitConfig { .. },
         }
     }
 

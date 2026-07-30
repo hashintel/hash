@@ -445,11 +445,13 @@ fn fit_model(
     let converged = match run.outcome {
         Ok(converged) => converged,
         Err(failure) => {
-            // The typed terminal, the aggregate counters, and the fold identity are the whole
-            // routine failure diagnostic; the probe replays `seed:fold` when vectors are needed.
+            // The typed terminal, the candidate strength, the aggregate counters, and the fold
+            // identity are the whole routine failure diagnostic; the probe replays `seed:fold`
+            // when vectors are needed.
             tracing::error!(
                 ?failure,
                 ?held_out,
+                regularization = config.solver.preparation.regularization.get(),
                 outer_iterations_started = run.control.outer_iterations_started,
                 counters = ?run.control.counters,
                 "the classifier solve ended at a typed terminal",
