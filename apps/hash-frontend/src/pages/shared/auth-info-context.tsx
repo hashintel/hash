@@ -27,6 +27,7 @@ import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import { enterPrincipal } from "../../shared/principal-scoped-state";
 import { oryKratosClient } from "./ory-kratos";
 
 import type { MeQuery } from "../../graphql/api-types.gen";
@@ -263,6 +264,27 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     () => constructUserValue(authenticatedUserSubgraph, verifiableAddresses),
     [authenticatedUserSubgraph, constructUserValue, verifiableAddresses],
   );
+
+  /**
+   * Client state minted for one principal must not outlive it, and the reset has
+   * to happen HERE: in the render that resolves the new principal, before the
+   * `value` below is built and handed to this context's consumers.
+   *
+   * Signing out is a client-side `router.push` (`use-logout-flow.ts`), so
+   * `A -> signed out -> B` in one tab keeps the JavaScript process, and with it
+   * any module-level session, token or cache resolved under A's visibility. The
+   * server refusing A's credentials stops the next read; it does not erase what
+   * A already put in memory. Deliberately not an effect: an effect runs after
+   * descendants have rendered and can have issued requests, which is one
+   * wrongly-attributed render-and-request window.
+   *
+   * A side effect during render, and a narrow one on purpose. It is idempotent
+   * per principal, so React's double-invocation and a re-render both no-op; the
+   * worst a render thrown away by a concurrent-mode retry can cost is one
+   * refetch of state that was safe to drop, never a cache that mixes two
+   * principals' rows.
+   */
+  enterPrincipal(authenticatedUser?.accountId);
 
   const value = useMemo(
     () => ({

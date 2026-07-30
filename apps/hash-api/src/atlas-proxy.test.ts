@@ -6,7 +6,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 
-import { ATLAS_ACTOR_HEADER, setupAtlasProxy } from "./atlas-proxy";
+import {
+  ATLAS_ACTOR_HEADER,
+  ATLAS_AUTHORITY_HEADER,
+  setupAtlasProxy,
+} from "./atlas-proxy";
 
 import type { User } from "./graph/knowledge/system-types/user";
 import type { Logger } from "@local/hash-backend-utils/logger";
@@ -25,6 +29,16 @@ const SESSION_ACTOR = "11111111-1111-4111-8111-111111111111";
 /** An actor a caller would like the atlas to answer under. */
 const SPOOFED_ACTOR = "22222222-2222-4222-8222-222222222222";
 
+/**
+ * A stand-in authority token: an obviously arbitrary opaque string, deliberately not the atlas's
+ * width.
+ *
+ * Opaque on both sides of the hop - this suite asserts the bytes survive, never that they parse, and
+ * the proxy under test copies a header it cannot read. A fixture imitating the real width would only
+ * teach a number that goes stale; the contract is retain and present, unchanged.
+ */
+const MINTED_TOKEN = "minted-opaque-authority-token";
+
 const silentLogger = {
   info: () => {},
   warn: () => {},
@@ -42,6 +56,7 @@ const sessionUser = { accountId: SESSION_ACTOR } as unknown as User;
 /** What the upstream received per request, in request order. */
 const received: {
   actor: string | string[] | undefined;
+  authority: string | string[] | undefined;
   body: string;
   path: string | undefined;
 }[] = [];
@@ -108,9 +123,24 @@ beforeAll(async () => {
       req.on("end", () => {
         received.push({
           actor: req.headers[ATLAS_ACTOR_HEADER.toLowerCase()],
+          authority: req.headers[ATLAS_AUTHORITY_HEADER.toLowerCase()],
           body,
           path: req.url,
         });
+        // The manifest route is the only one that mints, so the stub answers it the way the atlas
+        // does - token header plus the no-store posture the per-caller token forces. Answering it
+        // here rather than from a second server on a swapped port keeps this suite free of shared
+        // mutable state: an assertion that throws mid-test cannot then strand the port for the
+        // tests after it.
+        if (req.url?.includes("/manifest")) {
+          res
+            .writeHead(200, {
+              [ATLAS_AUTHORITY_HEADER]: MINTED_TOKEN,
+              "cache-control": "private, no-store",
+            })
+            .end();
+          return;
+        }
         res.writeHead(204).end();
       });
     }),
@@ -182,6 +212,66 @@ describe("a request body", () => {
     expect(received).toHaveLength(1);
     expect(JSON.parse(received[0]!.body)).toEqual(tiles);
     expect(received[0]!.actor).toBe(SESSION_ACTOR);
+
+    await close(api.server);
+  });
+});
+
+describe("the authority token's path back to the browser", () => {
+  // Without the expose header the whole token round trip no-ops silently: a cross-origin response
+  // hands script only the CORS-safelisted headers, so a contract-perfect client reads `null` for
+  // the minted token, sends nothing back, and takes a uniform 401 on every data route - a refusal
+  // that reads as authority working. `CORS_CONFIG` states no `exposedHeaders`, and the `cors`
+  // package emits the header not at all when the option is unset.
+  it("exposes the authority header so the caller's own script can read it", async () => {
+    const api = await startApi(sessionUser);
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/current`);
+
+    expect(response.headers.get("access-control-expose-headers")).toBe(
+      ATLAS_AUTHORITY_HEADER,
+    );
+
+    await close(api.server);
+  });
+
+  it("carries a minted token back across the hop verbatim", async () => {
+    // The expose header is only half of it: the value itself has to survive the hop, and nothing
+    // was proving that.
+    const api = await startApi(sessionUser);
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/generation/g/manifest`);
+
+    expect(response.headers.get(ATLAS_AUTHORITY_HEADER)).toBe(MINTED_TOKEN);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("access-control-expose-headers")).toBe(
+      ATLAS_AUTHORITY_HEADER,
+    );
+
+    await close(api.server);
+  });
+
+  it("passes a presented token through to the atlas unchanged", async () => {
+    // The reverse direction needs no proxy change - `allowedHeaders` unset makes `cors` reflect the
+    // requested headers - but the value must still cross the hop, and `proxyReq` replaces only the
+    // actor header.
+    const api = await startApi(sessionUser);
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/tile/g/plain/3/5/1`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        [ATLAS_AUTHORITY_HEADER]: MINTED_TOKEN,
+      },
+      body: JSON.stringify({ coloredTypeIds: [] }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(received).toHaveLength(1);
+    expect(received[0]!.authority).toBe(MINTED_TOKEN);
 
     await close(api.server);
   });

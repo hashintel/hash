@@ -16,6 +16,16 @@ import type { Express, Request, Response } from "express";
 export const ATLAS_ACTOR_HEADER = "X-Authenticated-User-Actor-Id";
 
 /**
+ * The header carrying the atlas's per-caller authority token.
+ *
+ * The generation manifest mints one and returns it here; the four data routes require it back in
+ * the same header. The frontend is a different origin from this API, so a cross-origin response
+ * exposes only the CORS-safelisted headers to script unless this one is named in
+ * `Access-Control-Expose-Headers` - see {@link setupAtlasProxy}.
+ */
+export const ATLAS_AUTHORITY_HEADER = "Atlas-Authority";
+
+/**
  * Resolves the atlas listener's address from the environment.
  *
  * `hash-graph atlas` owns the defaults for these two variables as its own clap defaults, so this
@@ -44,16 +54,33 @@ const atlasTarget = () => {
  * Mount it past `authMiddleware` and past the body parsers: the header derivation reads `req.user`,
  * and a parsed JSON body is re-streamed from `req.body`.
  *
- * Responses cross the hop unmodified - the saltile media types, the `Cache-Control: private,
- * no-store` posture, and RFC 9457 `application/problem+json` bodies all arrive verbatim. Request
- * caps are the atlas's own and its generation manifest publishes them. Rate limiting belongs to
- * whatever fronts this API; the route applies none.
+ * Payloads cross the hop unmodified; the mount's one addition is to the CORS envelope -
+ * `Atlas-Authority` is exposed so the caller's own script can read the token it was just handed.
+ * The saltile media types, the `Cache-Control: private, no-store` posture, and RFC 9457
+ * `application/problem+json` bodies all arrive verbatim. Request caps are the atlas's own and its
+ * generation manifest publishes them. Rate limiting belongs to whatever fronts this API; the route
+ * applies none.
+ *
+ * WHY THE EXPOSE LINE IS LOAD-BEARING, and it fails silently without it: the frontend reaches this
+ * mount cross-origin (`apiOrigin` is a different origin from `frontendUrl` by default and by
+ * deployment shape), and `CORS_CONFIG` states no `exposedHeaders`, so the `cors` package emits no
+ * `Access-Control-Expose-Headers` at all. A client implementing the token round trip exactly to
+ * contract would then read `null` for the minted token, send nothing back, and take a uniform `401`
+ * on every data route - a refusal that looks like authority working correctly. Stating it here
+ * rather than on `CORS_CONFIG` keeps the list where the header is known, and leaves the envelope of
+ * every other route on this API alone.
  */
 export const setupAtlasProxy = (app: Express, logger: Logger) => {
   const target = atlasTarget();
 
   app.use(
     "/atlas",
+    // Stated before the hop rather than in `proxyRes`: the value does not depend on the upstream
+    // response, and a header set here survives the proxy's own header copying.
+    (_req, res, next) => {
+      res.setHeader("Access-Control-Expose-Headers", ATLAS_AUTHORITY_HEADER);
+      next();
+    },
     createProxyMiddleware<Request, Response>({
       target,
       /**
@@ -78,9 +105,9 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
          * `setHeader` replaces any value the caller sent, so the actor the atlas reads is the one
          * this API resolved.
          */
-        proxyReq: (proxyReq, req, res) => {
+        proxyReq: (proxyReq, req) => {
           proxyReq.setHeader(ATLAS_ACTOR_HEADER, getActorIdFromRequest(req));
-          fixRequestBody(proxyReq, req, res);
+          fixRequestBody(proxyReq, req);
         },
         /**
          * Answers an unreachable atlas in RFC 9457 shape.
