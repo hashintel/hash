@@ -61,9 +61,9 @@ const API_DESCRIPTION: &str =
 1. `GET /v1/atlas/current` - the generation this process serves; the one mutable read.
 2. `POST /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
      (configuration and snapshot provenance): the served variants, the published serving limits \
-     (`limits`), and the bucket schedule the tile grid follows. Every response mints the \
-     authority token the data routes require, and an optional filter document in the body binds \
-     the view.
+     (`limits`), and the bucket schedule the tile grid follows. Every successful response mints \
+     the authority token the data routes require, and the body states the view the request wants: \
+     a filter document, or nothing for the unfiltered view.
 3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
      identity resolution.
 

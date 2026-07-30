@@ -14,7 +14,7 @@
 use core::future::{self, Future};
 use std::time::SystemTime;
 
-use aide::operation::OperationInput;
+use aide::{generate::GenContext, openapi, operation::OperationInput};
 use axum::{
     extract::FromRequestParts,
     http::{HeaderValue, request::Parts},
@@ -136,26 +136,48 @@ impl FromRequestParts<AppState> for Presented {
     }
 }
 
-impl OperationInput for Presented {}
+impl OperationInput for Presented {
+    /// Documents the presented token as an optional request header.
+    ///
+    /// Optional is the manifest's whole distinction from a data route: a request presenting no
+    /// token bootstraps a view rather than being refused.
+    fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
+        operation
+            .parameters
+            .push(openapi::ReferenceOr::Item(headers::presented_authority(
+                headers::Required::No,
+            )));
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use core::{assert_matches, time::Duration};
     use std::time::SystemTime;
 
+    use aide::{openapi::Operation, transform::TransformOperation};
     use axum::http::HeaderValue;
     use rand::{SeedableRng as _, rngs::ChaCha20Rng};
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::{Presented, judge, read};
+    use super::{Presented, headers, judge, read};
     use crate::{
+        api::visibility::Visibility,
         integrity::{HexBytes, SecretHexBytes},
         serve::{
             CutOffset,
             authorization::{Scope, TOKEN_BYTES, TokenAuthority},
         },
     };
+
+    /// Renders the operation input one extractor documents.
+    fn emitted_input<T: aide::operation::OperationInput>() -> serde_json::Value {
+        let mut operation = Operation::default();
+        let _documented = TransformOperation::new(&mut operation).input::<T>();
+
+        serde_json::to_value(&operation).expect("an operation serializes")
+    }
 
     /// The fixture issue time: a round wall-clock second.
     fn issued_at() -> SystemTime {
@@ -246,6 +268,49 @@ mod tests {
             scope,
             Scope::new(presenter(11), None, CutOffset::ZERO),
             "the carried scope differs from the minted one"
+        );
+    }
+
+    /// The presented token is documented optional on the manifest and required on a data route.
+    ///
+    /// The two readings differ in exactly one emitted field, and a generated client's behaviour
+    /// follows it: a required header makes the token a precondition of the call, an optional one
+    /// leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
+    /// builder call, because that is what a generator reads.
+    #[test]
+    fn the_presented_token_is_documented_by_reading() {
+        let manifest = emitted_input::<Presented>();
+        let data_route = emitted_input::<Visibility>();
+
+        for (route, emitted) in [("manifest", &manifest), ("data route", &data_route)] {
+            let parameter = &emitted["parameters"][0];
+
+            assert_eq!(
+                parameter["in"], "header",
+                "the {route} parameter is not a header"
+            );
+            assert_eq!(
+                parameter["name"],
+                headers::AUTHORITY_DOCUMENTED,
+                "the {route} parameter names another header"
+            );
+            assert!(
+                parameter["schema"].is_object(),
+                "the {route} parameter carries no schema"
+            );
+        }
+
+        // The emitted form omits `required` when it is false.
+        assert!(
+            !manifest["parameters"][0]["required"]
+                .as_bool()
+                .unwrap_or(false),
+            "the manifest documents the token as required, refusing its own bootstrap"
+        );
+        assert_eq!(
+            data_route["parameters"][0]["required"],
+            serde_json::Value::Bool(true),
+            "a data route documents the token as optional"
         );
     }
 

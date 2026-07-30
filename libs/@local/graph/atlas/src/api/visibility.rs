@@ -20,7 +20,7 @@ use core::{
 };
 use std::time::Instant;
 
-use aide::OperationInput;
+use aide::{OperationInput, generate::GenContext, openapi};
 use axum::{extract::FromRequestParts, http::request::Parts};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::{PostgresStorePool, error::StoreError};
@@ -29,7 +29,7 @@ use type_system::{knowledge::Entity, principal::actor::ActorEntityUuid};
 use uuid::Uuid;
 
 use super::{
-    AppState, authorization,
+    AppState, authorization, headers,
     problem::{Problem, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
@@ -101,7 +101,19 @@ impl FromRequestParts<AppState> for Visibility {
     }
 }
 
-impl OperationInput for Visibility {}
+impl OperationInput for Visibility {
+    /// Documents the presented token as a required request header.
+    ///
+    /// Extraction admits the request before resolving anything, so a route taking this extractor
+    /// answers nothing without a token.
+    fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
+        operation
+            .parameters
+            .push(openapi::ReferenceOr::Item(headers::presented_authority(
+                headers::Required::Yes,
+            )));
+    }
+}
 
 /// Resolves one scope's visibility through the store, held in the cache for its reuse window.
 ///
