@@ -266,8 +266,10 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   );
 
   /**
+   * Resets principal-scoped state before publishing a new principal.
+   *
    * Client state minted for one principal must not outlive it, and the reset has
-   * to happen HERE: in the render that resolves the new principal, before the
+   * to happen in this render body: the one that resolves the new principal, before the
    * `value` below is built and handed to this context's consumers.
    *
    * Signing out is a client-side `router.push` (`use-logout-flow.ts`), so

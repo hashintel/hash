@@ -115,7 +115,7 @@ const saltile = (buffer: ArrayBuffer): Response =>
 
 const notFound = (): Response =>
   new Response(
-    JSON.stringify({ type: "stale-generation", detail: "rotated" }),
+    JSON.stringify({ type: "stale-generation", detail: "no longer served" }),
     {
       status: 404,
       headers: { "content-type": "application/problem+json" },
@@ -256,7 +256,7 @@ describe("fetchEdgesForTiles", () => {
     expect(edgesRequest?.body).toEqual({ tiles: tiles.slice(0, 2) });
   });
 
-  it("re-bootstraps once when the pinned generation rotates out", async () => {
+  it("re-bootstraps once when the pinned generation is no longer served", async () => {
     const oldGeneration = genHex(0x44);
     const newGeneration = genHex(0x55);
     let active = oldGeneration;

@@ -63,7 +63,7 @@
  * cache, since edges touching an evicted tile can no longer be drawn. An
  * unchanged tile set serves its edges entirely from the resident buckets.
  *
- * ## Generations
+ * ## Sessions and generations
  *
  * The atlas serves exactly one generation per process, pinned at its startup: the
  * `current` route echoes it, and every other route answers `404` for any other
@@ -71,17 +71,29 @@
  * construction* — nothing changes generation mid-request, or under a running
  * server.
  *
- * What a session can outlive is the process it bootstrapped against. A view open
- * across an atlas restart or redeploy (or reaching a second replica that serves a
- * different generation) finds its pinned generation no longer served, and the
- * transport's one-shot `404` refresh re-pins it to whatever `current` now names.
- * The tiles resident at that moment belong to the retired generation, and they
- * are not stale but *misattributed*: wire row ids are a keyed permutation salted
- * by the generation identity, so an old id decoded under the new generation names
- * a different, existing entity — valid to every consumer, and wrong. No remap
- * exists. So the transport publishes `getAtlasSessionRevision`, and a change to
- * it constructs a *new* {@link TileCache} and discards the nodes on screen; see
- * {@link useGetViewportNodes}.
+ * What can be replaced under a running view is the session itself, and the
+ * transport publishes `getAtlasSessionRevision` for exactly that: a change to it
+ * constructs a *new* {@link TileCache} and discards the nodes on screen (see
+ * {@link useGetViewportNodes}). Three things replace a session, and only the
+ * first moves the generation.
+ *
+ * A session can outlive the process it bootstrapped against. A view open across an
+ * atlas restart or redeploy (or reaching a second replica that serves a different
+ * generation) finds its pinned generation no longer served, and the transport's
+ * one-shot `404` refresh re-pins it to whatever `current` now names. The tiles
+ * resident at that moment belong to the retired generation, and they are not stale
+ * but *misattributed*: wire row ids are a keyed permutation salted by the
+ * generation identity, so an old id decoded under the new generation names a
+ * different, existing entity — valid to every consumer, and wrong. No remap
+ * exists.
+ *
+ * A session's authority can also be refused at its own renewal, and the
+ * authenticated principal can change. Both replace the session with the
+ * generation standing still, and both are attribution boundaries for the same
+ * reason in a different currency: the successor session answers for a different
+ * view or a different actor, so the rows its predecessor delivered are not the
+ * rows it would deliver. Resident tiles are discarded on every one of the three,
+ * because no consumer can tell a re-attributed id from a correct one.
  *
  * ## Request state
  *
@@ -1285,13 +1297,14 @@ export interface UseGetViewportNodesOptions {
 /** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
 export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph> {
   /**
-   * The atlas generation binding `data`'s node and edge ids belong to (the
+   * The atlas session binding `data`'s node and edge ids belong to (the
    * transport's `getAtlasSessionRevision`). It travels with the graph because
    * *anything* a consumer derives from those ids — a selection, a hover, a cached
    * ego-graph — must be dropped if it changes: the ids do not expire, they come to
-   * name different, existing rows. It changes only when a session re-pins to
-   * another generation, which needs the process it bootstrapped against to have
-   * been replaced; see the module's "Generations" note.
+   * name rows this session does not answer for. It changes when the session is
+   * replaced — a re-pin to another generation, an authority refused at its own
+   * renewal, or a change of authenticated principal; see the module's "Sessions
+   * and generations" note.
    */
   readonly sessionRevision: number;
   /** Tiles resident in the cache after the latest load. */
@@ -1315,9 +1328,9 @@ const viewportKey = (
   // now-empty cache refetches rather than serving the previous colouring.
   const colored =
     coloredTypeIds.length > 0 ? `|colored:${coloredTypeIds.join(",")}` : "";
-  // The generation binding is not spelled here: it rides the query's `validity`
+  // The session binding is not spelled here: it rides the query's `validity`
   // (see `useGetViewportNodes`), which joins the key *and* discards the nodes on
-  // screen — they name the retired generation's rows, so they cannot be kept.
+  // screen — they name the retired session's rows, so they cannot be kept.
   return viewport === null
     ? `${baseUrl}|initial${detail}${colored}`
     : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}${detail}${colored}`;
@@ -1326,11 +1339,12 @@ const viewportKey = (
 /**
  * Returns the nodes visible in `viewport` as a hook, with TanStack-Query-style
  * loading and error state (see {@link AtlasQueryState}). It owns a persistent
- * {@link TileCache} — created once per `(origin, budget, generation)` and kept
- * across renders — so tiles, in-flight deduplication, distance eviction, and
+ * {@link TileCache} — created once per `(origin, budget, session binding)` and
+ * kept across renders — so tiles, in-flight deduplication, distance eviction, and
  * prefetch prediction all persist as the viewport pans and zooms, and are
- * replaced wholesale if the session ever re-pins to another generation (see the
- * "Generations" note).
+ * replaced wholesale whenever that session is replaced: a re-pin to another
+ * generation, an authority refused at its own renewal, or a change of
+ * authenticated principal (see the "Sessions and generations" note).
  *
  * `data` holds the merged nodes and their edges for the current viewport (the
  * previous viewport's graph stays visible until the new one resolves, so
@@ -1353,12 +1367,13 @@ export const useGetViewportNodes = (
     coloredTypeIds = EMPTY_COLORED_TYPE_IDS,
   } = options;
 
-  // The generation binding every resident tile was decoded under. Re-pinning to
-  // another generation (see the module's "Generations" note) makes those tiles
-  // misattributed rather than stale — row ids are salted by the generation
-  // identity, so an old id decodes to a different, existing row, and no remap
-  // exists — so it must recreate the store rather than expire entries inside it,
-  // which is what naming it in the memo below does.
+  // The session binding every resident tile was decoded under (see the module's
+  // "Sessions and generations" note). Replacing that session makes those tiles
+  // misattributed rather than stale — they name rows resolved for a view or an
+  // actor this session does not answer for, and across a re-pin the ids themselves
+  // decode to different, existing rows, with no remap either way — so it must
+  // recreate the store rather than expire entries inside it, which is what naming
+  // it in the memo below does.
   const sessionRevision = useSyncExternalStore(
     subscribeToAtlasSessionRevision,
     getAtlasSessionRevision,
@@ -1391,10 +1406,10 @@ export const useGetViewportNodes = (
               includeDetailedData: controls?.includeDetailedData,
             })),
       }),
-    // `sessionRevision` is not read by the factory: it is the generation identity
-    // the cache's *contents* belong to, and naming it here is the whole fix — it
-    // constructs a new, empty cache on a re-pin. See its declaration above for why
-    // replacement is the only correct response.
+    // `sessionRevision` is not read by the factory: it is the session identity the
+    // cache's *contents* belong to, and naming it here is the whole fix — it
+    // constructs a new, empty cache when that session is replaced. See its
+    // declaration above for why replacement is the only correct response.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate: see above
     [
       baseUrl,
@@ -1415,9 +1430,9 @@ export const useGetViewportNodes = (
       });
       return { graph, tileCount: cache.tileCount };
     },
-    // A re-pin does not just recreate the cache: it also refetches (the revision
-    // joins the request key) and drops the nodes already on screen, which name the
-    // retired generation's rows.
+    // A replaced session does not just recreate the cache: it also refetches (the
+    // revision joins the request key) and drops the nodes already on screen, which
+    // name the retired session's rows.
     { validity: sessionRevision },
   );
 

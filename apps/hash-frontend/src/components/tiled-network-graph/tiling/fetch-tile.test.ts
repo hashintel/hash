@@ -16,6 +16,7 @@ import {
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
+  AtlasAuthorityEndedError,
   ATLAS_AUTHORITY_HEADER,
   clearAtlasSessionCache,
   fetchTile,
@@ -244,8 +245,9 @@ const notFound = (): Response =>
   );
 
 /**
- * A minted authority token: an obviously arbitrary opaque string, deliberately not the server's
- * width.
+ * A minted authority token.
+ *
+ * An obviously arbitrary opaque string, deliberately not the server's width.
  *
  * The client's contract with this value is opacity — retain it, present it — so width has no consumer
  * here, and a fixture that imitated one would only teach a number that goes stale. One test below
@@ -258,8 +260,10 @@ const TOKEN_A = token(0xa1);
 const TOKEN_B = token(0xb2);
 
 /**
- * The manifest response as the server always sends it: the immutable document plus a freshly minted
- * authority token in its header, and `no-store` because of that token.
+ * The manifest response as the server always sends it.
+ *
+ * The immutable document plus a freshly minted authority token in its header, and `no-store` because
+ * of that token.
  */
 const manifest = (
   generation: string,
@@ -276,8 +280,10 @@ const manifest = (
   });
 
 /**
- * The one refusal a data route gives for authority, whatever the cause: an absent token, a stale
- * one, a foreign one. The client learns only that it must re-fetch the manifest.
+ * The one refusal a data route gives for authority.
+ *
+ * Whatever the cause — an absent token, a stale one, a foreign one — the client learns only that it
+ * must re-fetch the manifest.
  */
 const unauthorized = (): Response =>
   new Response(
@@ -359,7 +365,7 @@ describe("fetchTile", () => {
     expect(tilePosts).toBe(2);
   });
 
-  it("re-bootstraps once when the pinned generation rotates out", async () => {
+  it("re-bootstraps once when the pinned generation is no longer served", async () => {
     const oldGeneration = genHex(0x33);
     const newGeneration = genHex(0x44);
     let active = oldGeneration;
@@ -374,7 +380,7 @@ describe("fetchTile", () => {
         saltile(tileBytes(0x44, 2, 1, 3)),
     });
 
-    // Pin the stale generation, rotate the server, then fetch: the 404 triggers
+    // Pin the stale generation, re-pin the server, then fetch: the 404 triggers
     // exactly one re-bootstrap and the retry succeeds.
     const pinned = fetchTile(2, 13, { baseUrl: BASE }); // y = 3, x = 1
     active = newGeneration;
@@ -537,7 +543,7 @@ describe("the atlas base", () => {
     // answered as the public user rather than refused: every request carries the cookie.
     //
     // The authority token does not retire this test, and it is worth saying why, because the token
-    // seals an actor and that sounds like the same wall. It seals the actor hash-api RESOLVED — and
+    // seals an actor and that sounds like the same wall. It seals the actor hash-api resolved — and
     // for a cookieless request that is the public user, so the manifest mints a valid public-actor
     // token, every data route admits it, and the whole chain is internally consistent and silently
     // emptier. The token refuses a *different* actor's presentation; only the cookie decides which
@@ -571,7 +577,7 @@ describe("the atlas session revision", () => {
     expect(getAtlasSessionRevision()).toBe(before);
   });
 
-  it("changes and notifies when the pinned generation rotates out", async () => {
+  it("changes and notifies when the pinned generation is no longer served", async () => {
     const oldGeneration = genHex(0xbb);
     const newGeneration = genHex(0xcc);
     let active = oldGeneration;
@@ -635,16 +641,26 @@ describe("the atlas session revision", () => {
   });
 });
 
-/** One recorded request: where it went, how, and which authority token it presented. */
+/** One recorded request: where it went, how, what it carried, and which authority token it presented. */
 interface RecordedRequest {
   readonly path: string;
   readonly method: string;
   readonly authority: string | null;
+  /**
+   * The stated request content type, `null` when the request carries no body.
+   *
+   * Recorded because it decides the CORS envelope: `application/json` is not a safelisted value, so a
+   * content type on a bodyless request would buy a preflight for a body that does not exist.
+   */
+  readonly contentType: string | null;
+  readonly body: string | undefined;
 }
 
 /**
- * Stubs the global fetch with canned routes, recording every request's path, method and presented
- * authority token. Unknown paths answer `404`, the generation-retired signal.
+ * Stubs the global fetch with canned routes.
+ *
+ * Records every request's path, method, body, stated content type and presented authority token.
+ * Unknown paths answer `404`, the generation-retired signal.
  *
  * A route is handed the request it is answering, because the real server's manifest answers a
  * presented token differently from an absent one: presenting is the refresh, absent is a fresh
@@ -666,6 +682,8 @@ const stubAuthorityTransport = (
       path: new URL(url, BASE).pathname,
       method: init?.method ?? "GET",
       authority: new Headers(init?.headers).get(ATLAS_AUTHORITY_HEADER),
+      contentType: new Headers(init?.headers).get("content-type"),
+      body: typeof init?.body === "string" ? init.body : undefined,
     };
     seen.push(request);
     const route = routes[request.path];
@@ -674,8 +692,18 @@ const stubAuthorityTransport = (
   return seen;
 };
 
+/**
+ * The data-route requests: everything that is not the session pair.
+ *
+ * Selected by path and never by method, because the manifest is a `POST` route as well: a method
+ * filter would count every mint and every renewal as a data request, which is the exact misreading
+ * the transport states request roles to avoid.
+ */
 const dataRoutes = (seen: RecordedRequest[]): RecordedRequest[] =>
-  seen.filter((request) => request.method === "POST");
+  seen.filter(
+    (request) =>
+      !request.path.endsWith("/manifest") && !request.path.endsWith("/current"),
+  );
 
 const manifestFetches = (seen: RecordedRequest[]): RecordedRequest[] =>
   seen.filter((request) => request.path.endsWith("/manifest"));
@@ -686,7 +714,7 @@ describe("the atlas authority token", () => {
     clearAtlasSessionCache();
   });
 
-  it("presents the minted token on the data route and nothing on the bootstrap GETs", async () => {
+  it("presents the minted token on the data route and nothing on the session pair", async () => {
     const generation = genHex(0x11);
     const seen = stubAuthorityTransport({
       "/atlas/current": () => json({ generation }),
@@ -697,18 +725,33 @@ describe("the atlas authority token", () => {
 
     await fetchTile(3, 13, { baseUrl: BASE });
 
-    // The bootstrap pair stays CORS-simple: a custom header on them would turn two plain GETs into
-    // preflighted ones for no gain, since neither route requires a token.
-    expect(seen.slice(0, 2).map((request) => request.authority)).toEqual([
-      null,
-      null,
+    // The session pair by role: `current` is the one `GET`, the manifest is a bodyless `POST`, and
+    // both are tokenless. That keeps them CORS-simple — no custom header, no stated content type —
+    // so neither costs a preflight, and the manifest fetch is a bootstrap rather than a renewal.
+    expect(seen.slice(0, 2)).toEqual([
+      {
+        path: "/atlas/current",
+        method: "GET",
+        authority: null,
+        contentType: null,
+        body: undefined,
+      },
+      {
+        path: `/atlas/generation/${generation}/manifest`,
+        method: "POST",
+        authority: null,
+        contentType: null,
+        body: undefined,
+      },
     ]);
-    // The token rides every request that carries a body, which is exactly the data routes.
+    // A data route presents the token and states its body's type.
     expect(dataRoutes(seen)).toEqual([
       {
         path: `/atlas/tile/${generation}/plain/3/5/1`,
         method: "POST",
         authority: TOKEN_A,
+        contentType: "application/json",
+        body: "{}",
       },
     ]);
   });
@@ -771,9 +814,25 @@ describe("the atlas authority token", () => {
     expect(
       seen.filter((request) => request.path.endsWith("/current")),
     ).toHaveLength(1);
-    expect(manifestFetches(seen).map((request) => request.authority)).toEqual([
-      null,
-      TOKEN_A,
+    // The two manifest roles differ in exactly one thing, the presentation. Same route, same method,
+    // no body either time: nothing in the request's shape says which role it is, which is why the
+    // transport carries the role explicitly instead of reading it off the request.
+    const manifestPath = `/atlas/generation/${generation}/manifest`;
+    expect(manifestFetches(seen)).toEqual([
+      {
+        path: manifestPath,
+        method: "POST",
+        authority: null,
+        contentType: null,
+        body: undefined,
+      },
+      {
+        path: manifestPath,
+        method: "POST",
+        authority: TOKEN_A,
+        contentType: null,
+        body: undefined,
+      },
     ]);
     expect(dataRoutes(seen).map((request) => request.authority)).toEqual([
       TOKEN_A,
@@ -869,7 +928,31 @@ describe("the atlas authority token", () => {
       path: `/atlas/tile/${newGeneration}/plain/1/1/0`,
       method: "POST",
       authority: TOKEN_B,
+      contentType: "application/json",
+      body: "{}",
     });
+  });
+
+  it("does not renew authority at a refused bootstrap: only a data route's 401 can be stale", async () => {
+    const generation = genHex(0x40);
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      // The manifest refuses the bootstrap itself. A bootstrap presents no token, so there is no
+      // stale authority to renew and nothing a renewal could repair: renewing here would re-fetch
+      // the request that just failed, and its refusal would renew again.
+      [`/atlas/generation/${generation}/manifest`]: () => unauthorized(),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x40, 1, 1, 0)),
+    });
+
+    await expect(fetchTile(1, 1, { baseUrl: BASE })).rejects.toMatchObject({
+      name: "FetchTileError",
+      status: 401,
+    });
+
+    // One manifest fetch, and the tile route was never reached: the refusal is the bootstrap's own.
+    expect(manifestFetches(seen)).toHaveLength(1);
+    expect(dataRoutes(seen)).toHaveLength(0);
   });
 
   it("renews at most once per request: a second refusal is terminal", async () => {
@@ -878,8 +961,8 @@ describe("the atlas authority token", () => {
       "/atlas/current": () => json({ generation }),
       [`/atlas/generation/${generation}/manifest`]: () =>
         manifest(generation, 16, TOKEN_B),
-      // A route that refuses whatever it is handed: a revocation rather than an expiry, and the
-      // client cannot tell the difference by contract.
+      // A route that refuses whatever it is handed, including the token just minted for it. The
+      // client cannot ask why: the refusal names no cause, by contract.
       [`/atlas/tile/${generation}/plain/1/1/0`]: () => unauthorized(),
     });
 
@@ -1000,57 +1083,95 @@ describe("the atlas authority token", () => {
     ]);
   });
 
-  it("treats a refused renewal as terminal and touches nothing", async () => {
+  it("clears the session and re-bootstraps when its renewal is refused", async () => {
     const generation = genHex(0x91);
-    // One flag for one server posture: this token is refused everywhere, at the data route and at the
-    // renewal alike — a revocation, or an actor that changed under the tab.
-    let refusing = false;
+    // The held token stops being admitted anywhere — at the data route and at its own renewal, where
+    // an expiry would have been forgiven — while a tokenless bootstrap still succeeds and mints a new
+    // one. The cause is the server's business; what the client sees is that its own renewal refused.
+    let minted = TOKEN_A;
+    let admitted = TOKEN_A;
+    let refusingPresented = false;
     const seen = stubAuthorityTransport({
       "/atlas/current": () => json({ generation }),
-      [`/atlas/generation/${generation}/manifest`]: (request) => {
-        if (request.authority === null) {
-          return manifest(generation, 16, TOKEN_A);
-        }
-        // The refusal the serving side does not send yet and will once a present-but-invalid token
-        // (bad tag, wrong actor) stops collapsing into "fresh bootstrap".
-        return refusing ? unauthorized() : manifest(generation, 16, TOKEN_B);
-      },
+      [`/atlas/generation/${generation}/manifest`]: (request) =>
+        request.authority !== null && refusingPresented
+          ? unauthorized()
+          : manifest(generation, 16, minted),
       [`/atlas/tile/${generation}/plain/1/1/0`]: (request) =>
-        !refusing && request.authority === TOKEN_A
+        request.authority === admitted
           ? saltile(tileBytes(0x91, 1, 1, 0))
           : unauthorized(),
     });
 
-    const notified = vi.fn();
-    const unsubscribe = subscribeToAtlasSessionRevision(notified);
     await fetchTile(1, 1, { baseUrl: BASE });
     const before = getAtlasSessionRevision();
+    // Where the revision moved, measured in requests already sent, so the order can be asserted
+    // rather than described: the drop must be visible to holders before the new token exists.
+    const movedAfter: number[] = [];
+    const unsubscribe = subscribeToAtlasSessionRevision(() => {
+      movedAfter.push(seen.length);
+    });
+    const settled = seen.length;
 
-    // The data route refuses a token it had just accepted, and the renewal is refused in turn.
-    refusing = true;
-    await expect(fetchTile(1, 1, { baseUrl: BASE, retry: 0 })).rejects.toThrow(
-      /401/u,
+    minted = TOKEN_B;
+    admitted = TOKEN_B;
+    refusingPresented = true;
+
+    // The session is replaced and the request retried, so the caller sees a painted tile.
+    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    expect(nodes).toHaveLength(3);
+
+    // Advanced once, for the one session that was really pinned.
+    expect(getAtlasSessionRevision()).toBe(before + 1);
+    const recovery = seen.slice(settled);
+    const bootstrap = recovery.findIndex((request) =>
+      request.path.endsWith("/current"),
     );
-    const afterFailure = [...seen];
+    expect(bootstrap).toBeGreaterThanOrEqual(0);
+    // The clear landed before the token-less bootstrap went out, so no freshly minted token is ever
+    // adopted beside rows painted under the session it replaced.
+    expect(movedAfter).toEqual([settled + bootstrap]);
 
-    // Terminal means untouched: no session dropped, no revision moved, nobody told to discard, and
-    // NO fresh bootstrap adopted into a store painted under the old session — which is the tempting
-    // repair and the exact shape by which another actor's view would be adopted into this one's.
-    expect(getAtlasSessionRevision()).toBe(before);
-    expect(notified).not.toHaveBeenCalled();
+    // The two manifest calls of the recovery, in order: the renewal that presented the refused token,
+    // then the replacement bootstrap that presented none. Asserting it on the manifest is the whole
+    // point — `/current` carries no token under any implementation, so reading token-lessness off it
+    // would pass against a bootstrap that presented the dead token.
     expect(
-      afterFailure.filter((request) => request.path.endsWith("/current")),
-    ).toHaveLength(1);
-
-    // And the held token was not swapped: the next request still presents the one that was minted.
-    refusing = false;
-    await fetchTile(1, 1, { baseUrl: BASE });
-    expect(
-      dataRoutes(seen.slice(afterFailure.length)).map(
-        (request) => request.authority,
-      ),
-    ).toEqual([TOKEN_A]);
+      manifestFetches(recovery).map((request) => request.authority),
+    ).toEqual([TOKEN_A, null]);
+    // Refused with the old token, retried once with the new one.
+    expect(dataRoutes(recovery).map((request) => request.authority)).toEqual([
+      TOKEN_A,
+      TOKEN_B,
+    ]);
     unsubscribe();
+  });
+
+  it("replaces the session once: a refusal after the fresh bootstrap is terminal", async () => {
+    const generation = genHex(0x92);
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      // Every presented token is refused, so the recovery's own session is refused in turn.
+      [`/atlas/generation/${generation}/manifest`]: (request) =>
+        request.authority === null
+          ? manifest(generation, 16, TOKEN_A)
+          : unauthorized(),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () => unauthorized(),
+    });
+
+    // The class is the assertion, not the wording: what reaches the caller is the refusal of a
+    // renewal, which is the one failure that ends a session.
+    await expect(fetchTile(1, 1, { baseUrl: BASE, retry: 0 })).rejects.toThrow(
+      AtlasAuthorityEndedError,
+    );
+
+    // One replacement, never a loop: two bootstraps and two tile attempts, then the refusal reaches
+    // the caller. A bootstrap that presents no token cannot be refused for authority, so a refusal
+    // after one is no longer staleness and nothing further is dropped.
+    expect(
+      seen.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(2);
+    expect(dataRoutes(seen)).toHaveLength(2);
   });
 
   it("consumes only the header at a renewal, never the document", async () => {
@@ -1081,11 +1202,12 @@ describe("the atlas authority token", () => {
 });
 
 /**
- * The transport's half of the principal-transition contract: it registers its reset at module load
- * (see `shared/principal-scoped-state.ts`), and these drive that registration through the module-wide
- * tracker the auth provider calls.
+ * The transport's half of the principal-transition contract.
  *
- * Every test states the principal it starts under BEFORE bootstrapping, because the tracker is
+ * It registers its reset at module load (see `shared/principal-scoped-state.ts`), and these tests
+ * drive that registration through the module-wide tracker the auth provider calls.
+ *
+ * Every test states the principal it starts under before bootstrapping, because the tracker is
  * module-wide: the first principal a file observes is not a transition, and a later test inherits the
  * previous one.
  */
@@ -1267,6 +1389,62 @@ describe("a change of authenticated principal", () => {
     // mint is written into whichever entry now holds the origin — here, the next principal's.
     await fetchTile(1, 1, { baseUrl: BASE });
     expect(dataRoutes(seen).at(-1)?.authority).toBe(TOKEN_B);
+  });
+
+  it("does not clear the new principal's session when a superseded renewal is refused", async () => {
+    enterPrincipal("actor-a");
+    const generation = genHex(0x86);
+    const gate = held();
+    let expired = false;
+    let manifests = 0;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) => {
+        manifests += 1;
+        // A presented token is a renewal, and this one is held until after the principal changed.
+        return request.authority === null
+          ? manifest(generation, 16, manifests === 1 ? TOKEN_A : TOKEN_B)
+          : gate.promise;
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: (request) =>
+        expired && request.authority === TOKEN_A
+          ? unauthorized()
+          : saltile(tileBytes(0x86, 1, 1, 0)),
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+    expired = true;
+    const stale = fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    await vi.waitFor(() => {
+      expect(manifests).toBe(2);
+    });
+    enterPrincipal("actor-b");
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    const pinned = getAtlasSessionRevision();
+    const notified = vi.fn();
+    const unsubscribe = subscribeToAtlasSessionRevision(notified);
+    const settled = seen.length;
+
+    // A's renewal is refused, late — the recovery for a refusal is destructive, and this one
+    // addresses a session that no longer exists.
+    gate.release(unauthorized());
+    await expect(stale).rejects.toThrow(AtlasAuthorityEndedError);
+
+    // It fails its own dropped callers and touches nothing else: B's revision does not move, nobody
+    // is told to discard, and no bootstrap is issued on the word of a superseded request.
+    expect(getAtlasSessionRevision()).toBe(pinned);
+    expect(notified).not.toHaveBeenCalled();
+    expect(
+      seen
+        .slice(settled)
+        .filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(0);
+
+    // And B's token survives unswapped: the next request still presents the one B's bootstrap minted.
+    await fetchTile(1, 1, { baseUrl: BASE });
+    expect(dataRoutes(seen).at(-1)?.authority).toBe(TOKEN_B);
+    unsubscribe();
   });
 
   it("moves nothing when no session was pinned under the previous principal", () => {

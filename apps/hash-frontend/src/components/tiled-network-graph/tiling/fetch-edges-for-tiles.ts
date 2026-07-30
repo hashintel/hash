@@ -19,15 +19,19 @@
  * route serves it (version 0 rejects it with an `unsupported-feature` problem).
  * `filter` remains unsupported and is never sent.
  *
- * Transient failures retry with backoff (see {@link withAtlasRetry}); a `404`
- * (the pinned generation rotated) refreshes the session once and retries, as in
- * {@link fetchTile}.
+ * Transient failures retry with backoff (see {@link withAtlasRetry}). The two failures that end a
+ * session replace it once and retry, as in {@link fetchTile}: a `404`, meaning the pinned generation
+ * is no longer served, and an authority renewal the server refuses. Both arrive through
+ * {@link canReplaceAtlasSession}, which also decides whether this caller is the one still entitled to
+ * replace it — an ordinary `401` is not in that set, because a data route refusing a freshly minted
+ * token says nothing is stale.
  */
 
 import { decodeSaltileEdges } from "../atlas-decode/edges";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
+  canReplaceAtlasSession,
   clearAtlasSessionCache,
   FetchTileError,
   getSaltileSession,
@@ -117,10 +121,10 @@ const fetchAndDecodeEdges = async (
   const response = await requestAtlas(
     edgesUrl(session, baseUrl),
     SALTILE_MEDIA_TYPE,
+    edgesBody(tiles, includeDetailedData),
     signal,
     retries,
     priority,
-    edgesBody(tiles, includeDetailedData),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -200,7 +204,10 @@ export const fetchEdgesForTiles = async (
     return { edges: [], complete: true };
   }
 
-  const session = await getSaltileSession(baseUrl);
+  // The promise, not just the session it resolves: it names the population this call belongs to (see
+  // {@link canReplaceAtlasSession}).
+  const pinned = getSaltileSession(baseUrl);
+  const session = await pinned;
 
   // Trim to the served cap; `tiles` is expected in priority order (see the doc).
   const capped =
@@ -219,8 +226,10 @@ export const fetchEdgesForTiles = async (
       includeDetailedData,
     );
   } catch (error) {
-    // A 404 means the pinned generation is no longer active; re-bootstrap once.
-    if (error instanceof FetchTileError && error.status === 404) {
+    // The pinned generation is gone (`404`), or this session's authority was refused and could not be
+    // renewed (`401`); either ends the session. One decision for both transports, so neither can
+    // learn a recovery the other has not.
+    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
       clearAtlasSessionCache(baseUrl);
       const refreshed = await getSaltileSession(baseUrl);
       const recapped =

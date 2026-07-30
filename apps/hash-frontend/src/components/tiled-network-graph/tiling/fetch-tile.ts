@@ -1,12 +1,14 @@
 /**
+ * The Atlas tile transport.
+ *
  * Fetches one Atlas quadtree tile over the SALTILE wire (Surface v1) and
  * decodes it into renderable node records.
  *
  * The flow mirrors the serving contract:
  *
  *  1. Bootstrap a session: read `GET /atlas/current` for the active
- *     generation, then its immutable manifest (canonical variant, bucket
- *     schedule, max zoom). The session binds every tile to one generation and
+ *     generation, then `POST` its immutable manifest, bodyless (canonical
+ *     variant, bucket schedule, max zoom). The session binds every tile to one generation and
  *     is memoized per origin (see {@link clearAtlasSessionCache}) so a
  *     viewport's worth of tile fetches shares a single bootstrap. The manifest
  *     response also mints the authority token the data routes require, which
@@ -26,11 +28,12 @@
  *
  * HTTP requests are retried with exponential backoff on transient failures —
  * transport errors and `5xx`/`429` responses (see {@link withAtlasRetry}).
- * Terminal failures (`4xx`, a decode mismatch) are not retried; a `404`, meaning
- * the pinned generation is no longer served — a re-pin — has its own one-shot
- * session refresh in {@link fetchTile}, and a `401`, meaning the authority token
- * no longer admits the request, has its own one-shot token renewal in
- * {@link requestAtlas}.
+ * Terminal failures (`4xx`, a decode mismatch) are not retried; a `401`, meaning
+ * the authority token no longer admits the request, has its own one-shot token
+ * renewal in {@link requestAtlas}, while the two failures that end a session — a
+ * `404`, meaning the pinned generation is no longer served, and a renewal the
+ * server refuses — share one session replacement in {@link fetchTile} (see
+ * {@link canReplaceAtlasSession}).
  */
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -175,14 +178,32 @@ export class FetchTileError extends Error {
   }
 }
 
+/**
+ * A session's authority was refused at its own renewal.
+ *
+ * The distinction this class exists to carry: an ordinary `401` reaching a caller means a data route
+ * refused a token the manifest had just minted — nothing about the session is stale, and a
+ * re-bootstrap would buy a wasted round trip and discard live rows. This error, by contrast, means the renewal
+ * itself was refused, where an expiry would have been forgiven, so the session's authority is not
+ * one the server will admit again and the session cannot be continued at all (see
+ * {@link canReplaceAtlasSession}, its only consumer).
+ *
+ * It is minted at the one place that can tell the two apart — the caller of
+ * {@link renewAtlasAuthority} — so no route decides, and a route that forgot to would get the
+ * conservative behaviour rather than a destructive one.
+ */
+export class AtlasAuthorityEndedError extends FetchTileError {}
+
 const abortError = (signal: AbortSignal | undefined): FetchTileError =>
   new FetchTileError("Atlas request aborted", { cause: signal?.reason });
 
 /**
- * A failure worth retrying: a transport error (no HTTP status reached us) or the
- * server asking us to try again (`429`, `5xx`). Terminal failures — `4xx`
- * (including the `404` that signals a re-pin) and non-HTTP errors such as a
- * decode mismatch — are not retried.
+ * Whether a failure is worth retrying.
+ *
+ * Retried: a transport error (no HTTP status reached us) or the server asking us
+ * to try again (`429`, `5xx`). Terminal failures — `4xx` (including the `404`
+ * that signals a re-pin) and non-HTTP errors such as a decode mismatch — are
+ * not.
  */
 const isRetryableError = (error: unknown): boolean => {
   if (!(error instanceof FetchTileError)) {
@@ -296,8 +317,9 @@ interface AtlasAuthority {
    */
   token: string | undefined;
   /**
-   * The manifest of the generation this origin's session pinned — the one route that mints, so the
-   * one route that renews.
+   * This origin's pinned generation manifest.
+   *
+   * The one route that mints, so the one route that renews.
    */
   readonly manifestUrl: string;
   /** An in-flight renewal, shared so a viewport's simultaneous refusals cost one manifest fetch. */
@@ -327,7 +349,7 @@ const authorityCache = new Map<string, AtlasAuthority>();
  * route has to carry it. Anything stale is dropped rather than reconciled — there is nothing to
  * reconcile it against.
  *
- * It moves on EVERY clear, including one that dropped no session, and no test can distinguish that
+ * It moves on every clear, including one that dropped no session, and no test can distinguish that
  * from moving it only on a real drop — deliberately, because no case needs it: work in flight is
  * itself a pinned entry, so a clear with nothing to drop has nothing in flight to supersede. It is
  * unconditional because that argument is longer than the increment, and because the guard it feeds
@@ -348,8 +370,8 @@ let authorityIncarnation = 0;
  *
  * The request's own URL names the origin, so no token is threaded through the transports: a data
  * route cannot send its request without presenting the token, a new route cannot forget to, and one
- * origin's token cannot reach another. The trailing `/` is load-bearing — without it a base of
- * `…/atlas` would match a request to `…/atlas-two/tile/…`.
+ * origin's token cannot reach another. The trailing `/` holds the match to a path boundary —
+ * without it a base of `…/atlas` would also match a request to `…/atlas-two/tile/…`.
  */
 const authorityFor = (url: string): AtlasAuthority | undefined => {
   for (const [baseUrl, authority] of authorityCache) {
@@ -393,32 +415,60 @@ const retainAtlasAuthority = (
 };
 
 /**
+ * What an atlas request is for — the one property of a request this transport does not derive.
+ *
+ * Method, token presentation and renewal eligibility all follow from the role, so no call site
+ * chooses any of them. The role is stated rather than read off the request because nothing in a
+ * request's shape identifies it: the manifest and the four data routes are all `POST`, and a
+ * bodyless manifest renewal presents the same token a data route does. A transport that inferred the
+ * role from the shape would answer the manifest's own refusal by renewing authority at the
+ * manifest — the request that just failed — and recur.
+ *
+ * `data` carries its body inside the role rather than beside it, so a data request cannot be built
+ * without one and no other role can acquire one by accident.
+ */
+type AtlasRequest =
+  /** Names the generation to pin: the one `GET` here, and tokenless. */
+  | { readonly role: "current" }
+  /**
+   * Mints the authority of a fresh view. Bodyless and tokenless, so it stays a CORS-simple request.
+   *
+   * Its tokenlessness is doubly determined and no test can distinguish the two: this role presents
+   * nothing, and the entry the bootstrap installs holds no token to present (see
+   * {@link fetchSaltileSession}). The role is the half a reader can see at the request.
+   */
+  | { readonly role: "manifest-bootstrap" }
+  /** Re-mints the authority of the view sealed in the retained token, which it presents. */
+  | { readonly role: "manifest-renewal" }
+  /** One of the four routes requiring the token, and the only role whose `401` can be a stale one. */
+  | { readonly role: "data"; readonly body: string };
+
+/**
  * A single request that resolves only on a 2xx response and otherwise throws.
  *
- * `presentAuthority` presents the retained token on a request that carries no body; see
- * {@link renewAtlasAuthority}, the one caller that needs it.
+ * Sends what `request`'s role says it is (see {@link AtlasRequest}): `current` as a `GET` and every
+ * other role as a `POST`, presenting the retained token on the two roles the server requires it
+ * from, with a JSON body on the one role that carries one.
  */
 const requestAtlasOnce = async (
   url: string,
   accept: string,
+  request: AtlasRequest,
   signal: AbortSignal | undefined,
   priority: RequestPriority | undefined,
-  body: string | undefined,
-  presentAuthority = false,
 ): Promise<Response> => {
   // Read with the token, not before it and not after the response: the incarnation this request may
   // publish into is the one whose token it is about to present (see `authorityIncarnation`).
   const incarnation = authorityIncarnation;
-  // The four data routes require the token and are exactly the requests carrying a body, so the
-  // presentation is derived rather than passed. The bootstrap `GET`s stay tokenless on purpose: a
-  // custom header would turn two CORS-simple requests into preflighted ones. The refresh is the one
-  // bodyless request that must present (`presentAuthority`), and pays that preflight to renew.
+  const body = request.role === "data" ? request.body : undefined;
+  // The data routes require the token, and the renewal presents the expiring one because presenting
+  // it is what carries the view across the re-mint. The other two roles are tokenless: `current` has
+  // nothing to present, and a bootstrap presenting a token would ask to continue the very view it is
+  // replacing. Being tokenless also keeps them CORS-simple, where a custom header costs a preflight.
   const token =
-    body !== undefined || presentAuthority
+    request.role === "data" || request.role === "manifest-renewal"
       ? authorityFor(url)?.token
       : undefined;
-  const authority: Record<string, string> =
-    token === undefined ? {} : { [ATLAS_AUTHORITY_HEADER]: token };
 
   let response: Response;
   try {
@@ -426,26 +476,23 @@ const requestAtlasOnce = async (
     // the atlas answers under that actor, so a request sent without credentials is answered as the
     // public user rather than refused. The token seals that same actor, so it is a second wall
     // behind the cookie rather than a replacement for it.
-    response =
-      body === undefined
-        ? await fetch(url, {
-            headers: { accept, ...authority },
-            credentials: "include",
-            signal,
-            priority,
-          })
-        : await fetch(url, {
-            method: "POST",
-            headers: {
-              accept,
-              "content-type": "application/json",
-              ...authority,
-            },
-            credentials: "include",
-            body,
-            signal,
-            priority,
-          });
+    response = await fetch(url, {
+      method: request.role === "current" ? "GET" : "POST",
+      headers: {
+        accept,
+        // Only a body needs its type stated, and only a body-carrying request may state one. A
+        // content type on a bodyless `POST` would cost a preflight for a body that does not exist,
+        // and it does worse than that at the hop: the API parses a JSON request and re-streams what
+        // it parsed, so a stated type turns "no body" into `{}` — a document this client never sent,
+        // reaching a route where the body is the request's meaning.
+        ...(body === undefined ? {} : { "content-type": "application/json" }),
+        ...(token === undefined ? {} : { [ATLAS_AUTHORITY_HEADER]: token }),
+      },
+      credentials: "include",
+      body,
+      signal,
+      priority,
+    });
   } catch (cause) {
     throw new FetchTileError(`Atlas request to ${url} failed`, { cause });
   }
@@ -458,6 +505,44 @@ const requestAtlasOnce = async (
   retainAtlasAuthority(url, response, incarnation);
   return response;
 };
+
+/**
+ * Reads the name of the generation to pin.
+ *
+ * The one atlas route this client reaches with a `GET`, and the one that neither mints authority nor
+ * presents it: it is asked before any session exists. Its method lives here, so no caller states it.
+ */
+const requestCurrent = (url: string): Promise<Response> =>
+  withAtlasRetry(() =>
+    requestAtlasOnce(
+      url,
+      "application/json",
+      { role: "current" },
+      undefined,
+      undefined,
+    ),
+  );
+
+/**
+ * Fetches a generation manifest: the one route that mints an authority token, in one of its two
+ * roles.
+ *
+ * The manifest's method lives here and nowhere else. It is a `POST` route, so its requests are
+ * indistinguishable by shape from the data routes' — which is why the role travels as a role (see
+ * {@link AtlasRequest}) and why both manifest call sites come through this function rather than
+ * describing the route themselves. A body is the filter document's, and this client sends none, so a
+ * manifest request here is bodyless in both roles.
+ *
+ * Neither role is tied to a caller's `signal`, for the same reason the bootstrap is not: one caller
+ * aborting must not poison a value the others await.
+ */
+const requestManifest = (
+  url: string,
+  role: "manifest-bootstrap" | "manifest-renewal",
+): Promise<Response> =>
+  withAtlasRetry(() =>
+    requestAtlasOnce(url, "application/json", { role }, undefined, undefined),
+  );
 
 /**
  * Renews the authority token of the origin `url` addresses.
@@ -474,14 +559,12 @@ const requestAtlasOnce = async (
  * verbatim, so the fresh token names the same view. Nothing about the view is read, retained or
  * compared on this side.
  *
- * **CONDITIONAL ON THE SERVING SIDE REFUSING A PRESENT-BUT-INVALID TOKEN.** A `200` here may
- * preserve painted state only where an invalid presentation — bad tag, wrong actor — is refused
- * rather than read as no token at all. Where absent and invalid collapse into one "nothing carried",
- * the manifest answers `200` with a freshly bootstrapped view, so a `200` proves a successful
- * bootstrap and not carried continuity, and the tiles kept across it may belong to a different view.
- * Do not paper over that here: the missing distinction is a status code this side cannot synthesise,
- * and the repair that suggests itself — bootstrapping afresh on a refusal — is precisely how one
- * actor's view is adopted into another's painted state.
+ * Keeping painted rows across the `200` rests on the serving contract refusing an invalid
+ * presentation — a bad tag or another actor's token — rather than reading it as no token at all.
+ * Where those collapse into one "nothing carried", the manifest answers `200` with a freshly
+ * bootstrapped view, and a `200` then proves a bootstrap rather than carried continuity, so the rows
+ * kept across it may belong to a different view. That distinction is a status code this side cannot
+ * synthesise: it is the refusal below.
  *
  * Only the header is consumed; the document is **discarded**. A refresh is not a configuration
  * re-read — the manifest is immutable per generation, so the schedule and limits stay the ones the
@@ -492,19 +575,23 @@ const requestAtlasOnce = async (
  * {@link fetchTile}) re-bootstraps and replaces the store — so the two recoveries compose without
  * either knowing about the other.
  *
- * A `401` here — the manifest refusing a present-but-invalid token — is **terminal**, and terminal
- * means untouched: the held token is not swapped, the session is not dropped, the revision does not
- * move, and no fresh session is adopted into a store painted under the old one. There is a test
- * pinning each of those, because the tempting repair (a fresh bootstrap on a refused renewal) is
- * exactly how a different actor's view would be adopted into this one's painted state.
+ * A `401` here — the manifest refusing the token it minted, where an expiry is forgiven — ends the
+ * session rather than the request: authority that its own renewal refuses cannot be continued, only
+ * replaced. This function does not replace it.
+ * The refusal travels to the caller, where the session's owner drops it and re-bootstraps (see
+ * {@link canReplaceAtlasSession}) — the same door, in the same order, that a `404` re-pin already
+ * uses, so the two recoveries stay one recovery. Recovering here would be the wrong site twice over:
+ * this layer holds no session promise to check its own staleness against, and a renewal deliberately
+ * outlives its callers' signals, so a refusal can land after everything it addressed was dropped.
  *
- * The renewal is shared per origin and untied to any caller's `signal`, for the same reason the
- * bootstrap is: one caller aborting must not poison the value the others await. It carries the
- * standard retry policy, so a transient blip at the manifest does not turn an expiring token into a
- * failed viewport — the refusal that started it is already past retrying by then.
+ * The renewal is shared per origin, so a viewport's simultaneous refusals cost one manifest fetch. It
+ * carries the standard retry policy, so a transient blip at the manifest does not turn an expiring
+ * token into a failed viewport — while the refusal that started it is already past retrying.
  *
- * @returns whether a renewal ran — `false` when the origin has no session to renew, which leaves
- *   the refusal terminal.
+ * @returns whether a renewal ran — `false` when the origin has no session to renew, which leaves the
+ *   caller's refusal terminal.
+ * @throws the manifest's own refusal, which {@link requestAtlas} turns into an
+ *   {@link AtlasAuthorityEndedError} for the session's owner.
  */
 const renewAtlasAuthority = async (url: string): Promise<boolean> => {
   const authority = authorityFor(url);
@@ -512,15 +599,9 @@ const renewAtlasAuthority = async (url: string): Promise<boolean> => {
     return false;
   }
 
-  authority.renewal ??= withAtlasRetry(() =>
-    requestAtlasOnce(
-      authority.manifestUrl,
-      "application/json",
-      undefined,
-      undefined,
-      undefined,
-      true,
-    ),
+  authority.renewal ??= requestManifest(
+    authority.manifestUrl,
+    "manifest-renewal",
   )
     .then(() => undefined)
     .finally(() => {
@@ -532,26 +613,30 @@ const renewAtlasAuthority = async (url: string): Promise<boolean> => {
 };
 
 /**
- * Requests `url`, retrying transient failures, resolving only on a 2xx
- * response. A `body` sends it as a JSON `POST`; otherwise it is a `GET`. Shared
- * with the edges transport (`fetch-edges-for-tiles.ts`).
+ * Requests one of the four data routes, retrying transient failures.
  *
- * A `401` on a data route renews the authority token once and retries (see
- * {@link renewAtlasAuthority}); `presentAuthority` is that renewal's own flag.
+ * Resolves only on a 2xx response. `body` is the route's JSON request document and is required,
+ * because a request without one is not a data route: that is the same fact as the two below, and
+ * having it in the signature is what keeps a manifest fetch from arriving here. Shared with the edges
+ * and locate transports (`fetch-edges-for-tiles.ts`, `fetch-locate.ts`).
+ *
+ * These routes present the authority token, so a `401` here renews it once and retries (see
+ * {@link renewAtlasAuthority}). Where the renewal is itself refused, the failure that reaches the
+ * caller is an {@link AtlasAuthorityEndedError} — the session is over rather than the request, and
+ * replacing it belongs to whoever pinned it.
  */
 export const requestAtlas = async (
   url: string,
   accept: string,
-  signal: AbortSignal | undefined,
+  body: string,
+  signal?: AbortSignal,
   retries?: number,
   priority?: RequestPriority,
-  body?: string,
-  presentAuthority?: boolean,
 ): Promise<Response> => {
   const attempt = (): Promise<Response> =>
     withAtlasRetry(
       () =>
-        requestAtlasOnce(url, accept, signal, priority, body, presentAuthority),
+        requestAtlasOnce(url, accept, { role: "data", body }, signal, priority),
       { signal, retries },
     );
 
@@ -559,16 +644,31 @@ export const requestAtlas = async (
     return await attempt();
   } catch (error) {
     // The uniform `401` is this client's only clock: the token is opaque, so its expiry is
-    // unreadable, and the refusal names no cause — an expiry, a re-mint and a revocation are
-    // deliberately indistinguishable. Renewing and retrying exactly once covers all three, and
-    // only a request that presents a token can be refused for one, hence the `body` guard. The
-    // renewal's own request cannot recur here: it goes to {@link requestAtlasOnce} directly.
-    if (
-      body === undefined ||
-      !(error instanceof FetchTileError) ||
-      error.status !== 401 ||
-      !(await renewAtlasAuthority(url))
-    ) {
+    // unreadable, and the refusal names no cause — an expiry, a re-mint and a withdrawal are
+    // deliberately indistinguishable. Renewing and retrying exactly once covers all three. Only a
+    // request that presents a token can be refused for one, which is why this is the data routes'
+    // entry point and no other role's: the manifest's own requests go to {@link requestAtlasOnce}
+    // through {@link requestManifest}, so a refused renewal cannot recur here.
+    if (!(error instanceof FetchTileError) || error.status !== 401) {
+      throw error;
+    }
+    let renewed: boolean;
+    try {
+      renewed = await renewAtlasAuthority(url);
+    } catch (refusal) {
+      // The renewal was refused rather than failed: the session's own authority is no longer
+      // admitted, so the session is over. Naming that here is what lets the session's owner replace
+      // it without confusing it with a data route refusing a freshly minted token (see
+      // {@link AtlasAuthorityEndedError}).
+      if (refusal instanceof FetchTileError && refusal.status === 401) {
+        throw new AtlasAuthorityEndedError(
+          `Atlas responded 401 to the authority renewal for ${url}`,
+          { status: 401, cause: refusal },
+        );
+      }
+      throw refusal;
+    }
+    if (!renewed) {
       throw error;
     }
     // A second refusal is terminal: it is no longer a stale token.
@@ -576,11 +676,11 @@ export const requestAtlas = async (
   }
 };
 
-const fetchAtlasJson = async (
+/** Reads a JSON document from an atlas response, naming the route in the failure. */
+const readAtlasJson = async (
   url: string,
-  signal: AbortSignal | undefined,
+  response: Response,
 ): Promise<unknown> => {
-  const response = await requestAtlas(url, "application/json", signal);
   try {
     return (await response.json()) as unknown;
   } catch (cause) {
@@ -623,11 +723,12 @@ const fetchSaltileSession = async (
 ): Promise<SaltileSession> => {
   const incarnation = authorityIncarnation;
   // `current` names the active generation; its manifest carries the canonical
-  // variant set, bucket schedule, and max zoom. The reads are deliberately not
-  // tied to any caller's AbortSignal: the result is shared across every tile
-  // fetch, so one caller aborting must not poison the memoized value.
+  // variant set, bucket schedule, and max zoom. Neither read is tied to a
+  // caller's AbortSignal: the result is shared across every tile fetch, so one
+  // caller aborting must not poison the memoized value.
+  const currentUrl = `${baseUrl}/current`;
   const current = parseCurrent(
-    await fetchAtlasJson(`${baseUrl}/current`, undefined),
+    await readAtlasJson(currentUrl, await requestCurrent(currentUrl)),
   );
   const url = manifestUrl(baseUrl, current.generation);
 
@@ -652,8 +753,10 @@ const fetchSaltileSession = async (
     renewal: undefined,
   });
 
+  // Tokenless by role, which is what makes it a bootstrap: the manifest resolves a fresh view rather
+  // than re-minting the authority of one this client no longer holds a usable token for.
   const manifest = parseManifest(
-    await fetchAtlasJson(url, undefined),
+    await readAtlasJson(url, await requestManifest(url, "manifest-bootstrap")),
     current.generation,
   );
 
@@ -676,19 +779,20 @@ const fetchSaltileSession = async (
 };
 
 /**
- * Memoized session promise per origin. The active generation rarely changes,
- * so this is held for the lifetime of the session and only dropped on an
- * explicit {@link clearAtlasSessionCache} or a `404` that signals the cached
- * generation is no longer active (see {@link fetchTile}). Caching the promise
- * (not the resolved value) also collapses the concurrent first-callers of a
- * fresh viewport into a single bootstrap.
+ * Memoized session promise per origin. A session outlives every viewport that uses it, so this is
+ * held until something ends it: a `404` saying the pinned generation is no longer served, a refused
+ * renewal saying its authority is no longer admitted (both through {@link canReplaceAtlasSession}),
+ * or a direct {@link clearAtlasSessionCache}. Caching the promise (not the resolved value) also
+ * collapses the concurrent first-callers of a fresh viewport into a single bootstrap, and gives every
+ * caller a name for the population it belongs to.
  */
 const sessionCache = new Map<string, Promise<SaltileSession>>();
 
 /**
  * The memoized SALTILE session for `baseUrl`, bootstrapping it on first use.
  * Shared by the tile and edges transports so both bind to one generation; a
- * `404` on either route re-bootstraps through {@link clearAtlasSessionCache}.
+ * session either transport finds unusable is replaced through
+ * {@link clearAtlasSessionCache} (see {@link canReplaceAtlasSession}).
  */
 export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
   const cached = sessionCache.get(baseUrl);
@@ -707,31 +811,69 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
 };
 
 /**
- * Monotonic name for the generation binding the memoized sessions carry. It
- * moves exactly when a pinned generation is dropped (see
- * {@link clearAtlasSessionCache}), which in practice needs the server to have
- * stopped serving it: the atlas serves one generation per process, pinned at its
- * startup, so a session's tiles are one generation by construction and only a
- * process the session outlived (a restart, a redeploy, another replica) puts it
- * on a different one — through the `404` refresh in {@link fetchTile}.
+ * Whether `error` ends the session `pinned` resolved, and this caller may replace it.
  *
- * That moment is not a staleness boundary but an attribution one: every wire row
- * id is a keyed permutation salted by the generation identity, so a tile decoded
- * under the retired generation does not fail to decode under the new one — it
- * decodes to a *different, existing* row. Nothing downstream can detect that,
- * because the ids it yields are valid. Anything holding decoded tiles must
- * therefore discard them on a change rather than keep or remap them; no remap
- * exists.
+ * Two failures end a session, arriving from opposite directions. A `404` says the generation this
+ * session pinned is no longer served — a re-pin. An {@link AtlasAuthorityEndedError} says its own
+ * renewal was refused, and an expiry is forgiven at that renewal, so the authority is one the server
+ * will not admit again. Neither is recoverable in place: the recovery for both is to drop the session
+ * and bootstrap a new one without a token, then retry once. A refusal after that is terminal — a
+ * bootstrap presenting no token cannot be refused for authority.
+ *
+ * A plain `401` is deliberately absent from this set: it means a data route refused a token the manifest
+ * had just minted, so nothing is stale, a re-bootstrap cannot help, and taking one would discard live
+ * rows for a refusal that will recur.
+ *
+ * **`pinned` is the promise the caller awaited, not the session it resolved, and comparing it against
+ * the cache is what makes the recovery non-destructive.** A bootstrap and a renewal both outlive their
+ * callers' signals on purpose, so a refusal can land after the session it addressed was dropped and
+ * replaced — by a principal transition, say. An unconditional clear would then erase a successor's
+ * session, token and painted rows on the word of a request that never addressed them. A caller whose
+ * pinned session is no longer the cached one has been superseded: it fails, and touches nothing.
+ *
+ * The check is an identity comparison rather than a remembered flag because the memoized promise is
+ * already the population's name: it is replaced exactly when the population is.
+ */
+export const canReplaceAtlasSession = (
+  error: unknown,
+  baseUrl: string,
+  pinned: Promise<SaltileSession>,
+): boolean =>
+  (error instanceof AtlasAuthorityEndedError ||
+    (error instanceof FetchTileError && error.status === 404)) &&
+  sessionCache.get(baseUrl) === pinned;
+
+/**
+ * Monotonic name for the session binding the memoized sessions carry: dropping a pinned session moves
+ * it, and nothing else does (see {@link clearAtlasSessionCache}).
+ *
+ * A session is dropped for three reasons, and only one of them changes the generation. A `404`
+ * re-pins to whatever `current` now names — which needs the atlas process the session bootstrapped
+ * against to have been replaced, since one process serves one generation, pinned at its startup, so a
+ * session's tiles are one generation by construction. A refused renewal ends the session's authority
+ * with the generation standing still. A change of authenticated principal replaces the actor every
+ * row was resolved for. This is therefore the session's name and not the generation's: a holder of
+ * decoded rows learns that its rows belong to a session that is gone, never which generation is
+ * current.
+ *
+ * What every drop shares is that it is an attribution boundary rather than a staleness one, and for
+ * two distinct reasons. Across a re-pin, every wire row id is a keyed permutation salted by the
+ * generation identity, so a tile decoded under the retired generation does not fail to decode under
+ * the new one — it decodes to a *different, existing* row. Within one generation, a replacement
+ * session answers for a different view or a different actor, so its predecessor's rows are not the
+ * rows it would deliver. Neither is detectable downstream, because the ids in hand stay valid.
+ * Anything holding decoded rows must therefore discard them on a change rather than keep or remap
+ * them; no remap exists.
  */
 let sessionRevision = 0;
 const sessionRevisionListeners = new Set<() => void>();
 
 /**
- * The current generation binding's revision (see {@link sessionRevision}).
+ * The current session binding's revision (see {@link sessionRevision}).
  * Paired with {@link subscribeToAtlasSessionRevision} it is a
- * `useSyncExternalStore` source, so React state that composites decoded tiles —
- * the `TileCache` behind `useGetViewportNodes` — can name the binding its
- * contents belong to and be replaced when that binding changes.
+ * `useSyncExternalStore` source, so React state that composites decoded rows —
+ * the `TileCache` behind `useGetViewportNodes` — can name the session its
+ * contents belong to and be replaced when that session is.
  */
 export const getAtlasSessionRevision = (): number => sessionRevision;
 
@@ -749,13 +891,17 @@ export const subscribeToAtlasSessionRevision = (
 };
 
 /**
- * Drops the memoized active-generation session and the authority token it minted, forcing the next
- * {@link fetchTile} call to re-bootstrap, and — when a session was actually
- * pinned — moves {@link getAtlasSessionRevision} so holders of decoded tiles
+ * Drops a pinned session and the authority token it minted.
+ *
+ * The next {@link fetchTile} call re-bootstraps, and — when a session really was
+ * pinned — {@link getAtlasSessionRevision} moves so holders of decoded rows
  * discard them. Pass a `baseUrl` to clear one origin, or omit it to clear all.
  *
- * This is the re-pin door, not the token-expiry door: an expiring token is renewed in place by
- * {@link renewAtlasAuthority}, which keeps every painted tile.
+ * The one door for every session replacement: a re-pin, a refused renewal, and a change of
+ * authenticated principal all arrive here. Never the token-expiry door — an expiring token is renewed
+ * in place by {@link renewAtlasAuthority}, which keeps every painted row, while a renewal the server
+ * refuses arrives here, because authority its own renewal will not admit cannot be continued and the
+ * rows resolved under it must go before a new session is minted.
  */
 export const clearAtlasSessionCache = (baseUrl?: string): void => {
   // Unconditionally, and before anything is dropped: from here on, work that started earlier may not
@@ -770,18 +916,18 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
     dropped = sessionCache.delete(baseUrl);
     authorityCache.delete(baseUrl);
   }
-  // The token goes with the session that minted it: it seals view state resolved under the dropped
-  // generation, and the next generation's key refuses it as a forgery rather than as an expiry, so
-  // keeping it would buy one wasted round trip and nothing else. No test distinguishes these two
-  // lines, because the re-bootstrap replaces the whole entry anyway (see
+  // The token goes with the session that minted it: it seals the view that session resolved, and the
+  // successor resolves its own — so keeping it would either be refused or continue a view nobody
+  // holds rows for, and either way buys one wasted round trip and nothing else. No test distinguishes
+  // these two lines, because the re-bootstrap replaces the whole entry anyway (see
   // {@link fetchSaltileSession}); they are here so that the invariant — no session, no token — is
   // stated where the session is dropped rather than resting on the order of the bootstrap's writes.
 
   // Only a real drop can change the binding: clearing an origin that pinned
-  // nothing would otherwise throw away live, correctly-attributed tiles. The
+  // nothing would otherwise throw away live, correctly-attributed rows. The
   // converse over-approximates deliberately — a re-bootstrap landing on the same
   // generation (a `404` from a replica that had not caught up, say) still moves
-  // the revision, costing a refetch, never a composite that mixes generations.
+  // the revision, costing a refetch, never a composite that mixes sessions.
   if (!dropped) {
     return;
   }
@@ -801,7 +947,7 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
  * without its reset (see `shared/principal-scoped-state.ts` for the placement contract and why the
  * auth layer does not import this file).
  *
- * WHY THE WHOLE SESSION, AND WHY THE TOKEN. The session is not actor-scoped — one generation serves
+ * Why the whole session, and why the token. The session is not actor-scoped — one generation serves
  * every actor — but the tiles decoded under it are: each row a tile yields is a row the *previous*
  * principal was allowed to see, and a principal change is an attribution boundary exactly like a
  * re-pin. The token is worse than useless to the new principal: it seals the actor hash-api resolved
@@ -810,13 +956,15 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
  * which is sufficient because nothing can be painted without one: a tile fetch needs a resolved
  * session, and dropping the session is what discards the tiles.
  *
- * LIVENESS, not only attribution, and it is why this reset is required rather than tidy. Where the
- * manifest bootstraps a fresh scope for a token it cannot open, a retained token costs the new
- * principal one wasted round trip and self-heals. Where that presentation is refused instead — the
- * behaviour {@link renewAtlasAuthority} depends on for its continuity claim — the renewal answers
- * `401`, which this client treats as TERMINAL and correctly refuses to paper over with a fresh
- * bootstrap. Without this reset the new principal's graph would then never load at all, until a
- * reload.
+ * Why the transport's own recovery is not a substitute, and it is what makes this reset required
+ * rather than tidy. Liveness heals itself: the retained token names the old principal's actor, so the
+ * new principal's first data request is refused, its renewal presents the same token and is refused
+ * too, and the session's owner then drops the session and bootstraps a fresh one (see
+ * {@link canReplaceAtlasSession}) — the graph loads either way. What cannot heal is the interval
+ * before that: recovery is driven by a refusal, so it begins at the first response, while the rows
+ * resolved for the previous principal are resident and compositable from the moment the new one is
+ * published, and a request can be issued in between. Attribution has to be right before the first
+ * render, which is earlier than any refusal can arrive.
  */
 registerPrincipalScopedReset(() => {
   clearAtlasSessionCache();
@@ -885,10 +1033,10 @@ const fetchAndDecodeTile = async (
   const tileResponse = await requestAtlas(
     tileUrl,
     SALTILE_MEDIA_TYPE,
+    body,
     signal,
     retries,
     priority,
-    body,
   );
 
   const contentType = tileResponse.headers.get("content-type") ?? "";
@@ -1016,7 +1164,10 @@ export const fetchTile = async (
     y: Math.floor(tileIndex / gridSize),
   };
 
-  const session = await getSaltileSession(baseUrl);
+  // The promise, not just the session it resolves: it names the population this call belongs to (see
+  // {@link canReplaceAtlasSession}).
+  const pinned = getSaltileSession(baseUrl);
+  const session = await pinned;
   try {
     return await fetchAndDecodeTile(
       session,
@@ -1029,9 +1180,11 @@ export const fetchTile = async (
       coloredTypeIds,
     );
   } catch (error) {
-    // A 404 on a well-formed request means the generation we pinned is no
-    // longer active. Re-bootstrap the session once and retry before giving up.
-    if (error instanceof FetchTileError && error.status === 404) {
+    // The generation this session pinned is gone (`404`), or its authority was refused and could not
+    // be renewed (`401`). Either way the session is unusable: drop it, re-bootstrap once, retry once.
+    // The clear runs first and synchronously, so holders of decoded rows discard them before the new
+    // session's token exists — a fresh view is never adopted beside rows painted under the old one.
+    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
       clearAtlasSessionCache(baseUrl);
       const refreshed = await getSaltileSession(baseUrl);
       return await fetchAndDecodeTile(

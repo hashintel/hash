@@ -61,8 +61,8 @@ export const createPrincipalTracker = () => {
         return false;
       }
       const firstObservation = observed === UNOBSERVED;
-      // Recorded BEFORE the resets run, and that order is load-bearing: a reset
-      // notifies its subscribers synchronously, a subscriber may re-render, and
+      // Recorded before the resets run: a reset notifies its
+      // subscribers synchronously, a subscriber may re-render, and
       // a re-render calls back in here. Recording first makes that re-entry a
       // same-principal no-op instead of a loop.
       observed = principal;

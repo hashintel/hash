@@ -1012,11 +1012,11 @@ export const NetworkGraphView = ({
   // Prefetched locate ego-graphs for the current search results, keyed by entity
   // id — a search result carries no atlas row id, so it locates by `entityId`.
   // The cache is tagged with the binding it was built against: the queried type
-  // set keys each node's type mask, and the atlas generation salts the wire row
-  // ids its entries carry, so if the session re-pins to another generation those
-  // ids name different, existing rows. Either change invalidates every entry.
-  // Colour-only changes keep `coloredTypeIdsSignature` stable and don't.
-  const locateCacheSignature = `${coloredTypeIdsSignature}|gen:${sessionRevision}`;
+  // set keys each node's type mask, and the atlas session names the rows its
+  // entries carry, so when that session is replaced its entries name rows the new
+  // one does not answer for. Either change invalidates every entry. Colour-only
+  // changes keep `coloredTypeIdsSignature` stable and don't.
+  const locateCacheSignature = `${coloredTypeIdsSignature}|session:${sessionRevision}`;
   const locateCacheRef = useRef<{
     signature: string;
     entries: Map<EntityId, Promise<LocatedEntity>>;
@@ -1033,10 +1033,11 @@ export const NetworkGraphView = ({
     return locateCacheRef.current.entries;
   }, [locateCacheSignature]);
 
-  // A re-pin also invalidates the row ids held in *painted* state: `selected` and
-  // `hoveredByExternal` are row ids, and hydrating one afterwards opens a
-  // different entity than the dot the user pointed at. Bumping the three
-  // sequences discards any locate issued under the retired generation.
+  // A replaced session also invalidates the row ids held in *painted* state:
+  // `selected` and `hoveredByExternal` are row ids, and hydrating one afterwards
+  // opens a different entity than the dot the user pointed at — or one the current
+  // principal was never shown. Bumping the three sequences discards any locate
+  // issued under the retired session.
   useEffect(() => {
     locateSeqRef.current += 1;
     hoverSeqRef.current += 1;

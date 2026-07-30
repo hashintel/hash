@@ -9,9 +9,9 @@
  * (ascending link-entity identity bytes, a self-loop exactly once). When the edge cap
  * truncates, edges whose partners lie nearest the source are kept and
  * `complete` reads `false`; zero edges with `complete: true` is the honest
- * answer for an unlinked source. Locate IS the detail view: the trailer is
+ * answer for an unlinked source. Locate is the detail view: the trailer is
  * always present, every delivered node carries a label and a type reference,
- * the SOURCE carries its capped simple-value properties (neighbour detail is
+ * the source carries its capped simple-value properties (neighbour detail is
  * one locate away), and every delivered edge carries its link-entity
  * identity, label, type references, and capped properties with per-edge
  * completeness verdicts.
@@ -21,8 +21,12 @@
  * viewport's tiles), POSTs the request, decodes the `SALTILEL` envelope with
  * {@link decodeSaltileLocate}, and maps wire-frame positions onto the layer's
  * world exactly as the tile transport does. Transient failures retry with
- * backoff; a `404` refreshes the session once and retries (a locate `404` may
- * instead be `unknown-entity` — the retry then re-throws it).
+ * backoff, and the two failures that end a session replace it once and retry, as
+ * in {@link fetchTile}: a `404`, meaning the pinned generation is no longer
+ * served, and an authority renewal the server refuses (see
+ * {@link canReplaceAtlasSession}, which also decides whether this caller is
+ * still the one entitled to replace it). A locate `404` may instead be
+ * `unknown-entity` — the retry then re-throws it.
  *
  * ## Source id
  *
@@ -42,6 +46,7 @@ import {
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
+  canReplaceAtlasSession,
   clearAtlasSessionCache,
   FetchTileError,
   getSaltileSession,
@@ -188,10 +193,9 @@ const fetchAndDecodeLocate = async (
   const response = await requestAtlas(
     locateUrl(session, baseUrl),
     SALTILE_MEDIA_TYPE,
+    locateBody(requestSource, coloredTypeIds),
     signal,
     retries,
-    undefined,
-    locateBody(requestSource, coloredTypeIds),
   );
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -230,7 +234,7 @@ const fetchAndDecodeLocate = async (
     }
     const label = detail.labels[index] ?? undefined;
     const typeId = detail.typeIds[index] ?? undefined;
-    // The trailer's property map belongs to the SOURCE alone; neighbours
+    // The trailer's property map belongs to the source alone; neighbours
     // leave `properties` undefined (their detail is one locate away).
     const properties = index === 0 ? detail.properties : undefined;
     const typeIndices = typeMask
@@ -308,7 +312,10 @@ export const fetchLocate = async (
     coloredTypeIds = [],
   } = options;
 
-  const session = await getSaltileSession(baseUrl);
+  // The promise, not just the session it resolves: it names the population this call belongs to (see
+  // {@link canReplaceAtlasSession}).
+  const pinned = getSaltileSession(baseUrl);
+  const session = await pinned;
   try {
     return await fetchAndDecodeLocate(
       session,
@@ -319,10 +326,10 @@ export const fetchLocate = async (
       coloredTypeIds,
     );
   } catch (error) {
-    // A 404 on a well-formed request usually means the pinned generation
-    // rotated; re-bootstrap once and retry. (An `unknown-entity` 404 survives
-    // the retry and re-throws.)
-    if (error instanceof FetchTileError && error.status === 404) {
+    // The pinned generation is no longer served (`404`), or this session's authority was refused at
+    // its own renewal; either ends the session, and the recovery is the same for all three
+    // session-owning transports. (An `unknown-entity` 404 survives the retry and re-throws.)
+    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
       clearAtlasSessionCache(baseUrl);
       const refreshed = await getSaltileSession(baseUrl);
       return await fetchAndDecodeLocate(
