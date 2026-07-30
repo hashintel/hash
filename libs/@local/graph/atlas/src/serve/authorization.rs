@@ -46,7 +46,7 @@ use chacha20poly1305::{
 };
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hkdf::Hkdf;
-use rand::{TryCryptoRng, TryRngCore as _};
+use rand::{TryCryptoRng, TryRng as _};
 use sha2::Sha256;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;

@@ -127,6 +127,7 @@
     pointer_is_aligned_to,
     portable_simd,
     step_trait,
+    sync_nonpoison,
     time_saturating_systemtime,
     variant_count
 )]

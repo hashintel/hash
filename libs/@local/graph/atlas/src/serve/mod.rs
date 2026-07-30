@@ -111,7 +111,7 @@ mod translate;
 mod visibility;
 mod walk;
 
-mod authorization;
+pub(crate) mod authorization;
 #[cfg(test)]
 mod tests;
 
