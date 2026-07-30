@@ -379,6 +379,7 @@ export const DistributionChart = ({
                 type: step.type,
                 dimension,
                 selectedComponent: selectedComponent != null,
+                timingGrain: step.timing_grain,
               })}`,
               "Count",
             ]}

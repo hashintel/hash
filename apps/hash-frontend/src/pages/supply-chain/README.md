@@ -105,6 +105,7 @@ product display labels, raw analysis values, or client-specific data.
 - `production_schedule_granularity_changed`
 - `production_schedule_lineage_selected`
 - `production_schedule_batch_drilled`
+- `production_schedule_identifier_searched`
 - `opportunity_marked_read`
 - `opportunity_marked_unread`
 - `wacc_changed`
@@ -115,9 +116,10 @@ product display labels, raw analysis values, or client-specific data.
 - `procurement_basis_changed`
 - `time_range_changed`
 
-Timeline interactions never send batch/order identifiers, dates, quantities,
-campaign names, or filter values. A failed optional schedule fetch is reported
-as `supply_chain_error` with interaction
+Timeline identifier search reports only whether a match was found and the
+matched identifier type. Timeline interactions never send batch/order
+identifiers, dates, quantities, campaign names, or filter values. A failed
+optional schedule fetch is reported as `supply_chain_error` with interaction
 `production_schedule_fetch_failed`.
 
 ### Status Reports

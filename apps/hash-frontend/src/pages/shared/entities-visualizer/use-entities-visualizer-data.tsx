@@ -136,8 +136,6 @@ export const useEntitiesVisualizerData = (params: {
     ],
   );
 
-  // TODO(BE-705): a dedicated Graph endpoint will run the summary and the page
-  //  query in one transaction, replacing this client-side coordination.
   const awaitingTypeUniverse =
     typeUniverse === null &&
     !entityTypeBaseUrl &&

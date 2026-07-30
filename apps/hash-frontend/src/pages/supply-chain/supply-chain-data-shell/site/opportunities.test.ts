@@ -66,6 +66,7 @@ function planning(overrides: Partial<PlanningRow>): PlanningRow {
     pct_exceeding_plan: 30,
     cost: null,
     products: [{ id: "p1", name: "Product 1" }],
+    periodMaterialValue: null,
     deviationPct: 20,
     trendPct: null,
     previousValue: null,
@@ -232,6 +233,55 @@ describe("buildSiteOpportunities", () => {
       opportunities.find((opportunity) => opportunity.kind === "planning_over")
         ?.confidenceLabel,
     ).toBe("Good sample");
+  });
+
+  it("labels QA opportunity samples by effective timing grain", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "qa-campaign",
+          type: "qa_hold",
+          timing_grain: "campaign",
+          stats: stats({ n: 12, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "qa-batch",
+          type: "qa_hold",
+          timing_grain: undefined,
+          stats: stats({ n: 20, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-campaign")?.sampleLabel,
+    ).toBe("Campaigns 12");
+    expect(
+      opportunities.find(({ stepId }) => stepId === "qa-batch")?.sampleLabel,
+    ).toBe("Batches 20");
+  });
+
+  it("distinguishes low and limited current samples", () => {
+    const opportunities = build({
+      planningRows: [
+        planning({
+          id: "low",
+          stats: stats({ n: 4, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "limited",
+          stats: stats({ n: 5, median: 8, p95: 13 }),
+        }),
+        planning({
+          id: "good",
+          stats: stats({ n: 10, median: 8, p95: 13 }),
+        }),
+      ],
+    });
+
+    expect(opportunities.map(({ confidenceLabel }) => confidenceLabel)).toEqual(
+      ["Low sample", "Limited sample", "Good sample"],
+    );
   });
 });
 

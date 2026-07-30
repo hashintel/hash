@@ -1,6 +1,6 @@
 use type_system::ontology::VersionedUrl;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum Ordering {

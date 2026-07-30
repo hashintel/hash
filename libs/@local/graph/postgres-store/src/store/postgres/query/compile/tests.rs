@@ -29,9 +29,10 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use super::ShapeFallback;
 use crate::store::postgres::query::{
     Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement, SimpleSelect,
-    Transpile as _, compile::SelectCompilerError, test_helper::trim_whitespace,
+    StatementShape, Transpile as _, compile::SelectCompilerError, test_helper::trim_whitespace,
 };
 
 #[track_caller]
@@ -2023,6 +2024,624 @@ fn entity_cursor_pagination() {
         LIMIT 10
         "#,
         &[&uuid, &pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_entity_query() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::DecisionTime,
+        Distinctness::Distinct,
+        Some((Ordering::Descending, Some(NullOrdering::Last))),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::DraftId,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(Uuid::nil()),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS MATERIALIZED (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."decision_time", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_temporal_metadata_0_0_0"."draft_id" = $3)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC, "decision_time" DESC NULLS LAST
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid", "limited"."decision_time") "limited"."entity_uuid", "limited"."decision_time", "entity_editions_0_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC, "limited"."decision_time" DESC NULLS LAST
+        LIMIT 10
+        "#,
+        &[
+            &pinned_timestamp,
+            &temporal_axes.variable_interval(),
+            &Uuid::nil(),
+        ],
+    );
+}
+
+#[test]
+fn filter_joined_tables_stay_out_of_the_key_projection() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+
+    // Mirrors the read path's order: filters first, selections after. The archived filter
+    // and the properties projection then join `entity_editions` under separate aliases, so
+    // the wide columns stay out of the key query.
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Archived,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Boolean(false),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::KeysFirst);
+
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_editions_0_1_0"."archived" = $3)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid") "limited"."entity_uuid", "entity_editions_1_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_1_1_0"
+          ON "entity_editions_1_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[
+            &pinned_timestamp,
+            &temporal_axes.variable_interval(),
+            &false,
+        ],
+    );
+}
+
+#[test]
+fn keys_first_omits_the_fence() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::KeysFirst);
+
+    // Same split as the fenced shape, but the CTE stays inlinable for the planner.
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid") "limited"."entity_uuid", "entity_editions_0_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[&pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_requires_sort_and_limit() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+
+    // Sorted but unlimited: nothing to fence off, the layout stays single-pass.
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::Unlimited)
+    );
+    let (unlimited, _) = compiler.compile();
+    compiler.set_statement_shape(StatementShape::SinglePass);
+    let (single_pass, _) = compiler.compile();
+    assert_eq!(unlimited, single_pass);
+
+    // Limited but unsorted: same story.
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_selection_path(&EntityQueryPath::Uuid);
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::Unsorted)
+    );
+    let (unsorted, _) = compiler.compile();
+    compiler.set_statement_shape(StatementShape::SinglePass);
+    let (single_pass, _) = compiler.compile();
+    assert_eq!(unsorted, single_pass);
+}
+
+#[test]
+fn fetch_keys_then_hydrate_asterisk_falls_back() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::AsteriskSelect)
+    );
+    let (asterisk, _) = compiler.compile();
+    compiler.set_statement_shape(StatementShape::SinglePass);
+    let (single_pass, _) = compiler.compile();
+    assert_eq!(asterisk, single_pass);
+}
+
+#[test]
+fn fetch_keys_then_hydrate_to_many_filter_falls_back() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+
+    // Filtering through a link edge joins fanning-out relations into the key query, whose
+    // duplicates would eat into `LIMIT n`.
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::EntityEdge {
+                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                path: Box::new(EntityQueryPath::Uuid),
+                direction: EdgeDirection::Incoming,
+            },
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(Uuid::nil()),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::ToManyKeyJoin)
+    );
+    let (to_many, _) = compiler.compile();
+    compiler.set_statement_shape(StatementShape::SinglePass);
+    let (single_pass, _) = compiler.compile();
+    assert_eq!(to_many, single_pass);
+}
+
+#[test]
+fn fetch_keys_then_hydrate_sorts_across_joins() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::CreatedAtTransactionTime,
+        Distinctness::Distinct,
+        Some((Ordering::Descending, Some(NullOrdering::Last))),
+    );
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS MATERIALIZED (SELECT "entity_ids_0_1_0"."created_at_transaction_time", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_ids" AS "entity_ids_0_1_0"
+          ON "entity_ids_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_ids_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "created_at_transaction_time" DESC NULLS LAST, "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."created_at_transaction_time", "limited"."entity_uuid") "limited"."created_at_transaction_time", "limited"."entity_uuid", "entity_editions_0_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."created_at_transaction_time" DESC NULLS LAST, "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[&pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_with_cursor() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+
+    let uuid = Uuid::nil();
+    let parameter = compiler.add_parameter(&uuid);
+    compiler
+        .add_cursor_selection(
+            &EntityQueryPath::Uuid,
+            core::convert::identity,
+            Some(parameter),
+            Ordering::Ascending,
+            None,
+        )
+        .expect("the cursor selection should compile");
+    compiler.add_selection_path(&EntityQueryPath::Properties(None));
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    // The keyset continuation belongs to the key query, so pages after the first stay fenced.
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS MATERIALIZED (SELECT "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        WHERE ("entity_temporal_metadata_0_0_0"."transaction_time" @> $2::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $3)
+          AND ("entity_temporal_metadata_0_0_0"."entity_uuid" > $1)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "entity_uuid" ASC
+        LIMIT 10)
+        SELECT DISTINCT ON("limited"."entity_uuid") "limited"."entity_uuid", "entity_editions_0_1_0"."properties"
+        FROM "limited"
+        INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
+          ON "entity_editions_0_1_0"."entity_edition_id" = "limited"."entity_edition_id"
+        ORDER BY "limited"."entity_uuid" ASC
+        LIMIT 10
+        "#,
+        &[&uuid, &pinned_timestamp, &temporal_axes.variable_interval()],
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_embedding_distance() {
+    let mut compiler = SelectCompiler::<Entity>::new(None, false);
+    let filter = embedding_distance_filter();
+    compiler
+        .add_filter(&filter)
+        .expect("the embedding filter should compile");
+    compiler.set_limit(3);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    // The grouped distance subquery emits one row per entity, so it may drive the key query.
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "roots" AS MATERIALIZED (SELECT "entity_embeddings_0_1_0"."distance"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        LEFT OUTER JOIN (SELECT "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid", MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
+        FROM "entity_embeddings"
+        GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid") AS "entity_embeddings_0_1_0"
+          ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_embeddings_0_1_0"."distance" <= $2)),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "distance" ASC
+        LIMIT 3)
+        SELECT DISTINCT ON("limited"."distance") "limited"."distance"
+        FROM "limited"
+        ORDER BY "limited"."distance" ASC
+        LIMIT 3
+        "#,
+        &[
+            &Embedding::from(vec![0.0; 1536]),
+            &Real::from_natural(5, -1),
+        ],
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_carries_existing_ctes() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes), false);
+    compiler.add_distinct_selection_with_ordering(
+        &DataTypeQueryPath::Version,
+        Distinctness::Distinct,
+        Some((Ordering::Descending, None)),
+    );
+    compiler
+        .add_filter(&Filter::Equal(
+            FilterExpression::Path {
+                path: DataTypeQueryPath::Version,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
+            },
+        ))
+        .expect("Failed to add filter");
+    compiler.set_limit(5);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    // The latest-version CTE shadows `ontology_ids` and has to stay ahead of the fence CTEs.
+    test_compilation(
+        &compiler,
+        r#"
+        WITH "ontology_ids" AS (SELECT *, MAX("ontology_ids_0_0_0"."version") OVER (PARTITION BY "ontology_ids_0_0_0"."base_url") AS "latest_version"
+        FROM "ontology_ids" AS "ontology_ids_0_0_0"),
+        "roots" AS MATERIALIZED (SELECT "ontology_ids_0_1_0"."version"
+        FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+        INNER JOIN "ontology_ids" AS "ontology_ids_0_1_0"
+          ON "ontology_ids_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+        WHERE ("ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("ontology_ids_0_1_0"."version" = "ontology_ids_0_1_0"."latest_version")),
+        "limited" AS (SELECT *
+        FROM "roots"
+        ORDER BY "version" DESC
+        LIMIT 5)
+        SELECT DISTINCT ON("limited"."version") "limited"."version"
+        FROM "limited"
+        ORDER BY "limited"."version" DESC
+        LIMIT 5
+        "#,
+        &[&pinned_timestamp],
+    );
+}
+
+// No query path compiles to a right outer join today: `ReferenceTable::target_relation` is the
+// only source of one, and every chain reaching it passes an outer join first, which converts all
+// later hops to left outer joins. Both tests below therefore plant the join type by hand — the
+// guard is a fence against that structure changing.
+
+#[test]
+fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
+    use super::{CompiledJoin, JoinSource};
+    use crate::store::postgres::query::{Alias, JoinType, Table};
+
+    let mut compiler = SelectCompiler::<Entity>::new(None, true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    // Nothing references the join, so it would land in the hydration statement.
+    compiler.artifacts.joins.push(CompiledJoin {
+        table: Table::EntityEditions,
+        alias: Alias {
+            condition_index: 0,
+            chain_depth: 1,
+            number: 0,
+        },
+        join_type: JoinType::RightOuter,
+        source: JoinSource::Table,
+        conditions: Vec::new(),
+        to_many: false,
+    });
+
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::GeneratingJoin)
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_generating_key_join_falls_back() {
+    use crate::store::postgres::query::JoinType;
+
+    let mut compiler = SelectCompiler::<Entity>::new(None, true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+
+    // The filter puts the `entity_editions` join into the key query's share.
+    let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+        r#"$."https://blockprotocol.org/@alice/types/property-type/name/""#,
+    ))]);
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Properties(Some(json_path)),
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Text(Cow::Borrowed("Bob")),
+            convert: None,
+        },
+    );
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    let join = compiler
+        .artifacts
+        .joins
+        .first_mut()
+        .expect("the property filter should have joined the editions table");
+    join.join_type = JoinType::RightOuter;
+
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::GeneratingJoin)
+    );
+}
+
+#[test]
+fn fetch_keys_then_hydrate_reused_to_many_join_falls_back() {
+    let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), true);
+    compiler.add_distinct_selection_with_ordering(
+        &EntityQueryPath::Uuid,
+        Distinctness::Distinct,
+        Some((Ordering::Ascending, None)),
+    );
+
+    // Both conditions share one filter index, so the second reuses the first's link join and
+    // the fan-out taint has to stick to the reused join.
+    let filter = Filter::All(vec![
+        Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Incoming,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            },
+        ),
+        Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::WebId),
+                    direction: EdgeDirection::Incoming,
+                },
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            },
+        ),
+    ]);
+    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler.set_limit(10);
+    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
+
+    assert_eq!(
+        compiler.fetch_keys_then_hydrate_statement(None).map(|_| ()),
+        Err(ShapeFallback::ToManyKeyJoin)
+    );
+}
+
+#[test]
+fn key_column_rewriter_disambiguates_collisions() {
+    use std::collections::HashSet;
+
+    use super::KeyColumnRewriter;
+    use crate::store::postgres::query::ast::{ColumnName, TableName};
+
+    let tables: HashSet<TableName<'static>> =
+        [TableName::from("first"), TableName::from("second")].into();
+    let key_columns = vec![
+        (TableName::from("first"), ColumnName::from("web_id")),
+        (TableName::from("second"), ColumnName::from("web_id")),
+        (TableName::from("first"), ColumnName::from("entity_uuid")),
+    ];
+    let rewriter = KeyColumnRewriter::new(&tables, &key_columns)
+        .expect("the disambiguated names should not collide");
+
+    assert_eq!(
+        rewriter
+            .output(&TableName::from("first"), &ColumnName::from("web_id"))
+            .as_str(),
+        "first_web_id"
+    );
+    assert_eq!(
+        rewriter
+            .output(&TableName::from("second"), &ColumnName::from("web_id"))
+            .as_str(),
+        "second_web_id"
+    );
+    assert_eq!(
+        rewriter
+            .output(&TableName::from("first"), &ColumnName::from("entity_uuid"))
+            .as_str(),
+        "entity_uuid"
+    );
+}
+
+#[test]
+fn key_column_rewriter_rejects_colliding_output_names() {
+    use std::collections::HashSet;
+
+    use super::KeyColumnRewriter;
+    use crate::store::postgres::query::ast::{ColumnName, TableName};
+
+    let tables: HashSet<TableName<'static>> = [
+        TableName::from("first"),
+        TableName::from("second"),
+        TableName::from("third"),
+    ]
+    .into();
+
+    // `web_id` is shared, so both users get prefixed — and `first_web_id` is what the third
+    // table's column is already called.
+    let key_columns = vec![
+        (TableName::from("first"), ColumnName::from("web_id")),
+        (TableName::from("second"), ColumnName::from("web_id")),
+        (TableName::from("third"), ColumnName::from("first_web_id")),
+    ];
+
+    assert_eq!(
+        KeyColumnRewriter::new(&tables, &key_columns).map(|_| ()),
+        Err(ShapeFallback::KeyColumnNameCollision)
     );
 }
 

@@ -3804,6 +3804,7 @@ dependencies = [
 name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
+ "base64",
  "bytes",
  "derive-where",
  "derive_more",

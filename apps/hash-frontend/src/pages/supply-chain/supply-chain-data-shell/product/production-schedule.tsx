@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -8,6 +15,7 @@ import {
   formatCalendarDay,
 } from "./production-schedule/calendar-date-axis";
 import { DispatchLane } from "./production-schedule/dispatch-lane";
+import { findScheduleIdentifierMatch } from "./production-schedule/identifier-search";
 import {
   batchLifecycleEnd,
   batchLifecycleStart,
@@ -393,10 +401,20 @@ export const ProductionScheduleView = ({
     useState<ScheduleLaneDisplay>("continuous");
   const [viewportWidth, setViewportWidth] = useState(0);
   const [selection, setSelection] = useState<ScheduleSelection | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchStatus, setSearchStatus] = useState<string | null>(null);
+  const [pendingSearchDate, setPendingSearchDate] = useState<string | null>(
+    null,
+  );
   const [collapsedFocusedMaterials, setCollapsedFocusedMaterials] = useState<
     Set<string>
   >(() => new Set());
+  const searchPreviousPresetRef = useRef<ScheduleRangePreset | null>(null);
   const selectOrToggle = (next: ScheduleSelection) => {
+    setSearchQuery("");
+    setSearchStatus(null);
+    setPendingSearchDate(null);
+    searchPreviousPresetRef.current = null;
     setCollapsedFocusedMaterials(new Set());
     setSelection((current) =>
       current && selectionIdentity(current) === selectionIdentity(next)
@@ -430,6 +448,17 @@ export const ProductionScheduleView = ({
   );
   const chartFrameRef = useRef<HTMLDivElement>(null);
   const pendingViewportCenterRef = useRef<number | "start" | null>(null);
+  const clearSelectionAndSearch = useCallback(() => {
+    setSelection(null);
+    setSearchQuery("");
+    setSearchStatus(null);
+    setPendingSearchDate(null);
+    const previousPreset = searchPreviousPresetRef.current;
+    searchPreviousPresetRef.current = null;
+    if (previousPreset) {
+      setPreset(previousPreset);
+    }
+  }, []);
 
   useEffect(() => {
     const frame = chartFrameRef.current;
@@ -446,12 +475,20 @@ export const ProductionScheduleView = ({
   useEffect(() => {
     const clearSelection = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSelection(null);
+        clearSelectionAndSearch();
       }
     };
     window.addEventListener("keydown", clearSelection);
     return () => window.removeEventListener("keydown", clearSelection);
-  }, []);
+  }, [clearSelectionAndSearch]);
+
+  useEffect(() => {
+    setSelection(null);
+    setSearchQuery("");
+    setSearchStatus(null);
+    setPendingSearchDate(null);
+    searchPreviousPresetRef.current = null;
+  }, [schedule]);
 
   const selectedRange = useMemo(
     () =>
@@ -544,6 +581,71 @@ export const ProductionScheduleView = ({
     pendingViewportCenterRef.current = null;
   }, [plotWidth]);
 
+  useLayoutEffect(() => {
+    const frame = chartFrameRef.current;
+    if (!frame || !pendingSearchDate) {
+      return;
+    }
+    const visiblePlotWidth = Math.max(1, frame.clientWidth - LABEL_WIDTH);
+    const target =
+      selection?.kind === "batch"
+        ? [
+            ...frame.querySelectorAll<HTMLElement>("[data-schedule-batch-id]"),
+          ].find(
+            (element) => element.dataset.scheduleBatchId === selection.batchId,
+          )
+        : selection?.kind === "dispatch"
+          ? [
+              ...frame.querySelectorAll<HTMLElement>(
+                "[data-schedule-dispatch-event-ids]",
+              ),
+            ].find(
+              (element) =>
+                (selection.origin === "dispatch_lane"
+                  ? element.dataset.dispatchMarkerKind ===
+                    "selected-product-lane"
+                  : element.dataset.dispatchMarkerKind !==
+                    "selected-product-lane") &&
+                element.dataset.scheduleDispatchEventIds
+                  ?.split(",")
+                  .some((eventId) => selection.eventIds.includes(eventId)),
+            )
+          : undefined;
+    const frameBounds = frame.getBoundingClientRect();
+    const targetBounds = target?.getBoundingClientRect();
+    if (targetBounds?.width) {
+      frame.scrollLeft = Math.max(
+        0,
+        frame.scrollLeft +
+          targetBounds.left -
+          (frameBounds.left + LABEL_WIDTH) -
+          (visiblePlotWidth - targetBounds.width) / 2,
+      );
+    } else {
+      const centerRatio = Math.max(
+        0,
+        Math.min(
+          1,
+          (scheduleDayNumber(pendingSearchDate) - startDay + 0.5) / dayCount,
+        ),
+      );
+      frame.scrollLeft = Math.max(
+        0,
+        centerRatio * plotWidth - visiblePlotWidth / 2,
+      );
+    }
+    if (targetBounds?.height) {
+      frame.scrollTop = Math.max(
+        0,
+        frame.scrollTop +
+          targetBounds.top -
+          frameBounds.top -
+          (frame.clientHeight - targetBounds.height) / 2,
+      );
+    }
+    setPendingSearchDate(null);
+  }, [dayCount, pendingSearchDate, plotWidth, selection, startDay]);
+
   const selectedRelated = trace.batchIds;
   const hasSelection = selection !== null;
   const dispatchLaneFocused =
@@ -632,11 +734,16 @@ export const ProductionScheduleView = ({
       ) {
         return;
       }
-      setSelection(null);
+      clearSelectionAndSearch();
     };
     frame.addEventListener("click", clearSelection);
     return () => frame.removeEventListener("click", clearSelection);
-  }, [displayedLanes.length, timelineEnd, timelineStart]);
+  }, [
+    clearSelectionAndSearch,
+    displayedLanes.length,
+    timelineEnd,
+    timelineStart,
+  ]);
 
   const trackInteraction = (interaction: string) =>
     trackSupplyChainInteraction({
@@ -644,6 +751,79 @@ export const ProductionScheduleView = ({
       productId: schedule.product_id,
       source: "production_schedule",
     });
+
+  const handleIdentifierSearch = useCallback(
+    (query: string) => {
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery) {
+        return;
+      }
+      const match = findScheduleIdentifierMatch(schedule, trimmedQuery);
+      if (!match) {
+        setSearchStatus("No matching batch or order");
+        trackSupplyChainInteraction({
+          interaction: "production_schedule_identifier_searched",
+          outcome: "no_match",
+          productId: schedule.product_id,
+          source: "production_schedule",
+        });
+        return;
+      }
+      setCollapsedFocusedMaterials(new Set());
+      setSelection(match.selection);
+      if (
+        (selectedRange.start && match.date < selectedRange.start) ||
+        (selectedRange.end && match.date > selectedRange.end)
+      ) {
+        if (preset !== "all" && searchPreviousPresetRef.current == null) {
+          searchPreviousPresetRef.current = preset;
+        }
+        setPreset("all");
+      }
+      if (
+        match.selection.kind === "dispatch" &&
+        match.selection.origin === "batch_marker"
+      ) {
+        setLaneDisplay("lane");
+        setShowInventoryDwell(true);
+        setShowEventMarkers(true);
+      }
+      if (match.laneRole === "raw_material") {
+        setShowRawMaterials(true);
+      }
+      setPendingSearchDate(match.date);
+      setSearchStatus(`Found ${match.identifierType.replaceAll("_", " ")}`);
+      trackSupplyChainInteraction({
+        identifierType: match.identifierType,
+        interaction: "production_schedule_identifier_searched",
+        outcome: "matched",
+        productId: schedule.product_id,
+        source: "production_schedule",
+      });
+    },
+    [preset, schedule, selectedRange.end, selectedRange.start],
+  );
+  const identifierSearchHandlerRef = useRef(handleIdentifierSearch);
+  useEffect(() => {
+    identifierSearchHandlerRef.current = handleIdentifierSearch;
+  }, [handleIdentifierSearch]);
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
+    const timeout = window.setTimeout(
+      () => identifierSearchHandlerRef.current(searchQuery),
+      200,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery]);
+
+  const handleSearchInputChange = (nextQuery: string) => {
+    setSearchQuery(nextQuery);
+    if (!nextQuery) {
+      clearSelectionAndSearch();
+    }
+  };
 
   const changeZoom = (direction: "in" | "out") => {
     const frame = chartFrameRef.current;
@@ -680,9 +860,11 @@ export const ProductionScheduleView = ({
           trackInteraction("production_schedule_lane_display_changed");
         }}
         onPresetChange={(nextPreset) => {
+          searchPreviousPresetRef.current = null;
           setPreset(nextPreset);
           trackInteraction("production_schedule_filter_changed");
         }}
+        onSearchInputChange={handleSearchInputChange}
         onShowEventMarkersChange={(showMarkers) => {
           setShowEventMarkers(showMarkers);
           trackInteraction("production_schedule_event_markers_changed");
@@ -700,6 +882,8 @@ export const ProductionScheduleView = ({
         onZoomIn={() => changeZoom("in")}
         onZoomOut={() => changeZoom("out")}
         preset={preset}
+        searchStatus={searchStatus}
+        searchValue={searchQuery}
         showEventMarkers={showEventMarkers}
         showInventoryDwell={showInventoryDwell}
         showRawMaterials={showRawMaterials}
@@ -1005,6 +1189,7 @@ export const ProductionScheduleView = ({
                               <button
                                 type="button"
                                 className={batchButton}
+                                data-schedule-batch-id={batch.id}
                                 aria-pressed={selected}
                                 aria-label={`Batch ${batch.batch ?? batch.order}${directUse?.state === "used_elsewhere" ? ", also used for other products" : ""}`}
                                 style={{
@@ -1184,6 +1369,9 @@ export const ProductionScheduleView = ({
                                     <button
                                       type="button"
                                       className={eventMarker}
+                                      data-schedule-dispatch-event-ids={clusterDispatches
+                                        .map((dispatch) => dispatch.id)
+                                        .join(",")}
                                       data-dispatch-marker-kind={
                                         dispatchedAsFinishedGood
                                           ? "finished-good"

@@ -1,6 +1,8 @@
 import { Button, Select, type SelectItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { SupplyChainSearchInput } from "../../../shared/search-input";
+
 import type { ScheduleRangePreset } from "./schedule-dates";
 
 const toolbar = css({
@@ -70,6 +72,13 @@ const zoomButton = css({
   bg: "[#fff]",
   _hover: { bg: "bg.subtle" },
 });
+const searchStatusStyle = css({
+  marginLeft: "1",
+  minH: "4",
+  textStyle: "xs",
+  color: "fg.subtle",
+  fontStyle: "italic",
+});
 
 type LaneDisplay = "lane" | "continuous";
 
@@ -96,12 +105,15 @@ interface ProductionScheduleToolbarProps {
   onFitZoom: () => void;
   onLaneDisplayChange: (value: LaneDisplay) => void;
   onPresetChange: (value: ScheduleRangePreset) => void;
+  onSearchInputChange: (value: string) => void;
   onShowEventMarkersChange: (value: boolean) => void;
   onShowInventoryDwellChange: (value: boolean) => void;
   onShowRawMaterialsChange: (value: boolean) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   preset: ScheduleRangePreset;
+  searchStatus: string | null;
+  searchValue: string;
   showEventMarkers: boolean;
   showInventoryDwell: boolean;
   showRawMaterials: boolean;
@@ -118,12 +130,15 @@ export const ProductionScheduleToolbar = ({
   onFitZoom,
   onLaneDisplayChange,
   onPresetChange,
+  onSearchInputChange,
   onShowEventMarkersChange,
   onShowInventoryDwellChange,
   onShowRawMaterialsChange,
   onZoomIn,
   onZoomOut,
   preset,
+  searchStatus,
+  searchValue,
   showEventMarkers,
   showInventoryDwell,
   showRawMaterials,
@@ -257,6 +272,21 @@ export const ProductionScheduleToolbar = ({
           </label>
         </div>
       )}
+    </div>
+    <div className={field}>
+      <span>
+        Find batch or order{" "}
+        <span className={searchStatusStyle} role="status" aria-live="polite">
+          {searchStatus}
+        </span>
+      </span>
+      <SupplyChainSearchInput
+        ariaLabel="Search production timeline by identifier"
+        onChange={onSearchInputChange}
+        placeholder="Batch, order, delivery..."
+        size="sm"
+        value={searchValue}
+      />
     </div>
   </div>
 );

@@ -266,7 +266,6 @@ const segButton = css({
   cursor: "pointer",
   borderWidth: "1px",
   borderStyle: "solid",
-  borderColor: "[transparent]",
 });
 const segButtonActive = css({
   bg: "bgSolid.min",
@@ -275,6 +274,7 @@ const segButtonActive = css({
   boxShadow: "sm",
 });
 const segButtonInactive = css({
+  borderColor: "[transparent]",
   color: "fg.subtle",
   _hover: { color: "fg.muted" },
 });
@@ -603,8 +603,14 @@ export const StepDetailPanel = ({
     return comparisonStep.observations;
   }, [comparisonStep, dimension, selectedComponent]);
   const periodComparison = useMemo(() => {
-    return computePeriodDeltas(comparisonObservations, timeRange);
-  }, [comparisonObservations, timeRange]);
+    return computePeriodDeltas(
+      comparisonObservations,
+      timeRange,
+      dimension === "timing"
+        ? (comparisonStep?.mean_observations ?? comparisonObservations)
+        : comparisonObservations,
+    );
+  }, [comparisonObservations, comparisonStep, dimension, timeRange]);
   const selectedComponentReconciliationCount = useMemo(() => {
     if (
       dimension !== "consumption" ||
@@ -839,7 +845,7 @@ export const StepDetailPanel = ({
                       <span className={strongText}>
                         {filteredStep.excluded_count}
                       </span>{" "}
-                      outliers excluded
+                      excluded from mean
                     </span>
                   </span>
                 )}

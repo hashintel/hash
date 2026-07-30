@@ -37,10 +37,10 @@ use hash_graph_store::{
     entity::{
         ClusterEntitiesParams, ClusterEntitiesResponse, CreateEntityParams, DeleteEntitiesParams,
         DeletionSummary, EntityStore, EntityValidationReport, HasPermissionForEntitiesParams,
-        PatchEntityParams, QueryEntitiesParams, QueryEntitiesResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
-        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
-        ValidateEntityParams,
+        PatchEntityParams, QueryEntitiesParams, QueryEntitiesResponse, QueryEntitiesTableParams,
+        QueryEntitiesTableResponse, QueryEntitySubgraphParams, QueryEntitySubgraphResponse,
+        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
+        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CommonQueryEntityTypesParams, CountEntityTypesParams,
@@ -1665,6 +1665,14 @@ where
         params: SummarizeEntitiesParams<'_>,
     ) -> Result<SummarizeEntitiesResponse, Report<QueryError>> {
         self.store.summarize_entities(actor_id, params).await
+    }
+
+    async fn query_entities_table(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitiesTableParams,
+    ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
+        self.store.query_entities_table(actor_id, params).await
     }
 
     async fn patch_entity(

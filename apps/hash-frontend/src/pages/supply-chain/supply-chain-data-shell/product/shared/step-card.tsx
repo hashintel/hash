@@ -28,6 +28,7 @@ import {
   planSourceLabel,
   pctChangeTooltip,
 } from "../../../shared/planning-param";
+import { sampleTier } from "../../../shared/sample-confidence";
 // Local portal tooltip retained for the box-plot popover only: it renders rich
 // content `bare` (no dark-pill chrome), which the ds `Tooltip` can't express.
 import { Tooltip as RichTooltip } from "../../../shared/tooltip";
@@ -515,7 +516,8 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
     return (diff / plan) * 100;
   }, [plan, hasData, measureValue]);
   const eventCount = node.observations?.length ?? node.stats.n;
-  const isLowSample = node.stats.n > 0 && node.stats.n < 10;
+  const sampleLevel = sampleTier(node.stats.n);
+  const hasSampleWarning = sampleLevel === "low" || sampleLevel === "limited";
   return (
     <button
       type="button"
@@ -675,27 +677,30 @@ export const StepCard = ({ node, onClick, timeRange }: StepCardProps) => {
             <Tooltip
               openDelay="fast"
               content={
-                isLowSample
-                  ? "Low sample count"
+                hasSampleWarning
+                  ? `${sampleLevel === "low" ? "Low" : "Limited"} sample count`
                   : node.source
-                    ? `${countTooltip({ id: node.id, label: node.label, type: node.type, count: eventCount, rangeLabel: timeRange, nBatches: node.n_batches, nMovements: node.n_movements })}\nSource: ${node.source.label}${node.source.filter ? ` (filter ${node.source.filter})` : ""}`
+                    ? `${countTooltip({ id: node.id, label: node.label, type: node.type, timingGrain: node.timing_grain, count: eventCount, rangeLabel: timeRange, nBatches: node.n_batches, nCampaigns: node.n_campaigns, nMovements: node.n_movements })}\nSource: ${node.source.label}${node.source.filter ? ` (filter ${node.source.filter})` : ""}`
                     : countTooltip({
                         id: node.id,
                         label: node.label,
                         type: node.type,
+                        timingGrain: node.timing_grain,
                         count: eventCount,
                         rangeLabel: timeRange,
                         nBatches: node.n_batches,
+                        nCampaigns: node.n_campaigns,
                         nMovements: node.n_movements,
                       })
               }
             >
               <span className={countLabel}>
-                {isLowSample && <WarningTriangleIcon />}
+                {hasSampleWarning && <WarningTriangleIcon />}
                 {shortCountLabel(eventCount, {
                   id: node.id,
                   label: node.label,
                   type: node.type,
+                  timingGrain: node.timing_grain,
                 })}
               </span>
             </Tooltip>

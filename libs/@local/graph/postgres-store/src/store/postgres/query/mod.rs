@@ -31,7 +31,7 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     ast::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
-        Constant, EmptyVec, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
+        Constant, EmptyVecError, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
         FromItemJoinBuilder, FromItemSubqueryBuilder, FromItemTableBuilder, Function,
         GroupByClause, GroupingElement, Identifier, JoinType, Materialization, NonEmptyVec,
         NonFinitePercentage, NullsOrder, OnConflict, OrderByClause, SamplePercentage,
@@ -40,7 +40,7 @@ pub use self::{
         TableReference, TableSample, UnaryExpression, UnaryOperator, VariadicExpression,
         VariadicOperator, WindowDefinition, WithClause, bulk_insert,
     },
-    compile::{Distinctness, SelectCompiler, SelectCompilerError},
+    compile::{Distinctness, SelectCompiler, SelectCompilerError, StatementShape},
     postgres_type::PostgresType,
     table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };

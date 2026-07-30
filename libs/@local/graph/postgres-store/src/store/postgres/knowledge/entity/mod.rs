@@ -3,6 +3,7 @@ pub(crate) mod provenance;
 mod query;
 mod read;
 mod summary;
+mod table;
 
 use alloc::borrow::Cow;
 use core::{any::Any, borrow::Borrow as _, fmt, mem};
@@ -27,10 +28,10 @@ use hash_graph_store::{
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
         PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
-        QueryEntitySubgraphParams, QueryEntitySubgraphResponse, SearchEntitiesFilter,
-        SearchEntitiesParams, SearchEntitiesResponse, SummarizeEntitiesParams,
-        SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
-        ValidateEntityParams,
+        QueryEntitiesTableParams, QueryEntitiesTableResponse, QueryEntitySubgraphParams,
+        QueryEntitySubgraphResponse, SearchEntitiesFilter, SearchEntitiesParams,
+        SearchEntitiesResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::IncludeEntityTypeOption,
     error::{
@@ -105,10 +106,11 @@ use crate::store::{
         knowledge::entity::{
             provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
             read::EntityEdgeTraversalData,
-            summary::{Deduplication, EntitySummaryQuery},
+            summary::{Deduplication, EntitySummaryQuery, EntitySummaryRequest},
         },
         query::{
-            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler, bulk_insert,
+            Distinctness, PostgresRecord as _, PostgresSorting as _, SelectCompiler,
+            StatementShape, bulk_insert,
             rows::{
                 EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityIdRow, EntityIsOfTypeRow,
                 EntityTemporalMetadataRow, PostgresRow as _,
@@ -526,16 +528,19 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
+    /// Applies the `conversions` to a property object and its metadata in
+    /// place.
     #[tracing::instrument(level = "info", skip_all)]
-    async fn convert_entity<P: DataTypeLookup + Sync>(
+    pub(crate) async fn convert_properties<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,
-        entity: &mut Entity,
+        properties: &mut PropertyObject,
+        metadata: &mut PropertyObjectMetadata,
         conversions: &[QueryConversion<'_>],
     ) -> Result<(), Report<PropertyPathError>> {
         let mut property = PropertyWithMetadata::Object(PropertyObjectWithMetadata::from_parts(
-            mem::take(&mut entity.properties),
-            Some(mem::take(&mut entity.metadata.properties)),
+            mem::take(properties),
+            Some(mem::take(metadata)),
         )?);
         for conversion in conversions {
             self.convert_entity_properties(
@@ -549,10 +554,26 @@ where
         let PropertyWithMetadata::Object(property) = property else {
             unreachable!("The property was just converted to an object");
         };
-        let (properties, metadata) = property.into_parts();
-        entity.properties = properties;
-        entity.metadata.properties = metadata;
+        let (converted_properties, converted_metadata) = property.into_parts();
+        *properties = converted_properties;
+        *metadata = converted_metadata;
         Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip_all)]
+    async fn convert_entity<P: DataTypeLookup + Sync>(
+        &self,
+        provider: &P,
+        entity: &mut Entity,
+        conversions: &[QueryConversion<'_>],
+    ) -> Result<(), Report<PropertyPathError>> {
+        self.convert_properties(
+            provider,
+            &mut entity.properties,
+            &mut entity.metadata.properties,
+            conversions,
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip_all)]
@@ -605,6 +626,15 @@ where
             .change_context(QueryError)?;
 
         compiler.set_limit(params.limit);
+        // The entity read path vouches for the keys-first preconditions: its hydration joins
+        // always match their key row (foreign keys, and the write paths maintaining
+        // `entity_edition_cache` in the same transaction) and the distinct key pins all
+        // row-multiplying columns.
+        //
+        // TODO(BE-618): revisit the embedding shape once the distance query is index-backed.
+        if !compiler.has_embeddings_filter() {
+            compiler.set_statement_shape(StatementShape::KeysFirst);
+        }
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params
@@ -1958,6 +1988,28 @@ where
     }
 
     #[tracing::instrument(level = "info", skip_all)]
+    async fn query_entities_table(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: QueryEntitiesTableParams,
+    ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
+        // The summary defines the type universe the page query runs on. Reading
+        // both in one `REPEATABLE READ, READ ONLY` transaction gives them a
+        // shared snapshot, so the universe is exact for the page it fences.
+        let transaction = self
+            .begin_read_only_transaction()
+            .await
+            .change_context(QueryError)?;
+
+        let response = transaction
+            .query_entities_table_impl(actor_id, params)
+            .await?;
+
+        transaction.commit().await.change_context(QueryError)?;
+
+        Ok(response)
+    }
+
     async fn summarize_entities(
         &self,
         actor_id: ActorEntityUuid,
@@ -2014,7 +2066,9 @@ where
             .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
-        let Some(summary_query) = EntitySummaryQuery::new(&mut compiler, &params) else {
+        let Some(summary_query) =
+            EntitySummaryQuery::new(&mut compiler, EntitySummaryRequest::from(&params))
+        else {
             return Ok(SummarizeEntitiesResponse::default());
         };
         let (statement, parameters) = compiler.compile();

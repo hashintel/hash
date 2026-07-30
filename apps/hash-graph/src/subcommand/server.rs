@@ -6,7 +6,7 @@ use core::{
     str::FromStr,
     time::Duration,
 };
-use std::{path::PathBuf, time::Instant};
+use std::path::PathBuf;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
@@ -32,12 +32,7 @@ use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
-use tokio::{
-    io,
-    net::TcpListener,
-    signal,
-    time::{sleep, timeout},
-};
+use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 use tokio_util::{codec::FramedWrite, sync::CancellationToken};
 use type_system::ontology::json_schema::DomainValidator;
@@ -316,50 +311,33 @@ async fn run_rest_server(
     Ok(())
 }
 
-/// Connects to the Temporal server, retrying with exponential backoff until
-/// [`REACHABILITY_WINDOW`] has elapsed.
 async fn create_temporal_client(
     config: &TemporalConfig,
 ) -> Result<Option<TemporalClient>, Report<GraphError>> {
-    let Some(host) = config
+    if let Some(host) = config
         .address
         .temporal_host
         .as_deref()
         .filter(|host| !host.is_empty())
-    else {
-        return Ok(None);
-    };
-
-    let url = Url::from_str(&format!("{host}:{}", config.address.temporal_port))
-        .change_context(GraphError)?;
-
-    let deadline = Instant::now() + REACHABILITY_WINDOW;
-    let mut delay = Duration::from_millis(500);
-
-    loop {
-        let report = match TemporalClientConfig::new(url.clone()).await {
-            Ok(client) => return Ok(Some(client)),
-            Err(report) => report,
-        };
-        if Instant::now() + delay > deadline {
-            let report = report.change_context(GraphError);
+    {
+        TemporalClientConfig::new(
+            Url::from_str(&format!("{host}:{}", config.address.temporal_port))
+                .change_context(GraphError)?,
+        )
+        .await
+        .change_context(GraphError)
+        .map_err(|report| {
             tracing::error!(
                 error = ?report,
                 temporal_host = host,
                 temporal_port = config.address.temporal_port,
                 "Failed to connect to the Temporal server"
             );
-            return Err(report);
-        }
-        tracing::warn!(
-            error = ?report,
-            temporal_host = host,
-            temporal_port = config.address.temporal_port,
-            remaining = ?deadline.saturating_duration_since(Instant::now()),
-            "Temporal server is not reachable yet, retrying in {delay:?}"
-        );
-        sleep(delay).await;
-        delay = (delay * 2).min(Duration::from_secs(5));
+            report
+        })
+        .map(Some)
+    } else {
+        Ok(None)
     }
 }
 

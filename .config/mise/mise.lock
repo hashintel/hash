@@ -139,6 +139,9 @@ backend = "npm:@redocly/cli"
 version = "43.212.4"
 backend = "npm:renovate"
 
+[tools."npm:renovate".options]
+trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
+
 [[tools."npm:turbo"]]
 version = "2.6.3"
 backend = "npm:turbo"
@@ -176,11 +179,11 @@ url = "https://github.com/protocolbuffers/protobuf/releases/download/v35.1/proto
 url_api = "https://api.github.com/repos/protocolbuffers/protobuf/releases/assets/445060254"
 
 [[tools.rust]]
-version = "nightly-2026-07-06"
+version = "nightly-2026-07-13"
 backend = "core:rust"
 
 [tools.rust.options]
-components = "clippy,llvm-tools-preview,miri,rust-analyzer,rust-src,rustc-codegen-cranelift-preview,rustfmt"
+components = "clippy,llvm-tools,miri,rust-analyzer,rust-src,rustc-codegen-cranelift,rustfmt"
 
 [[tools.sentry-cli]]
 version = "2.52.0"

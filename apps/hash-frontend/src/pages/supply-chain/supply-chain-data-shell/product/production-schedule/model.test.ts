@@ -203,7 +203,7 @@ const v12Schedule = ({
   links?: ProductionScheduleV12["batch_links"];
   dispatchEvents?: ProductionScheduleV12["dispatch_events"];
 }): ProductionScheduleV12 => ({
-  schema_version: schedule.schema_version,
+  schema_version: "1.2",
   artifact_type: schedule.artifact_type,
   artifact_version: "1.2",
   product_id: schedule.product_id,

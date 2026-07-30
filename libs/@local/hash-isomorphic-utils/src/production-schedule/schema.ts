@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 const nonEmptyString = z.string().min(1);
+const canonicalNonEmptyString = nonEmptyString.refine(
+  (value) => value === value.trim(),
+  { error: "String must not have leading or trailing whitespace" },
+);
 const nullableNonEmptyString = nonEmptyString.nullable();
 const nonNegativeNumber = z.number().finite().nonnegative();
 const positiveNumber = z.number().finite().positive();
@@ -213,6 +217,7 @@ export const productionScheduleDeliverySchema = z.strictObject({
   delivery_number: nonEmptyString,
   delivery_item: nonEmptyString,
   shipment_number: nonEmptyString.optional(),
+  sales_order: canonicalNonEmptyString.optional(),
   ship_to: nonEmptyString.optional(),
   sold_to: nonEmptyString.optional(),
   customer_name: nonEmptyString.optional(),
@@ -254,7 +259,6 @@ export const productionScheduleDispatchEventSchema = z.strictObject({
 });
 
 const scheduleBaseShape = {
-  schema_version: z.literal("1.1"),
   artifact_type: z.literal("production_schedule"),
   product_id: nonEmptyString,
   product_name: nonEmptyString,
@@ -273,6 +277,7 @@ const sourceBaseShape = {
 
 export const productionScheduleLegacySchema = z.strictObject({
   ...scheduleBaseShape,
+  schema_version: z.literal("1.1"),
   artifact_version: z.union([z.literal("1.0"), z.literal("1.1")]),
   lanes: z.array(productionScheduleLegacyLaneSchema).min(1),
   consumption_evidence: z.array(productionScheduleConsumptionEvidenceSchema),
@@ -285,6 +290,7 @@ export const productionScheduleLegacySchema = z.strictObject({
 
 export const productionScheduleV12Schema = z.strictObject({
   ...scheduleBaseShape,
+  schema_version: z.literal("1.2"),
   artifact_version: z.literal("1.2"),
   lanes: z.array(productionScheduleV12LaneSchema).min(1),
   consumption_events: z.array(productionScheduleConsumptionEventSchema),

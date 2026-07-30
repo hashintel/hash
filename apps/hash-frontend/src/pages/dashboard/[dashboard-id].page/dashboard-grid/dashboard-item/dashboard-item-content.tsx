@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
 
 import { Button } from "@hashintel/ds-components";
+import { getPrimaryChartType } from "@local/hash-isomorphic-utils/dashboard-types";
 
 import { ChartRenderer } from "./dashboard-item-content/chart-renderer";
 import { WorldMapRenderer } from "./dashboard-item-content/world-map-renderer";
@@ -170,33 +171,6 @@ export const DashboardItemContent = ({
         );
       }
 
-      if (!chartType || !chartData) {
-        return (
-          <CenteredMessage>
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{
-                color: ({ palette }) => palette.gray[70],
-                textAlign: "center",
-              }}
-            >
-              Missing chart configuration
-            </Typography>
-          </CenteredMessage>
-        );
-      }
-
-      if (chartType === "map" && isPositionData(chartData)) {
-        return (
-          <WorldMapRenderer
-            flights={chartData}
-            onFlightClick={onEntityClick}
-            hoveredEntityId={hoveredEntityId}
-            onHoveredEntityChange={onHoveredEntityChange}
-          />
-        );
-      }
-
       if (!chartConfig) {
         return (
           <CenteredMessage>
@@ -213,9 +187,54 @@ export const DashboardItemContent = ({
         );
       }
 
+      if (!chartData) {
+        return (
+          <CenteredMessage>
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                textAlign: "center",
+              }}
+            >
+              Missing chart data
+            </Typography>
+          </CenteredMessage>
+        );
+      }
+
+      const resolvedChartType = getPrimaryChartType(chartConfig) ?? chartType;
+
+      if (!resolvedChartType) {
+        return (
+          <CenteredMessage>
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{
+                color: ({ palette }) => palette.gray[70],
+                textAlign: "center",
+              }}
+            >
+              Chart configuration must contain at least one series
+            </Typography>
+          </CenteredMessage>
+        );
+      }
+
+      if (resolvedChartType === "map" && isPositionData(chartData)) {
+        return (
+          <WorldMapRenderer
+            flights={chartData}
+            onFlightClick={onEntityClick}
+            hoveredEntityId={hoveredEntityId}
+            onHoveredEntityChange={onHoveredEntityChange}
+          />
+        );
+      }
+
       return (
         <ChartRenderer
-          chartType={chartType}
+          chartType={resolvedChartType}
           chartData={chartData}
           chartConfig={chartConfig}
           onEntityClick={onEntityClick}

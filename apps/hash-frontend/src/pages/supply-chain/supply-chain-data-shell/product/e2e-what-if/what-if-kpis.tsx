@@ -5,13 +5,13 @@ import { formatNumber } from "../../../shared/cost";
 import type { Caveat } from "./caveats";
 
 const tile = css({
-  bg: "bg.subtle",
   borderRadius: "lg",
   p: "2.5",
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
 });
+const tileDefault = css({ bg: "bg.subtle" });
 const tileSuccess = css({
   bg: "status.success.bg.subtle",
   borderWidth: "1px",
@@ -84,7 +84,7 @@ export const KpiTile = ({
       : null;
   const deltaClass = delta != null && delta < 0 ? deltaGood : deltaMuted;
   return (
-    <div className={cx(tile, success && tileSuccess)}>
+    <div className={cx(tile, success ? tileSuccess : tileDefault)}>
       <div className={tileLabel}>{label}</div>
       <div className={tileValue}>{value}</div>
       <div className={tileFoot}>

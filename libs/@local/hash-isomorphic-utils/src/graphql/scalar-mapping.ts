@@ -75,6 +75,10 @@ export const scalars = {
   SummarizeEntitiesParams: "@local/hash-graph-client#SummarizeEntitiesParams",
   SummarizeEntitiesResponse:
     "@local/hash-graph-sdk/entity#SummarizeEntitiesResponse",
+  QueryEntitiesTableParams:
+    "@local/hash-graph-sdk/entity#QueryEntitiesTableParams",
+  QueryEntitiesTableResponse:
+    "@local/hash-graph-sdk/entity#QueryEntitiesTableResponse",
   QueryEntitiesRequest: "@local/hash-graph-sdk/entity#QueryEntitiesRequest",
   QueryEntitiesResponse:
     "@local/hash-graph-sdk/entity#SerializedQueryEntitiesResponse",
