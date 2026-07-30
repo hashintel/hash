@@ -182,7 +182,12 @@ export const Chip = ({
       <Icon name="close" size={iconSizeMap[size]} />
     </button>
   );
-  const label = <span className={classes.label}>{children}</span>;
+  const label = (
+    <span className={classes.label}>
+      {"\u200B"}
+      {children}
+    </span>
+  );
 
   if (rootIsButton) {
     return (

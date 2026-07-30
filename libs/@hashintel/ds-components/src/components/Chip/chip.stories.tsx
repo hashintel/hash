@@ -43,6 +43,19 @@ const affixStyles: {
 
 const dotStyles = ["filled", "partiallyFilled", "empty"] as const;
 
+// Extra per-row examples in the colour story: the circle and "square" (angle)
+// affixes, each in blue and in black.
+const affixColorExamples: {
+  color: ChipColor;
+  prefixVariant: AffixVariant;
+  label: string;
+}[] = [
+  { color: "blue", prefixVariant: "circle", label: "circle" },
+  { color: "blue", prefixVariant: "angle", label: "angle" },
+  { color: "black", prefixVariant: "circle", label: "circle" },
+  { color: "black", prefixVariant: "angle", label: "angle" },
+];
+
 const noop = () => undefined;
 
 const row = css({
@@ -64,6 +77,14 @@ const rowLabel = css({
   textStyle: "sm",
   color: "fg.muted",
 });
+
+const maxWidthChip = css({ maxWidth: "[220px]" });
+
+const longText = "A fairly long chip label that gets truncated";
+
+// `children` is required, so an empty chip passes `""` (via a variable to keep
+// eslint's jsx-curly-brace-presence happy).
+const emptyLabel = "";
 
 /** The "kitchen sink" chip: a prefix icon, a whole-chip click, and removeable. */
 const KitchenSinkChip = ({
@@ -140,6 +161,17 @@ export const Default: Story<ChipProps> = (args) => (
             {color}
           </KitchenSinkChip>
         ))}
+        {affixColorExamples.map((example) => (
+          <KitchenSinkChip
+            key={`${example.label}-${example.color}`}
+            color={example.color}
+            variant={variant}
+            size={args.size}
+            prefixVariant={example.prefixVariant}
+          >
+            {example.label}
+          </KitchenSinkChip>
+        ))}
       </div>
     ))}
   </div>
@@ -188,17 +220,54 @@ export const Shape: Story<ChipProps> = (args) => (
 Shape.parameters = { controls: { exclude: ["shape", "children"] } };
 
 export const Size: Story<ChipProps> = (args) => (
-  <div className={row}>
-    {formInputSizes.map((size) => (
-      <KitchenSinkChip
-        key={size}
-        size={size}
+  <div className={column}>
+    <div className={row}>
+      {formInputSizes.map((size) => (
+        <KitchenSinkChip
+          key={size}
+          size={size}
+          color={args.color}
+          variant={args.variant}
+        >
+          {size}
+        </KitchenSinkChip>
+      ))}
+    </div>
+
+    {/* md edge cases: empty content, affixes with no label, and truncation of
+        long content against a max-width. */}
+    <div className={row}>
+      <Chip size="md" color={args.color} variant={args.variant}>
+        {emptyLabel}
+      </Chip>
+      <Chip
+        size="md"
         color={args.color}
         variant={args.variant}
+        prefix={{ iconName: "sparkles" }}
+        removeable={{ removeable: true, onRemove: noop }}
       >
-        {size}
-      </KitchenSinkChip>
-    ))}
+        {emptyLabel}
+      </Chip>
+      <Chip
+        size="md"
+        color={args.color}
+        variant={args.variant}
+        className={maxWidthChip}
+      >
+        {longText}
+      </Chip>
+      <Chip
+        size="md"
+        color={args.color}
+        variant={args.variant}
+        className={maxWidthChip}
+        prefix={{ children: "long prefix" }}
+        suffix={{ children: "long suffix" }}
+      >
+        {longText}
+      </Chip>
+    </div>
   </div>
 );
 Size.parameters = { controls: { exclude: ["size", "children"] } };
