@@ -4,7 +4,7 @@ export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
-export { Chip, type ChipColor, type ChipProps } from "./components/Chip/chip";
+export { Chip, type ChipColor } from "./components/Chip/chip";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Form } from "./components/Form/form";

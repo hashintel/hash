@@ -398,6 +398,36 @@ export const styles = sva({
       variant: "subtle",
       css: { root: { _hover: { background: "colorPalette.bg.surface" } } },
     },
+    {
+      color: "red",
+      clickable: true,
+      variant: "fill",
+      css: {
+        root: { _hover: { background: "red.a45", borderColor: "red.a65" } },
+      },
+    },
+    {
+      color: "orange",
+      clickable: true,
+      variant: "fill",
+      css: {
+        root: {
+          _hover: { background: "orange.a45", borderColor: "orange.a65" },
+        },
+      },
+    },
+    {
+      color: "yellow",
+      clickable: true,
+      variant: "fill",
+      css: { root: { _hover: { background: "yellow.a40" } } },
+    },
+    {
+      color: "pink",
+      clickable: true,
+      variant: "fill",
+      css: { root: { _hover: { background: "pink.a35" } } },
+    },
   ],
   defaultVariants: {
     size: "md",
