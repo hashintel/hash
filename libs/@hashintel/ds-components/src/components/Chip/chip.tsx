@@ -28,8 +28,7 @@ export type ChipColor =
   | "orange"
   | "yellow"
   | "purple"
-  | "pink"
-  | "black";
+  | "pink";
 
 export type ChipProps = {
   className?: string;

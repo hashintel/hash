@@ -14,7 +14,6 @@ const colors: ChipColor[] = [
   "yellow",
   "purple",
   "pink",
-  "black",
 ];
 
 const variants: NonNullable<ChipProps["variant"]>[] = [
@@ -44,7 +43,7 @@ const affixStyles: {
 const dotStyles = ["filled", "partiallyFilled", "empty"] as const;
 
 // Extra per-row examples in the colour story: the badge and "square" (angle)
-// affixes, each in blue and in black.
+// affixes, each in blue.
 const affixColorExamples: {
   color: ChipColor;
   prefixVariant: AffixVariant;
@@ -52,8 +51,6 @@ const affixColorExamples: {
 }[] = [
   { color: "blue", prefixVariant: "badge", label: "badge" },
   { color: "blue", prefixVariant: "angle", label: "angle" },
-  { color: "black", prefixVariant: "badge", label: "badge" },
-  { color: "black", prefixVariant: "angle", label: "angle" },
 ];
 
 const noop = () => undefined;

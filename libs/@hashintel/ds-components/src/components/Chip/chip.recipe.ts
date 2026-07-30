@@ -260,7 +260,6 @@ export const styles = sva({
       yellow: { root: { colorPalette: "yellow" } },
       purple: { root: { colorPalette: "purple" } },
       pink: { root: { colorPalette: "pink" } },
-      black: { root: { colorPalette: "neutral" } },
     },
     variant: {
       fill: {
@@ -398,78 +397,6 @@ export const styles = sva({
       clickable: true,
       variant: "subtle",
       css: { root: { _hover: { background: "colorPalette.bg.surface" } } },
-    },
-    // ── black: a static alpha colour rendered as a solid chip ──
-    {
-      color: "black",
-      variant: "fill",
-      css: {
-        root: { background: "black", borderColor: "black", color: "white" },
-      },
-    },
-    {
-      color: "black",
-      variant: "fillLight",
-      css: { root: { background: "black.a10", color: "black.a90" } },
-    },
-    {
-      color: "black",
-      variant: "outline",
-      css: { root: { borderColor: "black.a55", color: "black.a90" } },
-    },
-    {
-      color: "black",
-      variant: "subtle",
-      css: { root: { color: "black.a90" } },
-    },
-    // black has no palette `bd`, so its divider follows the text colour (light
-    // on the solid fill, dark on the light variants).
-    {
-      color: "black",
-      css: {
-        root: {
-          "--chip-divider":
-            "[color-mix(in srgb, currentColor 25%, transparent)]",
-          "--chip-divider-hover":
-            "[color-mix(in srgb, currentColor 45%, transparent)]",
-          "--chip-badge-divider":
-            "[color-mix(in srgb, currentColor 45%, transparent)]",
-          "--chip-badge-divider-hover":
-            "[color-mix(in srgb, currentColor 60%, transparent)]",
-        },
-      },
-    },
-    // black hover overrides (declared after the generic hovers so they win, and
-    // so black never borrows the neutral palette's hover tint).
-    {
-      color: "black",
-      variant: "fill",
-      clickable: true,
-      css: {
-        root: {
-          _hover: { background: "neutral.s120", borderColor: "neutral.s120" },
-        },
-      },
-    },
-    {
-      color: "black",
-      variant: "fillLight",
-      clickable: true,
-      css: { root: { _hover: { background: "black.a15" } } },
-    },
-    {
-      color: "black",
-      variant: "outline",
-      clickable: true,
-      css: {
-        root: { _hover: { background: "black.a05", borderColor: "black.a70" } },
-      },
-    },
-    {
-      color: "black",
-      variant: "subtle",
-      clickable: true,
-      css: { root: { _hover: { background: "black.a05" } } },
     },
   ],
   defaultVariants: {
