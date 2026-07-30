@@ -210,10 +210,10 @@ export const useEntitiesTableQuery = (params: {
   // The request minus the page, so a page can be requested against it and the
   // accumulated sequence recognised across renders.
   //
-  // Deliberately independent of `enabled`, which only decides whether to send
-  // the request. Folding it in here would make the request key null while
-  // disabled, so an accumulation from before could not be told apart from one
-  // whose filters have since changed — see {@link EntitiesTableQueryData.dataIsStale}.
+  // Deliberately independent of `enabled`, which gates the query rather than the
+  // request's identity. Folding it in here would null the request key while the
+  // hook is disabled, and an accumulation from before could no longer be told
+  // apart from one whose filters have since changed.
   const baseRequest = useMemo(() => {
     if (awaitingPinnedTypes || unresolvablePins) {
       return null;

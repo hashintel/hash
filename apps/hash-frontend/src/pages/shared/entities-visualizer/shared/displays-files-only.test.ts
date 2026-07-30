@@ -78,12 +78,6 @@ describe("displaysFilesOnly", () => {
     ).toBe(false);
   });
 
-  /**
-   * The caller keys a view-switching effect on this answer. An empty type list
-   * used to yield the length itself, so `0` and `false` alternated as the active
-   * view changed which read the types came from — re-running the effect and
-   * pulling the view back to Table.
-   */
   it("returns false rather than a falsy operand when nothing is loaded", () => {
     const noTypesLoaded = displaysFilesOnly({
       closedMultiEntityTypes: [],
@@ -96,8 +90,6 @@ describe("displaysFilesOnly", () => {
 
     expect(noTypesLoaded).toBe(false);
     expect(typesLoadedButNotFiles).toBe(false);
-    // Both falsy answers are the same value, so switching between them cannot
-    // change an effect's dependency.
     expect(Object.is(noTypesLoaded, typesLoadedButNotFiles)).toBe(true);
   });
 });

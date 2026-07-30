@@ -49,12 +49,6 @@ export type EntitiesVisualizerData = Partial<
    * the type universe is still awaited.
    */
   refetch: () => Promise<unknown>;
-  /**
-   * Whether the page query is standing by rather than reporting a result. A
-   * skipped query reads as a finished one with no data, which a caller holding
-   * the last loaded state has to tell apart from an empty result.
-   */
-  skipped: boolean;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
   totalResultCount: number | null;
 };
@@ -226,7 +220,6 @@ export const useEntitiesVisualizerData = (params: {
       hadCachedContent,
       loading: loading || (awaitingTypeUniverse && !typeUniverseError),
       refetch: guardedRefetch,
-      skipped: skip,
       subgraph,
       totalResultCount: summaryData?.summarizeEntities.count ?? null,
     }),
@@ -240,7 +233,6 @@ export const useEntitiesVisualizerData = (params: {
       awaitingTypeUniverse,
       typeUniverseError,
       guardedRefetch,
-      skip,
       subgraph,
     ],
   );

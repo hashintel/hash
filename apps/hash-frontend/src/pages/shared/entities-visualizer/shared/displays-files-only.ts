@@ -30,16 +30,15 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 );
 
 /**
- * Whether everything on display is a file, which is what the Grid view renders.
+ * Whether everything on display is a file, which is what the Grid view is
+ * offered for.
  *
- * A requested type that is on the static list answers without any data, so the
- * Grid can be picked on the first render. Types outside it — subtypes such as
- * `spreadsheetFile` — fall back to the loaded types.
+ * A requested type on the static list answers before any types load. Types
+ * outside it — subtypes such as `spreadsheetFile` — fall back to the loaded
+ * ones.
  *
- * The result is a boolean rather than the operands themselves: the caller keys
- * a view-switching effect on it, and a falsy result that changes shape (`0` for
- * an empty type list where a mismatch gave `false`) would re-run that effect and
- * pull the view back to Table.
+ * Normalised to a boolean so a falsy answer never changes identity between
+ * renders: the caller keys a view-switching effect on it.
  */
 export const displaysFilesOnly = ({
   closedMultiEntityTypes,
