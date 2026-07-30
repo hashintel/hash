@@ -288,8 +288,8 @@ mod tests {
 
         let state = std::hash::RandomState::new();
         assert_eq!(
-            std::hash::BuildHasher::hash_one(&state, &left),
-            std::hash::BuildHasher::hash_one(&state, &right),
+            core::hash::BuildHasher::hash_one(&state, &left),
+            core::hash::BuildHasher::hash_one(&state, &right),
         );
     }
 
