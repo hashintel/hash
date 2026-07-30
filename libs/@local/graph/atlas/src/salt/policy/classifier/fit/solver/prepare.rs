@@ -10,17 +10,19 @@
 //!
 //! Success requires more than a completed traversal: the accumulated total weight must be finite
 //! and positive, every class must carry positive aggregate mass, and the initial scaling must
-//! construct finite scales. A corpus can therefore scan to completion and still fail
+//! construct finite positive scales. A corpus can therefore scan to completion and still fail
 //! preparation.
 //!
 //! # Initial scaling
 //!
 //! Every fit starts at physical `T₀ = 0`. At zero the normalized initial Hessian diagonal for
-//! augmented coordinate `j` is `h_jj = (1/(3S))·Σ_i w_i x̄_ij² + (λ/S)·1{j is a coefficient}`,
-//! identical for both contrast rows; the per-coordinate scale is `D_j = √(max(h_jj,
-//! curvature_floor))`. The floor is in curvature units - it clamps `h_jj` inside the square
-//! root - so degenerate coordinates receive a finite positive scale instead of dividing the
-//! solver by zero.
+//! coefficient coordinate `j` is `h_jj = (1/(3S))·Σ_i w_i x̄_ij² + λ/S`, identical for both
+//! contrast rows; the intercept moment is `S` itself, so the intercept curvature is exactly `⅓`
+//! and is written as that constant ([`INTERCEPT_CURVATURE`]). The per-coordinate scale is
+//! `D_j = √(max(h_jj, floor))` with `floor = curvature_relative_floor · max_k h_kk`: the floor
+//! rides the corpus's measured curvature scale rather than pinning an absolute magnitude, the
+//! intercept anchors `max_k h_kk ≥ ⅓`, and degenerate coordinates receive a finite positive
+//! scale instead of dividing the solver by zero.
 
 use core::num::NonZero;
 
@@ -63,7 +65,8 @@ pub enum PreparationError {
     InvalidTotalWeight { value: f64 },
     /// A class carries no positive aggregate mass.
     MissingClassMass { class: GeometryClass },
-    /// An initial-scaling curvature value is not finite.
+    /// An initial-scaling curvature is not finite, or a constructed scale is not finite and
+    /// positive.
     InvalidScaling { coordinate: usize, value: f64 },
 }
 
@@ -80,8 +83,8 @@ pub(crate) struct PreparationSettings {
     pub target_sum_tolerance_ulps: NonZero<u32> = const {
         NonZero::new(16).expect("sixteen is nonzero")
     },
-    /// Floor on the initial Hessian diagonal, in curvature units.
-    pub curvature_floor: DPositive = const {
+    /// Floor on the initial Hessian diagonal, as a fraction of the largest curvature.
+    pub curvature_relative_floor: DPositive = const {
         DPositive::new(1.0e-12).expect("the floor is positive")
     },
 }
@@ -95,6 +98,8 @@ pub(crate) struct PreparationEvidence {
     pub maximum_adjustment: f64,
     /// Smallest and largest initial scale `D_j` across coordinates.
     pub scaling_range: [f64; 2],
+    /// The derived curvature floor: the largest initial curvature scaled by the relative floor.
+    pub curvature_floor: f64,
 }
 
 /// A validated corpus with closed targets, accumulated statistics, and initial scaling.
@@ -202,7 +207,7 @@ pub(crate) fn prepare<'corpus>(
         });
     }
 
-    let (scaling, scaling_range) = initial_scaling(&moments, total_weight, settings)?;
+    let initial = initial_scaling(&moments, total_weight, settings)?;
 
     Ok(Prepared {
         embeddings,
@@ -211,11 +216,12 @@ pub(crate) fn prepare<'corpus>(
         total_weight,
         regularization: settings.regularization.get(),
         class_mass,
-        scaling,
+        scaling: initial.scaling,
         evidence: PreparationEvidence {
             sum_range,
             maximum_adjustment,
-            scaling_range,
+            scaling_range: initial.range,
+            curvature_floor: initial.floor,
         },
     })
 }
@@ -262,37 +268,75 @@ fn validate_row(
     Ok(())
 }
 
+/// The intercept coordinate's normalized initial curvature.
+///
+/// The intercept moment is the total weight itself, so its normalized curvature is `S/(3S) = ⅓`
+/// for every corpus. Written as the constant, it survives a `3·S` overflow that would flush the
+/// computed quotient to zero, and it anchors the curvature maximum - and with it the derived
+/// floor - strictly above zero.
+const INTERCEPT_CURVATURE: f64 = 1.0 / 3.0;
+
+/// The constructed diagonal with its derivation evidence.
+struct InitialScaling {
+    /// The scaled-coordinate diagonal.
+    scaling: Scaling,
+    /// Smallest and largest constructed scale across coordinates.
+    range: [f64; 2],
+    /// The derived curvature floor.
+    floor: f64,
+}
+
 /// Builds the scaled-coordinate diagonal from the accumulated second moments.
 ///
-/// The intercept coordinate of `x̄` is one, so its second moment is the total weight itself;
-/// only the coefficient coordinates carry the `λ/S` regularization term.
+/// Only the coefficient coordinates carry the `λ/S` regularization term; the intercept curvature
+/// is [`INTERCEPT_CURVATURE`]. The floor is the largest curvature scaled by the configured
+/// relative floor, so it follows the corpus's curvature scale.
 fn initial_scaling(
     moments: &AlignedDVecN<CANONICAL_DIMENSIONS>,
     total_weight: f64,
     settings: PreparationSettings,
-) -> Result<(Scaling, [f64; 2]), PreparationError> {
+) -> Result<InitialScaling, PreparationError> {
     let normalizer = (3.0 * total_weight).recip();
     let regularization_share = settings.regularization.get() / total_weight;
 
-    let mut scales = BoxedDVecN::<AUGMENTED_DIMENSIONS>::zero();
-    let mut scaling_range = [f64::INFINITY, f64::NEG_INFINITY];
-    for (coordinate, scale) in scales.as_array_mut().iter_mut().enumerate() {
-        let curvature = if coordinate < CANONICAL_DIMENSIONS {
+    let mut curvatures = BoxedDVecN::<AUGMENTED_DIMENSIONS>::zero();
+    let mut maximum = f64::NEG_INFINITY;
+    for (coordinate, curvature) in curvatures.as_array_mut().iter_mut().enumerate() {
+        *curvature = if coordinate < CANONICAL_DIMENSIONS {
             moments.as_array()[coordinate].mul_add(normalizer, regularization_share)
         } else {
-            total_weight * normalizer
+            INTERCEPT_CURVATURE
         };
 
         if !curvature.is_finite() {
             return Err(PreparationError::InvalidScaling {
                 coordinate,
-                value: curvature,
+                value: *curvature,
             });
         }
 
-        *scale = curvature.max(settings.curvature_floor.get()).sqrt();
-        scaling_range = [scaling_range[0].min(*scale), scaling_range[1].max(*scale)];
+        maximum = maximum.max(*curvature);
     }
 
-    Ok((Scaling::from_augmented(&scales), scaling_range))
+    let floor = maximum * settings.curvature_relative_floor.get();
+
+    let mut scales = curvatures;
+    let mut range = [f64::INFINITY, f64::NEG_INFINITY];
+    for (coordinate, scale) in scales.as_array_mut().iter_mut().enumerate() {
+        *scale = scale.max(floor).sqrt();
+        if !scale.is_finite() || *scale <= 0.0 {
+            return Err(PreparationError::InvalidScaling {
+                coordinate,
+                value: *scale,
+            });
+        }
+
+        range = [range[0].min(*scale), range[1].max(*scale)];
+    }
+
+    Ok(InitialScaling {
+        scaling: Scaling::from_augmented(&scales),
+        range,
+        floor,
+    })
 }

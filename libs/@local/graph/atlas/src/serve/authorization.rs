@@ -26,18 +26,19 @@
 //!
 //! # The nonce
 //!
-//! Sampled per mint from an injected [`CryptoRng`]. A nonce is unique per key, because reuse
-//! repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s 192-bit width makes sampling
-//! a safe way to reach uniqueness, with collision probability below 2⁻³² until roughly 2⁸⁰ mints,
-//! and it holds for a fleet of replicas that derive one key per generation from shared
-//! configuration.
+//! Sampled per mint from an injected [`TryCryptoRng`] held behind a lock: minting locks for the
+//! draw alone and seals outside it, and opening never touches the generator. A nonce is unique per
+//! key, because reuse repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s 192-bit
+//! width makes sampling a safe way to reach uniqueness, with collision probability below 2⁻³²
+//! until roughly 2⁸⁰ mints, and it holds for a fleet of replicas that derive one key per
+//! generation from shared configuration.
 #![expect(
     clippy::empty_enums,
     reason = "zerocopy's TryFromBytes derive expands to an empty enum for the discriminant check, \
               which is the validation this type exists for"
 )]
 use core::time::Duration;
-use std::time::SystemTime;
+use std::{sync::nonpoison::Mutex, time::SystemTime};
 
 use chacha20poly1305::{
     KeyInit as _, XChaCha20Poly1305, XNonce,
@@ -45,7 +46,7 @@ use chacha20poly1305::{
 };
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hkdf::Hkdf;
-use rand::CryptoRng;
+use rand::{TryCryptoRng, TryRngCore as _};
 use sha2::Sha256;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
@@ -148,7 +149,7 @@ struct SealedAuthority {
 
 /// The sealed plaintext: the actor and filter identity of one scope.
 ///
-/// The [`Authority`] opening a token supplies the generation, whose key sealed it.
+/// The [`TokenAuthority`] opening a token supplies the generation, whose key sealed it.
 #[derive(
     Debug,
     Copy,
@@ -201,21 +202,26 @@ impl core::error::Error for AuthorityError {}
 
 /// Mints and opens the authority tokens of one generation.
 ///
-/// Holds the generation whose key it derives and the entropy source its nonces come from. A token
+/// Holds the generation whose key it derives and the entropy source its nonces come from, the
+/// latter behind its own lock: minting holds it for the nonce draw alone, and opening never
+/// takes it, so the read path shares one value with the mint without contending on it. A token
 /// opens under the authority whose generation sealed it.
 #[derive(Debug)]
-pub(crate) struct Authority<R> {
+pub(crate) struct TokenAuthority<R> {
     generation: GenerationId,
-    rng: R,
+    rng: Mutex<R>,
 }
 
-impl<R> Authority<R>
+impl<R> TokenAuthority<R>
 where
-    R: CryptoRng,
+    R: TryCryptoRng,
 {
     /// Builds an authority over one generation, sampling nonces from `rng`.
     pub(crate) const fn new(generation: GenerationId, rng: R) -> Self {
-        Self { generation, rng }
+        Self {
+            generation,
+            rng: Mutex::new(rng),
+        }
     }
 
     /// Derives this generation's sealing key from the server secret.
@@ -234,14 +240,19 @@ where
     ///
     /// `now` is wall-clock time: a token's age is judged by whichever process opens it, and
     /// [`SystemTime`] is the clock that carries meaning across a process boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns the generator's error when drawing the nonce fails: entropy failure refuses the
+    /// mint rather than sealing under a predictable nonce.
     pub(crate) fn mint<const N: usize>(
-        &mut self,
+        &self,
         secret: &SecretHexBytes<N>,
         scope: VisibilityKey,
         now: SystemTime,
-    ) -> Vec<u8> {
+    ) -> Result<Vec<u8>, R::Error> {
         let mut nonce = [0_u8; NONCE_BYTES];
-        self.rng.fill_bytes(&mut nonce);
+        self.rng.lock().try_fill_bytes(&mut nonce)?;
 
         // The only narrowing of the wall clock in this module: the wire carries an integer.
         let header = AuthorityHeader {
@@ -279,7 +290,7 @@ where
         blob.extend_from_slice(header.as_bytes());
         blob.extend_from_slice(&body);
 
-        blob
+        Ok(blob)
     }
 
     /// Opens `blob`, returning the scope it names.

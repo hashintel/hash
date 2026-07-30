@@ -921,7 +921,7 @@ mod classifier_fit_config {
     struct PreparationRecord {
         regularization: f64,
         target_sum_tolerance_ulps: u32,
-        curvature_floor: f64,
+        curvature_relative_floor: f64,
     }
 
     /// The solver knobs' wire form.
@@ -967,7 +967,7 @@ mod classifier_fit_config {
                 preparation: PreparationRecord {
                     regularization: solver.preparation.regularization.get(),
                     target_sum_tolerance_ulps: solver.preparation.target_sum_tolerance_ulps.get(),
-                    curvature_floor: solver.preparation.curvature_floor.get(),
+                    curvature_relative_floor: solver.preparation.curvature_relative_floor.get(),
                 },
                 radius_minimum: solver.radius_minimum.get(),
                 radius_initial: solver.radius_initial.get(),
@@ -1072,9 +1072,9 @@ mod classifier_fit_config {
                         "target-sum tolerance",
                         solver.preparation.target_sum_tolerance_ulps,
                     )?,
-                    curvature_floor: positive(
-                        "curvature floor",
-                        solver.preparation.curvature_floor,
+                    curvature_relative_floor: positive(
+                        "relative curvature floor",
+                        solver.preparation.curvature_relative_floor,
                     )?,
                 },
                 radius_minimum: positive("minimum radius", solver.radius_minimum)?,

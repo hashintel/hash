@@ -73,9 +73,10 @@ pub(crate) async fn probe_fold(
 
     println!("fold {fold} at seed {seed}: {} member rows", members.len());
     println!(
-        "total weight {} scaling range {:?} sum range {:?} adjustment {:e}",
+        "total weight {} scaling range {:?} curvature floor {:e} sum range {:?} adjustment {:e}",
         prepared.total_weight,
         prepared.evidence.scaling_range,
+        prepared.evidence.curvature_floor,
         prepared.evidence.sum_range,
         prepared.evidence.maximum_adjustment,
     );

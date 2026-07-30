@@ -123,6 +123,7 @@
     impl_trait_in_assoc_type,
     iter_intersperse,
     iter_map_windows,
+    nonpoison_mutex,
     pointer_is_aligned_to,
     portable_simd,
     step_trait,

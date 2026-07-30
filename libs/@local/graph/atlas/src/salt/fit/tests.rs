@@ -223,7 +223,7 @@ fn classifier_fit_echo_round_trips_every_knob() {
             preparation: PreparationSettings {
                 regularization: d_positive!(0.625),
                 target_sum_tolerance_ulps: NonZero::new(24).expect("twenty-four is nonzero"),
-                curvature_floor: d_positive!(1.0e-11),
+                curvature_relative_floor: d_positive!(1.0e-11),
             },
             radius_minimum: d_positive!(3.0e-8),
             radius_initial: d_positive!(0.5),

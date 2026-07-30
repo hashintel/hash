@@ -101,6 +101,11 @@ impl WireSecret {
     pub(crate) fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    /// Views the key as the typed value key derivations take.
+    pub(crate) const fn hex_bytes(&self) -> &SecretHexBytes<{ Self::BYTES }> {
+        &self.0
+    }
 }
 
 impl fmt::Debug for WireSecret {

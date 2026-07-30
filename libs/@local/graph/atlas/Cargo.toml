@@ -15,7 +15,7 @@ type-system = { workspace = true, public = true }
 axum           = { workspace = true, public = true }
 camino         = { workspace = true, public = true }
 futures-sink   = { workspace = true, public = true }
-rand           = { workspace = true, public = true, features = ["chacha"] }
+rand           = { workspace = true, public = true, features = ["chacha", "sys_rng"] }
 rand_core      = { workspace = true, public = true }
 schemars       = { workspace = true, public = true }
 sprs           = { workspace = true, public = true }

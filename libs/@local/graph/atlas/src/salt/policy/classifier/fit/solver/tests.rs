@@ -100,7 +100,7 @@ fn settings() -> PreparationSettings {
     PreparationSettings {
         regularization: d_positive!(0.5),
         target_sum_tolerance_ulps: one_ulp(),
-        curvature_floor: d_positive!(1.0e-12),
+        curvature_relative_floor: d_positive!(1.0e-12),
     }
 }
 
@@ -392,8 +392,8 @@ fn preparation_accumulates_statistics_and_charges_work() {
     assert_eq!(prepared.evidence.maximum_adjustment, 0.0);
 }
 
-/// The initial diagonal follows `h_jj = (1/(3S))·Σ w x̄² + (λ/S)·1{coefficient}` with the floor
-/// inside the square root, identically for both contrast rows.
+/// The initial diagonal follows `h_jj = (1/(3S))·Σ w x̄² + (λ/S)·1{coefficient}` with the
+/// derived floor inside the square root, identically for both contrast rows.
 #[test]
 fn preparation_builds_the_documented_initial_diagonal() {
     let corpus = valid_corpus();
@@ -405,22 +405,31 @@ fn preparation_builds_the_documented_initial_diagonal() {
     let total = prepared.total_weight;
     let normalizer = (3.0 * total).recip();
     let share = settings().regularization.get() / total;
-    let floor = settings().curvature_floor.get();
 
     // Leading coordinate: moment = 1.5·4 + 2.5·0 + 1·1 = 7.
-    let expected_leading = 7.0_f64.mul_add(normalizer, share).max(floor).sqrt();
+    let leading = 7.0_f64.mul_add(normalizer, share);
+    // Second coordinate: moment = 1.5·1 + 2.5·9 + 1·0.25 = 24.25.
+    let second = 24.25_f64.mul_add(normalizer, share);
+    // Zero-moment coefficient coordinates keep the regularization share alone.
+    let zero = 0.0_f64.mul_add(normalizer, share);
+    // The intercept curvature is the constant one third.
+    let intercept = 1.0 / 3.0;
+
+    // The derived floor is the largest curvature scaled by the configured relative floor.
+    let floor =
+        leading.max(second).max(zero).max(intercept) * settings().curvature_relative_floor.get();
+    assert_eq!(prepared.evidence.curvature_floor, floor);
+
+    let expected_leading = leading.max(floor).sqrt();
     assert_eq!(diagonal[0], expected_leading);
 
-    // Second coordinate: moment = 1.5·1 + 2.5·9 + 1·0.25 = 24.25.
-    let expected_second = 24.25_f64.mul_add(normalizer, share).max(floor).sqrt();
+    let expected_second = second.max(floor).sqrt();
     assert_eq!(diagonal[1], expected_second);
 
-    // Zero-moment coefficient coordinates keep the regularization share alone.
-    let expected_zero = 0.0_f64.mul_add(normalizer, share).max(floor).sqrt();
+    let expected_zero = zero.max(floor).sqrt();
     assert_eq!(diagonal[2], expected_zero);
 
-    // The intercept moment is the total weight itself and carries no regularization.
-    let expected_intercept = (total * normalizer).max(floor).sqrt();
+    let expected_intercept = intercept.max(floor).sqrt();
     assert_eq!(diagonal[CANONICAL_DIMENSIONS], expected_intercept);
 
     // Both contrast rows carry identical scales, and the recorded range brackets them.
@@ -1963,10 +1972,12 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
 /// A valid degenerate corpus drives the full machine into the typed non-finite CG terminal.
 ///
 /// Weights of `f64::MAX / 4` keep `S` and every preparation aggregate finite, but `3·S`
-/// overflows, the initial-diagonal normalizer flushes to zero, and the curvature floor rescues
-/// every scale at `√min_subnormal`. The initial scaled gradient stays finite and fails its
-/// relative certificate; CG's first Hessian-vector product applies the tiny scale a second time,
-/// the physical direction overflows, and the machine reaches `NonFiniteCg { HvpVector }`.
+/// overflows, the initial-diagonal normalizer flushes to zero, and the subnormal `λ/S` share
+/// underflows: every coefficient curvature is zero and only the constant intercept curvature
+/// survives. The derived floor `⅓·10⁻³¹⁰` rescues the coefficient scales at `√(⅓·10⁻³¹⁰)`. The
+/// initial scaled gradient stays finite and fails its relative certificate; CG's first
+/// Hessian-vector product applies the tiny coefficient scales a second time, the physical
+/// direction overflows, and the machine reaches `NonFiniteCg { HvpVector }`.
 #[test]
 fn solve_reaches_the_non_finite_cg_terminal_on_a_degenerate_scale() {
     let subnormal = f64::from_bits(1);
@@ -1980,7 +1991,7 @@ fn solve_reaches_the_non_finite_cg_terminal_on_a_degenerate_scale() {
         SolverConfig {
             preparation: PreparationSettings {
                 regularization: DPositive::new(subnormal).expect("the subnormal is positive"),
-                curvature_floor: DPositive::new(subnormal).expect("the subnormal is positive"),
+                curvature_relative_floor: d_positive!(1.0e-310),
                 ..settings()
             },
             absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
@@ -2025,7 +2036,7 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
         SolverConfig {
             preparation: PreparationSettings {
                 regularization: DPositive::ONE,
-                curvature_floor: DPositive::ONE,
+                curvature_relative_floor: DPositive::ONE,
                 ..settings()
             },
             absolute_scaled_gradient_tolerance: d_non_negative!(4.0),
@@ -2360,7 +2371,7 @@ fn cg_routes_the_curvature_guard_crossing_through_its_call_site() {
     let config = SolverConfig {
         preparation: PreparationSettings {
             regularization: d_positive!(1.0e-30),
-            curvature_floor: d_positive!(1.0e-300),
+            curvature_relative_floor: d_positive!(1.0e-300),
             target_sum_tolerance_ulps: one_ulp(),
         },
         relative_cg_residual_tolerance: open_unit_fraction!(1.0e-12),

@@ -2,8 +2,8 @@
 //!
 //! These cases rebuild the envelope from the primitives - HKDF for the key, the header's byte
 //! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
-//! what [`Authority`] produces. A test that only round-tripped `mint` through `open` would pass for
-//! a module that agrees with itself about the wrong bytes.
+//! what [`TokenAuthority`] produces. A test that only round-tripped `mint` through `open` would
+//! pass for a module that agrees with itself about the wrong bytes.
 
 use core::time::Duration;
 use std::time::SystemTime;
@@ -23,7 +23,7 @@ use zerocopy::IntoBytes as _;
 use crate::{
     integrity::{SecretHexBytes, Sha256Digest},
     serve::{
-        authorization::{Authority, AuthorityError},
+        authorization::{AuthorityError, TokenAuthority},
         cache::{FilterDigest, VisibilityKey},
     },
 };
@@ -154,10 +154,12 @@ fn seal_raw(plaintext: &[u8], now: SystemTime, nonce: &[u8; NONCE_BYTES]) -> Vec
 /// rather than omitted when absent, so a filter's presence never shows in the length.
 #[test]
 fn a_minted_token_matches_an_independent_envelope() {
-    let mut authority = Authority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), rng());
 
     for filter in [None, Some(b"{\"kind\":\"all\"}".as_slice())] {
-        let minted = authority.mint(&secret(), scope(11, filter), issued_at());
+        let minted = authority
+            .mint(&secret(), scope(11, filter), issued_at())
+            .expect("the seeded generator is infallible");
 
         // The nonce is public, so the reimplementation takes it from the envelope under test and
         // derives everything else - which is why this case needs no control over the entropy
@@ -194,8 +196,10 @@ fn a_minted_token_matches_an_independent_envelope() {
 #[test]
 fn an_independent_open_recovers_the_scope() {
     let canonical = b"{\"kind\":\"all\"}".as_slice();
-    let mut authority = Authority::new(generation(), rng());
-    let minted = authority.mint(&secret(), scope(11, Some(canonical)), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let minted = authority
+        .mint(&secret(), scope(11, Some(canonical)), issued_at())
+        .expect("the seeded generator is infallible");
 
     let (clear, body) = minted.split_at(HEADER_BYTES);
     let recovered = XChaCha20Poly1305::new(&key().into())
@@ -221,7 +225,7 @@ fn an_independent_open_recovers_the_scope() {
 /// `open` accepts. With the mint-side byte comparison this closes the loop in both directions.
 #[test]
 fn a_hand_assembled_envelope_opens() {
-    let authority = Authority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), rng());
     let blob = seal_raw(&plaintext(11, None), issued_at(), &[9; NONCE_BYTES]);
 
     assert_eq!(
@@ -236,11 +240,13 @@ fn a_hand_assembled_envelope_opens() {
 /// A token opens to the scope it was minted for, filtered or not.
 #[test]
 fn a_minted_token_opens_to_its_scope() {
-    let mut authority = Authority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), rng());
 
     for filter in [None, Some(b"{\"kind\":\"all\"}".as_slice())] {
         let scope = scope(11, filter);
-        let minted = authority.mint(&secret(), scope, issued_at());
+        let minted = authority
+            .mint(&secret(), scope, issued_at())
+            .expect("the seeded generator is infallible");
 
         assert_eq!(
             authority
@@ -259,8 +265,10 @@ fn a_minted_token_opens_to_its_scope() {
 /// whichever direction the edit moves the clock.
 #[test]
 fn a_rewritten_issue_time_refuses() {
-    let mut authority = Authority::new(generation(), rng());
-    let mut minted = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let mut minted = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
 
     // Move the recorded second, which the tag covers.
     minted[1] = minted[1].wrapping_add(1);
@@ -275,8 +283,10 @@ fn a_rewritten_issue_time_refuses() {
 /// A token older than the hard window refuses, and so does a future-dated one.
 #[test]
 fn a_token_outside_the_window_refuses() {
-    let mut authority = Authority::new(generation(), rng());
-    let minted = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let minted = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
     let hard = Duration::from_mins(10);
 
     assert_eq!(
@@ -310,10 +320,12 @@ fn a_token_outside_the_window_refuses() {
 /// comparison, and it holds for a token whose plaintext is otherwise identical.
 #[test]
 fn a_foreign_generation_refuses() {
-    let mut minting = Authority::new(generation(), rng());
-    let minted = minting.mint(&secret(), scope(11, None), issued_at());
+    let minting = TokenAuthority::new(generation(), rng());
+    let minted = minting
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
 
-    let foreign = Authority::new(
+    let foreign = TokenAuthority::new(
         "1a".repeat(32)
             .parse()
             .expect("64 hexadecimal digits name a generation"),
@@ -330,7 +342,7 @@ fn a_foreign_generation_refuses() {
 /// A blob too short for a header refuses as an envelope fault.
 #[test]
 fn a_truncated_blob_refuses() {
-    let authority = Authority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), rng());
 
     for length in [0, 1, HEADER_BYTES - 1] {
         assert_eq!(
@@ -349,8 +361,10 @@ fn a_truncated_blob_refuses() {
 /// A token opened under another secret refuses at the tag.
 #[test]
 fn a_foreign_secret_refuses() {
-    let mut authority = Authority::new(generation(), rng());
-    let minted = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let minted = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
 
     assert_eq!(
         authority.open(
@@ -370,8 +384,10 @@ fn a_foreign_secret_refuses() {
 /// header, so its edit fails through the associated data; the other two fail as ciphertext.
 #[test]
 fn a_tampered_byte_refuses() {
-    let mut authority = Authority::new(generation(), rng());
-    let minted = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let minted = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
 
     for (region, index) in [
         ("nonce", NONCE_OFFSET),
@@ -395,8 +411,10 @@ fn a_tampered_byte_refuses() {
 /// secret, which is what "before the key" means observably.
 #[test]
 fn a_foreign_version_refuses() {
-    let mut authority = Authority::new(generation(), rng());
-    let mut minted = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let mut minted = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
     minted[0] = 1;
 
     assert_eq!(
@@ -424,7 +442,7 @@ fn a_foreign_version_refuses() {
 /// canonical plaintext opens, so these refuse on the plaintext's form alone.
 #[test]
 fn a_malformed_plaintext_refuses() {
-    let authority = Authority::new(generation(), rng());
+    let authority = TokenAuthority::new(generation(), rng());
     let open = |plaintext: &[u8]| {
         authority.open(
             &secret(),
@@ -457,9 +475,13 @@ fn a_malformed_plaintext_refuses() {
 /// tokens open.
 #[test]
 fn two_mints_draw_distinct_nonces() {
-    let mut authority = Authority::new(generation(), rng());
-    let first = authority.mint(&secret(), scope(11, None), issued_at());
-    let second = authority.mint(&secret(), scope(11, None), issued_at());
+    let authority = TokenAuthority::new(generation(), rng());
+    let first = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
+    let second = authority
+        .mint(&secret(), scope(11, None), issued_at())
+        .expect("the seeded generator is infallible");
 
     assert_ne!(
         first[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES],
