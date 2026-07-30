@@ -4,6 +4,10 @@ export const styles = sva({
   slots: ["root", "image", "placeholder", "initials", "icon"],
   base: {
     root: {
+      "--avatar-radius":
+        "min(calc(1.3px * sqrt(var(--avatar-size) / 1px)), calc(var(--avatar-size) * 0.35))",
+      borderWidth: "[max(1px, min(calc(var(--avatar-size) / 48), 3px))]", // 1px to a 3px cap
+      borderStyle: "solid",
       position: "relative",
       display: "inline-flex",
       alignItems: "center",
@@ -14,9 +18,6 @@ export const styles = sva({
       verticalAlign: "middle",
       fontWeight: "[470]",
       lineHeight: "none",
-      // Hairline default; lg and custom bump the weight up (see those variants)
-      borderWidth: "[1px]",
-      borderStyle: "solid",
       width: "var(--avatar-size)",
       minWidth: "var(--avatar-size)",
       aspectRatio: "1",
@@ -62,6 +63,7 @@ export const styles = sva({
           "--avatar-size": "16px",
           "--avatar-radius": "0.25rem",
           fontWeight: "medium",
+          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[7px]",
@@ -72,6 +74,7 @@ export const styles = sva({
           "--avatar-size": "20px",
           "--avatar-radius": "0.25rem",
           fontWeight: "medium",
+          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[9px]",
@@ -82,6 +85,7 @@ export const styles = sva({
           "--avatar-size": "24px",
           "--avatar-radius": "0.375rem",
           fontWeight: "medium",
+          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[11px]",
@@ -106,18 +110,8 @@ export const styles = sva({
           fontSize: "[20px]",
         },
       },
-      // Consumer sets --avatar-size (a length); width, typography, the square
-      // border radius, and the placeholder icon all derive from it.
       custom: {
-        root: {
-          "--avatar-radius":
-            "min(calc(1.5px * sqrt(var(--avatar-size) / 1px)), calc(var(--avatar-size) * 0.35))",
-          // 1px to a 3px cap
-          borderWidth: "[max(1px, min(calc(var(--avatar-size) / 64), 3px))]",
-        },
-        // Icon scales to ~half the avatar width, matching the discrete sizes'
-        // icon:avatar ratio. `:is(svg)` lifts specificity above <Icon>'s own
-        // equal-specificity --icon-size (which would otherwise win on source order).
+        root: {},
         icon: {
           "&:is(svg)": {
             "--icon-size": "[51cqw]",
