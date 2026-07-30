@@ -139,11 +139,12 @@ const impl Default for DensityBand {
 
 /// One delivery-cut offset: the depth every zoom's cut gains for one scope.
 ///
-/// A density policy resolves the offset once, at bootstrap, and a sealed authority token carries
-/// it across refreshes, so a view keeps one resolution for as long as its client holds a token.
-/// Production construction is [`Self::ZERO`], a policy's resolution, or the authenticated read of
-/// a sealed token, so a served offset was decided by the public-band rule and a client cannot
-/// forge one past the seal.
+/// A density policy resolves the offset at a session's bootstrap and a sealed authority token
+/// carries it, so a session serves at one delivery depth for as long as its client holds a token.
+/// A view re-bound to another filter keeps that depth unless the new view resolves coarser, which
+/// clamps it down - see [`DensityPolicy::rebind`]. Production construction is [`Self::ZERO`], a
+/// policy's resolution or rebind, or the authenticated read of a sealed token, so a served offset
+/// was decided by the public-band rule and a client cannot forge one past the seal.
 #[derive(
     Debug,
     Copy,
@@ -335,6 +336,27 @@ impl DensityPolicy {
         }
 
         resolved
+    }
+
+    /// Rebinds a session's offset to a new view, never deepening it.
+    ///
+    /// A session serves at one delivery depth: the offset its bootstrap resolved. When its view is
+    /// re-bound to a different filter, that depth is kept rather than re-optimized, so the detail a
+    /// tile carries at a fixed zoom does not move under a caller that only changed what it selects.
+    /// The exception is one-way: when the new view resolves coarser than the session's offset, the
+    /// coarser resolution wins, so a deep cut resolved over a sparse view never rides into a dense
+    /// one whose band asks for less depth.
+    ///
+    /// Both directions therefore read off the minimum. A new view resolving deeper keeps the
+    /// carried, coarser cut; a new view resolving coarser clamps the session down to it. An empty
+    /// new view resolves [`CutOffset::ZERO`] and so clamps to zero.
+    ///
+    /// The result stays admissible for the new view: the candidate offsets are contiguous from
+    /// zero, so a value at or below a resolvable one is itself resolvable, and the key width stays
+    /// bounded because the carried value was bounded by the same generation's ceiling.
+    #[must_use]
+    pub fn rebind(self, carried: CutOffset, occupancy: &ViewOccupancy) -> CutOffset {
+        carried.min(self.resolve(occupancy))
     }
 }
 

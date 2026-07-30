@@ -401,3 +401,58 @@ fn resolution_is_a_function_of_the_count_profile(
         );
     }
 }
+
+/// A re-bind keeps the session's coarser cut when the new view resolves deeper.
+///
+/// The band is unreachable for the plateau view, whose deepest cut holds 4 cells, so its bootstrap
+/// resolves the deepest offset it has: 2. The deep view reaches the band exactly at offset 18 -
+/// `C(19, V) = 20` - so re-optimizing would deepen the session by sixteen subdivisions and change
+/// the detail every tile carries at a fixed zoom. The re-bind keeps 2.
+#[test]
+fn a_rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
+    let policy = policy(band(20, 20));
+    let carried = policy.resolve(&plateau_view());
+    assert_eq!(
+        carried,
+        CutOffset::new(2),
+        "the plateau view's own resolution"
+    );
+    assert_eq!(
+        policy.resolve(&deep_view()),
+        CutOffset::new(18),
+        "the deep view's own resolution, which the re-bind must not adopt"
+    );
+
+    assert_eq!(policy.rebind(carried, &deep_view()), carried);
+}
+
+/// A re-bind clamps the session down when the new view resolves coarser.
+///
+/// The reverse pairing: a session bootstrapped on the deep view holds offset 18, and re-binding to
+/// the plateau view would carry that cut into a view whose band asks for 2. Carrying it would
+/// deliver a depth-19 cut over four cells, so the coarser resolution wins.
+#[test]
+fn a_rebind_clamps_down_when_the_new_view_resolves_coarser() {
+    let policy = policy(band(20, 20));
+    let carried = policy.resolve(&deep_view());
+
+    assert_eq!(
+        policy.rebind(carried, &plateau_view()),
+        CutOffset::new(2),
+        "the deep session kept its cut over a view the band serves shallower"
+    );
+}
+
+/// A re-bind to an empty view clamps to the base offset.
+///
+/// An empty view resolves [`CutOffset::ZERO`], so the clamp takes it whatever the session held: a
+/// view with no occupancy is never served at a depth an earlier view paid for.
+#[test]
+fn a_rebind_to_an_empty_view_clamps_to_the_base_offset() {
+    let policy = policy(band(20, 20));
+
+    assert_eq!(
+        policy.rebind(policy.resolve(&deep_view()), &occupancy(&[])),
+        CutOffset::ZERO
+    );
+}
