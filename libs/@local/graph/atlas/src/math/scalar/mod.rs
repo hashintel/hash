@@ -212,6 +212,26 @@ impl From<Positive> for NonNegative {
     }
 }
 
+impl serde::Serialize for NonNegative {
+    /// Serializes as the plain number.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f32(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for NonNegative {
+    /// Deserializes a plain number, refusing values outside the finite non-negative range.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f32::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(f64::from(value)),
+                &"a finite non-negative number",
+            )
+        })
+    }
+}
+
 /// A finite fraction in `[0, 1]`, valid by construction.
 ///
 /// Configuration fields whose domain is the closed unit interval carry this type instead of a raw
@@ -292,6 +312,26 @@ impl UnitFraction {
     #[must_use]
     pub const fn get(self) -> f64 {
         self.0
+    }
+}
+
+impl serde::Serialize for UnitFraction {
+    /// Serializes as the plain number.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for UnitFraction {
+    /// Deserializes a plain number, refusing values outside the closed unit interval.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f64::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(value),
+                &"a fraction in the closed unit interval",
+            )
+        })
     }
 }
 

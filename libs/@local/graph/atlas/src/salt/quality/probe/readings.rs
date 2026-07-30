@@ -6,12 +6,22 @@
 
 use core::{mem, num::NonZero};
 
-use hashql_core::id::{Id, IdArray};
+use hashql_core::id::{Id, IdArray, IdSlice};
 
 use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
+
+hashql_core::id::newtype! {
+    /// One position on the grids' neighbourhood axis, in the options' reporting order.
+    ///
+    /// The probe reads every metric at a ladder of neighbourhood sizes; a rung addresses one of
+    /// them. Cells are addressed by rung, and the rung's neighbourhood size lives in
+    /// [`ProbeReadings::neighbourhoods`], so a rung index and a neighbourhood size can never
+    /// stand in for one another.
+    pub(crate) struct Rung(u32)
+}
 
 /// The probe's space pairs, in one pinned reporting order.
 ///
@@ -43,18 +53,15 @@ pub(crate) type SpacePairArray<T> = IdArray<SpacePair, T, { SpacePair::COUNT }>;
 #[derive(Debug, Clone)]
 pub(crate) struct ReadingGrid<A = NeighbourhoodAggregate> {
     cells: Box<[A]>,
-    neighbourhoods: usize,
+    rungs: usize,
 }
 
 impl<A> ReadingGrid<A> {
     /// Flattens per-anchor cell rows into a grid.
-    pub(in crate::salt::quality) fn from_anchor_cells(
-        rows: Vec<Vec<A>>,
-        neighbourhoods: usize,
-    ) -> Self {
+    pub(in crate::salt::quality) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
         Self {
             cells: rows.into_iter().flatten().collect(),
-            neighbourhoods,
+            rungs,
         }
     }
 
@@ -67,47 +74,47 @@ impl<A> ReadingGrid<A> {
     #[inline]
     #[must_use]
     pub(crate) const fn anchors(&self) -> usize {
-        self.cells.len() / self.neighbourhoods
+        self.cells.len() / self.rungs
     }
 
-    /// Returns the neighbourhood-size count.
+    /// Returns the rung count of the neighbourhood axis.
     #[inline]
     #[must_use]
-    pub(crate) const fn neighbourhoods(&self) -> usize {
-        self.neighbourhoods
+    pub(crate) const fn rungs(&self) -> usize {
+        self.rungs
     }
 
-    /// Borrows one anchor's reading at one neighbourhood size.
+    /// Borrows one anchor's reading at one rung.
     ///
     /// # Panics
     ///
-    /// Panics when `anchor` or `neighbourhood` lies outside the grid.
+    /// Panics when `anchor` or `rung` lies outside the grid.
     #[inline]
     #[must_use]
-    pub(crate) fn anchor(&self, anchor: usize, neighbourhood: usize) -> &A {
+    pub(crate) fn anchor(&self, anchor: usize, rung: Rung) -> &A {
         assert!(
-            neighbourhood < self.neighbourhoods,
-            "the neighbourhood index must lie inside the grid",
+            rung.as_usize() < self.rungs,
+            "the rung must lie inside the grid",
         );
 
-        &self.cells[anchor * self.neighbourhoods + neighbourhood]
+        &self.cells[anchor * self.rungs + rung.as_usize()]
     }
 }
 
 // `overall` is implemented per cell type rather than through a shared
 // merge trait.
 impl ReadingGrid<NeighbourhoodAggregate> {
-    /// Merges every anchor's reading at one neighbourhood size.
+    /// Merges every anchor's reading at one rung.
     ///
     /// # Panics
     ///
-    /// Panics when `neighbourhood` lies outside the grid.
+    /// Panics when `rung` lies outside the grid.
     #[must_use]
-    pub(crate) fn overall(&self, neighbourhood: usize) -> NeighbourhoodAggregate {
-        let mut merged = self.anchor(0, neighbourhood).clone();
+    pub(crate) fn overall(&self, rung: Rung) -> NeighbourhoodAggregate {
+        let mut merged = self.anchor(0, rung).clone();
 
         for anchor in 1..self.anchors() {
-            merged.merge(self.anchor(anchor, neighbourhood));
+            merged.merge(self.anchor(anchor, rung));
         }
 
         merged
@@ -119,12 +126,12 @@ impl ReadingGrid<ClumpAggregate> {
     ///
     /// # Panics
     ///
-    /// Panics when `neighbourhood` lies outside the grid.
+    /// Panics when `rung` lies outside the grid.
     #[must_use]
-    pub(crate) fn overall(&self, neighbourhood: usize) -> ClumpAggregate {
-        let mut merged = *self.anchor(0, neighbourhood);
+    pub(crate) fn overall(&self, rung: Rung) -> ClumpAggregate {
+        let mut merged = *self.anchor(0, rung);
         for anchor in 1..self.anchors() {
-            merged.merge(self.anchor(anchor, neighbourhood));
+            merged.merge(self.anchor(anchor, rung));
         }
         merged
     }
@@ -181,9 +188,8 @@ pub(crate) struct ProbeReadings<N> {
     pub comparisons: Box<[N]>,
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
-    /// The grids' neighbourhood axis.
-    pub neighbourhoods: Box<[NonZero<usize>]>, /* NOTE: This should really be an
-                                                * `Box<IdSlice<...>?` */
+    /// The grids' neighbourhood axis: the size at each [`Rung`].
+    pub neighbourhoods: Box<IdSlice<Rung, NonZero<usize>>>,
     /// Map versus representation, ranking every non-anchor row against each sampled anchor: the
     /// comparison universe is the exact full corpus, while the aggregate remains an
     /// anchor-sampled statistic, not a corpus-population estimate.

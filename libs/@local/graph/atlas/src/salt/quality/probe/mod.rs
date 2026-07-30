@@ -33,17 +33,23 @@
     reason = "k is the canonical neighbourhood-size name across the metric literature"
 )]
 
-use alloc::borrow::Cow;
-use core::{error::Error, fmt, mem, num::NonZero, pin::pin};
+use core::{mem, num::NonZero, pin::pin};
 
 use futures::{Stream, TryStreamExt as _};
 use hashql_core::id::{Id, IdSlice, bit_vec::DenseBitSet};
 use rand::Rng;
 use rayon::iter::ParallelIterator as _;
 
-use self::pass::{CorpusPass, SampledPass};
-pub(crate) use self::readings::{
-    ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair, SpacePairArray,
+pub(crate) use self::{
+    error::{DeliveryError, ProbeError},
+    options::ProbeOptions,
+    readings::{
+        ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, Rung, SpacePair, SpacePairArray,
+    },
+};
+use self::{
+    options::validate_design,
+    pass::{CorpusPass, SampledPass},
 };
 use super::{
     clump::{ClumpAggregate, Clumps},
@@ -56,156 +62,10 @@ use crate::{
     random::{sample_indices_vec, uniform_below},
 };
 
+mod error;
+mod options;
 mod pass;
 mod readings;
-
-// The neighbourhood sizes are the ones the suite's measured evidence
-// was recorded at: overall readings of 0.883, 0.890 and 0.893 at
-// k = 15, 30 and 50, the representation baseline of one 2026-07-19
-// run over the 985,932-row development corpus (2,196,562 edges, 49
-// types, 1,024 anchors and 4,096 comparisons at seed 0). Reading at
-// those sizes compares against that record without interpolation.
-// The record anchors the sizes and the scale, not any threshold: it
-// is one generation under the landmark-baseline placement rather
-// than the trained projector, and the shipped thresholds gate
-// evidence presence rather than fidelity. The anchor and comparison
-// defaults bound the canonical fetch (anchors + comparisons rows of
-// 3,072 f32 components, ~53 MB) while keeping subgroup cells at a few
-// dozen anchors and the sampled neighbourhoods well inside the
-// aggregate's k ≤ m/2 domain.
-const DEFAULT_ANCHORS: NonZero<usize> =
-    NonZero::new(256).expect("the default anchor count is nonzero");
-const DEFAULT_COMPARISONS: NonZero<usize> =
-    NonZero::new(4096).expect("the default comparison count is nonzero");
-const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[
-    NonZero::new(15).expect("the default neighbourhood sizes are nonzero"),
-    NonZero::new(30).expect("the default neighbourhood sizes are nonzero"),
-    NonZero::new(50).expect("the default neighbourhood sizes are nonzero"),
-];
-const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
-    NonZero::new(2).expect("the default horizon factor is nonzero");
-// 64 shared pairs over 256 anchors read 16,384 triplet verdicts, but
-// the design is crossed rather than independent: one pair sample
-// serves every anchor and one anchor sample serves every pair, so the
-// mean's error does not shrink as 1/√16,384. The pair-driven variance
-// component shrinks only with the 64 pairs, which bounds the standard
-// error at 0.5/√64 = 0.0625 of agreement in the worst case - 16× the
-// 0.5/√16,384 = 0.0039 that reading the triplet count as independent
-// draws suggests. How much of the verdict variance is pair-driven is
-// not measured.
-const DEFAULT_TRIPLET_PAIRS: usize = 64;
-
-/// Pinned sampling and neighbourhood settings for one probe.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ProbeOptions {
-    /// Sampled anchor rows: the queries every reading aggregates over.
-    pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows: the shared universe the sampled pass ranks.
-    ///
-    /// More rows sharpen the canonical readings toward finer neighbourhood scales and grow the
-    /// canonical fetch linearly.
-    pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
-    /// Neighbourhood sizes to read at, in reporting order; must be non-empty.
-    ///
-    /// The trend across sizes is itself evidence: recall rising with `k` is the near-tie
-    /// reshuffling fingerprint.
-    pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
-    /// Horizon multiplier for the intrusion and extrusion readings.
-    ///
-    /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
-    /// `factor · k` (clamped to the universe), separating genuinely foreign points from reshuffling
-    /// near the neighbourhood boundary.
-    pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
-    /// Comparison-point pairs sampled for the triplet readings.
-    ///
-    /// Every anchor reads the one shared pair sample, so the estimate's mean is unbiased while
-    /// pair-driven variance is shared across anchors: the reading's resolution tracks this count,
-    /// not the anchor-times-pair triplet total. Zero disables the readings - and with them
-    /// admission: the verdict demands the full battery, so a triplet-free probe is report-only by
-    /// construction.
-    pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
-}
-
-const impl Default for ProbeOptions {
-    fn default() -> Self {
-        Self { .. }
-    }
-}
-
-/// The probe could not run.
-#[derive(Debug)]
-pub enum ProbeError<E> {
-    /// The corpus cannot host disjoint anchor and comparison samples.
-    Design {
-        rows: usize,
-        anchors: usize,
-        comparisons: usize,
-    },
-    /// The options name no neighbourhood size.
-    NoNeighbourhoods,
-    /// A neighbourhood size violates the aggregate domain over one of the probe's universes.
-    Neighbourhood { k: usize, universe: usize },
-    /// The corpus row count exceeds the crate's `u32` row encoding.
-    RowsExceedProbeDomain { rows: usize },
-    /// The canonical stream failed.
-    Dataset(E),
-    /// The canonical stream delivered a node the probe never requested.
-    UnrequestedEmbedding,
-    /// The canonical stream ended before covering every requested row.
-    MissingEmbeddings { requested: usize, delivered: usize },
-}
-
-impl<E> fmt::Display for ProbeError<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Design {
-                rows,
-                anchors,
-                comparisons,
-            } => write!(
-                fmt,
-                "{rows} corpus rows cannot host {anchors} anchors and {comparisons} disjoint \
-                 comparison rows",
-            ),
-            Self::NoNeighbourhoods => {
-                fmt.write_str("the options name no neighbourhood size to read at")
-            }
-            Self::Neighbourhood { k, universe } => write!(
-                fmt,
-                "neighbourhood size {k} lies outside the aggregate domain over a universe of \
-                 {universe}",
-            ),
-            Self::RowsExceedProbeDomain { rows } => {
-                write!(fmt, "{rows} rows exceed the crate's u32 row encoding")
-            }
-            Self::Dataset(_) => fmt.write_str("the canonical embedding stream failed"),
-            Self::UnrequestedEmbedding => {
-                fmt.write_str("the canonical stream delivered a node the probe never requested")
-            }
-            Self::MissingEmbeddings {
-                requested,
-                delivered,
-            } => write!(
-                fmt,
-                "the canonical stream covered {delivered} of {requested} requested rows",
-            ),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for ProbeError<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Dataset(error) => Some(error),
-            Self::Design { .. }
-            | Self::NoNeighbourhoods
-            | Self::Neighbourhood { .. }
-            | Self::RowsExceedProbeDomain { .. }
-            | Self::UnrequestedEmbedding
-            | Self::MissingEmbeddings { .. } => None,
-        }
-    }
-}
 
 /// One generation's row-aligned probe inputs.
 ///
@@ -274,44 +134,6 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     /// Returns the corpus row count.
     const fn rows(&self) -> usize {
         self.node_ids.len()
-    }
-}
-
-/// An unordered id-keyed delivery did not match its requests.
-#[derive(Debug)]
-pub enum DeliveryError<E> {
-    /// The stream failed.
-    Dataset(E),
-    /// The stream delivered an id that was never requested.
-    Unrequested,
-    /// The stream ended before covering every requested id.
-    Missing { requested: usize, delivered: usize },
-}
-
-impl<E> fmt::Display for DeliveryError<E> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Dataset(_) => fmt.write_str("the delivery stream failed"),
-            Self::Unrequested => {
-                fmt.write_str("the stream delivered an id that was never requested")
-            }
-            Self::Missing {
-                requested,
-                delivered,
-            } => write!(
-                fmt,
-                "the stream covered {delivered} of {requested} requested ids",
-            ),
-        }
-    }
-}
-
-impl<E: Error + 'static> Error for DeliveryError<E> {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Dataset(error) => Some(error),
-            Self::Unrequested | Self::Missing { .. } => None,
-        }
     }
 }
 
@@ -488,7 +310,7 @@ pub(crate) async fn probe<D: Dataset>(
     Ok(ProbeReadings {
         anchors: anchor_rows.iter().copied().collect(),
         comparisons: comparison_rows.iter().copied().collect(),
-        neighbourhoods: options.neighbourhoods.iter().copied().collect(),
+        neighbourhoods: IdSlice::from_boxed_slice(options.neighbourhoods.iter().copied().collect()),
         map_representation: ReadingGrid::from_anchor_cells(corpus_cells, rungs),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
             epsilon: clumps.epsilon(),
@@ -560,35 +382,6 @@ fn split_sampled_readings(readings: Vec<pass::SampledReading>) -> SampledColumns
         triplets,
         baseline_clumps,
     }
-}
-
-/// Checks the probe design fits the corpus.
-///
-/// The design holds when the row count fits the `u32` probe domain, at least one neighbourhood size
-/// is named, and the corpus can host the disjoint anchor and comparison samples.
-fn validate_design<E>(rows: usize, options: &ProbeOptions) -> Result<(), ProbeError<E>> {
-    // The corpus arrives as mapped slices, so its row count is a usize;
-    // the probe's own row ids, orderings, and pair samples all travel as
-    // u32. Checking the width once here makes every later narrowing cast
-    // lossless.
-    if u32::try_from(rows).is_err() {
-        return Err(ProbeError::RowsExceedProbeDomain { rows });
-    }
-    if options.neighbourhoods.is_empty() {
-        return Err(ProbeError::NoNeighbourhoods);
-    }
-
-    let anchors = options.anchors.get();
-    let comparisons = options.comparisons.get();
-    if rows < anchors + comparisons {
-        return Err(ProbeError::Design {
-            rows,
-            anchors,
-            comparisons,
-        });
-    }
-
-    Ok(())
 }
 
 /// Builds one empty aggregate per neighbourhood size over `universe`.

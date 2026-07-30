@@ -25,7 +25,7 @@ use super::{
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
         ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings, RadiusPair,
-        ReadingGrid, probe, sample_pairs,
+        ReadingGrid, Rung, probe, sample_pairs,
     },
     report::{QualityThresholds, ThresholdOverrides, assess},
     runner::{QualityRunOptions, run},
@@ -511,9 +511,9 @@ async fn probe_reads_a_faithful_map_as_perfect() {
         &readings.sampled_representation_canonical,
     ] {
         assert_eq!(grid.anchors(), 5);
-        assert_eq!(grid.neighbourhoods(), 2);
-        for neighbourhood in 0..2 {
-            let overall = grid.overall(neighbourhood);
+        assert_eq!(grid.rungs(), 2);
+        for rung in 0..2 {
+            let overall = grid.overall(Rung::from_usize(rung));
             assert_eq!(overall.queries(), 5);
             assert_eq!(overall.recall(), 1.0);
             assert_eq!(overall.trustworthiness(), 1.0);
@@ -599,7 +599,9 @@ async fn corpus_readings_match_a_sorting_reference() {
         expected.observe(&by_reference, &by_map, &mut scratch);
 
         assert_eq!(
-            *readings.map_representation.anchor(index, 0),
+            *readings
+                .map_representation
+                .anchor(index, Rung::from_usize(0)),
             expected,
             "anchor {anchor} disagrees with the sorting reference",
         );
@@ -696,8 +698,14 @@ async fn clump_readings_match_a_sorting_reference() {
     assert_eq!(clumps.groups, 0);
     for anchor in 0..6 {
         assert_eq!(
-            clumps.map_representation.anchor(anchor, 0).recall(),
-            readings.map_representation.anchor(anchor, 0).recall(),
+            clumps
+                .map_representation
+                .anchor(anchor, Rung::from_usize(0))
+                .recall(),
+            readings
+                .map_representation
+                .anchor(anchor, Rung::from_usize(0))
+                .recall(),
         );
     }
 
@@ -749,13 +757,19 @@ async fn clump_readings_match_a_sorting_reference() {
         let mut expected = ClumpAggregate::new(k.try_into().expect("nonzero"));
         expected.observe(&mut reference_labels, &mut map_labels);
 
-        let cell = clumps.map_representation.anchor(index, 0);
+        let cell = clumps.map_representation.anchor(index, Rung::from_usize(0));
         assert_eq!(
             *cell, expected,
             "anchor {anchor} disagrees with the collapsed sorting reference",
         );
         // The law: collapsing row identity can only help recall.
-        assert!(cell.recall() >= readings.map_representation.anchor(index, 0).recall());
+        assert!(
+            cell.recall()
+                >= readings
+                    .map_representation
+                    .anchor(index, Rung::from_usize(0))
+                    .recall()
+        );
     }
 }
 
@@ -779,7 +793,7 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     ProbeReadings {
         anchors: (0..hits.len()).map(NodeRowId::from_usize).collect(),
         comparisons: Box::new([]),
-        neighbourhoods: Box::new([NonZero::new(1).expect("nonzero")]),
+        neighbourhoods: IdSlice::from_boxed_slice(Box::new([NonZero::new(1).expect("nonzero")])),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
         clumps: None,
         sampled_map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
@@ -875,7 +889,7 @@ fn assess_flags_degraded_subgroups() {
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
     assert_eq!(flag.ontology_row, OntologyRowId::new(200));
-    assert_eq!(flag.neighbourhood, 1);
+    assert_eq!(flag.neighbourhood.get(), 1);
     assert_eq!(flag.anchors, 2);
     assert_eq!(flag.degradation, 1.0);
     // One minus the recall quotient, not fl(1/3): the report derives
@@ -956,7 +970,7 @@ fn clump_resolution_triages_flags() {
     assert_eq!(clumps.epsilon, 0.15);
     assert_eq!(clumps.groups, 1);
     assert_eq!(clumps.map_representation.len(), 1);
-    assert_eq!(clumps.map_representation[0].neighbourhood, 1);
+    assert_eq!(clumps.map_representation[0].neighbourhood.get(), 1);
     assert_eq!(clumps.map_representation[0].queries, 6);
     assert_eq!(clumps.map_representation[0].recall, 1.0);
     // The fixture reuses the collapsed cells for the baseline grid, so
@@ -1014,7 +1028,7 @@ fn assess_reads_density_from_radii() {
 
     assert_eq!(report.density.len(), 1);
     let row = report.density[0];
-    assert_eq!(row.neighbourhood, 1);
+    assert_eq!(row.neighbourhood.get(), 1);
     assert_eq!(row.anchors, 2);
     assert_eq!(row.degenerate, 1);
     // Mirror the derivation: ln radii differences, midpoint median,
@@ -1261,9 +1275,15 @@ async fn assess_reads_a_probed_fixture() {
     // Every space orders the circle identically, so all triplet pairs
     // agree; the metric warp between chord and cosine distance keeps
     // the density reading present and finite.
-    assert_eq!(report.triplet_map_representation.agreement, 1.0);
-    assert_eq!(report.triplet_map_canonical.agreement, 1.0);
-    assert_eq!(report.triplet_representation_canonical.agreement, 1.0);
+    assert_eq!(
+        report.triplet_map_representation.agreement,
+        UnitFraction::ONE
+    );
+    assert_eq!(report.triplet_map_canonical.agreement, UnitFraction::ONE);
+    assert_eq!(
+        report.triplet_representation_canonical.agreement,
+        UnitFraction::ONE
+    );
     assert_eq!(report.density[0].degenerate, 0);
     assert!(
         report.density[0]

@@ -15,7 +15,7 @@ import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import { fetchEdgesForTiles } from "./fetch-edges-for-tiles";
 import { clearAtlasSessionCache, FetchTileError } from "./fetch-tile";
 
-const BASE = "http://atlas.test";
+const BASE = "http://api.test/atlas";
 
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
@@ -154,10 +154,10 @@ describe("fetchEdgesForTiles", () => {
   it("posts the tile list and decodes the edges response", async () => {
     const generation = genHex(0x11);
     const captured = stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/edges/${generation}/plain`]: () =>
+      [`/atlas/edges/${generation}/plain`]: () =>
         saltile(edgesBytes(0x11, [7, 11], [11, 42], [100, 205])),
     });
 
@@ -184,10 +184,10 @@ describe("fetchEdgesForTiles", () => {
   it("sends includeDetailedData and accepts a response with the detail trailer", async () => {
     const generation = genHex(0x77);
     const captured = stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/edges/${generation}/plain`]: () =>
+      [`/atlas/edges/${generation}/plain`]: () =>
         saltile(detailedEdgesBytes(0x77, [7], [11], [100])),
     });
 
@@ -211,10 +211,10 @@ describe("fetchEdgesForTiles", () => {
   it("reports cap truncation through complete", async () => {
     const generation = genHex(0x22);
     stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/edges/${generation}/plain`]: () =>
+      [`/atlas/edges/${generation}/plain`]: () =>
         saltile(edgesBytes(0x22, [1], [2], [3], false)),
     });
 
@@ -235,10 +235,10 @@ describe("fetchEdgesForTiles", () => {
   it("trims the tile list to the manifest's edgesTiles cap", async () => {
     const generation = genHex(0x33);
     const captured = stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation, 2)),
-      [`/v1/atlas/edges/${generation}/plain`]: () =>
+      [`/atlas/edges/${generation}/plain`]: () =>
         saltile(edgesBytes(0x33, [], [], [])),
     });
 
@@ -261,13 +261,13 @@ describe("fetchEdgesForTiles", () => {
     const newGeneration = genHex(0x55);
     let active = oldGeneration;
     const captured = stubTransport({
-      "/v1/atlas/current": () => json({ generation: active }),
-      [`/v1/atlas/generation/${oldGeneration}/manifest`]: () =>
+      "/atlas/current": () => json({ generation: active }),
+      [`/atlas/generation/${oldGeneration}/manifest`]: () =>
         json(manifestBody(oldGeneration)),
-      [`/v1/atlas/generation/${newGeneration}/manifest`]: () =>
+      [`/atlas/generation/${newGeneration}/manifest`]: () =>
         json(manifestBody(newGeneration)),
-      [`/v1/atlas/edges/${oldGeneration}/plain`]: () => notFound(),
-      [`/v1/atlas/edges/${newGeneration}/plain`]: () =>
+      [`/atlas/edges/${oldGeneration}/plain`]: () => notFound(),
+      [`/atlas/edges/${newGeneration}/plain`]: () =>
         saltile(edgesBytes(0x55, [1], [2], [9])),
     });
 
@@ -287,10 +287,10 @@ describe("fetchEdgesForTiles", () => {
   it("throws a FetchTileError when the edges payload is not SALTILE", async () => {
     const generation = genHex(0x66);
     stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/edges/${generation}/plain`]: () => json({ not: "saltile" }),
+      [`/atlas/edges/${generation}/plain`]: () => json({ not: "saltile" }),
     });
 
     await expect(

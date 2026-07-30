@@ -300,7 +300,11 @@ where
         indptr.push(indices.len() as u64);
     }
 
-    // NOTE: can't we use `new_unchecked` here?
+    // The sort, dedup and fill above are what make the pairs
+    // compressed-sparse-row shaped: ascending and unique by (row,
+    // column), every column a landmark ordinal, `indptr` monotone
+    // through the entry count. All three steps are load-bearing for
+    // that shape.
     let matrix = SemanticMatrix::try_new((landmarks, landmarks), indptr, indices, weights)
         .map_err(|(_, _, _, error)| error)
         .expect("mirrored sorted pairs form a compressed sparse row structure");

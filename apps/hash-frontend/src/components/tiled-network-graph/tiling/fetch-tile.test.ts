@@ -14,9 +14,12 @@ import {
 } from "../atlas-decode/fixtures";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
+  ATLAS_API_BASE_URL,
   clearAtlasSessionCache,
   fetchTile,
   FetchTileError,
+  getAtlasSessionRevision,
+  subscribeToAtlasSessionRevision,
   withAtlasRetry,
 } from "./fetch-tile";
 import { WORLD_SIZE } from "./tile-geometry";
@@ -96,7 +99,7 @@ describe("withAtlasRetry", () => {
   });
 });
 
-const BASE = "http://atlas.test";
+const BASE = "http://api.test/atlas";
 
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
@@ -256,10 +259,10 @@ describe("fetchTile", () => {
   it("fetches a tile and maps wire positions onto the tiling world", async () => {
     const generation = genHex(0x11);
     stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/tile/${generation}/plain/3/5/1`]: () =>
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
         saltile(tileBytes(0x11, 3, 5, 1)),
     });
 
@@ -279,10 +282,10 @@ describe("fetchTile", () => {
   it("bootstraps once and reuses the session, but does not cache tiles", async () => {
     const generation = genHex(0x22);
     const paths = stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/tile/${generation}/plain/1/1/0`]: () =>
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
         saltile(tileBytes(0x22, 1, 1, 0)),
     });
 
@@ -307,13 +310,13 @@ describe("fetchTile", () => {
     const newGeneration = genHex(0x44);
     let active = oldGeneration;
     const paths = stubTransport({
-      "/v1/atlas/current": () => json({ generation: active }),
-      [`/v1/atlas/generation/${oldGeneration}/manifest`]: () =>
+      "/atlas/current": () => json({ generation: active }),
+      [`/atlas/generation/${oldGeneration}/manifest`]: () =>
         json(manifestBody(oldGeneration)),
-      [`/v1/atlas/generation/${newGeneration}/manifest`]: () =>
+      [`/atlas/generation/${newGeneration}/manifest`]: () =>
         json(manifestBody(newGeneration)),
-      [`/v1/atlas/tile/${oldGeneration}/plain/2/1/3`]: () => notFound(),
-      [`/v1/atlas/tile/${newGeneration}/plain/2/1/3`]: () =>
+      [`/atlas/tile/${oldGeneration}/plain/2/1/3`]: () => notFound(),
+      [`/atlas/tile/${newGeneration}/plain/2/1/3`]: () =>
         saltile(tileBytes(0x44, 2, 1, 3)),
     });
 
@@ -401,10 +404,10 @@ describe("fetchTile", () => {
   it("carries no typeIndices when no coloredTypeIds are requested", async () => {
     const generation = genHex(0x78);
     stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation)),
-      [`/v1/atlas/tile/${generation}/plain/3/5/1`]: () =>
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
         saltile(tileBytes(0x78, 3, 5, 1)),
     });
 
@@ -434,13 +437,143 @@ describe("fetchTile", () => {
   it("rejects zooms beyond the manifest's maxZoom", async () => {
     const generation = genHex(0x55);
     stubTransport({
-      "/v1/atlas/current": () => json({ generation }),
-      [`/v1/atlas/generation/${generation}/manifest`]: () =>
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
         json(manifestBody(generation, 2)),
     });
 
     await expect(fetchTile(3, 0, { baseUrl: BASE })).rejects.toThrow(
       /maxZoom/u,
     );
+  });
+});
+
+describe("the atlas base", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  it("addresses hash-api's mount, naming no atlas listener", () => {
+    // The atlas answers under the actor its caller names, so the browser must reach it only through
+    // hash-api, which states that actor from the session. A default naming the atlas directly would
+    // put an unauthenticated corpus one forgotten `baseUrl` away.
+    expect(ATLAS_API_BASE_URL.endsWith("/atlas")).toBe(true);
+    expect(ATLAS_API_BASE_URL).not.toContain(":4003");
+    expect(new URL(ATLAS_API_BASE_URL).port).not.toBe("4003");
+  });
+
+  it("sends the session cookie with the bootstrap and the tile request", async () => {
+    const generation = genHex(0x99);
+    const routes: Record<string, () => Response> = {
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        saltile(tileBytes(0x99, 3, 5, 1)),
+    };
+    const credentials: (RequestCredentials | undefined)[] = [];
+    vi.stubGlobal("fetch", ((url: string, init?: RequestInit) => {
+      credentials.push(init?.credentials);
+      const route = routes[new URL(url, BASE).pathname];
+      return Promise.resolve(route === undefined ? notFound() : route());
+    }) as typeof fetch);
+
+    await fetchTile(3, 13, { baseUrl: BASE });
+
+    // hash-api is a different origin from the frontend, so an uncredentialed request would be
+    // answered as the public user rather than refused: every request carries the cookie.
+    expect(credentials).toHaveLength(3);
+    expect(credentials.every((value) => value === "include")).toBe(true);
+  });
+});
+
+describe("the atlas session revision", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  it("holds while the pinned generation does", async () => {
+    const generation = genHex(0xaa);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0xaa, 1, 1, 0)),
+    });
+
+    const before = getAtlasSessionRevision();
+    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    // Bootstrapping and serving tiles is not a change of binding: a revision
+    // that moved here would throw away live, correctly-attributed tiles.
+    expect(getAtlasSessionRevision()).toBe(before);
+  });
+
+  it("changes and notifies when the pinned generation rotates out", async () => {
+    const oldGeneration = genHex(0xbb);
+    const newGeneration = genHex(0xcc);
+    let active = oldGeneration;
+    stubTransport({
+      "/atlas/current": () => json({ generation: active }),
+      [`/atlas/generation/${oldGeneration}/manifest`]: () =>
+        json(manifestBody(oldGeneration)),
+      [`/atlas/generation/${newGeneration}/manifest`]: () =>
+        json(manifestBody(newGeneration)),
+      [`/atlas/tile/${oldGeneration}/plain/2/1/3`]: () => notFound(),
+      [`/atlas/tile/${newGeneration}/plain/2/1/3`]: () =>
+        saltile(tileBytes(0xcc, 2, 1, 3)),
+    });
+
+    const notified = vi.fn();
+    const unsubscribe = subscribeToAtlasSessionRevision(notified);
+    const before = getAtlasSessionRevision();
+
+    // The 404 re-bootstrap is the re-pin: every wire row id is salted by the
+    // generation identity, so tiles decoded under the retired one now name
+    // different, existing rows. Whoever composites them must be told.
+    const pinned = fetchTile(2, 13, { baseUrl: BASE });
+    active = newGeneration;
+    await pinned;
+    unsubscribe();
+
+    expect(getAtlasSessionRevision()).not.toBe(before);
+    expect(notified).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not change when the clear dropped nothing", () => {
+    const notified = vi.fn();
+    const unsubscribe = subscribeToAtlasSessionRevision(notified);
+    clearAtlasSessionCache();
+    const before = getAtlasSessionRevision();
+
+    clearAtlasSessionCache();
+    clearAtlasSessionCache(BASE);
+    unsubscribe();
+
+    // Nothing was pinned, so nothing decoded under it can be misattributed.
+    expect(getAtlasSessionRevision()).toBe(before);
+    expect(notified).not.toHaveBeenCalled();
+  });
+
+  it("stops notifying an unsubscribed listener", async () => {
+    const generation = genHex(0xdd);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0xdd, 1, 1, 0)),
+    });
+
+    const notified = vi.fn();
+    subscribeToAtlasSessionRevision(notified)();
+    await fetchTile(1, 1, { baseUrl: BASE });
+    clearAtlasSessionCache(BASE);
+
+    expect(notified).not.toHaveBeenCalled();
   });
 });

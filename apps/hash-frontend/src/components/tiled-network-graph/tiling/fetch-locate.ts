@@ -2,7 +2,7 @@
  * Fetches one Atlas "locate" spotlight subgraph over the SALTILE wire and
  * decodes it into renderable node/edge records.
  *
- * `POST /v1/atlas/locate/{generation}/{variant}` resolves a source entity to
+ * `POST /atlas/locate/{generation}/{variant}` resolves a source entity to
  * its dot and answers its **ego-graph**: the source is delivered first,
  * followed by the delivered edges' partners (both directions, ascending wire
  * row id), with every edge incident to the source riding the edge columns
@@ -161,7 +161,7 @@ export interface FetchLocateOptions {
 
 /** The locate route for a session; the variant name addresses it, as for tiles. */
 const locateUrl = (session: SaltileSession, baseUrl: string): string =>
-  `${baseUrl}/v1/atlas/locate/${session.generation}/${session.variant}`;
+  `${baseUrl}/locate/${session.generation}/${session.variant}`;
 
 /** The JSON body: the source in its domain, plus the delivery knobs when non-default. */
 const locateBody = (

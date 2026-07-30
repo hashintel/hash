@@ -9,7 +9,7 @@
  *
  * The flow mirrors {@link fetchTile}: it shares the memoized
  * {@link getSaltileSession} (so tile and edge fetches bind to one generation),
- * POSTs the tile list to `/v1/atlas/edges/{generation}/{variant}`, and decodes
+ * POSTs the tile list to `/atlas/edges/{generation}/{variant}`, and decodes
  * the `SALTILEE` envelope with {@link decodeSaltileEdges}. Sources and targets
  * are node row ids — the same ids {@link fetchTile} attaches to nodes — so an
  * edge references the nodes by their delivered id.
@@ -93,7 +93,7 @@ export interface FetchEdgesForTilesOptions {
 
 /** The edges route for a session; the variant name addresses it, as for tiles. */
 const edgesUrl = (session: SaltileSession, baseUrl: string): string =>
-  `${baseUrl}/v1/atlas/edges/${session.generation}/${session.variant}`;
+  `${baseUrl}/edges/${session.generation}/${session.variant}`;
 
 /** The JSON body: the tile list, plus the detail flag only when requested. */
 const edgesBody = (

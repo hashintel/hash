@@ -1,4 +1,5 @@
 use core::{
+    assert_matches,
     future::{Future, ready},
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -516,7 +517,7 @@ async fn corpus_with_no_admissible_card_is_an_empty_assembly() {
     )
     .await
     .expect_err("policy leaves nothing to train on");
-    assert!(matches!(error, AssemblyError::Empty));
+    assert_matches!(error, AssemblyError::Empty);
 }
 
 #[tokio::test]

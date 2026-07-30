@@ -4,7 +4,7 @@
  *
  * The flow mirrors the serving contract:
  *
- *  1. Bootstrap a session: read `GET /v1/atlas/current` for the active
+ *  1. Bootstrap a session: read `GET /atlas/current` for the active
  *     generation, then its immutable manifest (canonical variant, bucket
  *     schedule, max zoom). The session binds every tile to one generation and
  *     is memoized per origin (see {@link clearAtlasSessionCache}) so a
@@ -28,6 +28,8 @@
  * in {@link fetchTile}.
  */
 
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+
 import {
   generationBytes,
   parseCurrent,
@@ -45,8 +47,16 @@ import {
 } from "./atlas-tile-coordinate";
 import { WORLD_SIZE } from "./tile-geometry";
 
-/** Default binding of the local `hash-graph atlas` dev server. */
-export const ATLAS_API_BASE_URL = "http://127.0.0.1:4003";
+/**
+ * The atlas surface as a browser addresses it: hash-api's `/atlas` mount.
+ *
+ * The atlas answers under the actor its caller names, so no browser path reaches that listener
+ * directly. hash-api resolves the actor from the request's session and states it to the atlas
+ * (`apps/hash-api/src/atlas-proxy.ts`), which is why this is hash-api's origin and why every request
+ * below is credentialed. The atlas's own version prefix is that mount's concern, so no route here
+ * carries one.
+ */
+export const ATLAS_API_BASE_URL = `${apiOrigin}/atlas`;
 
 /** Retries (after the first attempt) for a transient HTTP failure. */
 const DEFAULT_RETRIES = 2;
@@ -96,7 +106,7 @@ export interface FetchedTile {
 
 /** Optional per-call overrides for {@link fetchTile}. */
 export interface FetchTileOptions {
-  /** Atlas API origin. Defaults to {@link ATLAS_API_BASE_URL}. */
+  /** Atlas API base, mount included. Defaults to {@link ATLAS_API_BASE_URL}. */
   readonly baseUrl?: string;
   /** Cancels the tile request. */
   readonly signal?: AbortSignal;
@@ -263,12 +273,21 @@ const requestAtlasOnce = async (
 ): Promise<Response> => {
   let response: Response;
   try {
+    // The session cookie is the request's whole authority: hash-api resolves the actor from it and
+    // the atlas answers under that actor, so a request sent without credentials is answered as the
+    // public user rather than refused.
     response =
       body === undefined
-        ? await fetch(url, { headers: { accept }, signal, priority })
+        ? await fetch(url, {
+            headers: { accept },
+            credentials: "include",
+            signal,
+            priority,
+          })
         : await fetch(url, {
             method: "POST",
             headers: { accept, "content-type": "application/json" },
+            credentials: "include",
             body,
             signal,
             priority,
@@ -349,11 +368,11 @@ const fetchSaltileSession = async (
   // tied to any caller's AbortSignal: the result is shared across every tile
   // fetch, so one caller aborting must not poison the memoized value.
   const current = parseCurrent(
-    await fetchAtlasJson(`${baseUrl}/v1/atlas/current`, undefined),
+    await fetchAtlasJson(`${baseUrl}/current`, undefined),
   );
   const manifest = parseManifest(
     await fetchAtlasJson(
-      `${baseUrl}/v1/atlas/generation/${current.generation}/manifest`,
+      `${baseUrl}/generation/${current.generation}/manifest`,
       undefined,
     ),
     current.generation,
@@ -409,15 +428,74 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
 };
 
 /**
+ * Monotonic name for the generation binding the memoized sessions carry. It
+ * moves exactly when a pinned generation is dropped (see
+ * {@link clearAtlasSessionCache}), which in practice needs the server to have
+ * stopped serving it: the atlas serves one generation per process, pinned at its
+ * startup, so a session's tiles are one generation by construction and only a
+ * process the session outlived (a restart, a redeploy, another replica) puts it
+ * on a different one — through the `404` refresh in {@link fetchTile}.
+ *
+ * That moment is not a staleness boundary but an attribution one: every wire row
+ * id is a keyed permutation salted by the generation identity, so a tile decoded
+ * under the retired generation does not fail to decode under the new one — it
+ * decodes to a *different, existing* row. Nothing downstream can detect that,
+ * because the ids it yields are valid. Anything holding decoded tiles must
+ * therefore discard them on a change rather than keep or remap them; no remap
+ * exists.
+ */
+let sessionRevision = 0;
+const sessionRevisionListeners = new Set<() => void>();
+
+/**
+ * The current generation binding's revision (see {@link sessionRevision}).
+ * Paired with {@link subscribeToAtlasSessionRevision} it is a
+ * `useSyncExternalStore` source, so React state that composites decoded tiles —
+ * the `TileCache` behind `useGetViewportNodes` — can name the binding its
+ * contents belong to and be replaced when that binding changes.
+ */
+export const getAtlasSessionRevision = (): number => sessionRevision;
+
+/**
+ * Subscribes `listener` to changes of {@link getAtlasSessionRevision}, returning
+ * its unsubscribe. Listeners are called synchronously, after the drop.
+ */
+export const subscribeToAtlasSessionRevision = (
+  listener: () => void,
+): (() => void) => {
+  sessionRevisionListeners.add(listener);
+  return () => {
+    sessionRevisionListeners.delete(listener);
+  };
+};
+
+/**
  * Drops the memoized active-generation session, forcing the next
- * {@link fetchTile} call to re-bootstrap. Pass a `baseUrl` to clear one origin,
- * or omit it to clear all.
+ * {@link fetchTile} call to re-bootstrap, and — when a session was actually
+ * pinned — moves {@link getAtlasSessionRevision} so holders of decoded tiles
+ * discard them. Pass a `baseUrl` to clear one origin, or omit it to clear all.
  */
 export const clearAtlasSessionCache = (baseUrl?: string): void => {
+  let dropped: boolean;
   if (baseUrl === undefined) {
+    dropped = sessionCache.size > 0;
     sessionCache.clear();
   } else {
-    sessionCache.delete(baseUrl);
+    dropped = sessionCache.delete(baseUrl);
+  }
+
+  // Only a real drop can change the binding: clearing an origin that pinned
+  // nothing would otherwise throw away live, correctly-attributed tiles. The
+  // converse over-approximates deliberately — a re-bootstrap landing on the same
+  // generation (a `404` from a replica that had not caught up, say) still moves
+  // the revision, costing a refetch, never a composite that mixes generations.
+  if (!dropped) {
+    return;
+  }
+  sessionRevision += 1;
+  // Copied: a listener may unsubscribe (or subscribe) while being notified.
+  for (const listener of sessionRevisionListeners) {
+    listener();
   }
 };
 
@@ -473,7 +551,7 @@ const fetchAndDecodeTile = async (
     );
   }
 
-  const tileUrl = `${baseUrl}/v1/atlas/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
+  const tileUrl = `${baseUrl}/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
   // Delta mode. `coloredTypeIds` conditions the TYPE_MASK column, and the detail
   // trailer (per-point labels and icons) rides only when the caller asks; an
   // empty query serializes to `{}`, the all-defaults body.

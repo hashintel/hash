@@ -9,11 +9,11 @@
 //! request filter when there is one. Two callers presenting the same filter for the same actor and
 //! generation share one entry; a filtered request and an unfiltered one are different scopes.
 //!
-//! Each entry carries a [`PermissionEpoch`] alongside its proof: the digest of what that proof
-//! admits. Re-resolving an unchanged permission set reproduces the epoch, and any change to what
-//! the actor may see produces a different one, so an epoch is the identity a caller pins
-//! progressive state to across refetches. Two entries resolved minutes apart from the same
-//! permissions carry one epoch, because the epoch reads the admitted rows and nothing else.
+//! Each entry carries a [`ProofDigest`] alongside its proof: the digest of what that proof admits.
+//! Re-resolving an unchanged permission set reproduces it, and any change to what the actor may see
+//! produces a different one, because it reads the admitted rows and nothing else. It is internal
+//! instrumentation and never leaves the server - see its own documentation for why it is not a
+//! permission epoch and why no caller pins state to it.
 //!
 //! [`VisibilityLimits`] bounds reuse: past the soft window an entry keeps answering while a refresh
 //! runs behind it, and at the hard window it stops answering. A sealed token presented by a caller
@@ -31,7 +31,8 @@
 //! // The first request resolves; a second inside the window reads the held entry.
 //! let entry = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
 //! let again = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
-//! assert_eq!(entry.epoch, again.epoch);
+//! assert_eq!(entry.digest, again.digest);
+//! // The digest is the cache's own; nothing outside this module reads it.
 //! ```
 
 use alloc::sync::Arc;
@@ -45,7 +46,7 @@ use std::time::Instant;
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use moka::ops::compute::Op;
 
-use super::VisibilityProof;
+use super::{Atlas, ViewCensus, VisibilityProof};
 use crate::{
     file::generation::GenerationId,
     integrity::{Sha256, Sha256Digest, Update as _},
@@ -82,26 +83,37 @@ impl FilterDigest {
 
 /// The identity of a resolved permission set.
 ///
-/// Equal epochs mean equal visible row sets, so state a caller built under one epoch stays valid
-/// for as long as that epoch answers. The epoch is a function of the admitted rows: it survives
-/// re-resolution, generation-independent timing, and refreshes, and it changes when what the actor
-/// may see changes.
+/// Equal digests mean equal visible row sets: the value is a function of the admitted rows, so it
+/// survives re-resolution and refreshes and differs whenever what the actor may see differs. The
+/// full-visibility proof and a mask admitting every row carry different digests, matching the
+/// proofs themselves - one is authority over the corpus, the other a scope that happens to cover
+/// it.
 ///
-/// The full-visibility proof and a mask admitting every row of a generation carry different epochs,
-/// matching the proofs themselves - one is authority over the corpus, the other a scope that
-/// happens to cover it.
+/// **This is not a permission epoch, and it names no product concept.** It digests the *content of
+/// one resolved proof*, which is a weaker thing than an identity for the permission state that
+/// produced it: permission epochs do not exist in the graph yet, so nothing here can observe that a
+/// permission set changed except by resolving it and comparing what came back. When they do exist,
+/// invalidation on an epoch change is a separate mechanism rather than this value grown up.
+///
+/// **Nothing outside this module reads it, and it does not travel.** A soft refresh may replace the
+/// proof under an unchanged cache key, and that mid-run change of the visible set is accepted for
+/// now by owner ruling - so no caller pins progressive state to this value, because no such
+/// consumer is selected. It is the cache's own instrumentation: the refresh tests assert through it
+/// that a resolution admitting the same rows reproduces the same value.
+///
+/// Caller requirement: do not publish it. It is a digest over the admitted row identities, so two
+/// scopes admitting byte-identical sets share one - an equality oracle across actors, if it were
+/// ever to leave the server.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct PermissionEpoch(Sha256Digest);
+pub(crate) struct ProofDigest(Sha256Digest);
 
-impl PermissionEpoch {
-    /// Reads the epoch `proof` admits.
+impl ProofDigest {
+    /// Digests the rows `proof` admits.
+    ///
+    /// Absorbs every admitted row identity, so the cost is linear in the visible set - paid once
+    /// per resolution, never per request.
     pub(crate) fn of(proof: &VisibilityProof) -> Self {
         Self(proof.digest())
-    }
-
-    /// Returns the epoch's digest, the form a caller-visible identity carries.
-    pub(crate) const fn digest(self) -> Sha256Digest {
-        self.0
     }
 }
 
@@ -118,13 +130,55 @@ pub(crate) struct VisibilityKey {
     pub filter: Option<FilterDigest>,
 }
 
-/// One resolved scope: the rows it may see, and the identity of that permission set.
+/// One resolution's product: a proof, and the census of the view it admits.
+///
+/// The pair exists because both are resolved per scope and neither is a function of a request. Its
+/// only constructor censuses the very proof it stores, so a census paired with a foreign proof is
+/// unconstructible rather than forbidden.
+#[derive(Debug)]
+pub(crate) struct Resolution {
+    /// The rows the actor may see.
+    proof: VisibilityProof,
+    /// The corpus-wide census of what [`Self::proof`] admits.
+    census: ViewCensus,
+}
+
+impl Resolution {
+    /// Censuses `proof` over `atlas` and pairs them.
+    ///
+    /// The census walks the base column once for a masked proof and reads the artifacts for an
+    /// unmasked one, so the cost lands on the resolution rather than on the requests that share it.
+    pub(crate) fn of(atlas: &Atlas, proof: VisibilityProof) -> Self {
+        Self {
+            census: atlas.census(&proof),
+            proof,
+        }
+    }
+
+    /// Pairs `proof` with the empty view's census.
+    ///
+    /// The cache neither reads a census nor derives one, so its own tests - over holding,
+    /// refreshing and expiring entries - need no walked one. Production keeps exactly one
+    /// constructor, [`Self::of`], which censuses the very proof it stores.
+    #[cfg(test)]
+    pub(crate) const fn with_empty_census(proof: VisibilityProof) -> Self {
+        Self {
+            proof,
+            census: ViewCensus::EMPTY,
+        }
+    }
+}
+
+/// One resolved scope: the rows it may see, the census of them, and the identity of that permission
+/// set.
 #[derive(Debug, Clone)]
 pub(crate) struct ResolvedVisibility {
     /// The rows the actor may see.
     pub proof: Arc<VisibilityProof>,
+    /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
+    pub census: ViewCensus,
     /// The identity of what [`Self::proof`] admits.
-    pub epoch: PermissionEpoch,
+    pub digest: ProofDigest,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
     /// Held while a refresh of this entry is in flight, so one refresh runs per entry.
@@ -132,11 +186,12 @@ pub(crate) struct ResolvedVisibility {
 }
 
 impl ResolvedVisibility {
-    /// Builds an entry around a freshly resolved proof.
-    fn new(proof: VisibilityProof, resolved_at: Instant) -> Self {
+    /// Builds an entry around a freshly resolved scope.
+    fn new(Resolution { proof, census }: Resolution, resolved_at: Instant) -> Self {
         Self {
-            epoch: PermissionEpoch::of(&proof),
+            digest: ProofDigest::of(&proof),
             proof: Arc::new(proof),
+            census,
             resolved_at,
             refreshing: Arc::new(AtomicBool::new(false)),
         }
@@ -233,7 +288,7 @@ impl Default for VisibilityLimits {
 ///
 /// One entry per scope, whatever its proof admits, so the capacity bound counts scopes rather than
 /// rows or bytes. A scope whose entry is gone resolves again on its next request and reproduces its
-/// epoch when its permissions have not moved, so eviction costs one store round trip and nothing
+/// digest when its permissions have not moved, so eviction costs one store round trip and nothing
 /// else.
 ///
 /// Admission favours the scopes that come back. A filter belongs to a scope's key, so a client
@@ -283,7 +338,7 @@ impl VisibilityCache {
     ///
     /// An entry past the soft window answers too, and one caller takes the refresh: the resolution
     /// runs behind the answer that was already returned and replaces the entry when it lands. So a
-    /// request that crosses the horizon costs what a hit costs, and the epoch it receives is the
+    /// request that crosses the horizon costs what a hit costs, and the proof it receives is the
     /// one it already had.
     ///
     /// An entry past the hard window answers nothing: it is dropped before the read, so this call
@@ -299,8 +354,10 @@ impl VisibilityCache {
     /// With nothing held, the resolution runs inline and every request arriving during it receives
     /// its result: a burst of tile requests for one scope costs one store round trip.
     ///
-    /// An unchanged permission set reproduces the epoch it had, so a caller pinned to that epoch
-    /// keeps its state across a refresh.
+    /// An unchanged permission set reproduces the digest it had. A refresh that lands a *narrower*
+    /// proof replaces the entry silently and the requests after it answer from the narrower view:
+    /// that mid-run change is accepted while the graph has no permission epochs to invalidate on,
+    /// and it is why nothing here announces a refresh to a caller.
     ///
     /// # Errors
     ///
@@ -316,7 +373,7 @@ impl VisibilityCache {
     ) -> Result<ResolvedVisibility, Arc<E>>
     where
         R: FnOnce() -> F + Clone + Send + 'static,
-        F: Future<Output = Result<VisibilityProof, E>> + Send + 'static,
+        F: Future<Output = Result<Resolution, E>> + Send + 'static,
         E: Send + Sync + 'static,
     {
         // An entry past its window stops answering here rather than at moka's expiry, whose clock
@@ -334,7 +391,7 @@ impl VisibilityCache {
             .try_get_with(key, async move {
                 resolve()
                     .await
-                    .map(|proof| ResolvedVisibility::new(proof, now))
+                    .map(|resolution| ResolvedVisibility::new(resolution, now))
             })
             .await?;
 
@@ -345,10 +402,10 @@ impl VisibilityCache {
 
             drop(tokio::spawn(async move {
                 match refresh().await {
-                    Ok(proof) => {
+                    Ok(resolution) => {
                         // The resolution is dated `now`, the request that triggered it: an entry is
                         // never dated later than the permissions it reflects.
-                        let refreshed = ResolvedVisibility::new(proof, now);
+                        let refreshed = ResolvedVisibility::new(resolution, now);
 
                         // Published under moka's key lock, so the comparison and the write cannot
                         // straddle another writer. A refresh replaces the entry it refreshed and
@@ -395,7 +452,9 @@ mod tests {
     use type_system::principal::actor::ActorEntityUuid;
     use uuid::Uuid;
 
-    use super::{FilterDigest, PermissionEpoch, VisibilityCache, VisibilityKey, VisibilityLimits};
+    use super::{
+        FilterDigest, ProofDigest, Resolution, VisibilityCache, VisibilityKey, VisibilityLimits,
+    };
     use crate::{
         bitset::CompressedBitSet,
         identity::{EdgeRowId, NodeRowId},
@@ -440,12 +499,12 @@ mod tests {
     fn answering(
         rows: &'static [u32],
         calls: &Arc<AtomicUsize>,
-    ) -> impl FnOnce() -> Ready<Result<VisibilityProof, ()>> + Clone + Send + 'static {
+    ) -> impl FnOnce() -> Ready<Result<Resolution, ()>> + Clone + Send + 'static {
         let calls = Arc::clone(calls);
 
         move || {
             calls.fetch_add(1, Ordering::Relaxed);
-            ready(Ok(proof_of(rows)))
+            ready(Ok(Resolution::with_empty_census(proof_of(rows))))
         }
     }
 
@@ -489,12 +548,12 @@ mod tests {
         let second = second.expect("the resolution answers");
 
         assert_eq!(calls.load(Ordering::Relaxed), 1, "one resolution ran");
-        assert_eq!(first.epoch, second.epoch);
+        assert_eq!(first.digest, second.digest);
     }
 
     /// An entry past the soft window answers from the held proof while a refresh replaces it.
     ///
-    /// The request crossing the horizon pays nothing: it receives the epoch it already had. The
+    /// The request crossing the horizon pays nothing: it receives the proof it already had. The
     /// refresh runs as a task, so the loop below drives the runtime until it lands rather than
     /// waiting on a clock.
     #[tokio::test]
@@ -513,7 +572,7 @@ mod tests {
             .await
             .expect("the held entry answers");
         assert_eq!(
-            stale.epoch, held.epoch,
+            stale.digest, held.digest,
             "the stale read answered from the held proof"
         );
         assert_eq!(
@@ -526,14 +585,14 @@ mod tests {
         for _ in 0..16_u8 {
             tokio::task::yield_now().await;
             let entry = cache.get(&key()).await.expect("the entry stays held");
-            if entry.epoch != held.epoch {
+            if entry.digest != held.digest {
                 refreshed = Some(entry);
                 break;
             }
         }
 
         let refreshed = refreshed.expect("the refresh replaced the held entry");
-        assert_eq!(refreshed.epoch, PermissionEpoch::of(&proof_of(&[9])));
+        assert_eq!(refreshed.digest, ProofDigest::of(&proof_of(&[9])));
         assert_eq!(
             calls.load(Ordering::Relaxed),
             2,
@@ -635,10 +694,10 @@ mod tests {
             "the expired read resolved rather than answering from the held proof"
         );
         assert_ne!(
-            answered.epoch, held.epoch,
+            answered.digest, held.digest,
             "the answer carries the new resolution"
         );
-        assert_eq!(answered.epoch, PermissionEpoch::of(&proof_of(&[9])));
+        assert_eq!(answered.digest, ProofDigest::of(&proof_of(&[9])));
     }
 
     /// A refresh landing after a newer resolution publishes nothing.
@@ -673,12 +732,12 @@ mod tests {
                     // before this task was first polled or after.
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(proof_of(&[1, 2, 3]))
+                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
                 }
             })
             .await
             .expect("the held entry answers");
-        assert_eq!(stale.epoch, held.epoch, "the stale read answered as held");
+        assert_eq!(stale.digest, held.digest, "the stale read answered as held");
 
         // A newer resolution replaces the entry while the refresh is still in flight.
         cache.entries.invalidate(&key()).await;
@@ -707,7 +766,7 @@ mod tests {
 
         let after = cache.get(&key()).await.expect("an entry stays held");
         assert_eq!(
-            after.epoch, newer.epoch,
+            after.digest, newer.digest,
             "the newer resolution still answers: the refresh published nothing over it"
         );
     }
@@ -739,7 +798,7 @@ mod tests {
                 async move {
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(proof_of(&[1, 2, 3]))
+                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
                 }
             })
             .await
@@ -772,7 +831,7 @@ mod tests {
 
         let failed = cache
             .resolve(key(), now, || {
-                ready(Err::<VisibilityProof, &'static str>("the store refused"))
+                ready(Err::<Resolution, &'static str>("the store refused"))
             })
             .await;
 
@@ -783,36 +842,37 @@ mod tests {
         );
     }
 
-    /// An unchanged permission set reproduces its epoch.
+    /// An unchanged permission set reproduces its digest.
     ///
-    /// This is the property a caller's progressive state rests on, and it holds of the epoch itself
-    /// rather than of any cache timing: two resolutions admitting the same rows are one epoch.
+    /// The property holds of the digest itself rather than of any cache timing: two resolutions
+    /// admitting the same rows carry one digest. Nothing outside this module consumes that today -
+    /// it is what would let a refresh be recognized as a no-op if a consumer were ever selected.
     #[test]
-    fn an_unchanged_permission_set_reproduces_its_epoch() {
+    fn an_unchanged_permission_set_reproduces_its_digest() {
         assert_eq!(
-            PermissionEpoch::of(&proof_of(&[4, 5, 6])),
-            PermissionEpoch::of(&proof_of(&[4, 5, 6])),
+            ProofDigest::of(&proof_of(&[4, 5, 6])),
+            ProofDigest::of(&proof_of(&[4, 5, 6])),
         );
     }
 
-    /// Losing a row replaces the epoch.
+    /// Losing a row replaces the digest.
     #[test]
-    fn a_changed_permission_set_moves_the_epoch() {
+    fn a_changed_permission_set_moves_the_digest() {
         assert_ne!(
-            PermissionEpoch::of(&proof_of(&[4, 5, 6])),
-            PermissionEpoch::of(&proof_of(&[4, 5])),
+            ProofDigest::of(&proof_of(&[4, 5, 6])),
+            ProofDigest::of(&proof_of(&[4, 5])),
         );
     }
 
-    /// The full-visibility proof and a mask carry different epochs.
+    /// The full-visibility proof and a mask carry different digests.
     ///
-    /// The epoch reads the constructor as well as the rows, so a saturated mask cannot present the
-    /// operator epoch.
+    /// The digest reads the constructor as well as the rows, so a saturated mask cannot present the
+    /// operator identity.
     #[test]
     fn a_saturated_mask_and_the_full_proof_differ() {
         assert_ne!(
-            PermissionEpoch::of(&proof_of(&[0, 1, 2])),
-            PermissionEpoch::of(&VisibilityProof::full_visibility()),
+            ProofDigest::of(&proof_of(&[0, 1, 2])),
+            ProofDigest::of(&VisibilityProof::full_visibility()),
         );
     }
 }

@@ -52,6 +52,7 @@ pub use self::{
     embedding::CardEmbeddingStats,
     knn::recall::{RecallAdmission, RecallSpotCheck},
     projector::train::step::LossBreakdown,
+    quality::QualityMetric,
 };
 // Crate-visible for the serving surface's TYPE_MASK reads.
 pub(crate) mod postings;

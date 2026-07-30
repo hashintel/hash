@@ -8,9 +8,9 @@
 //! monomorphize to no-ops that cost nothing.
 //!
 //! Observations travel as the pipeline's own types wherever one exists - [`CardEmbeddingStats`],
-//! [`RecallSpotCheck`], [`LossBreakdown`], re-exported here - and as this module's observation
-//! vocabulary ([`Stage`], [`Batch`], [`DescentIteration`], [`QualityMetric`]) where the pipeline
-//! reports something no artifact records.
+//! [`RecallSpotCheck`], [`LossBreakdown`], [`QualityMetric`], re-exported here - and as this
+//! module's observation vocabulary ([`Stage`], [`Batch`], [`DescentIteration`]) where the
+//! pipeline reports something no artifact records.
 //!
 //! An observer crosses the run's thread seams - the async ingest half and the rayon compute half -
 //! so implementations are cloneable and shareable by construction; a renderer typically holds the
@@ -20,7 +20,9 @@
 //! [`NoProgress`] is the silent observer, for runs nothing watches.
 
 use crate::math::Vec2;
-pub use crate::salt::{CardEmbeddingStats, LossBreakdown, RecallAdmission, RecallSpotCheck};
+pub use crate::salt::{
+    CardEmbeddingStats, LossBreakdown, QualityMetric, RecallAdmission, RecallSpotCheck,
+};
 
 /// One pipeline stage of a run, in the order the runner drives them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -114,23 +116,6 @@ pub struct DescentIteration {
     pub accepted_per_entry: f64,
     /// The convergence threshold the reading is falling toward.
     pub threshold: f64,
-}
-
-/// One quality metric of the admission probe's six-threshold set.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum QualityMetric {
-    /// The neighbour backend's measured recall.
-    Recall,
-    /// Neighbourhood trustworthiness.
-    Trustworthiness,
-    /// Neighbourhood continuity.
-    Continuity,
-    /// The intrusion rate.
-    IntrusionRate,
-    /// The density spread.
-    DensitySpread,
-    /// Triplet agreement.
-    TripletAgreement,
 }
 
 /// The observer of one run's progress.

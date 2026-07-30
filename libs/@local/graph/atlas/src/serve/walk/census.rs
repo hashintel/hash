@@ -14,6 +14,60 @@ use crate::{
     serve::density::ViewOccupancy,
 };
 
+/// The corpus-wide census of one visible view.
+///
+/// The aggregates a root tile publishes about the whole view rather than about its own cell: how
+/// many points the root's schedule delivers, where the visible set lies, and how deep it goes.
+/// Every one of them is a function of the generation's artifacts and the proof alone - not of the
+/// request - so a census is resolved once per scope and read by every root-tile request under it.
+///
+/// A hidden point contributes to none of the three, so a scope's census carries no evidence of what
+/// its mask removed.
+///
+/// This is deliberately not [`ViewOccupancy`], which the delivery-cut policy reads: an occupancy is
+/// occupied *cells* per depth, because the ratified policy may not read row counts, while a census
+/// is row counts and coordinates. Two views a policy must not distinguish can carry different
+/// censuses.
+///
+/// The extent carries wire coordinates, so the value is [`PartialEq`] and not [`Eq`]: two censuses
+/// compare equal when their counts and their extents agree.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct ViewCensus {
+    /// The visible points of the root's cumulative schedule.
+    visible: u64,
+    /// The tight wire-frame extent of the visible set, [`None`] when it is empty.
+    bounds: Option<Bounds2>,
+    /// The deepest bucket holding a visible point.
+    min_resolution: u64,
+}
+
+impl ViewCensus {
+    /// The census of a view holding no visible point.
+    ///
+    /// What [`Walk::visible_census`] answers for a proof admitting nothing: no delivered point, no
+    /// extent, no depth.
+    pub(crate) const EMPTY: Self = Self {
+        visible: 0,
+        bounds: None,
+        min_resolution: 0,
+    };
+
+    /// Returns the visible points of the root's cumulative schedule.
+    pub(crate) const fn visible(self) -> u64 {
+        self.visible
+    }
+
+    /// Returns the tight wire-frame extent of the visible set, [`None`] when it is empty.
+    pub(crate) const fn bounds(self) -> Option<Bounds2> {
+        self.bounds
+    }
+
+    /// Returns the deepest bucket holding a visible point.
+    pub(crate) const fn min_resolution(self) -> u64 {
+        self.min_resolution
+    }
+}
+
 impl Walk<'_> {
     /// Counts the points of `cell` across every occupied bucket.
     ///
@@ -84,14 +138,14 @@ impl Walk<'_> {
     }
 
     /// Counts the visible points of the cumulative schedule at `cut`.
-    pub(crate) fn visible_at(&self, cut: Depth) -> u64 {
+    fn visible_at(&self, cut: Depth) -> u64 {
         (0..self.segment_end(cut))
             .filter(|&position| self.admits(position))
             .count() as u64
     }
 
     /// Returns the tight wire-frame extent of the visible set, [`None`] when it is empty.
-    pub(crate) fn visible_extent(&self, positions: &[Vec2]) -> Option<Bounds2> {
+    fn visible_extent(&self, positions: &[Vec2]) -> Option<Bounds2> {
         Bounds2::from_points(
             positions
                 .iter()
@@ -101,6 +155,41 @@ impl Walk<'_> {
                 })
                 .map(|(_, &point)| point),
         )
+    }
+
+    /// Censuses the visible view over the whole corpus.
+    ///
+    /// The three corpus-wide aggregates the root tile publishes, gathered together because they
+    /// share their cost: each one filters the base column by the mask, so computing them apart
+    /// walks the corpus three times for one view. `cut` is the root's cumulative schedule bucket,
+    /// `positions` the base coordinate column, and `bounds` the generation's own extent.
+    ///
+    /// An unmasked proof answers from the artifacts alone - the fencepost prefix is the visible
+    /// count, the generation's own extent is the visible extent - so authority over the corpus
+    /// costs no walk. **This is the sole place the two regimes part**: a census reads the same
+    /// way whichever proof produced it.
+    ///
+    /// `bounds` is the generation's extent, absent exactly when the generation holds no point, and
+    /// a masked view's extent is absent whenever the view is empty.
+    pub(crate) fn visible_census(
+        &self,
+        cut: Depth,
+        positions: &[Vec2],
+        bounds: Option<Bounds2>,
+    ) -> ViewCensus {
+        if self.proof.is_full() {
+            return ViewCensus {
+                visible: self.morton.fenceposts().segment(cut).end,
+                bounds,
+                min_resolution: self.deepest_occupied(),
+            };
+        }
+
+        ViewCensus {
+            visible: self.visible_at(cut),
+            bounds: self.visible_extent(positions),
+            min_resolution: self.visible_deepest(),
+        }
     }
 
     /// Aggregates the visible view's Morton occupancy.
@@ -128,7 +217,7 @@ impl Walk<'_> {
     }
 
     /// Returns the deepest bucket holding a visible point, zero when none does.
-    pub(crate) fn visible_deepest(&self) -> u64 {
+    fn visible_deepest(&self) -> u64 {
         Depth::all()
             .rev()
             .find(|&bucket| {

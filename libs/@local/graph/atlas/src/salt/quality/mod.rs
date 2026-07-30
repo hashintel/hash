@@ -30,3 +30,23 @@ pub(crate) mod runner;
 
 #[cfg(test)]
 mod tests;
+
+/// One quality metric of the admission probe's six-threshold set.
+///
+/// The suite's gated vocabulary: each variant names one control of the release battery, so a
+/// report's verdict and an observer's reading identify a metric the same way.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum QualityMetric {
+    /// The neighbour backend's measured recall.
+    Recall,
+    /// Neighbourhood trustworthiness.
+    Trustworthiness,
+    /// Neighbourhood continuity.
+    Continuity,
+    /// The intrusion rate.
+    IntrusionRate,
+    /// The density spread.
+    DensitySpread,
+    /// Triplet agreement.
+    TripletAgreement,
+}

@@ -27,7 +27,8 @@ use super::{
     problem::{Problem, missing_actor, visibility_unavailable},
 };
 use crate::serve::{
-    ProofError, VisibilityCache, VisibilityKey, VisibilityLimits, VisibilityProof, visibility_proof,
+    ProofError, Resolution, ViewCensus, VisibilityCache, VisibilityKey, VisibilityLimits,
+    VisibilityProof, visibility_proof,
 };
 
 /// The header naming the authenticated actor, as the graph's REST API names it.
@@ -66,11 +67,16 @@ impl core::fmt::Debug for Authority {
     }
 }
 
-/// One request's visibility: the proof its assembly masks by.
+/// One request's visibility: the proof its assembly masks by, and the census resolved with it.
 #[derive(Debug, Clone)]
 pub(super) struct Visibility {
     /// The rows the request may see.
     pub proof: Arc<VisibilityProof>,
+    /// The corpus-wide census of what [`Self::proof`] admits.
+    ///
+    /// Resolved once per scope with the proof, so the root tile's global metadata costs no walk on
+    /// the request that reads it.
+    pub census: ViewCensus,
 }
 
 impl FromRequestParts<AppState> for Visibility {
@@ -105,12 +111,21 @@ impl FromRequestParts<AppState> for Visibility {
                 // store's own reads carry.
                 let protection = Arc::clone(&store.settings);
 
-                visibility_proof(actor, None, &protection.filter_protection, &store, &atlas).await
+                // The census rides the resolution, not the request: one pass over the base column
+                // per scope, shared by every root tile it answers.
+                let proof =
+                    visibility_proof(actor, None, &protection.filter_protection, &store, &atlas)
+                        .await?;
+
+                Ok::<_, ProofError>(Resolution::of(&atlas, proof))
             })
             .await
             .map_err(|error| visibility_unavailable(&error))?;
 
-        Ok(Self { proof: entry.proof })
+        Ok(Self {
+            proof: entry.proof,
+            census: entry.census,
+        })
     }
 }
 
