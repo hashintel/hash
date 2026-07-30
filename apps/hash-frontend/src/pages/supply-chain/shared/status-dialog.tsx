@@ -2,11 +2,12 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  Button,
   Select,
   usePortalContainerRef,
   type SelectItem,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import {
   STATUS_OPTIONS,
@@ -53,12 +54,21 @@ const headerRow = css({
   gap: "3",
 });
 const titleStyle = css({
-  textStyle: "lg",
+  textStyle: "base",
   fontWeight: "semibold",
   color: "fg.heading",
 });
-const subtitle = css({ textStyle: "xs", color: "fg.subtle" });
 const body = css({
+  display: "flex",
+  flexDirection: "column",
+});
+const historySection = css({
+  px: "5",
+  py: "4",
+  borderBottomWidth: "1px",
+  borderColor: "bd.subtle",
+});
+const statusFields = css({
   px: "5",
   py: "4",
   display: "flex",
@@ -130,34 +140,11 @@ const footer = css({
   justifyContent: "flex-end",
   gap: "2",
 });
+
 // Save is first in DOM (so it's the first tab stop after the textarea) but
 // rendered on the right via flex order; Cancel keeps the left slot.
 const saveOrder = css({ order: "1" });
 const cancelOrder = css({ order: "0" });
-const button = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  borderRadius: "sm",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  px: "2.5",
-  py: "1",
-  textStyle: "xs",
-  lineHeight: "none",
-  fontWeight: "medium",
-  color: "fg.muted",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  _hover: { borderColor: "bd.strong", color: "fg.heading" },
-});
-const primaryButton = css({
-  bg: "fg.heading",
-  color: "bgSolid.min",
-  borderColor: "fg.heading",
-  _hover: { bg: "fg.muted", color: "bgSolid.min" },
-});
 
 const DEFAULT_STATUS: StatusOption = "Investigation started";
 const latestStatusCategory = (entries: readonly StatusEntry[]): StatusOption =>
@@ -270,24 +257,21 @@ export const StatusDialog = ({
         onSubmit={handleSubmit}
       >
         <div className={headerRow}>
-          <div>
-            <h2 id="status-dialog-title" className={titleStyle}>
-              Status
-            </h2>
-            <p className={subtitle}>{title}</p>
-          </div>
-          <button
-            type="button"
-            className={button}
-            aria-label="Close status"
+          <h2 id="status-dialog-title" className={titleStyle}>
+            {title}
+          </h2>
+          <Button
+            variant="ghost"
+            tone="neutral"
+            size="sm"
+            iconName="close"
+            aria-label="Close"
             onClick={handleCancel}
-          >
-            x
-          </button>
+          />
         </div>
         <div className={body}>
           {entries.length > 0 && (
-            <section>
+            <section className={historySection}>
               <div
                 className={history}
                 role="region"
@@ -322,52 +306,53 @@ export const StatusDialog = ({
               </div>
             </section>
           )}
-          <div className={fieldLabel}>
-            <label htmlFor={statusSelectId}>Status</label>
-            <Select
-              items={statusItems}
-              value={category}
-              onChange={selectCategory}
-              required
-              size="sm"
-              htmlForId={statusSelectId}
+          <div className={statusFields}>
+            <div className={fieldLabel}>
+              <label htmlFor={statusSelectId}>Status</label>
+              <Select
+                items={statusItems}
+                value={category}
+                onChange={selectCategory}
+                required
+                size="sm"
+                htmlForId={statusSelectId}
+              />
+            </div>
+            <textarea
+              ref={textareaRef}
+              className={textarea}
+              value={text}
+              onChange={(event) => {
+                setText(event.target.value);
+                if (error && event.target.value.trim()) {
+                  setError(null);
+                }
+              }}
+              placeholder="Add context, next actions, or why this is not feasible..."
+              aria-required={statusCommentRequired(category)}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "status-dialog-error" : undefined}
             />
+            {error && (
+              <p id="status-dialog-error" className={errorText}>
+                {error}
+              </p>
+            )}
           </div>
-          <textarea
-            ref={textareaRef}
-            className={textarea}
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              if (error && event.target.value.trim()) {
-                setError(null);
-              }
-            }}
-            placeholder="Add context, next actions, or why this is not feasible..."
-            aria-required={statusCommentRequired(category)}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "status-dialog-error" : undefined}
-          />
-          {error && (
-            <p id="status-dialog-error" className={errorText}>
-              {error}
-            </p>
-          )}
         </div>
         <div className={footer}>
-          <button
-            type="submit"
-            className={cx(button, primaryButton, saveOrder)}
-          >
-            Save status
-          </button>
-          <button
+          <Button type="submit" variant="solid" size="sm" className={saveOrder}>
+            Post
+          </Button>
+          <Button
             type="button"
-            className={cx(button, cancelOrder)}
+            className={cancelOrder}
             onClick={handleCancel}
+            size="sm"
+            variant="subtle"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>
