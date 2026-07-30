@@ -38,13 +38,46 @@
 //! Integrity is layered by cost. Array headers validate by parsing (the magic and version are
 //! pinned, so foreign bytes fail to parse), the one structural rule is the file length equation,
 //! torn writes are prevented by the temporary-path-and-rename publish, and corruption detection is
-//! the SHA-256 each repository file records, verified by tooling rather than on every load.
+//! the SHA-256 each repository file records, verified by tooling rather than on every load. No file
+//! carries an internal checksum: hashing at publish is one streaming pass the pipeline already
+//! makes, and the structure an internal checksum would protect is the directory, which the
+//! filesystem holds.
 //!
-//! Every format here is at layout version 0 and **mutable**: change any layout freely to fit what
-//! the pipeline needs and increment its version when you do. Pinned parses rejecting other versions
-//! is the intended failure mode; no migration or compatibility machinery exists on purpose until a
-//! format stabilizes. This applies to the binary headers and to the metadata document's schema
-//! alike.
+//! Shapes need no validation because every bit pattern means something: the shape is the longest
+//! nonzero dimension prefix and a leading zero is the empty array. The single enforcement point is
+//! the total, the expected file length computed with checked arithmetic, where an overflowing
+//! computation matches no real file.
+//!
+//! Every format here is **mutable**: change any layout freely to fit what the pipeline needs and
+//! increment its version when you do. Pinned parses rejecting other versions is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until a format
+//! stabilizes.
+//!
+//! Two numbers carry that. Each binary header holds its own layout version, 0 today. The published
+//! JSON holds one: [`RepositoryVersion`](repository::RepositoryVersion) leads the serialized
+//! document and versions the repository layout and the metadata schema together, the schema being
+//! nested inside the document it leads.
+//!
+//! # The filesystem is the container
+//!
+//! A directory of plain files inherits what the filesystem already guarantees: page-aligned
+//! mappings, journaled metadata, atomic rename, and exclusive creation - page-aligned sections,
+//! crash-safe directory updates, atomic publish and provisioned append capacity, in a container
+//! format's vocabulary. The same layout maps onto object storage one to one, and it is the shape
+//! the array-plus-metadata families take: Zarr's raw chunk files beside JSON metadata, numpy's tiny
+//! header in front of a raw buffer, the OCI image layout.
+//!
+//! Packing many small files into fewer large ones stays available for the day file count measurably
+//! hurts. The candidate is the quadtree point clouds; raise bucket leaves to at least 64 KiB first.
+//!
+//! # Whole-file mappings
+//!
+//! Every mapping covers a whole file and slices at the header size. An array header is exactly 4096
+//! bytes, a multiple of every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon,
+//! 64 KiB on `aarch64` distributions), so the data behind it lands aligned for every scalar and
+//! SIMD width.
+//! Mapping from zero is what makes that provable: an mmap offset must itself be a page-size
+//! multiple, and 4096 is not one on 16 KiB pages.
 //!
 //! # Format palette
 //!
@@ -58,22 +91,36 @@
 //!    but that is not a flat array. Built like the array header: a pinned 4096-byte preamble,
 //!    explicit little-endian layout, parse-is-validation.
 //! 3. **Parquet**: genuinely tabular data with heterogeneous columns, read once into memory or
-//!    queried analytically, never mapped. Buys compression and external tooling (`DuckDB`,
-//!    `polars`) at the cost of decode and the arrow dependency tree.
-//! 4. **rkyv**: only for pointer-rich structures where laying out an explicit zerocopy format is
-//!    unreasonable. None currently qualify; zerocopy is preferred wherever a layout can be written
-//!    down.
+//!    queried analytically, never mapped. It buys compression and external tooling (`DuckDB`,
+//!    `polars`) over a live atlas - worth real debugging time at a million entities - at the cost
+//!    of decode and the arrow dependency tree in an otherwise lean crate, so the choice is made
+//!    once, at adoption.
+//! 4. **rkyv**: only for pointer-rich structures, such as deep recursive graphs, where laying out
+//!    an explicit zerocopy format is unreasonable. An explicit `#[repr(C)]` layout with pinned
+//!    identity is inspectable in a hex dump and carries no schema-evolution machinery, so zerocopy
+//!    is preferred wherever a layout can be written down. The merge tree, the one candidate here,
+//!    flattens to three columns instead.
 //! 5. **JSON**: the metadata document alone - small, read once, and inspected by humans more often
 //!    than machines.
 //!
 //! Formats owned by frameworks (the burn checkpoint) stay as the framework writes them.
 //!
+//! # Combined files
+//!
 //! Parts combine into one file when they are derived from one another, meaningless apart, and
-//! always read together - a lookup index in front of the array it indexes is the canonical case. A
-//! combined file is a specialized zerocopy file whose pinned header names each region statically,
-//! and every array region starts on a 4096-byte boundary (zero-padded up to it), so the
-//! whole-file-mapping alignment guarantee is unchanged. Parts that version or get replaced
-//! independently stay separate files.
+//! always read together - a lookup index in front of the array it indexes is the canonical case.
+//! Parts that version or get replaced independently stay separate files.
+//!
+//! Three properties keep a combined file distinct from a container. Regions are fields of the
+//! kind's own pinned header, so there is no generic directory, no section table and no region
+//! count. The parts are derived from each other and read together, which is what makes them one
+//! artifact rather than two carrying a cross-file consistency invariant. And every array region
+//! starts on a 4096-byte boundary, zero-padded up to it, so the whole-file mapping guarantee above
+//! holds unchanged.
+//!
+//! [`morton`] is the archetype: a small key index in front of the code array means a binary search
+//! faults the index page plus one data page instead of log2(N) scattered pages, and the index
+//! cannot go stale, because it cannot exist apart from the array it indexes.
 //!
 //! # Artifacts
 //!
@@ -126,57 +173,11 @@
 //!
 //! The parquet row is pending the dependency decision; until then it stores as struct-of-arrays
 //! array files without losing anything but external queryability.
-
-// Design notes (rationale, not contract):
-//
-// - A custom container format (content-addressed blobs, CRC-framed directory segments, sealed
-//   states) was fully specified here and then rejected: nearly everything it provided -
-//   page-aligned sections, crash-safe directory updates, atomic publish, provisioned append
-//   capacity - restated guarantees the filesystem already makes (page-aligned mmap, journaled
-//   metadata, rename atomicity, O_CREAT). Directories of dumb files are also what object storage
-//   maps onto 1:1. Precedents: Zarr (raw chunk files + JSON metadata, designed as the reaction to
-//   HDF5's monolithic container), numpy .npy (tiny header + raw buffer), OCI image layout, and git,
-//   which started with loose object files and added packfiles only when millions of tiny files
-//   measurably hurt. Revisit packing only if that materializes (candidate: quadtree point-cloud
-//   files; bucket leaves to ≥ 64 KiB first).
-// - No checksums inside the files: temp+rename handles torn writes, the repository hash handles
-//   bitrot, and hashing at publish time is one streaming pass the pipeline already makes. CRC
-//   framing existed to protect a container's own directory structure; without a container there is
-//   nothing of ours to frame.
-// - The array header is exactly 4096 bytes so that mapping a whole file leaves the data aligned for
-//   every scalar and SIMD width on every supported page size (4 KiB x86_64, 16 KiB Apple Silicon,
-//   64 KiB aarch64 distros - all multiples of 4096). The discipline that keeps this provable: map
-//   whole files and slice at the header size, never mmap at a nonzero file offset (offsets must be
-//   page-size multiples, which 4096 is not on 16 KiB pages).
-// - Shapes need no validation because every bit pattern means something: the shape is the longest
-//   nonzero dimension prefix, a leading zero is the empty array, and the only enforcement point is
-//   total: expected file length, computed with checked arithmetic, where overflow simply matches no
-//   real file.
-// - The artifact table replaces the previous pipeline's 20-artifact requirement, of which 13 were
-//   gate/evidence/provenance JSONs plus a numbered evidence store and an activation state machine.
-//   The multi-section .salt artifacts unpack into their columns: base.salt (17 sections) and
-//   analytics.salt (20) become a handful of array files each; relations.salt (30 sections) was a
-//   table wearing a container costume and becomes one parquet/SoA artifact. What survives of the
-//   report apparatus survives as *fields* of the metadata document - the reproducibility block
-//   (input snapshot hashes, seeds, config hash) and the tracked quality metrics (trustworthiness,
-//   k-NN preservation) that the de-oracle test plan depends on - not as files. Activation is a
-//   single current-generation pointer above the versioned directories.
-// - zerocopy over rkyv as the default for specialized files: an explicit #[repr(C)] layout with
-//   pinned identity is inspectable in a hex dump, has no schema evolution machinery to fight, and
-//   is already the house discipline. rkyv earns its place only when a structure is genuinely
-//   pointer-rich (deep recursive graphs) - and the merge tree, the one candidate, flattens to three
-//   columns instead.
-// - parquet is a real dependency decision, not a default: the parquet crate pulls the arrow tree
-//   into an otherwise lean crate. The two tabular artifacts work as struct-of-arrays without it;
-//   what parquet buys is DuckDB/polars over a live atlas, which has real debugging value at a
-//   million entities. Decide once, at adoption time.
-// - Combined files are deliberately not a container relapse. The guardrails: regions are fields of
-//   the kind's own pinned header (no generic directory, no section table, no N), the parts must be
-//   derived from each other and read together (an index and its array are one artifact that would
-//   otherwise carry a cross-file consistency invariant), and independently-replaceable parts stay
-//   separate files (point clouds). The morton file is the archetype: a small key index in front
-//   means a binary search faults the index page plus one data page instead of log2(N) scattered
-//   pages, and the index can never be stale because it cannot exist apart from its array.
+//!
+//! The metadata document's reproducibility block (input snapshot hashes, seeds, config hash) and
+//! its quality metrics (trustworthiness, k-NN preservation) are report-shaped state carried as
+//! fields rather than as files of their own. Activation is one current-generation pointer above the
+//! versioned directories.
 
 use std::io;
 

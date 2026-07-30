@@ -3,6 +3,11 @@
 //! One batched query per request, input order preserved through the ordinality column, absent
 //! entities simply missing from the result. A connection is held for the duration of one query and
 //! returned, so a request's hydration waits only on the store's own work.
+//!
+//! Every read of an entity's properties object passes through [`MASKED_PROPERTIES`], so a protected
+//! property reaches no properties column of any trailer. A label is a materialized property value
+//! and stands outside that rule, as it does on the graph's own read path: see the trailer contract
+//! in [the module above](super).
 
 use alloc::sync::Arc;
 
@@ -10,6 +15,7 @@ use error_stack::Report;
 use hash_graph_postgres_store::store::{AsClient, PostgresStorePool, error::StoreError};
 use hash_graph_store::pool::StorePool as _;
 use tokio_postgres::GenericClient as _;
+use type_system::ontology::id::BaseUrl;
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -24,17 +30,30 @@ use crate::dataset::ArchivedEntityId;
 /// The base URL of the system `icon` property an entity may carry.
 const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
 
+/// The entity's properties with every protected key removed.
+///
+/// Every property value a hydration query reads comes from this expression, and `$3` carries the
+/// protected base URLs in every query that has one. Removing the keys at the JSONB itself covers
+/// each derived column at once: an aggregate, a count and a single-key lookup all read the masked
+/// object. The parens are load-bearing, since `->` binds tighter than `-`: without them
+/// `properties - keys -> 'f'` subtracts `keys -> 'f'`.
+///
+/// The store removes the same keys with the same operator under a per-actor condition, so an
+/// unconditional removal withholds at least what the store withholds from any actor. The tests pin
+/// every query to this exact spelling.
+const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
+
 /// The tile hydration query.
 ///
 /// One batched lookup, input order preserved through the ordinality column, absent entities simply
-/// missing from the result.
+/// missing from the result. `$3` carries the protected properties and `$4` the icon's base URL.
 const DETAIL_QUERY: &str = "
     SELECT
         ids.index,
         cache.labels[1] AS label,
         CASE
-            WHEN jsonb_typeof(edition.properties -> $3::text) = 'string'
-                THEN edition.properties ->> $3::text
+            WHEN jsonb_typeof((edition.properties - $3::text[]) -> $4::text) = 'string'
+                THEN (edition.properties - $3::text[]) ->> $4::text
         END AS own_icon,
         type_icon.icon AS type_icon
     FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS ids (web_id, entity_uuid, index)
@@ -74,10 +93,16 @@ const DETAIL_QUERY: &str = "
 /// entities simply missing from the result.
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
-/// nested values never cross the connection - while `total` counts the unfiltered set, the
-/// completeness flag's ground truth. The `label_property` lateral mirrors the
-/// `entity_edition_cache` label derivation (migration V51): the first `allOf` `labelProperty` path
-/// that resolves non-null, in canonical direct-type order, is the path behind `labels[1]`.
+/// nested values never cross the connection - while `total` counts the whole masked object, the
+/// completeness flag's ground truth. Both read [`MASKED_PROPERTIES`], so a protected property is
+/// absent from the map and absent from the count: completeness attests the deliverable set, and
+/// `total` against the delivered map is no signal that a withheld property exists.
+///
+/// The `label_property` lateral mirrors the `entity_edition_cache` label derivation (migration
+/// V51): the first `allOf` `labelProperty` path that resolves non-null, in canonical direct-type
+/// order, is the path behind `labels[1]`. It reads the *unmasked* object on purpose - masking it
+/// would attribute the label to the next candidate path instead of the one that produced it - and
+/// it delivers no value, only the path's own name.
 const LOCATE_DETAIL_QUERY: &str = "
     SELECT
         ids.index,
@@ -104,7 +129,7 @@ const LOCATE_DETAIL_QUERY: &str = "
                 WHERE jsonb_typeof(prop.value) IN ('string', 'number', 'boolean', 'null')
             ) AS simple,
             count(*)::int4 AS total
-        FROM jsonb_each(edition.properties) AS prop (key, value)
+        FROM jsonb_each((edition.properties - $3::text[])) AS prop (key, value)
     ) AS props ON ids.index = 1
     LEFT JOIN LATERAL (
         SELECT label_path.path
@@ -127,7 +152,7 @@ const LOCATE_DETAIL_QUERY: &str = "
 ///
 /// The locate node query's columns for every delivered link entity, ungated: every edge in a
 /// locate response carries its label, direct-type URLs, capped properties, and completeness
-/// flags.
+/// flags. Properties and their count read [`MASKED_PROPERTIES`], as in the node query.
 const LOCATE_LINK_QUERY: &str = "
     SELECT
         ids.index,
@@ -154,7 +179,7 @@ const LOCATE_LINK_QUERY: &str = "
                 WHERE jsonb_typeof(prop.value) IN ('string', 'number', 'boolean', 'null')
             ) AS simple,
             count(*)::int4 AS total
-        FROM jsonb_each(edition.properties) AS prop (key, value)
+        FROM jsonb_each((edition.properties - $3::text[])) AS prop (key, value)
     ) AS props ON TRUE
     LEFT JOIN LATERAL (
         SELECT label_path.path
@@ -177,6 +202,10 @@ const LOCATE_LINK_QUERY: &str = "
 ///
 /// The bulk surface's lean columns: the link's label and its first direct type URL, input order
 /// preserved through the ordinality column, absent entities simply missing from the result.
+///
+/// Both columns read the edition cache, and the properties object is not among them, so this query
+/// takes no protected-property parameter. Its label carries whatever the cache materialized, under
+/// the label rule every surface here shares.
 const EDGES_LINK_QUERY: &str = "
     SELECT
         ids.index,
@@ -233,16 +262,35 @@ impl core::error::Error for DetailError {
 ///
 /// The pool is the transport layer's, shared with every other store read the process makes, and the
 /// hydration path issues one batched query per request.
+///
+/// The protected properties are the pool's own setting, so a serving process withholds exactly the
+/// properties that process's store protects: one owner for the set, read once.
 #[derive(Debug)]
 pub struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
+    /// The base URLs [`MASKED_PROPERTIES`] removes, bytewise-sorted.
+    ///
+    /// Sorted so that one deployment binds one parameter value across restarts: the configuration
+    /// holds the set in a hash map, whose order is per-process.
+    protected: Vec<String>,
 }
 
 impl GraphDatabaseClient {
-    /// Wraps an established store connection.
+    /// Opens the detail path over the serving store pool.
+    ///
+    /// The pool's settings name the properties every hydrated trailer withholds.
     #[must_use]
-    pub const fn new(pool: Arc<PostgresStorePool>) -> Self {
-        Self { pool }
+    pub fn new(pool: Arc<PostgresStorePool>) -> Self {
+        let mut protected: Vec<String> = pool
+            .settings
+            .filter_protection
+            .protected_properties()
+            .map(BaseUrl::as_str)
+            .map(str::to_owned)
+            .collect();
+        protected.sort_unstable();
+
+        Self { pool, protected }
     }
 
     /// Holds one connection for the duration of one query.
@@ -279,7 +327,10 @@ impl GraphDatabaseClient {
             .connection()
             .await?
             .as_client()
-            .query(DETAIL_QUERY, &[&web_ids, &entity_uuids, &ICON_PROPERTY])
+            .query(
+                DETAIL_QUERY,
+                &[&web_ids, &entity_uuids, &self.protected, &ICON_PROPERTY],
+            )
             .await
             .map_err(DetailError::Query)?;
 
@@ -326,7 +377,10 @@ impl GraphDatabaseClient {
             .connection()
             .await?
             .as_client()
-            .query(LOCATE_DETAIL_QUERY, &[&web_ids, &entity_uuids])
+            .query(
+                LOCATE_DETAIL_QUERY,
+                &[&web_ids, &entity_uuids, &self.protected],
+            )
             .await
             .map_err(DetailError::Query)?;
 
@@ -385,7 +439,10 @@ impl GraphDatabaseClient {
             .connection()
             .await?
             .as_client()
-            .query(LOCATE_LINK_QUERY, &[&web_ids, &entity_uuids])
+            .query(
+                LOCATE_LINK_QUERY,
+                &[&web_ids, &entity_uuids, &self.protected],
+            )
             .await
             .map_err(DetailError::Query)?;
 
@@ -463,8 +520,11 @@ impl GraphDatabaseClient {
 /// Reads one resolved row's capped properties and their completeness flag.
 ///
 /// The row carries the property columns at fixed positions: `simple` (3), `total` (4), and
-/// `label_property` (5). Completeness reads BEFORE the cap: the survivors are the whole set iff
-/// nothing was filtered as non-simple and nothing exceeds the cap.
+/// `label_property` (5). Both columns read the masked object, so completeness attests the
+/// **deliverable** set: the survivors are that whole set iff nothing was filtered as non-simple and
+/// nothing exceeds the cap. A protected property is in neither column and moves the flag not at
+/// all - a count taken before masking would have made `total` against the delivered map into the
+/// enumeration signal the protection exists to close.
 fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(String, SimpleValue)>, bool) {
     let simple: Option<String> = row.get(3);
     let total: Option<i32> = row.get(4);
@@ -501,4 +561,119 @@ fn domain_index(row: &tokio_postgres::Row) -> usize {
     // Ordinality is 1-based; an index outside the request domain
     // cannot arrive from the unnest.
     usize::try_from(index - 1).expect("ordinality covers the request domain")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        DETAIL_QUERY, EDGES_LINK_QUERY, ICON_PROPERTY, LOCATE_DETAIL_QUERY, LOCATE_LINK_QUERY,
+        MASKED_PROPERTIES,
+    };
+
+    /// The function whose call is the one read of the unmasked object.
+    ///
+    /// The label lateral resolves which `labelProperty` path produced the label, so it reads the
+    /// object the label cache read and delivers no value from it.
+    const LABEL_ATTRIBUTION: &str = "jsonb_extract_path(";
+
+    /// Every hydration query, with whether it reads the entity's properties object.
+    const QUERIES: [(&str, &str, bool); 4] = [
+        ("DETAIL_QUERY", DETAIL_QUERY, true),
+        ("LOCATE_DETAIL_QUERY", LOCATE_DETAIL_QUERY, true),
+        ("LOCATE_LINK_QUERY", LOCATE_LINK_QUERY, true),
+        ("EDGES_LINK_QUERY", EDGES_LINK_QUERY, false),
+    ];
+
+    /// Returns the offset of each read of `edition.properties` that is neither masked nor
+    /// attribution.
+    ///
+    /// A read is masked when the whole [`MASKED_PROPERTIES`] spelling, opening paren included,
+    /// stands at the occurrence.
+    fn unmasked_reads(query: &str) -> Vec<usize> {
+        let bytes = query.as_bytes();
+
+        query
+            .match_indices("edition.properties")
+            .filter(|&(at, _)| {
+                let masked = at > 0 && bytes[at - 1..].starts_with(MASKED_PROPERTIES.as_bytes());
+                let attributed = bytes[..at].ends_with(LABEL_ATTRIBUTION.as_bytes());
+
+                !masked && !attributed
+            })
+            .map(|(at, _)| at)
+            .collect()
+    }
+
+    /// Every property value a query reads comes from the masked object.
+    ///
+    /// The one exception is the label lateral's existence test, which reads the unmasked object to
+    /// attribute the label and delivers nothing from it.
+    #[test]
+    fn every_property_read_is_masked() {
+        for (name, query, reads_properties) in QUERIES {
+            assert_eq!(
+                unmasked_reads(query),
+                Vec::<usize>::new(),
+                "{name} reads `edition.properties` outside `MASKED_PROPERTIES`, at these offsets"
+            );
+
+            assert_eq!(
+                query.contains(MASKED_PROPERTIES),
+                reads_properties,
+                "{name} disagrees with its census row about reading the properties object"
+            );
+        }
+    }
+
+    /// A query that masks binds the protected array at `$3`, and one that does not binds no `$3`.
+    ///
+    /// The mask is spelled with a parameter index, so the index has to be the same one every query
+    /// passes its protected set as - and the icon's own parameter sits after it.
+    #[test]
+    fn the_masked_parameter_index_is_uniform() {
+        for (name, query, reads_properties) in QUERIES {
+            assert_eq!(
+                query.contains("$3"),
+                reads_properties,
+                "{name} disagrees with its census row about binding `$3`"
+            );
+        }
+
+        assert!(
+            DETAIL_QUERY.contains("$4::text"),
+            "the icon's base URL binds after the protected array"
+        );
+        assert!(
+            !LOCATE_DETAIL_QUERY.contains("$4") && !LOCATE_LINK_QUERY.contains("$4"),
+            "the locate queries bind nothing past the protected array"
+        );
+        assert!(
+            ICON_PROPERTY.ends_with("/icon/"),
+            "the icon parameter names the icon property"
+        );
+    }
+
+    /// The census above covers every query constant in this module.
+    ///
+    /// A fifth query would otherwise be masked by nobody and witnessed by nothing: the source is
+    /// the only place that knows how many there are.
+    #[test]
+    fn the_census_covers_every_query() {
+        let mut declared: Vec<&str> = include_str!("client.rs")
+            .lines()
+            .filter_map(|line| line.strip_prefix("const "))
+            .filter_map(|line| line.split_once(": &str"))
+            .map(|(name, _)| name)
+            .filter(|name| name.ends_with("_QUERY"))
+            .collect();
+        declared.sort_unstable();
+
+        let mut censused: Vec<&str> = QUERIES.iter().map(|&(name, _, _)| name).collect();
+        censused.sort_unstable();
+
+        assert_eq!(
+            declared, censused,
+            "the query census does not match this module's query constants"
+        );
+    }
 }

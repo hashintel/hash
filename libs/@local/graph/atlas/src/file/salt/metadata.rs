@@ -1,8 +1,9 @@
 //! The SALT generation metadata document.
 //!
-//! The schema is version 0 and **mutable**: change it freely to fit what the pipeline needs and
-//! increment the repository version when you do; no migration or compatibility machinery exists on
-//! purpose until it stabilizes.
+//! The schema is **mutable** and carries no version of its own: it is nested inside the document
+//! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, so change it freely to
+//! fit what the pipeline needs and increment that version when you do; no migration or
+//! compatibility machinery exists on purpose until it stabilizes.
 
 use core::num::NonZero;
 
@@ -117,8 +118,12 @@ pub(crate) struct Reproducibility {
 
 /// The admission evidence of one published generation.
 ///
-/// Every check recorded here passed: a failing check aborts the fit, and an aborted fit publishes
-/// nothing.
+/// No check recorded here failed: a check that demonstrates its criterion is violated aborts the
+/// fit, and an aborted fit publishes nothing. Demonstrating a violation is not the same as passing,
+/// and one check can end in neither - a sampled check whose budget runs out before its bound
+/// settles on one side of its criterion publishes what it measured, warned, and records the
+/// resolution it reached ([`RecallSpotCheck::resolution`]). Read the reading, not the presence of
+/// the block.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Evidence {
     /// How the card-embedding rows were obtained.

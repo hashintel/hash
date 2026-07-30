@@ -43,6 +43,7 @@ use core::{
 use std::time::Instant;
 
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
+use moka::ops::compute::Op;
 
 use super::VisibilityProof;
 use crate::{
@@ -146,6 +147,14 @@ impl ResolvedVisibility {
         now.saturating_duration_since(self.resolved_at) >= soft
     }
 
+    /// Returns whether this entry has outlived its reuse window by `now`.
+    ///
+    /// The age is measured from the resolution, so the window bounds how long permissions may lag
+    /// however long the resolution itself took.
+    fn is_expired(&self, now: Instant, hard: Duration) -> bool {
+        now.saturating_duration_since(self.resolved_at) >= hard
+    }
+
     /// Takes the refresh latch, returning whether this caller now owns the refresh.
     fn claim_refresh(&self) -> bool {
         self.refreshing
@@ -235,6 +244,7 @@ impl Default for VisibilityLimits {
 pub(crate) struct VisibilityCache {
     entries: moka::future::Cache<VisibilityKey, ResolvedVisibility>,
     soft: Duration,
+    hard: Duration,
 }
 
 impl VisibilityCache {
@@ -248,13 +258,16 @@ impl VisibilityCache {
     ) -> Self {
         Self {
             // The eviction policy is moka's default, named here so an upstream change of default
-            // cannot swap it.
+            // cannot swap it. The time-to-live runs from insertion, which is the resolution's END,
+            // so the window it enforces is `hard` plus however long the resolution took: `resolve`
+            // refuses on the entry's own `resolved_at`, and this bounds the memory behind it.
             entries: moka::future::Cache::builder()
                 .max_capacity(entries)
                 .eviction_policy(moka::policy::EvictionPolicy::tiny_lfu())
                 .time_to_live(hard)
                 .build(),
             soft,
+            hard,
         }
     }
 
@@ -272,6 +285,16 @@ impl VisibilityCache {
     /// runs behind the answer that was already returned and replaces the entry when it lands. So a
     /// request that crosses the horizon costs what a hit costs, and the epoch it receives is the
     /// one it already had.
+    ///
+    /// An entry past the hard window answers nothing: it is dropped before the read, so this call
+    /// resolves inline and the answer is a resolution no older than `now`. The window is measured
+    /// from the resolution the entry carries, so a slow resolution shortens the entry's reuse
+    /// rather than extending its window.
+    ///
+    /// A refresh publishes only over the entry it refreshed, and only while that entry is the
+    /// newest held: a refresh that lands after a newer resolution, or after the entry it refreshed
+    /// is gone, publishes nothing. So the newest resolution of a scope is the one that answers, and
+    /// no proof re-enters the cache with a window it did not earn.
     ///
     /// With nothing held, the resolution runs inline and every request arriving during it receives
     /// its result: a burst of tile requests for one scope costs one store round trip.
@@ -296,6 +319,15 @@ impl VisibilityCache {
         F: Future<Output = Result<VisibilityProof, E>> + Send + 'static,
         E: Send + Sync + 'static,
     {
+        // An entry past its window stops answering here rather than at moka's expiry, whose clock
+        // starts when the resolution finished. Dropping it before the read below cannot recurse:
+        // what that read inserts is resolved at `now`.
+        if let Some(held) = self.entries.get(&key).await
+            && held.is_expired(now, self.hard)
+        {
+            self.entries.invalidate(&key).await;
+        }
+
         let refresh = resolve.clone();
         let entry = self
             .entries
@@ -314,9 +346,30 @@ impl VisibilityCache {
             drop(tokio::spawn(async move {
                 match refresh().await {
                     Ok(proof) => {
-                        entries
-                            .insert(key, ResolvedVisibility::new(proof, now))
-                            .await;
+                        // The resolution is dated `now`, the request that triggered it: an entry is
+                        // never dated later than the permissions it reflects.
+                        let refreshed = ResolvedVisibility::new(proof, now);
+
+                        // Published under moka's key lock, so the comparison and the write cannot
+                        // straddle another writer. A refresh replaces the entry it refreshed and
+                        // creates none: an absent entry keeps an older proof from re-entering a
+                        // slot that the hard window or eviction emptied.
+                        drop(
+                            entries
+                                .entry(key)
+                                .and_compute_with(async |held| {
+                                    let replaces = held.is_some_and(|held| {
+                                        held.value().resolved_at <= refreshed.resolved_at
+                                    });
+
+                                    if replaces {
+                                        Op::Put(refreshed)
+                                    } else {
+                                        Op::Nop
+                                    }
+                                })
+                                .await,
+                        );
                     }
                     Err(_error) => refreshing.store(false, Ordering::Release),
                 }
@@ -552,6 +605,162 @@ mod tests {
             cache.entries.entry_count(),
             2,
             "the third scope did not raise the held count"
+        );
+    }
+
+    /// An entry past the hard window is not answered from.
+    ///
+    /// The window is measured from the resolution, so the clock this advances is the injected `now`
+    /// and not the cache's own: an entry whose age reaches `hard` resolves again inline, and the
+    /// answer carries the new proof rather than the held one.
+    #[tokio::test]
+    async fn an_expired_entry_resolves_again() {
+        let cache = VisibilityCache::new(LIMITS);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let now = Instant::now();
+
+        let held = cache
+            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .await
+            .expect("the resolution answers");
+
+        let answered = cache
+            .resolve(key(), now + HARD, answering(&[9], &calls))
+            .await
+            .expect("the expired entry resolves again");
+
+        assert_eq!(
+            calls.load(Ordering::Relaxed),
+            2,
+            "the expired read resolved rather than answering from the held proof"
+        );
+        assert_ne!(
+            answered.epoch, held.epoch,
+            "the answer carries the new resolution"
+        );
+        assert_eq!(answered.epoch, PermissionEpoch::of(&proof_of(&[9])));
+    }
+
+    /// A refresh landing after a newer resolution publishes nothing.
+    ///
+    /// The refresh task holds the proof it resolved; if it could `insert` unconditionally, an older
+    /// proof would replace a newer one *and* restart the window it lives in - a permission revoked
+    /// between would be served again for a fresh window. The fixture drives that order
+    /// deliberately: the refresh is claimed under a paused resolver, a newer inline resolution
+    /// publishes while it is in flight, and only then does the refresh complete.
+    #[tokio::test]
+    async fn a_refresh_does_not_overwrite_a_newer_entry() {
+        let cache = VisibilityCache::new(LIMITS);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let now = Instant::now();
+
+        let held = cache
+            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .await
+            .expect("the resolution answers");
+
+        // The refresh resolver blocks on a permit that is buffered rather than signalled, so the
+        // order below holds however the runtime interleaves the spawned task.
+        let gate = Arc::new(tokio::sync::Notify::new());
+        let refresh_gate = Arc::clone(&gate);
+        let refresh_calls = Arc::clone(&calls);
+        let stale = cache
+            .resolve(key(), now + SOFT, move || {
+                let gate = Arc::clone(&refresh_gate);
+                let calls = Arc::clone(&refresh_calls);
+                async move {
+                    // `notify_one` stores a permit, so this completes whether the release ran
+                    // before this task was first polled or after.
+                    gate.notified().await;
+                    calls.fetch_add(1, Ordering::Relaxed);
+                    Ok::<_, ()>(proof_of(&[1, 2, 3]))
+                }
+            })
+            .await
+            .expect("the held entry answers");
+        assert_eq!(stale.epoch, held.epoch, "the stale read answered as held");
+
+        // A newer resolution replaces the entry while the refresh is still in flight.
+        cache.entries.invalidate(&key()).await;
+        let newer = cache
+            .resolve(key(), now + SOFT + SOFT, answering(&[7], &calls))
+            .await
+            .expect("the newer resolution answers");
+        assert_eq!(
+            calls.load(Ordering::Relaxed),
+            2,
+            "the refresh is still in flight: one initial resolution, one newer"
+        );
+
+        gate.notify_one();
+
+        // The refresh's own resolution must COMPLETE for this fixture to witness anything: without
+        // that count the assertion below would hold of a task that never published at all.
+        let mut resolved = false;
+        for _ in 0..64_u8 {
+            tokio::task::yield_now().await;
+            if calls.load(Ordering::Relaxed) == 3 {
+                resolved = true;
+            }
+        }
+        assert!(resolved, "the refresh resolved behind the newer entry");
+
+        let after = cache.get(&key()).await.expect("an entry stays held");
+        assert_eq!(
+            after.epoch, newer.epoch,
+            "the newer resolution still answers: the refresh published nothing over it"
+        );
+    }
+
+    /// A refresh whose entry is gone publishes nothing.
+    ///
+    /// The slot empties for exactly the reasons the windows exist - the hard window dropped it, or
+    /// capacity evicted it - so a refresh that filled the slot again would give a proof resolved
+    /// before that removal a fresh window to live in, with no request having asked for it. A
+    /// refresh replaces the entry it refreshed; it creates none.
+    #[tokio::test]
+    async fn a_refresh_does_not_resurrect_a_removed_entry() {
+        let cache = VisibilityCache::new(LIMITS);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let now = Instant::now();
+
+        cache
+            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .await
+            .expect("the resolution answers");
+
+        let gate = Arc::new(tokio::sync::Notify::new());
+        let refresh_gate = Arc::clone(&gate);
+        let refresh_calls = Arc::clone(&calls);
+        cache
+            .resolve(key(), now + SOFT, move || {
+                let gate = Arc::clone(&refresh_gate);
+                let calls = Arc::clone(&refresh_calls);
+                async move {
+                    gate.notified().await;
+                    calls.fetch_add(1, Ordering::Relaxed);
+                    Ok::<_, ()>(proof_of(&[1, 2, 3]))
+                }
+            })
+            .await
+            .expect("the held entry answers");
+
+        // The entry leaves while its refresh is in flight, and nothing resolves after it.
+        cache.entries.invalidate(&key()).await;
+        gate.notify_one();
+
+        let mut resolved = false;
+        for _ in 0..64_u8 {
+            tokio::task::yield_now().await;
+            if calls.load(Ordering::Relaxed) == 2 {
+                resolved = true;
+            }
+        }
+        assert!(resolved, "the refresh resolved after the entry was removed");
+
+        assert!(
+            cache.get(&key()).await.is_none(),
+            "the refresh published nothing into the empty slot"
         );
     }
 
