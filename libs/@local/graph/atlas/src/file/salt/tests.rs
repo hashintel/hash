@@ -185,6 +185,21 @@ fn classifier_evidence() -> ClassifierEvidence {
         },
         fit: ClassifierFitSummary {
             folds: 5,
+            regularization: 1.0,
+            selection: vec![
+                RegularizationReading {
+                    regularization: 0.1,
+                    cross_entropy: 0.63,
+                },
+                RegularizationReading {
+                    regularization: 1.0,
+                    cross_entropy: 0.61,
+                },
+                RegularizationReading {
+                    regularization: 10.0,
+                    cross_entropy: 0.66,
+                },
+            ],
             iterations: 137,
             raw_cross_entropy: 0.61,
             calibrated_cross_entropy: 0.58,

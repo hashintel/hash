@@ -19,7 +19,7 @@ pub(crate) mod replay;
 
 use self::replay::Frozen;
 use super::{
-    fit::{Fit, TrainingSet, fit},
+    fit::{Fit, TrainingSet, fit, regularization::RegularizationReading},
     softmax,
 };
 use crate::{
@@ -58,6 +58,10 @@ struct ModelSummary {
     seed: u64,
     /// Started outer iterations of the final full-corpus fit.
     iterations: u64,
+    /// The selected L2 penalty on contrast coefficients.
+    regularization: f64,
+    /// Every regularization candidate's out-of-fold reading, ascending by strength.
+    selection: Box<[RegularizationReading]>,
     /// Weighted-mean cross-entropy of the uncalibrated out-of-fold posteriors.
     raw_cross_entropy: f64,
     /// Weighted-mean cross-entropy at the deployment temperature.
@@ -181,6 +185,8 @@ impl ClassifierReport {
                 folds: config.folds,
                 seed: config.seed,
                 iterations: refit.evidence.iterations,
+                regularization: refit.evidence.regularization,
+                selection: refit.evidence.selection,
                 raw_cross_entropy: refit.evidence.raw_cross_entropy,
                 calibrated_cross_entropy: refit.evidence.calibrated_cross_entropy,
                 raw_brier: refit.evidence.raw_brier,

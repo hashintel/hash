@@ -508,14 +508,27 @@ pub(crate) enum ClassifierEvidence {
     },
 }
 
+/// One regularization candidate's out-of-fold reading.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct RegularizationReading {
+    /// The candidate L2 penalty on contrast coefficients.
+    pub regularization: f64,
+    /// The candidate's weighted-mean out-of-fold cross-entropy of the uncalibrated posteriors.
+    pub cross_entropy: f64,
+}
+
 /// The classifier fit's grouped out-of-fold measurements.
 ///
 /// Weighted means over the training rows. The per-row evidence is reproducible from the staged
 /// corpus under the echoed configuration, so the manifest carries the means alone.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClassifierFitSummary {
     /// Grouped cross-validation folds the evidence ran over.
     pub folds: usize,
+    /// The selected L2 penalty on contrast coefficients.
+    pub regularization: f64,
+    /// Every regularization candidate's out-of-fold reading, ascending by strength.
+    pub selection: Vec<RegularizationReading>,
     /// Iterations of the final full-corpus fit.
     pub iterations: u64,
     /// Weighted-mean cross-entropy of the uncalibrated posteriors.

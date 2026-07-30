@@ -87,6 +87,14 @@ pub(super) fn metrics(
     }
 }
 
+/// Weighted-mean soft-label cross-entropy of the uncalibrated posteriors.
+pub(super) fn raw_cross_entropy(
+    rows: &[TrainingRow],
+    logits: &[[f64; GeometryClass::COUNT]],
+) -> f64 {
+    cross_entropy(rows, logits, 1.0)
+}
+
 /// Weighted-mean soft-label cross-entropy at one temperature.
 fn cross_entropy(
     rows: &[TrainingRow],

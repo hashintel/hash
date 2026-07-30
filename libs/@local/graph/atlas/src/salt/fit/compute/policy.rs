@@ -18,7 +18,7 @@ use crate::{
         repository::RepositoryFile,
         salt::metadata::{
             ClassifierEvidence, ClassifierFitSummary, HoldoutEvidence, HoldoutRecord,
-            PolicyEvidence,
+            PolicyEvidence, RegularizationReading,
         },
     },
     identity::OntologyRowId,
@@ -228,6 +228,16 @@ impl Context<'_> {
                     assembly: *evidence,
                     fit: ClassifierFitSummary {
                         folds: self.config.policy.classifier_fit.folds,
+                        regularization: fitted.evidence.regularization,
+                        selection: fitted
+                            .evidence
+                            .selection
+                            .iter()
+                            .map(|reading| RegularizationReading {
+                                regularization: reading.regularization,
+                                cross_entropy: reading.cross_entropy,
+                            })
+                            .collect(),
                         iterations: fitted.evidence.iterations,
                         raw_cross_entropy: fitted.evidence.raw_cross_entropy,
                         calibrated_cross_entropy: fitted.evidence.calibrated_cross_entropy,

@@ -11,11 +11,15 @@
 //! through the deterministic bounded trust-region Newton-CG [`solver`], which operates in
 //! contrast coordinates and certifies every solution against its gradient threshold. Whole
 //! relation groups are assigned to seeded, size-balanced folds before fitting, so
-//! near-duplicate corpus entries never straddle a train/validation split; concatenated
-//! out-of-fold logits calibrate one scalar deployment temperature ([`calibration`]), and the
-//! applicability distribution is fitted over the complete corpus ([`applicability`]). The fold
-//! models and the final model are independent and fit in parallel; each fit's arithmetic is
-//! sequential, so the result is deterministic.
+//! near-duplicate corpus entries never straddle a train/validation split. The penalty strength
+//! λ is selected over those folds ([`regularization`]): every candidate's fold models fit in
+//! parallel, the minimum out-of-fold cross-entropy wins with an exact tie preferring the
+//! stronger penalty, and the deployment model then fits at the winning strength over the
+//! complete corpus. The winner's concatenated out-of-fold logits calibrate one scalar
+//! deployment temperature ([`calibration`]), and the applicability distribution is fitted over
+//! the complete corpus ([`applicability`]). Each fit's arithmetic is sequential and the fold
+//! assignment is shared across candidates, so the result is deterministic. The out-of-fold
+//! metrics judge the selected configuration on the same folds that chose it.
 //!
 //! Every fit must certify at the configured gradient threshold: a solve that ends at any typed
 //! terminal - an exhausted budget, a stalled reduction, or arithmetic that left the finite
@@ -26,10 +30,9 @@
 use core::{error::Error, fmt};
 use std::collections::HashMap;
 
-use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
-
 use self::{
     objective::Parameters,
+    regularization::RegularizationReading,
     solver::{ReceiptDetail, ScaledProblem, WorkCounters, prepare, solve},
 };
 use super::Classifier;
@@ -47,6 +50,7 @@ pub(crate) use self::solver::{
 };
 mod calibration;
 mod objective;
+pub(crate) mod regularization;
 pub(crate) mod solver;
 
 #[cfg(test)]
@@ -274,8 +278,9 @@ impl<'training> TrainingSet<'training> {
 
 /// Solver and grouped-validation settings.
 ///
-/// The solver defaults are the deployment configuration; the out-of-fold metrics in
-/// [`FitEvidence`] judge them.
+/// The solver defaults are the deployment configuration, with the regularization strength
+/// selected per fit ([`regularization`]); the out-of-fold metrics in [`FitEvidence`] judge the
+/// selected configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
     /// The bounded trust-region Newton-CG solver configuration, preparation knobs included.
@@ -311,6 +316,10 @@ pub(crate) struct FitEvidence {
     pub folds: Box<[usize]>,
     /// Out-of-fold logits per training row, in class order.
     pub out_of_fold_logits: Box<[[f64; GeometryClass::COUNT]]>,
+    /// The selected L2 penalty on contrast coefficients.
+    pub regularization: f64,
+    /// Every regularization candidate's out-of-fold reading, ascending by strength.
+    pub selection: Box<[RegularizationReading]>,
     /// Weighted-mean cross-entropy of the uncalibrated posteriors.
     pub raw_cross_entropy: f64,
     /// Weighted-mean cross-entropy at the deployment temperature.
@@ -340,8 +349,9 @@ pub(crate) struct Fit {
 /// portion violating the preparation contract, a solve ending at a typed terminal, or a
 /// non-finite out-of-fold evaluation.
 ///
-/// The fold fits are the long part of the stage, so each one reports to `progress` as it lands.
-/// They run in parallel, so completions arrive in whatever order the pool finishes them.
+/// The candidate fold fits are the long part of the stage and run in parallel; a fold reports
+/// to `progress` when its last candidate lands, so completions arrive in whatever order the
+/// pool finishes them.
 pub(crate) fn fit<P: Progress + Sync>(
     training: TrainingSet<'_>,
     config: FitConfig,
@@ -352,42 +362,12 @@ pub(crate) fn fit<P: Progress + Sync>(
     let folds = grouped_folds(training.rows(), config.folds, config.seed)?;
     progress.classifier_started(config.folds);
 
-    // Fold index `config.folds` holds nothing out: it is the final
-    // full-corpus model, fitted in parallel with the fold models.
-    let mut models: Vec<_> = (0..=config.folds)
-        .into_par_iter()
-        .map(|fold| {
-            let held_out = (fold < config.folds).then_some(fold);
-            let model = fit_model(training, &folds, held_out, config)?;
-            // The final full-corpus model shares the map but is not a
-            // fold, and a fit that failed has not completed: only a
-            // held-out fit that returned moves the counter.
-            if let Some(fold) = held_out {
-                progress.classifier_fold_completed(fold);
-            }
+    let selection = regularization::select(training, &folds, config, progress)?;
+    let mut deployment = config;
+    deployment.solver.preparation.regularization = selection.regularization;
+    let (final_parameters, iterations) = fit_model(training, &folds, None, deployment)?;
 
-            Ok(model)
-        })
-        .collect::<Result<_, _>>()?;
-
-    let (final_parameters, iterations) = models.pop().unwrap_or_else(|| {
-        unreachable!("one model is fitted per fold plus the final full-corpus model")
-    });
-
-    let mut out_of_fold_logits = vec![[f64::NAN; GeometryClass::COUNT]; training.len()];
-    for (row, logits) in out_of_fold_logits.iter_mut().enumerate() {
-        let (parameters, _) = &models[folds[row]];
-        *logits = objective::logits(parameters, training.embedding(row));
-    }
-
-    if out_of_fold_logits
-        .iter()
-        .flatten()
-        .any(|value| !value.is_finite())
-    {
-        return Err(FitError::NonFinite);
-    }
-
+    let out_of_fold_logits = selection.out_of_fold_logits;
     let temperature = calibration::fit_temperature(training.rows(), &out_of_fold_logits);
     let metrics = calibration::metrics(training.rows(), &out_of_fold_logits, temperature);
     let applicability = applicability::fit_applicability(training)?;
@@ -403,6 +383,8 @@ pub(crate) fn fit<P: Progress + Sync>(
         evidence: FitEvidence {
             folds: folds.into_boxed_slice(),
             out_of_fold_logits: out_of_fold_logits.into_boxed_slice(),
+            regularization: selection.regularization.get(),
+            selection: selection.curve,
             raw_cross_entropy: metrics.raw_cross_entropy,
             calibrated_cross_entropy: metrics.calibrated_cross_entropy,
             raw_brier: metrics.raw_brier,

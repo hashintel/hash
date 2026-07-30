@@ -285,6 +285,8 @@ where
     /// Opens `blob`, returning the scope it names.
     ///
     /// Refuses a token whose issue time is older than `hard` at `now`, and one dated after `now`.
+    /// The tag is checked first, so a rewritten issue time refuses as
+    /// [`AuthorityError::Authentication`] and only an authentic token reaches the window.
     ///
     /// # Errors
     ///
@@ -300,12 +302,6 @@ where
         let sealed =
             SealedAuthority::try_ref_from_bytes(blob).map_err(|_error| AuthorityError::Envelope)?;
 
-        // The header is tag-bound, so judging the window ahead of the tag stays sound.
-        let issued_at = SystemTime::UNIX_EPOCH + Duration::from_secs(sealed.header.issued_at.get());
-        if issued_at > now || now.saturating_duration_since(issued_at) >= hard {
-            return Err(AuthorityError::Stale);
-        }
-
         let plaintext = XChaCha20Poly1305::new(&self.key(secret).into())
             .decrypt(
                 &XNonce::from(sealed.header.nonce),
@@ -315,6 +311,13 @@ where
                 },
             )
             .map_err(|_error| AuthorityError::Authentication)?;
+
+        // The window is read after the tag, so every field it judges is one the tag has vouched
+        // for.
+        let issued_at = SystemTime::UNIX_EPOCH + Duration::from_secs(sealed.header.issued_at.get());
+        if issued_at > now || now.saturating_duration_since(issued_at) >= hard {
+            return Err(AuthorityError::Stale);
+        }
 
         let token = ScopeToken::try_read_from_bytes(&plaintext)
             .map_err(|_error| AuthorityError::Envelope)?;

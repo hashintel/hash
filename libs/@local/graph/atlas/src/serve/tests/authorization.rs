@@ -14,11 +14,11 @@ use chacha20poly1305::{
 };
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hkdf::Hkdf;
-use rand::CryptoRng;
-use rand_core::RngCore;
+use rand::{SeedableRng as _, rngs::ChaCha20Rng};
 use sha2::Sha256;
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
+use zerocopy::IntoBytes as _;
 
 use crate::{
     integrity::{SecretHexBytes, Sha256Digest},
@@ -43,36 +43,19 @@ const TAG_BYTES: usize = 16;
 /// The expansion label.
 const LABEL: &[u8] = b"atlas.authorization.v0";
 
-/// The fixture nonce, emitted for every mint.
-const NONCE: [u8; NONCE_BYTES] = [
-    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x01,
-    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-];
-
-/// An entropy source emitting one pinned nonce.
+/// The offset of the nonce inside the clear header: past the version byte and the issue time.
 ///
-/// Repeating a nonce is the one thing production must never do, which is exactly why a fixture
-/// wants it: a pinned nonce makes the whole envelope hand-derivable, so the comparison below is
-/// against bytes rather than against another run of the same code.
-struct PinnedRng;
+/// The battery reads the layout by documented offset rather than through the module's own zerocopy
+/// types, which is what keeps it an independent check on the byte order.
+const NONCE_OFFSET: usize = 1 + 8;
 
-impl RngCore for PinnedRng {
-    fn next_u32(&mut self) -> u32 {
-        u32::from_le_bytes(NONCE[..4].try_into().expect("four bytes"))
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        u64::from_le_bytes(NONCE[..8].try_into().expect("eight bytes"))
-    }
-
-    fn fill_bytes(&mut self, destination: &mut [u8]) {
-        for (slot, byte) in destination.iter_mut().zip(NONCE.iter().cycle()) {
-            *slot = *byte;
-        }
-    }
+/// A deterministic CSPRNG for the fixtures.
+///
+/// Seeded rather than drawn from the operating system: these cases never depend on the nonce's
+/// value, so a fixed stream keeps a failure reproducible.
+fn rng() -> ChaCha20Rng {
+    ChaCha20Rng::from_seed([7; 32])
 }
-
-impl CryptoRng for PinnedRng {}
 
 /// The fixture secret: 32 bytes of key material, value arbitrary.
 fn secret() -> SecretHexBytes<32> {
@@ -111,7 +94,7 @@ fn key() -> [u8; 32] {
 }
 
 /// Assembles the clear header by hand: version, issue time in little-endian seconds, nonce.
-fn header(now: SystemTime) -> Vec<u8> {
+fn header(now: SystemTime, nonce: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(HEADER_BYTES);
     bytes.push(0);
     bytes.extend_from_slice(
@@ -120,7 +103,7 @@ fn header(now: SystemTime) -> Vec<u8> {
             .as_secs()
             .to_le_bytes(),
     );
-    bytes.extend_from_slice(&NONCE);
+    bytes.extend_from_slice(nonce);
 
     bytes
 }
@@ -150,13 +133,17 @@ fn plaintext(actor: u128, filter: Option<&[u8]>) -> Vec<u8> {
 /// tag and fail here.
 #[test]
 fn a_minted_token_matches_an_independent_envelope() {
-    let mut authority = Authority::new(generation(), PinnedRng);
+    let mut authority = Authority::new(generation(), rng());
     let minted = authority.mint(&secret(), scope(11, None), issued_at());
 
-    let header = header(issued_at());
+    // The nonce is public, so the reimplementation takes it from the envelope under test and
+    // derives everything else - which is why this case needs no control over the entropy
+    // source.
+    let nonce = &minted[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES];
+    let header = header(issued_at(), nonce);
     let body = XChaCha20Poly1305::new(&key().into())
         .encrypt(
-            XNonce::from_slice(&NONCE),
+            XNonce::from_slice(nonce),
             Payload {
                 msg: &plaintext(11, None),
                 aad: &header,
@@ -178,7 +165,7 @@ fn a_minted_token_matches_an_independent_envelope() {
 /// A token opens to the scope it was minted for, filtered or not.
 #[test]
 fn a_minted_token_opens_to_its_scope() {
-    let mut authority = Authority::new(generation(), PinnedRng);
+    let mut authority = Authority::new(generation(), rng());
 
     for filter in [None, Some(b"{\"kind\":\"all\"}".as_slice())] {
         let scope = scope(11, filter);
@@ -194,16 +181,17 @@ fn a_minted_token_opens_to_its_scope() {
     }
 }
 
-/// A rewritten issue time refuses, because the tag authenticates the clear header.
+/// A rewritten issue time refuses as an authentication fault.
 ///
-/// Without the header in the associated data, editing this field would buy an attacker an unbounded
-/// token life: the age check reads the value it rewrites.
+/// The clear header is in the associated data, so editing the field the age check reads invalidates
+/// the tag. The tag is judged first, which is why the cause is authentication rather than staleness
+/// whichever direction the edit moves the clock.
 #[test]
 fn a_rewritten_issue_time_refuses() {
-    let mut authority = Authority::new(generation(), PinnedRng);
+    let mut authority = Authority::new(generation(), rng());
     let mut minted = authority.mint(&secret(), scope(11, None), issued_at());
 
-    // Advance the recorded second, leaving the age check satisfied and the tag stale.
+    // Move the recorded second, which the tag covers.
     minted[1] = minted[1].wrapping_add(1);
 
     assert_eq!(
@@ -216,7 +204,7 @@ fn a_rewritten_issue_time_refuses() {
 /// A token older than the hard window refuses, and so does a future-dated one.
 #[test]
 fn a_token_outside_the_window_refuses() {
-    let mut authority = Authority::new(generation(), PinnedRng);
+    let mut authority = Authority::new(generation(), rng());
     let minted = authority.mint(&secret(), scope(11, None), issued_at());
     let hard = Duration::from_mins(10);
 
@@ -251,14 +239,14 @@ fn a_token_outside_the_window_refuses() {
 /// comparison, and it holds for a token whose plaintext is otherwise identical.
 #[test]
 fn a_foreign_generation_refuses() {
-    let mut minting = Authority::new(generation(), PinnedRng);
+    let mut minting = Authority::new(generation(), rng());
     let minted = minting.mint(&secret(), scope(11, None), issued_at());
 
     let foreign = Authority::new(
         "1a".repeat(32)
             .parse()
             .expect("64 hexadecimal digits name a generation"),
-        PinnedRng,
+        rng(),
     );
 
     assert_eq!(
@@ -271,7 +259,7 @@ fn a_foreign_generation_refuses() {
 /// A blob too short for a header refuses as an envelope fault.
 #[test]
 fn a_truncated_blob_refuses() {
-    let authority = Authority::new(generation(), PinnedRng);
+    let authority = Authority::new(generation(), rng());
 
     for length in [0, 1, HEADER_BYTES - 1] {
         assert_eq!(
