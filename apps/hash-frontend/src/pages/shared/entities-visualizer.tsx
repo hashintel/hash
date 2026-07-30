@@ -263,18 +263,52 @@ export const EntitiesVisualizer: FunctionComponent<{
    * needs its resolved pins) derive the filter chips from it without a fetch
    * of its own.
    */
-  const [tableSummary, setTableSummary] = useState<EntityTableSummary | null>(
-    null,
-  );
+  const [tableSummary, setTableSummary] = useState<{
+    summary: EntityTableSummary;
+    scopeKey: string;
+  } | null>(null);
   const [tableSummaryError, setTableSummaryError] = useState<Error>();
 
-  const summarySource = useMemo<SummarySource>(
+  /**
+   * What a table summary describes. The endpoint spans its type maps over the
+   * scope rather than the narrowed filter, so a type selection or a re-sort
+   * leaves a summary still answering — only these three change what it covers.
+   *
+   * Kept in step with the scope the table query sends.
+   */
+  const summaryScopeKey = useMemo(
     () =>
-      usesTableEndpoint && !isTypePinned
-        ? { mode: "external", summary: tableSummary, error: tableSummaryError }
-        : { mode: "fetch" },
-    [usesTableEndpoint, isTypePinned, tableSummary, tableSummaryError],
+      JSON.stringify([
+        filterState.web.includeOtherWebs,
+        [...filterState.web.selectedInternalWebIds].toSorted(),
+        filterState.includeArchived,
+      ]),
+    [filterState.web, filterState.includeArchived],
   );
+
+  /**
+   * The table's summary keeps answering for the other views once it has
+   * arrived, rather than sending them to fetch one of their own. A view that
+   * never saw the Table has none to reuse.
+   */
+  const summarySource = useMemo<SummarySource>(() => {
+    if (isTypePinned) {
+      return { mode: "fetch" };
+    }
+
+    const scopedSummary =
+      tableSummary?.scopeKey === summaryScopeKey ? tableSummary.summary : null;
+
+    return usesTableEndpoint || scopedSummary
+      ? { mode: "external", summary: scopedSummary, error: tableSummaryError }
+      : { mode: "fetch" };
+  }, [
+    usesTableEndpoint,
+    isTypePinned,
+    tableSummary,
+    summaryScopeKey,
+    tableSummaryError,
+  ]);
 
   const {
     availableEntityTypes,
@@ -333,8 +367,13 @@ export const EntitiesVisualizer: FunctionComponent<{
   });
 
   useEffect(() => {
-    setTableSummary(tableQuery.summary);
-  }, [tableQuery.summary]);
+    if (tableQuery.summary) {
+      setTableSummary({
+        summary: tableQuery.summary,
+        scopeKey: summaryScopeKey,
+      });
+    }
+  }, [tableQuery.summary, summaryScopeKey]);
 
   useEffect(() => {
     setTableSummaryError(tableQuery.error);
@@ -464,7 +503,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   useEffect(() => {
     setDataLoading(entitiesData.loading);
 
-    if (!entitiesData.loading) {
+    // A standing-by query reports an empty result, which would overwrite the
+    // held rows and cold-start the view they were held for.
+    if (!entitiesData.loading && !entitiesData.skipped) {
       setVisualizerData(entitiesData);
     }
   }, [entitiesData]);
@@ -696,9 +737,9 @@ export const EntitiesVisualizer: FunctionComponent<{
     !isTypePinned &&
     filterState.type.selectedTypeIds === null;
 
-  const activeError = usesTableEndpoint
-    ? tableQuery.error
-    : visualizerData.error;
+  // Read from the live read rather than the held one: the held state carries
+  // the rows to keep on screen, not a verdict on the request in flight.
+  const activeError = usesTableEndpoint ? tableQuery.error : entitiesData.error;
 
   // A failed page query with nothing to show gets the error state. With data
   // on screen the stale results stay visible alongside a retry banner instead.
