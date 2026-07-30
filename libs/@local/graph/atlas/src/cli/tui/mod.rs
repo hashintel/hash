@@ -178,6 +178,10 @@ impl Progress for Observer {
         self.report(Observation::ClassifierFoldCompleted);
     }
 
+    fn classifier_regularization_selected(&self, regularization: f64) {
+        self.report(Observation::ClassifierRegularization(regularization));
+    }
+
     fn knn_build_phase(&self, phase: &str) {
         self.report(Observation::Knn(KnnActivity::Building(phase.to_owned())));
     }

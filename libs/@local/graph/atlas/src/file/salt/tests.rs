@@ -7,7 +7,8 @@ use super::{
     metadata::{
         ClassifierEvidence, ClassifierFitSummary, Evidence, FrozenRadiusEvidence, HoldoutEvidence,
         HoldoutRecord, LadderEvidence, LandmarkEvidence, Placement, PolicyEvidence,
-        ProjectorEvidence, RankingOrigin, Reproducibility, RungEvidence, SaltMetadata, Snapshot,
+        ProjectorEvidence, RankingOrigin, RegularizationReading, Reproducibility, RungEvidence,
+        SaltMetadata, Snapshot,
     },
 };
 use crate::{
@@ -168,7 +169,7 @@ fn lod_measurements() -> LodMeasurements {
 fn classifier_evidence() -> ClassifierEvidence {
     ClassifierEvidence::Fitted {
         corpus: digest("annotation-corpus.json"),
-        assembly: AssemblyEvidence {
+        assembly: Box::new(AssemblyEvidence {
             supplied: 1_684,
             shot_excluded: 14,
             holdouts_excluded: 6,
@@ -182,7 +183,7 @@ fn classifier_evidence() -> ClassifierEvidence {
             subdivided_groups: 1,
             oversized_accepted: 0,
             deepest_relaxation: Relaxation::Family,
-        },
+        }),
         fit: ClassifierFitSummary {
             folds: 5,
             regularization: 1.0,

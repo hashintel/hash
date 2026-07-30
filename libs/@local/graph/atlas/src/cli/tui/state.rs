@@ -135,6 +135,8 @@ pub(super) enum Observation {
     ClassifierStarted(usize),
     /// One cross-validation fold landed.
     ClassifierFoldCompleted,
+    /// The classifier fit selected its regularization strength.
+    ClassifierRegularization(f64),
     /// The placement took another training step.
     ProjectorStep {
         /// The step's zero-based index in the schedule.
@@ -170,6 +172,8 @@ pub(super) struct RunState {
     embedding: Option<EmbeddingWorkload>,
     /// The classifier fit's folds, once it announces them.
     classifier: Option<ClassifierFolds>,
+    /// The classifier fit's selected regularization strength, once chosen.
+    classifier_regularization: Option<f64>,
     /// The neighbour-table construction's latest activity, once it reports one.
     knn: Option<KnnActivity>,
     /// The placement's training, once its first step reports.
@@ -188,6 +192,7 @@ impl RunState {
             completed: [None; Stage::ALL.len()],
             embedding: None,
             classifier: None,
+            classifier_regularization: None,
             knn: None,
             projector: None,
             placement: None,
@@ -202,6 +207,9 @@ impl RunState {
             Observation::EmbeddingBatch(batch) => self.advance_embedding(batch),
             Observation::ClassifierStarted(folds) => self.start_classifier(folds),
             Observation::ClassifierFoldCompleted => self.complete_classifier_fold(),
+            Observation::ClassifierRegularization(regularization) => {
+                self.select_regularization(regularization);
+            }
             Observation::Knn(activity) => self.report_knn(activity),
             Observation::ProjectorStep { step, steps, loss } => {
                 self.advance_projector(step, steps, &loss);
@@ -258,6 +266,11 @@ impl RunState {
         };
 
         folds.done = folds.done.saturating_add(1);
+    }
+
+    /// Records the classifier fit's selected regularization strength.
+    pub(super) const fn select_regularization(&mut self, regularization: f64) {
+        self.classifier_regularization = Some(regularization);
     }
 
     /// Records what the neighbour-table construction is doing now.
@@ -367,6 +380,11 @@ impl RunState {
     /// The classifier fit's folds, once it has announced them.
     pub(super) const fn classifier(&self) -> Option<ClassifierFolds> {
         self.classifier
+    }
+
+    /// The classifier fit's selected regularization strength, once chosen.
+    pub(super) const fn classifier_regularization(&self) -> Option<f64> {
+        self.classifier_regularization
     }
 
     /// The neighbour-table construction's latest activity, once it has reported one.

@@ -49,7 +49,11 @@ pub(super) async fn handler(
 
     Ok((
         [(header::CACHE_CONTROL, headers::IMMUTABLE)],
-        Json(state.atlas.manifest(state.limits.manifest_limits())),
+        Json(
+            state
+                .atlas
+                .manifest(state.limits.manifest_limits(state.visibility)),
+        ),
     ))
 }
 

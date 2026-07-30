@@ -225,7 +225,7 @@ impl Context<'_> {
             ClassifierArtifacts {
                 evidence: ClassifierEvidence::Fitted {
                     corpus: source,
-                    assembly: *evidence,
+                    assembly: Box::new(*evidence),
                     fit: ClassifierFitSummary {
                         folds: self.config.policy.classifier_fit.folds,
                         regularization: fitted.evidence.regularization,

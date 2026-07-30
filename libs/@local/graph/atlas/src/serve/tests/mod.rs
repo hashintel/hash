@@ -23,7 +23,7 @@ use zerocopy::{LE, U64};
 use super::{
     Atlas, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
     OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
+    VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -39,7 +39,6 @@ mod masking;
 mod metadata_channel;
 mod open;
 mod row_codec;
-mod seal;
 
 /// The tests' default authority: the operator proof, byte-identical to the pre-visibility serve.
 const FULL: VisibilityProof = VisibilityProof::full_visibility();
@@ -742,8 +741,10 @@ async fn rejects_and_reports_the_contract() {
         Err(TileError::Unsupported("includeDetailedData")),
     );
 
-    let manifest = serde_json::to_value(atlas.manifest(ServeLimits::default().manifest_limits()))
-        .expect("the manifest serializes");
+    let manifest = serde_json::to_value(
+        atlas.manifest(ServeLimits::default().manifest_limits(VisibilityLimits::default())),
+    )
+    .expect("the manifest serializes");
     assert_eq!(
         manifest,
         serde_json::json!({
@@ -751,7 +752,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "sealSoftSeconds": 600, "sealHardSeconds": 900 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "authoritySoftSeconds": 480, "authorityHardSeconds": 600 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );

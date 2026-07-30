@@ -41,8 +41,8 @@
 //! schedule-driven point
 //! delivery - full-visibility range assembly, the masked delivery chain, and the census;
 //! `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring resolution;
-//! `intern` the wire intern tables; `seal` the sealed visibility bitmaps; `hydrate` the live store
-//! reads behind detail trailers.
+//! `intern` the wire intern tables; `authorization` the sealed authority tokens; `hydrate` the
+//! live store reads behind detail trailers.
 //!
 //! The read surfaces compose those: `tile`, `edges`, `locate`, and `translate` each hold one
 //! endpoint's request vocabulary, rejection taxonomy, and assembly, and `manifest` the bootstrap
@@ -63,7 +63,6 @@ pub use self::{
     locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     open::OpenOptions,
-    seal::SealLimits,
     secret::{WireSecret, WireSecretError},
     tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
     translate::{
@@ -106,7 +105,6 @@ mod locate;
 mod manifest;
 mod neighbourhood;
 mod open;
-mod seal;
 mod secret;
 mod tile;
 mod translate;
@@ -123,11 +121,11 @@ mod tests;
 /// this constant.
 pub const VARIANTS: [&str; 1] = ["plain"];
 
-/// The serving controls in one configurable value: request-validation limits, response-shaping
-/// limits, and the seal windows.
+/// The serving controls in one configurable value: request-validation limits and response-shaping
+/// limits.
 ///
 /// The transport constructs one - flags and environment over the defaults - and the handlers
-/// enforce it. Every published manifest limit derives from the enforced field through
+/// enforce it. Every published manifest limit derives from an enforced value through
 /// [`ServeLimits::manifest_limits`], so advertisement and enforcement cannot disagree; not every
 /// control is published. Defaults are documented on the per-endpoint limits types; none of them is
 /// a wire constant.
@@ -141,8 +139,6 @@ pub struct ServeLimits {
     pub locate: LocateLimits,
     /// The translate endpoint's limits.
     pub translate: TranslateLimits,
-    /// The sealed-blob staleness limits.
-    pub seal: SealLimits,
 }
 
 const impl Default for ServeLimits {
@@ -152,7 +148,6 @@ const impl Default for ServeLimits {
             edges: EdgesLimits::default(),
             locate: LocateLimits::default(),
             translate: TranslateLimits::default(),
-            seal: SealLimits::default(),
         }
     }
 }

@@ -1,7 +1,7 @@
 //! The serve surface: opening the active generation behind the read-API router.
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, time::Duration};
+use core::{error::Error, fmt};
 
 use axum::Router;
 use clap::Args;
@@ -11,8 +11,8 @@ use crate::{
     api,
     serve::{
         Atlas, CurrentError, EdgesLimits, GenerationRoot, GraphDatabaseClient, LocateLimits,
-        OpenAtlasError, OpenOptions, SealLimits, ServeLimits, TileLimits, TranslateLimits,
-        VisibilityLimits, WireSecret,
+        OpenAtlasError, OpenOptions, ServeLimits, TileLimits, TranslateLimits, VisibilityLimits,
+        WireSecret,
     },
 };
 
@@ -86,22 +86,6 @@ struct LimitsArgs {
         default_value_t = ServeLimits::default().locate.link_properties,
     )]
     locate_link_properties: u32,
-
-    /// The sealed-blob asynchronous-refresh horizon, seconds.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_LIMIT_SEAL_SOFT_SECONDS",
-        default_value_t = ServeLimits::default().seal.soft.as_secs(),
-    )]
-    seal_soft_seconds: u64,
-
-    /// The sealed-blob rejection bound, seconds.
-    #[arg(
-        long,
-        env = "HASH_GRAPH_ATLAS_LIMIT_SEAL_HARD_SECONDS",
-        default_value_t = ServeLimits::default().seal.hard.as_secs(),
-    )]
-    seal_hard_seconds: u64,
 }
 
 impl From<LimitsArgs> for ServeLimits {
@@ -122,10 +106,6 @@ impl From<LimitsArgs> for ServeLimits {
             },
             translate: TranslateLimits {
                 entity_ids: args.translate_entity_ids,
-            },
-            seal: SealLimits {
-                soft: Duration::from_secs(args.seal_soft_seconds),
-                hard: Duration::from_secs(args.seal_hard_seconds),
             },
         }
     }

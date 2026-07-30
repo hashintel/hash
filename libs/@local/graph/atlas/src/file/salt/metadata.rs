@@ -500,7 +500,7 @@ pub(crate) enum ClassifierEvidence {
         /// The SHA-256 of the corpus document's bytes, as staged.
         corpus: Sha256Digest,
         /// The training-set assembly's policy and derivation counts.
-        assembly: AssemblyEvidence,
+        assembly: Box<AssemblyEvidence>,
         /// The grouped out-of-fold fit measurements.
         fit: ClassifierFitSummary,
         /// The held-out human-verdict evaluation.

@@ -10,6 +10,7 @@ use super::{
     FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
     fit, fit_model, grouped_folds,
     objective::{PARAMETER_COUNT, Parameters},
+    regularization,
     solver::{
         PreparationError, PreparationSettings, SolverConfig, SolverConfigError, SolverFailure,
     },
@@ -438,13 +439,6 @@ fn fit_recovers_the_generating_distributions() {
     let fitted = fit(
         training,
         FitConfig {
-            solver: SolverConfig {
-                preparation: PreparationSettings {
-                    regularization: d_positive!(1.0e-3),
-                    ..
-                },
-                ..
-            },
             seed: 7,
             ..config()
         },
@@ -467,10 +461,12 @@ fn fit_recovers_the_generating_distributions() {
     assert!(
         fitted.evidence.calibrated_cross_entropy <= fitted.evidence.raw_cross_entropy + 1.0e-12
     );
+    assert!(fitted.evidence.regularization <= 1.0);
     assert!(fitted.evidence.iterations >= 1);
 
-    // With near-zero regularization the fitted raw posteriors reproduce
-    // the generating soft targets on the training rows.
+    // The separable corpus rewards weak regularization out of fold, so the
+    // selection stays weak and the fitted raw posteriors reproduce the
+    // generating soft targets on the training rows.
     for (row, expected) in corpus.rows.iter().enumerate() {
         let prediction = fitted
             .classifier
@@ -484,6 +480,61 @@ fn fit_recovers_the_generating_distributions() {
         }
         assert!(prediction.applicability > 0.0);
     }
+}
+
+#[test]
+fn regularization_winner_takes_the_minimum_and_ties_prefer_the_stronger_penalty() {
+    let reading = |regularization: f64, cross_entropy: f64| regularization::RegularizationReading {
+        regularization,
+        cross_entropy,
+    };
+
+    // An interior minimum wins.
+    assert_eq!(
+        regularization::winner(&[reading(0.1, 3.0), reading(1.0, 1.0), reading(10.0, 2.0)]),
+        1
+    );
+    // A strictly improving curve ends at the last candidate.
+    assert_eq!(
+        regularization::winner(&[reading(0.1, 3.0), reading(1.0, 2.0), reading(10.0, 1.0)]),
+        2
+    );
+    // An exact tie prefers the stronger penalty.
+    assert_eq!(
+        regularization::winner(&[reading(0.1, 1.0), reading(1.0, 2.0), reading(10.0, 1.0)]),
+        2
+    );
+}
+
+#[test]
+fn fit_selects_regularization_and_records_the_curve() {
+    let corpus = soft_corpus();
+
+    let fitted = fit(corpus.training(), config(), &NoProgress).expect("the soft corpus fits");
+
+    let curve = &fitted.evidence.selection;
+    assert_eq!(curve.len(), regularization::CANDIDATES.len());
+    assert!(
+        curve
+            .windows(2)
+            .all(|pair| pair[0].regularization < pair[1].regularization)
+    );
+
+    let winner = regularization::winner(curve);
+    assert_eq!(fitted.evidence.regularization, curve[winner].regularization);
+    // The winner's reading and the reported raw metric are the same reduction
+    // over the same logits, so the equality is exact.
+    assert_eq!(
+        fitted.evidence.raw_cross_entropy,
+        curve[winner].cross_entropy
+    );
+
+    let again = fit(corpus.training(), config(), &NoProgress).expect("the refit is deterministic");
+    assert_eq!(
+        again.evidence.regularization,
+        fitted.evidence.regularization
+    );
+    assert_eq!(again.evidence.selection, fitted.evidence.selection);
 }
 
 #[test]

@@ -191,6 +191,9 @@ pub trait Progress {
     /// One classifier cross-validation fold completed.
     fn classifier_fold_completed(&self, fold: usize) {}
 
+    /// The classifier fit selected its regularization strength.
+    fn classifier_regularization_selected(&self, regularization: f64) {}
+
     /// The admission probe measured one quality metric.
     fn quality_probe(&self, metric: QualityMetric, value: f64) {}
 
@@ -254,6 +257,10 @@ where
 
     fn classifier_fold_completed(&self, fold: usize) {
         T::classifier_fold_completed(self, fold);
+    }
+
+    fn classifier_regularization_selected(&self, regularization: f64) {
+        T::classifier_regularization_selected(self, regularization);
     }
 
     fn quality_probe(&self, metric: QualityMetric, value: f64) {

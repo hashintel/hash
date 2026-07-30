@@ -363,6 +363,8 @@ pub(crate) fn fit<P: Progress + Sync>(
     progress.classifier_started(config.folds);
 
     let selection = regularization::select(training, &folds, config, progress)?;
+    progress.classifier_regularization_selected(selection.regularization.get());
+
     let mut deployment = config;
     deployment.solver.preparation.regularization = selection.regularization;
     let (final_parameters, iterations) = fit_model(training, &folds, None, deployment)?;

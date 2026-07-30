@@ -16,8 +16,8 @@
 //! permission epoch and why no caller pins state to it.
 //!
 //! [`VisibilityLimits`] bounds reuse: past the soft window an entry keeps answering while a refresh
-//! runs behind it, and at the hard window it stops answering. A sealed token presented by a caller
-//! carries its own authenticated issue time, and [`seal::open`](super::seal::open) bounds that age
+//! runs behind it, and at the hard window it stops answering. An authority token presented by a
+//! caller carries its own authenticated issue time, and the authority's `open` bounds that age
 //! against the token's own evidence.
 //!
 //! # Examples
@@ -243,8 +243,9 @@ impl ResolvedVisibility {
 /// actors than entries still answers every request; the scopes that fall out resolve again, one
 /// store round trip each.
 ///
-/// A sealed token's own age is judged by [`SealLimits`](super::SealLimits) against the issue time
-/// it carries, so these windows govern reuse only.
+/// An authority token names a cached scope, so this pair also bounds a held token's age: the
+/// authority's `open` judges the issue time a token carries against the same `hard` window, and
+/// the manifest publishes both values as the client's refresh and expiry horizons.
 ///
 /// # Examples
 ///

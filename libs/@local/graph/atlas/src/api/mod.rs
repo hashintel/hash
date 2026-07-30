@@ -91,6 +91,7 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 struct AppState {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
+    visibility: VisibilityLimits,
     authority: Authority,
     remote: Arc<GraphDatabaseClient>,
 }
@@ -118,6 +119,7 @@ pub fn router(
     let state = AppState {
         atlas,
         limits,
+        visibility,
         authority: Authority::new(pool, visibility),
         remote: details,
     };

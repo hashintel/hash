@@ -5,27 +5,28 @@
 
 use core::fmt;
 
-use super::{Atlas, GenerationId, ServeLimits, VARIANTS};
+use super::{Atlas, GenerationId, ServeLimits, VARIANTS, VisibilityLimits};
 use crate::salt::wire::WIRE_VERSION;
 
 /// The serving limits of the manifest's `limits` block.
 ///
-/// Each value is read from the limit the handlers enforce, so an advertised limit never disagrees
+/// Each value is read from a value the server enforces, so an advertised limit never disagrees
 /// with enforcement. Request-validation limits let a client validate before sending;
-/// response-shaping limits and the seal windows say what delivery truncates and when sealed
-/// values expire.
+/// response-shaping limits say what delivery truncates; the staleness windows say when a held
+/// authority token expires.
 ///
 /// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for,
 /// what it must expect back, when it should refresh - and the block carries nothing a client cannot
-/// act on. The visibility cache's windows and capacity govern no client behaviour and are absent
-/// for that reason.
+/// act on. The staleness windows are the visibility cache's own pair: a token names a cached scope,
+/// so the token's validity and the entry's are one question and publish as one pair. The cache's
+/// entry capacity governs no client behaviour and stays absent.
 ///
-/// The seal windows are safe to publish because a validity bound is discoverable by the party the
-/// bound applies to: the holder of a sealed blob reads its issue time from the clear envelope, and
-/// presenting the blob is itself the test of whether it still opens. Publication therefore states a
-/// threshold that holder could measure, and states nothing at all to a caller holding no blob. What
-/// would be a disclosure is a refusal that distinguishes its cause; a seal refusal names none, and
-/// every cause answers one uniform state-required refusal.
+/// The windows are safe to publish because a validity bound is discoverable by the party the bound
+/// applies to: the holder of a token reads its issue time from the clear envelope, and presenting
+/// the token is itself the test of whether it still opens. Publication therefore states a threshold
+/// that holder could measure, and states nothing at all to a caller holding no token. What would be
+/// a disclosure is a refusal that distinguishes its cause; an authority refusal names none, and
+/// every cause answers one uniform refusal.
 // Never built freehand outside tests: `ServeLimits::manifest_limits` is the one derivation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -44,18 +45,20 @@ pub struct ManifestLimits {
     pub locate_link_properties: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
-    /// The sealed-blob asynchronous-refresh horizon, seconds.
-    pub seal_soft_seconds: u64,
-    /// The sealed-blob rejection bound, seconds.
-    pub seal_hard_seconds: u64,
+    /// The authority token's asynchronous-refresh horizon, seconds.
+    pub authority_soft_seconds: u64,
+    /// The authority token's rejection bound, seconds.
+    pub authority_hard_seconds: u64,
 }
 
 impl ServeLimits {
-    /// Derives the manifest's `limits` block from the limits the handlers enforce.
+    /// Derives the manifest's `limits` block from the values the server enforces.
     ///
-    /// One source, so the published limits cannot disagree with enforcement.
+    /// The request and response limits come from the handlers' own configuration; the staleness
+    /// windows from `visibility`, the pair the cache enforces. One source per value, so the
+    /// published limits cannot disagree with enforcement.
     #[must_use]
-    pub const fn manifest_limits(&self) -> ManifestLimits {
+    pub const fn manifest_limits(&self, visibility: VisibilityLimits) -> ManifestLimits {
         ManifestLimits {
             colored_type_ids: self.tile.colored_type_ids,
             edges_tiles: self.edges.tiles,
@@ -64,8 +67,8 @@ impl ServeLimits {
             locate_link_type_ids: self.locate.link_type_ids,
             locate_link_properties: self.locate.link_properties,
             translate_entity_ids: self.translate.entity_ids,
-            seal_soft_seconds: self.seal.soft.as_secs(),
-            seal_hard_seconds: self.seal.hard.as_secs(),
+            authority_soft_seconds: visibility.soft.as_secs(),
+            authority_hard_seconds: visibility.hard.as_secs(),
         }
     }
 }

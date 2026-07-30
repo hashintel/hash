@@ -268,7 +268,9 @@ fn stage_row<'row>(
 fn counter(run: &RunState, stage: Stage) -> Option<String> {
     match stage {
         Stage::Ingest => run.embedding().map(embedding_counter),
-        Stage::Classifier => run.classifier().map(classifier_counter),
+        Stage::Classifier => run
+            .classifier()
+            .map(|folds| classifier_counter(folds, run.classifier_regularization())),
         Stage::Knn => run.knn().map(knn_counter),
         Stage::Policy
         | Stage::Adjacency
@@ -328,14 +330,15 @@ fn projector_counter(training: &ProjectorTraining) -> String {
     )
 }
 
-/// The classifier counter: cross-validation folds landed, as a bar.
-fn classifier_counter(folds: ClassifierFolds) -> String {
+/// The classifier counter: folds landed as a bar, and the selected strength once chosen.
+fn classifier_counter(folds: ClassifierFolds, regularization: Option<f64>) -> String {
     let Some(total) = NonZero::new(folds.total) else {
         return String::new();
     };
 
+    let strength = regularization.map_or_else(String::new, |value| format!(" λ {value}"));
     format!(
-        "{} {}/{total} folds",
+        "{} {}/{total} folds{strength}",
         counter_bar(folds.done, total),
         folds.done
     )
@@ -867,6 +870,29 @@ mod tests {
 
         assert!(
             drawn[2].starts_with("│ ⠋ classifier  ██████░░ 3/4 folds"),
+            "{drawn:#?}"
+        );
+    }
+
+    #[expect(
+        clippy::non_ascii_literal,
+        reason = "the assertions read the dashboard's own glyphs"
+    )]
+    #[test]
+    fn the_classifier_row_carries_the_selected_strength_once_chosen() {
+        let mut state = RunState::new();
+        state.complete_at(Stage::Ingest, Duration::from_secs(1));
+        state.start_classifier(4);
+        state.complete_classifier_fold();
+        state.complete_classifier_fold();
+        state.complete_classifier_fold();
+        state.complete_classifier_fold();
+        state.select_regularization(0.3);
+
+        let drawn = draw(&state, 0);
+
+        assert!(
+            drawn[2].starts_with("│ ⠋ classifier  ████████ 4/4 folds λ 0.3"),
             "{drawn:#?}"
         );
     }
