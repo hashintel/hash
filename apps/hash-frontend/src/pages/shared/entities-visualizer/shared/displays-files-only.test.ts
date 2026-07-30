@@ -5,8 +5,10 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { displaysFilesOnly } from "./displays-files-only";
 
 import type { SpecialEntityTypeRecord } from "../../../../shared/entity-types-context/shared/context-types";
-import type { ClosedMultiEntityType } from "@blockprotocol/graph";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const fileTypeId = systemEntityTypes.file.entityTypeId as VersionedUrl;
 const spreadsheetTypeId =
@@ -48,7 +50,7 @@ describe("displaysFilesOnly", () => {
     expect(
       displaysFilesOnly({
         closedMultiEntityTypes: [],
-        entityTypeBaseUrl: systemEntityTypes.file.entityTypeBaseUrl as BaseUrl,
+        entityTypeBaseUrl: systemEntityTypes.file.entityTypeBaseUrl,
         isSpecialEntityTypeLookup: null,
       }),
     ).toBe(true);

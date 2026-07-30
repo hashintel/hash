@@ -1,8 +1,11 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type { SpecialEntityTypeRecord } from "../../../../shared/entity-types-context/shared/context-types";
-import type { ClosedMultiEntityType } from "@blockprotocol/graph";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  ClosedMultiEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -24,7 +27,7 @@ const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
 
 const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
-) as BaseUrl[];
+);
 
 /**
  * Whether everything on display is a file, which is what the Grid view renders.

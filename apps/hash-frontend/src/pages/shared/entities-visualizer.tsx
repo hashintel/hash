@@ -363,17 +363,18 @@ export const EntitiesVisualizer: FunctionComponent<{
    * same read.
    */
   const closedMultiEntityTypes = useMemo(() => {
-    const [typesRootMap, rowTypeIdLists] = tableQuery.tableData
-      ? [
-          tableQuery.closedMultiEntityTypes,
-          tableQuery.tableData.rows.map((row) =>
+    const { typesRootMap, rowTypeIdLists } = tableQuery.tableData
+      ? {
+          typesRootMap: tableQuery.closedMultiEntityTypes,
+          rowTypeIdLists: tableQuery.tableData.rows.map((row) =>
             row.entityTypes.map((rowEntityType) => rowEntityType.entityTypeId),
           ),
-        ]
-      : [
-          closedMultiEntityTypesRootMap,
-          entities?.map((entity) => entity.metadata.entityTypeIds) ?? [],
-        ];
+        }
+      : {
+          typesRootMap: closedMultiEntityTypesRootMap,
+          rowTypeIdLists:
+            entities?.map((entity) => entity.metadata.entityTypeIds) ?? [],
+        };
 
     if (!typesRootMap) {
       return [];
