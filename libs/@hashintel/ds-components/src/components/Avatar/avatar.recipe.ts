@@ -23,8 +23,8 @@ export const styles = sva({
       containerType: "inline-size",
       // A loaded image gets the neutral fill and border on every tone
       "&[data-loaded='true']": {
-        backgroundColor: "neutral.s20",
-        borderColor: "bd.subtle",
+        backgroundColor: "neutral.s40",
+        borderColor: "neutral.s40",
       },
     },
     image: {
@@ -130,7 +130,7 @@ export const styles = sva({
         root: {
           backgroundColor: "neutral.s20",
           color: "neutral.s110",
-          borderColor: "bd.subtle",
+          borderColor: "neutral.s40",
         },
         icon: {
           color: "neutral.s85",
