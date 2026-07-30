@@ -128,6 +128,7 @@ import PauseSolid from "./svgs/solid/pause.svg";
 import PlaySolid from "./svgs/solid/play.svg";
 import StarSolid from "./svgs/solid/star.svg";
 import Stop from "./svgs/solid/stop.svg";
+import User from "./svgs/solid/user.svg";
 
 import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
@@ -259,6 +260,7 @@ const IconMap = {
   trash: TrashCan,
   truck: Truck,
   undo: ArrowRotateLeft,
+  user: User,
   userPlus: UserPlus,
   warning: TriangleExclamation,
   zoomIn: MagnifyingGlassPlus,

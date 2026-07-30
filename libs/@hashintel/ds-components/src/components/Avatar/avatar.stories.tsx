@@ -113,8 +113,8 @@ const defaultCells = (
     key="icon"
     shape={shape}
     tone={tone}
-    alt="Settings"
-    placeholder={{ icon: "gear" }}
+    alt="Christian Busch"
+    placeholder={{ icon: "user" }}
     onClick={noop}
   />,
   <Avatar
@@ -183,7 +183,7 @@ export const Sizes: Story<AvatarProps> = () => (
       { label: "Square", cells: sizeCells("square", { initials: "CB" }) },
       {
         label: "Circle · icon",
-        cells: sizeCells("circle", { icon: "gear" }, "Settings"),
+        cells: sizeCells("circle", { icon: "user" }, "Christian Busch"),
       },
     ]}
   />

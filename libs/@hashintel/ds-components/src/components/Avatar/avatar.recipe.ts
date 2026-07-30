@@ -120,7 +120,7 @@ export const styles = sva({
         // equal-specificity --icon-size (which would otherwise win on source order).
         icon: {
           "&:is(svg)": {
-            "--icon-size": "[50cqw]",
+            "--icon-size": "[51cqw]",
           },
         },
       },
@@ -131,6 +131,9 @@ export const styles = sva({
           backgroundColor: "neutral.s20",
           color: "neutral.s110",
           borderColor: "bd.subtle",
+        },
+        icon: {
+          color: "neutral.s85",
         },
       },
       brand: {
