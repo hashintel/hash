@@ -26,7 +26,7 @@ const variants: NonNullable<ChipProps["variant"]>[] = [
 
 const shapes: NonNullable<ChipProps["shape"]>[] = ["default", "round"];
 
-type AffixVariant = "straight" | "circle" | "angle" | "naked";
+type AffixVariant = "straight" | "badge" | "angle" | "naked";
 
 // The affix `variant`s, plus an optional chip `shape` for the row.
 const affixStyles: {
@@ -36,23 +36,23 @@ const affixStyles: {
 }[] = [
   { label: "straight", variant: "straight" },
   { label: "naked", variant: "naked" },
-  { label: "circle", variant: "circle" },
-  { label: "circle (round)", variant: "circle", shape: "round" },
+  { label: "badge", variant: "badge" },
+  { label: "badge (round)", variant: "badge", shape: "round" },
   { label: "angle", variant: "angle" },
 ];
 
 const dotStyles = ["filled", "partiallyFilled", "empty"] as const;
 
-// Extra per-row examples in the colour story: the circle and "square" (angle)
+// Extra per-row examples in the colour story: the badge and "square" (angle)
 // affixes, each in blue and in black.
 const affixColorExamples: {
   color: ChipColor;
   prefixVariant: AffixVariant;
   label: string;
 }[] = [
-  { color: "blue", prefixVariant: "circle", label: "circle" },
+  { color: "blue", prefixVariant: "badge", label: "badge" },
   { color: "blue", prefixVariant: "angle", label: "angle" },
-  { color: "black", prefixVariant: "circle", label: "circle" },
+  { color: "black", prefixVariant: "badge", label: "badge" },
   { color: "black", prefixVariant: "angle", label: "angle" },
 ];
 
@@ -206,7 +206,7 @@ export const Shape: Story<ChipProps> = (args) => (
         <KitchenSinkChip
           key={shape}
           shape={shape}
-          prefixVariant="circle"
+          prefixVariant="badge"
           color={args.color}
           variant={args.variant}
           size={args.size}
@@ -288,7 +288,7 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
       </div>
 
       {affixStyles.map((style) => {
-        // An entry may pin the row's shape (e.g. circle on `round`); otherwise
+        // An entry may pin the row's shape (e.g. badge on `round`); otherwise
         // follow the story's shape control.
         const shape = style.shape ?? base.shape;
         return (

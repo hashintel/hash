@@ -17,7 +17,7 @@ type PrefixOrSuffix = (
   | { children: React.ReactNode }
 ) & {
   onClick?: () => void;
-  variant?: "straight" | "circle" | "angle" | "naked";
+  variant?: "straight" | "badge" | "angle" | "naked";
 };
 
 export type ChipColor =
@@ -130,12 +130,12 @@ export const Chip = ({
   const rootIsButton = clickable && !hasInteractiveAffix;
   const segmentedButton = clickable && hasInteractiveAffix;
 
-  // Circle/angle affixes bleed with a rounded/slanted edge, leaving a gap next
+  // Badge/angle affixes bleed with a rounded/slanted edge, leaving a gap next
   // to the label. When such an affix is a separate button beside the clickable
   // centre, underlap the centre's hover tint beneath it to fill that gap; for an
   // angle affix the underlap is additionally slanted to hug the affix's slant.
   const isBleeding = (affix: PrefixOrSuffix | undefined) =>
-    affix?.variant === "circle" || affix?.variant === "angle";
+    affix?.variant === "badge" || affix?.variant === "angle";
   const isAngle = (affix: PrefixOrSuffix | undefined) =>
     affix?.variant === "angle";
 
