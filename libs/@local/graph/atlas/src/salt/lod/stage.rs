@@ -40,12 +40,16 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 pub struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
-    /// A tile at zoom `z` delivers buckets at or below `z + span`. Defaults to 6 (a 64x64 sample grid): regular buckets deliver at most `4^span` points per incremental tile, and the deepest catch-all may exceed the cap by its co-located residue, measured as [`LodMeasurements::co_location_excess`].
+    /// A tile at zoom `z` delivers buckets at or below `z + span`, sampling a `2^span` by `2^span`
+    /// grid per tile. Regular buckets deliver at most `4^span` points per incremental tile, and the
+    /// deepest catch-all may exceed that cap by its co-located residue, measured as
+    /// [`LodMeasurements::co_location_excess`].
     pub span: Log2 = DEFAULT_SPAN,
     /// The deepest tile zoom the schedule serves.
     ///
-    /// Defaults to 18, which with the default span puts the deepest cascade grid at depth 24 - the
-    /// resolution where `f32` coordinates in the wire frame stop separating points.
+    /// The deepest cascade grid sits at `max_tile_depth + span`, which the configured defaults put
+    /// at depth 24 - the resolution where `f32` coordinates in the wire frame stop separating
+    /// points.
     pub max_tile_depth: u8 = 18,
 }
 

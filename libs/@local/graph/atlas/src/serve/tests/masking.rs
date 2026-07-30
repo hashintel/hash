@@ -1,6 +1,39 @@
 //! The visibility masking battery: every read surface computed over the masked view.
 
 use super::*;
+use crate::math::{Bounds2, Vec2};
+
+/// The generation's extent, and the rows attaining any of its four extremes.
+///
+/// Hiding exactly these rows vacates every edge of the extent, which is what lets a census witness
+/// fail on a census read off the artifacts rather than off the view: with any edge still attained,
+/// the corpus extent and the view's extent agree there and the wrong answer looks right.
+fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
+    let corpus = Bounds2::from_points(points.iter().copied()).expect("the fixture holds points");
+
+    // Exact equality is the predicate: an extremum IS one of this column's own values, so a row
+    // attains it bit-for-bit or does not attain it.
+    #[expect(
+        clippy::float_cmp,
+        reason = "the comparand is drawn from this very column, so bit equality is the intended \
+                  test"
+    )]
+    let mut attaining: Vec<u32> = points
+        .iter()
+        .enumerate()
+        .filter(|(_, point)| {
+            point.x() == corpus.min().x()
+                || point.x() == corpus.max().x()
+                || point.y() == corpus.min().y()
+                || point.y() == corpus.max().y()
+        })
+        .map(|(position, _)| row_ids[position])
+        .collect();
+    attaining.sort_unstable();
+    attaining.dedup();
+
+    (corpus, attaining)
+}
 
 /// The resolve seam collapses every failure to one [`None`].
 ///
@@ -988,4 +1021,206 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             );
         }
     }
+}
+
+/// The masked root publishes the visible view's own census, not the generation's.
+///
+/// The root tile's global map carries three corpus-wide aggregates, and each one is resolved once
+/// per scope rather than per request. This pins all three against an independent derivation over
+/// the generation's own columns, under a mask chosen so that a census read off the artifacts
+/// instead of off the view fails on every one of them:
+///
+/// The hidden set is exactly the rows attaining an extreme coordinate, so the visible extent is
+/// strictly inside the generation's extent on all four edges - the fixture asserts that strictness
+/// rather than assuming it, because a mask that vacates no edge could not fail on the defect.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_masked_root_publishes_the_visible_views_own_census() {
+    let (generation, atlas) = publish("masked-census").await;
+    let Artifacts {
+        morton,
+        coordinates,
+        rows,
+        ..
+    } = open_artifacts(&generation);
+    let points = coordinates.points().expect("wire coordinates are points");
+    let row_ids = rows.u32_elements().expect("the row column is u32");
+
+    let (corpus, hidden) = extremes(points, row_ids);
+    assert!(
+        !hidden.is_empty() && hidden.len() < points.len(),
+        "the mask hides the extremes and leaves a non-empty view"
+    );
+
+    let proof = mask_hiding(&atlas, &hidden);
+    let visible = |position: usize| !hidden.contains(&row_ids[position]);
+
+    // The three expectations, derived over the columns rather than through the census: the visible
+    // points of the root's cumulative schedule, the tight extent of the whole visible set, and the
+    // deepest bucket holding a visible point.
+    let lengths = morton.fenceposts().lengths();
+    let schedule_end: u64 = lengths[..=usize::from(FIXTURE_LOD.span.get())].iter().sum();
+    let schedule_end = usize::try_from(schedule_end).expect("fixture counts fit usize");
+    let expected_visible = (0..schedule_end)
+        .filter(|&position| visible(position))
+        .count();
+    let expected_extent = Bounds2::from_points(
+        (0..points.len())
+            .filter(|&position| visible(position))
+            .map(|position| points[position]),
+    )
+    .expect("the masked view holds points");
+
+    let mut expected_deepest = 0;
+    let mut start = 0;
+    for (bucket, &length) in lengths.iter().enumerate() {
+        let end = start + usize::try_from(length).expect("fixture counts fit usize");
+        if (start..end).any(visible) {
+            expected_deepest = bucket as u64;
+        }
+        start = end;
+    }
+
+    let edges = |bounds: &Bounds2| {
+        [
+            bounds.min().x(),
+            bounds.min().y(),
+            bounds.max().x(),
+            bounds.max().y(),
+        ]
+    };
+
+    // The witness must be able to fail on the defect it names: every edge of the visible extent
+    // moved inward, so publishing the generation's extent here is a detectable answer.
+    assert!(
+        expected_extent.min().x() > corpus.min().x()
+            && expected_extent.min().y() > corpus.min().y()
+            && expected_extent.max().x() < corpus.max().x()
+            && expected_extent.max().y() < corpus.max().y(),
+        "the mask vacates all four extremes, so the view's extent is strictly inside the corpus's"
+    );
+
+    let masked_bytes = atlas
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &proof,
+        )
+        .expect("the masked root serves");
+    let (visible_count, extent, min_resolution) =
+        head_global(section(&masked_bytes, HEAD).expect("HEAD is present"))
+            .expect("the root publishes its global map");
+
+    assert_eq!(
+        visible_count, expected_visible as u64,
+        "the published count is the visible points of the root's schedule"
+    );
+    assert_eq!(
+        extent,
+        Some(edges(&expected_extent)),
+        "the published extent is the visible set's own"
+    );
+    assert_eq!(
+        min_resolution, expected_deepest,
+        "the published depth is the deepest bucket holding a visible point"
+    );
+
+    // And the unmasked root over the same generation publishes the corpus's own numbers, so the
+    // three assertions above distinguish the view from the artifacts rather than restating them.
+    let full_bytes = atlas
+        .tile(&request(0, 0, 0, Mode::Delta), TileLimits::default(), &FULL)
+        .expect("the unmasked root serves");
+    let (full_count, full_extent, _) =
+        head_global(section(&full_bytes, HEAD).expect("HEAD is present"))
+            .expect("the root publishes its global map");
+
+    assert_eq!(
+        full_extent,
+        Some(edges(&corpus)),
+        "the unmasked root publishes the generation's extent"
+    );
+    assert_ne!(extent, full_extent, "the census follows the view");
+    assert!(
+        visible_count < full_count,
+        "the mask removed delivered points from the root's schedule"
+    );
+}
+
+/// The census's unmasked fast path answers exactly what the walk answers.
+///
+/// [`Atlas::census`] reads the artifacts for a proof built as the full-visibility value and walks
+/// the base column for a mask. A mask admitting *every* row of the generation is the one input both
+/// regimes must agree on, so it pins the fast path against the general one: the two constructors
+/// carry different digests by design, and their censuses may not differ at all.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn the_unmasked_census_agrees_with_the_walked_one() {
+    let (_generation, atlas) = publish("census-regimes").await;
+
+    let admits_everything = mask_hiding(&atlas, &[]);
+    assert_ne!(
+        FULL.digest(),
+        admits_everything.digest(),
+        "the two proofs are distinct values, so the agreement below is not an identity"
+    );
+    assert_eq!(
+        atlas.census(&FULL),
+        atlas.census(&admits_everything),
+        "the artifact-read census and the walked census answer the same view"
+    );
+}
+
+/// The masked root publishes the view's own depth, not the generation's.
+///
+/// A companion to the census witness above, which cannot fail on this clause: hiding the extreme
+/// coordinates leaves the deepest occupied bucket populated, so the visible depth and the corpus
+/// depth coincide there and a census ignoring the mask would answer correctly by accident. This
+/// hides exactly the deepest bucket's rows, so the two must part.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_masked_root_publishes_the_views_own_depth() {
+    let (generation, atlas) = publish("masked-depth").await;
+    let Artifacts { morton, rows, .. } = open_artifacts(&generation);
+    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let lengths = morton.fenceposts().lengths();
+
+    // The generation's deepest occupied bucket, and the positions inside it.
+    let (deepest, _) = lengths
+        .iter()
+        .enumerate()
+        .rfind(|&(_, &length)| length > 0)
+        .expect("the fixture occupies a bucket");
+    let start: u64 = lengths[..deepest].iter().sum();
+    let start = usize::try_from(start).expect("fixture counts fit usize");
+    let end = start + usize::try_from(lengths[deepest]).expect("fixture counts fit usize");
+
+    let mut hidden: Vec<u32> = (start..end).map(|position| row_ids[position]).collect();
+    hidden.sort_unstable();
+    hidden.dedup();
+
+    // The next occupied bucket below is where the view's depth must land.
+    let expected = lengths[..deepest]
+        .iter()
+        .enumerate()
+        .rfind(|&(_, &length)| length > 0)
+        .map_or(0, |(bucket, _)| bucket as u64);
+    assert!(
+        expected < deepest as u64,
+        "the witness must be able to fail: the mask has to vacate the deepest bucket"
+    );
+
+    let bytes = atlas
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &mask_hiding(&atlas, &hidden),
+        )
+        .expect("the masked root serves");
+    let (_, _, min_resolution) = head_global(section(&bytes, HEAD).expect("HEAD is present"))
+        .expect("the root publishes its global map");
+
+    assert_eq!(
+        min_resolution, expected,
+        "the published depth is the deepest bucket holding a VISIBLE point"
+    );
 }

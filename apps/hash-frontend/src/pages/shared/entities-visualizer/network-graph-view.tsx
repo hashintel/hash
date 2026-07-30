@@ -6,9 +6,10 @@
  * the quadtree tiles it covers through a persistent, distance-evicting cache and
  * returning the merged nodes plus request state.
  *
- * Tiles are fetched from the `hash-graph atlas` server via the `/atlas-api`
- * Next.js rewrite (see `next.config.js`), which proxies to it same-origin so the
- * browser avoids a CORS block on the atlas origin.
+ * Tiles are fetched from the `hash-graph atlas` server through hash-api's
+ * `/atlas` route (see {@link ATLAS_API_BASE_URL}): the browser sends the request
+ * credentialed to hash-api's own origin, and the atlas answers under the actor
+ * hash-api resolved from the session cookie riding it.
  */
 
 import { Box, Stack, Typography, useTheme } from "@mui/material";
@@ -54,6 +55,7 @@ import {
   type SaltileProperties,
   type SaltilePropertyValue,
 } from "../../../components/tiled-network-graph/tiling/fetch-locate";
+import { ATLAS_API_BASE_URL } from "../../../components/tiled-network-graph/tiling/fetch-tile";
 import {
   useGetViewportNodes,
   WORLD_SIZE,
@@ -80,12 +82,6 @@ import type {
   EntityId,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-
-/**
- * Same-origin path the view fetches tiles from. The `/atlas-api` rewrite in
- * `next.config.js` forwards it to the `hash-graph atlas` server.
- */
-const ATLAS_PROXY_BASE = "/atlas-api";
 
 /** Aim for roughly this many tiles across the viewport when choosing a depth. */
 const TARGET_TILES_ACROSS = 2;
@@ -324,7 +320,7 @@ interface Selection {
  * which fetches its tiles through a persistent cache and returns the merged nodes
  * plus loading/error state. `graphBounds` and `maxZoom` are frozen so streaming
  * new points never reframes the camera. Requires the `hash-graph atlas` server
- * (proxied via `/atlas-api`).
+ * (reached through hash-api's `/atlas` route).
  *
  * Nodes are coloured by entity type using the same palette as the type filter
  * dropdown: the types that resolve to a distinct colour there (by default the
@@ -719,13 +715,16 @@ export const NetworkGraphView = ({
     [],
   );
 
-  const { data, isError, error } = useGetViewportNodes(viewport, {
-    baseUrl: ATLAS_PROXY_BASE,
-    // Always fetch labelled (and icon-ed) tile data, so every visible node is
-    // labelled regardless of zoom rather than only in the detailed view.
-    includeDetailedData: true,
-    coloredTypeIds,
-  });
+  const { data, isError, error, sessionRevision } = useGetViewportNodes(
+    viewport,
+    {
+      baseUrl: ATLAS_API_BASE_URL,
+      // Always fetch labelled (and icon-ed) tile data, so every visible node is
+      // labelled regardless of zoom rather than only in the detailed view.
+      includeDetailedData: true,
+      coloredTypeIds,
+    },
+  );
 
   const points = useMemo(
     () =>
@@ -806,7 +805,7 @@ export const NetworkGraphView = ({
     (atlasId: number, onLocated: (entity: LocatedEntity) => void) => {
       locateSeqRef.current += 1;
       const seq = locateSeqRef.current;
-      void fetchLocate(atlasId, { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds })
+      void fetchLocate(atlasId, { baseUrl: ATLAS_API_BASE_URL, coloredTypeIds })
         .then((entity) => {
           if (seq === locateSeqRef.current) {
             onLocated(entity);
@@ -883,24 +882,46 @@ export const NetworkGraphView = ({
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
   // id — a search result carries no atlas row id, so it locates by `entityId`.
-  // The cache is tagged with the queried type set it was built against: that set
-  // keys each node's type mask, so a change to it invalidates every entry.
+  // The cache is tagged with the binding it was built against: the queried type
+  // set keys each node's type mask, and the atlas generation salts the wire row
+  // ids its entries carry, so if the session re-pins to another generation those
+  // ids name different, existing rows. Either change invalidates every entry.
   // Colour-only changes keep `coloredTypeIdsSignature` stable and don't.
+  const locateCacheSignature = `${coloredTypeIdsSignature}|gen:${sessionRevision}`;
   const locateCacheRef = useRef<{
     signature: string;
     entries: Map<EntityId, Promise<LocatedEntity>>;
-  }>({ signature: coloredTypeIdsSignature, entries: new Map() });
+  }>({ signature: locateCacheSignature, entries: new Map() });
 
-  // The live cache for the current type set, reset lazily when that set changes.
+  // The live cache for the current binding, reset lazily when it changes.
   const getLocateCache = useCallback(() => {
-    if (locateCacheRef.current.signature !== coloredTypeIdsSignature) {
+    if (locateCacheRef.current.signature !== locateCacheSignature) {
       locateCacheRef.current = {
-        signature: coloredTypeIdsSignature,
+        signature: locateCacheSignature,
         entries: new Map(),
       };
     }
     return locateCacheRef.current.entries;
-  }, [coloredTypeIdsSignature]);
+  }, [locateCacheSignature]);
+
+  // A re-pin also invalidates the row ids held in *painted* state: `selected` and
+  // `hoveredByExternal` are row ids, and hydrating one afterwards opens a
+  // different entity than the dot the user pointed at. Bumping the three
+  // sequences discards any locate issued under the retired generation.
+  useEffect(() => {
+    locateSeqRef.current += 1;
+    hoverSeqRef.current += 1;
+    hoverLocateSeqRef.current += 1;
+    if (hoverLocateTimerRef.current !== undefined) {
+      window.clearTimeout(hoverLocateTimerRef.current);
+      hoverLocateTimerRef.current = undefined;
+    }
+    setSelected(null);
+    setSelection(null);
+    setHoveredByExternal(null);
+    setHoveredLabel(null);
+    setHoverLocateLoading(false);
+  }, [sessionRevision]);
 
   // Locate an entity by id, memoized in the cache (read-or-start) so a prefetch
   // and a later pick share one request. A rejected locate is dropped so it can
@@ -914,7 +935,7 @@ export const NetworkGraphView = ({
       }
       const promise = fetchLocate(
         { entityId },
-        { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds },
+        { baseUrl: ATLAS_API_BASE_URL, coloredTypeIds },
       );
       entries.set(entityId, promise);
       void promise.catch(() => {
@@ -1027,7 +1048,10 @@ export const NetworkGraphView = ({
       setHoverLocateLoading(true);
       const seq = hoverLocateSeqRef.current;
       hoverLocateTimerRef.current = window.setTimeout(() => {
-        void fetchLocate(atlasId, { baseUrl: ATLAS_PROXY_BASE, coloredTypeIds })
+        void fetchLocate(atlasId, {
+          baseUrl: ATLAS_API_BASE_URL,
+          coloredTypeIds,
+        })
           .then((entity) => {
             // A newer (or ended) hover has taken over — leave its state alone.
             if (seq !== hoverLocateSeqRef.current) {
@@ -1356,7 +1380,7 @@ export const NetworkGraphView = ({
             {isError ? (
               <Typography variant="smallTextParagraphs" color="gray.70">
                 Couldn’t reach the Atlas server. Start it, then reload — tiles
-                are fetched via the <code>/atlas-api</code> proxy.
+                are fetched through hash-api’s <code>/atlas</code> route.
                 {error?.message ? ` (${error.message})` : null}
               </Typography>
             ) : (

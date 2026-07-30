@@ -157,6 +157,18 @@ where
     .instrument(tracing::info_span!("admission"))
     .await
     .map_err(|source| RunnerError::Quality { id, source })?;
+
+    // The battery's readings are reported here rather than from inside the probe, because the
+    // reading a control turns on is an extremum over the probe's rungs and only exists once the
+    // report reduces them - and it is the same reduction the verdict reads. A control whose
+    // evidence is absent reports nothing: there is no measurement to observe, and the refusal
+    // is the report's to carry.
+    for control in report.controls() {
+        if let Some(reading) = control.reading {
+            progress.quality_probe(control.metric, reading);
+        }
+    }
+
     progress.stage_completed(Stage::Admission);
 
     if !report.passes() {

@@ -92,9 +92,11 @@ pub(super) async fn handler(
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.tile;
     let proof = visibility.proof;
+    let census = visibility.census;
+
     let assembled = spawn(move || {
         atlas
-            .assemble_tile(&request, limits, &proof)
+            .assemble_tile(&request, limits, &proof, census)
             .map(|document| {
                 let entities = detailed.then(|| atlas.delivered_entities(&document));
                 (document, entities)

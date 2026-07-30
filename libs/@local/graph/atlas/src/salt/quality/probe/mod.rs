@@ -59,9 +59,16 @@ use crate::{
 mod pass;
 mod readings;
 
-// The neighbourhood sizes match the ones the specification's measured
-// baselines are recorded at, so probe readings compare against the
-// recorded evidence without interpolation. The anchor and comparison
+// The neighbourhood sizes are the ones the suite's measured evidence
+// was recorded at: overall readings of 0.883, 0.890 and 0.893 at
+// k = 15, 30 and 50, the representation baseline of one 2026-07-19
+// run over the 985,932-row development corpus (2,196,562 edges, 49
+// types, 1,024 anchors and 4,096 comparisons at seed 0). Reading at
+// those sizes compares against that record without interpolation.
+// The record anchors the sizes and the scale, not any threshold: it
+// is one generation under the landmark-baseline placement rather
+// than the trained projector, and the shipped thresholds gate
+// evidence presence rather than fidelity. The anchor and comparison
 // defaults bound the canonical fetch (anchors + comparisons rows of
 // 3,072 f32 components, ~53 MB) while keeping subgroup cells at a few
 // dozen anchors and the sampled neighbourhoods well inside the

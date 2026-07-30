@@ -71,9 +71,10 @@ pub use self::{
         TranslatedNode,
     },
     visibility::{VisibilityProof, VisibleRow},
+    walk::ViewCensus,
 };
 pub(crate) use self::{
-    cache::{VisibilityCache, VisibilityKey},
+    cache::{Resolution, VisibilityCache, VisibilityKey},
     hydrate::compile::{ProofError, visibility_proof},
 };
 use crate::{

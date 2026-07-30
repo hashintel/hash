@@ -1847,7 +1847,7 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
 
     // The transport path assembles, gathers, hydrates, encodes.
     let document = atlas
-        .assemble_tile(&detailed, TileLimits::default(), &FULL)
+        .assemble_tile(&detailed, TileLimits::default(), &FULL, atlas.census(&FULL))
         .expect("assembly ignores the trailer flag");
     let entities = atlas.delivered_entities(&document);
 
@@ -2727,6 +2727,39 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>, u64) {
     (delivered, runs, backfilled)
 }
 
+/// Reads the root's global map from a tile `HEAD`, [`None`] when the head carries none.
+///
+/// The visible count of the root's schedule, the visible extent as `[minX, minY, maxX, maxY]`, and
+/// the deepest visible bucket - `HEAD` key 8, whose value is the census the scope resolved.
+fn head_global(head: &[u8]) -> Option<(u64, Option<[f32; 4]>, u64)> {
+    let mut reader = CborReader { bytes: head, at: 0 };
+    let entries = reader.head(5);
+    for _ in 0..entries {
+        if reader.uint() != 8 {
+            reader.skip();
+            continue;
+        }
+
+        let fields = reader.head(5);
+        let (mut visible, mut bounds, mut min_resolution) = (0, None, 0);
+        for _ in 0..fields {
+            match reader.uint() {
+                0 => visible = reader.uint(),
+                1 => {
+                    assert_eq!(reader.head(4), 4, "the extent is four wire floats");
+                    bounds = Some([reader.f32(), reader.f32(), reader.f32(), reader.f32()]);
+                }
+                2 => min_resolution = reader.uint(),
+                _ => reader.skip(),
+            }
+        }
+
+        return Some((visible, bounds, min_resolution));
+    }
+
+    None
+}
+
 /// A minimal CBOR reader over the deterministic profile the tile `HEAD` uses.
 struct CborReader<'bytes> {
     bytes: &'bytes [u8],
@@ -2773,6 +2806,16 @@ impl CborReader<'_> {
         let (major, value) = self.read_head();
         assert_eq!(major, 0, "expected a uint at {}", self.at);
         value
+    }
+
+    /// Reads one wire float.
+    ///
+    /// The profile emits coordinates as CBOR single-precision floats, so the head read consumed the
+    /// four payload bytes as the argument.
+    fn f32(&mut self) -> f32 {
+        let (major, bits) = self.read_head();
+        assert_eq!(major, 7, "expected a float at {}", self.at);
+        f32::from_bits(u32::try_from(bits).expect("wire floats are single precision"))
     }
 
     /// Skips one item of any shape the tile `HEAD` carries.

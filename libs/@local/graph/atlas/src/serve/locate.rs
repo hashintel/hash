@@ -32,23 +32,23 @@ pub struct LocateLimits {
     /// Most ego-graph edges one response delivers.
     ///
     /// A larger incident set keeps the edges whose partners lie nearest the source, and HEAD
-    /// reports `complete: false`. Defaults to 512: every delivered edge also costs live link
-    /// hydration, so the cap bounds the store round trip, not just wire bytes.
+    /// reports `complete: false`. Every delivered edge also costs live link hydration, so the cap
+    /// bounds the store round trip and not only wire bytes.
     pub edges: u32 = 512,
     /// Most properties the source ships.
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
     /// property protected to the very end, so the label survives every cap that admits at least
-    /// one property. Defaults to 10.
+    /// one property.
     pub properties: u32 = 10,
     /// Most direct types one delivered edge ships.
     ///
     /// An over-cap link truncates its type list in canonical order and its completeness bit
-    /// reads unset. Defaults to 5.
+    /// reads unset.
     pub link_type_ids: u32 = 5,
     /// Most properties one delivered edge ships.
     ///
-    /// The source's drop rule per link. Defaults to 10.
+    /// The source's drop rule per link.
     pub link_properties: u32 = 10,
 }
 

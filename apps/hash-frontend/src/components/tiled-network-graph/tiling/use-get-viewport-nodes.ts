@@ -63,6 +63,26 @@
  * cache, since edges touching an evicted tile can no longer be drawn. An
  * unchanged tile set serves its edges entirely from the resident buckets.
  *
+ * ## Generations
+ *
+ * The atlas serves exactly one generation per process, pinned at its startup: the
+ * `current` route echoes it, and every other route answers `404` for any other
+ * generation id. So the tiles of one session are one generation *by
+ * construction* — nothing changes generation mid-request, or under a running
+ * server.
+ *
+ * What a session can outlive is the process it bootstrapped against. A view open
+ * across an atlas restart or redeploy (or reaching a second replica that serves a
+ * different generation) finds its pinned generation no longer served, and the
+ * transport's one-shot `404` refresh re-pins it to whatever `current` now names.
+ * The tiles resident at that moment belong to the retired generation, and they
+ * are not stale but *misattributed*: wire row ids are a keyed permutation salted
+ * by the generation identity, so an old id decoded under the new generation names
+ * a different, existing entity — valid to every consumer, and wrong. No remap
+ * exists. So the transport publishes `getAtlasSessionRevision`, and a change to
+ * it constructs a *new* {@link TileCache} and discards the nodes on screen; see
+ * {@link useGetViewportNodes}.
+ *
  * ## Request state
  *
  * {@link useGetViewportNodes} wraps the fetch in {@link useAtlasQuery} — a
@@ -72,7 +92,14 @@
  * cache.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   atlasTileKey,
@@ -87,6 +114,8 @@ import {
   ATLAS_API_BASE_URL,
   fetchTile,
   type FetchedTile,
+  getAtlasSessionRevision,
+  subscribeToAtlasSessionRevision,
   type TileNode,
 } from "./fetch-tile";
 import {
@@ -1097,6 +1126,19 @@ export interface AtlasQueryState<T> {
   readonly refetch: () => void;
 }
 
+/** Options for {@link useAtlasQuery}. */
+export interface UseAtlasQueryOptions {
+  /**
+   * Identity of the domain the resolved data is *true* in. It joins `key` (so a
+   * change refetches) and additionally *discards* the visible data rather than
+   * keeping it while the refetch runs: use it when previous data becomes wrong
+   * rather than merely out of date — as re-pinning to another atlas generation
+   * makes every decoded row id name a different entity. Leave unset (the default)
+   * for stale-while-revalidate throughout.
+   */
+  readonly validity?: string | number;
+}
+
 const toError = (caught: unknown): Error =>
   caught instanceof Error ? caught : new Error(String(caught));
 
@@ -1112,26 +1154,44 @@ const toError = (caught: unknown): Error =>
  * identity is not a trigger); only `key` and {@link AtlasQueryState.refetch}
  * start fetches. Previous `data` stays visible across a `key` change until the
  * next result resolves (stale-while-revalidate), so panning never blanks the
- * view; a superseded request (its `key` changed, or the hook unmounted) is
- * aborted and its result ignored.
+ * view — unless {@link UseAtlasQueryOptions.validity} changes, which discards it;
+ * a superseded request (its `key` changed, or the hook unmounted) is aborted and
+ * its result ignored.
  */
 export const useAtlasQuery = <T>(
   key: string,
   fetcher: (signal: AbortSignal) => Promise<T>,
+  options: UseAtlasQueryOptions = {},
 ): AtlasQueryState<T> => {
+  const { validity } = options;
+  // `validity` rides inside the request key, so the discard below cannot happen
+  // without the refetch that replaces what it dropped.
+  const requestKey =
+    validity === undefined ? key : `${key}|validity:${validity}`;
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<Error | undefined>(undefined);
   const [isFetching, setIsFetching] = useState(true);
-  const [renderedKey, setRenderedKey] = useState(key);
+  const [renderedKey, setRenderedKey] = useState(requestKey);
+  const [renderedValidity, setRenderedValidity] = useState(validity);
   const [reloadToken, setReloadToken] = useState(0);
 
   // A new key means a fetch is about to start in the effect below. Reflect that
   // during render — React's recommended alternative to a setState-in-effect —
   // keeping any previous data visible until the new result resolves.
-  if (key !== renderedKey) {
-    setRenderedKey(key);
+  if (requestKey !== renderedKey) {
+    setRenderedKey(requestKey);
     setIsFetching(true);
     setError(undefined);
+  }
+
+  // Stale-while-revalidate is a courtesy to panning, and it is the wrong
+  // courtesy when the resolved data stopped being *true* rather than merely
+  // current: keeping it on screen would show wrong content, and let a click on it
+  // act on wrong content. A changed `validity` drops it, blanking the view
+  // deliberately until the fetch its key change started resolves.
+  if (validity !== renderedValidity) {
+    setRenderedValidity(validity);
+    setData(undefined);
   }
 
   // Hold the latest fetcher without making it an effect dependency, so a new
@@ -1164,7 +1224,7 @@ export const useAtlasQuery = <T>(
       active = false;
       controller.abort();
     };
-  }, [key, reloadToken]);
+  }, [requestKey, reloadToken]);
 
   const refetch = useCallback(() => {
     setIsFetching(true);
@@ -1224,6 +1284,16 @@ export interface UseGetViewportNodesOptions {
 
 /** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
 export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph> {
+  /**
+   * The atlas generation binding `data`'s node and edge ids belong to (the
+   * transport's `getAtlasSessionRevision`). It travels with the graph because
+   * *anything* a consumer derives from those ids — a selection, a hover, a cached
+   * ego-graph — must be dropped if it changes: the ids do not expire, they come to
+   * name different, existing rows. It changes only when a session re-pins to
+   * another generation, which needs the process it bootstrapped against to have
+   * been replaced; see the module's "Generations" note.
+   */
+  readonly sessionRevision: number;
   /** Tiles resident in the cache after the latest load. */
   readonly tileCount: number;
   /** Prefetch effectiveness accumulated over the session. */
@@ -1245,6 +1315,9 @@ const viewportKey = (
   // now-empty cache refetches rather than serving the previous colouring.
   const colored =
     coloredTypeIds.length > 0 ? `|colored:${coloredTypeIds.join(",")}` : "";
+  // The generation binding is not spelled here: it rides the query's `validity`
+  // (see `useGetViewportNodes`), which joins the key *and* discards the nodes on
+  // screen — they name the retired generation's rows, so they cannot be kept.
   return viewport === null
     ? `${baseUrl}|initial${detail}${colored}`
     : `${baseUrl}|${viewport.x1},${viewport.y1},${viewport.x2},${viewport.y2}|${viewport.zoom}${detail}${colored}`;
@@ -1253,9 +1326,11 @@ const viewportKey = (
 /**
  * Returns the nodes visible in `viewport` as a hook, with TanStack-Query-style
  * loading and error state (see {@link AtlasQueryState}). It owns a persistent
- * {@link TileCache} — created once per `(origin, budget)` and kept across
- * renders — so tiles, in-flight deduplication, distance eviction, and prefetch
- * prediction all persist as the viewport pans and zooms.
+ * {@link TileCache} — created once per `(origin, budget, generation)` and kept
+ * across renders — so tiles, in-flight deduplication, distance eviction, and
+ * prefetch prediction all persist as the viewport pans and zooms, and are
+ * replaced wholesale if the session ever re-pins to another generation (see the
+ * "Generations" note).
  *
  * `data` holds the merged nodes and their edges for the current viewport (the
  * previous viewport's graph stays visible until the new one resolves, so
@@ -1277,6 +1352,18 @@ export const useGetViewportNodes = (
     includeDetailedData = false,
     coloredTypeIds = EMPTY_COLORED_TYPE_IDS,
   } = options;
+
+  // The generation binding every resident tile was decoded under. Re-pinning to
+  // another generation (see the module's "Generations" note) makes those tiles
+  // misattributed rather than stale — row ids are salted by the generation
+  // identity, so an old id decodes to a different, existing row, and no remap
+  // exists — so it must recreate the store rather than expire entries inside it,
+  // which is what naming it in the memo below does.
+  const sessionRevision = useSyncExternalStore(
+    subscribeToAtlasSessionRevision,
+    getAtlasSessionRevision,
+    getAtlasSessionRevision,
+  );
 
   const cache = useMemo(
     () =>
@@ -1304,7 +1391,20 @@ export const useGetViewportNodes = (
               includeDetailedData: controls?.includeDetailedData,
             })),
       }),
-    [baseUrl, retry, maxBytes, fetcher, edgesFetcher, coloredTypeIds],
+    // `sessionRevision` is not read by the factory: it is the generation identity
+    // the cache's *contents* belong to, and naming it here is the whole fix — it
+    // constructs a new, empty cache on a re-pin. See its declaration above for why
+    // replacement is the only correct response.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate: see above
+    [
+      baseUrl,
+      retry,
+      maxBytes,
+      fetcher,
+      edgesFetcher,
+      coloredTypeIds,
+      sessionRevision,
+    ],
   );
 
   const query = useAtlasQuery(
@@ -1315,6 +1415,10 @@ export const useGetViewportNodes = (
       });
       return { graph, tileCount: cache.tileCount };
     },
+    // A re-pin does not just recreate the cache: it also refetches (the revision
+    // joins the request key) and drops the nodes already on screen, which name the
+    // retired generation's rows.
+    { validity: sessionRevision },
   );
 
   return {
@@ -1325,6 +1429,7 @@ export const useGetViewportNodes = (
     isError: query.isError,
     isSuccess: query.isSuccess,
     refetch: query.refetch,
+    sessionRevision,
     tileCount: query.data?.tileCount ?? 0,
     prefetchStats: cache.prefetchStats,
   };

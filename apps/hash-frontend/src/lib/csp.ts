@@ -61,7 +61,8 @@ export const buildCspHeader = (nonce: string): string => {
       // `canvas.toDataURL()` atlas, and fetching a data: URL is governed by
       // connect-src.
       "data:",
-      // API server (GraphQL, OAuth callbacks, file uploads, auth via Ory Kratos)
+      // API server (GraphQL, OAuth callbacks, file uploads, auth via Ory Kratos, and the atlas
+      // tile surface it proxies under the session's actor)
       apiOrigin,
       // Sentry error reporting and session replay
       "https://*.ingest.sentry.io",

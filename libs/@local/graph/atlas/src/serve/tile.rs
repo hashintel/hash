@@ -14,11 +14,10 @@ use super::{
     grid,
     hydrate::{DeliveredEntities, NodeDetails},
     visibility::VisibilityProof,
-    walk::{DeliveredPoints, Walk, occupied_children},
+    walk::{DeliveredPoints, ViewCensus, Walk, occupied_children},
 };
 use crate::{
     identity::NodeRowId,
-    morton::Depth,
     salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
 };
 
@@ -31,8 +30,9 @@ use crate::{
 pub struct TileLimits {
     /// Most `coloredTypeIds` entries one request may carry.
     ///
-    /// The manifest publishes this value as `limits.coloredTypeIds`. Defaults to 32 - at that
-    /// ceiling the `TYPE_MASK` stride is four bytes per point.
+    /// The manifest publishes this value as `limits.coloredTypeIds`. The cap bounds the
+    /// `TYPE_MASK` stride, which carries one bit per requested type: at 32 that is four bytes per
+    /// point.
     pub colored_type_ids: u32 = 32,
 }
 
@@ -165,6 +165,11 @@ impl Atlas {
     /// without a store connection. A transport with one assembles, hydrates, and encodes through
     /// [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and [`Atlas::encode_tile`].
     ///
+    /// This path censuses `proof` itself, once per call. A transport resolves the census with the
+    /// scope and hands it to [`Atlas::assemble_tile`], so the walk is paid per scope rather than
+    /// per request; without a store there is no scope to hold it on, so there is nothing to
+    /// amortize against.
+    ///
     /// # Errors
     ///
     /// As [`Atlas::assemble_tile`], plus [`TileError::Unsupported`] when the query sets
@@ -179,8 +184,24 @@ impl Atlas {
             return Err(TileError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_tile(request, limits, proof)?;
+        let document = self.assemble_tile(request, limits, proof, self.census(proof))?;
         Ok(self.encode_tile(&document, None))
+    }
+
+    /// Censuses the visible view `proof` admits over this generation.
+    ///
+    /// The corpus-wide aggregates a root tile publishes, resolved once per scope: an unmasked proof
+    /// answers from the artifacts, and a masked one costs one pass over the base column. Every
+    /// root-tile request under a scope then reads the census rather than recomputing it, which is
+    /// what keeps the walk off the request path.
+    ///
+    /// Caller requirement: the census travels with the proof it was censused from. Assembly reads
+    /// it as the view's own aggregates without re-deriving them, so a census paired with a
+    /// different proof publishes that other scope's extent - the same contract, and the same
+    /// reason, as holding a proof to the generation it was evaluated for.
+    #[must_use]
+    pub fn census(&self, proof: &VisibilityProof) -> ViewCensus {
+        Walk::of(self, proof).visible_census(self.grid.cut(0), self.positions(), self.bounds)
     }
 
     /// Assembles one tile request into its owned document.
@@ -211,6 +232,7 @@ impl Atlas {
         request: &TileRequest,
         limits: TileLimits,
         proof: &VisibilityProof,
+        census: ViewCensus,
     ) -> Result<TileDocument, TileError> {
         if request.query.filter.is_some() {
             return Err(TileError::Unsupported("filter"));
@@ -279,8 +301,14 @@ impl Atlas {
             walk.visible_population(cell)
         };
 
-        let global = (coordinate.z == 0)
-            .then(|| self.global_head(&walk, self.grid.cut(coordinate.z), proof));
+        // The root publishes the view's corpus-wide aggregates, which the scope resolved once:
+        // reading them here is what keeps three masked passes over the base column off every
+        // root-tile request.
+        let global = (coordinate.z == 0).then_some(GlobalHead {
+            visible: census.visible(),
+            bounds: census.bounds(),
+            min_resolution: census.min_resolution(),
+        });
 
         let palette = Palette::of(&request.query.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
@@ -297,26 +325,6 @@ impl Atlas {
             global,
             mask_set,
         })
-    }
-
-    /// Assembles the root's global metadata over the masked view.
-    ///
-    /// The visible delivered count, the tight extent of the visible set, and its deepest occupied
-    /// bucket.
-    fn global_head(&self, walk: &Walk<'_>, cut: Depth, proof: &VisibilityProof) -> GlobalHead {
-        if proof.is_full() {
-            return GlobalHead {
-                visible: self.morton.fenceposts().segment(cut).end,
-                bounds: self.bounds,
-                min_resolution: walk.deepest_occupied(),
-            };
-        }
-
-        GlobalHead {
-            visible: walk.visible_at(cut),
-            bounds: walk.visible_extent(self.positions()),
-            min_resolution: walk.visible_deepest(),
-        }
     }
 
     /// Gathers the entity identities behind the document's delivered set, in delivered order.

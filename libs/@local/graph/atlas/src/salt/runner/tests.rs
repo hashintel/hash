@@ -1,6 +1,6 @@
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, sync::Arc};
 use core::{future::ready, num::NonZero};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 
 use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
@@ -19,7 +19,7 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
-    progress::NoProgress,
+    progress::{NoProgress, Progress, QualityMetric},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions},
@@ -243,6 +243,39 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     }
 }
 
+/// An observer keeping every admission reading the battery reported, in arrival order.
+///
+/// Cloneable and shareable because a detached half records into the same log: the readings arrive
+/// exactly as the run reported them.
+#[derive(Debug, Clone, Default)]
+struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, f64)>>>);
+
+impl RecordingBattery {
+    /// Every reading so far, in arrival order.
+    fn readings(&self) -> Vec<(QualityMetric, f64)> {
+        self.0
+            .lock()
+            .expect("no reporter panicked holding the log")
+            .clone()
+    }
+}
+
+impl Progress for RecordingBattery {
+    /// The log is shared, so a detached half records into the same fixture.
+    type Detached = Self;
+
+    fn detach(&self) -> Self {
+        self.clone()
+    }
+
+    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+        self.0
+            .lock()
+            .expect("no reporter panicked holding the log")
+            .push((metric, value));
+    }
+}
+
 /// A run whose report passes activates what it publishes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -251,6 +284,8 @@ async fn passing_run_activates_the_generation() {
     let dataset = dataset();
     let classifier = classifier();
 
+    let battery = RecordingBattery::default();
+
     let outcome = run(
         &dataset,
         &HashEmbedder,
@@ -258,12 +293,30 @@ async fn passing_run_activates_the_generation() {
         None,
         &root,
         &options(7, QualityThresholds { .. }),
-        &NoProgress,
+        &battery,
     )
     .await
     .expect("the run should reach a verdict");
 
     assert_eq!(outcome.admission, Admission::Active);
+    // The battery reports the readings its own verdict turns on: one per
+    // control, and the same numbers the report reduces, so an observer
+    // and the gate can never disagree about what was measured.
+    assert_eq!(
+        outcome
+            .report
+            .controls()
+            .into_iter()
+            .filter_map(|control| control.reading.map(|reading| (control.metric, reading)))
+            .collect::<Vec<_>>(),
+        battery.readings(),
+    );
+    assert_eq!(
+        battery.readings().len(),
+        6,
+        "a passing verdict has every control's evidence: {:?}",
+        battery.readings(),
+    );
     assert!(outcome.report.passes());
     assert_eq!(outcome.report.anchors, 8);
     assert_eq!(

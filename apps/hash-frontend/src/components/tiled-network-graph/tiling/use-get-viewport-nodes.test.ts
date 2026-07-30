@@ -522,6 +522,40 @@ describe("TileCache", () => {
     expect(cache.has({ z: 5, x: 0, y: 0 })).toBe(true);
   });
 
+  it("does not let a load issued before a generation re-pin enter the replaced cache", async () => {
+    // A tile fetch left in flight under the generation the cache was built for.
+    let settle!: (tile: FetchedTile) => void;
+    const inFlight = new Promise<FetchedTile>((resolve) => {
+      settle = resolve;
+    });
+    const cache = new TileCache({ fetcher: () => inFlight });
+    const pending = cache.load({ z: 2, x: 1, y: 1 });
+
+    // The re-pin (the transport's `404` refresh landing on another generation).
+    // `useGetViewportNodes` names the session revision in the memo that builds this
+    // cache, so React constructs a fresh one rather than resetting this one: a row
+    // id from the retired generation decodes to a *different, existing* row under
+    // the new one, so nothing may carry over — least of all a fetch that was
+    // already in flight when the session re-pinned.
+    const replaced = new TileCache({
+      fetcher: () =>
+        Promise.resolve({
+          nodes: [{ id: 555, x: 0, y: 0 }],
+          complete: true,
+        }),
+    });
+    settle({ nodes: [{ id: 111, x: 0, y: 0 }], complete: true });
+    await pending;
+
+    const nodes = await replaced.load({ z: 2, x: 1, y: 1 });
+
+    // The deferred result stayed in the store it was issued from, which the view
+    // no longer reads; the live store holds only the new generation's row.
+    expect(nodes.map(({ id }) => id)).toEqual([555]);
+    expect(cache.has({ z: 2, x: 1, y: 1 })).toBe(true);
+    expect(replaced.tileCount).toBe(1);
+  });
+
   it("evicts a tile-pair edge bucket when an endpoint tile is evicted", async () => {
     const fetcher = countingFetcher();
     const tileA = { z: 5, x: 0, y: 0 }; // nodes 5_000_000..02

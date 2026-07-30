@@ -89,6 +89,7 @@ impl<A> ReadingGrid<A> {
             neighbourhood < self.neighbourhoods,
             "the neighbourhood index must lie inside the grid",
         );
+
         &self.cells[anchor * self.neighbourhoods + neighbourhood]
     }
 }
@@ -104,9 +105,11 @@ impl ReadingGrid<NeighbourhoodAggregate> {
     #[must_use]
     pub(crate) fn overall(&self, neighbourhood: usize) -> NeighbourhoodAggregate {
         let mut merged = self.anchor(0, neighbourhood).clone();
+
         for anchor in 1..self.anchors() {
             merged.merge(self.anchor(anchor, neighbourhood));
         }
+
         merged
     }
 }
@@ -179,7 +182,8 @@ pub(crate) struct ProbeReadings<N> {
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
     /// The grids' neighbourhood axis.
-    pub neighbourhoods: Box<[NonZero<usize>]>,
+    pub neighbourhoods: Box<[NonZero<usize>]>, /* NOTE: This should really be an
+                                                * `Box<IdSlice<...>?` */
     /// Map versus representation, ranking every non-anchor row against each sampled anchor: the
     /// comparison universe is the exact full corpus, while the aggregate remains an
     /// anchor-sampled statistic, not a corpus-population estimate.

@@ -12,8 +12,11 @@ use crate::{
 /// The fixtures' span exponent: a view's cut at offset `k` is depth `1 + k`.
 const SPAN: u8 = 1;
 
-/// The fixtures' deepest served zoom, leaving offsets `0..=27` admissible.
+/// The fixtures' deepest served zoom.
 const MAX_TILE_DEPTH: u8 = 4;
+
+/// The offset ceiling the fixtures' schedule leaves: `32 - (4 + 1)`, hand-derived.
+const CEILING: u8 = 27;
 
 fn band(lower: u64, upper: u64) -> DensityBand {
     DensityBand::new(
@@ -31,9 +34,21 @@ fn depth(value: u8) -> Depth {
     Depth::new(value).expect("the fixture depth lies within the key width")
 }
 
-fn policy(band: DensityBand, offsets: impl IntoIterator<Item = u8>) -> DensityPolicy {
-    DensityPolicy::admit(band, offsets, span(SPAN), MAX_TILE_DEPTH)
-        .expect("the fixture policy is admissible")
+fn policy(band: DensityBand) -> DensityPolicy {
+    DensityPolicy::new(band, span(SPAN), MAX_TILE_DEPTH).expect("the fixture policy is admissible")
+}
+
+/// A view whose occupancy keeps climbing to depth 24.
+///
+/// Key `i` carries a single set bit at position `64 - 2i`, so it separates from every coarser key
+/// at depth `i` exactly: sorted, the adjacent separations land one per depth over `1..=24`, giving
+/// `C(d, V) = 1 + d` up to `d = 24` and `Q(V) = 25`. It is the shape the ceiling exists for - a
+/// view that keeps paying for depth long past the room a deep schedule leaves.
+fn deep_view() -> ViewOccupancy {
+    let mut keys = vec![MortonKey::from_bits(0)];
+    keys.extend((1..=24_u32).map(|index| MortonKey::from_bits(1_u64 << (64 - 2 * index))));
+
+    occupancy(&keys)
 }
 
 /// The corner key of one cell of the depth's grid.
@@ -100,67 +115,54 @@ fn the_default_band_is_two_thousand_through_four_thousand() {
     assert_eq!(DensityBand::default().upper(), 4_000);
 }
 
-/// Admission refuses a set without the base offset.
-///
-/// Every view must have some offset it can always resolve; a set of deep offsets alone would leave
-/// a saturation-capped view with an empty search space.
-#[test]
-fn admission_refuses_a_set_without_the_base_offset() {
-    assert_eq!(
-        DensityPolicy::admit(band(2_000, 4_000), [1, 2], span(6), 18),
-        Err(DensityPolicyError::MissingBaseOffset)
-    );
-    DensityPolicy::admit(band(2_000, 4_000), [0, 1, 2], span(6), 18)
-        .expect("a set carrying the base offset is admissible");
-}
-
-/// Admission refuses an offset that deepens the cascade past the key width.
+/// The key width caps a resolution that would otherwise keep going deeper.
 ///
 /// A span-6 schedule serving 18 zooms leaves room for 8: the deepest bucket `18 + 6 + 8` is exactly
 /// the 32 subdivisions a 64-bit key resolves, and one more would wrap a cut the walk then reads.
+/// The deep view saturates at depth 24, so `k_sat = 18` and an unreachable band pulls the argmin
+/// toward every deeper cut it is offered; the ceiling is the only thing that stops it at 8.
 #[test]
-fn admission_refuses_an_offset_past_the_key_width() {
-    DensityPolicy::admit(band(2_000, 4_000), [0, 8], span(6), 18)
-        .expect("the deepest offset the schedule leaves room for is admissible");
+fn the_ceiling_caps_a_resolution_at_the_key_width() {
+    let policy = DensityPolicy::new(band(100, 200), span(6), 18)
+        .expect("a span-6 schedule serving 18 zooms is admissible");
+    let view = deep_view();
+
+    assert_eq!(view.saturation_depth(), depth(24), "k_sat is 24 - 6 = 18");
     assert_eq!(
-        DensityPolicy::admit(band(2_000, 4_000), [0, 9], span(6), 18),
-        Err(DensityPolicyError::KeyWidth {
-            offset: 9,
-            ceiling: 8
-        })
+        view.occupied_cells(depth(14)),
+        15,
+        "the cut the ceiling gives"
+    );
+    assert_eq!(
+        view.occupied_cells(depth(24)),
+        25,
+        "the cut k_sat would give"
+    );
+
+    assert_eq!(
+        policy.resolve(&view).get(),
+        8,
+        "the count climbs the whole way, so only the key width stops the search"
     );
 }
 
-/// Admission refuses a terminal root and a schedule already past the key width.
+/// Configuration refuses a terminal root and a schedule already past the key width.
 ///
-/// Both are configurations no offset repairs, so they fail where the policy is configured rather
-/// than where a view resolves.
+/// Both are schedules no offset repairs, so they fail where the policy is configured rather than
+/// where a view resolves.
 #[test]
-fn admission_refuses_a_schedule_no_offset_deepens() {
+fn configuration_refuses_a_schedule_no_offset_deepens() {
     assert_eq!(
-        DensityPolicy::admit(band(2_000, 4_000), [0], span(6), 0),
+        DensityPolicy::new(band(2_000, 4_000), span(6), 0),
         Err(DensityPolicyError::TerminalRoot)
     );
     assert_eq!(
-        DensityPolicy::admit(band(2_000, 4_000), [0], span(6), 30),
+        DensityPolicy::new(band(2_000, 4_000), span(6), 30),
         Err(DensityPolicyError::Schedule {
             span: 6,
             max_tile_depth: 30
         })
     );
-}
-
-/// The admitted set is the whole search space, gaps included.
-///
-/// A contiguous-range reading of `K` would search offsets the owner never admitted.
-#[test]
-fn the_admitted_set_keeps_its_gaps() {
-    let offsets: Vec<u8> = policy(band(2_000, 4_000), [5, 0, 2, 2])
-        .admitted()
-        .map(CutOffset::get)
-        .collect();
-
-    assert_eq!(offsets, vec![0, 2, 5], "duplicates collapse, order ascends");
 }
 
 /// Occupancy counts cells, not rows.
@@ -195,8 +197,8 @@ fn an_empty_view_occupies_no_cell() {
 
 /// Occupancy saturates at the depth that first separates every distinct key.
 ///
-/// The saturation depth caps the search: reading it one depth too shallow would drop an admitted
-/// cut that still splits cells, and one too deep would admit cuts that buy nothing.
+/// The saturation depth caps the search: reading it one depth too shallow would drop a candidate
+/// cut that still splits cells, and one too deep would keep cuts that buy nothing.
 #[test]
 fn occupancy_saturates_at_the_separating_depth() {
     let view = plateau_view();
@@ -217,22 +219,19 @@ fn occupancy_saturates_at_the_separating_depth() {
 /// the channel this policy exists to close.
 #[test]
 fn an_empty_view_resolves_to_the_base_offset() {
-    assert_eq!(
-        policy(band(2, 4), [0, 1, 2]).resolve(&occupancy(&[])),
-        CutOffset::ZERO
-    );
+    assert_eq!(policy(band(2, 4)).resolve(&occupancy(&[])), CutOffset::ZERO);
 }
 
 /// A co-located view resolves to the base offset.
 ///
-/// Its saturation depth is the whole domain, so every deeper admitted cut leaves the search space:
+/// Its saturation depth is the whole domain, so every deeper cut leaves the search space:
 /// no cut separates keys that share one complete key.
 #[test]
 fn a_co_located_view_resolves_to_the_base_offset() {
     let anchor = key(3, 2, 1);
 
     assert_eq!(
-        policy(band(2, 4), [0, 1, 2]).resolve(&occupancy(&[anchor, anchor])),
+        policy(band(2, 4)).resolve(&occupancy(&[anchor, anchor])),
         CutOffset::ZERO
     );
 }
@@ -243,23 +242,17 @@ fn a_co_located_view_resolves_to_the_base_offset() {
 /// the coarser cut, since a deeper one costs response bytes for no policy gain.
 #[test]
 fn the_coarsest_in_band_offset_wins() {
-    assert_eq!(
-        policy(band(2, 4), [0, 1, 2]).resolve(&plateau_view()).get(),
-        0
-    );
+    assert_eq!(policy(band(2, 4)).resolve(&plateau_view()).get(), 0);
 }
 
 /// A plateau does not stop the search.
 ///
 /// The plateau view counts 2 at offsets 0 and 1 and 4 at offset 2. A search that stopped at the
 /// first offset failing to improve would resolve 0 and miss the only in-band cut - the reason the
-/// argmin runs over the whole admitted set rather than the least positive offset.
+/// argmin runs over the whole candidate range rather than the least positive offset.
 #[test]
 fn a_plateau_does_not_stop_the_search() {
-    assert_eq!(
-        policy(band(3, 4), [0, 1, 2]).resolve(&plateau_view()).get(),
-        2
-    );
+    assert_eq!(policy(band(3, 4)).resolve(&plateau_view()).get(), 2);
 }
 
 /// An equal distance keeps the coarser offset.
@@ -268,21 +261,16 @@ fn a_plateau_does_not_stop_the_search() {
 /// component decides it, and it decides for the coarser cut.
 #[test]
 fn an_equal_distance_keeps_the_coarser_offset() {
-    assert_eq!(policy(band(3, 3), [0, 2]).resolve(&plateau_view()).get(), 0);
+    assert_eq!(policy(band(3, 3)).resolve(&plateau_view()).get(), 0);
 }
 
 /// A view below the band takes the closest count it can reach.
 ///
-/// Every admitted cut of the plateau view stays under a `[10, 20]` band, so the nearest is the
+/// Every reachable cut of the plateau view stays under a `[10, 20]` band, so the nearest is the
 /// deepest reachable - the case where the band is unreachable and the policy still resolves.
 #[test]
 fn a_view_below_the_band_takes_the_closest_reachable_count() {
-    assert_eq!(
-        policy(band(10, 20), [0, 1, 2])
-            .resolve(&plateau_view())
-            .get(),
-        2
-    );
+    assert_eq!(policy(band(10, 20)).resolve(&plateau_view()).get(), 2);
 }
 
 /// A view already above the band keeps the base offset.
@@ -291,24 +279,30 @@ fn a_view_below_the_band_takes_the_closest_reachable_count() {
 /// cut is the closest one, and the tie-break holds it.
 #[test]
 fn a_view_above_the_band_keeps_the_base_offset() {
-    assert_eq!(
-        policy(band(1, 1), [0, 1, 2]).resolve(&plateau_view()).get(),
-        0
-    );
+    assert_eq!(policy(band(1, 1)).resolve(&plateau_view()).get(), 0);
 }
 
-/// Saturation caps the admitted set.
+/// No resolution runs deeper than the view's saturation depth.
 ///
-/// The plateau view saturates at depth 3, so with span 1 no offset above 2 belongs to the search
-/// space. Offset 4 counts exactly what offset 2 counts, and admitting it would deliver a deeper
-/// cut - more buckets, more response - for identical occupancy.
+/// The plateau view saturates at depth 3, so with span 1 offset 2 is the deepest cut that separates
+/// anything: a deeper one would deliver more buckets and more response for identical occupancy.
+/// The band `[10, 20]` is unreachable from above, so nothing but this property stops the argmin at
+/// 2 rather than at [`CEILING`], which is 27 and therefore not what caps this resolution.
+///
+/// What the test pins is the property, not one mechanism, and the deletion controls say so: over a
+/// contiguous candidate range the resolution is guarded twice, by `resolve`'s saturation cap and by
+/// the tie-break, and removing either one alone leaves this green. Both together resolve 27 here.
+/// Counts are constant past saturation, so no view and no band can separate the two guards - the
+/// cap is unwitnessable through the output by construction, and it stays for the stated law rather
+/// than for a behaviour a test could lose. The single-fault witness for the other cap is
+/// [`the_ceiling_caps_a_resolution_at_the_key_width`].
 #[test]
-fn saturation_caps_the_admitted_set() {
+fn a_resolution_never_runs_deeper_than_saturation() {
     let view = plateau_view();
 
+    assert_eq!(view.saturation_depth(), depth(3));
     assert_eq!(view.occupied_cells(depth(5)), view.occupied_cells(depth(3)));
-    assert_eq!(policy(band(10, 20), [0, 4]).resolve(&view).get(), 0);
-    assert_eq!(policy(band(10, 20), [0, 2, 4]).resolve(&view).get(), 2);
+    assert_eq!(policy(band(10, 20)).resolve(&view).get(), 2);
 }
 
 /// The aggregate's counts agree with a direct prefix census at every depth.
@@ -366,7 +360,7 @@ fn occupied_cells_match_a_direct_prefix_census(
     }
 }
 
-/// A resolution reads the band and the admitted set, and nothing else about the view.
+/// A resolution reads the band and the schedule, and nothing else about the view.
 ///
 /// Two views with identical count profiles resolve identically however their keys are arranged,
 /// which is the property a hidden row must not be able to break: it can only reach the resolution
@@ -375,7 +369,7 @@ fn occupied_cells_match_a_direct_prefix_census(
 fn resolution_is_a_function_of_the_count_profile(
     #[strategy = proptest::collection::vec(0_u64..1_u64 << 8, 1..16_usize)] bits: Vec<u64>,
 ) {
-    let policy = policy(band(3, 5), [0, 1, 2, 3]);
+    let policy = policy(band(3, 5));
 
     let keys: Vec<MortonKey> = bits
         .iter()
@@ -386,22 +380,23 @@ fn resolution_is_a_function_of_the_count_profile(
     let resolved = policy.resolve(&occupancy(&keys));
     prop_assert_eq!(resolved, policy.resolve(&ViewOccupancy::of(&mut reversed)));
 
-    // The resolved offset is admitted, and it is the argmin the law states.
+    // The resolved offset lies in the candidate range, and it is the argmin the law states.
     let cut = depth(SPAN + resolved.get());
     let view = occupancy(&keys);
     let distance = policy.band().distance(view.occupied_cells(cut));
-    for offset in policy.admitted() {
-        if offset.get() > view.saturation_depth().get().saturating_sub(SPAN) {
+    prop_assert!(resolved.get() <= CEILING);
+    for offset in 0..=CEILING {
+        if offset > view.saturation_depth().get().saturating_sub(SPAN) {
             continue;
         }
 
         let candidate = policy
             .band()
-            .distance(view.occupied_cells(depth(SPAN + offset.get())));
+            .distance(view.occupied_cells(depth(SPAN + offset)));
         prop_assert!(
-            distance < candidate || (distance == candidate && resolved <= offset),
+            distance < candidate || (distance == candidate && resolved.get() <= offset),
             "offset {} beats the resolved {}",
-            offset.get(),
+            offset,
             resolved.get()
         );
     }

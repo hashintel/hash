@@ -102,8 +102,6 @@ pub struct EdgesRequest {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EdgesLimits {
     /// Most tiles one request may list; the manifest publishes this value as `limits.edgesTiles`.
-    ///
-    /// Defaults to 256.
     pub tiles: u32 = 256,
     /// Most edges one response delivers.
     ///

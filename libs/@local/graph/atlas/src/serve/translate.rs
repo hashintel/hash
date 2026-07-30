@@ -42,13 +42,13 @@ use crate::{
 pub struct TranslateLimits {
     /// Most entity ids one request may carry.
     ///
-    /// The manifest publishes this value as `limits.translateEntityIds`. Defaults to 1024.
-    pub entity_ids: u32,
+    /// The manifest publishes this value as `limits.translateEntityIds`.
+    pub entity_ids: u32 = 1024,
 }
 
 const impl Default for TranslateLimits {
     fn default() -> Self {
-        Self { entity_ids: 1024 }
+        Self { .. }
     }
 }
 
