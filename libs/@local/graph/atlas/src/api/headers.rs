@@ -23,6 +23,35 @@ pub(super) const AUTHORITY: &str = "atlas-authority";
 /// body), which shared caches cannot see; `no-store` keeps them out of the way.
 pub(super) const NO_STORE: &str = "private, no-store";
 
+/// Documents the minted authority token's response header.
+///
+/// The pattern fixes the alphabet and not the width: the envelope's width is derived, and no client
+/// may depend on it.
+#[expect(
+    clippy::default_trait_access,
+    reason = "we do not want to pull in a dependency just to pin it's default"
+)]
+pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
+    openapi::ReferenceOr::Item(openapi::Header {
+        description: Some(
+            "a freshly minted per-caller authority token, lowercase hexadecimal; present it back \
+             in this same header on every data request"
+                .to_owned(),
+        ),
+        style: openapi::HeaderStyle::Simple,
+        required: true,
+        deprecated: None,
+        format: openapi::ParameterSchemaOrContent::Schema(openapi::SchemaObject {
+            json_schema: schemars::json_schema!({"type": "string", "pattern": "^[0-9a-f]+$"}),
+            example: None,
+            external_docs: None,
+        }),
+        example: None,
+        examples: Default::default(),
+        extensions: Default::default(),
+    })
+}
+
 /// Documents a response header that always carries `value`.
 #[expect(
     clippy::default_trait_access,

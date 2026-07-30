@@ -30,8 +30,9 @@ const SESSION_ACTOR = "11111111-1111-4111-8111-111111111111";
 const SPOOFED_ACTOR = "22222222-2222-4222-8222-222222222222";
 
 /**
- * A stand-in authority token: an obviously arbitrary opaque string, deliberately not the atlas's
- * width.
+ * A stand-in authority token.
+ *
+ * An obviously arbitrary opaque string, deliberately not the atlas's width.
  *
  * Opaque on both sides of the hop - this suite asserts the bytes survive, never that they parse, and
  * the proxy under test copies a header it cannot read. A fixture imitating the real width would only
@@ -236,14 +237,23 @@ describe("the authority token's path back to the browser", () => {
     await close(api.server);
   });
 
-  it("carries a minted token back across the hop verbatim", async () => {
-    // The expose header is only half of it: the value itself has to survive the hop, and nothing
-    // was proving that.
+  it("carries a minted token back across the hop verbatim, on a bodyless manifest POST", async () => {
+    // The expose header is only half of it: the value itself has to survive the hop.
+    //
+    // The manifest is a `POST` route whose body is optional, and the client's mint and renewal both
+    // send none - so this is the exact request shape that crosses the hop. A bodyless POST is the one
+    // shape the body re-streaming must leave alone: `fixRequestBody` writes a body only for a stated
+    // content type, and stating one here would both invent a document and cost the caller a
+    // preflight.
     const api = await startApi(sessionUser);
     received.length = 0;
 
-    const response = await fetch(`${api.url}/atlas/generation/g/manifest`);
+    const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
+      method: "POST",
+    });
 
+    expect(received).toHaveLength(1);
+    expect(received[0]!.body).toBe("");
     expect(response.headers.get(ATLAS_AUTHORITY_HEADER)).toBe(MINTED_TOKEN);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(response.headers.get("access-control-expose-headers")).toBe(

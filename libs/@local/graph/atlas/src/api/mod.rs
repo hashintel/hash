@@ -59,9 +59,11 @@ const API_DESCRIPTION: &str =
 ## Bootstrap
 
 1. `GET /v1/atlas/current` - the generation this process serves; the one mutable read.
-2. `GET /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
+2. `POST /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
      (configuration and snapshot provenance): the served variants, the published serving limits \
-     (`limits`), and the bucket schedule the tile grid follows.
+     (`limits`), and the bucket schedule the tile grid follows. Every response mints the \
+     authority token the data routes require, and an optional filter document in the body binds \
+     the view.
 3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
      identity resolution.
 
@@ -164,10 +166,7 @@ pub fn router(
         )
         .api_route(
             "/v1/atlas/generation/{generation}/manifest",
-            // Both methods answer identically: browsers cannot attach a body to a GET, so the
-            // filter document travels by POST, while a bodyless bootstrap or renewal stays a GET.
-            get_with(manifest::handler, manifest::document)
-                .post_with(manifest::handler, manifest::document),
+            post_with(manifest::handler, manifest::document),
         )
         .api_route(
             "/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}",

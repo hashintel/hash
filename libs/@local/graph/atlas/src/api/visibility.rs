@@ -109,7 +109,7 @@ impl OperationInput for Visibility {}
 /// data routes resolve through [`Visibility`]'s extraction. Both land here, so one scope holds one
 /// entry wherever its resolution was asked for.
 ///
-/// A filtered resolution compiles `document`, the filter's canonical bytes, into the proof. A
+/// A filtered resolution compiles `document`, the filter's bytes as presented, into the proof. A
 /// caller holding only the digest - a data route, whose scope travels sealed - reads the held
 /// entry's copy, which is what lets the soft window revalidate a filtered scope without a client
 /// round trip.

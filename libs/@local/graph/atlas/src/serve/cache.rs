@@ -55,12 +55,14 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
 };
 
-/// The digest of a request filter.
+/// The digest of a request filter, over the bytes exactly as presented.
 ///
-/// Filters selecting the same view share a digest, so one held entry answers both. The digest is
-/// fixed-width and content-derived: equal filter bytes always produce equal digests, on any host
-/// and in any process, which is what lets it bind a scope inside a sealed token as well as name one
-/// in a key.
+/// Byte-equal filter documents share a digest, so one held entry answers both. Nothing here
+/// canonicalizes: documents differing only in whitespace or key order are different digests and
+/// resolve as different scopes, and a client re-presenting a filter sends the bytes it sent before.
+/// The digest is fixed-width and content-derived - equal bytes always produce equal digests, on any
+/// host and in any process - which is what lets it bind a scope inside a sealed token as well as
+/// name one in a key.
 #[derive(
     Debug,
     Copy,
@@ -78,15 +80,15 @@ use crate::{
 pub(crate) struct FilterDigest(Sha256Digest);
 
 impl FilterDigest {
-    /// Digests one filter's canonical bytes.
+    /// Digests one filter document's bytes.
     ///
-    /// `canonical` is the filter exactly as the request presented it. Two requests carrying
+    /// `presented` is the filter exactly as the request carried it. Two requests carrying
     /// byte-equal filters share a scope; a request whose filter differs by so much as a space
     /// describes a different scope and resolves on its own.
-    pub(crate) fn of(canonical: &[u8]) -> Self {
+    pub(crate) fn of(presented: &[u8]) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(b"filter");
-        hasher.update(canonical);
+        hasher.update(presented);
 
         Self(hasher.finalize())
     }
@@ -98,9 +100,9 @@ impl FilterDigest {
 
     /// Restores a digest that travelled, as an authority token's does.
     ///
-    /// The bytes are a digest this process or another already computed over a filter's canonical
-    /// form; nothing here recomputes it. A wrong value names a scope no filter produces, which the
-    /// filter store then fails to resolve.
+    /// The bytes are a digest this process or another already computed over a filter document as it
+    /// was presented; nothing here recomputes it. A wrong value names a scope no filter produces,
+    /// which the resolution then fails to compile a document for.
     pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
@@ -116,15 +118,14 @@ impl FilterDigest {
 ///
 /// **This is not a permission epoch, and it names no product concept.** It digests the *content of
 /// one resolved proof*, which is a weaker thing than an identity for the permission state that
-/// produced it: permission epochs do not exist in the graph yet, so nothing here can observe that a
-/// permission set changed except by resolving it and comparing what came back. When they do exist,
-/// invalidation on an epoch change is a separate mechanism rather than this value grown up.
+/// produced it: a permission set's change is observable here only by resolving it and comparing
+/// what came back. Invalidation driven by an epoch is a separate mechanism rather than this value
+/// grown up.
 ///
-/// **Nothing outside this module reads it, and it does not travel.** A soft refresh may replace the
-/// proof under an unchanged cache key, and that mid-run change of the visible set is accepted for
-/// now by owner ruling - so no caller pins progressive state to this value, because no such
-/// consumer is selected. It is the cache's own instrumentation: the refresh tests assert through it
-/// that a resolution admitting the same rows reproduces the same value.
+/// **It is cache-local diagnostic state, never a client state identity.** A soft refresh may
+/// replace the proof under an unchanged cache key, so this value moves while the key that names the
+/// scope does not: nothing outside this module reads it and it does not travel. The refresh tests
+/// assert through it that a resolution admitting the same rows reproduces the same value.
 ///
 /// Caller requirement: do not publish it. It is a digest over the admitted row identities, so two
 /// scopes admitting byte-identical sets share one - an equality oracle across actors, if it were
@@ -166,7 +167,7 @@ pub(crate) struct Resolution {
     proof: VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits.
     census: ViewCensus,
-    /// The canonical bytes of the filter [`Self::proof`] was resolved over, absent when
+    /// The filter document [`Self::proof`] was resolved over, as presented, absent when
     /// unfiltered.
     ///
     /// Held so a refresh can recompile the filter without a client round trip: the client is the
@@ -175,7 +176,8 @@ pub(crate) struct Resolution {
 }
 
 impl Resolution {
-    /// Censuses `proof` over `atlas` and pairs them with the `filter` they were resolved over.
+    /// Censuses `proof` over `atlas` and pairs them with the `filter` document they were resolved
+    /// over, as presented.
     ///
     /// The census walks the base column once for a masked proof and reads the artifacts for an
     /// unmasked one, so the cost lands on the resolution rather than on the requests that share it.
@@ -213,7 +215,7 @@ pub(crate) struct ResolvedVisibility {
     pub census: ViewCensus,
     /// The identity of what [`Self::proof`] admits.
     pub digest: ProofDigest,
-    /// The canonical bytes of the filter [`Self::proof`] was resolved over, absent when
+    /// The filter document [`Self::proof`] was resolved over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
     /// When the resolution behind [`Self::proof`] ran.
@@ -242,7 +244,7 @@ impl ResolvedVisibility {
         }
     }
 
-    /// Returns the canonical bytes of the filter the entry was resolved over.
+    /// Returns the filter document the entry was resolved over, as presented.
     pub(crate) fn filter_document(&self) -> Option<Arc<[u8]>> {
         self.filter.clone()
     }
@@ -913,8 +915,8 @@ mod tests {
     /// An unchanged permission set reproduces its digest.
     ///
     /// The property holds of the digest itself rather than of any cache timing: two resolutions
-    /// admitting the same rows carry one digest. Nothing outside this module consumes that today -
-    /// it is what would let a refresh be recognized as a no-op if a consumer were ever selected.
+    /// admitting the same rows carry one digest, which is what lets a refresh be recognized as a
+    /// no-op.
     #[test]
     fn an_unchanged_permission_set_reproduces_its_digest() {
         assert_eq!(

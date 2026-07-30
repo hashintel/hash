@@ -2,7 +2,7 @@
 //!
 //! A token seals the [`Scope`] that names an authorized view: the actor, the filter digest - the
 //! visibility proof's identity, resolved over the filter at bootstrap - and the view state derived
-//! for that proof, today the delivery-cut offset `k`. The plaintext is encrypted under a
+//! for that proof: the delivery-cut offset `k`. The plaintext is encrypted under a
 //! per-generation key and the tag proves this server minted it. The server keeps no token state:
 //! a re-mint reads the sealed state out of the presented token, so a refresh renews authority
 //! while the view stays fixed.
@@ -258,10 +258,13 @@ impl From<Option<FilterDigest>> for ScopeFilter {
 
 /// One view's sealed identity and state: what a token carries and a mint seals.
 ///
-/// The actor and filter digest name the visibility proof the view answers under; `k` is the state
-/// derived for it at bootstrap. A re-mint carries a presented token's `k` forward verbatim, which
-/// is what keeps the view stable across a refresh, while the filter digest re-derives from the
-/// filter the client presents at that boundary.
+/// The actor and filter digest name the visibility proof the view answers under; `k` is the
+/// delivery depth the session serves at, resolved at its bootstrap over the occupancy then in
+/// force. A re-mint carries `k` forward, so a session holds one delivery depth rather than
+/// re-optimizing it per request, and a re-bind of the filter digest keeps it unless the new view
+/// resolves coarser - which clamps it down. The carried value is the caller's own earlier
+/// resolution, so delivery depth can reflect that caller's own session history, never another
+/// actor's rows.
 ///
 /// The scope is its own byte-level form - every field is a zerocopy type - so a mint seals it
 /// verbatim and an open reads it in place. The filter discriminant is the one validated byte;
@@ -466,8 +469,10 @@ where
     /// The acceptance window is deliberately not judged: an expired token is no longer authority,
     /// but it remains authentic evidence of the view state a past mint sealed, and carrying that
     /// state into a fresh mint is what keeps a view stable across a refresh. The tag and the actor
-    /// are still enforced - permissions re-resolve fresh on the request that re-mints, so leniency
-    /// here extends no privilege.
+    /// are still enforced, and the leniency reaches no further than the mint: this read
+    /// authenticates a scope and carries it, while every data request under the fresh token
+    /// resolves that scope through the visibility cache, whose own hard window bounds how old a
+    /// resolution may answer.
     ///
     /// # Errors
     ///

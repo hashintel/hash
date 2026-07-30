@@ -26,6 +26,16 @@ export const ATLAS_ACTOR_HEADER = "X-Authenticated-User-Actor-Id";
 export const ATLAS_AUTHORITY_HEADER = "Atlas-Authority";
 
 /**
+ * The path this API mounts the atlas surface at.
+ *
+ * One constant because two places decide by it: {@link setupAtlasProxy} mounts here, and the body
+ * parsing middleware must skip exactly this prefix so the request stream reaches the mount
+ * unconsumed - see {@link setupAtlasProxy} for why re-serialising a body breaks this surface
+ * specifically. Two independently written prefixes would be two places for that pairing to drift.
+ */
+export const ATLAS_MOUNT_PATH = "/atlas";
+
+/**
  * Resolves the atlas listener's address from the environment.
  *
  * `hash-graph atlas` owns the defaults for these two variables as its own clap defaults, so this
@@ -51,17 +61,26 @@ const atlasTarget = () => {
  * identity handling every other route here uses, and the header is what the graph client states
  * when this API calls the graph.
  *
- * Mount it past `authMiddleware` and past the body parsers: the header derivation reads `req.user`,
- * and a parsed JSON body is re-streamed from `req.body`.
+ * Mount it past `authMiddleware`, because the header derivation reads `req.user`.
  *
- * Payloads cross the hop unmodified; the mount's one addition is to the CORS envelope -
+ * Mount it past a body parser that skips {@link ATLAS_MOUNT_PATH}. A parsed body reaches the
+ * upstream only by being re-serialised from `req.body`, and re-serialising changes JSON text:
+ * whitespace goes, `1.0` becomes `1`, `\u0041` becomes `A`, a duplicate key is dropped, and
+ * integer-like keys come back in ascending order. The atlas digests the body it is handed - the
+ * generation manifest seals the digest of the filter document into the authority token, and the
+ * client retains and re-presents the exact bytes it sent - so a hop that re-serialises answers a
+ * different document than the caller stated, and the caller's own re-presentation of the same
+ * bytes then digests differently. Skipping the prefix leaves `req.body` unset, so
+ * `fixRequestBody` writes nothing and the unread stream is piped through as it arrived.
+ *
+ * Payloads therefore cross the hop byte for byte; the mount's one addition is to the CORS envelope -
  * `Atlas-Authority` is exposed so the caller's own script can read the token it was just handed.
  * The saltile media types, the `Cache-Control: private, no-store` posture, and RFC 9457
  * `application/problem+json` bodies all arrive verbatim. Request caps are the atlas's own and its
  * generation manifest publishes them. Rate limiting belongs to whatever fronts this API; the route
  * applies none.
  *
- * WHY THE EXPOSE LINE IS LOAD-BEARING, and it fails silently without it: the frontend reaches this
+ * Without the expose line the token never reaches the caller's script, and nothing reports it: the frontend reaches this
  * mount cross-origin (`apiOrigin` is a different origin from `frontendUrl` by default and by
  * deployment shape), and `CORS_CONFIG` states no `exposedHeaders`, so the `cors` package emits no
  * `Access-Control-Expose-Headers` at all. A client implementing the token round trip exactly to
@@ -74,7 +93,7 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
   const target = atlasTarget();
 
   app.use(
-    "/atlas",
+    ATLAS_MOUNT_PATH,
     // Stated before the hop rather than in `proxyRes`: the value does not depend on the upstream
     // response, and a header set here survives the proxy's own header copying.
     (_req, res, next) => {
@@ -100,10 +119,16 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
       },
       on: {
         /**
-         * States the request's actor and re-streams its parsed body.
+         * States the request's actor.
          *
          * `setHeader` replaces any value the caller sent, so the actor the atlas reads is the one
          * this API resolved.
+         *
+         * `fixRequestBody` stays as the fallback for a body that was parsed anyway: it returns
+         * without writing when `req.body` is unset, which is the state this mount is composed to be
+         * in, and re-streams a parsed body rather than hanging the request if some other middleware
+         * ever consumes the stream. It cannot restore the original bytes, so its running is a
+         * degradation to notice, not the design.
          */
         proxyReq: (proxyReq, req) => {
           proxyReq.setHeader(ATLAS_ACTOR_HEADER, getActorIdFromRequest(req));
@@ -134,5 +159,5 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
     }),
   );
 
-  logger.info(`Atlas proxy: /atlas -> ${target}/v1/atlas`);
+  logger.info(`Atlas proxy: ${ATLAS_MOUNT_PATH} -> ${target}/v1/atlas`);
 };
