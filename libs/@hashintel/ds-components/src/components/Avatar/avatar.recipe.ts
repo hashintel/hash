@@ -62,7 +62,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "16px",
           "--avatar-radius": "0.25rem",
-          fontWeight: "medium",
           borderWidth: "[1px]",
         },
         placeholder: {
@@ -73,7 +72,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "20px",
           "--avatar-radius": "0.25rem",
-          fontWeight: "medium",
           borderWidth: "[1px]",
         },
         placeholder: {
@@ -84,7 +82,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "24px",
           "--avatar-radius": "0.375rem",
-          fontWeight: "medium",
           borderWidth: "[1px]",
         },
         placeholder: {
@@ -135,6 +132,7 @@ export const styles = sva({
           backgroundColor: "blue.s100",
           color: "fg.onSolid",
           borderColor: "[white]",
+          fontWeight: "[530]",
         },
       },
     },
@@ -193,6 +191,33 @@ export const styles = sva({
         root: {
           "&:hover::after": { backgroundColor: "[rgba(255,255,255,0.16)]" },
           "&:active::after": { backgroundColor: "[rgba(255,255,255,0.3)]" },
+        },
+      },
+    },
+    {
+      tone: "neutral",
+      size: "xxs",
+      css: {
+        root: {
+          fontWeight: "medium",
+        },
+      },
+    },
+    {
+      tone: "neutral",
+      size: "xs",
+      css: {
+        root: {
+          fontWeight: "medium",
+        },
+      },
+    },
+    {
+      tone: "neutral",
+      size: "sm",
+      css: {
+        root: {
+          fontWeight: "medium",
         },
       },
     },
