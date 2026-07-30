@@ -46,12 +46,10 @@ import {
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
-  canReplaceAtlasSession,
-  clearAtlasSessionCache,
   FetchTileError,
-  getSaltileSession,
   requestAtlas,
   typeIndicesAt,
+  withAtlasSession,
   type SaltileSession,
 } from "./fetch-tile";
 import { WORLD_SIZE } from "./tile-geometry";
@@ -312,35 +310,17 @@ export const fetchLocate = async (
     coloredTypeIds = [],
   } = options;
 
-  // The promise, not just the session it resolves: it names the population this call belongs to (see
-  // {@link canReplaceAtlasSession}).
-  const pinned = getSaltileSession(baseUrl);
-  const session = await pinned;
-  try {
-    return await fetchAndDecodeLocate(
+  // An `unknown-entity` refusal is a `404` too, so it reaches the session's replacement decision;
+  // what saves it from re-bootstrapping the session is that the entity is still unknown to the
+  // successor, so the second attempt refuses the same way and that refusal is what travels.
+  return withAtlasSession(baseUrl, (session) =>
+    fetchAndDecodeLocate(
       session,
       source,
       baseUrl,
       signal,
       retry,
       coloredTypeIds,
-    );
-  } catch (error) {
-    // The pinned generation is no longer served (`404`), or this session's authority was refused at
-    // its own renewal; either ends the session, and the recovery is the same for all three
-    // session-owning transports. (An `unknown-entity` 404 survives the retry and re-throws.)
-    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
-      clearAtlasSessionCache(baseUrl);
-      const refreshed = await getSaltileSession(baseUrl);
-      return await fetchAndDecodeLocate(
-        refreshed,
-        source,
-        baseUrl,
-        signal,
-        retry,
-        coloredTypeIds,
-      );
-    }
-    throw error;
-  }
+    ),
+  );
 };

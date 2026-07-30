@@ -1169,6 +1169,16 @@ const toError = (caught: unknown): Error =>
  * view — unless {@link UseAtlasQueryOptions.validity} changes, which discards it;
  * a superseded request (its `key` changed, or the hook unmounted) is aborted and
  * its result ignored.
+ *
+ * A result is published only while the request that produced it is still the one
+ * this hook wants. Two things could otherwise put a retired result back on
+ * screen. An `AbortSignal` is a request to the transport, not a promise
+ * cancellation: a fetch already past its network read resolves normally. And the
+ * effect's own `active` flag is lowered in a cleanup that runs after the commit,
+ * while a changed `validity` drops the data during the render before it — so a
+ * result landing in between would be adopted by the very state that had just
+ * discarded its predecessor. Each continuation therefore re-checks the request
+ * identity that render publishes, and a mismatch drops the result.
  */
 export const useAtlasQuery = <T>(
   key: string,
@@ -1187,11 +1197,21 @@ export const useAtlasQuery = <T>(
   const [renderedValidity, setRenderedValidity] = useState(validity);
   const [reloadToken, setReloadToken] = useState(0);
 
+  // The request whose results this hook will still adopt. It is assigned during
+  // render, beside the state changes a new key causes, so it is already current
+  // for any continuation that runs before the retired effect's cleanup. Writing
+  // it is idempotent — a render React discards and repeats assigns the same
+  // value — and it is a ref rather than state because no render reads it: it is
+  // read only by continuations, which need the newest value rather than the one
+  // their own render closed over.
+  const liveRequestRef = useRef(requestKey);
+
   // A new key means a fetch is about to start in the effect below. Reflect that
   // during render — React's recommended alternative to a setState-in-effect —
   // keeping any previous data visible until the new result resolves.
   if (requestKey !== renderedKey) {
     setRenderedKey(requestKey);
+    liveRequestRef.current = requestKey;
     setIsFetching(true);
     setError(undefined);
   }
@@ -1215,10 +1235,15 @@ export const useAtlasQuery = <T>(
 
   useEffect(() => {
     const controller = new AbortController();
+    // The request this fetch answers, compared against the live one when it
+    // lands. `active` alone cannot decide it: the flag falls in a cleanup that
+    // runs after the commit, and the data drop happens in the render before it.
+    const issued = requestKey;
     let active = true;
+    const publishable = () => active && liveRequestRef.current === issued;
     fetcherRef.current(controller.signal).then(
       (result) => {
-        if (active) {
+        if (publishable()) {
           setData(result);
           setError(undefined);
           setIsFetching(false);
@@ -1226,7 +1251,7 @@ export const useAtlasQuery = <T>(
       },
       (caught: unknown) => {
         // Ignore the rejection of a request we deliberately superseded.
-        if (active && !controller.signal.aborted) {
+        if (publishable() && !controller.signal.aborted) {
           setError(toError(caught));
           setIsFetching(false);
         }

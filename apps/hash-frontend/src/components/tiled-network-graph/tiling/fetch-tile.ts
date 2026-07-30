@@ -481,10 +481,9 @@ const requestAtlasOnce = async (
       headers: {
         accept,
         // Only a body needs its type stated, and only a body-carrying request may state one. A
-        // content type on a bodyless `POST` would cost a preflight for a body that does not exist,
-        // and it does worse than that at the hop: the API parses a JSON request and re-streams what
-        // it parsed, so a stated type turns "no body" into `{}` — a document this client never sent,
-        // reaching a route where the body is the request's meaning.
+        // content type on a bodyless `POST` describes a document that does not exist, and buys the
+        // request a preflight for it: `content-type` leaves the safelist as soon as its value is
+        // `application/json`, so the browser asks permission before sending.
         ...(body === undefined ? {} : { "content-type": "application/json" }),
         ...(token === undefined ? {} : { [ATLAS_AUTHORITY_HEADER]: token }),
       },
@@ -834,7 +833,7 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
  * The check is an identity comparison rather than a remembered flag because the memoized promise is
  * already the population's name: it is replaced exactly when the population is.
  */
-export const canReplaceAtlasSession = (
+const canReplaceAtlasSession = (
   error: unknown,
   baseUrl: string,
   pinned: Promise<SaltileSession>,
@@ -842,6 +841,46 @@ export const canReplaceAtlasSession = (
   (error instanceof AtlasAuthorityEndedError ||
     (error instanceof FetchTileError && error.status === 404)) &&
   sessionCache.get(baseUrl) === pinned;
+
+/**
+ * Runs `operation` under the session for `baseUrl`, replacing that session once if it ends.
+ *
+ * Every route that binds to a session goes through here, and this is the only place the recovery
+ * exists. `operation` receives the session to use and is called at most twice: once under the pinned
+ * session, and once more under a freshly bootstrapped one when the first attempt failed in a way that
+ * ends the session (see {@link canReplaceAtlasSession}). Anything derived from the session belongs
+ * inside `operation` — the second call receives the successor, so a value read off the session is
+ * re-read against it rather than carried across the replacement.
+ *
+ * Ordering, and it is the reason the replacement is safe: the clear runs before the new session is
+ * requested and it moves the session revision synchronously, so every holder of decoded rows has
+ * discarded them before a successor token exists. A fresh view is never adopted beside rows painted
+ * under the session it replaced.
+ *
+ * A caller whose pinned session is no longer the cached one is superseded and touches nothing — its
+ * failure travels instead. A refusal at the second attempt travels too: a bootstrap presenting no
+ * token cannot be refused for authority, so there is no third state to recover into.
+ *
+ * Deliberately not here: retries, backoff, abort handling and every route's own semantics. Those are
+ * the transport's, per request; this decides one thing, which is whether the session a request bound
+ * to is still the session to bind to.
+ */
+export const withAtlasSession = async <T>(
+  baseUrl: string,
+  operation: (session: SaltileSession) => Promise<T>,
+): Promise<T> => {
+  // The promise, not just the session it resolves: it names the population this call belongs to.
+  const pinned = getSaltileSession(baseUrl);
+  try {
+    return await operation(await pinned);
+  } catch (error) {
+    if (!canReplaceAtlasSession(error, baseUrl, pinned)) {
+      throw error;
+    }
+    clearAtlasSessionCache(baseUrl);
+    return await operation(await getSaltileSession(baseUrl));
+  }
+};
 
 /**
  * Monotonic name for the session binding the memoized sessions carry: dropping a pinned session moves
@@ -1164,12 +1203,8 @@ export const fetchTile = async (
     y: Math.floor(tileIndex / gridSize),
   };
 
-  // The promise, not just the session it resolves: it names the population this call belongs to (see
-  // {@link canReplaceAtlasSession}).
-  const pinned = getSaltileSession(baseUrl);
-  const session = await pinned;
-  try {
-    return await fetchAndDecodeTile(
+  return withAtlasSession(baseUrl, (session) =>
+    fetchAndDecodeTile(
       session,
       coordinate,
       baseUrl,
@@ -1178,26 +1213,6 @@ export const fetchTile = async (
       priority,
       includeDetailedData,
       coloredTypeIds,
-    );
-  } catch (error) {
-    // The generation this session pinned is gone (`404`), or its authority was refused and could not
-    // be renewed (`401`). Either way the session is unusable: drop it, re-bootstrap once, retry once.
-    // The clear runs first and synchronously, so holders of decoded rows discard them before the new
-    // session's token exists — a fresh view is never adopted beside rows painted under the old one.
-    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
-      clearAtlasSessionCache(baseUrl);
-      const refreshed = await getSaltileSession(baseUrl);
-      return await fetchAndDecodeTile(
-        refreshed,
-        coordinate,
-        baseUrl,
-        signal,
-        retry,
-        priority,
-        includeDetailedData,
-        coloredTypeIds,
-      );
-    }
-    throw error;
-  }
+    ),
+  );
 };

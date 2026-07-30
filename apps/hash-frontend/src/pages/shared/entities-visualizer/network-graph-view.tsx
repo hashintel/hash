@@ -772,6 +772,14 @@ export const NetworkGraphView = ({
     },
   );
 
+  // The session revision the painted state below was resolved under. A mismatch
+  // with the live revision triggers the synchronous reset further down, so the
+  // reset lands in the render that first sees a new session rather than in an
+  // effect after that render has committed. Seeded from the live revision, so a
+  // view mounting into an already-replaced session starts published rather than
+  // resetting state that is still at its initial value.
+  const [publishedRevision, setPublishedRevision] = useState(sessionRevision);
+
   const points = useMemo(
     () =>
       (data?.nodes ?? []).map((node) =>
@@ -1036,9 +1044,23 @@ export const NetworkGraphView = ({
   // A replaced session also invalidates the row ids held in *painted* state:
   // `selected` and `hoveredByExternal` are row ids, and hydrating one afterwards
   // opens a different entity than the dot the user pointed at — or one the current
-  // principal was never shown. Bumping the three sequences discards any locate
-  // issued under the retired session.
-  useEffect(() => {
+  // principal was never shown. `bounds` is the retired dataset's extent, which
+  // frames the camera and clips every viewport the successor requests. So all of
+  // it goes, and it goes in the render that first sees the new revision: an effect
+  // runs after the commit, and the render it lets through would draw the retired
+  // selection, aim the popover at it, and clip the successor's first viewport to
+  // the predecessor's extent. Bumping the sequences discards any locate already
+  // issued under the retired session, and clearing the delay timer stops one that
+  // has not been issued yet.
+  //
+  // Every step is idempotent, which is what makes it safe during render: React
+  // may discard and repeat this render, and re-clearing null state, re-clearing a
+  // cleared timer and re-bumping a monotonic sequence all land in the same place.
+  // The bumps have to happen here rather than in an effect for the same reason
+  // the clears do — a locate issued from this render's handlers would otherwise
+  // carry a sequence the reset has not yet retired.
+  if (publishedRevision !== sessionRevision) {
+    setPublishedRevision(sessionRevision);
     locateSeqRef.current += 1;
     hoverSeqRef.current += 1;
     hoverLocateSeqRef.current += 1;
@@ -1048,10 +1070,18 @@ export const NetworkGraphView = ({
     }
     setSelected(null);
     setSelection(null);
+    setAnchor(null);
     setHoveredByExternal(null);
     setHoveredLabel(null);
     setHoverLocateLoading(false);
-  }, [sessionRevision]);
+    // The extent is re-frozen off the successor's first load by the derivation
+    // above, which fires again once `bounds` is null and points arrive. The ref
+    // mirror is cleared in the same breath because the debounced viewport
+    // derivation reads it, and it is what clips a request — an effect-updated
+    // mirror would clip the successor's first viewport to the retired extent.
+    setBounds(null);
+    boundsRef.current = null;
+  }
 
   // Locate an entity by id, memoized in the cache (read-or-start) so a prefetch
   // and a later pick share one request. A rejected locate is dropped so it can
@@ -1182,6 +1212,15 @@ export const NetworkGraphView = ({
       setHoverLocateLoading(true);
       const seq = hoverLocateSeqRef.current;
       hoverLocateTimerRef.current = window.setTimeout(() => {
+        // Read the sequence before issuing, not only when the result lands: the
+        // request itself is what must not outlive the hover it belongs to, and
+        // every retirement of a hover bumps this sequence. Each bump site also
+        // clears this timer, so the check normally never fires; it is what makes a
+        // bump site that forgets the clear cost one wasted request rather than an
+        // overlay of a retired session's rows.
+        if (seq !== hoverLocateSeqRef.current) {
+          return;
+        }
         void fetchLocate(atlasId, {
           baseUrl: ATLAS_API_BASE_URL,
           coloredTypeIds,

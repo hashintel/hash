@@ -366,6 +366,15 @@ describe("the authority token's path back to the browser", () => {
 });
 
 describe("the mount path", () => {
+  it("claims the mount and its descendants, and stops at the boundary", () => {
+    // The parser skip is decided by this predicate for paths the mount never sees, so the boundary is
+    // its own claim: a neighbouring route starting with the same letters keeps its parsed body.
+    expect(isAtlasPath("/atlas")).toBe(true);
+    expect(isAtlasPath("/atlas/generation/g/manifest")).toBe(true);
+    expect(isAtlasPath("/atlas-two/tile/g/plain/3/5/1")).toBe(false);
+    expect(isAtlasPath("/graphql")).toBe(false);
+  });
+
   it("names the atlas's own version prefix", async () => {
     const api = await startApi(sessionUser);
     received.length = 0;

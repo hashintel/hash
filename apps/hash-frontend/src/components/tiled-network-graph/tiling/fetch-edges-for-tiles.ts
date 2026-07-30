@@ -31,11 +31,9 @@ import { decodeSaltileEdges } from "../atlas-decode/edges";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
-  canReplaceAtlasSession,
-  clearAtlasSessionCache,
   FetchTileError,
-  getSaltileSession,
   requestAtlas,
+  withAtlasSession,
   type SaltileSession,
 } from "./fetch-tile";
 
@@ -204,19 +202,16 @@ export const fetchEdgesForTiles = async (
     return { edges: [], complete: true };
   }
 
-  // The promise, not just the session it resolves: it names the population this call belongs to (see
-  // {@link canReplaceAtlasSession}).
-  const pinned = getSaltileSession(baseUrl);
-  const session = await pinned;
+  return withAtlasSession(baseUrl, (session) => {
+    // Trimmed to the cap of the session actually being used, inside the operation rather than before
+    // it: a replacement session publishes its own cap, and the tiles asked for must be the ones that
+    // session serves. `tiles` is expected in priority order (see the doc).
+    const capped =
+      tiles.length > session.edgesTiles
+        ? tiles.slice(0, session.edgesTiles)
+        : tiles;
 
-  // Trim to the served cap; `tiles` is expected in priority order (see the doc).
-  const capped =
-    tiles.length > session.edgesTiles
-      ? tiles.slice(0, session.edgesTiles)
-      : tiles;
-
-  try {
-    return await fetchAndDecodeEdges(
+    return fetchAndDecodeEdges(
       session,
       capped,
       baseUrl,
@@ -225,27 +220,5 @@ export const fetchEdgesForTiles = async (
       priority,
       includeDetailedData,
     );
-  } catch (error) {
-    // The pinned generation is gone (`404`), or this session's authority was refused and could not be
-    // renewed (`401`); either ends the session. One decision for both transports, so neither can
-    // learn a recovery the other has not.
-    if (canReplaceAtlasSession(error, baseUrl, pinned)) {
-      clearAtlasSessionCache(baseUrl);
-      const refreshed = await getSaltileSession(baseUrl);
-      const recapped =
-        tiles.length > refreshed.edgesTiles
-          ? tiles.slice(0, refreshed.edgesTiles)
-          : tiles;
-      return await fetchAndDecodeEdges(
-        refreshed,
-        recapped,
-        baseUrl,
-        signal,
-        retry,
-        priority,
-        includeDetailedData,
-      );
-    }
-    throw error;
-  }
+  });
 };
