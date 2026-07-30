@@ -1119,7 +1119,7 @@ export const NetworkGraphView = ({
     (results: NetworkGraphSearchResult[]) => {
       const entries = getLocateCache();
       const wanted = new Set(results.map(({ entityId }) => entityId));
-      for (const entityId of [...entries.keys()]) {
+      for (const entityId of entries.keys()) {
         if (!wanted.has(entityId)) {
           entries.delete(entityId);
         }

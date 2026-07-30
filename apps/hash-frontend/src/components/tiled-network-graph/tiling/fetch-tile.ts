@@ -1160,7 +1160,7 @@ const fetchAndDecodeTile = async (
   // The type mask is present exactly when colored types were requested; its
   // stride is the per-point byte count carrying one bit per queried type.
   const maskStride = Math.ceil(coloredTypeIds.length / 8);
-  const nodes: TileNode[] = new Array<TileNode>(delivered);
+  const nodes: TileNode[] = Array.from({ length: delivered });
   for (let index = 0; index < delivered; index += 1) {
     const id = rowIds[index];
     const wireX = positions[index * 2];
