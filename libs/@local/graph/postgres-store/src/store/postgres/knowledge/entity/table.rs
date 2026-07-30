@@ -33,10 +33,7 @@ use hash_graph_store::{
     query::CursorField,
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxis, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableTemporalAxis,
-        },
+        temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
     },
 };
 use hash_graph_temporal_versioning::{
@@ -1032,7 +1029,9 @@ mod tests {
     use core::str::FromStr as _;
 
     use hash_codec::numeric::Real;
-    use hash_graph_store::entity::EntityTableFilter;
+    use hash_graph_store::{
+        entity::EntityTableFilter, subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    };
     use type_system::{ontology::BaseUrl, principal::actor_group::WebId};
     use uuid::Uuid;
 
