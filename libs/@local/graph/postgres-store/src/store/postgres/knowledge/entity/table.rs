@@ -657,8 +657,7 @@ where
                         ),
                     // The types are read at the page's instant rather than at a clock reading of
                     // their own, so the chips describe the rows the page actually returned.
-                    &QueryTemporalAxesUnresolved::live_only()
-                        .resolve_with(policy_components.timestamp()),
+                    &temporal_axes,
                     None,
                 )
                 .await?
