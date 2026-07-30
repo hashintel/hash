@@ -6,9 +6,10 @@
 //! mean the file can be shared rather than copied.
 //!
 //! The repository itself is versioned by [`RepositoryVersion`], recorded in the metadata document
-//! that describes it. It is the JSON analog of the pinned binary headers: deserialization admits
-//! only versions this module implements, so reading a repository of another version fails before
-//! anything is interpreted.
+//! that describes it. It is the JSON analog of the pinned binary headers: the version leads the
+//! serialized document, so a repository of another layout is rejected before the rest of the
+//! document is interpreted. Field order carries that guarantee for documents this crate wrote; a
+//! document whose keys arrive in another order is rejected by whichever field fails first.
 //!
 //! The layout (directory structure, naming) is version 2 and **mutable**: change it freely to fit
 //! what the pipeline needs and increment [`RepositoryVersion`] when you do; published files are

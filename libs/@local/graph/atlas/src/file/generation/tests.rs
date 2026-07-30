@@ -436,6 +436,52 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 }
 
 #[test]
+fn open_reports_a_retired_version_before_interpreting_the_body() {
+    let root = GenerationRoot::new(scratch("open-version")).expect("the root should open");
+
+    // Serialized by this crate, so the keys arrive in the order the version gate
+    // depends on.
+    let document = serde_json::to_string(&repository()).expect("the repository should serialize");
+    assert!(document.contains(r#""version":2"#));
+    assert!(document.contains(r#""reproducibility""#));
+
+    let publish = |document: &str| {
+        let id = GenerationId(digest(document));
+        let path = root.generation_path(id);
+        fs::create_dir_all(&path).expect("the generation directory should create");
+        fs::write(path.join(METADATA_FILE), document).expect("the document should write");
+        id
+    };
+
+    // A body that no longer satisfies the current schema.
+    let broken = document.replace(r#""reproducibility""#, r#""reproducibilty""#);
+
+    // A retired version reports the version rather than the body: the operator of
+    // a superseded generation is told to refit.
+    let retired = broken.replace(r#""version":2"#, r#""version":1"#);
+    let error = root
+        .open(publish(&retired))
+        .expect_err("a retired version is rejected");
+    assert!(
+        error
+            .to_string()
+            .contains("unsupported repository version 1"),
+        "the version decides the diagnosis: {error}",
+    );
+
+    // The same body under the accepted version fails on the body, so the
+    // assertion above rests on the order and not on a document that parses.
+    let error = root
+        .open(publish(&broken))
+        .expect_err("an invalid body is rejected");
+    let message = error.to_string();
+    assert!(
+        !message.contains("unsupported repository version"),
+        "the accepted version leaves the body to fail: {message}",
+    );
+}
+
+#[test]
 fn dropped_staging_leaves_nothing_behind() {
     let path = scratch("abandon");
     let root = GenerationRoot::new(&path).expect("the root should open");
