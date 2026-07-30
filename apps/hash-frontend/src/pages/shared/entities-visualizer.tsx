@@ -1,7 +1,7 @@
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
@@ -382,15 +382,15 @@ export const EntitiesVisualizer: FunctionComponent<{
 
     const relevantEntityTypesMap = new Map<string, ClosedMultiEntityType>();
 
-    for (const [firstTypeId, ...otherTypeIds] of rowTypeIdLists) {
-      if (!firstTypeId) {
+    for (const rowTypeIds of rowTypeIdLists) {
+      // The endpoint's rows carry a plain list, so an entity without types is
+      // representable and has nothing to look up.
+      const entityTypeIds = atLeastOne(rowTypeIds);
+
+      if (!entityTypeIds) {
         continue;
       }
 
-      const entityTypeIds: [VersionedUrl, ...VersionedUrl[]] = [
-        firstTypeId,
-        ...otherTypeIds,
-      ];
       const key = entityTypeIds.toSorted().join(",");
 
       if (!relevantEntityTypesMap.has(key)) {
