@@ -1111,10 +1111,10 @@ where
     /// Returns the entity editions among `params.entity_ids` on which `authenticated_actor` may
     /// perform `params.action`.
     ///
-    /// `timestamp` is the store's clock reading of the surrounding operation, so the permission
-    /// check resolves its temporal axes to the same point in time as the operation's other
-    /// statements; when absent, the reading captured while building this check's policy
-    /// components is used.
+    /// `timestamp` is the store's clock reading of the surrounding operation. It is forwarded to
+    /// the policy components, so the permission check resolves its temporal axes to the same point
+    /// in time as the operation's other statements without taking a further clock reading. When
+    /// absent, the reading captured while building this check's policy components is used.
     ///
     /// This is inherent rather than only an [`EntityStore`] method because the snapshot-consistent
     /// read implementations invoke it on the [`InTransaction`] store, where the [`EntityStore`]
@@ -1130,15 +1130,21 @@ where
         params: HasPermissionForEntitiesParams<'_>,
         timestamp: Option<Timestamp<()>>,
     ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
-        let policy_components = PolicyComponents::builder(self)
+        let mut policy_components_builder = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
+            .with_action(params.action, MergePolicies::Yes);
+        if let Some(timestamp) = timestamp {
+            // Forwarding the operation's reading keeps the builder from issuing a second clock
+            // query, which it would otherwise do for an already-resolved actor.
+            policy_components_builder.set_timestamp(timestamp);
+        }
+        let policy_components = policy_components_builder
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
 
         let temporal_axes = params
             .temporal_axes
-            .resolve_with(timestamp.unwrap_or_else(|| policy_components.timestamp()));
+            .resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
 
         let entity_uuids = params
