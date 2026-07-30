@@ -82,11 +82,11 @@ export const stepDetailDoc: DocEntry = {
           <Term>Time range</Term> buttons (3m, 6m, 12) filter the panel.
         </LI>
         <LI>
-          <Term>Outlier count</Term> appears in the header when the Exclude
-          outliers setting removes timing observations from the current step.
-          See{" "}
+          <Term>Outlier count</Term> appears in the header when values are
+          excluded from the mean. The raw observations and percentile statistics
+          remain unchanged. See{" "}
           <CrossRef to={{ section: "settings", sub: "outliers" }}>
-            Exclude outliers
+            Exclude outliers from mean
           </CrossRef>
           .
         </LI>

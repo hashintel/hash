@@ -115,6 +115,10 @@ const controlsBottomRow = css({
   alignItems: "center",
   gap: "2",
 });
+const planningLegendRow = css({
+  display: "flex",
+  justifyContent: "flex-end",
+});
 const contentBase = css({
   px: "6",
   py: "3",
@@ -669,7 +673,6 @@ export const Overview = ({
           {/* Right: primary view controls + lower-frequency settings/help. */}
           <div className={controlsCol}>
             <div className={controlsBottomRow}>
-              <PlanningParamLegend />
               <SegmentedControl
                 value={viewMode}
                 onChange={(nextViewMode) => {
@@ -713,6 +716,9 @@ export const Overview = ({
                 docContext="product"
                 productView={viewMode}
               />
+            </div>
+            <div className={planningLegendRow}>
+              <PlanningParamLegend />
             </div>
           </div>
         </div>
@@ -802,6 +808,7 @@ export const Overview = ({
             <E2EWhatIf
               graph={filteredGraph}
               timeRange={timeRange}
+              excludeOutliers={excludeOutliers}
               onCollapse={() => setPipelineExpanded(false)}
               onStepDrill={onStepSelect}
               activeSegments={activeSegments}
@@ -867,6 +874,11 @@ export const Overview = ({
               <StatusDialog
                 key={`${statusTarget.plant}-${statusTarget.id}`}
                 title={statusTarget.label}
+                entries={
+                  opportunityStatusStore.statusHistory[
+                    statusKey(productSiteId, statusTarget)
+                  ] ?? []
+                }
                 inline
                 onClose={() => setStatusTarget(null)}
                 onSave={(entry) => {
@@ -885,6 +897,11 @@ export const Overview = ({
         <StatusDialog
           key={`${statusTarget.plant}-${statusTarget.id}`}
           title={statusTarget.label}
+          entries={
+            opportunityStatusStore.statusHistory[
+              statusKey(productSiteId, statusTarget)
+            ] ?? []
+          }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
             opportunityStatusStore.actions.onSaveStatus(statusTarget, entry);

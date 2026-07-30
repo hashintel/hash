@@ -85,4 +85,39 @@ describe("parseProductionSchedule", () => {
       ),
     ).toThrow();
   });
+
+  it("accepts an optional sales-order number on dispatch deliveries", () => {
+    const schedule = legacySchedule();
+    schedule.dispatch_events = [
+      {
+        id: "dispatch-1",
+        batch_id: "1000::B1",
+        material: "1000",
+        batch: "B1",
+        dispatch_date: "2026-02-01",
+        quantity: 10,
+        uom: "KG",
+        bwart: "601",
+        episode_scope: "in_episode",
+        delivery_coverage: "exact",
+        deliveries: [
+          {
+            delivery_number: "DELIVERY",
+            delivery_item: "10",
+            sales_order: "SALES-ORDER",
+            quantity: 10,
+            uom: "KG",
+          },
+        ],
+      },
+    ];
+
+    expect(parseProductionSchedule(schedule, "product")).toBeTruthy();
+
+    schedule.dispatch_events[0]!.deliveries[0]!.sales_order = "";
+    expect(() => parseProductionSchedule(schedule, "product")).toThrow();
+
+    schedule.dispatch_events[0]!.deliveries[0]!.sales_order = " PADDED ";
+    expect(() => parseProductionSchedule(schedule, "product")).toThrow();
+  });
 });

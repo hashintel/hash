@@ -603,8 +603,14 @@ export const StepDetailPanel = ({
     return comparisonStep.observations;
   }, [comparisonStep, dimension, selectedComponent]);
   const periodComparison = useMemo(() => {
-    return computePeriodDeltas(comparisonObservations, timeRange);
-  }, [comparisonObservations, timeRange]);
+    return computePeriodDeltas(
+      comparisonObservations,
+      timeRange,
+      dimension === "timing"
+        ? (comparisonStep?.mean_observations ?? comparisonObservations)
+        : comparisonObservations,
+    );
+  }, [comparisonObservations, comparisonStep, dimension, timeRange]);
   const selectedComponentReconciliationCount = useMemo(() => {
     if (
       dimension !== "consumption" ||
@@ -839,7 +845,7 @@ export const StepDetailPanel = ({
                       <span className={strongText}>
                         {filteredStep.excluded_count}
                       </span>{" "}
-                      outliers excluded
+                      excluded from mean
                     </span>
                   </span>
                 )}

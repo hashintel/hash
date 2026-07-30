@@ -8,6 +8,7 @@ import {
   selectStat,
   useBaseMeasure,
 } from "../../shared/measure-context";
+import { sampleTier } from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
@@ -20,12 +21,7 @@ import { ColumnHeader } from "./shared/column-header";
 import { siteNodeDisplayLabel, sortRows } from "./shared/helpers";
 import { LowSampleBadge } from "./shared/low-sample-badge";
 import { ProductTags } from "./shared/product-tags";
-import {
-  LOW_SAMPLE_N,
-  type DwellRow,
-  type SortKey,
-  type SortDir,
-} from "./shared/row-types";
+import { type DwellRow, type SortKey, type SortDir } from "./shared/row-types";
 import * as threshold from "./shared/table-styles";
 import { useStepTableView } from "./shared/use-step-table-view";
 
@@ -263,14 +259,15 @@ export const DwellTable = ({
               </td>
               <td className={cx(threshold.tdRight, threshold.valueMuted)}>
                 <span className={threshold.sampleCell}>
-                  {row.stats.n > 0 && row.stats.n < LOW_SAMPLE_N && (
-                    <span className={threshold.badgeWrap}>
-                      <LowSampleBadge
-                        label="low"
-                        title={`Current period has ${row.stats.n} observations`}
-                      />
-                    </span>
-                  )}
+                  {sampleTier(row.stats.n) !== "none" &&
+                    sampleTier(row.stats.n) !== "good" && (
+                      <span className={threshold.badgeWrap}>
+                        <LowSampleBadge
+                          label={sampleTier(row.stats.n)}
+                          title={`Current period has ${row.stats.n} observations`}
+                        />
+                      </span>
+                    )}
                   <span>{formatNumber(row.stats.n)}</span>
                 </span>
               </td>

@@ -3,12 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  formatCost,
-  formatNumber,
-  useCostParams,
-  useOutlierSetting,
-} from "../../shared/cost";
+import { formatCost, formatNumber, useCostParams } from "../../shared/cost";
 import { BindingLever } from "./e2e-what-if/binding-lever";
 import { KpiTile } from "./e2e-what-if/what-if-kpis";
 import { PipelineHeader } from "./shared/pipeline-header";
@@ -26,6 +21,7 @@ import type { GraphData } from "../../shared/types";
 interface E2EWhatIfProps {
   graph: GraphData;
   timeRange: TimeRange;
+  excludeOutliers: boolean;
   onCollapse: () => void;
   onStepDrill: (stepId: string) => void;
   /** Segments currently included in totals, KPIs and the lever list. */
@@ -115,6 +111,7 @@ const kpiGrid = css({
 export const E2EWhatIf = ({
   graph,
   timeRange,
+  excludeOutliers,
   onCollapse,
   onStepDrill,
   activeSegments,
@@ -123,7 +120,6 @@ export const E2EWhatIf = ({
   onActiveRouteChange,
 }: E2EWhatIfProps) => {
   const { waccRate, storageCost } = useCostParams();
-  const { excludeOutliers } = useOutlierSetting();
 
   const setActiveRoute = onActiveRouteChange;
   // Levers store CAP days: missing entries or caps at the step's max mean

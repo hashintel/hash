@@ -31,7 +31,7 @@ use type_system::knowledge::{Entity, PropertyValue};
 pub use self::{
     ast::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, CommonTableExpression,
-        Constant, EmptyVec, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
+        Constant, EmptyVecError, EqualityOperator, Expression, FromItem, FromItemFunctionBuilder,
         FromItemJoinBuilder, FromItemSubqueryBuilder, FromItemTableBuilder, Function,
         GroupByClause, GroupingElement, Identifier, JoinType, Materialization, NonEmptyVec,
         NonFinitePercentage, NullsOrder, OnConflict, OrderByClause, SamplePercentage,

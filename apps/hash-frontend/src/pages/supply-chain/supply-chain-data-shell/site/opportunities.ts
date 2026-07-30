@@ -1,8 +1,9 @@
 import { formatCost, formatNumber } from "../../shared/cost";
+import { effectiveTimingGrain } from "../../shared/observation-labels";
 import { procurementStepDisplayLabel } from "../../shared/procurement-planning-ui";
+import { combinedSampleTier } from "../../shared/sample-confidence";
 import { siteNodeKey } from "../../shared/site-node-key";
 import { siteNodeDisplayLabel } from "./shared/helpers";
-import { LOW_SAMPLE_N } from "./shared/row-types";
 
 import type { StatusOption } from "../../shared/status";
 import type { TimeRange } from "../../shared/time-range";
@@ -84,23 +85,37 @@ function confidenceLabel(
   if (!hasRequiredData) {
     return "Low sample";
   }
-  if (
-    currentN < LOW_SAMPLE_N ||
-    (includePrevious &&
-      previousN != null &&
-      previousN > 0 &&
-      previousN < LOW_SAMPLE_N)
-  ) {
+  const tier = combinedSampleTier(currentN, includePrevious ? previousN : null);
+  if (tier === "low" || tier === "none") {
     return "Low sample";
+  }
+  if (tier === "limited") {
+    return "Limited sample";
   }
   return "Good sample";
 }
 
-function sampleLabel(currentN: number, previousN?: number | null): string {
+function sampleLabel(
+  currentN: number,
+  previousN?: number | null,
+  node?: Pick<SiteNode, "type" | "timing_grain">,
+): string {
+  const grain = node
+    ? effectiveTimingGrain({
+        type: node.type,
+        timingGrain: node.timing_grain,
+      })
+    : null;
+  const noun =
+    grain === "campaign"
+      ? "Campaigns"
+      : grain === "batch"
+        ? "Batches"
+        : "Samples";
   if (previousN == null || previousN <= 0) {
-    return `Samples ${formatNumber(currentN)}`;
+    return `${noun} ${formatNumber(currentN)}`;
   }
-  return `Samples ${formatNumber(currentN)}; prev ${formatNumber(previousN)}`;
+  return `${noun} ${formatNumber(currentN)}; prev ${formatNumber(previousN)}`;
 }
 
 function opportunityTitle(row: SiteNode): string {
@@ -137,7 +152,7 @@ function planningOpportunity(
     impactValue: `${p95DeviationPct > 0 ? "+" : ""}${formatNumber(p95DeviationPct, { maximumFractionDigits: 0 })}%`,
     impactTone: kind === "planning_over" ? "danger" : "success",
     evidence: `Plan ${formatNumber(plan, { maximumFractionDigits: 0 })}d; median ${formatNumber(row.stats.median, { maximumFractionDigits: 1 })}d; P95 ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d`,
-    sampleLabel: sampleLabel(row.stats.n),
+    sampleLabel: sampleLabel(row.stats.n, null, row),
     currentSampleN: row.stats.n,
     confidenceLabel: confidenceLabel(row.stats.n, null, true, false),
     score: Math.abs(p95DeviationPct),
@@ -188,7 +203,7 @@ export function buildSiteOpportunities({
       impactValue: formatCost(row.periodCost, currency, { compact: true }),
       impactTone: "danger",
       evidence: `${formatNumber(days, { maximumFractionDigits: 1 })}d observed; ${formatNumber(row.stats.p95, { maximumFractionDigits: 1 })}d P95`,
-      sampleLabel: sampleLabel(row.stats.n),
+      sampleLabel: sampleLabel(row.stats.n, null, row),
       currentSampleN: row.stats.n,
       confidenceLabel: confidenceLabel(
         row.stats.n,

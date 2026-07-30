@@ -94,7 +94,7 @@ where
             return Err(Report::new(BufferError::EarlyEndOfStream));
         }
 
-        Ok(N::unchecked_read_from_buf(&mut self.0))
+        Ok(N::unchecked_read_from_buf(&mut *self.0))
     }
 
     pub(crate) fn next_bytes(&mut self, at: usize) -> Result<Bytes, Report<BufferError>> {
@@ -136,7 +136,7 @@ where
             return Err(Report::new(BufferError::NotEnoughCapacity));
         }
 
-        number.unchecked_write_to_buf(&mut self.0);
+        number.unchecked_write_to_buf(&mut *self.0);
 
         Ok(())
     }

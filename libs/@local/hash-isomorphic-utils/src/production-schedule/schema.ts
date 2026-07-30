@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 const nonEmptyString = z.string().min(1);
+const canonicalNonEmptyString = nonEmptyString.refine(
+  (value) => value === value.trim(),
+  { error: "String must not have leading or trailing whitespace" },
+);
 const nullableNonEmptyString = nonEmptyString.nullable();
 const nonNegativeNumber = z.number().finite().nonnegative();
 const positiveNumber = z.number().finite().positive();
@@ -213,6 +217,7 @@ export const productionScheduleDeliverySchema = z.strictObject({
   delivery_number: nonEmptyString,
   delivery_item: nonEmptyString,
   shipment_number: nonEmptyString.optional(),
+  sales_order: canonicalNonEmptyString.optional(),
   ship_to: nonEmptyString.optional(),
   sold_to: nonEmptyString.optional(),
   customer_name: nonEmptyString.optional(),

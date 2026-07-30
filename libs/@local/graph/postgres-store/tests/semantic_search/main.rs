@@ -2,6 +2,7 @@
 //!
 //! The suite is ignored by default: it requires a database holding real entities, embeddings,
 //! and policies, and measures rather than asserts behaviour that depends on that data.
+#![recursion_limit = "256"]
 #![expect(
     unreachable_pub,
     reason = "the shared test harness exports more than this suite consumes"

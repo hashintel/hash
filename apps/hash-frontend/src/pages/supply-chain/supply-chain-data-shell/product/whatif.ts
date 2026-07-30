@@ -1,8 +1,5 @@
 import { computePeriodCost } from "../../shared/cost";
-import {
-  computeIqrFences,
-  type IqrFences,
-} from "../../shared/outlier-selection/iqr";
+import { computeIqrFences } from "../../shared/outlier-selection/iqr";
 
 import type {
   BatchRow,
@@ -538,11 +535,18 @@ function simulateBatch(
   };
 }
 
-function mean(values: number[]): number | null {
+function mean(values: number[], excludeOutliers = false): number | null {
   if (values.length === 0) {
     return null;
   }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const fences = excludeOutliers ? computeIqrFences(values) : null;
+  const meanValues = fences
+    ? values.filter((value) => value >= fences.lower && value <= fences.upper)
+    : values;
+  if (meanValues.length === 0) {
+    return null;
+  }
+  return meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length;
 }
 
 function median(sortedAsc: number[]): number | null {
@@ -699,37 +703,6 @@ export function aggregateSimulation(
     ? batches.filter((batch) => batch.route === routeCode)
     : batches;
 
-  // When outliers are excluded, trim each segment with the same Tukey 1.5x IQR
-  // rule the waterfall uses (recompute-batch-timelines.segStats), so the KPI
-  // baseline/simulated totals stay consistent with the waterfall bars instead
-  // of including points the bars dropped.
-  const segFence = (
-    pick: (b: BatchRow) => number | null | undefined,
-  ): IqrFences | null => {
-    const vals = routeBatches
-      .map(pick)
-      .filter(
-        (value): value is number =>
-          typeof value === "number" && value >= 0 && value <= 730,
-      );
-    return computeIqrFences(vals);
-  };
-  const fences = excludeOutliers
-    ? {
-        procToPS: segFence((batch) => batch.seg_proc_to_prodstart),
-        prodStartToFinish: segFence(
-          (batch) => batch.seg_prodstart_to_prodfinish,
-        ),
-        prodFinishToQa: segFence((batch) => batch.seg_prodfinish_to_qa),
-        qaToCustomer: segFence((batch) => batch.seg_qa_to_customer),
-      }
-    : null;
-  const within = (
-    value: number,
-    fraction: IqrFences | null | undefined,
-  ): boolean =>
-    !fraction || (value >= fraction.lower && value <= fraction.upper);
-
   // The `capLevers` Record is keyed on stepId with an absolute cap in days.
   // Missing entries, entries for hidden levers, and caps at/above the step max
   // are treated as "uncapped". The result is the active cap map fed into
@@ -776,10 +749,7 @@ export function aggregateSimulation(
 
   const baselineTotals: number[] = [];
   const simulatedTotals: number[] = [];
-  // Per-segment buckets only collect rows where the batch's baseline for
-  // that segment is non-null and within the outlier band -- matching the
-  // baseline waterfall's segStats semantics so the dashed simulated bars
-  // overlay cleanly when no levers are active.
+  // Per-segment buckets collect every valid raw batch value.
   const segs = {
     procToPS: [] as number[],
     prodStartToFinish: [] as number[],
@@ -821,43 +791,25 @@ export function aggregateSimulation(
     let baselineTotal = 0;
     let simulatedTotal = 0;
     // Skip a segment's contribution when its legend chip is toggled off. The
-    // per-segment validity band (`inRange`) and, when active, the Tukey IQR
-    // fence (`within`) both apply per-segment, so a batch can still contribute
-    // its other valid segments even when one is excluded.
-    if (
-      isActive("procurement") &&
-      inRange(procToPSRaw) &&
-      within(procToPSRaw, fences?.procToPS)
-    ) {
+    // validity band applies independently per segment.
+    if (isActive("procurement") && inRange(procToPSRaw)) {
       segs.procToPS.push(procToPSRaw);
       baselineTotal += procToPSRaw;
       simulatedTotal += procToPSRaw;
     }
-    if (
-      isActive("production") &&
-      inRange(prodStartToFinishRaw) &&
-      within(prodStartToFinishRaw, fences?.prodStartToFinish)
-    ) {
+    if (isActive("production") && inRange(prodStartToFinishRaw)) {
       const sim2 = Math.max(0, prodStartToFinishRaw - prodSegmentReduction);
       segs.prodStartToFinish.push(sim2);
       baselineTotal += prodStartToFinishRaw;
       simulatedTotal += sim2;
     }
-    if (
-      isActive("qa_hold") &&
-      inRange(prodFinishToQaRaw) &&
-      within(prodFinishToQaRaw, fences?.prodFinishToQa)
-    ) {
+    if (isActive("qa_hold") && inRange(prodFinishToQaRaw)) {
       const sim2 = Math.max(0, prodFinishToQaRaw - qaHoldReduction);
       segs.prodFinishToQa.push(sim2);
       baselineTotal += prodFinishToQaRaw;
       simulatedTotal += sim2;
     }
-    if (
-      isActive("transit") &&
-      inRange(qaToCustomerRaw) &&
-      within(qaToCustomerRaw, fences?.qaToCustomer)
-    ) {
+    if (isActive("transit") && inRange(qaToCustomerRaw)) {
       const sim2 = Math.max(0, qaToCustomerRaw - postQaReduction);
       segs.qaToCustomer.push(sim2);
       baselineTotal += qaToCustomerRaw;
@@ -880,8 +832,8 @@ export function aggregateSimulation(
     (left, right) => left - right,
   );
 
-  const baselineMean = mean(baselineTotals);
-  const simulatedMean = mean(simulatedTotals);
+  const baselineMean = mean(baselineTotals, excludeOutliers);
+  const simulatedMean = mean(simulatedTotals, excludeOutliers);
   const daysSaved =
     baselineMean != null && simulatedMean != null
       ? Math.max(0, baselineMean - simulatedMean)
@@ -897,10 +849,10 @@ export function aggregateSimulation(
   const sortedSegMedian = (vals: number[]) =>
     [...vals].sort((left, right) => left - right);
   const simulatedStagesMean = buildStages(
-    mean(segs.procToPS) ?? 0,
-    mean(segs.prodStartToFinish) ?? 0,
-    mean(segs.prodFinishToQa) ?? 0,
-    mean(segs.qaToCustomer) ?? 0,
+    mean(segs.procToPS, excludeOutliers) ?? 0,
+    mean(segs.prodStartToFinish, excludeOutliers) ?? 0,
+    mean(segs.prodFinishToQa, excludeOutliers) ?? 0,
+    mean(segs.qaToCustomer, excludeOutliers) ?? 0,
     activeSegments,
   );
   const simulatedStagesMedian = buildStages(

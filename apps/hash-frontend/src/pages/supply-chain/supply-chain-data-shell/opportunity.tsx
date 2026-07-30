@@ -17,6 +17,7 @@ import { buildCsvContent, downloadCsv } from "../shared/export-utils";
 import { useSupplierPerformanceEnabled } from "../shared/feature-flags";
 import { ErrorState, SupplyChainAppSkeleton } from "../shared/load-state";
 import { ensureNodeStats } from "../shared/normalize-contract";
+import { countNoun } from "../shared/observation-labels";
 import { applyOutlierSelectionToStep } from "../shared/outlier-selection";
 import {
   computePeriodDeltas,
@@ -602,13 +603,14 @@ function formatTrendSummary(
     previousN: number;
   },
   range: TimeRange,
+  observationNoun: string,
 ): string {
   if (
     trend.pctChange == null ||
     trend.currentValue == null ||
     trend.previousValue == null
   ) {
-    return `No comparison (${formatNumber(trend.currentN)} current / ${formatNumber(trend.previousN)} previous samples)`;
+    return `No comparison (${formatNumber(trend.currentN)} current / ${formatNumber(trend.previousN)} previous ${observationNoun})`;
   }
   return `${formatNumber(trend.currentValue, { maximumFractionDigits: 1 })}d vs ${formatNumber(trend.previousValue, { maximumFractionDigits: 1 })}d previous ${range} (${formatDeviation(trend.pctChange)})`;
 }
@@ -859,8 +861,10 @@ const DwellExecutiveSummary = ({
 
 const PlanningExecutiveSummary = ({
   brief,
+  observationNoun,
 }: {
   brief: PlanningOpportunityBrief;
+  observationNoun: string;
 }) => {
   return (
     <div className={grid4}>
@@ -891,7 +895,7 @@ const PlanningExecutiveSummary = ({
       />
 
       <MetricCard
-        label="Batches exceeding plan"
+        label={`${observationNoun} exceeding plan`}
         value={formatExceedingPlan(brief)}
         tone={(brief.pctExceedingPlan ?? 0) > 20 ? "bad" : "neutral"}
       />
@@ -1811,10 +1815,23 @@ export const OpportunityBrief = ({
     siteNode?.products ??
     products.filter((product) => product.id === productId);
   const isDwellBrief = brief.kind === "dwell";
+  const observationNoun = countNoun({
+    id: filteredStep.id,
+    label: filteredStep.label,
+    type: filteredStep.type,
+    dimension: "timing",
+    timingGrain: filteredStep.timing_grain,
+  });
+  const observationLabel =
+    observationNoun.charAt(0).toUpperCase() + observationNoun.slice(1);
   const ranking = computeBriefRanking(rollups, stepId, isDwellBrief);
 
   // Headline period-over-period trends for median / P95 / cost (newest vs prior window).
-  const periodCmp = computePeriodDeltas(historicalStep.observations, timeRange);
+  const periodCmp = computePeriodDeltas(
+    historicalStep.observations,
+    timeRange,
+    historicalStep.mean_observations ?? historicalStep.observations,
+  );
   const prevStats = periodCmp.previousStats;
   const costCmp = isDwellBrief
     ? computeCostComparison(
@@ -1974,10 +1991,10 @@ export const OpportunityBrief = ({
                 label="Analysis assumptions"
                 value={
                   isDwellBrief
-                    ? `${formatNumber(waccRate * 100, { maximumFractionDigits: 0 })}% WACC, ${formatNumber(storageCost, { maximumFractionDigits: 3 })}${filteredStep.cost?.currency ? ` ${filteredStep.cost.currency}` : ""}/t/day storage, ${excludeOutliers ? "outliers excluded" : "outliers included"}`
+                    ? `${formatNumber(waccRate * 100, { maximumFractionDigits: 0 })}% WACC, ${formatNumber(storageCost, { maximumFractionDigits: 3 })}${filteredStep.cost?.currency ? ` ${filteredStep.cost.currency}` : ""}/t/day storage, ${excludeOutliers ? "outliers excluded from mean" : "raw mean"}`
                     : excludeOutliers
-                      ? "outliers excluded"
-                      : "outliers included"
+                      ? "outliers excluded from mean"
+                      : "raw mean"
                 }
               />
             </div>
@@ -2016,7 +2033,7 @@ export const OpportunityBrief = ({
           />
 
           <MetricCard
-            label="Observations"
+            label={observationLabel}
             value={formatNumber(filteredStep.stats.n)}
           />
 
@@ -2038,7 +2055,10 @@ export const OpportunityBrief = ({
           {isDwellBrief ? (
             <DwellExecutiveSummary brief={brief} timeRange={timeRange} />
           ) : (
-            <PlanningExecutiveSummary brief={brief} />
+            <PlanningExecutiveSummary
+              brief={brief}
+              observationNoun={observationLabel}
+            />
           )}
         </BriefSection>
 
@@ -2132,10 +2152,10 @@ export const OpportunityBrief = ({
 
             <StatTable
               rows={[
-                ["Samples", formatNumber(filteredStep.stats.n)],
+                [observationLabel, formatNumber(filteredStep.stats.n)],
                 [
                   "Trend vs previous period",
-                  formatTrendSummary(brief.trend, timeRange),
+                  formatTrendSummary(brief.trend, timeRange, observationNoun),
                 ],
 
                 [
@@ -2146,10 +2166,10 @@ export const OpportunityBrief = ({
                 ],
 
                 [
-                  "Outliers excluded",
+                  "Excluded from mean only",
                   filteredStep.excluded_count == null
                     ? "-"
-                    : formatNumber(filteredStep.excluded_count),
+                    : `${formatNumber(filteredStep.excluded_count)} ${observationNoun}; percentiles use all ${formatNumber(filteredStep.stats.n)}`,
                 ],
 
                 [
