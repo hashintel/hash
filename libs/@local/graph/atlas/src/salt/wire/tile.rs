@@ -308,10 +308,10 @@ impl TileHead<'_> {
         cbor.uint(u64::from(self.children));
         cbor.uint(10);
         cbor.boolean(trailer);
-        if self.backfilled > 0 {
-            cbor.uint(11);
-            cbor.uint(self.backfilled);
-        }
+        // if self.backfilled > 0 {
+        //     cbor.uint(11);
+        //     cbor.uint(self.backfilled);
+        // }
     }
 }
 

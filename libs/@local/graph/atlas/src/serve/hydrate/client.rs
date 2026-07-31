@@ -35,8 +35,8 @@ const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
 /// Every property value a hydration query reads comes from this expression, and `$3` carries the
 /// protected base URLs in every query that has one. Removing the keys at the JSONB itself covers
 /// each derived column at once: an aggregate, a count and a single-key lookup all read the masked
-/// object. The parens are load-bearing, since `->` binds tighter than `-`: without them
-/// `properties - keys -> 'f'` subtracts `keys -> 'f'`.
+/// object. The parens hold the subtraction to the whole object, since `->` binds tighter than `-`:
+/// without them `properties - keys -> 'f'` subtracts `keys -> 'f'`.
 ///
 /// The store removes the same keys with the same operator under a per-actor condition, so an
 /// unconditional removal withholds at least what the store withholds from any actor. The tests pin
@@ -47,8 +47,32 @@ const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
 ///
 /// One batched lookup, input order preserved through the ordinality column, absent entities simply
 /// missing from the result. `$3` carries the protected properties and `$4` the icon's base URL.
+///
+/// The type icon resolves set-wise rather than per row. An icon belongs to an entity's types, and
+/// a deployment holds far fewer entity types than a tile holds points, so the map from versioned
+/// URL to icon is built once per query and joined. Resolving it inside a per-row lateral instead
+/// costs a sequential scan of `ontology_ids` for every delivered point: the join key there is
+/// `base_url || 'v/' || version`, an expression no index answers, so the planner rebuilds the same
+/// small map once per point. That shape dominated tile hydration until this one replaced it.
+///
+/// `DISTINCT ON` keeps the lateral's selection rule: among the icon-bearing entries of an entity's
+/// direct types, the shallowest wins and the type's position breaks the tie, and an entity whose
+/// types carry no icon keeps its row with a null.
 const DETAIL_QUERY: &str = "
-    SELECT
+    WITH type_icons AS MATERIALIZED (
+        SELECT
+            ontology_ids.base_url || 'v/' || ontology_ids.version AS url,
+            display.value ->> 'icon' AS icon,
+            (display.value ->> 'depth')::int AS depth
+        FROM entity_types
+        JOIN ontology_ids
+          ON ontology_ids.ontology_id = entity_types.ontology_id
+        CROSS JOIN LATERAL jsonb_array_elements(
+            entity_types.closed_schema -> 'allOf'
+        ) AS display (value)
+        WHERE display.value ->> 'icon' IS NOT NULL
+    )
+    SELECT DISTINCT ON (ids.index)
         ids.index,
         cache.labels[1] AS label,
         CASE
@@ -68,21 +92,11 @@ const DETAIL_QUERY: &str = "
      AND NOT edition.archived
     LEFT JOIN entity_edition_cache AS cache
       ON cache.entity_edition_id = meta.entity_edition_id
-    LEFT JOIN LATERAL (
-        SELECT display.value ->> 'icon' AS icon
-        FROM unnest(cache.versioned_urls[1:cache.direct_types])
-            WITH ORDINALITY AS direct (url, position)
-        JOIN ontology_ids
-          ON ontology_ids.base_url || 'v/' || ontology_ids.version = direct.url
-        JOIN entity_types
-          ON entity_types.ontology_id = ontology_ids.ontology_id
-        CROSS JOIN LATERAL jsonb_array_elements(
-            entity_types.closed_schema -> 'allOf'
-        ) AS display (value)
-        WHERE display.value ->> 'icon' IS NOT NULL
-        ORDER BY (display.value ->> 'depth')::int, direct.position
-        LIMIT 1
-    ) AS type_icon ON TRUE
+    LEFT JOIN LATERAL unnest(cache.versioned_urls[1:cache.direct_types])
+        WITH ORDINALITY AS direct (url, position) ON TRUE
+    LEFT JOIN type_icons AS type_icon
+      ON type_icon.url = direct.url
+    ORDER BY ids.index, type_icon.depth NULLS LAST, direct.position
 ";
 
 /// The locate node hydration query.
