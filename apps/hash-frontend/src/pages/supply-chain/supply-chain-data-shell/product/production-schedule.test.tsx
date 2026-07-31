@@ -13,11 +13,16 @@ import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production
 
 import { trackSupplyChainInteraction } from "../../shared/telemetry";
 import { ProductionScheduleView } from "./production-schedule";
+import {
+  lineOccupancyOperationsFromReason,
+  lineOccupancyTimingLabel,
+} from "./production-schedule/line-occupancy-rows";
 
 import type {
   ProductionScheduleV12,
   ProductionScheduleV12Batch,
 } from "../../shared/production-schedule-types";
+import type { SiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
 
 vi.mock("../../shared/telemetry", () => ({
   trackSupplyChainInteraction: vi.fn(),
@@ -312,6 +317,127 @@ const schedule: ProductionScheduleV12 = {
   ],
 };
 
+const siteProductionTimeline = {
+  site_id: "demo",
+  date_bounds: { start: "2026-01-01", end: "2026-01-10" },
+  buildings: [{ id: "building", name: "Building" }],
+  lines: [
+    {
+      id: "line-1",
+      name: "Line 1",
+      building_id: "building",
+      aliases: [],
+      kind: "internal_line",
+      resource_ids: [],
+    },
+  ],
+  product_families: [],
+  batches: [
+    {
+      ...makeBatch("site-focused"),
+      batch: "batch-1",
+      material: "input",
+      start: "2026-01-02",
+      end: "2026-01-04",
+      span_days: 3,
+      timing_kind: "production_window",
+      building_id: "building",
+      line_id: "line-1",
+      line_raw: "L1",
+      line_source: "campaign_sheet",
+      line_confidence: "exact",
+      candidate_line_ids: [],
+      line_reason: "confirmed",
+      resource_ids: [],
+      product_family_key: null,
+      data_quality_flags: [],
+    },
+    {
+      ...makeBatch("site-context"),
+      material: "external",
+      start: "2026-01-03",
+      end: "2026-01-05",
+      span_days: 3,
+      timing_kind: "production_window",
+      building_id: "building",
+      line_id: "line-1",
+      line_raw: "L1",
+      line_source: "standard_lot",
+      line_confidence: "mapped",
+      candidate_line_ids: [],
+      line_reason: "mapped",
+      resource_ids: [],
+      product_family_key: null,
+      data_quality_flags: [],
+    },
+  ],
+  consumption_edges: [
+    {
+      id: "site-edge-1",
+      source_batch_id: "site-focused",
+      target_batch_id: "site-context",
+      candidate_target_batch_ids: [],
+      unresolved_outputs: [],
+      consuming_order: "site-context",
+      consumption_date: "2026-01-03",
+      quantity: 1,
+      uom: "KG",
+      confidence: "exact",
+      reason: "synthetic linked production",
+      waiting_days: 0,
+      evidence_ids: ["site-evidence-1"],
+    },
+  ],
+} as unknown as SiteProductionTimeline;
+
+const siteProductionTimelineWithMixedAssignment = {
+  ...siteProductionTimeline,
+  lines: [
+    ...siteProductionTimeline.lines,
+    {
+      ...siteProductionTimeline.lines[0]!,
+      id: "line-2",
+      name: "Line 2",
+    },
+  ],
+  batches: [
+    ...siteProductionTimeline.batches,
+    {
+      ...siteProductionTimeline.batches[0]!,
+      id: "site-ambiguous",
+      batch: "AMBIGUOUS",
+      order: "ORDER-AMBIGUOUS",
+      line_id: null,
+      building_id: null,
+      line_source: "sap_recipe_operation",
+      line_confidence: "ambiguous",
+      candidate_line_ids: ["line-1", "line-2"],
+    },
+  ],
+} as SiteProductionTimeline;
+
+const siteProductionTimelineWithDifferentIdentifiers = {
+  ...siteProductionTimeline,
+  batches: siteProductionTimeline.batches.map((batch) =>
+    batch.material === "input"
+      ? { ...batch, batch: "OTHER-BATCH", order: "OTHER-ORDER" }
+      : batch,
+  ),
+} as SiteProductionTimeline;
+
+const siteProductionTimelineWithAmbiguousOnlyAssignment = {
+  ...siteProductionTimelineWithMixedAssignment,
+  batches: siteProductionTimelineWithMixedAssignment.batches
+    .filter(({ id }) => id === "site-ambiguous")
+    .map((batch) => ({ ...batch, material: "input" })),
+} as SiteProductionTimeline;
+
+const emptySiteProductionTimeline = {
+  ...siteProductionTimeline,
+  date_bounds: { start: null, end: null },
+  batches: [],
+} as SiteProductionTimeline;
+
 beforeAll(() => {
   class TestResizeObserver implements ResizeObserver {
     public observe(): void {}
@@ -342,6 +468,227 @@ const selectOption = async (
 describe("ProductionScheduleView", () => {
   it("uses a fixture accepted by the shared production-schedule contract", () => {
     expect(parseProductionSchedule(schedule, "product")).toBeTruthy();
+  });
+
+  it("identifies receipt-only batches explicitly in their tooltip", async () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+
+    const receiptBatch = screen.getByRole("button", {
+      name: /^Batch batch-2/,
+    });
+    fireEvent.focus(receiptBatch);
+    expect(
+      await screen.findByText(
+        "Receipt event 2026-01-01 · no recorded production window",
+      ),
+    ).toBeTruthy();
+    expect(await screen.findByText(/^30 KG received/)).toBeTruthy();
+    expect(
+      receiptBatch.querySelector(
+        '[data-batch-segment="production-observation"]',
+      ),
+    ).toBeNull();
+  });
+
+  it("shows default-on focus-neutral line occupancy and toggles it off", () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map([["external", "External Product"]]),
+        siteProductionTimeline,
+      }),
+    );
+
+    const toggle = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "Show recorded line occupancy",
+    });
+    expect(toggle.checked).toBe(true);
+    expect(screen.getByText("Recorded occupancy · Line 1")).toBeTruthy();
+    const occupancyRow = document.querySelector<HTMLElement>(
+      '[data-line-occupancy-row="line-1"]',
+    )!;
+    expect(occupancyRow.style.background).toBe(
+      screen.getByTitle("Input").parentElement?.style.background,
+    );
+    const focusedOccupancy = document.querySelector<HTMLElement>(
+      '[data-occupancy-focus="focused"]',
+    );
+    expect(focusedOccupancy).toBeTruthy();
+    expect(focusedOccupancy?.parentElement?.style.height).toBe("100%");
+    expect(focusedOccupancy?.parentElement?.style.width).toBe("100%");
+    expect(
+      document.querySelector('[data-occupancy-focus="context"]'),
+    ).toBeTruthy();
+    expect(screen.queryByText("Focused material occupancy")).toBeNull();
+    expect(screen.queryByText("Other line production")).toBeNull();
+    expect(screen.queryByText("Uncertain assignment")).toBeNull();
+    expect(siteProductionTimeline.consumption_edges).toHaveLength(1);
+
+    const selectedBatch = screen.getByRole("button", {
+      name: /^Batch batch-1/,
+    });
+    fireEvent.click(selectedBatch);
+    expect(
+      document.querySelector('[data-occupancy-focus="focused"]'),
+    ).toBeTruthy();
+    expect(
+      document.querySelector('[data-occupancy-focus="context"]'),
+    ).toBeNull();
+    fireEvent.click(selectedBatch);
+
+    fireEvent.click(toggle);
+    expect(screen.queryByText("Recorded occupancy · Line 1")).toBeNull();
+  });
+
+  it("explains when selected batches do not match site occupancy identifiers", () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+        siteProductionTimeline: siteProductionTimelineWithDifferentIdentifiers,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /^Batch batch-1/,
+      }),
+    );
+
+    expect(
+      screen.getByText("No recorded occupancy matches the selected batches"),
+    ).toBeTruthy();
+  });
+
+  it("formats SAP timing and extracts only user-facing operations", () => {
+    expect(
+      lineOccupancyTimingLabel({
+        derivation: "afko_order",
+        startSource: "afko_prorated_from_receipt",
+        finishSource: "receipt_date",
+      }),
+    ).toBe("Estimated from SAP order and receipt dates");
+    expect(
+      lineOccupancyOperationsFromReason(
+        "order 123 AFVC order operations; ARBID [1001]; operations [100 Dissolve; 200 Filter]; dates [AFVV 2026-01-01..2026-01-04]; mapping: docs/production_process.md (CRHD unavailable)",
+      ),
+    ).toEqual(["100 Dissolve", "200 Filter"]);
+  });
+
+  it("shows mixed assignment uncertainty alongside resolved occupancy", () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+        siteProductionTimeline: siteProductionTimelineWithMixedAssignment,
+      }),
+    );
+
+    expect(screen.getByText("Recorded occupancy · Line 1")).toBeTruthy();
+    const summary = screen.getByText(
+      "1 production window has uncertain line assignment",
+    );
+    fireEvent.click(summary);
+    expect(screen.getByText("Candidate lines: line-1, line-2")).toBeTruthy();
+    expect(screen.getByText(/AMBIGUOUS \/ ORDER-AMBIGUOUS/)).toBeTruthy();
+  });
+
+  it("exposes candidate details for ambiguous-only materials", () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+        siteProductionTimeline:
+          siteProductionTimelineWithAmbiguousOnlyAssignment,
+      }),
+    );
+
+    expect(screen.getByText("No resolved line")).toBeTruthy();
+    const summary = screen.getByText(
+      "1 production window has uncertain line assignment",
+    );
+    fireEvent.click(summary);
+    expect(screen.getByText("Candidate lines: line-1, line-2")).toBeTruthy();
+    expect(screen.getByText("Sources: sap_recipe_operation")).toBeTruthy();
+    expect(screen.getByText(/AMBIGUOUS \/ ORDER-AMBIGUOUS/)).toBeTruthy();
+  });
+
+  it("shows a truthful accessible state for an empty site artifact", () => {
+    render(
+      createElement(ProductionScheduleView, {
+        schedule,
+        productNameByMaterial: new Map(),
+        siteProductionTimeline: emptySiteProductionTimeline,
+      }),
+    );
+
+    const message = screen.getByText(
+      "No recorded production in this site artifact",
+    );
+    expect(message.closest('[role="status"]')).toBeTruthy();
+    expect(screen.queryByText(/Outside artifact range/)).toBeNull();
+    expect(screen.queryByText("No resolved line")).toBeNull();
+  });
+
+  it("keeps transient error recovery visible when occupancy rows are hidden", () => {
+    const retry = vi.fn();
+    render(
+      createElement(ProductionScheduleView, {
+        occupancyError: "Temporary failure",
+        onRetryOccupancy: retry,
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Show recorded line occupancy",
+      }),
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Temporary failure",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("disables occupancy only while loading or when confirmed absent", () => {
+    const { rerender } = render(
+      createElement(ProductionScheduleView, {
+        occupancyLoading: true,
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", {
+        name: "Show recorded line occupancy",
+      }).disabled,
+    ).toBe(true);
+    expect(screen.getByText("Loading recorded line occupancy…")).toBeTruthy();
+
+    rerender(
+      createElement(ProductionScheduleView, {
+        occupancyAbsent: true,
+        schedule,
+        productNameByMaterial: new Map(),
+      }),
+    );
+    const unavailableToggle = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "Show recorded line occupancy",
+    });
+    expect(unavailableToggle.disabled).toBe(true);
+    expect(
+      document.getElementById(
+        unavailableToggle.getAttribute("aria-describedby") ?? "",
+      )?.textContent,
+    ).toContain("unavailable for this dataset");
   });
 
   it("renders semantic evidence, marker controls, selectable dispatch clusters, and expansion", async () => {
@@ -437,6 +784,11 @@ describe("ProductionScheduleView", () => {
     expect(productionWindow.style.width).toMatch(/px$/);
     expect(productionWindow.dataset.minimumVisibleWidth).toBe("3px");
     expect(productionWindow.className).toContain("z_[3]");
+    expect(
+      screen
+        .getByRole("button", { name: /^Batch batch-2/ })
+        .querySelector('[data-batch-segment="production-observation"]'),
+    ).toBeNull();
     const firstTrackStack = document.querySelector<HTMLElement>(
       '[data-track-stack="true"]',
     )!;
@@ -468,10 +820,11 @@ describe("ProductionScheduleView", () => {
         .getByRole("button", { name: /^Batch batch-0/ })
         .querySelector('[data-batch-segment="inventory"]'),
     ).toBeNull();
-    const lifecycleFallback = screen
-      .getByRole("button", { name: /^Batch batch-0/ })
-      .querySelector<HTMLElement>('[data-lifecycle-fallback="true"]')!;
-    expect(lifecycleFallback.style.minWidth).toBe("3px");
+    expect(
+      screen
+        .getByRole("button", { name: /^Batch batch-0/ })
+        .querySelector('[data-batch-segment="production-observation"]'),
+    ).toBeNull();
     expect(
       screen
         .getByRole("button", { name: /^Batch raw-batch/ })
@@ -563,6 +916,11 @@ describe("ProductionScheduleView", () => {
     fireEvent.focus(batchButton);
     expect(screen.queryByText(/Opening inventory is unknown/)).toBeNull();
     expect(screen.queryByText(/Input · Production/)).toBeNull();
+    expect(
+      await screen.findByText(
+        /No recorded production or receipt event · lifecycle inferred from inventory movements/,
+      ),
+    ).toBeTruthy();
     expect(
       batchButton.querySelector(
         '[data-batch-segment="production-observation"]',

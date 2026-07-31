@@ -1,0 +1,441 @@
+{
+  "schema_version": "1.1",
+  "artifact_type": "production_schedule",
+  "artifact_version": "1.0",
+  "product_id": "riverside-decaf",
+  "product_name": "Riverside Decaf",
+  "product_material": "90000300003",
+  "plant": "HARBOR",
+  "quantity_tolerance": 1e-6,
+  "lanes": [
+    {
+      "material": "90000300003",
+      "name": "Riverside Decaf",
+      "bom_depth": 0,
+      "role": "finished_good",
+      "uom": "KG",
+      "campaigns": [],
+      "batches": [
+        {
+          "id": "90000300003::HDR01",
+          "material": "90000300003",
+          "batch": "HDR01",
+          "order": "ROAST-101",
+          "start": "2026-04-20",
+          "end": "2026-04-22",
+          "span_days": 3,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "DR01",
+          "campaign_id": "DARK-ROAST-01",
+          "building": "Roastery 1",
+          "start_source": "charge_day",
+          "finish_source": "fill_day",
+          "derivation": "confirmed",
+          "allocation_status": "selected",
+          "allocations": [
+            {
+              "consuming_order": null,
+              "consumption_date": null,
+              "net_quantity": 100,
+              "status": "selected",
+              "confidence": "exact",
+              "reason": "batch is output of the selected finished product",
+              "output_candidates": [
+                {
+                  "material": "90000300003",
+                  "batch": "HDR01",
+                  "order": "ROAST-101",
+                  "product_relation": "selected",
+                  "path": ["ROAST-101"]
+                }
+              ]
+            }
+          ],
+          "allocation_totals": {
+            "selected": 100,
+            "shared": 0,
+            "other": 0,
+            "open": 0,
+            "unresolved": 0
+          },
+          "allocated_quantity": 100,
+          "unallocated_quantity": 0,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        }
+      ]
+    },
+    {
+      "material": "90000200001",
+      "name": "Green Blend",
+      "bom_depth": 1,
+      "role": "intermediate",
+      "uom": "KG",
+      "campaigns": [
+        {
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "daily_batch_counts": [
+            {
+              "date": "2026-04-01",
+              "value": 2
+            },
+            {
+              "date": "2026-04-02",
+              "value": 3
+            },
+            {
+              "date": "2026-04-03",
+              "value": 1
+            }
+          ],
+          "daily_fill_weights": [
+            {
+              "date": "2026-04-01",
+              "value": 200
+            },
+            {
+              "date": "2026-04-02",
+              "value": 300
+            },
+            {
+              "date": "2026-04-03",
+              "value": 100
+            }
+          ]
+        }
+      ],
+      "batches": [
+        {
+          "id": "90000200001::GB01",
+          "material": "90000200001",
+          "batch": "GB01",
+          "order": "BLEND-001",
+          "start": "2026-04-01",
+          "end": "2026-04-02",
+          "span_days": 2,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "start_source": "waterline",
+          "finish_source": "fill_day",
+          "derivation": "confirmed",
+          "allocation_status": "selected",
+          "allocations": [
+            {
+              "consuming_order": "ROAST-101",
+              "consumption_date": "2026-04-20",
+              "net_quantity": 100,
+              "status": "selected",
+              "confidence": "exact",
+              "reason": "single-output lineage reaches selected product",
+              "output_candidates": [
+                {
+                  "material": "90000300003",
+                  "batch": "HDR01",
+                  "order": "ROAST-101",
+                  "product_relation": "selected",
+                  "path": ["ROAST-101"]
+                }
+              ]
+            }
+          ],
+          "allocation_totals": {
+            "selected": 100,
+            "shared": 0,
+            "other": 0,
+            "open": 0,
+            "unresolved": 0
+          },
+          "allocated_quantity": 100,
+          "unallocated_quantity": 0,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        },
+        {
+          "id": "90000200001::GB02",
+          "material": "90000200001",
+          "batch": "GB02",
+          "order": "BLEND-002",
+          "start": "2026-04-03",
+          "end": "2026-04-04",
+          "span_days": 2,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "start_source": "charge_day",
+          "finish_source": "fill_day",
+          "derivation": "confirmed",
+          "allocation_status": "shared",
+          "allocations": [
+            {
+              "consuming_order": "ROAST-MIXED",
+              "consumption_date": "2026-04-21",
+              "net_quantity": 100,
+              "status": "shared",
+              "confidence": "candidate",
+              "reason": "lineage has selected and non-selected output candidates",
+              "output_candidates": [
+                {
+                  "material": "90000300003",
+                  "batch": "HDR02",
+                  "order": "ROAST-MIXED",
+                  "product_relation": "selected",
+                  "path": ["ROAST-MIXED"]
+                },
+                {
+                  "material": "90000399999",
+                  "batch": "MKT01",
+                  "order": "ROAST-MIXED",
+                  "product_relation": "other",
+                  "path": ["ROAST-MIXED"]
+                }
+              ]
+            }
+          ],
+          "allocation_totals": {
+            "selected": 0,
+            "shared": 100,
+            "other": 0,
+            "open": 0,
+            "unresolved": 0
+          },
+          "allocated_quantity": 100,
+          "unallocated_quantity": 0,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        },
+        {
+          "id": "90000200001::GB03",
+          "material": "90000200001",
+          "batch": "GB03",
+          "order": "BLEND-003",
+          "start": "2026-04-05",
+          "end": "2026-04-05",
+          "span_days": 1,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "start_source": "fill_day_fallback",
+          "finish_source": "fill_day",
+          "derivation": "confirmed",
+          "allocation_status": "open",
+          "allocations": [
+            {
+              "consuming_order": null,
+              "consumption_date": null,
+              "net_quantity": 100,
+              "status": "open",
+              "confidence": "exact",
+              "reason": "confirmed output quantity has no net 261 allocation",
+              "output_candidates": []
+            }
+          ],
+          "allocation_totals": {
+            "selected": 0,
+            "shared": 0,
+            "other": 0,
+            "open": 100,
+            "unresolved": 0
+          },
+          "allocated_quantity": 0,
+          "unallocated_quantity": 100,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        },
+        {
+          "id": "90000200001::GB04",
+          "material": "90000200001",
+          "batch": "GB04",
+          "order": "BLEND-004",
+          "start": "2026-04-06",
+          "end": "2026-04-07",
+          "span_days": 2,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "start_source": "waterline",
+          "finish_source": "fill_day",
+          "derivation": "confirmed",
+          "allocation_status": "selected",
+          "allocations": [
+            {
+              "consuming_order": "ROAST-102",
+              "consumption_date": "2026-04-22",
+              "net_quantity": 60,
+              "status": "selected",
+              "confidence": "exact",
+              "reason": "single-output lineage reaches selected product",
+              "output_candidates": [
+                {
+                  "material": "90000300003",
+                  "batch": "HDR03",
+                  "order": "ROAST-102",
+                  "product_relation": "selected",
+                  "path": ["ROAST-102"]
+                }
+              ]
+            },
+            {
+              "consuming_order": null,
+              "consumption_date": null,
+              "net_quantity": 40,
+              "status": "open",
+              "confidence": "exact",
+              "reason": "confirmed output quantity has no net 261 allocation",
+              "output_candidates": []
+            }
+          ],
+          "allocation_totals": {
+            "selected": 60,
+            "shared": 0,
+            "other": 0,
+            "open": 40,
+            "unresolved": 0
+          },
+          "allocated_quantity": 60,
+          "unallocated_quantity": 40,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        },
+        {
+          "id": "90000200001::GB05",
+          "material": "90000200001",
+          "batch": "GB05",
+          "order": "BLEND-005",
+          "start": "2026-04-08",
+          "end": "2026-04-09",
+          "span_days": 2,
+          "quantity": 100,
+          "uom": "KG",
+          "campaign_core": "GB01",
+          "campaign_id": "GREEN-BLEND-APR",
+          "building": "Blending Hall",
+          "start_source": "afko_actual",
+          "finish_source": "afko_actual",
+          "derivation": "afko_order",
+          "allocation_status": "unresolved",
+          "allocations": [
+            {
+              "consuming_order": "ROAST-UNKNOWN",
+              "consumption_date": "2026-04-23",
+              "net_quantity": 100,
+              "status": "unresolved",
+              "confidence": "unresolved",
+              "reason": "consuming order has no AFPO or 101 output",
+              "output_candidates": []
+            }
+          ],
+          "allocation_totals": {
+            "selected": 0,
+            "shared": 0,
+            "other": 0,
+            "open": 0,
+            "unresolved": 100
+          },
+          "allocated_quantity": 100,
+          "unallocated_quantity": 0,
+          "allocation_tolerance": 1e-6,
+          "allocation_tolerance_reason": "numeric rounding"
+        }
+      ]
+    }
+  ],
+  "consumption_evidence": [
+    {
+      "source_batch_id": "90000200001::GB01",
+      "source_material": "90000200001",
+      "source_batch": "GB01",
+      "consuming_order": "ROAST-101",
+      "consumption_date": "2026-04-20",
+      "net_quantity": 100,
+      "status": "selected",
+      "confidence": "exact",
+      "reason": "single-output lineage reaches selected product",
+      "output_candidates": [
+        {
+          "material": "90000300003",
+          "batch": "HDR01",
+          "order": "ROAST-101",
+          "product_relation": "selected",
+          "path": ["ROAST-101"]
+        }
+      ]
+    },
+    {
+      "source_batch_id": "90000200001::GB02",
+      "source_material": "90000200001",
+      "source_batch": "GB02",
+      "consuming_order": "ROAST-MIXED",
+      "consumption_date": "2026-04-21",
+      "net_quantity": 100,
+      "status": "shared",
+      "confidence": "candidate",
+      "reason": "lineage has selected and non-selected output candidates",
+      "output_candidates": [
+        {
+          "material": "90000300003",
+          "batch": "HDR02",
+          "order": "ROAST-MIXED",
+          "product_relation": "selected",
+          "path": ["ROAST-MIXED"]
+        },
+        {
+          "material": "90000399999",
+          "batch": "MKT01",
+          "order": "ROAST-MIXED",
+          "product_relation": "other",
+          "path": ["ROAST-MIXED"]
+        }
+      ]
+    },
+    {
+      "source_batch_id": "90000200001::GB04",
+      "source_material": "90000200001",
+      "source_batch": "GB04",
+      "consuming_order": "ROAST-102",
+      "consumption_date": "2026-04-22",
+      "net_quantity": 60,
+      "status": "selected",
+      "confidence": "exact",
+      "reason": "single-output lineage reaches selected product",
+      "output_candidates": [
+        {
+          "material": "90000300003",
+          "batch": "HDR03",
+          "order": "ROAST-102",
+          "product_relation": "selected",
+          "path": ["ROAST-102"]
+        }
+      ]
+    },
+    {
+      "source_batch_id": "90000200001::GB05",
+      "source_material": "90000200001",
+      "source_batch": "GB05",
+      "consuming_order": "ROAST-UNKNOWN",
+      "consumption_date": "2026-04-23",
+      "net_quantity": 100,
+      "status": "unresolved",
+      "confidence": "unresolved",
+      "reason": "consuming order has no AFPO or 101 output",
+      "output_candidates": []
+    }
+  ],
+  "source": {
+    "production_windows": "Synthetic confirmed actuals",
+    "cadence": "Synthetic daily recorded activity",
+    "allocations": "Synthetic reversal-netted 261/262 examples",
+    "order_outputs": "Synthetic 101 output candidates"
+  }
+}

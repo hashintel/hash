@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -16,6 +17,8 @@ import {
 } from "./production-schedule/calendar-date-axis";
 import { DispatchLane } from "./production-schedule/dispatch-lane";
 import { findScheduleIdentifierMatch } from "./production-schedule/identifier-search";
+import { LineOccupancyRows } from "./production-schedule/line-occupancy-rows";
+import { MaterialLaneRow } from "./production-schedule/material-lane-row";
 import {
   batchLifecycleEnd,
   batchLifecycleStart,
@@ -25,7 +28,6 @@ import {
   deriveScheduleTrace,
   focusScheduleLanes,
   intervalPercent,
-  MAX_COLLAPSED_TRACKS,
   productionScheduleRelevantBatchIds,
   scheduleDayNumber,
 } from "./production-schedule/model";
@@ -34,6 +36,19 @@ import {
   selectedProductionScheduleRange,
 } from "./production-schedule/schedule-dates";
 import { ProductionScheduleSummary } from "./production-schedule/schedule-summary";
+import {
+  getSiteOccupancyIndex,
+  occupancyBatchIdentity,
+} from "./production-schedule/site-occupancy-model";
+import {
+  createTimelineGeometry,
+  inclusiveCalendarDays,
+  inclusiveDayCount,
+  MATERIAL_BAR_HEIGHT as BAR_HEIGHT,
+  MATERIAL_TRACK_HEIGHT as TRACK_HEIGHT,
+  TIMELINE_LABEL_WIDTH as LABEL_WIDTH,
+  TIMELINE_LABEL_WIDTH_CSS,
+} from "./production-schedule/timeline-geometry";
 import { TimelineTooltip } from "./production-schedule/timeline-tooltip";
 import { ProductionScheduleToolbar } from "./production-schedule/toolbar";
 import {
@@ -54,11 +69,8 @@ import type {
   ScheduleSelection,
 } from "./production-schedule/model";
 import type { ScheduleRangePreset } from "./production-schedule/schedule-dates";
+import type { SiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
 
-const LABEL_WIDTH = 220;
-const TRACK_HEIGHT = 28;
-const BAR_HEIGHT = 22;
-const LANE_PADDING = 2;
 const INVENTORY_DWELL_COLOR = "#f3f8ff";
 const USED_ELSEWHERE_HATCH =
   "repeating-linear-gradient(135deg, transparent 0, transparent 6px, rgba(100, 116, 139, 0.28) 6px, rgba(100, 116, 139, 0.28) 7px)";
@@ -104,10 +116,6 @@ const chart = css({
   position: "relative",
   minH: "full",
 });
-const chartRow = css({
-  display: "flex",
-  position: "relative",
-});
 const axisRow = css({
   display: "flex",
   position: "sticky",
@@ -116,29 +124,13 @@ const axisRow = css({
   backgroundColor: "white",
   isolation: "isolate",
 });
-const laneLabel = css({
-  position: "sticky",
-  left: "0",
-  zIndex: "[10]",
-  flex: "none",
-  w: "[220px]",
-  boxSizing: "border-box",
-  px: "3",
-  py: "3",
-  borderRightWidth: "1px",
-  borderRightColor: "bd.subtle",
-  borderBottomWidth: "1px",
-  borderBottomColor: "bd.subtle",
-  bg: "bg.surface",
-  overflow: "hidden",
-});
 const axisLabel = css({
   position: "sticky",
   left: "0",
   top: "0",
   zIndex: "[21]",
   flex: "none",
-  w: "[220px]",
+  w: TIMELINE_LABEL_WIDTH_CSS,
   h: "[42px]",
   boxSizing: "border-box",
   borderRightWidth: "1px",
@@ -147,46 +139,6 @@ const axisLabel = css({
   borderBottomColor: "bd.subtle",
   backgroundColor: "white",
   overflow: "hidden",
-});
-const laneName = css({
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  textStyle: "sm",
-  fontWeight: "semibold",
-  color: "fg.heading",
-});
-const laneMeta = css({
-  mt: "1",
-  textStyle: "xs",
-  color: "fg.subtle",
-});
-const expandButton = css({
-  mt: "2",
-  px: "1.5",
-  py: "0.5",
-  borderWidth: "1px",
-  borderColor: "bd.subtle",
-  borderRadius: "sm",
-  bg: "bg.surface",
-  color: "fg.heading",
-  textStyle: "xs",
-  cursor: "pointer",
-  _focusVisible: { outline: "2px solid" },
-});
-const timelineLane = css({
-  position: "relative",
-  flex: "none",
-  boxSizing: "border-box",
-  borderBottomWidth: "1px",
-  borderBottomColor: "bd.subtle",
-});
-const trackStack = css({
-  position: "absolute",
-  left: "0",
-  right: "0",
-  top: "[50%]",
-  transform: "translateY(-50%)",
 });
 const axis = css({
   position: "relative",
@@ -321,14 +273,6 @@ const markerAnchor = css({
   zIndex: "[5]",
   transform: "translate(-50%, -50%)",
 });
-const trackSeparator = css({
-  position: "absolute",
-  left: "0",
-  right: "0",
-  borderTopWidth: "1px",
-  borderTopColor: "[rgba(148,163,184,0.35)]",
-  pointerEvents: "none",
-});
 const empty = css({
   display: "flex",
   alignItems: "center",
@@ -336,6 +280,26 @@ const empty = css({
   minH: "56",
   textStyle: "sm",
   color: "fg.subtle",
+});
+const occupancyState = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minH: "7",
+  px: "3",
+  py: "1",
+  borderWidth: "1px",
+  borderColor: "bd.subtle",
+  borderRadius: "sm",
+  bg: "bg.subtle",
+  textStyle: "xs",
+  color: "fg.subtle",
+});
+const retryButton = css({
+  textDecoration: "underline",
+  color: "fg.heading",
+  cursor: "pointer",
+  _focusVisible: { outline: "2px solid" },
 });
 
 type LifecycleBalanceFields = {
@@ -351,15 +315,6 @@ type LifecycleBalanceFields = {
 const lifecycleBalance = (batch: ProductionScheduleBatch) =>
   batch as ProductionScheduleBatch & LifecycleBalanceFields;
 
-const roleLabel = (
-  role: "finished_good" | "intermediate" | "raw_material",
-): string =>
-  ({
-    finished_good: "Finished good",
-    intermediate: "Intermediate",
-    raw_material: "Raw material",
-  })[role];
-
 const usageBorderColor = (directUse: BatchDirectUse | undefined): string => {
   switch (directUse?.state) {
     case "unknown_output":
@@ -374,10 +329,20 @@ const usageBorderColor = (directUse: BatchDirectUse | undefined): string => {
 };
 
 export const ProductionScheduleView = ({
+  occupancyAbsent = false,
+  occupancyError = null,
+  occupancyLoading = false,
+  onRetryOccupancy,
   schedule,
+  siteProductionTimeline = null,
   productNameByMaterial,
 }: {
+  occupancyAbsent?: boolean;
+  occupancyError?: string | null;
+  occupancyLoading?: boolean;
+  onRetryOccupancy?: () => void;
   schedule: ProductionSchedule;
+  siteProductionTimeline?: SiteProductionTimeline | null;
   productNameByMaterial: ReadonlyMap<string, string>;
 }) => {
   const relevantBatchIds = useMemo(
@@ -397,6 +362,7 @@ export const ProductionScheduleView = ({
   const [showEventMarkers, setShowEventMarkers] = useState(true);
   const [showInventoryDwell, setShowInventoryDwell] = useState(true);
   const [showRawMaterials, setShowRawMaterials] = useState(false);
+  const [showLineOccupancy, setShowLineOccupancy] = useState(true);
   const [laneDisplay, setLaneDisplay] =
     useState<ScheduleLaneDisplay>("continuous");
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -538,6 +504,15 @@ export const ProductionScheduleView = ({
       ]),
     [productNameByMaterial, schedule.lanes, schedule.material_names],
   );
+
+  const occupancyIndex = useMemo(
+    () =>
+      siteProductionTimeline
+        ? getSiteOccupancyIndex(siteProductionTimeline)
+        : null,
+    [siteProductionTimeline],
+  );
+
   const hierarchyMaterials = useMemo(
     () => new Set(schedule.lanes.map((lane) => lane.material)),
     [schedule.lanes],
@@ -545,9 +520,14 @@ export const ProductionScheduleView = ({
 
   const startDay = model.start ? scheduleDayNumber(model.start) : 0;
   const endDay = model.end ? scheduleDayNumber(model.end) : startDay;
-  const dayCount = Math.max(1, endDay - startDay + 1);
+  const dayCount = Math.max(1, inclusiveDayCount(startDay, endDay));
   const availablePlotWidth = Math.max(360, viewportWidth - LABEL_WIDTH);
   const plotWidth = availablePlotWidth * zoomScale;
+
+  const timelineGeometry = useMemo(
+    () => createTimelineGeometry({ dayCount, plotWidth, startDay }),
+    [dayCount, plotWidth, startDay],
+  );
   const effectivePixelsPerDay = plotWidth / dayCount;
   const { cadence: tickCadence, ticks } = deriveCalendarDateAxis({
     effectivePixelsPerDay,
@@ -556,10 +536,7 @@ export const ProductionScheduleView = ({
     startDay,
     targetTickWidth: TICK_TARGET_WIDTH,
   });
-  const leftForDate = (date: string) =>
-    (scheduleDayNumber(date) - startDay) * (plotWidth / dayCount);
-  const widthForDays = (days: number) =>
-    Math.max(3, days * (plotWidth / dayCount));
+  const { leftForDate, widthForDays } = timelineGeometry;
   const markerPixel = (pixel: number) =>
     Math.max(12, Math.min(plotWidth - 12, pixel));
 
@@ -648,6 +625,32 @@ export const ProductionScheduleView = ({
 
   const selectedRelated = trace.batchIds;
   const hasSelection = selection !== null;
+  const scheduleBatchById = useMemo(
+    () =>
+      new Map(
+        schedule.lanes.flatMap((lane) =>
+          lane.batches.map((batch) => [batch.id, batch] as const),
+        ),
+      ),
+    [schedule.lanes],
+  );
+  const occupancyFocusedBatchIdentities = useMemo(() => {
+    if (!hasSelection) {
+      return undefined;
+    }
+    const identities = new Set<string>();
+    for (const batchId of selectedRelated) {
+      const batch = scheduleBatchById.get(batchId);
+      if (!batch) {
+        continue;
+      }
+      const identity = occupancyBatchIdentity(batch);
+      if (identity) {
+        identities.add(identity);
+      }
+    }
+    return identities;
+  }, [hasSelection, scheduleBatchById, selectedRelated]);
   const dispatchLaneFocused =
     selection?.kind === "dispatch" && selection.origin === "dispatch_lane";
   const displayedLanes = useMemo(
@@ -679,15 +682,6 @@ export const ProductionScheduleView = ({
     (lane) =>
       lane.batches.length > 0 &&
       (lane.role === "raw_material" || inventoryDwellVisible),
-  );
-  const scheduleBatchById = useMemo(
-    () =>
-      new Map(
-        schedule.lanes.flatMap((lane) =>
-          lane.batches.map((batch) => [batch.id, batch] as const),
-        ),
-      ),
-    [schedule.lanes],
   );
   const getConsumptionTargetBatches = (
     eventId: string,
@@ -865,6 +859,10 @@ export const ProductionScheduleView = ({
           trackInteraction("production_schedule_filter_changed");
         }}
         onSearchInputChange={handleSearchInputChange}
+        onShowLineOccupancyChange={(showOccupancy) => {
+          setShowLineOccupancy(showOccupancy);
+          trackInteraction("production_schedule_line_occupancy_changed");
+        }}
         onShowEventMarkersChange={(showMarkers) => {
           setShowEventMarkers(showMarkers);
           trackInteraction("production_schedule_event_markers_changed");
@@ -885,6 +883,20 @@ export const ProductionScheduleView = ({
         searchStatus={searchStatus}
         searchValue={searchQuery}
         showEventMarkers={showEventMarkers}
+        showLineOccupancy={showLineOccupancy}
+        lineOccupancyStatus={
+          occupancyLoading
+            ? "Loading…"
+            : occupancyError
+              ? "Retry available"
+              : occupancyIndex
+                ? "Show"
+                : occupancyAbsent
+                  ? "Unavailable"
+                  : "Not loaded"
+        }
+        lineOccupancyUnavailable={occupancyAbsent}
+        lineOccupancyLoading={occupancyLoading}
         showInventoryDwell={showInventoryDwell}
         showRawMaterials={showRawMaterials}
         zoomScale={zoomScale}
@@ -897,6 +909,25 @@ export const ProductionScheduleView = ({
         hasOverDepletedInventory={hasOverDepletedInventory}
         hasVisibleInventoryDwell={hasVisibleInventoryDwell}
       />
+      {occupancyLoading && (
+        <div className={occupancyState} role="status" aria-live="polite">
+          Loading recorded line occupancy…
+        </div>
+      )}
+      {occupancyError && (
+        <div className={occupancyState} role="alert">
+          Recorded line occupancy unavailable. {occupancyError}
+          {onRetryOccupancy && (
+            <button
+              type="button"
+              className={retryButton}
+              onClick={onRetryOccupancy}
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       {hasSelection && (
         <div className={css({ textStyle: "xs", color: "fg.subtle" })}>
           Showing recorded batch links only; BOM materials without batch-linked
@@ -958,11 +989,6 @@ export const ProductionScheduleView = ({
               const expanded = hasSelection
                 ? !collapsedFocusedMaterials.has(lane.material)
                 : expandedMaterials.has(lane.material);
-              const visibleTrackCount = expanded
-                ? lane.trackCount
-                : Math.min(lane.trackCount, MAX_COLLAPSED_TRACKS);
-              const trackAreaHeight = visibleTrackCount * TRACK_HEIGHT;
-              const minimumTrackHeight = trackAreaHeight + LANE_PADDING * 2;
               const laneId = `production-schedule-lane-${laneIndex}`;
               const laneBackground =
                 lane.role === "finished_good"
@@ -971,99 +997,38 @@ export const ProductionScheduleView = ({
                     ? "#ffffff"
                     : "#f8fafc";
               return (
-                <div className={chartRow} key={lane.material}>
-                  <div
-                    className={laneLabel}
-                    style={{
-                      background: laneBackground,
+                <Fragment key={lane.material}>
+                  <MaterialLaneRow
+                    expanded={expanded}
+                    geometry={timelineGeometry}
+                    lane={lane}
+                    laneBackground={laneBackground}
+                    laneId={laneId}
+                    onToggleExpanded={() => {
+                      const setMaterials = hasSelection
+                        ? setCollapsedFocusedMaterials
+                        : setExpandedMaterials;
+                      setMaterials((current) => {
+                        const next = new Set(current);
+                        if (hasSelection) {
+                          if (expanded) {
+                            next.add(lane.material);
+                          } else {
+                            next.delete(lane.material);
+                          }
+                        } else if (next.has(lane.material)) {
+                          next.delete(lane.material);
+                        } else {
+                          next.add(lane.material);
+                        }
+                        return next;
+                      });
+                      trackInteraction(
+                        "production_schedule_lane_expansion_changed",
+                      );
                     }}
-                  >
-                    <div className={laneName} title={lane.name}>
-                      {lane.name}
-                    </div>
-                    <div className={laneMeta}>
-                      {roleLabel(lane.role)} · {lane.material} · depth{" "}
-                      {lane.bom_depth}
-                    </div>
-                    {lane.trackCount > MAX_COLLAPSED_TRACKS && (
-                      <button
-                        type="button"
-                        className={expandButton}
-                        aria-expanded={expanded}
-                        aria-controls={laneId}
-                        onClick={() => {
-                          const setMaterials = hasSelection
-                            ? setCollapsedFocusedMaterials
-                            : setExpandedMaterials;
-                          setMaterials((current) => {
-                            const next = new Set(current);
-                            if (hasSelection) {
-                              if (expanded) {
-                                next.add(lane.material);
-                              } else {
-                                next.delete(lane.material);
-                              }
-                            } else if (next.has(lane.material)) {
-                              next.delete(lane.material);
-                            } else {
-                              next.add(lane.material);
-                            }
-                            return next;
-                          });
-                          trackInteraction(
-                            "production_schedule_lane_expansion_changed",
-                          );
-                        }}
-                      >
-                        {expanded
-                          ? "Collapse batches"
-                          : `Show all ${lane.trackCount} tracks`}
-                      </button>
-                    )}
-                  </div>
-                  <div
-                    id={laneId}
-                    className={timelineLane}
-                    data-minimum-track-height={minimumTrackHeight}
-                    style={{
-                      width: plotWidth,
-                      minHeight: minimumTrackHeight,
-                      background: laneBackground,
-                    }}
-                  >
-                    {ticks.map((day) => (
-                      <span
-                        key={day}
-                        className={tick}
-                        aria-hidden="true"
-                        style={{
-                          left: (day - startDay) * (plotWidth / dayCount),
-                        }}
-                      />
-                    ))}
-                    <div
-                      className={trackStack}
-                      data-track-stack="true"
-                      style={{
-                        height: trackAreaHeight,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                      }}
-                    >
-                      {Array.from(
-                        { length: visibleTrackCount - 1 },
-                        (_, index) => (
-                          <span
-                            key={`track-separator-${index}`}
-                            className={trackSeparator}
-                            aria-hidden="true"
-                            style={{
-                              top: (index + 1) * TRACK_HEIGHT,
-                            }}
-                          />
-                        ),
-                      )}
-                      {lane.packedBatches.map(({ batch, track }) => {
+                    renderBatches={(visibleTrackCount) =>
+                      lane.packedBatches.map(({ batch, track }) => {
                         if (track >= visibleTrackCount) {
                           return null;
                         }
@@ -1114,9 +1079,7 @@ export const ProductionScheduleView = ({
                             : renderEndDate;
                         const left = leftForDate(visibleStart);
                         const width = widthForDays(
-                          scheduleDayNumber(visibleEnd) -
-                            scheduleDayNumber(visibleStart) +
-                            1,
+                          inclusiveCalendarDays(visibleStart, visibleEnd),
                         );
                         const selected = focusedBatchIds.has(batch.id);
                         const borderColor = usageBorderColor(directUse);
@@ -1128,29 +1091,19 @@ export const ProductionScheduleView = ({
                         );
                         const hasProductionPhase =
                           lane.role !== "raw_material" &&
-                          batch.timing_kind !== "lifecycle_only" &&
+                          batch.timing_kind === "production_window" &&
                           batch.start <= visibleEnd &&
                           batch.end >= visibleStart;
-                        const showLifecycleFallback =
-                          !inventoryDwellVisible &&
-                          lane.role !== "raw_material" &&
-                          batch.timing_kind === "lifecycle_only";
-                        const productionStart = showLifecycleFallback
-                          ? visibleStart
-                          : batch.start < visibleStart
+                        const productionStart =
+                          batch.start < visibleStart
                             ? visibleStart
                             : batch.start;
-                        const productionEnd = showLifecycleFallback
-                          ? visibleStart
-                          : batch.end > visibleEnd
-                            ? visibleEnd
-                            : batch.end;
+                        const productionEnd =
+                          batch.end > visibleEnd ? visibleEnd : batch.end;
                         const productionLeft =
                           leftForDate(productionStart) - left;
                         const productionWidth = widthForDays(
-                          scheduleDayNumber(productionEnd) -
-                            scheduleDayNumber(productionStart) +
-                            1,
+                          inclusiveCalendarDays(productionStart, productionEnd),
                         );
                         const balance = lifecycleBalance(batch);
                         return (
@@ -1230,15 +1183,11 @@ export const ProductionScheduleView = ({
                                     }}
                                   />
                                 )}
-                                {(hasProductionPhase ||
-                                  showLifecycleFallback) && (
+                                {hasProductionPhase && (
                                   <span
                                     className={observationWindow}
                                     aria-hidden="true"
                                     data-batch-segment="production-observation"
-                                    data-lifecycle-fallback={
-                                      showLifecycleFallback ? "true" : undefined
-                                    }
                                     data-minimum-visible-width="3px"
                                     data-timing-kind={batch.timing_kind}
                                     style={{
@@ -1413,10 +1362,33 @@ export const ProductionScheduleView = ({
                               })}
                           </div>
                         );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                      })
+                    }
+                    ticks={ticks}
+                  />
+                  {showLineOccupancy &&
+                    occupancyIndex &&
+                    timelineStart &&
+                    timelineEnd &&
+                    lane.role !== "raw_material" && (
+                      <LineOccupancyRows
+                        background={laneBackground}
+                        end={timelineEnd}
+                        focusedBatchIdentities={occupancyFocusedBatchIdentities}
+                        geometry={timelineGeometry}
+                        index={occupancyIndex}
+                        material={lane.material}
+                        materialNameByMaterial={materialNameByMaterial}
+                        onExpansionChange={() =>
+                          trackInteraction(
+                            "production_schedule_line_occupancy_expansion_changed",
+                          )
+                        }
+                        start={timelineStart}
+                        ticks={ticks}
+                      />
+                    )}
+                </Fragment>
               );
             })}
             <DispatchLane
