@@ -23,6 +23,7 @@ vi.mock("../../../shared/analysis-client", () => ({
 
 const {
   fetchProductionSchedule,
+  fetchSiteProductionTimeline,
   fetchSites,
   fetchSupplierPerformance,
   resolveSupplyChainDataWebId,
@@ -61,6 +62,22 @@ describe("fetchProductionSchedule", () => {
     expect(fetchAnalysisArtifactMock).toHaveBeenCalledWith({
       analysis: "productionSchedule",
       args: { productId: "product-a" },
+      webId: "w",
+    });
+  });
+});
+
+describe("fetchSiteProductionTimeline", () => {
+  it("requests the site-scoped timeline analysis", async () => {
+    const timeline = { artifact_type: "site_production_timeline" };
+    fetchAnalysisArtifactMock.mockResolvedValue(timeline);
+
+    await expect(
+      fetchSiteProductionTimeline(webId("w"), "site-a"),
+    ).resolves.toBe(timeline);
+    expect(fetchAnalysisArtifactMock).toHaveBeenCalledWith({
+      analysis: "siteProductionTimeline",
+      args: { siteId: "site-a" },
       webId: "w",
     });
   });

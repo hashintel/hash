@@ -343,6 +343,8 @@ export const BatchTooltipContent = ({
   role: "finished_good" | "intermediate" | "raw_material";
 }) => {
   const lifecycleOnly = batch.timing_kind === "lifecycle_only";
+  const receiptEvent = batch.timing_kind === "receipt_event";
+  const productionWindow = batch.timing_kind === "production_window";
   const attributableConsumptionQuantity = directUse?.consumers.every(
     ({ quantity }) => quantity != null,
   )
@@ -359,9 +361,20 @@ export const BatchTooltipContent = ({
     <div className={tooltipContent}>
       <span className={tooltipTitle}>Batch {batch.batch ?? batch.order}</span>
       <div className={tooltipGroup}>
-        {!lifecycleOnly && role !== "raw_material" ? (
+        {productionWindow && role !== "raw_material" ? (
           <span className={tooltipLine}>
             {roleLabel(role)} · Production {batch.start} – {batch.end}
+          </span>
+        ) : null}
+        {receiptEvent && role !== "raw_material" ? (
+          <span className={tooltipLine}>
+            Receipt event {batch.start} · no recorded production window
+          </span>
+        ) : null}
+        {lifecycleOnly && role !== "raw_material" ? (
+          <span className={tooltipLine}>
+            No recorded production or receipt event · lifecycle inferred from
+            inventory movements
           </span>
         ) : null}
         {role !== "raw_material" && batch.order ? (
@@ -378,7 +391,11 @@ export const BatchTooltipContent = ({
           {batch.quantity == null
             ? "Output quantity unavailable"
             : `${formatQuantity(batch.quantity)} ${batch.uom ?? ""} ${
-                role === "raw_material" ? "received" : "produced"
+                role === "raw_material" || receiptEvent
+                  ? "received"
+                  : productionWindow
+                    ? "produced"
+                    : "recorded"
               }`}
           {batch.remaining_quantity != null
             ? ` – ${formatQuantity(batch.remaining_quantity)} ${

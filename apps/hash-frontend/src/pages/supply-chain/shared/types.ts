@@ -2,6 +2,8 @@ export interface Product {
   id: string;
   name: string;
   material: string;
+  /** Site artifact slug used to load site-scoped analysis data. */
+  site_id?: string;
 }
 
 export interface AnalysisSettings {
