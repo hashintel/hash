@@ -149,6 +149,23 @@
         "summary": "Root"
       }
     },
+    "/health": {
+      "get": {
+        "description": "Report liveness, without checking any dependency.\n\nA probe that reaches through to a dependency takes every task out of\nrotation as soon as that dependency is slow.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
     "/optimize/all": {
       "post": {
         "description": "Stream one SSE data frame for every completed Optuna trial.",

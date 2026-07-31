@@ -245,6 +245,13 @@ export const httpExpectedClientStatusHook: NonNullable<
 };
 
 /**
+ * Path every HASH service answers health probes on. The HTTP instrumentation
+ * ignores it: a probe answered every few seconds per task carries no signal, and
+ * tracing it only inflates the RED metrics derived from spans.
+ */
+export const HEALTH_PATH = "/health";
+
+/**
  * Default OTLP/gRPC port. Used when the configured endpoint URL does not
  * carry an explicit port (e.g. `http://collector` resolves via gRPC default).
  */
@@ -273,18 +280,20 @@ const otlpPortFromEndpoint = (otlpEndpoint: string): number => {
  * - Names spans `METHOD /path` via {@link httpRequestSpanNameHook}.
  * - Marks expected client-side failures as successful via
  *   {@link httpExpectedClientStatusHook}.
+ * - Skips incoming requests to {@link HEALTH_PATH}.
  *
- * Pass `extra` to merge per-service options (e.g. `ignoreIncomingPaths`).
- * `ignoreOutgoingRequestHook`, `requestHook` and
- * `applyCustomAttributesOnSpan` are intentionally not mergeable here —
- * callers needing different shapes should construct `HttpInstrumentation`
- * directly.
+ * Pass `extra` to merge per-service options. The hooks configured here are
+ * intentionally not mergeable — callers needing different shapes should
+ * construct `HttpInstrumentation` directly.
  */
 export const createHttpInstrumentation = (
   otlpEndpoint: string,
   extra: Omit<
     HttpInstrumentationConfig,
-    "applyCustomAttributesOnSpan" | "ignoreOutgoingRequestHook" | "requestHook"
+    | "applyCustomAttributesOnSpan"
+    | "ignoreIncomingRequestHook"
+    | "ignoreOutgoingRequestHook"
+    | "requestHook"
   > = {},
 ): HttpInstrumentation => {
   const otlpPort = otlpPortFromEndpoint(otlpEndpoint);
@@ -296,6 +305,8 @@ export const createHttpInstrumentation = (
       // to compare consistently — otherwise `"4317" === 4317` is false
       // and the exporter's own outbound traffic slips through.
       Number(options.port) === otlpPort,
+    ignoreIncomingRequestHook: (request) =>
+      request.url?.split("?")[0] === HEALTH_PATH,
     requestHook: httpRequestSpanNameHook,
     applyCustomAttributesOnSpan: httpExpectedClientStatusHook,
   });

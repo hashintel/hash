@@ -3,7 +3,7 @@ use core::{net::SocketAddr, time::Duration};
 use axum::{Router, http::StatusCode, routing::get};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
+use hash_graph_api::rest::{http_tracing_layer::HttpTracingLayer, probe};
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_util::sync::CancellationToken;
@@ -35,14 +35,15 @@ pub struct AtlasArgs {
     pub healthcheck: HealthcheckArgs,
 }
 
-/// Placeholder service surface: `/status` reports liveness and nothing else.
+/// Placeholder service surface: the health probe reports liveness and nothing else.
 ///
 /// The SALT Atlas implementation replaces this router while keeping the
 /// subcommand, address, and healthcheck wiring.
 fn router() -> Router {
-    Router::new()
-        .route("/status", get(async || StatusCode::OK))
-        .layer(HttpTracingLayer)
+    // TODO(SRE-884): Drop the `/status` route once internal-infra probes `/health`.
+    let legacy = Router::new().route("/status", get(async || StatusCode::OK));
+
+    probe::router().merge(legacy).layer(HttpTracingLayer)
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
@@ -133,8 +134,10 @@ pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
 
 async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!(
-        "http://{}:{}/status",
-        address.atlas_host, address.atlas_port
+        "http://{}:{}{}",
+        address.atlas_host,
+        address.atlas_port,
+        probe::HEALTH_PATH
     );
 
     timeout(
