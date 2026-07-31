@@ -158,7 +158,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn status_endpoint_reports_healthy() {
+    async fn health_endpoint_reports_healthy() {
         let listener = TcpListener::bind(("127.0.0.1", 0))
             .await
             .expect("should bind to an ephemeral port");
