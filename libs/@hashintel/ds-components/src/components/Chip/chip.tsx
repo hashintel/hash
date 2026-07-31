@@ -111,7 +111,11 @@ const ChipAffix = ({
     );
   }
 
-  return <span className={className}>{content}</span>;
+  return (
+    <span data-chip-segment={side} className={className}>
+      {content}
+    </span>
+  );
 };
 
 export const Chip = ({

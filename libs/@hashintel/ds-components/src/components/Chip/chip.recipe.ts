@@ -50,10 +50,11 @@ export const styles = sva({
       // tint composites over the already-darkened label bg, so soften it.
       "--chip-angle-bg-hover-soft":
         "[color-mix(in oklab, currentColor calc(14% + var(--chip-active-boost, 0%)), transparent)]",
-      // Thin border along a separate angle affix's slant when it (or the label beside it) is hovered; transparent otherwise.
-      "--chip-angle-border": "[transparent]",
+      // Thin divider along a separate angle affix's slant, shown on hover.
+      // It composites over the constant chip bg.
+      "--chip-angle-border": "var(--chip-angle-bg)",
       "--chip-angle-border-hover":
-        "[color-mix(in oklab, var(--chip-divider-hover) 80%, transparent)]",
+        "[color-mix(in oklab, var(--chip-divider-hover) 95%, transparent)]",
       "--chip-divider-shadow": "[0 0 0 0 transparent]",
       // `--chip-hover-ink` (colour mixed in, currentColor by default) at `--chip-hover-strength`.
       // The translucent `--chip-hover-tint` drives the segments
@@ -112,8 +113,10 @@ export const styles = sva({
         },
       // The angle divider only separates a *separate* (interactive) affix from
       // the label, so set it on a hovered prefix/suffix — not the centre, whose
-      // angle is connected inside it.
-      '& [data-chip-segment="prefix"]:hover, & [data-chip-segment="suffix"]:hover':
+      // angle is connected inside it. Scoped to `button` so a non-interactive
+      // (absorbed) angle affix, which carries `data-chip-segment` too, never
+      // reveals a slant strip on direct hover.
+      '& button[data-chip-segment="prefix"]:hover, & button[data-chip-segment="suffix"]:hover':
         {
           "--chip-angle-border": "var(--chip-angle-border-hover)",
         },
@@ -306,13 +309,15 @@ export const styles = sva({
       },
     },
     clickable: {
-      // The whole chip is one button: hovering it darkens any badge/angle affix
-      // it contains — softer (`-soft`) than standalone, since the chip bg darkens
-      // too. No angle border: those angles all connect to the label inside.
+      // The whole chip is one button: hovering it darkens its straight dividers
+      // and any badge/angle affix it contains — the badge/angle fills soften
+      // (`-soft`) vs standalone, since the chip bg darkens too. No angle border:
+      // those angles all connect to the label inside.
       true: {
         root: {
           cursor: "pointer",
           _hover: {
+            "--chip-divider": "var(--chip-divider-hover)",
             "--chip-badge-bg": "var(--chip-badge-bg-hover-soft)",
             "--chip-badge-divider": "var(--chip-badge-divider-hover)",
             "--chip-angle-bg": "var(--chip-angle-bg-hover-soft)",
@@ -633,10 +638,12 @@ export const affixStyles = cva({
       css: {
         marginInlineStart: "[calc(-1 * var(--chip-border-width))]",
         paddingInlineEnd: "[calc(var(--chip-padding-x) + 0.5em)]",
+        // Stop the fill 1px short of the slant, leaving that 1px to the strip.
         "&::before": {
-          clipPath: "[polygon(0 0, 100% 0, calc(100% - 0.5em) 100%, 0 100%)]",
+          clipPath:
+            "[polygon(0 0, calc(100% - 1px) 0, calc(100% - 0.5em - 1px) 100%, 0 100%)]",
         },
-        // 1px strip hugging the fill's slant edge.
+        // 1px strip hugging the fill's slant edge, over the chip bg (see `--chip-angle-border`).
         "&::after": {
           clipPath:
             "[polygon(calc(100% - 1px) 0, 100% 0, calc(100% - 0.5em) 100%, calc(100% - 0.5em - 1px) 100%)]",
@@ -649,8 +656,10 @@ export const affixStyles = cva({
       css: {
         marginInlineEnd: "[calc(-1 * var(--chip-border-width))]",
         paddingInlineStart: "[calc(var(--chip-padding-x) + 0.5em)]",
+        // Stop the fill 1px short of the slant, leaving that 1px to the strip.
         "&::before": {
-          clipPath: "[polygon(0.5em 0, 100% 0, 100% 100%, 0 100%)]",
+          clipPath:
+            "[polygon(calc(0.5em + 1px) 0, 100% 0, 100% 100%, 1px 100%)]",
         },
         "&::after": {
           clipPath: "[polygon(0.5em 0, calc(0.5em + 1px) 0, 1px 100%, 0 100%)]",
