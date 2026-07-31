@@ -4,21 +4,22 @@ import { Icon, type IconName } from "../Icon/icon";
 import { affixStyles, dotStyles, styles } from "./chip.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ExclusifyUnion } from "type-fest";
+import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
 
 /**
  * A prefix/suffix slot. Its content is an icon, a status dot, or arbitrary
  * children. `variant` shapes the slot's edge treatment (see the affix zone
- * styles below); `onClick` makes just the slot interactive.
+ * styles below); `onClick` makes just the slot interactive, in which case an
+ * `aria-label` is required so the resulting button has an accessible name.
  */
 type PrefixOrSuffix = (
   | { iconName: IconName }
   | { dot: "filled" | "partiallyFilled" | "empty" }
   | { children: React.ReactNode }
 ) & {
-  onClick?: () => void;
   variant?: "straight" | "badge" | "angle" | "naked";
-};
+  "aria-label"?: string;
+} & RequireAllOrNone<{ onClick: () => void; "aria-label": string }>;
 
 export type ChipColor =
   | "grey"
@@ -102,6 +103,7 @@ const ChipAffix = ({
         type="button"
         data-chip-segment={side}
         className={className}
+        aria-label={affix["aria-label"]}
         onClick={affix.onClick}
       >
         {content}
@@ -211,13 +213,14 @@ export const Chip = ({
 
   if (segmentedButton) {
     return (
-      <div className={rootClassName} {...ariaAttributes}>
+      <div className={rootClassName}>
         {prefixInteractive && prefixNode}
         <button
           type="button"
           data-chip-segment="center"
           className={classes.centerButton}
           onClick={onClick}
+          {...ariaAttributes}
         >
           {prefix && !prefixInteractive && prefixNode}
           {label}

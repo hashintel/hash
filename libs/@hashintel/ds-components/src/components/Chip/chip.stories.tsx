@@ -336,6 +336,7 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
                 iconName: "check",
                 variant: style.variant,
                 onClick: noop,
+                "aria-label": "Confirm",
               }}
             >
               2 clickable
@@ -348,11 +349,13 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
                 iconName: "sparkles",
                 variant: style.variant,
                 onClick: noop,
+                "aria-label": "Sparkle",
               }}
               suffix={{
                 iconName: "check",
                 variant: style.variant,
                 onClick: noop,
+                "aria-label": "Confirm",
               }}
             >
               3 clickable
