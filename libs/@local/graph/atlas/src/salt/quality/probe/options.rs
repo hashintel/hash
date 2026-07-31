@@ -7,9 +7,9 @@ use super::error::ProbeError;
 
 // The neighbourhood sizes are the ones the suite's measured evidence
 // was recorded at: overall readings of 0.883, 0.890 and 0.893 at
-// k = 15, 30 and 50, the representation baseline of one 2026-07-19
-// run over the 985,932-row development corpus (2,196,562 edges, 49
-// types, 1,024 anchors and 4,096 comparisons at seed 0). Reading at
+// k = 15, 30 and 50, the representation baseline of one run over the
+// 985,932-row development corpus (2,196,562 edges, 49 types, 1,024
+// anchors and 4,096 comparisons at seed 0). Reading at
 // those sizes compares against that record without interpolation.
 // The record anchors the sizes and the scale, not any threshold: it
 // is one generation under the landmark-baseline placement rather

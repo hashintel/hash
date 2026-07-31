@@ -25,8 +25,8 @@ use super::{
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
-        AnchorOrdinal, ClumpReadings, ProbeCorpus, ProbeError, ProbeOptions, ProbeReadings,
-        RadiusPair, ReadingGrid, Rung, probe, sample_pairs,
+        AnchorOrdinal, ClumpReadings, DeliveryError, ProbeCorpus, ProbeError, ProbeOptions,
+        ProbeReadings, RadiusPair, ReadingGrid, Rung, match_deliveries, probe, sample_pairs,
     },
     report::{QualityThresholds, ThresholdOverrides, assess},
     runner::{QualityRunOptions, run},
@@ -317,8 +317,11 @@ fn aggregate_rejects_invalid_shapes() {
 /// Sampled pairs are distinct and in bounds over every small universe.
 #[test]
 fn sampled_pairs_are_distinct_and_in_bounds() {
-    // A one-point universe holds no pairs.
+    // A one-point universe holds no pairs, and an empty one holds no
+    // point to draw first - the second draw's universe is one smaller
+    // than the first's, so neither may reach for it.
     assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(3), 1, 64).is_empty());
+    assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(4), 0, 1).is_empty());
 
     for comparisons in 2..=6_usize {
         let bound = u32::try_from(comparisons).expect("the test universes are tiny");
@@ -1730,4 +1733,49 @@ fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
         let noun = metric.label().replace(' ', "_");
         assert!(key.ends_with(&noun), "{key} does not end with {noun}");
     }
+}
+
+#[tokio::test]
+async fn a_delivery_stream_must_cover_every_request_exactly_once() {
+    let node_ids = [7_u64, 8, 9].map(U64::<LE>::new);
+    let node_ids = IdSlice::<NodeRowId, _>::from_raw(&node_ids);
+    let rows = [NodeRowId::new(0), NodeRowId::new(2)];
+    let delivery = |id: u64, payload: char| Ok::<_, !>((U64::<LE>::new(id), payload));
+
+    // Out of order and complete: the payloads come back in `rows` order
+    // rather than arrival order.
+    let matched = match_deliveries(
+        node_ids,
+        &rows,
+        futures::stream::iter([delivery(9, 'z'), delivery(7, 'a')]),
+    )
+    .await
+    .expect("both requested rows were delivered");
+    assert_eq!(matched, ['a', 'z']);
+
+    // A repeat refuses instead of replacing the payload a reading would
+    // have used: nothing here can tell an echo of the same bytes from a
+    // second, different answer under one id.
+    let repeated = match_deliveries(
+        node_ids,
+        &rows,
+        futures::stream::iter([delivery(7, 'a'), delivery(7, 'b'), delivery(9, 'z')]),
+    )
+    .await;
+    assert_matches!(repeated, Err(DeliveryError::Repeated));
+
+    // An id the probe never asked for, and a stream that stops short.
+    let unrequested =
+        match_deliveries(node_ids, &rows, futures::stream::iter([delivery(8, 'q')])).await;
+    assert_matches!(unrequested, Err(DeliveryError::Unrequested));
+
+    let missing =
+        match_deliveries(node_ids, &rows, futures::stream::iter([delivery(7, 'a')])).await;
+    assert_matches!(
+        missing,
+        Err(DeliveryError::Missing {
+            requested: 2,
+            delivered: 1
+        })
+    );
 }

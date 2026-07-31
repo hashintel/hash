@@ -21,6 +21,8 @@ pub enum ProbeError<E> {
     Dataset(E),
     /// The canonical stream delivered a node the probe never requested.
     UnrequestedEmbedding,
+    /// The canonical stream delivered one node twice.
+    RepeatedEmbedding,
     /// The canonical stream ended before covering every requested row.
     MissingEmbeddings { requested: usize, delivered: usize },
 }
@@ -52,6 +54,9 @@ impl<E> fmt::Display for ProbeError<E> {
             Self::UnrequestedEmbedding => {
                 fmt.write_str("the canonical stream delivered a node the probe never requested")
             }
+            Self::RepeatedEmbedding => {
+                fmt.write_str("the canonical stream delivered one node twice")
+            }
             Self::MissingEmbeddings {
                 requested,
                 delivered,
@@ -72,6 +77,7 @@ impl<E: Error + 'static> Error for ProbeError<E> {
             | Self::Neighbourhood { .. }
             | Self::RowsExceedProbeDomain { .. }
             | Self::UnrequestedEmbedding
+            | Self::RepeatedEmbedding
             | Self::MissingEmbeddings { .. } => None,
         }
     }
@@ -84,6 +90,12 @@ pub enum DeliveryError<E> {
     Dataset(E),
     /// The stream delivered an id that was never requested.
     Unrequested,
+    /// The stream delivered one requested id twice.
+    ///
+    /// A repeat is never a harmless echo. Its payload would replace one the reading has already
+    /// accepted, and nothing at this seam can tell a duplicate of the same bytes from a second,
+    /// different answer arriving under one id.
+    Repeated,
     /// The stream ended before covering every requested id.
     Missing { requested: usize, delivered: usize },
 }
@@ -95,6 +107,7 @@ impl<E> fmt::Display for DeliveryError<E> {
             Self::Unrequested => {
                 fmt.write_str("the stream delivered an id that was never requested")
             }
+            Self::Repeated => fmt.write_str("the stream delivered one requested id twice"),
             Self::Missing {
                 requested,
                 delivered,
@@ -110,7 +123,7 @@ impl<E: Error + 'static> Error for DeliveryError<E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Dataset(error) => Some(error),
-            Self::Unrequested | Self::Missing { .. } => None,
+            Self::Unrequested | Self::Repeated | Self::Missing { .. } => None,
         }
     }
 }

@@ -144,6 +144,10 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 /// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
 /// once, nothing else - and the payloads return in `rows` order. Requests are read straight off
 /// the `(node_ids, rows)` pair, so no caller materializes a request list.
+///
+/// This function enforces exactly-once rather than assuming it, because a violation damages the
+/// reading it feeds. An unrequested id refuses, a short stream refuses, and a repeated id refuses
+/// before its payload can replace the one already accepted.
 pub(super) async fn match_deliveries<I, R, T, E>(
     node_ids: &IdSlice<R, I>,
     rows: &[R],
@@ -175,9 +179,10 @@ where
             .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
             .map_err(|_insertion| DeliveryError::Unrequested)?;
         let slot = order[position] as usize;
-        if received[slot].replace(payload).is_none() {
-            delivered += 1;
+        if received[slot].replace(payload).is_some() {
+            return Err(DeliveryError::Repeated);
         }
+        delivered += 1;
     }
 
     if delivered != rows.len() {
@@ -208,6 +213,7 @@ async fn fetch_canonical<D: Dataset>(
     .map_err(|error| match error {
         DeliveryError::Dataset(error) => ProbeError::Dataset(error),
         DeliveryError::Unrequested => ProbeError::UnrequestedEmbedding,
+        DeliveryError::Repeated => ProbeError::RepeatedEmbedding,
         DeliveryError::Missing {
             requested,
             delivered,
@@ -409,13 +415,17 @@ fn aggregate_template<E>(
 
 /// Samples distinct comparison-index pairs, uniform over ordered pairs.
 ///
-/// A universe of one comparison point holds no pairs and yields none regardless of the requested
-/// count.
+/// A universe of fewer than two comparison points holds no ordered pair and yields none regardless
+/// of the requested count.
 pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) -> Box<[[u32; 2]]> {
-    let Some(second_choices) = NonZero::new(comparisons as u64 - 1) else {
+    let Some(choices) = NonZero::new(comparisons as u64) else {
         return Box::new([]);
     };
-    let choices = NonZero::new(comparisons as u64).expect("one more than a nonzero count");
+    // The second draw runs over a universe one smaller than the first,
+    // which is what leaves a single-point universe with no pair to draw.
+    let Some(second_choices) = NonZero::new(choices.get() - 1) else {
+        return Box::new([]);
+    };
 
     core::iter::repeat_with(|| {
         let first = uniform_below(&mut rng, choices) as u32;

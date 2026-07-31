@@ -199,9 +199,10 @@ pub(crate) struct ProbeReadings<N> {
     ///
     /// The grids' neighbourhood axis: the size at each [`Rung`].
     pub neighbourhoods: Box<IdSlice<Rung, NonZero<usize>>>,
-    /// Map versus representation, ranking every non-anchor row against each sampled anchor: the
-    /// comparison universe is the exact full corpus, while the aggregate remains an
-    /// anchor-sampled statistic, not a corpus-population estimate.
+    /// Map versus representation, ranking every non-anchor row against each sampled anchor. The
+    /// comparison universe is every row that is not itself an anchor - exact, and the whole corpus
+    /// but for the anchors - while the aggregate remains an anchor-sampled statistic rather than a
+    /// corpus-population estimate.
     pub map_representation: ReadingGrid,
     /// The corpus reading collapsed onto clump ids.
     ///

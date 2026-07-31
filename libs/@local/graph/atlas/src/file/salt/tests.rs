@@ -340,6 +340,75 @@ fn version_leads_the_document() {
 }
 
 #[test]
+fn a_retired_layout_is_refused_by_its_version() {
+    // `RepositoryVersion::V2` names exactly two differences from the
+    // retired layout. Version 1's recall evidence recorded the configured
+    // `margin` where version 2 records the achieved `resolution`, and its
+    // configuration echo carried no sampling `budget`. Neither field
+    // carries a serde default, so either difference alone kills a version
+    // 2 decode. That is what turns the version's precedence into an
+    // observable claim rather than a restatement.
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+
+    let recall = document
+        .pointer_mut("/metadata/evidence/recall")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the recall evidence should be an object");
+    recall
+        .remove("resolution")
+        .expect("version 2's recall evidence records the achieved resolution");
+    recall.insert("margin".to_owned(), serde_json::json!(0.012));
+
+    let echo = document
+        .pointer_mut("/metadata/reproducibility/config/recall_check")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the configuration echo should carry the recall check");
+    echo.remove("budget")
+        .expect("version 2's configuration echo carries the sampling budget");
+    echo.insert("margin".to_owned(), serde_json::json!(0.012));
+
+    // This control is what the precedence claim rests on, since the same
+    // contents refuse on their own once the version stops shadowing them.
+    // It leaves open which of the two fields the error names, because the
+    // field a decode reaches first follows the map's iteration order, and
+    // that order is a build-graph feature rather than a promise of this
+    // crate.
+    let error = serde_json::from_value::<SaltRepository>(document.clone())
+        .expect_err("a version 1 shape should not decode as version 2");
+    let error = error.to_string();
+    assert!(
+        error.contains("missing field")
+            && (error.contains("budget") || error.contains("resolution")),
+        "the retired contents should refuse without help from the version: {error}",
+    );
+
+    *document
+        .pointer_mut("/version")
+        .expect("the document should carry a version") = serde_json::json!(1);
+
+    // Field order carries the guarantee, so this decode takes the bytes a
+    // writer would produce rather than the value itself. The ordering is
+    // the thing under test, and a value's key order falls outside what
+    // this crate promises.
+    let retired = serde_json::to_string(&document).expect("the document should serialize");
+    assert!(
+        retired.starts_with(r#"{"version":1"#),
+        "the version should lead the retired document: {retired}",
+    );
+
+    let error = serde_json::from_str::<SaltRepository>(&retired)
+        .expect_err("a retired layout should be rejected");
+    assert!(
+        error
+            .to_string()
+            .contains("unsupported repository version 1"),
+        "the retired layout should be refused by its version, before its contents are \
+         interpreted: {error}",
+    );
+}
+
+#[test]
 fn absent_axes_round_trip() {
     let mut repository = repository();
     repository.metadata.snapshot.axes = None;
