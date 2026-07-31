@@ -30,10 +30,13 @@ export type ChipColor =
   | "purple"
   | "pink";
 
+export const chipSizes = ["xxs", "xs", "sm", "md", "lg", "xl"] as const;
+export type ChipSize = (typeof chipSizes)[number];
+
 export type ChipProps = {
   className?: string;
   children: React.ReactNode;
-  size?: FormInputSize;
+  size?: ChipSize;
   shape?: "default" | "round";
   color?: ChipColor;
   variant?: "fill" | "fillLight" | "outline" | "subtle";
@@ -50,12 +53,15 @@ export type ChipProps = {
 > &
   React.AriaAttributes;
 
-const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+// Maps a chip size to the icon/dot size used inside it. Icon sizes come from the
+// shared `FormInputSize` scale, which is a distinct set from `ChipSize`.
+const iconSizeMap: Record<ChipSize, FormInputSize> = {
   xxs: "xxs",
-  xs: "xs",
+  xs: "xxs",
   sm: "xs",
   md: "xs",
   lg: "sm",
+  xl: "sm",
 };
 
 const ChipDot = ({
@@ -63,7 +69,7 @@ const ChipDot = ({
   size,
 }: {
   state: "filled" | "partiallyFilled" | "empty";
-  size: FormInputSize;
+  size: ChipSize;
 }) => <span aria-hidden="true" className={dotStyles({ size, state })} />;
 
 const ChipAffix = ({
@@ -73,7 +79,7 @@ const ChipAffix = ({
 }: {
   affix: PrefixOrSuffix;
   side: "prefix" | "suffix";
-  size: FormInputSize;
+  size: ChipSize;
 }) => {
   const content =
     "iconName" in affix ? (

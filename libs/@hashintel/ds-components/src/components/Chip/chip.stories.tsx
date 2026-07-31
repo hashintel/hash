@@ -1,7 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
-import { Chip, type ChipColor, type ChipProps } from "./chip";
+import { Chip, chipSizes, type ChipColor, type ChipProps } from "./chip";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -125,7 +124,7 @@ export default {
       control: { type: "select", options: variants },
     },
     size: {
-      control: { type: "select", options: formInputSizes },
+      control: { type: "select", options: chipSizes },
     },
     shape: {
       control: { type: "select", options: ["default", "round"] },
@@ -219,12 +218,26 @@ Shape.parameters = { controls: { exclude: ["shape", "children"] } };
 export const Size: Story<ChipProps> = (args) => (
   <div className={column}>
     <div className={row}>
-      {formInputSizes.map((size) => (
+      {chipSizes.map((size) => (
         <KitchenSinkChip
           key={size}
           size={size}
           color={args.color}
           variant={args.variant}
+        >
+          {size}
+        </KitchenSinkChip>
+      ))}
+    </div>
+
+    <div className={row}>
+      {chipSizes.map((size) => (
+        <KitchenSinkChip
+          key={size}
+          size={size}
+          color={args.color}
+          variant={args.variant}
+          prefixVariant="badge"
         >
           {size}
         </KitchenSinkChip>
