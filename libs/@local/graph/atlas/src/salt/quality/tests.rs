@@ -21,6 +21,7 @@ use smallvec::{SmallVec, smallvec};
 use zerocopy::{LE, U64};
 
 use super::{
+    QualityMetric,
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
@@ -1694,4 +1695,39 @@ async fn runner_reports_a_published_generation() {
         "the small rung's density evidence is absent on this fixture",
     );
     assert!(!report.passes());
+}
+
+#[test]
+fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
+    // `ALL` transmutes the discriminants of a `repr(u8)` enum, so this test has to catch a variant
+    // added anywhere but the end, or a representation that stops being `u8`, before a renderer
+    // draws one metric twice.
+    assert_eq!(QualityMetric::ALL.first(), Some(&QualityMetric::Recall));
+    assert_eq!(
+        QualityMetric::ALL.last(),
+        Some(&QualityMetric::TripletAgreement)
+    );
+
+    let mut labels: Vec<&str> = QualityMetric::ALL
+        .iter()
+        .map(|metric| metric.label())
+        .collect();
+    labels.sort_unstable();
+    labels.dedup();
+    assert_eq!(labels.len(), QualityMetric::ALL.len(), "{labels:?}");
+
+    // The report gates each metric under a threshold key whose noun is the label, so an operator
+    // reading a rendered reading knows which key moves it. The keys are this test's own copy of
+    // that wire vocabulary: renaming one is a deliberate edit here as well as there.
+    for (metric, key) in QualityMetric::ALL.into_iter().zip([
+        "minimum_recall",
+        "minimum_trustworthiness",
+        "minimum_continuity",
+        "maximum_intrusion_rate",
+        "maximum_density_spread",
+        "minimum_triplet_agreement",
+    ]) {
+        let noun = metric.label().replace(' ', "_");
+        assert!(key.ends_with(&noun), "{key} does not end with {noun}");
+    }
 }

@@ -37,6 +37,11 @@ pub(super) struct RelationArtifacts {
 
 impl Context<'_> {
     /// Derives the incident-edge adjacency from the staged endpoint column and stages it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StageError::MapEndpoints`] when the staged endpoint column does not map, and an
+    /// I/O error when the adjacency cannot be written to the staging directory.
     pub(super) fn stage_adjacency(&self, rows: usize) -> Result<RepositoryFile, StageError> {
         let _span = tracing::info_span!("adjacency").entered();
 
@@ -64,6 +69,14 @@ impl Context<'_> {
     /// `rows` is the node-row domain the protection matrix spans. The spool holds one reading per
     /// `(edge, relation)` pair; the policy table covers exactly the relation universe those
     /// readings carry, so every instance resolves.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StageError::MapPolicies`] or [`StageError::InvalidPolicies`] when the staged
+    /// policy table does not map or does not certify, [`StageError::Relation`] when either index
+    /// build rejects the instances, [`StageError::WriteSparse`] when the attraction index does not
+    /// write, and an I/O error when the instance spool does not map or a staged output cannot be
+    /// written.
     pub(super) fn stage_relations(
         &self,
         rows: usize,

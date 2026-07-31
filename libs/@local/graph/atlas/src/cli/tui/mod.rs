@@ -44,8 +44,8 @@ use self::state::{KnnActivity, Observation, RunState};
 use crate::{
     math::Vec2,
     progress::{
-        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, Progress, RecallSpotCheck,
-        Stage,
+        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, Progress, QualityMetric,
+        RecallSpotCheck, Stage,
     },
 };
 
@@ -225,6 +225,13 @@ impl Progress for Observer {
         });
     }
 
+    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+        self.report(Observation::QualityProbe {
+            metric,
+            reading: value,
+        });
+    }
+
     fn stage_completed(&self, stage: Stage) {
         self.report(Observation::StageCompleted(stage));
     }
@@ -368,7 +375,7 @@ mod tests {
     use super::{LogSink, Observation, Observer, RunState, absorb};
     use crate::{
         math::Vec2,
-        progress::{Progress as _, Stage},
+        progress::{Progress as _, QualityMetric, Stage},
     };
 
     /// A reporter and the renderer's end of its channel.
@@ -415,6 +422,30 @@ mod tests {
             .expect("the announcement landed");
         assert_eq!(folds.total, 5);
         assert_eq!(folds.done, 2);
+    }
+
+    #[test]
+    fn the_admission_batterys_readings_reach_the_state_the_renderer_draws() {
+        let (observations, arrived) = channel();
+        let observer = Observer { observations };
+
+        // The runner reports every control that has a reading, in one
+        // burst, immediately before the stage completes.
+        observer.quality_probe(QualityMetric::Recall, 0.9021);
+        observer.quality_probe(QualityMetric::Trustworthiness, 0.8712);
+        observer.stage_completed(Stage::Admission);
+
+        let state = absorbed(&arrived);
+        assert_eq!(
+            state.quality().collect::<Vec<_>>(),
+            [
+                (QualityMetric::Recall, 0.9021),
+                (QualityMetric::Trustworthiness, 0.8712),
+            ]
+        );
+        // The readings outlive the stage that reported them, and the
+        // burst reaches the model in the same frame as the completion.
+        assert_eq!(state.completed_stages(), 1);
     }
 
     #[test]

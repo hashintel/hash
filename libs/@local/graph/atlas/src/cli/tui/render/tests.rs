@@ -15,7 +15,8 @@ use crate::{
     cli::tui::state::{KnnActivity, RunState},
     math::Vec2,
     progress::{
-        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, RecallSpotCheck, Stage,
+        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, QualityMetric, RecallSpotCheck,
+        Stage,
     },
 };
 
@@ -525,6 +526,85 @@ fn a_placement_with_no_extent_still_has_a_viewport() {
     let [horizontal, vertical] = map_bounds(&[Vec2::new(f32::NAN, 0.0)], inner);
     assert!(horizontal[0] < horizontal[1], "{horizontal:?}");
     assert!(vertical[0] < vertical[1], "{vertical:?}");
+}
+
+/// A run whose stages have all landed, carrying `readings` of the admission battery.
+fn probed(readings: usize) -> RunState {
+    let mut state = RunState::new();
+    for (index, stage) in Stage::ALL.into_iter().enumerate() {
+        state.complete_at(stage, Duration::from_secs(index as u64 + 1));
+    }
+    for (metric, reading) in [
+        (QualityMetric::Recall, 0.9021),
+        (QualityMetric::Trustworthiness, 0.8712),
+        (QualityMetric::Continuity, 0.9104),
+        (QualityMetric::IntrusionRate, 0.0413),
+        (QualityMetric::DensitySpread, 1.83),
+        (QualityMetric::TripletAgreement, 0.7820),
+    ]
+    .into_iter()
+    .take(readings)
+    {
+        state.probe_quality(metric, reading);
+    }
+
+    state
+}
+
+#[expect(
+    clippy::non_ascii_literal,
+    reason = "the assertions read the dashboard's own glyphs"
+)]
+#[test]
+fn the_admission_readings_hang_under_the_stage_that_measured_them() {
+    let drawn = draw_on(&probed(6), 0, 60, 26);
+
+    // The battery's readings are the admission stage's detail: indented
+    // under its row, in the battery's own order, each one carrying its
+    // leader dots out to the reading.
+    assert!(drawn[12].contains("✓ admission"), "{drawn:#?}");
+    assert!(drawn[13].starts_with("│   recall"), "{drawn:#?}");
+    assert!(drawn[13].ends_with("0.9021 │"), "{drawn:#?}");
+    assert!(drawn[13].contains('·'), "{drawn:#?}");
+    assert!(drawn[16].starts_with("│   intrusion rate"), "{drawn:#?}");
+    assert!(drawn[16].ends_with("0.0413 │"), "{drawn:#?}");
+    // A spread is not a fraction, and the row renders what it is.
+    assert!(drawn[17].ends_with("1.8300 │"), "{drawn:#?}");
+    assert!(drawn[18].starts_with("│   triplet agreement"), "{drawn:#?}");
+    // The rail's own bar is still the frame's bottom edge, under the
+    // block the readings grew it by.
+    assert!(drawn[19].contains("stages 12/12"), "{drawn:#?}");
+    assert!(drawn.join("\n").contains(" log "), "{drawn:#?}");
+}
+
+#[expect(
+    clippy::non_ascii_literal,
+    reason = "the assertions read the dashboard's own glyphs"
+)]
+#[test]
+fn a_battery_missing_evidence_draws_only_the_readings_it_has() {
+    let drawn = draw_on(&probed(2), 0, 60, 26);
+
+    // An absent reading is absent evidence, which the report refuses
+    // over. The rail invents no row and no zero for it.
+    assert!(drawn[13].starts_with("│   recall"), "{drawn:#?}");
+    assert!(drawn[14].starts_with("│   trustworthiness"), "{drawn:#?}");
+    assert!(drawn[15].contains("stages 12/12"), "{drawn:#?}");
+    assert!(!drawn.join("\n").contains("continuity"), "{drawn:#?}");
+}
+
+#[test]
+fn readings_a_short_pane_cannot_hold_whole_stay_out_of_the_rail() {
+    let drawn = draw_on(&probed(6), 0, 60, 20);
+    let pane = drawn.join("\n");
+
+    // Half a battery would read as evidence the probe could not
+    // measure, so a pane that cannot spare a row per reading shows
+    // none of them - and the log keeps its voice either way.
+    assert!(drawn[13].contains("stages 12/12"), "{drawn:#?}");
+    assert!(!pane.contains("recall"), "{pane}");
+    assert!(!pane.contains("triplet agreement"), "{pane}");
+    assert!(pane.contains(" log "), "{pane}");
 }
 
 #[test]

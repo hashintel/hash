@@ -30,7 +30,7 @@ mod tests;
 /// The dashboard's one accent color, carried by the running stage and the frame titles.
 const ACCENT: Color = Color::Cyan;
 
-/// Rows of the stage rail: one per pipeline stage, plus the frame around them.
+/// Rows the stage rail always has: one per pipeline stage, plus the frame around them.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the stage array has twelve elements"
@@ -76,9 +76,10 @@ const LOG_MINIMUM: u16 = 3;
 pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
     let elapsed = state.elapsed();
     let area = frame.area();
+    let rail_rows = rail_height(state, area.height);
     let [rail, band, log] = Layout::vertical([
-        Constraint::Length(RAIL_HEIGHT),
-        Constraint::Length(band_height(state, area.height)),
+        Constraint::Length(rail_rows),
+        Constraint::Length(band_height(state, area.height, rail_rows)),
         Constraint::Min(LOG_MINIMUM),
     ])
     .areas(area);
@@ -100,17 +101,43 @@ pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
     render_log(frame, log, state);
 }
 
-/// The rows the placement's band may claim.
+/// The rows the stage rail claims, one per pipeline stage plus one per admission reading the probe
+/// has reported.
+///
+/// The rail earns the readings whole or not at all. Half a battery under the admission stage would
+/// read as evidence the probe could not measure. Only the report says that. A terminal too short
+/// for a row per reading therefore draws no readings at all, and the numbers stay in the report.
+fn rail_height(state: &RunState, available: u16) -> u16 {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the metric array has six elements"
+    )]
+    let readings = state.quality().count() as u16;
+    if readings == 0 {
+        return RAIL_HEIGHT;
+    }
+
+    let spare = available.saturating_sub(RAIL_HEIGHT + LOG_MINIMUM);
+    if spare < readings {
+        return RAIL_HEIGHT;
+    }
+
+    RAIL_HEIGHT + readings
+}
+
+/// The rows the placement's band may claim, beneath a rail of `rail` rows.
 ///
 /// The band appears only once the placement has something to show, and it never crowds out the
 /// rail or the log: the rail is the run's shape and the log is its voice, so the band takes what
-/// those two leave and stays away entirely below the height where a plot says anything.
-const fn band_height(state: &RunState, available: u16) -> u16 {
+/// those two leave and stays away entirely below the height where a plot says anything. Readings
+/// arriving at the end of a run therefore cost the band its rows before they cost the log any. By
+/// then the placement's curve has told its story, and the battery's numbers have not.
+const fn band_height(state: &RunState, available: u16, rail: u16) -> u16 {
     if state.projector().is_none() && state.placement().is_none() {
         return 0;
     }
 
-    let spare = available.saturating_sub(RAIL_HEIGHT + LOG_MINIMUM);
+    let spare = available.saturating_sub(rail + LOG_MINIMUM);
     if spare < LOSS_MINIMUM {
         return 0;
     }

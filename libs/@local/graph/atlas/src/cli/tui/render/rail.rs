@@ -4,6 +4,12 @@
 //! them has happened, so the pane reads as remaining work rather than as a growing log. A running
 //! stage carries the counter of whatever it is counting; a finished one trades that counter for
 //! its span.
+//!
+//! The admission probe's readings hang under the rail as its one detail block. A running stage's
+//! counter goes away the moment that stage finishes, while the battery's readings are the numbers
+//! the run answers for, so they stay for the frames that follow, the last frame of the run
+//! included. Posterity is still the report the run writes. These rows are the operator's live copy
+//! of the numbers behind its verdict.
 #![expect(
     clippy::non_ascii_literal,
     reason = "the dashboard's glyphs are its rendering vocabulary"
@@ -103,7 +109,35 @@ pub(super) fn render_rail(
         });
     }
 
+    // The readings the admission probe reported, under the stage that reported them. The probe
+    // reports the whole battery in one burst as its report reduces the rungs, so the rows arrive
+    // together. The composition decides whether the rail has the room for them, and a frame
+    // shorter than the rail asked for drops the lines it cannot hold from the bottom.
+    rows.extend(
+        state
+            .quality()
+            .map(|(metric, reading)| reading_row(metric.label(), reading, width)),
+    );
+
     frame.render_widget(Paragraph::new(rows), inner);
+}
+
+/// Composes one admission reading row, its reading right-aligned under the stage spans.
+///
+/// Indented under the stage that measured it, and dim where a stage row is bold, because a reading
+/// is the admission stage's detail rather than a stage of its own.
+fn reading_row(label: &str, reading: f64, width: usize) -> Line<'static> {
+    let value = format!("{reading:.4}");
+    // Room for the indent, the label, the reading, and a space
+    // either side of the dots. The rest of the row takes dots.
+    let used = 4 + label.len() + value.len();
+    let dots = width.saturating_sub(used);
+
+    Line::from(vec![
+        Span::from(format!("  {label}")).dim(),
+        Span::from(format!(" {}", "·".repeat(dots))).fg(Color::DarkGray),
+        Span::from(format!(" {value}")).fg(ACCENT),
+    ])
 }
 
 /// Composes one timed stage row: glyph, label, leader dots, and the span, right-aligned.
