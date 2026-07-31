@@ -555,26 +555,29 @@ where
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
 /// the REST API.
 ///
+/// The specification is served at `/openapi.json`. It references its subschemas by relative path
+/// (`./models/…`), so `/models/{path}` has to stay a sibling of the specification for those
+/// references to resolve.
+///
 /// When `serve_api_reference` is set, an interactive rendering of the specification is served at
-/// `/api-doc/reference` in addition to the raw JSON. The rendered page pulls the viewer from a
-/// public CDN, so it requires the browser to have internet access.
+/// `/openapi` in addition to the raw JSON. The rendered page pulls the viewer from a public CDN,
+/// so it requires the browser to have internet access.
 pub fn openapi_only_router(serve_api_reference: bool) -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
     let api_reference =
         serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
 
-    let mut api_doc = Router::new()
+    let mut router = Router::new()
+        .route("/health", get(async || "Healthy".into_response()))
         .route("/openapi.json", get(|| async { Json(open_api_doc) }))
         .route("/models/{*path}", get(serve_static_schema));
 
     if let Some(api_reference) = api_reference {
-        api_doc = api_doc.route("/reference", get(|| async { api_reference }));
+        router = router.route("/openapi", get(|| async { api_reference }));
     }
 
-    Router::new()
-        .route("/health", get(async || "Healthy".into_response()))
-        .nest("/api-doc", api_doc)
+    router
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
@@ -595,8 +598,8 @@ where
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc.
-    // We use a `ServiceBuilder` to add the layers in the correct order.
+    // The `OpenAPI` endpoints are merged in afterwards as we don't want any layers or handlers to
+    // apply to them. We use a `ServiceBuilder` to add the layers in the correct order.
     let mut router = merged_routes
         .layer(
             ServiceBuilder::new()

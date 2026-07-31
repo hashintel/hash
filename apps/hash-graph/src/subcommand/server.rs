@@ -252,11 +252,10 @@ pub struct ServerConfig {
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
 
-    /// Serves an interactive rendering of the `OpenAPI` specification at `/api-doc/reference`.
+    /// Serves an interactive rendering of the `OpenAPI` specification at `/openapi`.
     ///
-    /// The raw specification remains available at `/api-doc/openapi.json` regardless of this
-    /// flag. The rendered page loads its viewer from a public CDN, so the browser needs internet
-    /// access.
+    /// The raw specification remains available at `/openapi.json` regardless of this flag. The
+    /// rendered page loads its viewer from a public CDN, so the browser needs internet access.
     ///
     /// This should only be used in development environments. The Block Protocol endpoints, not
     /// the `OpenAPI` specification, are the supported way to interact with HASH.
