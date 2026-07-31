@@ -221,6 +221,12 @@ pub(crate) struct BuildMeasurements {
     pub self_references: usize,
     /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed_edges: Vec<u64>,
+    /// Stream confidence readings clamped into `0.0..=1.0` on the way in, counted per reading.
+    ///
+    /// The dataset contract declares the range and nothing enforces it, so the drain bounds each
+    /// violating reading and records how many it bounded. Zero is the contract holding; any other
+    /// number is a defect in whatever wrote those rows, and this is where a reader finds it.
+    pub clamped_confidences: u64,
 }
 
 impl BuildMeasurements {

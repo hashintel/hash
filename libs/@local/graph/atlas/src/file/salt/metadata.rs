@@ -408,6 +408,12 @@ struct BuildMeasurementsDef {
     // histogram records them faithfully.
     #[serde(default)]
     multi_typed_edges: Vec<u64>,
+    // Absent on documents published before the drain clamped stream
+    // confidences. Zero on those documents means the count did not
+    // exist, not that every reading was in range: those fits narrowed
+    // whatever the store handed them without looking.
+    #[serde(default)]
+    clamped_confidences: u64,
 }
 
 /// Serializes a [`Depth`] as its subdivision count.

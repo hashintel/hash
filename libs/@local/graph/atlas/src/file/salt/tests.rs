@@ -267,6 +267,7 @@ fn evidence() -> Evidence {
             pruned_mass: 32.0,
             self_references: 1_024,
             multi_typed_edges: vec![8_799_998, 1],
+            clamped_confidences: 3,
         },
         lod: lod_measurements(),
         quad: QuadMeasurements {
@@ -389,6 +390,46 @@ fn baseline_generation_records_projector_absence_as_explicit_null() {
     let decoded: SaltRepository =
         serde_json::from_str(&json).expect("the serialized repository should deserialize");
     assert_eq!(decoded, repository);
+}
+
+#[test]
+fn a_document_without_the_clamp_count_decodes_as_zero() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let mut expected = repository();
+    expected.metadata.evidence.relations.clamped_confidences = 0;
+    let relations = document
+        .pointer_mut("/metadata/evidence/relations")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the relation evidence should be an object");
+
+    // The key is physically removed, which is the shape every document
+    // published before the drain counted its clamps actually has.
+    assert!(
+        relations.remove("clamped_confidences").is_some(),
+        "the published shape should carry the clamp count: {relations:?}",
+    );
+    let decoded: SaltRepository =
+        serde_json::from_value(document.clone()).expect("the older shape should deserialize");
+    assert_eq!(decoded.metadata.evidence.relations.clamped_confidences, 0);
+    assert_eq!(decoded, expected);
+
+    // The control for the removal itself: a sibling count with no
+    // default refuses, so the decode above passed on the default and
+    // not on a tolerated-absence rule covering the whole record.
+    let relations = document
+        .pointer_mut("/metadata/evidence/relations")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the relation evidence should be an object");
+    relations
+        .remove("self_references")
+        .expect("the published shape should carry the self-reference count");
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted field should refuse");
+    assert!(
+        error.to_string().contains("self_references"),
+        "the refusal should name the missing field: {error}",
+    );
 }
 
 #[test]

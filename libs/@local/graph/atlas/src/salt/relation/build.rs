@@ -75,6 +75,9 @@ where
         // only the fit's relation stage sees while draining the edge
         // stream; it writes the counts here after the build returns.
         multi_typed_edges: Vec::new(),
+        // Starts at zero for the same reason: the clamp happens at the
+        // drain, and its count joins these measurements afterwards.
+        clamped_confidences: 0,
     };
 
     let mut groups = Vec::with_capacity(built.len());

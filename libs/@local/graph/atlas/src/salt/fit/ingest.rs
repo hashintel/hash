@@ -75,6 +75,8 @@ pub(super) struct Ingested {
     pub instances: InstanceSpool,
     /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed: Vec<u64>,
+    /// Stream confidence readings the drain clamped into `0.0..=1.0`, counted per reading.
+    pub clamped_confidences: u64,
     /// The staged card-embedding artifacts.
     pub cards: CardArtifacts,
     /// The passed representation-contract spot check.
@@ -124,6 +126,15 @@ where
         instances = edge_artifacts.instances.count(),
         "staged the edge identities, endpoints, and instance spool"
     );
+    // The count is published either way; the warning is what a running
+    // fit shows, because a nonzero count means the rows this system
+    // wrote violate the contract this system declares.
+    if edge_artifacts.clamped_confidences > 0 {
+        tracing::warn!(
+            clamped = edge_artifacts.clamped_confidences,
+            "clamped stream confidence readings outside the dataset contract's 0.0..=1.0"
+        );
+    }
 
     // Ontology: the parent column stays resident for the postings
     // build; the card stream below covers the same rows.
@@ -161,6 +172,7 @@ where
         edge_endpoints: edge_artifacts.endpoints,
         instances: edge_artifacts.instances,
         multi_typed: edge_artifacts.multi_typed,
+        clamped_confidences: edge_artifacts.clamped_confidences,
         cards,
         norm,
     })
@@ -261,16 +273,39 @@ struct EdgeArtifacts {
     instances: InstanceSpool,
     /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
     multi_typed: Vec<u64>,
+    /// Stream confidence readings clamped into `0.0..=1.0`, counted per reading.
+    clamped_confidences: u64,
 }
 
-/// Narrows a stream confidence to working precision.
+/// Narrows a stream confidence to working precision, clamping what the dataset contract forbids.
+///
+/// [`Dataset`] declares every confidence to lie in `0.0..=1.0`, and nothing between the store and
+/// this drain enforces it: the readings arrive as double-precision columns and reach the force
+/// algebra unchecked. A violating reading is therefore this system's own bug rather than a caller's
+/// mistake, so the drain clamps it instead of refusing the fit - a refusal would make one part of
+/// the system punish the corpus for another part's defect while leaving that defect invisible - and
+/// increments `clamped`, so the count travels to the generation's evidence where a climbing number
+/// is the defect arriving with a witness.
+///
+/// `NaN` is a violation with no nearest bound, and it enters as `0.0`: the reading that contributes
+/// no force. A propagated `NaN` would instead poison every mass it is summed into, and no later
+/// stage could name the reading it came from.
 #[expect(
     clippy::cast_possible_truncation,
-    reason = "confidences lie in [0, 1] by the dataset contract; f32 is the working precision"
+    reason = "the accepted and clamped values both lie in [0, 1]; f32 is the working precision"
 )]
 #[inline]
-const fn narrow(confidence: f64) -> f32 {
-    confidence as f32
+fn narrow(confidence: f64, clamped: &mut u64) -> f32 {
+    if (0.0..=1.0).contains(&confidence) {
+        return confidence as f32;
+    }
+
+    *clamped += 1;
+    if confidence.is_nan() {
+        0.0
+    } else {
+        confidence.clamp(0.0, 1.0) as f32
+    }
 }
 
 /// Drains the edge stream once.
@@ -292,6 +327,7 @@ where
     let mut ids = IdentityTable::new();
     let mut relations = BTreeSet::new();
     let mut multi_typed: Vec<u64> = Vec::new();
+    let mut clamped_confidences = 0;
     let mut spool = InstanceSpoolWriter::create(scratch)?;
 
     let mut writer = BufWriter::new(staging.create(&Role::EdgeEndpoints.file_name())?);
@@ -310,9 +346,15 @@ where
         )?;
 
         let confidence = RelationConfidence {
-            link: edge.confidence.map(narrow),
-            source: edge.source_confidence.map(narrow),
-            target: edge.target_confidence.map(narrow),
+            link: edge
+                .confidence
+                .map(|reading| narrow(reading, &mut clamped_confidences)),
+            source: edge
+                .source_confidence
+                .map(|reading| narrow(reading, &mut clamped_confidences)),
+            target: edge
+                .target_confidence
+                .map(|reading| narrow(reading, &mut clamped_confidences)),
         };
         // Every direct type reads separately at share 1/multiplicity:
         // a multi-typed link is a mixture of its relation domains'
@@ -352,6 +394,7 @@ where
         endpoints: Role::EdgeEndpoints.file(digest),
         instances,
         multi_typed,
+        clamped_confidences,
     })
 }
 

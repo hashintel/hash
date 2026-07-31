@@ -116,6 +116,16 @@ fn representation(rng: &mut Xoshiro256PlusPlus) -> BoxedVecN<PROJECTOR_DIMENSION
 }
 
 fn dataset() -> MemoryDataset {
+    dataset_with_edge_confidences([(None, None, None); 2])
+}
+
+/// The base corpus with both edges' `(link, source, target)` confidence readings supplied.
+///
+/// [`dataset`] is the unscored form the other fit tests share. The readings are a parameter so a
+/// corpus that violates the confidence contract differs from the clean one in nothing else.
+fn dataset_with_edge_confidences(
+    readings: [(Option<f64>, Option<f64>, Option<f64>); 2],
+) -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xF17);
 
     let nodes = (0..NODES)
@@ -127,28 +137,20 @@ fn dataset() -> MemoryDataset {
         })
         .collect();
 
-    let edges = vec![
-        Edge {
-            id: U64::<LE>::new(100),
-            source: NodeRowId::new(0),
-            target: NodeRowId::new(1),
+    let edges = [(100_u64, 0_u64, 1_u64), (101, 2, 3)]
+        .into_iter()
+        .zip(readings)
+        .map(|((id, source, target), (link, from, to))| Edge {
+            id: U64::<LE>::new(id),
+            source: NodeRowId::new(source),
+            target: NodeRowId::new(target),
             ontology: smallvec![OntologyRowId::new(2)],
             embedding: None,
-            confidence: None,
-            source_confidence: None,
-            target_confidence: None,
-        },
-        Edge {
-            id: U64::<LE>::new(101),
-            source: NodeRowId::new(2),
-            target: NodeRowId::new(3),
-            ontology: smallvec![OntologyRowId::new(2)],
-            embedding: None,
-            confidence: None,
-            source_confidence: None,
-            target_confidence: None,
-        },
-    ];
+            confidence: link,
+            source_confidence: from,
+            target_confidence: to,
+        })
+        .collect();
 
     let ontology = vec![
         Ontology {
@@ -452,6 +454,13 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
     assert_eq!(
         repository.metadata.evidence.relations.multi_typed_edges,
         vec![2],
+    );
+    // The zero control for the confidence clamp: this corpus is
+    // unscored, so no reading can violate the contract and the count
+    // published beside the histogram is zero.
+    assert_eq!(
+        repository.metadata.evidence.relations.clamped_confidences,
+        0,
     );
 }
 
@@ -2125,6 +2134,57 @@ fn relation_dataset() -> MemoryDataset {
     ]);
 
     MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
+}
+
+/// A corpus whose confidence readings violate the dataset contract is clamped, counted, published.
+///
+/// The dataset contract puts every confidence in `0.0..=1.0` and nothing enforces it, so the drain
+/// bounds each violating reading and publishes how many it bounded. Three readings violate here -
+/// one above the range, one below it, one `NaN` - and the second edge's in-range reading is the
+/// control: the count is the number of violations and not the number of scored readings.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn out_of_range_confidences_are_clamped_and_counted() {
+    let root = GenerationRoot::new(scratch("clamped-confidences")).expect("the root should open");
+    let dataset = dataset_with_edge_confidences([
+        (Some(1.5), Some(-0.25), Some(f64::NAN)),
+        (Some(0.5), None, None),
+    ]);
+    let classifier = fixture_input();
+
+    let published = fit(
+        &dataset,
+        &HashEmbedder,
+        &config(),
+        Supplies {
+            classifier: &classifier,
+            ..
+        },
+        &root,
+        &NoProgress,
+    )
+    .await
+    .expect("the fit should publish rather than refuse a corpus its own application layer wrote");
+
+    let document =
+        fs::read(published.path().join("metadata.json")).expect("the document should read");
+    let repository: SaltRepository =
+        serde_json::from_slice(&document).expect("the document should deserialize");
+    let relations = &repository.metadata.evidence.relations;
+    assert_eq!(relations.clamped_confidences, 3);
+    // What the clamp buys, asserted rather than assumed: a propagated
+    // NaN would land in these sums, and no reader of the manifest could
+    // tell which reading it entered through.
+    assert!(
+        relations.retained_mass.is_finite(),
+        "the retained mass should stay finite: {}",
+        relations.retained_mass,
+    );
+    assert!(
+        relations.pruned_mass.is_finite(),
+        "the pruned mass should stay finite: {}",
+        relations.pruned_mass,
+    );
 }
 
 /// Collects a mapped adjacency list into its edge row numbers.
