@@ -10,8 +10,9 @@
 //! The actor is named by the `X-Authenticated-User-Actor-Id` header, the trust boundary the graph's
 //! REST API stands on: the gateway authenticates the session and states the actor, and this process
 //! takes the header as that statement. A request carrying no such header is malformed and answers
-//! 400; one whose token refuses answers 401; one whose scope the store cannot resolve answers 503.
-//! Every refusal lands before any assembly reads the request.
+//! 400; one whose token refuses answers 401; one whose own filter document does not compile answers
+//! 400, and one the store cannot resolve for any other reason answers 503 - [`proof_problem`] is
+//! that split. Every refusal lands before any assembly reads the request.
 
 use alloc::sync::Arc;
 use core::{
@@ -21,7 +22,10 @@ use core::{
 use std::time::Instant;
 
 use aide::{OperationInput, generate::GenContext, openapi};
-use axum::{extract::FromRequestParts, http::request::Parts};
+use axum::{
+    extract::FromRequestParts,
+    http::{StatusCode, request::Parts},
+};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::{PostgresStorePool, error::StoreError};
 use hash_graph_store::{filter::Filter, pool::StorePool as _};
@@ -30,7 +34,7 @@ use uuid::Uuid;
 
 use super::{
     AppState, authorization, headers,
-    problem::{Problem, missing_actor, unauthorized, visibility_unavailable},
+    problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
     FilterDigest, ProofError, Resolution, ViewCensus, VisibilityCache, VisibilityKey,
@@ -129,8 +133,9 @@ impl OperationInput for Visibility {
 /// # Errors
 ///
 /// The uniform `401` problem for a filtered scope with no document held anywhere - the client
-/// re-presents the document at the manifest - and the `503` visibility problem when the store
-/// cannot resolve the scope.
+/// re-presents the document at the manifest - and, for a resolution that fails, whichever problem
+/// [`proof_problem`] gives the failing stage: `400` for the caller's own filter, the internal
+/// problem for ours, and the `503` visibility problem for every condition of the store's.
 pub(super) async fn resolve(
     state: &AppState,
     actor: ActorEntityUuid,
@@ -196,12 +201,50 @@ pub(super) async fn resolve(
             Ok::<_, ProofError>(Resolution::of(&atlas, proof, document))
         })
         .await
-        .map_err(|error| visibility_unavailable(&error))?;
+        .map_err(|error| proof_problem(&error))?;
 
     Ok(Visibility {
         proof: entry.proof,
         census: entry.census,
     })
+}
+
+/// Answers one failed resolution with the problem its failing stage earns.
+///
+/// Three readings, because a caller cannot repair all three the same way.
+/// [`ProofError::Filter`] is the caller's own filter document failing to compile against the entity
+/// query surface, which no retry repairs: it answers `400` `invalid-body`, the problem an
+/// unparsable document already earns at the manifest. [`ProofError::PolicyFilter`] is this
+/// deployment's policy set failing to compile, our fault and not the caller's, so it answers the
+/// internal problem with the compiler's message in the log rather than the response. Every
+/// remaining stage answers the `503`: the process cannot say what the caller may see, and a later
+/// attempt may succeed.
+///
+/// [`ProofError::Query`] stays a `503` even though a caller's document can provoke it - a parameter
+/// whose type the compiler accepts and Postgres rejects - because that one variant also carries
+/// genuine store faults, and reading every filtered query failure as the caller's would answer an
+/// outage with a `400`. The variants are listed rather than defaulted, so a new failing stage has
+/// to choose its status instead of inheriting one.
+fn proof_problem(error: &ProofError) -> Problem<'static> {
+    match error {
+        ProofError::Filter(report) => Problem::new(
+            StatusCode::BAD_REQUEST,
+            ProblemType::InvalidBody,
+            format!(
+                "the filter document does not compile: {}",
+                report.current_context()
+            ),
+        ),
+        ProofError::PolicyFilter(report) => Problem::internal(
+            report.current_context(),
+            "compiling the policy filter failed",
+        ),
+        ProofError::Connect(_)
+        | ProofError::Policies(_)
+        | ProofError::Document(_)
+        | ProofError::Query(_)
+        | ProofError::Rows(_) => visibility_unavailable(error),
+    }
 }
 
 /// The authenticated actor one request names, without resolving its scope.
@@ -242,4 +285,76 @@ pub(super) fn actor(parts: &Parts) -> Result<AuthenticatedActor, Problem<'static
         .map_err(|error| missing_actor(format!("`{ACTOR_HEADER}` is not a uuid: {error}")))?;
 
     Ok(AuthenticatedActor::Uuid(ActorEntityUuid::new(uuid)))
+}
+
+#[cfg(test)]
+mod tests {
+    use error_stack::Report;
+    use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
+
+    use super::proof_problem;
+    use crate::serve::ProofError;
+
+    /// One real compiler error, reused so the mapping is visibly a statement about the failing
+    /// stage rather than about the error inside it.
+    ///
+    /// `MultipleEmbeddings` is a failure a caller's own filter can produce, which is why it is the
+    /// one used for both stages here: the same value answers `400` under
+    /// [`ProofError::Filter`] and `500` under [`ProofError::PolicyFilter`].
+    fn compiler_error() -> Report<SelectCompilerError> {
+        Report::new(SelectCompilerError::MultipleEmbeddings)
+    }
+
+    /// Renders one problem as the document a client reads.
+    fn document(error: &ProofError) -> serde_json::Value {
+        serde_json::to_value(proof_problem(error)).expect("problem documents serialize")
+    }
+
+    /// The caller's own filter failing to compile is the caller's to repair: `400 invalid-body`.
+    #[test]
+    fn a_caller_filter_that_does_not_compile_answers_invalid_body() {
+        let document = document(&ProofError::Filter(compiler_error()));
+
+        assert_eq!(document["status"], 400);
+        assert_eq!(document["type"], "/problems/atlas/invalid-body");
+        assert!(
+            document["detail"]
+                .as_str()
+                .expect("the problem carries a detail")
+                .contains("embedding"),
+            "the caller is not told what about its document failed: {document:#}"
+        );
+    }
+
+    /// Our policy filter failing to compile is ours: the internal problem, and the compiler's
+    /// message stays in the log.
+    #[test]
+    fn the_policy_filter_answers_the_internal_problem_without_its_message() {
+        let document = document(&ProofError::PolicyFilter(compiler_error()));
+
+        assert_eq!(document["status"], 500);
+        assert_eq!(document["type"], "/problems/atlas/internal");
+        assert!(
+            !document["detail"]
+                .as_str()
+                .expect("the problem carries a detail")
+                .contains("embedding"),
+            "the internal problem leaks the compiler's message: {document:#}"
+        );
+    }
+
+    /// Every other stage is a condition of the store's, and answers the `503`.
+    ///
+    /// [`ProofError::Document`] stands for the bucket: it is the one store-stage variant a test can
+    /// construct, since `tokio_postgres::Error` has no public constructor. What keeps the rest of
+    /// the bucket honest is not this test but the mapping's exhaustive match - a new failing stage
+    /// does not compile until it has chosen a status.
+    #[test]
+    fn a_store_stage_answers_the_visibility_problem() {
+        let parse = serde_json::from_str::<u32>("not a number").expect_err("the parse fails");
+        let document = document(&ProofError::Document(parse));
+
+        assert_eq!(document["status"], 503);
+        assert_eq!(document["type"], "/problems/atlas/visibility-unavailable");
+    }
 }

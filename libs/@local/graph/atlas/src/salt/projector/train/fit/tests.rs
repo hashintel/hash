@@ -40,7 +40,7 @@ use crate::{
         policy::ClassProbabilities,
         projector::{
             artifact,
-            budget::{Budget, BudgetOptions},
+            budget::Budget,
             loss::{AffinityEnergy, CoincidentEnergy, SupportOptions},
             miner::MinerOptions,
             model::{Architecture, NodeRole, Projector},
@@ -319,9 +319,9 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
         )
         .expect("the fixture epsilon is valid"),
         support: SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid"),
-        budget: Budget::Enforced(
-            BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid"),
-        ),
+        budget: Budget {
+            floor: positive!(0.25),
+        },
         coefficients: Coefficients::new(
             Positive::ONE,
             non_negative!(0.5),
@@ -634,7 +634,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     assert!(losses[7].relation > 0.0, "the half rung pulls");
     assert!(losses[8].relation > 0.0, "the full rung pulls");
 
-    // Relation-active nodes were budgeted and recorded.
+    // Relation-active nodes were measured and recorded.
     assert!(fitted.evidence.budget.overall().nodes() > 0);
 
     // Ticks at the cadence steps and the boundary.

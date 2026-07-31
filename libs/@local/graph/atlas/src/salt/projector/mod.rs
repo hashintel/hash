@@ -18,9 +18,9 @@
 //!
 //! [`model`] defines the architecture and its initialization contracts; [`scale`] measures the
 //! detached local radii the relation objective normalizes by; [`sample`] draws the seeded minibatch
-//! populations; [`loss`] and [`budget`] compute the composite objective and its clipped relation
+//! populations; [`loss`] computes the composite objective and [`budget`] measures its relation
 //! forces; [`miner`] finds 2D hard negatives; [`verdict`] reads the supplied human-review input;
-//! [`train`] assembles minibatches and evaluates the budgeted step objective; [`artifact`] writes
+//! [`train`] assembles minibatches and evaluates the step objective; [`artifact`] writes
 //! and reopens the published checkpoint and the resume state.
 
 pub(crate) mod artifact;

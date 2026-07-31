@@ -54,10 +54,17 @@ where
 ///
 /// Runs inside [`Visibility`]'s extraction, ahead of the scope resolution, so an unauthorized
 /// request costs one AEAD open and never a store round trip. It also runs ahead of the handler
-/// body's generation check: a token minted under a retired generation fails the tag under the
-/// current key and answers `401` here, so a re-pinned client discovers the new generation at its
-/// manifest renewal (`404` `unknown-generation`), never at the data routes it retries. The client
-/// recovery contract rests on that order - the generation judgment stays in the handler body.
+/// body's generation check, and that order is the data routes' half of the contract: **a data route
+/// admits first and reaches the generation's `404` only under an acceptable token.** So a token
+/// minted under a retired generation answers `401` here - its tag fails under the current key -
+/// while a token this generation minted, presented at a route naming a retired one, is admitted and
+/// answers `404` `unknown-generation` from the handler body.
+///
+/// The manifest orders the two judgments the other way round, generation first, so a client that
+/// holds no acceptable token still discovers a re-pin there. Both orders are contractual: a `404`
+/// from a data route means the caller's pin is stale *and* its token is good, and a `401` never
+/// discriminates a stale pin from a stale token. The generation judgment stays in the handler body
+/// for exactly that reason.
 ///
 /// # Errors
 ///

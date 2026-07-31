@@ -1,9 +1,10 @@
 //! Training-step machinery for the conditioned projector.
 //!
 //! One training step draws a minibatch over the built artifacts, projects its rows at the step's
-//! relation-lens rung, evaluates the composite objective against the detached coordinates, clips
-//! the relation forces per node, and returns one backward-ready scalar whose gradient carries
-//! exactly the budgeted per-node field through the shared model parameters.
+//! relation-lens rung, evaluates the composite objective against the detached coordinates,
+//! measures the relation forces per node for the budget diagnostics, and returns one
+//! backward-ready scalar whose gradient carries exactly the combined per-node field through the
+//! shared model parameters.
 //!
 //! The step splits along the module seams: [`batch`] draws the step's populations and re-indexes
 //! them into a batch-local coordinate domain, [`step`] evaluates the objective over the assembled
@@ -114,8 +115,8 @@ impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 /// Objective coefficients, one per loss family.
 ///
 /// The semantic attraction coefficient is strictly positive - the semantic layout is the frame
-/// every other force is budgeted against, and a run without it has no baseline to budget by - and
-/// every other coefficient is finite and non-negative.
+/// every other force is measured against, and a run without it has no baseline to measure by -
+/// and every other coefficient is finite and non-negative.
 ///
 /// The relation coefficient is the lens-independent factor; the training loop multiplies it by the
 /// step's rung, so a zero rung contributes nothing regardless of the configured value.
@@ -231,7 +232,7 @@ pub(crate) struct ObjectiveOptions {
     pub relation: Option<RelationEnergy>,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
-    /// The per-node relation-gradient budget.
+    /// The per-node relation-gradient diagnostics' baseline convention.
     pub budget: Budget,
     /// The objective coefficients.
     pub coefficients: Coefficients,

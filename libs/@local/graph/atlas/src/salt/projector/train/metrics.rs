@@ -3,12 +3,10 @@
 //! Overall, per relation type, per degree decile.
 //!
 //! The budget's training metrics answer one question per bucket: is any slice of the relation
-//! evidence overpowering the semantic layout at its nodes? A node's clip outcome lands in the
+//! evidence overpowering the semantic layout at its nodes? A node's measured outcome lands in the
 //! overall bucket and its relation-degree decile bucket as-is. Per relation type the recorded
-//! outcome is that type's own share: the clip factor is a scalar on the node's summed relation
-//! vector, so a type contributing the gradient `g` has exactly `factor · g` applied, and its bucket
-//! records that contribution against the node's baseline rather than double-counting the whole node
-//! into every type touching it.
+//! outcome is that type's own share: a type contributing the gradient `g` records `‖g‖` against
+//! the node's baseline rather than double-counting the whole node into every type touching it.
 //!
 //! Displacement telemetry measures the relation lens's integrated effect at every refresh tick:
 //! with coordinates at both lens extremes in hand, the per-node displacement `Δ_i = ‖y_i(1) -

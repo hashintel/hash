@@ -43,7 +43,7 @@ use crate::{
     salt::{
         policy::ClassProbabilities,
         projector::{
-            budget::{Budget, BudgetOptions},
+            budget::Budget,
             loss::{
                 AffinityEnergy, BatchRowId, CoincidentEnergy, ProximalEnergy, RelationEnergy,
                 SupportOptions,
@@ -203,10 +203,10 @@ fn options(relation: Option<RelationEnergy>, budget: Budget) -> ObjectiveOptions
     }
 }
 
-fn loose_budget() -> Budget {
-    Budget::Enforced(
-        BudgetOptions::new(100.0, 100.0, 0.25, 1.0e-12).expect("the fixture budget is valid"),
-    )
+fn fixture_budget() -> Budget {
+    Budget {
+        floor: positive!(0.25),
+    }
 }
 
 /// Empty populations to splice fixture families into.
@@ -713,7 +713,7 @@ fn objective_matches_the_hand_computed_semantic_field() {
     let coordinates = [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0];
     let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, loose_budget());
+    let options = options(None, fixture_budget());
 
     let objective = evaluate(
         leaf(&coordinates, 4),
@@ -731,7 +731,7 @@ fn objective_matches_the_hand_computed_semantic_field() {
     let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
     assert_eq!(gradient, [-0.5, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, -1.0]);
 
-    // No relation edges: nothing is budgeted or recorded.
+    // No relation edges: nothing is measured or recorded.
     assert_eq!(metrics.overall().nodes(), 0);
 }
 
@@ -778,8 +778,9 @@ fn relation_batch(
     Batch::assemble(populations, Some(scales))
 }
 
+/// The relation field rides whole and every bucket records its measurement.
 #[test]
-fn objective_clips_the_relation_field_and_records_the_buckets() {
+fn objective_applies_the_relation_field_and_records_the_buckets() {
     // Coordinates (0,0), (1,0): d = 1, local scales 0.5 with guard 0.5
     // give unit normalization, z = 1 on the Proximal radius.
     //
@@ -787,75 +788,32 @@ fn objective_clips_the_relation_field_and_records_the_buckets() {
     // Relation factor: η · λ_R · scale · c · ν · strength
     // = 1 · 1 · 2 · 1 · 0.5 · 1 = 1; gradient = difference ·
     // (factor · sigmoid(0) / (d · norm)) = (-0.5, 0), norm 0.5.
-    //
-    // Budget β_+ = β_R = 0.5, floor 0.25: positive factor
-    // = 0.5 · 0.5 / 0.5 = 0.5 exactly (the ε vanishes in f32),
-    // clipped norm 0.25, total factor exactly 1. Applied relation
-    // gradient (-0.25, 0); combined (-0.75, 0).
+    // Combined field at row 0: (-0.5, 0) + (-0.5, 0) = (-1.0, 0).
     let (indexes, scales) = relation_fixture();
     let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let coordinates = [0.0, 0.0, 1.0, 0.0];
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
-    let budget = BudgetOptions::new(0.5, 0.5, 0.25, 1.0e-12).expect("the budget is valid");
-    let options = options(Some(relation_energy()), Budget::Enforced(budget));
+    let options = options(Some(relation_energy()), fixture_budget());
 
     let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
-    assert_eq!(gradient, [-0.75, 0.0, 0.75, 0.0]);
+    assert_eq!(gradient, [-1.0, 0.0, 1.0, 0.0]);
 
-    // Both endpoints were clipped by the positive branch and the
-    // trailing cap stayed inactive.
+    // Both endpoints measured ratio 0.5 / 0.5 = 1 over the semantic
+    // baseline; the floor 0.25 stayed under both baselines.
     assert_eq!(metrics.overall().nodes(), 2);
-    assert_eq!(metrics.overall().clipped_fraction(), Some(1.0));
-    assert_eq!(metrics.overall().capped_fraction(), Some(0.0));
-    assert_eq!(metrics.overall().mean_cap_factor(), Some(1.0));
-    // Unclipped ratio 0.5 / 0.5 = 1; applied ratio 0.25 / 0.5 = 0.5.
-    assert_eq!(metrics.overall().mean_unclipped_ratio(), Some(1.0));
-    assert_eq!(metrics.overall().mean_clipped_ratio(), Some(0.5));
+    assert_eq!(metrics.overall().mean_ratio(), Some(1.0));
 
     // The single relation type owns both node contributions.
     let types: Vec<_> = metrics.types().collect();
     assert_eq!(types.len(), 1);
     assert_eq!(types[0].0.as_u64(), 7);
     assert_eq!(types[0].1.nodes(), 2);
-    assert_eq!(types[0].1.mean_unclipped_ratio(), Some(1.0));
-    assert_eq!(types[0].1.mean_clipped_ratio(), Some(0.5));
+    assert_eq!(types[0].1.mean_ratio(), Some(1.0));
 
     // Both endpoints have attraction degree one: rank 2 of 2
     // participating rows, decile (2-1)*10/2 = 5.
     assert_eq!(metrics.deciles()[5].nodes(), 2);
-}
-
-/// An observed budget applies the raw relation field and still records every bucket.
-#[test]
-fn observed_budget_applies_raw_gradients_and_records() {
-    // The enforced twin above clips this exact fixture to a combined
-    // (-0.75, 0); observed, the raw relation gradient (-0.5, 0) rides
-    // whole and the combined field is (-1.0, 0). The diagnostics still
-    // record both endpoints, with factors one and the enforced twin's
-    // baselines.
-    let (indexes, scales) = relation_fixture();
-    let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
-    let coordinates = [0.0, 0.0, 1.0, 0.0];
-    let deciles = DegreeDeciles::new(&indexes.attraction, 2);
-    let mut metrics = BudgetBreakdown::new();
-    let options = options(
-        Some(relation_energy()),
-        Budget::Observed {
-            floor: positive!(0.25),
-        },
-    );
-
-    let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
-    assert_eq!(gradient, [-1.0, 0.0, 1.0, 0.0]);
-
-    assert_eq!(metrics.overall().nodes(), 2);
-    assert_eq!(metrics.overall().clipped_fraction(), Some(0.0));
-    assert_eq!(metrics.overall().capped_fraction(), Some(0.0));
-    assert_eq!(metrics.overall().mean_cap_factor(), Some(1.0));
-    // Unclipped and applied ratios coincide: 0.5 / 0.5 = 1 both.
-    assert_eq!(metrics.overall().mean_unclipped_ratio(), Some(1.0));
-    assert_eq!(metrics.overall().mean_clipped_ratio(), Some(1.0));
 }
 
 #[test]
@@ -866,7 +824,7 @@ fn objective_reports_the_relation_loss_value() {
     let batch = relation_batch(&indexes, &scales, non_negative!(1.0));
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
     let mut metrics = BudgetBreakdown::new();
-    let options = options(Some(relation_energy()), loose_budget());
+    let options = options(Some(relation_energy()), fixture_budget());
 
     let objective = evaluate(
         leaf(&[0.0, 0.0, 1.0, 0.0], 2),
@@ -893,7 +851,7 @@ fn relation_gradients_are_linear_in_the_lens() {
     let (indexes, scales) = relation_fixture();
     let coordinates = [0.0, 0.0, 1.0, 0.0];
     let deciles = DegreeDeciles::new(&indexes.attraction, 2);
-    let options = options(Some(relation_energy()), loose_budget());
+    let options = options(Some(relation_energy()), fixture_budget());
 
     let gradient_at = |eta: NonNegative| {
         let batch = relation_batch(&indexes, &scales, eta);
@@ -928,7 +886,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     let coordinates = [0.0, 0.0, 1.0, 0.0];
     let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, loose_budget());
+    let options = options(None, fixture_budget());
 
     let objective = evaluate(
         leaf(&coordinates, 2),
@@ -964,7 +922,7 @@ fn evaluate_rejects_non_finite_coordinates() {
 
     let deciles = unused_deciles();
     let mut metrics = BudgetBreakdown::new();
-    let options = options(None, loose_budget());
+    let options = options(None, fixture_budget());
 
     let result = evaluate(
         leaf(&[0.0, 0.0, f32::NAN, 0.0], 2),
@@ -1273,7 +1231,7 @@ fn padded_frame_adds_zero_force() {
     let batch = Batch::assemble(populations, None);
 
     let deciles = unused_deciles();
-    let options = options(None, loose_budget());
+    let options = options(None, fixture_budget());
 
     let mut metrics = BudgetBreakdown::new();
     let exact = evaluate(
@@ -1315,7 +1273,7 @@ fn evaluate_rejects_a_frame_smaller_than_the_batch() {
     let batch = Batch::assemble(populations, None);
 
     let deciles = unused_deciles();
-    let options = options(None, loose_budget());
+    let options = options(None, fixture_budget());
     let mut metrics = BudgetBreakdown::new();
     let _objective = evaluate(
         leaf(&[0.0, 0.0], 1),
@@ -1387,7 +1345,7 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     let model = Projector::<TestBackend>::new(architecture, &device, rng(7)).map(&mut Perturb);
 
     let deciles = DegreeDeciles::new(&indexes.attraction, PADDING_ROWS);
-    let options = options(Some(relation_energy()), loose_budget());
+    let options = options(Some(relation_energy()), fixture_budget());
 
     let padded = model.forward(batch.input(columns, &device));
     let plain = model.forward(batch.input_aligned(

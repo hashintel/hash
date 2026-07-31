@@ -585,10 +585,17 @@ const requestManifest = (
  * Deliberately **not** a re-bootstrap. {@link clearAtlasSessionCache} always moves the session
  * revision when it drops a session, so routing an expiry through it would discard every painted tile
  * once per token window — reading as a periodic stall, and replacing progressive state on a mere
- * rotation of token bytes, which the serving contract forbids. Presenting the old token instead is
- * meant to make view continuity the server's job by construction: it reads the view state sealed in
- * the presented token (expiry is the expected presentation here, and forgiven) and re-mints with it
- * verbatim, so the fresh token names the same view. Nothing about the view is read, retained or
+ * rotation of token bytes, which the serving contract forbids. Presenting the old token instead
+ * carries the actor and the sealed view state across the re-mint, and an expiry is the expected
+ * presentation here, so it is forgiven rather than refused.
+ *
+ * What the presented token does not decide is which view the renewal asks for. The request body
+ * states that, and a bodyless request states the unfiltered one, so continuity holds by construction
+ * only for a client that sends no filter document — which is this one, in both roles (see
+ * {@link requestManifest}). A session that ever holds a filter has to resend its filter bytes
+ * verbatim on every renewal: omitting them renews into the unfiltered view behind a `200` and a
+ * fresh token, with no refusal and no header marking the widening, so every row that arrives
+ * afterwards answers a question the session never asked. Nothing about the view is read, retained or
  * compared on this side.
  *
  * Keeping painted rows across the `200` rests on the serving contract refusing an invalid

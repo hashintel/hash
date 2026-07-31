@@ -68,7 +68,6 @@ use crate::{
         postings::artifact::PostingsArchive,
         projector::{
             artifact,
-            budget::Budget,
             loss::CoincidentEnergy,
             model::NodeRole,
             train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
@@ -309,41 +308,39 @@ fn config_echo_requires_every_setting() {
     }
 }
 
-/// The budget echoes in both modes, and the enforced wire form stays the bare array.
+/// The budget echoes as its floor object, and the retired clamp's bare array still decodes.
 ///
-/// The bare four-constant array is the exact shape every generation published before the observed
-/// mode carries, so the pin is what keeps those manifests deserializing.
+/// The bare four-constant array `[positive, total, floor, epsilon]` is the exact shape every
+/// generation published under the enforcing clamp carries. The fixture pins the ratified
+/// constants verbatim, so this decode is the standing witness that those manifests parse under
+/// the current binary: the floor is extracted and the retired clamp coefficients are dropped.
 #[test]
-fn budget_echo_round_trips_both_modes() {
+fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
-    let enforced = FitConfig {
+    let config = FitConfig {
         placement: PlacementOptions::Projector(projector_options(Some(1.0))),
         ..config()
     };
-    let document = serde_json::to_value(Echo(enforced.clone())).expect("the echo serializes");
-    assert!(
+    let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
+    assert_eq!(
         document
             .pointer("/placement/projector/budget")
-            .expect("the echo carries the budget")
-            .is_array(),
-        "the enforced budget echoes as the bare array",
+            .expect("the echo carries the budget"),
+        &serde_json::json!({ "floor": 2.0e-4_f32 }),
+        "the budget echoes as the bare floor object",
     );
-    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
-    assert_eq!(echoed.0, enforced);
+    let echoed: Echo = serde_json::from_value(document.clone()).expect("the echo deserializes");
+    assert_eq!(echoed.0, config);
 
-    let mut options = projector_options(Some(1.0));
-    options.budget = Budget::Observed {
-        floor: Positive::new(2.0e-4).expect("the fixture floor is positive"),
-    };
-    let observed = FitConfig {
-        placement: PlacementOptions::Projector(options),
-        ..config()
-    };
-    let document = serde_json::to_value(Echo(observed.clone())).expect("the echo serializes");
-    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
-    assert_eq!(echoed.0, observed);
+    let mut document = document;
+    *document
+        .pointer_mut("/placement/projector/budget")
+        .expect("the echo carries the budget") =
+        serde_json::json!([0.1_f32, 0.1_f32, 2.0e-4_f32, 1.0e-12_f32]);
+    let echoed: Echo = serde_json::from_value(document).expect("the retired clamp form decodes");
+    assert_eq!(echoed.0, config);
 }
 
 /// A config echo revalidates the group budget's domain.

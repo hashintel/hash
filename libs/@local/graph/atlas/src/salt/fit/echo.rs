@@ -329,7 +329,7 @@ mod placement {
         salt::{
             ladder::{Conditions, LadderOptions},
             projector::{
-                budget::{Budget, BudgetOptions},
+                budget::Budget,
                 loss::{CoincidentEnergy, SupportOptions},
                 miner::MinerOptions,
                 model::Architecture,
@@ -349,9 +349,10 @@ mod placement {
 
     /// The budget's wire form.
     ///
-    /// The enforced clamp is the bare four-constant array, the exact shape every generation
-    /// before the observed mode carries; the observed mode names its floor. The untagged split is
-    /// structural - array against object - so either form reads back unambiguously.
+    /// Writers emit the floor object. Readers additionally accept the retired clamp's bare
+    /// four-constant array `[positive, total, floor, epsilon]`, taking its floor and dropping
+    /// the rest, so every published manifest deserializes. The untagged split is structural -
+    /// array against object - so either form reads back unambiguously.
     #[derive(serde::Serialize, serde::Deserialize)]
     #[serde(untagged)]
     enum BudgetRecord {
@@ -479,14 +480,8 @@ mod placement {
                 },
                 affinity_offset: options.affinity_offset,
                 support: [options.support.threshold(), options.support.epsilon()],
-                budget: match options.budget {
-                    Budget::Enforced(clamp) => BudgetRecord::Enforced([
-                        clamp.positive(),
-                        clamp.total(),
-                        clamp.floor(),
-                        clamp.epsilon(),
-                    ]),
-                    Budget::Observed { floor } => BudgetRecord::Observed { floor: floor.get() },
+                budget: BudgetRecord::Observed {
+                    floor: options.budget.floor.get(),
                 },
                 coefficients: [
                     options.coefficients.semantic().get(),
@@ -599,17 +594,17 @@ mod placement {
                 E::custom("the support constants are not finite and strictly positive")
             })?;
 
-            let budget = match record.budget {
-                BudgetRecord::Enforced([positive, total, floor, epsilon]) => Budget::Enforced(
-                    BudgetOptions::new(positive, total, floor, epsilon).ok_or_else(|| {
-                        E::custom("the budget fields do not form a gradient budget")
-                    })?,
-                ),
-                BudgetRecord::Observed { floor } => Budget::Observed {
-                    floor: Positive::new(floor).ok_or_else(|| {
-                        E::custom("the observed budget floor is not finite and strictly positive")
-                    })?,
-                },
+            let floor = match record.budget {
+                // The bare-array form carries the floor third; the other constants are
+                // read and dropped.
+                BudgetRecord::Enforced([_, _, floor, _]) | BudgetRecord::Observed { floor } => {
+                    floor
+                }
+            };
+            let budget = Budget {
+                floor: Positive::new(floor).ok_or_else(|| {
+                    E::custom("the budget floor is not finite and strictly positive")
+                })?,
             };
 
             let coefficients = coefficients(record.coefficients)?;

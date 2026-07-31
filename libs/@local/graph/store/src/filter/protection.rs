@@ -619,6 +619,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
 
     /// Returns the default HASH configuration that protects email on User entities.
     ///
+    /// Every protected property must be a property that no entity type names as its label
+    /// property. Entity labels are materialized into the label cache by extracting the label
+    /// property's value from the stored properties object, and that derivation takes no actor,
+    /// so the label column of a masked entity still carries the protected value.
+    ///
     /// # Panics
     ///
     /// Panics if the hardcoded URLs are invalid (should never happen).

@@ -1,14 +1,14 @@
-//! Certificates for the budget clip algebra and the gradient surrogate.
+//! Certificates for the budget diagnostics and the gradient surrogate.
 //!
-//! The clip assertions are bit-exact where every intermediate is dyadic; the budget inequalities
-//! hold as strict properties over random inputs. The surrogate certificates establish the seam the
-//! training loop depends on: one backward pass through the surrogate deposits exactly the requested
-//! coordinate gradient, both at a detached coordinate leaf and through the full model Jacobian.
+//! The measurement assertions are bit-exact where every intermediate is dyadic. The surrogate
+//! certificates establish the seam the training loop depends on: one backward pass through the
+//! surrogate deposits exactly the requested coordinate gradient, both at a detached coordinate
+//! leaf and through the full model Jacobian.
 
 #![expect(
     clippy::float_cmp,
-    reason = "bit-exact assertions over dyadic values are the point: exact factors, exact \
-              pass-through, and exact gradient deposition are contracts, not rounding accidents"
+    reason = "bit-exact assertions over dyadic values are the point: exact norms, exact \
+              baselines, and exact gradient deposition are contracts, not rounding accidents"
 )]
 
 use alloc::collections::BTreeMap;
@@ -18,11 +18,10 @@ use burn::{
     module::{Module as _, ModuleMapper, ModuleVisitor, Param, ParamId},
     tensor::{Int, Tensor, TensorData, backend::AutodiffBackend},
 };
-use proptest::{prop_assert, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{Budget, BudgetOptions, BudgetSummary, surrogate};
+use super::{Budget, BudgetSummary, surrogate};
 use crate::{
     math::{Positive, Vec2},
     salt::projector::model::{Architecture, Projector, ProjectorInput},
@@ -34,113 +33,43 @@ fn device() -> NdArrayDevice {
     NdArrayDevice::default()
 }
 
-fn options(positive: f32, total: f32, floor: f32, epsilon: f32) -> BudgetOptions {
-    BudgetOptions::new(positive, total, floor, epsilon)
-        .expect("test coefficients should be valid budget options")
+#[test]
+fn measure_records_the_baseline_convention() {
+    let budget = Budget {
+        floor: Positive::new(0.25).expect("the fixture floor is positive"),
+    };
+    let relation = Vec2::new(-12.0, 3.5);
+
+    let outcome = budget.measure(Vec2::new(0.375, 0.0), relation);
+    assert_eq!(outcome.semantic_norm, 0.375);
+    assert_eq!(outcome.relation_norm, 12.5);
+    assert_eq!(outcome.baseline, 0.375);
+
+    // The floor binds exactly where the semantic norm falls under it.
+    let floored = budget.measure(Vec2::new(0.125, 0.0), relation);
+    assert_eq!(floored.semantic_norm, 0.125);
+    assert_eq!(floored.baseline, 0.25);
+
+    // A vanished semantic gradient measures against the floor alone.
+    let vanished = budget.measure(Vec2::splat(0.0), relation);
+    assert_eq!(vanished.semantic_norm, 0.0);
+    assert_eq!(vanished.baseline, 0.25);
 }
 
 #[test]
-fn options_reject_invalid_coefficients() {
-    // The positive coefficient must not exceed the total one.
-    assert_eq!(BudgetOptions::new(2.0, 1.0, 0.5, 0.25), None);
-    // Zero, negative, and non-finite values are rejected everywhere.
-    assert_eq!(BudgetOptions::new(0.0, 1.0, 0.5, 0.25), None);
-    assert_eq!(BudgetOptions::new(1.0, 1.0, -0.5, 0.25), None);
-    assert_eq!(BudgetOptions::new(1.0, 1.0, 0.5, 0.0), None);
-    assert_eq!(BudgetOptions::new(f32::NAN, 1.0, 0.5, 0.25), None);
-    assert_eq!(BudgetOptions::new(1.0, f32::INFINITY, 0.5, 0.25), None);
-    // Equality of the coefficients is allowed.
-    assert!(BudgetOptions::new(1.0, 1.0, 0.5, 0.25).is_some());
-}
-
-#[test]
-fn clip_matches_hand_computed_dyadic_values() {
-    // baseline = |(0, 4)| = 4; relation norm = 63.75;
-    // positive factor = 1 · 4 / (63.75 + 0.25) = 0.0625 exactly;
-    // clipped = (0, 63.75 · 0.0625) = (0, 3.984375);
-    // total factor = min(1, 2 · 4 / (3.984375 + 0.25)) = 1 exactly.
-    let outcome = options(1.0, 2.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75));
-
-    assert_eq!(outcome.baseline, 4.0);
-    assert_eq!(outcome.semantic_norm, 4.0);
-    assert_eq!(outcome.relation_norm, 63.75);
-    assert_eq!(outcome.positive_factor, 0.0625);
-    assert_eq!(outcome.total_factor, 1.0);
-    assert_eq!(outcome.gradient, Vec2::new(0.0, 3.984_375));
-}
-
-#[test]
-fn clip_passes_small_relation_gradients_through_unchanged() {
-    // positive factor = min(1, 4 / (0.5 + 0.25)) = 1; the gradient is
-    // reproduced bit for bit.
-    let relation = Vec2::new(0.5, 0.0);
-    let outcome = options(1.0, 2.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), relation);
-
-    assert_eq!(outcome.positive_factor, 1.0);
-    assert_eq!(outcome.total_factor, 1.0);
-    assert_eq!(outcome.gradient, relation);
-}
-
-#[test]
-fn clip_floors_a_vanished_semantic_gradient() {
-    let outcome = options(1.0, 2.0, 0.5, 0.25).clip(Vec2::splat(0.0), Vec2::new(8.0, 0.0));
-
-    assert_eq!(outcome.semantic_norm, 0.0);
-    assert_eq!(outcome.baseline, 0.5);
-    // positive factor = 1 · 0.5 / (8 + 0.25) is below one: the floor,
-    // not the vanished semantic norm, sets the budget.
-    assert!(outcome.positive_factor < 1.0);
-    assert!(outcome.gradient.length() <= 0.5);
-}
-
-#[test]
-fn clip_preserves_the_gradient_direction() {
-    let relation = Vec2::new(3.0, -4.0);
-    let outcome = options(0.5, 1.0, 0.25, 0.03125).clip(Vec2::new(0.0, 0.125), relation);
-
-    // The clip scales; it never rotates. The cross product of the
-    // applied gradient with the raw one is exactly zero because both
-    // factors are scalars.
-    assert_eq!(outcome.gradient.perp_dot(relation), 0.0);
-    // Scaling factors are non-negative, so the direction is preserved,
-    // not flipped.
-    assert!(outcome.gradient.dot(relation) >= 0.0);
-}
-
-#[test]
-fn summary_reports_hand_computed_fractions_and_ratios() {
-    let options = options(1.0, 2.0, 0.5, 0.25);
+fn summary_reports_hand_computed_ratios() {
+    let budget = Budget {
+        floor: Positive::new(0.5).expect("the fixture floor is positive"),
+    };
     let mut summary = BudgetSummary::new();
 
-    // Node 1: clipped (from the dyadic certificate above).
-    summary.record(&options.clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75)));
-    // Node 2: passed through unchanged.
-    summary.record(&options.clip(Vec2::new(0.0, 4.0), Vec2::new(0.5, 0.0)));
+    // Ratios over the shared baseline 4: 63.75 / 4 and 0.5 / 4;
+    // mean = (15.9375 + 0.125) / 2 = 8.03125, dyadic at every step.
+    summary.record(&budget.measure(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75)));
+    summary.record(&budget.measure(Vec2::new(0.0, 4.0), Vec2::new(0.5, 0.0)));
 
     assert_eq!(summary.nodes(), 2);
-    assert_eq!(summary.clipped_fraction(), Some(0.5));
-    assert_eq!(summary.capped_fraction(), Some(0.0));
-    // Both total factors saturated at exactly one.
-    assert_eq!(summary.mean_cap_factor(), Some(1.0));
-    // Unclipped ratios: 63.75 / 4 and 0.5 / 4; mean = (15.9375 + 0.125) / 2.
-    assert_eq!(summary.mean_unclipped_ratio(), Some(8.03125));
-    // Applied ratios: 3.984375 / 4 and 0.5 / 4; mean = 0.560546875.
-    assert_eq!(summary.mean_clipped_ratio(), Some(0.560_546_9));
-}
-
-#[test]
-fn equal_coefficients_couple_the_cap_to_the_clip_by_an_epsilon() {
-    // With positive == total, a positively clipped gradient lands
-    // within one ε of the shared budget, so the trailing factor
-    // dips just below one: activation is the ε signature, and
-    // the mean cap factor is what separates it from real capping.
-    let outcome = options(1.0, 1.0, 0.5, 0.25).clip(Vec2::new(0.0, 4.0), Vec2::new(0.0, 63.75));
-
-    assert!(outcome.positive_factor < 1.0);
-    assert!(outcome.total_factor < 1.0);
-    // The shave is bounded by ε over the budget: factor ≥
-    // budget / (budget + ε) = 4 / 4.25.
-    assert!(outcome.total_factor >= 4.0 / 4.25);
+    assert_eq!(summary.mean_ratio(), Some(8.03125));
 }
 
 #[test]
@@ -148,11 +77,7 @@ fn summary_is_empty_before_any_record() {
     let summary = BudgetSummary::new();
 
     assert_eq!(summary.nodes(), 0);
-    assert_eq!(summary.clipped_fraction(), None);
-    assert_eq!(summary.capped_fraction(), None);
-    assert_eq!(summary.mean_cap_factor(), None);
-    assert_eq!(summary.mean_unclipped_ratio(), None);
-    assert_eq!(summary.mean_clipped_ratio(), None);
+    assert_eq!(summary.mean_ratio(), None);
 }
 
 #[test]
@@ -320,87 +245,5 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
                 "parameter {id:?} gradient {index}: direct {direct} against surrogate {surrogated}"
             );
         }
-    }
-}
-
-/// Both budget inequalities hold for every input.
-///
-/// The applied gradient's norm stays within `positive · baseline` and within `total ·
-/// baseline`, and both factors lie in `(0, 1]`.
-#[property_test]
-fn clip_satisfies_the_budget_inequalities(
-    #[strategy = -1e3_f32..1e3] semantic_x: f32,
-    #[strategy = -1e3_f32..1e3] semantic_y: f32,
-    #[strategy = -1e3_f32..1e3] relation_x: f32,
-    #[strategy = -1e3_f32..1e3] relation_y: f32,
-) {
-    let options = options(0.5, 1.0, 0.125, 0.03125);
-    let outcome = options.clip(
-        Vec2::new(semantic_x, semantic_y),
-        Vec2::new(relation_x, relation_y),
-    );
-
-    prop_assert!(outcome.positive_factor > 0.0 && outcome.positive_factor <= 1.0);
-    prop_assert!(outcome.total_factor > 0.0 && outcome.total_factor <= 1.0);
-
-    // A hair of tolerance covers the rounding of norm and product.
-    let bound = 1.0 + 1e-5;
-    let applied = outcome.gradient.length();
-    prop_assert!(
-        applied <= options.positive() * outcome.baseline * bound,
-        "applied norm {} exceeds the positive budget {}",
-        applied,
-        options.positive() * outcome.baseline,
-    );
-    prop_assert!(
-        applied <= options.total() * outcome.baseline * bound,
-        "applied norm {} exceeds the total budget {}",
-        applied,
-        options.total() * outcome.baseline,
-    );
-    // Clipping never grows a gradient.
-    prop_assert!(applied <= outcome.relation_norm * bound);
-}
-
-/// An observed budget applies the relation gradient unchanged, with both factors exactly one.
-#[test]
-fn observed_budget_passes_gradients_through() {
-    let budget = Budget::Observed {
-        floor: Positive::new(0.25).expect("the fixture floor is positive"),
-    };
-    let relation = Vec2::new(-12.0, 3.5);
-
-    let outcome = budget.apply(Vec2::new(0.375, 0.0), relation);
-    assert_eq!(outcome.gradient, relation);
-    assert_eq!(outcome.positive_factor, 1.0);
-    assert_eq!(outcome.total_factor, 1.0);
-    assert_eq!(outcome.semantic_norm, 0.375);
-    assert_eq!(outcome.relation_norm, 12.5);
-    assert_eq!(outcome.baseline, 0.375);
-
-    // The floor binds exactly as enforcement's baseline convention.
-    let floored = budget.apply(Vec2::new(0.125, 0.0), relation);
-    assert_eq!(floored.baseline, 0.25);
-}
-
-/// Observed and enforced outcomes share the baseline convention on identical inputs.
-#[test]
-fn observed_baseline_matches_enforcement() {
-    let options = BudgetOptions::new(0.5, 0.5, 0.25, 1.0e-12).expect("the budget is valid");
-    let observed = Budget::Observed {
-        floor: Positive::new(0.25).expect("the fixture floor is positive"),
-    };
-
-    for semantic in [
-        Vec2::new(0.0, 0.0),
-        Vec2::new(0.125, 0.0),
-        Vec2::new(0.0, 2.0),
-    ] {
-        let relation = Vec2::new(-1.5, 2.0);
-        let enforced = options.clip(semantic, relation);
-        let outcome = observed.apply(semantic, relation);
-        assert_eq!(outcome.baseline, enforced.baseline);
-        assert_eq!(outcome.semantic_norm, enforced.semantic_norm);
-        assert_eq!(outcome.relation_norm, enforced.relation_norm);
     }
 }

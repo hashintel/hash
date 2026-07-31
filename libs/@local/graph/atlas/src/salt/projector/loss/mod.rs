@@ -1,12 +1,12 @@
 //! The composite training objective over a prepared batch.
 //!
-//! The objective splits along the budget seam. The budget-governed terms - semantic attraction,
-//! ordinary and hard-negative repulsion, and relation attraction - evaluate value and coordinate
-//! gradient in one fused pass over their edge lists, with every derivative hand-derived in
-//! [`energy`] and certified against finite differences; their gradients accumulate into
-//! [`GradientField`]s the budget clips per node before anything reaches shared parameters. The
-//! support term rides ordinary autodiff on the coordinate tensor: it is outside the budget, so
-//! nothing needs its gradient ahead of the backward pass.
+//! The objective splits along the hand-gradient seam. The hand-gradient terms - semantic
+//! attraction, ordinary and hard-negative repulsion, and relation attraction - evaluate value and
+//! coordinate gradient in one fused pass over their edge lists, with every derivative
+//! hand-derived in [`energy`] and certified against finite differences; their gradients
+//! accumulate into [`GradientField`]s the budget measures per node before the combined field
+//! reaches shared parameters. The support term rides ordinary autodiff on the coordinate tensor,
+//! so nothing needs its gradient ahead of the backward pass.
 //!
 //! Every term takes a premultiplied `scale`: the term's loss coefficient times any estimator
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens

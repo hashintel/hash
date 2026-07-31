@@ -30,7 +30,7 @@ use crate::{
         postgres::{PostgresDataset, PostgresDatasetError},
     },
     file::generation::GenerationRoot,
-    math::{AffinityCurve, Positive, UnitFraction},
+    math::{AffinityCurve, UnitFraction},
     progress::Progress,
     salt::{
         embedding::external::{ExternalEmbeddingError, ExternalEmbeddingProvider},
@@ -42,10 +42,7 @@ use crate::{
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
-        projector::{
-            budget::Budget,
-            train::{RelationLens, TrainingSchedule},
-        },
+        projector::train::{RelationLens, TrainingSchedule},
         quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
     },
 };
@@ -101,12 +98,6 @@ pub enum Placement {
         /// Every other objective term trains and no reviewed verdicts are demanded. For corpora
         /// without reviewed-Proximal coverage that still want the full trained placement.
         vacuous: bool,
-        /// Observe the relation-gradient budget instead of enforcing it.
-        ///
-        /// The clamp is off and relation gradients apply whole, while the run's budget
-        /// diagnostics still record what enforcement would have clipped. The observed floor is
-        /// the enforced configuration's own, so the recorded ratios compare across modes.
-        observed_budget: bool,
     },
 }
 
@@ -144,7 +135,6 @@ pub struct Options<P> {
         steps: None,
         asserted_radius: None,
         vacuous: false,
-        observed_budget: false,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
@@ -340,7 +330,6 @@ fn placement_options(
         steps,
         asserted_radius,
         vacuous,
-        observed_budget,
     } = placement
     else {
         return Ok(PlacementOptions::LandmarkBaseline);
@@ -366,16 +355,6 @@ fn placement_options(
         .ok_or(RunError::ProximalRadius(radius))?;
     }
     projector.vacuous = vacuous;
-
-    if observed_budget {
-        projector.budget = match projector.budget {
-            Budget::Enforced(clamp) => Budget::Observed {
-                floor: Positive::new(clamp.floor())
-                    .expect("an enforced floor is finite and strictly positive"),
-            },
-            observed @ Budget::Observed { .. } => observed,
-        };
-    }
 
     Ok(PlacementOptions::Projector(projector))
 }

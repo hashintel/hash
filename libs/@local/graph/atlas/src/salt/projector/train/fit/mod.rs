@@ -230,7 +230,7 @@ pub(crate) struct TrainOptions {
     pub affinity: AffinityEnergy,
     /// The support-term constants.
     pub support: SupportOptions,
-    /// The per-node relation-gradient budget.
+    /// The per-node relation-gradient diagnostics' baseline convention.
     pub budget: Budget,
     /// The objective coefficients.
     pub coefficients: Coefficients,

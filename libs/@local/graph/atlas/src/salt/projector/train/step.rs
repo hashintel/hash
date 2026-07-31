@@ -1,20 +1,20 @@
 //! One training step's objective.
 //!
-//! Forward, hand-gradient fields, budget clip, and the backward-ready surrogate.
+//! Forward, hand-gradient fields, budget diagnostics, and the backward-ready surrogate.
 //!
 //! [`objective`](Evaluation::objective) projects the batch rows and hands the coordinates to
 //! [`evaluate`], which computes
-//! the composite objective in two regimes. The budget-governed families (semantic attraction,
+//! the composite objective in two regimes. The hand-gradient families (semantic attraction,
 //! ordinary and hard repulsion, relation attraction) evaluate value and per-node coordinate
-//! gradient against the detached coordinate frame; the relation field is clipped per node against
-//! the semantic one, and the combined field re-enters the parameter graph through the surrogate
-//! scalar, whose single backward pass deposits exactly that field. The support families (temporal
-//! anchors, landmarks) ride ordinary autodiff on the coordinate tensor - they are outside the
-//! budget - and add onto the same scalar.
+//! gradient against the detached coordinate frame; the relation field is measured per node
+//! against the semantic one for the budget diagnostics, and the combined field re-enters the
+//! parameter graph through the surrogate scalar, whose single backward pass deposits exactly that
+//! field. The support families (temporal anchors, landmarks) ride ordinary autodiff on the
+//! coordinate tensor - they carry no budget diagnostics - and add onto the same scalar.
 //!
 //! Relation-inactive nodes - every node when the batch carries no relation edges, and any node
 //! whose accumulated relation gradient is exactly zero - contribute their semantic gradient
-//! unclipped and are not recorded into the budget metrics: there is nothing to budget.
+//! alone and are not recorded into the budget metrics: there is nothing to measure.
 
 use core::alloc::Allocator;
 
@@ -81,7 +81,7 @@ impl LossBreakdown {
 
 /// One step's backward-ready scalar and its evaluated values.
 ///
-/// A single backward pass through `surrogate` deposits the budgeted coordinate field and the
+/// A single backward pass through `surrogate` deposits the combined coordinate field and the
 /// support gradients into the shared model parameters.
 pub(crate) struct Objective<B: AutodiffBackend> {
     /// The scalar to backpropagate.
@@ -258,7 +258,7 @@ where
     })
 }
 
-/// Evaluates the relation term per type, clips per node, and records the budget metrics.
+/// Evaluates the relation term per type, measures per node, and records the budget metrics.
 ///
 /// Returns the relation loss value and the flattened combined field.
 fn relation_pass<N, A: Allocator>(
@@ -337,10 +337,10 @@ where
         let applied = if relation == Vec2::splat(0.0) {
             semantic
         } else {
-            let outcome = options.budget.apply(semantic, relation);
+            let outcome = options.budget.measure(semantic, relation);
             metrics.record_node(deciles.decile(batch.rows[row]), &outcome);
             outcomes[row] = Some(outcome);
-            semantic + outcome.gradient
+            semantic + relation
         };
 
         combined.extend([applied.x(), applied.y()]);
@@ -353,11 +353,9 @@ where
             continue;
         };
 
-        let factor = outcome.positive_factor * outcome.total_factor;
         metrics.record_type(
             relation,
             &BudgetOutcome {
-                gradient: gradient * factor,
                 relation_norm: gradient.length(),
                 ..outcome
             },
