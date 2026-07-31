@@ -38,6 +38,9 @@ where
                     CREATE TEMPORARY TABLE entity_type_embeddings_tmp (
                         LIKE entity_type_embeddings INCLUDING ALL
                     ) ON COMMIT DROP;
+                    -- Staging holds the rows for a single copy, so it does not need the
+                    -- quantized column derived from the vectors.
+                    ALTER TABLE entity_type_embeddings_tmp DROP COLUMN embedding_bits;
                 ",
             )
             .instrument(tracing::info_span!(

@@ -81,9 +81,12 @@ where
                         (LIKE entity_edge INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    -- Staging holds the rows for a single copy, so it needs neither the HNSW
+                    -- index nor the quantized column derived from the vectors.
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
-                        (LIKE entity_embeddings INCLUDING ALL)
+                        (LIKE entity_embeddings INCLUDING ALL EXCLUDING INDEXES)
                         ON COMMIT DROP;
+                    ALTER TABLE entity_embeddings_tmp DROP COLUMN embedding_bits;
                 ",
             )
             .instrument(tracing::info_span!(
