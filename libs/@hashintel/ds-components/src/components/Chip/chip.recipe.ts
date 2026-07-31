@@ -42,34 +42,43 @@ export const styles = sva({
       // clickable one.
       "--chip-badge-bg": "var(--colors-color-palette-bg-solid-min)",
       "--chip-badge-bg-hover":
-        "[color-mix(in srgb, currentColor 12%, var(--colors-color-palette-bg-solid-min))]",
+        "[color-mix(in oklab, currentColor 12%, var(--colors-color-palette-bg-solid-min))]",
       // The angle affix's parallelogram tint and its hovered value. The tint is
       // read via `--chip-angle-bg`; hovering the button that owns the angle (the
       // affix itself, or the clickable root / centre it lives in) swaps in the
       // hover value so an absorbed/whole-chip angle darkens to the same colour a
       // standalone clickable one gets — not a lighter one.
-      "--chip-angle-bg": "[color-mix(in srgb, currentColor 12%, transparent)]",
+      "--chip-angle-bg": "[color-mix(in oklab, currentColor 12%, transparent)]",
       "--chip-angle-bg-hover":
-        "[color-mix(in srgb, currentColor 20%, transparent)]",
+        "[color-mix(in oklab, currentColor 20%, transparent)]",
       // Thin border drawn along a separate angle affix's slant when it (or the
       // label beside it) is hovered; transparent otherwise. Its colour is a
       // touch lighter than the divider-hover it derives from.
       "--chip-angle-border": "[transparent]",
       "--chip-angle-border-hover":
-        "[color-mix(in srgb, var(--chip-divider-hover) 80%, transparent)]",
+        "[color-mix(in oklab, var(--chip-divider-hover) 80%, transparent)]",
       "--chip-divider-shadow": "[0 0 0 0 transparent]",
-      // The affix/label hover tint, referenced by the straight affix's hover
-      // gradient so the 1px divider strip stays untinted (matching the divider
-      // when the label is hovered).
+      // Two levers for the whole hover darken: `--chip-hover-ink` (the colour
+      // mixed in — `currentColor` by default) at `--chip-hover-strength`. The
+      // translucent `--chip-hover-tint` (composited over the resting bg) drives
+      // the segments — the label ::before, the straight-affix hover gradient
+      // (its 1px divider strip stays untinted), and naked affixes; the clickable
+      // root composites the same mix opaquely over its own resting bg (see
+      // compound variants), which is identical math, so both paths land on the
+      // same colour. Overriding either lever per colour/variant flows to all
+      // three — e.g. yellow fillLight, whose muddy `fg.link` currentColor would
+      // desaturate the mix, swaps the ink for the vivid brand yellow.
+      "--chip-hover-ink": "[currentColor]",
+      "--chip-hover-strength": "12%",
       "--chip-hover-tint":
-        "[color-mix(in srgb, currentColor 12%, transparent)]",
+        "[color-mix(in oklab, var(--chip-hover-ink) var(--chip-hover-strength), transparent)]",
       // A lighter label-hover tint used only beside an angle affix, so the
       // hovered label/wedge stays a touch lighter than the affix's ~12%
       // parallelogram and the slant keeps its contrast instead of blending in.
       "--chip-hover-tint-soft":
-        "[color-mix(in srgb, currentColor 5%, transparent)]",
+        "[color-mix(in oklab, var(--chip-hover-ink) 5%, transparent)]",
       "--chip-ring-color":
-        "[color-mix(in srgb, var(--colors-color-palette-fg-link) 65%, transparent)]",
+        "[color-mix(in oklab, var(--colors-color-palette-fg-link) 65%, transparent)]",
       "--chip-ring-soft": "[3px]",
       // A segment ring's "round" outer corner, capped at ~half the chip height.
       // A radii-full (round-shape) chip would otherwise put a ~9999px radius on
@@ -253,7 +262,7 @@ export const styles = sva({
           "--chip-border-width": "1px",
           "--chip-padding-y": "[2px]",
           "--chip-padding-x": "var(--spacing-2)",
-          "--chip-radius": "var(--radii-md)",
+          "--chip-radius": "7px",
         },
       },
     },
@@ -277,19 +286,35 @@ export const styles = sva({
       },
       fillLight: {
         root: {
-          background: "colorPalette.bgSolid.surface",
+          background: "colorPalette.bgSolid.surface.active",
           borderColor: "colorPalette.bd.subtle",
           color: "colorPalette.fg.link",
         },
       },
       outline: {
         root: {
-          borderColor: "colorPalette.bd.solid",
+          background: "white",
+          borderColor: "colorPalette.bd.subtle.hover",
           color: "colorPalette.fg.link",
+          "--chip-hover-strength": "9%",
         },
       },
+      // Identical to fillLight (its fill/border, and — via the shared compound
+      // variants below — its hover mix and per-colour overrides), but invisible
+      // at rest: whenever the chip is neither hovered nor focused, the fill, the
+      // main border and any straight-affix dividers all go transparent. Hovering
+      // or focusing reveals the full fillLight appearance.
       subtle: {
-        root: { color: "colorPalette.fg.link" },
+        root: {
+          background: "colorPalette.bgSolid.surface.active",
+          borderColor: "colorPalette.bd.subtle",
+          color: "colorPalette.fg.link",
+          "&:not(:hover):not(:focus-visible):not(:has(:focus-visible))": {
+            background: "[transparent]",
+            borderColor: "[transparent]",
+            "--chip-divider": "[transparent]",
+          },
+        },
       },
     },
     // `round` is declared after `size` so it wins the border-radius cascade.
@@ -370,13 +395,23 @@ export const styles = sva({
     },
   },
   compoundVariants: [
+    // The clickable-root hover composites the shared hover mix opaquely over the
+    // variant's resting bg — the same colour the segments reach by layering the
+    // translucent `--chip-hover-tint` over that bg. `fill`/`fillLight` restate
+    // their resting token in the mix (there's no way to read "current bg");
+    // `outline` rests on transparent, so its mix is just the tint. `subtle`
+    // mirrors fillLight (see its variant block) and shares fillLight's mix.
+    // These two mixes stay `in srgb` (unlike the oklab mixes elsewhere): the
+    // browser alpha-composites the tint over the bg in srgb, so only an srgb mix
+    // here lands on the same colour as the segments.
     {
       clickable: true,
       variant: "fill",
       css: {
         root: {
           _hover: {
-            background: "colorPalette.bgSolid.shaded",
+            background:
+              "[color-mix(in srgb, var(--chip-hover-ink) var(--chip-hover-strength), var(--colors-color-palette-bg-solid-subtle))]",
             borderColor: "colorPalette.bd.solid.hover",
           },
         },
@@ -384,8 +419,15 @@ export const styles = sva({
     },
     {
       clickable: true,
-      variant: "fillLight",
-      css: { root: { _hover: { background: "colorPalette.bgSolid.subtle" } } },
+      variant: ["fillLight", "subtle"],
+      css: {
+        root: {
+          _hover: {
+            background:
+              "[color-mix(in srgb, var(--chip-hover-ink) var(--chip-hover-strength), var(--colors-color-palette-bg-solid-surface-active))]",
+          },
+        },
+      },
     },
     {
       clickable: true,
@@ -393,46 +435,32 @@ export const styles = sva({
       css: {
         root: {
           _hover: {
-            background: "colorPalette.bgSolid.surface",
-            borderColor: "colorPalette.bd.solid.hover",
+            background: "var(--chip-hover-tint)",
+            borderColor: "colorPalette.bd.solid",
           },
         },
       },
     },
     {
-      clickable: true,
-      variant: "subtle",
-      css: { root: { _hover: { background: "colorPalette.bgSolid.surface" } } },
-    },
-    {
-      color: "red",
-      clickable: true,
-      variant: "fill",
-      css: {
-        root: { _hover: { background: "red.s45", borderColor: "red.a65" } },
-      },
-    },
-    {
-      color: "orange",
-      clickable: true,
-      variant: "fill",
+      color: "yellow",
+      variant: ["fillLight", "subtle"],
       css: {
         root: {
-          _hover: { background: "orange.s45", borderColor: "orange.a65" },
+          borderColor: "colorPalette.bd.subtle.hover",
+          "--chip-hover-ink": "var(--colors-yellow-s90)",
+          "--chip-hover-strength": "25%",
         },
       },
     },
     {
       color: "yellow",
-      clickable: true,
-      variant: "fill",
-      css: { root: { _hover: { background: "yellow.s40" } } },
-    },
-    {
-      color: "pink",
-      clickable: true,
-      variant: "fill",
-      css: { root: { _hover: { background: "pink.s35" } } },
+      variant: "outline",
+      css: {
+        root: {
+          "--chip-hover-ink": "var(--colors-yellow-s90)",
+          "--chip-hover-strength": "12%",
+        },
+      },
     },
   ],
   defaultVariants: {
@@ -534,8 +562,7 @@ export const affixStyles = cva({
         outline: "none",
         position: "relative",
         _hover: {
-          backgroundColor:
-            "[color-mix(in srgb, currentColor 12%, transparent)]",
+          backgroundColor: "var(--chip-hover-tint)",
         },
         "&:focus-visible": {
           zIndex: "[1]",
