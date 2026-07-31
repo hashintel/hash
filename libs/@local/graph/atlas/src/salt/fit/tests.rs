@@ -2168,13 +2168,15 @@ async fn out_of_range_confidences_are_clamped_and_counted() {
 
     let document =
         fs::read(published.path().join("metadata.json")).expect("the document should read");
+    // An unclamped NaN reading reaches the force masses, JSON has
+    // no NaN so the mass serializes as null, and the published
+    // generation refuses its own manifest with `invalid type: null,
+    // expected f64`.
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.clamped_confidences, 3);
-    // What the clamp buys, asserted rather than assumed: a propagated
-    // NaN would land in these sums, and no reader of the manifest could
-    // tell which reading it entered through.
+    // The same fact stated where a reader will look for it.
     assert!(
         relations.retained_mass.is_finite(),
         "the retained mass should stay finite: {}",
