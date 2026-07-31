@@ -256,8 +256,6 @@ pub struct ServerConfig {
     ///
     /// The raw specification remains available at `/openapi.json` regardless of this flag. The
     /// rendered page loads its viewer from a public CDN, so the browser needs internet access.
-    ///
-    /// This should only be used in development environments.
     #[clap(long, env = "HASH_GRAPH_SERVE_API_REFERENCE")]
     pub serve_api_reference: bool,
 }
