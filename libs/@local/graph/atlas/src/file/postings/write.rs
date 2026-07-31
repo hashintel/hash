@@ -22,7 +22,7 @@ pub(crate) struct Regions<'build> {
     /// `types + 1` fenceposts delimiting [`parent_ids`](Self::parent_ids).
     pub parent_posts: &'build [u64],
     /// The direct parent rows, type-major.
-    pub parent_ids: &'build [u32],
+    pub parent_ids: &'build [u64],
 }
 
 /// Streams the postings regions as a postings file.
@@ -84,7 +84,7 @@ pub(crate) fn write_regions(
 
     let flag_bytes = flags.len() as u64 * size_of::<u64>() as u64;
     let posts_bytes = membership_posts.len() as u64 * size_of::<U64<LE>>() as u64;
-    let parent_id_bytes = parent_ids.len() as u64 * size_of::<u32>() as u64;
+    let parent_id_bytes = parent_ids.len() as u64 * size_of::<u64>() as u64;
 
     write.write_all(header.as_bytes())?;
 
@@ -97,9 +97,7 @@ pub(crate) fn write_regions(
     write_words(&mut write, parent_posts)?;
     write_padding(&mut write, posts_bytes)?;
 
-    for &id in parent_ids {
-        write.write_all(U32::<LE>::new(id).as_bytes())?;
-    }
+    write_words(&mut write, parent_ids)?;
     write_padding(&mut write, parent_id_bytes)?;
 
     for &entry in entries {

@@ -5,8 +5,18 @@
 //! temperature closest to one. [`metrics`] reports cross-entropy and Brier score at `T = 1` and at
 //! the deployment temperature, so raw and calibrated quality stay separately visible.
 
+use hashql_core::id::IdSlice;
+
 use super::TrainingRow;
-use crate::salt::policy::{GeometryClass, classifier::softmax};
+use crate::{
+    identity::CardRow,
+    salt::policy::{GeometryClass, classifier::softmax},
+};
+
+/// The card-row-aligned out-of-fold logit column calibration reads.
+type Logits = IdSlice<CardRow, [f64; GeometryClass::COUNT]>;
+/// The card-row-aligned training-row column calibration reads.
+type Rows = IdSlice<CardRow, TrainingRow>;
 
 const TEMPERATURE_MINIMUM: f64 = 0.05;
 const TEMPERATURE_MAXIMUM: f64 = 20.0;
@@ -29,7 +39,7 @@ pub(super) struct ValidationMetrics {
 }
 
 /// Fits the deployment temperature on out-of-fold logits.
-pub(super) fn fit_temperature(rows: &[TrainingRow], logits: &[[f64; GeometryClass::COUNT]]) -> f64 {
+pub(super) fn fit_temperature(rows: &Rows, logits: &Logits) -> f64 {
     let mut lower = TEMPERATURE_MINIMUM.ln();
     let mut upper = TEMPERATURE_MAXIMUM.ln();
 
@@ -74,11 +84,7 @@ pub(super) fn fit_temperature(rows: &[TrainingRow], logits: &[[f64; GeometryClas
 }
 
 /// Reports quality at the raw and deployment temperatures.
-pub(super) fn metrics(
-    rows: &[TrainingRow],
-    logits: &[[f64; GeometryClass::COUNT]],
-    temperature: f64,
-) -> ValidationMetrics {
+pub(super) fn metrics(rows: &Rows, logits: &Logits, temperature: f64) -> ValidationMetrics {
     ValidationMetrics {
         raw_cross_entropy: cross_entropy(rows, logits, 1.0),
         calibrated_cross_entropy: cross_entropy(rows, logits, temperature),
@@ -88,19 +94,12 @@ pub(super) fn metrics(
 }
 
 /// Weighted-mean soft-label cross-entropy of the uncalibrated posteriors.
-pub(super) fn raw_cross_entropy(
-    rows: &[TrainingRow],
-    logits: &[[f64; GeometryClass::COUNT]],
-) -> f64 {
+pub(super) fn raw_cross_entropy(rows: &Rows, logits: &Logits) -> f64 {
     cross_entropy(rows, logits, 1.0)
 }
 
 /// Weighted-mean soft-label cross-entropy at one temperature.
-fn cross_entropy(
-    rows: &[TrainingRow],
-    logits: &[[f64; GeometryClass::COUNT]],
-    temperature: f64,
-) -> f64 {
+fn cross_entropy(rows: &Rows, logits: &Logits, temperature: f64) -> f64 {
     let mut loss = 0.0;
     let mut total_weight = 0.0;
 
@@ -121,7 +120,7 @@ fn cross_entropy(
 }
 
 /// Weighted-mean Brier score at one temperature.
-fn brier(rows: &[TrainingRow], logits: &[[f64; GeometryClass::COUNT]], temperature: f64) -> f64 {
+fn brier(rows: &Rows, logits: &Logits, temperature: f64) -> f64 {
     let mut loss = 0.0;
     let mut total_weight = 0.0;
 

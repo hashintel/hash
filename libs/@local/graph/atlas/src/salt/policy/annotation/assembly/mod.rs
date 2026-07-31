@@ -70,11 +70,13 @@
 //! The axis stays on the wire as a recorded fact for stratified evaluation.
 
 use groups::{dirichlet_target, validation_groups, weight};
+use hashql_core::id::{IdSlice, IdVec};
 use render::render_card;
 
 use super::{AnnotationCorpus, CardIdentity, HoldoutClass};
 use crate::{
     dataset::card,
+    identity::CardRow,
     progress::Progress,
     salt::{
         embedding::{
@@ -144,7 +146,7 @@ pub enum AssemblyError<E> {
         error: card::CardError<card::ReservedTokenError>,
     },
     /// The embedding provider failed to produce the card table.
-    Embedding(CardEmbeddingError<E>),
+    Embedding(CardEmbeddingError<CardRow, E>),
     /// Policy left no card to train on.
     Empty,
 }
@@ -257,7 +259,7 @@ pub(crate) struct HoldoutCard {
     /// The held-out human verdict.
     pub verdict: HoldoutClass,
     /// The card's row in the embedding table.
-    pub row: usize,
+    pub row: CardRow,
 }
 
 /// One assembled training set and its provenance.
@@ -270,8 +272,8 @@ pub(crate) struct HoldoutCard {
 #[derive(Debug)]
 pub(crate) struct AssembledCorpus {
     table: CardEmbeddingTable,
-    rows: Vec<TrainingRow>,
-    identities: Vec<CardIdentity>,
+    rows: IdVec<CardRow, TrainingRow>,
+    identities: IdVec<CardRow, CardIdentity>,
     holdouts: Vec<HoldoutCard>,
     evidence: AssemblyEvidence,
 }
@@ -285,13 +287,13 @@ impl AssembledCorpus {
 
     /// Returns the labelled training rows.
     #[inline]
-    pub(crate) const fn rows(&self) -> &[TrainingRow] {
+    pub(crate) const fn rows(&self) -> &IdSlice<CardRow, TrainingRow> {
         &self.rows
     }
 
     /// Returns each row's card identity.
     #[inline]
-    pub(crate) const fn identities(&self) -> &[CardIdentity] {
+    pub(crate) const fn identities(&self) -> &IdSlice<CardRow, CardIdentity> {
         &self.identities
     }
 
@@ -377,7 +379,7 @@ where
     let mut rendered = trained
         .iter()
         .map(|&(index, corpus_card, _)| render_card(index, corpus_card))
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Result<IdVec<CardRow, _>, _>>()?;
     evidence.severely_truncated = rendered
         .iter()
         .filter(|finished| finished.severely_truncated())
@@ -385,9 +387,11 @@ where
 
     // Holdout rows render and embed after every trained row, so the
     // trained rows keep their positions and the group derivation's
-    // trained-row scan bound holds.
+    // trained-row scan bound holds. Each push hands back the holdout
+    // card's assigned row in the table.
+    let mut holdout_rows = Vec::with_capacity(held_out.len());
     for &(index, corpus_card, _) in &held_out {
-        rendered.push(render_card(index, corpus_card)?);
+        holdout_rows.push(rendered.push(render_card(index, corpus_card)?));
     }
 
     let (table, stats) = embed_cards(embedder, &rendered, None, progress)
@@ -411,11 +415,11 @@ where
 
     let holdouts = held_out
         .into_iter()
-        .enumerate()
-        .map(|(offset, (_, corpus_card, verdict))| HoldoutCard {
+        .zip(holdout_rows)
+        .map(|((_, corpus_card, verdict), row)| HoldoutCard {
             identity: corpus_card.identity.clone(),
             verdict,
-            row: trained.len() + offset,
+            row,
         })
         .collect();
 

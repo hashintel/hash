@@ -44,7 +44,7 @@ use alloc::collections::BinaryHeap;
 use core::{cmp::Reverse, f64::consts::TAU, num::NonZero, ops::Range};
 use std::collections::HashSet;
 
-use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+use hashql_core::id::{Id as _, IdSlice, IdVec, bit_vec::DenseBitSet};
 
 use super::{
     cascade,
@@ -53,15 +53,15 @@ use super::{
     stage::{Lod, LodConfig},
 };
 use crate::{
-    file::morton::Fenceposts,
-    identity::{BasePosition, KeyOrdinal, NodeRowId},
+    file::morton::{Fenceposts, SEGMENTS},
+    identity::{BasePosition, ImportanceRank, KeyOrdinal, NodeRowId},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
     random::{keyed_rng, uniform_below},
 };
 
 /// One range per bucket: the extent's positions inside each bucket segment.
-type Ranges = [Range<usize>; Fenceposts::SEGMENTS];
+type Ranges = [Range<usize>; SEGMENTS];
 
 /// One tile delivery's outcome, as plain counts.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -366,13 +366,13 @@ pub struct WalkBench {
     /// Each base position's row: the mask's index domain.
     row_of_position: Box<[u32]>,
     /// Each row's base position.
-    position_of_row: Box<[u32]>,
+    position_of_row: Box<IdSlice<NodeRowId, BasePosition>>,
     /// Each base position's importance rank, smallest first.
     rank_of_position: Box<[u32]>,
     /// Each key-order ordinal's base position.
-    position_of_key: Box<[u32]>,
+    position_of_key: Box<IdSlice<KeyOrdinal, BasePosition>>,
     /// Each base position's ordinal in `(key, rank)` order.
-    key_order_of_position: Box<[u32]>,
+    key_order_of_position: Box<[KeyOrdinal]>,
     /// Every bucket's full segment in the base order.
     segments: Ranges,
     /// The cut's span exponent `m`.
@@ -384,19 +384,21 @@ pub struct WalkBench {
 }
 
 /// Builds both directions of the corpus-wide `(key, rank)` order.
-fn key_order(codes: &[MortonKey], ranks: &[u32]) -> (Box<[u32]>, Box<[u32]>) {
+fn key_order(
+    codes: &[MortonKey],
+    ranks: &[u32],
+) -> (Box<IdSlice<KeyOrdinal, BasePosition>>, Box<[KeyOrdinal]>) {
     assert_eq!(codes.len(), ranks.len(), "the key and rank columns align");
-    let count = u32::try_from(codes.len()).expect("positions share the u32 row domain");
-    let mut position_of_key: Vec<u32> = (0..count).collect();
+    let mut position_of_key: IdVec<KeyOrdinal, BasePosition> =
+        (BasePosition::MIN..BasePosition::from_usize(codes.len())).collect();
     position_of_key.sort_unstable_by_key(|&position| {
-        let position = position as usize;
+        let position = position.as_usize();
         (codes[position], ranks[position])
     });
 
-    let mut key_order_of_position = vec![0_u32; codes.len()];
-    for (ordinal, &position) in position_of_key.iter().enumerate() {
-        key_order_of_position[position as usize] =
-            u32::try_from(ordinal).expect("key ordinals share the u32 row domain");
+    let mut key_order_of_position = vec![KeyOrdinal::MIN; codes.len()];
+    for (ordinal, &position) in position_of_key.iter_enumerated() {
+        key_order_of_position[position.as_usize()] = ordinal;
     }
 
     (
@@ -406,35 +408,35 @@ fn key_order(codes: &[MortonKey], ranks: &[u32]) -> (Box<[u32]>, Box<[u32]>) {
 }
 
 /// Inverts the row column over its mask domain.
-fn positions_of_rows(rows: &[u32], domain: usize) -> Box<[u32]> {
-    let mut positions = vec![u32::MAX; domain];
+fn positions_of_rows(rows: &[u32], domain: usize) -> Box<IdSlice<NodeRowId, BasePosition>> {
+    let mut positions: IdVec<NodeRowId, BasePosition> = IdVec::from_elem(BasePosition::MAX, domain);
     for (position, &row) in rows.iter().enumerate() {
         let slot = positions
-            .get_mut(row as usize)
+            .get_mut(NodeRowId::from_u32(row))
             .expect("rows lie inside the mask domain");
-        assert_eq!(*slot, u32::MAX, "the row column is injective");
-        *slot = u32::try_from(position).expect("positions share the u32 row domain");
+        assert_eq!(*slot, BasePosition::MAX, "the row column is injective");
+        *slot = BasePosition::from_usize(position);
     }
     positions.into_boxed_slice()
 }
 
 /// Orders base positions by their corpus-wide key ordinal with three stable radix passes.
 fn radix_key_order(
-    positions: impl IntoIterator<Item = u32>,
-    key_order_of_position: &[u32],
-) -> Vec<u32> {
+    positions: impl IntoIterator<Item = BasePosition>,
+    key_order_of_position: &[KeyOrdinal],
+) -> Vec<BasePosition> {
     const DIGIT_BITS: u32 = 11;
     const RADIX: usize = 1 << DIGIT_BITS;
     const DIGIT_MASK: u32 = 0x07FF;
 
-    let mut source: Vec<u32> = positions.into_iter().collect();
-    let mut target = vec![0_u32; source.len()];
+    let mut source: Vec<BasePosition> = positions.into_iter().collect();
+    let mut target = vec![BasePosition::MIN; source.len()];
     let mut offsets = vec![0_usize; RADIX];
 
     for shift in [0_u32, DIGIT_BITS, DIGIT_BITS * 2] {
         offsets.fill(0);
         for &position in &source {
-            let ordinal = key_order_of_position[position as usize];
+            let ordinal = key_order_of_position[position.as_usize()].as_u32();
             offsets[((ordinal >> shift) & DIGIT_MASK) as usize] += 1;
         }
 
@@ -446,7 +448,7 @@ fn radix_key_order(
         }
 
         for &position in &source {
-            let ordinal = key_order_of_position[position as usize];
+            let ordinal = key_order_of_position[position.as_usize()].as_u32();
             let digit = ((ordinal >> shift) & DIGIT_MASK) as usize;
             target[offsets[digit]] = position;
             offsets[digit] += 1;
@@ -519,22 +521,45 @@ impl WalkBench {
         let config = LodConfig::default();
         let lod = Lod::build(
             &coordinates,
-            RankInputs::new(&importance, &priority, &identities)
-                .expect("the synthetic columns are equal-length and fit the row domain"),
+            RankInputs::new(
+                IdSlice::from_raw(&importance),
+                IdSlice::from_raw(&priority),
+                IdSlice::from_raw(&identities),
+            )
+            .expect("the synthetic columns are equal-length and fit the row domain"),
             seed,
             config,
         )
         .expect("finite synthetic coordinates admit a world frame");
 
-        let (position_of_key, key_order_of_position) = key_order(&lod.codes, &lod.rank_of_position);
+        // The column values cross from the typed lod domains into this instrument's raw u32
+        // vocabulary once, at this seam; the scan machinery below reads the raw form, while
+        // storage indexed by an id keeps its index domain.
+        let row_of_position: Box<[u32]> = lod
+            .row_of_position
+            .as_raw()
+            .iter()
+            .map(|&row| {
+                u32::try_from(row.as_u64()).expect("bench corpora share the u32 row domain")
+            })
+            .collect();
+        let position_of_row = lod.position_of_row;
+        let rank_of_position: Box<[u32]> = lod
+            .rank_of_position
+            .as_raw()
+            .iter()
+            .map(|&rank| rank.as_u32())
+            .collect();
+        let (position_of_key, key_order_of_position) =
+            key_order(lod.codes.as_raw(), &rank_of_position);
         let visible = DenseBitSet::new_filled(points);
 
         Self {
             segments: segments(&lod.fenceposts),
-            codes: lod.codes,
-            row_of_position: lod.row_of_position,
-            position_of_row: lod.position_of_row,
-            rank_of_position: lod.rank_of_position,
+            codes: IdSlice::into_boxed_raw(lod.codes),
+            row_of_position,
+            position_of_row,
+            rank_of_position,
             position_of_key,
             key_order_of_position,
             span: config.span.get(),
@@ -567,9 +592,8 @@ impl WalkBench {
         max_zoom: u8,
     ) -> Self {
         assert!(
-            lengths.len() <= Fenceposts::SEGMENTS,
-            "the bucket table holds {} segments",
-            Fenceposts::SEGMENTS,
+            lengths.len() <= SEGMENTS,
+            "the bucket table holds {SEGMENTS} segments",
         );
         assert_eq!(
             lengths.iter().sum::<u64>(),
@@ -1121,9 +1145,11 @@ impl WalkBench {
     /// Panics when the schedule's deepest cut lies beyond the key width.
     #[must_use]
     pub fn visible_only(&self) -> Self {
-        let mut keys: Vec<MortonKey> = Vec::with_capacity(self.visible.count());
-        let mut rows: Vec<u32> = Vec::with_capacity(self.visible.count());
-        let mut ranks: Vec<u32> = Vec::with_capacity(self.visible.count());
+        // The gathered columns are the visible-only corpus's row-indexed
+        // storage: its own NodeRowId universe, 0..V in gather order.
+        let mut keys: IdVec<NodeRowId, MortonKey> = IdVec::with_capacity(self.visible.count());
+        let mut rows: IdVec<NodeRowId, u32> = IdVec::with_capacity(self.visible.count());
+        let mut ranks: IdVec<NodeRowId, u32> = IdVec::with_capacity(self.visible.count());
         for (position, code) in self.codes.iter().enumerate() {
             let row = self.row_of_position[position];
             if self.visible.contains(NodeRowId::from_u32(row)) {
@@ -1133,26 +1159,18 @@ impl WalkBench {
             }
         }
 
-        let count = u32::try_from(keys.len()).expect("visible rows share the u32 row domain");
-        let mut row_of_rank: Vec<u32> = (0..count).collect();
-        row_of_rank.sort_unstable_by_key(|&entry| ranks[entry as usize]);
-        let mut rank_of_row = vec![0_u32; keys.len()];
-        for (rank, &entry) in row_of_rank.iter().enumerate() {
-            rank_of_row[entry as usize] =
-                u32::try_from(rank).expect("visible ranks share the u32 row domain");
-        }
-        let ranking = Ranking {
-            row_of_rank: row_of_rank.into_boxed_slice(),
-            rank_of_row: rank_of_row.into_boxed_slice(),
-        };
+        let keyed = keys.as_slice();
+        let mut row_of_rank: IdVec<ImportanceRank, NodeRowId> = keyed.ids().collect();
+        row_of_rank.sort_unstable_by_key(|&entry| ranks[entry]);
+        let ranking = Ranking::from_row_of_rank(row_of_rank);
 
         let deepest = Depth::new(self.max_zoom + self.span)
             .expect("the schedule's cuts lie within the key width");
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
-        let order = BaseOrder::new(&keys, &buckets, &ranking);
+        let buckets = cascade::buckets(keyed, &ranking, deepest);
+        let order = BaseOrder::new(keyed, &buckets, &ranking);
 
-        let mut lengths = [0_usize; Fenceposts::SEGMENTS];
-        for bucket in &buckets {
+        let mut lengths = [0_usize; SEGMENTS];
+        for bucket in buckets.iter() {
             lengths[usize::from(bucket.get())] += 1;
         }
         let mut segments: Ranges = core::array::from_fn(|_| 0..0);
@@ -1170,18 +1188,19 @@ impl WalkBench {
         let codes: Box<[MortonKey]> = order
             .row_of_position
             .iter()
-            .map(|&entry| keys[entry as usize])
+            .map(|&entry| keys[entry])
             .collect();
         let row_of_position: Box<[u32]> = order
             .row_of_position
             .iter()
-            .map(|&entry| rows[entry as usize])
+            .map(|&entry| rows[entry])
             .collect();
         let rank_of_position: Box<[u32]> = order
             .row_of_position
             .iter()
-            .map(|&entry| ranks[entry as usize])
+            .map(|&entry| ranks[entry])
             .collect();
+
         let position_of_row = positions_of_rows(&row_of_position, self.visible.domain_size());
         let (position_of_key, key_order_of_position) = key_order(&codes, &rank_of_position);
 
@@ -1215,21 +1234,18 @@ impl WalkBench {
     #[must_use]
     pub fn generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let (keys, positions, ranks) = self.visible_entries();
-        let count = u32::try_from(keys.len()).expect("visible rows share the u32 row domain");
-        let mut row_of_rank: Vec<u32> = (0..count).collect();
-        row_of_rank.sort_unstable_by_key(|&entry| ranks[entry as usize]);
-        let mut rank_of_row = vec![0_u32; keys.len()];
-        for (rank, &entry) in row_of_rank.iter().enumerate() {
-            rank_of_row[entry as usize] =
-                u32::try_from(rank).expect("visible ranks share the u32 row domain");
-        }
-        let ranking = Ranking {
-            row_of_rank: row_of_rank.into_boxed_slice(),
-            rank_of_row: rank_of_row.into_boxed_slice(),
-        };
-        let buckets = cascade::buckets(&keys, &ranking, Depth::MAX);
+        // The visible entries enter the cascade as their own row universe:
+        // the pins claim the gather-order NodeRowId domain once.
+        let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+        let ranked = IdSlice::<NodeRowId, u32>::from_raw(&ranks);
 
-        Self::assemble(layout, &keys, &positions, &ranks, &buckets)
+        let mut row_of_rank: IdVec<ImportanceRank, NodeRowId> = keyed.ids().collect();
+        row_of_rank.sort_unstable_by_key(|&entry| ranked[entry]);
+
+        let ranking = Ranking::from_row_of_rank(row_of_rank);
+        let buckets = cascade::buckets(keyed, &ranking, Depth::MAX);
+
+        Self::assemble(layout, &keys, &positions, &ranks, buckets.as_raw())
     }
 
     /// Builds the same generation by neighbour separation instead of a per-depth cascade.
@@ -1309,26 +1325,26 @@ impl WalkBench {
     fn generation_from_key_order(
         &self,
         layout: GenerationLayout,
-        positions: impl IntoIterator<Item = u32>,
+        positions: impl IntoIterator<Item = BasePosition>,
     ) -> ServedGeneration {
-        let positions: Vec<u32> = positions.into_iter().collect();
+        let positions: Vec<BasePosition> = positions.into_iter().collect();
         let count = positions.len();
         let mut buckets = vec![Depth::MIN; count];
         let mut stack: Vec<usize> = Vec::with_capacity(count);
 
         let separation_bucket = |left: usize, right: usize| {
             let shared = shared_depth(
-                self.codes[positions[left] as usize],
-                self.codes[positions[right] as usize],
+                self.codes[positions[left].as_usize()],
+                self.codes[positions[right].as_usize()],
             );
             Depth::new(shared.saturating_add(1).min(Depth::MAX.get()))
                 .expect("the clamped successor lies within the key width")
         };
 
         for current in 0..count {
-            let current_rank = self.rank_of_position[positions[current] as usize];
+            let current_rank = self.rank_of_position[positions[current].as_usize()];
             while let Some(&previous) = stack.last() {
-                let previous_rank = self.rank_of_position[positions[previous] as usize];
+                let previous_rank = self.rank_of_position[positions[previous].as_usize()];
                 if previous_rank < current_rank {
                     break;
                 }
@@ -1342,7 +1358,7 @@ impl WalkBench {
             stack.push(current);
         }
 
-        let mut lengths = [0_usize; Fenceposts::SEGMENTS];
+        let mut lengths = [0_usize; SEGMENTS];
         for bucket in &buckets {
             lengths[usize::from(bucket.get())] += 1;
         }
@@ -1353,8 +1369,7 @@ impl WalkBench {
             at += length;
         }
 
-        let mut cursors: [usize; Fenceposts::SEGMENTS] =
-            core::array::from_fn(|bucket| segments[bucket].start);
+        let mut cursors: [usize; SEGMENTS] = core::array::from_fn(|bucket| segments[bucket].start);
         let mut ordered = vec![0_u32; count];
         let mut ascending = vec![0_u32; count];
         let mut inline_keys = match layout {
@@ -1365,11 +1380,11 @@ impl WalkBench {
             let bucket = usize::from(bucket.get());
             let output = cursors[bucket];
             cursors[bucket] += 1;
-            ordered[output] = position;
+            ordered[output] = position.as_u32();
             ascending[key_ordinal] =
                 u32::try_from(output).expect("generation entries share the u32 row domain");
             if let Some(keys) = &mut inline_keys {
-                keys[output] = self.codes[position as usize].to_bits();
+                keys[output] = self.codes[position.as_usize()].to_bits();
             }
         }
 
@@ -1395,20 +1410,16 @@ impl WalkBench {
     pub fn merged_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let mut visible_by_position = DenseBitSet::new_empty(self.codes.len());
         for row in &self.visible {
-            visible_by_position
-                .insert(BasePosition::from_u32(self.position_of_row[row.as_usize()]));
+            visible_by_position.insert(self.position_of_row[row]);
         }
-        let base_positions: Vec<u32> = visible_by_position
-            .iter()
-            .map(BasePosition::as_u32)
-            .collect();
+        let base_positions: Vec<BasePosition> = visible_by_position.iter().collect();
 
         let mut runs: Ranges = core::array::from_fn(|_| 0..0);
         let mut at = 0_usize;
         for (bucket, segment) in self.segments.iter().enumerate() {
             let start = at;
-            while at < base_positions.len() && (base_positions[at] as usize) < segment.end {
-                debug_assert!((base_positions[at] as usize) >= segment.start);
+            while at < base_positions.len() && base_positions[at].as_usize() < segment.end {
+                debug_assert!(base_positions[at].as_usize() >= segment.start);
                 at += 1;
             }
             runs[bucket] = start..at;
@@ -1419,16 +1430,16 @@ impl WalkBench {
             "the bucket runs cover every position"
         );
 
-        let mut next: [usize; Fenceposts::SEGMENTS] =
-            core::array::from_fn(|bucket| runs[bucket].start);
-        let mut heap: BinaryHeap<Reverse<(MortonKey, u32, usize, u32)>> = BinaryHeap::new();
+        let mut next: [usize; SEGMENTS] = core::array::from_fn(|bucket| runs[bucket].start);
+        let mut heap: BinaryHeap<Reverse<(MortonKey, u32, usize, BasePosition)>> =
+            BinaryHeap::new();
         for (bucket, run) in runs.iter().enumerate() {
             if next[bucket] < run.end {
                 let position = base_positions[next[bucket]];
                 next[bucket] += 1;
                 heap.push(Reverse((
-                    self.codes[position as usize],
-                    self.rank_of_position[position as usize],
+                    self.codes[position.as_usize()],
+                    self.rank_of_position[position.as_usize()],
                     bucket,
                     position,
                 )));
@@ -1442,8 +1453,8 @@ impl WalkBench {
                 let position = base_positions[next[bucket]];
                 next[bucket] += 1;
                 heap.push(Reverse((
-                    self.codes[position as usize],
-                    self.rank_of_position[position as usize],
+                    self.codes[position.as_usize()],
+                    self.rank_of_position[position.as_usize()],
                     bucket,
                     position,
                 )));
@@ -1460,8 +1471,9 @@ impl WalkBench {
     #[must_use]
     pub fn filtered_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let positions = self.position_of_key.iter().copied().filter(|&position| {
-            self.visible
-                .contains(NodeRowId::from_u32(self.row_of_position[position as usize]))
+            self.visible.contains(NodeRowId::from_u32(
+                self.row_of_position[position.as_usize()],
+            ))
         });
         self.generation_from_key_order(layout, positions)
     }
@@ -1476,14 +1488,12 @@ impl WalkBench {
     pub fn indexed_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let mut visible_by_key = DenseBitSet::new_empty(self.codes.len());
         for row in &self.visible {
-            let position = self.position_of_row[row.as_usize()];
-            visible_by_key.insert(KeyOrdinal::from_u32(
-                self.key_order_of_position[position as usize],
-            ));
+            let position = self.position_of_row[row];
+            visible_by_key.insert(self.key_order_of_position[position.as_usize()]);
         }
         let positions = visible_by_key
             .iter()
-            .map(|ordinal| self.position_of_key[ordinal.as_usize()]);
+            .map(|ordinal| self.position_of_key[ordinal]);
         self.generation_from_key_order(layout, positions)
     }
 
@@ -1494,10 +1504,7 @@ impl WalkBench {
     /// and bucket distribution each cost `O(V)`.
     #[must_use]
     pub fn radix_generation(&self, layout: GenerationLayout) -> ServedGeneration {
-        let positions = self
-            .visible
-            .iter()
-            .map(|row| self.position_of_row[row.as_usize()]);
+        let positions = self.visible.iter().map(|row| self.position_of_row[row]);
         let positions = radix_key_order(positions, &self.key_order_of_position);
         self.generation_from_key_order(layout, positions)
     }
@@ -1589,7 +1596,7 @@ impl WalkBench {
             (buckets[entry], keys[entry], ranks[entry])
         });
 
-        let mut lengths = [0_usize; Fenceposts::SEGMENTS];
+        let mut lengths = [0_usize; SEGMENTS];
         for bucket in buckets {
             lengths[usize::from(bucket.get())] += 1;
         }
@@ -1644,28 +1651,20 @@ impl WalkBench {
             }
         }
 
-        let rows = u32::try_from(keys.len()).expect("visible rows share the u32 row domain");
-        let row_of_rank: Box<[u32]> = match order {
-            VisibleRankOrder::Base => (0..rows).collect(),
-            VisibleRankOrder::Reversed => (0..rows).rev().collect(),
+        let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+        let row_of_rank: IdVec<ImportanceRank, NodeRowId> = match order {
+            VisibleRankOrder::Base => keyed.ids().collect(),
+            VisibleRankOrder::Reversed => keyed.ids().rev().collect(),
         };
-        let mut rank_of_row = vec![0_u32; keys.len()];
-        for (rank, &row) in row_of_rank.iter().enumerate() {
-            rank_of_row[row as usize] =
-                u32::try_from(rank).expect("visible ranks share the u32 row domain");
-        }
-        let ranking = Ranking {
-            row_of_rank,
-            rank_of_row: rank_of_row.into_boxed_slice(),
-        };
+        let ranking = Ranking::from_row_of_rank(row_of_rank);
 
         let deepest = Depth::new(self.max_zoom + self.span)
             .expect("the schedule's cuts lie within the key width");
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
+        let buckets = cascade::buckets(keyed, &ranking, deepest);
 
         let mut points: Vec<(u64, u8)> = keys
             .iter()
-            .zip(&buckets)
+            .zip(buckets.iter())
             .map(|(key, bucket)| (key.to_bits(), bucket.get()))
             .collect();
         points.sort_unstable();
@@ -2714,7 +2713,7 @@ impl WalkBench {
         }
 
         let (depth, budget, mut reads) = self.served_grid(plan, address, &extent, cut);
-        reads += 2 * Fenceposts::SEGMENTS;
+        reads += 2 * SEGMENTS;
         reads += self.represented_cells(generation, &extent.ranges, depth, scratch);
         let cells = scratch.candidates.len();
         scratch.occupied.clear();
@@ -3587,7 +3586,12 @@ impl VisibleCascade {
             .map(|&(_, bucket)| Depth::new(bucket).expect("buckets lie within the key width"))
             .collect();
 
-        cascade::verify_coverage(&keys, &buckets, self.deepest).is_ok()
+        cascade::verify_coverage(
+            IdSlice::<NodeRowId, _>::from_raw(&keys),
+            IdSlice::<NodeRowId, _>::from_raw(&buckets),
+            self.deepest,
+        )
+        .is_ok()
     }
 
     /// Returns the points inside `cell`.
@@ -4025,15 +4029,11 @@ fn shared_depth(left: MortonKey, right: MortonKey) -> u8 {
     u8::try_from(difference.leading_zeros() / 2).expect("halved key widths fit u8")
 }
 
-/// The whole-domain ranges: every bucket's full segment.
-fn segments(fenceposts: &Fenceposts) -> Ranges {
-    core::array::from_fn(|bucket| {
-        let bucket = u8::try_from(bucket).expect("segment indexes are bounded by the 33 buckets");
-        let range = fenceposts
-            .segment(Depth::new(bucket).expect("every segment index names a valid depth"));
-        usize::try_from(range.start).expect("resident columns fit the address space")
-            ..usize::try_from(range.end).expect("resident columns fit the address space")
-    })
+/// Every bucket's full segment, in the instrument's scan offsets.
+fn segments(fenceposts: &Fenceposts<BasePosition>) -> Ranges {
+    fenceposts
+        .segments()
+        .map(|range| range.start.as_usize()..range.end.as_usize())
 }
 
 /// Draws one uniform sample from `[0, 1)`.

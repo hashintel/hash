@@ -49,6 +49,8 @@
 //! document. Below the [`Atlas`] facade nothing reaches into the whole value: the domain types
 //! borrow exactly the columns they read.
 
+use hashql_core::id::{IdSlice, IdVec};
+
 use self::grid::Grid;
 pub use self::{
     cache::VisibilityLimits,
@@ -80,7 +82,7 @@ pub(crate) use self::{
 use crate::{
     dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
-    identity::{Column, EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -217,16 +219,16 @@ pub struct Atlas {
     quad: QuadFile,
     morton: MortonFile,
     /// The wire-coordinate column in base order.
-    points: Column<Vec2>,
+    points: Column<BasePosition, Vec2>,
     /// The row column in base order: the node universe's permutation.
-    rows: Column<NodeRowId>,
+    rows: Column<BasePosition, NodeRowId>,
     adjacency: AdjacencyArchive,
     /// The endpoint column: edge row to `[source, target]`.
-    endpoints: Column<[NodeRowId; 2]>,
+    endpoints: Column<EdgeRowId, [NodeRowId; 2]>,
     /// The rank column in base order.
-    ranks: Column<u32>,
+    ranks: Column<BasePosition, ImportanceRank>,
     /// The position permutation in row order.
-    positions_of_row: Column<u32>,
+    positions_of_row: Column<NodeRowId, BasePosition>,
     postings: PostingsArchive,
     closure: ClosureMap,
     /// The ontology identity table, joining type uuids to ontology rows.
@@ -246,7 +248,7 @@ pub struct Atlas {
     ///
     /// The row column mapped through the node codec once at open, so position-driven gathers
     /// (tiles, locate) pay nothing per request.
-    wire_rows: Vec<WireRow<NodeRowId>>,
+    wire_rows: IdVec<BasePosition, WireRow<NodeRowId>>,
     /// The tight wire-frame extent of the full point set.
     ///
     /// Absent iff the generation holds no points. Derived from the world frame: normalization
@@ -283,32 +285,32 @@ impl Atlas {
     }
 
     /// Views the wire-coordinate column in base order.
-    fn positions(&self) -> &[Vec2] {
+    fn positions(&self) -> &IdSlice<BasePosition, Vec2> {
         self.points.view()
     }
 
     /// Views the row column in base order.
-    fn row_ids(&self) -> &[NodeRowId] {
+    fn row_ids(&self) -> &IdSlice<BasePosition, NodeRowId> {
         self.rows.view()
     }
 
     /// Views the wire row-id column in base order.
-    const fn wire_rows(&self) -> &[WireRow<NodeRowId>] {
+    const fn wire_rows(&self) -> &IdSlice<BasePosition, WireRow<NodeRowId>> {
         self.wire_rows.as_slice()
     }
 
     /// Views the endpoint column: edge row to `[source, target]`.
-    fn endpoint_pairs(&self) -> &[[NodeRowId; 2]] {
+    fn endpoint_pairs(&self) -> &IdSlice<EdgeRowId, [NodeRowId; 2]> {
         self.endpoints.view()
     }
 
     /// Views the rank column in base order.
-    fn ranks(&self) -> &[u32] {
+    fn ranks(&self) -> &IdSlice<BasePosition, ImportanceRank> {
         self.ranks.view()
     }
 
     /// Views the position permutation in row order.
-    fn positions_of_row(&self) -> &[u32] {
+    fn positions_of_row(&self) -> &IdSlice<NodeRowId, BasePosition> {
         self.positions_of_row.view()
     }
 }

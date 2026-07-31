@@ -2,11 +2,13 @@
 
 use std::io;
 
+use hashql_core::id::Id as _;
 use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{Fenceposts, FileHeader};
 use crate::{
     file::region::{PAGE, write_padding},
+    identity::BasePosition,
     morton::MortonKey,
 };
 
@@ -40,7 +42,7 @@ const _: () = assert!(PAGE_STRIDE as u64 * size_of::<u64>() as u64 == PAGE);
 )]
 pub(crate) fn write_regions(
     stride: u32,
-    fenceposts: &Fenceposts,
+    fenceposts: &Fenceposts<BasePosition>,
     codes: &[MortonKey],
     mut write: impl io::Write,
 ) -> io::Result<()> {
@@ -50,18 +52,15 @@ pub(crate) fn write_regions(
         fenceposts.count(),
         "one code per fencepost-counted position",
     );
-    for (bucket, length) in fenceposts.lengths().iter().enumerate() {
+    for (bucket, segment) in fenceposts.segments().iter().enumerate() {
         // The count equality above makes every segment range in bounds.
-        let start = usize::try_from(fenceposts.posts()[bucket])
-            .expect("a resident column fits the address space");
-        let length = usize::try_from(*length).expect("a resident column fits the address space");
         assert!(
-            codes[start..start + length].is_sorted(),
+            codes[segment.start.as_usize()..segment.end.as_usize()].is_sorted(),
             "bucket {bucket}'s codes must not decrease",
         );
     }
 
-    let header = FileHeader::new(stride, fenceposts);
+    let header = FileHeader::new(stride, *fenceposts);
     let index_bytes = header
         .index_keys()
         .expect("the stride is nonzero by construction")

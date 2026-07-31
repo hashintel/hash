@@ -18,7 +18,7 @@ use crate::{
     file::array::{ArrayVariant, FileHeader},
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::BoxedVecN,
+    math::{BoxedVecN, MatrixN},
     progress::{NoProgress, Progress},
 };
 
@@ -462,20 +462,22 @@ async fn embeds_nothing_for_an_empty_card_list() {
 #[test]
 fn view_exists_exactly_for_row_aligned_columns() {
     let hashes = [text_digest("alpha"), text_digest("beta")];
-    let components = vec![0.0_f32; 2 * CANONICAL_DIMENSIONS];
+    let matrix = MatrixN::<CANONICAL_DIMENSIONS>::zeroed(2);
+    let rows = matrix.rows();
 
-    let view = CardEmbeddingView::new(fingerprint(b"contract"), &hashes, &components)
-        .expect("full rows per hash should form a view");
+    let view = CardEmbeddingView::new(fingerprint(b"contract"), &hashes, rows)
+        .expect("one row per hash should form a view");
     assert_eq!(view.len(), 2);
     assert!(view.embedding(OntologyRowId::new(2)).is_none());
 
+    // The count clause, violated from either side.
     assert!(
-        CardEmbeddingView::new(fingerprint(b"contract"), &hashes, &components[1..]).is_none(),
-        "a partial row must not form a view",
+        CardEmbeddingView::new(fingerprint(b"contract"), &hashes[..1], rows).is_none(),
+        "an extra row must not form a view",
     );
     assert!(
-        CardEmbeddingView::new(fingerprint(b"contract"), &hashes[..1], &components,).is_none(),
-        "an extra row must not form a view",
+        CardEmbeddingView::new(fingerprint(b"contract"), &hashes, &rows[..1]).is_none(),
+        "a missing row must not form a view",
     );
 }
 

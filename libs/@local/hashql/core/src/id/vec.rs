@@ -158,6 +158,28 @@ where
         }
     }
 
+    /// Consumes the `IdVec` and returns the raw [`Vec`].
+    ///
+    /// The inverse of [`from_raw`](Self::from_raw): the elements and their order are unchanged,
+    /// only the typed index domain is dropped. Intended for the boundaries where a typed
+    /// collection leaves the domain-indexed world, such as handing storage to an external format
+    /// or library that speaks raw indices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let vec = IdVec::<NodeId, _>::from_raw(vec!["a", "b", "c"]);
+    /// let raw = vec.into_raw();
+    ///
+    /// assert_eq!(raw, vec!["a", "b", "c"]);
+    /// ```
+    #[inline]
+    pub fn into_raw(self) -> Vec<T, A> {
+        self.raw
+    }
+
     /// Creates a new, empty `IdVec` with a custom allocator.
     ///
     /// See [`Vec::new_in`] for details.

@@ -3,14 +3,16 @@
 use core::{error::Error, fmt, ops::Range};
 use std::{io, path::Path};
 
+use hashql_core::id::{Id as _, IdSlice};
 use zerocopy::{
     FromBytes as _, LE, TryFromBytes as _, U64,
     error::{ConvertError, ValidityError},
 };
 
-use super::{FencepostViolation, Fenceposts, FileHeader};
+use super::{FencepostError, Fenceposts, FileHeader};
 use crate::{
     file::region::PageMap,
+    identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
 
@@ -24,7 +26,7 @@ pub enum OpenMortonError {
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
     /// The header's fenceposts break a structural rule.
-    Fenceposts(FencepostViolation),
+    Fenceposts(FencepostError),
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -95,7 +97,7 @@ impl Error for OpenMortonError {
 #[derive(Debug)]
 pub(crate) struct MortonFile {
     map: PageMap,
-    fenceposts: Fenceposts,
+    fenceposts: Fenceposts<BasePosition>,
 }
 
 impl MortonFile {
@@ -124,12 +126,10 @@ impl MortonFile {
             }
         };
 
-        // The 34 posts are copied out of the mapping rather than viewed:
-        // `Fenceposts` carries the structural rules as a type invariant a
-        // raw `U64<LE>` view cannot, and the copy keeps `bucket_of`'s
-        // partition search on native integers instead of `.get()` per
-        // probe. 272 bytes once per open buys both.
-        let fenceposts = Fenceposts::new(&header.posts()).map_err(OpenMortonError::Fenceposts)?;
+        // `posts` validates the header's array and returns it as a borrowed
+        // `Fenceposts` witness; the copy makes the witness owned - the file
+        // cannot hold a view into its own mapping. 272 bytes once per open.
+        let fenceposts = *header.posts().map_err(OpenMortonError::Fenceposts)?;
 
         let expected = header.expected_file_len();
         let actual = map.len();
@@ -155,7 +155,7 @@ impl MortonFile {
     /// Borrows the bucket fenceposts.
     #[inline]
     #[must_use]
-    pub(crate) const fn fenceposts(&self) -> &Fenceposts {
+    pub(crate) const fn fenceposts(&self) -> &Fenceposts<BasePosition> {
         &self.fenceposts
     }
 
@@ -172,7 +172,8 @@ impl MortonFile {
     ///
     /// Panics when `position` is at or beyond [`count`](Self::count).
     #[must_use]
-    pub(crate) fn bucket_of(&self, position: u64) -> Depth {
+    pub(crate) fn bucket_of(&self, position: BasePosition) -> Depth {
+        let position = position.as_u64();
         assert!(
             position < self.count(),
             "position {position} lies beyond the {} codes",
@@ -183,8 +184,8 @@ impl MortonFile {
         // empty segments share posts and never win the search.
         let segment = self
             .fenceposts
-            .posts()
-            .partition_point(|&post| post <= position);
+            .as_raw()
+            .partition_point(|&post| post.get() <= position);
         #[expect(
             clippy::cast_possible_truncation,
             reason = "fencepost indices are bounded by the 34 posts"
@@ -210,7 +211,15 @@ impl MortonFile {
 
     /// Views the code column in base delivery order.
     #[must_use]
-    pub(crate) fn codes(&self) -> &[U64<LE>] {
+    pub(crate) fn codes(&self) -> &IdSlice<BasePosition, U64<LE>> {
+        IdSlice::from_raw(self.code_words())
+    }
+
+    /// Views the code region's raw words.
+    ///
+    /// The file-index machinery addresses this region in its own stride arithmetic, which speaks
+    /// word offsets rather than base positions.
+    fn code_words(&self) -> &[U64<LE>] {
         let bytes = self.map.region(
             self.header()
                 .codes_offset()
@@ -227,18 +236,20 @@ impl MortonFile {
     /// The run is found by two index-accelerated searches constrained to the bucket's segment. An
     /// empty range means the bucket has no point in the cell.
     #[must_use]
-    pub(crate) fn run(&self, bucket: Depth, cell: MortonCell) -> Range<u64> {
+    pub(crate) fn run(&self, bucket: Depth, cell: MortonCell) -> Range<BasePosition> {
         let segment = self.fenceposts.segment(bucket);
+        let search = segment.start.as_u64()..segment.end.as_u64();
         let min = cell.min_key().to_bits();
         let max = cell.max_key().to_bits();
 
-        let start = self.partition_point(segment.clone(), |code| code < min);
+        let start = self.partition_point(search.clone(), |code| code < min);
         // The cell's maximum key is inclusive (and `u64::MAX` at the
         // root), so the run closes at the first code beyond it rather
         // than at a lower bound of `max + 1`.
-        let end = self.partition_point(start..segment.end, |code| code <= max);
+        let end = self.partition_point(start..search.end, |code| code <= max);
 
-        start..end
+        // In bounds of the fencepost domain the constructor validated.
+        BasePosition::from_u64(start)..BasePosition::from_u64(end)
     }
 
     /// Returns the code at one base position.
@@ -247,8 +258,7 @@ impl MortonFile {
     ///
     /// Panics when `position` is at or beyond [`count`](Self::count).
     #[must_use]
-    pub(crate) fn code(&self, position: u64) -> MortonKey {
-        let position = usize::try_from(position).expect("a mapped position fits the address space");
+    pub(crate) fn code(&self, position: BasePosition) -> MortonKey {
         MortonKey::from_bits(self.codes()[position].get())
     }
 
@@ -288,7 +298,7 @@ impl MortonFile {
             partition * stride
         };
 
-        let window = &self.codes()[usize::try_from(window_start)
+        let window = &self.code_words()[usize::try_from(window_start)
             .expect("a mapped position fits the address space")
             ..usize::try_from(window_end).expect("a mapped position fits the address space")];
         window_start + window.partition_point(|code| pred(code.get())) as u64

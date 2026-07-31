@@ -7,7 +7,6 @@
 //! gathers - no spatial index stands behind it. Locate IS the detail view: the trailer always
 //! rides, so serving locate requires a store connection for hydration.
 
-use hashql_core::id::Id as _;
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
@@ -21,7 +20,7 @@ use super::{
 };
 use crate::{
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, NodeRowId},
+    identity::{BasePosition, EdgeRowId, NodeRowId},
     morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
 };
@@ -64,7 +63,7 @@ pub(super) struct SourcePoint {
     /// The node row id.
     pub row: VisibleRow,
     /// The base position behind the row.
-    pub position: u32,
+    pub position: BasePosition,
     /// The first zoom whose cumulative schedule delivers the point.
     pub zoom: u8,
     /// The point's tile at that zoom: the client's fly-to target.
@@ -107,21 +106,20 @@ impl Atlas {
     }
 
     /// Returns the first zoom whose cumulative schedule delivers a base position.
-    fn first_visible_zoom(&self, position: u32) -> u8 {
+    fn first_visible_zoom(&self, position: BasePosition) -> u8 {
         // The position's bucket is its fencepost segment; the cut rule inverted answers the
         // first delivering zoom.
-        self.grid
-            .first_zoom(self.morton.bucket_of(u64::from(position)))
+        self.grid.first_zoom(self.morton.bucket_of(position))
     }
 
     /// Answers a proven-visible node row's identity in every domain a locate response speaks.
     ///
     /// Base position, first visible zoom, and fly-to tile.
     fn source_point(&self, row: VisibleRow) -> SourcePoint {
-        let position = self.positions_of_row()[row.get().as_usize()];
+        let position = self.positions_of_row()[row.get()];
         let zoom = self.first_visible_zoom(position);
 
-        let key = MortonKey::from_bits(self.morton.codes()[position as usize].get());
+        let key = MortonKey::from_bits(self.morton.codes()[position].get());
         let cell = grid::tile_of(key, zoom);
 
         SourcePoint {
@@ -174,7 +172,7 @@ impl Atlas {
         let mut delivered = vec![source.position];
         for &(_, row) in &partners {
             rows.push(row);
-            delivered.push(positions_of_row[row.as_usize()]);
+            delivered.push(positions_of_row[row]);
         }
 
         LocateSubgraph {
@@ -204,15 +202,15 @@ impl Atlas {
 
         let positions = self.positions();
         let positions_of_row = self.positions_of_row();
-        let origin = positions[source.position as usize];
+        let origin = positions[source.position];
 
         let mut ranked: Vec<(NearestKey, (DeliveredEdge, ArchivedEntityId))> = edges
             .drain(..)
             .map(|(edge, id)| {
                 let partner = edge.partner_of(source.row.get());
 
-                let position = positions_of_row[partner.as_usize()];
-                let point = positions[position as usize];
+                let position = positions_of_row[partner];
+                let point = positions[position];
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
                 // The selection key is pinned to unfused f32
                 // arithmetic so independent derivations from the wire
@@ -269,7 +267,7 @@ pub(super) struct LocateSubgraph {
     /// The delivered node rows, in delivered order.
     pub rows: Vec<NodeRowId>,
     /// The delivered base positions, parallel to `rows`.
-    pub positions: Vec<u32>,
+    pub positions: Vec<BasePosition>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
     pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
     /// Whether every qualifying edge is delivered; `false` iff the cap truncated.
@@ -376,7 +374,7 @@ impl core::error::Error for LocateError {}
 #[derive(Debug)]
 pub struct LocateDocument {
     source: SourcePoint,
-    delivered: Vec<u32>,
+    delivered: Vec<BasePosition>,
     rows: Vec<NodeRowId>,
     sources: Vec<WireRow<NodeRowId>>,
     targets: Vec<WireRow<NodeRowId>>,

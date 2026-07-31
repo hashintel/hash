@@ -23,7 +23,7 @@ use crate::{
         policy::read::OpenPolicyError,
         sprs::{read::OpenSprsError, write::WriteSprsError},
     },
-    identity::NodeRowId,
+    identity::{NodeRowId, OntologyRowId},
     salt::{
         adjacency::InvalidAdjacencyFile,
         embedding::CardEmbeddingError,
@@ -687,7 +687,7 @@ pub enum FitError<D, E> {
     /// The card stream failed.
     Cards(io::Error),
     /// The embedding provider failed to produce the card table.
-    Embedding(CardEmbeddingError<E>),
+    Embedding(CardEmbeddingError<OntologyRowId, E>),
     /// The supplied annotation corpus failed to assemble into the classifier's training set.
     Assembly(AssemblyError<E>),
     /// A streamed ingest write failed.

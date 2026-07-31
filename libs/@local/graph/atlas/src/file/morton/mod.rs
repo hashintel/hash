@@ -46,8 +46,9 @@
     reason = "the magic is pinned to the same canonical little-endian bytes on every platform"
 )]
 
-use core::{fmt, ops::Range};
+use core::{fmt, marker::PhantomData, ops::Range};
 
+use hashql_core::id::Id;
 use zerocopy::{LE, U32, U64, Unalign};
 
 use crate::morton::Depth;
@@ -64,123 +65,185 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-/// A fencepost breaks the two structural rules: posts anchor at zero and never decrease.
+/// A fencepost breaks a structural rule of the segmentation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct FencepostViolation {
-    /// The offending fencepost.
-    ///
-    /// Index 0 is not zero, or the post at this index is smaller than its predecessor.
-    pub index: u8,
+pub enum FencepostError {
+    /// The first post is not zero.
+    Anchor,
+    /// The post at this index is smaller than its predecessor.
+    Order {
+        /// The offending fencepost.
+        index: u8,
+    },
 }
 
-impl fmt::Display for FencepostViolation {
+impl fmt::Display for FencepostError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.index {
-            0 => write!(fmt, "fencepost 0 must anchor the first segment at zero"),
-            index => write!(fmt, "fencepost {index} is smaller than its predecessor"),
+        match *self {
+            Self::Anchor => write!(fmt, "fencepost 0 must anchor the first segment at zero"),
+            Self::Order { index } => {
+                write!(fmt, "fencepost {index} is smaller than its predecessor")
+            }
         }
     }
 }
 
-impl core::error::Error for FencepostViolation {}
+impl core::error::Error for FencepostError {}
 
-/// The bucket segmentation of the code column: one position per segment boundary.
+/// One more fencepost than segments, closing the last range.
+pub(crate) const POSTS: usize = SEGMENTS + 1;
+/// One segment per bucket the cascade can assign.
 ///
-/// Fencepost `b` is where bucket `b`'s codes begin and the last fencepost is the total code count,
-/// so segment `b` is the range `posts[b]..posts[b + 1]`. Every value is anchored at zero and
-/// non-decreasing by construction, so segment ranges always slice a column of
-/// [`count`](Self::count) elements without further checks.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Fenceposts([u64; Self::POSTS]);
+/// Every depth from the whole domain to a fully pinned key.
+pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
 
-impl Fenceposts {
-    /// One more fencepost than segments, closing the last range.
-    pub(crate) const POSTS: usize = Self::SEGMENTS + 1;
-    /// One segment per bucket the cascade can assign.
-    ///
-    /// Every depth from the whole domain to a fully pinned key.
-    pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
+/// The bucket segmentation of a position column: one boundary value per segment edge.
+///
+/// Fencepost `b` is where bucket `b`'s positions begin and the last fencepost is the total count,
+/// so segment `b` is the range `posts[b]..posts[b + 1]` in the column's position domain `I`.
+/// Construction validates the structural rules - posts anchor at zero and never decrease - while
+/// the width of the position domain is `I`'s own law, checked by `I`'s conversion inside each
+/// typed accessor. The interior keeps the persisted `U64<LE>` words: a header's fencepost region
+/// reinterprets as a validated borrow ([`try_from_ref`]) and the file writer reads the same words
+/// back.
+///
+/// [`try_from_ref`]: Self::try_from_ref
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(transparent)]
+pub(crate) struct Fenceposts<I>([U64<LE>; POSTS], PhantomData<fn(&I)>);
 
-    /// Wraps a fencepost array.
-    ///
-    /// # Errors
-    ///
-    /// Returns the first [`FencepostViolation`]: a first post other than zero, or a post smaller
-    /// than its predecessor.
+impl<I> Fenceposts<I> {
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "the loop index is bounded by the 34 fenceposts"
+        reason = "fencepost indices are bounded by the 34 posts"
     )]
-    pub(crate) const fn new(posts: &[u64; Self::POSTS]) -> Result<Self, FencepostViolation> {
-        if posts[0] != 0 {
-            return Err(FencepostViolation { index: 0 });
+    const fn validate(posts: &[U64<LE>; POSTS]) -> Result<(), FencepostError> {
+        if posts[0].get() != 0 {
+            return Err(FencepostError::Anchor);
         }
 
         let mut index = 1;
-        while index < Self::POSTS {
-            if posts[index] < posts[index - 1] {
-                return Err(FencepostViolation { index: index as u8 });
+        while index < POSTS {
+            if posts[index].get() < posts[index - 1].get() {
+                return Err(FencepostError::Order { index: index as u8 });
             }
 
             index += 1;
         }
 
-        Ok(Self(*posts))
+        Ok(())
+    }
+
+    /// Views a fencepost array as a validated segmentation.
+    ///
+    /// The borrow is the witness: `#[repr(transparent)]` makes the array's bytes the value, so a
+    /// persisted region validates in place without a copy.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`FencepostError`]: a first post other than zero, or a post smaller than
+    /// its predecessor.
+    pub(crate) const fn try_from_ref(posts: &[U64<LE>; POSTS]) -> Result<&Self, FencepostError> {
+        Self::validate(posts)?;
+
+        let ptr = &raw const *posts;
+        // SAFETY: `Self` is `#[repr(transparent)]` over `[U64<LE>; POSTS]`, so the cast
+        // reinterprets the array as the wrapper without changing layout, and `validate` just
+        // upheld the type's structural rules.
+        Ok(unsafe { &*ptr.cast::<Self>() })
+    }
+
+    /// Wraps a fencepost array.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`FencepostError`]: a first post other than zero, or a post smaller than
+    /// its predecessor.
+    #[expect(
+        clippy::large_types_passed_by_value,
+        reason = "the constructor stores the array; by value states the transfer and moves the \
+                  272 bytes once"
+    )]
+    pub(crate) const fn new(posts: [U64<LE>; POSTS]) -> Result<Self, FencepostError> {
+        Self::validate(&posts)?;
+
+        Ok(Self(posts, PhantomData))
+    }
+
+    const fn into_raw(self) -> [U64<LE>; POSTS] {
+        self.0
+    }
+
+    const fn as_raw(&self) -> &[U64<LE>; POSTS] {
+        &self.0
     }
 
     /// Accumulates per-segment lengths into fenceposts.
     ///
-    /// The result is anchored and non-decreasing by construction. Returns [`None`] when the running
-    /// total overflows `u64`, in which case no real column matches the lengths.
-    pub(crate) const fn from_lengths(lengths: &[u64; Self::SEGMENTS]) -> Option<Self> {
-        let mut posts = [0_u64; Self::POSTS];
+    /// The result is anchored and non-decreasing by construction. Returns [`None`] when the
+    /// running total overflows the persisted `u64` form, in which case no writable column matches
+    /// the lengths.
+    pub(crate) const fn from_lengths(lengths: &[u64; SEGMENTS]) -> Option<Self> {
+        let mut posts = [0_u64; POSTS];
 
         let mut index = 0;
-        while index < Self::SEGMENTS {
+        while index < SEGMENTS {
             let Some(next) = posts[index].checked_add(lengths[index]) else {
                 return None;
             };
+
             posts[index + 1] = next;
             index += 1;
         }
 
-        Some(Self(posts))
+        Some(Self(posts.map(U64::new), PhantomData))
     }
 
-    /// Returns the total code count: the last fencepost.
+    /// Returns the total count: the last fencepost.
     #[inline]
     #[must_use]
     pub(crate) const fn count(&self) -> u64 {
-        self.0[Self::POSTS - 1]
+        self.0[POSTS - 1].get()
+    }
+}
+
+impl<I: Id> Fenceposts<I> {
+    /// Returns the post at `index` in the position domain.
+    fn post(&self, index: usize) -> I {
+        I::from_u64(self.0[index].get())
     }
 
-    /// Returns bucket `bucket`'s position range in the code column.
+    /// Returns the exclusive upper bound of the position domain: one past the last position.
     #[inline]
     #[must_use]
-    pub(crate) const fn segment(&self, bucket: Depth) -> Range<u64> {
+    pub(crate) fn bound(&self) -> I {
+        self.post(POSTS - 1)
+    }
+
+    /// Returns bucket `bucket`'s position range in the column.
+    #[inline]
+    #[must_use]
+    pub(crate) fn segment(&self, bucket: Depth) -> Range<I> {
         let index = bucket.get() as usize;
-        self.0[index]..self.0[index + 1]
+        self.post(index)..self.post(index + 1)
+    }
+
+    /// Returns every bucket's position range, bucket-ascending.
+    #[must_use]
+    pub(crate) fn segments(&self) -> [Range<I>; SEGMENTS] {
+        core::array::from_fn(|index| self.post(index)..self.post(index + 1))
     }
 
     /// Returns the per-segment lengths: the bucket histogram.
     #[must_use]
-    pub(crate) const fn lengths(&self) -> [u64; Self::SEGMENTS] {
-        let mut lengths = [0_u64; Self::SEGMENTS];
+    pub(crate) fn lengths(&self) -> [u64; SEGMENTS] {
+        let mut lengths = [0_u64; SEGMENTS];
 
-        let mut index = 0;
-        while index < Self::SEGMENTS {
-            lengths[index] = self.0[index + 1] - self.0[index];
-            index += 1;
+        for (index, length) in lengths.iter_mut().enumerate() {
+            *length = self.0[index + 1].get() - self.0[index].get();
         }
 
         lengths
-    }
-
-    /// Borrows the raw fencepost positions.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn posts(&self) -> &[u64; Self::POSTS] {
-        &self.0
     }
 }
 
@@ -261,7 +324,7 @@ pub struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     stride: U32<LE>,
-    fenceposts: [U64<LE>; Fenceposts::POSTS],
+    fenceposts: [U64<LE>; POSTS],
     padding: [u8; Self::PADDING],
 }
 
@@ -272,20 +335,14 @@ impl FileHeader {
 
     /// Creates a header for `fenceposts`-segmented codes indexed every `stride` codes.
     #[must_use]
-    pub(crate) const fn new(stride: u32, fenceposts: &Fenceposts) -> Self {
-        let posts = fenceposts.posts();
-        let mut wire = [U64::new(0); Fenceposts::POSTS];
-        let mut index = 0;
-        while index < Fenceposts::POSTS {
-            wire[index] = U64::new(posts[index]);
-            index += 1;
-        }
+    pub(crate) const fn new<I>(stride: u32, fenceposts: Fenceposts<I>) -> Self {
+        let posts = fenceposts.into_raw();
 
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
             version: Unalign::new(Version::V1),
             stride: U32::new(stride),
-            fenceposts: wire,
+            fenceposts: posts,
             padding: [0; Self::PADDING],
         }
     }
@@ -301,23 +358,19 @@ impl FileHeader {
     #[inline]
     #[must_use]
     pub(crate) const fn count(&self) -> u64 {
-        self.fenceposts[Fenceposts::POSTS - 1].get()
+        self.fenceposts[POSTS - 1].get()
     }
 
-    /// Returns the raw fencepost positions, unvalidated.
+    /// Views the header's fenceposts, validated.
     ///
-    /// The header parse pins magic and version only; the fencepost rules are [`Fenceposts::new`]'s
-    /// to check when a file opens.
-    #[must_use]
-    pub(crate) const fn posts(&self) -> [u64; Fenceposts::POSTS] {
-        let mut posts = [0_u64; Fenceposts::POSTS];
-        let mut index = 0;
-        while index < Fenceposts::POSTS {
-            posts[index] = self.fenceposts[index].get();
-            index += 1;
-        }
-
-        posts
+    /// The header parse pins magic and version only, so the structural rules are checked here,
+    /// where the posts are first read as a segmentation.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`FencepostError`] when the posts break a structural rule.
+    pub(crate) const fn posts<I: Id>(&self) -> Result<&Fenceposts<I>, FencepostError> {
+        Fenceposts::try_from_ref(&self.fenceposts)
     }
 
     /// Returns the number of index keys.

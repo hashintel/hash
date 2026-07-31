@@ -30,7 +30,9 @@
 use std::fs;
 
 use camino::Utf8PathBuf;
+use hashql_core::id::{Id as _, IdSlice};
 use serde_json::{Value, json};
+use zerocopy::{LE, U32};
 
 use super::{
     Kind, Mode,
@@ -42,7 +44,7 @@ use super::{
 };
 use crate::{
     dataset::ArchivedEntityId,
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
@@ -171,10 +173,10 @@ fn tile_sidecar(
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
     response.delivered.for_each(|position| {
-        let point = response.positions[position as usize];
+        let point = response.positions[position];
         positions_bits.push(point.x().to_bits());
         positions_bits.push(point.y().to_bits());
-        row_ids.push(response.rows[position as usize]);
+        row_ids.push(response.rows[position]);
     });
 
     let global = head.global.as_ref().map_or(Value::Null, |global| {
@@ -285,15 +287,16 @@ fn g1_minimal_tile() -> Fixture {
     let rows: Vec<WireRow<NodeRowId>> = (0..12)
         .map(|index| WireRow::pinned(3 * index + 7))
         .collect();
-    let ranges = [8_u32..11];
+    let ranges = [8_u32..11]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     // type 0: base positions 8 and 9 deliver; 3 and 11 lie outside
     // the run. type 1: dense representation, no delivered bit (bit 2
     // is outside the run). type 2: position 9, making point 9 the
     // multi-bit point (types 0 and 2). Point 10 matches nothing.
-    let t0 = [3_u32, 8, 9, 11];
-    let t1_dense = [1_u32 << 2];
-    let t2 = [9_u32];
+    let t0 = [3_u32, 8, 9, 11].map(BasePosition::from_u32);
+    let t1_dense = [1_u32 << 2].map(U32::<LE>::new);
+    let t2 = [9_u32].map(BasePosition::from_u32);
     let masks = [
         Membership::List(&t0),
         Membership::Dense(&t1_dense),
@@ -313,8 +316,8 @@ fn g1_minimal_tile() -> Fixture {
             children: 0b0100,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
         trailer: None,
     };
@@ -362,7 +365,8 @@ fn g2_root_tile() -> Fixture {
         .collect();
     // The root's runs are bucket fencepost differences; its delivered
     // set is one contiguous range.
-    let ranges = [0_u32..3];
+    let ranges = [0_u32..3]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     let response = TileResponse {
         head: TileHead {
@@ -381,8 +385,8 @@ fn g2_root_tile() -> Fixture {
             children: 0b1111,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: None,
         trailer: None,
     };
@@ -423,15 +427,16 @@ fn g3_total_tile() -> Fixture {
     // Buckets 0..=3: one contiguous base slice each, the second
     // empty. Base positions 2, 3, and 7 belong to no run and never
     // deliver.
-    let ranges = [0_u32..1, 1..1, 4..7, 8..10];
+    let ranges = [0_u32..1, 1..1, 4..7, 8..10]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     // Nine types: stride 2, type 8's bit lands in the second byte.
-    let t0 = [0_u32, 5, 9];
-    let t1_dense = [(1_u32 << 5) | (1 << 3)];
-    let t3 = [4_u32];
-    let t7 = [6_u32, 8];
-    let t8 = [9_u32];
-    let empty: [u32; 0] = [];
+    let t0 = [0_u32, 5, 9].map(BasePosition::from_u32);
+    let t1_dense = [(1_u32 << 5) | (1 << 3)].map(U32::<LE>::new);
+    let t3 = [4_u32].map(BasePosition::from_u32);
+    let t7 = [6_u32, 8].map(BasePosition::from_u32);
+    let t8 = [9_u32].map(BasePosition::from_u32);
+    let empty: [BasePosition; 0] = [];
     let masks = [
         Membership::List(&t0),
         Membership::Dense(&t1_dense),
@@ -457,8 +462,8 @@ fn g3_total_tile() -> Fixture {
             children: 0,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
         trailer: None,
     };
@@ -514,8 +519,8 @@ fn g4_empty_root() -> Fixture {
             children: 0,
         },
         delivered: DeliveredSet::Ranges(&[]),
-        positions: &[],
-        rows: &[],
+        positions: IdSlice::from_raw(&[]),
+        rows: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     };
@@ -553,7 +558,8 @@ fn g5_trailer_tile() -> Fixture {
     let rows: Vec<WireRow<NodeRowId>> = (0..8)
         .map(|index| WireRow::pinned(11 * index + 5))
         .collect();
-    let ranges = [2_u32..6];
+    let ranges = [2_u32..6]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     let labels = [
         Some("Z\u{fc}rich"),
@@ -576,8 +582,8 @@ fn g5_trailer_tile() -> Fixture {
             children: 0b0101,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: None,
         trailer: Some(TileTrailer {
             labels: &labels,
@@ -692,13 +698,13 @@ fn g7_locate() -> Fixture {
     // row id per the delivery pin: rows 61, then 11 < 21 < 41 -
     // the fixture conforms to the ratified order, not just the
     // envelope structure.
-    let delivered = [6_u32, 1, 2, 4];
+    let delivered = [6_u32, 1, 2, 4].map(BasePosition::from_u32);
 
     // type 0: list members at 1 and 6; type 1: dense bit at 4 over
     // N = 8 (one word). Delivered order 6, 1, 2, 4:
     // t0 | t0 | none | t1.
-    let t0 = [1_u32, 6];
-    let t1_dense = [1_u32 << 4];
+    let t0 = [1_u32, 6].map(BasePosition::from_u32);
+    let t1_dense = [1_u32 << 4].map(U32::<LE>::new);
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
     let type_table = [
@@ -749,8 +755,8 @@ fn g7_locate() -> Fixture {
         type_ids_complete: true,
         properties_complete: false,
         delivered: &delivered,
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
         sources: &[61, 41, 21].map(WireRow::pinned),
         targets: &[11, 61, 41].map(WireRow::pinned),
@@ -827,10 +833,10 @@ fn locate_sidecar(
     let mut positions_bits = Vec::new();
     let mut row_ids = Vec::new();
     for &position in response.delivered {
-        let point = response.positions[position as usize];
+        let point = response.positions[position];
         positions_bits.push(point.x().to_bits());
         positions_bits.push(point.y().to_bits());
-        row_ids.push(response.rows[position as usize]);
+        row_ids.push(response.rows[position]);
     }
 
     let trailer = &response.trailer;
@@ -913,7 +919,8 @@ fn g8_appended_slot() -> Fixture {
         .collect();
     let rows: Vec<WireRow<NodeRowId>> =
         (0..6).map(|index| WireRow::pinned(2 * index + 1)).collect();
-    let ranges = [2_u32..5];
+    let ranges = [2_u32..5]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     let response = TileResponse {
         head: TileHead {
@@ -928,8 +935,8 @@ fn g8_appended_slot() -> Fixture {
             children: 0b0001,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: None,
         trailer: None,
     };
@@ -985,12 +992,13 @@ fn g9_padding_low() -> Fixture {
     let rows: Vec<WireRow<NodeRowId>> = (0..10)
         .map(|index| WireRow::pinned(5 * index + 2))
         .collect();
-    let ranges = [3_u32..8];
+    let ranges = [3_u32..8]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     // Three types, stride 1: five mask bytes pad with 3.
-    let t0 = [3_u32, 6];
-    let t1 = [4_u32, 5, 6];
-    let empty: [u32; 0] = [];
+    let t0 = [3_u32, 6].map(BasePosition::from_u32);
+    let t1 = [4_u32, 5, 6].map(BasePosition::from_u32);
+    let empty: [BasePosition; 0] = [];
     let masks = [
         Membership::List(&t0),
         Membership::List(&t1),
@@ -1017,8 +1025,8 @@ fn g9_padding_low() -> Fixture {
             children: 0b0011,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
         trailer: None,
     };
@@ -1062,10 +1070,11 @@ fn g10_padding_high() -> Fixture {
         })
         .collect();
     let rows: Vec<WireRow<NodeRowId>> = (0..6).map(|index| WireRow::pinned(13 * index)).collect();
-    let ranges = [1_u32..4];
+    let ranges = [1_u32..4]
+        .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     // One type, stride 1: three mask bytes pad with 5.
-    let t0 = [2_u32, 3];
+    let t0 = [2_u32, 3].map(BasePosition::from_u32);
     let masks = [Membership::List(&t0)];
 
     let response = TileResponse {
@@ -1088,8 +1097,8 @@ fn g10_padding_high() -> Fixture {
             children: 0b1000,
         },
         delivered: DeliveredSet::Ranges(&ranges),
-        positions: &positions,
-        rows: &rows,
+        positions: IdSlice::from_raw(&positions),
+        rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
         trailer: None,
     };

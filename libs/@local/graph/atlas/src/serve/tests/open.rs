@@ -141,15 +141,36 @@ fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
 /// multiple of 32. A fixture that widened across that boundary would be refused by the postings
 /// contract under its own name, which the caller's variant assertion reports rather than absorbs.
 fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
-    // The mapping ends before the rewrite: the file backs the slices read here.
+    // The mapping ends before the rewrite: the file backs the slices read here. The writer
+    // speaks native build words, so the copies decode the mapped little-endian regions.
     let (flags, membership_posts, entries, parent_posts, parent_ids) = {
         let postings = PostingsFile::open(path).expect("the published postings artifact opens");
         (
-            postings.flags().to_vec(),
-            postings.membership_posts().to_vec(),
-            postings.entries().to_vec(),
-            postings.parent_posts().to_vec(),
-            postings.parent_ids().to_vec(),
+            postings
+                .flags()
+                .iter()
+                .map(|word| word.get())
+                .collect::<Vec<_>>(),
+            postings
+                .membership_posts()
+                .iter()
+                .map(|post| post.get())
+                .collect::<Vec<_>>(),
+            postings
+                .entries()
+                .iter()
+                .map(|entry| entry.get())
+                .collect::<Vec<_>>(),
+            postings
+                .parent_posts()
+                .iter()
+                .map(|post| post.get())
+                .collect::<Vec<_>>(),
+            postings
+                .parent_ids()
+                .iter()
+                .map(|id| id.get())
+                .collect::<Vec<_>>(),
         )
     };
 
@@ -170,17 +191,19 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
     file.flush().expect("the postings artifact flushes");
 }
 
-/// Rewrites a `u32` column with `rows` ascending values.
+/// Rewrites a little-endian `u32` column with `rows` ascending values.
 ///
 /// The values do not matter to the check under test - `open` compares lengths - and ascending
 /// keeps the file a plausible permutation prefix rather than a shape no producer would write.
 fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
     let file = std::fs::File::create(path).expect("the column artifact rewrites");
-    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32, &[Dim::new(rows)])
+    let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
         .expect("the header writes");
     for row in 0..rows {
         let value = u32::try_from(row).expect("fixture rows fit u32");
-        writer.write_row(value.as_bytes()).expect("the row writes");
+        writer
+            .write_row(&value.to_le_bytes())
+            .expect("the row writes");
     }
     writer.finish().expect("the column seals");
 }
@@ -216,7 +239,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     // below is its tamper's.
     let atlas = open().expect("the published fixture opens");
     let nodes = atlas.row_ids().len() as u64;
-    let endpoints = atlas.endpoint_pairs().to_vec();
+    let endpoints = atlas.endpoint_pairs().as_raw().to_vec();
     let edges = endpoints.len() as u64;
     drop(atlas);
 

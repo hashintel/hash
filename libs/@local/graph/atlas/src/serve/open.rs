@@ -27,7 +27,7 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
-    identity::{Column, Element, NodeRowId},
+    identity::{BasePosition, Column, EdgeRowId, Element, ImportanceRank, NodeRowId},
     math::{Bounds2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -90,15 +90,15 @@ impl Atlas {
 
         let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
         let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
-        let points: Column<Vec2> =
+        let points: Column<BasePosition, Vec2> =
             open_column(&generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
-        let rows: Column<NodeRowId> =
+        let rows: Column<BasePosition, NodeRowId> =
             open_column(&generation, &files.row_of_position, ArrayKind::Rows)?;
-        let endpoints: Column<[NodeRowId; 2]> =
+        let endpoints: Column<EdgeRowId, [NodeRowId; 2]> =
             open_column(&generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
-        let ranks: Column<u32> =
+        let ranks: Column<BasePosition, ImportanceRank> =
             open_column(&generation, &files.rank_of_position, ArrayKind::Ranks)?;
-        let positions_of_row: Column<u32> =
+        let positions_of_row: Column<NodeRowId, BasePosition> =
             open_column(&generation, &files.position_of_row, ArrayKind::Positions)?;
         let adjacency =
             AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
@@ -227,11 +227,11 @@ impl Atlas {
 /// Opens one array artifact as its serving role's typed column.
 ///
 /// Every failure names the role: the open error and the shape error alike carry `kind`.
-fn open_column<T: Element>(
+fn open_column<I: Id, T: Element>(
     generation: &Generation,
     file: &RepositoryFile,
     kind: ArrayKind,
-) -> Result<Column<T>, OpenAtlasError> {
+) -> Result<Column<I, T>, OpenAtlasError> {
     let array = ArrayFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 

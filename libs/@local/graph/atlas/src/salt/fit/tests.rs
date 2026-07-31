@@ -671,7 +671,10 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
     assert_eq!(members(0) + members(1), NODES as u64);
     assert_eq!(members(2), 0, "the link type marks no node");
     assert_eq!(postings.parents(OntologyRowId::new(0)), Some(&[][..]));
-    assert_eq!(postings.parents(OntologyRowId::new(2)), Some(&[0_u32][..]));
+    assert_eq!(
+        postings.parents(OntologyRowId::new(2)),
+        Some(&[OntologyRowId::new(0)][..]),
+    );
 
     let evidence = &repository.metadata.evidence.postings;
     assert_eq!(evidence.types, 3);

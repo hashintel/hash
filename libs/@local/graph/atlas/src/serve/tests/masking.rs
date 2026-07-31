@@ -143,7 +143,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
             .positions
             .iter()
             .flat_map(|&position| {
-                let point = wire_points[position as usize];
+                let point = wire_points[BasePosition::from_u32(position)];
                 let mut bytes = point.x().to_le_bytes().to_vec();
                 bytes.extend_from_slice(&point.y().to_le_bytes());
                 bytes
@@ -162,7 +162,9 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let _row_ids = rows.u32_elements().expect("the row column is u32");
+    let _row_ids = rows
+        .u64_le_elements()
+        .expect("the row column is little-endian u64 rows");
     let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
     let mut nodes = Vec::new();
     walk(&quad, 0, root_cell, &mut nodes);
@@ -189,8 +191,8 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
             children: 0,
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
-        positions: points,
-        rows: &[],
+        positions: IdSlice::from_raw(points),
+        rows: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     }
@@ -960,9 +962,9 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
         coordinates, rows, ..
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let row_ids = fixture_row_ids(&rows);
 
-    let (corpus, hidden) = extremes(points, row_ids);
+    let (corpus, hidden) = extremes(points, &row_ids);
     assert!(
         !hidden.is_empty() && hidden.len() < points.len(),
         "the mask hides the extremes and leaves a non-empty view"
@@ -1094,7 +1096,7 @@ async fn the_unmasked_census_agrees_with_the_walked_one() {
 async fn a_masked_root_publishes_the_views_own_depth() {
     let (generation, atlas) = publish("masked-depth").await;
     let Artifacts { morton, rows, .. } = open_artifacts(&generation);
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let row_ids = fixture_row_ids(&rows);
     let lengths = morton.fenceposts().lengths();
 
     // The generation's deepest occupied bucket, and the positions inside it.

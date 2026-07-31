@@ -20,11 +20,11 @@ use alloc::sync::Arc;
 use core::{cmp::Ordering, ops::Range};
 use std::sync::OnceLock;
 
-use hashql_core::id::{Id as _, IdArray, IdSlice};
+use hashql_core::id::{Id as _, IdArray, IdSlice, IdVec};
 
 use super::grid::Grid;
 use crate::{
-    identity::BasePosition,
+    identity::{BasePosition, ImportanceRank},
     morton::{Depth, MortonCell, MortonKey},
     salt::lod::{cascade, rank::Ranking},
     serve::{Atlas, VisibilityProof, density::CutOffset},
@@ -37,6 +37,16 @@ hashql_core::id::newtype! {
     /// and, within a bucket, by `(key, rank)`. A slot is valid only against the schedule that
     /// assigned it: two views, or one view under two proofs, share no slot vocabulary.
     pub struct ScopeSlot(u32)
+}
+
+hashql_core::id::newtype! {
+    /// A visible row's ordinal in one scope's gather order.
+    ///
+    /// The cascade's local row domain, private to one schedule build: ordinals ascend by base
+    /// position over the view. The gather order and the
+    /// slot order are two permutations of the same visible rows, exactly as rows and base
+    /// positions are at corpus level.
+    struct ViewOrdinal(u32)
 }
 
 hashql_core::id::newtype! {
@@ -104,7 +114,7 @@ pub(crate) struct ScopeRow {
     /// The row's Morton key, quantized from the delivered coordinate column.
     pub key: MortonKey,
     /// The row's corpus importance rank; its order restricted to the view ranks the view.
-    pub rank: u32,
+    pub rank: ImportanceRank,
 }
 
 /// One slot of the schedule: a visible row with its natural cascade bucket.
@@ -197,20 +207,18 @@ impl ScopeSchedule {
     /// One pass over the base columns gathers each admitted row's position, pinned key, and
     /// pinned rank; [`Self::over`] assigns the buckets.
     pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
-        let count = u32::try_from(atlas.morton.count())
-            .expect("open validated the point count against the u32 domain");
         let row_ids = atlas.rows.view();
         let ranks = atlas.ranks.view();
 
         let visible = usize::try_from(proof.visible_below(atlas.morton.count()))
             .expect("a visible row count fits usize");
         let mut rows = Vec::with_capacity(visible);
-        for position in 0..count {
-            if proof.contains(row_ids[position as usize]) {
+        for (position, &row) in row_ids.iter_enumerated() {
+            if proof.contains(row) {
                 rows.push(ScopeRow {
-                    position: BasePosition::from_u32(position),
-                    key: atlas.morton.code(u64::from(position)),
-                    rank: ranks[position as usize],
+                    position,
+                    key: atlas.morton.code(position),
+                    rank: ranks[position],
                 });
             }
         }
@@ -226,30 +234,33 @@ impl ScopeSchedule {
     /// corpus catch-all takes them. An empty view builds an empty schedule, which delivers
     /// nothing and occupies no cell at any depth.
     pub(crate) fn over(rows: Vec<ScopeRow>) -> Self {
-        let count = u32::try_from(rows.len()).expect("view row counts fit the u32 row encoding");
+        // The cascade claims cells in ascending restricted rank; the gather order is the local
+        // row domain.
+        let rows: IdVec<ViewOrdinal, ScopeRow> = IdVec::from_raw(rows);
+        let keys: IdVec<ViewOrdinal, MortonKey> = rows.iter().map(|row| row.key).collect();
 
-        // The cascade claims cells in ascending restricted rank; a local index i names rows[i].
-        let keys: Vec<MortonKey> = rows.iter().map(|row| row.key).collect();
-        let mut row_of_rank: Vec<u32> = (0..count).collect();
-        row_of_rank.sort_unstable_by_key(|&local| rows[local as usize].rank);
-        let mut rank_of_row = vec![0_u32; rows.len()];
-        for (rank, &local) in row_of_rank.iter().enumerate() {
-            rank_of_row[local as usize] =
-                u32::try_from(rank).expect("view row counts fit the u32 row encoding");
+        let mut row_of_rank: IdVec<ImportanceRank, ViewOrdinal> = rows.as_slice().ids().collect();
+        row_of_rank.sort_unstable_by_key(|&local| rows[local].rank);
+
+        let mut rank_of_row =
+            IdVec::<ViewOrdinal, ImportanceRank>::from_elem(ImportanceRank::MIN, rows.len());
+
+        for (rank, &local) in row_of_rank.iter_enumerated() {
+            rank_of_row[local] = rank;
         }
         let ranking = Ranking {
             row_of_rank: row_of_rank.into_boxed_slice(),
             rank_of_row: rank_of_row.into_boxed_slice(),
         };
 
-        let buckets = cascade::buckets(&keys, &ranking, Depth::MAX);
+        let buckets = cascade::buckets(keys.as_slice(), &ranking, Depth::MAX);
 
         // Slot order: bucket-major, ascending key within a bucket, rank breaking exact-key
         // ties. One sorted column carries the whole schedule.
         let mut slots: Vec<SlottedRow> = rows
             .into_iter()
-            .zip(buckets)
-            .map(|(row, bucket)| SlottedRow { bucket, row })
+            .zip(&*buckets)
+            .map(|(row, &bucket)| SlottedRow { bucket, row })
             .collect();
         slots.sort_unstable_by_key(|slot| (slot.bucket, slot.row.key, slot.row.rank));
 

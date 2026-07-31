@@ -8,6 +8,8 @@
 
 use std::io;
 
+use hashql_core::id::{IdSlice, IdVec};
+
 use super::{
     cascade, key,
     order::BaseOrder,
@@ -17,10 +19,11 @@ use crate::{
     file::{
         WriteInto,
         morton::{
-            Fenceposts,
+            Fenceposts, SEGMENTS,
             write::{PAGE_STRIDE, write_regions},
         },
     },
+    identity::{BasePosition, ImportanceRank, NodeRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonKey},
@@ -124,7 +127,7 @@ pub(crate) struct LodMeasurements {
     /// The world frame the wire coordinates were normalized from.
     pub world: Bounds2,
     /// Points per bucket; the tail calibrates `max_tile_depth`.
-    pub bucket_histogram: [u64; Fenceposts::SEGMENTS],
+    pub bucket_histogram: [u64; SEGMENTS],
     /// Points in the deepest bucket.
     ///
     /// The co-located residue plus the deepest grid's regular claims.
@@ -146,7 +149,7 @@ pub(crate) struct LodMeasurements {
 /// column with its bucket fenceposts, the rank column, and the row permutations. The
 /// [`measurements`](Self::measurements) is measured from the finished columns and belongs in the
 /// generation's metadata document.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct Lod {
     /// The world frame the coordinates were normalized from.
     ///
@@ -156,21 +159,21 @@ pub(crate) struct Lod {
     /// Wire coordinates in base order: the canonical coordinates normalized into the wire frame.
     ///
     /// This column is the wire.
-    pub coordinates: Box<[Vec2]>,
+    pub coordinates: Box<IdSlice<BasePosition, Vec2>>,
     /// Morton codes in base order, segmented by [`Self::fenceposts`].
-    pub codes: Box<[MortonKey]>,
+    pub codes: Box<IdSlice<BasePosition, MortonKey>>,
     /// The bucket segmentation of every base-ordered column.
-    pub fenceposts: Fenceposts,
+    pub fenceposts: Fenceposts<BasePosition>,
     /// Each base position's importance rank.
-    pub rank_of_position: Box<[u32]>,
+    pub rank_of_position: Box<IdSlice<BasePosition, ImportanceRank>>,
     /// Each rank's base position: the traversal order of filter registration.
-    pub position_of_rank: Box<[u32]>,
+    pub position_of_rank: Box<IdSlice<ImportanceRank, BasePosition>>,
     /// Each row's base position: the permutation the filter contract maps entity bitmaps through.
-    pub position_of_row: Box<[u32]>,
+    pub position_of_row: Box<IdSlice<NodeRowId, BasePosition>>,
     /// Each base position's row.
     ///
     /// The gather order that assembles any further row-aligned column into base order.
-    pub row_of_position: Box<[u32]>,
+    pub row_of_position: Box<IdSlice<BasePosition, NodeRowId>>,
 }
 
 impl Lod {
@@ -206,38 +209,38 @@ impl Lod {
         }
 
         let world = Bounds2::from_slice_par(coordinates).ok_or(LodError::Frame)?;
-        let wire = world.normalize_into(WIRE_FRAME, coordinates);
+        let normalized = world.normalize_into(WIRE_FRAME, coordinates);
 
-        let keys = key::keys(&wire, WIRE_FRAME);
+        let keys = key::keys(&normalized, WIRE_FRAME);
+        let wire = IdSlice::<NodeRowId, Vec2>::from_raw(&normalized);
+        let keyed = IdSlice::<NodeRowId, MortonKey>::from_raw(&keys);
+
         let ranking = Ranking::new(inputs, seed);
-        let buckets = cascade::buckets(&keys, &ranking, deepest);
-        let order = BaseOrder::new(&keys, &buckets, &ranking);
+
+        let buckets = cascade::buckets(keyed, &ranking, deepest);
+        let order = BaseOrder::new(keyed, &buckets, &ranking);
 
         // row_of_position is the gather order: walking it assembles any
         // row-ordered column into base delivery order. Each gather is an
         // index swizzle whose element work is one copy, so parallelism
         // pays per column, not per element; position_of_rank composes
         // the permutations - a rank's row, then that row's base position.
+        let mut coordinates = IdVec::<BasePosition, Vec2>::new();
+        let mut codes = IdVec::<BasePosition, MortonKey>::new();
 
-        let mut coordinates: Vec<Vec2> = Vec::new();
-        let mut codes: Vec<MortonKey> = Vec::new();
-        let mut rank_of_position: Vec<u32> = Vec::new();
-        let mut position_of_rank: Vec<u32> = Vec::new();
+        let mut rank_of_position = IdVec::<BasePosition, ImportanceRank>::new();
+        let mut position_of_rank = IdVec::<ImportanceRank, BasePosition>::new();
 
         rayon::scope(|scope| {
             scope.spawn(|_scope| {
-                coordinates = order
-                    .row_of_position
-                    .iter()
-                    .map(|&row| wire[row as usize])
-                    .collect();
+                coordinates = order.row_of_position.iter().map(|&row| wire[row]).collect();
             });
 
             scope.spawn(|_scope| {
                 codes = order
                     .row_of_position
                     .iter()
-                    .map(|&row| keys[row as usize])
+                    .map(|&row| keyed[row])
                     .collect();
             });
 
@@ -245,7 +248,7 @@ impl Lod {
                 rank_of_position = order
                     .row_of_position
                     .iter()
-                    .map(|&row| ranking.rank_of_row[row as usize])
+                    .map(|&row| ranking.rank_of_row[row])
                     .collect();
             });
 
@@ -253,13 +256,13 @@ impl Lod {
                 position_of_rank = ranking
                     .row_of_rank
                     .iter()
-                    .map(|&row| order.position_of_row[row as usize])
+                    .map(|&row| order.position_of_row[row])
                     .collect();
             });
         });
 
-        let mut lengths = [0_u64; Fenceposts::SEGMENTS];
-        for &bucket in &buckets {
+        let mut lengths = [0_u64; SEGMENTS];
+        for &bucket in buckets.iter() {
             lengths[bucket.get() as usize] += 1;
         }
         let fenceposts =
@@ -315,7 +318,7 @@ impl Lod {
 
         LodMeasurements {
             world: self.world,
-            bucket_histogram: self.fenceposts.lengths(),
+            bucket_histogram: self.fenceposts.lengths().map(u64::from),
             catch_all_population,
             co_location_excess,
             max_tile_delta,
@@ -323,10 +326,11 @@ impl Lod {
     }
 
     /// Borrows one bucket's slice of the code column.
+    ///
+    /// The returned slice re-bases at the segment, so its indices are bucket offsets rather than
+    /// base positions. The helpers scanning it consume values alone.
     fn segment_codes(&self, bucket: Depth) -> &[MortonKey] {
-        let segment = self.fenceposts.segment(bucket);
-        &self.codes[usize::try_from(segment.start).expect("resident columns fit the address space")
-            ..usize::try_from(segment.end).expect("resident columns fit the address space")]
+        &self.codes[self.fenceposts.segment(bucket)]
     }
 }
 
@@ -336,7 +340,7 @@ impl Lod {
 /// page-filling index stride.
 pub(crate) struct MortonColumn<'lod> {
     /// The bucket segmentation of the code column.
-    pub fenceposts: &'lod Fenceposts,
+    pub fenceposts: &'lod Fenceposts<BasePosition>,
     /// Morton codes in base order, segmented by `fenceposts`.
     pub codes: &'lod [MortonKey],
 }

@@ -339,6 +339,7 @@ fn envelope_directory_laws(
 
 mod tile {
     use hashql_core::id::{Id as _, IdSlice};
+    use zerocopy::{LE, U32};
 
     use super::{
         BasePosition, Bounds2, DeliveredSet, GlobalHead, Membership, Mode, NodeRowId, Sha256Digest,
@@ -485,11 +486,11 @@ mod tile {
 
         // type 0: list members at 5 and 20 (33 lies outside the base
         // domain of any range and is never consulted).
-        let list = [5_u32, 20, 33];
+        let list = [5_u32, 20, 33].map(BasePosition::from_u32);
         // type 1: dense bits at 4 and 21 over N = 22 (one word).
-        let dense = [(1_u32 << 4) | (1 << 21)];
+        let dense = [(1_u32 << 4) | (1 << 21)].map(U32::<LE>::new);
         // type 2: no members.
-        let empty: [u32; 0] = [];
+        let empty: [BasePosition; 0] = [];
         let masks = [
             Membership::List(&list),
             Membership::Dense(&dense),
@@ -518,9 +519,9 @@ mod tile {
             .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         // Nine types: stride 2. Type 8's bit is byte 1, bit 0.
-        let low = [0_u32, 2];
-        let high = [2_u32];
-        let empty: [u32; 0] = [];
+        let low = [0_u32, 2].map(BasePosition::from_u32);
+        let high = [2_u32].map(BasePosition::from_u32);
+        let empty: [BasePosition; 0] = [];
         let masks = [
             Membership::List(&low),
             Membership::List(&empty),
@@ -552,9 +553,9 @@ mod tile {
         // ascending corpus buckets, so its list ascends in base position.
         let delivered = [4_u32, 5, 6, 20, 21].map(BasePosition::from_u32);
 
-        let list = [5_u32, 20, 33];
-        let dense = [(1_u32 << 4) | (1 << 21)];
-        let empty: [u32; 0] = [];
+        let list = [5_u32, 20, 33].map(BasePosition::from_u32);
+        let dense = [(1_u32 << 4) | (1 << 21)].map(U32::<LE>::new);
+        let empty: [BasePosition; 0] = [];
         let masks = [
             Membership::List(&list),
             Membership::Dense(&dense),
@@ -595,11 +596,11 @@ mod tile {
             (0..22_u32).map(|row| WireRow::pinned(100 + row)).collect();
 
         // type 0: 5 and 20 (33 lies outside the base domain and is never consulted).
-        let list = [5_u32, 20, 33];
+        let list = [5_u32, 20, 33].map(BasePosition::from_u32);
         // type 1: dense bits at 4, 20 and 21 over N = 22 (one word).
-        let dense = [(1_u32 << 4) | (1 << 20) | (1 << 21)];
+        let dense = [(1_u32 << 4) | (1 << 20) | (1 << 21)].map(U32::<LE>::new);
         // type 2: 6 and 21.
-        let third = [6_u32, 21];
+        let third = [6_u32, 21].map(BasePosition::from_u32);
         let masks = [
             Membership::List(&list),
             Membership::Dense(&dense),
@@ -889,6 +890,7 @@ mod edges {
 
 mod locate {
     use hashql_core::id::{Id as _, IdSlice};
+    use zerocopy::{LE, U32};
 
     use super::{
         BasePosition, LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest,
@@ -1028,8 +1030,8 @@ mod locate {
         let positions = points();
         // type 0: list members at base positions 0 and 2; type 1:
         // dense bit at 3 over N = 4 (one word).
-        let list = [0_u32, 2];
-        let dense = [1_u32 << 3];
+        let list = [0_u32, 2].map(BasePosition::from_u32);
+        let dense = [1_u32 << 3].map(U32::<LE>::new);
         let masks = [Membership::List(&list), Membership::Dense(&dense)];
 
         let mut response = minimal(&positions);

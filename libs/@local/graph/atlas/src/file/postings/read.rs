@@ -4,7 +4,7 @@ use core::{error::Error, fmt};
 use std::{io, path::Path};
 
 use zerocopy::{
-    FromBytes as _, TryFromBytes as _,
+    FromBytes as _, LE, TryFromBytes as _, U32, U64,
     error::{ConvertError, ValidityError},
 };
 
@@ -148,7 +148,7 @@ impl PostingsFile {
     ///
     /// `ceil(T/64)` words, LSB-first, bit `t` set when type `t`'s membership run is a dense bitmap.
     #[must_use]
-    pub(crate) fn flags(&self) -> &[u64] {
+    pub(crate) fn flags(&self) -> &[U64<LE>] {
         // The offsets and products in the region reads repeat checked
         // computations open already accepted, so none of them can
         // overflow here.
@@ -157,12 +157,12 @@ impl PostingsFile {
             self.header().flags_words() * size_of::<u64>() as u64,
         );
 
-        <[u64]>::ref_from_bytes(bytes).expect("open validated the region size and alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Views the `T + 1` membership fenceposts, in entry counts.
     #[must_use]
-    pub(crate) fn membership_posts(&self) -> &[u64] {
+    pub(crate) fn membership_posts(&self) -> &[U64<LE>] {
         let bytes = self.map.region(
             self.header()
                 .membership_posts_offset()
@@ -170,12 +170,12 @@ impl PostingsFile {
             self.posts_bytes(),
         );
 
-        <[u64]>::ref_from_bytes(bytes).expect("open validated the region size and alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Views the `T + 1` parent fenceposts, in id counts.
     #[must_use]
-    pub(crate) fn parent_posts(&self) -> &[u64] {
+    pub(crate) fn parent_posts(&self) -> &[U64<LE>] {
         let bytes = self.map.region(
             self.header()
                 .parent_posts_offset()
@@ -183,25 +183,25 @@ impl PostingsFile {
             self.posts_bytes(),
         );
 
-        <[u64]>::ref_from_bytes(bytes).expect("open validated the region size and alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Views the `P` parent ids, type-major.
     #[must_use]
-    pub(crate) fn parent_ids(&self) -> &[u32] {
+    pub(crate) fn parent_ids(&self) -> &[U64<LE>] {
         let bytes = self.map.region(
             self.header()
                 .parent_ids_offset()
                 .expect("open validated the geometry"),
-            self.header().parent_edges() * size_of::<u32>() as u64,
+            self.header().parent_edges() * size_of::<u64>() as u64,
         );
 
-        <[u32]>::ref_from_bytes(bytes).expect("open validated the region size and alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Views the `M` membership entries, type-major.
     #[must_use]
-    pub(crate) fn entries(&self) -> &[u32] {
+    pub(crate) fn entries(&self) -> &[U32<LE>] {
         let bytes = self.map.region(
             self.header()
                 .entries_offset()
@@ -209,7 +209,7 @@ impl PostingsFile {
             self.header().entries() * size_of::<u32>() as u64,
         );
 
-        <[u32]>::ref_from_bytes(bytes).expect("open validated the region size and alignment")
+        <[U32<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
     /// Returns the byte size of one fencepost region.

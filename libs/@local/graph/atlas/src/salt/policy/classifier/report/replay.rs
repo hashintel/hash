@@ -17,6 +17,7 @@
 //! the diagnosis.
 
 use camino::Utf8Path;
+use hashql_core::id::IdSlice;
 
 use super::super::fit::{FitConfig, TrainingRow};
 use crate::{
@@ -25,6 +26,7 @@ use crate::{
         array::ArrayFile,
         generation::{GenerationId, GenerationRoot},
     },
+    identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedVecN, VecN},
     progress::NoProgress,
@@ -292,17 +294,22 @@ pub(crate) struct Reconstructed {
 
 impl Reconstructed {
     /// The trained prefix of the embedding table.
-    pub(crate) fn trained_embeddings(&self) -> &[AlignedVecN<CANONICAL_DIMENSIONS>] {
-        &self.corpus.table().rows()[..self.corpus.rows().len()]
+    ///
+    /// The trained rows lead the table, so the prefix keeps the corpus's card-row identities;
+    /// the pin claims that domain over the table's domain-neutral rows.
+    pub(crate) fn trained_embeddings(
+        &self,
+    ) -> &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> {
+        IdSlice::from_raw(self.corpus.table().rows()).prefix(self.corpus.rows().bound())
     }
 
     /// The labelled training rows.
-    pub(crate) const fn rows(&self) -> &[TrainingRow] {
+    pub(crate) const fn rows(&self) -> &IdSlice<CardRow, TrainingRow> {
         self.corpus.rows()
     }
 
     /// The card identities, row-aligned with [`rows`](Self::rows).
-    pub(crate) const fn identities(&self) -> &[CardIdentity] {
+    pub(crate) const fn identities(&self) -> &IdSlice<CardRow, CardIdentity> {
         self.corpus.identities()
     }
 }

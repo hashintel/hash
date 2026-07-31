@@ -3,8 +3,12 @@
 use core::ops::Range;
 
 use hashql_core::id::Id as _;
+use zerocopy::{FromBytes as _, IntoBytes as _, LE, U32, U64};
 
-use crate::{file::postings::read::PostingsFile, identity::OntologyRowId};
+use crate::{
+    file::postings::read::PostingsFile,
+    identity::{BasePosition, OntologyRowId},
+};
 
 /// An opened postings file does not hold a valid postings artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -99,7 +103,7 @@ impl PostingsArchive {
 
         if let Some(&last) = flags.last()
             && !types.is_multiple_of(u64::from(u64::BITS))
-            && last >> (types & u64::from(u64::BITS - 1)) != 0
+            && last.get() >> (types & u64::from(u64::BITS - 1)) != 0
         {
             return Err(InvalidPostingsFile::FlagsTail);
         }
@@ -117,15 +121,17 @@ impl PostingsArchive {
             let run = run_of(membership_posts, entries, type_row);
 
             if flags[usize::try_from(type_row >> 6).expect("flag words fit the address space")]
+                .get()
                 & (1 << (type_row & 63))
                 != 0
             {
                 if run.len() as u64 != dense_words {
                     return Err(InvalidPostingsFile::DenseLength { type_row });
                 }
+
                 if let Some(&last) = run.last()
                     && !points.is_multiple_of(u64::from(u32::BITS))
-                    && u64::from(last) >> (points & u64::from(u32::BITS - 1)) != 0
+                    && u64::from(last.get()) >> (points & u64::from(u32::BITS - 1)) != 0
                 {
                     return Err(InvalidPostingsFile::DenseTail { type_row });
                 }
@@ -133,7 +139,11 @@ impl PostingsArchive {
                 if !run.is_sorted_by(|previous, next| previous < next) {
                     return Err(InvalidPostingsFile::ListOrder { type_row });
                 }
-                if run.last().is_some_and(|&last| u64::from(last) >= points) {
+
+                if run
+                    .last()
+                    .is_some_and(|&last| u64::from(last.get()) >= points)
+                {
                     return Err(InvalidPostingsFile::ListDomain { type_row });
                 }
             }
@@ -145,7 +155,8 @@ impl PostingsArchive {
             if !list.is_sorted_by(|previous, next| previous < next) {
                 return Err(InvalidPostingsFile::ParentOrder { type_row });
             }
-            if list.last().is_some_and(|&last| u64::from(last) >= types) {
+
+            if list.last().is_some_and(|&last| last.get() >= types) {
                 return Err(InvalidPostingsFile::ParentDomain { type_row });
             }
         }
@@ -178,55 +189,65 @@ impl PostingsArchive {
         let run = run_of(self.file.membership_posts(), self.file.entries(), row);
         let dense = self.file.flags()
             [usize::try_from(row >> 6).expect("flag words fit the address space")]
+        .get()
             & (1 << (row & 63))
             != 0;
 
         Some(if dense {
             Membership::Dense(run)
         } else {
-            Membership::List(run)
+            // The same mapped words hold the list vocabulary: open validated the run as
+            // strictly ascending positions inside the point domain, and both sides of the
+            // reinterpretation carry the persisted little-endian form.
+            Membership::List(
+                <[BasePosition]>::ref_from_bytes(run.as_bytes())
+                    .expect("a little-endian word reinterprets as a little-endian position"),
+            )
         })
     }
 
     /// Returns `type_row`'s direct parent rows, strictly ascending, when the row is in domain.
     #[must_use]
-    pub(crate) fn parents(&self, type_row: OntologyRowId) -> Option<&[u32]> {
+    pub(crate) fn parents(&self, type_row: OntologyRowId) -> Option<&[OntologyRowId]> {
         let row = type_row.as_u64();
         if row >= self.file.types() {
             return None;
         }
 
-        Some(run_of(
-            self.file.parent_posts(),
-            self.file.parent_ids(),
-            row,
-        ))
+        let run = run_of(self.file.parent_posts(), self.file.parent_ids(), row);
+        // The same mapped words hold the row vocabulary: open validated the list as strictly
+        // ascending rows inside the type domain, and both sides of the reinterpretation carry
+        // the persisted little-endian form.
+        Some(
+            <[OntologyRowId]>::ref_from_bytes(run.as_bytes())
+                .expect("a little-endian word reinterprets as a little-endian row"),
+        )
     }
 }
 
 /// Borrows type `type_row`'s run of a fencepost-delimited array.
-fn run_of<'map>(posts: &[u64], values: &'map [u32], type_row: u64) -> &'map [u32] {
+fn run_of<'map, T>(posts: &[U64<LE>], values: &'map [T], type_row: u64) -> &'map [T] {
     let row = usize::try_from(type_row).expect("resident type domains fit usize");
-    let start = usize::try_from(posts[row]).expect("entries fit the address space");
-    let end = usize::try_from(posts[row + 1]).expect("entries fit the address space");
+    let start = usize::try_from(posts[row].get()).expect("entries fit the address space");
+    let end = usize::try_from(posts[row + 1].get()).expect("entries fit the address space");
 
     &values[start..end]
 }
 
 /// Checks one fencepost region: anchored at zero, non-decreasing, closing at the array length.
 fn validate_posts(
-    posts: &[u64],
+    posts: &[U64<LE>],
     close: u64,
     error: impl Fn(usize) -> InvalidPostingsFile,
 ) -> Result<(), InvalidPostingsFile> {
-    if posts.first() != Some(&0) {
+    if posts.first().map(|post| post.get()) != Some(0) {
         return Err(error(0));
     }
     if let Some(position) = (1..posts.len()).find(|&position| posts[position] < posts[position - 1])
     {
         return Err(error(position));
     }
-    if posts.last() != Some(&close) {
+    if posts.last().map(|post| post.get()) != Some(close) {
         return Err(error(posts.len() - 1));
     }
 
@@ -239,11 +260,12 @@ fn validate_posts(
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum Membership<'map> {
     /// Base positions, strictly ascending.
-    List(&'map [u32]),
+    List(&'map [BasePosition]),
     /// A dense bitmap over all `N` positions.
     ///
-    /// `ceil(N/32)` words, LSB-first - position `p` is bit `p & 31` of word `p >> 5`.
-    Dense(&'map [u32]),
+    /// `ceil(N/32)` little-endian words, LSB-first - position `p` is bit `p & 31` of word
+    /// `p >> 5`.
+    Dense(&'map [U32<LE>]),
 }
 
 impl Membership<'_> {
@@ -252,26 +274,40 @@ impl Membership<'_> {
     pub(crate) fn count(&self) -> u64 {
         match self {
             Self::List(positions) => positions.len() as u64,
-            Self::Dense(words) => words.iter().map(|&word| u64::from(word.count_ones())).sum(),
+            Self::Dense(words) => words
+                .iter()
+                .map(|&word| u64::from(word.get().count_ones()))
+                .sum(),
         }
     }
 
     /// Returns whether `position` is a member.
     #[must_use]
-    pub(crate) fn contains(&self, position: u32) -> bool {
+    pub(crate) fn contains(&self, position: BasePosition) -> bool {
         match self {
             Self::List(positions) => positions.binary_search(&position).is_ok(),
-            Self::Dense(words) => words
-                .get(position as usize >> 5)
-                .is_some_and(|&word| word & (1 << (position & 31)) != 0),
+            Self::Dense(words) => {
+                let position = position.as_u32();
+                words
+                    .get(position as usize >> 5)
+                    .is_some_and(|&word| word.get() & (1 << (position & 31)) != 0)
+            }
         }
     }
 
     /// Iterates the member positions inside `range`, ascending.
     ///
-    /// The shape a delivered run's mask column interleaves from. An inverted range is empty.
-    pub(crate) fn positions_in(&self, range: Range<u32>) -> MembershipPositions<'_> {
-        let range = range.start..range.end.max(range.start);
+    /// The shape a delivered run's mask column interleaves from.
+    ///
+    /// # Panics
+    ///
+    /// When the range is inverted: every caller holds an ascending range by construction.
+    pub(crate) fn positions_in(&self, range: Range<BasePosition>) -> MembershipPositions<'_> {
+        assert!(
+            range.start <= range.end,
+            "an inverted position range matches no delivered run",
+        );
+
         match *self {
             Self::List(positions) => {
                 let start = positions.partition_point(|&position| position < range.start);
@@ -280,8 +316,8 @@ impl Membership<'_> {
             }
             Self::Dense(words) => MembershipPositions::Dense {
                 words,
-                position: u64::from(range.start),
-                end: u64::from(range.end),
+                position: u64::from(range.start.as_u32()),
+                end: u64::from(range.end.as_u32()),
             },
         }
     }
@@ -291,22 +327,22 @@ impl Membership<'_> {
 #[derive(Debug)]
 pub(crate) enum MembershipPositions<'map> {
     /// The member slice of a list run.
-    List(core::slice::Iter<'map, u32>),
+    List(core::slice::Iter<'map, BasePosition>),
     /// A cursor over a dense run's bits.
     ///
     /// The cursor is `u64` so the word-boundary jump cannot overflow at the top of the `u32`
     /// position domain.
     Dense {
-        words: &'map [u32],
+        words: &'map [U32<LE>],
         position: u64,
         end: u64,
     },
 }
 
 impl Iterator for MembershipPositions<'_> {
-    type Item = u32;
+    type Item = BasePosition;
 
-    fn next(&mut self) -> Option<u32> {
+    fn next(&mut self) -> Option<BasePosition> {
         match self {
             Self::List(positions) => positions.next().copied(),
             Self::Dense {
@@ -316,14 +352,15 @@ impl Iterator for MembershipPositions<'_> {
             } => {
                 while *position < *end {
                     let word = words
-                        [usize::try_from(*position >> 5).expect("words fit the address space")];
+                        [usize::try_from(*position >> 5).expect("words fit the address space")]
+                    .get();
                     // Mask off the bits below the cursor, then jump to
                     // the next set bit inside this word, if any.
                     let masked = word & (u32::MAX << (*position & 31));
                     let next = (*position & !31) + u64::from(masked.trailing_zeros());
                     if masked != 0 && next < *end {
                         *position = next + 1;
-                        return Some(u32::try_from(next).expect("positions below the end fit u32"));
+                        return Some(BasePosition::from_u64(next));
                     }
                     if masked != 0 {
                         // The next set bit lies at or beyond the range.

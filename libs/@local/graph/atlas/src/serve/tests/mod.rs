@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 
 use camino::Utf8PathBuf;
 use futures::future::ready;
-use hashql_core::id::{Id as _, Id};
+use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -27,7 +27,7 @@ use super::{
 };
 use crate::{
     bitset::CompressedBitSet,
-    identity::{NodeRowId, OntologyRowId},
+    identity::{BasePosition, CardRow, NodeRowId, OntologyRowId},
 };
 
 mod authorization;
@@ -244,9 +244,11 @@ fn fixture_classifier() -> ClassifierInput {
     {
         *component = value;
     }
-    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+    let embeddings: &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> = IdSlice::from_raw(
+        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
+    );
 
-    let rows: Vec<TrainingRow> = [
+    let rows: IdVec<CardRow, TrainingRow> = [
         ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
         ([0.2, 0.6, 0.2], b"group-b"),
         ([0.1, 0.2, 0.7], b"group-c"),
@@ -502,6 +504,15 @@ fn open_artifacts(generation: &Generation) -> Artifacts {
     }
 }
 
+/// Reads the gather column narrowed to the fixture tests' `u32` row vocabulary.
+fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
+    rows.u64_le_elements()
+        .expect("the row column is little-endian u64 rows")
+        .iter()
+        .map(|row| u32::try_from(row.get()).expect("fixture rows fit u32"))
+        .collect()
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn serves_tiles_from_a_published_generation() {
@@ -515,7 +526,7 @@ async fn serves_tiles_from_a_published_generation() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let row_ids = fixture_row_ids(&rows);
 
     // The root delta delivers buckets 0..=m: the head of the base
     // order, sized by the fencepost lengths.
@@ -632,7 +643,9 @@ async fn serves_empty_and_deepest_cells() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let _row_ids = rows.u32_elements().expect("the row column is u32");
+    let _row_ids = rows
+        .u64_le_elements()
+        .expect("the row column is little-endian u64 rows");
 
     // A valid coordinate with no quad node serves the honest empty
     // tile, byte for byte.
@@ -663,8 +676,8 @@ async fn serves_empty_and_deepest_cells() {
             children: 0,
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
-        positions: points,
-        rows: &[],
+        positions: IdSlice::from_raw(points),
+        rows: IdSlice::from_raw(&[]),
         masks: None,
         trailer: None,
     }
@@ -686,7 +699,7 @@ async fn serves_empty_and_deepest_cells() {
 
     // At the deepest zoom a total tile delivers its cell's whole
     // population: the cut reaches the catch-all bucket.
-    let deep_cell = MortonKey::from_bits(morton.codes()[0].get())
+    let deep_cell = MortonKey::from_bits(morton.codes()[BasePosition::from_u32(0)].get())
         .cell(Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid"));
     let bytes = atlas
         .tile(
@@ -994,10 +1007,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
 async fn edges_serve_the_root_visible_subgraph() {
     let (generation, atlas) = publish("edges-root").await;
     let artifacts = open_artifacts(&generation);
-    let row_ids = artifacts
-        .rows
-        .u32_elements()
-        .expect("the row column is u32");
+    let row_ids = fixture_row_ids(&artifacts.rows);
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
@@ -1044,10 +1054,7 @@ async fn edges_serve_the_root_visible_subgraph() {
 async fn edges_exclude_partially_delivered_pairs() {
     let (generation, atlas) = publish("edges-cross").await;
     let artifacts = open_artifacts(&generation);
-    let row_ids = artifacts
-        .rows
-        .u32_elements()
-        .expect("the row column is u32");
+    let row_ids = fixture_row_ids(&artifacts.rows);
     let codes = artifacts.morton.codes();
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
@@ -1059,15 +1066,18 @@ async fn edges_exclude_partially_delivered_pairs() {
         .map(|pair| pair.map(zerocopy::U64::get))
         .collect();
     let endpoints = endpoints.as_slice();
-    let positions = edge_artifacts
+    let positions: Vec<u32> = edge_artifacts
         .positions
-        .u32_elements()
-        .expect("the position permutation is u32");
+        .u32_le_elements()
+        .expect("the position permutation is little-endian u32")
+        .iter()
+        .map(|position| position.get())
+        .collect();
 
     let depth = Depth::new(FIXTURE_LOD.max_tile_depth).expect("the deepest tile depth is valid");
     let cell_of_row = |row: u64| {
         let position = positions[usize::try_from(row).expect("fixture rows fit usize")];
-        MortonKey::from_bits(codes[position as usize].get()).cell(depth)
+        MortonKey::from_bits(codes[BasePosition::from_u32(position)].get()).cell(depth)
     };
 
     // An edge whose endpoints land in different deepest-zoom cells:
@@ -1121,14 +1131,20 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         .map(|pair| pair.map(zerocopy::U64::get))
         .collect();
     let endpoints = endpoints.as_slice();
-    let ranks = edge_artifacts
+    let ranks: Vec<u32> = edge_artifacts
         .ranks
-        .u32_elements()
-        .expect("the rank column is u32");
-    let positions = edge_artifacts
+        .u32_le_elements()
+        .expect("the rank column is little-endian u32")
+        .iter()
+        .map(|rank| rank.get())
+        .collect();
+    let positions: Vec<u32> = edge_artifacts
         .positions
-        .u32_elements()
-        .expect("the position permutation is u32");
+        .u32_le_elements()
+        .expect("the position permutation is little-endian u32")
+        .iter()
+        .map(|position| position.get())
+        .collect();
     let rank_of_row =
         |row: u64| ranks[positions[usize::try_from(row).expect("fixture rows fit usize")] as usize];
 
@@ -1274,10 +1290,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
 
     let (generation, atlas) = publish("detailed-edges").await;
     let artifacts = open_artifacts(&generation);
-    let row_ids = artifacts
-        .rows
-        .u32_elements()
-        .expect("the row column is u32");
+    let row_ids = fixture_row_ids(&artifacts.rows);
     let edge_artifacts = open_edge_artifacts(&generation);
     let endpoints = edge_artifacts
         .endpoints
@@ -1364,10 +1377,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             panic!("fixture node ids resolve");
         };
         assert_eq!(source.row.get(), NodeRowId::from_u32(u32::from(row)));
-        assert_eq!(
-            source.position,
-            atlas.positions_of_row()[source.row.get().as_usize()],
-        );
+        assert_eq!(source.position, atlas.positions_of_row()[source.row.get()]);
 
         // The resolved tile delivers the row.
         let request = TileRequest {
@@ -1477,9 +1487,9 @@ async fn locate_subgraph_delivers_the_ego_graph() {
         expected_rows.insert(0, u32::from(source_row));
         let delivered_rows: Vec<u32> = subgraph.rows.iter().map(|row| row.as_u32()).collect();
         assert_eq!(delivered_rows, expected_rows, "ego({source_row}) rows");
-        let expected_positions: Vec<u32> = expected_rows
+        let expected_positions: Vec<BasePosition> = expected_rows
             .iter()
-            .map(|&row| atlas.positions_of_row()[row as usize])
+            .map(|&row| atlas.positions_of_row()[NodeRowId::from_u32(row)])
             .collect();
         assert_eq!(
             subgraph.positions, expected_positions,
@@ -1523,8 +1533,8 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
     let node_codec = test_codec(&atlas);
     let distance_of = |from: u32, to: u32| {
         let positions = atlas.positions();
-        let origin = positions[atlas.positions_of_row()[from as usize] as usize];
-        let point = positions[atlas.positions_of_row()[to as usize] as usize];
+        let origin = positions[atlas.positions_of_row()[NodeRowId::from_u32(from)]];
+        let point = positions[atlas.positions_of_row()[NodeRowId::from_u32(to)]];
         let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
         // The derivation must mirror the selection key bit for bit:
         // a fused mul_add rounds differently and reorders near-ties.
@@ -1748,20 +1758,22 @@ fn colored_masks_resolve_and_expand_descendants() {
     // Row-order direct types and the gather permutation, copied from
     // the postings fixture; member positions per type, hand-derived:
     // type 0 [1, 2, 3, 6], type 1 [5, 7], type 2 [0, 1, 7], type 3 [].
-    let types: Vec<smallvec::SmallVec<OntologyRowId, 2>> =
+    let types: IdVec<NodeRowId, smallvec::SmallVec<OntologyRowId, 2>> =
         [&[0_u64][..], &[0, 2], &[1], &[2], &[0], &[1, 2], &[], &[0]]
             .iter()
             .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
             .collect();
-    let parents: Vec<smallvec::SmallVec<OntologyRowId, 2>> = [&[][..], &[0_u64], &[0], &[1, 2]]
-        .iter()
-        .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
-        .collect();
+    let parents: IdVec<OntologyRowId, smallvec::SmallVec<OntologyRowId, 2>> =
+        [&[][..], &[0_u64], &[0], &[1, 2]]
+            .iter()
+            .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
+            .collect();
     let row_of_position: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
+    let row_of_position = row_of_position.map(NodeRowId::from_u32);
 
     let postings = Postings::build(
         &types,
-        &row_of_position,
+        IdSlice::from_raw(&row_of_position),
         &parents,
         PostingsConfig {
             dense_threshold: FIXTURE_DENSE_THRESHOLD,
@@ -1810,7 +1822,12 @@ fn colored_masks_resolve_and_expand_descendants() {
         let set = colour::resolve_masks(&postings, &closure, &table, &colour::Palette::of(&urls));
         set.memberships(&postings)
             .iter()
-            .map(|membership| membership.positions_in(0..8).collect())
+            .map(|membership| {
+                membership
+                    .positions_in(BasePosition::from_u32(0)..BasePosition::from_u32(8))
+                    .map(BasePosition::as_u32)
+                    .collect()
+            })
             .collect()
     };
 
@@ -1859,7 +1876,7 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
         rows,
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = rows.u32_elements().expect("the row column is u32");
+    let row_ids = fixture_row_ids(&rows);
 
     // The convenience path serves storeless deployments: it still
     // rejects the trailer by name.
@@ -1928,15 +1945,17 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
                 bits | (u8::from(quad.nodes()[0].child(quadrant).is_some()) << quadrant)
             }),
         },
-        delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[0..end]),
-        positions: points,
-        rows: &{
+        delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[
+            BasePosition::from_u32(0)..BasePosition::from_u32(end)
+        ]),
+        positions: IdSlice::from_raw(points),
+        rows: IdSlice::from_raw(&{
             let node_codec = test_codec(&atlas);
             row_ids
                 .iter()
                 .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
                 .collect::<Vec<_>>()
-        },
+        }),
         masks: None,
         trailer: Some(TileTrailer {
             labels: &nothing,
@@ -2045,7 +2064,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         Vec2::new(-0.25, 1.0),
         Vec2::new(0.75, -0.5),
     ];
-    let position_of_row = [1_u32, 2, 0];
+    let position_of_row = [1_u32, 2, 0].map(BasePosition::from_u32);
 
     let request = TranslateRequest {
         entity_ids: vec![
@@ -2078,9 +2097,9 @@ fn translate_resolves_nodes_and_edges_by_identity() {
         &TranslateColumns {
             node_ids: &nodes,
             edge_ids: &edges,
-            positions: &positions,
-            position_of_row: &position_of_row,
-            endpoints: &endpoints,
+            positions: IdSlice::from_raw(&positions),
+            position_of_row: IdSlice::from_raw(&position_of_row),
+            endpoints: IdSlice::from_raw(&endpoints),
             node_codec: &node_codec,
         },
     )
@@ -2138,9 +2157,9 @@ fn translate_rejects_over_cap() {
             &TranslateColumns {
                 node_ids: &nodes,
                 edge_ids: &edges,
-                positions: &[],
-                position_of_row: &[],
-                endpoints: &[],
+                positions: IdSlice::from_raw(&[]),
+                position_of_row: IdSlice::from_raw(&[]),
+                endpoints: IdSlice::from_raw(&[]),
                 node_codec: &node_codec,
             },
         ),
@@ -2176,7 +2195,7 @@ async fn translate_resolves_store_identities_end_to_end() {
         )
         .expect("the request is under the cap");
 
-    let position = atlas.positions_of_row()[0] as usize;
+    let position = atlas.positions_of_row()[NodeRowId::new(0)];
     let point = atlas.positions()[position];
     let node_codec = test_codec(&atlas);
     assert_eq!(
@@ -2472,7 +2491,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             properties_complete: false,
             delivered: &subgraph.positions,
             positions: atlas.positions(),
-            rows: &wire_rows,
+            rows: IdSlice::from_raw(&wire_rows),
             masks,
             sources: &sources,
             targets: &targets,

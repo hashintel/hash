@@ -144,10 +144,9 @@ impl ClassifierReport {
 
         let temperature = refit.classifier.temperature();
         let row_reports = rows
-            .iter()
+            .iter_enumerated()
             .zip(identities)
-            .enumerate()
-            .map(|(row, (training_row, identity))| {
+            .map(|((row, training_row), identity)| {
                 let logits = refit.evidence.out_of_fold_logits[row];
                 let prediction = refit
                     .classifier

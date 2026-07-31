@@ -2,7 +2,7 @@
 
 use core::ops::Range;
 
-use hashql_core::id::Id;
+use hashql_core::id::{Id, IdVec};
 use rayon::{
     iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _},
     slice::{ParallelSlice as _, ParallelSliceMut as _},
@@ -247,26 +247,32 @@ where
 {
     records.par_sort_unstable_by_key(|record| record.pair);
 
-    let mut indptr = vec![0_u64; rows + 1];
+    let mut indptr = IdVec::from_elem(0, rows + 1);
     for run in records.chunk_by(|one, other| one.pair == other.pair) {
         let pair = run[0].pair;
-        indptr[pair.lhs().as_usize() + 1] += 1;
-        indptr[pair.rhs().as_usize() + 1] += 1;
-    }
-    for row in 0..rows {
-        indptr[row + 1] += indptr[row];
+        indptr[pair.lhs().plus(1)] += 1;
+        indptr[pair.rhs().plus(1)] += 1;
     }
 
-    let entries = usize::try_from(indptr[rows]).expect("resident entries fit the address space");
-    let mut cursor: Vec<u64> = indptr[..rows].to_vec();
+    let mut total = 0_u64;
+    for fencepost in &mut indptr {
+        total += *fencepost;
+        *fencepost = total;
+    }
+
+    let entries = usize::try_from(total).expect("resident entries fit the address space");
+    let mut cursor = IdVec::from_fn(rows, |row: N| indptr[row]);
     let mut columns = vec![0_u32; entries];
     let mut evidence = vec![PairEvidence::default(); entries];
     for run in records.chunk_by(|one, other| one.pair == other.pair) {
         let pair = run[0].pair;
         let value = pair_evidence(run);
         for (row, partner) in [(pair.lhs(), pair.rhs()), (pair.rhs(), pair.lhs())] {
-            let slot = usize::try_from(cursor[row.as_usize()])
-                .expect("resident entries fit the address space");
+            // `columns` and `evidence` are the CSR entry arrays: their
+            // positions are storage offsets in the matrix encoding, not
+            // ids of any domain, so they stay raw.
+            let slot =
+                usize::try_from(cursor[row]).expect("resident entries fit the address space");
             #[expect(
                 clippy::cast_possible_truncation,
                 reason = "the row domain was validated against the u32 column encoding"
@@ -275,11 +281,11 @@ where
                 columns[slot] = partner.as_u64() as u32;
             }
             evidence[slot] = value;
-            cursor[row.as_usize()] += 1;
+            cursor[row] += 1;
         }
     }
 
-    let matrix = ProtectionMatrix::try_new((rows, rows), indptr, columns, evidence)
+    let matrix = ProtectionMatrix::try_new((rows, rows), indptr.into_raw(), columns, evidence)
         .map_err(|(_, _, _, error)| error)
         .expect("the scatter emits sorted, in-bounds partners for every row");
     ProtectionIndex::new(matrix).expect("the assembled matrix satisfies every index invariant")

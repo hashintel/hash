@@ -12,7 +12,10 @@
 //! Two corpora are required. One corpus under two proofs shares one bucket assignment, so the
 //! channel is invisible to any comparison that varies the mask alone.
 
+use hashql_core::id::{Id as _, IdSlice};
+
 use crate::{
+    identity::{ImportanceRank, NodeRowId},
     morton::{Depth, MortonKey},
     salt::lod::{cascade, rank::Ranking},
 };
@@ -41,12 +44,14 @@ fn depth(value: u8) -> Depth {
 /// Builds the ranking that ranks row `r` at position `r`.
 ///
 /// The fixture names its rows in rank order, so rank and row index coincide.
-fn ranking_by_row(rows: usize) -> Ranking {
-    let order: Vec<u32> = (0..u32::try_from(rows).expect("test rows fit u32")).collect();
+fn ranking_by_row(rows: usize) -> Ranking<NodeRowId> {
+    let rows = u32::try_from(rows).expect("test rows fit u32");
+    let row_of_rank: Vec<NodeRowId> = (0..rows).map(NodeRowId::from_u32).collect();
+    let rank_of_row: Vec<ImportanceRank> = (0..rows).map(ImportanceRank::from_u32).collect();
 
     Ranking {
-        row_of_rank: order.clone().into_boxed_slice(),
-        rank_of_row: order.into_boxed_slice(),
+        row_of_rank: IdSlice::from_boxed_slice(row_of_rank.into_boxed_slice()),
+        rank_of_row: IdSlice::from_boxed_slice(rank_of_row.into_boxed_slice()),
     }
 }
 
@@ -54,9 +59,10 @@ fn ranking_by_row(rows: usize) -> Ranking {
 /// rows `visible` admits.
 fn read(keys: &[MortonKey], visible: &[u32], subject: u32) -> Reading {
     let ranking = ranking_by_row(keys.len());
-    let buckets = cascade::buckets(keys, &ranking, depth(DEEPEST));
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(keys);
+    let buckets = cascade::buckets(keyed, &ranking, depth(DEEPEST));
 
-    let bucket_of = |row: u32| buckets[row as usize].get();
+    let bucket_of = |row: u32| buckets[NodeRowId::from_u32(row)].get();
     let visible_at_cut = visible
         .iter()
         .filter(|&&row| bucket_of(row) <= SPAN)

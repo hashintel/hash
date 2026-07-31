@@ -10,7 +10,7 @@ use core::pin::pin;
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdVec};
 use smallvec::SmallVec;
 use tracing::Instrument as _;
 use zerocopy::{IntoBytes as _, LE, U64};
@@ -452,7 +452,7 @@ where
 {
     let (cards, ids) = async {
         let mut stream = pin!(dataset.render_cards());
-        let mut cards = Vec::new();
+        let mut cards = IdVec::new();
         let mut ids = IdentityTable::new();
         while let Some((id, card)) = stream.try_next().await.map_err(FitError::Cards)? {
             ids.push(id);
@@ -487,9 +487,7 @@ where
                 CardEmbeddingView::new(
                     *fingerprint,
                     hashes.digests().ok_or(PriorError::MalformedCards)?,
-                    embeddings
-                        .f32_elements()
-                        .ok_or(PriorError::MalformedCards)?,
+                    embeddings.vectors().ok_or(PriorError::MalformedCards)?,
                 )
                 .ok_or(PriorError::MalformedCards)
             },

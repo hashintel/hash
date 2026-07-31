@@ -6,8 +6,10 @@
 
 use core::ops::Range;
 
+use hashql_core::id::Id as _;
+
 use super::Walk;
-use crate::{file::quad::Node, morton::MortonCell};
+use crate::{file::quad::Node, identity::BasePosition, morton::MortonCell};
 
 /// One full-visibility delivery.
 ///
@@ -20,7 +22,7 @@ pub(in crate::serve) struct RangeDelivery {
     /// Per-bucket point counts, bucket-major from `first_bucket`.
     pub runs: Vec<u32>,
     /// The delivered base-position ranges, in delivery order.
-    pub ranges: Vec<Range<u32>>,
+    pub ranges: Vec<Range<BasePosition>>,
 }
 
 impl Walk<'_> {
@@ -43,7 +45,7 @@ impl Walk<'_> {
         RangeDelivery {
             first_bucket: 0,
             runs,
-            ranges: vec![0..end],
+            ranges: vec![BasePosition::MIN..end],
         }
     }
 
@@ -59,10 +61,13 @@ impl Walk<'_> {
                 ranges: Vec::new(),
             },
             |node| {
-                let run = super::narrow_run(node.run());
+                // The node run is file vocabulary; open validated the point count against the
+                // u32 domain, so the positions are in range.
+                let run = node.run();
+                let run = BasePosition::from_u64(run.start)..BasePosition::from_u64(run.end);
                 RangeDelivery {
                     first_bucket: cut.get(),
-                    runs: vec![run.end - run.start],
+                    runs: vec![run.end.as_u32() - run.start.as_u32()],
                     ranges: vec![run],
                 }
             },
@@ -79,7 +84,7 @@ impl Walk<'_> {
 
         for depth in self.grid.cut_buckets(z) {
             let run = self.run(depth, cell);
-            runs.push(run.end - run.start);
+            runs.push(run.end.as_u32() - run.start.as_u32());
             ranges.push(run);
         }
 

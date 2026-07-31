@@ -19,9 +19,11 @@
 
 use core::ops::Range;
 
+use hashql_core::id::{Id as _, IdSlice};
+
 use super::{Kind, Mode, cbor::CborWriter, envelope::EnvelopeWriter};
 use crate::{
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
@@ -36,9 +38,9 @@ pub(crate) struct TileResponse<'doc> {
     /// The delivered set, in either producer shape.
     pub delivered: DeliveredSet<'doc>,
     /// The generation's wire-coordinate column, base order, in full.
-    pub positions: &'doc [Vec2],
+    pub positions: &'doc IdSlice<BasePosition, Vec2>,
     /// The generation's row-id column (row by base position), in full.
-    pub rows: &'doc [WireRow<NodeRowId>],
+    pub rows: &'doc IdSlice<BasePosition, WireRow<NodeRowId>>,
     /// Per-type membership for the request's `coloredTypeIds`, in request order.
     ///
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
@@ -99,7 +101,7 @@ impl TileResponse<'_> {
     /// Writes the `POSITIONS` column: f32 xy pairs, delivered order.
     fn write_positions(&self, column: &mut Vec<u8>) {
         self.delivered.for_each(|position| {
-            let point = self.positions[position as usize];
+            let point = self.positions[position];
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
         });
@@ -108,7 +110,7 @@ impl TileResponse<'_> {
     /// Writes the `ROW_IDS` column: u32 row ids, delivered order.
     fn write_rows(&self, column: &mut Vec<u8>) {
         self.delivered.for_each(|position| {
-            column.extend_from_slice(&self.rows[position as usize].get().to_le_bytes());
+            column.extend_from_slice(&self.rows[position].get().to_le_bytes());
         });
     }
 
@@ -143,10 +145,10 @@ impl TileResponse<'_> {
                     let mut base = 0_usize;
                     for range in ranges {
                         for position in membership.positions_in(range.clone()) {
-                            let point = base + (position - range.start) as usize;
+                            let point = base + (position.as_usize() - range.start.as_usize());
                             column[point * stride + byte] |= flag;
                         }
-                        base += range.len();
+                        base += range.end.as_usize() - range.start.as_usize();
                     }
                 }
             }
@@ -170,7 +172,8 @@ impl TileResponse<'_> {
                     let flag = 1_u8 << (bit & 7);
 
                     let mut rank = 0_usize;
-                    for position in membership.positions_in(lowest..highest + 1) {
+                    let past_highest = BasePosition::from_u64(highest.as_u64() + 1);
+                    for position in membership.positions_in(lowest..past_highest) {
                         while rank < list.len() && list[point_at(rank)] < position {
                             rank += 1;
                         }
@@ -194,26 +197,29 @@ pub(crate) enum DeliveredSet<'doc> {
     /// Contiguous base-position ranges in delivery order.
     ///
     /// The unmasked gather. Zero-length ranges are legal and deliver nothing.
-    Ranges(&'doc [Range<u32>]),
+    Ranges(&'doc [Range<BasePosition>]),
     /// Gathered base positions in delivery order: the masked gather, visibility already applied.
     ///
     /// Delivery order is the producer's and carries no relation to base order. Today's masked
     /// walk gathers by ascending corpus bucket and so happens to ascend; the encoder does not
     /// depend on it.
-    Positions(&'doc [u32]),
+    Positions(&'doc [BasePosition]),
 }
 
 impl DeliveredSet<'_> {
     /// Counts the delivered points.
     pub(crate) fn count(self) -> u64 {
         match self {
-            Self::Ranges(ranges) => ranges.iter().map(|range| range.len() as u64).sum(),
+            Self::Ranges(ranges) => ranges
+                .iter()
+                .map(|range| range.end.as_u64() - range.start.as_u64())
+                .sum(),
             Self::Positions(list) => list.len() as u64,
         }
     }
 
     /// Visits the delivered base positions in delivery order.
-    pub(crate) fn for_each(self, mut visit: impl FnMut(u32)) {
+    pub(crate) fn for_each(self, mut visit: impl FnMut(BasePosition)) {
         match self {
             Self::Ranges(ranges) => {
                 for range in ranges {

@@ -23,7 +23,7 @@ use super::{
     decode_rows, head_counts, head_global, mask_hiding, publish, request, section, test_codec,
 };
 use crate::{
-    identity::{BasePosition, NodeRowId},
+    identity::{BasePosition, ImportanceRank, NodeRowId},
     morton::{Depth, MortonCell, MortonKey},
     salt::wire::Mode,
     serve::{
@@ -36,7 +36,10 @@ use crate::{
 pub(super) mod reference {
     use std::collections::HashSet;
 
+    use hashql_core::id::Id as _;
+
     use crate::{
+        identity::BasePosition,
         morton::{Depth, MortonCell, MortonKey},
         salt::wire::Mode,
         serve::{Atlas, VisibilityProof},
@@ -57,11 +60,11 @@ pub(super) mod reference {
         let count = u32::try_from(atlas.morton.count()).expect("fixture counts fit u32");
 
         (0..count)
-            .filter(|&position| proof.contains(row_ids[position as usize]))
+            .filter(|&position| proof.contains(row_ids[BasePosition::from_u32(position)]))
             .map(|position| Row {
                 position,
-                key: atlas.morton.code(u64::from(position)),
-                rank: ranks[position as usize],
+                key: atlas.morton.code(BasePosition::from_u32(position)),
+                rank: ranks[BasePosition::from_u32(position)].as_u32(),
             })
             .collect()
     }
@@ -221,16 +224,16 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
     let row_ids = atlas.row_ids();
     let universe = u32::try_from(row_ids.len()).expect("the fixture universe fits u32");
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x5C0F_E5CA);
-    // The masks below speak the fixture's raw-u32 row vocabulary; convert at this one boundary.
-    let row_at =
-        |position: u64| row_ids[usize::try_from(position).expect("positions fit usize")].as_u32();
+    // The masks below speak the fixture's raw-u32 row vocabulary; narrow checked, at this one
+    // boundary.
+    let row_at = |position: BasePosition| row_ids[position].as_u32();
 
     let quarter: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
     let most: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(4, 5)).collect();
 
     // The corpus root schedule hidden whole: the shape that once drove the fill hardest.
     let root_cut = Depth::new(FIXTURE_LOD.span.get()).expect("the fixture span is a depth");
-    let scheduled: Vec<u32> = (0..atlas.morton.fenceposts().segment(root_cut).end)
+    let scheduled: Vec<u32> = (BasePosition::MIN..atlas.morton.fenceposts().segment(root_cut).end)
         .map(row_at)
         .collect();
 
@@ -243,7 +246,7 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
             Depth::all()
                 .map(|bucket| {
                     let run = atlas.morton.run(bucket, cell);
-                    usize::try_from(run.end - run.start).expect("fixture runs fit usize")
+                    run.end.as_usize() - run.start.as_usize()
                 })
                 .sum::<usize>()
         })
@@ -375,11 +378,11 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
                             let chain_len = accumulated.len();
                             let chain: HashSet<u32> = accumulated.into_iter().collect();
                             assert_eq!(chain.len(), chain_len, "{at} repeats no row down chain");
+                            let code_of =
+                                |position: u32| atlas.morton.code(BasePosition::from_u32(position));
                             let in_extent: HashSet<u32> = chain
                                 .into_iter()
-                                .filter(|&position| {
-                                    cell.contains(atlas.morton.code(u64::from(position)))
-                                })
+                                .filter(|&position| cell.contains(code_of(position)))
                                 .collect();
                             let total: HashSet<u32> = positions.iter().copied().collect();
                             assert_eq!(in_extent, total, "{at} accumulates to its total");
@@ -463,22 +466,22 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
         ScopeRow {
             position: BasePosition::new(0),
             key: a,
-            rank: 0,
+            rank: ImportanceRank::from_u32(0),
         },
         ScopeRow {
             position: BasePosition::new(1),
             key: b,
-            rank: 3,
+            rank: ImportanceRank::from_u32(3),
         },
         ScopeRow {
             position: BasePosition::new(2),
             key: c,
-            rank: 1,
+            rank: ImportanceRank::from_u32(1),
         },
         ScopeRow {
             position: BasePosition::new(3),
             key: d,
-            rank: 2,
+            rank: ImportanceRank::from_u32(2),
         },
     ];
 
@@ -500,7 +503,11 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
     // c claims it; at depth 2 d's cell parts from a's and d claims it, which k = 0 clamps into
     // the catch-all beside b.
     let delta = cut.delta(0, root);
-    assert_eq!(delta.positions, vec![0, 2], "the root delivers a then c");
+    assert_eq!(
+        delta.positions,
+        [0, 2].map(BasePosition::from_u32),
+        "the root delivers a then c",
+    );
     assert_eq!(delta.runs, vec![1, 1], "one first-occupant per depth");
     assert_eq!(delta.first_bucket, 0);
 
@@ -510,7 +517,7 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
     let total = cut.total(1, root);
     assert_eq!(
         total.positions,
-        vec![0, 2, 1, 3],
+        [0, 2, 1, 3].map(BasePosition::from_u32),
         "the catch-all takes b and d"
     );
     assert_eq!(total.runs, vec![1, 1, 2]);
@@ -533,7 +540,7 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
         .cut(grid, CutOffset::new(1))
         .expect("k = 1 lies on the key width");
     let total = deeper.total(1, root);
-    assert_eq!(total.positions, vec![0, 2, 3, 1]);
+    assert_eq!(total.positions, [0, 2, 3, 1].map(BasePosition::from_u32));
     assert_eq!(
         total.runs,
         vec![1, 1, 1, 1],

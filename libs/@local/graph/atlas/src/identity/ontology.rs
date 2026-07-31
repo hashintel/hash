@@ -16,7 +16,7 @@ hashql_core::id::newtype! {
         serde::Serialize,
         serde::Deserialize,
     )]
-    #[id(endian = little, unaligned, const)]
+    #[id(derive(Step), endian = little, unaligned, const)]
     #[serde(into = "u64", try_from = "u64")]
     pub struct OntologyRowId(u64)
 }

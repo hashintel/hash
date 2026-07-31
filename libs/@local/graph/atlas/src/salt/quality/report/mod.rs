@@ -47,7 +47,7 @@
 
 use alloc::collections::BTreeMap;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use smallvec::SmallVec;
 
 pub(crate) use self::{
@@ -99,12 +99,13 @@ pub(crate) fn assess<N>(
     };
 
     let map_representation = overall_rows(&readings.map_representation);
-    let clump_overall: Option<Vec<ClumpAggregate>> = readings.clumps.as_ref().map(|clumps| {
-        neighbourhoods
-            .ids()
-            .map(|rung| clumps.map_representation.overall(rung))
-            .collect()
-    });
+    let clump_overall: Option<IdVec<Rung, ClumpAggregate>> =
+        readings.clumps.as_ref().map(|clumps| {
+            neighbourhoods
+                .ids()
+                .map(|rung| clumps.map_representation.overall(rung))
+                .collect()
+        });
 
     // Membership by ontology row; the map iterates ascending, so
     // subgroups and flags order deterministically.
@@ -188,7 +189,7 @@ pub(crate) fn assess<N>(
 fn subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     overall: &[MetricRow],
-    clump_overall: Option<&[ClumpAggregate]>,
+    clump_overall: Option<&IdSlice<Rung, ClumpAggregate>>,
     members: &BTreeMap<OntologyRowId, Vec<AnchorOrdinal>>,
     thresholds: &QualityThresholds,
 ) -> (Vec<SubgroupReport>, Vec<SubgroupFlag>) {
@@ -228,7 +229,7 @@ fn subgroup_reports<N>(
                         merged.merge(clumps.map_representation.anchor(anchor, rung));
                     }
                     let overall = &clump_overall
-                        .expect("clump readings produce overall clump aggregates")[rung.as_usize()];
+                        .expect("clump readings produce overall clump aggregates")[rung];
                     (1.0 - merged.recall(), 1.0 - overall.recall())
                 });
 

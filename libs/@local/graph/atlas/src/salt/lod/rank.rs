@@ -1,24 +1,25 @@
 //! The deterministic importance ranking.
 
-use rayon::{
-    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
-    slice::ParallelSliceMut as _,
-};
+use hashql_core::id::{Id, IdSlice, IdVec};
+use rayon::iter::ParallelIterator as _;
 use zerocopy::IntoBytes;
 
-use crate::integrity::{Sha256, Update as _};
+use crate::{
+    identity::{ImportanceRank, NodeRowId},
+    integrity::{Sha256, Update as _},
+};
 
 /// The per-row inputs of the rank pass, one entry per point row.
 ///
 /// Rows rank by configured importance, then stable semantic priority, then a seeded hash of the
 /// entity identity, so the order is total and reproducible from the columns and the seed alone. The
-/// columns are equal-length by construction and the row count fits the `u32` row encoding. `I` is
-/// the dataset's node id type; the ranking consumes its canonical bytes alone.
+/// columns are row-indexed, equal-length by construction, and the row count fits the `u32` row
+/// encoding. `I` is the dataset's node id type. The ranking consumes its canonical bytes alone.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct RankInputs<'columns, I> {
-    importance: &'columns [f32],
-    priority: &'columns [f32],
-    identities: &'columns [I],
+    importance: &'columns IdSlice<NodeRowId, f32>,
+    priority: &'columns IdSlice<NodeRowId, f32>,
+    identities: &'columns IdSlice<NodeRowId, I>,
 }
 
 impl<'columns, I> RankInputs<'columns, I> {
@@ -28,9 +29,9 @@ impl<'columns, I> RankInputs<'columns, I> {
     /// row encoding.
     #[must_use]
     pub(crate) const fn new(
-        importance: &'columns [f32],
-        priority: &'columns [f32],
-        identities: &'columns [I],
+        importance: &'columns IdSlice<NodeRowId, f32>,
+        priority: &'columns IdSlice<NodeRowId, f32>,
+        identities: &'columns IdSlice<NodeRowId, I>,
     ) -> Option<Self> {
         if importance.len() != priority.len() || importance.len() != identities.len() {
             return None;
@@ -58,19 +59,44 @@ impl<'columns, I> RankInputs<'columns, I> {
     }
 }
 
-/// The rank order of one generation's rows: a permutation and its inverse.
+/// The rank order of one row universe: a permutation and its inverse.
 ///
-/// Rank 0 is the most important row. Both views exist because both are consumed: the cascade claims
-/// cells in ascending rank, and the published columns record each position's rank.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Ranking {
-    /// Row index by rank: `row_of_rank[rank]` is the row holding that rank.
-    pub row_of_rank: Box<[u32]>,
-    /// Rank by row index: `rank_of_row[row]` is the row's rank.
-    pub rank_of_row: Box<[u32]>,
+/// Rank 0 is the most important row. The cascade consumes the ascending direction to claim cells.
+/// The published columns record each position's rank through the inverse. The row domain `R` is
+/// whatever universe the ranking orders - the generation's rows at fit time, or a view's own row
+/// vocabulary when a scope ranks its visible subset. A ranking can never be read against rows it
+/// did not rank.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct Ranking<R> {
+    /// Row by rank: `row_of_rank[rank]` is the row holding that rank.
+    pub row_of_rank: Box<IdSlice<ImportanceRank, R>>,
+    /// Rank by row: `rank_of_row[row]` is the row's rank.
+    pub rank_of_row: Box<IdSlice<R, ImportanceRank>>,
 }
 
-impl Ranking {
+impl<R> Ranking<R>
+where
+    R: Id,
+{
+    /// Completes a ranking from its filled rank order.
+    ///
+    /// `row_of_rank` must be a permutation of the row universe it ranks; the inverse view is
+    /// derived from it.
+    #[must_use]
+    pub(crate) fn from_row_of_rank(row_of_rank: IdVec<ImportanceRank, R>) -> Self {
+        let mut rank_of_row = IdVec::from_elem(ImportanceRank::MIN, row_of_rank.len());
+        for (rank, &row) in row_of_rank.iter_enumerated() {
+            rank_of_row[row] = rank;
+        }
+
+        Self {
+            row_of_rank: row_of_rank.into_boxed_slice(),
+            rank_of_row: rank_of_row.into_boxed_slice(),
+        }
+    }
+}
+
+impl Ranking<NodeRowId> {
     /// Ranks the rows by descending importance.
     ///
     /// Then descending priority, then the seeded identity hash ascending.
@@ -80,25 +106,19 @@ impl Ranking {
     /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal) contract, priority as a
     /// constant column until it grows a source - and nothing here re-checks them. Equal seeds give
     /// equal rankings; the seed is recorded in the generation's metadata.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the inputs' constructor admits only row counts that fit `u32`"
-    )]
     #[must_use]
     pub(crate) fn new<I>(inputs: RankInputs<'_, I>, seed: u64) -> Self
     where
         I: Copy + IntoBytes + zerocopy::Immutable + Sync,
     {
-        let tiebreaks: Vec<u64> = inputs
+        let tiebreaks: IdVec<_, _> = inputs
             .identities
             .par_iter()
             .map(|identity| tiebreak(seed, identity))
             .collect();
 
-        let mut row_of_rank: Vec<u32> = (0..inputs.len()).collect();
+        let mut row_of_rank: IdVec<_, _> = inputs.identities.ids().collect();
         row_of_rank.par_sort_unstable_by(|&left, &right| {
-            let (left, right) = (left as usize, right as usize);
-
             // Descending importance, then descending priority: the
             // reversed comparisons spell the descending lexicographic
             // key over the scores.
@@ -108,15 +128,7 @@ impl Ranking {
                 .then_with(|| tiebreaks[left].cmp(&tiebreaks[right]))
         });
 
-        let mut rank_of_row = vec![0_u32; row_of_rank.len()];
-        for (rank, &row) in row_of_rank.iter().enumerate() {
-            rank_of_row[row as usize] = rank as u32;
-        }
-
-        Self {
-            row_of_rank: row_of_rank.into_boxed_slice(),
-            rank_of_row: rank_of_row.into_boxed_slice(),
-        }
+        Self::from_row_of_rank(row_of_rank)
     }
 }
 

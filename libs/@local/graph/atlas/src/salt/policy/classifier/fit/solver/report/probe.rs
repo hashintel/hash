@@ -31,6 +31,7 @@ use super::super::{
 };
 use crate::{
     file::generation::{GenerationId, GenerationRoot},
+    identity::CardRow,
     math::{BoxedDVecN, DPositive, MatrixN},
     salt::policy::classifier::report::replay::Frozen,
 };
@@ -108,9 +109,11 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
 
     let folds =
         grouped_folds(rows, config.folds, settings.seed).expect("the corpus has enough groups");
-    let members: Vec<usize> = folds
-        .iter()
-        .enumerate()
+    // The gather re-bases the fold complement into the solo solve's own
+    // positional row space, mirroring the production fold gather; the
+    // card-row domain ends here.
+    let members: Vec<CardRow> = folds
+        .iter_enumerated()
         .filter(|(_, assigned)| **assigned != settings.fold)
         .map(|(row, _)| row)
         .collect();

@@ -26,7 +26,10 @@
 //! about bucket assignment, which is [`super::metadata_channel`]'s subject and which an interior
 //! hidden row also moves when it outranks a visible row for a contested cell.
 
+use hashql_core::id::IdSlice;
+
 use crate::{
+    identity::NodeRowId,
     math::{Bounds2, Vec2},
     morton::{Depth, MortonKey},
     salt::lod::{
@@ -68,10 +71,18 @@ fn read(points: &[Vec2], visible: usize) -> (Bounds2, Reading) {
     let priority = vec![0.0_f32; points.len()];
     let identities: Vec<u64> =
         (0..u64::try_from(points.len()).expect("fixture rows fit u64")).collect();
-    let inputs =
-        RankInputs::new(&importance, &priority, &identities).expect("the columns agree in length");
+    let inputs = RankInputs::new(
+        IdSlice::from_raw(&importance),
+        IdSlice::from_raw(&priority),
+        IdSlice::from_raw(&identities),
+    )
+    .expect("the columns agree in length");
     let ranking = Ranking::new(inputs, 0);
-    let _buckets = cascade::buckets(&keys, &ranking, depth(DEEPEST));
+    let _buckets = cascade::buckets(
+        IdSlice::<NodeRowId, _>::from_raw(&keys),
+        &ranking,
+        depth(DEEPEST),
+    );
 
     let occupied = (0..=4)
         .map(|level| {

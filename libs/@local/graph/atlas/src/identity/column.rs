@@ -2,7 +2,9 @@
 
 use core::marker::PhantomData;
 
-use super::NodeRowId;
+use hashql_core::id::{Id, IdSlice};
+
+use super::{BasePosition, ImportanceRank, NodeRowId};
 use crate::{file::array::ArrayFile, math::Vec2};
 
 /// An element type an array artifact can be viewed as.
@@ -26,12 +28,30 @@ impl Element for u32 {
     }
 }
 
+impl Element for BasePosition {
+    fn view(file: &ArrayFile) -> Option<&[Self]> {
+        let positions = file.u32_le_elements()?;
+        // A position is its little-endian encoding: the transmute relabels equal layouts, element
+        // by element.
+        Some(zerocopy::transmute_ref!(positions))
+    }
+}
+
+impl Element for ImportanceRank {
+    fn view(file: &ArrayFile) -> Option<&[Self]> {
+        let ranks = file.u32_le_elements()?;
+        // A rank is its little-endian encoding: the transmute relabels equal layouts, element by
+        // element.
+        Some(zerocopy::transmute_ref!(ranks))
+    }
+}
+
 impl Element for NodeRowId {
     fn view(file: &ArrayFile) -> Option<&[Self]> {
-        let pairs = file.u64_le_elements()?;
+        let rows = file.u64_le_elements()?;
         // A row id is its little-endian encoding: the transmute relabels equal layouts, element by
         // element.
-        Some(zerocopy::transmute_ref!(pairs))
+        Some(zerocopy::transmute_ref!(rows))
     }
 }
 
@@ -44,17 +64,20 @@ impl Element for [NodeRowId; 2] {
     }
 }
 
-/// One array artifact proven to hold elements of type `T`.
+/// One array artifact proven to hold elements of type `T`, indexed by the id domain `I`.
 ///
 /// Construction validates the recorded element shape once, so views are infallible for the value's
-/// lifetime: the file is immutable after open and the shape cannot change under it.
+/// lifetime: the file is immutable after open and the shape cannot change under it. The index
+/// domain is the column's position vocabulary - the id a caller must hold to read an element.
+/// A column over one domain therefore cannot be confused with a column over another at a call
+/// site.
 #[derive(Debug)]
-pub(crate) struct Column<T> {
+pub(crate) struct Column<I, T> {
     file: ArrayFile,
-    element: PhantomData<T>,
+    domain: PhantomData<fn(I) -> T>,
 }
 
-impl<T: Element> Column<T> {
+impl<I: Id, T: Element> Column<I, T> {
     /// Proves `file` holds elements of type `T`.
     ///
     /// Returns [`None`] when the recorded element type or shape differs.
@@ -63,13 +86,13 @@ impl<T: Element> Column<T> {
 
         Some(Self {
             file,
-            element: PhantomData,
+            domain: PhantomData,
         })
     }
 
-    /// Views the elements.
-    pub(crate) fn view(&self) -> &[T] {
-        T::view(&self.file).expect("construction validated the element shape")
+    /// Views the elements, indexed by the column's id domain.
+    pub(crate) fn view(&self) -> &IdSlice<I, T> {
+        IdSlice::from_raw(T::view(&self.file).expect("construction validated the element shape"))
     }
 
     /// Counts the elements.

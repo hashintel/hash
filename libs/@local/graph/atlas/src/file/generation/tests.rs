@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     file::{
-        morton::Fenceposts,
+        morton::SEGMENTS,
         repository::{FileName, RepositoryFile, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository,
@@ -176,7 +176,7 @@ fn evidence() -> Evidence {
             world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
                 .expect("the fixture corners are finite and ordered"),
             bucket_histogram: {
-                let mut histogram = [0; Fenceposts::SEGMENTS];
+                let mut histogram = [0; SEGMENTS];
                 histogram[2] = 4;
                 histogram
             },

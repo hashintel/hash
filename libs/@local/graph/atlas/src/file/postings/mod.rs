@@ -36,7 +36,7 @@
 //! |        |      | counts; zero padding to the next boundary       |
 //! | ...    |      | parent fenceposts: `T + 1` `u64` entry counts   |
 //! |        |      | zero padding to the next boundary               |
-//! | ...    |      | parent ids: `u32[P]`, type-major, ascending     |
+//! | ...    |      | parent ids: `u64[P]`, type-major, ascending     |
 //! |        |      | within each type's list                         |
 //! |        |      | zero padding to the next boundary               |
 //! | ...    |      | membership entries: `u32[M]`, type-major        |
@@ -263,7 +263,7 @@ impl FileHeader {
     /// header.
     #[must_use]
     pub(crate) const fn entries_offset(&self) -> Option<u64> {
-        let ids = padded_size(self.parent_edges.get(), size_of::<u32>() as u64)?;
+        let ids = padded_size(self.parent_edges.get(), size_of::<u64>() as u64)?;
         self.parent_ids_offset()?.checked_add(ids)
     }
 

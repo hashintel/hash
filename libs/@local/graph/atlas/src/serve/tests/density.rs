@@ -13,35 +13,28 @@ use hashql_core::id::Id as _;
 
 use super::{FULL, mask_hiding, publish};
 use crate::{
+    identity::{BasePosition, NodeRowId},
     morton::{Depth, MortonKey},
     serve::{Atlas, ViewOccupancy, walk::Walk},
 };
 
 /// The keys of the rows a mask leaves visible, read straight from the code column.
-fn visible_keys(atlas: &Atlas, hidden: &HashSet<u32>) -> Vec<MortonKey> {
+fn visible_keys(atlas: &Atlas, hidden: &HashSet<NodeRowId>) -> Vec<MortonKey> {
     let rows = atlas.row_ids();
-    (0..rows.len())
-        .filter(|&position| !hidden.contains(&rows[position].as_u32()))
-        .map(|position| {
-            atlas
-                .morton
-                .code(u64::try_from(position).expect("a fixture position fits u64"))
-        })
+
+    rows.ids()
+        .filter(|&position| !hidden.contains(&rows[position]))
+        .map(|position| atlas.morton.code(position))
         .collect()
 }
 
 /// Groups the generation's rows by the complete key they occupy.
-fn clusters(atlas: &Atlas) -> HashMap<u64, Vec<u32>> {
+fn clusters(atlas: &Atlas) -> HashMap<u64, Vec<NodeRowId>> {
     let rows = atlas.row_ids();
-    let mut clusters: HashMap<u64, Vec<u32>> = HashMap::new();
-    for (position, &row) in rows.iter().enumerate() {
-        let key = atlas
-            .morton
-            .code(u64::try_from(position).expect("a fixture position fits u64"));
-        clusters
-            .entry(key.to_bits())
-            .or_default()
-            .push(row.as_u32());
+    let mut clusters: HashMap<u64, Vec<NodeRowId>> = HashMap::new();
+    for (position, &row) in rows.iter_enumerated() {
+        let key = atlas.morton.code(position);
+        clusters.entry(key.to_bits()).or_default().push(row);
     }
 
     clusters
@@ -96,15 +89,20 @@ async fn hiding_a_cluster_removes_its_cell() {
 
     // The cluster of the first position's key: hiding a whole cluster is what vacates a cell,
     // since the rows sharing a key occupy one cell between them.
-    let key = atlas.morton.code(0);
+    let key = atlas.morton.code(BasePosition::MIN);
     let mut hidden_rows = clusters
         .get(&key.to_bits())
         .expect("the first position's key holds its own rows")
         .clone();
     hidden_rows.sort_unstable();
-    let hidden: HashSet<u32> = hidden_rows.iter().copied().collect();
+    let hidden: HashSet<NodeRowId> = hidden_rows.iter().copied().collect();
 
-    let proof = mask_hiding(&atlas, &hidden_rows);
+    // The proof builder speaks the fixture's raw-u32 row vocabulary; narrow checked, once.
+    let hidden_mask: Vec<u32> = hidden_rows
+        .iter()
+        .map(|&row| u32::try_from(row).expect("fixture rows fit u32"))
+        .collect();
+    let proof = mask_hiding(&atlas, &hidden_mask);
     let masked = Walk::of(&atlas, &proof).visible_occupancy();
     assert_census(&masked, &visible_keys(&atlas, &hidden));
 
@@ -134,7 +132,11 @@ async fn hiding_co_located_rows_moves_no_count() {
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
 
     let hidden_rows: Vec<u32> = (0..universe).filter(|row| row.is_multiple_of(3)).collect();
-    let hidden: HashSet<u32> = hidden_rows.iter().copied().collect();
+    let hidden: HashSet<NodeRowId> = hidden_rows
+        .iter()
+        .copied()
+        .map(NodeRowId::from_u32)
+        .collect();
     let survivors = visible_keys(&atlas, &hidden);
     let all = visible_keys(&atlas, &HashSet::new());
     assert!(

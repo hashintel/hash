@@ -52,7 +52,7 @@ fn default_signal_is_incident_degree() {
 #[test]
 fn constant_signal_weighs_every_row_equally() {
     let column = ConstantImportance.derive(4);
-    assert_eq!(column, [0.0; 4]);
+    assert_eq!(*column.as_raw(), [0.0; 4]);
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn degrees_match_a_hand_count_of_incident_slots() {
     // receives it, node 2 sends once, node 3 receives twice and holds
     // both slots of its self-loop, node 4 touches nothing.
     let column = DegreeImportance::new(&adjacency).derive(5);
-    assert_eq!(column, [2.0, 2.0, 1.0, 3.0, 0.0]);
+    assert_eq!(*column.as_raw(), [2.0, 2.0, 1.0, 3.0, 0.0]);
 }
 
 #[test]

@@ -2,7 +2,7 @@
 
 use core::{error::Error, fmt, marker::PhantomData, num::NonZero};
 
-use hashql_core::id::Id;
+use hashql_core::id::{Id, IdSlice};
 use rayon::{
     iter::{IndexedParallelIterator as _, ParallelIterator as _},
     slice::ParallelSliceMut as _,
@@ -388,11 +388,13 @@ where
         // outer_view reborrows at `&self`; the raw storage carries the
         // view's own lifetime.
         let (indptr, columns, distances) = self.0.into_raw_storage();
+
+        let indptr = IdSlice::from_raw(indptr);
         let position = |pointer: u64| {
             usize::try_from(pointer).expect("a resident table's entries fit the address space")
         };
 
-        let range = position(indptr[row.as_usize()])..position(indptr[row.as_usize() + 1]);
+        let range = position(indptr[row])..position(indptr[row.plus(1)]);
         columns[range.clone()]
             .iter()
             .zip(&distances[range])

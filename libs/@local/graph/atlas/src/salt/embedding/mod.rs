@@ -24,7 +24,7 @@
 use core::{error::Error, fmt};
 use std::{collections::HashMap, io};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice};
 use zerocopy::IntoBytes as _;
 
 use crate::{
@@ -32,7 +32,7 @@ use crate::{
     file::array::{ArrayVariant, Dim, SizedArrayWriter},
     identity::OntologyRowId,
     integrity::Sha256Digest,
-    math::{AlignedVecN, BoxedVecN, MatrixN, VecN},
+    math::{AlignedVecN, BoxedVecN, MatrixN},
     progress::Progress,
 };
 
@@ -119,29 +119,28 @@ pub struct CardEmbeddingStats {
 pub(crate) struct CardEmbeddingView<'table> {
     fingerprint: EmbedderFingerprint,
     hashes: &'table [Sha256Digest],
-    rows: &'table [VecN<CANONICAL_DIMENSIONS>],
+    rows: &'table [AlignedVecN<CANONICAL_DIMENSIONS>],
 }
 
 impl<'table> CardEmbeddingView<'table> {
     /// Creates a view over row-aligned columns.
     ///
-    /// `components` is the row-major embedding matrix; the view exists exactly when it holds
-    /// [`CANONICAL_DIMENSIONS`] components per hash.
+    /// `rows` is the embedding matrix as its SIMD-aligned rows; the view exists exactly when it
+    /// holds one row per hash.
     #[must_use]
     pub(crate) const fn new(
         fingerprint: EmbedderFingerprint,
         hashes: &'table [Sha256Digest],
-        components: &'table [f32],
+        rows: &'table [AlignedVecN<CANONICAL_DIMENSIONS>],
     ) -> Option<Self> {
-        let (rows, remainder) = components.as_chunks::<CANONICAL_DIMENSIONS>();
-        if !remainder.is_empty() || rows.len() != hashes.len() {
+        if rows.len() != hashes.len() {
             return None;
         }
 
         Some(Self {
             fingerprint,
             hashes,
-            rows: VecN::wrap_slice(rows),
+            rows,
         })
     }
 
@@ -178,7 +177,7 @@ impl<'table> CardEmbeddingView<'table> {
     pub(crate) const fn embedding(
         &self,
         row: OntologyRowId,
-    ) -> Option<&'table VecN<CANONICAL_DIMENSIONS>> {
+    ) -> Option<&'table AlignedVecN<CANONICAL_DIMENSIONS>> {
         self.rows.get(row.as_usize())
     }
 }
@@ -231,19 +230,10 @@ impl CardEmbeddingTable {
     /// Borrows the table as a view.
     #[must_use]
     pub(crate) fn view(&self) -> CardEmbeddingView<'_> {
-        let (rows, remainder) = self
-            .components
-            .as_components()
-            .as_chunks::<CANONICAL_DIMENSIONS>();
-        debug_assert!(
-            remainder.is_empty(),
-            "the table's columns are row-aligned by construction"
-        );
-
         CardEmbeddingView {
             fingerprint: self.fingerprint,
             hashes: &self.hashes,
-            rows: VecN::wrap_slice(rows),
+            rows: self.components.rows(),
         }
     }
 
@@ -292,19 +282,16 @@ impl CardEmbeddingTable {
 
 /// [`embed_cards`] failed to produce a complete table.
 #[derive(Debug)]
-pub enum CardEmbeddingError<E> {
+pub enum CardEmbeddingError<R, E> {
     /// The provider failed to embed the workload.
     Embedder(E),
     /// The provider returned a different number of rows than requested.
     RowCount { expected: usize, actual: usize },
     /// A returned embedding carries a non-finite component.
-    NonFinite {
-        row: OntologyRowId,
-        component: usize,
-    },
+    NonFinite { row: R, component: usize },
 }
 
-impl<E: fmt::Display> fmt::Display for CardEmbeddingError<E> {
+impl<R: Id, E: fmt::Display> fmt::Display for CardEmbeddingError<R, E> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Embedder(error) => write!(fmt, "the embedding provider failed: {error}"),
@@ -314,14 +301,13 @@ impl<E: fmt::Display> fmt::Display for CardEmbeddingError<E> {
             ),
             Self::NonFinite { row, component } => write!(
                 fmt,
-                "the embedding for ontology row {} has a non-finite component {component}",
-                row.as_u64(),
+                "the embedding for card row {row} has a non-finite component {component}",
             ),
         }
     }
 }
 
-impl<E: Error + 'static> Error for CardEmbeddingError<E> {
+impl<R: Id, E: Error + 'static> Error for CardEmbeddingError<R, E> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Embedder(error) => Some(error),
@@ -331,16 +317,17 @@ impl<E: Error + 'static> Error for CardEmbeddingError<E> {
 }
 
 /// One distinct card text awaiting an embedding.
-struct UniqueCard<'card> {
+struct UniqueCard<'card, R> {
     hash: Sha256Digest,
     text: &'card str,
-    /// Ontology rows carrying this text, ascending.
-    rows: Vec<OntologyRowId>,
+    /// Card rows carrying this text, ascending.
+    rows: Vec<R>,
 }
 
 /// Embeds `cards` into a row-aligned table, reusing prior rows.
 ///
-/// `cards` arrive in ontology row order and row `i` of the returned table belongs to `cards[i]`.
+/// `cards` are indexed by their own row domain `R` and row `i` of the returned table belongs to
+/// `cards[i]`.
 /// Equal texts embed once. A `prior` view serves rows whose text hash it contains, provided its
 /// fingerprint equals the embedder's; the provider sees exactly the texts neither source covers, in
 /// one [`embed`](CardEmbedder::embed) call, and sees nothing when every row is covered.
@@ -352,20 +339,19 @@ struct UniqueCard<'card> {
 ///
 /// Returns an error when the provider fails, changes the row count, or returns a vector with a
 /// non-finite component. No partial table is produced.
-pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
+pub(crate) async fn embed_cards<R: Id, E: CardEmbedder + Sync, P: Progress + Sync>(
     embedder: &E,
-    cards: &[Card],
+    cards: &IdSlice<R, Card>,
     prior: Option<CardEmbeddingView<'_>>,
     progress: &P,
-) -> Result<(CardEmbeddingTable, CardEmbeddingStats), CardEmbeddingError<E::Error>> {
+) -> Result<(CardEmbeddingTable, CardEmbeddingStats), CardEmbeddingError<R, E::Error>> {
     let fingerprint = embedder.fingerprint();
 
     let mut row_hashes = Vec::with_capacity(cards.len());
     let mut ordering = Vec::<Sha256Digest>::new();
-    let mut unique = HashMap::<Sha256Digest, UniqueCard<'_>>::with_capacity(cards.len());
+    let mut unique = HashMap::<Sha256Digest, UniqueCard<'_, R>>::with_capacity(cards.len());
 
-    for (row, card) in cards.iter().enumerate() {
-        let row = OntologyRowId::from_usize(row);
+    for (row, card) in cards.iter_enumerated() {
         let hash = Sha256Digest::of(card.card_text());
         row_hashes.push(hash);
 
@@ -382,14 +368,14 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
     }
 
     let mut components = MatrixN::zeroed(cards.len());
-    let rows = components.rows_mut();
+    let rows = IdSlice::<R, _>::from_raw_mut(components.rows_mut());
 
     let mut reused = 0;
     let mut misses = Vec::new();
 
     let reusable = prior.filter(|view| view.fingerprint() == fingerprint);
-    let reusable_rows: HashMap<Sha256Digest, &VecN<CANONICAL_DIMENSIONS>> =
-        reusable.map_or_else(HashMap::new, |view| {
+    let reusable_rows: HashMap<Sha256Digest, &AlignedVecN<CANONICAL_DIMENSIONS>> = reusable
+        .map_or_else(HashMap::new, |view| {
             view.hashes
                 .iter()
                 .zip(view.rows)
@@ -406,7 +392,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
         reused += 1;
         let card = &unique[&hash];
         for &position in &card.rows {
-            *rows[position.as_usize()].as_array_mut() = *source.as_array();
+            *rows[position].as_array_mut() = *source.as_array();
         }
     }
 
@@ -445,7 +431,7 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
         validate_finite(embedding, card.rows[0])?;
 
         for &position in &card.rows {
-            *rows[position.as_usize()].as_array_mut() = *embedding.as_array();
+            *rows[position].as_array_mut() = *embedding.as_array();
         }
     }
 
@@ -456,10 +442,10 @@ pub(crate) async fn embed_cards<E: CardEmbedder + Sync, P: Progress + Sync>(
 }
 
 /// Rejects embeddings carrying non-finite components.
-fn validate_finite<E>(
+fn validate_finite<R, E>(
     embedding: &AlignedVecN<CANONICAL_DIMENSIONS>,
-    row: OntologyRowId,
-) -> Result<(), CardEmbeddingError<E>> {
+    row: R,
+) -> Result<(), CardEmbeddingError<R, E>> {
     if embedding.is_finite() {
         return Ok(());
     }

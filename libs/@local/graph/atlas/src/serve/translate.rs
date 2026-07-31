@@ -22,13 +22,13 @@
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::IdSlice;
 use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
 use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
 use crate::{
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, NodeRowId},
+    identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     salt::fit::prepare::identity::IdentityTableArchive,
 };
@@ -175,23 +175,23 @@ pub(super) struct TranslateColumns<'generation> {
     /// The edge identity table.
     pub edge_ids: &'generation IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
     /// The wire-coordinate column, base order.
-    pub positions: &'generation [Vec2],
+    pub positions: &'generation IdSlice<BasePosition, Vec2>,
     /// The position permutation, row order.
-    pub position_of_row: &'generation [u32],
+    pub position_of_row: &'generation IdSlice<NodeRowId, BasePosition>,
     /// The endpoint column: edge row to `[source, target]`.
-    pub endpoints: &'generation [[NodeRowId; 2]],
+    pub endpoints: &'generation IdSlice<EdgeRowId, [NodeRowId; 2]>,
     /// The node universe's wire row-id codec.
     pub node_codec: &'generation RowCodec<NodeRowId>,
 }
 
 impl TranslateColumns<'_> {
-    /// Returns an edge's endpoint rows in the wire's `u32` domain.
+    /// Returns an edge's endpoint rows.
     ///
     /// # Panics
     ///
-    /// Panics beyond the domain, which the columns rule out: rows share the `u32` wire domain.
+    /// Panics beyond the edge-row domain, which resolution rules out.
     const fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
-        self.endpoints[edge.as_usize()]
+        self.endpoints[edge]
     }
 }
 
@@ -226,7 +226,7 @@ pub(super) fn translate(
                 continue;
             }
 
-            let position = columns.position_of_row[row.as_usize()] as usize;
+            let position = columns.position_of_row[row];
             let point = columns.positions[position];
             nodes.insert(
                 id_string,

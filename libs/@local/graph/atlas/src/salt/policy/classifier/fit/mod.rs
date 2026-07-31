@@ -32,6 +32,8 @@
 use core::{error::Error, fmt};
 use std::collections::HashMap;
 
+use hashql_core::id::{Id as _, IdSlice, IdVec};
+
 use self::{
     objective::Parameters,
     regularization::RegularizationReading,
@@ -40,6 +42,7 @@ use self::{
 use super::Classifier;
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
+    identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedDVecN, DVecN, MatrixN},
     progress::Progress,
@@ -67,17 +70,17 @@ pub enum TrainingSetError {
     /// The embedding and row counts differ.
     RowMismatch { embeddings: usize, rows: usize },
     /// An embedding component is not finite.
-    NonFiniteEmbedding { row: usize, component: usize },
+    NonFiniteEmbedding { row: CardRow, component: usize },
     /// A target probability lies outside `[0, 1]` or is not finite.
     InvalidTarget {
-        row: usize,
+        row: CardRow,
         class: GeometryClass,
         value: f64,
     },
     /// A target distribution does not sum to one.
-    UnnormalizedTarget { row: usize, sum: f64 },
+    UnnormalizedTarget { row: CardRow, sum: f64 },
     /// A vote weight is not positive and finite.
-    InvalidWeight { row: usize, value: f64 },
+    InvalidWeight { row: CardRow, value: f64 },
 }
 
 impl fmt::Display for TrainingSetError {
@@ -173,12 +176,13 @@ pub(crate) struct TrainingRow {
 
 /// Validated borrowed classifier training data.
 ///
-/// Embeddings borrow in the shape the mapped card-embedding artifact yields; row `i` of `rows`
-/// labels embedding `i`.
+/// Both columns index by the corpus's card rows: the row at a card row labels the embedding at
+/// the same card row. The types carry the alignment claim across domains; the lengths still
+/// validate at construction.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TrainingSet<'training> {
-    embeddings: &'training [AlignedVecN<CANONICAL_DIMENSIONS>],
-    rows: &'training [TrainingRow],
+    embeddings: &'training IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>>,
+    rows: &'training IdSlice<CardRow, TrainingRow>,
 }
 
 impl<'training> TrainingSet<'training> {
@@ -189,8 +193,8 @@ impl<'training> TrainingSet<'training> {
     /// Returns a [`TrainingSetError`] for an empty corpus, mismatched lengths, non-finite embedding
     /// components, targets that are not probability distributions, or non-positive vote weights.
     pub(crate) fn new(
-        embeddings: &'training [AlignedVecN<CANONICAL_DIMENSIONS>],
-        rows: &'training [TrainingRow],
+        embeddings: &'training IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>>,
+        rows: &'training IdSlice<CardRow, TrainingRow>,
     ) -> Result<Self, TrainingSetError> {
         if rows.is_empty() {
             return Err(TrainingSetError::Empty);
@@ -207,7 +211,7 @@ impl<'training> TrainingSet<'training> {
         // compares at annotation-corpus scale, well under a
         // millisecond) and runs once per fit; the borrowed slice type
         // carries no finiteness guarantee of its own.
-        for (row_index, embedding) in embeddings.iter().enumerate() {
+        for (row_index, embedding) in embeddings.iter_enumerated() {
             if embedding.is_finite() {
                 continue;
             }
@@ -227,7 +231,7 @@ impl<'training> TrainingSet<'training> {
             });
         }
 
-        for (row_index, row) in rows.iter().enumerate() {
+        for (row_index, row) in rows.iter_enumerated() {
             for (class, value) in GeometryClass::VARIANTS.into_iter().zip(row.target) {
                 if !value.is_finite() || value.is_sign_negative() || value > 1.0 {
                     return Err(TrainingSetError::InvalidTarget {
@@ -261,14 +265,14 @@ impl<'training> TrainingSet<'training> {
     #[inline]
     pub(super) const fn embedding(
         self,
-        row: usize,
+        row: CardRow,
     ) -> &'training AlignedVecN<CANONICAL_DIMENSIONS> {
         &self.embeddings[row]
     }
 
     /// Returns the labelled rows.
     #[inline]
-    pub(super) const fn rows(self) -> &'training [TrainingRow] {
+    pub(super) const fn rows(self) -> &'training IdSlice<CardRow, TrainingRow> {
         self.rows
     }
 
@@ -316,9 +320,9 @@ impl FitConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FitEvidence {
     /// Fold assignment per training row.
-    pub folds: Box<[usize]>,
+    pub folds: Box<IdSlice<CardRow, usize>>,
     /// Out-of-fold logits per training row, in class order.
-    pub out_of_fold_logits: Box<[[f64; GeometryClass::COUNT]]>,
+    pub out_of_fold_logits: Box<IdSlice<CardRow, [f64; GeometryClass::COUNT]>>,
     /// The selected L2 penalty on contrast coefficients.
     pub regularization: f64,
     /// Every regularization candidate's out-of-fold reading, ascending by strength.
@@ -367,8 +371,10 @@ pub(crate) fn fit<P: Progress + Sync>(
 
     // One Gram assembly serves every fold solve and the deployment fit; the assembly charge
     // rides the deployment fit's counters, and fold solves read the shared matrix uncharged.
+    // The matrix speaks packed positional row indices by its own contract, so the card-row
+    // domain ends at its assembly boundary.
     let mut assembly_counters = WorkCounters::default();
-    let gram = Gram::assemble(training.embeddings, &mut assembly_counters);
+    let gram = Gram::assemble(training.embeddings.as_raw(), &mut assembly_counters);
 
     let selection = regularization::select(training, &folds, config, &gram, progress)?;
     progress.classifier_regularization_selected(selection.regularization.get());
@@ -415,7 +421,7 @@ pub(crate) fn fit<P: Progress + Sync>(
 /// contract and [`FitError::Solver`] when the solve ends at a typed terminal.
 fn fit_model(
     training: TrainingSet<'_>,
-    folds: &[usize],
+    folds: &IdSlice<CardRow, usize>,
     held_out: Option<usize>,
     config: FitConfig,
     gram: &Gram,
@@ -423,11 +429,13 @@ fn fit_model(
 ) -> Result<(Parameters, u64), FitError> {
     // The held-out fold's complement materializes densely: the solver
     // traverses whole corpora, and fold membership is not its contract.
-    // The member indices double as the fold's window onto the Gram matrix.
+    // The gather re-bases the complement into the solve's own positional
+    // row space, so the card-row domain ends here; the window carries
+    // each solve row's original corpus index, the form the Gram view is
+    // documented to speak.
     let subset = held_out.map(|held_out| {
-        let members: Vec<usize> = folds
-            .iter()
-            .enumerate()
+        let members: Vec<CardRow> = folds
+            .iter_enumerated()
             .filter(|(_, fold)| **fold != held_out)
             .map(|(row, _)| row)
             .collect();
@@ -439,16 +447,22 @@ fn fit_model(
             *embedding_rows[position].as_array_mut() = *training.embedding(member).as_array();
             rows.push(training.rows()[member]);
         }
-        (members, embeddings, rows)
+
+        let window: Vec<usize> = members.iter().map(|member| member.as_usize()).collect();
+        (window, embeddings, rows)
     });
 
     let (embeddings, rows, gram_view) = match subset.as_ref() {
-        Some((members, embeddings, rows)) => (
+        Some((window, embeddings, rows)) => (
             embeddings.rows(),
             rows.as_slice(),
-            GramView::subset(gram, members),
+            GramView::subset(gram, window),
         ),
-        None => (training.embeddings, training.rows, GramView::full(gram)),
+        None => (
+            training.embeddings.as_raw(),
+            training.rows.as_raw(),
+            GramView::full(gram),
+        ),
     };
 
     let mut counters = counters;
@@ -509,12 +523,12 @@ fn split_parameters(
 /// hash of the group digest and then by the digest itself, so the assignment is deterministic and
 /// independent of row order.
 fn grouped_folds(
-    rows: &[TrainingRow],
+    rows: &IdSlice<CardRow, TrainingRow>,
     fold_count: usize,
     seed: u64,
-) -> Result<Vec<usize>, FitError> {
-    let mut groups = HashMap::<Sha256Digest, Vec<usize>>::new();
-    for (index, row) in rows.iter().enumerate() {
+) -> Result<IdVec<CardRow, usize>, FitError> {
+    let mut groups = HashMap::<Sha256Digest, Vec<CardRow>>::new();
+    for (index, row) in rows.iter_enumerated() {
         groups.entry(row.group).or_default().push(index);
     }
 
@@ -542,7 +556,8 @@ fn grouped_folds(
     );
 
     let mut sizes = vec![0_usize; fold_count];
-    let mut assignments = vec![0_usize; rows.len()];
+    let mut assignments = IdVec::from_elem(0, rows.len());
+
     for (_, _, group_rows) in ordered {
         let fold = (0..fold_count)
             .min_by_key(|&fold| (sizes[fold], fold))

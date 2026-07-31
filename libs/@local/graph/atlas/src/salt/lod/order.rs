@@ -1,9 +1,12 @@
 //! The base delivery order.
 
-use rayon::{self, slice::ParallelSliceMut as _};
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 
 use super::rank::Ranking;
-use crate::morton::{Depth, MortonKey};
+use crate::{
+    identity::{BasePosition, NodeRowId},
+    morton::{Depth, MortonKey},
+};
 
 /// The base delivery order of one generation.
 ///
@@ -12,16 +15,16 @@ use crate::morton::{Depth, MortonKey};
 /// Every served column publishes in this order, filters index it, and a tile is a set of contiguous
 /// runs of it. The order is a pure function of buckets, keys, and ranking - the third sort
 /// component makes ties total, so the permutation is unique and reproducible.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct BaseOrder {
-    /// Row index by base position.
+    /// Each base position's row.
     ///
     /// The gather order that assembles a served column from a row-ordered one.
-    pub row_of_position: Box<[u32]>,
-    /// Base position by row index.
+    pub row_of_position: Box<IdSlice<BasePosition, NodeRowId>>,
+    /// Each row's base position.
     ///
     /// The row-to-position permutation the filter contract maps entity ids through.
-    pub position_of_row: Box<[u32]>,
+    pub position_of_row: Box<IdSlice<NodeRowId, BasePosition>>,
 }
 
 impl BaseOrder {
@@ -30,12 +33,12 @@ impl BaseOrder {
     /// # Panics
     ///
     /// Panics when `keys`, `buckets`, and `ranking` disagree on the row count.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the ranking's constructor admits only row counts that fit `u32`"
-    )]
     #[must_use]
-    pub(crate) fn new(keys: &[MortonKey], buckets: &[Depth], ranking: &Ranking) -> Self {
+    pub(crate) fn new(
+        keys: &IdSlice<NodeRowId, MortonKey>,
+        buckets: &IdSlice<NodeRowId, Depth>,
+        ranking: &Ranking<NodeRowId>,
+    ) -> Self {
         assert_eq!(
             keys.len(),
             buckets.len(),
@@ -47,15 +50,13 @@ impl BaseOrder {
             "the keys and the ranking must cover the same rows",
         );
 
-        let mut row_of_position: Vec<u32> = (0..keys.len() as u32).collect();
-        row_of_position.par_sort_unstable_by_key(|&row| {
-            let row = row as usize;
-            (buckets[row], keys[row], ranking.rank_of_row[row])
-        });
+        let mut row_of_position: IdVec<BasePosition, NodeRowId> = keys.ids().collect();
+        row_of_position
+            .par_sort_unstable_by_key(|&row| (buckets[row], keys[row], ranking.rank_of_row[row]));
 
-        let mut position_of_row = vec![0_u32; row_of_position.len()];
-        for (position, &row) in row_of_position.iter().enumerate() {
-            position_of_row[row as usize] = position as u32;
+        let mut position_of_row = IdVec::from_elem(BasePosition::MIN, row_of_position.len());
+        for (position, &row) in row_of_position.iter_enumerated() {
+            position_of_row[row] = position;
         }
 
         Self {

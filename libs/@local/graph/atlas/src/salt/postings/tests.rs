@@ -6,6 +6,7 @@ use camino::Utf8PathBuf;
 use hashql_core::id::{Id, IdSlice, IdVec};
 use proptest::{prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
+use zerocopy::{LE, U32};
 
 use super::{
     artifact::{InvalidPostingsFile, Membership, PostingsArchive},
@@ -109,18 +110,18 @@ fn build_matches_the_hand_computed_runs() {
 
     // Type 0 went dense: bits {1, 2, 3, 6} in one word.
     let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
-    assert_matches!(type0, Membership::Dense(&[0b0100_1110]));
+    assert_matches!(type0, Membership::Dense(words) if *words == [0b0100_1110_u32].map(U32::<LE>::new));
     assert_eq!(type0.count(), 4);
     assert_eq!(collect(&type0, 0..8), [1, 2, 3, 6]);
 
     // Type 1 stayed a list.
     let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
-    assert_matches!(type1, Membership::List(&[5, 7]));
+    assert_matches!(type1, Membership::List(list) if *list == [5, 7].map(BasePosition::from_u32));
     assert_eq!(type1.count(), 2);
 
     // Type 2 went dense: bits {0, 1, 7}.
     let type2 = mapped.membership(id(2)).expect("type 2 is in domain");
-    assert_matches!(type2, Membership::Dense(&[0b1000_0011]));
+    assert_matches!(type2, Membership::Dense(words) if *words == [0b1000_0011_u32].map(U32::<LE>::new));
     assert_eq!(collect(&type2, 0..8), [0, 1, 7]);
 
     // Type 3 is the empty list.
@@ -133,8 +134,8 @@ fn build_matches_the_hand_computed_runs() {
 
     // Parents restate the input lists.
     assert_eq!(mapped.parents(id(0)), Some([].as_slice()));
-    assert_eq!(mapped.parents(id(1)), Some([0_u32].as_slice()));
-    assert_eq!(mapped.parents(id(3)), Some([1_u32, 2].as_slice()));
+    assert_eq!(mapped.parents(id(1)), Some([id(0)].as_slice()));
+    assert_eq!(mapped.parents(id(3)), Some([id(1), id(2)].as_slice()));
     assert!(mapped.parents(id(4)).is_none());
 }
 
@@ -164,25 +165,42 @@ fn membership_lookups_agree_across_representations() {
     );
     assert!(!type1.contains(BasePosition::from_u32(200)));
 
-    // Sub-range slicing at both representations: half-open ends,
-    // empty and inverted ranges.
+    // Sub-range slicing at both representations: half-open ends and
+    // empty ranges.
     assert_eq!(collect(&type0, 2..6), [2, 3]);
     assert_eq!(collect(&type0, 3..7), [3, 6]);
     assert_eq!(collect(&type0, 4..4), [] as [u32; 0]);
+    assert_eq!(collect(&type1, 6..8), [7]);
+    assert_eq!(collect(&type1, 0..5), [] as [u32; 0]);
+}
+
+/// The membership contract demands ascending ranges from every caller, so an inverted range
+/// panics.
+#[test]
+#[should_panic(expected = "an inverted position range matches no delivered run")]
+fn inverted_ranges_are_a_caller_bug() {
+    let dir = scratch("inverted");
+    let postings = Postings::build(
+        &fixture_types(),
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
+        &fixture_parents(),
+        FIXTURE_CONFIG,
+    )
+    .expect("the fixture stays in domain");
+    let mapped = mapped(&dir, "fixture.post", &postings);
+
+    let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
     #[expect(
         clippy::reversed_empty_ranges,
         reason = "the inverted range IS the case under test"
     )]
-    let inverted = collect(&type0, 6..2);
-    assert_eq!(inverted, [] as [u32; 0]);
-    assert_eq!(collect(&type1, 6..8), [7]);
-    assert_eq!(collect(&type1, 0..5), [] as [u32; 0]);
+    let _positions = collect(&type0, 6..2);
 }
 
 #[test]
 fn dense_iteration_crosses_word_boundaries() {
     // Two words over forty positions: members {0, 31, 32, 39}.
-    let words = [0x8000_0001_u32, 0b1000_0001];
+    let words = [0x8000_0001_u32, 0b1000_0001].map(U32::<LE>::new);
     let membership = Membership::Dense(&words);
 
     assert_eq!(collect(&membership, 0..40), [0, 31, 32, 39]);
@@ -347,7 +365,7 @@ fn open_rejects_membership_violations() {
 #[test]
 fn open_rejects_parent_violations() {
     let dir = scratch("parent-rejections");
-    let open = |name: &str, parent_posts: &[u64], parent_ids: &[u32]| {
+    let open = |name: &str, parent_posts: &[u64], parent_ids: &[u64]| {
         open_invalid(
             dir.join(name),
             Regions {

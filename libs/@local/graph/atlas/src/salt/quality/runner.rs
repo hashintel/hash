@@ -121,7 +121,7 @@ pub(crate) async fn run<D: Dataset>(
     let readings = probe(
         dataset,
         ProbeCorpus::new(
-            IdSlice::from_raw(node_ids),
+            node_ids,
             IdSlice::from_raw(representations),
             IdSlice::from_raw(coordinates),
         )
@@ -134,7 +134,6 @@ pub(crate) async fn run<D: Dataset>(
     .map_err(QualityRunError::Probe)?;
 
     let anchor_types = {
-        let node_ids = IdSlice::from_raw(node_ids);
         let anchor_ids = readings.anchors.iter().map(|&row| node_ids[row]);
 
         match_deliveries(node_ids, &readings.anchors, dataset.node_types(anchor_ids))

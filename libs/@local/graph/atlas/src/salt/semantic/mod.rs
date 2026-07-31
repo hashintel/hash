@@ -201,9 +201,9 @@ where
         let transposed = directed.transpose_view().to_csr();
 
         // (a + b) - a · b: both operations are commutative, so the two directions of an edge
-        // compute bit-equal weights; the clamp discharges the one representable overshoot
-        // (rounding can lift the expression a few ulps above one when both memberships
-        // approach one).
+        // compute bit-equal weights. The expression is ≤ 1 over memberships in [0, 1] - at the
+        // maximum the two roundings leave a half-ulp that ties-to-even returns to 1.0 - and the
+        // clamp is the unit fraction's ceiling.
         let union = csmat_binop(directed.view(), transposed.view(), |&lhs, &rhs| {
             lhs.mul_add(-rhs, lhs + rhs).min(1.0)
         });

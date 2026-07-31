@@ -30,6 +30,19 @@ fn identities(count: u128) -> Vec<ArchivedEntityId> {
     (0..count).map(identity).collect()
 }
 
+/// Typed rank columns over raw fixture slices.
+fn rank_inputs<'columns>(
+    importance: &'columns [f32],
+    priority: &'columns [f32],
+    ids: &'columns [ArchivedEntityId],
+) -> Option<RankInputs<'columns, ArchivedEntityId>> {
+    RankInputs::new(
+        IdSlice::from_raw(importance),
+        IdSlice::from_raw(priority),
+        IdSlice::from_raw(ids),
+    )
+}
+
 /// A ranking straight from a hand-written rank order.
 fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
     let row_of_rank: Vec<NodeRowId> = row_of_rank
@@ -66,7 +79,7 @@ fn rank_orders_by_importance_then_priority_then_tiebreak() {
     let priority = [9.0_f32, 9.0, 5.0, 9.0];
     let ids = identities(4);
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the columns agree");
     let ranking = Ranking::new(inputs, 7);
 
     // Row 3 has the lowest importance, row 2 the lower priority within
@@ -96,7 +109,7 @@ fn seed_reshuffles_ties() {
     let priority = [1.0_f32; 8];
     let ids = identities(8);
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the columns agree");
     let one = Ranking::new(inputs, 1);
     let two = Ranking::new(inputs, 2);
 
@@ -110,10 +123,10 @@ fn seed_reshuffles_ties() {
 fn rank_inputs_reject_disagreeing_columns() {
     let ids = identities(2);
 
-    assert!(RankInputs::new(&[1.0, 2.0], &[1.0, 2.0], &ids).is_some());
-    assert!(RankInputs::new(&[1.0], &[1.0, 2.0], &ids).is_none());
-    assert!(RankInputs::new(&[1.0, 2.0], &[1.0], &ids).is_none());
-    assert!(RankInputs::new(&[1.0, 2.0], &[1.0, 2.0], &ids[..1]).is_none());
+    assert!(rank_inputs(&[1.0, 2.0], &[1.0, 2.0], &ids).is_some());
+    assert!(rank_inputs(&[1.0], &[1.0, 2.0], &ids).is_none());
+    assert!(rank_inputs(&[1.0, 2.0], &[1.0], &ids).is_none());
+    assert!(rank_inputs(&[1.0, 2.0], &[1.0, 2.0], &ids[..1]).is_none());
 }
 
 #[test]
@@ -124,7 +137,7 @@ fn non_finite_scores_rank_deterministically() {
     let priority = [0.0_f32; 4];
     let ids = identities(4);
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the columns agree");
     assert_eq!(Ranking::new(inputs, 3), Ranking::new(inputs, 3));
 }
 
@@ -350,7 +363,7 @@ fn seeded_ranking(rows: usize, seed: u64) -> Ranking<NodeRowId> {
     let priority = vec![0.0_f32; rows];
     let ids = identities(rows as u128);
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
     Ranking::new(inputs, seed)
 }
 
@@ -377,7 +390,7 @@ fn lod_config_carries_the_key_width_bound() {
 
     let build = Lod::build(
         &[Vec2::new(0.0, 0.0)],
-        RankInputs::new(&[0.0], &[0.0], &identities(1)).expect("the columns agree"),
+        rank_inputs(&[0.0], &[0.0], &identities(1)).expect("the columns agree"),
         0,
         beyond,
     );
@@ -423,7 +436,7 @@ fn hand_stage() -> (Lod, LodConfig) {
 
     let lod = Lod::build(
         &coordinates,
-        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         7,
         config,
     )
@@ -468,9 +481,18 @@ fn build_produces_the_hand_computed_columns() {
 
     // Buckets [0, 1, 2, 2] as fenceposts.
     assert_eq!(lod.fenceposts.count(), 4);
-    assert_eq!(lod.fenceposts.segment(depth(0)), 0..1);
-    assert_eq!(lod.fenceposts.segment(depth(1)), 1..2);
-    assert_eq!(lod.fenceposts.segment(depth(2)), 2..4);
+    assert_eq!(
+        lod.fenceposts.segment(depth(0)),
+        BasePosition::from_u32(0)..BasePosition::from_u32(1),
+    );
+    assert_eq!(
+        lod.fenceposts.segment(depth(1)),
+        BasePosition::from_u32(1)..BasePosition::from_u32(2),
+    );
+    assert_eq!(
+        lod.fenceposts.segment(depth(2)),
+        BasePosition::from_u32(2)..BasePosition::from_u32(4),
+    );
 
     // The identity base order makes every permutation the identity.
     assert_eq!(
@@ -530,7 +552,7 @@ fn normalization_is_exact_far_from_the_origin() {
 
     let lod = Lod::build(
         &coordinates,
-        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         0,
         LodConfig::default(),
     )
@@ -560,7 +582,7 @@ fn degenerate_axis_maps_to_the_wire_centre() {
 
     let lod = Lod::build(
         &coordinates,
-        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         0,
         LodConfig::default(),
     )
@@ -575,7 +597,7 @@ fn degenerate_axis_maps_to_the_wire_centre() {
 #[test]
 fn build_rejects_what_no_columns_cover() {
     let ids = identities(2);
-    let inputs = RankInputs::new(&[1.0, 2.0], &[0.0, 0.0], &ids).expect("the columns agree");
+    let inputs = rank_inputs(&[1.0, 2.0], &[0.0, 0.0], &ids).expect("the columns agree");
 
     // One coordinate against two rank rows.
     assert_eq!(
@@ -585,7 +607,7 @@ fn build_rejects_what_no_columns_cover() {
     );
 
     // No rows admit no frame.
-    let empty = RankInputs::<ArchivedEntityId>::new(&[], &[], &[]).expect("empty columns agree");
+    let empty = rank_inputs(&[], &[], &[]).expect("empty columns agree");
     assert_eq!(
         Lod::build(&[], empty, 0, LodConfig::default())
             .expect_err("an empty column must not build"),
@@ -627,7 +649,10 @@ fn columns_round_trip_through_the_morton_file() {
     // The serving query on the built columns: the catch-all pair is
     // one run inside its quadrant.
     let cell = lod.codes[BasePosition::from_u32(2)].cell(depth(1));
-    assert_eq!(file.run(depth(2), cell), 2..4);
+    assert_eq!(
+        file.run(depth(2), cell),
+        BasePosition::from_u32(2)..BasePosition::from_u32(4),
+    );
 }
 
 /// Every finite point set builds.
@@ -653,7 +678,7 @@ fn built_columns_uphold_the_contract_laws(
         max_tile_depth,
     };
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
     let lod =
         Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
     let deepest = config.deepest().expect("the schedule fits the key width");
@@ -686,17 +711,13 @@ fn built_columns_uphold_the_contract_laws(
     // file writer's input contract.
     for bucket in 0..=deepest.get() {
         let segment = lod.fenceposts.segment(depth(bucket));
-        let start = usize::try_from(segment.start).expect("test rows fit usize");
-        let end = usize::try_from(segment.end).expect("test rows fit usize");
-        prop_assert!(
-            lod.codes[BasePosition::from_usize(start)..BasePosition::from_usize(end)].is_sorted()
-        );
+        prop_assert!(lod.codes[segment].is_sorted());
     }
 
     // The delivered prefix covers every occupied cell at every
     // published depth - the coverage contract, asserted over the
     // built columns, buckets reconstructed from the fenceposts.
-    let buckets: Vec<Depth> = (0..lod.fenceposts.count())
+    let buckets: Vec<Depth> = (BasePosition::MIN..lod.fenceposts.bound())
         .map(|position| {
             (0..=deepest.get())
                 .map(depth)
@@ -825,7 +846,7 @@ fn quad_build_gathers_types_through_the_base_order() {
     };
     let lod = Lod::build(
         &coordinates,
-        RankInputs::new(&importance, &priority, &ids).expect("the columns agree"),
+        rank_inputs(&importance, &priority, &ids).expect("the columns agree"),
         7,
         config,
     )
@@ -973,7 +994,7 @@ fn quad_trees_uphold_the_contract_laws(
         max_tile_depth,
     };
 
-    let inputs = RankInputs::new(&importance, &priority, &ids).expect("the fixture columns agree");
+    let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
     let lod =
         Lod::build(&coordinates, inputs, seed, config).expect("finite non-empty coordinates build");
     let deepest = config.deepest().expect("the schedule fits the key width");
@@ -1023,7 +1044,7 @@ fn quad_trees_uphold_the_contract_laws(
                 .find(|&bucket| {
                     lod.fenceposts
                         .segment(depth(bucket))
-                        .contains(&(position as u64))
+                        .contains(&BasePosition::from_usize(position))
                 })
                 .expect("every position falls in a segment")
         })

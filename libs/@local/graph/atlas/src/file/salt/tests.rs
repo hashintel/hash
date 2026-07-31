@@ -14,7 +14,7 @@ use super::{
 use crate::{
     dataset::TemporalAxes,
     file::{
-        morton::Fenceposts,
+        morton::SEGMENTS,
         repository::{FileName, RepositoryFile, RepositoryVersion},
     },
     identity::{NodeRowId, OntologyRowId},
@@ -155,9 +155,9 @@ fn lod_measurements() -> LodMeasurements {
         world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
             .expect("the fixture corners are finite and ordered"),
         bucket_histogram: {
-            let mut histogram = [0; Fenceposts::SEGMENTS];
+            let mut histogram = [0; SEGMENTS];
             histogram[4] = 900_000;
-            histogram[Fenceposts::SEGMENTS - 1] = 100_000;
+            histogram[SEGMENTS - 1] = 100_000;
             histogram
         },
         catch_all_population: 100_000,

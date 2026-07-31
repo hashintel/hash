@@ -15,8 +15,9 @@
 //! ontology newer than the snapshot, a corpus whose ontology ids are not store identities -
 //! reads as zero bits in every point's mask, never as an error.
 
-use hashql_core::id::bit_vec::RowRef;
+use hashql_core::id::{Id as _, bit_vec::RowRef};
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+use zerocopy::{LE, U32};
 
 use super::Atlas;
 use crate::{
@@ -84,8 +85,9 @@ enum MaskSource {
     Stored(OntologyRowId),
     /// The id resolved to a type with proper descendants.
     ///
-    /// The dense union of the closure row's memberships.
-    Union(Vec<u32>),
+    /// The dense union of the closure row's memberships, in the postings' little-endian word
+    /// vocabulary.
+    Union(Vec<U32<LE>>),
     /// The id resolved to no type in this generation: zero bits.
     Unresolved,
 }
@@ -163,15 +165,16 @@ fn resolve_mask(
 
 /// Materializes the dense union of every set type's membership.
 ///
-/// `ceil(N/32)` words, LSB-first over base positions.
+/// `ceil(N/32)` little-endian words, LSB-first over base positions: the postings' own dense
+/// vocabulary, so stored and materialized masks serve through one view.
 fn union_membership(
     postings: &PostingsArchive,
     descendants: RowRef<'_, OntologyRowId>,
-) -> Vec<u32> {
+) -> Vec<U32<LE>> {
     use crate::salt::postings::artifact::Membership;
 
     let points = usize::try_from(postings.points()).expect("point domains fit usize");
-    let mut bitmap = vec![0_u32; points.div_ceil(u32::BITS as usize)];
+    let mut bitmap = vec![U32::ZERO; points.div_ceil(u32::BITS as usize)];
 
     for type_row in &descendants {
         let membership = postings
@@ -180,12 +183,14 @@ fn union_membership(
         match membership {
             Membership::Dense(words) => {
                 for (union, &dense) in bitmap.iter_mut().zip(words) {
-                    *union |= dense;
+                    *union = U32::new(union.get() | dense.get());
                 }
             }
             Membership::List(positions) => {
                 for &position in positions {
-                    bitmap[position as usize >> 5] |= 1 << (position & 31);
+                    let position = position.as_u32();
+                    let word = &mut bitmap[position as usize >> 5];
+                    *word = U32::new(word.get() | (1 << (position & 31)));
                 }
             }
         }

@@ -3,7 +3,7 @@
 use core::{error::Error, fmt};
 use std::{io, path::Path};
 
-use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U64, error::ConvertError};
+use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U32, U64, error::ConvertError};
 
 use super::{Architecture, ArrayShape, ArrayVariant, FileHeader};
 use crate::{
@@ -259,14 +259,38 @@ impl ArrayFile {
         <[[u64; 2]]>::ref_from_bytes(self.data()).ok()
     }
 
+    /// Views the data as little-endian `u32` elements.
+    ///
+    /// The view exists exactly when the file holds little-endian `u32` elements in a flat shape;
+    /// the empty shape is the zero-element file. The element type carries the byte order, so the
+    /// view is exact on every architecture.
+    #[must_use]
+    pub(crate) fn u32_le_elements(&self) -> Option<&[U32<LE>]> {
+        if self.header().variant() != ArrayVariant::U32Le {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] | [_] => {}
+            _ => return None,
+        }
+
+        <[U32<LE>]>::ref_from_bytes(self.data()).ok()
+    }
+
+    /// Views the data as little-endian `u64` elements.
+    ///
+    /// The view exists exactly when the file holds little-endian `u64` elements in a flat shape;
+    /// the empty shape is the zero-element file. The element type carries the byte order, so the
+    /// view is exact on every architecture.
+    #[must_use]
     pub(crate) fn u64_le_elements(&self) -> Option<&[U64<LE>]> {
         if self.header().variant() != ArrayVariant::U64Le {
             return None;
         }
 
         match self.header().shape.dims() {
-            [] => {}
-            &[_, width] if width.get() == 1 => {}
+            [] | [_] => {}
             _ => return None,
         }
 

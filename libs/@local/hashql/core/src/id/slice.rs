@@ -5,6 +5,7 @@
 
 use core::{
     alloc::Allocator,
+    cmp,
     fmt::{self, Debug},
     marker::PhantomData,
     mem::MaybeUninit,
@@ -14,9 +15,12 @@ use core::{
 };
 
 #[cfg(feature = "rayon")]
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator as _,
-    IntoParallelRefMutIterator as _, ParallelIterator as _,
+use rayon::{
+    iter::{
+        IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator as _,
+        IntoParallelRefMutIterator as _, ParallelIterator as _,
+    },
+    slice::ParallelSliceMut as _,
 };
 
 use super::{Id, index::IntoSliceIndex, vec::IdVec};
@@ -109,6 +113,20 @@ where
         unsafe { Box::from_raw_in(ptr as *mut Self, alloc) }
     }
 
+    /// Converts a boxed `IdSlice` back into its raw boxed slice.
+    ///
+    /// The inverse of [`from_boxed_slice`](Self::from_boxed_slice), dropping only the typed index
+    /// domain. Intended for the boundaries where a typed collection leaves the domain-indexed
+    /// world, such as handing storage to an external format that speaks raw indices.
+    #[inline]
+    #[expect(unsafe_code, reason = "repr(transparent)")]
+    pub fn into_boxed_raw<A: Allocator>(slice: Box<Self, A>) -> Box<[T], A> {
+        let (ptr, alloc) = Box::into_raw_with_allocator(slice);
+
+        // SAFETY: `IdSlice` is repr(transparent) and we simply cast the underlying pointer.
+        unsafe { Box::from_raw_in(ptr as *mut [T], alloc) }
+    }
+
     /// Converts to `Box<IdSlice<I, T>, A>`.
     ///
     /// See [`Box::assume_init`] for additional details.
@@ -173,6 +191,20 @@ where
     {
         self.raw
             .get_disjoint_mut(index.map(IntoSliceIndex::into_slice_index))
+    }
+
+    /// Returns the prefix of the slice below `bound`, keeping the index domain.
+    ///
+    /// Range indexing returns a raw slice because a general sub-slice re-bases its indices to
+    /// offsets; a prefix never re-bases (every element keeps its original ID), so the typed view
+    /// is the honest return.
+    ///
+    /// # Panics
+    ///
+    /// When `bound` exceeds the slice length.
+    #[inline]
+    pub fn prefix(&self, bound: I) -> &Self {
+        Self::from_raw(&self.raw[..bound.as_usize()])
     }
 
     /// Returns the number of elements in the slice.
@@ -353,7 +385,7 @@ where
         self.raw.array_windows()
     }
 
-    /// Sorts the vector in place using the given key function, in unstable order.
+    /// Sorts the slice in place using the given key function, in unstable order.
     ///
     /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
     #[inline]
@@ -363,6 +395,33 @@ where
         K: Ord,
     {
         self.raw.sort_unstable_by_key(func);
+    }
+
+    /// Sorts the slice in place with the given comparator, in parallel and unstable order.
+    ///
+    /// The parallel counterpart of [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by).
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_sort_unstable_by<F>(&mut self, compare: F)
+    where
+        T: Send,
+        F: Fn(&T, &T) -> cmp::Ordering + Sync,
+    {
+        self.raw.par_sort_unstable_by(compare);
+    }
+
+    /// Sorts the slice in place using the given key function, in parallel and unstable order.
+    ///
+    /// The parallel counterpart of [`Self::sort_unstable_by_key`].
+    #[cfg(feature = "rayon")]
+    #[inline]
+    pub fn par_sort_unstable_by_key<K, F>(&mut self, func: F)
+    where
+        T: Send,
+        F: Fn(&T) -> K + Sync,
+        K: Ord + Send,
+    {
+        self.raw.par_sort_unstable_by_key(func);
     }
 
     /// Searches for an item in the slice using binary search, returning the index of the item if

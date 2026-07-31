@@ -1,6 +1,6 @@
 use core::assert_matches;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
@@ -258,7 +258,7 @@ fn resolution_is_version_precise() {
         table_entry(LINK, 1),
     ];
 
-    let outcome = verdicts.resolve(&ontology);
+    let outcome = verdicts.resolve(IdSlice::from_raw(&ontology));
 
     let resolved = outcome.resolved();
     assert_eq!(resolved.len(), 1);
@@ -291,7 +291,7 @@ fn resolved_verdicts_ascend_by_row() {
         table_entry(LINK, 1),
     ];
 
-    let outcome = verdicts.resolve(&ontology);
+    let outcome = verdicts.resolve(IdSlice::from_raw(&ontology));
     assert!(outcome.unresolved().is_empty());
 
     let rows: Vec<u64> = outcome
@@ -335,7 +335,7 @@ fn verdicts_without_a_store_identity_are_carried_as_evidence() {
     let verdicts = ReviewedVerdicts::from_slice(json.as_bytes()).expect("null identities conform");
     assert_eq!(verdicts.type_verdicts()[1].versioned_url, None);
 
-    let outcome = verdicts.resolve(&[table_entry(DELIVERS, 1)]);
+    let outcome = verdicts.resolve(IdSlice::from_raw(&[table_entry(DELIVERS, 1)]));
     assert_eq!(outcome.resolved().len(), 1);
     assert_eq!(outcome.resolved()[0].relation.as_u64(), 0);
 
@@ -353,7 +353,7 @@ fn empty_document_resolves_to_nothing() {
     let verdicts =
         ReviewedVerdicts::from_slice(json.as_bytes()).expect("an empty document conforms");
 
-    let outcome = verdicts.resolve(&[table_entry(LINK, 1)]);
+    let outcome = verdicts.resolve(IdSlice::from_raw(&[table_entry(LINK, 1)]));
     assert!(outcome.resolved().is_empty());
     assert!(outcome.unresolved().is_empty());
 }

@@ -41,14 +41,14 @@ pub(super) fn fit_applicability(training: TrainingSet<'_>) -> Result<Applicabili
     let dimensions = CANONICAL_DIMENSIONS as f64;
 
     let mut mean = BoxedDVecN::<CANONICAL_DIMENSIONS>::zero();
-    for row in 0..training.len() {
-        mean.add_widened(VecN::from_ref(training.embedding(row).as_array()));
+    for embedding in training.embeddings {
+        mean.add_widened(VecN::from_ref(embedding.as_array()));
     }
     *mean /= count;
 
     let mut variances = BoxedDVecN::<CANONICAL_DIMENSIONS>::zero();
-    for row in 0..training.len() {
-        variances.add_squared_deviation(VecN::from_ref(training.embedding(row).as_array()), &mean);
+    for embedding in training.embeddings {
+        variances.add_squared_deviation(VecN::from_ref(embedding.as_array()), &mean);
     }
     *variances /= count;
 
@@ -68,8 +68,8 @@ pub(super) fn fit_applicability(training: TrainingSet<'_>) -> Result<Applicabili
     }
 
     let mut distances = Vec::with_capacity(training.len());
-    for row in 0..training.len() {
-        let distance = standardized_distance(training.embedding(row), &mean, &inverse_scales);
+    for embedding in training.embeddings {
+        let distance = standardized_distance(embedding, &mean, &inverse_scales);
         if !distance.is_finite() {
             return Err(FitError::NonFinite);
         }

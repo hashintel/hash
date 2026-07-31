@@ -1,5 +1,6 @@
 //! The level-of-detail stage: served columns in base delivery order and the quadtree cut over them.
 
+use hashql_core::id::{Id, IdSlice, IdVec};
 use smallvec::SmallVec;
 
 use super::{
@@ -18,7 +19,7 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
-    identity::{NodeRowId, OntologyRowId},
+    identity::{BasePosition, NodeRowId, OntologyRowId},
     salt::{
         adjacency::AdjacencyArchive,
         importance::{ConstantImportance, DegreeImportance, ImportanceSignal as _, RankingConfig},
@@ -53,14 +54,15 @@ pub(super) struct LodOutputs {
 
 impl Context<'_> {
     /// Stages one resident column of rows under its role.
-    fn stage_column<T>(
+    fn stage_column<I, T>(
         &self,
         role: Role,
         variant: ArrayVariant,
         dims: &[Dim],
-        rows: &[T],
+        rows: &IdSlice<I, T>,
     ) -> Result<RepositoryFile, StageError>
     where
+        I: Id,
         T: zerocopy::IntoBytes + zerocopy::Immutable,
     {
         Ok(stage_sized_column(
@@ -115,7 +117,7 @@ impl Context<'_> {
         // carries the neutral 0 and the column rides along so the
         // rank contract and the wire shape hold still when the
         // signal arrives.
-        let priority = vec![0.0_f32; points.len()];
+        let priority = IdVec::from_domain(0.0_f32, &importance);
         let inputs = RankInputs::new(&importance, &priority, ids.ids())
             .ok_or_else(|| StageError::WireEncoding { rows: ids.len() })?;
 
@@ -123,12 +125,16 @@ impl Context<'_> {
         drop(importance);
         drop(priority);
 
+        // The row-order and type-domain claims the streams established, pinned once at the seam.
+        let types = IdSlice::<NodeRowId, _>::from_raw(types);
+        let parents = IdSlice::<OntologyRowId, _>::from_raw(parents);
+
         let morton = stage(
             self.staging,
             Role::Morton,
             &MortonColumn {
                 fenceposts: &lod.fenceposts,
-                codes: &lod.codes,
+                codes: lod.codes.as_raw(),
             },
         )?;
 
@@ -147,25 +153,25 @@ impl Context<'_> {
             )?,
             rank_of_position: self.stage_column(
                 Role::RankOfPosition,
-                ArrayVariant::U32,
+                ArrayVariant::U32Le,
                 &[Dim::new(lod.rank_of_position.len() as u64)],
                 &lod.rank_of_position,
             )?,
             position_of_rank: self.stage_column(
                 Role::PositionOfRank,
-                ArrayVariant::U32,
+                ArrayVariant::U32Le,
                 &[Dim::new(lod.position_of_rank.len() as u64)],
                 &lod.position_of_rank,
             )?,
             position_of_row: self.stage_column(
                 Role::PositionOfRow,
-                ArrayVariant::U32,
+                ArrayVariant::U32Le,
                 &[Dim::new(lod.position_of_row.len() as u64)],
                 &lod.position_of_row,
             )?,
             row_of_position: self.stage_column(
                 Role::RowOfPosition,
-                ArrayVariant::U32,
+                ArrayVariant::U64Le,
                 &[Dim::new(lod.row_of_position.len() as u64)],
                 &lod.row_of_position,
             )?,
@@ -194,7 +200,7 @@ impl Context<'_> {
     fn stage_quad(
         &self,
         lod: &Lod,
-        types: &[SmallVec<OntologyRowId, 2>],
+        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
     ) -> Result<Staged<(), QuadMeasurements>, StageError> {
         let _span = tracing::info_span!("quad").entered();
 
@@ -214,9 +220,9 @@ impl Context<'_> {
     /// restate the ontology stream.
     fn stage_postings(
         &self,
-        types: &[SmallVec<OntologyRowId, 2>],
-        parents: &[SmallVec<OntologyRowId, 2>],
-        row_of_position: &[u32],
+        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
+        parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
+        row_of_position: &IdSlice<BasePosition, NodeRowId>,
     ) -> Result<Staged<(), PostingsMeasurements>, StageError> {
         let _span = tracing::info_span!("postings").entered();
 

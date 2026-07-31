@@ -408,7 +408,7 @@ impl Atlas {
             .delivered
             .iter()
             .map(|position| {
-                let row = row_ids[position as usize];
+                let row = row_ids[position];
                 self.node_ids
                     .id(row)
                     .expect("open validated the identity rows against the code column")

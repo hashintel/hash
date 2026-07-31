@@ -2,7 +2,7 @@
 
 use std::io;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use smallvec::SmallVec;
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
         WriteInto,
         postings::write::{Regions, write_regions},
     },
-    identity::OntologyRowId,
+    identity::{BasePosition, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     math::Log2,
 };
@@ -80,7 +80,7 @@ pub(crate) struct Postings {
     /// `T + 1` parent fenceposts over [`Self::parent_ids`].
     parent_posts: Vec<u64>,
     /// The direct parent rows, type-major, ascending per type.
-    parent_ids: Vec<u32>,
+    parent_ids: Vec<u64>,
 }
 
 impl Postings {
@@ -109,9 +109,9 @@ impl Postings {
                   violation, documented under Panics"
     )]
     pub(crate) fn build(
-        types: &[SmallVec<OntologyRowId, 2>],
-        row_of_position: &[u32],
-        parents: &[SmallVec<OntologyRowId, 2>],
+        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
+        row_of_position: &IdSlice<BasePosition, NodeRowId>,
+        parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
         config: PostingsConfig,
     ) -> Result<Self, PostingsError> {
         assert_eq!(
@@ -125,16 +125,14 @@ impl Postings {
 
         // Member counts first: they pick each type's representation
         // and become the fenceposts, so entries land in place below.
-        let mut counts = vec![0_u64; domain];
-        for (row, list) in types.iter().enumerate() {
+        let mut counts = IdVec::from_elem(0, domain);
+        for (row, list) in types.iter_enumerated() {
             for &id in list {
-                let type_row = id
-                    .index_below(domain)
-                    .ok_or_else(|| PostingsError::NodeType {
-                        row: u32::try_from(row).expect("the lod columns index rows by u32"),
-                        id: id.as_u64(),
-                    })?;
-                counts[type_row] += 1;
+                let count = counts.get_mut(id).ok_or_else(|| PostingsError::NodeType {
+                    row: u32::try_from(row.as_u64()).expect("the lod columns index rows by u32"),
+                    id: id.as_u64(),
+                })?;
+                *count += 1;
             }
         }
 
@@ -145,9 +143,10 @@ impl Postings {
         let mut membership_posts = Vec::with_capacity(domain + 1);
         membership_posts.push(0);
         let mut total = 0_u64;
-        for (type_row, &count) in counts.iter().enumerate() {
+        for (type_row, &count) in counts.iter_enumerated() {
             if count > threshold && dense_words < count {
-                flags[type_row >> 6] |= 1 << (type_row & 63);
+                let ordinal = type_row.as_usize();
+                flags[ordinal >> 6] |= 1 << (ordinal & 63);
                 total += dense_words;
             } else {
                 total += count;
@@ -162,20 +161,20 @@ impl Postings {
         let mut entries =
             vec![0_u32; usize::try_from(total).expect("resident entries fit the address space")];
         let mut cursors: Vec<u64> = membership_posts[..domain].to_vec();
-        for (position, &row) in row_of_position.iter().enumerate() {
-            for &id in &types[row as usize] {
+        for (position, &row) in row_of_position.iter_enumerated() {
+            for &id in &types[row] {
                 let type_row =
                     usize::try_from(id.as_u64()).expect("the counting pass validated the domain");
 
                 if flags[type_row >> 6] & (1 << (type_row & 63)) != 0 {
                     let base = usize::try_from(membership_posts[type_row])
                         .expect("resident entries fit the address space");
-                    entries[base + (position >> 5)] |= 1 << (position & 31);
+                    let bit = position.as_usize();
+                    entries[base + (bit >> 5)] |= 1 << (bit & 31);
                 } else {
                     let slot = usize::try_from(cursors[type_row])
                         .expect("resident entries fit the address space");
-                    entries[slot] =
-                        u32::try_from(position).expect("the lod columns index rows by u32");
+                    entries[slot] = position.as_u32();
                     cursors[type_row] += 1;
                 }
             }
@@ -266,8 +265,8 @@ pub(crate) struct PostingsMeasurements {
 /// The regions restate the dataset's stream; the domain check is the one condition the stream
 /// cannot carry itself (parents may point forward).
 fn parent_regions(
-    parents: &[SmallVec<OntologyRowId, 2>],
-) -> Result<(Vec<u64>, Vec<u32>), PostingsError> {
+    parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
+) -> Result<(Vec<u64>, Vec<u64>), PostingsError> {
     let domain = parents.len();
 
     let mut posts = Vec::with_capacity(domain + 1);
@@ -275,13 +274,13 @@ fn parent_regions(
     let mut ids = Vec::new();
     for (type_row, list) in parents.iter().enumerate() {
         for &id in list {
-            let parent = id
-                .index_below(domain)
-                .ok_or_else(|| PostingsError::Parent {
+            if id.index_below(domain).is_none() {
+                return Err(PostingsError::Parent {
                     type_row: u32::try_from(type_row).expect("type domains stay far below u32"),
                     id: id.as_u64(),
-                })?;
-            ids.push(u32::try_from(parent).expect("checked against the type domain"));
+                });
+            }
+            ids.push(id.as_u64());
         }
         posts.push(ids.len() as u64);
     }

@@ -19,7 +19,7 @@
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
-use hashql_core::id::Id;
+use hashql_core::id::{Id, IdSlice};
 use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use crate::{
@@ -236,7 +236,9 @@ where
             id: PhantomData,
             row: PhantomData,
         };
-        let ids = table.ids();
+        // The loop validates the row domain from below, so it reads the
+        // raw column rather than the typed view it is about to justify.
+        let ids = table.ids().as_raw();
         let pairs = table.pairs();
         let keys = table.index_keys();
         let stride = table.file.stride() as usize;
@@ -274,9 +276,11 @@ where
 
     /// Views the id column, in row order.
     #[must_use]
-    pub(crate) fn ids(&self) -> &[I] {
-        <[I]>::ref_from_bytes(self.file.ids())
-            .expect("open validated the region size and `I` is unaligned")
+    pub(crate) fn ids(&self) -> &IdSlice<R, I> {
+        IdSlice::from_raw(
+            <[I]>::ref_from_bytes(self.file.ids())
+                .expect("open validated the region size and `I` is unaligned"),
+        )
     }
 
     /// Views the lookup pairs, ascending by id bytes.
@@ -301,7 +305,7 @@ where
     /// Returns the id of `row`, or [`None`] beyond the domain.
     #[must_use]
     pub(crate) fn id(&self, row: R) -> Option<I> {
-        self.ids().get(usize::try_from(row.as_u64()).ok()?).copied()
+        self.ids().get(row).copied()
     }
 
     /// Returns the row carrying `id`, or [`None`] when no row does.

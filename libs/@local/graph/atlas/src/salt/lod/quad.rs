@@ -28,17 +28,17 @@ use alloc::collections::BTreeSet;
 use core::ops::Range;
 use std::io;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use smallvec::SmallVec;
 
 use super::stage::{Lod, LodConfig};
 use crate::{
     file::{
         WriteInto,
-        morton::Fenceposts,
+        morton::SEGMENTS,
         quad::{Node, TypeSets, write::write_regions},
     },
-    identity::OntologyRowId,
+    identity::{BasePosition, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -55,7 +55,7 @@ pub enum QuadError {
     /// The configuration is not the one the lod was built under.
     Bucket { bucket: u8 },
     /// A direct type names an ontology row beyond the `u32` ordinals the quad file stores.
-    TypeOrdinal { row: u32, id: u64 },
+    TypeOrdinal { row: NodeRowId, id: u64 },
     /// The tree needs more nodes than `u32` indexes address.
     Nodes,
 }
@@ -123,7 +123,7 @@ impl QuadTree {
     /// [`QuadError::Nodes`] when the tree escapes `u32` node indexes.
     pub(crate) fn build(
         lod: &Lod,
-        types: &[SmallVec<OntologyRowId, 2>],
+        types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
         config: LodConfig,
     ) -> Result<Self, QuadError> {
         let deepest = config.deepest().ok_or(QuadError::Schedule { config })?;
@@ -145,7 +145,7 @@ impl QuadTree {
             .row_of_position
             .iter()
             .map(|&row| {
-                types[row as usize]
+                types[row]
                     .iter()
                     .map(|id| {
                         u32::try_from(id.as_u64()).map_err(|_error| QuadError::TypeOrdinal {
@@ -155,7 +155,7 @@ impl QuadTree {
                     })
                     .collect()
             })
-            .collect::<Result<Vec<SmallVec<u32, 2>>, QuadError>>()?;
+            .collect::<Result<_, _>>()?;
 
         let mut builder = Builder {
             codes: &lod.codes,
@@ -168,7 +168,7 @@ impl QuadTree {
         };
 
         let root = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists at every depth");
-        builder.node(root, &segments(&lod.fenceposts))?;
+        builder.node(root, &lod.fenceposts.segments())?;
 
         Ok(Self {
             nodes: builder.nodes,
@@ -229,24 +229,13 @@ pub(crate) struct QuadMeasurements {
 }
 
 /// One range per bucket: the positions of the bucket's codes inside the cell under construction.
-type BucketRanges = [Range<usize>; Fenceposts::SEGMENTS];
-
-/// The whole-domain ranges: every bucket's full segment.
-fn segments(fenceposts: &Fenceposts) -> BucketRanges {
-    core::array::from_fn(|bucket| {
-        let bucket = u8::try_from(bucket).expect("segment indexes are bounded by the 33 buckets");
-        let range = fenceposts
-            .segment(Depth::new(bucket).expect("every segment index names a valid depth"));
-        usize::try_from(range.start).expect("resident columns fit the address space")
-            ..usize::try_from(range.end).expect("resident columns fit the address space")
-    })
-}
+type BucketRanges = [Range<BasePosition>; SEGMENTS];
 
 struct Builder<'lod> {
     /// The code column in base order, segment-sorted.
-    codes: &'lod [MortonKey],
+    codes: &'lod IdSlice<BasePosition, MortonKey>,
     /// Each base position's direct types as `u32` ordinals.
-    position_types: Vec<SmallVec<u32, 2>>,
+    position_types: IdVec<BasePosition, SmallVec<u32, 2>>,
     /// The cut's span exponent `m`: a tile at zoom `z` delivers buckets at or below `z + m`.
     span_log2: u8,
     /// The deepest bucket the cascade assigned into.
@@ -277,7 +266,10 @@ impl Builder<'_> {
         self.depth = self.depth.max(cell.depth());
 
         let cut = cell.depth().get() + self.span_log2;
-        let points = ranges.iter().map(ExactSizeIterator::len).sum::<usize>();
+        let points = ranges
+            .iter()
+            .map(|range| range.end.as_usize() - range.start.as_usize())
+            .sum::<usize>();
         let run = self.run(cell.depth(), ranges);
 
         let mut children = [None; 4];
@@ -311,8 +303,8 @@ impl Builder<'_> {
 
         self.nodes[index as usize] = Node::new(
             children,
-            u64::try_from(run.start).expect("resident columns fit u64"),
-            u32::try_from(run.len()).expect("the lod columns index rows by u32"),
+            u64::from(run.start.as_u32()),
+            run.end.as_u32() - run.start.as_u32(),
             u32::try_from(points).expect("the lod columns index rows by u32"),
         );
         self.sets[index as usize] = set.into_iter().collect();
@@ -324,7 +316,7 @@ impl Builder<'_> {
     ///
     /// Bucket `z + span_log2` for a tile at zoom `z`, buckets `0..=span_log2` whole for the root -
     /// a single contiguous range because the base order is bucket-major.
-    fn run(&self, depth: Depth, ranges: &BucketRanges) -> Range<usize> {
+    fn run(&self, depth: Depth, ranges: &BucketRanges) -> Range<BasePosition> {
         if depth == Depth::MIN {
             let cut = usize::from(self.span_log2);
             debug_assert!(
@@ -352,19 +344,25 @@ impl Builder<'_> {
 
     /// Narrows every bucket's range to the codes inside `cell`.
     ///
-    /// By the partition-point searches of `file/morton`'s `run` query.
+    /// By the partition-point searches of `file/morton`'s `run` query. A partition point over the
+    /// range's sub-slice is an offset into the range, which the range's own start rebases into a
+    /// base position.
     fn narrow(&self, ranges: &BucketRanges, cell: MortonCell) -> BucketRanges {
         core::array::from_fn(|bucket| {
             let range = &ranges[bucket];
             let slice = &self.codes[range.clone()];
-            let start = range.start + slice.partition_point(|&code| code < cell.min_key());
-            let end = range.start + slice.partition_point(|&code| code <= cell.max_key());
+            let start = range
+                .start
+                .plus(slice.partition_point(|&code| code < cell.min_key()));
+            let end = range
+                .start
+                .plus(slice.partition_point(|&code| code <= cell.max_key()));
             start..end
         })
     }
 
     /// Feeds the types of every position in `range` into `set`.
-    fn gather(&self, set: &mut BTreeSet<u32>, range: Range<usize>) {
+    fn gather(&self, set: &mut BTreeSet<u32>, range: Range<BasePosition>) {
         for position in range {
             set.extend(self.position_types[position].iter().copied());
         }

@@ -10,7 +10,7 @@
 //! Every signal is a pure function of published artifacts and the configuration: equal generations
 //! derive equal columns, so the ranking stays reproducible from the manifest alone.
 
-use hashql_core::id::Id as _;
+use hashql_core::id::IdVec;
 
 use crate::{identity::NodeRowId, salt::adjacency::AdjacencyArchive};
 
@@ -58,7 +58,7 @@ const impl Default for RankingConfig {
 // `derive_in(allocator)` variant.
 pub(crate) trait ImportanceSignal {
     /// Derives the importance column, one entry per node row.
-    fn derive(&self, rows: usize) -> Vec<f32>;
+    fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32>;
 }
 
 /// The constant signal: every row weighs the same.
@@ -66,8 +66,8 @@ pub(crate) trait ImportanceSignal {
 pub(crate) struct ConstantImportance;
 
 impl ImportanceSignal for ConstantImportance {
-    fn derive(&self, rows: usize) -> Vec<f32> {
-        vec![0.0; rows]
+    fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32> {
+        IdVec::from_elem(0.0, rows)
     }
 }
 
@@ -104,21 +104,19 @@ impl ImportanceSignal for DegreeImportance<'_> {
         reason = "degrees stay exactly representable in f32 far beyond any plausible fan-in; the \
                   documented rounding beyond 2^24 reorders near-ties only"
     )]
-    fn derive(&self, rows: usize) -> Vec<f32> {
+    fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32> {
         assert_eq!(
             self.adjacency.rows(),
             rows as u64,
             "the adjacency spans the generation's node rows",
         );
 
-        (0..rows)
-            .map(|row| {
-                let degree = self
-                    .adjacency
-                    .degree(NodeRowId::from_usize(row))
-                    .expect("the domain was asserted above");
-                degree as f32
-            })
-            .collect()
+        IdVec::from_fn(rows, |row| {
+            let degree = self
+                .adjacency
+                .degree(row)
+                .expect("the domain was asserted above");
+            degree as f32
+        })
     }
 }

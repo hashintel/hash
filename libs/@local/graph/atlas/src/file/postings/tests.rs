@@ -38,7 +38,7 @@ const FLAGS: [u64; 1] = [0b10];
 const MEMBERSHIP_POSTS: [u64; 4] = [0, 3, 4, 4];
 const ENTRIES: [u32; 4] = [0, 3, 9, 38];
 const PARENT_POSTS: [u64; 4] = [0, 0, 0, 2];
-const PARENT_IDS: [u32; 2] = [0, 1];
+const PARENT_IDS: [u64; 2] = [0, 1];
 
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -69,6 +69,57 @@ fn header_wire_layout() {
     assert_eq!(bytes[28..36], 4_u64.to_le_bytes(), "membership entries");
     assert_eq!(bytes[36..44], 2_u64.to_le_bytes(), "parent edges");
     assert!(bytes[44..].iter().all(|&byte| byte == 0));
+}
+
+/// The region bytes are pinned: little-endian words, dense bitmaps LSB-first.
+///
+/// Type 1's dense word `0b10_0110` (members {1, 2, 5}) must land as bytes `26 00 00 00`: the
+/// low-order byte first (little endian) and position `p` at bit `p & 31` (LSB-first), so member 1
+/// is bit 1 of byte 0.
+#[test]
+fn region_wire_layout() {
+    let bytes = fixture_bytes();
+    assert_eq!(
+        bytes.len(),
+        5 * 4096 + 16,
+        "five 4096-byte regions and 16 entry bytes"
+    );
+
+    // Flags: one u64 word whose bit 1 marks type 1 as dense. The rest
+    // of the region is zero padding.
+    assert_eq!(bytes[4096..4104], 0b10_u64.to_le_bytes());
+    assert!(bytes[4104..8192].iter().all(|&byte| byte == 0));
+
+    // Membership fenceposts [0, 3, 4, 4], u64 words in little-endian bytes.
+    for (index, post) in MEMBERSHIP_POSTS.iter().enumerate() {
+        let at = 2 * 4096 + index * 8;
+        assert_eq!(
+            bytes[at..at + 8],
+            post.to_le_bytes(),
+            "membership post {index}"
+        );
+    }
+
+    // Parent fenceposts [0, 0, 0, 2].
+    for (index, post) in PARENT_POSTS.iter().enumerate() {
+        let at = 3 * 4096 + index * 8;
+        assert_eq!(bytes[at..at + 8], post.to_le_bytes(), "parent post {index}");
+    }
+
+    // Parent ids [0, 1], u64 little endian.
+    let parent_ids_at = 4 * 4096;
+    assert_eq!(bytes[parent_ids_at..parent_ids_at + 8], 0_u64.to_le_bytes());
+    assert_eq!(
+        bytes[parent_ids_at + 8..parent_ids_at + 16],
+        1_u64.to_le_bytes(),
+    );
+
+    // Entries: type 0's list [0, 3, 9], then type 1's dense word.
+    let entries_at = 5 * 4096;
+    assert_eq!(bytes[entries_at..entries_at + 4], 0_u32.to_le_bytes());
+    assert_eq!(bytes[entries_at + 4..entries_at + 8], 3_u32.to_le_bytes());
+    assert_eq!(bytes[entries_at + 8..entries_at + 12], 9_u32.to_le_bytes());
+    assert_eq!(bytes[entries_at + 12..entries_at + 16], [0x26, 0, 0, 0]);
 }
 
 #[test]

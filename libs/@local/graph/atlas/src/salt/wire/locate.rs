@@ -19,6 +19,8 @@
     reason = "column integers are pinned little-endian by the wire contract"
 )]
 
+use hashql_core::id::IdSlice;
+
 use super::{
     Kind,
     cbor::CborWriter,
@@ -27,8 +29,12 @@ use super::{
     tile::{TileCoordinate, encode_details},
 };
 use crate::{
-    dataset::ArchivedEntityId, identity::NodeRowId, integrity::Sha256Digest, math::Vec2,
-    salt::postings::artifact::Membership, serve::WireRow,
+    dataset::ArchivedEntityId,
+    identity::{BasePosition, NodeRowId},
+    integrity::Sha256Digest,
+    math::Vec2,
+    salt::postings::artifact::Membership,
+    serve::WireRow,
 };
 
 /// One locate response in writable form.
@@ -65,11 +71,11 @@ pub(crate) struct LocateResponse<'doc> {
     /// the store no longer serves.
     pub properties_complete: bool,
     /// The delivered set: base positions in delivered order, source first.
-    pub delivered: &'doc [u32],
+    pub delivered: &'doc [BasePosition],
     /// The generation's wire-coordinate column, base order, in full.
-    pub positions: &'doc [Vec2],
+    pub positions: &'doc IdSlice<BasePosition, Vec2>,
     /// The generation's row-id column (row by base position), in full.
-    pub rows: &'doc [WireRow<NodeRowId>],
+    pub rows: &'doc IdSlice<BasePosition, WireRow<NodeRowId>>,
     /// Per-type membership for the request's `coloredTypeIds`, in request order.
     ///
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
@@ -167,7 +173,7 @@ impl LocateResponse<'_> {
     fn write_positions(&self, column: &mut Vec<u8>) {
         column.reserve(self.delivered.len() * 8);
         for &position in self.delivered {
-            let point = self.positions[position as usize];
+            let point = self.positions[position];
             column.extend_from_slice(&point.x().to_le_bytes());
             column.extend_from_slice(&point.y().to_le_bytes());
         }
@@ -177,7 +183,7 @@ impl LocateResponse<'_> {
     fn write_rows(&self, column: &mut Vec<u8>) {
         column.reserve(self.delivered.len() * 4);
         for &position in self.delivered {
-            column.extend_from_slice(&self.rows[position as usize].get().to_le_bytes());
+            column.extend_from_slice(&self.rows[position].get().to_le_bytes());
         }
     }
 
@@ -198,11 +204,7 @@ impl LocateResponse<'_> {
             let flag = 1_u8 << (bit & 7);
 
             for (point, &position) in self.delivered.iter().enumerate() {
-                if membership
-                    .positions_in(position..position + 1)
-                    .next()
-                    .is_some()
-                {
+                if membership.contains(position) {
                     column[point * stride + byte] |= flag;
                 }
             }

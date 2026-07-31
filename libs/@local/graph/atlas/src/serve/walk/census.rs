@@ -4,11 +4,11 @@
 //! population, no extent, and no resolution, so a scope's numbers carry no evidence of what the
 //! mask removed.
 
-use hashql_core::id::bit_vec::DenseBitSet;
+use hashql_core::id::{Id as _, IdSlice, bit_vec::DenseBitSet};
 
 use super::Walk;
 use crate::{
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
     serve::density::ViewOccupancy,
@@ -82,7 +82,7 @@ impl Walk<'_> {
             }
 
             let run = self.run(depth, cell);
-            population += u64::from(run.end - run.start);
+            population += u64::from(run.end.as_u32() - run.start.as_u32());
         }
 
         population
@@ -122,7 +122,7 @@ impl Walk<'_> {
     ) {
         for depth in self.grid.cut_buckets(z) {
             for position in self.run(depth, cell) {
-                set.insert(self.row_ids[position as usize]);
+                set.insert(self.row_ids[position]);
             }
         }
     }
@@ -137,32 +137,48 @@ impl Walk<'_> {
             .map_or(0, |bucket| bucket as u64)
     }
 
-    /// Counts the visible points of the cumulative schedule at `cut`.
-    fn visible_at(&self, cut: Depth) -> u64 {
-        (0..self.segment_end(cut))
-            .filter(|&position| self.admits(position))
-            .count() as u64
-    }
+    /// Censuses the masked view in one pass over the base column.
+    ///
+    /// Per admitted position the pass accumulates:
+    ///
+    /// - the count below the cumulative schedule's prefix,
+    /// - the coordinate's fold into the extent, and
+    /// - the last admitted position, whose bucket is the deepest visible one because the base order
+    ///   is bucket-major.
+    fn masked_census(&self, cut: Depth, positions: &IdSlice<BasePosition, Vec2>) -> ViewCensus {
+        let prefix = self.segment_end(cut);
+        let mut visible = 0_u64;
+        let mut last_admitted = None;
 
-    /// Returns the tight wire-frame extent of the visible set, [`None`] when it is empty.
-    fn visible_extent(&self, positions: &[Vec2]) -> Option<Bounds2> {
-        Bounds2::from_points(
+        let bounds = Bounds2::from_points(
             positions
-                .iter()
-                .enumerate()
-                .filter(|&(position, _)| {
-                    self.admits(u32::try_from(position).expect("base positions fit u32"))
+                .iter_enumerated()
+                .filter(|&(position, _)| self.admits(position))
+                .inspect(|&(position, _)| {
+                    if position < prefix {
+                        visible += 1;
+                    }
+                    last_admitted = Some(position);
                 })
                 .map(|(_, &point)| point),
-        )
+        );
+
+        ViewCensus {
+            visible,
+            bounds,
+            min_resolution: last_admitted.map_or(0, |position| {
+                u64::from(self.morton.bucket_of(position).get())
+            }),
+        }
     }
 
     /// Censuses the visible view over the whole corpus.
     ///
-    /// The three corpus-wide aggregates the root tile publishes, gathered together because they
-    /// share their cost: each one filters the base column by the mask, so computing them apart
-    /// walks the corpus three times for one view. `cut` is the root's cumulative schedule bucket,
-    /// `positions` the base coordinate column, and `bounds` the generation's own extent.
+    /// The corpus-wide aggregates the root tile publishes, gathered in one masked pass over the
+    /// base column because they share their cost: computing them apart would filter the same
+    /// column by the same mask once per aggregate for one view. `cut` is the root's cumulative
+    /// schedule bucket, `positions` the base coordinate column, and `bounds` the generation's own
+    /// extent.
     ///
     /// An unmasked proof answers from the artifacts alone - the fencepost prefix is the visible
     /// count, the generation's own extent is the visible extent - so authority over the corpus
@@ -174,22 +190,18 @@ impl Walk<'_> {
     pub(crate) fn visible_census(
         &self,
         cut: Depth,
-        positions: &[Vec2],
+        positions: &IdSlice<BasePosition, Vec2>,
         bounds: Option<Bounds2>,
     ) -> ViewCensus {
         if self.proof.is_full() {
             return ViewCensus {
-                visible: self.morton.fenceposts().segment(cut).end,
+                visible: u64::from(self.morton.fenceposts().segment(cut).end.as_u32()),
                 bounds,
                 min_resolution: self.deepest_occupied(),
             };
         }
 
-        ViewCensus {
-            visible: self.visible_at(cut),
-            bounds: self.visible_extent(positions),
-            min_resolution: self.visible_deepest(),
-        }
+        self.masked_census(cut, positions)
     }
 
     /// Aggregates the visible view's Morton occupancy.
@@ -207,25 +219,12 @@ impl Walk<'_> {
             .expect("a visible row count fits usize");
 
         let mut keys: Vec<MortonKey> = Vec::with_capacity(visible);
-        for position in 0..super::narrow(count) {
+        for position in BasePosition::MIN..self.morton.fenceposts().bound() {
             if self.admits(position) {
-                keys.push(self.morton.code(u64::from(position)));
+                keys.push(self.morton.code(position));
             }
         }
 
         ViewOccupancy::of(&mut keys)
-    }
-
-    /// Returns the deepest bucket holding a visible point, zero when none does.
-    fn visible_deepest(&self) -> u64 {
-        Depth::all()
-            .rev()
-            .find(|&bucket| {
-                self.morton
-                    .fenceposts()
-                    .segment(bucket)
-                    .any(|position| self.admits(super::narrow(position)))
-            })
-            .map_or(0, |bucket| u64::from(bucket.get()))
     }
 }

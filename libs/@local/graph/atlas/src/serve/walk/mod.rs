@@ -12,8 +12,8 @@
 //! exactly the rows its proof admits; the walk supplies that build's gather and the per-tile
 //! masked counts.
 //!
-//! Positions, counts, and run lengths live in the `u32` domain: the open pass validated the point
-//! count against it, so the walk's conversions from the columns' `u64` storage are total.
+//! Positions, counts, and run lengths live in the `u32` domain: the position type owns that width
+//! at every fencepost accessor, so every segment and run the walk reads is already typed.
 //!
 //! [`ScopeSchedule`]: super::schedule::ScopeSchedule
 
@@ -21,6 +21,8 @@ mod census;
 mod full;
 
 use core::ops::Range;
+
+use hashql_core::id::{Id as _, IdSlice};
 
 pub use self::census::ViewCensus;
 pub(super) use self::full::occupied_children;
@@ -44,7 +46,7 @@ pub(super) struct Walk<'atlas> {
     grid: Grid,
     morton: &'atlas MortonFile,
     quad: &'atlas QuadFile,
-    row_ids: &'atlas [NodeRowId],
+    row_ids: &'atlas IdSlice<BasePosition, NodeRowId>,
     proof: &'atlas VisibilityProof,
 }
 
@@ -69,34 +71,25 @@ impl<'atlas> Walk<'atlas> {
     }
 
     /// Returns whether the proof admits the row at base position `position`.
-    fn admits(&self, position: u32) -> bool {
-        self.proof.contains(self.row_ids[position as usize])
+    fn admits(&self, position: BasePosition) -> bool {
+        self.proof.contains(self.row_ids[position])
     }
 
-    /// Returns bucket `depth`'s positions inside `cell`, in the validated `u32` position domain.
-    fn run(&self, depth: Depth, cell: MortonCell) -> Range<u32> {
-        narrow_run(self.morton.run(depth, cell))
+    /// Returns bucket `depth`'s positions inside `cell`.
+    fn run(&self, depth: Depth, cell: MortonCell) -> Range<BasePosition> {
+        self.morton.run(depth, cell)
     }
 
-    /// Returns the position count of the cumulative schedule at `cut`.
-    fn segment_end(&self, cut: Depth) -> u32 {
-        narrow(self.morton.fenceposts().segment(cut).end)
+    /// Returns the first position past the cumulative schedule at `cut`.
+    fn segment_end(&self, cut: Depth) -> BasePosition {
+        self.morton.fenceposts().segment(cut).end
     }
 
     /// Returns bucket `depth`'s point count.
     fn bucket_length(&self, depth: Depth) -> u32 {
-        narrow(self.morton.fenceposts().lengths()[depth.get() as usize])
+        let segment = self.morton.fenceposts().segment(depth);
+        segment.end.as_u32() - segment.start.as_u32()
     }
-}
-
-/// Narrows a position run into the validated `u32` position domain.
-fn narrow_run(run: Range<u64>) -> Range<u32> {
-    narrow(run.start)..narrow(run.end)
-}
-
-/// Narrows a position, count, or run length into the validated `u32` position domain.
-fn narrow(value: u64) -> u32 {
-    u32::try_from(value).expect("open validated the point count against the u32 domain")
 }
 
 /// The delivered point set of one tile.
@@ -123,7 +116,10 @@ impl DeliveredPoints {
     /// Counts the delivered points.
     pub(super) fn count(&self) -> usize {
         match self {
-            Self::Ranges(ranges) => ranges.iter().map(Range::len).sum(),
+            Self::Ranges(ranges) => ranges
+                .iter()
+                .map(|range| range.end.as_usize() - range.start.as_usize())
+                .sum(),
             Self::Positions(list) => list.len(),
         }
     }
@@ -133,12 +129,12 @@ impl DeliveredPoints {
         match self {
             Self::Ranges(ranges) => PositionIter {
                 ranges: ranges.iter(),
-                current: 0..0,
+                current: BasePosition::MIN..BasePosition::MIN,
                 list: [].iter(),
             },
             Self::Positions(list) => PositionIter {
                 ranges: [].iter(),
-                current: 0..0,
+                current: BasePosition::MIN..BasePosition::MIN,
                 list: list.iter(),
             },
         }
@@ -149,17 +145,17 @@ impl DeliveredPoints {
 #[derive(Debug)]
 pub(super) struct PositionIter<'set> {
     /// The remaining ranges of a range-shaped set.
-    ranges: core::slice::Iter<'set, Range<u32>>,
+    ranges: core::slice::Iter<'set, Range<BasePosition>>,
     /// The positions remaining in the current range.
-    current: Range<u32>,
+    current: Range<BasePosition>,
     /// The remaining positions of a list-shaped set.
-    list: core::slice::Iter<'set, u32>,
+    list: core::slice::Iter<'set, BasePosition>,
 }
 
 impl Iterator for PositionIter<'_> {
-    type Item = u32;
+    type Item = BasePosition;
 
-    fn next(&mut self) -> Option<u32> {
+    fn next(&mut self) -> Option<BasePosition> {
         loop {
             if let Some(position) = self.current.next() {
                 return Some(position);

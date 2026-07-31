@@ -7,7 +7,7 @@
 //! low megabytes while `T` stays in the low thousands.
 
 use hashql_core::id::{
-    Id as _,
+    Id as _, IdVec,
     bit_vec::{BitMatrix, RowRef},
 };
 
@@ -59,41 +59,41 @@ impl ClosureMap {
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
+        let bound = OntologyRowId::from_usize(types);
         let mut bits = BitMatrix::new(types, types);
 
         // Every type descends from itself: a request naming `t`
         // matches instances of `t` directly.
-        for type_row in 0..types {
-            let type_row = OntologyRowId::from_usize(type_row);
+        for type_row in OntologyRowId::MIN..bound {
             bits.insert(type_row, type_row);
         }
 
         // Pending children per type; a type's row settles once every
         // child's row has been folded into it.
-        let mut pending = vec![0_u64; types];
-        for type_row in 0..types {
+        let mut pending: IdVec<OntologyRowId, u64> = IdVec::from_elem(0, types);
+        for type_row in OntologyRowId::MIN..bound {
             let parents = postings
-                .parents(OntologyRowId::from_usize(type_row))
+                .parents(type_row)
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
-                pending[parent as usize] += 1;
+                pending[parent] += 1;
             }
         }
 
-        let mut ready: Vec<usize> = (0..types).filter(|&row| pending[row] == 0).collect();
+        let mut ready: Vec<OntologyRowId> = pending
+            .iter_enumerated()
+            .filter(|&(_, &children)| children == 0)
+            .map(|(row, _)| row)
+            .collect();
         let mut settled = 0_u64;
         while let Some(type_row) = ready.pop() {
             settled += 1;
 
             let parents = postings
-                .parents(OntologyRowId::from_usize(type_row))
+                .parents(type_row)
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
-                let parent = parent as usize;
-                bits.union_rows(
-                    OntologyRowId::from_usize(type_row),
-                    OntologyRowId::from_usize(parent),
-                );
+                bits.union_rows(type_row, parent);
 
                 pending[parent] -= 1;
                 if pending[parent] == 0 {

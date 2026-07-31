@@ -12,7 +12,7 @@
 //! edge the proof withholds, so every collected edge carries its delivery proof in the type and
 //! neither walk states the rule a second time.
 
-use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
 
 use super::{
     Atlas,
@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     dataset::ArchivedEntityId,
-    identity::{EdgeRowId, NodeRowId},
+    identity::{BasePosition, EdgeRowId, ImportanceRank, NodeRowId},
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };
 
@@ -55,10 +55,10 @@ impl DeliveredEdge {
 #[derive(Debug, Copy, Clone)]
 pub(super) struct Neighbourhood<'atlas> {
     adjacency: &'atlas AdjacencyArchive,
-    endpoints: &'atlas [[NodeRowId; 2]],
+    endpoints: &'atlas IdSlice<EdgeRowId, [NodeRowId; 2]>,
     edge_ids: &'atlas IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
-    ranks: &'atlas [u32],
-    positions_of_row: &'atlas [u32],
+    ranks: &'atlas IdSlice<BasePosition, ImportanceRank>,
+    positions_of_row: &'atlas IdSlice<NodeRowId, BasePosition>,
     proof: &'atlas VisibilityProof,
 }
 
@@ -99,7 +99,7 @@ impl<'atlas> Neighbourhood<'atlas> {
         let incident = outgoing.iter().chain(
             incoming
                 .iter()
-                .filter(|edge| self.endpoints[edge.as_usize()][0] != node),
+                .filter(|&edge| self.endpoints[edge][0] != node),
         );
 
         let mut edges = Vec::new();
@@ -134,7 +134,7 @@ impl<'atlas> Neighbourhood<'atlas> {
                 .expect("delivered rows lie inside the adjacency's node domain");
 
             for edge in outgoing.iter() {
-                let [_, target] = self.endpoints[edge.as_usize()];
+                let [_, target] = self.endpoints[edge];
 
                 if delivered.contains(target)
                     && let Some(delivered_edge) = self.edge(edge)
@@ -174,7 +174,7 @@ impl<'atlas> Neighbourhood<'atlas> {
             return;
         }
 
-        let mut ranked: Vec<(u32, (DeliveredEdge, ArchivedEntityId))> = edges
+        let mut ranked: Vec<(ImportanceRank, (DeliveredEdge, ArchivedEntityId))> = edges
             .drain(..)
             .map(|entry| (self.worse_rank(entry.0), entry))
             .collect();
@@ -190,15 +190,19 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// Returns an edge's truncation rank.
     ///
     /// Its worse endpoint's importance rank, where larger values are less prominent.
-    const fn worse_rank(&self, edge: DeliveredEdge) -> u32 {
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "`Ord::max` needs `ImportanceRank: [const] Ord`, which the id macro does not emit"
+    )]
+    fn worse_rank(&self, edge: DeliveredEdge) -> ImportanceRank {
         self.rank_of_row(edge.source)
             .max(self.rank_of_row(edge.target))
     }
 
     /// Returns a node row's importance rank through the position permutation.
-    const fn rank_of_row(&self, row: NodeRowId) -> u32 {
-        let position = self.positions_of_row[row.as_usize()];
-        self.ranks[position as usize]
+    const fn rank_of_row(&self, row: NodeRowId) -> ImportanceRank {
+        let position = self.positions_of_row[row];
+        self.ranks[position]
     }
 
     /// Reads edge `row`'s wire-column ids off the endpoint column, when the proof delivers it.
@@ -206,7 +210,7 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// [`None`] when the link row is hidden or either endpoint is: the value cannot be built for an
     /// edge no response may name, which is why both walks filter by constructing.
     fn edge(&self, row: EdgeRowId) -> Option<DeliveredEdge> {
-        let [source, target] = self.endpoints[row.as_usize()];
+        let [source, target] = self.endpoints[row];
 
         Some(DeliveredEdge {
             row: self.proof.verify_edge(row, source, target)?,

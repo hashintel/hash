@@ -9,7 +9,7 @@ use core::num::NonZero;
 
 use crate::{
     dataset::TemporalAxes,
-    file::{generation::GenerationId, morton::Fenceposts},
+    file::{generation::GenerationId, morton::SEGMENTS},
     integrity::Sha256Digest,
     math::{Bounds2, Similarity},
     morton::Depth,
@@ -351,10 +351,10 @@ mod bounds2 {
 mod bucket_histogram {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
-    use crate::file::morton::Fenceposts;
+    use crate::file::morton::SEGMENTS;
 
     pub(super) fn serialize<S>(
-        histogram: &[u64; Fenceposts::SEGMENTS],
+        histogram: &[u64; SEGMENTS],
         serializer: S,
     ) -> Result<S::Ok, S::Error>
     where
@@ -363,9 +363,7 @@ mod bucket_histogram {
         histogram.as_slice().serialize(serializer)
     }
 
-    pub(super) fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<[u64; Fenceposts::SEGMENTS], D::Error>
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<[u64; SEGMENTS], D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -373,8 +371,7 @@ mod bucket_histogram {
         let count = lengths.len();
         lengths.try_into().map_err(|_lengths| {
             D::Error::custom(format_args!(
-                "the histogram holds {count} buckets where the schedule has {}",
-                Fenceposts::SEGMENTS,
+                "the histogram holds {count} buckets where the schedule has {SEGMENTS}",
             ))
         })
     }
@@ -387,7 +384,7 @@ struct LodMeasurementsDef {
     #[serde(with = "bounds2")]
     world: Bounds2,
     #[serde(with = "bucket_histogram")]
-    bucket_histogram: [u64; Fenceposts::SEGMENTS],
+    bucket_histogram: [u64; SEGMENTS],
     catch_all_population: u64,
     co_location_excess: u64,
     max_tile_delta: u64,

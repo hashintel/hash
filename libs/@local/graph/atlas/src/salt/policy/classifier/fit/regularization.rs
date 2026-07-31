@@ -15,13 +15,14 @@ use core::{
     sync::atomic::{Atomic, Ordering},
 };
 
+use hashql_core::id::{IdSlice, IdVec};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{
     FitConfig, FitError, TrainingSet, calibration, fit_model, objective,
     solver::{Gram, WorkCounters},
 };
-use crate::{math::DPositive, progress::Progress, salt::policy::GeometryClass};
+use crate::{identity::CardRow, math::DPositive, progress::Progress, salt::policy::GeometryClass};
 
 /// The candidate strengths, ascending.
 pub(super) const CANDIDATES: [DPositive; 13] = {
@@ -62,7 +63,7 @@ pub(super) struct Selection {
     /// Every candidate's reading, ascending by strength.
     pub curve: Box<[RegularizationReading]>,
     /// The winning candidate's out-of-fold logits per training row, in class order.
-    pub out_of_fold_logits: Vec<[f64; GeometryClass::COUNT]>,
+    pub out_of_fold_logits: IdVec<CardRow, [f64; GeometryClass::COUNT]>,
 }
 
 /// The winning position: minimum cross-entropy, an exact tie to the stronger penalty.
@@ -88,7 +89,7 @@ pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
 /// fails, and [`FitError::NonFinite`] when an out-of-fold evaluation leaves the finite domain.
 pub(super) fn select<P: Progress + Sync>(
     training: TrainingSet<'_>,
-    folds: &[usize],
+    folds: &IdSlice<CardRow, usize>,
     config: FitConfig,
     gram: &Gram,
     progress: &P,
@@ -125,10 +126,11 @@ pub(super) fn select<P: Progress + Sync>(
         .collect::<Result<_, _>>()?;
 
     let mut curve = Vec::with_capacity(CANDIDATES.len());
-    let mut winning_logits = Vec::new();
+    let mut winning_logits = IdVec::new();
     for (candidate, chunk) in models.chunks_exact(config.folds).enumerate() {
-        let mut logits = vec![[f64::NAN; GeometryClass::COUNT]; training.len()];
-        for (row, values) in logits.iter_mut().enumerate() {
+        let mut logits: IdVec<CardRow, _> =
+            IdVec::from_elem([f64::NAN; GeometryClass::COUNT], training.len());
+        for (row, values) in logits.iter_enumerated_mut() {
             *values = objective::logits(&chunk[folds[row]], training.embedding(row));
         }
 

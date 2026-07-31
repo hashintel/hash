@@ -227,9 +227,11 @@ pub(super) fn stage_sized_column(
 ) -> io::Result<RepositoryFile> {
     let mut writer = BufWriter::new(staging.create(&role.file_name())?);
     let mut array = SizedArrayWriter::new(&mut writer, variant, dims)?;
+
     for row in rows {
         array.write_row(row.as_ref())?;
     }
+
     let digest = array.finish()?;
 
     Ok(role.file(digest))

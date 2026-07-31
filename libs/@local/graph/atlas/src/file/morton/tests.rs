@@ -2,15 +2,15 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-use core::assert_matches;
+use core::{assert_matches, ops::Range};
 use std::{fs, path::PathBuf};
 
 use hashql_core::id::Id as _;
 use proptest::{arbitrary::any, prop_assert_eq, property_test};
-use zerocopy::{IntoBytes as _, TryFromBytes as _};
+use zerocopy::{IntoBytes as _, TryFromBytes as _, U64};
 
 use super::{
-    FencepostViolation, Fenceposts, FileHeader,
+    FencepostError, Fenceposts, FileHeader, POSTS, SEGMENTS,
     read::{MortonFile, OpenMortonError},
     write::{PAGE_STRIDE, write_regions},
 };
@@ -24,10 +24,15 @@ fn depth(value: u8) -> Depth {
 }
 
 /// Fenceposts holding `lengths.len()` leading segments and empty ones behind them.
-fn posts_of(lengths: &[u64]) -> Fenceposts {
-    let mut all = [0_u64; Fenceposts::SEGMENTS];
+fn posts_of(lengths: &[u64]) -> Fenceposts<BasePosition> {
+    let mut all = [0_u64; SEGMENTS];
     all[..lengths.len()].copy_from_slice(lengths);
     Fenceposts::from_lengths(&all).expect("test lengths fit u64")
+}
+
+/// A typed base-position range.
+fn span(range: Range<u32>) -> Range<BasePosition> {
+    BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end)
 }
 
 /// A per-test scratch file path under the system temp directory.
@@ -46,34 +51,40 @@ fn fenceposts_carry_the_structural_rules() {
     // histogram read back what built them.
     let posts = posts_of(&[2, 0, 3]);
     assert_eq!(posts.count(), 5);
-    assert_eq!(posts.segment(depth(0)), 0..2);
-    assert_eq!(posts.segment(depth(1)), 2..2);
-    assert_eq!(posts.segment(depth(2)), 2..5);
-    assert_eq!(posts.segment(depth(32)), 5..5);
+    assert_eq!(posts.segment(depth(0)), span(0..2));
+    assert_eq!(posts.segment(depth(1)), span(2..2));
+    assert_eq!(posts.segment(depth(2)), span(2..5));
+    assert_eq!(posts.segment(depth(32)), span(5..5));
     let lengths = posts.lengths();
     assert_eq!(&lengths[..3], &[2, 0, 3]);
     assert!(lengths[3..].iter().all(|&length| length == 0));
 
-    // A first post off zero and a decreasing post both name their
-    // offender.
-    let mut raw = *posts.posts();
-    raw[0] = 1;
-    assert_eq!(Fenceposts::new(&raw), Err(FencepostViolation { index: 0 }));
+    // A first post off zero breaks the anchor; a decreasing post
+    // names its offender.
+    let mut raw = *posts.as_raw();
+    raw[0] = U64::new(1);
+    assert_eq!(
+        Fenceposts::<BasePosition>::new(raw),
+        Err(FencepostError::Anchor),
+    );
 
-    let mut raw = *posts.posts();
-    raw[2] = 1;
-    assert_eq!(Fenceposts::new(&raw), Err(FencepostViolation { index: 2 }));
+    let mut raw = *posts.as_raw();
+    raw[2] = U64::new(1);
+    assert_eq!(
+        Fenceposts::<BasePosition>::new(raw),
+        Err(FencepostError::Order { index: 2 }),
+    );
 
     // Accumulation overflow matches no real column.
-    let mut lengths = [0_u64; Fenceposts::SEGMENTS];
+    let mut lengths = [0_u64; SEGMENTS];
     lengths[0] = u64::MAX;
     lengths[1] = 1;
-    assert_eq!(Fenceposts::from_lengths(&lengths), None);
+    assert_eq!(Fenceposts::<BasePosition>::from_lengths(&lengths), None);
 }
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(512, &posts_of(&[600, 400]));
+    let header = FileHeader::new(512, posts_of(&[600, 400]));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTMRTN");
@@ -82,21 +93,17 @@ fn header_wire_layout() {
     // Fenceposts: 0, 600, then 1000 repeated to the last post.
     assert_eq!(bytes[16..24], 0_u64.to_le_bytes());
     assert_eq!(bytes[24..32], 600_u64.to_le_bytes());
-    for post in 2..Fenceposts::POSTS {
+    for post in 2..POSTS {
         let offset = 16 + post * 8;
         assert_eq!(bytes[offset..offset + 8], 1000_u64.to_le_bytes());
     }
-    assert!(
-        bytes[16 + Fenceposts::POSTS * 8..]
-            .iter()
-            .all(|&byte| byte == 0)
-    );
+    assert!(bytes[16 + POSTS * 8..].iter().all(|&byte| byte == 0));
 }
 
 #[test]
 fn header_parse_pins_identity() {
     let mut bytes = [0_u8; FileHeader::SIZE];
-    bytes.copy_from_slice(FileHeader::new(512, &posts_of(&[1000])).as_bytes());
+    bytes.copy_from_slice(FileHeader::new(512, posts_of(&[1000])).as_bytes());
     let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.stride(), 512);
     assert_eq!(parsed.count(), 1000);
@@ -116,29 +123,29 @@ fn header_parse_pins_identity() {
 fn region_geometry() {
     // 1000 codes at stride 512: two keys, a 16-byte index padded to one
     // page, codes at 8192, 8000 code bytes behind them.
-    let header = FileHeader::new(512, &posts_of(&[1000]));
+    let header = FileHeader::new(512, posts_of(&[1000]));
     assert_eq!(header.index_keys(), Some(2));
     assert_eq!(header.codes_offset(), Some(8192));
     assert_eq!(header.expected_file_len(), Some(8192 + 8000));
 
     // An empty file is exactly its header: no keys, no index page.
-    let empty = FileHeader::new(512, &posts_of(&[]));
+    let empty = FileHeader::new(512, posts_of(&[]));
     assert_eq!(empty.index_keys(), Some(0));
     assert_eq!(empty.codes_offset(), Some(4096));
     assert_eq!(empty.expected_file_len(), Some(4096));
 
     // A full stride of codes still needs exactly one key.
-    let exact = FileHeader::new(512, &posts_of(&[512]));
+    let exact = FileHeader::new(512, posts_of(&[512]));
     assert_eq!(exact.index_keys(), Some(1));
 
     // A zero stride and overflowing geometry match no real file.
-    assert_eq!(FileHeader::new(0, &posts_of(&[1000])).index_keys(), None);
+    assert_eq!(FileHeader::new(0, posts_of(&[1000])).index_keys(), None);
     assert_eq!(
-        FileHeader::new(0, &posts_of(&[1000])).expected_file_len(),
+        FileHeader::new(0, posts_of(&[1000])).expected_file_len(),
         None,
     );
     assert_eq!(
-        FileHeader::new(512, &posts_of(&[u64::MAX])).expected_file_len(),
+        FileHeader::new(512, posts_of(&[u64::MAX])).expected_file_len(),
         None,
     );
 }
@@ -177,7 +184,7 @@ fn fixture_codes() -> Vec<MortonKey> {
     .collect()
 }
 
-fn fixture_posts() -> Fenceposts {
+fn fixture_posts() -> Fenceposts<BasePosition> {
     posts_of(&[1, 3, 5])
 }
 
@@ -217,34 +224,34 @@ fn runs_slice_hand_computed_cells() {
 
     // The root cell spans each whole segment.
     let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
-    assert_eq!(file.run(depth(0), root), 0..1);
-    assert_eq!(file.run(depth(1), root), 1..4);
-    assert_eq!(file.run(depth(2), root), 4..9);
+    assert_eq!(file.run(depth(0), root), span(0..1));
+    assert_eq!(file.run(depth(1), root), span(1..4));
+    assert_eq!(file.run(depth(2), root), span(4..9));
 
     // Quadrant (0, 0): bucket 1 holds code 2 there; bucket 2 holds
     // 1 and the SUB pair - the duplicate lands inside one run.
     let cell = MortonCell::new(depth(1), 0, 0).expect("the quadrant exists");
-    assert_eq!(file.run(depth(1), cell), 1..2);
-    assert_eq!(file.run(depth(2), cell), 4..7);
+    assert_eq!(file.run(depth(1), cell), span(1..2));
+    assert_eq!(file.run(depth(2), cell), span(4..7));
 
     // Quadrant (1, 0): bucket 0's only code and bucket 1's Q10|6.
     let cell = MortonCell::new(depth(1), 1, 0).expect("the quadrant exists");
-    assert_eq!(file.run(depth(0), cell), 0..1);
-    assert_eq!(file.run(depth(1), cell), 2..3);
+    assert_eq!(file.run(depth(0), cell), span(0..1));
+    assert_eq!(file.run(depth(1), cell), span(2..3));
 
     // Quadrant (0, 1): bucket 1 skips it entirely - the empty run
     // lands between its neighbours - while bucket 2 holds Q01|8.
     let cell = MortonCell::new(depth(1), 0, 1).expect("the quadrant exists");
-    assert_eq!(file.run(depth(1), cell), 3..3);
-    assert_eq!(file.run(depth(2), cell), 7..8);
+    assert_eq!(file.run(depth(1), cell), span(3..3));
+    assert_eq!(file.run(depth(2), cell), span(7..8));
 
     // The SUB depth-2 cell isolates the duplicated pair.
     let cell = MortonKey::from_bits(SUB | 3).cell(depth(2));
-    assert_eq!(file.run(depth(2), cell), 5..7);
+    assert_eq!(file.run(depth(2), cell), span(5..7));
 
     // A cell no code occupies yields the empty run.
     let cell = MortonKey::from_bits(0x2000_0000_0000_0000).cell(depth(2));
-    assert_eq!(file.run(depth(2), cell), 7..7);
+    assert_eq!(file.run(depth(2), cell), span(7..7));
 }
 
 #[test]
@@ -260,7 +267,7 @@ fn empty_column_reopens() {
     assert!(file.codes().is_empty());
 
     let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
-    assert_eq!(file.run(depth(0), root), 0..0);
+    assert_eq!(file.run(depth(0), root), span(0..0));
 }
 
 #[test]
@@ -291,7 +298,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&malformed, &bytes).expect("the scratch file is writable");
     assert_matches!(
         MortonFile::open(&malformed),
-        Err(OpenMortonError::Fenceposts(FencepostViolation { index: 2 })),
+        Err(OpenMortonError::Fenceposts(FencepostError::Order {
+            index: 2
+        })),
     );
 
     let torn = scratch("torn.mrtn");
@@ -341,17 +350,13 @@ fn runs_agree_with_a_linear_scan(
         let run = file.run(bucket, cell);
 
         // The reference: scan the segment linearly.
-        let expected: Vec<u64> = posts
+        let expected: Vec<BasePosition> = posts
             .segment(bucket)
-            .filter(|&position| {
-                let position =
-                    usize::try_from(position).expect("test columns fit the address space");
-                cell.contains(codes[position])
-            })
+            .filter(|&position| cell.contains(codes[position.as_usize()]))
             .collect();
 
         prop_assert_eq!(
-            run.collect::<Vec<u64>>(),
+            run.collect::<Vec<BasePosition>>(),
             expected,
             "bucket {} of cell {:?}",
             bucket.get(),

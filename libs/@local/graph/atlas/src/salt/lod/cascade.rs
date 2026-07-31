@@ -2,6 +2,8 @@
 
 use std::collections::HashSet;
 
+use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
+
 use super::rank::Ranking;
 use crate::morton::{Depth, MortonKey};
 
@@ -18,13 +20,18 @@ use crate::morton::{Depth, MortonKey};
 /// Delivering every point with a bucket at or below a cut depth therefore covers every occupied
 /// cell of the cut's grid; the claim is checkable per generation with [`verify_coverage`].
 ///
-/// The assignment is a pure function of the keys, the ranking, and `deepest`.
+/// The assignment is a pure function of the keys, the ranking, and `deepest`, over whatever row
+/// domain `R` the two agree on.
 ///
 /// # Panics
 ///
 /// Panics when `keys` and `ranking` disagree on the row count.
 #[must_use]
-pub(crate) fn buckets(keys: &[MortonKey], ranking: &Ranking, deepest: Depth) -> Box<[Depth]> {
+pub(crate) fn buckets<R: Id>(
+    keys: &IdSlice<R, MortonKey>,
+    ranking: &Ranking<R>,
+    deepest: Depth,
+) -> Box<IdSlice<R, Depth>> {
     assert_eq!(
         keys.len(),
         ranking.row_of_rank.len(),
@@ -32,34 +39,36 @@ pub(crate) fn buckets(keys: &[MortonKey], ranking: &Ranking, deepest: Depth) -> 
     );
 
     // The catch-all initialization: rows no pass assigns keep `deepest`.
-    let mut buckets = vec![deepest; keys.len()];
-    let mut unassigned: Vec<u32> = ranking.row_of_rank.to_vec();
-    let mut assigned: Vec<u32> = Vec::new();
+    let mut buckets = IdVec::<R, Depth>::from_elem(deepest, keys.len());
+    let mut assigned = DenseBitSet::<R>::new_empty(keys.len());
 
-    // Hash sets, not bit sets: the elements are `prefix(depth)` keys, whose domain is `4^depth`
-    // cells - exponentially larger than the row count from depth ~10 on - while the populated
-    // cells stay bounded by the rows. A bitmap over the cell domain would allocate the exponent;
-    // the sets only pay for what the cascade touches.
-    let mut represented = HashSet::new();
-    let mut claimed = HashSet::new();
+    // The cell set is hashed, not bitmapped. Its elements are `prefix(depth)` keys, and their
+    // `4^depth`-cell domain outgrows the row count from depth ~10 on while the populated cells
+    // stay bounded by the rows. The hashed set pays only for the cells the cascade touches.
+    // The row set fills a linear domain, which a dense bit set fits.
+    let mut seen = HashSet::new();
 
+    // One rank-ordered pass per depth suffices with a single cell set. Within any cell an
+    // assigned point always outranks every still-unassigned point, because every point of the
+    // current cell sat inside the shallower cell it claimed and lost that claim on rank. An
+    // assigned point therefore marks its cell before any unassigned visitor arrives. The first
+    // unassigned visitor of an unmarked cell holds the cell's best still-unassigned rank.
     for depth in 0..=deepest.get() {
         let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
 
-        represented.clear();
-        represented.extend(assigned.iter().map(|&row| keys[row as usize].prefix(depth)));
-        claimed.clear();
-
-        unassigned.retain(|&row| {
-            let cell = keys[row as usize].prefix(depth);
-            if represented.contains(&cell) || !claimed.insert(cell) {
-                return true;
+        seen.clear();
+        for &row in ranking.row_of_rank.iter() {
+            let cell = keys[row].prefix(depth);
+            if assigned.contains(row) {
+                seen.insert(cell);
+            } else if seen.insert(cell) {
+                buckets[row] = depth;
+                assigned.insert(row);
+            } else {
+                // The cell is already claimed at this depth; the row
+                // stays unassigned for a deeper pass.
             }
-
-            buckets[row as usize] = depth;
-            assigned.push(row);
-            false
-        });
+        }
     }
 
     buckets.into_boxed_slice()
@@ -88,9 +97,9 @@ pub(crate) struct CoverageGap {
     clippy::panic_in_result_fn,
     reason = "mismatched row counts are a programmer error, not a coverage gap"
 )]
-pub(crate) fn verify_coverage(
-    keys: &[MortonKey],
-    buckets: &[Depth],
+pub(crate) fn verify_coverage<R: Id>(
+    keys: &IdSlice<R, MortonKey>,
+    buckets: &IdSlice<R, Depth>,
     deepest: Depth,
 ) -> Result<(), CoverageGap> {
     assert_eq!(
@@ -106,7 +115,7 @@ pub(crate) fn verify_coverage(
         covered.clear();
         covered.extend(
             keys.iter()
-                .zip(buckets)
+                .zip(buckets.iter())
                 .filter(|&(_, bucket)| *bucket <= depth)
                 .map(|(key, _)| key.prefix(depth)),
         );

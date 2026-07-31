@@ -2,7 +2,7 @@
 
 use alloc::collections::BTreeSet;
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice};
 
 use super::{
     super::{
@@ -21,7 +21,7 @@ use crate::{
             PolicyEvidence, RegularizationReading,
         },
     },
-    identity::OntologyRowId,
+    identity::{CardRow, OntologyRowId},
     integrity::Sha256Digest,
     math::AlignedVecN,
     progress::Progress,
@@ -75,15 +75,20 @@ impl Context<'_> {
 
         let cards = ArrayFile::open(self.staging.path_of(&Role::CardEmbeddings.file_name()))
             .map_err(StageError::MapCards)?;
-        let embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>] = cards
-            .vectors()
-            .expect("the card matrix was sealed as f32 rows of the canonical width");
+        // The staged card table is row-aligned with the type table, so
+        // its rows index by ontology row. The pin makes that claim once.
+        let embeddings: &IdSlice<OntologyRowId, AlignedVecN<CANONICAL_DIMENSIONS>> =
+            IdSlice::from_raw(
+                cards
+                    .vectors()
+                    .expect("the card matrix was sealed as f32 rows of the canonical width"),
+            );
 
         let classifications = relations
             .iter()
             .map(|&relation| {
                 classifier
-                    .predict(&embeddings[relation.as_usize()])
+                    .predict(&embeddings[relation])
                     .map(|prediction| (relation, Classification::Predicted(prediction)))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -169,9 +174,11 @@ impl Context<'_> {
         })?;
 
         // The trained rows lead the embedding table; the holdout rows
-        // after them are evaluation material.
-        let rows = corpus.table().rows();
-        let training = TrainingSet::new(&rows[..corpus.rows().len()], corpus.rows())
+        // after them are evaluation material. The pin claims the corpus's
+        // card-row domain over the table's domain-neutral rows, and the
+        // trained prefix keeps that domain.
+        let rows = IdSlice::<CardRow, _>::from_raw(corpus.table().rows());
+        let training = TrainingSet::new(rows.prefix(corpus.rows().bound()), corpus.rows())
             .map_err(StageError::ClassifierTraining)?;
         let fitted = fit_classifier(training, self.config.policy.classifier_fit, progress)
             .map_err(StageError::ClassifierFit)?;

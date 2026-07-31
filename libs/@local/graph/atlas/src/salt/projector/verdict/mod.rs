@@ -33,6 +33,7 @@ use alloc::collections::BTreeMap;
 use core::{error::Error, fmt, hash::Hash};
 use std::collections::HashMap;
 
+use hashql_core::id::IdSlice;
 use type_system::ontology::id::VersionedUrl;
 
 use crate::{dataset::OntologyIdentity, identity::OntologyRowId, integrity::Sha256Digest};
@@ -288,7 +289,7 @@ impl ReviewedVerdicts {
     /// foreign identity form, or a positional id space - land in
     /// [`unresolved`](ResolvedVerdicts::unresolved).
     #[must_use]
-    pub(crate) fn resolve<O>(&self, ontology: &[O]) -> ResolvedVerdicts<'_>
+    pub(crate) fn resolve<O>(&self, ontology: &IdSlice<OntologyRowId, O>) -> ResolvedVerdicts<'_>
     where
         O: OntologyIdentity + Eq + Hash,
     {
@@ -306,16 +307,14 @@ impl ReviewedVerdicts {
 
         let mut matched = vec![false; self.type_verdicts.len()];
         let mut resolved = Vec::new();
-        for (row, id) in ontology.iter().enumerate() {
+        for (row, id) in ontology.iter_enumerated() {
             let Some(&index) = targets.get(id) else {
                 continue;
             };
 
             matched[index] = true;
             resolved.push(ResolvedVerdict {
-                relation: OntologyRowId::new(
-                    u64::try_from(row).expect("the type table is shorter than u64::MAX rows"),
-                ),
+                relation: row,
                 placement: self.type_verdicts[index].placement,
             });
         }

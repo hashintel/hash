@@ -265,8 +265,9 @@ where
     }
 
     // Weight-descending within a key, so a pair's two mirror
-    // positions fold in one order and compute bit-equal unions; the
-    // clamp discharges the one representable overshoot near 1.
+    // positions fold in one order and compute bit-equal unions. Each
+    // key folds at most two memberships in (0, 1], whose union is ≤ 1,
+    // and the clamp is the unit fraction's ceiling.
     edges.sort_unstable_by(
         |&(row_a, column_a, weight_a), &(row_b, column_b, weight_b)| {
             (row_a, column_a)
