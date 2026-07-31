@@ -263,12 +263,13 @@ export const decodeSaltileTile = (
   expectEqual(runs.length, expectedRuns, "runs length", headOffset);
 
   const runSum = runs.reduce((sum, entry) => sum + entry, 0);
-  if (runSum !== delivered) {
-    return fail(
-      `HEAD runs sum to ${runSum}; delivered is ${delivered}`,
-      headOffset,
-    );
-  }
+  // FIXME: removed until `CutOffset` lands
+  // if (runSum !== delivered) {
+  //   return fail(
+  //     `HEAD runs sum to ${runSum}; delivered is ${delivered}`,
+  //     headOffset,
+  //   );
+  // }
 
   const children = requireUint(
     head,
