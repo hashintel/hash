@@ -141,6 +141,15 @@ export const getUserAndSession = async ({
   session?: Session;
   user?: User;
 }> => {
+  // Kratos resolves a session from a cookie or a session token, so asking
+  // without either can only be answered with a 401. The auth middleware runs
+  // for every request that reaches it, including paths matching no route at
+  // all, so callers with no credentials — health checks, webhooks, cookie-less
+  // API clients — would otherwise pay a round trip to learn that.
+  if (!cookie && !sessionToken) {
+    return {};
+  }
+
   const authentication = { actorId: systemAccountId };
 
   const kratosSession = await kratosFrontendApi
