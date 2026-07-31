@@ -37,7 +37,7 @@ use crate::{
         memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
-    identity::{NodeRowId, OntologyRowId},
+    identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
     progress::NoProgress,
@@ -1522,9 +1522,11 @@ fn runner_classifier() -> ClassifierInput {
     {
         *component = value;
     }
-    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+    let embeddings: &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> = IdSlice::from_raw(
+        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
+    );
 
-    let rows: Vec<TrainingRow> = [
+    let rows: IdVec<CardRow, TrainingRow> = [
         ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
         ([0.2, 0.6, 0.2], b"group-b"),
         ([0.1, 0.2, 0.7], b"group-c"),

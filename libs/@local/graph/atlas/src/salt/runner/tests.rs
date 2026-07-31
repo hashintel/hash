@@ -3,7 +3,7 @@ use core::{future::ready, num::NonZero};
 use std::{collections::HashMap, sync::Mutex};
 
 use camino::Utf8PathBuf;
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
@@ -16,7 +16,7 @@ use crate::{
         memory::MemoryDataset,
     },
     file::generation::GenerationRoot,
-    identity::{NodeRowId, OntologyRowId},
+    identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
     progress::{NoProgress, Progress, QualityMetric},
@@ -173,9 +173,11 @@ fn classifier() -> ClassifierInput {
     {
         *component = value;
     }
-    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+    let embeddings: &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> = IdSlice::from_raw(
+        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
+    );
 
-    let rows: Vec<TrainingRow> = [
+    let rows: IdVec<CardRow, TrainingRow> = [
         ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
         ([0.2, 0.6, 0.2], b"group-b"),
         ([0.1, 0.2, 0.7], b"group-c"),

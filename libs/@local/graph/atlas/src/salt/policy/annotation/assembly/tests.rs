@@ -5,12 +5,14 @@ use core::{
 };
 use std::path::PathBuf;
 
+use hashql_core::id::{Id as _, IdSlice};
 use serde_json::{Value, json};
 
 use super::{AssemblyConfig, AssemblyError, HoldoutClass, assemble};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::array::ArrayFile,
+    identity::CardRow,
     integrity::{Sha256, Update as _},
     math::BoxedVecN,
     progress::NoProgress,
@@ -429,11 +431,17 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
 
     // The rich card: three overlay and one proximal geometry vote;
     // unclear and abstain shift neither the counts nor the weight.
-    assert_eq!(rows[0].target, [0.5 / 5.5, 1.5 / 5.5, 3.5 / 5.5]);
-    assert_eq!(rows[0].weight, 4.0);
-    assert_eq!(rows[1].target, [2.5 / 3.5, 0.5 / 3.5, 0.5 / 3.5]);
-    assert_eq!(rows[1].weight, 2.0);
-    assert_eq!(rows[5].weight, 2.0);
+    assert_eq!(
+        rows[CardRow::from_u32(0)].target,
+        [0.5 / 5.5, 1.5 / 5.5, 3.5 / 5.5]
+    );
+    assert_eq!(rows[CardRow::from_u32(0)].weight, 4.0);
+    assert_eq!(
+        rows[CardRow::from_u32(1)].target,
+        [2.5 / 3.5, 0.5 / 3.5, 0.5 / 3.5]
+    );
+    assert_eq!(rows[CardRow::from_u32(1)].weight, 2.0);
+    assert_eq!(rows[CardRow::from_u32(5)].weight, 2.0);
     for row in rows {
         let total: f64 = row.target.iter().sum();
         assert!((total - 1.0).abs() < 1.0e-12, "targets stay distributions");
@@ -442,12 +450,27 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     // The inverse pair meets at the named identity; the near-tie pair
     // meets through its embeddings; everyone else stands alone, the
     // shared publisher notwithstanding.
-    assert_eq!(rows[0].group, group_digest(&[PART_OF, HAS_PART]));
-    assert_eq!(rows[1].group, rows[0].group);
-    assert_eq!(rows[2].group, group_digest(&[ALPHA, BETA]));
-    assert_eq!(rows[3].group, rows[2].group);
-    assert_eq!(rows[4].group, group_digest(&[GAMMA]));
-    assert_eq!(rows[5].group, group_digest(&[EMPLOYED_BY]));
+    assert_eq!(
+        rows[CardRow::from_u32(0)].group,
+        group_digest(&[PART_OF, HAS_PART])
+    );
+    assert_eq!(
+        rows[CardRow::from_u32(1)].group,
+        rows[CardRow::from_u32(0)].group
+    );
+    assert_eq!(
+        rows[CardRow::from_u32(2)].group,
+        group_digest(&[ALPHA, BETA])
+    );
+    assert_eq!(
+        rows[CardRow::from_u32(3)].group,
+        rows[CardRow::from_u32(2)].group
+    );
+    assert_eq!(rows[CardRow::from_u32(4)].group, group_digest(&[GAMMA]));
+    assert_eq!(
+        rows[CardRow::from_u32(5)].group,
+        group_digest(&[EMPLOYED_BY])
+    );
 
     // The holdout card embeds after every trained row and carries its
     // human verdict; the training rows stay untouched by it.
@@ -455,7 +478,7 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     assert_eq!(holdouts.len(), 1);
     assert_eq!(holdouts[0].identity.canonical_url(), HOLDOUT);
     assert_eq!(holdouts[0].verdict, HoldoutClass::Proximal);
-    assert_eq!(holdouts[0].row, 6);
+    assert_eq!(holdouts[0].row, CardRow::from_u32(6));
     let table = assembled.table();
     assert_eq!(table.rows().len(), 7);
     assert_eq!(
@@ -499,9 +522,13 @@ async fn staged_table_and_rows_satisfy_the_training_contract() {
         .expect("the staged matrix holds canonical-width rows");
 
     // The trained rows lead the table; the holdout rows after them are
-    // evaluation material, not training supply.
-    TrainingSet::new(&embeddings[..assembled.rows().len()], assembled.rows())
-        .expect("the assembled corpus satisfies the training-set contract");
+    // evaluation material, not training supply. The mapped file hands back a
+    // raw slice, so entering the card-row domain is this seam's own doing.
+    TrainingSet::new(
+        IdSlice::from_raw(&embeddings[..assembled.rows().len()]),
+        assembled.rows(),
+    )
+    .expect("the assembled corpus satisfies the training-set contract");
 }
 
 #[tokio::test]
@@ -587,18 +614,21 @@ async fn subdivision_relaxes_family_inside_the_oversized_component() {
     let rows = assembled.rows();
     assert_eq!(rows.len(), 6);
     assert_eq!(
-        rows[0].group,
+        rows[CardRow::from_u32(0)].group,
         group_digest(&[
             "http://www.wikidata.org/entity/P90a",
             "http://www.wikidata.org/entity/P90b"
         ])
     );
-    assert_eq!(rows[1].group, rows[0].group);
+    assert_eq!(
+        rows[CardRow::from_u32(1)].group,
+        rows[CardRow::from_u32(0)].group
+    );
     for (row, identity) in [
-        (2, "http://www.wikidata.org/entity/P90c"),
-        (3, "http://www.wikidata.org/entity/P90d"),
-        (4, "http://www.wikidata.org/entity/P90e"),
-        (5, "http://www.wikidata.org/entity/P90f"),
+        (CardRow::from_u32(2), "http://www.wikidata.org/entity/P90c"),
+        (CardRow::from_u32(3), "http://www.wikidata.org/entity/P90d"),
+        (CardRow::from_u32(4), "http://www.wikidata.org/entity/P90e"),
+        (CardRow::from_u32(5), "http://www.wikidata.org/entity/P90f"),
     ] {
         assert_eq!(rows[row].group, group_digest(&[identity]));
     }
@@ -631,10 +661,10 @@ async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
 
     let rows = assembled.rows();
     for (row, identity) in [
-        (0, "http://www.wikidata.org/entity/P91a"),
-        (1, "http://www.wikidata.org/entity/P91b"),
-        (2, "http://www.wikidata.org/entity/P91c"),
-        (3, "http://www.wikidata.org/entity/P91d"),
+        (CardRow::from_u32(0), "http://www.wikidata.org/entity/P91a"),
+        (CardRow::from_u32(1), "http://www.wikidata.org/entity/P91b"),
+        (CardRow::from_u32(2), "http://www.wikidata.org/entity/P91c"),
+        (CardRow::from_u32(3), "http://www.wikidata.org/entity/P91d"),
     ] {
         assert_eq!(rows[row].group, group_digest(&[identity]));
     }
@@ -673,18 +703,21 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
     let rows = assembled.rows();
     assert_eq!(rows.len(), 6);
     assert_eq!(
-        rows[0].group,
+        rows[CardRow::from_u32(0)].group,
         group_digest(&[
             "http://www.wikidata.org/entity/P92a",
             "http://www.wikidata.org/entity/P92b"
         ])
     );
-    assert_eq!(rows[1].group, rows[0].group);
+    assert_eq!(
+        rows[CardRow::from_u32(1)].group,
+        rows[CardRow::from_u32(0)].group
+    );
     for (row, identity) in [
-        (2, "http://www.wikidata.org/entity/P92c"),
-        (3, "http://www.wikidata.org/entity/P92d"),
-        (4, "http://www.wikidata.org/entity/P92e"),
-        (5, "http://www.wikidata.org/entity/P92f"),
+        (CardRow::from_u32(2), "http://www.wikidata.org/entity/P92c"),
+        (CardRow::from_u32(3), "http://www.wikidata.org/entity/P92d"),
+        (CardRow::from_u32(4), "http://www.wikidata.org/entity/P92e"),
+        (CardRow::from_u32(5), "http://www.wikidata.org/entity/P92f"),
     ] {
         assert_eq!(rows[row].group, group_digest(&[identity]));
     }

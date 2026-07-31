@@ -7,7 +7,7 @@ use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
-use zerocopy::{FromBytes as _, LE, U64};
+use zerocopy::{LE, U64};
 
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
@@ -41,7 +41,7 @@ use crate::{
         },
         sprs::read::SprsFile,
     },
-    identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
@@ -402,9 +402,11 @@ fn fixture_classifier() -> Classifier {
     {
         *component = value;
     }
-    let embeddings = AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned");
+    let embeddings: &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> = IdSlice::from_raw(
+        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
+    );
 
-    let rows: Vec<TrainingRow> = [
+    let rows: IdVec<CardRow, TrainingRow> = [
         ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
         ([0.2, 0.6, 0.2], b"group-b"),
         ([0.1, 0.2, 0.7], b"group-c"),
@@ -644,17 +646,18 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
 
     let gather = ArrayFile::open(published.join("row-of-position.arr"))
         .expect("the gather column should map");
-    for (position, &row) in gather
-        .u32_elements()
-        .expect("the gather column holds u32 rows")
+    for (position, row) in gather
+        .u64_le_elements()
+        .expect("the gather column holds little-endian u64 rows")
         .iter()
         .enumerate()
     {
+        let row = row.get();
         let membership = postings
-            .membership(OntologyRowId::from_u32(row & 1))
+            .membership(OntologyRowId::new(row & 1))
             .expect("the fixture types lie in the type domain");
         assert!(
-            membership.contains(u32::try_from(position).expect("the fixture corpus is tiny")),
+            membership.contains(BasePosition::from_usize(position)),
             "position {position} should carry row {row}'s direct type",
         );
     }
@@ -765,12 +768,22 @@ async fn lod_columns_publish_in_base_order() {
 
     let column = |name: &str| -> Vec<u32> {
         let file = ArrayFile::open(published.path().join(name)).expect("the column should map");
-        <[u32]>::ref_from_bytes(file.data())
-            .expect("the mapped column is aligned and whole")
-            .to_vec()
+        file.u32_le_elements()
+            .expect("the column holds little-endian u32 elements")
+            .iter()
+            .map(|element| element.get())
+            .collect()
     };
     let position_of_row = column("position-of-row.arr");
-    let row_of_position = column("row-of-position.arr");
+    let row_of_position: Vec<u64> = {
+        let file = ArrayFile::open(published.path().join("row-of-position.arr"))
+            .expect("the gather column should map");
+        file.u64_le_elements()
+            .expect("the gather column holds little-endian u64 rows")
+            .iter()
+            .map(|row| row.get())
+            .collect()
+    };
     let rank_of_position = column("rank-of-position.arr");
     let position_of_rank = column("position-of-rank.arr");
 
@@ -778,7 +791,7 @@ async fn lod_columns_publish_in_base_order() {
     assert_eq!(position_of_row.len(), NODES);
     assert_eq!(row_of_position.len(), NODES);
     for row in 0..NODES {
-        assert_eq!(row_of_position[position_of_row[row] as usize] as usize, row);
+        assert_eq!(row_of_position[position_of_row[row] as usize], row as u64);
     }
     for (position, &rank) in rank_of_position.iter().enumerate() {
         assert_eq!(position_of_rank[rank as usize] as usize, position);
@@ -2318,12 +2331,14 @@ async fn edge_artifacts_publish_and_read_back() {
     let row_of_position = ArrayFile::open(published.path().join("row-of-position.arr"))
         .expect("the gather column should map");
     let first_position = position_of_rank
-        .u32_elements()
-        .expect("the rank column holds u32 positions")[0];
+        .u32_le_elements()
+        .expect("the rank column holds little-endian u32 positions")[0]
+        .get();
     assert_eq!(
         row_of_position
-            .u32_elements()
-            .expect("the gather column holds u32 rows")[first_position as usize],
+            .u64_le_elements()
+            .expect("the gather column holds little-endian u64 rows")[first_position as usize]
+            .get(),
         3,
         "the highest-degree row delivers first",
     );

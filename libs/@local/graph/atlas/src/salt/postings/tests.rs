@@ -3,7 +3,7 @@ use core::assert_matches;
 use std::fs;
 
 use camino::Utf8PathBuf;
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id, IdSlice, IdVec};
 use proptest::{prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
 
@@ -20,7 +20,7 @@ use crate::{
             write::{Regions, write_regions},
         },
     },
-    identity::OntologyRowId,
+    identity::{BasePosition, NodeRowId, OntologyRowId},
     math::Log2,
 };
 
@@ -40,7 +40,7 @@ fn id(row: u64) -> OntologyRowId {
     OntologyRowId::new(row)
 }
 
-fn types(lists: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
+fn types<R: Id>(lists: &[&[u64]]) -> IdVec<R, SmallVec<OntologyRowId, 2>> {
     lists
         .iter()
         .map(|list| list.iter().copied().map(OntologyRowId::new).collect())
@@ -54,11 +54,11 @@ fn types(lists: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
 /// 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`, `2 <- 0`, `3 <- {1, 2}`.
 const ROW_OF_POSITION: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
 
-fn fixture_types() -> Vec<SmallVec<OntologyRowId, 2>> {
+fn fixture_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
     types(&[&[0], &[0, 2], &[1], &[2], &[0], &[1, 2], &[], &[0]])
 }
 
-fn fixture_parents() -> Vec<SmallVec<OntologyRowId, 2>> {
+fn fixture_parents() -> IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
@@ -85,7 +85,11 @@ fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive
 }
 
 fn collect(membership: &Membership<'_>, range: core::ops::Range<u32>) -> Vec<u32> {
-    membership.positions_in(range).collect()
+    let range = BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end);
+    membership
+        .positions_in(range)
+        .map(BasePosition::as_u32)
+        .collect()
 }
 
 #[test]
@@ -93,7 +97,7 @@ fn build_matches_the_hand_computed_runs() {
     let dir = scratch("hand-computed");
     let postings = Postings::build(
         &fixture_types(),
-        &ROW_OF_POSITION,
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
         FIXTURE_CONFIG,
     )
@@ -139,7 +143,7 @@ fn membership_lookups_agree_across_representations() {
     let dir = scratch("lookups");
     let postings = Postings::build(
         &fixture_types(),
-        &ROW_OF_POSITION,
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
         FIXTURE_CONFIG,
     )
@@ -150,11 +154,15 @@ fn membership_lookups_agree_across_representations() {
     // out-of-domain position.
     let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
     let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
-    assert!(type0.contains(1) && type0.contains(6));
-    assert!(!type0.contains(0) && !type0.contains(7));
-    assert!(!type0.contains(200));
-    assert!(type1.contains(5) && !type1.contains(6));
-    assert!(!type1.contains(200));
+    assert!(type0.contains(BasePosition::from_u32(1)) && type0.contains(BasePosition::from_u32(6)));
+    assert!(
+        !type0.contains(BasePosition::from_u32(0)) && !type0.contains(BasePosition::from_u32(7))
+    );
+    assert!(!type0.contains(BasePosition::from_u32(200)));
+    assert!(
+        type1.contains(BasePosition::from_u32(5)) && !type1.contains(BasePosition::from_u32(6))
+    );
+    assert!(!type1.contains(BasePosition::from_u32(200)));
 
     // Sub-range slicing at both representations: half-open ends,
     // empty and inverted ranges.
@@ -188,7 +196,7 @@ fn dense_iteration_crosses_word_boundaries() {
 fn evidence_counts_the_split() {
     let postings = Postings::build(
         &fixture_types(),
-        &ROW_OF_POSITION,
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
         FIXTURE_CONFIG,
     )
@@ -208,7 +216,7 @@ fn build_rejects_out_of_domain_rows() {
     assert_eq!(
         Postings::build(
             &types(&[&[4]]),
-            &[0],
+            IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
             &fixture_parents(),
             PostingsConfig::default(),
         ),
@@ -219,7 +227,7 @@ fn build_rejects_out_of_domain_rows() {
     assert_eq!(
         Postings::build(
             &types(&[&[0]]),
-            &[0],
+            IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
             &types(&[&[7]]),
             PostingsConfig::default(),
         ),
@@ -232,8 +240,13 @@ fn empty_domains_roundtrip() {
     let dir = scratch("empty");
 
     // No rows, no types.
-    let postings = Postings::build(&[], &[], &[], PostingsConfig::default())
-        .expect("the empty build stays in domain");
+    let postings = Postings::build(
+        &types::<NodeRowId>(&[]),
+        IdSlice::from_raw(&[]),
+        &types::<OntologyRowId>(&[]),
+        PostingsConfig::default(),
+    )
+    .expect("the empty build stays in domain");
     let empty = mapped(&dir, "empty.post", &postings);
     assert_eq!(empty.types(), 0);
     assert_eq!(empty.points(), 0);
@@ -242,7 +255,7 @@ fn empty_domains_roundtrip() {
     // Rows without types: every membership is an empty list.
     let postings = Postings::build(
         &types(&[&[], &[]]),
-        &[1, 0],
+        IdSlice::from_raw(&[1, 0].map(NodeRowId::from_u32)),
         &types(&[&[]]),
         PostingsConfig::default(),
     )
@@ -367,7 +380,7 @@ fn closure_expands_the_fixture_graph() {
     let dir = scratch("closure");
     let postings = Postings::build(
         &fixture_types(),
-        &ROW_OF_POSITION,
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
         FIXTURE_CONFIG,
     )
@@ -407,7 +420,7 @@ fn closure_rejects_parent_cycles() {
     // settles, so exactly two types stay entangled.
     let postings = Postings::build(
         &types(&[&[0]]),
-        &[0],
+        IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
         &types(&[&[1], &[0], &[]]),
         PostingsConfig::default(),
     )
@@ -441,7 +454,7 @@ fn built_postings_uphold_the_membership_contract(
     #[strategy = 0_u8..8] threshold_log2: u8,
 ) {
     let domain = 5_usize;
-    let rows: Vec<SmallVec<OntologyRowId, 2>> = seeds
+    let rows: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> = seeds
         .iter()
         .map(|set| set.iter().copied().map(OntologyRowId::new).collect())
         .collect();
@@ -453,7 +466,7 @@ fn built_postings_uphold_the_membership_contract(
 
     // Parents point strictly downward, so the graph is acyclic by
     // construction: a type's parent is its predecessor for odd rows.
-    let parents: Vec<SmallVec<OntologyRowId, 2>> = (0..domain as u64)
+    let parents: IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> = (0..domain as u64)
         .map(|type_row| {
             if type_row & 1 == 1 {
                 smallvec![OntologyRowId::new(type_row - 1)]
@@ -463,9 +476,14 @@ fn built_postings_uphold_the_membership_contract(
         })
         .collect();
 
+    let typed_row_of_position: Vec<NodeRowId> = row_of_position
+        .iter()
+        .copied()
+        .map(NodeRowId::from_u32)
+        .collect();
     let postings = Postings::build(
         &rows,
-        &row_of_position,
+        IdSlice::from_raw(&typed_row_of_position),
         &parents,
         PostingsConfig {
             dense_threshold: Log2::new(threshold_log2)
@@ -495,16 +513,21 @@ fn built_postings_uphold_the_membership_contract(
             .expect("the loop iterates the type domain");
 
         let expected: Vec<u32> = (0..points)
-            .filter(|&position| reference_contains(&rows, &row_of_position, position, type_row))
+            .filter(|&position| {
+                reference_contains(rows.as_raw(), &row_of_position, position, type_row)
+            })
             .collect();
-        let full: Vec<u32> = membership.positions_in(0..points).collect();
+        let full: Vec<u32> = membership
+            .positions_in(BasePosition::from_u32(0)..BasePosition::from_u32(points))
+            .map(BasePosition::as_u32)
+            .collect();
         prop_assert_eq!(&full, &expected, "type {}'s member positions", type_row);
         prop_assert_eq!(membership.count(), expected.len() as u64);
 
         for position in 0..points {
             prop_assert_eq!(
-                membership.contains(position),
-                reference_contains(&rows, &row_of_position, position, type_row),
+                membership.contains(BasePosition::from_u32(position)),
+                reference_contains(rows.as_raw(), &row_of_position, position, type_row),
                 "type {} at position {}",
                 type_row,
                 position,

@@ -5,6 +5,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
+use hashql_core::id::Id as _;
 use proptest::{arbitrary::any, prop_assert_eq, property_test};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
@@ -13,7 +14,10 @@ use super::{
     read::{MortonFile, OpenMortonError},
     write::{PAGE_STRIDE, write_regions},
 };
-use crate::morton::{Depth, MortonCell, MortonKey};
+use crate::{
+    identity::BasePosition,
+    morton::{Depth, MortonCell, MortonKey},
+};
 
 fn depth(value: u8) -> Depth {
     Depth::new(value).expect("test depths lie within the documented domain")
@@ -199,7 +203,9 @@ fn written_regions_reopen_verbatim() {
     assert_eq!(codes, expected);
 
     // Each position's bucket is the segment it falls in.
-    let buckets: Vec<u8> = (0..9).map(|pos| file.bucket_of(pos).get()).collect();
+    let buckets: Vec<u8> = (0..9)
+        .map(|pos| file.bucket_of(BasePosition::from_u32(pos)).get())
+        .collect();
     assert_eq!(buckets, [0, 1, 1, 1, 2, 2, 2, 2, 2]);
 }
 

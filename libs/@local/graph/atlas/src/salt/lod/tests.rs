@@ -1,4 +1,4 @@
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdSlice, IdVec};
 use proptest::{arbitrary::any, prop_assert, prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
 use uuid::Uuid;
@@ -14,7 +14,7 @@ use super::{
 use crate::{
     dataset::ArchivedEntityId,
     file::quad::Node,
-    identity::OntologyRowId,
+    identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -31,14 +31,21 @@ fn identities(count: u128) -> Vec<ArchivedEntityId> {
 }
 
 /// A ranking straight from a hand-written rank order.
-fn ranking_of(row_of_rank: &[u32]) -> Ranking {
-    let mut rank_of_row = vec![0_u32; row_of_rank.len()];
+fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
+    let row_of_rank: Vec<NodeRowId> = row_of_rank
+        .iter()
+        .copied()
+        .map(NodeRowId::from_u32)
+        .collect();
+
+    let mut rank_of_row =
+        IdVec::<NodeRowId, ImportanceRank>::from_elem(ImportanceRank::MIN, row_of_rank.len());
     for (rank, &row) in row_of_rank.iter().enumerate() {
-        rank_of_row[row as usize] = u32::try_from(rank).expect("test rows fit `u32`");
+        rank_of_row[row] = ImportanceRank::from_usize(rank);
     }
 
     Ranking {
-        row_of_rank: row_of_rank.into(),
+        row_of_rank: IdSlice::from_boxed_slice(row_of_rank.into_boxed_slice()),
         rank_of_row: rank_of_row.into_boxed_slice(),
     }
 }
@@ -64,15 +71,18 @@ fn rank_orders_by_importance_then_priority_then_tiebreak() {
 
     // Row 3 has the lowest importance, row 2 the lower priority within
     // the top importance; rows 0 and 1 tie down to the seeded hash.
-    assert_eq!(ranking.rank_of_row[3], 3);
-    assert_eq!(ranking.rank_of_row[2], 2);
-    let mut top = [ranking.rank_of_row[0], ranking.rank_of_row[1]];
+    assert_eq!(ranking.rank_of_row[NodeRowId::from_u32(3)].as_u32(), 3);
+    assert_eq!(ranking.rank_of_row[NodeRowId::from_u32(2)].as_u32(), 2);
+    let mut top = [
+        ranking.rank_of_row[NodeRowId::from_u32(0)].as_u32(),
+        ranking.rank_of_row[NodeRowId::from_u32(1)].as_u32(),
+    ];
     top.sort_unstable();
     assert_eq!(top, [0, 1]);
 
     // The permutations invert each other.
     for (rank, &row) in ranking.row_of_rank.iter().enumerate() {
-        assert_eq!(ranking.rank_of_row[row as usize] as usize, rank);
+        assert_eq!(ranking.rank_of_row[row].as_usize(), rank);
     }
 
     // Equal inputs and seed reproduce the ranking bit for bit.
@@ -159,39 +169,43 @@ fn hand_keys() -> [MortonKey; 4] {
 #[test]
 fn cascade_assigns_the_hand_computed_buckets() {
     let keys = hand_keys();
+    let keys = IdSlice::<NodeRowId, _>::from_raw(&keys);
     let ranking = ranking_of(&[0, 1, 2, 3]);
 
-    let buckets = cascade::buckets(&keys, &ranking, depth(2));
+    let buckets = cascade::buckets(keys, &ranking, depth(2));
 
     // a claims the whole domain; b its depth-1 quadrant; d its depth-2
     // cell; c is co-resident with a down to the deepest grid and takes
     // the catch-all.
-    assert_eq!(*buckets, [depth(0), depth(1), depth(2), depth(2)]);
-    assert_eq!(cascade::verify_coverage(&keys, &buckets, depth(2)), Ok(()));
+    assert_eq!(*buckets.as_raw(), [depth(0), depth(1), depth(2), depth(2)]);
+    assert_eq!(cascade::verify_coverage(keys, &buckets, depth(2)), Ok(()));
 }
 
 #[test]
 fn cascade_follows_the_rank_order() {
     let keys = hand_keys();
+    let keys = IdSlice::<NodeRowId, _>::from_raw(&keys);
 
     // c outranks a: the claims flip and a becomes the co-resident
     // catch-all point.
     let ranking = ranking_of(&[2, 1, 0, 3]);
-    let buckets = cascade::buckets(&keys, &ranking, depth(2));
+    let buckets = cascade::buckets(keys, &ranking, depth(2));
 
-    assert_eq!(*buckets, [depth(2), depth(1), depth(0), depth(2)]);
-    assert_eq!(cascade::verify_coverage(&keys, &buckets, depth(2)), Ok(()));
+    assert_eq!(*buckets.as_raw(), [depth(2), depth(1), depth(0), depth(2)]);
+    assert_eq!(cascade::verify_coverage(keys, &buckets, depth(2)), Ok(()));
 }
 
 #[test]
 fn coverage_verification_reports_a_gap() {
     let keys = hand_keys();
+    let keys = IdSlice::<NodeRowId, _>::from_raw(&keys);
 
     // Hand-break the assignment: nothing claims the whole domain at
     // depth 0.
     let buckets = [depth(1), depth(1), depth(2), depth(2)];
+    let buckets = IdSlice::<NodeRowId, _>::from_raw(&buckets);
     assert_eq!(
-        cascade::verify_coverage(&keys, &buckets, depth(2)),
+        cascade::verify_coverage(keys, buckets, depth(2)),
         Err(CoverageGap {
             depth: depth(0),
             cell: 0,
@@ -202,25 +216,36 @@ fn coverage_verification_reports_a_gap() {
 #[test]
 fn base_order_sorts_buckets_then_keys_then_ranks() {
     let keys = hand_keys();
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
     let ranking = ranking_of(&[0, 1, 2, 3]);
-    let buckets = cascade::buckets(&keys, &ranking, depth(2));
+    let buckets = cascade::buckets(keyed, &ranking, depth(2));
 
-    let order = BaseOrder::new(&keys, &buckets, &ranking);
+    let order = BaseOrder::new(keyed, &buckets, &ranking);
 
     // Hand order: a (bucket 0), b (bucket 1), then the bucket-2 pair by
     // key: c's key (1, 1) interleaves below d's (0x4000_0000, 0).
-    assert_eq!(*order.row_of_position, [0, 1, 2, 3]);
-    assert_eq!(*order.position_of_row, [0, 1, 2, 3]);
+    assert_eq!(
+        *order.row_of_position.as_raw(),
+        [0, 1, 2, 3].map(NodeRowId::from_u32),
+    );
+    assert_eq!(
+        *order.position_of_row.as_raw(),
+        [0, 1, 2, 3].map(BasePosition::from_u32),
+    );
 
     // Reversing the two catch-all rows' keys is invisible to the sort
     // only if rank breaks the tie: give them one key and check rank
     // order decides.
     let tied = [keys[0], keys[1], keys[2], keys[2]];
+    let tied = IdSlice::<NodeRowId, _>::from_raw(&tied);
     let ranking = ranking_of(&[0, 1, 3, 2]);
-    let buckets = cascade::buckets(&tied, &ranking, depth(2));
-    let order = BaseOrder::new(&tied, &buckets, &ranking);
+    let buckets = cascade::buckets(tied, &ranking, depth(2));
+    let order = BaseOrder::new(tied, &buckets, &ranking);
 
-    let (first, second) = (order.position_of_row[3], order.position_of_row[2]);
+    let (first, second) = (
+        order.position_of_row[NodeRowId::from_u32(3)],
+        order.position_of_row[NodeRowId::from_u32(2)],
+    );
     assert!(
         first < second,
         "the better-ranked row of a key tie precedes: {first} vs {second}",
@@ -241,9 +266,10 @@ fn cascade_coverage_is_total(
     let ranking = seeded_ranking(keys.len(), seed);
     let deepest = depth(deepest);
 
-    let buckets = cascade::buckets(&keys, &ranking, deepest);
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+    let buckets = cascade::buckets(keyed, &ranking, deepest);
 
-    prop_assert_eq!(cascade::verify_coverage(&keys, &buckets, deepest), Ok(()));
+    prop_assert_eq!(cascade::verify_coverage(keyed, &buckets, deepest), Ok(()));
 }
 
 /// Below the catch-all, a bucket holds at most one point per cell of its own grid.
@@ -257,13 +283,14 @@ fn buckets_claim_cells_once(
     let ranking = seeded_ranking(keys.len(), seed);
     let deepest = depth(deepest);
 
-    let buckets = cascade::buckets(&keys, &ranking, deepest);
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+    let buckets = cascade::buckets(keyed, &ranking, deepest);
 
     for probe in 0..deepest.get() {
         let probe = depth(probe);
         let mut cells: Vec<u64> = keys
             .iter()
-            .zip(&*buckets)
+            .zip(buckets.as_raw())
             .filter(|&(_, bucket)| *bucket == probe)
             .map(|(key, _)| key.prefix(probe))
             .collect();
@@ -293,21 +320,19 @@ fn base_order_is_the_unique_total_sort(
     let ranking = seeded_ranking(keys.len(), seed);
     let deepest = depth(deepest);
 
-    let buckets = cascade::buckets(&keys, &ranking, deepest);
-    let order = BaseOrder::new(&keys, &buckets, &ranking);
+    let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+    let buckets = cascade::buckets(keyed, &ranking, deepest);
+    let order = BaseOrder::new(keyed, &buckets, &ranking);
 
     for (rank, &row) in order.row_of_position.iter().enumerate() {
-        prop_assert_eq!(order.position_of_row[row as usize] as usize, rank);
+        prop_assert_eq!(order.position_of_row[row].as_usize(), rank);
     }
 
-    let sort_key = |row: u32| {
-        let row = row as usize;
-        (buckets[row], keys[row], ranking.rank_of_row[row])
-    };
+    let sort_key = |row: NodeRowId| (buckets[row], keyed[row], ranking.rank_of_row[row]);
     for (previous, next) in order
         .row_of_position
         .iter()
-        .zip(&order.row_of_position[1..])
+        .zip(&order.row_of_position[BasePosition::from_u32(1)..])
     {
         let (left, right) = (sort_key(*previous), sort_key(*next));
         prop_assert!(
@@ -320,7 +345,7 @@ fn base_order_is_the_unique_total_sort(
 /// A deterministic ranking for property tests.
 ///
 /// Rows ranked by the seeded tiebreak alone, through the real rank pass.
-fn seeded_ranking(rows: usize, seed: u64) -> Ranking {
+fn seeded_ranking(rows: usize, seed: u64) -> Ranking<NodeRowId> {
     let importance = vec![0.0_f32; rows];
     let priority = vec![0.0_f32; rows];
     let ids = identities(rows as u128);
@@ -420,7 +445,7 @@ fn build_produces_the_hand_computed_columns() {
     // single f64 rounding per component and every fixture value is a
     // dyadic rational.
     assert_eq!(
-        *lod.coordinates,
+        *lod.coordinates.as_raw(),
         [
             Vec2::new(-1.0, -1.0),
             Vec2::new(1.0, 1.0),
@@ -432,7 +457,7 @@ fn build_produces_the_hand_computed_columns() {
     // Codes quantize the wire column: the base order is the row order
     // here, and the two catch-all codes sort within their segment.
     assert_eq!(
-        *lod.codes,
+        *lod.codes.as_raw(),
         [
             MortonKey::new(0, 0),
             MortonKey::new(u32::MAX, u32::MAX),
@@ -448,10 +473,22 @@ fn build_produces_the_hand_computed_columns() {
     assert_eq!(lod.fenceposts.segment(depth(2)), 2..4);
 
     // The identity base order makes every permutation the identity.
-    assert_eq!(*lod.rank_of_position, [0, 1, 2, 3]);
-    assert_eq!(*lod.position_of_rank, [0, 1, 2, 3]);
-    assert_eq!(*lod.position_of_row, [0, 1, 2, 3]);
-    assert_eq!(*lod.row_of_position, [0, 1, 2, 3]);
+    assert_eq!(
+        *lod.rank_of_position.as_raw(),
+        [0, 1, 2, 3].map(ImportanceRank::from_u32),
+    );
+    assert_eq!(
+        *lod.position_of_rank.as_raw(),
+        [0, 1, 2, 3].map(BasePosition::from_u32),
+    );
+    assert_eq!(
+        *lod.position_of_row.as_raw(),
+        [0, 1, 2, 3].map(BasePosition::from_u32),
+    );
+    assert_eq!(
+        *lod.row_of_position.as_raw(),
+        [0, 1, 2, 3].map(NodeRowId::from_u32),
+    );
 }
 
 #[test]
@@ -503,7 +540,7 @@ fn normalization_is_exact_far_from_the_origin() {
     // depth-1 quadrants, and within bucket 1 row 2's key sorts below
     // row 1's.
     assert_eq!(
-        *lod.coordinates,
+        *lod.coordinates.as_raw(),
         [
             Vec2::new(-1.0, -1.0),
             Vec2::new(0.0, -0.5),
@@ -530,7 +567,7 @@ fn degenerate_axis_maps_to_the_wire_centre() {
     .expect("the fixture builds");
 
     assert_eq!(
-        *lod.coordinates,
+        *lod.coordinates.as_raw(),
         [Vec2::new(0.0, -1.0), Vec2::new(0.0, 1.0)],
     );
 }
@@ -575,7 +612,7 @@ fn columns_round_trip_through_the_morton_file() {
     let (lod, _) = hand_stage();
 
     let mut bytes = Vec::new();
-    write::write_regions(2, &lod.fenceposts, &lod.codes, &mut bytes)
+    write::write_regions(2, &lod.fenceposts, lod.codes.as_raw(), &mut bytes)
         .expect("writing into a vector cannot fail");
 
     let dir =
@@ -589,7 +626,7 @@ fn columns_round_trip_through_the_morton_file() {
 
     // The serving query on the built columns: the catch-all pair is
     // one run inside its quadrant.
-    let cell = lod.codes[2].cell(depth(1));
+    let cell = lod.codes[BasePosition::from_u32(2)].cell(depth(1));
     assert_eq!(file.run(depth(2), cell), 2..4);
 }
 
@@ -632,17 +669,17 @@ fn built_columns_uphold_the_contract_laws(
     prop_assert_eq!(lod.coordinates.len(), rows.len());
 
     // Wire coordinates stay inside the frame.
-    for wire in &lod.coordinates {
+    for wire in lod.coordinates.iter() {
         prop_assert!((-1.0..=1.0).contains(&wire.x()));
         prop_assert!((-1.0..=1.0).contains(&wire.y()));
     }
 
     // The permutations invert each other, both ways.
     for (position, &row) in lod.row_of_position.iter().enumerate() {
-        prop_assert_eq!(lod.position_of_row[row as usize] as usize, position);
+        prop_assert_eq!(lod.position_of_row[row].as_usize(), position);
     }
     for (rank, &position) in lod.position_of_rank.iter().enumerate() {
-        prop_assert_eq!(lod.rank_of_position[position as usize] as usize, rank);
+        prop_assert_eq!(lod.rank_of_position[position].as_usize(), rank);
     }
 
     // Every segment of the code column is sorted: the morton
@@ -651,7 +688,9 @@ fn built_columns_uphold_the_contract_laws(
         let segment = lod.fenceposts.segment(depth(bucket));
         let start = usize::try_from(segment.start).expect("test rows fit usize");
         let end = usize::try_from(segment.end).expect("test rows fit usize");
-        prop_assert!(lod.codes[start..end].is_sorted());
+        prop_assert!(
+            lod.codes[BasePosition::from_usize(start)..BasePosition::from_usize(end)].is_sorted()
+        );
     }
 
     // The delivered prefix covers every occupied cell at every
@@ -666,7 +705,11 @@ fn built_columns_uphold_the_contract_laws(
         })
         .collect();
     prop_assert_eq!(
-        cascade::verify_coverage(&lod.codes, &buckets, deepest),
+        cascade::verify_coverage(
+            &lod.codes,
+            IdSlice::<BasePosition, _>::from_raw(&buckets),
+            deepest
+        ),
         Ok(()),
     );
 
@@ -717,13 +760,15 @@ fn built_columns_uphold_the_contract_laws(
 }
 
 /// Direct types for the hand-stage rows: distinct enough that every union is distinguishable.
-fn hand_types() -> Vec<SmallVec<OntologyRowId, 2>> {
+fn hand_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
     vec![
         smallvec![OntologyRowId::new(5)],
         smallvec![OntologyRowId::new(7)],
         smallvec![OntologyRowId::new(2), OntologyRowId::new(5)],
         smallvec![OntologyRowId::new(9)],
     ]
+    .into_iter()
+    .collect()
 }
 
 #[test]
@@ -785,16 +830,21 @@ fn quad_build_gathers_types_through_the_base_order() {
         config,
     )
     .expect("the fixture builds");
-    assert_eq!(*lod.row_of_position, [1, 0, 3, 2]);
+    assert_eq!(
+        *lod.row_of_position.as_raw(),
+        [1, 0, 3, 2].map(NodeRowId::from_u32),
+    );
 
     // Types keyed by the permuted rows: the same types per point as
     // the hand fixture.
-    let types: Vec<SmallVec<OntologyRowId, 2>> = vec![
+    let types: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> = vec![
         smallvec![OntologyRowId::new(7)],
         smallvec![OntologyRowId::new(5)],
         smallvec![OntologyRowId::new(9)],
         smallvec![OntologyRowId::new(2), OntologyRowId::new(5)],
-    ];
+    ]
+    .into_iter()
+    .collect();
     let tree = QuadTree::build(&lod, &types, config).expect("the fixture builds");
 
     assert_eq!(
@@ -833,7 +883,7 @@ fn quad_build_rejects_what_no_tree_covers() {
 
     // A type column covering a different row count.
     assert_eq!(
-        QuadTree::build(&lod, &hand_types()[..3], config)
+        QuadTree::build(&lod, hand_types().prefix(NodeRowId::from_u32(3)), config)
             .expect_err("a short type column must not build"),
         QuadError::Columns { rows: 4 },
     );
@@ -855,12 +905,12 @@ fn quad_build_rejects_what_no_tree_covers() {
 
     // A direct type beyond the file's u32 ordinals.
     let mut types = hand_types();
-    types[2] = smallvec![OntologyRowId::new(u64::from(u32::MAX) + 1)];
+    types[NodeRowId::from_u32(2)] = smallvec![OntologyRowId::new(u64::from(u32::MAX) + 1)];
     assert_eq!(
         QuadTree::build(&lod, &types, config)
             .expect_err("an oversized type ordinal must not build"),
         QuadError::TypeOrdinal {
-            row: 2,
+            row: NodeRowId::from_u32(2),
             id: u64::from(u32::MAX) + 1,
         },
     );
@@ -914,7 +964,7 @@ fn quad_trees_uphold_the_contract_laws(
     let importance: Vec<f32> = rows.iter().map(|&(_, _, i, _)| i).collect();
     let priority = vec![0.0_f32; rows.len()];
     let ids = identities(rows.len() as u128);
-    let types: Vec<SmallVec<OntologyRowId, 2>> = rows
+    let types: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> = rows
         .iter()
         .map(|&(.., type_row)| smallvec![OntologyRowId::new(type_row)])
         .collect();
@@ -992,7 +1042,7 @@ fn quad_trees_uphold_the_contract_laws(
     for (index, node) in tree.nodes.iter().enumerate() {
         let cell = cells[index];
         let inside: Vec<usize> = (0..lod.codes.len())
-            .filter(|&position| cell.contains(lod.codes[position]))
+            .filter(|&position| cell.contains(lod.codes[BasePosition::from_usize(position)]))
             .collect();
 
         // The subtree count is the cell's whole population.
@@ -1034,8 +1084,8 @@ fn quad_trees_uphold_the_contract_laws(
         let mut expected: Vec<u32> = inside
             .iter()
             .flat_map(|&position| {
-                let row = lod.row_of_position[position];
-                types[row as usize]
+                let row = lod.row_of_position[BasePosition::from_usize(position)];
+                types[row]
                     .iter()
                     .map(|id| u32::try_from(id.as_u64()).expect("test ordinals fit u32"))
             })

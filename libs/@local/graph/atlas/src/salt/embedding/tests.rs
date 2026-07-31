@@ -6,6 +6,7 @@
 use core::{assert_matches, future::ready};
 use std::sync::Mutex;
 
+use hashql_core::id::{IdSlice, IdVec};
 use zerocopy::TryFromBytes as _;
 
 use super::{
@@ -175,7 +176,7 @@ impl Progress for RecordingProgress {
     }
 }
 
-fn cards(texts: &[&str]) -> Vec<Card> {
+fn cards(texts: &[&str]) -> IdVec<OntologyRowId, Card> {
     texts
         .iter()
         .map(|&text| Card::verbatim(text.to_owned()))
@@ -438,9 +439,14 @@ async fn rejects_non_finite_components() {
 async fn embeds_nothing_for_an_empty_card_list() {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
 
-    let (table, stats) = embed_cards(&embedder, &[], None, &NoProgress)
-        .await
-        .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
+    let (table, stats) = embed_cards(
+        &embedder,
+        IdSlice::<OntologyRowId, Card>::empty(),
+        None,
+        &NoProgress,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
     assert!(embedder.calls().is_empty());
     assert_eq!(stats, CardEmbeddingStats::default());

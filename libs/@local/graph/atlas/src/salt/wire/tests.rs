@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     dataset::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
@@ -338,8 +338,10 @@ fn envelope_directory_laws(
 }
 
 mod tile {
+    use hashql_core::id::{Id as _, IdSlice};
+
     use super::{
-        Bounds2, DeliveredSet, GlobalHead, Membership, Mode, NodeRowId, Sha256Digest,
+        BasePosition, Bounds2, DeliveredSet, GlobalHead, Membership, Mode, NodeRowId, Sha256Digest,
         TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow, section,
     };
 
@@ -347,7 +349,7 @@ mod tile {
     fn minimal<'doc>(
         positions: &'doc [Vec2],
         rows: &'doc [WireRow<NodeRowId>],
-        ranges: &'doc [core::ops::Range<u32>],
+        ranges: &'doc [core::ops::Range<BasePosition>],
     ) -> TileResponse<'doc> {
         TileResponse {
             head: TileHead {
@@ -362,8 +364,8 @@ mod tile {
                 children: 0b0010,
             },
             delivered: DeliveredSet::Ranges(ranges),
-            positions,
-            rows,
+            positions: IdSlice::from_raw(positions),
+            rows: IdSlice::from_raw(rows),
             masks: None,
             trailer: None,
         }
@@ -373,7 +375,8 @@ mod tile {
     fn head_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
         let bytes = minimal(&positions, &rows, &ranges).encode();
 
         // map(10): 0 bstr(32) | 1 uint 0 | 2 [3, 2, 5] | 3 uint 0 |
@@ -399,7 +402,8 @@ mod tile {
     fn global_map_encodes_by_hand() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.global = Some(GlobalHead {
             visible: 40,
@@ -443,7 +447,8 @@ mod tile {
             .collect();
         let rows: Vec<WireRow<NodeRowId>> =
             (0..8).map(|index| WireRow::pinned(100 + index)).collect();
-        let ranges = [1_u32..3, 6..7];
+        let ranges = [1_u32..3, 6..7]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[3];
@@ -475,7 +480,8 @@ mod tile {
         let positions = [Vec2::new(0.0, 0.0); 22];
         let rows: Vec<WireRow<NodeRowId>> = (0..22).map(WireRow::pinned).collect();
         // Delivered points: base positions 4, 5, 6, 20, 21.
-        let ranges = [4_u32..7, 20..22];
+        let ranges = [4_u32..7, 20..22]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         // type 0: list members at 5 and 20 (33 lies outside the base
         // domain of any range and is never consulted).
@@ -508,7 +514,8 @@ mod tile {
     fn wide_masks_round_the_stride_up() {
         let positions = [Vec2::new(0.0, 0.0); 4];
         let rows: Vec<WireRow<NodeRowId>> = (0..4).map(WireRow::pinned).collect();
-        let ranges = [0_u32..4];
+        let ranges = [0_u32..4]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         // Nine types: stride 2. Type 8's bit is byte 1, bit 0.
         let low = [0_u32, 2];
@@ -543,7 +550,7 @@ mod tile {
         let rows: Vec<WireRow<NodeRowId>> = (0..22).map(WireRow::pinned).collect();
         // The same five points as the range form, gathered: today's masked walk visits
         // ascending corpus buckets, so its list ascends in base position.
-        let delivered = [4_u32, 5, 6, 20, 21];
+        let delivered = [4_u32, 5, 6, 20, 21].map(BasePosition::from_u32);
 
         let list = [5_u32, 20, 33];
         let dense = [(1_u32 << 4) | (1 << 21)];
@@ -600,7 +607,7 @@ mod tile {
         ];
         // Masks by base position: 4 -> 0b010, 5 -> 0b001, 6 -> 0b100, 20 -> 0b011, 21 -> 0b110.
 
-        let scrambled = [4_u32, 20, 6, 5, 21];
+        let scrambled = [4_u32, 20, 6, 5, 21].map(BasePosition::from_u32);
         let mut response = minimal(&positions, &rows, &[]);
         response.delivered = DeliveredSet::Positions(&scrambled);
         response.head.first_bucket = 0;
@@ -637,7 +644,7 @@ mod tile {
         );
 
         // The literal inversion: delivery order fully descending in base position.
-        let inverted = [21_u32, 20, 6, 5, 4];
+        let inverted = [21_u32, 20, 6, 5, 4].map(BasePosition::from_u32);
         response.delivered = DeliveredSet::Positions(&inverted);
         let bytes = response.encode();
 
@@ -651,7 +658,8 @@ mod tile {
     fn trailer_encodes_labels_and_icons() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.trailer = Some(TileTrailer {
@@ -680,7 +688,7 @@ mod tile {
     fn zero_point_tile_is_present_empty() {
         let positions: [Vec2; 0] = [];
         let rows: [WireRow<NodeRowId>; 0] = [];
-        let ranges: [core::ops::Range<u32>; 0] = [];
+        let ranges: [core::ops::Range<BasePosition>; 0] = [];
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[0];
@@ -699,7 +707,8 @@ mod tile {
     fn disagreeing_runs_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.runs = &[3];
@@ -711,7 +720,8 @@ mod tile {
     fn reserved_children_bits_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.head.children = 16;
@@ -723,7 +733,8 @@ mod tile {
     fn short_trailers_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();
-        let ranges = [10_u32..12];
+        let ranges = [10_u32..12]
+            .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.trailer = Some(TileTrailer {
@@ -877,9 +888,11 @@ mod edges {
 }
 
 mod locate {
+    use hashql_core::id::{Id as _, IdSlice};
+
     use super::{
-        LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest, TileCoordinate,
-        Vec2, WireRow, identity_of, section,
+        BasePosition, LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest,
+        TileCoordinate, Vec2, WireRow, identity_of, section,
     };
 
     /// The four-point base-order coordinate column behind the tests.
@@ -909,16 +922,24 @@ mod locate {
             entity_id: identity_of(0xEE),
             type_ids_complete: false,
             properties_complete: true,
-            delivered: &[2, 0, 3],
-            positions,
-            rows: &const {
+            delivered: &const {
                 [
-                    WireRow::pinned(10),
-                    WireRow::pinned(11),
-                    WireRow::pinned(12),
-                    WireRow::pinned(13),
+                    BasePosition::from_u32(2),
+                    BasePosition::from_u32(0),
+                    BasePosition::from_u32(3),
                 ]
             },
+            positions: IdSlice::from_raw(positions),
+            rows: IdSlice::from_raw(
+                &const {
+                    [
+                        WireRow::pinned(10),
+                        WireRow::pinned(11),
+                        WireRow::pinned(12),
+                        WireRow::pinned(13),
+                    ]
+                },
+            ),
             masks: None,
             sources: &const { [WireRow::pinned(10), WireRow::pinned(12)] },
             targets: &const { [WireRow::pinned(12), WireRow::pinned(13)] },
@@ -1067,7 +1088,7 @@ mod locate {
     fn source_only_response_is_present_empty_on_edges() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.delivered = &[1];
+        response.delivered = &const { [BasePosition::from_u32(1)] };
         response.sources = &[];
         response.targets = &[];
         response.edge_ids = &[];

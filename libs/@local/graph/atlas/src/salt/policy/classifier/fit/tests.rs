@@ -6,6 +6,8 @@
 use core::{assert_matches, num::NonZeroU64};
 use std::sync::Mutex;
 
+use hashql_core::id::{Id as _, IdSlice, IdVec};
+
 use super::{
     FitConfig, FitError, TrainingRow, TrainingSet, TrainingSetError, applicability, calibration,
     fit, fit_model, grouped_folds,
@@ -19,6 +21,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
+    identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{AlignedVecN, BoxedVecN, d_positive},
     progress::{NoProgress, Progress},
@@ -30,14 +33,14 @@ const CAPACITY: usize = 8;
 /// An owned training corpus growing row by row.
 struct Corpus {
     storage: BoxedVecN<{ CAPACITY * CANONICAL_DIMENSIONS }>,
-    rows: Vec<TrainingRow>,
+    rows: IdVec<CardRow, TrainingRow>,
 }
 
 impl Corpus {
     fn new() -> Self {
         Self {
             storage: BoxedVecN::zero(),
-            rows: Vec::new(),
+            rows: IdVec::new(),
         }
     }
 
@@ -59,9 +62,12 @@ impl Corpus {
         });
     }
 
-    fn embeddings(&self) -> &[AlignedVecN<CANONICAL_DIMENSIONS>] {
-        AlignedVecN::from_slice(&self.storage.as_array()[..self.rows.len() * CANONICAL_DIMENSIONS])
-            .expect("boxed storage is aligned")
+    fn embeddings(&self) -> &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> {
+        let raw = AlignedVecN::from_slice(
+            &self.storage.as_array()[..self.rows.len() * CANONICAL_DIMENSIONS],
+        )
+        .expect("boxed storage is aligned");
+        IdSlice::from_raw(raw)
     }
 
     fn training(&self) -> TrainingSet<'_> {
@@ -104,12 +110,16 @@ fn mixed_corpus() -> Corpus {
 
 #[test]
 fn training_set_rejects_contract_violations() {
-    let empty = TrainingSet::new(&[], &[]).expect_err("an empty corpus is invalid");
+    let empty = TrainingSet::new(IdSlice::empty(), IdSlice::empty())
+        .expect_err("an empty corpus is invalid");
     assert_eq!(empty, TrainingSetError::Empty);
 
     let corpus = mixed_corpus();
-    let mismatch = TrainingSet::new(corpus.embeddings(), &corpus.rows[..1])
-        .expect_err("mismatched lengths are invalid");
+    let mismatch = TrainingSet::new(
+        corpus.embeddings(),
+        corpus.rows.prefix(CardRow::from_u32(1)),
+    )
+    .expect_err("mismatched lengths are invalid");
     assert_eq!(
         mismatch,
         TrainingSetError::RowMismatch {
@@ -125,43 +135,46 @@ fn training_set_rejects_contract_violations() {
     assert_eq!(
         non_finite,
         TrainingSetError::NonFiniteEmbedding {
-            row: 1,
+            row: CardRow::from_u32(1),
             component: 5,
         },
     );
 
     let mut invalid_target = mixed_corpus();
-    invalid_target.rows[0].target = [1.5, -0.25, -0.25];
+    invalid_target.rows[CardRow::from_u32(0)].target = [1.5, -0.25, -0.25];
     let target = TrainingSet::new(invalid_target.embeddings(), &invalid_target.rows)
         .expect_err("a target above one is invalid");
     assert_eq!(
         target,
         TrainingSetError::InvalidTarget {
-            row: 0,
+            row: CardRow::from_u32(0),
             class: GeometryClass::Coincident,
             value: 1.5,
         },
     );
 
     let mut unnormalized = mixed_corpus();
-    unnormalized.rows[1].target = [0.5, 0.1, 0.1];
+    unnormalized.rows[CardRow::from_u32(1)].target = [0.5, 0.1, 0.1];
     let sum = TrainingSet::new(unnormalized.embeddings(), &unnormalized.rows)
         .expect_err("an unnormalized target is invalid");
     assert_eq!(
         sum,
         TrainingSetError::UnnormalizedTarget {
-            row: 1,
+            row: CardRow::from_u32(1),
             sum: 0.5 + 0.1 + 0.1,
         },
     );
 
     let mut weightless = mixed_corpus();
-    weightless.rows[0].weight = 0.0;
+    weightless.rows[CardRow::from_u32(0)].weight = 0.0;
     let weight = TrainingSet::new(weightless.embeddings(), &weightless.rows)
         .expect_err("a zero weight is invalid");
     assert_eq!(
         weight,
-        TrainingSetError::InvalidWeight { row: 0, value: 0.0 }
+        TrainingSetError::InvalidWeight {
+            row: CardRow::from_u32(0),
+            value: 0.0,
+        }
     );
 }
 
@@ -184,13 +197,18 @@ fn grouped_folds_keep_groups_whole_and_sizes_balanced() {
             count,
         )
     })
-    .collect::<Vec<_>>();
+    .collect::<IdVec<CardRow, _>>();
 
     let folds = grouped_folds(&rows, 2, 9).expect("four groups fill two folds");
 
     assert_eq!(folds.len(), rows.len());
     // Rows sharing a group land in one fold.
-    assert!(folds[..3].iter().all(|fold| *fold == folds[0]));
+    assert!(
+        folds
+            .prefix(CardRow::from_u32(3))
+            .iter()
+            .all(|fold| *fold == folds[CardRow::from_u32(0)])
+    );
     // Largest-first greedy assignment balances sizes 3 and 3.
     let counts = folds.iter().fold([0_usize; 2], |mut counts, fold| {
         counts[*fold] += 1;
@@ -245,10 +263,12 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
         ..config()
     };
 
-    let gram = Gram::assemble(corpus.embeddings(), &mut WorkCounters::default());
+    let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
+    // Every row assigned to fold 0: a raw fixture pinned at the fit_model seam,
+    // since a single-fold run is the point of this fixture.
     let (weak, _) = fit_model(
         training,
-        &[0, 0, 0],
+        IdSlice::from_raw(&[0, 0, 0]),
         None,
         regularized(d_positive!(0.1)),
         &gram,
@@ -257,7 +277,7 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     .expect("the weak fit converges");
     let (strong, _) = fit_model(
         training,
-        &[0, 0, 0],
+        IdSlice::from_raw(&[0, 0, 0]),
         None,
         regularized(d_positive!(10.0)),
         &gram,
@@ -274,10 +294,11 @@ fn fit_model_requires_complete_class_mass() {
     corpus.push(&[1.0], [0.0, 0.5, 0.5], 1.0, b"one");
     corpus.push(&[0.0, 1.0], [0.0, 0.5, 0.5], 1.0, b"two");
 
-    let gram = Gram::assemble(corpus.embeddings(), &mut WorkCounters::default());
+    let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
+    // Every row assigned to fold 0: a raw fixture pinned at the fit_model seam.
     let error = fit_model(
         corpus.training(),
-        &[0, 0],
+        IdSlice::from_raw(&[0, 0]),
         None,
         config(),
         &gram,
@@ -303,8 +324,10 @@ fn overconfident_logits_calibrate_above_one() {
         4
     ];
     let logits = vec![[6.0, 0.0, 0.0]; 4];
+    let rows = IdSlice::from_raw(&rows);
+    let logits = IdSlice::from_raw(&logits);
 
-    let temperature = calibration::fit_temperature(&rows, &logits);
+    let temperature = calibration::fit_temperature(rows, logits);
 
     // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
     // interior optimum of the [0.05, 20] bracket. Near the optimum the
@@ -315,9 +338,9 @@ fn overconfident_logits_calibrate_above_one() {
     assert!(temperature > 1.0);
     assert!((temperature - expected).abs() <= 1.0e-6 * expected);
     // Local optimality: the returned temperature beats its neighbours.
-    let optimum = calibration::metrics(&rows, &logits, temperature).calibrated_cross_entropy;
+    let optimum = calibration::metrics(rows, logits, temperature).calibrated_cross_entropy;
     for neighbour in [temperature * 1.05, temperature / 1.05] {
-        let value = calibration::metrics(&rows, &logits, neighbour).calibrated_cross_entropy;
+        let value = calibration::metrics(rows, logits, neighbour).calibrated_cross_entropy;
         assert!(optimum <= value);
     }
 }
@@ -337,9 +360,11 @@ fn calibration_never_worsens_cross_entropy() {
         },
     ];
     let logits = [[0.4, -0.2, 0.1], [-0.3, 0.8, 0.2]];
+    let rows = IdSlice::from_raw(&rows);
+    let logits = IdSlice::from_raw(&logits);
 
-    let temperature = calibration::fit_temperature(&rows, &logits);
-    let metrics = calibration::metrics(&rows, &logits, temperature);
+    let temperature = calibration::fit_temperature(rows, logits);
+    let metrics = calibration::metrics(rows, logits, temperature);
 
     // The unit temperature is always among the candidates.
     assert!(metrics.calibrated_cross_entropy <= metrics.raw_cross_entropy);
@@ -354,7 +379,7 @@ fn metrics_match_hand_computed_values() {
     }];
     let logits = [[0.0, 0.0, 0.0]];
 
-    let metrics = calibration::metrics(&rows, &logits, 1.0);
+    let metrics = calibration::metrics(IdSlice::from_raw(&rows), IdSlice::from_raw(&logits), 1.0);
 
     // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 · (1/3)^2.
     assert!((metrics.raw_cross_entropy - 3.0_f64.ln()).abs() <= 1.0e-15);
@@ -491,7 +516,7 @@ fn fit_recovers_the_generating_distributions() {
     // The separable corpus rewards weak regularization out of fold, so the
     // selection stays weak and the fitted raw posteriors reproduce the
     // generating soft targets on the training rows.
-    for (row, expected) in corpus.rows.iter().enumerate() {
+    for (row, expected) in corpus.rows.iter_enumerated() {
         let prediction = fitted
             .classifier
             .predict(&corpus.embeddings()[row])
