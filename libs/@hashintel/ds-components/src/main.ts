@@ -1,4 +1,8 @@
 export { Avatar } from "./components/Avatar/avatar";
+export {
+  AvatarGroup,
+  type AvatarGroupProps,
+} from "./components/AvatarGroup/avatar-group";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { CharacterCount } from "./components/CharacterCount/character-count";

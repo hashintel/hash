@@ -9,20 +9,23 @@ import { styles } from "./avatar.recipe";
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
 
+export type AvatarSize = FormInputSize | "custom";
+export type AvatarTone = Extract<Tone, "neutral" | "brand">;
+
 type AvatarProps = {
   className?: string;
   /** Image source URL */
   src?: string;
   /** For ex: "Firstname Lastname", "Organization", "Shortname (online)" */
   alt: string;
-  size?: FormInputSize | "custom";
+  size?: AvatarSize;
   /** What to show when no image is loaded or defined. Initials will be truncated to up to 2 characters max */
   placeholder:
     | { initials: string }
     | { icon: IconName }
     | { custom: React.ReactNode };
   shape: "circle" | "square";
-  tone?: Extract<Tone, "neutral" | "brand">;
+  tone?: AvatarTone;
 } & ExclusifyUnion<
   | { onClick?: React.ButtonHTMLAttributes<Element>["onClick"] }
   | { href?: string; target?: "_blank" }
