@@ -378,8 +378,8 @@ export const styles = sva({
     // variant's resting bg — the same colour the segments reach by layering the
     // translucent `--chip-hover-tint`. `fill`/`fillLight` restate their resting
     // token in the mix (there's no way to read "current bg"); `outline` rests on
-    // transparent, so its mix is just the tint; `subtle` mirrors fillLight. These
-    // mixes stay `in srgb` (unlike the oklab mixes elsewhere): the browser
+    // opaque white, so it mixes over `--colors-white`; `subtle` mirrors fillLight.
+    // These mixes stay `in srgb` (unlike the oklab mixes elsewhere): the browser
     // alpha-composites in srgb, so only srgb here matches the segments' colour.
     {
       clickable: true,
@@ -412,7 +412,8 @@ export const styles = sva({
       css: {
         root: {
           _hover: {
-            background: "var(--chip-hover-tint)",
+            background:
+              "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), var(--colors-white))]",
             borderColor: "colorPalette.bd.solid",
           },
         },
