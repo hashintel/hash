@@ -43,6 +43,12 @@ export const styles = sva({
       "--chip-badge-bg": "var(--colors-color-palette-bg-solid-min)",
       "--chip-badge-bg-hover":
         "[color-mix(in oklab, currentColor 12%, var(--colors-color-palette-bg-solid-min))]",
+      // A softer hover used when the badge/angle is *absorbed* (non-interactive,
+      // sharing its button with the label) rather than a standalone button: that
+      // button's hover also darkens the label bg underneath, so a full-strength
+      // affix hover on top compounds into too-dark. `-soft` is a touch lighter.
+      "--chip-badge-bg-hover-soft":
+        "[color-mix(in oklab, currentColor 8%, var(--colors-color-palette-bg-solid-min))]",
       // The angle affix's parallelogram tint and its hovered value. The tint is
       // read via `--chip-angle-bg`; hovering the button that owns the angle (the
       // affix itself, or the clickable root / centre it lives in) swaps in the
@@ -51,6 +57,11 @@ export const styles = sva({
       "--chip-angle-bg": "[color-mix(in oklab, currentColor 12%, transparent)]",
       "--chip-angle-bg-hover":
         "[color-mix(in oklab, currentColor 20%, transparent)]",
+      // The absorbed counterpart (see `--chip-badge-bg-hover-soft`); the angle
+      // tint is translucent, so absorbed it composites over the darkened label
+      // bg — softening it keeps that from reading darker than a standalone one.
+      "--chip-angle-bg-hover-soft":
+        "[color-mix(in oklab, currentColor 14%, transparent)]",
       // Thin border drawn along a separate angle affix's slant when it (or the
       // label beside it) is hovered; transparent otherwise. Its colour is a
       // touch lighter than the divider-hover it derives from.
@@ -179,13 +190,15 @@ export const styles = sva({
       "&:hover::before": {
         opacity: "[1]",
       },
-      // Darken an absorbed badge/angle affix (a non-interactive one sharing
-      // this button with the label) on hover, as if it were clicked directly.
-      // No angle border here: an absorbed angle is connected to the label.
+      // Darken an absorbed badge/angle affix (a non-interactive one sharing this
+      // button with the label) on hover — a touch softer (`-soft`) than a
+      // standalone one, since this hover also darkens the shared label bg
+      // underneath. No angle border here: an absorbed angle is connected to the
+      // label.
       "&:hover": {
-        "--chip-badge-bg": "var(--chip-badge-bg-hover)",
+        "--chip-badge-bg": "var(--chip-badge-bg-hover-soft)",
         "--chip-badge-divider": "var(--chip-badge-divider-hover)",
-        "--chip-angle-bg": "var(--chip-angle-bg-hover)",
+        "--chip-angle-bg": "var(--chip-angle-bg-hover-soft)",
       },
       // Raise the ring itself (the ::after) over sibling affixes so it paints
       // above e.g. a badge affix's opaque background. Raising the whole button
@@ -326,15 +339,16 @@ export const styles = sva({
     },
     clickable: {
       // The whole chip is one button: hovering it darkens any badge/angle affix
-      // it contains, as if clicked directly. No angle border: those angles are
-      // all connected to the label inside this single button.
+      // it contains — a touch softer (`-soft`) than a standalone one, since the
+      // chip bg darkens under it too. No angle border: those angles are all
+      // connected to the label inside this single button.
       true: {
         root: {
           cursor: "pointer",
           _hover: {
-            "--chip-badge-bg": "var(--chip-badge-bg-hover)",
+            "--chip-badge-bg": "var(--chip-badge-bg-hover-soft)",
             "--chip-badge-divider": "var(--chip-badge-divider-hover)",
-            "--chip-angle-bg": "var(--chip-angle-bg-hover)",
+            "--chip-angle-bg": "var(--chip-angle-bg-hover-soft)",
           },
         },
       },
