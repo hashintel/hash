@@ -61,9 +61,8 @@ impl TileResponse<'_> {
         let delivered = self.delivered.count();
         let counted: u64 = self.head.runs.iter().map(|&count| u64::from(count)).sum();
         assert_eq!(
-            delivered,
-            counted + self.head.backfilled,
-            "the delivered set must count the HEAD runs plus the backfill tail",
+            delivered, counted,
+            "the delivered set must count exactly the HEAD runs",
         );
 
         if let Some(trailer) = &self.trailer {
@@ -258,11 +257,6 @@ pub(crate) struct TileHead<'doc> {
     /// Bit `i` = Morton child `i` holds a point below this zoom's cut. Bits beyond the low four
     /// are reserved zero.
     pub children: u8,
-    /// Key 11: points pulled up from deeper buckets, trailing the natural runs. Omitted when zero.
-    ///
-    /// The last `backfilled` delivered points sit after the runs' extent in every column; the
-    /// runs cover the leading `delivered - backfilled` points alone.
-    pub backfilled: u64,
 }
 
 impl TileHead<'_> {
@@ -308,10 +302,6 @@ impl TileHead<'_> {
         cbor.uint(u64::from(self.children));
         cbor.uint(10);
         cbor.boolean(trailer);
-        // if self.backfilled > 0 {
-        //     cbor.uint(11);
-        //     cbor.uint(self.backfilled);
-        // }
     }
 }
 

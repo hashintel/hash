@@ -6,20 +6,21 @@
 //! the validated schedule - bound to one visibility proof, and the submodules deliver over it:
 //!
 //! - [`full`]: the full-visibility deliveries, borrowed-shape base-order ranges.
-//! - [`masked`]: the masked delivery chain - scheduled survivors plus the pull-up fill, never
-//!   repeating a point down the zoom ladder.
 //! - [`census`]: point counts and occupancy, unmasked and masked.
+//!
+//! A scoped view's delivery reads its own cascade instead - [`ScopeSchedule`] - built over
+//! exactly the rows its proof admits; the walk supplies that build's gather and the per-tile
+//! masked counts.
 //!
 //! Positions, counts, and run lengths live in the `u32` domain: the open pass validated the point
 //! count against it, so the walk's conversions from the columns' `u64` storage are total.
+//!
+//! [`ScopeSchedule`]: super::schedule::ScopeSchedule
 
 mod census;
 mod full;
-mod masked;
 
 use core::ops::Range;
-
-use hashql_core::id::Id as _;
 
 pub use self::census::ViewCensus;
 pub(super) use self::full::occupied_children;
@@ -29,7 +30,7 @@ use crate::{
         morton::read::MortonFile,
         quad::{Node, read::QuadFile},
     },
-    identity::NodeRowId,
+    identity::{BasePosition, NodeRowId},
     morton::{Depth, MortonCell},
     salt::wire::tile::DeliveredSet,
 };
@@ -43,7 +44,7 @@ pub(super) struct Walk<'atlas> {
     grid: Grid,
     morton: &'atlas MortonFile,
     quad: &'atlas QuadFile,
-    row_ids: &'atlas [u32],
+    row_ids: &'atlas [NodeRowId],
     proof: &'atlas VisibilityProof,
 }
 
@@ -69,8 +70,7 @@ impl<'atlas> Walk<'atlas> {
 
     /// Returns whether the proof admits the row at base position `position`.
     fn admits(&self, position: u32) -> bool {
-        self.proof
-            .contains(NodeRowId::from_u32(self.row_ids[position as usize]))
+        self.proof.contains(self.row_ids[position as usize])
     }
 
     /// Returns bucket `depth`'s positions inside `cell`, in the validated `u32` position domain.
@@ -106,9 +106,9 @@ fn narrow(value: u64) -> u32 {
 #[derive(Debug)]
 pub(super) enum DeliveredPoints {
     /// Contiguous base-position ranges in delivery order.
-    Ranges(Vec<Range<u32>>),
+    Ranges(Vec<Range<BasePosition>>),
     /// Gathered base positions, ascending, visibility already applied.
-    Positions(Vec<u32>),
+    Positions(Vec<BasePosition>),
 }
 
 impl DeliveredPoints {

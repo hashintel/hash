@@ -21,8 +21,8 @@ use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
 use super::{
-    Atlas, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot, Mode,
-    OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
+    Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot,
+    Mode, OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
     VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
 };
 use crate::{
@@ -31,14 +31,13 @@ use crate::{
 };
 
 mod authorization;
-mod backfill;
-mod backfill_channel;
 mod density;
 mod frame_channel;
 mod masking;
 mod metadata_channel;
 mod open;
 mod row_codec;
+mod schedule;
 
 /// The tests' default authority: the operator proof, byte-identical to the pre-visibility serve.
 const FULL: VisibilityProof = VisibilityProof::full_visibility();
@@ -521,7 +520,12 @@ async fn serves_tiles_from_a_published_generation() {
     // The root delta delivers buckets 0..=m: the head of the base
     // order, sized by the fencepost lengths.
     let bytes = atlas
-        .tile(&request(0, 0, 0, Mode::Delta), TileLimits::default(), &FULL)
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+        )
         .expect("the root tile should serve");
     assert_eq!(&bytes[..8], b"SALTILET");
 
@@ -564,7 +568,12 @@ async fn serves_tiles_from_a_published_generation() {
 
     // The root's total delivery equals its delta delivery.
     let total = atlas
-        .tile(&request(0, 0, 0, Mode::Total), TileLimits::default(), &FULL)
+        .tile(
+            &request(0, 0, 0, Mode::Total),
+            TileLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+        )
         .expect("the root total should serve");
     assert_eq!(
         section(&total, POSITIONS).expect("POSITIONS is present"),
@@ -593,6 +602,7 @@ async fn serves_tiles_from_a_published_generation() {
                 },
                 TileLimits::default(),
                 &FULL,
+                CutOffset::ZERO,
             )
             .expect("every node tile should serve");
         let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
@@ -651,7 +661,6 @@ async fn serves_empty_and_deepest_cells() {
             runs: &[0],
             global: None,
             children: 0,
-            backfilled: 0,
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
         positions: points,
@@ -669,6 +678,7 @@ async fn serves_empty_and_deepest_cells() {
                 },
                 TileLimits::default(),
                 &FULL,
+                CutOffset::ZERO,
             )
             .expect("the empty tile should serve"),
         expected,
@@ -689,6 +699,7 @@ async fn serves_empty_and_deepest_cells() {
             },
             TileLimits::default(),
             &FULL,
+            CutOffset::ZERO,
         )
         .expect("the deepest total tile should serve");
     let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
@@ -701,11 +712,21 @@ async fn rejects_and_reports_the_contract() {
     let (_generation, atlas) = publish("rejects").await;
 
     assert_eq!(
-        atlas.tile(&request(4, 0, 0, Mode::Delta), TileLimits::default(), &FULL),
+        atlas.tile(
+            &request(4, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &FULL,
+            CutOffset::ZERO
+        ),
         Err(TileError::Depth { z: 4, maximum: 3 }),
     );
     assert_eq!(
-        atlas.tile(&request(2, 4, 0, Mode::Delta), TileLimits::default(), &FULL),
+        atlas.tile(
+            &request(2, 4, 0, Mode::Delta),
+            TileLimits::default(),
+            &FULL,
+            CutOffset::ZERO
+        ),
         Err(TileError::Grid { z: 2, x: 4, y: 0 }),
     );
 
@@ -717,7 +738,7 @@ async fn rejects_and_reports_the_contract() {
         TileLimits::default().colored_type_ids as usize + 1
     ];
     assert_eq!(
-        atlas.tile(&colored, TileLimits::default(), &FULL),
+        atlas.tile(&colored, TileLimits::default(), &FULL, CutOffset::ZERO),
         Err(TileError::Types {
             count: TileLimits::default().colored_type_ids as usize + 1,
             maximum: TileLimits::default().colored_type_ids,
@@ -730,20 +751,21 @@ async fn rejects_and_reports_the_contract() {
             .expect("a filter document deserializes opaquely"),
     );
     assert_eq!(
-        atlas.tile(&filtered, TileLimits::default(), &FULL),
+        atlas.tile(&filtered, TileLimits::default(), &FULL, CutOffset::ZERO),
         Err(TileError::Unsupported("filter"))
     );
 
     let mut detailed = request(0, 0, 0, Mode::Delta);
     detailed.query.include_detailed_data = true;
     assert_eq!(
-        atlas.tile(&detailed, TileLimits::default(), &FULL),
+        atlas.tile(&detailed, TileLimits::default(), &FULL, CutOffset::ZERO),
         Err(TileError::Unsupported("includeDetailedData")),
     );
 
-    let manifest = serde_json::to_value(
-        atlas.manifest(ServeLimits::default().manifest_limits(VisibilityLimits::default())),
-    )
+    let manifest = serde_json::to_value(atlas.manifest(
+        ServeLimits::default().manifest_limits(VisibilityLimits::default()),
+        CutOffset::ZERO,
+    ))
     .expect("the manifest serializes");
     assert_eq!(
         manifest,
@@ -752,6 +774,7 @@ async fn rejects_and_reports_the_contract() {
             "wireVersion": 1,
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
+            "scopeSchedule": { "k": 0, "cut": "z+1" },
             "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "authoritySoftSeconds": 480, "authorityHardSeconds": 600 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
@@ -1355,7 +1378,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             },
         };
         let bytes = atlas
-            .tile(&request, TileLimits::default(), &FULL)
+            .tile(&request, TileLimits::default(), &FULL, CutOffset::ZERO)
             .expect("the resolved tile serves");
         assert!(
             row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
@@ -1378,7 +1401,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
                 },
             };
             let bytes = atlas
-                .tile(&parent, TileLimits::default(), &FULL)
+                .tile(&parent, TileLimits::default(), &FULL, CutOffset::ZERO)
                 .expect("the parent tile serves");
             assert!(
                 !row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
@@ -1652,7 +1675,7 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
             .expect("the literal is a versioned url"),
     ];
     let bytes = atlas
-        .tile(&colored, TileLimits::default(), &FULL)
+        .tile(&colored, TileLimits::default(), &FULL, CutOffset::ZERO)
         .expect("a colored request serves");
 
     let rows = section(&bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -1843,13 +1866,20 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
     let mut detailed = request(0, 0, 0, Mode::Delta);
     detailed.query.include_detailed_data = true;
     assert_eq!(
-        atlas.tile(&detailed, TileLimits::default(), &FULL),
+        atlas.tile(&detailed, TileLimits::default(), &FULL, CutOffset::ZERO),
         Err(TileError::Unsupported("includeDetailedData")),
     );
 
     // The transport path assembles, gathers, hydrates, encodes.
     let document = atlas
-        .assemble_tile(&detailed, TileLimits::default(), &FULL, atlas.census(&FULL))
+        .assemble_tile(
+            &detailed,
+            TileLimits::default(),
+            &FULL,
+            atlas.census(&FULL),
+            &super::schedule::ViewSchedule::Corpus,
+            CutOffset::ZERO,
+        )
         .expect("assembly ignores the trailer flag");
     let entities = atlas.delivered_entities(&document);
 
@@ -1897,7 +1927,6 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
             children: (0..4).fold(0_u8, |bits, quadrant| {
                 bits | (u8::from(quad.nodes()[0].child(quadrant).is_some()) << quadrant)
             }),
-            backfilled: 0,
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[0..end]),
         positions: points,
@@ -2408,16 +2437,16 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         .expect("row 0 is a node");
     let subgraph = atlas.locate_subgraph(source, limits.locate, &FULL);
     let node_codec = test_codec(&atlas);
-    let wire_of = |row: u32| node_codec.encode(NodeRowId::from_u32(row));
+    let wire_of = |row: NodeRowId| node_codec.encode(row);
     let sources: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.source.as_u32()))
+        .map(|&(edge, _)| wire_of(edge.source))
         .collect();
     let targets: Vec<WireRow<NodeRowId>> = subgraph
         .edges
         .iter()
-        .map(|&(edge, _)| wire_of(edge.target.as_u32()))
+        .map(|&(edge, _)| wire_of(edge.target))
         .collect();
     let edge_ids: Vec<crate::dataset::ArchivedEntityId> =
         subgraph.edges.iter().map(|&(_, id)| id).collect();
@@ -2707,10 +2736,10 @@ fn codec_generation() -> GenerationId {
 }
 
 /// Reads the delivered count, the runs, and the backfill count from a tile `HEAD`.
-fn head_counts(head: &[u8]) -> (u64, Vec<u64>, u64) {
+fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
     let mut reader = CborReader { bytes: head, at: 0 };
     let entries = reader.head(5);
-    let (mut delivered, mut runs, mut backfilled) = (0, Vec::new(), 0);
+    let (mut delivered, mut runs) = (0, Vec::new());
     for _ in 0..entries {
         let key = reader.uint();
         match key {
@@ -2721,12 +2750,27 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>, u64) {
                     .take(count)
                     .collect();
             }
-            11 => backfilled = reader.uint(),
+            11 => panic!("HEAD key 11 is retired: no response carries a fill tail"),
             _ => reader.skip(),
         }
     }
 
-    (delivered, runs, backfilled)
+    (delivered, runs)
+}
+
+/// Reads the occupied-child bitmask from a tile `HEAD`.
+fn children_of(head: &[u8]) -> u64 {
+    let mut reader = CborReader { bytes: head, at: 0 };
+    let entries = reader.head(5);
+    for _ in 0..entries {
+        let key = reader.uint();
+        if key == 9 {
+            return reader.uint();
+        }
+        reader.skip();
+    }
+
+    0
 }
 
 /// Reads the root's global map from a tile `HEAD`, [`None`] when the head carries none.

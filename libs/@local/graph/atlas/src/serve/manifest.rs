@@ -1,11 +1,12 @@
 //! The manifest document.
 //!
-//! The immutable Surface v1 bootstrap, derived from serving configuration and the generation's
-//! snapshot provenance - no corpus-derived aggregates.
+//! The Surface v1 bootstrap: the generation's serving contract - schedule, limits, provenance,
+//! no corpus-derived aggregates - plus the one per-caller block, the resolved delivery schedule
+//! the caller's authority token seals.
 
 use core::fmt;
 
-use super::{Atlas, GenerationId, ServeLimits, VARIANTS, VisibilityLimits};
+use super::{Atlas, GenerationId, ServeLimits, VARIANTS, VisibilityLimits, density::CutOffset};
 use crate::salt::wire::WIRE_VERSION;
 
 /// The serving limits of the manifest's `limits` block.
@@ -73,10 +74,11 @@ impl ServeLimits {
     }
 }
 
-/// The immutable per-generation manifest: everything a client needs before its first tile.
+/// The manifest: everything a client needs before its first tile.
 ///
-/// Derived from serving configuration and snapshot provenance alone, so one document serves every
-/// caller and stays valid for the generation's lifetime.
+/// Every block except [`Manifest::scope_schedule`] derives from serving configuration and
+/// snapshot provenance alone and stays valid for the generation's lifetime; the scope block is
+/// the caller's own, sealed into the authority token minted beside this document.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
@@ -87,7 +89,16 @@ pub struct Manifest {
     /// The variant names, in variant-index order.
     pub variants: [&'static str; 1],
     /// The bucket-cut schedule the tile grid follows.
+    ///
+    /// The generation's own corpus schedule, identical for every caller.
     pub bucket_schedule: BucketSchedule,
+    /// The caller's resolved delivery schedule.
+    ///
+    /// The delivery-cut offset the accompanying authority token seals, with the cut rule it
+    /// yields. Restricted responses deliver scope-cascade buckets at or below `z + span + k`,
+    /// so this block is the decoder's input for attributing runs to buckets; it varies per
+    /// caller and per session, which is one of the reasons the manifest response is `no-store`.
+    pub scope_schedule: ScopeCutSchedule,
     /// The published serving limits.
     pub limits: ManifestLimits,
     /// The snapshot's decision-time point, ISO-8601.
@@ -109,6 +120,21 @@ pub struct BucketSchedule {
     pub cut: BucketCut,
     /// The deepest tile zoom the schedule serves.
     pub max_zoom: u8,
+}
+
+/// The manifest's `scopeSchedule` block: one caller's resolved delivery schedule.
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`k` is the delivery-cut offset's name throughout the density contract"
+)]
+#[derive(Debug, Copy, Clone, serde::Serialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ScopeCutSchedule {
+    /// The resolved delivery-cut offset the authority token seals.
+    pub k: u8,
+    /// The cut rule: zoom `z` delivers scope buckets at or below `z + span + k`.
+    #[schemars(with = "String")]
+    pub cut: BucketCut,
 }
 
 /// The cut rule of the manifest's `bucketSchedule.cut` key.
@@ -139,7 +165,11 @@ impl serde::Serialize for BucketCut {
 impl Atlas {
     /// Assembles the generation's manifest document under the given request limits.
     #[must_use]
-    pub fn manifest(&self, limits: ManifestLimits) -> Manifest {
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
+    pub fn manifest(&self, limits: ManifestLimits, k: CutOffset) -> Manifest {
         // Timestamps serialize as ISO-8601 strings; anything else
         // degrades to an absent `createdAt` rather than panicking a
         // read path.
@@ -164,6 +194,12 @@ impl Atlas {
                     span_log2: self.grid.span_log2(),
                 },
                 max_zoom: self.grid.max_tile_depth(),
+            },
+            scope_schedule: ScopeCutSchedule {
+                k: k.get(),
+                cut: BucketCut {
+                    span_log2: self.grid.span_log2() + k.get(),
+                },
             },
             limits,
             created_at,

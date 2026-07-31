@@ -4,7 +4,7 @@
 //! population, no extent, and no resolution, so a scope's numbers carry no evidence of what the
 //! mask removed.
 
-use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+use hashql_core::id::bit_vec::DenseBitSet;
 
 use super::Walk;
 use crate::{
@@ -122,7 +122,7 @@ impl Walk<'_> {
     ) {
         for depth in self.grid.cut_buckets(z) {
             for position in self.run(depth, cell) {
-                set.insert(NodeRowId::from_u32(self.row_ids[position as usize]));
+                set.insert(self.row_ids[position as usize]);
             }
         }
     }

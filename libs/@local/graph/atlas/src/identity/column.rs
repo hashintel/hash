@@ -26,6 +26,15 @@ impl Element for u32 {
     }
 }
 
+impl Element for NodeRowId {
+    fn view(file: &ArrayFile) -> Option<&[Self]> {
+        let pairs = file.u64_le_elements()?;
+        // A row id is its little-endian encoding: the transmute relabels equal layouts, element by
+        // element.
+        Some(zerocopy::transmute_ref!(pairs))
+    }
+}
+
 impl Element for [NodeRowId; 2] {
     fn view(file: &ArrayFile) -> Option<&[Self]> {
         // A row id is its little-endian encoding: the transmute

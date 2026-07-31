@@ -37,8 +37,8 @@ use super::{
     problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
-    FilterDigest, ProofError, Resolution, ViewCensus, VisibilityCache, VisibilityKey,
-    VisibilityLimits, VisibilityProof, visibility_proof,
+    CutOffset, FilterDigest, ProofError, Resolution, ViewCensus, ViewSchedule, VisibilityCache,
+    VisibilityKey, VisibilityLimits, VisibilityProof, visibility_proof,
 };
 
 /// The header naming the authenticated actor.
@@ -80,7 +80,26 @@ impl core::fmt::Debug for Authority {
     }
 }
 
-/// One request's visibility: the proof its assembly masks by, and the census resolved with it.
+/// One resolved scope's delivery inputs: the proof, its census, and its schedule.
+///
+/// Everything a scope holds per resolution rather than per request. The manifest consumes this
+/// value directly; the data routes receive it through [`Visibility`], which adds the request's
+/// token-bound cut offset.
+#[derive(Debug, Clone)]
+pub(super) struct Resolved {
+    /// The rows the scope may see.
+    pub proof: Arc<VisibilityProof>,
+    /// The corpus-wide census of what [`Self::proof`] admits.
+    pub census: ViewCensus,
+    /// The delivery schedule of [`Self::proof`]'s view.
+    pub schedule: ViewSchedule,
+}
+
+/// One request's visibility: the resolved scope plus the token-bound delivery-cut offset.
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`k` is the delivery-cut offset's name throughout the density contract"
+)]
 #[derive(Debug, Clone)]
 pub(super) struct Visibility {
     /// The rows the request may see.
@@ -90,6 +109,13 @@ pub(super) struct Visibility {
     /// Resolved once per scope with the proof, so the root tile's global metadata costs no walk on
     /// the request that reads it.
     pub census: ViewCensus,
+    /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
+    pub schedule: ViewSchedule,
+    /// The delivery-cut offset the presented token seals.
+    ///
+    /// Sealed at the manifest by the density policy and read back at admission, so the served
+    /// cut and the declared cut are the same value by construction.
+    pub k: CutOffset,
 }
 
 impl FromRequestParts<AppState> for Visibility {
@@ -100,8 +126,14 @@ impl FromRequestParts<AppState> for Visibility {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let scope = authorization::admit(parts, state)?;
+        let resolved = resolve(state, *scope.actor, scope.filter.digest(), None).await?;
 
-        resolve(state, *scope.actor, scope.filter.digest(), None).await
+        Ok(Self {
+            proof: resolved.proof,
+            census: resolved.census,
+            schedule: resolved.schedule,
+            k: scope.k,
+        })
     }
 }
 
@@ -141,7 +173,7 @@ pub(super) async fn resolve(
     actor: ActorEntityUuid,
     filter: Option<FilterDigest>,
     document: Option<Arc<[u8]>>,
-) -> Result<Visibility, Problem<'static>> {
+) -> Result<Resolved, Problem<'static>> {
     let key = VisibilityKey {
         generation: state.atlas.generation(),
         actor,
@@ -203,7 +235,8 @@ pub(super) async fn resolve(
         .await
         .map_err(|error| proof_problem(&error))?;
 
-    Ok(Visibility {
+    Ok(Resolved {
+        schedule: entry.view_schedule(&state.atlas),
         proof: entry.proof,
         census: entry.census,
     })

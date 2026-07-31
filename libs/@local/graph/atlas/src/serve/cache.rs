@@ -44,12 +44,12 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };
-use std::time::Instant;
+use std::{sync::OnceLock, time::Instant};
 
 use moka::ops::compute::Op;
 use type_system::principal::actor::ActorEntityUuid;
 
-use super::{Atlas, ViewCensus, VisibilityProof};
+use super::{Atlas, ViewCensus, VisibilityProof, schedule::ViewSchedule};
 use crate::{
     file::generation::GenerationId,
     integrity::{Sha256, Sha256Digest, Update as _},
@@ -218,6 +218,12 @@ pub(crate) struct ResolvedVisibility {
     /// The filter document [`Self::proof`] was resolved over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
+    /// The delivery schedule of [`Self::proof`]'s view, built on first read.
+    ///
+    /// Shared across the entry's clones, so one scope builds its cascade once and every request
+    /// under it reads the same value; the entry's replacement retires the schedule with the
+    /// proof it was built over.
+    schedule: Arc<OnceLock<ViewSchedule>>,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
     /// Held while a refresh of this entry is in flight, so one refresh runs per entry.
@@ -239,9 +245,20 @@ impl ResolvedVisibility {
             proof: Arc::new(proof),
             census,
             filter,
+            schedule: Arc::new(OnceLock::new()),
             resolved_at,
             refreshing: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Returns the delivery schedule of this entry's view, building it on first read.
+    ///
+    /// The build runs under the [`OnceLock`], so concurrent first readers of one scope wait for
+    /// a single construction instead of duplicating it.
+    pub(crate) fn view_schedule(&self, atlas: &Atlas) -> ViewSchedule {
+        self.schedule
+            .get_or_init(|| ViewSchedule::of(atlas, &self.proof))
+            .clone()
     }
 
     /// Returns the filter document the entry was resolved over, as presented.

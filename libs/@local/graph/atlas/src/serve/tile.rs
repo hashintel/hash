@@ -5,22 +5,19 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::Id as _;
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
     Atlas, Filter, Mode, TileCoordinate,
     colour::{MaskSet, Palette},
-    density::ViewOccupancy,
+    density::{CutOffset, ViewOccupancy},
     grid,
     hydrate::{DeliveredEntities, NodeDetails},
+    schedule::{ScheduleWidthError, ViewSchedule},
     visibility::VisibilityProof,
     walk::{DeliveredPoints, ViewCensus, Walk, occupied_children},
 };
-use crate::{
-    identity::NodeRowId,
-    salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
-};
+use crate::salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer};
 
 /// The tile endpoint's request limits.
 ///
@@ -77,6 +74,17 @@ pub enum TileError {
     ///
     /// The carried name is the request field.
     Unsupported(&'static str),
+    /// The resolved cut offset lies past the key width.
+    ///
+    /// A sealed offset is resolved against this same generation's schedule, so the value is a
+    /// defect to surface; delivery refuses it whole rather than clamping or substituting a
+    /// schedule.
+    Schedule(ScheduleWidthError),
+    /// The proof and the schedule it travelled with disagree about the serving contract.
+    ///
+    /// Each proof constructor pairs with exactly one [`ViewSchedule`] variant; a mismatched pair
+    /// is a transport defect, and delivery refuses it rather than serving either contract.
+    Contract,
 }
 
 impl fmt::Display for TileError {
@@ -96,6 +104,14 @@ impl fmt::Display for TileError {
             }
             Self::Unsupported(feature) => {
                 write!(fmt, "this build does not serve {feature} requests")
+            }
+            Self::Schedule(error) => error.fmt(fmt),
+            Self::Contract => {
+                write!(
+                    fmt,
+                    "the visibility proof and its delivery schedule disagree about the serving \
+                     contract"
+                )
             }
         }
     }
@@ -151,7 +167,6 @@ pub struct TileDocument {
     first_bucket: u8,
     runs: Vec<u32>,
     delivered: DeliveredPoints,
-    backfilled: u32,
     children: u8,
     global: Option<GlobalHead>,
     mask_set: Option<MaskSet>,
@@ -166,26 +181,33 @@ impl Atlas {
     /// without a store connection. A transport with one assembles, hydrates, and encodes through
     /// [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and [`Atlas::encode_tile`].
     ///
-    /// This path censuses `proof` itself, once per call. A transport resolves the census with the
-    /// scope and hands it to [`Atlas::assemble_tile`], so the walk is paid per scope rather than
-    /// per request; without a store there is no scope to hold it on, so there is nothing to
-    /// amortize against.
+    /// This path censuses `proof` and derives its schedule itself, once per call. A transport
+    /// resolves both with the scope and hands them to [`Atlas::assemble_tile`], so the walks are
+    /// paid per scope rather than per request; without a store there is no scope to hold them
+    /// on, so there is nothing to amortize against.
     ///
     /// # Errors
     ///
     /// As [`Atlas::assemble_tile`], plus [`TileError::Unsupported`] when the query sets
     /// `includeDetailedData`.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
     pub fn tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,
         proof: &VisibilityProof,
+        k: CutOffset,
     ) -> Result<Vec<u8>, TileError> {
         if request.query.include_detailed_data {
             return Err(TileError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_tile(request, limits, proof, self.census(proof))?;
+        let schedule = ViewSchedule::of(self, proof);
+        let document =
+            self.assemble_tile(request, limits, proof, self.census(proof), &schedule, k)?;
         Ok(self.encode_tile(&document, None))
     }
 
@@ -223,10 +245,13 @@ impl Atlas {
     /// descendants. An id that resolves to no type in this generation is legal and reads 0 in every
     /// mask.
     ///
-    /// The delivered set, the per-bucket runs, and every occupancy-derived `HEAD` field (`visible`
-    /// counts, the `children` bitmask, the root's global metadata) are computed over the masked
-    /// view: a hidden point contributes to none of them, so a scope's tile carries no evidence of
-    /// what the mask removed - a fully masked tile is a tile that never had rows.
+    /// An operator proof delivers the generation's corpus schedule. A scoped proof delivers its
+    /// own cascade at the view's resolved cut `z + span + k`: one contiguous interval of scope
+    /// buckets per response, ascending bucket then Morton order, with every schedule-derived
+    /// `HEAD` field (`visible` counts, the `children` bitmask, the root's global metadata)
+    /// reduced over the visible view alone. A hidden point contributes to none of them, so a
+    /// scope's tile carries no evidence of what the mask removed - a fully masked tile is a tile
+    /// that never had rows.
     ///
     /// Version 0 serves the full unfiltered visible set in both modes; a request naming a filter is
     /// rejected by name rather than answered with bytes that silently ignore it.
@@ -236,13 +261,21 @@ impl Atlas {
     /// Returns [`TileError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.colored_type_ids`, [`TileError::Depth`] when the zoom exceeds the generation's
     /// deepest served tile, [`TileError::Grid`] when the coordinate lies outside the zoom's
-    /// grid, and [`TileError::Unsupported`] when the query names a version-0 deferral.
+    /// grid, [`TileError::Unsupported`] when the query names a version-0 deferral,
+    /// [`TileError::Schedule`] when the resolved cut lies past the key width, and
+    /// [`TileError::Contract`] when `proof` and `schedule` pair the wrong variants.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
     pub fn assemble_tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,
         proof: &VisibilityProof,
         census: ViewCensus,
+        schedule: &ViewSchedule,
+        k: CutOffset,
     ) -> Result<TileDocument, TileError> {
         if request.query.filter.is_some() {
             return Err(TileError::Unsupported("filter"));
@@ -270,35 +303,50 @@ impl Atlas {
             y: coordinate.y,
         })?;
 
+        // The contract discriminator: each proof constructor pairs with exactly one schedule
+        // variant, and a mismatched pair refuses before any bytes assemble.
+        let scope_cut = match (proof.is_full(), schedule) {
+            (true, ViewSchedule::Corpus) => None,
+            (false, ViewSchedule::Scope(scope)) => {
+                Some(scope.cut(self.grid, k).map_err(TileError::Schedule)?)
+            }
+            (true, ViewSchedule::Scope(_)) | (false, ViewSchedule::Corpus) => {
+                return Err(TileError::Contract);
+            }
+        };
+
         let walk = Walk::of(self, proof);
         let node = walk.node_of(cell);
-        let (delivered, first_bucket, runs, backfilled, children) = if proof.is_full() {
+        #[expect(
+            clippy::option_if_let_else,
+            reason = "both arms borrow `walk` and `node`, which `map_or_else` closures cannot \
+                      share"
+        )]
+        let (delivered, first_bucket, runs, children) = if let Some(cut) = scope_cut {
+            let delivery = match request.query.mode {
+                Mode::Delta => cut.delta(coordinate.z, cell),
+                Mode::Total => cut.total(coordinate.z, cell),
+            };
+            let children = cut.children(coordinate.z, cell);
+
+            (
+                DeliveredPoints::Positions(delivery.positions),
+                delivery.first_bucket,
+                delivery.runs,
+                children,
+            )
+        } else {
             let full = match (request.query.mode, coordinate.z) {
                 (Mode::Delta, 0) => walk.root_delta(),
                 (Mode::Delta, _) => walk.delta(coordinate.z, node),
                 (Mode::Total, _) => walk.total(coordinate.z, cell),
             };
             let children = node.map_or(0, occupied_children);
+
             (
                 DeliveredPoints::Ranges(full.ranges),
                 full.first_bucket,
                 full.runs,
-                0,
-                children,
-            )
-        } else {
-            let masked = walk.gather_masked(coordinate, request.query.mode);
-            let children = if masked.dry {
-                // The subtree's visible points are all delivered; nothing below says descend.
-                0
-            } else {
-                node.map_or(0, |node| walk.visible_children(node, &masked.taken))
-            };
-            (
-                masked.delivered,
-                masked.first_bucket,
-                masked.runs,
-                masked.backfilled,
                 children,
             )
         };
@@ -311,13 +359,22 @@ impl Atlas {
             walk.visible_population(cell)
         };
 
-        // The root publishes the view's corpus-wide aggregates, which the scope resolved once:
-        // reading them here is what keeps three masked passes over the base column off every
-        // root-tile request.
-        let global = (coordinate.z == 0).then_some(GlobalHead {
-            visible: census.visible(),
-            bounds: census.bounds(),
-            min_resolution: census.min_resolution(),
+        // The root publishes the view's own aggregates. The extent was resolved once with the
+        // scope; the count and resolution are the schedule's, so a scoped root names its own
+        // cascade rather than the corpus one.
+        let global = (coordinate.z == 0).then(|| {
+            scope_cut.map_or_else(
+                || GlobalHead {
+                    visible: census.visible(),
+                    bounds: census.bounds(),
+                    min_resolution: census.min_resolution(),
+                },
+                |cut| GlobalHead {
+                    visible: cut.root_delivered(),
+                    bounds: census.bounds(),
+                    min_resolution: cut.min_resolution(),
+                },
+            )
         });
 
         let palette = Palette::of(&request.query.colored_type_ids);
@@ -330,7 +387,6 @@ impl Atlas {
             first_bucket,
             runs,
             delivered,
-            backfilled,
             children,
             global,
             mask_set,
@@ -354,7 +410,7 @@ impl Atlas {
             .map(|position| {
                 let row = row_ids[position as usize];
                 self.node_ids
-                    .id(NodeRowId::from_u32(row))
+                    .id(row)
                     .expect("open validated the identity rows against the code column")
             })
             .collect();
@@ -397,7 +453,6 @@ impl Atlas {
                 runs: &document.runs,
                 global: document.global,
                 children: document.children,
-                backfilled: u64::from(document.backfilled),
             },
             delivered: document.delivered.as_wire(),
             positions: self.positions(),

@@ -229,7 +229,7 @@ pub(super) async fn handler(
         Json(
             state
                 .atlas
-                .manifest(state.limits.manifest_limits(state.visibility)),
+                .manifest(state.limits.manifest_limits(state.visibility), scope.k),
         ),
     ))
 }

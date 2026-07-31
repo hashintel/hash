@@ -259,6 +259,20 @@ impl ArrayFile {
         <[[u64; 2]]>::ref_from_bytes(self.data()).ok()
     }
 
+    pub(crate) fn u64_le_elements(&self) -> Option<&[U64<LE>]> {
+        if self.header().variant() != ArrayVariant::U64Le {
+            return None;
+        }
+
+        match self.header().shape.dims() {
+            [] => {}
+            &[_, width] if width.get() == 1 => {}
+            _ => return None,
+        }
+
+        <[U64<LE>]>::ref_from_bytes(self.data()).ok()
+    }
+
     /// Views the data as little-endian `u64` pairs in row order.
     ///
     /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`;

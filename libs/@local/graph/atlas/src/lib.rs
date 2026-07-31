@@ -32,8 +32,8 @@
 //! use std::sync::Arc;
 //!
 //! use hash_graph_atlas::serve::{
-//!     Atlas, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery, TileRequest,
-//!     VisibilityProof, WireSecret,
+//!     Atlas, CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
+//!     TileRequest, VisibilityProof, WireSecret,
 //! };
 //!
 //! # fn main() -> Result<(), Box<dyn core::error::Error>> {
@@ -57,6 +57,7 @@
 //!     },
 //!     TileLimits::default(),
 //!     &proof,
+//!     CutOffset::ZERO,
 //! )?;
 //! # let _ = bytes;
 //! # Ok(())

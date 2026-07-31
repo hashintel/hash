@@ -93,10 +93,16 @@ pub(super) async fn handler(
     let limits = state.limits.tile;
     let proof = visibility.proof;
     let census = visibility.census;
+    let schedule = visibility.schedule;
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
+    let k = visibility.k;
 
     let assembled = spawn(move || {
         atlas
-            .assemble_tile(&request, limits, &proof, census)
+            .assemble_tile(&request, limits, &proof, census, &schedule, k)
             .map(|document| {
                 let entities = detailed.then(|| atlas.delivered_entities(&document));
                 (document, entities)
@@ -125,6 +131,14 @@ pub(super) async fn handler(
                 StatusCode::NOT_IMPLEMENTED,
                 ProblemType::UnsupportedFeature,
                 error.to_string(),
+            ));
+        }
+        // A refused cut or a mismatched proof/schedule pair is a server-side defect: both
+        // values were resolved and sealed by this process, so neither is request data.
+        Err(error @ (TileError::Schedule(_) | TileError::Contract)) => {
+            return Err(Problem::internal(
+                error,
+                "tile delivery refused its schedule",
             ));
         }
     };

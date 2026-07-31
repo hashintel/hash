@@ -360,7 +360,6 @@ mod tile {
                 runs: &[2],
                 global: None,
                 children: 0b0010,
-                backfilled: 0,
             },
             delivered: DeliveredSet::Ranges(ranges),
             positions,
@@ -696,7 +695,7 @@ mod tile {
     }
 
     #[test]
-    #[should_panic(expected = "must count the HEAD runs plus the backfill tail")]
+    #[should_panic(expected = "must count exactly the HEAD runs")]
     fn disagreeing_runs_are_rejected() {
         let positions = [Vec2::new(0.0, 0.0); 12];
         let rows: Vec<WireRow<NodeRowId>> = (0..12).map(WireRow::pinned).collect();

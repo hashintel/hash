@@ -92,7 +92,8 @@ impl Atlas {
         let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
         let points: Column<Vec2> =
             open_column(&generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
-        let rows: Column<u32> = open_column(&generation, &files.row_of_position, ArrayKind::Rows)?;
+        let rows: Column<NodeRowId> =
+            open_column(&generation, &files.row_of_position, ArrayKind::Rows)?;
         let endpoints: Column<[NodeRowId; 2]> =
             open_column(&generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
         let ranks: Column<u32> =
@@ -193,7 +194,7 @@ impl Atlas {
         let wire_rows = rows
             .view()
             .iter()
-            .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
+            .map(|&row| node_codec.encode(row))
             .collect();
 
         let world = generation.repository().metadata.evidence.lod.world;

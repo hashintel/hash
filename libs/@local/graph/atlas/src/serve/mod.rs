@@ -63,6 +63,7 @@ pub use self::{
     locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
     manifest::{BucketSchedule, Manifest, ManifestLimits},
     open::OpenOptions,
+    schedule::{ScheduleWidthError, ScopeSchedule, ViewSchedule},
     secret::{WireSecret, WireSecretError},
     tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
     translate::{
@@ -105,6 +106,7 @@ mod locate;
 mod manifest;
 mod neighbourhood;
 mod open;
+mod schedule;
 mod secret;
 mod tile;
 mod translate;
@@ -170,8 +172,8 @@ pub struct Filter(serde_json::Value);
 /// use std::sync::Arc;
 ///
 /// use hash_graph_atlas::serve::{
-///     Atlas, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery, TileRequest,
-///     VisibilityProof, WireSecret,
+///     Atlas, CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
+///     TileRequest, VisibilityProof, WireSecret,
 /// };
 ///
 /// # fn main() -> Result<(), Box<dyn core::error::Error>> {
@@ -196,6 +198,7 @@ pub struct Filter(serde_json::Value);
 ///     },
 ///     TileLimits::default(),
 ///     &proof,
+///     CutOffset::ZERO,
 /// )?;
 /// # Ok(())
 /// # }
@@ -216,7 +219,7 @@ pub struct Atlas {
     /// The wire-coordinate column in base order.
     points: Column<Vec2>,
     /// The row column in base order: the node universe's permutation.
-    rows: Column<u32>,
+    rows: Column<NodeRowId>,
     adjacency: AdjacencyArchive,
     /// The endpoint column: edge row to `[source, target]`.
     endpoints: Column<[NodeRowId; 2]>,
@@ -285,7 +288,7 @@ impl Atlas {
     }
 
     /// Views the row column in base order.
-    fn row_ids(&self) -> &[u32] {
+    fn row_ids(&self) -> &[NodeRowId] {
         self.rows.view()
     }
 

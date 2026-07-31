@@ -9,6 +9,8 @@
 
 use std::collections::{HashMap, HashSet};
 
+use hashql_core::id::Id as _;
+
 use super::{FULL, mask_hiding, publish};
 use crate::{
     morton::{Depth, MortonKey},
@@ -19,7 +21,7 @@ use crate::{
 fn visible_keys(atlas: &Atlas, hidden: &HashSet<u32>) -> Vec<MortonKey> {
     let rows = atlas.row_ids();
     (0..rows.len())
-        .filter(|&position| !hidden.contains(&rows[position]))
+        .filter(|&position| !hidden.contains(&rows[position].as_u32()))
         .map(|position| {
             atlas
                 .morton
@@ -36,7 +38,10 @@ fn clusters(atlas: &Atlas) -> HashMap<u64, Vec<u32>> {
         let key = atlas
             .morton
             .code(u64::try_from(position).expect("a fixture position fits u64"));
-        clusters.entry(key.to_bits()).or_default().push(row);
+        clusters
+            .entry(key.to_bits())
+            .or_default()
+            .push(row.as_u32());
     }
 
     clusters

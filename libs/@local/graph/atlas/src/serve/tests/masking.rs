@@ -73,13 +73,17 @@ async fn resolve_collapses_every_failure_to_one_none() {
     );
 }
 
-/// The composition law on the tile path: `S = X ∩ V_u`, order preserved, in both modes.
+/// The masked root serves the scope cascade's rows, in both modes.
 ///
-/// The masked tile's columns are exactly the unmasked columns with the hidden rows' entries
-/// removed (the mask never reorders and never over-drops), and a fully masked
-/// populated
-/// tile answers byte-identically to a tile that never had rows (empty is empty: the head's
-/// occupancy fields carry no evidence of hidden points).
+/// The delivered rows and their positions column equal the reference over exactly the visible
+/// rows - a visible row may sit shallower than the corpus schedule placed it, because its
+/// hidden competitor is out of its view - and a fully masked populated tile answers
+/// byte-identically to a tile that never had rows (empty is empty: the head's occupancy fields
+/// carry no evidence of hidden points).
+#[expect(
+    clippy::too_many_lines,
+    reason = "two modes and the empty-cell byte identity share one publish"
+)]
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_masked_tile_serves_exactly_the_visible_intersection() {
@@ -90,42 +94,60 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
     // Hide every third row; the hidden set crosses every bucket of
     // the 48-point fixture.
     let hidden: Vec<u32> = (0..universe).filter(|row| row.is_multiple_of(3)).collect();
-    let hidden_wire: HashSet<u32> = hidden
-        .iter()
-        .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
-        .collect();
     let proof = mask_hiding(&atlas, &hidden);
 
+    let schedule = super::schedule::reference::Schedule::new(
+        super::schedule::reference::rows(&atlas, &proof),
+        FIXTURE_LOD.span.get(),
+        FIXTURE_LOD.max_tile_depth,
+        0,
+    );
+    let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
+    let position_of: HashMap<NodeRowId, u32> = atlas
+        .row_ids()
+        .iter()
+        .enumerate()
+        .map(|(position, &row)| (row, u32::try_from(position).expect("positions fit u32")))
+        .collect();
+    let wire_points = atlas.positions();
+
     for mode in [Mode::Delta, Mode::Total] {
-        let full_bytes = atlas
-            .tile(&request(0, 0, 0, mode), TileLimits::default(), &FULL)
-            .expect("the unmasked root serves");
         let masked_bytes = atlas
-            .tile(&request(0, 0, 0, mode), TileLimits::default(), &proof)
+            .tile(
+                &request(0, 0, 0, mode),
+                TileLimits::default(),
+                &proof,
+                CutOffset::ZERO,
+            )
             .expect("the masked root serves");
 
-        let full_rows = decode_rows(section(&full_bytes, ROW_IDS).expect("ROW_IDS is present"));
         let masked_rows = decode_rows(section(&masked_bytes, ROW_IDS).expect("ROW_IDS is present"));
-        let expected: Vec<u32> = full_rows
+        let delivered: Vec<u32> = masked_rows
             .iter()
-            .copied()
-            .filter(|wire| !hidden_wire.contains(wire))
+            .map(|&wire| {
+                let row = node_codec
+                    .decode(codec::WireRow::pinned(wire))
+                    .expect("delivered wire ids decode");
+                position_of[&row]
+            })
             .collect();
+        let expected = schedule.delivery(0, root_cell, mode);
         assert_eq!(
-            masked_rows, expected,
-            "the {mode:?} root masks by intersection"
+            delivered, expected.positions,
+            "the {mode:?} root delivers the scope cascade's rows"
         );
 
-        // The positions column drops the same entries at the same indexes.
-        let full_positions = section(&full_bytes, POSITIONS).expect("POSITIONS is present");
+        // The positions column carries each delivered row's own wire coordinates.
         let masked_positions = section(&masked_bytes, POSITIONS).expect("POSITIONS is present");
-        let expected_positions: Vec<u8> = full_positions
-            .as_chunks::<8>()
-            .0
+        let expected_positions: Vec<u8> = expected
+            .positions
             .iter()
-            .zip(&full_rows)
-            .filter(|&(_, wire)| !hidden_wire.contains(wire))
-            .flat_map(|(chunk, _)| chunk.iter().copied())
+            .flat_map(|&position| {
+                let point = wire_points[position as usize];
+                let mut bytes = point.x().to_le_bytes().to_vec();
+                bytes.extend_from_slice(&point.y().to_le_bytes());
+                bytes
+            })
             .collect();
         assert_eq!(masked_positions, expected_positions);
     }
@@ -165,7 +187,6 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
             runs: &[0],
             global: None,
             children: 0,
-            backfilled: 0,
         },
         delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[]),
         positions: points,
@@ -183,6 +204,7 @@ async fn a_masked_tile_serves_exactly_the_visible_intersection() {
                 },
                 TileLimits::default(),
                 &nothing,
+                CutOffset::ZERO,
             )
             .expect("the fully masked tile serves"),
         expected,
@@ -543,67 +565,6 @@ fn visibility_proof_is_fail_closed() {
     assert!(FULL.contains(NodeRowId::from_u32(u32::MAX)));
 }
 
-/// Two visible rows: the root's fill delivers what survives and spends the pool, so every
-/// deeper tile is dry - delivered empty, children complete, the one delta run keeping its
-/// positional slot, no backfill key.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn spent_subtrees_read_dry_and_complete() {
-    let (_generation, atlas) = publish("backfill-dry").await;
-    let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
-
-    let hidden: Vec<u32> = (2..universe).collect();
-    let proof = mask_hiding(&atlas, &hidden);
-
-    let root = atlas
-        .tile(
-            &request(0, 0, 0, Mode::Delta),
-            TileLimits::default(),
-            &proof,
-        )
-        .expect("the masked root serves");
-    let root_rows = decode_rows(section(&root, ROW_IDS).expect("ROW_IDS is present"));
-    assert_eq!(root_rows.len(), 2, "the root delivers both survivors");
-
-    for (z, x, y) in [(1, 0, 0), (1, 1, 1), (2, 2, 1), (3, 5, 6)] {
-        let bytes = atlas
-            .tile(
-                &request(z, x, y, Mode::Delta),
-                TileLimits::default(),
-                &proof,
-            )
-            .expect("the masked tile serves");
-        let rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
-        let (delivered, runs, backfilled) =
-            head_counts(section(&bytes, HEAD).expect("HEAD is present"));
-
-        assert_eq!(rows.len(), 0, "the {z}/{x}/{y} subtree is spent");
-        assert_eq!(delivered, 0, "the {z}/{x}/{y} HEAD counts nothing");
-        assert_eq!(runs, vec![0], "the {z}/{x}/{y} delta run keeps its slot");
-        assert_eq!(backfilled, 0, "the {z}/{x}/{y} tail is empty");
-        assert_eq!(
-            children_of(section(&bytes, HEAD).expect("HEAD is present")),
-            0,
-            "the {z}/{x}/{y} children read complete",
-        );
-    }
-}
-
-/// Reads the occupied-child bitmask from a tile `HEAD`.
-fn children_of(head: &[u8]) -> u64 {
-    let mut reader = CborReader { bytes: head, at: 0 };
-    let entries = reader.head(5);
-    for _ in 0..entries {
-        let key = reader.uint();
-        if key == 9 {
-            return reader.uint();
-        }
-        reader.skip();
-    }
-
-    panic!("every tile HEAD carries the children bitmask")
-}
-
 /// The composition sweep: masked responses obey the backfill law on every endpoint. Exactness
 /// is per endpoint: tiles follow the chain-fill contract; edges, translate, and locate equal
 /// the unmasked response with the hidden rows' entries removed - the mask never leaks and never
@@ -628,111 +589,69 @@ async fn composition_law_holds_under_random_masks() {
     }
 }
 
-/// Every tile coordinate, both modes: the masked rows are the unmasked rows with the hidden
-/// entries removed, order preserved.
+/// Every tile coordinate, both modes: the masked rows are the scope cascade's rows.
+///
+/// The delivered set, its order, and the run recounts equal the independent reference over
+/// exactly the visible rows, and no hidden row appears - the intersection with the corpus
+/// schedule is not the law, because a visible row may claim a shallower cell once its hidden
+/// competitor is out of its view.
 fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
     let node_codec = test_codec(atlas);
     let hidden_wire: HashSet<u32> = hidden
         .iter()
         .map(|&row| node_codec.encode(NodeRowId::from_u32(row)).get())
         .collect();
+    let position_of: HashMap<NodeRowId, u32> = atlas
+        .row_ids()
+        .iter()
+        .enumerate()
+        .map(|(position, &row)| (row, u32::try_from(position).expect("positions fit u32")))
+        .collect();
 
-    // Delta row lists by coordinate; the z-ascending sweep guarantees every ancestor is present
-    // when its descendants assert against the chain.
-    let mut deltas: HashMap<(u8, u32, u32), Vec<u32>> = HashMap::new();
+    let schedule = super::schedule::reference::Schedule::new(
+        super::schedule::reference::rows(atlas, proof),
+        FIXTURE_LOD.span.get(),
+        FIXTURE_LOD.max_tile_depth,
+        0,
+    );
 
     for z in 0..=FIXTURE_LOD.max_tile_depth {
         let cells = 1_u32 << z;
         for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
-            let chain: HashSet<u32> = (0..z)
-                .flat_map(|level| {
-                    let shift = z - level;
-                    deltas[&(level, x >> shift, y >> shift)].iter().copied()
-                })
-                .collect();
+            let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
+                .expect("the sweep stays on each zoom's grid");
 
             for mode in [Mode::Delta, Mode::Total] {
-                let full_bytes = atlas
-                    .tile(&request(z, x, y, mode), TileLimits::default(), &FULL)
-                    .expect("the unmasked tile serves");
+                let at = format!("the {mode:?} tile {z}/{x}/{y}");
                 let masked_bytes = atlas
-                    .tile(&request(z, x, y, mode), TileLimits::default(), proof)
+                    .tile(
+                        &request(z, x, y, mode),
+                        TileLimits::default(),
+                        proof,
+                        CutOffset::ZERO,
+                    )
                     .expect("the masked tile serves");
-                let full_rows =
-                    decode_rows(section(&full_bytes, ROW_IDS).expect("ROW_IDS is present"));
                 let masked_rows =
                     decode_rows(section(&masked_bytes, ROW_IDS).expect("ROW_IDS is present"));
-                let (_, _, backfilled) =
-                    head_counts(section(&masked_bytes, HEAD).expect("HEAD is present"));
-                let backfilled = usize::try_from(backfilled).expect("tail counts fit usize");
 
-                let at = format!("the {mode:?} tile {z}/{x}/{y}");
-                let full_set: HashSet<u32> = full_rows.iter().copied().collect();
-                let visible_full: Vec<u32> = full_rows
+                for wire in &masked_rows {
+                    assert!(!hidden_wire.contains(wire), "{at} keeps hidden rows hidden");
+                }
+
+                let positions: Vec<u32> = masked_rows
                     .iter()
-                    .copied()
-                    .filter(|wire| !hidden_wire.contains(wire))
+                    .map(|&wire| {
+                        let row = node_codec
+                            .decode(codec::WireRow::pinned(wire))
+                            .expect("delivered wire ids decode");
+                        position_of[&row]
+                    })
                     .collect();
-
-                assert!(backfilled <= masked_rows.len(), "{at} sizes its tail");
-                let (naturals, tail) = masked_rows.split_at(masked_rows.len() - backfilled);
                 assert_eq!(
-                    masked_rows.iter().collect::<HashSet<_>>().len(),
-                    masked_rows.len(),
-                    "{at} delivers every point once",
+                    positions,
+                    schedule.delivery(z, cell, mode).positions,
+                    "{at} delivers the scope cascade's rows in order",
                 );
-                for &row in tail {
-                    assert!(
-                        !full_set.contains(&row),
-                        "{at} pulls its tail up from below"
-                    );
-                    assert!(!hidden_wire.contains(&row), "{at} keeps hidden rows hidden");
-                }
-
-                match mode {
-                    Mode::Delta => {
-                        // The natural segment is the schedule's visible survivors less the
-                        // chain's earlier pull-ups, order preserved; nothing repeats down the
-                        // ladder; the tail is chain-fresh. The fill stops at the schedule's own
-                        // count; a total may exceed it where the chain concentrated pull-ups
-                        // inside this extent.
-                        assert!(
-                            masked_rows.len() <= full_rows.len(),
-                            "{at} stays within the schedule's budget",
-                        );
-                        assert!(
-                            is_subsequence(naturals, &visible_full),
-                            "{at} delivers natural survivors in schedule order",
-                        );
-                        let natural_set: HashSet<u32> = naturals.iter().copied().collect();
-                        for row in &visible_full {
-                            assert!(
-                                natural_set.contains(row) || chain.contains(row),
-                                "{at} accounts for every visible scheduled point",
-                            );
-                        }
-                        for &row in &masked_rows {
-                            assert!(!chain.contains(&row), "{at} never re-delivers the chain");
-                        }
-
-                        deltas.insert((z, x, y), masked_rows.clone());
-                    }
-                    Mode::Total => {
-                        // The cumulative natural segment is the intersection law verbatim; the
-                        // tail is exactly what the chain pulled up within this extent.
-                        assert_eq!(
-                            naturals, visible_full,
-                            "{at} delivers the visible schedule cumulatively",
-                        );
-                        let own_delta: HashSet<u32> = deltas[&(z, x, y)].iter().copied().collect();
-                        for &row in tail {
-                            assert!(
-                                chain.contains(&row) || own_delta.contains(&row),
-                                "{at} totals exactly the chain's pull-ups",
-                            );
-                        }
-                    }
-                }
             }
         }
     }
@@ -1038,10 +957,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
 async fn a_masked_root_publishes_the_visible_views_own_census() {
     let (generation, atlas) = publish("masked-census").await;
     let Artifacts {
-        morton,
-        coordinates,
-        rows,
-        ..
+        coordinates, rows, ..
     } = open_artifacts(&generation);
     let points = coordinates.points().expect("wire coordinates are points");
     let row_ids = rows.u32_elements().expect("the row column is u32");
@@ -1055,31 +971,22 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
     let proof = mask_hiding(&atlas, &hidden);
     let visible = |position: usize| !hidden.contains(&row_ids[position]);
 
-    // The three expectations, derived over the columns rather than through the census: the visible
-    // points of the root's cumulative schedule, the tight extent of the whole visible set, and the
-    // deepest bucket holding a visible point.
-    let lengths = morton.fenceposts().lengths();
-    let schedule_end: u64 = lengths[..=usize::from(FIXTURE_LOD.span.get())].iter().sum();
-    let schedule_end = usize::try_from(schedule_end).expect("fixture counts fit usize");
-    let expected_visible = (0..schedule_end)
-        .filter(|&position| visible(position))
-        .count();
+    // The three expectations, derived over the columns rather than through the serve path: the
+    // rows of the view's own cascade at or below the root cut, the tight extent of the whole
+    // visible set, and the deepest occupied scope bucket.
+    let (expected_visible, expected_deepest) = super::schedule::reference::Schedule::new(
+        super::schedule::reference::rows(&atlas, &proof),
+        FIXTURE_LOD.span.get(),
+        FIXTURE_LOD.max_tile_depth,
+        0,
+    )
+    .global();
     let expected_extent = Bounds2::from_points(
         (0..points.len())
             .filter(|&position| visible(position))
             .map(|position| points[position]),
     )
     .expect("the masked view holds points");
-
-    let mut expected_deepest = 0;
-    let mut start = 0;
-    for (bucket, &length) in lengths.iter().enumerate() {
-        let end = start + usize::try_from(length).expect("fixture counts fit usize");
-        if (start..end).any(visible) {
-            expected_deepest = bucket as u64;
-        }
-        start = end;
-    }
 
     let edges = |bounds: &Bounds2| {
         [
@@ -1105,6 +1012,7 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
             &proof,
+            CutOffset::ZERO,
         )
         .expect("the masked root serves");
     let (visible_count, extent, min_resolution) =
@@ -1112,8 +1020,8 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
             .expect("the root publishes its global map");
 
     assert_eq!(
-        visible_count, expected_visible as u64,
-        "the published count is the visible points of the root's schedule"
+        visible_count, expected_visible,
+        "the published count is the root schedule of the view's own cascade"
     );
     assert_eq!(
         extent,
@@ -1122,13 +1030,18 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
     );
     assert_eq!(
         min_resolution, expected_deepest,
-        "the published depth is the deepest bucket holding a visible point"
+        "the published depth is the deepest occupied scope bucket"
     );
 
     // And the unmasked root over the same generation publishes the corpus's own numbers, so the
     // three assertions above distinguish the view from the artifacts rather than restating them.
     let full_bytes = atlas
-        .tile(&request(0, 0, 0, Mode::Delta), TileLimits::default(), &FULL)
+        .tile(
+            &request(0, 0, 0, Mode::Delta),
+            TileLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+        )
         .expect("the unmasked root serves");
     let (full_count, full_extent, _) =
         head_global(section(&full_bytes, HEAD).expect("HEAD is present"))
@@ -1214,6 +1127,7 @@ async fn a_masked_root_publishes_the_views_own_depth() {
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
             &mask_hiding(&atlas, &hidden),
+            CutOffset::ZERO,
         )
         .expect("the masked root serves");
     let (_, _, min_resolution) = head_global(section(&bytes, HEAD).expect("HEAD is present"))
