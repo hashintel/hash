@@ -79,6 +79,7 @@ tokio-util                         = { workspace = true, features = ["codec", "i
 tower                              = { workspace = true }
 tracing-opentelemetry              = { workspace = true }
 utoipa                             = { workspace = true }
+utoipa-scalar                      = { workspace = true }
 uuid                               = { workspace = true }
 
 [features]
