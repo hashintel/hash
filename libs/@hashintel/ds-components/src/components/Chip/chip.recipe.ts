@@ -264,14 +264,14 @@ export const styles = sva({
     variant: {
       fill: {
         root: {
-          background: "colorPalette.bg.subtle",
+          background: "colorPalette.bgSolid.subtle",
           borderColor: "colorPalette.bd.solid",
           color: "colorPalette.fg.link",
         },
       },
       fillLight: {
         root: {
-          background: "colorPalette.bg.surface",
+          background: "colorPalette.bgSolid.surface",
           borderColor: "colorPalette.bd.subtle",
           color: "colorPalette.fg.link",
         },
@@ -370,7 +370,7 @@ export const styles = sva({
       css: {
         root: {
           _hover: {
-            background: "colorPalette.bg.shaded",
+            background: "colorPalette.bgSolid.shaded",
             borderColor: "colorPalette.bd.solid.hover",
           },
         },
@@ -379,7 +379,7 @@ export const styles = sva({
     {
       clickable: true,
       variant: "fillLight",
-      css: { root: { _hover: { background: "colorPalette.bg.subtle" } } },
+      css: { root: { _hover: { background: "colorPalette.bgSolid.subtle" } } },
     },
     {
       clickable: true,
@@ -387,7 +387,7 @@ export const styles = sva({
       css: {
         root: {
           _hover: {
-            background: "colorPalette.bg.surface",
+            background: "colorPalette.bgSolid.surface",
             borderColor: "colorPalette.bd.solid.hover",
           },
         },
@@ -396,14 +396,14 @@ export const styles = sva({
     {
       clickable: true,
       variant: "subtle",
-      css: { root: { _hover: { background: "colorPalette.bg.surface" } } },
+      css: { root: { _hover: { background: "colorPalette.bgSolid.surface" } } },
     },
     {
       color: "red",
       clickable: true,
       variant: "fill",
       css: {
-        root: { _hover: { background: "red.a45", borderColor: "red.a65" } },
+        root: { _hover: { background: "red.s45", borderColor: "red.a65" } },
       },
     },
     {
@@ -412,7 +412,7 @@ export const styles = sva({
       variant: "fill",
       css: {
         root: {
-          _hover: { background: "orange.a45", borderColor: "orange.a65" },
+          _hover: { background: "orange.s45", borderColor: "orange.a65" },
         },
       },
     },
@@ -420,13 +420,13 @@ export const styles = sva({
       color: "yellow",
       clickable: true,
       variant: "fill",
-      css: { root: { _hover: { background: "yellow.a40" } } },
+      css: { root: { _hover: { background: "yellow.s40" } } },
     },
     {
       color: "pink",
       clickable: true,
       variant: "fill",
-      css: { root: { _hover: { background: "pink.a35" } } },
+      css: { root: { _hover: { background: "pink.s35" } } },
     },
   ],
   defaultVariants: {
