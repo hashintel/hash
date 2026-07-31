@@ -9,8 +9,7 @@
 //! other terminal is a typed [`SolverFailure`] in the normative precedence order: validation,
 //! accepted-gradient success, outer budget, inner Newton, invalid predicted reduction,
 //! resolution construction, resolution stall, candidate preflight in objective/gradient/row
-//! order, candidate numerical failure, ratio classification, then rejection budget before
-//! radius underflow.
+//! order, candidate numerical failure, ratio classification, then radius underflow.
 //!
 //! One joint traversal stays reserved for the final certificate and is excluded from every
 //! availability check until the success path consumes it, so a solve can always afford to prove
@@ -402,19 +401,19 @@ fn record_inner_step(
 
 /// Applies one rejection to the control state.
 ///
+/// The streak counter is a reported diagnostic only: no budget bounds it, because radius
+/// underflow always arrives first under any shrink factor at or below `0.4` over the shipped
+/// twelve-decade radius band.
+///
 /// # Errors
 ///
-/// Returns [`SolverFailure::RejectedStepBudget`] when the streak reaches its budget, then
-/// [`SolverFailure::RadiusUnderflow`] when the rejected attempt already used the minimum
+/// Returns [`SolverFailure::RadiusUnderflow`] when the rejected attempt already used the minimum
 /// radius. A rejection that first clips to the minimum permits one later attempt there.
 pub(super) fn rejected(
     control: &mut SolverControl,
     config: &SolverConfig,
 ) -> Result<(), SolverFailure> {
     control.consecutive_rejections += 1;
-    if control.consecutive_rejections == config.maximum_consecutive_rejections.get() {
-        return Err(SolverFailure::RejectedStepBudget);
-    }
 
     #[expect(
         clippy::float_cmp,

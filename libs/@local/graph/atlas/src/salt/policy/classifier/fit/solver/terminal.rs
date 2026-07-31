@@ -40,8 +40,6 @@ pub enum SolverFailure {
     GradientRequestBudget,
     /// Another row traversal would exceed its budget net of the final reserve.
     RowPassBudget,
-    /// Consecutive rejected candidates reached their budget.
-    RejectedStepBudget,
     /// The predicted reduction is within the accepted objective's resolution.
     ResolutionStall,
     /// The accepted objective admits no valid resolution.

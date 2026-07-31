@@ -108,10 +108,6 @@ pub(crate) struct SolverConfig {
     pub maximum_gradient_requests: u64 = 2_000,
     /// Inclusive maximum of started row traversals; at least three.
     pub maximum_row_traversals: u64 = 500_000,
-    /// Inclusive maximum of consecutive rejected candidates.
-    pub maximum_consecutive_rejections: NonZero<u64> = const {
-        NonZero::<u64>::new(30).expect("thirty is nonzero")
-    },
 }
 
 impl SolverConfig {

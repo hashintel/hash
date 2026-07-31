@@ -1032,7 +1032,6 @@ fn solver_config() -> SolverConfig {
         maximum_objective_requests: 200,
         maximum_gradient_requests: 200,
         maximum_row_traversals: 10_000,
-        maximum_consecutive_rejections: NonZeroU64::new(30).expect("thirty is nonzero"),
     }
 }
 
@@ -1905,14 +1904,14 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
     assert_eq!(last.outcome.candidate, None);
 }
 
-/// The rejection budget fails at equality and precedes radius underflow.
+/// A rejection at the minimum trust radius underflows.
 ///
 /// The fixture's first full Newton step lands where curvature has risen against the model: its
 /// measured ratio is `0.99048`, so an acceptance threshold of `0.995` rejects it
-/// deterministically. At a streak budget of one the count wins; at the default budget the
-/// rejection at the minimum radius underflows - the two terminals in their declared order.
+/// deterministically, and the rejection at the minimum radius reaches the terminal that no
+/// budget precedes any more.
 #[test]
-fn solve_orders_rejection_budget_before_radius_underflow() {
+fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
     let corpus = valid_corpus();
     let strict = SolverConfig {
         radius_minimum: d_positive!(2.0),
@@ -1925,24 +1924,7 @@ fn solve_orders_rejection_budget_before_radius_underflow() {
         ..solver_config()
     };
 
-    let streak_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_consecutive_rejections: NonZeroU64::new(1).expect("one is nonzero"),
-            ..strict
-        },
-    );
-    assert_matches!(
-        streak_starved.outcome,
-        Err(SolverFailure::RejectedStepBudget)
-    );
-    assert_eq!(
-        streak_starved.control.counters.candidate_ratio_rejections,
-        1
-    );
-
-    // Under the default streak budget the same rejection happens at the minimum radius, and
-    // the radius test follows the streak test: underflow.
+    // The rejection happens at the minimum radius, so the radius test fires.
     let radius_starved = run_solver(&corpus, strict);
     assert_matches!(radius_starved.outcome, Err(SolverFailure::RadiusUnderflow));
     assert_eq!(
@@ -2232,13 +2214,12 @@ fn certify_reproves_the_certificate_freshly() {
     );
 }
 
-/// Rejection orders the streak budget first, then underflow, and the clip permits one attempt.
+/// Rejection clips the shrink to the minimum, permits one attempt there, then underflows.
 #[test]
-fn rejected_orders_streak_budget_then_underflow_with_one_clipped_attempt() {
+fn rejected_clips_to_the_minimum_then_underflows_with_one_clipped_attempt() {
     let config = SolverConfig {
         radius_minimum: d_positive!(0.5),
         shrink_factor: open_unit_fraction!(0.25),
-        maximum_consecutive_rejections: NonZeroU64::new(3).expect("three is nonzero"),
         ..solver_config()
     };
     let mut control = SolverControl {
@@ -2260,18 +2241,8 @@ fn rejected_orders_streak_budget_then_underflow_with_one_clipped_attempt() {
         Err(SolverFailure::RadiusUnderflow),
     );
 
-    // At the streak budget the count wins over underflow.
-    let mut exhausted = SolverControl {
-        radius: 0.5,
-        consecutive_rejections: 2,
-        outer_iterations_started: 0,
-        counters: WorkCounters::default(),
-        final_reserve: true,
-    };
-    assert_matches!(
-        rejected(&mut exhausted, &config),
-        Err(SolverFailure::RejectedStepBudget),
-    );
+    // The streak counter keeps counting: it reports, it never terminates.
+    assert_eq!(control.consecutive_rejections, 2);
 }
 
 /// The `2×2` PSD factor reproduces its block on the numerical rank and zeroes dropped columns.

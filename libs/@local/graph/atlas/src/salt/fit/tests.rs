@@ -240,7 +240,6 @@ fn classifier_fit_echo_round_trips_every_knob() {
             maximum_objective_requests: 2_001,
             maximum_gradient_requests: 2_002,
             maximum_row_traversals: 500_001,
-            maximum_consecutive_rejections: NonZero::new(31).expect("the budget is nonzero"),
         },
         folds: 3,
         seed: 11,
@@ -254,11 +253,13 @@ fn classifier_fit_echo_round_trips_every_knob() {
     assert_eq!(echoed.0, config);
 }
 
-/// An echo carrying the retired inner-CG knob names decodes.
+/// An echo carrying the retired solver knob names decodes.
 ///
-/// The fixture inserts `relative_cg_residual_tolerance` and `maximum_cg_iterations` verbatim into
-/// an otherwise-default solver echo, so the decode pins unknown-field tolerance for the current
-/// record shape: an unknown solver field is ignored rather than rejected.
+/// The fixture inserts `relative_cg_residual_tolerance`, `maximum_cg_iterations` and
+/// `maximum_consecutive_rejections` verbatim into an otherwise-default solver echo, so the decode
+/// pins unknown-field tolerance for the current record shape: an unknown solver field is ignored
+/// rather than rejected. The first two retired with the inner CG recurrence, the third with the
+/// rejection budget radius underflow always preceded.
 #[test]
 fn config_echo_decodes_the_retired_solver_knobs() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -274,6 +275,10 @@ fn config_echo_decodes_the_retired_solver_knobs() {
         serde_json::json!(0.1),
     );
     solver.insert("maximum_cg_iterations".to_owned(), serde_json::json!(100));
+    solver.insert(
+        "maximum_consecutive_rejections".to_owned(),
+        serde_json::json!(30),
+    );
 
     let echoed: Echo =
         serde_json::from_value(document).expect("the echo decodes with unknown solver fields");

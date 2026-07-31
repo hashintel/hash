@@ -935,7 +935,6 @@ mod classifier_fit_config {
         maximum_objective_requests: u64,
         maximum_gradient_requests: u64,
         maximum_row_traversals: u64,
-        maximum_consecutive_rejections: u64,
     }
 
     /// The fit settings' wire form.
@@ -974,7 +973,6 @@ mod classifier_fit_config {
                 maximum_objective_requests: solver.maximum_objective_requests,
                 maximum_gradient_requests: solver.maximum_gradient_requests,
                 maximum_row_traversals: solver.maximum_row_traversals,
-                maximum_consecutive_rejections: solver.maximum_consecutive_rejections.get(),
             },
             folds: config.folds,
             seed: config.seed,
@@ -1092,10 +1090,6 @@ mod classifier_fit_config {
                 maximum_objective_requests: solver.maximum_objective_requests,
                 maximum_gradient_requests: solver.maximum_gradient_requests,
                 maximum_row_traversals: solver.maximum_row_traversals,
-                maximum_consecutive_rejections: non_zero_u64(
-                    "rejection budget",
-                    solver.maximum_consecutive_rejections,
-                )?,
             },
             folds: record.folds,
             seed: record.seed,
