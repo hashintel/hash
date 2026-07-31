@@ -426,8 +426,8 @@ fn absent_verdicts_role_round_trips_as_explicit_null() {
     repository.files.reviewed_verdicts = None;
 
     let json = serde_json::to_string(&repository).expect("the repository should serialize");
-    // The document stays self-describing: the role's absence is a
-    // recorded null, not a missing key.
+    // A self-describing document records the role's absence as a null
+    // rather than dropping the key.
     assert!(
         json.contains(r#""reviewed_verdicts":null"#),
         "the absent role should serialize as an explicit null: {json}"
@@ -544,13 +544,14 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/reproducibility/config/placement/projector/schedule/boundary",
             serde_json::json!(100),
         ),
-        // The semantic coefficient anchors the budget and must be
-        // strictly positive.
+        // The semantic coefficient anchors the budget and must exceed
+        // zero.
         (
             "/metadata/reproducibility/config/placement/projector/coefficients",
             serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
         ),
-        // Rungs must ascend strictly from the exact zero baseline.
+        // Each rung must exceed the one before it, from the exact zero
+        // baseline up.
         (
             "/metadata/reproducibility/config/placement/projector/ladder/conditions",
             serde_json::json!([0.0, 0.5, 0.25]),
