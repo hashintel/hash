@@ -276,7 +276,7 @@ impl TileHead<'_> {
         );
 
         let mut cbor = CborWriter::over(buf);
-        cbor.map(10 + u64::from(self.global.is_some()) + u64::from(self.backfilled > 0));
+        cbor.map(10 + u64::from(self.global.is_some()));
 
         cbor.uint(0);
         cbor.bytes(&self.generation.to_bytes());
