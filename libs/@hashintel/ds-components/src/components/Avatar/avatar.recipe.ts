@@ -6,7 +6,7 @@ export const styles = sva({
     root: {
       "--avatar-radius":
         "min(calc(1.3px * sqrt(var(--avatar-size) / 1px)), calc(var(--avatar-size) * 0.35))",
-      borderWidth: "[max(1px, min(calc(var(--avatar-size) / 48), 3px))]", // 1px to a 3px cap
+      borderWidth: "[max(1px, min(calc(var(--avatar-size) / 32), 3px))]", // 1/32 of size (matches lg's 1.5px @ 48px), clamped 1px–3px
       borderStyle: "solid",
       position: "relative",
       display: "inline-flex",
@@ -62,7 +62,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "16px",
           "--avatar-radius": "0.25rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[7px]",
@@ -72,7 +71,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "20px",
           "--avatar-radius": "0.25rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[9px]",
@@ -82,7 +80,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "24px",
           "--avatar-radius": "0.375rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[11px]",
@@ -101,7 +98,6 @@ export const styles = sva({
         root: {
           "--avatar-size": "48px",
           "--avatar-radius": "0.5rem",
-          borderWidth: "[1.5px]",
         },
         placeholder: {
           fontSize: "[20px]",
