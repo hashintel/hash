@@ -29,11 +29,9 @@ jobs:
         with:
           sync-labels: true
 
-  todo-comments:
-    name: Todo comments
-    permissions:
-      contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+  # The `Todo comments` job lives in `preflight-todo-comments.yml`, not here.
+  # It is the only preflight check that checks out the PR's own code, so it
+  # runs on plain `pull_request` rather than `pull_request_target`.
 
   pr-title:
     name: PR title

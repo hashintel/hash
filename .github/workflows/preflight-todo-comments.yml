@@ -1,0 +1,30 @@
+# Preflight: TODO comments
+#
+# Runs the shared TODO-comment scan on every pull request.
+#
+# This deliberately lives outside `preflight.yml`, and therefore outside that
+# workflow's `pull_request_target` trigger. It is the only preflight check that
+# checks out the pull request's own code, and it has no need for the elevated
+# token `pull_request_target` provides: the scan only greps the working tree
+# with ripgrep, it never executes what it checked out, and it reads no secrets.
+# Running it on plain `pull_request` gives it a read-only token scoped to the
+# pull request, which is the correct trust level for looking at fork code.
+#
+# The check-run context produced here is `Todo comments / Scan` - the caller
+# job name below, plus the `scan` job's name in the called workflow. That
+# context is a required status check on `main` (organisation ruleset 17126010),
+# so neither name may change without an accompanying ruleset update.
+name: Preflight (TODO comments)
+
+on:
+  pull_request:
+    # `edited` matters: the scan derives its ticket IDs from the PR title.
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+
+jobs:
+  todo-comments:
+    name: Todo comments
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
