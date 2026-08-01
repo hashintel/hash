@@ -52,30 +52,6 @@ url = "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-
 url_api = "https://api.github.com/repos/taiki-e/cargo-llvm-cov/releases/assets/418861642"
 provenance = "github-attestations"
 
-[[tools."aqua:wasm-bindgen/wasm-pack"]]
-version = "0.15.0"
-backend = "aqua:wasm-bindgen/wasm-pack"
-
-[tools."aqua:wasm-bindgen/wasm-pack"."platforms.linux-arm64"]
-checksum = "sha256:e17ef0806381c3a0acb9c9ddad643a49facaa5a2ecf657a421d4d8f3357a24b7"
-url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-aarch64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850444"
-
-[tools."aqua:wasm-bindgen/wasm-pack"."platforms.linux-x64"]
-checksum = "sha256:c09f971ecaed9a2efc80fdcea7a00ef6b53c7fadc8c57d1f61b53a6aa66b668a"
-url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850440"
-
-[tools."aqua:wasm-bindgen/wasm-pack"."platforms.macos-arm64"]
-checksum = "sha256:d3f1a4a33e95f8f0d7801b024e08624c479999ac96aa150908b2394015cd0363"
-url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850460"
-
-[tools."aqua:wasm-bindgen/wasm-pack"."platforms.macos-x64"]
-checksum = "sha256:d3f1a4a33e95f8f0d7801b024e08624c479999ac96aa150908b2394015cd0363"
-url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850460"
-
 [[tools.cargo-binstall]]
 version = "1.19.1"
 backend = "aqua:cargo-bins/cargo-binstall"
@@ -119,6 +95,29 @@ backend = "cargo:cargo-insta"
 [[tools."cargo:wasm-opt"]]
 version = "0.116.1"
 backend = "cargo:wasm-opt"
+
+[[tools."github:wasm-bindgen/wasm-pack"]]
+version = "0.15.0"
+backend = "github:wasm-bindgen/wasm-pack"
+
+[tools."github:wasm-bindgen/wasm-pack"."platforms.linux-arm64"]
+checksum = "sha256:e17ef0806381c3a0acb9c9ddad643a49facaa5a2ecf657a421d4d8f3357a24b7"
+url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850444"
+
+[tools."github:wasm-bindgen/wasm-pack"."platforms.linux-x64"]
+checksum = "sha256:c09f971ecaed9a2efc80fdcea7a00ef6b53c7fadc8c57d1f61b53a6aa66b668a"
+url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850440"
+
+[tools."github:wasm-bindgen/wasm-pack"."platforms.macos-arm64"]
+checksum = "sha256:0abff4a03d670b6c00ea31d0e1608a72407e355f3d3765e9c30eb45cd5b7e318"
+url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-aarch64-apple-darwin.tar.gz"
+
+[tools."github:wasm-bindgen/wasm-pack"."platforms.macos-x64"]
+checksum = "sha256:d3f1a4a33e95f8f0d7801b024e08624c479999ac96aa150908b2394015cd0363"
+url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850460"
 
 [[tools.java]]
 version = "25.0.2"
