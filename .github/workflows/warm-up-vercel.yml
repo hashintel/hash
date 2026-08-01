@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: "*/3 * * * *" ## Every 3 minutes
 
-# The job only checks the repository out and curls the public production site.
 permissions:
   contents: read
 

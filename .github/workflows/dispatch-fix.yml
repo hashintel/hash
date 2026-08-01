@@ -1,8 +1,6 @@
 name: Fix
 on: workflow_dispatch
 
-# The checkout and the push both use `MACHINE_USER_TOKEN`, not `GITHUB_TOKEN`,
-# so the workflow token itself only ever needs to read the repository.
 permissions:
   contents: read
 

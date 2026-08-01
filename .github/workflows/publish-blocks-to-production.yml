@@ -8,9 +8,6 @@ on:
 
 name: Publish blocks to production
 
-# Blocks are published to the Block Protocol hub with
-# `BLOCK_PROTOCOL_API_KEY_HASH_PRODUCTION`, not with the workflow token, so
-# reading the repository is all `GITHUB_TOKEN` is needed for here.
 permissions:
   contents: read
 
