@@ -21,10 +21,13 @@ uv             = "0.11.18"
 
 # Tools to compile the project
 # wasm-opt stays on the cargo backend (like cargo-insta below): binaryen ships no linux-arm64 prebuilt binaries.
-"aqua:wasm-bindgen/wasm-pack" = "0.15.0"
-"cargo:wasm-opt"              = "0.116.1"
-java                          = "25"
-protoc                        = "35.1"
+"cargo:wasm-opt" = "0.116.1"
+# wasm-pack is on the github backend, not aqua: aqua's registry sets `rosetta2: true` and only applies
+# its `arm64` -> `aarch64` replacement under a `goos: linux` override, so darwin/arm64 resolved to the
+# x86_64 tarball. The github backend rejects architecture mismatches outright.
+"github:wasm-bindgen/wasm-pack" = "0.15.0"
+java                            = "25"
+protoc                          = "35.1"
 
 # CLI tools
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.137"
