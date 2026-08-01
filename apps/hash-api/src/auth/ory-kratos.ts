@@ -79,6 +79,60 @@ export const deleteKratosIdentity = async (params: {
   });
 };
 
+const graphActorIdMetadataKey = "graph_actor_id";
+
+/**
+ * Store the Graph actor identifier in Kratos admin metadata.
+ *
+ * This metadata is written only through Kratos's admin API, so it cannot be
+ * changed by an identity through a self-service flow. Repeating a write for
+ * the same actor is safe; a different existing actor is an invariant breach.
+ */
+export const provisionGraphActorIdInKratos = async (params: {
+  graphActorId: string;
+  kratosIdentityId: string;
+}): Promise<void> => {
+  const { graphActorId, kratosIdentityId } = params;
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: kratosIdentityId,
+  });
+
+  const metadataAdmin =
+    identity.metadata_admin && typeof identity.metadata_admin === "object"
+      ? identity.metadata_admin
+      : {};
+  const existingGraphActorId = metadataAdmin[graphActorIdMetadataKey];
+
+  if (existingGraphActorId === graphActorId) {
+    return;
+  }
+
+  if (existingGraphActorId !== undefined) {
+    throw new Error(
+      `Kratos identity "${kratosIdentityId}" is already provisioned for a different Graph actor.`,
+    );
+  }
+
+  if (!identity.state) {
+    throw new Error(
+      `Kratos identity "${kratosIdentityId}" has no state and cannot be updated.`,
+    );
+  }
+
+  await kratosIdentityApi.updateIdentity({
+    id: kratosIdentityId,
+    updateIdentityBody: {
+      schema_id: identity.schema_id,
+      state: identity.state,
+      traits: identity.traits,
+      metadata_admin: {
+        ...metadataAdmin,
+        [graphActorIdMetadataKey]: graphActorId,
+      },
+    },
+  });
+};
+
 export const isUserEmailVerified = async (
   kratosIdentityId: string,
 ): Promise<boolean> => {

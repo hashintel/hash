@@ -5,6 +5,7 @@ import {
   deleteKratosIdentity,
   kratosFrontendApi,
   kratosIdentityApi,
+  provisionGraphActorIdInKratos,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -57,6 +58,7 @@ const logger = new Logger({
 const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
+const incompleteUserShortname = generateRandomShortname("incomplete");
 
 /**
  * Email addresses that are permitted to sign up in a test environment.
@@ -92,6 +94,14 @@ describe("User model class", () => {
       kratosIdentityId: identity.id,
       shortname,
       displayName: "Alice",
+    });
+
+    const { data: provisionedIdentity } = await kratosIdentityApi.getIdentity({
+      id: identity.id,
+    });
+
+    expect(provisionedIdentity.metadata_admin).toMatchObject({
+      graph_actor_id: createdUser.accountId,
     });
 
     expect(
@@ -208,6 +218,8 @@ describe("User model class", () => {
     const email = `${generateRandomShortname("kratosProfile")}@example.com`;
     const injectedEmail = "injected-profile-update@example.com";
     const password = "password";
+    const graphActorId = "11111111-1111-1111-1111-111111111111";
+    const impersonatedGraphActorId = "22222222-2222-2222-2222-222222222222";
 
     const identity = await createKratosIdentity({
       traits: {
@@ -220,6 +232,11 @@ describe("User model class", () => {
           },
         },
       },
+    });
+
+    await provisionGraphActorIdInKratos({
+      graphActorId,
+      kratosIdentityId: identity.id,
     });
 
     try {
@@ -255,7 +272,10 @@ describe("User model class", () => {
             traits: {
               emails: [email, injectedEmail],
             },
-          },
+            metadata_admin: {
+              graph_actor_id: impersonatedGraphActorId,
+            },
+          } as never,
           xSessionToken: sessionToken,
         }),
       ).rejects.toMatchObject({
@@ -270,6 +290,9 @@ describe("User model class", () => {
 
       expect(updatedIdentity.traits).toMatchObject({
         emails: [email],
+      });
+      expect(updatedIdentity.metadata_admin).toMatchObject({
+        graph_actor_id: graphActorId,
       });
     } finally {
       await deleteKratosIdentity({ kratosIdentityId: identity.id });
@@ -430,7 +453,7 @@ describe("User model class", () => {
           op: "add",
           path: [systemPropertyTypes.shortname.propertyTypeBaseUrl],
           property: {
-            value: "incomplete",
+            value: incompleteUserShortname,
             metadata: {
               dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },

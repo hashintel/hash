@@ -32,6 +32,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import {
   getVerifiedEmailsFromKratosIdentity,
   kratosIdentityApi,
+  provisionGraphActorIdInKratos,
 } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
@@ -487,6 +488,11 @@ export const createUser: ImpureGraphFunction<
   );
 
   const user = getUserFromEntity({ entity });
+
+  await provisionGraphActorIdInKratos({
+    graphActorId: user.accountId,
+    kratosIdentityId,
+  });
 
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
