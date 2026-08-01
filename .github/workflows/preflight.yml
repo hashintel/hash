@@ -29,10 +29,6 @@ jobs:
         with:
           sync-labels: true
 
-  # The `Todo comments` job lives in `preflight-todo-comments.yml`, not here.
-  # It is the only preflight check that checks out the PR's own code, so it
-  # runs on plain `pull_request` rather than `pull_request_target`.
-
   pr-title:
     name: PR title
     permissions:
