@@ -16,6 +16,9 @@ export type AvatarGroupProps = {
   total?: number | React.ReactNode;
   size?: AvatarSize;
   tone?: AvatarTone;
+  /** Stack so the last avatar sits on top instead of the first (flips which
+   * edge overlaps its neighbour). */
+  reverse?: boolean;
 };
 
 // Pixel width per avatar size, mirroring avatar.recipe.ts, used to size the
@@ -108,6 +111,7 @@ export const AvatarGroup = ({
   total,
   size = "md",
   tone,
+  reverse = false,
 }: AvatarGroupProps) => {
   const totalIsNode = total != null && typeof total !== "number";
   const numericTotal = typeof total === "number" ? total : null;
@@ -134,6 +138,12 @@ export const AvatarGroup = ({
 
   const shape = avatars[0]?.shape ?? "circle";
 
+  // Stacking order: by default the first (leftmost) item sits highest so each
+  // avatar overlaps the next; `reverse` flips it so the last item sits highest.
+  const itemCount = shownCount + (showSurplus ? 1 : 0);
+  const zIndexAt = (position: number) =>
+    reverse ? position + 1 : itemCount - position;
+
   // Brand avatars only get the ring once an image loads (see above).
   const ringStyles =
     tone === "brand" ? whiteRingWhenLoadedStyles : whiteRingStyles;
@@ -151,7 +161,7 @@ export const AvatarGroup = ({
           className={itemStyles}
           style={
             {
-              "--avatar-group-z": String(shownCount - index),
+              "--avatar-group-z": String(zIndexAt(index)),
             } as React.CSSProperties
           }
         >
@@ -166,7 +176,11 @@ export const AvatarGroup = ({
       {showSurplus ? (
         <span
           className={itemStyles}
-          style={{ "--avatar-group-z": "0" } as React.CSSProperties}
+          style={
+            {
+              "--avatar-group-z": String(zIndexAt(shownCount)),
+            } as React.CSSProperties
+          }
         >
           <Avatar
             shape={shape}

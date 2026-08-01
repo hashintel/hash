@@ -95,6 +95,10 @@ export const Default: Story<AvatarGroupProps> = () => (
         content: <AvatarGroup avatars={people.slice(0, 3)} total={12} />,
       },
       {
+        label: "reverse",
+        content: <AvatarGroup avatars={people} max={4} reverse />,
+      },
+      {
         label: "custom overflow",
         content: (
           <AvatarGroup
