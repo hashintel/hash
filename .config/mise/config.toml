@@ -36,11 +36,11 @@ protoc                        = "35.1"
 # installing it on stable keeps `--locked` fully intact. TODO(SRE-878): remove the `install_env`
 # override once upstream refreshes its lockfile or ships arm64 binaries.
 # See https://linear.app/hash/issue/SRE-878
-"cargo:cargo-insta"                     = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
-just                                    = "1.51.0"
-markdownlint-cli2                       = "0.22.1"
-"npm:@napi-rs/cli"                      = "3.7.0"
-"npm:@redocly/cli"                      = "2.31.5"
+"cargo:cargo-insta" = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
+just                = "1.51.0"
+markdownlint-cli2   = "0.22.1"
+"npm:@napi-rs/cli"  = "3.7.0"
+"npm:@redocly/cli"  = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
 # ships (https://github.com/yarnpkg/berry/issues/7182). That exact version was published without
 # provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was
