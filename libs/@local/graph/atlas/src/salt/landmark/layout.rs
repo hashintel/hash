@@ -20,11 +20,11 @@
 //! against one anchor position, which gives mini-batch semantics rather than strictly sequential
 //! updates.
 //!
-//! Points start on a jittered circle of diameter ten, the span the per-axis [gradient
-//! clip](AffinityCurve::GRADIENT_CLIP) assumes. Every draw comes from the caller-seeded generator,
-//! so a rerun over an equal graph, curve, options, and seed reproduces the layout exactly. Rows
-//! without edges keep their initial placement: no attraction schedules them, and repulsion moves
-//! only the sampled endpoint.
+//! Points start on a jittered circle of diameter ten, an extent that puts the per-axis [gradient
+//! clip](AffinityCurve::GRADIENT_CLIP) at 0.40 of the initial span. Every draw comes from the
+//! caller-seeded generator, so a rerun over an equal graph, curve, options, and seed reproduces the
+//! layout exactly. Rows without edges keep their initial placement: no attraction schedules them,
+//! and repulsion moves only the sampled endpoint.
 //!
 //! The optimizer is serial by design: each gradient step reads coordinates the previous step wrote,
 //! and the bit-reproducible layout is the property the serial order buys. Parallelism belongs to
@@ -247,11 +247,14 @@ where
 
 /// Radius of the initial circle.
 ///
-/// A diameter of ten matches the span the per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
-/// assumes.
+/// The resulting diameter of ten puts the per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
+/// at 0.40 of the initial extent.
 // Pinning the radius and the clip fixes one ratio: how far a single sample can move a point
 // relative to the layout's extent. A knob on one side changes that ratio with nothing to signal the
-// change. If the frame ever moves, both move together.
+// change. If the frame ever moves, both move together. The clip is the UMAP reference constant,
+// whose frame spans twenty (ratio 0.20), and ten carries no recorded derivation, so the 0.40 here
+// is an unvalidated starting point that the release evaluation's layout criteria revise from
+// evidence.
 const INITIAL_RADIUS: f32 = 5.0;
 /// Relative radial jitter of the initial circle, breaking the regular polygon's symmetry.
 // Pinned, not configurable: any small positive value serves; the only

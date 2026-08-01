@@ -1276,28 +1276,13 @@ fn published_table_reopens_mapped() {
 
 #[test]
 #[cfg_attr(miri, ignore = "LMDB maps files through FFI Miri cannot execute")]
-#[expect(
-    clippy::too_many_lines,
-    reason = "the seam contract and the production construction path share one live environment"
-)]
 fn hannoy_honours_the_seam_contract() {
     let dir = std::env::temp_dir().join(format!("hash-graph-atlas-knn-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
     let base = camino::Utf8PathBuf::from_path_buf(dir.clone()).expect("the temp path is UTF-8");
 
-    let rows: Vec<[f32; PROJECTOR_DIMENSIONS]> = {
-        let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
-        core::iter::repeat_with(|| {
-            let mut row = [0.0; PROJECTOR_DIMENSIONS];
-            for component in &mut row {
-                *component = rng.random::<f32>().mul_add(2.0, -1.0);
-            }
-            row
-        })
-        .take(128)
-        .collect()
-    };
+    let rows = uniform_rows();
     let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
 
@@ -1372,8 +1357,34 @@ fn hannoy_honours_the_seam_contract() {
         "a stored vector matches itself"
     );
 
-    // The production path puts a fresh backend behind the construction wrapper. Exact recall admits
-    // the lists, and the table comes from those same lists.
+    assert_construction_path_admits(&base, embeddings);
+
+    drop(index);
+    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
+}
+
+/// 128 fixture rows, each component drawn uniformly from `[-1, 1)` under seed 7.
+fn uniform_rows() -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
+    let mut rng = Xoshiro256PlusPlus::seed_from_u64(7);
+    core::iter::repeat_with(|| {
+        let mut row = [0.0; PROJECTOR_DIMENSIONS];
+        for component in &mut row {
+            *component = rng.random::<f32>().mul_add(2.0, -1.0);
+        }
+        row
+    })
+    .take(128)
+    .collect()
+}
+
+/// Asserts the production path admits the fixture rows.
+///
+/// The production path puts a fresh backend behind the construction wrapper. Exact recall admits
+/// the lists, and the table comes from those same lists.
+fn assert_construction_path_admits(
+    base: &camino::Utf8Path,
+    embeddings: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+) {
     let construction_base = base.join("construction");
     std::fs::create_dir_all(&construction_base).expect("the temp directory is writable");
     let lists = IndexConstruction::new(
@@ -1417,9 +1428,6 @@ fn hannoy_honours_the_seam_contract() {
         "recall {} misses the admission minimum",
         check.recall(),
     );
-
-    drop(index);
-    let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
 }
 
 #[test]

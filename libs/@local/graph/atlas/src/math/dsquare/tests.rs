@@ -10,6 +10,7 @@
 use core::simd::f64x8;
 
 use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
+use crate::math::DVecN;
 
 /// A deterministic integer pattern in `[−5, 5]`.
 fn pattern(row: usize, column: usize) -> f64 {
@@ -229,6 +230,30 @@ fn both_dots_reduce_equal_inputs_to_identical_bits() {
             "the shifted start changed the bits at length {length}",
         );
     }
+}
+
+#[test]
+fn the_row_dot_and_dvecn_dot_reduce_equal_bytes_to_identical_bits() {
+    // The module doc ties the prefix dots to the fold shape of `DVecN::dot`; the test above and
+    // dvecn's aligned-reduction test guard each family internally, and this pins the families to
+    // each other. Length 29 makes three eight-lane folds - the interleave visits both
+    // accumulators, unevenly - and a five-component scalar tail.
+    const LENGTH: usize = 29;
+    let mut storage = DSquareMatrix::zeroed(LENGTH);
+    for column in 0..LENGTH {
+        storage.row_mut(0)[column] = pattern(3, column);
+        storage.row_mut(1)[column] = pattern(7, column);
+    }
+
+    let first = DVecN::new(core::array::from_fn::<f64, LENGTH, _>(|column| {
+        pattern(3, column)
+    }));
+    let second = DVecN::new(core::array::from_fn(|column| pattern(7, column)));
+
+    let left = DSquareRowBlock::from_slice(&storage.row(0)[..LENGTH]);
+    let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..LENGTH]);
+
+    assert_eq!(left.dot(aligned).to_bits(), first.dot(&second).to_bits());
 }
 
 #[test]

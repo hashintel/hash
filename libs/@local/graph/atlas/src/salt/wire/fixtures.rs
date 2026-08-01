@@ -668,6 +668,68 @@ fn g6_edges() -> Fixture {
     }
 }
 
+/// G7's detail-trailer pins.
+struct G7Trailer {
+    /// The type intern table, bytewise-sorted.
+    type_table: [&'static str; 3],
+    /// The property intern table, bytewise-sorted.
+    property_table: [&'static str; 4],
+    /// The source's property map, covering text, a negative integer, a double, and a boolean.
+    source_map: [(u32, PropertyValue<'static>); 4],
+    /// One edge's property map, covering a positive integer, an explicit `null`, and a negative
+    /// double.
+    link_map: [(u32, PropertyValue<'static>); 3],
+    /// Node labels: non-ASCII, a `null`, an astral plane character, a combining mark.
+    labels: [Option<&'static str>; 4],
+    /// Each node's first direct type as a type-table index, one store-absent `null` among them.
+    type_ids: [Option<u32>; 4],
+    /// Link labels: non-ASCII, a `null`, ASCII.
+    link_labels: [Option<&'static str>; 3],
+    /// Each edge's direct types as type-table indexes, one list empty.
+    ///
+    /// Canonical direct-type order is the store's, never sorted: the first list pins a descending
+    /// pair on purpose.
+    link_type_ids: [Vec<u32>; 3],
+    /// Per-edge type completeness.
+    link_type_ids_complete: [bool; 3],
+    /// Per-edge property completeness.
+    link_properties_complete: [bool; 3],
+}
+
+/// Builds G7's detail-trailer pins.
+fn g7_trailer() -> G7Trailer {
+    G7Trailer {
+        type_table: [
+            "https://t.test/authored/v/1",
+            "https://t.test/person/v/3",
+            "https://t.test/work/v/2",
+        ],
+        property_table: [
+            "https://x.test/age/",
+            "https://x.test/name/",
+            "https://x.test/ok/",
+            "https://x.test/score/",
+        ],
+        source_map: [
+            (0, PropertyValue::Integer(-3)),
+            (1, PropertyValue::Text("Ada")),
+            (2, PropertyValue::Boolean(true)),
+            (3, PropertyValue::Float(0.5)),
+        ],
+        link_map: [
+            (0, PropertyValue::Integer(977)),
+            (1, PropertyValue::Null),
+            (3, PropertyValue::Float(-2.5)),
+        ],
+        labels: [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")],
+        type_ids: [Some(1_u32), None, Some(2), Some(0)],
+        link_labels: [Some("\u{153}uvre"), None, Some("cites")],
+        link_type_ids: [vec![1_u32, 0], vec![0], Vec::new()],
+        link_type_ids_complete: [true, false, false],
+        link_properties_complete: [true, false, true],
+    }
+}
+
 /// G7.
 ///
 /// A locate response - the source first over an arbitrary delivered list (nothing contiguous),
@@ -675,14 +737,11 @@ fn g6_edges() -> Fixture {
 /// both source completeness flags exercised in opposite states.
 ///
 /// The full detail trailer holds both intern tables, labels with nulls and non-ASCII, node
-/// first-type references including a `null`, the source map covering every scalar value shape
-/// (text, positive and negative integers, doubles, booleans, explicit null), link type lists in
-/// non-ascending canonical order with an empty entry, link property maps covering map, `null`, and
-/// empty shapes, and both completeness bitmasks.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the fixture pins every wire shape in one hand-built document"
-)]
+/// first-type references including a `null`, the property maps covering every scalar value shape
+/// between them (text, positive and negative integers, doubles, booleans, explicit null), link type
+/// lists in non-ascending canonical order with an empty entry, link property maps covering map,
+/// `null`, and empty shapes, and both completeness bitmasks. The trailer's own pins live in
+/// [`G7Trailer`].
 fn g7_locate() -> Fixture {
     let positions: Vec<Vec2> = (0_u16..8)
         .map(|index| {
@@ -707,39 +766,9 @@ fn g7_locate() -> Fixture {
     let t1_dense = [1_u32 << 4].map(U32::<LE>::new);
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
-    let type_table = [
-        "https://t.test/authored/v/1",
-        "https://t.test/person/v/3",
-        "https://t.test/work/v/2",
-    ];
-    let names = [
-        "https://x.test/age/",
-        "https://x.test/name/",
-        "https://x.test/ok/",
-        "https://x.test/score/",
-    ];
-    let source_map = [
-        (0, PropertyValue::Integer(-3)),
-        (1, PropertyValue::Text("Ada")),
-        (2, PropertyValue::Boolean(true)),
-        (3, PropertyValue::Float(0.5)),
-    ];
-    let link_map = [
-        (0, PropertyValue::Integer(977)),
-        (1, PropertyValue::Null),
-        (3, PropertyValue::Float(-2.5)),
-    ];
-
-    let labels = [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")];
-    let type_ids = [Some(1_u32), None, Some(2), Some(0)];
-    let link_labels = [Some("\u{153}uvre"), None, Some("cites")];
-    // Canonical direct-type order is the store's, never sorted: the
-    // first list pins a descending pair on purpose.
-    let link_type_ids = [vec![1_u32, 0], vec![0], Vec::new()];
-    let link_type_ids_complete = [true, false, false];
+    let trailer = g7_trailer();
     let link_properties: [Option<&[(u32, PropertyValue<'_>)]>; 3] =
-        [Some(&link_map), None, Some(&[])];
-    let link_properties_complete = [true, false, true];
+        [Some(&trailer.link_map), None, Some(&[])];
     let edge_ids = [
         identity_of(0xD0, 0xD1),
         identity_of(0xE0, 0xE1),
@@ -762,16 +791,16 @@ fn g7_locate() -> Fixture {
         targets: &[11, 61, 41].map(WireRow::pinned),
         edge_ids: &edge_ids,
         trailer: LocateTrailer {
-            type_table: &type_table,
-            property_table: &names,
-            labels: &labels,
-            type_ids: &type_ids,
-            properties: Some(&source_map),
-            link_labels: &link_labels,
-            link_type_ids: &link_type_ids,
-            link_type_ids_complete: &link_type_ids_complete,
+            type_table: &trailer.type_table,
+            property_table: &trailer.property_table,
+            labels: &trailer.labels,
+            type_ids: &trailer.type_ids,
+            properties: Some(&trailer.source_map),
+            link_labels: &trailer.link_labels,
+            link_type_ids: &trailer.link_type_ids,
+            link_type_ids_complete: &trailer.link_type_ids_complete,
             link_properties: &link_properties,
-            link_properties_complete: &link_properties_complete,
+            link_properties_complete: &trailer.link_properties_complete,
         },
     };
     let bytes = response.encode();
@@ -783,16 +812,38 @@ fn g7_locate() -> Fixture {
         "the hand-derived G7 masks must match the encoder",
     );
 
-    // Property values ride the sidecar as plain JSON: every pinned
-    // double is exactly representable, and none renders integral, so
-    // the number forms stay unambiguous (serde_json round-trips f64).
-    let properties_sidecar = json!({
+    let sidecar = locate_sidecar(
+        "g7-locate",
+        &response,
+        &bytes,
+        &expected_mask,
+        &g7_properties_sidecar(),
+        &g7_link_properties_sidecar(),
+    );
+    Fixture {
+        name: "g7-locate",
+        bytes,
+        sidecar,
+    }
+}
+
+/// Renders G7's source property map.
+///
+/// Property values ride the sidecar as plain JSON: every pinned double is exactly representable,
+/// and none renders integral, so the number forms stay unambiguous (`serde_json` round-trips
+/// `f64`).
+fn g7_properties_sidecar() -> Value {
+    json!({
         "https://x.test/age/": -3,
         "https://x.test/name/": "Ada",
         "https://x.test/ok/": true,
         "https://x.test/score/": 0.5,
-    });
-    let link_properties_sidecar = json!([
+    })
+}
+
+/// Renders G7's per-edge link property maps: a populated map, `null`, and an empty map.
+fn g7_link_properties_sidecar() -> Value {
+    json!([
         {
             "https://x.test/age/": 977,
             "https://x.test/name/": Value::Null,
@@ -800,21 +851,7 @@ fn g7_locate() -> Fixture {
         },
         Value::Null,
         {},
-    ]);
-
-    let sidecar = locate_sidecar(
-        "g7-locate",
-        &response,
-        &bytes,
-        &expected_mask,
-        &properties_sidecar,
-        &link_properties_sidecar,
-    );
-    Fixture {
-        name: "g7-locate",
-        bytes,
-        sidecar,
-    }
+    ])
 }
 
 /// Renders a locate fixture's sidecar.

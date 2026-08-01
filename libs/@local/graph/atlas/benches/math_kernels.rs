@@ -5,18 +5,17 @@
 //! emitted-assembly inspection alone.
 //!
 //! The measurement defaults to retired instructions, and `MATH_BENCH_EVENT`, a comma-separated
-//! list, selects it: every listed measurement runs the whole suite once, in list order, with
-//! the event suffixed into the benchmark ids (`kernel@cycles/exp_f32x8`), so each event keeps its
-//! own statistics lineage and run-over-run change reports compare like with like. The
-//! events: `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`,
-//! `backend-stalls` (cycles the scheduler issued nothing because execution was waiting, the
-//! direct view of dependency-chain latency), and `simd-instructions` (retired vector ALU
-//! operations, loop scaffolding filtered out); `wall-time` selects criterion's default wall-clock
-//! measurement instead, which needs no elevated privileges. A list containing any other event
-//! runs under sudo. Instruction counts are stable across runs but blind to instruction-level
-//! parallelism; confirm a winner in `cycles` before acting on close calls, and weigh instruction
-//! counts higher for kernels that run fused inside larger loops, where issue slots are the shared
-//! resource.
+//! list, selects it: every listed measurement runs the whole suite once, in list order, with the
+//! event suffixed into the benchmark ids (`kernel@cycles/exp_f32x8`), so each event keeps its own
+//! statistics lineage and run-over-run change reports compare like with like. The events:
+//! `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls` (cycles
+//! the scheduler issued nothing because execution was waiting, the direct view of dependency-chain
+//! latency), and `simd-instructions` (retired vector ALU operations, loop scaffolding filtered
+//! out); `wall-time` selects criterion's default wall-clock measurement instead, which needs no
+//! elevated privileges. A list containing any other event runs under sudo. Instruction counts are
+//! stable across runs but blind to instruction-level parallelism; confirm a winner in `cycles`
+//! before acting on close calls, and weigh instruction counts higher for kernels that run fused
+//! inside larger loops, where issue slots are the shared resource.
 //!
 //! Counters attribute to the calling thread only: rayon-parallel benchmarks under-report every
 //! event because the workers' counts are invisible. Read parallel entries as coordination overhead,

@@ -19,8 +19,8 @@ use crate::{
 /// The per-request serving limits.
 ///
 /// Every default reads off [`ServeLimits::default`], so the default values live in exactly one
-/// place and `--help` renders them. The manifest publishes whatever these resolve to - the
-/// handlers enforce the same values by construction.
+/// place and `--help` renders them. The manifest publishes whatever these resolve to - the handlers
+/// enforce the same values by construction.
 #[derive(Debug, Args)]
 struct LimitsArgs {
     /// Most `coloredTypeIds` one tile request may carry.

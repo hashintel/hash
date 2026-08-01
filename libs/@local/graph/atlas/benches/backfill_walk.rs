@@ -9,12 +9,11 @@
 //! (independent rows hidden versus whole spatial blocks), visible fraction, and zoom along the
 //! fixture's densest descent path, with scan counts, per-tile medians, and the independent
 //! variant's re-delivery census (the crowding the chained variant exists to remove). The timed
-//! groups then pin the decision points: both variants at the root and at the deepest zoom under
-//! the adversarial mask.
+//! groups then pin the decision points: both variants at the root and at the deepest zoom under the
+//! adversarial mask.
 //!
-//! The corpus defaults to 300,000 points so a sweep stays in seconds; set
-//! `ATLAS_BACKFILL_POINTS` for other scales. Wall time depends on the host: compare numbers
-//! within one machine, not across.
+//! The corpus defaults to 300,000 points so a sweep stays in seconds; set `ATLAS_BACKFILL_POINTS`
+//! for other scales. Wall time depends on the host: compare numbers within one machine, not across.
 #![expect(
     clippy::print_stdout,
     clippy::float_arithmetic,
@@ -227,8 +226,8 @@ fn zoom(value: Option<u8>) -> String {
 
 /// Returns the cross-check's tile set: every shallow tile plus the descent path and its siblings.
 ///
-/// Zooms 0 through 3 whole put every extent of the domain in the comparison, dense and empty
-/// alike. The path's cells and their children carry it into the deepest zooms.
+/// Zooms 0 through 3 whole put every extent of the domain in the comparison, dense and empty alike.
+/// The path's cells and their children carry it into the deepest zooms.
 fn audit_tiles(bench: &WalkBench, path: &[(u8, u32, u32)]) -> Vec<(u8, u32, u32)> {
     let mut tiles: Vec<(u8, u32, u32)> = Vec::new();
     for z in 0..=3_u8 {
@@ -2473,11 +2472,110 @@ fn budget_grid_seams(
     (different, edges, mixed)
 }
 
+/// One rule's density audit over the rendered zooms.
+#[derive(Debug)]
+struct RuleDensityAudit {
+    /// The worst fit any audited zoom produced.
+    worst_fit: DensityFit,
+    /// The zoom that produced the worst fit.
+    worst_zoom: u8,
+    /// The largest 95th-percentile seam contrast across the audited zooms.
+    worst_seam_p95: f64,
+    /// The largest seam contrast across the audited zooms.
+    worst_seam_maximum: f64,
+    /// Dots the rule delivers over the whole world at zoom 3.
+    dots_at_three: usize,
+    /// Rendered-tile boundaries whose budget grids differ.
+    different_edges: usize,
+    /// Rendered-tile boundaries the budget grids span.
+    grid_edges: usize,
+}
+
+/// Audits one rule's fit to the best public grid at every rendered zoom.
+///
+/// The coarse and uniform rules are also held to their own grid's density metric: each renders what
+/// its public grid occupies, so the total variation against that grid is zero.
+///
+/// # Panics
+///
+/// This panics when the coarse or uniform rule misses its own grid's density metric.
+fn rule_density_audit(
+    bench: &WalkBench,
+    rule: DensityRule,
+    view: VisibleView<'_>,
+    generation: &hash_graph_atlas::bench::lod::ServedGeneration,
+    codes: &[u64],
+) -> RuleDensityAudit {
+    let mut worst_fit = DensityFit {
+        additional_depth: 0,
+        total_variation: -1.0,
+        seam_maximum: 0.0,
+        seam_p95: 0.0,
+        sampling_minimum: 0.0,
+        sampling_maximum: 0.0,
+    };
+    let mut worst_zoom = 0_u8;
+    let mut worst_seam_p95 = 0.0_f64;
+    let mut worst_seam_maximum = 0.0_f64;
+    let mut dots_at_three = 0_usize;
+    let mut different_edges = 0_usize;
+    let mut grid_edges = 0_usize;
+
+    for z in 0..=3_u8 {
+        let delivered = world_delivery(bench, rule, z, view, generation);
+        if z == 3 {
+            dots_at_three = delivered.len();
+        }
+        let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+        let shown = delivered_window_counts(codes, &delivered, window_depth);
+        let fit = best_density_fit(bench, &shown, z, window_depth);
+
+        if rule == DensityRule::Coarse {
+            let occupied =
+                occupied_window_counts(bench, bench.uniform_grid_depth(z, 0), window_depth);
+            assert!(
+                density_fit(&shown, &occupied, z, window_depth, 0).total_variation <= f64::EPSILON,
+                "the coarse public grid failed its own density metric",
+            );
+        }
+        if rule == DensityRule::Uniform {
+            let occupied = occupied_window_counts(
+                bench,
+                bench.uniform_grid_depth(z, UNIFORM_DEPTH),
+                window_depth,
+            );
+            assert!(
+                density_fit(&shown, &occupied, z, window_depth, UNIFORM_DEPTH,).total_variation
+                    <= f64::EPSILON,
+                "the uniform public grid failed its own density metric",
+            );
+        }
+
+        if fit.total_variation > worst_fit.total_variation {
+            worst_fit = fit;
+            worst_zoom = z;
+        }
+        worst_seam_p95 = worst_seam_p95.max(fit.seam_p95);
+        worst_seam_maximum = worst_seam_maximum.max(fit.seam_maximum);
+        if rule == DensityRule::Budgeted {
+            let (different, edges, _) = budget_grid_seams(bench, z, generation);
+            different_edges += different;
+            grid_edges += edges;
+        }
+    }
+
+    RuleDensityAudit {
+        worst_fit,
+        worst_zoom,
+        worst_seam_p95,
+        worst_seam_maximum,
+        dots_at_three,
+        different_edges,
+        grid_edges,
+    }
+}
+
 /// Prints the best public-grid fit and boundary seam contrast for every rule.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the report keeps one mask-rule row's fit, acceptance assertions, and output adjacent"
-)]
 fn proportional_density(bench: &mut WalkBench) {
     const RULES: [DensityRule; 5] = [
         DensityRule::Today,
@@ -2516,89 +2614,28 @@ fn proportional_density(bench: &mut WalkBench) {
             let generation = bench.indexed_generation(GenerationLayout::Shared);
 
             for rule in RULES {
-                let mut worst_fit = DensityFit {
-                    additional_depth: 0,
-                    total_variation: -1.0,
-                    seam_maximum: 0.0,
-                    seam_p95: 0.0,
-                    sampling_minimum: 0.0,
-                    sampling_maximum: 0.0,
-                };
-                let mut worst_zoom = 0_u8;
-                let mut worst_seam_p95 = 0.0_f64;
-                let mut worst_seam_maximum = 0.0_f64;
-                let mut dots_at_three = 0_usize;
-                let mut different_edges = 0_usize;
-                let mut grid_edges = 0_usize;
-
-                for z in 0..=3_u8 {
-                    let delivered = world_delivery(bench, rule, z, view, &generation);
-                    if z == 3 {
-                        dots_at_three = delivered.len();
-                    }
-                    let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
-                    let shown = delivered_window_counts(&codes, &delivered, window_depth);
-                    let fit = best_density_fit(bench, &shown, z, window_depth);
-
-                    if rule == DensityRule::Coarse {
-                        let occupied = occupied_window_counts(
-                            bench,
-                            bench.uniform_grid_depth(z, 0),
-                            window_depth,
-                        );
-                        assert!(
-                            density_fit(&shown, &occupied, z, window_depth, 0).total_variation
-                                <= f64::EPSILON,
-                            "the coarse public grid failed its own density metric",
-                        );
-                    }
-                    if rule == DensityRule::Uniform {
-                        let occupied = occupied_window_counts(
-                            bench,
-                            bench.uniform_grid_depth(z, UNIFORM_DEPTH),
-                            window_depth,
-                        );
-                        assert!(
-                            density_fit(&shown, &occupied, z, window_depth, UNIFORM_DEPTH,)
-                                .total_variation
-                                <= f64::EPSILON,
-                            "the uniform public grid failed its own density metric",
-                        );
-                    }
-
-                    if fit.total_variation > worst_fit.total_variation {
-                        worst_fit = fit;
-                        worst_zoom = z;
-                    }
-                    worst_seam_p95 = worst_seam_p95.max(fit.seam_p95);
-                    worst_seam_maximum = worst_seam_maximum.max(fit.seam_maximum);
-                    if rule == DensityRule::Budgeted {
-                        let (different, edges, _) = budget_grid_seams(bench, z, &generation);
-                        different_edges += different;
-                        grid_edges += edges;
-                    }
-                }
+                let audit = rule_density_audit(bench, rule, view, &generation, &codes);
 
                 today_separates |=
-                    rule == DensityRule::Today && worst_fit.total_variation > f64::EPSILON;
+                    rule == DensityRule::Today && audit.worst_fit.total_variation > f64::EPSILON;
                 budget_separates |=
-                    rule == DensityRule::Budgeted && worst_fit.total_variation > f64::EPSILON;
+                    rule == DensityRule::Budgeted && audit.worst_fit.total_variation > f64::EPSILON;
                 println!(
                     "{:<10} {:>7} {:<11} {:>9} {:>5} {:>3} {:>9.4} {:>9.4} {:>9.4} {:>9.3} \
                      {:>9.3} {:>4}/{:<5}",
                     shape_name(clustered),
                     format!("{:.0}%", visible * 100.0),
                     density_rule_name(rule),
-                    dots_at_three,
-                    worst_zoom,
-                    worst_fit.additional_depth,
-                    worst_fit.total_variation,
-                    worst_seam_p95,
-                    worst_seam_maximum,
-                    worst_fit.sampling_minimum,
-                    worst_fit.sampling_maximum,
-                    different_edges,
-                    grid_edges,
+                    audit.dots_at_three,
+                    audit.worst_zoom,
+                    audit.worst_fit.additional_depth,
+                    audit.worst_fit.total_variation,
+                    audit.worst_seam_p95,
+                    audit.worst_seam_maximum,
+                    audit.worst_fit.sampling_minimum,
+                    audit.worst_fit.sampling_maximum,
+                    audit.different_edges,
+                    audit.grid_edges,
                 );
             }
         }
@@ -2613,11 +2650,127 @@ fn proportional_density(bench: &mut WalkBench) {
     );
 }
 
+/// The dots each public-grid law delivers over one masked corpus.
+///
+/// Every field but the maxima and the terminal pair is a cumulative count over the audited tiles.
+#[derive(Debug)]
+struct UniformDensityCounts {
+    /// Dots today's unmasked schedule delivers.
+    today: usize,
+    /// Dots the coverage-rank rule delivers off the generation.
+    coarse: usize,
+    /// Dots the per-tile budget refinement delivers.
+    budgeted: usize,
+    /// Dots the cut-only public grid delivers.
+    uniform_zero: usize,
+    /// Dots the one-level-finer public grid delivers.
+    uniform_one: usize,
+    /// Dots one additional level from zoom 6 onward delivers.
+    from_six: usize,
+    /// Dots one additional level from zoom 9 onward delivers.
+    from_nine: usize,
+    /// Dots one additional level from zoom 12 onward delivers.
+    from_twelve: usize,
+    /// Dots a per-span staircase of additional levels delivers.
+    staircase: usize,
+    /// The largest single-tile delivery of the zoom-6 step grid.
+    from_six_maximum: usize,
+    /// The largest single-tile delivery of the one-level-finer grid.
+    uniform_one_maximum: usize,
+    /// Visible rows the deepest audited tiles hold.
+    terminal_population: usize,
+    /// Rows the zoom-6 step grid delivers at the deepest audited tiles.
+    terminal_delivered: usize,
+}
+
+/// Counts the dots each public-grid law delivers over `tiles`.
+fn uniform_density_counts_of(
+    bench: &WalkBench,
+    tiles: &[(u8, u32, u32)],
+    view: VisibleView<'_>,
+    generation: &hash_graph_atlas::bench::lod::ServedGeneration,
+) -> UniformDensityCounts {
+    let mut today = 0_usize;
+    let mut coarse = 0_usize;
+    let mut budgeted = 0_usize;
+    let mut uniform_zero = 0_usize;
+    let mut uniform_one = 0_usize;
+    let mut from_six = 0_usize;
+    let mut from_nine = 0_usize;
+    let mut from_twelve = 0_usize;
+    let mut staircase = 0_usize;
+    let mut from_six_maximum = 0_usize;
+    let mut uniform_one_maximum = 0_usize;
+    let mut terminal_population = 0_usize;
+    let mut terminal_delivered = 0_usize;
+
+    for &(z, x, y) in tiles {
+        today += bench
+            .cumulative_delivery(FillRule::Unmasked, z, x, y, view)
+            .len();
+        coarse += bench
+            .served_cumulative_delivery(FillRule::CoverageRank, z, x, y, generation)
+            .len();
+        budgeted += bench
+            .served_cumulative_delivery(
+                refined(BUDGET / 4, RefineOrder::Population),
+                z,
+                x,
+                y,
+                generation,
+            )
+            .len();
+        uniform_zero += bench
+            .uniform_step_cumulative_delivery(u8::MAX, z, x, y, generation)
+            .len();
+        uniform_one += bench
+            .uniform_cumulative_delivery(UNIFORM_DEPTH, z, x, y, generation)
+            .len();
+        from_six += bench
+            .uniform_step_cumulative_delivery(6, z, x, y, generation)
+            .len();
+        from_six_maximum =
+            from_six_maximum.max(bench.uniform_step_delivery(6, z, x, y, generation).len());
+        from_nine += bench
+            .uniform_cumulative_delivery(u8::from(z >= 9), z, x, y, generation)
+            .len();
+        from_twelve += bench
+            .uniform_cumulative_delivery(u8::from(z >= 12), z, x, y, generation)
+            .len();
+        staircase += bench
+            .uniform_cumulative_delivery(z / bench.span(), z, x, y, generation)
+            .len();
+        uniform_one_maximum = uniform_one_maximum.max(
+            bench
+                .uniform_delivery(UNIFORM_DEPTH, z, x, y, generation)
+                .len(),
+        );
+        if z == bench.max_zoom() {
+            terminal_population += bench.gather(z, x, y).len();
+            terminal_delivered += bench
+                .uniform_step_cumulative_delivery(6, z, x, y, generation)
+                .len();
+        }
+    }
+
+    UniformDensityCounts {
+        today,
+        coarse,
+        budgeted,
+        uniform_zero,
+        uniform_one,
+        from_six,
+        from_nine,
+        from_twelve,
+        staircase,
+        from_six_maximum,
+        uniform_one_maximum,
+        terminal_population,
+        terminal_delivered,
+    }
+}
+
 /// Prints dot counts and the public uniform grid's geometric response bound.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the report co-measures five laws and three public-depth controls in one sweep"
-)]
 fn uniform_density_counts(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
     println!("\nuniform public-grid dot count over {} tiles", tiles.len());
     println!(
@@ -2646,71 +2799,14 @@ fn uniform_density_counts(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
             let column = bench.column();
             let view = VisibleView::new(&pyramid, &column);
             let generation = bench.indexed_generation(GenerationLayout::Shared);
-            let mut today = 0_usize;
-            let mut coarse = 0_usize;
-            let mut budgeted = 0_usize;
-            let mut uniform_zero = 0_usize;
-            let mut uniform_one = 0_usize;
-            let mut from_six = 0_usize;
-            let mut from_nine = 0_usize;
-            let mut from_twelve = 0_usize;
-            let mut staircase = 0_usize;
-            let mut from_six_maximum = 0_usize;
-            let mut uniform_one_maximum = 0_usize;
-            let mut terminal_population = 0_usize;
-            let mut terminal_delivered = 0_usize;
+            let counts = uniform_density_counts_of(bench, tiles, view, &generation);
 
-            for &(z, x, y) in tiles {
-                today += bench
-                    .cumulative_delivery(FillRule::Unmasked, z, x, y, view)
-                    .len();
-                coarse += bench
-                    .served_cumulative_delivery(FillRule::CoverageRank, z, x, y, &generation)
-                    .len();
-                budgeted += bench
-                    .served_cumulative_delivery(
-                        refined(BUDGET / 4, RefineOrder::Population),
-                        z,
-                        x,
-                        y,
-                        &generation,
-                    )
-                    .len();
-                uniform_zero += bench
-                    .uniform_step_cumulative_delivery(u8::MAX, z, x, y, &generation)
-                    .len();
-                uniform_one += bench
-                    .uniform_cumulative_delivery(UNIFORM_DEPTH, z, x, y, &generation)
-                    .len();
-                from_six += bench
-                    .uniform_step_cumulative_delivery(6, z, x, y, &generation)
-                    .len();
-                from_six_maximum = from_six_maximum
-                    .max(bench.uniform_step_delivery(6, z, x, y, &generation).len());
-                from_nine += bench
-                    .uniform_cumulative_delivery(u8::from(z >= 9), z, x, y, &generation)
-                    .len();
-                from_twelve += bench
-                    .uniform_cumulative_delivery(u8::from(z >= 12), z, x, y, &generation)
-                    .len();
-                staircase += bench
-                    .uniform_cumulative_delivery(z / bench.span(), z, x, y, &generation)
-                    .len();
-                uniform_one_maximum = uniform_one_maximum.max(
-                    bench
-                        .uniform_delivery(UNIFORM_DEPTH, z, x, y, &generation)
-                        .len(),
-                );
-                if z == bench.max_zoom() {
-                    terminal_population += bench.gather(z, x, y).len();
-                    terminal_delivered += bench
-                        .uniform_step_cumulative_delivery(6, z, x, y, &generation)
-                        .len();
-                }
-            }
-            assert_eq!(coarse, uniform_zero, "the two coarse forms differ in count");
             assert_eq!(
-                terminal_population, terminal_delivered,
+                counts.coarse, counts.uniform_zero,
+                "the two coarse forms differ in count"
+            );
+            assert_eq!(
+                counts.terminal_population, counts.terminal_delivered,
                 "the terminal public grid omitted visible rows",
             );
 
@@ -2719,18 +2815,18 @@ fn uniform_density_counts(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
                  {:>9} {:>9} {:>9}",
                 shape_name(clustered),
                 format!("{:.0}%", visible * 100.0),
-                today,
-                coarse,
-                budgeted,
-                uniform_zero,
-                uniform_one,
-                from_six,
-                from_nine,
-                from_twelve,
-                staircase,
-                from_six_maximum,
-                uniform_one_maximum,
-                terminal_population - terminal_delivered,
+                counts.today,
+                counts.coarse,
+                counts.budgeted,
+                counts.uniform_zero,
+                counts.uniform_one,
+                counts.from_six,
+                counts.from_nine,
+                counts.from_twelve,
+                counts.staircase,
+                counts.from_six_maximum,
+                counts.uniform_one_maximum,
+                counts.terminal_population - counts.terminal_delivered,
             );
         }
     }

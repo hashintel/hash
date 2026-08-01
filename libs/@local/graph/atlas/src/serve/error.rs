@@ -240,11 +240,33 @@ fn wrapped(fmt: &mut fmt::Formatter<'_>, context: &str, error: &dyn fmt::Display
     write!(fmt, "{context}: {error}")
 }
 
+/// Writes the schedule arm: the subdivisions the recorded schedule needs against the key width.
+fn schedule(fmt: &mut fmt::Formatter<'_>, span_log2: u8, max_tile_depth: u8) -> fmt::Result {
+    write!(
+        fmt,
+        "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions where a 64-bit \
+         Morton key resolves {}",
+        Depth::MAX.get(),
+    )
+}
+
+/// Writes the base-order arm: the point count each column of the shared order holds.
+fn columns(
+    fmt: &mut fmt::Formatter<'_>,
+    codes: u64,
+    coordinates: u64,
+    rows: u64,
+    ranks: u64,
+    positions: u64,
+) -> fmt::Result {
+    write!(
+        fmt,
+        "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
+         coordinates, {rows} rows, {ranks} ranks, {positions} positions",
+    )
+}
+
 impl fmt::Display for OpenAtlasError {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one display arm per open failure; the taxonomy is the length"
-    )]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Unpublished(id) => {
@@ -267,12 +289,7 @@ impl fmt::Display for OpenAtlasError {
             Self::Schedule {
                 span_log2,
                 max_tile_depth,
-            } => write!(
-                fmt,
-                "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions where a \
-                 64-bit Morton key resolves {}",
-                Depth::MAX.get(),
-            ),
+            } => schedule(fmt, *span_log2, *max_tile_depth),
             Self::Shape { kind } => write!(
                 fmt,
                 "the {kind} artifact does not hold the serving contract's shape",
@@ -283,11 +300,7 @@ impl fmt::Display for OpenAtlasError {
                 rows,
                 ranks,
                 positions,
-            } => write!(
-                fmt,
-                "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
-                 coordinates, {rows} rows, {ranks} ranks, {positions} positions",
-            ),
+            } => columns(fmt, *codes, *coordinates, *rows, *ranks, *positions),
             Self::Nodes { adjacency, codes } => write!(
                 fmt,
                 "the adjacency spans {adjacency} node rows where the code column holds {codes}",

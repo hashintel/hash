@@ -1,10 +1,9 @@
 //! Wall-time benchmarks for the hard-negative miner's 2D spatial index.
 //!
-//! Mining queries every projected point's k nearest neighbours in the
-//! bounded 2D frame, at both relation-lens extremes, at a configured
-//! cadence: one tick is two index builds plus two full query sweeps,
-//! and each build starts from scratch because every point moves
-//! between ticks. The suite pits `kiddo` against `grid`:
+//! Mining queries every projected point's k nearest neighbours in the bounded 2D frame, at both
+//! relation-lens extremes, at a configured cadence: one tick is two index builds plus two full
+//! query sweeps, and each build starts from scratch because every point moves between ticks. The
+//! suite pits `kiddo` against `grid`:
 //!
 //! - `kiddo`: `ImmutableKdTree`, the miner's index. A balanced kd-tree adapts its partition depth
 //!   to local density, so its query cost is immune to the cluster skew attraction exists to produce
@@ -28,10 +27,10 @@
 //!   shape, which is the unit the training-loop cadence actually spends.
 //!
 //! One more group, `judge`, compares the two access layouts available for vetting mined pairs
-//! (pointwise protection probes against per-row partner merges) over a live-shape relation
-//! corpus and one synthesized sweep's candidates, at a hit-poor and a hit-rich partner rate. The
-//! index layout and the vetting layout are one decision. The vet runs once per mined sweep, right
-//! where the index hands its neighbours over.
+//! (pointwise protection probes against per-row partner merges) over a live-shape relation corpus
+//! and one synthesized sweep's candidates, at a hit-poor and a hit-rich partner rate. The index
+//! layout and the vetting layout are one decision. The vet runs once per mined sweep, right where
+//! the index hands its neighbours over.
 //!
 //! Before the timed groups, one report prints each engine's recall against brute-force ground truth
 //! on sampled queries and the grid's occupancy skew, the number that explains its
@@ -108,15 +107,14 @@ fn points_count() -> usize {
 /// How a fixture distributes points over the frame.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Shape {
-    /// A Gaussian mixture over a uniform background: 256 clusters with
-    /// log-uniform spreads hold 80% of points. The shape a projected
-    /// map takes, and the primary fixture.
+    /// A Gaussian mixture over a uniform background: 256 clusters with log-uniform spreads hold 80%
+    /// of points. The shape a projected map takes, and the primary fixture.
     Clustered,
-    /// Uniform over the frame: the grid's best case, kept as the
-    /// control that shows how much the mixture costs each engine.
+    /// Uniform over the frame: the grid's best case, kept as the control that shows how much the
+    /// mixture costs each engine.
     Uniform,
-    /// One near-coincident blob holds an eighth of all points: the
-    /// bucket-skew stress a coincident-geometry pile-up produces.
+    /// One near-coincident blob holds an eighth of all points: the bucket-skew stress a
+    /// coincident-geometry pile-up produces.
     Pathological,
 }
 
@@ -130,8 +128,7 @@ impl Shape {
     }
 }
 
-/// Synthesizes `count` points under `shape`, deterministically in the
-/// arguments.
+/// Synthesizes `count` points under `shape`, deterministically in the arguments.
 fn synthesize(shape: Shape, count: usize, seed: u64) -> Vec<[f32; 2]> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     let uniform_point =
@@ -266,8 +263,7 @@ impl Grid {
             .unwrap_or(0)
     }
 
-    /// Collects the k nearest points to `query` into `heap`, worst on
-    /// top; exact, self included.
+    /// Collects the k nearest points to `query` into `heap`, worst on top; exact, self included.
     fn nearest(&self, query: [f32; 2], k: usize, heap: &mut BinaryHeap<Candidate>) {
         heap.clear();
         let center_x = ((query[0] / self.cell) as usize).min(self.dim - 1);
@@ -310,8 +306,7 @@ impl Grid {
         }
     }
 
-    /// Visits the in-bounds cells at Chebyshev distance `ring` from
-    /// `(center_x, center_y)`.
+    /// Visits the in-bounds cells at Chebyshev distance `ring` from `(center_x, center_y)`.
     fn ring(&self, center_x: usize, center_y: usize, ring: usize, mut visit: impl FnMut(usize)) {
         if ring == 0 {
             visit(center_y * self.dim + center_x);
@@ -359,8 +354,7 @@ fn build_kiddo(points: &[[f32; 2]]) -> KdTree {
     KdTree::new_from_slice(points)
 }
 
-/// Sums neighbour ids over a full per-point sweep, so the pass has an
-/// observable result.
+/// Sums neighbour ids over a full per-point sweep, so the pass has an observable result.
 fn sweep_grid(grid: &Grid, points: &[[f32; 2]], k: usize) -> u64 {
     let mut heap = BinaryHeap::with_capacity(k);
     let mut sum = 0_u64;
@@ -387,8 +381,7 @@ fn sweep_kiddo(tree: &KdTree, points: &[[f32; 2]], k: usize) -> u64 {
         .sum()
 }
 
-/// Runs one cadence tick: builds and sweeps both lens extremes'
-/// point sets.
+/// Runs one cadence tick: builds and sweeps both lens extremes' point sets.
 fn tick<E>(
     extremes: &[Vec<[f32; 2]>; 2],
     build: impl Fn(&[[f32; 2]]) -> E,
@@ -564,9 +557,8 @@ fn bench_tick(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// One eighth of the measured live link volume; the resulting row
-/// domain times the candidate width lands the sweep in the millions
-/// of probe pairs.
+/// One eighth of the measured live link volume; the resulting row domain times the candidate width
+/// lands the sweep in the millions of probe pairs.
 const JUDGE_LINKS: usize = 275_000;
 
 /// Times the access layouts a mined sweep's protection vetting can take, per hit rate.

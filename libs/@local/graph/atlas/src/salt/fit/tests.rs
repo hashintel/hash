@@ -482,10 +482,6 @@ fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
 
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-#[expect(
-    clippy::too_many_lines,
-    reason = "the completeness proof walks every published artifact in one pass"
-)]
 async fn fit_publishes_a_complete_generation() {
     let path = scratch("complete");
     let root = GenerationRoot::new(&path).expect("the root should open");
@@ -558,16 +554,36 @@ async fn fit_publishes_a_complete_generation() {
     assert_eq!(repository.metadata.evidence.policy.relations, 1);
     assert_eq!(repository.metadata.evidence.policy.overridden, 0);
 
-    // Every row's baseline coordinate is bit-equal to its assigned
-    // landmark's layout coordinate in the published skeleton.
-    let coordinates = ArrayFile::open(published.path().join("coordinates.arr"))
-        .expect("the coordinates should map");
+    assert_rows_sit_on_landmarks(published.path());
+    assert_identities_translate(published.path());
+
+    // The postings restate the fixture's memberships and parent graph
+    // in base delivery order.
+    assert_postings_read_back(published.path(), &repository);
+
+    // No transient state outlives the run: the root holds exactly the
+    // generation and nothing dot-prefixed.
+    let entries: Vec<_> = fs::read_dir(&path)
+        .expect("the root should list")
+        .map(|entry| entry.expect("the entry should read").file_name())
+        .collect();
+    assert_eq!(
+        entries.len(),
+        1,
+        "the root should hold exactly the generation: {entries:?}"
+    );
+}
+
+/// Asserts every row's baseline coordinate is bit-equal to its assigned landmark's layout
+/// coordinate in the published skeleton.
+fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
+    let coordinates =
+        ArrayFile::open(published.join("coordinates.arr")).expect("the coordinates should map");
     let placed = coordinates.points().expect("the coordinates are 2D points");
     assert_eq!(placed.len(), NODES);
 
     let skeleton = LandmarkSkeletonArchive::new(
-        LandmarkFile::open(published.path().join("landmarks.lndm"))
-            .expect("the skeleton should map"),
+        LandmarkFile::open(published.join("landmarks.lndm")).expect("the skeleton should map"),
     )
     .expect("the skeleton should validate");
     assert!(
@@ -581,11 +597,14 @@ async fn fit_publishes_a_complete_generation() {
             }),
         "every row should sit exactly on its assigned landmark",
     );
+}
 
-    // The identity artifacts translate rows to source ids and back:
-    // node ids are the fixture's row numbers, edge ids its 100 and 101.
+/// Asserts the identity artifacts translate rows to source ids and back.
+///
+/// Node ids are the fixture's row numbers, edge ids its 100 and 101.
+fn assert_identities_translate(published: &Utf8Path) {
     let nodes = IdentityTableArchive::<U64<LE>, NodeRowId>::new(
-        IdentityFile::open(published.path().join("node-identities.idnt"))
+        IdentityFile::open(published.join("node-identities.idnt"))
             .expect("the node identities should map"),
     )
     .expect("the node identities should validate");
@@ -605,29 +624,13 @@ async fn fit_publishes_a_complete_generation() {
     assert!(nodes.row_of(U64::new(NODES as u64 + 7)).is_none());
 
     let edge_ids = IdentityTableArchive::<U64<LE>, EdgeRowId>::new(
-        IdentityFile::open(published.path().join("edge-identities.idnt"))
+        IdentityFile::open(published.join("edge-identities.idnt"))
             .expect("the edge identities should map"),
     )
     .expect("the edge identities should validate");
     assert_eq!(edge_ids.len(), 2);
     assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(U64::new(100)));
     assert_eq!(edge_ids.row_of(U64::new(101)), Some(EdgeRowId::new(1)));
-
-    // The postings restate the fixture's memberships and parent graph
-    // in base delivery order.
-    assert_postings_read_back(published.path(), &repository);
-
-    // No transient state outlives the run: the root holds exactly the
-    // generation and nothing dot-prefixed.
-    let entries: Vec<_> = fs::read_dir(&path)
-        .expect("the root should list")
-        .map(|entry| entry.expect("the entry should read").file_name())
-        .collect();
-    assert_eq!(
-        entries.len(),
-        1,
-        "the root should hold exactly the generation: {entries:?}"
-    );
 }
 
 /// Asserts the published postings against the fixture by hand.

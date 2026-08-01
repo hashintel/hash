@@ -4,12 +4,12 @@
 //! iteration certifies the accepted gradient and then runs the exact Newton inner solve. It prices
 //! the resulting candidate against the predicted model reduction and accepts or rejects it by
 //! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
-//! its minimum and an expanded radius requires a validated boundary step. Success is
-//! [`Converged`] - a fresh reserved joint evaluation re-proving the certificate - and every
-//! other terminal is a typed [`SolverFailure`] in the normative precedence order: validation,
-//! accepted-gradient success, outer budget, inner Newton, invalid predicted reduction,
-//! resolution construction, resolution stall, candidate preflight in objective/gradient/row
-//! order, candidate numerical failure, ratio classification, then radius underflow.
+//! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
+//! - a fresh reserved joint evaluation re-proving the certificate - and every other terminal is a
+//! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
+//! success, outer budget, inner Newton, invalid predicted reduction, resolution construction,
+//! resolution stall, candidate preflight in objective/gradient/row order, candidate numerical
+//! failure, ratio classification, then radius underflow.
 //!
 //! One joint traversal stays reserved for the final certificate, and every availability check
 //! excludes it until the success path consumes it, so a solve can always afford to prove the answer
@@ -191,11 +191,6 @@ pub(crate) fn solve(
 }
 
 /// The outer loop over an initialized accepted point.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the outer trust-region loop is one state machine; every stage names its terminal in \
-              place, and splitting it would scatter the loop invariants"
-)]
 fn run(
     problem: &ScaledProblem<'_>,
     accepted: &mut AcceptedPoint,
@@ -210,14 +205,7 @@ fn run(
         let gradient_norm = stable_l2(&accepted.scaled_gradient)
             .ok_or(SolverFailure::NonFiniteAcceptedGradientNorm)?;
 
-        // The threshold derives once from the initial norm, and the first loop pass sees it.
-        let threshold = if let Some(evidence) = certificate {
-            evidence.gradient_threshold
-        } else {
-            let evidence = derive_certificate(config, gradient_norm)?;
-            *certificate = Some(evidence);
-            evidence.gradient_threshold
-        };
+        let threshold = gradient_threshold(config, certificate, gradient_norm)?;
 
         // A passing accepted gradient always returns before the inner solve runs.
         if gradient_norm <= threshold {
@@ -229,25 +217,7 @@ fn run(
         }
         control.outer_iterations_started += 1;
 
-        // A debugging request stores one receipt per started outer iteration; the routine
-        // posture stores none and skips the diagnostic-only arithmetic below with them.
-        let mut recorded = if detail == ReceiptDetail::Digests {
-            receipts.push(OuterReceipt {
-                outer_iteration: control.outer_iterations_started,
-                radius: control.radius,
-                objective: accepted.objective,
-                gradient_norm,
-                digests: StartDigests {
-                    zeta: vector_digest(&accepted.zeta),
-                    gradient: vector_digest(&accepted.scaled_gradient),
-                },
-                counters: control.counters,
-                outcome: OuterOutcome::default(),
-            });
-            receipts.last_mut().map(|receipt| &mut receipt.outcome)
-        } else {
-            None
-        };
+        let mut recorded = start_receipt(receipts, detail, accepted, control, gradient_norm);
 
         let point = problem.point(&accepted.zeta);
         let inner = newton_step(problem, &point, &accepted.scaled_gradient, control)?;
@@ -264,17 +234,7 @@ fn run(
             return Err(SolverFailure::ResolutionStall);
         }
 
-        // Candidate preflight checks one objective-only traversal, one possible accepted-candidate
-        // gradient traversal, and preservation of the final reserve.
-        if control.free_objective_requests(config) < 1 {
-            return Err(SolverFailure::ObjectiveRequestBudget);
-        }
-        if control.free_gradient_requests(config) < 1 {
-            return Err(SolverFailure::GradientRequestBudget);
-        }
-        if control.free_row_traversals(config) < 2 {
-            return Err(SolverFailure::RowPassBudget);
-        }
+        reserve_candidate_requests(control, config)?;
 
         let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
         let trial_point = problem.point(&trial_zeta);
@@ -348,12 +308,92 @@ fn run(
     }
 }
 
+/// Returns the run's gradient threshold, deriving the certificate evidence on the first pass.
+///
+/// The threshold derives once, from the initial scaled-gradient norm, and every later pass reads
+/// the stored evidence.
+///
+/// # Errors
+///
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from the
+/// norm.
+fn gradient_threshold(
+    config: &SolverConfig,
+    certificate: &mut Option<CertificateEvidence>,
+    gradient_norm: f64,
+) -> Result<f64, SolverFailure> {
+    if let Some(evidence) = certificate {
+        return Ok(evidence.gradient_threshold);
+    }
+
+    let evidence = derive_certificate(config, gradient_norm)?;
+    *certificate = Some(evidence);
+    Ok(evidence.gradient_threshold)
+}
+
+/// Stores the started outer iteration's receipt and returns the outcome it records into.
+///
+/// A debugging request stores one receipt per started outer iteration and the returned outcome
+/// collects the iteration's diagnostics; the routine posture stores none and returns [`None`], so
+/// the diagnostic-only arithmetic never runs.
+fn start_receipt<'receipts>(
+    receipts: &'receipts mut Vec<OuterReceipt>,
+    detail: ReceiptDetail,
+    accepted: &AcceptedPoint,
+    control: &SolverControl,
+    gradient_norm: f64,
+) -> Option<&'receipts mut OuterOutcome> {
+    if detail != ReceiptDetail::Digests {
+        return None;
+    }
+
+    receipts.push(OuterReceipt {
+        outer_iteration: control.outer_iterations_started,
+        radius: control.radius,
+        objective: accepted.objective,
+        gradient_norm,
+        digests: StartDigests {
+            zeta: vector_digest(&accepted.zeta),
+            gradient: vector_digest(&accepted.scaled_gradient),
+        },
+        counters: control.counters,
+        outcome: OuterOutcome::default(),
+    });
+    receipts.last_mut().map(|receipt| &mut receipt.outcome)
+}
+
+/// Reserves the requests one candidate evaluation spends.
+///
+/// A candidate costs one objective-only traversal, one possible accepted-candidate gradient
+/// traversal, and preservation of the final reserve.
+///
+/// # Errors
+///
+/// Returns [`SolverFailure::ObjectiveRequestBudget`], [`SolverFailure::GradientRequestBudget`] or
+/// [`SolverFailure::RowPassBudget`] when the corresponding budget cannot cover the candidate.
+const fn reserve_candidate_requests(
+    control: &SolverControl,
+    config: &SolverConfig,
+) -> Result<(), SolverFailure> {
+    if control.free_objective_requests(config) < 1 {
+        return Err(SolverFailure::ObjectiveRequestBudget);
+    }
+    if control.free_gradient_requests(config) < 1 {
+        return Err(SolverFailure::GradientRequestBudget);
+    }
+    if control.free_row_traversals(config) < 2 {
+        return Err(SolverFailure::RowPassBudget);
+    }
+
+    Ok(())
+}
+
 /// Derives the certificate evidence from the initial scaled-gradient norm.
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from
-/// the norm.
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from the
+/// norm.
 pub(super) fn derive_certificate(
     config: &SolverConfig,
     initial_norm: f64,
@@ -367,12 +407,12 @@ pub(super) fn derive_certificate(
     })
 }
 
-/// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product
-/// alone, recording the inner-step summaries when the solve stores a receipt.
+/// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product alone,
+/// recording the inner-step summaries when the solve stores a receipt.
 ///
 /// The dots are algorithm inputs and always compute; the norms are diagnostic-only and compute
-/// solely for a stored receipt. A failed dot yields NaN, which the caller classifies as an
-/// invalid predicted reduction.
+/// solely for a stored receipt. A failed dot yields NaN, which the caller classifies as an invalid
+/// predicted reduction.
 fn record_inner_step(
     recorded: Option<&mut OuterOutcome>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
@@ -402,9 +442,9 @@ fn record_inner_step(
 
 /// Applies one rejection to the control state.
 ///
-/// The streak counter is a reported diagnostic only: no budget bounds it, because radius
-/// underflow always arrives first under any shrink factor at or below `0.4` over the default
-/// twelve-decade radius band.
+/// The streak counter is a reported diagnostic only: no budget bounds it, because radius underflow
+/// always arrives first under any shrink factor at or below `0.4` over the default twelve-decade
+/// radius band.
 ///
 /// # Errors
 ///

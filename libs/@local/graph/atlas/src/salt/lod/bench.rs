@@ -2016,13 +2016,13 @@ impl WalkBench {
             level_out.clear();
             let step = self.rank_level(
                 plan,
-                level,
-                x >> shift,
-                y >> shift,
-                column,
-                &represented,
-                &mut scratch,
-                &mut level_out,
+                RankLevel {
+                    address: (level, x >> shift, y >> shift),
+                    column,
+                    represented: &represented,
+                    scratch: &mut scratch,
+                    out: &mut level_out,
+                },
             );
             scanned += step.scanned;
 
@@ -2043,7 +2043,16 @@ impl WalkBench {
             );
         }
 
-        let step = self.rank_level(plan, z, x, y, column, &represented, &mut scratch, own);
+        let step = self.rank_level(
+            plan,
+            RankLevel {
+                address: (z, x, y),
+                column,
+                represented: &represented,
+                scratch: &mut scratch,
+                out: own,
+            },
+        );
 
         ChainOutcome {
             own: Selection {
@@ -2065,22 +2074,14 @@ impl WalkBench {
     /// # Panics
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "the level's address, its view, the chain's state, its scratch, and its output \
-                  are five separate things a chain step needs and none of them group"
-    )]
-    fn rank_level(
-        &self,
-        plan: RankPlan,
-        z: u8,
-        x: u32,
-        y: u32,
-        column: &VisibleColumn,
-        represented: &[u64],
-        scratch: &mut RankScratch,
-        out: &mut Vec<u32>,
-    ) -> RankStep {
+    fn rank_level(&self, plan: RankPlan, level: RankLevel<'_>) -> RankStep {
+        let RankLevel {
+            address: (z, x, y),
+            column,
+            represented,
+            scratch,
+            out,
+        } = level;
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
@@ -2125,41 +2126,17 @@ impl WalkBench {
             if refinement.order != RefineOrder::Whole && depth < Depth::MAX {
                 let finer =
                     Depth::new(depth.get() + 1).expect("a depth below the maximum has a successor");
-                let mut order = core::mem::take(&mut scratch.order);
-                order.clear();
-                order.extend(0..cells.len());
-                if refinement.order == RefineOrder::Population {
-                    order.sort_by_key(|&index| (Reverse(cells[index].len()), index));
-                }
-
-                scratch.split.clear();
-                scratch.split.resize(cells.len(), false);
-                let mut remaining = budget.saturating_sub(target);
-                for &index in &order {
-                    let leaf = cells[index].clone();
-                    if leaf.len() < 2 {
-                        continue;
-                    }
-                    column.split(leaf.clone(), finer, &mut scratch.children);
-                    scanned += scratch.children.len();
-                    if scratch.children.len() < 2 {
-                        continue;
-                    }
-
-                    let wanted = needing(column, &scratch.children, represented, finer);
-                    let held =
-                        usize::from(!holds(represented, column.cell_of_slice(leaf.start, depth)));
-                    let growth = wanted - held;
-                    if growth > remaining {
-                        continue;
-                    }
-
-                    remaining -= growth;
-                    target += growth;
-                    deepened += 1;
-                    scratch.split[index] = true;
-                }
-                scratch.order = order;
+                let deepening = rank_deepen(
+                    (refinement.order, budget.saturating_sub(target)),
+                    column,
+                    represented,
+                    &cells,
+                    (depth, finer),
+                    scratch,
+                );
+                target += deepening.0;
+                deepened = deepening.1;
+                scanned += deepening.2;
             }
         }
 
@@ -2619,12 +2596,14 @@ impl WalkBench {
             level_out.clear();
             let step = self.served_level(
                 plan,
-                (level, level_x, level_y),
-                generation,
-                &ranges,
-                &represented,
-                &mut scratch,
-                &mut level_out,
+                ServedLevel {
+                    address: (level, level_x, level_y),
+                    generation,
+                    ranges: &ranges,
+                    represented: &represented,
+                    scratch: &mut scratch,
+                    out: &mut level_out,
+                },
             );
             scanned += step.scanned;
 
@@ -2651,12 +2630,14 @@ impl WalkBench {
         ranges = generation.narrowed(cell, &ranges, &self.codes);
         let step = self.served_level(
             plan,
-            (z, x, y),
-            generation,
-            &ranges,
-            &represented,
-            &mut scratch,
-            own,
+            ServedLevel {
+                address: (z, x, y),
+                generation,
+                ranges: &ranges,
+                represented: &represented,
+                scratch: &mut scratch,
+                out: own,
+            },
         );
 
         ChainOutcome {
@@ -2684,21 +2665,15 @@ impl WalkBench {
     /// # Panics
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "the level's address, its generation, the chain's state, its scratch, and its \
-                  output are five separate things a chain step needs and none of them group"
-    )]
-    fn served_level(
-        &self,
-        plan: RankPlan,
-        address: (u8, u32, u32),
-        generation: &ServedGeneration,
-        ranges: &Ranges,
-        represented: &[u64],
-        scratch: &mut ServedScratch,
-        out: &mut Vec<u32>,
-    ) -> RankStep {
+    fn served_level(&self, plan: RankPlan, level: ServedLevel<'_>) -> RankStep {
+        let ServedLevel {
+            address,
+            generation,
+            ranges,
+            represented,
+            scratch,
+            out,
+        } = level;
         let (z, x, y) = address;
         assert!(
             z <= self.max_zoom,
@@ -2752,42 +2727,11 @@ impl WalkBench {
             reads += deepening.2;
         }
 
-        let start = out.len();
-        let mut at = 0_usize;
-        for index in 0..cells {
-            let (key, position) = scratch.candidates[index];
-            if !scratch.split[index] {
-                if !scratch.occupied[index] {
-                    out.push(position);
-                }
-                continue;
-            }
-
-            let parent = MortonKey::from_bits(key).cell(depth);
-            let (low, high) = (parent.min_key().to_bits(), parent.max_key().to_bits());
-            let tested = scratch.wanted[index] < scratch.children[index];
-            while at < scratch.finer.len() && scratch.finer[at].0 < low {
-                at += 1;
-            }
-
-            let mut parent_delivered = false;
-            while at < scratch.finer.len() && scratch.finer[at].0 <= high {
-                let (child_key, child_position) = scratch.finer[at];
-                if !parent_delivered && key < child_key {
-                    deliver_child(key, position, tested, extent.held, finer, out);
-                    parent_delivered = true;
-                }
-                deliver_child(child_key, child_position, tested, extent.held, finer, out);
-                at += 1;
-            }
-            if !parent_delivered {
-                deliver_child(key, position, tested, extent.held, finer, out);
-            }
-        }
+        let delivered = deliver_grid(extent.held, (depth, finer), cells, scratch, out);
 
         RankStep {
             target,
-            delivered: out.len() - start,
+            delivered,
             refined: depth.get() - cut.get(),
             deepened,
             scanned: reads,
@@ -3691,6 +3635,23 @@ struct ServedScratch {
     split: Vec<bool>,
 }
 
+/// The per-level inputs and outputs of one served chain step.
+#[derive(Debug)]
+struct ServedLevel<'level> {
+    /// The level's tile address, `(z, x, y)`.
+    address: (u8, u32, u32),
+    /// The generation the level reads its grid and representatives out of.
+    generation: &'level ServedGeneration,
+    /// The level extent's per-bucket ranges of the generation.
+    ranges: &'level Ranges,
+    /// The chain's deliveries so far, ascending by key.
+    represented: &'level [u64],
+    /// The buffers the level plans its grid in.
+    scratch: &'level mut ServedScratch,
+    /// The delivery the level appends its representatives to.
+    out: &'level mut Vec<u32>,
+}
+
 /// The buffers one rank-representative chain reuses across its levels.
 #[derive(Debug, Default)]
 struct RankScratch {
@@ -3704,6 +3665,21 @@ struct RankScratch {
     order: Vec<usize>,
     /// Whether a partial refinement took each cell one level further.
     split: Vec<bool>,
+}
+
+/// The per-level inputs and outputs of one rank-representative chain step.
+#[derive(Debug)]
+struct RankLevel<'level> {
+    /// The level's tile address, `(z, x, y)`.
+    address: (u8, u32, u32),
+    /// The visible view the level scans.
+    column: &'level VisibleColumn,
+    /// The chain's deliveries so far, ascending by key.
+    represented: &'level [u64],
+    /// The buffers the level plans its grid in.
+    scratch: &'level mut RankScratch,
+    /// The delivery the level appends its representatives to.
+    out: &'level mut Vec<u32>,
 }
 
 /// Delivers the slice's representative when no chain delivery already sits in its cell.
@@ -3722,6 +3698,61 @@ fn represent(
     out.push(column.representative(range));
 
     true
+}
+
+/// Marks the grid cells a partial refinement takes one level further.
+///
+/// Returns the count the deepening adds to the level's target, the cells it deepened, and the
+/// column entries it read. A cell of fewer than two points, and a cell whose finer split holds a
+/// single child, stay whole: deepening either one adds no representative.
+fn rank_deepen(
+    spending: (RefineOrder, usize),
+    column: &VisibleColumn,
+    represented: &[u64],
+    cells: &[Range<usize>],
+    grid: (Depth, Depth),
+    scratch: &mut RankScratch,
+) -> (usize, usize, usize) {
+    let (order_of, mut remaining) = spending;
+    let (depth, finer) = grid;
+    let mut order = core::mem::take(&mut scratch.order);
+    order.clear();
+    order.extend(0..cells.len());
+    if order_of == RefineOrder::Population {
+        order.sort_by_key(|&index| (Reverse(cells[index].len()), index));
+    }
+
+    scratch.split.clear();
+    scratch.split.resize(cells.len(), false);
+    let mut added = 0_usize;
+    let mut deepened = 0_usize;
+    let mut scanned = 0_usize;
+    for &index in &order {
+        let leaf = cells[index].clone();
+        if leaf.len() < 2 {
+            continue;
+        }
+        column.split(leaf.clone(), finer, &mut scratch.children);
+        scanned += scratch.children.len();
+        if scratch.children.len() < 2 {
+            continue;
+        }
+
+        let wanted = needing(column, &scratch.children, represented, finer);
+        let held = usize::from(!holds(represented, column.cell_of_slice(leaf.start, depth)));
+        let growth = wanted - held;
+        if growth > remaining {
+            continue;
+        }
+
+        remaining -= growth;
+        added += growth;
+        deepened += 1;
+        scratch.split[index] = true;
+    }
+    scratch.order = order;
+
+    (added, deepened, scanned)
 }
 
 /// Counts the cells no chain delivery lies inside.
@@ -3907,6 +3938,55 @@ fn children_of(
         children.push(count);
         wanted.push(count - distinct_prefixes(&held[held_from..mark], finer));
     }
+}
+
+/// Delivers the level's grid and returns the points it delivered.
+///
+/// A whole cell delivers its representative when no chain delivery sits in it. A deepened cell
+/// delivers its own representative and its occupied children's, ascending by key, so the delivery
+/// stays in key order across the depths one level mixes.
+fn deliver_grid(
+    held: &[u64],
+    grid: (Depth, Depth),
+    cells: usize,
+    scratch: &ServedScratch,
+    out: &mut Vec<u32>,
+) -> usize {
+    let (depth, finer) = grid;
+    let start = out.len();
+    let mut at = 0_usize;
+    for index in 0..cells {
+        let (key, position) = scratch.candidates[index];
+        if !scratch.split[index] {
+            if !scratch.occupied[index] {
+                out.push(position);
+            }
+            continue;
+        }
+
+        let parent = MortonKey::from_bits(key).cell(depth);
+        let (low, high) = (parent.min_key().to_bits(), parent.max_key().to_bits());
+        let tested = scratch.wanted[index] < scratch.children[index];
+        while at < scratch.finer.len() && scratch.finer[at].0 < low {
+            at += 1;
+        }
+
+        let mut parent_delivered = false;
+        while at < scratch.finer.len() && scratch.finer[at].0 <= high {
+            let (child_key, child_position) = scratch.finer[at];
+            if !parent_delivered && key < child_key {
+                deliver_child(key, position, tested, held, finer, out);
+                parent_delivered = true;
+            }
+            deliver_child(child_key, child_position, tested, held, finer, out);
+            at += 1;
+        }
+        if !parent_delivered {
+            deliver_child(key, position, tested, held, finer, out);
+        }
+    }
+
+    out.len() - start
 }
 
 /// Delivers one child cell's representative when no chain delivery sits in the child.

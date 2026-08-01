@@ -1,10 +1,9 @@
 //! Wall-time benchmarks for the relation-index build under skew.
 //!
-//! The build's parallel design makes claims that only hold or fail at
-//! realistic scale and volume concentration; each group here measures
-//! one of them, over corpora synthesized at the live store's measured
-//! shape (2.2M links, 17 relation types, the base type owning half of
-//! all instances, Zipf-hubbed targets):
+//! The build's parallel design makes claims that only hold or fail at realistic scale and volume
+//! concentration; each group here measures one of them, over corpora synthesized at the live
+//! store's measured shape (2.2M links, 17 relation types, the base type owning half of all
+//! instances, Zipf-hubbed targets):
 //!
 //! - `build`: full-build wall time across the live, uniform, and single-mega-relation profiles. The
 //!   profiles share endpoints, volume, and policies, so a spread between them is the cost of skew
@@ -18,8 +17,8 @@
 //!
 //! Timings run at 1/8 of live scale by default so a full sweep stays in minutes. Set
 //! `RELATION_BENCH_LINKS` (e.g. to `2200000`) for live-scale headline numbers. Wall time on rayon
-//! passes depends on the host's core count and topology. Compare numbers within one
-//! machine, not across.
+//! passes depends on the host's core count and topology. Compare numbers within one machine, not
+//! across.
 //!
 //! Before the timed groups, one report prints the pruned-edge and omitted-mass outcomes of a
 //! pruning-threshold sweep on the live profile. A threshold is admissible while the omitted mass
@@ -151,9 +150,8 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
 
 /// Emission response to the chunk size, on the mega profile.
 ///
-/// The mega profile gives group-level parallelism nothing to hide
-/// behind, so the emission pass rides on chunking alone - the sharpest
-/// view of the flat-response claim.
+/// The mega profile gives group-level parallelism nothing to hide behind, so the emission pass
+/// rides on chunking alone - the sharpest view of the flat-response claim.
 fn bench_chunk_sensitivity(criterion: &mut Criterion) {
     let corpus = corpus(Profile::Mega);
     let production = production_chunk();

@@ -16,6 +16,7 @@ use super::{
     secret::WireSecret,
 };
 use crate::{
+    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
@@ -27,7 +28,9 @@ use crate::{
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
-    identity::{BasePosition, Column, EdgeRowId, Element, ImportanceRank, NodeRowId},
+    identity::{
+        BasePosition, Column, EdgeRowId, Element, ImportanceRank, NodeRowId, OntologyRowId,
+    },
     math::{Bounds2, Vec2},
     salt::{
         adjacency::AdjacencyArchive,
@@ -55,6 +58,172 @@ pub struct OpenOptions {
     pub wire_secret: WireSecret,
 }
 
+/// One generation's serving artifacts, each mapped and validated against its own format.
+///
+/// The columns share one base order and the archives share the domains that order indexes, so a
+/// value of this type holds artifacts that are individually well-formed and not yet known to agree
+/// with one another. [`Artifacts::agree`] is that second proof, and the serving state derives only
+/// after it holds.
+#[derive(Debug)]
+struct Artifacts {
+    quad: QuadFile,
+    morton: MortonFile,
+    /// The wire-coordinate column in base order.
+    points: Column<BasePosition, Vec2>,
+    /// The row column in base order: the node universe's permutation.
+    rows: Column<BasePosition, NodeRowId>,
+    adjacency: AdjacencyArchive,
+    /// The endpoint column mapping each edge row to `[source, target]`.
+    endpoints: Column<EdgeRowId, [NodeRowId; 2]>,
+    /// The rank column in base order.
+    ranks: Column<BasePosition, ImportanceRank>,
+    /// The position permutation in row order.
+    positions_of_row: Column<NodeRowId, BasePosition>,
+    postings: PostingsArchive,
+    closure: ClosureMap,
+    /// The ontology identity table, joining type uuids to ontology rows.
+    ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
+    /// The node identity table, joining node rows to entity identities.
+    node_ids: IdentityTableArchive<ArchivedEntityId, NodeRowId>,
+    /// The edge identity table, joining edge rows to link-entity identities.
+    edge_ids: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
+}
+
+impl Artifacts {
+    /// Maps every serving artifact of `generation` and validates each format once.
+    ///
+    /// # Errors
+    ///
+    /// Returns a per-artifact variant when an artifact fails its format's validation, and
+    /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape.
+    fn open(generation: &Generation) -> Result<Self, OpenAtlasError> {
+        let files = &generation.repository().files;
+
+        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
+        let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
+        let points: Column<BasePosition, Vec2> =
+            open_column(generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
+        let rows: Column<BasePosition, NodeRowId> =
+            open_column(generation, &files.row_of_position, ArrayKind::Rows)?;
+        let endpoints: Column<EdgeRowId, [NodeRowId; 2]> =
+            open_column(generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
+        let ranks: Column<BasePosition, ImportanceRank> =
+            open_column(generation, &files.rank_of_position, ArrayKind::Ranks)?;
+        let positions_of_row: Column<NodeRowId, BasePosition> =
+            open_column(generation, &files.position_of_row, ArrayKind::Positions)?;
+        let adjacency =
+            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
+        let postings = PostingsArchive::new(PostingsFile::open(
+            generation.path_of(&files.postings.name),
+        )?)?;
+        let closure = ClosureMap::new(&postings)?;
+        let ontology_ids = open_identities(
+            generation,
+            &files.ontology_identities,
+            IdentityDomain::Ontology,
+        )?;
+        let node_ids = open_identities(generation, &files.node_identities, IdentityDomain::Node)?;
+        let edge_ids = open_identities(generation, &files.edge_identities, IdentityDomain::Edge)?;
+
+        Ok(Self {
+            quad,
+            morton,
+            points,
+            rows,
+            adjacency,
+            endpoints,
+            ranks,
+            positions_of_row,
+            postings,
+            closure,
+            ontology_ids,
+            node_ids,
+            edge_ids,
+        })
+    }
+
+    /// Proves the artifacts agree on every domain they share.
+    ///
+    /// The morton column's code count is the point domain, the adjacency spans the node and edge
+    /// domains, and the identity tables join to both. The pass checks every shared domain once, so
+    /// the read paths index across artifacts without re-validating.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpenAtlasError::Columns`], [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`],
+    /// [`OpenAtlasError::Subtree`], [`OpenAtlasError::Points`], [`OpenAtlasError::Types`],
+    /// [`OpenAtlasError::Identities`] or [`OpenAtlasError::EdgeIdentities`] when two artifacts
+    /// disagree on a count, and [`OpenAtlasError::EdgeUniverse`] when the edge rows exceed the
+    /// `u32` edge-row domain.
+    fn agree(&self) -> Result<(), OpenAtlasError> {
+        let codes = self.morton.count();
+        if self.points.len() as u64 != codes
+            || self.rows.len() as u64 != codes
+            || self.ranks.len() as u64 != codes
+            || self.positions_of_row.len() as u64 != codes
+        {
+            return Err(OpenAtlasError::Columns {
+                codes,
+                coordinates: self.points.len() as u64,
+                rows: self.rows.len() as u64,
+                ranks: self.ranks.len() as u64,
+                positions: self.positions_of_row.len() as u64,
+            });
+        }
+        if self.adjacency.rows() != codes {
+            return Err(OpenAtlasError::Nodes {
+                adjacency: self.adjacency.rows(),
+                codes,
+            });
+        }
+        if self.endpoints.len() as u64 != self.adjacency.edges() {
+            return Err(OpenAtlasError::Edges {
+                adjacency: self.adjacency.edges(),
+                endpoints: self.endpoints.len() as u64,
+            });
+        }
+        if let Some(root_node) = self.quad.nodes().first()
+            && u64::from(root_node.points()) != codes
+        {
+            return Err(OpenAtlasError::Subtree {
+                quad: u64::from(root_node.points()),
+                codes,
+            });
+        }
+        if self.postings.points() != codes {
+            return Err(OpenAtlasError::Points {
+                postings: self.postings.points(),
+                codes,
+            });
+        }
+        if self.ontology_ids.len() != self.postings.types() {
+            return Err(OpenAtlasError::Types {
+                postings: self.postings.types(),
+                identities: self.ontology_ids.len(),
+            });
+        }
+        if self.node_ids.len() != codes {
+            return Err(OpenAtlasError::Identities {
+                identities: self.node_ids.len(),
+                codes,
+            });
+        }
+        if self.edge_ids.len() != self.adjacency.edges() {
+            return Err(OpenAtlasError::EdgeIdentities {
+                identities: self.edge_ids.len(),
+                edges: self.adjacency.edges(),
+            });
+        }
+        if u32::try_from(self.adjacency.edges()).is_err() {
+            return Err(OpenAtlasError::EdgeUniverse {
+                edges: self.adjacency.edges(),
+            });
+        }
+
+        Ok(())
+    }
+}
+
 impl Atlas {
     /// Opens generation `id` from `root` and maps every serving artifact.
     ///
@@ -70,10 +239,6 @@ impl Atlas {
     /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when the artifacts disagree on
     /// the point count.
     #[tracing::instrument(skip_all)]
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one linear pass: map, validate, derive, construct"
-    )]
     pub fn open(
         root: &GenerationRoot,
         id: GenerationId,
@@ -86,101 +251,25 @@ impl Atlas {
             }
         })?;
 
-        let files = &generation.repository().files;
-
-        let quad = QuadFile::open(generation.path_of(&files.quad.name))?;
-        let morton = MortonFile::open(generation.path_of(&files.morton.name))?;
-        let points: Column<BasePosition, Vec2> =
-            open_column(&generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
-        let rows: Column<BasePosition, NodeRowId> =
-            open_column(&generation, &files.row_of_position, ArrayKind::Rows)?;
-        let endpoints: Column<EdgeRowId, [NodeRowId; 2]> =
-            open_column(&generation, &files.edge_endpoints, ArrayKind::Endpoints)?;
-        let ranks: Column<BasePosition, ImportanceRank> =
-            open_column(&generation, &files.rank_of_position, ArrayKind::Ranks)?;
-        let positions_of_row: Column<NodeRowId, BasePosition> =
-            open_column(&generation, &files.position_of_row, ArrayKind::Positions)?;
-        let adjacency =
-            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name))?)?;
-        let postings = PostingsArchive::new(PostingsFile::open(
-            generation.path_of(&files.postings.name),
-        )?)?;
-        let closure = ClosureMap::new(&postings)?;
-        let ontology_ids = open_identities(
-            &generation,
-            &files.ontology_identities,
-            IdentityDomain::Ontology,
-        )?;
-        let node_ids = open_identities(&generation, &files.node_identities, IdentityDomain::Node)?;
-        let edge_ids = open_identities(&generation, &files.edge_identities, IdentityDomain::Edge)?;
-
+        let artifacts = Artifacts::open(&generation)?;
         let grid = Grid::new(generation.repository().metadata.reproducibility.config.lod)?;
+        artifacts.agree()?;
 
-        // Cross-artifact agreement: this pass checks every shared domain once, so the read paths
-        // index across artifacts without re-validating.
-        let codes = morton.count();
-        if points.len() as u64 != codes
-            || rows.len() as u64 != codes
-            || ranks.len() as u64 != codes
-            || positions_of_row.len() as u64 != codes
-        {
-            return Err(OpenAtlasError::Columns {
-                codes,
-                coordinates: points.len() as u64,
-                rows: rows.len() as u64,
-                ranks: ranks.len() as u64,
-                positions: positions_of_row.len() as u64,
-            });
-        }
-        if adjacency.rows() != codes {
-            return Err(OpenAtlasError::Nodes {
-                adjacency: adjacency.rows(),
-                codes,
-            });
-        }
-        if endpoints.len() as u64 != adjacency.edges() {
-            return Err(OpenAtlasError::Edges {
-                adjacency: adjacency.edges(),
-                endpoints: endpoints.len() as u64,
-            });
-        }
-        if let Some(root_node) = quad.nodes().first()
-            && u64::from(root_node.points()) != codes
-        {
-            return Err(OpenAtlasError::Subtree {
-                quad: u64::from(root_node.points()),
-                codes,
-            });
-        }
-        if postings.points() != codes {
-            return Err(OpenAtlasError::Points {
-                postings: postings.points(),
-                codes,
-            });
-        }
-        if ontology_ids.len() != postings.types() {
-            return Err(OpenAtlasError::Types {
-                postings: postings.types(),
-                identities: ontology_ids.len(),
-            });
-        }
-        if node_ids.len() != codes {
-            return Err(OpenAtlasError::Identities {
-                identities: node_ids.len(),
-                codes,
-            });
-        }
-        if edge_ids.len() != adjacency.edges() {
-            return Err(OpenAtlasError::EdgeIdentities {
-                identities: edge_ids.len(),
-                edges: adjacency.edges(),
-            });
-        }
-        if u32::try_from(adjacency.edges()).is_err() {
-            return Err(OpenAtlasError::EdgeUniverse {
-                edges: adjacency.edges(),
-            });
-        }
+        let Artifacts {
+            quad,
+            morton,
+            points,
+            rows,
+            adjacency,
+            endpoints,
+            ranks,
+            positions_of_row,
+            postings,
+            closure,
+            ontology_ids,
+            node_ids,
+            edge_ids,
+        } = artifacts;
 
         // The row column is the node universe's permutation, so its validated length is the
         // codec's `N`. Edges cross the wire as link-entity identities and need no codec.
@@ -198,7 +287,7 @@ impl Atlas {
             .collect();
 
         let world = generation.repository().metadata.evidence.lod.world;
-        let bounds = (codes > 0).then(|| frame_extent(world));
+        let bounds = (morton.count() > 0).then(|| frame_extent(world));
 
         Ok(Self {
             generation,

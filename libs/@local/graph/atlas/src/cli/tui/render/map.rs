@@ -39,9 +39,9 @@ const MINIMUM_EXTENT: f32 = 1.0;
 
 /// Draws the placement itself, the sampled rows as braille dots with the skeleton picked out.
 ///
-/// The map is the run's shape becoming true - a cloud that starts as noise around the landmarks
-/// and pulls itself into the atlas the fit will publish. It shows the sample the observer asked
-/// for, not the corpus: at braille resolution a pane forty columns wide resolves seventy-six dots
+/// The map is the run's shape becoming true - a cloud that starts as noise around the landmarks and
+/// pulls itself into the atlas the fit will publish. It shows the sample the observer asked for,
+/// not the corpus: at braille resolution a pane forty columns wide resolves seventy-six dots
 /// across, two per column of the thirty-eight its border leaves. A few thousand points is already
 /// more than the frame can separate.
 pub(super) fn render_map(frame: &mut Frame, area: Rect, placement: &PlacementMap) {
