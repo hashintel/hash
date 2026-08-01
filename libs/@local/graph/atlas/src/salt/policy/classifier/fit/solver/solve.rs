@@ -5,7 +5,7 @@
 //! the resulting candidate against the predicted model reduction and accepts or rejects it by
 //! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
 //! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
-//! - a fresh reserved joint evaluation re-proving the certificate - and every other terminal is a
+//! (a fresh reserved joint evaluation re-proving the certificate) and every other terminal is a
 //! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
 //! success, outer budget, inner Newton, invalid predicted reduction, resolution construction,
 //! resolution stall, candidate preflight in objective/gradient/row order, candidate numerical
