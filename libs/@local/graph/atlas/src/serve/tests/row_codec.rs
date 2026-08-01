@@ -279,9 +279,9 @@ mod codec_reference {
 
         /// Applies the inverse network once.
         ///
-        /// Derived from the round's own algebra: the output `(L', R')` of round `i` determines
-        /// its input as `R = L'` and `L = R' xor F_i(L')`, so the inverse walks the keys in
-        /// reverse, recovering each round's input from its output.
+        /// Derived from the round's own algebra: the output `(L', R')` of round `i` determines its
+        /// input as `R = L'` and `L = R' xor F_i(L')`, so the inverse walks the keys in reverse,
+        /// recovering each round's input from its output.
         fn unpermute(&self, mut state: u32) -> u32 {
             for key in self.keys.iter().rev() {
                 let out_left = state >> 16;

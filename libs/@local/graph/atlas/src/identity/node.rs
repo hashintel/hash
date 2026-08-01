@@ -7,8 +7,7 @@ use hashql_core::id::Id as _;
 hashql_core::id::newtype! {
     /// A reference to a node by its position in [`Dataset::nodes`].
     ///
-    /// Rows are dense and zero-based: the value is the position of the referenced node in the stream.
-    /// The little-endian representation is the persisted form, so an artifact file stores a column of these ids with no conversion on write or read.
+    /// Rows are dense and zero-based: the value is the position of the referenced node in the stream. The little-endian representation is the persisted form, so an artifact file stores a column of these ids with no conversion on write or read.
     ///
     /// [`Dataset::nodes`]: crate::dataset::Dataset::nodes
     #[derive(

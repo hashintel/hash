@@ -141,7 +141,7 @@ pub enum ServeError {
     Current(CurrentError),
     /// The root holds no activated generation.
     Missing,
-    /// The invocation supplies no wire secret.
+    /// Neither the flag nor the environment supplies a wire secret.
     Secret,
     /// The active generation's artifacts could not open.
     Open(OpenAtlasError),

@@ -502,9 +502,8 @@ fn affinity_is_a_monotone_probability(
 
 /// Attraction pulls `from` toward `to`, and repulsion pushes it away.
 ///
-/// For distinct points, the attraction gradient is anti-parallel to the difference vector and
-/// the repulsion gradient is parallel. The separation floor keeps the coefficients away from
-/// underflow.
+/// For distinct points, the attraction gradient is anti-parallel to the difference vector and the
+/// repulsion gradient is parallel. The separation floor keeps the coefficients away from underflow.
 #[property_test]
 fn gradients_align_with_the_difference_vector(
     #[strategy = point_strategy()] from: Vec2,

@@ -25,10 +25,10 @@ mod ulp_sweep;
 
 /// Aborts when the running CPU cannot execute the compiled instruction set.
 ///
-/// x86-64 builds carry the workspace's x86-64-v3 baseline (AVX2, FMA, BMI2), so on an older
-/// machine the process would otherwise die on an illegal instruction at an arbitrary point. This
-/// check turns that into a diagnosable failure at process entry; on targets whose baseline needs
-/// no runtime support (aarch64) it compiles to nothing.
+/// x86-64 builds carry the workspace's x86-64-v3 baseline (AVX2, FMA, BMI2), so on an older machine
+/// the process would otherwise die on an illegal instruction at an arbitrary point. This check
+/// turns that into a diagnosable failure at process entry; on targets whose baseline needs no
+/// runtime support (aarch64) it compiles to nothing.
 ///
 /// # Panics
 ///

@@ -1,8 +1,8 @@
 //! The full-visibility deliveries.
 //!
 //! With every row visible, a tile's delivered set is contiguous in base order: the cascade sort
-//! placed each bucket's points in one code-column run per cell, so delivery is range assembly
-//! over the fenceposts and the quad node's recorded run - no per-point work at all.
+//! placed each bucket's points in one code-column run per cell, so delivery is range assembly over
+//! the fenceposts and the quad node's recorded run - no per-point work at all.
 
 use core::ops::Range;
 

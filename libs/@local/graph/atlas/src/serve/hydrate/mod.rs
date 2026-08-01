@@ -55,12 +55,12 @@
 //! trailer reports completeness (nothing filtered, nothing capped) per entity from that count.
 //!
 //! An id that resolves to no visible entity - deleted since publish, archived, drafted - reads
-//! `null` in every column and `false` in every completeness flag, mirroring the zero-mask rule
-//! for unresolvable type ids.
+//! `null` in every column and `false` in every completeness flag, mirroring the zero-mask rule for
+//! unresolvable type ids.
 //!
-//! The module splits by altitude: [`columns`] is the hydrated data model the documents and
-//! encoders read, [`client`] is the store boundary - the queries and the one async seam - and
-//! [`select`] is the pure property-selection policy.
+//! The module splits by altitude: [`columns`] is the hydrated data model the documents and encoders
+//! read, [`client`] is the store boundary - the queries and the one async seam - and [`select`] is
+//! the pure property-selection policy.
 
 mod client;
 mod columns;

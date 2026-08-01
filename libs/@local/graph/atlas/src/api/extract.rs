@@ -1,12 +1,12 @@
 //! Extractors whose rejections are problem documents.
 //!
 //! The framework's own extractors answer plain-text rejections, which breaks the API's
-//! every-error-is-a-problem-document contract. [`Body`] wraps JSON request bodies - an absent
-//! body answers the `missing-body` problem, a body that is not the operation's JSON answers
-//! `invalid-body`. [`Coordinates`] wraps the numeric tile-address segments so an unparsable
-//! `z/x/y` answers `invalid-coordinate`, and [`Generation`] wraps the generation-bearing
-//! segments so a malformed generation id answers `invalid-generation`. All three delegate their
-//! OpenAPI schemas to the extractor they wrap, so the documented contract stays unchanged.
+//! every-error-is-a-problem-document contract. [`Body`] wraps JSON request bodies - an absent body
+//! answers the `missing-body` problem, a body that is not the operation's JSON answers
+//! `invalid-body`. [`Coordinates`] wraps the numeric tile-address segments so an unparsable `z/x/y`
+//! answers `invalid-coordinate`, and [`Generation`] wraps the generation-bearing segments so a
+//! malformed generation id answers `invalid-generation`. All three delegate their OpenAPI schemas
+//! to the extractor they wrap, so the documented contract stays unchanged.
 
 #![expect(
     clippy::field_scoped_visibility_modifiers,
@@ -81,8 +81,8 @@ impl<T: JsonSchema> OperationInput for Body<T> {
 /// The `invalid-body` problem for one JSON rejection.
 ///
 /// The framework's status survives - a syntax error stays 400, a wrong content type 415, an
-/// oversize body 413 - and its message rides as the detail: parse positions and expected
-/// shapes are the crate's contract-safe request echoes.
+/// oversize body 413 - and its message rides as the detail: parse positions and expected shapes are
+/// the crate's contract-safe request echoes.
 fn invalid_body(rejection: &JsonRejection) -> Problem<'static> {
     Problem::new(
         rejection.status(),
@@ -126,9 +126,9 @@ impl<T: JsonSchema> OperationInput for Coordinates<T> {
 
 /// The generation-bearing path segments, whose parse failure answers `invalid-generation`.
 ///
-/// [`Path`] with the rejection routed into the problem surface. A generation segment that is not
-/// a sha256 generation id answers 400 with the parse failure as its detail, while a well-formed
-/// id the process does not serve stays the handler's 404.
+/// [`Path`] with the rejection routed into the problem surface. A generation segment that is not a
+/// sha256 generation id answers 400 with the parse failure as its detail, while a well-formed id
+/// the process does not serve stays the handler's 404.
 #[derive(Debug)]
 pub(super) struct Generation<T>(pub(super) T);
 

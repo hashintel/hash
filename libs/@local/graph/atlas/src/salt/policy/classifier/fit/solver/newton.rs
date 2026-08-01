@@ -119,8 +119,8 @@ fn zero_rows() -> CoefficientRows {
 /// Factors a `2×2` PSD block in packed lower-triangle order, zeroing a rank-dropped column.
 ///
 /// A non-positive leading entry zeroes the first column - the fate of a saturated row whose
-/// probabilities sit at a vertex - and a non-positive trailing pivot zeroes the second, so
-/// every PSD block factors and `L·Lᵀ` reproduces the block exactly on its numerical rank.
+/// probabilities sit at a vertex - and a non-positive trailing pivot zeroes the second, so every
+/// PSD block factors and `L·Lᵀ` reproduces the block exactly on its numerical rank.
 pub(super) fn factor_block(c11: f64, c21: f64, c22: f64) -> RowFactor {
     if c11 <= 0.0 {
         let l22 = if c22 > 0.0 { c22.sqrt() } else { 0.0 };
@@ -156,19 +156,19 @@ fn column_dot(left: RowFactor, k: usize, right: RowFactor, l: usize) -> f64 {
 
 /// Runs one exact Newton inner solve at the accepted point.
 ///
-/// `point` is the physical image `θ(ζ)` of the accepted iterate and `gradient` its scaled
-/// gradient. The Newton point prices one oracle Hessian-vector product; a boundary outer prices
-/// one for the Cauchy curvature first and the dogleg segment prices the Newton product as well.
-/// The solve tests every budget before the work it fences, taking the row budget before every
-/// assembly traversal and the Hessian-vector and row budgets before every oracle product.
+/// `point` is the physical image `θ(ζ)` of the accepted iterate and `gradient` its scaled gradient.
+/// The Newton point prices one oracle Hessian-vector product; a boundary outer prices one for the
+/// Cauchy curvature first and the dogleg segment prices the Newton product as well. The solve tests
+/// every budget before the work it fences, taking the row budget before every assembly traversal
+/// and the Hessian-vector and row budgets before every oracle product.
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::HvpBudget`] or [`SolverFailure::RowPassBudget`] when another unit
-/// of work would exceed its budget, [`SolverFailure::NonFiniteNewton`] naming the stage where a
-/// value left the finite domain, [`SolverFailure::SingularInterceptCurvature`] when no row
-/// offers the intercepts curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when the boundary
-/// construction yields no validated crossing.
+/// Returns [`SolverFailure::HvpBudget`] or [`SolverFailure::RowPassBudget`] when another unit of
+/// work would exceed its budget, [`SolverFailure::NonFiniteNewton`] naming the stage where a value
+/// left the finite domain, [`SolverFailure::SingularInterceptCurvature`] when no row offers the
+/// intercepts curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when the boundary construction
+/// yields no validated crossing.
 #[expect(
     clippy::too_many_lines,
     reason = "the assembly, factorization, back-substitution, and dogleg fallback are one solve; \
@@ -465,9 +465,9 @@ fn pair_dot(left: &CoefficientRows, right: &CoefficientRows) -> f64 {
 
 /// Solves the `2×2` SPD intercept system through its strict Cholesky factor.
 ///
-/// The caller passes finite entries; a pivot that is not strictly positive returns [`None`],
-/// the system offering the intercepts no curvature, and overflowing back-substitution passes
-/// through as non-finite solutions for the caller's finiteness gate.
+/// The caller passes finite entries; a pivot that is not strictly positive returns [`None`], the
+/// system offering the intercepts no curvature, and overflowing back-substitution passes through as
+/// non-finite solutions for the caller's finiteness gate.
 fn solve_intercepts([s11, s21, s22]: [f64; 3], rhs: [f64; 2]) -> Option<[f64; 2]> {
     if s11 <= 0.0 {
         return None;

@@ -59,9 +59,9 @@ pub(crate) struct ProbeOptions {
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
     /// Horizon multiplier for the intrusion and extrusion readings.
     ///
-    /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
-    /// `factor · k` (clamped to the universe), separating foreign points from reshuffling near the
-    /// neighbourhood boundary.
+    /// A false neighbour counts as an intrusion or extrusion when its 1-based opposite-space rank
+    /// passes `factor · k` (clamped to the universe), separating foreign points from reshuffling
+    /// near the neighbourhood boundary.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
     /// Comparison-point pairs sampled for the triplet readings.
     ///

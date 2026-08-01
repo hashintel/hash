@@ -1,10 +1,10 @@
 //! The open pass.
 //!
 //! Mapping a generation's serving artifacts and validating each format plus their cross-artifact
-//! agreement once, so every read after it trusts its views. The pass is one linear derivation:
-//! map and type each artifact, prove the artifacts agree on their shared domains, derive the
-//! serving state (the schedule, the wire codec and its encoded row column, the frame extent), and
-//! construct the [`Atlas`] whole - no half-initialized value exists at any point.
+//! agreement once, so every read after it trusts its views. The pass is one linear derivation: map
+//! and type each artifact, prove the artifacts agree on their shared domains, derive the serving
+//! state (the schedule, the wire codec and its encoded row column, the frame extent), and construct
+//! the [`Atlas`] whole - no half-initialized value exists at any point.
 
 use hashql_core::id::Id;
 
@@ -49,9 +49,9 @@ pub struct OpenOptions {
     ///
     /// Operator contract, unenforced by any binding: the secret must not change for a generation
     /// that has ever served. Nothing fingerprints the secret, so reopening the same generation
-    /// under a different value re-keys every wire id while client cache identity
-    /// (authorization context, generation, route, canonical query) stays constant. A secret
-    /// change therefore requires a generation rotation and application-cache invalidation.
+    /// under a different value re-keys every wire id while client cache identity (authorization
+    /// context, generation, route, canonical query) stays constant. A secret change therefore
+    /// requires a generation rotation and application-cache invalidation.
     pub wire_secret: WireSecret,
 }
 
@@ -62,8 +62,8 @@ impl Atlas {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root,
-    /// a per-artifact variant when the metadata document or an artifact fails its format's
+    /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root, a
+    /// per-artifact variant when the metadata document or an artifact fails its format's
     /// validation, [`OpenAtlasError::Schedule`] when the recorded schedule exceeds the key width,
     /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape,
     /// [`OpenAtlasError::Universe`] when the row count exceeds the wire's `u32` id domain, and

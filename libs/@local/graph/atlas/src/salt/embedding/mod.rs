@@ -7,8 +7,8 @@
 //! carries straight from that generation's table, without touching the provider.
 //!
 //! [`embed_cards`] is the entry point. It consumes finished [`Card`]s in ontology row order and
-//! deduplicates them by text hash. It satisfies what the prior generation covers and submits
-//! the remaining unique texts to a [`CardEmbedder`] in one call. Request sizing against provider
+//! deduplicates them by text hash. It satisfies what the prior generation covers and submits the
+//! remaining unique texts to a [`CardEmbedder`] in one call. Request sizing against provider
 //! ceilings is the embedder's own concern. The run's [`Progress`] observer sees the resolved reuse
 //! split and every request the embedder completes, so the paid part of a fit is legible while it
 //! runs. The assembled [`CardEmbeddingTable`] serializes into two array files: the `f32[T, 3072]`

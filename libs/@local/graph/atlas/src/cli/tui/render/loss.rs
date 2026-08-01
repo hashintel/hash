@@ -18,9 +18,10 @@ use crate::cli::tui::state::ProjectorTraining;
 
 /// Draws the placement's descent: the composite objective against the schedule's step axis.
 ///
-/// The chart draws the curve at braille resolution, so a pane sixty columns wide resolves a hundred
-/// and twenty steps of a schedule that is normally longer. The chart is the shape of the descent,
-/// and the frame's title shows the exact current value.
+/// The chart draws the curve at braille resolution: two steps per column of the plotting area,
+/// which is the pane inside its border and padding, less the gutter of the value labels. A
+/// schedule is normally longer than that, so the chart is the shape of the descent, and the
+/// frame's title shows the exact current value.
 pub(super) fn render_loss(frame: &mut Frame, area: Rect, training: &ProjectorTraining) {
     // `Dataset::data` borrows a slice, so this builds the curve once per frame and reads it twice:
     // for the plot, and for its value axis.

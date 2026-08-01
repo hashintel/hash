@@ -190,8 +190,8 @@ fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
 
 /// A well-conditioned transform's inverse round-trips points.
 ///
-/// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100)
-/// condition of the linear part.
+/// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100) condition
+/// of the linear part.
 #[property_test]
 fn inverse_round_trips_arbitrary_points(
     #[strategy = transform_strategy()] transform: Transform,

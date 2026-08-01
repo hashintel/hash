@@ -104,8 +104,11 @@ impl ArrayFile {
     /// # Errors
     ///
     /// Returns [`OpenArrayError::Io`] when opening or mapping the file fails,
-    /// [`OpenArrayError::Header`] when its leading bytes are not a header this module speaks, and
-    /// [`OpenArrayError::Length`] when the file length contradicts the header's shape.
+    /// [`OpenArrayError::Undersized`] when the file ends before one full header,
+    /// [`OpenArrayError::Header`] when its leading bytes are not a header this module speaks,
+    /// [`OpenArrayError::Length`] when the file length contradicts the header's shape, and
+    /// [`OpenArrayError::ForeignArchitecture`] when the other byte order wrote the file's native
+    /// elements.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
         let map = PageMap::open(path).map_err(OpenArrayError::Io)?;
 
@@ -214,8 +217,8 @@ impl ArrayFile {
 
     /// Views the data as packed `f32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `f32` elements, whatever its shape. The
-    /// elements are native: the open only admits files this host's byte order wrote.
+    /// The view exists exactly when the file holds `f32` elements, whatever its shape. The elements
+    /// are native: the open only admits files this host's byte order wrote.
     #[must_use]
     pub(crate) fn f32_elements(&self) -> Option<&[f32]> {
         if self.header().variant() != ArrayVariant::F32 {
@@ -227,8 +230,8 @@ impl ArrayFile {
 
     /// Views the data as packed `u32` elements in row-major file order.
     ///
-    /// The view exists exactly when the file holds `u32` elements, whatever its shape. The
-    /// elements are native: the open only admits files this host's byte order wrote.
+    /// The view exists exactly when the file holds `u32` elements, whatever its shape. The elements
+    /// are native: the open only admits files this host's byte order wrote.
     #[must_use]
     pub(crate) fn u32_elements(&self) -> Option<&[u32]> {
         if self.header().variant() != ArrayVariant::U32 {
@@ -242,8 +245,8 @@ impl ArrayFile {
     ///
     /// The view exists exactly when the file holds `u64` elements shaped `[T, 2]`; the returned
     /// slice holds the `T` pairs in order. A zero-element file is zero pairs, since its shape
-    /// records no row width. The elements are native: the open only admits files this host's
-    /// byte order wrote.
+    /// records no row width. The elements are native: the open only admits files this host's byte
+    /// order wrote.
     #[must_use]
     pub(crate) fn u64_pairs(&self) -> Option<&[[u64; 2]]> {
         if self.header().variant() != ArrayVariant::U64 {

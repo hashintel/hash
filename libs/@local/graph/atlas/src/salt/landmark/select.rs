@@ -207,8 +207,7 @@ pub(crate) struct SelectionOptions {
 hashql_core::id::newtype! {
     /// A reference to a landmark by its position in a [`LandmarkSelection`].
     ///
-    /// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the
-    /// selection's ascending row order. The little-endian representation is the persisted form, so a column of these ordinals moves to and from artifact files without conversion.
+    /// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the selection's ascending row order. The little-endian representation is the persisted form, so a column of these ordinals moves to and from artifact files without conversion.
     #[id(endian = little, unaligned, derive(Step), const)]
     pub(crate) struct LandmarkOrdinal(u32)
 }
@@ -530,8 +529,8 @@ fn mark<N>(
 
 /// Candidates per parallel work item.
 ///
-/// 4096 candidates give each task tens of microseconds of work, large enough that per-task
-/// overhead disappears against the scans.
+/// 4096 candidates give each task tens of microseconds of work, large enough that per-task overhead
+/// disappears against the scans.
 pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unwrap() };
 
 /// Selects at most the configured capacity, honoring minimums and retention.

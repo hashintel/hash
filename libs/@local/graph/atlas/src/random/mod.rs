@@ -116,8 +116,8 @@ pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) ->
     sample(&mut rng, population, count)
 }
 
-/// The golden-ratio increment of `SplitMix64`: `2^64 / phi`, odd and therefore coprime to the
-/// word, so consecutive keys land maximally spread before mixing.
+/// The golden-ratio increment of `SplitMix64`: `2^64 / phi`, odd and therefore coprime to the word,
+/// so consecutive keys land maximally spread before mixing.
 const SPLITMIX64_GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// The first `SplitMix64` finalizer multiplier (D. Stafford's "mix 13" variant).
@@ -130,9 +130,9 @@ const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 ///
 /// The key mixes through the `SplitMix64` finalizer. The golden-ratio increment spreads `key`
 /// across the word, and the two multiply-xorshift rounds avalanche every input bit into the output,
-/// so generators with adjacent keys are statistically independent. Parallel work draws
-/// one generator per `(seed, key, stream)` instead of sharing a sequence, and a seeded run
-/// reproduces exactly at any thread count.
+/// so generators with adjacent keys are statistically independent. Parallel work draws one
+/// generator per `(seed, key, stream)` instead of sharing a sequence, and a seeded run reproduces
+/// exactly at any thread count.
 ///
 /// # Examples
 ///
@@ -218,12 +218,12 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 /// The number of uniformly sampled items whose mean reaches the one-sided confidence level, given
 /// the per-item standard deviation.
 ///
-/// The estimate's standard error is `deviation / √n`, so `n = ceil((z · deviation /
-/// margin)^2)` with `z` the standard normal quantile of `confidence` keeps the probability of a
-/// sampling error beyond `margin` (in one direction) at most `1 - confidence`, by the central limit
-/// theorem. This sizes aggregate-mean criteria. [`acceptance_sample_size`] sizes an all-pass
-/// criterion instead. An acceptance budget guarantees nothing about a mean's error, so neither
-/// sizing rule substitutes for the other.
+/// The estimate's standard error is `deviation / √n`, so `n = ceil((z · deviation / margin)^2)`
+/// with `z` the standard normal quantile of `confidence` keeps the probability of a sampling error
+/// beyond `margin` (in one direction) at most `1 - confidence`, by the central limit theorem. This
+/// sizes aggregate-mean criteria. [`acceptance_sample_size`] sizes an all-pass criterion instead.
+/// An acceptance budget guarantees nothing about a mean's error, so neither sizing rule substitutes
+/// for the other.
 ///
 /// The deviation is the caller's to supply: bounded-per-item means admit the distribution-free
 /// bound (half the range), and a pilot sample's measured deviation sizes the final sample without

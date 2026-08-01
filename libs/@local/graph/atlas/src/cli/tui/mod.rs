@@ -60,8 +60,8 @@ const INTERRUPTED: u8 = 130;
 
 /// Placement rows the dashboard asks the run to sample for its map.
 ///
-/// Exactly what the widest map can hold apart, so the appetite is the frame's own resolution
-/// rather than a number chosen to feel large enough.
+/// Exactly what the widest map can hold apart, so the appetite is the frame's own resolution rather
+/// than a number chosen to feel large enough.
 const SNAPSHOT_ROWS: usize = render::MAP_CAPACITY;
 
 /// The live dashboard for one fit.

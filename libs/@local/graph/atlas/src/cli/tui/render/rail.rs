@@ -200,9 +200,9 @@ fn counter(run: &RunState, stage: Stage) -> Option<String> {
 
 /// The neighbour-table counter, showing whichever part of the construction reported last.
 ///
-/// The stage runs a batched loop, then a phase the backend names, then a loop again, then its
-/// verdict, so the row carries whichever of those the construction is inside - one counter for a
-/// stage that counts four different things.
+/// The stage runs a batched loop, then a phase the backend names, then the descent's convergence
+/// readings, then a loop again, then its verdict, so the row carries whichever of those the
+/// construction is inside - one counter for every part the stage reports.
 fn knn_counter(activity: &KnnActivity) -> String {
     match activity {
         KnnActivity::Inserting(batch) => batch_counter(*batch, "inserted"),

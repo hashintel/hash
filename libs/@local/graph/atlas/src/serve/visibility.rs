@@ -199,10 +199,10 @@ impl VisibilityProof {
 
     /// Proves one edge deliverable, as the sole [`VisibleEdge`] constructor.
     ///
-    /// An edge delivers only when the proof admits its link row and both of its endpoints. The
-    /// link row carries the link entity's authorization, which the endpoints do not imply; the
-    /// endpoints carry the two entities every edge response names. A hidden link row, a hidden
-    /// endpoint, and an edge the generation never held all answer the same [`None`].
+    /// An edge delivers only when the proof admits its link row and both of its endpoints. The link
+    /// row carries the link entity's authorization, which the endpoints do not imply; the endpoints
+    /// carry the two entities every edge response names. A hidden link row, a hidden endpoint, and
+    /// an edge the generation never held all answer the same [`None`].
     ///
     /// Caller requirement: `source` and `target` are `edge`'s own endpoints as the generation
     /// records them, read off the endpoint column rather than supplied by a request.

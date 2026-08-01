@@ -99,8 +99,8 @@ impl Accumulator {
 
 /// Spacing of `f32` at the magnitude of `reference`.
 ///
-/// For `|reference| = m · 2^e` with `m ∈ [1, 2)`, one ULP is `2^(e - 23)`, clamped to the
-/// subnormal spacing `2^-149` below the normal range.
+/// For `|reference| = m · 2^e` with `m ∈ [1, 2)`, one ULP is `2^(e - 23)`, clamped to the subnormal
+/// spacing `2^-149` below the normal range.
 fn ulp32_at(reference: f64) -> f64 {
     let magnitude = reference.abs();
     if magnitude < f64::from(f32::MIN_POSITIVE) {

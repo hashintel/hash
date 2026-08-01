@@ -889,7 +889,7 @@ fn assess_flags_degraded_subgroups() {
 
     // Subgroups ascend by ontology row and count multi-typed anchors
     // in each of their groups.
-    let by_row: Vec<(u64, usize, f64)> = report
+    let by_row: Vec<_> = report
         .subgroups
         .iter()
         .map(|subgroup| {
@@ -900,7 +900,14 @@ fn assess_flags_degraded_subgroups() {
             )
         })
         .collect();
-    assert_eq!(by_row, vec![(100, 4, 1.0), (200, 2, 0.0), (300, 2, 0.5)],);
+    assert_eq!(
+        by_row,
+        vec![
+            (100, 4, UnitFraction::ONE),
+            (200, 2, UnitFraction::ZERO),
+            (300, 2, UnitFraction::HALF)
+        ]
+    );
 
     // Only type 200 breaches: degradation 1 > 2 · (1/3). Type 300's 1/2 stays inside 2/3, and type
     // 100 has no degradation at all.
@@ -976,8 +983,8 @@ fn clump_resolution_triages_flags() {
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
     assert_eq!(flag.ontology_row, OntologyRowId::new(200));
-    assert_eq!(flag.clump_degradation, Some(0.0));
-    assert_eq!(flag.clump_overall_degradation, Some(0.0));
+    assert_eq!(flag.clump_degradation, Some(UnitFraction::ZERO));
+    assert_eq!(flag.clump_overall_degradation, Some(UnitFraction::ZERO));
     assert!(flag.clump_resolved);
     assert!(report.passes());
 
@@ -995,7 +1002,10 @@ fn clump_resolution_triages_flags() {
     // its rendered rows and the subgroup stratification read the same.
     assert_eq!(clumps.representation_canonical, clumps.map_representation);
     assert_eq!(report.baseline_subgroups.len(), 2);
-    assert_eq!(report.baseline_subgroups[0].rows[0].clump_recall, Some(1.0),);
+    assert_eq!(
+        report.baseline_subgroups[0].rows[0].clump_recall,
+        Some(UnitFraction::ONE)
+    );
 
     let serialized = serde_json::to_string(&report).expect("the report serializes");
     let roundtrip: super::report::QualityReport =
@@ -1010,8 +1020,15 @@ fn clump_resolution_triages_flags() {
 
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
-    assert_eq!(flag.clump_degradation, Some(1.0));
-    assert_eq!(flag.clump_overall_degradation, Some(1.0 - 4.0 / 6.0));
+    assert_eq!(flag.clump_degradation, Some(UnitFraction::ONE));
+    assert_eq!(
+        flag.clump_overall_degradation,
+        Some(
+            UnitFraction::ratio(4, 6)
+                .expect("4/6 is in range")
+                .complement()
+        )
+    );
     assert!(!flag.clump_resolved);
     // Triage is report-only: the unresolved flag informs the human,
     // never the admission.
@@ -1123,10 +1140,10 @@ fn assess_fails_pinned_thresholds_without_evidence() {
 /// The neighbourhood controls demand a nonempty grid.
 ///
 /// `all` over an empty grid is vacuously true. The verdict must not be. `assess` cannot emit an
-/// empty grid (it reads rung 0 unconditionally and panics), but the report is a serializable
-/// value whose verdict must hold under every construction - persisted reports get read back, and
-/// a control over zero rungs is the same evidence absence as a density ceiling over absent
-/// readings, failing the same way.
+/// empty grid (it reads rung 0 unconditionally and panics), but the report is a serializable value
+/// whose verdict must hold under every construction - persisted reports get read back, and a
+/// control over zero rungs is the same evidence absence as a density ceiling over absent readings,
+/// failing the same way.
 #[test]
 fn neighbourhood_controls_demand_a_nonempty_grid() {
     let readings = flag_fixture(&[true, true]);

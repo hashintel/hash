@@ -3,11 +3,14 @@
 //! Checked float narrowing rides beside them.
 //!
 //! These formalize numeric patterns that recur across the crate: a stable softplus and the Huber
-//! penalty for layout losses, checked `f64` to `f32` narrowing for persisted coordinates, and
-//! [`UnitFraction`], the construction-validated `[0, 1]` scalar of configuration fields. Vector
-//! reductions such as softmax and log-sum-exp live on [`DVecN`](super::DVecN).
+//! penalty for layout losses, checked `f64` to `f32` narrowing for persisted coordinates, and the
+//! unit-interval fractions [`UnitFraction`] and [`OpenUnitFraction`], validated once at
+//! construction and carried by configuration knobs and measured shares alike. Vector reductions
+//! such as softmax and log-sum-exp live on [`DVecN`](super::DVecN).
 #[cfg(test)]
 mod tests;
+mod unit;
+pub use unit::{NotInOpenUnitInterval, NotInUnitInterval, OpenUnitFraction, UnitFraction};
 
 /// Validates a positive literal at compile time.
 ///
@@ -39,8 +42,8 @@ pub(crate) use non_negative;
 
 /// Validates a positive double-precision literal at compile time.
 ///
-/// The expansion is a `const` block over [`DPositive::new`], so a literal outside the domain
-/// fails the build instead of a test run. Runtime values keep the checked constructor.
+/// The expansion is a `const` block over [`DPositive::new`], so a literal outside the domain fails
+/// the build instead of a test run. Runtime values keep the checked constructor.
 #[cfg(test)]
 macro_rules! d_positive {
     ($value:expr) => {
@@ -68,8 +71,8 @@ pub(crate) use d_non_negative;
 
 /// Validates an open-unit-fraction literal at compile time.
 ///
-/// The expansion is a `const` block over [`OpenUnitFraction::new`], so a literal outside the
-/// domain fails the build instead of a test run. Runtime values keep the checked constructor.
+/// The expansion is a `const` block over [`OpenUnitFraction::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
 #[cfg(test)]
 macro_rules! open_unit_fraction {
     ($value:expr) => {
@@ -81,8 +84,8 @@ pub(crate) use open_unit_fraction;
 
 /// Validates a greater-than-one literal at compile time.
 ///
-/// The expansion is a `const` block over [`GreaterThanOne::new`], so a literal outside the
-/// domain fails the build instead of a test run. Runtime values keep the checked constructor.
+/// The expansion is a `const` block over [`GreaterThanOne::new`], so a literal outside the domain
+/// fails the build instead of a test run. Runtime values keep the checked constructor.
 #[cfg(test)]
 macro_rules! greater_than_one {
     ($value:expr) => {
@@ -232,114 +235,11 @@ impl<'de> serde::Deserialize<'de> for NonNegative {
     }
 }
 
-/// A finite fraction in `[0, 1]`, valid by construction.
-///
-/// Configuration fields whose domain is the closed unit interval carry this type instead of a raw
-/// float, so an options value that exists is valid and the consuming stage validates nothing.
-///
-/// # Examples
-///
-/// ```
-/// use hash_graph_atlas::math::UnitFraction;
-///
-/// let quarter = UnitFraction::new(0.25).expect("0.25 lies inside [0, 1]");
-/// assert_eq!(quarter.get(), 0.25);
-///
-/// assert_eq!(UnitFraction::new(1.5), None);
-/// assert_eq!(UnitFraction::new(f64::NAN), None);
-/// ```
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    PartialOrd,
-    zerocopy::IntoBytes,
-    zerocopy::Immutable,
-    zerocopy::KnownLayout,
-)]
-#[repr(transparent)]
-pub struct UnitFraction(f64);
-
-impl UnitFraction {
-    /// The fraction one.
-    pub const ONE: Self = Self(1.0);
-    /// The fraction zero.
-    pub const ZERO: Self = Self(0.0);
-
-    /// Validates a fraction.
-    ///
-    /// Returns [`None`] unless the value is finite and lies in `[0, 1]`.
-    #[inline]
-    #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
-        if !(value >= 0.0 && value <= 1.0) {
-            return None;
-        }
-
-        Some(Self(value))
-    }
-
-    /// Wraps a fraction the caller proves lies in `[0, 1]`.
-    ///
-    /// The check is a debug assertion: release builds trust the caller's proof.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hash_graph_atlas::math::UnitFraction;
-    ///
-    /// let preserved = 3_u32;
-    /// let total = 4_u32;
-    /// // A count over its own total cannot leave [0, 1].
-    /// let fraction = UnitFraction::new_unchecked(f64::from(preserved) / f64::from(total));
-    /// assert_eq!(fraction.get(), 0.75);
-    /// ```
-    // This is not `unsafe` because no unsafe code trusts the range. A broken promise gives a wrong
-    // fraction rather than UB.
-    #[inline]
-    #[must_use]
-    pub const fn new_unchecked(value: f64) -> Self {
-        debug_assert!(
-            value >= 0.0 && value <= 1.0,
-            "the caller promised a value inside [0, 1]",
-        );
-        Self(value)
-    }
-
-    /// Returns the fraction.
-    #[inline]
-    #[must_use]
-    pub const fn get(self) -> f64 {
-        self.0
-    }
-}
-
-impl serde::Serialize for UnitFraction {
-    /// Serializes as the plain number.
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_f64(self.0)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for UnitFraction {
-    /// Deserializes a plain number, refusing values outside the closed unit interval.
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = f64::deserialize(deserializer)?;
-        Self::new(value).ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Float(value),
-                &"a fraction in the closed unit interval",
-            )
-        })
-    }
-}
-
 /// A finite, strictly positive `f64`, valid by construction.
 ///
 /// The double-precision twin of [`Positive`], named as [`DVecN`](super::DVecN) is to
-/// [`VecN`](super::VecN): configuration fields that steer double-precision arithmetic carry
-/// their domain in the type, and the consuming site validates nothing.
+/// [`VecN`](super::VecN): configuration fields that steer double-precision arithmetic carry their
+/// domain in the type, and the consuming site validates nothing.
 ///
 /// # Examples
 ///
@@ -434,59 +334,6 @@ impl From<DPositive> for DNonNegative {
     /// Widens into the enclosing domain: every positive value is non-negative.
     #[inline]
     fn from(value: DPositive) -> Self {
-        Self(value.get())
-    }
-}
-
-/// A fraction strictly between zero and one, valid by construction.
-///
-/// The open-interval sibling of [`UnitFraction`]: contraction factors and relative tolerances
-/// whose semantics degenerate at either endpoint - a shrink of zero collapses, a shrink of one
-/// never shrinks - carry the exclusion in the type.
-///
-/// # Examples
-///
-/// ```
-/// use hash_graph_atlas::math::OpenUnitFraction;
-///
-/// assert_eq!(
-///     OpenUnitFraction::new(0.25)
-///         .expect("a quarter shrinks")
-///         .get(),
-///     0.25
-/// );
-/// assert_eq!(OpenUnitFraction::new(0.0), None);
-/// assert_eq!(OpenUnitFraction::new(1.0), None);
-/// ```
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct OpenUnitFraction(f64);
-
-impl OpenUnitFraction {
-    /// Validates a fraction strictly inside the unit interval.
-    ///
-    /// Returns [`None`] unless the value lies in `(0, 1)`. NaN fails both comparisons.
-    #[inline]
-    #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
-        if !(value > 0.0 && value < 1.0) {
-            return None;
-        }
-
-        Some(Self(value))
-    }
-
-    /// Returns the fraction.
-    #[inline]
-    #[must_use]
-    pub const fn get(self) -> f64 {
-        self.0
-    }
-}
-
-impl From<OpenUnitFraction> for UnitFraction {
-    /// Widens into the enclosing closed interval.
-    #[inline]
-    fn from(value: OpenUnitFraction) -> Self {
         Self(value.get())
     }
 }

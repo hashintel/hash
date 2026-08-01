@@ -89,6 +89,7 @@ impl AttractionFile {
     /// # Errors
     ///
     /// Returns [`OpenAttractionError::Io`] when opening or mapping the file fails,
+    /// [`OpenAttractionError::Undersized`] when the file ends before one full header,
     /// [`OpenAttractionError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenAttractionError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenAttractionError> {

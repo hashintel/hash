@@ -84,8 +84,8 @@ pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 
 /// The bitemporal point one dataset observes.
 ///
-/// The axes are inputs a fit declares: a generation records them, and a rerun with equal axes
-/// over unchanged history reads equal data. Axes in the past read the graph as it stood then; the
+/// The axes are inputs a fit declares: a generation records them, and a rerun with equal axes over
+/// unchanged history reads equal data. Axes in the past read the graph as it stood then; the
 /// store's temporal tables retain that history.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TemporalAxes {
@@ -315,8 +315,8 @@ pub(crate) struct Ontology<O> {
     /// Direct supertypes, ascending by ontology row and deduplicated.
     ///
     /// Only depth-one edges appear. Walking the type graph reaches ancestors beyond the direct
-    /// parents. A parent may occupy a later stream position than its child, so references
-    /// resolve only once the ontology stream is fully ingested.
+    /// parents. A parent may occupy a later stream position than its child, so references resolve
+    /// only once the ontology stream is fully ingested.
     pub parents: SmallVec<OntologyRowId, 2>,
 }
 
@@ -473,9 +473,9 @@ pub(crate) trait Dataset {
 
     /// Opens the edge stream.
     ///
-    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: the
-    /// source filters out links whose endpoints fall outside the dataset's scope, so those links
-    /// never appear.
+    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: the source
+    /// filters out links whose endpoints fall outside the dataset's scope, so those links never
+    /// appear.
     #[must_use]
     fn edges(&self) -> Self::EdgeStream<'_>;
 

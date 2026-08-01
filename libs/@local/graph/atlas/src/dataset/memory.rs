@@ -14,9 +14,9 @@ use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
 ///
-/// The dataset is a fixture: it serves exactly the rows the caller supplies, and
-/// [`new`](Self::new) validates the structural contracts once so every stream is consistent by
-/// construction. Ids in all three domains are plain little-endian integers chosen by the caller.
+/// The dataset is a fixture. It serves exactly the rows the caller supplies, and [`new`](Self::new)
+/// validates the structural contracts once, so every stream is consistent by construction. Ids in
+/// all three domains are plain little-endian integers chosen by the caller.
 ///
 /// Malformed lookups are programmer errors and panic, so the streams are infallible and
 /// [`Dataset::Error`] is `!`.
@@ -51,7 +51,7 @@ impl MemoryDataset {
 
         for (row, node) in nodes.iter().enumerate() {
             assert!(
-                node.ontology.is_sorted(),
+                node.ontology.is_sorted_by(|previous, next| previous < next),
                 "node row {row} carries a type list that is not strictly ascending",
             );
             assert!(
@@ -69,7 +69,7 @@ impl MemoryDataset {
                 "edge row {row} references a node row outside the node stream",
             );
             assert!(
-                edge.ontology.is_sorted(),
+                edge.ontology.is_sorted_by(|previous, next| previous < next),
                 "edge row {row} carries a type list that is not strictly ascending",
             );
             assert!(
@@ -82,7 +82,7 @@ impl MemoryDataset {
 
         for (row, entry) in ontology.iter().enumerate() {
             assert!(
-                entry.parents.is_sorted(),
+                entry.parents.is_sorted_by(|previous, next| previous < next),
                 "ontology row {row} carries a parent list that is not strictly ascending",
             );
             assert!(

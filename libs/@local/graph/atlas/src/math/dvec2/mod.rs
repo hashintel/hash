@@ -22,9 +22,8 @@ mod tests;
 /// [`From`] is exact for every value, so per-component products of widened inputs carry no `f32`
 /// rounding.
 ///
-/// The surface is the accumulator's own: arithmetic, the two products, and the exact
-/// widening and checked narrowing conversions. Geometry (interpolation, clamping, bounds) belongs
-/// to [`Vec2`].
+/// The surface is the accumulator's own: arithmetic, the two products, and the exact widening and
+/// checked narrowing conversions. Geometry (interpolation, clamping, bounds) belongs to [`Vec2`].
 ///
 /// # Examples
 ///
@@ -320,9 +319,9 @@ impl DVec2x4T {
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add fuses.
-    /// For components widened from `f32` both lane products are exact, so the fused and separate
-    /// forms agree bit for bit and the result carries a single rounding either way.
+    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add fuses. For
+    /// components widened from `f32` both lane products are exact, so the fused and separate forms
+    /// agree bit for bit and the result carries a single rounding either way.
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f64, 4> {

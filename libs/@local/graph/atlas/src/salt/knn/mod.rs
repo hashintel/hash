@@ -101,10 +101,10 @@ where
     /// but linking applies updates in parallel and unordered, so same-seed builds need not agree.
     /// The recall spot check downstream is the arbiter of a construction, never a replay.
     ///
-    /// The link is the construction's long phase and only the backend knows its parts, so a
-    /// backend reports them as they begin through
-    /// [`knn_build_phase`](Progress::knn_build_phase). A backend that hands the reporting on to
-    /// machinery owning it takes the observer's detached half, never this borrow.
+    /// The link is the construction's long phase and only the backend knows its parts, so a backend
+    /// reports them as they begin through [`knn_build_phase`](Progress::knn_build_phase). A backend
+    /// that hands the reporting on to machinery owning it takes the observer's detached half, never
+    /// this borrow.
     ///
     /// # Errors
     ///

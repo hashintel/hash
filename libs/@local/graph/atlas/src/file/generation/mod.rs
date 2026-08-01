@@ -377,6 +377,11 @@ impl ScratchDirectory {
         Ok(path)
     }
 
+    /// Creates a named file directly under the scratch root and returns it with its path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when creating the scratch root or the file fails.
     pub(crate) fn file(&self, name: &str) -> io::Result<(Utf8PathBuf, File)> {
         let path = self.path.join(name);
         fs::create_dir_all(&self.path)?;
@@ -431,8 +436,8 @@ impl StagedGeneration {
     ///
     /// Returns an error when the manifest repeats a name or claims the metadata document's name. It
     /// also returns an error when the manifest disagrees with the staged file set or names a
-    /// generation that is already published. A write, sync, or rename failure returns an error as
-    /// well.
+    /// generation that is already published. Serializing the metadata document returns an error
+    /// when it fails. A write, sync, or rename failure returns an error as well.
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,

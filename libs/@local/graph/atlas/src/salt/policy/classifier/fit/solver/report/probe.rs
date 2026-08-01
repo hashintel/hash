@@ -8,9 +8,9 @@
 //! fold-assignment seed and the regularization strength, so the probe accepts any assignment and
 //! any candidate strength, the production CV candidates included.
 //!
-//! The per-row curvature-scale census prints at the origin and at the final accepted point, and
-//! a requested outer replays the production trajectory to that iteration - certifying every
-//! replayed outer against the production receipts' digests - and prints the census there.
+//! The per-row curvature-scale census prints at the origin and at the final accepted point, and a
+//! requested outer replays the production trajectory to that iteration - certifying every replayed
+//! outer against the production receipts' digests - and prints the census there.
 //!
 //! Failures panic with the failing step's error. A probe run has no recovery path, and the error is
 //! the diagnosis.
@@ -244,9 +244,9 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
 /// outer against its production receipt.
 ///
 /// Returns the accepted state entering `target` and its trust radius. The replay re-runs the
-/// production functions over the same problem from the same charged counters, so equality of
-/// radii, objectives, counters, and start-state digests at every outer proves the replayed
-/// trajectory is the production trajectory.
+/// production functions over the same problem from the same charged counters, so equality of radii,
+/// objectives, counters, and start-state digests at every outer proves the replayed trajectory is
+/// the production trajectory.
 ///
 /// # Panics
 ///

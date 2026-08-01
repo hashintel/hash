@@ -20,13 +20,13 @@
 //! node 1 incoming      x
 //! ```
 //!
-//! Each matrix row stores its `x` marks as one ascending run of edge row ids, and each edge
-//! column holds exactly two marks: one outgoing at its source, one incoming at its target.
+//! Each matrix row stores its `x` marks as one ascending run of edge row ids, and each edge column
+//! holds exactly two marks: one outgoing at its source, one incoming at its target.
 //!
 //! The artifact derives from the endpoint column in one counting pass and publishes as one
 //! structure-only [`crate::file::sprs`] matrix: `2N` compressed rows over the fencepost column,
-//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so no
-//! value bytes exist on disk.
+//! edge row ids as the indices, and [`unit`](crate::file::sprs::ValueTag::Unit) values, so no value
+//! bytes exist on disk.
 //!
 //! [`AdjacencyArchive`] reopens the file over a whole-file mapping and validates the list
 //! invariants once, so lookups read from the page cache without holding the lists on the heap.
@@ -70,8 +70,8 @@ use crate::{
 
 /// Places edge row `edge` into its source's outgoing and its target's incoming slot.
 ///
-/// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling
-/// in edge-row order lands ascending edge rows ascending in place.
+/// `cursors` holds each run's next free slot; a placement advances its run's cursor, so filling in
+/// edge-row order lands ascending edge rows ascending in place.
 fn insert_edge<I: Copy>(
     cursors: &mut [u64],
     values: &mut [I],

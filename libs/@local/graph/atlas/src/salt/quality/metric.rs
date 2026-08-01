@@ -84,8 +84,8 @@ impl NeighbourhoodAggregate {
     /// neighbourhood size; `horizon` the 1-based rank beyond which a false neighbour counts as an
     /// intrusion or extrusion rather than a reshuffle.
     ///
-    /// Returns [`None`] unless `k ≤ universe / 2` (the trustworthiness normalizer is positive
-    /// on this domain) and `k ≤ horizon ≤ universe`.
+    /// Returns [`None`] unless `k ≤ universe / 2` (the trustworthiness normalizer is positive on
+    /// this domain) and `k ≤ horizon ≤ universe`.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -122,8 +122,8 @@ impl NeighbourhoodAggregate {
     ///
     /// # Panics
     ///
-    /// This panics when either ordering's length differs from the universe or names a point
-    /// outside it.
+    /// This panics when either ordering's length differs from the universe or names a point outside
+    /// it.
     pub(crate) fn observe(
         &mut self,
         by_reference: &[u32],
@@ -166,8 +166,7 @@ impl NeighbourhoodAggregate {
     ///
     /// # Panics
     ///
-    /// This panics when either slice's length differs from `k` or a rank lies outside the
-    /// universe.
+    /// This panics when either slice's length differs from `k` or a rank lies outside the universe.
     pub(crate) fn observe_ranks(
         &mut self,
         reference_ranks_of_map_neighbours: &[u32],
@@ -278,44 +277,43 @@ impl NeighbourhoodAggregate {
     ///
     /// An empty aggregate reads 1.
     #[must_use]
-    pub(crate) fn recall(&self) -> f64 {
-        // NOTE: `UnitFraction`
+    pub(crate) fn recall(&self) -> UnitFraction {
         let Some(pairs) = self.pairs() else {
-            return 1.0;
+            return UnitFraction::ONE;
         };
 
-        self.shared as f64 / pairs
+        UnitFraction::new_unchecked(self.shared as f64 / pairs)
     }
 
     /// Returns the fraction of map neighbours past the horizon in the reference ordering.
     ///
     /// The rate lies in `[0, 1]`, and an empty aggregate reads 0.
     #[must_use]
-    pub(crate) fn intrusion_rate(&self) -> f64 {
+    pub(crate) fn intrusion_rate(&self) -> UnitFraction {
         let Some(pairs) = self.pairs() else {
-            return 0.0;
+            return UnitFraction::ZERO;
         };
 
-        self.intrusions as f64 / pairs
+        UnitFraction::new_unchecked(self.intrusions as f64 / pairs)
     }
 
     /// Returns the fraction of reference neighbours past the horizon in the map ordering.
     ///
     /// The rate lies in `[0, 1]`, and an empty aggregate reads 0.
     #[must_use]
-    pub(crate) fn extrusion_rate(&self) -> f64 {
+    pub(crate) fn extrusion_rate(&self) -> UnitFraction {
         let Some(pairs) = self.pairs() else {
-            return 0.0;
+            return UnitFraction::ZERO;
         };
 
-        self.extrusions as f64 / pairs
+        UnitFraction::new_unchecked(self.extrusions as f64 / pairs)
     }
 
     /// Returns the trustworthiness reading, in `[0, 1]`.
     ///
     /// An empty aggregate reads 1.
     #[must_use]
-    pub(crate) fn trustworthiness(&self) -> f64 {
+    pub(crate) fn trustworthiness(&self) -> UnitFraction {
         self.normalized(self.trust_penalty)
     }
 
@@ -323,7 +321,7 @@ impl NeighbourhoodAggregate {
     ///
     /// An empty aggregate reads 1.
     #[must_use]
-    pub(crate) fn continuity(&self) -> f64 {
+    pub(crate) fn continuity(&self) -> UnitFraction {
         self.normalized(self.continuity_penalty)
     }
 
@@ -342,14 +340,14 @@ impl NeighbourhoodAggregate {
         reason = "k and (2m - 3k + 1) never share odd parity, so halving the worst-case penalty \
                   is exact"
     )]
-    fn normalized(&self, penalty: u64) -> f64 {
+    fn normalized(&self, penalty: u64) -> UnitFraction {
         if self.queries == 0 {
-            return 1.0;
+            return UnitFraction::ONE;
         }
 
         // The constructor bounds k ≤ universe / 2, so 2m - 3k + 1 > 0.
         let worst_per_query = self.k * (2 * self.universe - 3 * self.k + 1) / 2;
-        1.0 - penalty as f64 / (self.queries * worst_per_query) as f64
+        UnitFraction::new_unchecked(1.0 - penalty as f64 / (self.queries * worst_per_query) as f64)
     }
 }
 

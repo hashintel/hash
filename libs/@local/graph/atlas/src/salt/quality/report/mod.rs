@@ -215,8 +215,9 @@ fn subgroup_reports<N>(
         if anchors.len() >= thresholds.minimum_subgroup_anchors {
             let read_rungs = readings.neighbourhoods.ids();
             for (rung, (subgroup_row, overall_row)) in read_rungs.zip(rows.iter().zip(overall)) {
-                let degradation = 1.0 - subgroup_row.recall;
-                let overall_degradation = 1.0 - overall_row.recall;
+                let degradation = subgroup_row.recall.complement();
+                let overall_degradation = overall_row.recall.complement();
+
                 if degradation <= thresholds.subgroup_degradation_factor * overall_degradation {
                     continue;
                 }
@@ -228,9 +229,10 @@ fn subgroup_reports<N>(
                     for &anchor in rest {
                         merged.merge(clumps.map_representation.anchor(anchor, rung));
                     }
+
                     let overall = &clump_overall
                         .expect("clump readings produce overall clump aggregates")[rung];
-                    (1.0 - merged.recall(), 1.0 - overall.recall())
+                    (merged.recall().complement(), overall.recall().complement())
                 });
 
                 flags.push(SubgroupFlag {
@@ -294,6 +296,7 @@ fn baseline_subgroup_reports<N>(
                         for &anchor in rest {
                             merged.merge(clumps.representation_canonical.anchor(anchor, rung));
                         }
+
                         merged.recall()
                     });
 

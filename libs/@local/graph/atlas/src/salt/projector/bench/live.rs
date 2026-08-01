@@ -1,9 +1,9 @@
 //! A live-shape training step, phase by phase, for wall-time measurement.
 //!
-//! The backend question - would a burn backend over the crate's own kernels beat `NdArray` -
-//! prices out through one decomposition: of a real training step at the ratified batch plan, how
-//! much is burn tensor work (forward, surrogate, backward, optimizer), how much is the crate's
-//! hand-rolled field evaluation, and how much is the CPU batch pipeline (draw, assemble, input
+//! The backend question - would a burn backend over the crate's own kernels beat `NdArray` - prices
+//! out through one decomposition: of a real training step at the ratified batch plan, how much is
+//! burn tensor work (forward, surrogate, backward, optimizer), how much is the crate's hand-rolled
+//! field evaluation, and how much is the CPU batch pipeline (draw, assemble, input
 //! materialization). The same decomposition prices the batch pipeline's allocator arena and any
 //! per-phase optimization argument, so one fixture feeds three decisions.
 //!
@@ -11,8 +11,8 @@
 //! typed relation instances over sixteen relations, unit-norm representations, local scales, a
 //! landmark pool, and a mined frame produced by the real miner over a synthetic coordinate frame.
 //! Draws run the production [`BatchSampler`] at the ratified [`BatchPlan`] with every family
-//! populated (relation at the lens's active extreme), so a measured step carries the full
-//! composite objective, not a placeholder loss.
+//! populated (relation at the lens's active extreme), so a measured step carries the full composite
+//! objective, not a placeholder loss.
 //!
 //! Values are synthetic and costs are real. Every phase runs the production code path with the
 //! production types, and the numbers mean shape and traversal, never convergence.

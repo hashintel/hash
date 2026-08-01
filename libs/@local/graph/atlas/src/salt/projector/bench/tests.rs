@@ -61,8 +61,8 @@ fn metal_flavors_run_and_agree() {
 
 /// The live fixture draws, assembles, and steps every phase to finite numbers.
 ///
-/// A small corpus keeps the smoke fast; the phases exercised are exactly the ones the bench
-/// target times, so a fixture defect fails here instead of in a wall-time run.
+/// A small corpus keeps the smoke fast; the phases exercised are exactly the ones the bench target
+/// times, so a fixture defect fails here instead of in a wall-time run.
 #[test]
 fn live_fixture_steps_every_phase() {
     let fixture = super::live::Fixture::build(256, 11);

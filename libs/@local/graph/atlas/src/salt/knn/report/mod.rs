@@ -139,8 +139,8 @@ impl Display for Seconds {
 
 /// Opens the root's active generation and maps its representation artifact.
 ///
-/// The artifact stays mapped for as long as the returned file lives; [`representation_rows`]
-/// reads its rows.
+/// The artifact stays mapped for as long as the returned file lives; [`representation_rows`] reads
+/// its rows.
 ///
 /// # Errors
 ///

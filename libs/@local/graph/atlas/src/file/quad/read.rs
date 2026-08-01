@@ -117,6 +117,7 @@ impl QuadFile {
     /// # Errors
     ///
     /// Returns [`OpenQuadError::Io`] when opening or mapping the file fails,
+    /// [`OpenQuadError::Undersized`] when the file ends before one full header,
     /// [`OpenQuadError::Header`] when its leading bytes are not a header this module speaks,
     /// [`OpenQuadError::Nodes`] when the node count collides with the child sentinel,
     /// [`OpenQuadError::Length`] when the file length contradicts the header's geometry,
@@ -212,9 +213,9 @@ impl QuadFile {
 
     /// Views the type-set fenceposts, one entry count per node plus the closing count.
     ///
-    /// Unlike the morton file's 34 header posts, these are `N + 1` entries, so they stay a raw
-    /// view (validated once at open, read through `.get()` twice per set lookup) rather than a
-    /// copied validated type that would double the region's memory.
+    /// Unlike the morton file's 34 header posts, these are `N + 1` entries, so they stay a raw view
+    /// (validated once at open, read through `.get()` twice per set lookup) rather than a copied
+    /// validated type that would double the region's memory.
     #[must_use]
     fn posts(&self) -> &[U64<LE>] {
         let bytes = self.map.region(

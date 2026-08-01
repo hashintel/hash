@@ -30,14 +30,14 @@ pub(crate) struct ProbeArgs {
     generation: Option<GenerationId>,
 
     /// Directory of supplied annotation artifacts under their staged names
-    /// (annotation-corpus.json, annotation-embeddings.arr, annotation-hashes.arr), probed
-    /// under the compiled deployment defaults; the corpus of a fit that never published
-    /// probes through this form.
+    /// (annotation-corpus.json, annotation-embeddings.arr, annotation-hashes.arr), probed under
+    /// the compiled deployment defaults; the corpus of a fit that never published probes through
+    /// this form.
     #[arg(long, value_hint = ValueHint::DirPath)]
     inputs: Option<Utf8PathBuf>,
 
-    /// The fold-assignment seed; the configured seed probes the production assignment, any
-    /// other seed probes an alternative.
+    /// The fold-assignment seed; the configured seed probes the production assignment, any other
+    /// seed probes an alternative.
     #[arg(long, default_value_t = 0)]
     seed: u64,
 

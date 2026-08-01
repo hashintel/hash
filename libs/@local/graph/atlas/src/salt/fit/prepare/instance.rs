@@ -61,7 +61,7 @@ impl InstanceRecord {
     /// `multiplicity` is the edge's total reading count: the number of relation types the edge
     /// carries, each spooled as its own record.
     #[must_use]
-    pub(crate) fn new(
+    pub(crate) const fn new(
         edge: EdgeRowId,
         relation: OntologyRowId,
         source: NodeRowId,
@@ -126,7 +126,7 @@ impl InstanceSpoolWriter {
     ///
     /// # Errors
     ///
-    /// Returns an error when creating the file fails.
+    /// Returns an error when creating the spool's subdirectory or the file itself fails.
     pub(crate) fn create(scratch: &ScratchDirectory) -> io::Result<Self> {
         let path = scratch.directory("relation")?.join("instances");
 

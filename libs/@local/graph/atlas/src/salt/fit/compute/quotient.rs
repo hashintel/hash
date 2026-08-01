@@ -51,7 +51,8 @@ hashql_core::id::newtype! {
 ///
 /// # Errors
 ///
-/// Returns an error when creating or writing the file fails.
+/// Returns an error when creating the scratch directory fails, and when creating or writing the
+/// file fails.
 pub(super) fn write_scratch<A>(
     directory: &ScratchDirectory,
     name: &str,
@@ -151,7 +152,8 @@ impl RowQuotient {
 ///
 /// # Errors
 ///
-/// Returns an error when creating or writing the file fails.
+/// Returns an error when creating the scratch directory or the file fails. Writing a row returns
+/// an error when it fails.
 pub(super) fn materialize_distinct<const N: usize>(
     directory: &ScratchDirectory,
     rows: &IdSlice<NodeRowId, AlignedVecN<N>>,

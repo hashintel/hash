@@ -23,12 +23,12 @@ use crate::math::narrow_f32;
 /// Relation volume is heavily skewed - a handful of types own most links - so the group pass cannot
 /// lean on group-level parallelism alone: one dominant relation would serialize it. Within a group,
 /// instances therefore emit over chunks of this size. Boundaries are fixed positions of the sorted
-/// slice and the chunk partials combine in chunk order, so the double-precision mass sums
-/// associate identically on every run: the build stays a function of the instance set, whatever the
-/// thread count or scheduling. The size is a granularity, not a tuned number - large enough that
-/// per-chunk task and buffer overhead vanishes behind tens of thousands of column searches, small
-/// enough that a million-instance relation splits into dozens of stealable pieces; any nearby power
-/// of two serves equally.
+/// slice and the chunk partials combine in chunk order, so the double-precision mass sums associate
+/// identically on every run: the build stays a function of the instance set, whatever the thread
+/// count or scheduling. The size is a granularity, not a tuned number - large enough that per-chunk
+/// task and buffer overhead vanishes behind tens of thousands of column searches, small enough that
+/// a million-instance relation splits into dozens of stealable pieces; any nearby power of two
+/// serves equally.
 pub(super) const EMISSION_CHUNK: usize = 1 << 14;
 
 /// Builds the attraction and protection indexes together.
@@ -154,8 +154,8 @@ pub(super) fn resolve_groups<'policy, N, E>(
 /// One proper instance's protection contribution: its canonical pair and class evidence.
 ///
 /// The group emission writes one record per instance - pruning-exempt, since protection evidence
-/// covers the complete admitted set - and the protection assembly orders and aggregates the
-/// records without revisiting instances or policies.
+/// covers the complete admitted set - and the protection assembly orders and aggregates the records
+/// without revisiting instances or policies.
 #[derive(Debug, Copy, Clone)]
 pub(super) struct ProtectionRecord<N> {
     pair: NodePair<N>,
@@ -223,15 +223,15 @@ where
 
 /// Assembles the symmetric evidence matrix from the emitted protection records.
 ///
-/// The records order by canonical pair first: one pair's records may have emitted at any
-/// positions, and the aggregation's per-component maximum is order-independent, so the assembled
-/// index is a function of the instance set. Two passes over the pair runs then build the matrix:
-/// counting fills the row pointers, the scatter writes each pair's aggregated evidence into both
-/// of its rows. Canonical pair order makes the scatter emit every row's partners ascending
-/// without a sort: a row's smaller partners arrive while the row is some pair's second endpoint
-/// (ascending by the pairs' first components), its larger partners afterwards while it is the
-/// first (ascending by second components). The scatter is sequential, the assembly's serial
-/// floor; the index validation behind it re-checks the constructed invariants in parallel.
+/// The records order by canonical pair first: one pair's records may have emitted at any positions,
+/// and the aggregation's per-component maximum is order-independent, so the assembled index is a
+/// function of the instance set. Two passes over the pair runs then build the matrix: counting
+/// fills the row pointers, the scatter writes each pair's aggregated evidence into both of its
+/// rows. Canonical pair order makes the scatter emit every row's partners ascending without a sort:
+/// a row's smaller partners arrive while the row is some pair's second endpoint (ascending by the
+/// pairs' first components), its larger partners afterwards while it is the first (ascending by
+/// second components). The scatter is sequential, the assembly's serial floor; the index validation
+/// behind it re-checks the constructed invariants in parallel.
 ///
 /// # Panics
 ///

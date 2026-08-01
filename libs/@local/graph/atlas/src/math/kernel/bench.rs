@@ -1,7 +1,7 @@
 //! Measurement seam for the vendored transcendental kernels.
 //!
-//! The `math_kernels` benchmark target measures each production wrapper exactly as production
-//! calls it, so a rewrite of the vendored kernels shows up as an instruction-count or cycle change
+//! The `math_kernels` benchmark target measures each production wrapper exactly as production calls
+//! it, so a rewrite of the vendored kernels shows up as an instruction-count or cycle change
 //! against the saved per-event baselines. Nothing here is API for consumers of the crate.
 
 use core::simd::{f32x4, f32x8, f64x4};
@@ -36,8 +36,8 @@ pub fn exp_f32x8(values: f32x8) -> f32x8 {
 
 /// Base-e exponential of each `f32` lane, table-based alternative in its portable gather form.
 ///
-/// Not a production wrapper: this entry keeps the 16-entry hi/lo-table candidate measured
-/// against [`exp_f32x8`].
+/// Not a production wrapper: this entry keeps the 16-entry hi/lo-table candidate measured against
+/// [`exp_f32x8`].
 #[expect(
     clippy::inline_always,
     reason = "the seam must measure the candidate as a production wrapper would call it: \

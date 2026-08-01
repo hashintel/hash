@@ -37,10 +37,11 @@ pub(crate) struct Regions<'build> {
 ///
 /// # Panics
 ///
-/// This panics when the region slices contradict each other. A flags region not sized to the
-/// fencepost count, fencepost regions of differing lengths, and a final fencepost that differs from
-/// its array's length each violate the caller's construction contract, and no file geometry can
-/// represent them.
+/// This panics when the region slices contradict each other. Each fencepost region holds one post
+/// per type plus the closing post, so an empty one describes no type domain at all. Fencepost
+/// regions of differing lengths, a flags region that does not hold one bit per type, and a final
+/// fencepost differing from its array's length are the remaining contradictions. No file geometry
+/// represents any of them.
 ///
 /// `salt::postings` owns the membership and parent list rules (ascent, domains, dense run lengths)
 /// as its construction contract and asserts them where it builds the lists.
@@ -64,6 +65,10 @@ pub(crate) fn write_regions(
         membership_posts.len(),
         parent_posts.len(),
         "both fencepost regions cover the one type domain",
+    );
+    assert!(
+        !membership_posts.is_empty(),
+        "a fencepost region holds one post per type plus the closing post",
     );
 
     let types = (membership_posts.len() - 1) as u64;

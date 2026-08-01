@@ -255,8 +255,8 @@ impl ResolvedVisibility {
 
     /// Returns the delivery schedule of this entry's view, building it on first read.
     ///
-    /// The build runs under the [`OnceLock`], so concurrent first readers of one scope wait for
-    /// a single construction instead of duplicating it.
+    /// The build runs under the [`OnceLock`], so concurrent first readers of one scope wait for a
+    /// single construction instead of duplicating it.
     pub(crate) fn view_schedule(&self, atlas: &Atlas) -> ViewSchedule {
         self.schedule
             .get_or_init(|| ViewSchedule::of(atlas, &self.proof))

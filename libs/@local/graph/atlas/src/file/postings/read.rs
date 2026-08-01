@@ -90,6 +90,7 @@ impl PostingsFile {
     /// # Errors
     ///
     /// Returns [`OpenPostingsError::Io`] when opening or mapping the file fails,
+    /// [`OpenPostingsError::Undersized`] when the file ends before one full header,
     /// [`OpenPostingsError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenPostingsError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

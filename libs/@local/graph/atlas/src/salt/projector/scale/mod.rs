@@ -134,10 +134,10 @@ where
 
     /// Returns the local normalization of a node pair's 2D distance.
     ///
-    /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric
-    /// mean of the pair's ε-shifted local scales. Dividing a pair's distance by it yields the
-    /// locally normalized distance `z`, comparable between dense and sparse map regions; `epsilon`
-    /// keeps the result positive where a scale is zero.
+    /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric mean of the
+    /// pair's ε-shifted local scales. Dividing a pair's distance by it yields the locally
+    /// normalized distance `z`, comparable between dense and sparse map regions; `epsilon` keeps
+    /// the result positive where a scale is zero.
     ///
     /// # Panics
     ///

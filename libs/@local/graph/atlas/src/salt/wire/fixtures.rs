@@ -4,9 +4,9 @@
 //! expected decoded values (floats as u32 bit patterns), the envelope prefix, and the directory -
 //! so the padding sweep is assertable client-side from the sidecar alone. The Rust side proves the
 //! encoder reproduces the pinned bytes; the TypeScript decoder consumes the same files and asserts
-//! field-for-field equality - "matches the Rust side" is never asserted by eye. The decoder
-//! derives its request echo context from the sidecar `HEAD`; a request field the `HEAD` does not
-//! echo joins the sidecar the day a fixture needs one.
+//! field-for-field equality - "matches the Rust side" is never asserted by eye. The decoder derives
+//! its request echo context from the sidecar `HEAD`; a request field the `HEAD` does not echo joins
+//! the sidecar the day a fixture needs one.
 //!
 //! Pinning a fixture waits on a ratified schema and a serving endpoint, because pinning bytes
 //! before the schema exists pins an invention. The end-to-end fixture over a real published
@@ -671,13 +671,14 @@ fn g6_edges() -> Fixture {
 /// G7.
 ///
 /// A locate response - the source first over an arbitrary delivered list (nothing contiguous),
-/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), both
-/// source completeness flags exercised in opposite states, and the full detail trailer: both
-/// intern tables, labels with nulls and non-ASCII, node first-type references including a `null`,
-/// the source map covering every scalar value shape (text, positive and negative integers,
-/// doubles, booleans, explicit null), link type lists in non-ascending canonical order with an
-/// empty entry, link property maps covering map, `null`, and empty shapes, and both completeness
-/// bitmasks.
+/// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), and
+/// both source completeness flags exercised in opposite states.
+///
+/// The full detail trailer holds both intern tables, labels with nulls and non-ASCII, node
+/// first-type references including a `null`, the source map covering every scalar value shape
+/// (text, positive and negative integers, doubles, booleans, explicit null), link type lists in
+/// non-ascending canonical order with an empty entry, link property maps covering map, `null`, and
+/// empty shapes, and both completeness bitmasks.
 #[expect(
     clippy::too_many_lines,
     reason = "the fixture pins every wire shape in one hand-built document"

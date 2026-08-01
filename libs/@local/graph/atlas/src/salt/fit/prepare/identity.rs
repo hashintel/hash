@@ -2,8 +2,8 @@
 //!
 //! [`IdentityTable`] collects one domain's source ids in row order during the dataset drain and
 //! writes them as one identity file; [`IdentityTableArchive`] reopens a written file as the typed
-//! lookup surface: `row → id` by indexing, `id → row` by binary search over the file's sorted
-//! pairs behind its index prelude, faulting two pages on a cold lookup.
+//! lookup surface: `row → id` by indexing, `id → row` by binary search over the file's sorted pairs
+//! behind its index prelude, faulting two pages on a cold lookup.
 //!
 //! The id type is the dataset's ([`Dataset::NodeId`] / [`Dataset::EdgeId`]): byte-level stable,
 //! opaque to the pipeline, ordered here by its bytes since source identifiers carry no other order.
@@ -192,8 +192,8 @@ impl Error for InvalidIdentityFile {}
 ///
 /// Construction validates the domain invariants in one pass, so the lookups skip validation
 /// afterwards: [`id`](Self::id) indexes the id column and [`row_of`](Self::row_of) binary-searches
-/// the sorted pairs behind the file's index prelude. The table translates between one id domain
-/// and one row domain: `I` is the source id type, `R` the row identity its lookups answer.
+/// the sorted pairs behind the file's index prelude. The table translates between one id domain and
+/// one row domain: `I` is the source id type, `R` the row identity its lookups answer.
 #[derive(Debug)]
 pub(crate) struct IdentityTableArchive<I, R> {
     file: IdentityFile,

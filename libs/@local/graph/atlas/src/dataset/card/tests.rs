@@ -1,7 +1,7 @@
 //! Fixture tests for the canonical card format.
 //!
-//! The expected strings are the format's contract: every test compares rendered text
-//! byte-for-byte, so any layout change is a deliberate format revision that shows up here.
+//! The expected strings are the format's contract: every test compares rendered text byte-for-byte,
+//! so any layout change is a deliberate format revision that shows up here.
 use alloc::borrow::Cow;
 use core::assert_matches;
 

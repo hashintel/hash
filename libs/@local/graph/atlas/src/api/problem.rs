@@ -2,10 +2,10 @@
 //!
 //! The `type` member carries Surface v1's stable root-relative URIs, the body goes out as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
-//! live here beside the document they produce. Requests that fail before a handler runs -
-//! malformed bodies, wrong content types, unparsable tile addresses - route through
-//! [`super::extract`]'s wrappers and answer problem documents too; only the router's own
-//! rejections (an unmatched route, a wrong method) stay plain.
+//! live here beside the document they produce. Requests that fail before a handler runs - malformed
+//! bodies, wrong content types, unparsable tile addresses - route through [`super::extract`]'s
+//! wrappers and answer problem documents too; only the router's own rejections (an unmatched route,
+//! a wrong method) stay plain.
 
 use alloc::borrow::Cow;
 
@@ -114,9 +114,8 @@ impl<'content> Problem<'content> {
 
     /// A 500 whose source stays in the server log.
     ///
-    /// The document carries only the static `detail`; the log records `source`
-    /// at error level. Driver errors and panic payloads are log material and
-    /// never reach a client.
+    /// The document carries only the static `detail`. The log records `source` at error level.
+    /// Driver errors and panic payloads are log material and never reach a client.
     pub(super) fn internal(
         source: impl core::fmt::Display,
         detail: impl Into<Cow<'content, str>>,
@@ -182,9 +181,9 @@ impl OperationOutput for Problem<'_> {
 
 /// Rejects a route whose generation echo does not name the pinned generation.
 ///
-/// A well-formed id names a resource, so an id this process does not serve is a 404; the
-/// client's recovery is to re-read `current` and retry. A malformed id never reaches here - the
-/// path extractor answers `invalid-generation` (400) first.
+/// A well-formed id names a resource, so an id this process does not serve is a 404; the client's
+/// recovery is to re-read `current` and retry. A malformed id never reaches here - the path
+/// extractor answers `invalid-generation` (400) first.
 pub(super) fn reject_generation(
     state: &AppState,
     generation: GenerationId,
@@ -213,8 +212,8 @@ pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'st
 ///
 /// One uniform answer for every cause (an absent header, a malformed encoding, a failed tag, a
 /// stale issue time, or an actor mismatch), so a caller learns that its presentation refused and
-/// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out,
-/// so the server logs no cause.
+/// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out, so
+/// the server logs no cause.
 pub(super) fn unauthorized() -> Problem<'static> {
     Problem::new(
         StatusCode::UNAUTHORIZED,

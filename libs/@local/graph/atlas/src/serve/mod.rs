@@ -31,18 +31,17 @@
 //!
 //! # Architecture
 //!
-//! Each domain concept lives in exactly one module. The foundation: `open` is the open pass -
-//! map, validate, derive, construct; `column` holds the element-typed column views that
-//! validation produces; `grid` is the bucket schedule and its addressing; `secret`, the wire
-//! secret; and `error`, the open-failure taxonomy.
+//! Each domain concept lives in exactly one module. The foundation: `open` is the open pass - map,
+//! validate, derive, construct; `column` holds the element-typed column views that validation
+//! produces; `grid` is the bucket schedule and its addressing; `secret`, the wire secret; and
+//! `error`, the open-failure taxonomy.
 //!
 //! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
 //! permutation; `density` the public band that resolves one scope's delivery cut; `walk` the
-//! schedule-driven point
-//! delivery - full-visibility range assembly, the masked delivery chain, and the census;
-//! `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring resolution;
-//! `intern` the wire intern tables; `authorization` the sealed authority tokens; `hydrate` the
-//! live store reads behind detail trailers.
+//! schedule-driven point delivery - full-visibility range assembly, the masked delivery chain, and
+//! the census; `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring
+//! resolution; `intern` the wire intern tables; `authorization` the sealed authority tokens;
+//! `hydrate` the live store reads behind detail trailers.
 //!
 //! The read surfaces compose those: `tile`, `edges`, `locate`, and `translate` each hold one
 //! endpoint's request vocabulary, rejection taxonomy, and assembly, and `manifest` the bootstrap
@@ -121,8 +120,8 @@ mod tests;
 
 /// The variant names one generation serves, in variant-index order.
 ///
-/// Surface v1 serves exactly `plain`; routes and manifests take variant names and indices from
-/// this constant.
+/// Surface v1 serves exactly `plain`; routes and manifests take variant names and indices from this
+/// constant.
 pub const VARIANTS: [&str; 1] = ["plain"];
 
 /// The serving controls in one configurable value: request-validation limits and response-shaping
@@ -273,8 +272,8 @@ impl Atlas {
 
     /// Configures the delivery-cut policy over this generation's schedule, aiming for `band`.
     ///
-    /// [`None`] for the schedules no offset deepens - a terminal root, or a schedule already at
-    /// the key width - where every scope serves the recorded cut, [`CutOffset::ZERO`].
+    /// [`None`] for the schedules no offset deepens - a terminal root, or a schedule already at the
+    /// key width - where every scope serves the recorded cut, [`CutOffset::ZERO`].
     pub(crate) fn density_policy(&self, band: DensityBand) -> Option<DensityPolicy> {
         DensityPolicy::new(
             band,

@@ -114,8 +114,8 @@ pub(super) struct Visibility {
     pub schedule: ViewSchedule,
     /// The delivery-cut offset the presented token seals.
     ///
-    /// Sealed at the manifest by the density policy and read back at admission, so the served
-    /// cut and the declared cut are the same value by construction.
+    /// Sealed at the manifest by the density policy and read back at admission, so the served cut
+    /// and the declared cut are the same value by construction.
     pub k: CutOffset,
 }
 
@@ -333,8 +333,8 @@ mod tests {
     /// stage rather than about the error inside it.
     ///
     /// `MultipleEmbeddings` is a failure a caller's own filter can produce, which is why it is the
-    /// one used for both stages here: the same value answers `400` under
-    /// [`ProofError::Filter`] and `500` under [`ProofError::PolicyFilter`].
+    /// one used for both stages here: the same value answers `400` under [`ProofError::Filter`] and
+    /// `500` under [`ProofError::PolicyFilter`].
     fn compiler_error() -> Report<SelectCompilerError> {
         Report::new(SelectCompilerError::MultipleEmbeddings)
     }

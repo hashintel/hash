@@ -40,10 +40,9 @@ const impl Default for RankingConfig {
 /// One importance derivation over published generation artifacts.
 ///
 /// The column is an ordinal sort key: the ranking consumes it through IEEE 754 `totalOrder`
-/// comparisons alone, greater delivers first, and monotone transforms of a signal rank
-/// identically: magnitudes are never read. Every entry is finite: under `totalOrder` a NaN fails
-/// nowhere, it silently delivers its row at an extreme zoom. The column holds exactly one entry per
-/// node row.
+/// comparisons alone, greater delivers first, and monotone transforms of a signal rank identically:
+/// magnitudes are never read. Every entry is finite: under `totalOrder` a NaN fails nowhere, it
+/// silently delivers its row at an extreme zoom. The column holds exactly one entry per node row.
 ///
 /// Implementations are deterministic: the column is a function of the artifacts and the
 /// configuration alone, never of thread count or timing.

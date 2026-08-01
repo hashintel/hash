@@ -4,9 +4,9 @@
 //! prior comes from the root's active generation, [`fit`] publishes a complete verified generation,
 //! the quality suite probes the published artifacts against the same snapshot, and a passing
 //! verdict activates the generation by the atomic pointer flip. A failing verdict returns an
-//! [`Outcome`] whose generation stays published as a candidate beside its report; the remedy is
-//! to diagnose the report, correct data, configuration, or metric, and run again - a candidate
-//! never activates by hand.
+//! [`Outcome`] whose generation stays published as a candidate beside its report; the remedy is to
+//! diagnose the report, correct data, configuration, or metric, and run again - a candidate never
+//! activates by hand.
 //!
 //! The whole run replays from the one fit seed. The admission probe's generator derives from that
 //! seed under a pinned name, exactly as the fit stages derive theirs, so equal configurations
@@ -45,8 +45,8 @@ mod tests;
 pub(crate) enum PriorMode {
     /// The root's active generation is the prior.
     ///
-    /// Card rows reuse embeddings by text hash and landmarks compete for the retained share. A
-    /// root without an activation runs fresh.
+    /// Card rows reuse embeddings by text hash and landmarks compete for the retained share. A root
+    /// without an activation runs fresh.
     #[default]
     FromActive,
     /// No prior: every card row embeds anew and the landmark selection starts cold.

@@ -693,8 +693,8 @@ fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
 ///
 /// With the skeleton's own local ruler as its radius.
 ///
-/// Anchor rows are the trainer's: the skeleton publishes corpus rows, and each selected row maps
-/// to its distinct index through the quotient.
+/// Anchor rows are the trainer's: the skeleton publishes corpus rows, and each selected row maps to
+/// its distinct index through the quotient.
 ///
 /// The radius is the median layout distance to the landmark's nearest skeleton neighbours. That is
 /// the same local-scale convention the relation loss normalizes by. A landmark in a dense skeleton

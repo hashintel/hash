@@ -21,8 +21,8 @@ pub(super) const AUTHORITY: &str = "atlas-authority";
 
 /// The same header in its canonical spelling, for the documents that name it.
 ///
-/// People and generators that echo them verbatim read the OpenAPI parameter and header keys,
-/// so the document carries the canonical form while the wire carries [`AUTHORITY`].
+/// People and generators that echo them verbatim read the OpenAPI parameter and header keys, so the
+/// document carries the canonical form while the wire carries [`AUTHORITY`].
 pub(super) const AUTHORITY_DOCUMENTED: &str = "Atlas-Authority";
 
 /// The query-response posture.

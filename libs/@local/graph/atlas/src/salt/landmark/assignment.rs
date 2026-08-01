@@ -96,8 +96,8 @@ where
         self.landmarks
     }
 
-    /// Re-indexes the assignment through `rows`: entry `i` of the result is this assignment's
-    /// entry at the `i`-th yielded row.
+    /// Re-indexes the assignment through `rows`: entry `i` of the result is this assignment's entry
+    /// at the `i`-th yielded row.
     ///
     /// This expands an assignment built over a quotient domain onto the domain `rows` maps from:
     /// every row of the wider domain takes its representative's landmark, under the unchanged

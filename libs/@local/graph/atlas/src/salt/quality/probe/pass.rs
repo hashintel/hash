@@ -2,10 +2,10 @@
 //!
 //! Each pass is a context binding its shared inputs once; running one ranks the anchors
 //! independently and in parallel under one total order - distances by [`f32::total_cmp`], ties by
-//! ascending row - and yields per-anchor cells cloned from a prevalidated template. The corpus
-//! pass counts ranks against bounded threshold sets, so its per-thread memory follows the search
-//! depth, never the corpus; the sampled pass sorts whole comparison universes, whose size the probe
-//! design bounds.
+//! ascending row - and yields per-anchor cells cloned from a prevalidated template. The corpus pass
+//! counts ranks against bounded threshold sets, so its per-thread memory follows the search depth,
+//! never the corpus; the sampled pass sorts whole comparison universes, whose size the probe design
+//! bounds.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at probe entry"
@@ -131,8 +131,8 @@ fn order_into<A: Allocator>(order: &mut Vec<u32, A>, distances: &[f32], rows: &[
 
 /// One anchor's corpus-pass output across the neighbourhood sizes.
 ///
-/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the
-/// ranking intermediates live in the arena.
+/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the ranking
+/// intermediates live in the arena.
 pub(super) struct AnchorReading {
     /// Rank aggregates, one per neighbourhood size.
     pub cells: Vec<NeighbourhoodAggregate>,
@@ -334,8 +334,8 @@ where
 
 /// One anchor's sampled-pass output across the space pairs.
 ///
-/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the
-/// ranking intermediates live in the arena.
+/// Readings outlive the per-thread scratch arena, so they own plain heap storage; only the ranking
+/// intermediates live in the arena.
 pub(super) struct SampledReading {
     /// Rank aggregates per space pair, one cell per neighbourhood size.
     pub cells: SpacePairArray<Vec<NeighbourhoodAggregate>>,

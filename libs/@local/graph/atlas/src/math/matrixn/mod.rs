@@ -183,8 +183,8 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
 
     /// Views the matrix as one flat slice of aligned 8-lane groups, mutably.
     ///
-    /// The split is the same as [`lanes`](Self::lanes); writes through the slice update the
-    /// matrix in place.
+    /// The split is the same as [`lanes`](Self::lanes); writes through the slice update the matrix
+    /// in place.
     #[inline]
     #[must_use]
     pub fn lanes_mut(&mut self) -> &mut [f32x8] {

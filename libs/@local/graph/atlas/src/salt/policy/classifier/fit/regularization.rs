@@ -86,8 +86,8 @@ pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
 ///
 /// # Errors
 ///
-/// Returns [`FitError::Preparation`] or [`FitError::Solver`] when any candidate's fold model
-/// fails, and [`FitError::NonFinite`] when an out-of-fold evaluation leaves the finite domain.
+/// Returns [`FitError::Preparation`] or [`FitError::Solver`] when any candidate's fold model fails,
+/// and [`FitError::NonFinite`] when an out-of-fold evaluation leaves the finite domain.
 pub(super) fn select<P: Progress + Sync>(
     training: TrainingSet<'_>,
     folds: &IdSlice<CardRow, usize>,

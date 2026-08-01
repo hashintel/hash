@@ -124,7 +124,7 @@ impl QualityThresholds {
         mut self,
         overrides: &ThresholdOverrides,
     ) -> Result<Self, ThresholdDomainError> {
-        fn fraction(
+        const fn fraction(
             field: &'static str,
             value: Option<f64>,
             into: &mut UnitFraction,
@@ -136,6 +136,7 @@ impl QualityThresholds {
                     domain: "the closed unit interval",
                 })?;
             }
+
             Ok(())
         }
 

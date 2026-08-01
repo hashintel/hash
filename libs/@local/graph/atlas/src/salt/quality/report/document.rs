@@ -19,15 +19,15 @@ pub(crate) struct MetricRow {
     /// Queries the row aggregates over.
     pub queries: usize,
     /// Mean fraction of shared neighbourhoods, in `[0, 1]`.
-    pub recall: f64,
+    pub recall: UnitFraction,
     /// Trustworthiness, in `[0, 1]`.
-    pub trustworthiness: f64,
+    pub trustworthiness: UnitFraction,
     /// Continuity, in `[0, 1]`.
-    pub continuity: f64,
+    pub continuity: UnitFraction,
     /// Fraction of false neighbours past the horizon, in `[0, 1]`.
-    pub intrusion_rate: f64,
+    pub intrusion_rate: UnitFraction,
     /// Fraction of banished neighbours past the horizon, in `[0, 1]`.
-    pub extrusion_rate: f64,
+    pub extrusion_rate: UnitFraction,
 }
 
 impl MetricRow {
@@ -106,7 +106,7 @@ pub(crate) struct ClumpRow {
     /// Mean matched fraction of the collapsed neighbourhoods, in `[0, 1]`.
     ///
     /// Never below the plain recall at the same size.
-    pub recall: f64,
+    pub recall: UnitFraction,
 }
 
 /// The clump-collapsed evidence block.
@@ -156,11 +156,11 @@ pub(crate) struct BaselineRow {
     /// Queries the row aggregates over.
     pub queries: usize,
     /// Recall of exact canonical neighbourhoods in the representation, in `[0, 1]`.
-    pub recall: f64,
+    pub recall: UnitFraction,
     /// The same reading collapsed onto clump ids, when clump readings exist.
     ///
     /// Never below the plain recall.
-    pub clump_recall: Option<f64>,
+    pub clump_recall: Option<UnitFraction>,
 }
 
 /// One subgroup's representation-baseline readings over the sampled universe.
@@ -196,13 +196,13 @@ pub(crate) struct SubgroupFlag {
     /// Anchors carrying the type.
     pub anchors: usize,
     /// The subgroup's degradation: one minus its recall.
-    pub degradation: f64,
+    pub degradation: UnitFraction,
     /// The whole-probe degradation the factor multiplied.
-    pub overall_degradation: f64,
+    pub overall_degradation: UnitFraction,
     /// The subgroup's clump-collapsed degradation, when clump readings exist.
-    pub clump_degradation: Option<f64>,
+    pub clump_degradation: Option<UnitFraction>,
     /// The whole-probe clump-collapsed degradation the re-evaluation compared against.
-    pub clump_overall_degradation: Option<f64>,
+    pub clump_overall_degradation: Option<UnitFraction>,
     /// Whether the clump-collapsed re-evaluation satisfies the degradation rule.
     ///
     /// Always false without clump readings.
@@ -320,10 +320,18 @@ impl QualityReport {
     /// numbers, so the verdict and the observation read one reduction instead of two.
     #[must_use]
     pub(crate) fn controls(&self) -> [Control; variant_count::<QualityMetric>()] {
-        let lowest =
-            |read: fn(&MetricRow) -> f64| self.map_representation.iter().map(read).reduce(f64::min);
-        let highest =
-            |read: fn(&MetricRow) -> f64| self.map_representation.iter().map(read).reduce(f64::max);
+        let lowest = |read: fn(&MetricRow) -> UnitFraction| {
+            self.map_representation
+                .iter()
+                .map(read)
+                .reduce(UnitFraction::min)
+        };
+        let highest = |read: fn(&MetricRow) -> UnitFraction| {
+            self.map_representation
+                .iter()
+                .map(read)
+                .reduce(UnitFraction::max)
+        };
 
         // A rung with no spread reading gives the ceiling nothing to check, so the control loses
         // its evidence whole rather than reading the rungs that do have one.
@@ -343,22 +351,22 @@ impl QualityReport {
         [
             Control {
                 metric: QualityMetric::Recall,
-                reading: lowest(|row| row.recall),
+                reading: lowest(|row| row.recall).map(UnitFraction::get),
                 bound: Bound::Floor(self.minimum_recall.get()),
             },
             Control {
                 metric: QualityMetric::Trustworthiness,
-                reading: lowest(|row| row.trustworthiness),
+                reading: lowest(|row| row.trustworthiness).map(UnitFraction::get),
                 bound: Bound::Floor(self.minimum_trustworthiness.get()),
             },
             Control {
                 metric: QualityMetric::Continuity,
-                reading: lowest(|row| row.continuity),
+                reading: lowest(|row| row.continuity).map(UnitFraction::get),
                 bound: Bound::Floor(self.minimum_continuity.get()),
             },
             Control {
                 metric: QualityMetric::IntrusionRate,
-                reading: highest(|row| row.intrusion_rate),
+                reading: highest(|row| row.intrusion_rate).map(UnitFraction::get),
                 bound: Bound::Ceiling(self.maximum_intrusion_rate.get()),
             },
             Control {

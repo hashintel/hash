@@ -104,9 +104,9 @@ const DETAIL_QUERY: &str = "
 /// The locate node hydration query.
 ///
 /// Labels and direct-type URLs for every delivered node, plus - gated to the first input, the
-/// source - the simple-valued properties, the whole-set property count, and the base URL
-/// providing the display label. Input order preserved through the ordinality column, absent
-/// entities missing from the result.
+/// source - the simple-valued properties, the whole-set property count, and the base URL providing
+/// the display label. Input order preserved through the ordinality column, absent entities missing
+/// from the result.
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
 /// nested values never cross the connection - while `total` counts the whole masked object, the
@@ -166,9 +166,9 @@ const LOCATE_DETAIL_QUERY: &str = "
 
 /// The locate link hydration query.
 ///
-/// The locate node query's columns for every delivered link entity, ungated: every edge in a
-/// locate response carries its label, direct-type URLs, capped properties, and completeness
-/// flags. Properties and their count read [`MASKED_PROPERTIES`], as in the node query.
+/// The locate node query's columns for every delivered link entity, ungated: every edge in a locate
+/// response carries its label, direct-type URLs, capped properties, and completeness flags.
+/// Properties and their count read [`MASKED_PROPERTIES`], as in the node query.
 const LOCATE_LINK_QUERY: &str = "
     SELECT
         ids.index,

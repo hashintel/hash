@@ -1,9 +1,9 @@
 //! Controlled proof that the visible set's key assignment is corpus-dependent.
 //!
 //! The delivery contract's fixed-view comparison keeps visible row identity, visible Morton keys,
-//! and relative importance order among visible rows identical across two worlds.
-//! The scope cascade closes the channel that runs through the *bucket assignment*; this module is
-//! about the channel one layer further up, in the keys the cascade reads.
+//! and relative importance order among visible rows identical across two worlds. The scope cascade
+//! closes the channel that runs through the *bucket assignment*; this module is about the channel
+//! one layer further up, in the keys the cascade reads.
 //!
 //! Keys are not row-local. `salt/lod/stage.rs` fits the world frame from every corpus coordinate
 //! (`Bounds2::from_slice_par`), maps that frame onto the fixed `[-1, 1]` wire frame
@@ -57,9 +57,9 @@ struct Reading {
 
 /// Reproduces the production key assignment over `points`, then reads the first `visible` rows.
 ///
-/// The staged steps are `stage.rs`'s own: fit the frame over every coordinate, normalize onto
-/// the wire frame, quantize. The ranking ranks row `r` at position `r`, and the cascade runs only
-/// to confirm the columns agree - no expectation here reads a bucket.
+/// The staged steps are `stage.rs`'s own: fit the frame over every coordinate, normalize onto the
+/// wire frame, quantize. The ranking ranks row `r` at position `r`, and the cascade runs only to
+/// confirm the columns agree - no expectation here reads a bucket.
 fn read(points: &[Vec2], visible: usize) -> (Bounds2, Reading) {
     let world = Bounds2::from_slice_par(points).expect("the fixtures are finite and non-empty");
     let wire = world.normalize_into(wire_frame(), points);
@@ -129,10 +129,10 @@ const VISIBLE: [Vec2; 3] = [
 ///
 /// Both worlds contain the same three visible rows with the same identities and the same relative
 /// importance order. `read` ranks row `r` at position `r` in either world, so the comparison fixes
-/// the rank inputs alongside the identities. The blocked world adds one hidden row at `(7,
-/// 7)`, widening the fitted frame from `[0, 3]^2` to `[0, 7]^2`. Each axis then maps `world -> [-1,
-/// 1]` with a different scale, so the visible unit coordinates change from `{0, 1/3, 1}` to `{0,
-/// 1/7, 3/7}`:
+/// the rank inputs alongside the identities. The blocked world adds one hidden row at `(7, 7)`,
+/// widening the fitted frame from `[0, 3]^2` to `[0, 7]^2`. Each axis then maps `world -> [-1, 1]`
+/// with a different scale, so the visible unit coordinates change from `{0, 1/3, 1}` to `{0, 1/7,
+/// 3/7}`:
 ///
 /// | Row  | World  | Unit, sparse | Key `x`, sparse | Unit, blocked | Key `x`, blocked |
 /// | ---- | ------ | ------------ | --------------- | ------------- | ---------------- |
@@ -142,9 +142,9 @@ const VISIBLE: [Vec2; 3] = [
 ///
 /// The low bits carry the one f32 rounding the normalization admits. The cell prefixes are exact.
 /// Because prefixes move, occupancy moves with them: at depth 1 the sparse world holds `V0`, `V1`
-/// in one cell and `V2` in another, while the blocked world holds all three in one, so
-/// `C(1, V)` reads 2 and then 1. `C(d, V)` is the cut policy's input, so the corpus bounding box is
-/// an input to a scope-local delivery decision.
+/// in one cell and `V2` in another, while the blocked world holds all three in one, so `C(1, V)`
+/// reads 2 and then 1. `C(d, V)` is the cut policy's input, so the corpus bounding box is an input
+/// to a scope-local delivery decision.
 #[test]
 fn a_hidden_row_outside_the_visible_frame_changes_the_visible_key_assignment() {
     let (sparse_frame, sparse) = read(&VISIBLE, VISIBLE.len());

@@ -8,16 +8,15 @@
 //! [`ROW_ALIGNMENT`] so the tensor shapes stay inside every GPU kernel's launch constraints.
 //!
 //! Draws consume the caller's random stream in a fixed family order (semantic, ordinary, hard,
-//! relation, landmark, anchor), and a skipped family consumes nothing. Equal artifacts,
-//! plans, stream types, and seeds therefore reproduce a batch exactly.
+//! relation, landmark, anchor), and a skipped family consumes nothing. Equal artifacts, plans,
+//! stream types, and seeds therefore reproduce a batch exactly.
 //!
-//! The drawing and assembly paths allocate per step, so both expose `_in` variants in the
-//! standard library's allocator pattern: [`BatchSampler::draw_in`] and [`Batch::assemble_in`]
-//! place every population and batch vector in the caller's allocator, and the plain methods are
-//! defaulting wrappers over the global one. The allocator covers the batch spine; the structures
-//! nested inside draws (the relation draws' and [`RelationEdges`]' edge vectors, the
-//! gathered [`LocalScales`]) and the tensor buffers of [`Batch::input`] - consumed by the
-//! backend - stay global.
+//! The drawing and assembly paths allocate per step, so both expose `_in` variants in the standard
+//! library's allocator pattern: [`BatchSampler::draw_in`] and [`Batch::assemble_in`] place every
+//! population and batch vector in the caller's allocator, and the plain methods are defaulting
+//! wrappers over the global one. The allocator covers the batch spine; the structures nested inside
+//! draws (the relation draws' and [`RelationEdges`]' edge vectors, the gathered [`LocalScales`])
+//! and the tensor buffers of [`Batch::input`] - consumed by the backend - stay global.
 
 use core::{alloc::Allocator, num::NonZero};
 use std::alloc::Global;

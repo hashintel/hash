@@ -142,6 +142,7 @@ impl SprsFile {
     /// # Errors
     ///
     /// Returns [`OpenSprsError::Io`] when opening or mapping the file fails,
+    /// [`OpenSprsError::Undersized`] when the file ends before one full header,
     /// [`OpenSprsError::Header`] when its leading bytes are not a header this module speaks, and
     /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {

@@ -9,8 +9,8 @@ use crate::{file::array::ArrayFile, math::Vec2};
 
 /// An element type an array artifact can yield.
 ///
-/// Implementations name the container's typed accessors; [`Column`] turns their per-call
-/// [`Option`] into a construction-time proof.
+/// Implementations name the container's typed accessors; [`Column`] turns their per-call [`Option`]
+/// into a construction-time proof.
 pub(crate) trait Element: Sized {
     /// Views the file's elements, [`None`] when the recorded element type or shape differs.
     fn view(file: &ArrayFile) -> Option<&[Self]>;

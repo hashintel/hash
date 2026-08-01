@@ -3,8 +3,8 @@
 //! Adding a common scalar to every class logit moves no probability, so one degree of freedom among
 //! the class logits is redundant. The solver therefore parameterizes the classifier in a
 //! two-dimensional contrast space reached through the fixed matrix `B ∈ ℝ^(3×2)` whose rows, in
-//! [`GeometryClass`] discriminant order, are `(1/√2, 1/√6)`, `(−1/√2, 1/√6)`, and `(0, −2/√6)`.
-//! Its columns are orthonormal (`BᵀB = I₂`) and orthogonal to the constant vector (`Bᵀ1 = 0`), so
+//! [`GeometryClass`] discriminant order, are `(1/√2, 1/√6)`, `(−1/√2, 1/√6)`, and `(0, −2/√6)`. Its
+//! columns are orthonormal (`BᵀB = I₂`) and orthogonal to the constant vector (`Bᵀ1 = 0`), so
 //! contrast coordinates span exactly the shift-free directions of logit space: [`expand`] maps a
 //! contrast vector to class logits and [`reduce`] projects a class-space vector back, and the
 //! roundtrip is the identity up to rounding.
@@ -25,8 +25,8 @@ const FRAC_1_SQRT_6: f64 = 0.408_248_290_463_863;
 
 /// `2/√6`, the exact double of [`FRAC_1_SQRT_6`] (bit pattern `0x3FEA20BD700C2C3E`).
 ///
-/// Doubling is exact in binary floating point, so this is also the correctly rounded value of
-/// the real `2/√6`.
+/// Doubling is exact in binary floating point, so this is also the correctly rounded value of the
+/// real `2/√6`.
 const FRAC_2_SQRT_6: f64 = 0.816_496_580_927_726;
 
 /// The `HelmertV1` basis rows, one per class in discriminant order.

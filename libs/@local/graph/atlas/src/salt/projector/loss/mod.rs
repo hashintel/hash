@@ -2,11 +2,11 @@
 //!
 //! The objective splits along the hand-gradient seam. The hand-gradient terms - semantic
 //! attraction, ordinary and hard-negative repulsion, and relation attraction - evaluate value and
-//! coordinate gradient in one fused pass over their edge lists, with every derivative
-//! hand-derived in [`energy`] and certified against finite differences; their gradients
-//! accumulate into [`GradientField`]s the budget measures per node before the combined field
-//! reaches shared parameters. The support term rides ordinary autodiff on the coordinate tensor,
-//! so nothing needs its gradient ahead of the backward pass.
+//! coordinate gradient in one fused pass over their edge lists, with every derivative hand-derived
+//! in [`energy`] and certified against finite differences; their gradients accumulate into
+//! [`GradientField`]s the budget measures per node before the combined field reaches shared
+//! parameters. The support term rides ordinary autodiff on the coordinate tensor, so nothing needs
+//! its gradient ahead of the backward pass.
 //!
 //! Every term takes a premultiplied `scale`: the term's loss coefficient times any estimator
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens
@@ -18,9 +18,9 @@
 //!
 //! Pairs at exactly zero distance contribute their value but no gradient: a coincident pair has no
 //! direction to move along. Coincidence is the attraction and relation energies' minimum and the
-//! repulsion energy's maximum - a stationary point whose coordinate gradient vanishes as
-//! `d^(2b - 1)` under the curve's `b ≥ 1/2` construction bound, so the zero is the continuous
-//! limit and any separation restores the outward push.
+//! repulsion energy's maximum - a stationary point whose coordinate gradient vanishes as `d^(2b -
+//! 1)` under the curve's `b ≥ 1/2` construction bound, so the zero is the continuous limit and any
+//! separation restores the outward push.
 
 mod energy;
 #[cfg(test)]
@@ -42,11 +42,7 @@ use crate::{
 hashql_core::id::newtype! {
     /// A batch-local row position.
     ///
-    /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain; this key names
-    /// positions in that domain and nothing else. It is distinct by design from the corpus's
-    /// `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is
-    /// the wiring defect this type exists to prevent. The `u32` width is a representation bound: a
-    /// batch indexes one step's participating rows.
+    /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain. This key names positions in that domain and nothing else. It is distinct by design from the corpus's `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is the wiring defect this type exists to prevent. The `u32` width is a representation bound because a batch indexes one step's participating rows.
     pub(crate) struct BatchRowId(u32)
 }
 
@@ -163,9 +159,9 @@ where
 
 /// Evaluates a repulsion term over weighted negative pairs.
 ///
-/// Adds `scale · weight · -ln(1 - q(d^2) + ε)` per pair to the returned value and the
-/// matching hand-derived gradients to `field`. Ordinary negatives carry unit weights; mined hard
-/// negatives carry their bounded rank weights.
+/// Adds `scale · weight · -ln(1 - q(d^2) + ε)` per pair to the returned value and the matching
+/// hand-derived gradients to `field`. Ordinary negatives carry unit weights; mined hard negatives
+/// carry their bounded rank weights.
 ///
 /// # Panics
 ///
@@ -228,9 +224,9 @@ where
 /// Evaluates the relation attraction term over a sampled batch.
 ///
 /// Per instance the contribution is `scale · confidence · normalization · strength` times the
-/// weighted class mixture at the locally normalized distance `z = d / √((ρ_i + ε)(ρ_j + ε))`.
-/// The local scales enter as detached measurements. The gradient flows through `d` only, so `dz/dd`
-/// is a per-pair constant.
+/// weighted class mixture at the locally normalized distance `z = d / √((ρ_i + ε)(ρ_j + ε))`. The
+/// local scales enter as detached measurements. The gradient flows through `d` only, so `dz/dd` is
+/// a per-pair constant.
 ///
 /// # Panics
 ///

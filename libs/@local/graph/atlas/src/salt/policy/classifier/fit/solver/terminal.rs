@@ -5,8 +5,8 @@
 //! arithmetic that left the finite domain. Each failure carries the structure a match arm needs,
 //! and a non-finite Newton value names its [`NewtonStage`]. None of them publishes a model.
 //! Validation failures before the solve live with their owners,
-//! [`SolverConfigError`](super::config::SolverConfigError)
-//! and [`PreparationError`](super::prepare::PreparationError).
+//! [`SolverConfigError`](super::config::SolverConfigError) and
+//! [`PreparationError`](super::prepare::PreparationError).
 
 /// The stage of the exact Newton solve where a value left the finite domain.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -53,8 +53,8 @@ pub enum SolverFailure {
         /// The solve stage that produced the non-finite value.
         stage: NewtonStage,
     },
-    /// The intercept Schur system is not positive-definite: no row carries interior
-    /// probabilities, so the corpus offers the intercepts no curvature.
+    /// The intercept Schur system is not positive-definite: no row carries interior probabilities,
+    /// so the corpus offers the intercepts no curvature.
     SingularInterceptCurvature,
     /// The boundary search found no finite positive crossing.
     NoFiniteBoundaryStep,

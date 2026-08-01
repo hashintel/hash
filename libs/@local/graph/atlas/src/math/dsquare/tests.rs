@@ -44,8 +44,8 @@ fn spd_fixture(order: usize) -> DSquareMatrix {
     matrix
 }
 
-/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), four lanes
-/// with a tail (33), and one past the derived block height (200).
+/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), four lanes with a
+/// tail (33), and one past the derived block height (200).
 const ORDERS: [usize; 6] = [1, 2, 7, 8, 33, 200];
 
 #[test]

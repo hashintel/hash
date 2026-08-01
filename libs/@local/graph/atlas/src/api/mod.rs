@@ -1,8 +1,8 @@
 //! The atlas read API, serving Surface v1 routes over one opened generation.
 //!
-//! The surface comprises the mutable `current` pointer, the immutable per-generation
-//! manifest, the tile, edges, and locate endpoints answering binary `SALTILE` envelopes, and the
-//! JSON translate endpoint. The server pins the generation at startup and serves it until restart.
+//! The surface comprises the mutable `current` pointer, the immutable per-generation manifest, the
+//! tile, edges, and locate endpoints answering binary `SALTILE` envelopes, and the JSON translate
+//! endpoint. The server pins the generation at startup and serves it until restart.
 //!
 //! Each route lives in its own module (handler, path parameters, and OpenAPI documentation
 //! together), so a new endpoint is a new module plus one line in [`router`]'s table. The shared
@@ -12,11 +12,11 @@
 //! [`mod@reference`] (the OpenAPI document and its reference page).
 //!
 //! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
-//! `catch_unwind` and never inline on the async runtime. Every error a route answers is an RFC
-//! 9457 problem document - handler failures directly, extraction failures through [`extract`]'s
+//! `catch_unwind` and never inline on the async runtime. Every error a route answers is an RFC 9457
+//! problem document - handler failures directly, extraction failures through [`extract`]'s
 //! wrappers; only the router's own rejections (an unmatched route, a wrong method) stay plain.
-//! Binary responses send `Cache-Control: private, no-store` because the client's
-//! application-layer cache is the cache.
+//! Binary responses send `Cache-Control: private, no-store` because the client's application-layer
+//! cache is the cache.
 
 use alloc::sync::Arc;
 
@@ -92,9 +92,9 @@ const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 /// The shared route state.
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
-/// connection detail hydration reads through, the authority every assembly path masks by - read
-/// per request through [`visibility::Visibility`] - and the token authority the manifest mints
-/// from, whose sealed scope is the identity every data route resolves its visibility under.
+/// connection detail hydration reads through, the authority every assembly path masks by - read per
+/// request through [`visibility::Visibility`] - and the token authority the manifest mints from,
+/// whose sealed scope is the identity every data route resolves its visibility under.
 #[derive(Clone)]
 struct AppState {
     atlas: Arc<Atlas>,
@@ -116,8 +116,8 @@ struct AppState {
 /// A visibility proof scopes every corpus-bearing response the router serves, and every request
 /// answers under the scope of the actor it names: `pool` is the store every read goes through and
 /// `visibility` the window the router reuses a resolved scope for. The router serves no request
-/// without an actor, and serves no actor another's rows. The authority token's key derives from
-/// the secret that opened the atlas. The manifest mints one per fetch, and the data routes refuse
+/// without an actor, and serves no actor another's rows. The authority token's key derives from the
+/// secret that opened the atlas. The manifest mints one per fetch, and the data routes refuse
 /// without one.
 ///
 /// # Panics

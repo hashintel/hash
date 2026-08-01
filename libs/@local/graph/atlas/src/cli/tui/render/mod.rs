@@ -1,14 +1,14 @@
-//! Drawing one frame of the dashboard: the stage rail, the loss chart beside the placement map,
-//! and the log pane.
+//! Drawing one frame of the dashboard: the stage rail, the loss chart beside the placement map, and
+//! the log pane.
 //!
 //! [`frame`] is a pure function of the model plus the tick that animates the running stage, so a
 //! frame is reproducible: the same [`RunState`] and tick draw the same cells. Every glyph choice,
 //! label, and color lives in this module tree - the model carries no presentation, and the
 //! pipeline's [`Stage`] carries no prose.
 //!
-//! One module per pane - [`rail`], [`loss`], [`map`], [`log`] - each owning the vocabulary it
-//! draws with. This module owns the composition: the geometry it lays the panes out in, and which
-//! of them a given terminal is large enough to earn.
+//! One module per pane - [`rail`], [`loss`], [`map`], [`log`] - each owning the vocabulary it draws
+//! with. This module owns the composition: the geometry it lays the panes out in, and which of them
+//! a given terminal is large enough to earn.
 
 use ratatui::{
     Frame,
@@ -58,8 +58,8 @@ const DOTS_ACROSS: u16 = 2;
 /// Dots one braille cell is tall.
 const DOTS_DOWN: u16 = 4;
 
-/// Points the widest map can hold apart: its braille dot grid, two dots per column and four per
-/// row inside the frame.
+/// Points the widest map can hold apart: its braille dot grid, two dots per column and four per row
+/// inside the frame.
 ///
 /// This is what the dashboard asks a run to sample. A larger sample would cost the run copies of
 /// coordinates the map draws into dots already lit.
@@ -149,9 +149,9 @@ const fn band_height(state: &RunState, available: u16, rail: u16) -> u16 {
 
 /// The columns the map takes out of the band, beside the curve.
 ///
-/// The curve is the reading an operator acts on, so it keeps its width first and the map takes
-/// the remainder; below the width where dots resolve anything the map stays away entirely,
-/// and past the width where it stops gaining detail the curve takes the rest of the growth.
+/// The curve is the reading an operator acts on, so it keeps its width first and the map takes the
+/// remainder; below the width where dots resolve anything the map stays away entirely, and past the
+/// width where it stops gaining detail the curve takes the rest of the growth.
 const fn map_width(state: &RunState, available: u16) -> u16 {
     if state.placement().is_none() {
         return 0;

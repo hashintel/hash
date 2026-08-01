@@ -32,8 +32,8 @@ use crate::{
 /// The list holds two distinct seeds and repeats one of them, so the readings carry construction
 /// nondeterminism as well as seed spread.
 pub(crate) const DEFAULT_SEEDS: &[u64] = &[0, 0, 1];
-/// Candidate caps audited by default: the constructor's own setting, so a bare invocation reads
-/// the deployed construction.
+/// Candidate caps audited by default: the constructor's own setting, so a bare invocation reads the
+/// deployed construction.
 pub(crate) const DEFAULT_CANDIDATES: &[usize] = &[NnDescentOptions::default().maximum_candidates];
 
 /// One NN-Descent construction reading.

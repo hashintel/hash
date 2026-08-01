@@ -1,8 +1,8 @@
 //! `POST /v1/atlas/generation/{generation}/manifest`.
 //!
-//! Immutable bootstrap data (configuration and snapshot provenance only), delivered beside a
-//! fresh per-caller authority token in the `Atlas-Authority` response header.
-//! An optional body carries the filter document that binds the view.
+//! Immutable bootstrap data (configuration and snapshot provenance only), delivered beside a fresh
+//! per-caller authority token in the `Atlas-Authority` response header. An optional body carries
+//! the filter document that binds the view.
 
 use alloc::sync::Arc;
 use std::time::SystemTime;
@@ -106,8 +106,8 @@ pub(super) struct GenerationPath {
 /// The document is the same for every caller; the response is not, carrying a freshly minted
 /// authority token in the `Atlas-Authority` header - which is why it sends `no-store` even though
 /// the document itself never changes. Fetching it also resolves the caller's scope. A client
-/// bootstraps here, so the resolution costs the request that expects a wait rather than the
-/// first tile.
+/// bootstraps here, so the resolution costs the request that expects a wait rather than the first
+/// tile.
 ///
 /// The handler judges the generation first, so a retired generation answers `404` whatever the
 /// caller presented, and a client re-fetching there discovers the re-pin. At the pinned generation
@@ -116,16 +116,16 @@ pub(super) struct GenerationPath {
 ///
 /// The body states the view the request wants, either a filter document or nothing for the
 /// unfiltered view. No renewal mode leaves the wanted view unstated, because the server purges a
-/// filter document with its cache entry and a token cannot rebuild it. The token seals the
-/// filter's digest, and a digest names no document.
+/// filter document with its cache entry and a token cannot rebuild it. The token seals the filter's
+/// digest, and a digest names no document.
 ///
-/// The wanted view therefore decides. When it equals the sealed one, the session keeps its
-/// delivery depth `k`, and the handler still resolves a wanted filter from the resent bytes so a
-/// purged document and its proof are rebuilt. When it differs from the sealed one - a changed
-/// filter, or its removal - the handler resolves the wanted view and keeps `k` unless that view
-/// resolves coarser, which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view
-/// therefore seals zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap
-/// resolves both the wanted view and its depth.
+/// The wanted view therefore decides. When it equals the sealed one, the session keeps its delivery
+/// depth `k`, and the handler still resolves a wanted filter from the resent bytes so a purged
+/// document and its proof are rebuilt. When it differs from the sealed one - a changed filter, or
+/// its removal - the handler resolves the wanted view and keeps `k` unless that view resolves
+/// coarser, which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view therefore
+/// seals zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap resolves both
+/// the wanted view and its depth.
 ///
 /// [`DensityPolicy::rebind`]: crate::serve::DensityPolicy::rebind
 pub(super) async fn handler(
@@ -240,8 +240,8 @@ pub(super) async fn handler(
 ///
 /// One JSON object in the graph's entity-query filter grammar, which lives in that surface rather
 /// than in a restatement here: the server validates the document against it and answers
-/// `invalid-body` when it does not parse. The digest that names the view hashes the bytes
-/// exactly as presented, so a client re-presenting a filter sends the same bytes it sent before.
+/// `invalid-body` when it does not parse. The digest that names the view hashes the bytes exactly
+/// as presented, so a client re-presenting a filter sends the same bytes it sent before.
 struct FilterDocument;
 
 impl schemars::JsonSchema for FilterDocument {
@@ -356,9 +356,9 @@ mod tests {
     /// The fixture view, hand-derived: four points on one row of the depth-3 grid.
     ///
     /// Cells `(0, 0)`, `(1, 0)`, `(2, 0)`, `(3, 0)` at depth 3. Folding the grid coarser: at depth
-    /// 2 they pair into `(0, 0)` and `(1, 0)`, at depth 1 they all fall in `(0, 0)`, so
-    /// `C(1, V) = 1`, `C(2, V) = 2`, `C(3, V) = 4`, constant below that, and the saturation depth
-    /// is 3 - every occupied cell holds one key there.
+    /// 2 they pair into `(0, 0)` and `(1, 0)`, at depth 1 they all fall in `(0, 0)`, so `C(1, V) =
+    /// 1`, `C(2, V) = 2`, `C(3, V) = 4`, constant below that, and the saturation depth is 3 - every
+    /// occupied cell holds one key there.
     ///
     /// Against the band `[2, 3]`, the candidate offsets `0..=2` (the saturation cap, below the
     /// schedule's ceiling of 27) sit at distances 1, 0, 1. The argmin is **offset 1**, and it is a
@@ -485,8 +485,8 @@ mod tests {
     /// The operation declares the catch-all response.
     ///
     /// A manifest fetch resolves the caller's visibility, so it answers `visibility-unavailable`
-    /// and `internal` beside the four statuses it declares by name. Without the default
-    /// response the document would omit both.
+    /// and `internal` beside the four statuses it declares by name. Without the default response
+    /// the document would omit both.
     #[test]
     fn the_operation_declares_the_catch_all_response() {
         let responses = &emitted()["responses"];

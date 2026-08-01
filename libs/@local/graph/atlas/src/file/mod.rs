@@ -39,10 +39,10 @@
 //! Integrity mechanisms layer by cost. Array headers validate by parsing, because the pinned magic
 //! and version make foreign bytes fail to parse. The one structural rule is the file length
 //! equation. The temporary-path-and-rename publish prevents torn writes, and the SHA-256 each
-//! repository file records detects corruption, which tooling verifies rather than every load. No
-//! file carries an internal checksum. Hashing at publish is one streaming pass the pipeline already
-//! makes, and the structure an internal checksum protects is the directory, which the filesystem
-//! holds.
+//! repository file records detects corruption. Tooling verifies that hash on demand, and no load
+//! verifies it. No file carries an internal checksum. Hashing at publish is one streaming pass the
+//! pipeline already makes, and the structure an internal checksum would protect is the directory,
+//! which the filesystem holds.
 //!
 //! Shapes need no validation because every bit pattern means something. The shape is the longest
 //! nonzero dimension prefix, and a leading zero is the empty array. The single enforcement point is
@@ -73,11 +73,10 @@
 //! # Whole-file mappings
 //!
 //! Every mapping covers a whole file and slices at the header size. An array header is exactly 4096
-//! bytes, a multiple of every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon,
-//! 64 KiB on `aarch64` distributions), so the data behind it lands aligned for every scalar and
-//! SIMD width.
-//! Mapping from zero is what makes that provable. The kernel accepts only page-size-multiple mmap
-//! offsets, and 4096 is not one on 16 KiB pages.
+//! bytes, a multiple of every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon, 64
+//! KiB on `aarch64` distributions), so the data behind it lands aligned for every scalar and SIMD
+//! width. Mapping from zero is what makes that provable. The kernel accepts only page-size-multiple
+//! mmap offsets, and 4096 is not one on 16 KiB pages.
 //!
 //! # Format palette
 //!
@@ -90,11 +89,11 @@
 //! 2. **Specialized zerocopy file**: structured binary that a mapping must expose without decoding
 //!    but that is not a flat array. Built like the array header: a pinned 4096-byte preamble,
 //!    explicit little-endian layout, parse-is-validation.
-//! 3. **Parquet**: tabular data with heterogeneous columns, loaded once into memory or queried
-//!    analytically rather than mapped. It buys compression and external tooling (`DuckDB`,
-//!    `polars`) over a live atlas - worth real debugging time at a million entities - at the cost
-//!    of decode and the arrow dependency tree in an otherwise lean crate, so the choice happens
-//!    once, at adoption.
+//! 3. **Parquet**: tabular data with heterogeneous columns that a reader loads once into memory or
+//!    queries analytically. A Parquet file is never mapped. It buys compression and external
+//!    tooling (`DuckDB`, `polars`) over a live atlas - worth real debugging time at a million
+//!    entities - at the cost of decode and the arrow dependency tree in an otherwise lean crate, so
+//!    the choice happens once, at adoption.
 //! 4. **rkyv**: pointer-rich structures alone, such as deep recursive graphs, where laying out an
 //!    explicit zerocopy format is unreasonable. An explicit `#[repr(C)]` layout with pinned
 //!    identity is inspectable in a hex dump and carries no schema-evolution machinery, so zerocopy

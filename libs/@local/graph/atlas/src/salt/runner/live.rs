@@ -122,7 +122,11 @@ pub struct Options<P> {
     pub verdicts: Option<Utf8PathBuf> = None,
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
-    /// The optional fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`, `maximum_intrusion_rate`, `maximum_density_spread`, and `minimum_triplet_agreement`. A present field overrides its default after domain validation, an absent field keeps it, and an unknown field refuses the document. The source defaults are maximally permissive, gating evidence presence rather than fidelity.
+    /// The optional fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`,
+    /// `maximum_intrusion_rate`, `maximum_density_spread`, and `minimum_triplet_agreement`. A
+    /// present field overrides its default after domain validation, an absent field keeps it, and
+    /// an unknown field refuses the document. The source defaults are maximally permissive, gating
+    /// evidence presence rather than fidelity.
     pub quality_thresholds: Option<Utf8PathBuf> = None,
     /// The relation classifier's supply.
     pub classifier: ClassifierSource,

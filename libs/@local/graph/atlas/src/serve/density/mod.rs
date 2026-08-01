@@ -144,8 +144,8 @@ const impl Default for DensityBand {
 /// One delivery-cut offset: the depth every zoom's cut gains for one scope.
 ///
 /// A density policy resolves the offset at a session's bootstrap and a sealed authority token
-/// carries it, so a session serves at one delivery depth for as long as its client holds a token.
-/// A view re-bound to another filter keeps that depth unless the new view resolves coarser, which
+/// carries it, so a session serves at one delivery depth for as long as its client holds a token. A
+/// view re-bound to another filter keeps that depth unless the new view resolves coarser, which
 /// clamps it down - see [`DensityPolicy::rebind`]. Production construction is [`Self::ZERO`], a
 /// policy's resolution or rebind, or the authenticated read of a sealed token, so the public-band
 /// rule fixes every served offset and a client cannot forge one past the seal.
@@ -244,9 +244,8 @@ impl DensityPolicy {
     /// The recorded schedule determines the candidate offsets rather than any configuration:
     /// `0..=ceiling`, where the ceiling is what it leaves inside the 32 subdivisions a 64-bit
     /// Morton key resolves. Every candidate therefore keeps the scope cascade's deepest bucket -
-    /// the sum of `max_tile_depth`, `span` and the offset - within the key width by
-    /// construction, and the two failures below are the schedules where no offset at all
-    /// exists.
+    /// the sum of `max_tile_depth`, `span` and the offset - within the key width by construction,
+    /// and the two failures below are the schedules where no offset at all exists.
     ///
     /// # Errors
     ///
@@ -301,12 +300,12 @@ impl DensityPolicy {
 
     /// Resolves the delivery-cut offset of one authorized view.
     ///
-    /// The offset in `A(V) = { k | k ≤ min(k_sat(V), ceiling) }` minimizing
-    /// `(dist(C(m + k, V), [L, U]), k)`: nearest the band, coarsest on a tie.
-    /// `k_sat(V) = max(0, d_sat(V) - m)` caps the search where deeper cuts stop separating rows -
-    /// past saturation every occupied cell holds one key, so a deeper cut buys no occupancy and the
-    /// tie-break keeps the coarser cut. The ceiling caps it where the key width runs out, and it is
-    /// the binding cap exactly when a view clusters densely enough to saturate below it.
+    /// The offset in `A(V) = { k | k ≤ min(k_sat(V), ceiling) }` minimizing `(dist(C(m + k, V), [L,
+    /// U]), k)`: nearest the band, coarsest on a tie. `k_sat(V) = max(0, d_sat(V) - m)` caps the
+    /// search where deeper cuts stop separating rows - past saturation every occupied cell holds
+    /// one key, so a deeper cut buys no occupancy and the tie-break keeps the coarser cut. The
+    /// ceiling caps it where the key width runs out, and it is the binding cap exactly when a view
+    /// clusters densely enough to saturate below it.
     ///
     /// Over a contiguous candidate set the saturation cap no longer decides a result on its own:
     /// counts are constant past `d_sat`, so a deeper offset ties and the tie-break already holds

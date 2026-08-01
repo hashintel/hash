@@ -100,8 +100,8 @@ impl Context<'_> {
     /// representative's landmark. Stages it as one combined file and maps it back for the stages
     /// that consume it.
     ///
-    /// Candidates are uniform over the distinct rows; `prior_marks` names the corpus rows
-    /// competing for the retained share.
+    /// Candidates are uniform over the distinct rows; `prior_marks` names the corpus rows competing
+    /// for the retained share.
     pub(super) fn build_landmark_skeleton(
         &self,
         distinct: &IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,

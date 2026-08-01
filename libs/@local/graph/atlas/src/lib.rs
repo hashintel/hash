@@ -120,6 +120,7 @@
     const_destruct,
     const_index,
     const_ops,
+    const_option_ops,
     const_try,
     generic_atomic,
     impl_trait_in_assoc_type,
@@ -131,7 +132,7 @@
     step_trait,
     sync_nonpoison,
     time_saturating_systemtime,
-    variant_count
+    variant_count,
 )]
 // The dashboard's interrupt path leaves through an exit code, and it is
 // the only consumer of the feature.

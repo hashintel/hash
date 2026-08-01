@@ -2,11 +2,11 @@
 //!
 //! [`DSquareMatrix`] holds an order × order matrix chosen at runtime in one SIMD-aligned
 //! allocation. Entries fill in place through [`row_mut`](DSquareMatrix::row_mut).
-//! [`DSquareMatrix::cholesky`] consumes the matrix and factors its lower triangle in place into
-//! the lower-triangular [`DCholeskyFactor`] `L` with `A = L·Lᵀ`, and
+//! [`DSquareMatrix::cholesky`] consumes the matrix and factors its lower triangle in place into the
+//! lower-triangular [`DCholeskyFactor`] `L` with `A = L·Lᵀ`, and
 //! [`solve_in_place`](DCholeskyFactor::solve_in_place) then answers `A·x = b` by forward and back
-//! substitution. A matrix whose lower triangle is not positive-definite fails the factorization
-//! at its first bad pivot with a [`DCholeskyError`].
+//! substitution. A matrix whose lower triangle is not positive-definite fails the factorization at
+//! its first bad pivot with a [`DCholeskyError`].
 //!
 //! # Determinism
 //!
@@ -19,8 +19,8 @@
 //! # Layout
 //!
 //! The constructor pads rows to a stride of whole [`f64x8`] lanes and aligns the allocation for
-//! [`f64x8`], so every row starts at an aligned address. Row views carry that alignment as a
-//! type invariant, so the kernels load whole aligned lanes. Padding components are `0.0` from
+//! [`f64x8`], so every row starts at an aligned address. Row views carry that alignment as a type
+//! invariant, so the kernels load whole aligned lanes. Padding components are `0.0` from
 //! construction on and are never read as data: the triangular prefixes the factorization reduces
 //! end mid-lane, so their tails fold scalarly instead of reading into the padding.
 
@@ -46,8 +46,8 @@ const fn stride_for(order: usize) -> usize {
 
 /// A lane-aligned view of a row, or row prefix, of the factorization's storage.
 ///
-/// Every row of a [`DSquareMatrix`] or [`DCholeskyFactor`] starts a whole number of [`f64x8`]
-/// lanes into an allocation aligned for [`f64x8`], and a prefix shares its row's start;
+/// Every row of a [`DSquareMatrix`] or [`DCholeskyFactor`] starts a whole number of [`f64x8`] lanes
+/// into an allocation aligned for [`f64x8`], and a prefix shares its row's start;
 /// [`from_slice`](Self::from_slice) admits exactly such slices. [`lanes`](Self::lanes) therefore
 /// splits into aligned lane loads plus a scalar tail, with nothing in front.
 // No byte-level constructors (zerocopy `FromBytes`): `transmute_ref!` could then mint views of
@@ -177,8 +177,8 @@ impl DSquareRowBlock {
 /// attempts no perturbation or recovery.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DCholeskyError {
-    /// The pivot is NaN or infinite: the fate of any non-finite component in the lower
-    /// triangle's rows up to and including `index`.
+    /// The pivot is NaN or infinite: the fate of any non-finite component in the lower triangle's
+    /// rows up to and including `index`.
     NonFinitePivot {
         /// The diagonal position of the first non-finite pivot.
         index: usize,
@@ -201,9 +201,9 @@ const BLOCK_BUDGET_BYTES: usize = 256 * 1024;
 
 /// The block height for `stride`: the tallest block whose rows fit the working-set budget.
 ///
-/// Each settled row streams once per block, so the streamed traffic of the settled triangle
-/// falls by the block height while the block's own rows stay cache-resident. A stride past the
-/// whole budget degrades to single-row blocks: the unblocked row-wise algorithm.
+/// Each settled row streams once per block, so the streamed traffic of the settled triangle falls
+/// by the block height while the block's own rows stay cache-resident. A stride past the whole
+/// budget degrades to single-row blocks: the unblocked row-wise algorithm.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -282,9 +282,9 @@ impl<A: Allocator> DSquareMatrix<A> {
 
     /// Creates the zero matrix of the given order in a new aligned allocation in `alloc`.
     ///
-    /// Every component is `0.0` and the buffer fills in place through
-    /// [`row_mut`](Self::row_mut). [`handle_alloc_error`](alloc::alloc::handle_alloc_error) aborts
-    /// the process when the allocator cannot provide the buffer.
+    /// Every component is `0.0` and the buffer fills in place through [`row_mut`](Self::row_mut).
+    /// [`handle_alloc_error`](alloc::alloc::handle_alloc_error) aborts the process when the
+    /// allocator cannot provide the buffer.
     ///
     /// # Panics
     ///
@@ -370,8 +370,8 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// Factors the matrix in place into its lower-triangular Cholesky factor.
     ///
     /// The factorization reads only the lower triangle: entry `(i, j)` with `j ≤ i` is `A[i][j]`,
-    /// and it ignores the strict upper triangle. The returned factor owns the same allocation
-    /// and holds `L` with `A = L·Lᵀ`, zeros above the diagonal, and the padding untouched.
+    /// and it ignores the strict upper triangle. The returned factor owns the same allocation and
+    /// holds `L` with `A = L·Lᵀ`, zeros above the diagonal, and the padding untouched.
     ///
     /// # Errors
     ///
@@ -500,8 +500,8 @@ unsafe impl<A: Allocator + Sync> Sync for DSquareMatrix<A> {}
 
 /// The lower-triangular Cholesky factor `L` of a factored [`DSquareMatrix`].
 ///
-/// The factor owns the allocation of the matrix that produced it: row `i` holds
-/// `L[i][0..=i]` followed by zeros, and `L·Lᵀ` recovers the factored matrix's lower triangle.
+/// The factor owns the allocation of the matrix that produced it: row `i` holds `L[i][0..=i]`
+/// followed by zeros, and `L·Lᵀ` recovers the factored matrix's lower triangle.
 /// [`solve_in_place`](Self::solve_in_place) answers `A·x = b` for the factored `A`.
 pub struct DCholeskyFactor<A: Allocator = Global> {
     ptr: NonNull<f64>,
@@ -537,12 +537,12 @@ impl<A: Allocator> DCholeskyFactor<A> {
     /// Solves `A·x = b` in place, where `A = L·Lᵀ` is the factored matrix.
     ///
     /// `vector` enters as the right-hand side `b` and leaves as the solution `x`. Forward
-    /// substitution solves `L·y = b` top-down, each component a prefix dot of the factor row
-    /// with the settled solution prefix; back substitution solves `Lᵀ·x = y` bottom-up, each
-    /// settled component removing its column's contribution from the equations above it - a
-    /// column of `Lᵀ` is a row of `L`, so both passes read the factor along its rows. The
-    /// factor's rows load as aligned lanes. `vector` may have any alignment. The solution's
-    /// bytes depend only on the factor's and right-hand side's bytes.
+    /// substitution solves `L·y = b` top-down, each component a prefix dot of the factor row with
+    /// the settled solution prefix; back substitution solves `Lᵀ·x = y` bottom-up, each settled
+    /// component removing its column's contribution from the equations above it - a column of `Lᵀ`
+    /// is a row of `L`, so both passes read the factor along its rows. The factor's rows load as
+    /// aligned lanes. `vector` may have any alignment. The solution's bytes depend only on the
+    /// factor's and right-hand side's bytes.
     ///
     /// # Panics
     ///

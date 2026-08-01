@@ -11,18 +11,17 @@
 //! connects only through chains of stored edges, so a true ε-ball component can split but never
 //! spuriously merge - a split clump makes clump-granularity readings stricter, never looser.
 //!
-//! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it
-//! was pinned on, and the grouping is judged against measured corpus structure (group count,
-//! coverage, size distribution) and against the flagged subgroups it is expected to resolve. The
+//! ε is a calibrated configuration value: [`DEFAULT_EPSILON`] carries the corpus evidence it was
+//! pinned on, and the grouping is judged against measured corpus structure (group count, coverage,
+//! size distribution) and against the flagged subgroups it is expected to resolve. The
 //! [`calibration`](super::report::calibration) instrument re-derives the readings against any
 //! published k-NN table.
 //!
 //! [`ClumpAggregate`] is the collapsed counterpart of the plain recall reading: both neighbour
 //! lists relabel onto clump ids and overlap as multisets, so same-component siblings satisfy each
-//! other under the relabeling while a clump the map underrepresents earns only the credit it
-//! shows. Under singleton
-//! labels the multiset overlap is exactly the shared-row count, so clump recall is always at least
-//! plain recall and equals it when nothing clumps.
+//! other under the relabeling while a clump the map underrepresents earns only the credit it shows.
+//! Under singleton labels the multiset overlap is exactly the shared-row count, so clump recall is
+//! always at least plain recall and equals it when nothing clumps.
 #![expect(
     clippy::min_ident_chars,
     reason = "k is the canonical neighbourhood-size name across the metric literature"
@@ -33,13 +32,13 @@ use core::{cmp::Ordering, num::NonZero};
 use hashql_core::id::{Id, IdVec};
 
 use super::super::knn::table::KnnView;
-use crate::disjoint::DisjointSet;
+use crate::{disjoint::DisjointSet, math::UnitFraction};
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///
 /// The value is calibrated, not derived, and the calibration is per generation rather than
-/// universal. On two fits of the development corpus (985,932 rows, 30 stored neighbours per row)
-/// it sits on a plateau: `2ea9cb45…` reads 131,773, 131,760, and 131,147 multi-row groups at ε =
+/// universal. On two fits of the development corpus (985,932 rows, 30 stored neighbours per row) it
+/// sits on a plateau: `2ea9cb45…` reads 131,773, 131,760, and 131,147 multi-row groups at ε =
 /// 0.0012, 0.002, and 0.0028 - a 0.48% spread - while coverage grows from 48.7% to 60.9%, and
 /// `c1d00be7…` reproduces every one of those readings within 0.02%. At 0.002, cosine similarity
 /// 0.998, the first reads 131,760 groups covering 55.9% of the corpus at mean size 4.18. Below the
@@ -48,15 +47,15 @@ use crate::disjoint::DisjointSet;
 ///
 /// The plateau belongs to those fits and not to the construction: generation `bfc67cbc…` has none.
 /// It reads 85,794, 91,162, and 95,179 groups over the same three thresholds - a 10.9% rise across
-/// the interval - with the curve 34.9%, 30.8%, and 27.4% below the others at those three
-/// thresholds and coverage 39.0% to 53.3%,
-/// so there ε = 0.002 sits on a slope and neighbouring thresholds do not produce the same grouping
-/// structure. A clump-granularity reading is therefore comparable within one generation and not
-/// across generations; `report clumps` re-reads the curve for a new fit in seconds.
+/// the interval - with the curve 34.9%, 30.8%, and 27.4% below the others at those three thresholds
+/// and coverage 39.0% to 53.3%, so there ε = 0.002 sits on a slope and neighbouring thresholds do
+/// not produce the same grouping structure. A clump-granularity reading is therefore comparable
+/// within one generation and not across generations; `report clumps` re-reads the curve for a new
+/// fit in seconds.
 ///
-/// An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a
-/// different grouping construction and is not reproducible by ε-connected components over the
-/// k-NN table at any threshold; it anchors the scale of this value, not the value itself.
+/// An earlier audit structure (165K groups, 66% coverage, mean size near 4) came from a different
+/// grouping construction and is not reproducible by ε-connected components over the k-NN table at
+/// any threshold; it anchors the scale of this value, not the value itself.
 pub(crate) const DEFAULT_EPSILON: f32 = 0.002;
 
 /// A dense clump labelling of the node-row domain.
@@ -315,11 +314,11 @@ impl ClumpAggregate {
                   below the f64 mantissa"
     )]
     #[must_use]
-    pub(crate) fn recall(&self) -> f64 {
+    pub(crate) fn recall(&self) -> UnitFraction {
         if self.queries == 0 {
-            return 1.0;
+            return UnitFraction::ONE;
         }
 
-        self.matched as f64 / (self.queries * self.k) as f64
+        UnitFraction::new_unchecked(self.matched as f64 / (self.queries * self.k) as f64)
     }
 }

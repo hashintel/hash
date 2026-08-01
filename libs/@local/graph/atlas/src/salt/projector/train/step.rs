@@ -3,18 +3,18 @@
 //! Forward, hand-gradient fields, budget diagnostics, and the backward-ready surrogate.
 //!
 //! [`objective`](Evaluation::objective) projects the batch rows and hands the coordinates to
-//! [`evaluate`], which computes
-//! the composite objective in two regimes. The hand-gradient families (semantic attraction,
-//! ordinary and hard repulsion, relation attraction) evaluate value and per-node coordinate
-//! gradient against the detached coordinate frame; the evaluation measures the relation field per
-//! node against the semantic one for the budget diagnostics, and the combined field re-enters the
-//! parameter graph through the surrogate scalar, whose single backward pass deposits exactly that
-//! field. The support families (temporal anchors, landmarks) ride ordinary autodiff on the
-//! coordinate tensor - they carry no budget diagnostics - and add onto the same scalar.
+//! [`evaluate`], which computes the composite objective in two regimes. The hand-gradient families
+//! (semantic attraction, ordinary and hard repulsion, relation attraction) evaluate value and
+//! per-node coordinate gradient against the detached coordinate frame; the evaluation measures the
+//! relation field per node against the semantic one for the budget diagnostics, and the combined
+//! field re-enters the parameter graph through the surrogate scalar, whose single backward pass
+//! deposits exactly that field. The support families (temporal anchors, landmarks) ride ordinary
+//! autodiff on the coordinate tensor - they carry no budget diagnostics - and add onto the same
+//! scalar.
 //!
 //! Relation-inactive nodes - every node when the batch carries no relation edges, and any node
-//! whose accumulated relation gradient is exactly zero - contribute their semantic gradient
-//! alone and are not recorded into the budget metrics: there is nothing to measure.
+//! whose accumulated relation gradient is exactly zero - contribute their semantic gradient alone
+//! and are not recorded into the budget metrics: there is nothing to measure.
 
 use core::alloc::Allocator;
 

@@ -1,9 +1,8 @@
 //! Per-node relation-gradient diagnostics in coordinate space.
 //!
 //! The budget observes and never steers: relation gradients reach the shared model parameters
-//! whole, and every relation-active node records how much the relation objective pushed it
-//! relative to its semantic layout. The measurement is pure 2D vector algebra over detached
-//! values:
+//! whole, and every relation-active node records how much the relation objective pushed it relative
+//! to its semantic layout. The measurement is pure 2D vector algebra over detached values:
 //!
 //! ```text
 //! baseline = max(‖semantic‖, floor)

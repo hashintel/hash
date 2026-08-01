@@ -2,13 +2,13 @@
 //!
 //! A trailer stores each referenced string once: the table is the bytewise-sorted, deduplicated
 //! union of every reference the trailer makes, and every reference keys by index into it. The
-//! per-entity ascending-name order the hydration layer produces maps to ascending index order,
-//! so the wire's ordering laws hold by construction.
+//! per-entity ascending-name order the hydration layer produces maps to ascending index order, so
+//! the wire's ordering laws hold by construction.
 
 /// One trailer's intern table.
 ///
-/// Construction collects every reference first, so lookups are total for the trailer that built
-/// the table.
+/// Construction collects every reference first, so lookups are total for the trailer that built the
+/// table.
 #[derive(Debug)]
 pub(super) struct Table<'doc> {
     /// The interned strings, ascending bytewise, deduplicated.

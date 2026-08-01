@@ -9,10 +9,10 @@
 //! ```
 //!
 //! through the deterministic bounded trust-region exact-Newton [`solver`], which operates in
-//! contrast coordinates and certifies every solution against its gradient threshold. The data
-//! Gram matrix behind the solver's row-space factorization assembles once per fit and every fold
-//! solve reads its subset through a member view. Whole relation groups go to seeded, size-balanced
-//! folds before fitting, so near-duplicate corpus entries never straddle a train/validation split.
+//! contrast coordinates and certifies every solution against its gradient threshold. The data Gram
+//! matrix behind the solver's row-space factorization assembles once per fit and every fold solve
+//! reads its subset through a member view. Whole relation groups go to seeded, size-balanced folds
+//! before fitting, so near-duplicate corpus entries never straddle a train/validation split.
 //! [`regularization`] selects the penalty strength λ over those folds. Every candidate's fold
 //! models fit in parallel and the minimum out-of-fold cross-entropy wins, with an exact tie
 //! preferring the stronger penalty. The deployment model then fits at the winning strength over the
@@ -175,9 +175,9 @@ pub(crate) struct TrainingRow {
 
 /// Validated borrowed classifier training data.
 ///
-/// Both columns index by the corpus's card rows: the row at a card row labels the embedding at
-/// the same card row. The types carry the alignment claim across domains; the lengths still
-/// validate at construction.
+/// Both columns index by the corpus's card rows: the row at a card row labels the embedding at the
+/// same card row. The types carry the alignment claim across domains; the lengths still validate at
+/// construction.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct TrainingSet<'training> {
     embeddings: &'training IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>>,
@@ -284,9 +284,9 @@ impl<'training> TrainingSet<'training> {
 
 /// Solver and grouped-validation settings.
 ///
-/// The solver defaults are the deployment configuration, with the regularization strength
-/// selected per fit ([`regularization`]); the out-of-fold metrics in [`FitEvidence`] judge the
-/// selected configuration.
+/// The solver defaults are the deployment configuration, with the regularization strength selected
+/// per fit ([`regularization`]); the out-of-fold metrics in [`FitEvidence`] judge the selected
+/// configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct FitConfig {
     /// The bounded trust-region exact-Newton solver configuration, preparation knobs included.
@@ -302,8 +302,8 @@ impl FitConfig {
     ///
     /// # Errors
     ///
-    /// Returns [`FitError::Config`] for a solver configuration violating a cross-field
-    /// constraint and [`FitError::FoldCount`] for fewer than two folds.
+    /// Returns [`FitError::Config`] for a solver configuration violating a cross-field constraint
+    /// and [`FitError::FoldCount`] for fewer than two folds.
     pub(crate) fn validate(self) -> Result<(), FitError> {
         self.solver.validate().map_err(FitError::Config)?;
 
@@ -351,9 +351,9 @@ pub(crate) struct Fit {
 ///
 /// # Errors
 ///
-/// Returns a [`FitError`] for invalid configuration, too few relation groups, a training
-/// portion violating the preparation contract, a solve ending at a typed terminal, or a
-/// non-finite out-of-fold evaluation.
+/// Returns a [`FitError`] for invalid configuration, too few relation groups, a training portion
+/// violating the preparation contract, a solve ending at a typed terminal, or a non-finite
+/// out-of-fold evaluation.
 ///
 /// The candidate fold fits are the long part of the stage and run in parallel. A fold reports to
 /// `progress` when its last candidate completes, so completions arrive in whatever order the pool
@@ -416,8 +416,8 @@ pub(crate) fn fit<P: Progress + Sync>(
 ///
 /// # Errors
 ///
-/// Returns [`FitError::Preparation`] when the training portion violates the preparation
-/// contract and [`FitError::Solver`] when the solve ends at a typed terminal.
+/// Returns [`FitError::Preparation`] when the training portion violates the preparation contract
+/// and [`FitError::Solver`] when the solve ends at a typed terminal.
 fn fit_model(
     training: TrainingSet<'_>,
     folds: &IdSlice<CardRow, usize>,

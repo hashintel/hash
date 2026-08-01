@@ -5,8 +5,8 @@
 //! Internal row ids are dense and assignment-ordered, so sending them verbatim lets a principal
 //! bound hidden row counts between two visible ids (gap analysis) and estimate the universe size
 //! from any received sample. Ids therefore cross the wire through [`RowCodec`], a keyed bijection
-//! of the full `u32` range. Wire ids are opaque and sparse - a valid id is any `u32` value, and
-//! the mapping is independent of the universe size. To the extent the keyed permutation is
+//! of the full `u32` range. Wire ids are opaque and sparse - a valid id is any `u32` value, and the
+//! mapping is independent of the universe size. To the extent the keyed permutation is
 //! indistinguishable from a random permutation of `[0, 2^32)` at the volume of ids an observer
 //! collects, the wire ids one scope receives follow the distribution of a uniform subset of the
 //! range, and order, adjacency, creation time, and the universe size stay hidden. That
@@ -27,11 +27,10 @@
 //!
 //! Round keys derive from `HKDF-SHA256` over the server secret, salted by the generation identity
 //! and expanded under a per-universe label, when a generation opens for serving. Equal `(secret,
-//! generation, label)` give equal mappings, so responses stay byte-deterministic across restarts;
-//! a different generation changes every wire id, and the label names the mapping's universe -
-//! Surface v1 exposes one universe, the node rows. Edges carry their link entity's identity
-//! instead of a wire id of their own. Wire ids never reach the fit pipeline, and no artifact stores
-//! one.
+//! generation, label)` give equal mappings, so responses stay byte-deterministic across restarts; a
+//! different generation changes every wire id, and the label names the mapping's universe - Surface
+//! v1 exposes one universe, the node rows. Edges carry their link entity's identity instead of a
+//! wire id of their own. Wire ids never reach the fit pipeline, and no artifact stores one.
 
 use core::{hash::Hasher as _, marker::PhantomData};
 
@@ -64,10 +63,10 @@ pub(crate) const NODE_LABEL: &[u8] = b"atlas.wire.node.v1";
 /// A row id as it crosses the wire.
 ///
 /// The value relates to an internal row id only through the owning generation's [`RowCodec`]:
-/// [`RowCodec::encode`] mints egress values, and deserialization admits client-echoed values
-/// whose meaning only [`RowCodec::decode`] assigns - an arbitrary `u32` is a well-formed
-/// [`WireRow`] that decodes to [`None`] outside the encoded image. Comparisons order wire
-/// values, so a tie broken on [`WireRow`] is client-observable without exposing internal order.
+/// [`RowCodec::encode`] mints egress values, and deserialization admits client-echoed values whose
+/// meaning only [`RowCodec::decode`] assigns - an arbitrary `u32` is a well-formed [`WireRow`] that
+/// decodes to [`None`] outside the encoded image. Comparisons order wire values, so a tie broken on
+/// [`WireRow`] is client-observable without exposing internal order.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, schemars::JsonSchema)]
 #[repr(transparent)]
 #[schemars(transparent)]
@@ -124,8 +123,8 @@ impl<'de, I> serde::Deserialize<'de> for WireRow<I> {
 ///
 /// One codec serves one universe of one generation. [`Self::derive`] is the constructor. The
 /// underlying permutation bijects the `u32` range for every key; encoding restricts it to the
-/// universe `[0, N)` and decoding inverts exactly the encoded image, answering [`None`]
-/// elsewhere. Both are pure: the mapping never changes while the generation serves.
+/// universe `[0, N)` and decoding inverts exactly the encoded image, answering [`None`] elsewhere.
+/// Both are pure: the mapping never changes while the generation serves.
 #[derive(Debug)]
 pub(crate) struct RowCodec<I> {
     /// The universe size `N`; rows live in `[0, N)`, wire values in the full `u32` range.
@@ -186,8 +185,8 @@ where
 
     /// Decodes a wire value back to its internal row id, [`None`] outside the encoded image.
     ///
-    /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every
-    /// other lookup failure before a response can observe the cause.
+    /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every other
+    /// lookup failure before a response can observe the cause.
     pub(crate) fn decode(&self, wire: WireRow<I>) -> Option<I> {
         let row = self.unpermute(wire.get());
         (row < self.universe).then_some(I::from_u32(row))

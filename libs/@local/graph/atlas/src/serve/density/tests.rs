@@ -81,8 +81,8 @@ fn plateau_view() -> ViewOccupancy {
 
 /// An inverted band refuses construction rather than admitting no count.
 ///
-/// The band's own ordering is the invariant every distance reading rests on: an unchecked
-/// `[4_000, 2_000]` would report a positive distance for every count, including counts a correct
+/// The band's own ordering is the invariant every distance reading rests on: an unchecked `[4_000,
+/// 2_000]` would report a positive distance for every count, including counts a correct
 /// configuration calls perfect.
 #[test]
 fn a_band_refuses_an_inverted_configuration() {
@@ -226,8 +226,8 @@ fn an_empty_view_resolves_to_the_base_offset() {
 
 /// A co-located view resolves to the base offset.
 ///
-/// Its saturation depth is the whole domain, so every deeper cut leaves the search space:
-/// no cut separates keys that share one complete key.
+/// Its saturation depth is the whole domain, so every deeper cut leaves the search space: no cut
+/// separates keys that share one complete key.
 #[test]
 fn a_co_located_view_resolves_to_the_base_offset() {
     let anchor = key(3, 2, 1);
@@ -287,9 +287,9 @@ fn a_view_above_the_band_keeps_the_base_offset() {
 /// No resolution cuts deeper than the view's saturation depth.
 ///
 /// The plateau view saturates at depth 3, so with span 1 offset 2 is the deepest cut that separates
-/// anything: a deeper one would deliver more buckets and more response for identical occupancy.
-/// The band `[10, 20]` is unreachable from above, so nothing but this property stops the argmin at
-/// 2 rather than at [`CEILING`], which is 27 and therefore not what caps this resolution.
+/// anything: a deeper one would deliver more buckets and more response for identical occupancy. The
+/// band `[10, 20]` is unreachable from above, so nothing but this property stops the argmin at 2
+/// rather than at [`CEILING`], which is 27 and therefore not what caps this resolution.
 ///
 /// What the test pins is the property rather than one mechanism, and the deletion controls say so.
 /// Over a contiguous candidate range two guards cover the resolution, `resolve`'s saturation cap

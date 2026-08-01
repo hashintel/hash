@@ -382,11 +382,10 @@ where
     total / count
 }
 
-/// Probed at N=25 and N=300, seeds 11 and 23, with the landmark coefficient zeroed (the
-/// corpus's only nonzero pinning force here - `anchor` is already zero in `options()` and this
-/// fixture supplies no anchors): separation survives at every point (within ~0.0003-0.012,
-/// between ~29-96, both seeds), so the semantic gradient itself drives the separation this test
-/// names and measures.
+/// Probed at N=25 and N=300, seeds 11 and 23, with the landmark coefficient zeroed (the corpus's
+/// only nonzero pinning force here - `anchor` is already zero in `options()` and this fixture
+/// supplies no anchors): separation survives at every point (within ~0.0003-0.012, between ~29-96,
+/// both seeds), so the semantic gradient itself drives the separation this test names and measures.
 #[test]
 fn training_separates_the_semantic_clusters() {
     let corpus = semantic_corpus();
@@ -507,10 +506,10 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
 
 /// A ten-step run under a dominant landmark coefficient certifies the mechanism
 /// `landmark_support_keeps_the_frame` measures at convergence: the force already points each
-/// anchored row toward its target well short of the full run. (One optimizer step is not
-/// enough: Adam's first update is close to the coordinatewise sign of the gradient rather than its
-/// true direction, so a single step can send an anchored row away from its target even under a
-/// dominant coefficient. Across ten steps the true gradient direction dominates.)
+/// anchored row toward its target well short of the full run. (One optimizer step is not enough:
+/// Adam's first update is close to the coordinatewise sign of the gradient rather than its true
+/// direction, so a single step can send an anchored row away from its target even under a dominant
+/// coefficient. Across ten steps the true gradient direction dominates.)
 #[test]
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();

@@ -1,12 +1,12 @@
 //! The data Gram matrix `K` and the fold views the inner solves read it through.
 //!
-//! The exact Newton engine's capacitance blocks read pairwise embedding products
-//! `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`. Embeddings never change across outer iterations, regularization candidates,
-//! or folds, so the fit assembles [`Gram`] once over the full training corpus and every fold solve
-//! reads its subset through a [`GramView`] carrying the fold's member indices. Entries accumulate
-//! in `f64` through the exact-product kernel [`AlignedVecN::dot_accumulated`], one independent dot
-//! per entry, so the assembled bytes are deterministic and a view's entries equal a direct assembly
-//! over the subset bit for bit.
+//! The exact Newton engine's capacitance blocks read pairwise embedding products `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`.
+//! Embeddings never change across outer iterations, regularization candidates, or folds, so the fit
+//! assembles [`Gram`] once over the full training corpus and every fold solve reads its subset
+//! through a [`GramView`] carrying the fold's member indices. Entries accumulate in `f64` through
+//! the exact-product kernel [`AlignedVecN::dot_accumulated`], one independent dot per entry, so the
+//! assembled bytes are deterministic and a view's entries equal a direct assembly over the subset
+//! bit for bit.
 //!
 //! Storage is the packed lower triangle - `n(n+1)/2` components for `n` rows - and lookups are
 //! symmetric: `entry(i, j)` and `entry(j, i)` read the same component.
@@ -19,16 +19,15 @@ use crate::{dataset::CANONICAL_DIMENSIONS, math::AlignedVecN};
 pub(crate) struct Gram {
     /// Corpus rows covered by the matrix.
     order: usize,
-    /// The lower triangle in row order: row `i` holds `i + 1` components starting at
-    /// `i·(i+1)/2`.
+    /// The lower triangle in row order: row `i` holds `i + 1` components starting at `i·(i+1)/2`.
     entries: Box<[f64]>,
 }
 
 impl Gram {
     /// Assembles the Gram matrix over the corpus embeddings in one charged pass.
     ///
-    /// Each entry is one independent double-accumulated dot, so the assembly is deterministic
-    /// at any traversal order. Rows fill in ascending index. The work is `n(n+1)/2` wide dots, once
+    /// Each entry is one independent double-accumulated dot, so the assembly is deterministic at
+    /// any traversal order. Rows fill in ascending index. The work is `n(n+1)/2` wide dots, once
     /// per fit.
     pub(crate) fn assemble(
         embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>],

@@ -2,8 +2,8 @@
 //!
 //! The measurement assertions are bit-exact where every intermediate is dyadic. The surrogate
 //! certificates establish the seam the training loop depends on: one backward pass through the
-//! surrogate deposits exactly the requested coordinate gradient, both at a detached coordinate
-//! leaf and through the full model Jacobian.
+//! surrogate deposits exactly the requested coordinate gradient, both at a detached coordinate leaf
+//! and through the full model Jacobian.
 
 #![expect(
     clippy::float_cmp,

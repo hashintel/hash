@@ -24,6 +24,162 @@ fn unit_fraction_accepts_exactly_the_closed_interval() {
     assert_eq!(UnitFraction::new(f64::NEG_INFINITY), None);
 }
 
+/// Every constructor canonicalizes the sign of zero.
+///
+/// `-0.0` enters through `new`, `new_clamped`, and `new_unchecked`; one bit pattern per value is
+/// the ground for bitwise `Eq`, `Ord`, and `Hash`, so all three must store `+0.0`.
+#[test]
+fn unit_fraction_constructors_canonicalize_negative_zero() {
+    let plus_zero = 0.0_f64.to_bits();
+
+    assert_eq!(
+        UnitFraction::new(-0.0)
+            .expect("-0.0 lies inside [0, 1]")
+            .get()
+            .to_bits(),
+        plus_zero
+    );
+    assert_eq!(
+        UnitFraction::new_clamped(-0.0)
+            .expect("-0.0 is not NaN")
+            .get()
+            .to_bits(),
+        plus_zero
+    );
+    assert_eq!(UnitFraction::new_unchecked(-0.0).get().to_bits(), plus_zero);
+}
+
+/// Clamping saturates at the nearer endpoint and refuses only NaN.
+#[test]
+fn unit_fraction_clamp_saturates_and_refuses_only_nan() {
+    assert_eq!(UnitFraction::new_clamped(1.5), Some(UnitFraction::ONE));
+    assert_eq!(
+        UnitFraction::new_clamped(f64::INFINITY),
+        Some(UnitFraction::ONE)
+    );
+    assert_eq!(UnitFraction::new_clamped(-0.25), Some(UnitFraction::ZERO));
+    assert_eq!(
+        UnitFraction::new_clamped(f64::NEG_INFINITY),
+        Some(UnitFraction::ZERO)
+    );
+    assert_eq!(UnitFraction::new_clamped(f64::NAN), None);
+}
+
+/// Inside the domain, clamping is validation: both constructors yield the same value.
+#[property_test]
+fn unit_fraction_clamp_agrees_with_new_inside_the_domain(#[strategy = 0.0_f64..=1.0] value: f64) {
+    prop_assert_eq!(UnitFraction::new_clamped(value), UnitFraction::new(value));
+}
+
+/// The complement stays in `[0, 1]` and stays canonical.
+#[property_test]
+fn unit_fraction_complement_is_closed_and_canonical(#[strategy = 0.0_f64..=1.0] value: f64) {
+    let fraction = UnitFraction::new(value).expect("the strategy stays inside [0, 1]");
+    let complement = fraction.complement();
+
+    prop_assert!(complement.get() >= 0.0 && complement.get() <= 1.0);
+    prop_assert_ne!(complement.get().to_bits(), (-0.0_f64).to_bits());
+}
+
+/// The endpoints complement to each other exactly, and one half is its own complement.
+#[test]
+fn unit_fraction_endpoints_complement_exactly() {
+    assert_eq!(UnitFraction::ONE.complement(), UnitFraction::ZERO);
+    assert_eq!(UnitFraction::ZERO.complement(), UnitFraction::ONE);
+    assert_eq!(UnitFraction::HALF.complement(), UnitFraction::HALF);
+}
+
+/// Fraction products stay in the interval, keep a positive sign, and match the iterator fold.
+#[property_test]
+fn unit_fraction_products_are_closed(
+    #[strategy = 0.0_f64..=1.0] left: f64,
+    #[strategy = 0.0_f64..=1.0] right: f64,
+) {
+    let left = UnitFraction::new(left).expect("the strategy stays inside [0, 1]");
+    let right = UnitFraction::new(right).expect("the strategy stays inside [0, 1]");
+
+    let product = left * right;
+    prop_assert!(product.get() >= 0.0 && product.get() <= 1.0);
+    prop_assert_ne!(product.get().to_bits(), (-0.0_f64).to_bits());
+    prop_assert_eq!([left, right].into_iter().product::<UnitFraction>(), product);
+}
+
+/// The empty product is the multiplicative identity.
+#[test]
+fn unit_fraction_empty_product_is_one() {
+    assert_eq!(
+        core::iter::empty::<UnitFraction>().product::<UnitFraction>(),
+        UnitFraction::ONE
+    );
+}
+
+/// `ratio` admits exactly a part within a non-zero total, and the quotient lies in `[0, 1]`.
+#[property_test]
+fn unit_fraction_ratio_lies_in_the_interval(part: u64, total: u64) {
+    match UnitFraction::ratio(part, total) {
+        Some(fraction) => {
+            prop_assert!(total != 0 && part <= total);
+            prop_assert!(fraction.get() >= 0.0 && fraction.get() <= 1.0);
+        }
+        None => prop_assert!(total == 0 || part > total),
+    }
+}
+
+/// The total order agrees with the raw float order.
+#[property_test]
+fn unit_fraction_order_agrees_with_the_raw_floats(
+    #[strategy = 0.0_f64..=1.0] left: f64,
+    #[strategy = 0.0_f64..=1.0] right: f64,
+) {
+    let left = UnitFraction::new(left).expect("the strategy stays inside [0, 1]");
+    let right = UnitFraction::new(right).expect("the strategy stays inside [0, 1]");
+
+    prop_assert_eq!(
+        left.cmp(&right),
+        left.get()
+            .partial_cmp(&right.get())
+            .expect("fractions are never NaN")
+    );
+}
+
+/// The open complement widens to the closed type at both ends of its range.
+#[test]
+fn open_unit_fraction_complement_hits_the_closed_endpoints() {
+    // Ties-to-even: `1 − 2⁻⁵⁴` is halfway between the largest float below one and one itself,
+    // and rounds to the even mantissa, which is one.
+    let tie = OpenUnitFraction::new(2.0_f64.powi(-54)).expect("2^-54 lies inside (0, 1)");
+    assert_eq!(tie.complement(), UnitFraction::ONE);
+
+    // One spacing further from one, the subtraction is representable again.
+    let above = OpenUnitFraction::new(2.0_f64.powi(-53)).expect("2^-53 lies inside (0, 1)");
+    assert_eq!(above.complement().get(), 1.0 - 2.0_f64.powi(-53));
+
+    // Sterbenz: the complement of the largest fraction below one is exactly `2⁻⁵³`.
+    let largest = OpenUnitFraction::new(1.0 - 2.0_f64.powi(-53)).expect("below one");
+    assert_eq!(largest.complement().get(), 2.0_f64.powi(-53));
+}
+
+/// Fractions serialize as plain numbers and deserialization re-validates the domain.
+#[test]
+fn unit_fractions_round_trip_serde_and_refuse_out_of_domain() {
+    let value = serde_json::to_value(UnitFraction::HALF).expect("a number serializes");
+    assert_eq!(value, serde_json::json!(0.5));
+    assert_eq!(
+        serde_json::from_value::<UnitFraction>(value).expect("0.5 lies inside [0, 1]"),
+        UnitFraction::HALF
+    );
+    serde_json::from_str::<UnitFraction>("1.5").expect_err("1.5 is out of range");
+
+    let open = OpenUnitFraction::new(0.25).expect("0.25 lies inside (0, 1)");
+    let value = serde_json::to_value(open).expect("a number serializes");
+    assert_eq!(
+        serde_json::from_value::<OpenUnitFraction>(value).expect("0.25 lies inside (0, 1)"),
+        open
+    );
+    serde_json::from_str::<OpenUnitFraction>("0.0").expect_err("0.0 is out of range");
+    serde_json::from_str::<OpenUnitFraction>("1.0").expect_err("1.0 is out of range");
+}
+
 #[test]
 fn softplus_approaches_asymptotes() {
     // ln_1p(exp(-50)) is far below f32 ε at 50, so the positive
@@ -225,8 +381,7 @@ fn huber_is_non_negative_and_monotone_in_the_magnitude(
 
 /// Widening an `f32` to `f64` and narrowing it back is the identity.
 ///
-/// Every finite `f32` is exactly representable in `f64`, and round-to-nearest returns it
-/// unchanged.
+/// Every finite `f32` is exactly representable in `f64`, and round-to-nearest returns it unchanged.
 #[property_test]
 fn narrow_f32_round_trips_every_finite_f32(#[strategy = -f32::MAX..=f32::MAX] value: f32) {
     prop_assert_eq!(narrow_f32(f64::from(value)), Some(value));

@@ -152,8 +152,8 @@ fn inverse_undoes_apply(
 
 /// Renormalizing preserves the angle.
 ///
-/// The cosine and sine keep their direction (compared componentwise rather than through
-/// `atan2`, which wraps at pi), even after enough compositions to accumulate drift.
+/// The cosine and sine keep their direction (compared componentwise rather than through `atan2`,
+/// which wraps at pi), even after enough compositions to accumulate drift.
 #[property_test]
 fn renormalize_preserves_the_angle(
     #[strategy = angle()] radians: f32,

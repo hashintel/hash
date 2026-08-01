@@ -3,8 +3,8 @@
 //! Parameters are one flat vector `[w_C | w_P | w_O | b]`: the three coefficient rows in class
 //! order followed by the three intercepts. The bounded solver ([`solver`](super::solver)) fits
 //! models in contrast coordinates; [`expand_point`] returns its solutions to this layout, and
-//! [`logits`] evaluates one embedding under it. `f32` embeddings enter the double-precision
-//! logits through [`AlignedVecN::dot_wide`].
+//! [`logits`] evaluates one embedding under it. `f32` embeddings enter the double-precision logits
+//! through [`AlignedVecN::dot_wide`].
 
 use super::solver::{ContrastVector, basis};
 use crate::{

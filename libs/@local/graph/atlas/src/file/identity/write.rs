@@ -10,7 +10,8 @@ use crate::file::region::{PAGE, write_padding, write_region};
 /// Returns the index stride for `key_width`-byte ids.
 ///
 /// The stride is the number of pairs that fit one 4096-byte page, so one index key resolves to one
-/// faulted page.
+/// faulted page. Ids wider than a page leave no whole pair in it, and the stride is one pair per
+/// key instead.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,

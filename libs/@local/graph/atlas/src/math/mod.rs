@@ -98,8 +98,9 @@ pub use self::{
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, OpenUnitFraction, Positive,
-        UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid, softplus,
+        DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, NotInOpenUnitInterval,
+        NotInUnitInterval, OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32,
+        narrow_f32_exact, sigmoid, softplus,
     },
     similarity::Similarity,
     transform::Transform,

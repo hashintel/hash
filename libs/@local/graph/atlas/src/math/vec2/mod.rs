@@ -720,8 +720,8 @@ impl Vec2x4 {
 
     /// Assembles a batch from one SIMD lane group per axis.
     ///
-    /// Lane `i` of `xs` and `ys` becomes vector `i`. One shuffle interleaves the axis groups
-    /// into natural order; to keep results in axis groups, use [`Vec2x4T::from_lanes`].
+    /// Lane `i` of `xs` and `ys` becomes vector `i`. One shuffle interleaves the axis groups into
+    /// natural order; to keep results in axis groups, use [`Vec2x4T::from_lanes`].
     #[inline]
     #[must_use]
     pub fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {

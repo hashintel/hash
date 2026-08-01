@@ -395,8 +395,8 @@ fn preparation_accumulates_statistics_and_charges_work() {
     assert_eq!(prepared.evidence.maximum_adjustment, 0.0);
 }
 
-/// The initial diagonal follows `h_jj = (1/(3S))·Σ w x̄² + (λ/S)·1{coefficient}` with the
-/// derived floor inside the square root, identically for both contrast rows.
+/// The initial diagonal follows `h_jj = (1/(3S))·Σ w x̄² + (λ/S)·1{coefficient}` with the derived
+/// floor inside the square root, identically for both contrast rows.
 #[test]
 fn preparation_builds_the_documented_initial_diagonal() {
     let corpus = valid_corpus();
@@ -1039,8 +1039,8 @@ fn solver_config() -> SolverConfig {
 
 /// The in-domain fixture and the cross-field boundaries validate.
 ///
-/// Per-field domains hold by construction; only the orderings and floors are validate's to
-/// accept.
+/// Per-field domains hold by construction. Only the cross-field orderings and the budget floors
+/// remain for `validate` to accept.
 #[test]
 fn config_accepts_the_domain_boundaries() {
     solver_config()
@@ -1132,8 +1132,8 @@ fn config_rejects_budgets_below_their_floors() {
     );
 }
 
-/// The gradient threshold is the stated maximum, zero is valid, and only a non-finite norm
-/// maps away.
+/// The gradient threshold is the stated maximum, zero is valid, and only a non-finite norm maps
+/// away.
 #[test]
 fn gradient_threshold_follows_the_ruled_domain() {
     let config = SolverConfig {
@@ -1351,12 +1351,12 @@ fn dense_component(index: usize, phase: f64) -> f64 {
     }
 }
 
-/// A dense solver vector with two full-scale leading components over a `1e-3` tail, scaled to
-/// the given Euclidean norm.
+/// A dense solver vector with two full-scale leading components over a `1e-3` tail, scaled to the
+/// given Euclidean norm.
 ///
 /// The magnitude split concentrates the norm in two components while thousands of small squares
-/// absorb into the fold accumulators, the structure that drives the reductions' rounding;
-/// uniform dense fills stay within a few ulps of an exact unit norm at this dimension.
+/// absorb into the fold accumulators, the structure that drives the reductions' rounding; uniform
+/// dense fills stay within a few ulps of an exact unit norm at this dimension.
 fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     let mut vector = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     for (index, component) in vector.as_array_mut().iter_mut().enumerate() {
@@ -1388,12 +1388,12 @@ fn compensated_l2(values: &[f64]) -> f64 {
     (sum + compensation).sqrt()
 }
 
-/// Replicates the boundary construction through the same primitives, returning the rescaled
-/// step with the built and returned radius-normalized residuals in ulps of one.
+/// Replicates the boundary construction through the same primitives, returning the rescaled step
+/// with the built and returned radius-normalized residuals in ulps of one.
 ///
 /// The built residual is internal to [`boundary_step`]; a consumer ties the replica to the
-/// implementation by asserting the returned step equals the admitted payload bit-for-bit, so
-/// the replica cannot drift from the arithmetic it reports on.
+/// implementation by asserting the returned step equals the admitted payload bit-for-bit, so the
+/// replica cannot drift from the arithmetic it reports on.
 fn boundary_construction_replica(
     interior: &BoxedDVecN<SOLVER_DIMENSIONS>,
     direction: &BoxedDVecN<SOLVER_DIMENSIONS>,
@@ -1439,11 +1439,10 @@ fn boundary_construction_replica(
 
 /// A dense solver-dimension crossing constructs, and the replica ties it byte-for-byte.
 ///
-/// The crossing has `‖interior‖ = 0.9392·Δ`, `‖direction‖ = 3.404·Δ`,
-/// `interior·direction ≈ −1.5624`, `Δ = 0.7`: a dense, cancellation-prone construction whose
-/// honest residuals sit orders of magnitude inside the gross-defect guard. The byte-tie keeps
-/// the replica honest: its reported residuals describe exactly the arithmetic that produced
-/// the admitted step.
+/// The crossing has `‖interior‖ = 0.9392·Δ`, `‖direction‖ = 3.404·Δ`, `interior·direction ≈
+/// −1.5624`, `Δ = 0.7`: a dense, cancellation-prone construction whose honest residuals sit orders
+/// of magnitude inside the gross-defect guard. The byte-tie keeps the replica honest: its reported
+/// residuals describe exactly the arithmetic that produced the admitted step.
 #[test]
 fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
     let radius = 0.7;
@@ -1505,8 +1504,8 @@ fn honest_boundary_residuals_sit_inside_the_gross_defect_guard() {
 
 /// The guard rejects a collapsed discriminant: the double-root value solves no crossing.
 ///
-/// A construction whose discriminant flushed to zero yields `τ = −b/(2a)`; on a real crossing
-/// that value lands the step far off unit norm, and the guard names the defect.
+/// A construction whose discriminant flushed to zero yields `τ = −b/(2a)`; on a real crossing that
+/// value lands the step far off unit norm, and the guard names the defect.
 #[test]
 fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
     // u = 0.6·e₀, v = e₀ + e₁ at Δ = 1 gives a = 2, b = 1.2, c = −0.64, honest τ = 0.34.
@@ -1912,9 +1911,8 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
 /// A rejection at the minimum trust radius underflows.
 ///
 /// The fixture's first full Newton step lands where curvature has risen against the model: its
-/// measured ratio is `0.99048`, so an acceptance threshold of `0.995` rejects it
-/// deterministically, and the rejection at the minimum radius reaches the terminal that no
-/// budget precedes any more.
+/// measured ratio is `0.99048`, so an acceptance threshold of `0.995` rejects it deterministically,
+/// and the rejection at the minimum radius reaches the terminal that no budget precedes any more.
 #[test]
 fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
     let corpus = valid_corpus();
@@ -1995,10 +1993,10 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
 /// A valid degenerate corpus drives the full machine into the typed non-finite Newton terminal.
 ///
 /// Weights of `f64::MAX / 4` keep `S` and every preparation aggregate finite, and the initial
-/// scaled gradient stays finite yet fails its relative certificate, so an inner solve must run.
-/// The per-row factor scale `wᵢ/λ` then overflows against the subnormal regularization, the
-/// weighted curvature block leaves the finite domain, and the machine reaches
-/// `NonFiniteNewton { Weights }` with the curvature traversal already charged.
+/// scaled gradient stays finite yet fails its relative certificate, so an inner solve must run. The
+/// per-row factor scale `wᵢ/λ` then overflows against the subnormal regularization, the weighted
+/// curvature block leaves the finite domain, and the machine reaches `NonFiniteNewton { Weights }`
+/// with the curvature traversal already charged.
 #[test]
 fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
     let subnormal = f64::from_bits(1);
@@ -2043,9 +2041,9 @@ fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
 ///
 /// Zero embeddings and one-hot targets keep every prepared datum and the scaled gradient finite
 /// (the class residuals cancel to rounding residue, well inside the absolute tolerance), but the
-/// weights push the accumulated origin data loss past the finite range. Initialization admits
-/// the infinite objective - the certificate tests only the gradient - and the reserved final
-/// evaluation then fails `FinalCertificationNonFinite` by name.
+/// weights push the accumulated origin data loss past the finite range. Initialization admits the
+/// infinite objective - the certificate tests only the gradient - and the reserved final evaluation
+/// then fails `FinalCertificationNonFinite` by name.
 #[test]
 fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     let mut corpus = Corpus::new();
@@ -2081,8 +2079,8 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 
-/// The exposed domain tag and dimension are the exact digest-preimage prefix; the coordinate
-/// system rides only the exposed identity.
+/// The exposed domain tag and dimension are the exact digest-preimage prefix; the coordinate system
+/// rides only the exposed identity.
 #[test]
 #[expect(
     clippy::host_endian_bytes,
@@ -2269,8 +2267,8 @@ fn factor_block_reproduces_psd_blocks_and_drops_rank() {
     assert_eq!(factor_block(0.0, 0.0, -1.0e-17), [0.0, 0.0, 0.0]);
 }
 
-/// Gram entries are the exact-product dots, symmetric, and a fold view reads the full matrix
-/// bit for bit as a direct dot over the member embeddings.
+/// Gram entries are the exact-product dots, symmetric, and a fold view reads the full matrix bit
+/// for bit as a direct dot over the member embeddings.
 #[test]
 fn gram_views_read_the_assembled_dots_bit_for_bit() {
     let corpus = valid_corpus();
@@ -2308,10 +2306,10 @@ fn gram_views_read_the_assembled_dots_bit_for_bit() {
 
 /// The curvature pass's intercept columns are the oracle's Hessian columns.
 ///
-/// The pass accumulates `H[0|e_k]` through the moment identity `C = q − mmᵀ`; the oracle
-/// evaluates the same columns through its shifted-probability path. Agreement at a generic
-/// point ties the Newton assembly to the finite-difference-certified oracle at the block
-/// level, with rounding as the only separation.
+/// The pass accumulates `H[0|e_k]` through the moment identity `C = q − mmᵀ`; the oracle evaluates
+/// the same columns through its shifted-probability path. Agreement at a generic point ties the
+/// Newton assembly to the finite-difference-certified oracle at the block level, with rounding as
+/// the only separation.
 #[test]
 fn curvature_pass_matches_the_oracle_intercept_columns() {
     let corpus = valid_corpus();
@@ -2351,8 +2349,8 @@ fn curvature_pass_matches_the_oracle_intercept_columns() {
 }
 
 /// Prepares the corpus and drives one inner Newton solve at the origin under the validated
-/// configuration, returning the outcome with the counters before and after the solve. The
-/// control radius is the configuration's initial radius.
+/// configuration, returning the outcome with the counters before and after the solve. The control
+/// radius is the configuration's initial radius.
 fn newton_at_origin(
     corpus: &Corpus,
     config: SolverConfig,
@@ -2559,9 +2557,9 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
 /// Saturated rows drop their curvature columns and the solve proceeds on the survivors.
 ///
 /// At a point whose leading coefficient drives two rows' logits to exact probability vertices,
-/// those rows' curvature blocks collapse to rounding residue and their factor columns drop,
-/// while the third row stays interior. The capacitance keeps its unit diagonal on the dropped
-/// columns, and the Newton point still inverts the oracle.
+/// those rows' curvature blocks collapse to rounding residue and their factor columns drop, while
+/// the third row stays interior. The capacitance keeps its unit diagonal on the dropped columns,
+/// and the Newton point still inverts the oracle.
 #[test]
 fn newton_step_survives_saturated_rows() {
     let corpus = valid_corpus();

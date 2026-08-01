@@ -22,10 +22,9 @@
 //! inside it, [`FillRule::Visible`] the visible scheduled count alone, and
 //! [`FillRule::CoverageCells`] the same cell count with the fill restricted to cells no delivered
 //! point occupies. The coverage targets read a [`VisibleCellPyramid`], one cell census per cut
-//! depth over the visible view;
-//! [`WalkBench::visible_cascade`] runs the production cascade over the visible points alone, the
-//! schedule a coverage target claims to reproduce. [`WalkBench::audit`] reports both alongside the
-//! cells a chain's delivery actually occupies.
+//! depth over the visible view; [`WalkBench::visible_cascade`] runs the production cascade over the
+//! visible points alone, the schedule a coverage target claims to reproduce. [`WalkBench::audit`]
+//! reports both alongside the cells a chain's delivery actually occupies.
 //!
 //! The rank-representative rules have two engines over one rule. [`WalkBench::deliver`] finds each
 //! cell's representative by scanning the cell, `O(points in the extent)` per level.
@@ -463,8 +462,8 @@ impl WalkBench {
     /// Builds the corpus and runs the production cascade over it.
     ///
     /// The corpus is eight gaussian clusters over a uniform background, so dense cells stay
-    /// populated down to the deepest zooms and descent paths are real. Equal `(points, seed)`
-    /// pairs build identical fixtures. The mask starts all-visible.
+    /// populated down to the deepest zooms and descent paths are real. Equal `(points, seed)` pairs
+    /// build identical fixtures. The mask starts all-visible.
     ///
     /// # Panics
     ///
@@ -572,9 +571,9 @@ impl WalkBench {
     ///
     /// `code_bits` is the bucket-segmented base-order key column as raw key bits; `lengths` the
     /// per-bucket segment lengths in depth order (fewer entries than the bucket table reads as
-    /// trailing empty buckets); `row_of_position` the base permutation; `span` and `max_zoom`
-    /// the delivery schedule. The mask starts all-visible. Feeding one corpus's real artifacts
-    /// to both this instrument and the serving path is what a set-agreement comparison rides.
+    /// trailing empty buckets); `row_of_position` the base permutation; `span` and `max_zoom` the
+    /// delivery schedule. The mask starts all-visible. Feeding one corpus's real artifacts to both
+    /// this instrument and the serving path is what a set-agreement comparison rides.
     ///
     /// The row identity stands in for the importance rank a rank-representative rule reads, so a
     /// delivery over these parts represents each cell by its lowest row id.
@@ -643,8 +642,8 @@ impl WalkBench {
 
     /// Returns the corpus columns as plain numbers: key bits, rows, and bucket segment bounds.
     ///
-    /// The synthetic corpus becomes visitable by an external reference implementation - the
-    /// mirror of [`Self::from_parts`].
+    /// The synthetic corpus becomes visitable by an external reference implementation - the mirror
+    /// of [`Self::from_parts`].
     #[must_use]
     pub fn columns(&self) -> (Vec<u64>, Vec<u32>, Vec<(usize, usize)>) {
         (
@@ -827,8 +826,8 @@ impl WalkBench {
 
     /// Returns the root-to-deepest descent path through the densest cells.
     ///
-    /// Each step descends into the child holding the most points before masking, so the path is
-    /// one fixture-determined column a whole mask sweep can share.
+    /// Each step descends into the child holding the most points before masking, so the path is one
+    /// fixture-determined column a whole mask sweep can share.
     #[must_use]
     #[expect(
         clippy::missing_panics_doc,
@@ -940,8 +939,8 @@ impl WalkBench {
         delivered
     }
 
-    /// Delivers one tile behind its recomputed ancestor chain, returning the delivered positions
-    /// in delivery order.
+    /// Delivers one tile behind its recomputed ancestor chain, returning the delivered positions in
+    /// delivery order.
     ///
     /// The chain and its early exit follow [`Self::chained`] exactly; a spent chain returns the
     /// empty delivery.
@@ -1256,9 +1255,9 @@ impl WalkBench {
     /// A point is its cell's representative from the depth at which the cell no longer holds a
     /// better-ranked point on, so its bucket is one past the deepest grid it shares with any
     /// better-ranked visible point, and the key-nearest better-ranked point on either side reaches
-    /// that deepest shared grid. Deleting the entries from a key-ordered list in
-    /// worst-rank-first order exposes exactly those two neighbours, so two sorts and one linear
-    /// pass assign every bucket.
+    /// that deepest shared grid. Deleting the entries from a key-ordered list in worst-rank-first
+    /// order exposes exactly those two neighbours, so two sorts and one linear pass assign every
+    /// bucket.
     ///
     /// The assignment equals [`Self::generation`]'s entry for entry; equal keys share every grid,
     /// so a point sharing its key with a better-ranked one takes the catch-all bucket.
@@ -1486,8 +1485,8 @@ impl WalkBench {
     ///
     /// Each visible row sets its shared key ordinal in a temporary bit set; iterating that set is
     /// the visible restriction of `(key, rank)` order. One monotonic-stack pass then finds both
-    /// nearest better-ranked neighbours, and one counting distribution produces bucket-major
-    /// order. For `N` corpus rows and `V` visible rows, this costs `O(N / 64 + V)`.
+    /// nearest better-ranked neighbours, and one counting distribution produces bucket-major order.
+    /// For `N` corpus rows and `V` visible rows, this costs `O(N / 64 + V)`.
     #[must_use]
     pub fn indexed_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let mut visible_by_key = DenseBitSet::new_empty(self.codes.len());

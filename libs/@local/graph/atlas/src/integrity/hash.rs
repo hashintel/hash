@@ -90,10 +90,10 @@ impl FromStr for Sha256Digest {
 
 /// A streaming SHA-256 hasher.
 ///
-/// The hasher absorbs bytes incrementally through [`Update::update`] (or any
-/// stream via [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
-/// [`Sha256::finalize`]. The concatenated byte stream alone determines the digest, never the chunk
-/// boundaries the caller used.
+/// The hasher absorbs bytes incrementally through [`Update::update`] (or any stream via
+/// [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with [`Sha256::finalize`]. The
+/// concatenated byte stream alone determines the digest, never the chunk boundaries the caller
+/// used.
 ///
 /// Note that byte concatenation is ambiguous across component boundaries: `["ab", "c"]` and `["a",
 /// "bc"]` produce the same digest. When a digest covers multiple variable-length components, frame

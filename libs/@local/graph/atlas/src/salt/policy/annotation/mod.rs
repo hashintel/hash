@@ -607,9 +607,9 @@ struct Document {
 /// A validated annotation-corpus document.
 ///
 /// Construction checks the whole wire contract, and the module documentation lists the clauses. The
-/// manifest pins the document by the SHA-256 of exactly the supplied bytes, whatever the
-/// format; JSON-vs-columnar for the corpus and verdict documents is an open format decision on
-/// the supply boundary, not a property of this type.
+/// manifest pins the document by the SHA-256 of exactly the supplied bytes, whatever the format;
+/// JSON-vs-columnar for the corpus and verdict documents is an open format decision on the supply
+/// boundary, not a property of this type.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct AnnotationCorpus {
     cards: Vec<Card>,

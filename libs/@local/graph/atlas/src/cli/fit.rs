@@ -68,9 +68,9 @@ pub struct FitArgs {
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
     /// A JSON object with any of `minimum_recall`, `minimum_trustworthiness`,
-    /// `minimum_continuity`, `maximum_intrusion_rate`, `minimum_triplet_agreement` (each in
-    /// `[0, 1]`) and `maximum_density_spread` (finite, non-negative, at most the `f32` maximum).
-    /// A present field overrides its default, an unknown field refuses the document, and an
+    /// `minimum_continuity`, `maximum_intrusion_rate`, `minimum_triplet_agreement` (each in `[0,
+    /// 1]`) and `maximum_density_spread` (finite, non-negative, at most the `f32` maximum). A
+    /// present field overrides its default, an unknown field refuses the document, and an
     /// out-of-domain value refuses the run before it starts. The source defaults are maximally
     /// permissive, gating evidence presence rather than fidelity.
     #[arg(
@@ -301,8 +301,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: constructing the embedding provider,
-    /// its preflight request, the run itself, or writing the admission report.
+    /// Returns a [`FitError`] naming the step that failed: constructing the embedding provider, its
+    /// preflight request, the run itself, or writing the admission report.
     ///
     /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
     /// [`connect`]: super::connect

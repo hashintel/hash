@@ -53,9 +53,8 @@ impl Palette {
 
     /// Returns whether `url` names a palette entry.
     ///
-    /// Comparison is by parsed ontology identity - any spelling that names the same versioned
-    /// type covers it, matching the mask resolution's own parse. No entry covers an unparsable
-    /// `url`.
+    /// Comparison is by parsed ontology identity - any spelling that names the same versioned type
+    /// covers it, matching the mask resolution's own parse. No entry covers an unparsable `url`.
     pub(super) fn covers(&self, url: &str) -> bool {
         url.parse::<VersionedUrl>()
             .is_ok_and(|url| self.entries.contains(&identity_of(&url)))

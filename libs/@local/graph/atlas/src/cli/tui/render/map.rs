@@ -41,8 +41,9 @@ const MINIMUM_EXTENT: f32 = 1.0;
 ///
 /// The map is the run's shape becoming true - a cloud that starts as noise around the landmarks
 /// and pulls itself into the atlas the fit will publish. It shows the sample the observer asked
-/// for, not the corpus: at braille resolution a pane forty columns wide resolves eighty dots
-/// across, so a few thousand points is already more than the frame can separate.
+/// for, not the corpus: at braille resolution a pane forty columns wide resolves seventy-six dots
+/// across, two per column of the thirty-eight its border leaves. A few thousand points is already
+/// more than the frame can separate.
 pub(super) fn render_map(frame: &mut Frame, area: Rect, placement: &PlacementMap) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)

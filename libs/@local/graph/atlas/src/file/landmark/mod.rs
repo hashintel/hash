@@ -1,9 +1,9 @@
 //! A landmark file stores the selected rows, the assignment, and the coordinates.
 //!
-//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
 //! The assignment and the coordinates are both keyed by the selection's ordinal order and mean
 //! nothing without it. All three regions live in one file and therefore cannot fall out of sync.

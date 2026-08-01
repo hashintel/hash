@@ -6,8 +6,8 @@
 //! presentation. [`admit`] is the data routes' reading. It returns the sealed [`Scope`] only under
 //! a fresh token naming the requesting actor, and collapses every refusal into one uniform `401`
 //! problem, so a caller learns that it must re-fetch the manifest and nothing about why.
-//! [`Presented`] is the manifest's reading. It distinguishes an absent token from a refused one
-//! and never rejects, because the manifest judges the generation before it judges continuity.
+//! [`Presented`] is the manifest's reading. It distinguishes an absent token from a refused one and
+//! never rejects, because the manifest judges the generation before it judges continuity.
 //!
 //! [`TokenAuthority::open`]: crate::serve::authorization::TokenAuthority::open
 
@@ -55,9 +55,9 @@ where
 /// Runs inside [`Visibility`]'s extraction, ahead of the scope resolution, so an unauthorized
 /// request costs one AEAD open and never a store round trip. It also runs ahead of the handler
 /// body's generation check, and that order is the data routes' half of the contract: **a data route
-/// admits first and reaches the generation's `404` only under an acceptable token.** A token
-/// minted under a retired generation therefore answers `401` here - its tag fails under the current
-/// key - while a token this generation minted, presented at a route naming a retired one, passes
+/// admits first and reaches the generation's `404` only under an acceptable token.** A token minted
+/// under a retired generation therefore answers `401` here - its tag fails under the current key -
+/// while a token this generation minted, presented at a route naming a retired one, passes
 /// admission and answers `404` `unknown-generation` from the handler body.
 ///
 /// The manifest orders the two judgments the other way round, generation first, so a client that
@@ -68,8 +68,8 @@ where
 ///
 /// # Errors
 ///
-/// One uniform `401` problem for every token refusal cause, and the `400` missing-actor problem
-/// for a request that names no authenticated actor.
+/// One uniform `401` problem for every token refusal cause, and the `400` missing-actor problem for
+/// a request that names no authenticated actor.
 ///
 /// [`Visibility`]: super::visibility::Visibility
 pub(super) fn admit(parts: &Parts, state: &AppState) -> Result<Scope, Problem<'static>> {
@@ -280,9 +280,9 @@ mod tests {
 
     /// The emitted OpenAPI documents the token optional on the manifest, required on a data route.
     ///
-    /// The readings differ in exactly one emitted field, and a generated client's behaviour
-    /// follows it. A required header makes the token a precondition of the call, while an optional
-    /// one leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
+    /// The readings differ in exactly one emitted field, and a generated client's behaviour follows
+    /// it. A required header makes the token a precondition of the call, while an optional one
+    /// leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
     /// builder call, because that is what a generator reads.
     #[test]
     fn the_presented_token_is_documented_by_reading() {

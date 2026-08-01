@@ -267,8 +267,7 @@ fn base_order_sorts_buckets_then_keys_then_ranks() {
 
 /// Coverage holds for every input.
 ///
-/// Each occupied cell at each depth of the schedule keeps a representative in the delivered
-/// prefix.
+/// Each occupied cell at each depth of the schedule keeps a representative in the delivered prefix.
 #[property_test]
 fn cascade_coverage_is_total(
     #[strategy = proptest::collection::vec(any::<u64>(), 1..48)] bits: Vec<u64>,
@@ -404,8 +403,8 @@ fn lod_config_carries_the_key_width_bound() {
 ///
 /// The comments below compute the wire positions and cascade buckets of its four points.
 ///
-/// World frame [0, 1] x [0, 1]; `span` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and
-/// the catch-all is bucket 2.
+/// World frame [0, 1] x [0, 1]; `span` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and the
+/// catch-all is bucket 2.
 ///
 /// ```text
 /// row  world         wire           depth-1 quadrant  depth-2 cell

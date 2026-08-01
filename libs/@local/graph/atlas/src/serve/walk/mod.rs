@@ -8,9 +8,8 @@
 //! - [`full`]: the full-visibility deliveries, borrowed-shape base-order ranges.
 //! - [`census`]: point counts and occupancy, unmasked and masked.
 //!
-//! A scoped view's delivery reads its own cascade instead - [`ScopeSchedule`] - built over
-//! exactly the rows its proof admits; the walk supplies that build's gather and the per-tile
-//! masked counts.
+//! A scoped view's delivery reads its own cascade instead - [`ScopeSchedule`] - built over exactly
+//! the rows its proof admits. The walk supplies that build's gather and the per-tile masked counts.
 //!
 //! Positions, counts, and run lengths live in the `u32` domain: the position type owns that width
 //! at every fencepost accessor, so every segment and run the walk reads is already typed.

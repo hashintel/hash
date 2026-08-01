@@ -98,38 +98,6 @@ mod log2 {
     }
 }
 
-/// Serializes a [`UnitFraction`] as its plain fraction.
-///
-/// Validates through [`UnitFraction::new`] on deserialize.
-mod unit_fraction {
-    use serde::{Deserialize as _, de::Error as _};
-
-    use crate::math::UnitFraction;
-
-    #[expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde's `with` contract passes the field by reference"
-    )]
-    pub(super) fn serialize<S>(fraction: &UnitFraction, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_f64(fraction.get())
-    }
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<UnitFraction, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = f64::deserialize(deserializer)?;
-        UnitFraction::new(value).ok_or_else(|| {
-            D::Error::custom(format_args!(
-                "the value {value} is not a finite fraction in [0, 1]"
-            ))
-        })
-    }
-}
-
 /// Serializes an [`AffinityCurve`] as its two named parameters.
 ///
 /// Validates through [`AffinityCurve::new`] on deserialize.
@@ -350,8 +318,8 @@ mod placement {
     /// The budget's wire form.
     ///
     /// Writers emit the floor object. Readers additionally accept the retired clamp's bare
-    /// four-constant array `[positive, total, floor, epsilon]`, taking its floor and dropping
-    /// the rest, so every published manifest deserializes. The untagged split is structural (array
+    /// four-constant array `[positive, total, floor, epsilon]`, taking its floor and dropping the
+    /// rest, so every published manifest deserializes. The untagged split is structural (array
     /// against object), so either form reads back unambiguously.
     #[derive(serde::Serialize, serde::Deserialize)]
     #[serde(untagged)]
@@ -715,7 +683,6 @@ mod placement {
 #[serde(remote = "SelectionOptions")]
 struct SelectionOptionsDef {
     maximum_count: NonZero<u32>,
-    #[serde(with = "unit_fraction")]
     retained_fraction: UnitFraction,
     parallel_chunk: NonZero<usize>,
 }
@@ -828,9 +795,7 @@ enum RankingConfigDef {
 #[serde(remote = "CoincidentAdmission")]
 struct CoincidentAdmissionDef {
     enforced: bool,
-    #[serde(with = "unit_fraction")]
     class_probability_threshold: UnitFraction,
-    #[serde(with = "unit_fraction")]
     applicability_threshold: UnitFraction,
 }
 

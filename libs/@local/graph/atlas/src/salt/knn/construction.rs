@@ -54,9 +54,9 @@ hashql_core::id::newtype! {
 
 /// Every row's nearest non-self neighbours, at one uniform width.
 ///
-/// Row-major storage: row `i` holds exactly [`width`](Self::width) entries in ascending
-/// `(distance, id)` order, with distances on the `[0, 2]` cosine scale. The producing constructor
-/// guarantees the entries, and the type only stores them.
+/// Row-major storage: row `i` holds exactly [`width`](Self::width) entries in ascending `(distance,
+/// id)` order, with distances on the `[0, 2]` cosine scale. The producing constructor guarantees
+/// the entries, and the type only stores them.
 #[derive(Debug)]
 pub(crate) struct NeighbourLists<N> {
     entries: IdMatrix<N, NeighbourSlot, Neighbour<N>>,

@@ -263,8 +263,7 @@ pub(crate) enum Membership<'map> {
     List(&'map [BasePosition]),
     /// A dense bitmap over all `N` positions.
     ///
-    /// `ceil(N/32)` little-endian words, LSB-first - position `p` is bit `p & 31` of word
-    /// `p >> 5`.
+    /// `ceil(N/32)` little-endian words, LSB-first - position `p` is bit `p & 31` of word `p >> 5`.
     Dense(&'map [U32<LE>]),
 }
 

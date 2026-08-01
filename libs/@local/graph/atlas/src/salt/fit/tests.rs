@@ -318,9 +318,9 @@ fn config_echo_requires_every_setting() {
 /// The budget echoes as its floor object, and the retired clamp's bare array still decodes.
 ///
 /// The bare four-constant array `[positive, total, floor, epsilon]` is the exact shape every
-/// generation published under the enforcing clamp carries. The fixture pins the ratified
-/// constants verbatim, so this decode is the standing witness that those manifests parse under
-/// the current binary. The decode keeps the floor and discards the retired clamp coefficients.
+/// generation published under the enforcing clamp carries. The fixture pins the ratified constants
+/// verbatim, so this decode is the standing witness that those manifests parse under the current
+/// binary. The decode keeps the floor and discards the retired clamp coefficients.
 #[test]
 fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]

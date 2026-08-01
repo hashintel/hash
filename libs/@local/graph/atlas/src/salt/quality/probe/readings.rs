@@ -105,8 +105,8 @@ impl<A> ReadingGrid<A> {
     }
 }
 
-// Each cell type implements its own column merge rather than sharing
-// one merge trait.
+// Each cell type implements `overall` itself rather than sharing one
+// merge trait.
 impl ReadingGrid<NeighbourhoodAggregate> {
     /// Merges every anchor's reading at one rung.
     ///

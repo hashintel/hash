@@ -174,8 +174,7 @@ fn membership_lookups_agree_across_representations() {
     assert_eq!(collect(&type1, 0..5), [] as [u32; 0]);
 }
 
-/// The membership contract demands ascending ranges from every caller, so an inverted range
-/// panics.
+/// The membership contract demands ascending ranges from every caller, so an inverted range panics.
 #[test]
 #[should_panic(expected = "an inverted position range matches no delivered run")]
 fn inverted_ranges_are_a_caller_bug() {
@@ -463,8 +462,8 @@ fn reference_contains(
 
 /// Built postings roundtrip through the file and agree with the row-order reference.
 ///
-/// Agreement holds at every (type, position) pair, at every representation split the threshold
-/// knob can pick.
+/// Agreement holds at every (type, position) pair, at every representation split the threshold knob
+/// can pick.
 #[property_test]
 fn built_postings_uphold_the_membership_contract(
     #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40)]

@@ -7,8 +7,7 @@ use hashql_core::id::Id as _;
 hashql_core::id::newtype! {
     /// A reference to an edge by its position in [`Dataset::edges`].
     ///
-    /// Rows are dense and zero-based: the value is the position of the referenced edge in the stream.
-    /// The little-endian representation is the persisted form, so a column of these ids writes to and reads back from artifact files without conversion.
+    /// Rows are dense and zero-based: the value is the position of the referenced edge in the stream. The little-endian representation is the persisted form, so a column of these ids writes to and reads back from artifact files without conversion.
     ///
     /// [`Dataset::edges`]: crate::dataset::Dataset::edges
     #[id(endian = little, unaligned, const)]

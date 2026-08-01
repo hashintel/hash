@@ -193,8 +193,8 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
 
 /// Rewrites a little-endian `u32` column with `rows` ascending values.
 ///
-/// The values do not matter to the check under test - `open` compares lengths - and ascending
-/// keeps the file a plausible permutation prefix rather than a shape no producer would write.
+/// The values do not matter to the check under test - `open` compares lengths - and ascending keeps
+/// the file a plausible permutation prefix rather than a shape no producer would write.
 fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
     let file = std::fs::File::create(path).expect("the column artifact rewrites");
     let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
@@ -210,11 +210,11 @@ fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
 
 /// Every artifact disagreement `open` checks answers with its own variant, and repair restores it.
 ///
-/// The tampers all run against a single published generation, changing one artifact at a time.
-/// Each tamper moves a single domain by one row and leaves that artifact valid at its own format,
-/// so the only thing that moved is the domain under test. The reopen after each repair is the
-/// negative control. The fixture opens again every time, so each rejection belongs to its own
-/// tamper rather than to a fixture that had stopped opening unnoticed.
+/// The tampers all run against a single published generation, changing one artifact at a time. Each
+/// tamper moves a single domain by one row and leaves that artifact valid at its own format, so the
+/// only thing that moved is the domain under test. The reopen after each repair is the negative
+/// control. The fixture opens again every time, so each rejection belongs to its own tamper rather
+/// than to a fixture that had stopped opening unnoticed.
 ///
 /// The artifact structure forces which direction a tamper moves a domain. Dropping a node row from
 /// the adjacency would drop that node's edge slots with it and move the edge domain in the same

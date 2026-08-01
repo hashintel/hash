@@ -8,11 +8,10 @@
 //! dies inside a stage keeps that stage's fields [`None`], while the work counters and the run
 //! terminal preserve the failed stage's work.
 //!
-//! Receipts carry scalar summaries - tags, counters, norms, dots, reductions, ratios - and
-//! SHA-256 digests of the solver's vectors, never the vectors themselves. Digests commit to
-//! the exact accepted bytes under the exposed [`ReceiptCoordinates`] identity: a replay in the
-//! same environment reproduces them bit-for-bit, and any drift names the first iteration that
-//! diverged.
+//! Receipts carry scalar summaries - tags, counters, norms, dots, reductions, ratios - and SHA-256
+//! digests of the solver's vectors, never the vectors themselves. Digests commit to the exact
+//! accepted bytes under the exposed [`ReceiptCoordinates`] identity: a replay in the same
+//! environment reproduces them bit-for-bit, and any drift names the first iteration that diverged.
 
 use zerocopy::IntoBytes as _;
 
@@ -105,8 +104,8 @@ pub(crate) enum CurvatureDiagnostic {
 pub(crate) struct OuterOutcome {
     /// The inner Newton outcome tag.
     pub tag: Option<NewtonTag>,
-    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of the priced Newton point: the
-    /// per-outer certificate of the factorization against the oracle.
+    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of the priced Newton point: the per-outer
+    /// certificate of the factorization against the oracle.
     pub newton_residual: Option<f64>,
     /// Norm of the returned step `‖p‖`.
     pub step_norm: Option<f64>,
@@ -153,8 +152,8 @@ impl ReceiptCoordinates {
     };
 }
 
-/// The digest of a flat solver vector: the domain tag's UTF-8 bytes, the declared dimension,
-/// then every component in vector order, both as native in-memory bytes.
+/// The digest of a flat solver vector: the domain tag's UTF-8 bytes, the declared dimension, then
+/// every component in vector order, both as native in-memory bytes.
 ///
 /// Digest identity is environment-scoped. A replay in the same environment reproduces the bytes
 /// bit-for-bit, and byte identity does not extend across builds or architectures.

@@ -352,8 +352,8 @@ fn softmax_outputs_form_a_distribution(#[strategy = logits_strategy()] logits: [
 
 /// Softmax is shift-invariant.
 ///
-/// Adding a common constant to every logit leaves the distribution unchanged up to rounding.
-/// The strategy bounds the shift to `-1e2..1e2` so the shifted logits stay well-conditioned.
+/// Adding a common constant to every logit leaves the distribution unchanged up to rounding. The
+/// strategy bounds the shift to `-1e2..1e2` so the shifted logits stay well-conditioned.
 #[property_test]
 fn softmax_is_shift_invariant_on_arbitrary_logits(
     #[strategy = logits_strategy()] logits: [f64; 11],
@@ -390,8 +390,8 @@ fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(
 
 /// `add_scaled` matches the scalar fused reference loop bit for bit in every component.
 ///
-/// The SIMD path widens, multiplies, and adds with the same single rounding as scalar
-/// `mul_add`. Components and the factor lie in `-1e3..1e3`.
+/// The SIMD path widens, multiplies, and adds with the same single rounding as scalar `mul_add`.
+/// Components and the factor lie in `-1e3..1e3`.
 #[property_test]
 fn add_scaled_matches_a_scalar_reference_loop(
     #[strategy = proptest::array::uniform11(-1e3_f64..1e3)] accumulator: [f64; 11],

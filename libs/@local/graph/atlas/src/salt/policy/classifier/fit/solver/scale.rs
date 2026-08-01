@@ -1,12 +1,12 @@
 //! The fixed diagonal between physical and scaled solver coordinates.
 //!
 //! Preparation derives one positive scale per augmented coordinate from the initial Hessian
-//! diagonal, identical for every contrast row. [`Scaling`] holds that diagonal `D` expanded to
-//! the flat solver layout and applies it componentwise in both directions: accepted points live
-//! in scaled coordinates `ζ` with `θ(ζ) = D⁻¹ζ`, gradients transform as `gζ = D⁻¹gθ`, and
+//! diagonal, identical for every contrast row. [`Scaling`] holds that diagonal `D` expanded to the
+//! flat solver layout and applies it componentwise in both directions: accepted points live in
+//! scaled coordinates `ζ` with `θ(ζ) = D⁻¹ζ`, gradients transform as `gζ = D⁻¹gθ`, and
 //! Hessian-vector products as `Hζ[v] = D⁻¹Hθ[D⁻¹v]`, while the exact Newton engine crosses back
-//! with one multiplication per coordinate - `gθ = D·gζ` for its physical right-hand side and
-//! `sζ = D·sφ` for the returned step.
+//! with one multiplication per coordinate - `gθ = D·gζ` for its physical right-hand side and `sζ =
+//! D·sφ` for the returned step.
 
 use super::{AUGMENTED_DIMENSIONS, CONTRAST_ROWS, SOLVER_DIMENSIONS};
 use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
@@ -19,8 +19,8 @@ pub(crate) struct Scaling {
 }
 
 impl Scaling {
-    /// Expands per-augmented-coordinate scales into the flat solver layout, one copy per
-    /// contrast row.
+    /// Expands per-augmented-coordinate scales into the flat solver layout, one copy per contrast
+    /// row.
     pub(super) fn from_augmented(scales: &AlignedDVecN<AUGMENTED_DIMENSIONS>) -> Self {
         let mut diagonal = BoxedDVecN::zero();
         for row in 0..CONTRAST_ROWS {
@@ -42,9 +42,9 @@ impl Scaling {
 
     /// Applies `D` componentwise: one multiplication per coordinate.
     ///
-    /// The round trip through [`divide`](Self::divide) reproduces a coordinate up to one
-    /// rounding in each direction; the Newton engine's oracle-priced certificate absorbs that
-    /// reconstruction error.
+    /// The round trip through [`divide`](Self::divide) reproduces a coordinate up to one rounding
+    /// in each direction; the Newton engine's oracle-priced certificate absorbs that reconstruction
+    /// error.
     pub(super) fn multiply(
         &self,
         vector: &AlignedDVecN<SOLVER_DIMENSIONS>,

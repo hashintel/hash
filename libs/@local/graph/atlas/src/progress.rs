@@ -10,8 +10,8 @@
 //!
 //! Observations travel as the pipeline's own types wherever one exists - [`CardEmbeddingStats`],
 //! [`RecallSpotCheck`], [`LossBreakdown`], [`QualityMetric`], re-exported here - and as this
-//! module's observation vocabulary ([`Stage`], [`Batch`], [`DescentIteration`]) where the
-//! pipeline reports something no artifact records.
+//! module's observation vocabulary ([`Stage`], [`Batch`], [`DescentIteration`]) where the pipeline
+//! reports something no artifact records.
 //!
 //! An observer crosses the run's thread seams - the async ingest half and the rayon compute half -
 //! so implementations are cloneable and shareable by construction; a renderer typically holds the
@@ -122,11 +122,10 @@ pub struct DescentIteration {
 
 /// The observer of one run's progress.
 ///
-/// Every method is an observation the pipeline reports as it happens; none returns anything the
-/// run acts on, with one deliberate exception:
-/// [`projector_sample_size`](Self::projector_sample_size) is a capability probe whose value is the
-/// observer's own appetite, not a lever over the run's result. The placement the run publishes is
-/// identical under every observer.
+/// Every method is an observation the pipeline reports as it happens; none returns anything the run
+/// acts on, with one deliberate exception: [`projector_sample_size`](Self::projector_sample_size)
+/// is a capability probe whose value is the observer's own appetite, not a lever over the run's
+/// result. The placement the run publishes is identical under every observer.
 #[expect(
     unused_variables,
     reason = "the default bodies observe nothing; the parameter names document each observation \
@@ -156,8 +155,8 @@ pub trait Progress {
 
     /// The neighbour-table construction entered a named backend phase.
     ///
-    /// The names are the backend's own open vocabulary (the HNSW backend reports its build
-    /// steps), passed through verbatim.
+    /// The names are the backend's own open vocabulary (the HNSW backend reports its build steps),
+    /// passed through verbatim.
     fn knn_build_phase(&self, phase: &str) {}
 
     /// The neighbour-table construction inserted another batch of rows.

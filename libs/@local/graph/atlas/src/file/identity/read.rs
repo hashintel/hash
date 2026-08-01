@@ -76,8 +76,8 @@ impl Error for OpenIdentityError {
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
 /// describes its own regions exactly. Every region borrows straight from the whole-file mapping and
-/// starts 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so the regions come
-/// out as raw bytes of validated length; the typed table over them, and its domain invariants, are
+/// starts 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so the regions come out
+/// as raw bytes of validated length; the typed table over them, and its domain invariants, are
 /// `salt::fit::prepare::identity`'s contract.
 #[derive(Debug)]
 pub(crate) struct IdentityFile {
@@ -90,6 +90,7 @@ impl IdentityFile {
     /// # Errors
     ///
     /// Returns [`OpenIdentityError::Io`] when opening or mapping the file fails,
+    /// [`OpenIdentityError::Undersized`] when the file ends before one full header,
     /// [`OpenIdentityError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenIdentityError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

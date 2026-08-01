@@ -1,14 +1,14 @@
 //! Per-row smooth-kNN bandwidth calibration.
 //!
-//! Each node row receives a local connectivity radius `ρ` and a bandwidth `σ` turning its
-//! neighbour distances `d_j` into fuzzy memberships
+//! Each node row receives a local connectivity radius `ρ` and a bandwidth `σ` turning its neighbour
+//! distances `d_j` into fuzzy memberships
 //!
 //! ```text
 //! p_j = exp(-max(d_j - ρ, 0) / σ).
 //! ```
 //!
-//! `ρ` is the smallest positive distance in the row, so the nearest distinct neighbour always
-//! holds full membership. `σ` solves
+//! `ρ` is the smallest positive distance in the row, so the nearest distinct neighbour always holds
+//! full membership. `σ` solves
 //!
 //! ```text
 //! Σ_j p_j = target

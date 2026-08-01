@@ -3,8 +3,8 @@
 //! The update recurrences of the solver loop - steps, residuals, directions, and gradient
 //! differences - are componentwise advances `base + factor·along`, one fused multiply-add per
 //! coordinate through the house kernel [`DVecN::mul_add`]. Results are plain values that may be
-//! non-finite; [`AlignedDVecN::is_finite`] is the shared escape check each caller maps onto its
-//! own typed outcome.
+//! non-finite; [`AlignedDVecN::is_finite`] is the shared escape check each caller maps onto its own
+//! typed outcome.
 
 use super::SOLVER_DIMENSIONS;
 use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};

@@ -8,9 +8,9 @@
 //! order. Keeping only the leading components makes the unit sum hold by construction rather than
 //! by approximation. A common shift of the class logits provably moves no loss.
 //!
-//! Construction reports the raw sum and the largest normalization adjustment
-//! `max_c |u_c − t_c/s|` alongside the target, so preparation can aggregate the raw sum range
-//! and `maximum_adjustment` as evidence of how much canonicalization actually moved the data.
+//! Construction reports the raw sum and the largest normalization adjustment `max_c |u_c − t_c/s|`
+//! alongside the target, so preparation can aggregate the raw sum range and `maximum_adjustment` as
+//! evidence of how much canonicalization actually moved the data.
 
 use core::num::NonZeroU32;
 
@@ -54,9 +54,9 @@ impl ClosedTarget {
     ///
     /// # Errors
     ///
-    /// Returns [`ClosedTargetError::SumOutOfTolerance`] when the raw sum misses the tolerance,
-    /// and [`ClosedTargetError::InvalidComponent`] when a normalized or derived component is
-    /// non-finite or negative.
+    /// Returns [`ClosedTargetError::SumOutOfTolerance`] when the raw sum misses the tolerance, and
+    /// [`ClosedTargetError::InvalidComponent`] when a normalized or derived component is non-finite
+    /// or negative.
     pub(super) fn new(
         target: [f64; GeometryClass::COUNT],
         target_sum_tolerance_ulps: NonZeroU32,

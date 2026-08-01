@@ -23,9 +23,9 @@
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
 //! rendered connection string.
 //!
-//! The run seam the fit command drives lives with the runner; this module re-exports its
-//! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as
-//! the crate's operator surface.
+//! The run seam the fit command drives lives with the runner; this module re-exports its vocabulary
+//! ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as the crate's
+//! operator surface.
 //!
 //! The commands carry no listener, lifecycle, or connection of their own beyond what their
 //! arguments name.

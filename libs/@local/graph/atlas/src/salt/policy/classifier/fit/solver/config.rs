@@ -1,19 +1,18 @@
 //! Validated solver-loop configuration.
 //!
-//! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius
-//! domain, shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp
-//! counts, and the inclusive work budgets. Per-field domains travel in the field types - the
-//! validated scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a
-//! configuration value that exists is in domain. [`validate`](SolverConfig::validate) checks
-//! only what no field type can carry alone: the radius ordering, the acceptance-threshold
-//! ordering, and the reserved-work floors, in declared order, reporting the first violation.
-//! The preparation-side knobs ride along as [`PreparationSettings`], so one validated
-//! configuration covers the whole fit.
+//! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius domain,
+//! shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp counts, and the
+//! inclusive work budgets. Per-field domains travel in the field types - the validated scalars of
+//! [`math`](crate::math) and the non-zero integers of [`core::num`] - so a configuration value that
+//! exists is in domain. [`validate`](SolverConfig::validate) checks only what no field type can
+//! carry alone: the radius ordering, the acceptance-threshold ordering, and the reserved-work
+//! floors, in declared order, reporting the first violation. The preparation-side knobs ride along
+//! as [`PreparationSettings`], so one validated configuration covers the whole fit.
 //!
 //! Work budgets are inclusive maxima: equality with a budget is allowed and a request fails only
-//! when it would exceed its maximum. The objective, gradient, and row-traversal budgets have
-//! floors of two, two, and three - one initialized joint evaluation, one reserved final
-//! certificate, and the preparation traversal are the least work any valid fit performs.
+//! when it would exceed its maximum. The objective, gradient, and row-traversal budgets have floors
+//! of two, two, and three - one initialized joint evaluation, one reserved final certificate, and
+//! the preparation traversal are the least work any valid fit performs.
 
 use core::num::NonZero;
 
@@ -45,9 +44,9 @@ pub enum SolverConfigError {
 /// Trust-region exact-Newton loop configuration.
 ///
 /// Every field carries a default; `SolverConfig { .. }` is the deployment configuration and
-/// satisfies [`validate`](Self::validate). The budget defaults sit an order beyond the
-/// predicted need at annotation-corpus scale, so termination is by tolerance and a budget
-/// terminal reports as a failure.
+/// satisfies [`validate`](Self::validate). The budget defaults sit an order beyond the predicted
+/// need at annotation-corpus scale, so termination is by tolerance and a budget terminal reports as
+/// a failure.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SolverConfig {
     /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
@@ -115,8 +114,8 @@ impl SolverConfig {
     ///
     /// # Errors
     ///
-    /// Returns the [`SolverConfigError`] of the first violated ordering or floor, in declared
-    /// field order.
+    /// Returns the [`SolverConfigError`] of the first violated ordering or floor, in declared field
+    /// order.
     #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub(crate) fn validate(&self) -> Result<(), SolverConfigError> {
         let radius_ordered = self.radius_minimum <= self.radius_initial
@@ -158,8 +157,8 @@ impl SolverConfig {
         Ok(())
     }
 
-    /// The gradient-certificate threshold `max(absolute, relative·‖gζ,0‖₂)`, derived once from
-    /// the initial scaled gradient norm.
+    /// The gradient-certificate threshold `max(absolute, relative·‖gζ,0‖₂)`, derived once from the
+    /// initial scaled gradient norm.
     ///
     /// A zero threshold is valid. With the absolute floor at zero and an exactly-zero initial norm,
     /// only an exactly-zero gradient certifies. Returns [`None`] for a non-finite initial norm. A

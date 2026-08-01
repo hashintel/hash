@@ -191,8 +191,8 @@ impl LocateResponse<'_> {
     ///
     /// One `ceil(n/8)`-byte mask per delivered point, bit `i` LSB-first when the point carries the
     /// request's type `i` - the tile column's shape over an arbitrary delivered list, probed point
-    /// by point (the set is a spotlight, never a bulk slice). A mask read as its set-bit indexes
-    /// is the point's colored-type index list. The source's list is the first mask's.
+    /// by point (the set is a spotlight, never a bulk slice). A mask read as its set-bit indexes is
+    /// the point's colored-type index list. The source's list is the first mask's.
     fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let stride = masks.len().div_ceil(8);
         let base = buf.len();
@@ -247,9 +247,8 @@ pub(crate) struct LocateTrailer<'doc> {
     pub link_type_ids: &'doc [Vec<u32>],
     /// Trailer key 7: per-edge type completeness, edge order.
     ///
-    /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s type list is the link's
-    /// whole direct set - unset means the cap truncated it or the store no longer serves the
-    /// link.
+    /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s type list is the link's whole
+    /// direct set - unset means the cap truncated it or the store no longer serves the link.
     pub link_type_ids_complete: &'doc [bool],
     /// Trailer key 8.
     ///
@@ -261,8 +260,7 @@ pub(crate) struct LocateTrailer<'doc> {
     ///
     /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s property map is the link
     /// entity's whole deliverable set - unset means the simple-value filter or the cap dropped
-    /// something, or
-    /// the store no longer serves the link.
+    /// something, or the store no longer serves the link.
     pub link_properties_complete: &'doc [bool],
 }
 
@@ -400,8 +398,8 @@ fn encode_property_map(cbor: &mut CborWriter<'_>, entries: Option<&[(u32, Proper
     }
 }
 
-/// Emits per-edge flags as an LSB-first bitmask byte string: bit `e` of byte `e / 8` is edge
-/// `e`'s flag, packed in place.
+/// Emits per-edge flags as an LSB-first bitmask byte string: bit `e` of byte `e / 8` is edge `e`'s
+/// flag, packed in place.
 fn bitmask(cbor: &mut CborWriter<'_>, flags: &[bool]) {
     let bytes = cbor.bytes_zeroed(flags.len().div_ceil(8));
     for (edge, &flag) in flags.iter().enumerate() {

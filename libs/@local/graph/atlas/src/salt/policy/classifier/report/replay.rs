@@ -113,18 +113,18 @@ pub(crate) struct Frozen {
     document_digest: Sha256Digest,
     staged_embeddings_digest: Sha256Digest,
     staged_hashes_digest: Sha256Digest,
-    /// The staged classifier artifact's recorded identity; a supplied-artifact corpus stages
-    /// no classifier and carries none.
+    /// The staged classifier artifact's recorded identity; a supplied-artifact corpus stages no
+    /// classifier and carries none.
     staged_classifier_digest: Option<Sha256Digest>,
-    /// The generation's echoed assembly configuration; the replay binds it, never the
-    /// compiled defaults.
+    /// The generation's echoed assembly configuration; the replay binds it, never the compiled
+    /// defaults.
     assembly: AssemblyConfig,
     fit: FitConfig,
 }
 
 impl Frozen {
-    /// The staged classifier artifact's recorded identity; [`None`] for supplied artifacts,
-    /// which stage no classifier.
+    /// The staged classifier artifact's recorded identity; [`None`] for supplied artifacts, which
+    /// stage no classifier.
     pub(crate) const fn staged_classifier_digest(&self) -> Option<Sha256Digest> {
         self.staged_classifier_digest
     }
@@ -190,12 +190,12 @@ impl Frozen {
     /// Opens supplied annotation artifacts directly, without a published generation.
     ///
     /// `directory` holds the three artifact files under their staged names:
-    /// `annotation-corpus.json`, `annotation-embeddings.arr`, and `annotation-hashes.arr`.
-    /// Supplied artifacts carry no configuration echo, so the assembly and fit configurations
-    /// are the compiled deployment defaults; [`reconstruct`](Self::reconstruct) still certifies
-    /// the reassembled table against the supplied bytes, so a default assembly that diverges
-    /// from the one that produced the artifacts fails the byte certification instead of probing a
-    /// different corpus.
+    /// `annotation-corpus.json`, `annotation-embeddings.arr`, and `annotation-hashes.arr`. Supplied
+    /// artifacts carry no configuration echo, so the assembly and fit configurations are the
+    /// compiled deployment defaults; [`reconstruct`](Self::reconstruct) still certifies the
+    /// reassembled table against the supplied bytes, so a default assembly that diverges from the
+    /// one that produced the artifacts fails the byte certification instead of probing a different
+    /// corpus.
     ///
     /// # Panics
     ///
@@ -296,8 +296,8 @@ pub(crate) struct Reconstructed {
 impl Reconstructed {
     /// The trained prefix of the embedding table.
     ///
-    /// The trained rows lead the table, so the prefix keeps the corpus's card-row identities;
-    /// the pin claims that domain over the table's domain-neutral rows.
+    /// The trained rows lead the table, so the prefix keeps the corpus's card-row identities; the
+    /// pin claims that domain over the table's domain-neutral rows.
     pub(crate) fn trained_embeddings(
         &self,
     ) -> &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> {

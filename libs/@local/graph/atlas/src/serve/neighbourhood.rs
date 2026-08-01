@@ -119,9 +119,9 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// identity, in no particular order.
     ///
     /// Caller requirement: `delivered` is already intersected with the visibility proof. The set
-    /// membership test answers the induced-subgraph question - which rows this response draws
-    /// edges between - and never stands in for the delivery rule, which the proof answers as the
-    /// walk reads each candidate.
+    /// membership test answers the induced-subgraph question - which rows this response draws edges
+    /// between - and never stands in for the delivery rule, which the proof answers as the walk
+    /// reads each candidate.
     pub(super) fn induced(
         &self,
         delivered: &DenseBitSet<NodeRowId>,

@@ -1,11 +1,11 @@
 //! Atlas responses as `SALTILE` envelope bytes.
 //!
 //! The envelope layout is a pinned public contract; the checked-in fixtures under `fixtures/wire/`
-//! are the cross-language proof the TypeScript decoder builds against. One
-//! envelope carries every binary response kind (tile, edges, and, with the locate endpoint, locate)
-//! as a 16-byte prefix, a fixed offset directory, 8-aligned payload sections, and an optional CBOR
-//! trailer tail. Structured payloads are CBOR under the deterministic profile in [`cbor`]; columns
-//! are raw little-endian arrays a decoder views without parsing.
+//! are the cross-language proof the TypeScript decoder builds against. One envelope carries every
+//! binary response kind (tile, edges, and, with the locate endpoint, locate) as a 16-byte prefix, a
+//! fixed offset directory, 8-aligned payload sections, and an optional CBOR trailer tail.
+//! Structured payloads are CBOR under the deterministic profile in [`cbor`]; columns are raw
+//! little-endian arrays a decoder views without parsing.
 //!
 //! The module emits bytes and nothing else. A response document goes in and one `Vec<u8>` comes
 //! out. Server code assembles every input from validated artifacts and an admitted request, so a

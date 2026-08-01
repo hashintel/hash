@@ -105,15 +105,15 @@ pub(crate) struct RefreshOutcome<N> {
 /// The corpus rows a run reports into [`Progress::projector_snapshot`].
 ///
 /// An observer's appetite ([`Progress::projector_sample_size`]) buys a fixed set of rows, chosen
-/// before the loop and reported at every tick, so a watcher sees the same points moving rather
-/// than a fresh cloud each time. Landmark rows come first - they are the skeleton the placement
-/// hangs on, and a renderer draws them apart - and they take at most half the budget, so a
-/// landmark-rich corpus still shows its interior. The rest is an even stride over the corpus rows
-/// no landmark holds, so the two shares partition the sample by role: every reported point past
-/// the landmark prefix is an ordinary row.
+/// before the loop and reported at every tick, so a watcher sees the same points moving rather than
+/// a fresh cloud each time. Landmark rows come first - they are the skeleton the placement hangs
+/// on, and a renderer draws them apart - and they take at most half the budget, so a landmark-rich
+/// corpus still shows its interior. The rest is an even stride over the corpus rows no landmark
+/// holds, so the two shares partition the sample by role: every reported point past the landmark
+/// prefix is an ordinary row.
 ///
-/// The choice is deterministic by construction and consumes no randomness: an observer cannot
-/// move the run's draws, so a run publishes the same placement whether or not anything watches.
+/// The choice is deterministic by construction and consumes no randomness: an observer cannot move
+/// the run's draws, so a run publishes the same placement whether or not anything watches.
 #[derive(Debug, Default)]
 pub(super) struct SnapshotSample<N> {
     /// The sampled rows, with the landmark share first and the strided share after it.
@@ -128,9 +128,9 @@ where
 {
     /// Chooses at most `budget` rows of a `rows`-row corpus to report.
     ///
-    /// A zero budget - the default observer's - selects nothing, and every later report is a
-    /// no-op. Selection drops landmark rows outside the corpus rather than trusting them. The
-    /// trainer's own admission rejects them, and a sample is not the place to discover it.
+    /// A zero budget - the default observer's - selects nothing, and every later report is a no-op.
+    /// Selection drops landmark rows outside the corpus rather than trusting them. The trainer's
+    /// own admission rejects them, and a sample is not the place to discover it.
     pub(super) fn select(rows: usize, landmarks: &[SupportAnchor<N>], budget: usize) -> Self {
         if budget == 0 || rows == 0 {
             // The zero-budget path allocates nothing and sorts nothing, so every later report is a

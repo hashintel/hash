@@ -53,9 +53,9 @@ impl Error for WriteSprsError {
 /// Streams `matrix` as a sparse matrix file.
 ///
 /// The written element types and compressed dimension are the matrix's own, recorded in the header,
-/// so the file reopens as exactly the view it came from. Every region streams in file order
-/// behind the header; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) when the
-/// matrix is small.
+/// so the file reopens as exactly the view it came from. Every region streams in file order behind
+/// the header; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) when the matrix
+/// is small.
 ///
 /// # Errors
 ///

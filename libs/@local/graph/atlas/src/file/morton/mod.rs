@@ -2,16 +2,16 @@
 //!
 //! Bucket fenceposts and a page index in front of the delivery-ordered morton codes.
 //!
-//! Layout version 1 is **mutable**. Change the layout to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 1 is **mutable**. Change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
 //! The codes are in the base delivery order: bucket-major, ascending within each bucket segment.
 //! Nothing about that column is interpretable on its own. A binary search is valid only inside one
-//! segment, and the page index samples across segment boundaries, so the segment fenceposts live
-//! in the header. Index, fenceposts, and codes form one combined file that cannot fall out of
-//! sync. The regions:
+//! segment, and the page index samples across segment boundaries, so the segment fenceposts live in
+//! the header. Index, fenceposts, and codes form one combined file that cannot fall out of sync.
+//! The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -102,8 +102,8 @@ pub(crate) const SEGMENTS: usize = Depth::MAX.get() as usize + 1;
 /// Fencepost `b` is where bucket `b`'s positions begin and the last fencepost is the total count,
 /// so segment `b` is the range `posts[b]..posts[b + 1]` in the column's position domain `I`.
 /// Construction validates the structural rules - posts anchor at zero and never decrease - while
-/// the width of the position domain is `I`'s own law, checked by `I`'s conversion inside each
-/// typed accessor. The interior keeps the persisted `U64<LE>` words: a header's fencepost region
+/// the width of the position domain is `I`'s own law, checked by `I`'s conversion inside each typed
+/// accessor. The interior keeps the persisted `U64<LE>` words: a header's fencepost region
 /// reinterprets as a validated borrow ([`try_from_ref`]) and the file writer reads the same words
 /// back.
 ///

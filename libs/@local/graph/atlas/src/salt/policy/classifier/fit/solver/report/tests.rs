@@ -45,8 +45,8 @@ fn fixture_corpus() -> (MatrixN<CANONICAL_DIMENSIONS>, Vec<TrainingRow>) {
     (embeddings, training)
 }
 
-/// At the physical origin every row's probabilities are uniform, so the curvature scale is
-/// exactly `(1/3)·(2/3)` for every row.
+/// At the physical origin every row's probabilities are uniform, so the curvature scale is exactly
+/// `(1/3)·(2/3)` for every row.
 #[test]
 fn curvature_scales_at_the_origin_are_uniform() {
     let (embeddings, training) = fixture_corpus();

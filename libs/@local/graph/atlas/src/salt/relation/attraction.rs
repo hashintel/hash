@@ -12,10 +12,9 @@ use crate::identity::OntologyRowId;
 
 /// Shared attraction settings of one generation, valid by construction.
 ///
-/// The Coincident coefficient `κ_C` scales the Coincident energy relative to Proximal's unit
-/// scale. It stays 0 until the generation meets its Coincident release criterion; after that,
-/// tuning grids ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start
-/// there.
+/// The Coincident coefficient `κ_C` scales the Coincident energy relative to Proximal's unit scale.
+/// It stays 0 until the generation meets its Coincident release criterion; after that, tuning grids
+/// ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start there.
 ///
 /// The pruning threshold `η_F` drops instances whose force mass `c · s · s+` cannot move the
 /// layout, and 0 retains every instance. The omitted-mass fraction a threshold produces

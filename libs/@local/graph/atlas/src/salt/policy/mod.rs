@@ -103,8 +103,8 @@ impl fmt::Display for GeometryClass {
 /// A distribution over the geometry classes.
 ///
 /// Components are [`UnitFraction`]s stored in class order and sum to one within floating-point
-/// rounding. Construction sites are the softmax (which satisfies the invariant by construction)
-/// and validated artifact reads.
+/// rounding. Construction sites are the softmax (which satisfies the invariant by construction) and
+/// validated artifact reads.
 // The sum invariant excludes byte-level constructors: no zerocopy derives.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Posterior([UnitFraction; GeometryClass::COUNT]);

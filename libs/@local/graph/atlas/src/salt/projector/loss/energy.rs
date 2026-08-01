@@ -11,8 +11,8 @@ use crate::math::{AffinityCurve, huber, sigmoid, softplus};
 ///
 /// For squared pair distance `u` and affinity `q(u) = 1 / (1 + a u^b)`, attraction penalizes
 /// improbable placement of a positive edge by `-ln(q + ε)` and repulsion penalizes probable
-/// placement of a negative pair by `-ln(1 - q + ε)`. The offset keeps both logarithms finite
-/// over the affinity's whole range, and bounds the repulsion derivative as the pair approaches
+/// placement of a negative pair by `-ln(1 - q + ε)`. The offset keeps both logarithms finite over
+/// the affinity's whole range, and bounds the repulsion derivative as the pair approaches
 /// coincidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AffinityEnergy {
@@ -44,9 +44,8 @@ impl AffinityEnergy {
 
     /// Evaluates the attraction energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(q + ε), d/du of the same)`. The derivative is zero at `u = 0`: a
-    /// coincident pair has no direction to pull along, and the value is already at its minimum
-    /// there.
+    /// Returns `(-ln(q + ε), d/du of the same)`. The derivative is zero at `u = 0`: a coincident
+    /// pair has no direction to pull along, and the value is already at its minimum there.
     #[must_use]
     pub(crate) fn attraction(self, distance_squared: f32) -> (f32, f32) {
         let affinity = self.curve.affinity(distance_squared);
@@ -62,10 +61,10 @@ impl AffinityEnergy {
 
     /// Evaluates the repulsion energy and its derivative in the squared distance.
     ///
-    /// Returns `(-ln(1 - q + ε), d/du of the same)`. The derivative is zero at `u = 0` for
-    /// the same directional reason as [`attraction`](Self::attraction). Near coincidence the offset
-    /// carries the boundedness: `1 - q` itself vanishes there, and without the offset the
-    /// coordinate gradient would diverge for every exponent.
+    /// Returns `(-ln(1 - q + ε), d/du of the same)`. The derivative is zero at `u = 0` for the same
+    /// directional reason as [`attraction`](Self::attraction). Near coincidence the offset carries
+    /// the boundedness: `1 - q` itself vanishes there, and without the offset the coordinate
+    /// gradient would diverge for every exponent.
     #[must_use]
     pub(crate) fn repulsion(self, distance_squared: f32) -> (f32, f32) {
         let affinity = self.curve.affinity(distance_squared);
@@ -200,8 +199,8 @@ impl CoincidentEnergy {
 ///
 /// The radii satisfy `coincident < proximal`: the tight class must ask for a strictly closer
 /// placement than the loose one. `epsilon` guards the local scales in the normalization `z = d /
-/// √((scale_i + ε)(scale_j + ε))`, keeping `z` finite where a diverged
-/// neighbourhood measured a zero radius.
+/// √((scale_i + ε)(scale_j + ε))`, keeping `z` finite where a diverged neighbourhood measured a
+/// zero radius.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationEnergy {
     coincident: CoincidentEnergy,

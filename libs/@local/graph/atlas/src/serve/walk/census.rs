@@ -175,10 +175,9 @@ impl Walk<'_> {
     /// Censuses the visible view over the whole corpus.
     ///
     /// The corpus-wide aggregates the root tile publishes, gathered in one masked pass over the
-    /// base column because they share their cost: computing them apart would filter the same
-    /// column by the same mask once per aggregate for one view. `cut` is the root's cumulative
-    /// schedule bucket, `positions` the base coordinate column, and `bounds` the generation's own
-    /// extent.
+    /// base column because they share their cost: computing them apart would filter the same column
+    /// by the same mask once per aggregate for one view. `cut` is the root's cumulative schedule
+    /// bucket, `positions` the base coordinate column, and `bounds` the generation's own extent.
     ///
     /// An unmasked proof answers from the artifacts alone, where the fencepost prefix is the
     /// visible count and the generation's own extent is the visible extent, so authority over the

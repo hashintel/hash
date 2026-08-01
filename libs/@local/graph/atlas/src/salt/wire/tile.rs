@@ -203,9 +203,9 @@ pub(crate) enum DeliveredSet<'doc> {
     Ranges(&'doc [Range<BasePosition>]),
     /// Gathered base positions in delivery order: the masked gather, visibility already applied.
     ///
-    /// Delivery order is the producer's and carries no relation to base order. Today's masked
-    /// walk gathers by ascending corpus bucket and so happens to ascend; the encoder does not
-    /// depend on it.
+    /// Delivery order is the producer's and carries no relation to base order. Today's masked walk
+    /// gathers by ascending corpus bucket and so happens to ascend; the encoder does not depend on
+    /// it.
     Positions(&'doc [BasePosition]),
 }
 

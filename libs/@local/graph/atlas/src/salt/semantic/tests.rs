@@ -238,8 +238,8 @@ fn duplicate_rows_saturate_at_full_membership() {
 /// The SIMD row pipeline matches the membership definition lane for lane.
 ///
 /// The scalar oracle routes through the same vendored kernel, so agreement is bit-exact: the pin
-/// covers the padded tail lanes (partial, exact, and full-plus-partial chunks), the ρ
-/// subtraction with its zero clamp, the membership floor, and same-length solver reuse.
+/// covers the padded tail lanes (partial, exact, and full-plus-partial chunks), the ρ subtraction
+/// with its zero clamp, the membership floor, and same-length solver reuse.
 #[test]
 #[expect(
     clippy::cast_precision_loss,

@@ -10,8 +10,8 @@ use crate::{
 /// The run could not reach a verdict.
 ///
 /// Variants after the fit carry the published generation's identity: the artifacts are complete on
-/// disk, and the remedy - reopening, re-probing, or correcting and re-running - starts from
-/// that id.
+/// disk, and the remedy - reopening, re-probing, or correcting and re-running - starts from that
+/// id.
 #[derive(Debug)]
 pub enum RunnerError<D, E> {
     /// The run could not read the current-generation pointer.

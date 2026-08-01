@@ -149,8 +149,8 @@ impl<N> Error for SpatialFieldError<N> where N: fmt::Debug + fmt::Display {}
 /// The exact 2D neighbour index over one frame's detached coordinates.
 ///
 /// Every refresh tick builds one field per lens extreme and drops it with the tick. Queries never
-/// mutate the field and are thread-safe. Exactness is part of the contract:
-/// consumers account for no recall.
+/// mutate the field and are thread-safe. Exactness is part of the contract: consumers account for
+/// no recall.
 pub(crate) struct SpatialField<'frame, N> {
     tree: ImmutableKdTree<f32, u32, 2, 32>,
     points: &'frame IdSlice<N, Vec2>,

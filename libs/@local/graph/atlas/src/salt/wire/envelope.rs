@@ -4,8 +4,8 @@
 //! zero reserved), a directory of `slotCount` absolute `(start, end)` byte offsets, the payloads
 //! sequential in slot order and zero-padded to 8, and an optional self-delimiting CBOR trailer
 //! after the last padded payload. All envelope integers are little-endian; the prefix and every
-//! directory entry are `#[repr(C)]` layouts with [`zerocopy`] byteorder-typed fields, so the
-//! wire's endianness is part of the type.
+//! directory entry are `#[repr(C)]` layouts with [`zerocopy`] byteorder-typed fields, so the wire's
+//! endianness is part of the type.
 //!
 //! The directory is the locating mechanism: `(0, 0)` marks an absent slot, `start == end` at a
 //! nonzero offset marks a present-but-empty payload, and every present `start` is 8-aligned by
@@ -20,10 +20,10 @@
 //! backfills the directory entry as the closure returns, so every payload reaches the response by
 //! exactly one write.
 //!
-//! Offsets are `u32`: directory-addressed payloads end below 4 GiB, the format's
-//! representability boundary. The writer enforces it with checked conversions - a payload
-//! crossing it is a producer panic (caught and answered as a 500), never a truncated or
-//! wrapped offset. The trailer sits outside the directory and shares no such ceiling.
+//! Offsets are `u32`: directory-addressed payloads end below 4 GiB, the format's representability
+//! boundary. The writer enforces it with checked conversions - a payload crossing it is a producer
+//! panic (caught and answered as a 500), never a truncated or wrapped offset. The trailer sits
+//! outside the directory and shares no such ceiling.
 
 use zerocopy::{IntoBytes as _, LE, U16, U32};
 

@@ -2,15 +2,15 @@
 //!
 //! The report reconstructs the classifier training set from the generation's staged annotation
 //! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
-//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and
-//! asserts that the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. The
-//! bundle therefore provably describes the deployed model, not a lookalike.
+//! configuration - fold assignment seeded by the echo, so the refit is deterministic - and asserts
+//! that the recomputed model reproduces the staged `.clsf` artifact byte-for-byte. The bundle
+//! therefore provably describes the deployed model, not a lookalike.
 //!
-//! One JSON document carries everything a downstream renderer needs: per-row identity, fold,
-//! soft target, weight, out-of-fold logits, raw and calibrated posteriors, and applicability;
-//! the model summary (coefficient row norms, intercepts, temperature, the sorted
-//! training-distance distribution, and the out-of-fold metrics); and the certification verdict
-//! with both digests.
+//! One JSON document carries everything a downstream renderer needs: the per-row records (identity,
+//! fold, soft target, weight, out-of-fold logits, raw and calibrated posteriors, and
+//! applicability), the model summary (coefficient row norms, intercepts, temperature, the sorted
+//! training-distance distribution, and the out-of-fold metrics), and the certification verdict with
+//! both digests.
 //!
 //! Failures panic with the failing step's error. A report run has no recovery path, and the error
 //! is the diagnosis.

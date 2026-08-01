@@ -17,8 +17,8 @@
 //!
 //! `header | ciphertext | trailer`, [`TOKEN_BYTES`] wide, with every field at a fixed offset:
 //! [`SealedAuthority`] is the envelope as a type, and a blob resolves into one by a zerocopy cast.
-//! The header is [`AuthorityHeader`] in the clear, the ciphertext seals the [`Scope`] itself -
-//! the scope is its own byte-level form - and the trailer is Poly1305's tag.
+//! The header is [`AuthorityHeader`] in the clear, the ciphertext seals the [`Scope`] itself - the
+//! scope is its own byte-level form - and the trailer is Poly1305's tag.
 //!
 //! The associated data is the header's own bytes, so both sides authenticate an identical form. The
 //! clear header stays as minted, because a rewritten `issued_at` invalidates the tag.
@@ -397,8 +397,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns the generator's error when drawing the nonce fails: entropy failure refuses the
-    /// mint rather than sealing under a predictable nonce.
+    /// Returns the generator's error when drawing the nonce fails: entropy failure refuses the mint
+    /// rather than sealing under a predictable nonce.
     pub(crate) fn mint(
         &self,
         scope: Scope,
@@ -481,8 +481,8 @@ where
     /// # Errors
     ///
     /// [`AuthorityError::Envelope`] for a blob that is not this format,
-    /// [`AuthorityError::Authentication`] when the tag refuses, and [`AuthorityError::Actor`] for
-    /// a presenter the token does not name.
+    /// [`AuthorityError::Authentication`] when the tag refuses, and [`AuthorityError::Actor`] for a
+    /// presenter the token does not name.
     pub(crate) fn carried(
         &self,
         blob: &[u8; TOKEN_BYTES],

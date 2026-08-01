@@ -1650,7 +1650,7 @@ fn sample_median<const N: usize>(mut samples: [f64; N]) -> f64 {
 ///
 /// # Panics
 ///
-/// This panics when `index` lies beyond `N`.
+/// This panics when `index` is `N` or beyond.
 fn record_sample<const N: usize>(samples: &mut [f64; N], index: usize, value: f64) {
     *samples
         .get_mut(index)

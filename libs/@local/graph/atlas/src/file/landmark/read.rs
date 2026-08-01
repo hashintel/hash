@@ -86,6 +86,7 @@ impl LandmarkFile {
     /// # Errors
     ///
     /// Returns [`OpenLandmarkError::Io`] when opening or mapping the file fails,
+    /// [`OpenLandmarkError::Undersized`] when the file ends before one full header,
     /// [`OpenLandmarkError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenLandmarkError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

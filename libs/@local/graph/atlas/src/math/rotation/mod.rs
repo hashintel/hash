@@ -117,8 +117,8 @@ impl Rotation {
 
     /// Rescales the stored vector back onto the unit circle.
     ///
-    /// Composition accumulates rounding in the vector's length at about one unit in the last
-    /// place per [`then`](Self::then); a drifted length scales every vector passed to
+    /// Composition accumulates rounding in the vector's length at about one unit in the last place
+    /// per [`then`](Self::then); a drifted length scales every vector passed to
     /// [`apply`](Self::apply) by that factor. Renormalizing divides the drift out at the cost of
     /// one square root, leaving the angle unchanged up to rounding. Calling it once every few
     /// hundred compositions keeps the error invisible in `f32`.

@@ -1,8 +1,8 @@
 //! The hydrated data model.
 //!
-//! One column set per read surface, each aligned to its delivered order: hydration writes them
-//! off the store rows, assembly documents and encoders read them. An entity the store no longer
-//! serves reads `null` in every column and `false` in every completeness flag.
+//! One column set per read surface, each aligned to its delivered order: hydration writes them off
+//! the store rows, assembly documents and encoders read them. An entity the store no longer serves
+//! reads `null` in every column and `false` in every completeness flag.
 
 use crate::dataset::ArchivedEntityId;
 

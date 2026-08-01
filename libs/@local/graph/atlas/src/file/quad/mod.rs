@@ -1,9 +1,9 @@
 //! The quad file stores quadtree topology over the base delivery order.
 //!
-//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
 //! Each node is one tile of the bucket-cut schedule: the node at depth `z` stores the `(start,
 //! length)` run of its own-bucket points (bucket `z + span_log2` inside the node's cell, buckets

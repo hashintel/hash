@@ -1,10 +1,10 @@
 //! Benchmark seams over the relation-index build.
 //!
 //! Wall-time claims about the build - the mega relation no longer serializes emission, assembly is
-//! sort-dominated, the emission chunk is a batch size rather than a tuned number - are claims
-//! about parallel composition, and only hold or fail at realistic scale and skew. This module gives
-//! the bench target (an external crate) exactly the levers those claims need while every internal
-//! type stays private: corpus synthesis at measured live shapes ([`Corpus`], [`Profile`]), each
+//! sort-dominated, the emission chunk is a batch size rather than a tuned number - are claims about
+//! parallel composition, and only hold or fail at realistic scale and skew. This module gives the
+//! bench target (an external crate) exactly the levers those claims need while every internal type
+//! stays private: corpus synthesis at measured live shapes ([`Corpus`], [`Profile`]), each
 //! production stage runnable from its own input state, and plain-number summaries
 //! ([`BuildSummary`]).
 //!

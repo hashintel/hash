@@ -20,8 +20,8 @@
 //! detached local radii the relation objective normalizes by; [`sample`] draws the seeded minibatch
 //! populations; [`loss`] computes the composite objective and [`budget`] measures its relation
 //! forces; [`miner`] finds 2D hard negatives; [`verdict`] reads the supplied human-review input;
-//! [`train`] assembles minibatches and evaluates the step objective; [`artifact`] writes
-//! and reopens the published checkpoint and the resume state.
+//! [`train`] assembles minibatches and evaluates the step objective; [`artifact`] writes and
+//! reopens the published checkpoint and the resume state.
 
 pub(crate) mod artifact;
 // Fully public: the root `bench` facade re-exports it; the private

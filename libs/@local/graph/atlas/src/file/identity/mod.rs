@@ -1,13 +1,13 @@
 //! An identity file stores a row-ordered id column and its sorted lookup pairs.
 //!
-//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
 //! One file binds a row domain (nodes, edges, or ontology types) to its source identifiers, in both
-//! directions: `row → id` is indexing into the id column, and `id → row` is binary search over
-//! the sorted pairs, with an index prelude in front so a cold lookup faults two pages instead of
+//! directions: `row → id` is indexing into the id column, and `id → row` is binary search over the
+//! sorted pairs, with an index prelude in front so a cold lookup faults two pages instead of
 //! `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the pair order is the order of those
 //! bytes, since source identifiers carry no other one. The pairs and the index derive from the id
 //! column and mean nothing without it. One file stores all three regions, so every open maps them

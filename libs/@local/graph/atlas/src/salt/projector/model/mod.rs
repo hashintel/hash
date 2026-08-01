@@ -10,12 +10,12 @@
 //! y  = W_head h_last + b_head
 //! ```
 //!
-//! `FiLM` predicts a delta from unit scale and a shift out of the condition vector:
-//! `FiLM(v, c) = (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation,
-//! where it gates normalized features directly. Modulation placed before the block's linear and
-//! normalization instead would lose its scale component to the downstream LN (exactly so for a
-//! uniform gamma). Condition columns are opaque to the model. The batch assembler names them, and
-//! their count is the [`Architecture`]'s `condition_dimensions`.
+//! `FiLM` predicts a delta from unit scale and a shift out of the condition vector: `FiLM(v, c) =
+//! (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation, where it gates
+//! normalized features directly. Modulation placed before the block's linear and normalization
+//! instead loses its scale component to the downstream LN (exactly so for a uniform gamma).
+//! Condition columns are opaque to the model. The batch assembler names them, and their count is
+//! the [`Architecture`]'s `condition_dimensions`.
 //!
 //! The unit tests certify both initialization contracts:
 //!
@@ -263,9 +263,9 @@ pub(crate) struct ProjectorInput<B: Backend> {
 
 /// Feature-wise linear modulation from a condition vector.
 ///
-/// `forward(h, c) = (1 + Δγ(c)) · h + β(c)`, where one linear map produces `[dgamma; beta]`.
-/// The map and its bias initialize to zero, so modulation starts as the identity for every
-/// condition.
+/// `forward(h, c) = (1 + Δγ(c)) · h + β(c)`, where one linear map produces `[dgamma; beta]`, the
+/// delta scale stacked over the shift. The map and its bias initialize to zero, so modulation
+/// starts as the identity for every condition.
 #[derive(Module, Debug)]
 struct Film<B: Backend> {
     linear: Linear<B>,

@@ -36,9 +36,9 @@
 //! The shape is the longest prefix of nonzero dimensions. The first zero terminates it, and the
 //! parse ignores everything after. An empty shape (leading zero) is a zero-element array, and the
 //! header is the whole file. No rank field and no invalid shape exist: every bit pattern means
-//! something, so parsing a header never validates more than the magic, version, and variant, which
-//! the format pins as single-variant enums that fail byte-level parsing for files this module does
-//! not speak.
+//! something, so parsing a header never validates more than the magic, version, and variant. The
+//! magic and the version are single-variant enums, and the variant is a closed enum of pinned
+//! discriminants, so byte-level parsing fails for files this module does not speak.
 //!
 //! The open checks the format's single structural rule in full. The file length equals `4096 +
 //! element count · element width` ([`FileHeader::expected_file_len`]). A shape whose element count
@@ -121,7 +121,7 @@ impl FileHeaderMagic {
 }
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+// pinned layout version.
 /// A layout version this module implements.
 ///
 /// Byte-level construction admits no other value. Increment this version on any layout change.

@@ -2,10 +2,9 @@
 //!
 //! These cases rebuild the envelope from the primitives - HKDF for the key, the header's byte
 //! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
-//! what [`TokenAuthority`] produces, in both directions. Every width below is a hand-summed
-//! literal rather than a `size_of` over the production layout types, which is what keeps the
-//! battery an independent check on the byte order. Each case asserts agreement rather than
-//! inheriting it.
+//! what [`TokenAuthority`] produces, in both directions. Every width below is a hand-summed literal
+//! rather than a `size_of` over the production layout types, which is what keeps the battery an
+//! independent check on the byte order. Each case asserts agreement rather than inheriting it.
 #![expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -70,8 +69,8 @@ const TAG_BYTES: usize = 16;
 
 /// The whole envelope's width.
 ///
-/// Where a hand-assembled envelope meets a production signature, the compiler unifies this sum
-/// with the production width, so a layout drift fails the build before it fails a case.
+/// Where a hand-assembled envelope meets a production signature, the compiler unifies this sum with
+/// the production width, so a layout drift fails the build before it fails a case.
 const ENVELOPE_BYTES: usize = HEADER_BYTES + PLAINTEXT_BYTES + TAG_BYTES;
 
 /// The offset of the nonce inside the clear header: past the version byte and the issue time.
@@ -267,9 +266,9 @@ fn an_independent_open_recovers_the_scope() {
 
 /// A hand-assembled envelope opens to the scope it names, filtered or not.
 ///
-/// The independent implementation seals, the production `open` accepts and resolves the scope.
-/// With the mint-side byte comparison this closes the loop in both directions, so the round trip
-/// through the production pair alone needs no case of its own.
+/// The independent implementation seals, the production `open` accepts and resolves the scope. With
+/// the mint-side byte comparison this closes the loop in both directions, so the round trip through
+/// the production pair alone needs no case of its own.
 #[test]
 fn a_hand_assembled_envelope_opens() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
@@ -433,9 +432,9 @@ fn a_foreign_actor_refuses() {
 /// An expired token no longer opens, yet still carries its view state for a re-mint.
 ///
 /// The property the carried read exists for: hard invalidation forces a fresh mint without
-/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale
-/// while `carried` still reads the sealed state - and a token re-minted from that state opens,
-/// sealing the same view.
+/// perturbing the view. At an instant past the hard window, `open` refuses the token as stale while
+/// `carried` still reads the sealed state - and a token re-minted from that state opens, sealing
+/// the same view.
 #[test]
 fn an_expired_token_still_carries_its_scope() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());

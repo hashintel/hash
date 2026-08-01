@@ -1,8 +1,8 @@
 //! The manifest document.
 //!
-//! The Surface v1 bootstrap: the generation's serving contract - schedule, limits, provenance,
-//! no corpus-derived aggregates - plus the one per-caller block, the resolved delivery schedule
-//! the caller's authority token seals.
+//! The Surface v1 bootstrap: the generation's serving contract - schedule, limits, provenance, no
+//! corpus-derived aggregates - plus the one per-caller block, the resolved delivery schedule the
+//! caller's authority token seals.
 
 use core::fmt;
 
@@ -11,10 +11,10 @@ use crate::salt::wire::WIRE_VERSION;
 
 /// The serving limits of the manifest's `limits` block.
 ///
-/// Each value comes from a value the server enforces, so an advertised limit never disagrees
-/// with enforcement. Request-validation limits let a client validate before sending;
-/// response-shaping limits say what delivery truncates; the staleness windows say when a held
-/// authority token expires.
+/// Each value comes from a value the server enforces, so an advertised limit never disagrees with
+/// enforcement. Request-validation limits let a client validate before sending; response-shaping
+/// limits say what delivery truncates; the staleness windows say when a held authority token
+/// expires.
 ///
 /// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for,
 /// what it must expect back, when it should refresh - and the block carries nothing a client cannot
@@ -76,9 +76,9 @@ impl ServeLimits {
 
 /// Everything a client needs before its first tile.
 ///
-/// Every block except [`Manifest::scope_schedule`] derives from serving configuration and
-/// snapshot provenance alone and stays valid for the generation's lifetime; the scope block is
-/// the caller's own, sealed into the authority token minted beside this document.
+/// Every block except [`Manifest::scope_schedule`] derives from serving configuration and snapshot
+/// provenance alone and stays valid for the generation's lifetime; the scope block is the caller's
+/// own, sealed into the authority token minted beside this document.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
@@ -95,9 +95,9 @@ pub struct Manifest {
     /// The caller's resolved delivery schedule.
     ///
     /// The delivery-cut offset the accompanying authority token seals, with the cut rule it
-    /// yields. Restricted responses deliver scope-cascade buckets at or below `z + span + k`,
-    /// so this block is the decoder's input for attributing runs to buckets; it varies per
-    /// caller and per session, which is one of the reasons the manifest response is `no-store`.
+    /// yields. Restricted responses deliver scope-cascade buckets at or below `z + span + k`, so
+    /// this block is the decoder's input for attributing runs to buckets; it varies per caller and
+    /// per session, which is one of the reasons the manifest response is `no-store`.
     pub scope_schedule: ScopeCutSchedule,
     /// The published serving limits.
     pub limits: ManifestLimits,

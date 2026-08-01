@@ -16,8 +16,8 @@
 //! embedding dimensions, each with one appended intercept coordinate. Flat solver vectors are
 //! contrast-major, `[A_0,0 … A_0,d−1, a_0, A_1,0 … A_1,d−1, a_1, …]`, and [`ContrastVector`]
 //! carries the same coordinates in structured form. The physical objective, gradient, and
-//! Hessian-vector products evaluate in these coordinates; the solver's own iterate lives in
-//! scaled coordinates `ζ` reached through the preparation-time diagonal ([`scale`]).
+//! Hessian-vector products evaluate in these coordinates; the solver's own iterate lives in scaled
+//! coordinates `ζ` reached through the preparation-time diagonal ([`scale`]).
 
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
@@ -73,10 +73,9 @@ const SOLVER_DIMENSIONS: usize = CONTRAST_ROWS * AUGMENTED_DIMENSIONS;
 
 /// A contrast-major solver vector in structured form.
 ///
-/// Represents parameters, gradients, directions, and Hessian-vector products alike: one
-/// coefficient row per contrast coordinate over the embedding dimensions, with one intercept
-/// each. Each coefficient row owns an allocation aligned for wide dots against `f32` embeddings,
-/// and
+/// Represents parameters, gradients, directions, and Hessian-vector products alike: one coefficient
+/// row per contrast coordinate over the embedding dimensions, with one intercept each. Each
+/// coefficient row owns an allocation aligned for wide dots against `f32` embeddings, and
 /// [`from_flat`](Self::from_flat) / [`to_flat`](Self::to_flat) convert against the flat
 /// contrast-major layout without reordering coordinates.
 #[derive(Debug, Clone, PartialEq)]

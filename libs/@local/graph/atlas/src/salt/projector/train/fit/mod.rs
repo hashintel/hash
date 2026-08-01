@@ -63,7 +63,7 @@ use crate::{
 /// A validated step schedule.
 ///
 /// Run length, phase boundary, refresh cadence, and the learning-rate envelope.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TrainingSchedule {
     steps: NonZero<usize>,
     boundary: usize,

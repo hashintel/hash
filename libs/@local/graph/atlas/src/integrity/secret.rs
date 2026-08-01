@@ -56,9 +56,9 @@ impl FromStr for SecretString {
 /// alone and [`fmt::Display`] prints a fixed placeholder. The type has no `Serialize`, so logging
 /// or serializing the value discloses nothing.
 ///
-/// The redaction covers this value, not everything reachable through it: [`HexBytes`] renders
-/// every byte, so rendering the dereferenced inner value writes the key in full. Code that holds
-/// a secret renders the secret, never its target.
+/// The redaction covers this value, not everything reachable through it: [`HexBytes`] renders every
+/// byte, so rendering the dereferenced inner value writes the key in full. Code that holds a secret
+/// renders the secret, never its target.
 ///
 /// Parsing and deserialization accept exactly the canonical lowercase form.
 #[derive(

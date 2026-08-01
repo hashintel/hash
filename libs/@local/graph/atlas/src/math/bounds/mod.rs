@@ -23,10 +23,10 @@ mod tests;
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
-/// The minimum and maximum corners define a [`Bounds2`]. Every value upholds two invariants:
-/// both corners are finite, and `min ≤ max` holds per component. Constructors enforce this by
-/// returning [`None`] for invalid input, so downstream code can rely on the box being usable
-/// without re-validating.
+/// The minimum and maximum corners define a [`Bounds2`]. Every value upholds two invariants: both
+/// corners are finite, and `min ≤ max` holds per component. Constructors enforce this by returning
+/// [`None`] for invalid input, so downstream code can rely on the box being usable without
+/// re-validating.
 ///
 /// The primary workflow is: gather the extent of a point set with
 /// [`from_points`](Self::from_points), then map it onto a target region with [`fit`](Self::fit),
@@ -256,13 +256,13 @@ impl Bounds2 {
     /// Grows the box about its centre until its extent has the given width-to-height ratio.
     ///
     /// The result is the smallest box of ratio `ratio` containing this one: the axis already long
-    /// enough keeps its extent, the other grows about the shared centre, and
-    /// `size().x() / size().y() = ratio` holds to within one rounding of the ratio itself.
+    /// enough keeps its extent, the other grows about the shared centre, and `size().x() /
+    /// size().y() = ratio` holds to within one rounding of the ratio itself.
     ///
     /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
     /// `down` cells keeps its own shape when this method grows its extent to `across / down` first,
-    /// because equal extent per cell on both axes is what one square cell means; fitting the
-    /// grown box with [`fit`](Self::fit) then scales both axes by the same factor.
+    /// because equal extent per cell on both axes is what one square cell means; fitting the grown
+    /// box with [`fit`](Self::fit) then scales both axes by the same factor.
     ///
     /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
     /// still yields a viewport. A box degenerate on both axes has no extent to take a ratio of and
@@ -304,8 +304,8 @@ impl Bounds2 {
     /// Scales the box about its centre by `factor`.
     ///
     /// Both axes scale by the same factor and the centre does not move, so the result contains this
-    /// box for a factor above one and sits inside it below one. A factor of one returns the
-    /// same extent, to within the rounding of the halved arithmetic.
+    /// box for a factor above one and sits inside it below one. A factor of one returns the same
+    /// extent, to within the rounding of the halved arithmetic.
     ///
     /// # Examples
     ///
@@ -335,9 +335,9 @@ impl Bounds2 {
     /// Returns the transform mapping this box onto `target`.
     ///
     /// The transform scales and translates each axis independently, so `self.min` lands on
-    /// `target.min` and `self.max` on `target.max`. This is the normalize-into-viewport
-    /// operation: fit a layout's extent, then map every point into `[0, size]` coordinates with
-    /// one batched transform.
+    /// `target.min` and `self.max` on `target.max`. This is the normalize-into-viewport operation:
+    /// fit a layout's extent, then map every point into `[0, size]` coordinates with one batched
+    /// transform.
     ///
     /// Returns [`None`] when this box has an axis with zero, subnormal, or otherwise non-normal
     /// extent, where the scale factor degenerates; widen with
@@ -433,9 +433,9 @@ impl Bounds2 {
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
     /// Each axis maps affinely onto `[0, 2^32)` in `f64` (so every `f32` coordinate quantizes
-    /// exactly) and floors. Coordinates outside the bounds clamp onto the boundary cells: points
-    /// at or beyond the maximum edge take the last cell, points below the minimum take cell zero.
-    /// A zero-extent axis maps to cell zero.
+    /// exactly) and floors. Coordinates outside the bounds clamp onto the boundary cells: points at
+    /// or beyond the maximum edge take the last cell, points below the minimum take cell zero. A
+    /// zero-extent axis maps to cell zero.
     ///
     /// # Examples
     ///

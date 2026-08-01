@@ -170,13 +170,13 @@ impl Atlas {
     ///
     /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// Delivery order is ascending link-entity identity bytes, independent of the tiles listed
-    /// and of truncation, so identical requests yield identical bytes under one bound serving
-    /// state (generation, visibility, secret, limits) - and the order is
-    /// client-verifiable from the `EDGE_IDS` column alone, carrying no internal-order
-    /// information. Beyond `limits.edges` the rank-ordered cap keeps the edges whose worse endpoint
-    /// ranks best - an edge is only as prominent as its less-prominent endpoint - with ties
-    /// broken by identity bytes, and `HEAD` reports `complete: false`.
+    /// Delivery order is ascending link-entity identity bytes, independent of the tiles listed and
+    /// of truncation, so identical requests yield identical bytes under one bound serving state
+    /// (generation, visibility, secret, limits) - and the order is client-verifiable from the
+    /// `EDGE_IDS` column alone, carrying no internal-order information. Beyond `limits.edges` the
+    /// rank-ordered cap keeps the edges whose worse endpoint ranks best - an edge is only as
+    /// prominent as its less-prominent endpoint - with ties broken by identity bytes, and `HEAD`
+    /// reports `complete: false`.
     ///
     /// An edge delivers under three conditions the proof states together. The proof holds the
     /// edge's own link row and both of its endpoints. The delivered row sets intersect the proof

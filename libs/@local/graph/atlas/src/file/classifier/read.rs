@@ -86,6 +86,7 @@ impl ClassifierFile {
     /// # Errors
     ///
     /// Returns [`OpenClassifierError::Io`] when opening or mapping the file fails,
+    /// [`OpenClassifierError::Undersized`] when the file ends before one full header,
     /// [`OpenClassifierError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenClassifierError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

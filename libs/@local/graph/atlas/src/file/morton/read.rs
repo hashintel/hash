@@ -106,6 +106,7 @@ impl MortonFile {
     /// # Errors
     ///
     /// Returns [`OpenMortonError::Io`] when opening or mapping the file fails,
+    /// [`OpenMortonError::Undersized`] when the file ends before one full header,
     /// [`OpenMortonError::Header`] when its leading bytes are not a header this module speaks,
     /// [`OpenMortonError::Fenceposts`] when the header's fenceposts break a structural rule, and
     /// [`OpenMortonError::Length`] when the file length contradicts the header's geometry.
@@ -264,7 +265,7 @@ impl MortonFile {
 
     /// Finds the first position in `range` whose code fails `pred`.
     ///
-    /// `pred` has to be monotone over the range's codes: true for a prefix, false for the rest.
+    /// `pred` must be monotone over the range's codes: true for a prefix, false for the rest.
     /// Every threshold predicate over non-decreasing codes has that shape. The index narrows the
     /// search to one final window of at most `stride` codes. Sampled index keys inside the range
     /// locate that window from one faulted index page that stays hot across queries. The window

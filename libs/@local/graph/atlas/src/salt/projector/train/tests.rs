@@ -151,8 +151,8 @@ fn relation_indexes(
 
 /// The affinity energy of the dyadic fixtures.
 ///
-/// `a = 1, b = 1, ε = 0.5`, so at squared distance one both logarithm arguments are exactly
-/// one (zero value) and the derivative mass is exactly `0.25`.
+/// `a = 1, b = 1, ε = 0.5`, so at squared distance one both logarithm arguments are exactly one
+/// (zero value) and the derivative mass is exactly `0.25`.
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
         AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
