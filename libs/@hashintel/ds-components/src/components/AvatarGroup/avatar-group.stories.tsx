@@ -12,6 +12,15 @@ import type { Story, StoryDefault } from "@ladle/react";
 type AvatarGroupProps = React.ComponentProps<typeof AvatarGroup>;
 type AvatarProps = React.ComponentProps<typeof Avatar>;
 
+// The static fields the sample data sets. Kept free of the onClick/href
+// exclusive union so a story can spread these and still add its own onClick.
+type PersonAvatar = {
+  shape: "circle" | "square";
+  alt: string;
+  src?: string;
+  placeholder: AvatarProps["placeholder"];
+};
+
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
 export default {
@@ -24,7 +33,7 @@ export default {
 
 // Avatars are passed as children; the group sets size/tone via context, so the
 // children below leave those unset.
-const people: AvatarProps[] = [
+const people: PersonAvatar[] = [
   {
     shape: "circle",
     alt: "Christian Busch",
@@ -43,15 +52,15 @@ const people: AvatarProps[] = [
   { shape: "circle", alt: "Barbara Liskov", placeholder: { initials: "BL" } },
 ];
 
-const asShape = (shape: "circle" | "square"): AvatarProps[] =>
+const asShape = (shape: "circle" | "square"): PersonAvatar[] =>
   people.map((avatar) => ({ ...avatar, shape }));
 
-const mixedShapes: AvatarProps[] = people.map((avatar, index) => ({
+const mixedShapes: PersonAvatar[] = people.map((avatar, index) => ({
   ...avatar,
   shape: index % 2 === 0 ? "circle" : "square",
 }));
 
-const avatarsOf = (list: AvatarProps[]) =>
+const avatarsOf = (list: PersonAvatar[]) =>
   list.map((props) => <Avatar key={props.src ?? props.alt} {...props} />);
 
 // custom size drives the avatar box off the --avatar-size the consumer sets
@@ -152,7 +161,13 @@ export const Default: Story<AvatarGroupProps> = () => (
                 content={props.alt}
                 position="bottom"
               >
-                <Avatar {...props} />
+                <Avatar
+                  {...props}
+                  onClick={() => {
+                    // eslint-disable-next-line no-console
+                    console.log(`Clicked ${props.alt}`);
+                  }}
+                />
               </Tooltip>
             ))}
           </AvatarGroup>

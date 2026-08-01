@@ -64,11 +64,16 @@ export const AvatarGroup = ({
   const surplusCount = peopleCount - shownCount;
   const showSurplus = totalIsNode || surplusCount > 0;
 
-  // The badge matches the avatars' shape; fall back to circle.
-  const firstProps = items[0]?.props as
-    | { shape?: "circle" | "square" }
-    | undefined;
-  const shape = firstProps?.shape ?? "circle";
+  // The badge is a circle if any item is a circle; only a fully-square group
+  // gets a square badge. An item whose shape can't be read (e.g. a Tooltip-
+  // wrapped avatar) counts as non-square, so the badge stays a circle.
+  const allSquare =
+    items.length > 0 &&
+    items.every(
+      (item) =>
+        (item.props as { shape?: "circle" | "square" }).shape === "square",
+    );
+  const shape = allSquare ? "square" : "circle";
 
   // Stacking order: by default the first (leftmost) item sits highest so each
   // avatar overlaps the next; `lastOnTop` flips it so the last item sits highest.
