@@ -95,8 +95,8 @@ export const Default: Story<AvatarGroupProps> = () => (
         content: <AvatarGroup avatars={people.slice(0, 3)} total={12} />,
       },
       {
-        label: "reverse",
-        content: <AvatarGroup avatars={people} max={4} reverse />,
+        label: "lastOnTop",
+        content: <AvatarGroup avatars={people} max={4} lastOnTop />,
       },
       {
         label: "custom overflow",
@@ -118,6 +118,10 @@ export const Default: Story<AvatarGroupProps> = () => (
       {
         label: "mixed shapes",
         content: <AvatarGroup avatars={mixedShapes} max={4} />,
+      },
+      {
+        label: "spacing = sm",
+        content: <AvatarGroup avatars={people} max={4} spacing="sm" />,
       },
     ]}
   />
