@@ -82,55 +82,68 @@ export const deleteKratosIdentity = async (params: {
 const graphActorIdMetadataKey = "graph_actor_id";
 
 /**
- * Store the Graph actor identifier in Kratos admin metadata.
+ * Read the Graph actor identifier stored in a Kratos identity's admin
+ * metadata, or `null` when the identity has not been provisioned.
+ */
+export const getGraphActorIdFromKratos = async (params: {
+  kratosIdentityId: string;
+}): Promise<string | null> => {
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: params.kratosIdentityId,
+  });
+
+  const metadataAdmin = identity.metadata_admin as
+    | Record<string, string>
+    | null
+    | undefined;
+
+  return metadataAdmin?.[graphActorIdMetadataKey] ?? null;
+};
+
+/**
+ * Store the Graph actor identifier in Kratos admin metadata, where it is the
+ * mapping from a Kratos identity to the Graph actor that authorizes its
+ * requests.
  *
- * This metadata is written only through Kratos's admin API, so it cannot be
- * changed by an identity through a self-service flow. Repeating a write for
- * the same actor is safe; a different existing actor is an invariant breach.
+ * Admin metadata is writable only through Kratos's admin API, so an identity
+ * cannot change it through a self-service flow. Writing the same actor again
+ * is idempotent, and a mismatch throws instead of overwriting.
  */
 export const provisionGraphActorIdInKratos = async (params: {
   graphActorId: string;
   kratosIdentityId: string;
 }): Promise<void> => {
   const { graphActorId, kratosIdentityId } = params;
-  const { data: identity } = await kratosIdentityApi.getIdentity({
-    id: kratosIdentityId,
-  });
 
-  const metadataAdmin =
-    identity.metadata_admin && typeof identity.metadata_admin === "object"
-      ? identity.metadata_admin
-      : {};
-  const existingGraphActorId = metadataAdmin[graphActorIdMetadataKey];
+  const existingGraphActorId = await getGraphActorIdFromKratos({
+    kratosIdentityId,
+  });
 
   if (existingGraphActorId === graphActorId) {
     return;
   }
 
-  if (existingGraphActorId !== undefined) {
+  if (existingGraphActorId !== null) {
     throw new Error(
-      `Kratos identity "${kratosIdentityId}" is already provisioned for a different Graph actor.`,
+      `Kratos identity "${kratosIdentityId}" is provisioned for Graph actor "${existingGraphActorId}", not "${graphActorId}".`,
     );
   }
 
-  if (!identity.state) {
-    throw new Error(
-      `Kratos identity "${kratosIdentityId}" has no state and cannot be updated.`,
-    );
-  }
-
-  await kratosIdentityApi.updateIdentity({
+  /**
+   * Kratos replaces the whole identity on `updateIdentity`, dropping every
+   * field left out of the request body. A patch touches only this one key, and
+   * Kratos accepts an "add" here even while `metadata_admin` is still null —
+   * RFC 6902 would require the parent to exist.
+   */
+  await kratosIdentityApi.patchIdentity({
     id: kratosIdentityId,
-    updateIdentityBody: {
-      schema_id: identity.schema_id,
-      state: identity.state,
-      traits: identity.traits,
-      metadata_admin: {
-        ...metadataAdmin,
-        [graphActorIdMetadataKey]: graphActorId,
+    jsonPatch: [
+      {
+        op: "add",
+        path: `/metadata_admin/${graphActorIdMetadataKey}`,
+        value: graphActorId,
       },
-      metadata_public: identity.metadata_public,
-    },
+    ],
   });
 };
 

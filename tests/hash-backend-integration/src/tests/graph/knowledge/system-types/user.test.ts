@@ -5,7 +5,6 @@ import {
   deleteKratosIdentity,
   kratosFrontendApi,
   kratosIdentityApi,
-  provisionGraphActorIdInKratos,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -18,7 +17,6 @@ import {
   getUserOrgMemberships,
   isUserMemberOfOrg,
   joinOrg,
-  updateUserKratosIdentityTraits,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import {
@@ -87,9 +85,6 @@ describe("User model class", () => {
       traits: {
         emails: [`${shortname}@example.com`],
       },
-      metadata_public: {
-        source: "integration-test",
-      },
       verifyEmails: true,
     });
 
@@ -104,11 +99,8 @@ describe("User model class", () => {
       id: identity.id,
     });
 
-    expect(provisionedIdentity.metadata_admin).toMatchObject({
+    expect(provisionedIdentity.metadata_admin).toStrictEqual({
       graph_actor_id: createdUser.accountId,
-    });
-    expect(provisionedIdentity.metadata_public).toMatchObject({
-      source: "integration-test",
     });
 
     expect(
@@ -221,41 +213,10 @@ describe("User model class", () => {
     expect(fetchedUser).toEqual(createdUser);
   });
 
-  it("preserves the Graph actor ID when updating Kratos traits", async () => {
-    const updatedEmail = `${generateRandomShortname("updatedEmail")}@example.com`;
-
-    await updateUserKratosIdentityTraits(
-      graphContext,
-      { actorId: createdUser.accountId },
-      {
-        user: createdUser,
-        updatedTraits: {
-          emails: [updatedEmail],
-        },
-      },
-    );
-
-    const { data: updatedIdentity } = await kratosIdentityApi.getIdentity({
-      id: createdUser.kratosIdentityId,
-    });
-
-    expect(updatedIdentity.traits).toMatchObject({
-      emails: [updatedEmail],
-    });
-    expect(updatedIdentity.metadata_admin).toMatchObject({
-      graph_actor_id: createdUser.accountId,
-    });
-    expect(updatedIdentity.metadata_public).toMatchObject({
-      source: "integration-test",
-    });
-  });
-
-  it("prevents users from overwriting Kratos admin metadata", async () => {
+  it("prevents users from amending Kratos profile traits directly", async () => {
     const email = `${generateRandomShortname("kratosProfile")}@example.com`;
+    const injectedEmail = "injected-profile-update@example.com";
     const password = "password";
-    const updatedPassword = "updated-password";
-    const graphActorId = "11111111-1111-1111-1111-111111111111";
-    const impersonatedGraphActorId = "22222222-2222-2222-2222-222222222222";
 
     const identity = await createKratosIdentity({
       traits: {
@@ -268,11 +229,6 @@ describe("User model class", () => {
           },
         },
       },
-    });
-
-    await provisionGraphActorIdInKratos({
-      graphActorId,
-      kratosIdentityId: identity.id,
     });
 
     try {
@@ -295,12 +251,6 @@ describe("User model class", () => {
         throw new Error("Expected Kratos to return a native session token.");
       }
 
-      const { data: session } = await kratosFrontendApi.toSession({
-        xSessionToken: sessionToken,
-      });
-
-      expect(session.identity?.metadata_admin).toBeUndefined();
-
       const { data: settingsFlow } =
         await kratosFrontendApi.createNativeSettingsFlow({
           xSessionToken: sessionToken,
@@ -310,15 +260,18 @@ describe("User model class", () => {
         kratosFrontendApi.updateSettingsFlow({
           flow: settingsFlow.id,
           updateSettingsFlowBody: {
-            method: "password",
-            password: updatedPassword,
-            metadata_admin: {
-              graph_actor_id: impersonatedGraphActorId,
+            method: "profile",
+            traits: {
+              emails: [email, injectedEmail],
             },
-          } as never,
+          },
           xSessionToken: sessionToken,
         }),
-      ).resolves.toBeDefined();
+      ).rejects.toMatchObject({
+        response: {
+          status: 404,
+        },
+      });
 
       const { data: updatedIdentity } = await kratosIdentityApi.getIdentity({
         id: identity.id,
@@ -326,9 +279,6 @@ describe("User model class", () => {
 
       expect(updatedIdentity.traits).toMatchObject({
         emails: [email],
-      });
-      expect(updatedIdentity.metadata_admin).toMatchObject({
-        graph_actor_id: graphActorId,
       });
     } finally {
       await deleteKratosIdentity({ kratosIdentityId: identity.id });

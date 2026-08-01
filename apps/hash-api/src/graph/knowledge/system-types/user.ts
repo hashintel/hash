@@ -30,6 +30,7 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import {
+  getGraphActorIdFromKratos,
   getVerifiedEmailsFromKratosIdentity,
   kratosIdentityApi,
   provisionGraphActorIdInKratos,
@@ -345,7 +346,7 @@ export const getUser: ImpureGraphFunction<
 };
 
 /**
- * Create a system user entity.
+ * Create a system user entity and record its actor ID on the Kratos identity.
  *
  * @param params.emails - the emails of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
@@ -362,7 +363,6 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
-    provisionGraphActorId?: boolean;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -373,7 +373,6 @@ export const createUser: ImpureGraphFunction<
     enabledFeatureFlags,
     displayName,
     isInstanceAdmin = false,
-    provisionGraphActorId = true,
   } = params;
 
   const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
@@ -383,6 +382,21 @@ export const createUser: ImpureGraphFunction<
   if (existingUserWithKratosIdentityId) {
     throw new Error(
       `A user entity with kratos identity id "${kratosIdentityId}" already exists.`,
+    );
+  }
+
+  /**
+   * The actor ID only exists once the web below has been created, so the
+   * conflict is checked up front. Discovering it after the write would leave a
+   * web behind on every attempt.
+   */
+  const provisionedGraphActorId = await getGraphActorIdFromKratos({
+    kratosIdentityId,
+  });
+
+  if (provisionedGraphActorId) {
+    throw new Error(
+      `Kratos identity "${kratosIdentityId}" is provisioned for Graph actor "${provisionedGraphActorId}", which has no user entity.`,
     );
   }
 
@@ -490,12 +504,10 @@ export const createUser: ImpureGraphFunction<
 
   const user = getUserFromEntity({ entity });
 
-  if (provisionGraphActorId) {
-    await provisionGraphActorIdInKratos({
-      graphActorId: user.accountId,
-      kratosIdentityId,
-    });
-  }
+  await provisionGraphActorIdInKratos({
+    graphActorId: user.accountId,
+    kratosIdentityId,
+  });
 
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
@@ -536,32 +548,25 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   { user: User; updatedTraits: Partial<KratosUserIdentityTraits> },
   Promise<void>
 > = async (ctx, authentication, { user, updatedTraits }) => {
-  const {
-    id: kratosIdentityId,
-    traits: currentKratosTraits,
-    schema_id,
-    state,
-    metadata_admin,
-    metadata_public,
-  } = await getUserKratosIdentity(ctx, authentication, { user });
+  const { id: kratosIdentityId, traits: currentKratosTraits } =
+    await getUserKratosIdentity(ctx, authentication, { user });
 
-  /** @todo: figure out why the `state` can be undefined */
-  if (!state) {
-    throw new Error("Previous user identity state is undefined");
-  }
-
-  await kratosIdentityApi.updateIdentity({
+  /**
+   * Kratos replaces the whole identity on `updateIdentity`, dropping every
+   * field left out of the request body. A patch touches only the traits.
+   */
+  await kratosIdentityApi.patchIdentity({
     id: kratosIdentityId,
-    updateIdentityBody: {
-      schema_id,
-      state,
-      traits: {
-        ...currentKratosTraits,
-        ...updatedTraits,
+    jsonPatch: [
+      {
+        op: "replace",
+        path: "/traits",
+        value: {
+          ...currentKratosTraits,
+          ...updatedTraits,
+        },
       },
-      metadata_admin,
-      metadata_public,
-    },
+    ],
   });
 };
 

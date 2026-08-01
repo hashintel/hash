@@ -9,11 +9,7 @@ import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { telemetry } from "../telemetry/telemetry";
 import { hydraAdmin } from "./ory-hydra";
-import {
-  deleteKratosIdentity,
-  kratosFrontendApi,
-  provisionGraphActorIdInKratos,
-} from "./ory-kratos";
+import { kratosFrontendApi } from "./ory-kratos";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
@@ -28,7 +24,7 @@ const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 const requestHeaderContainsValidKratosApiKey = (req: Request): boolean =>
   timingSafeCompare(req.header("KRATOS_API_KEY") ?? "", KRATOS_API_KEY);
 
-export const kratosAfterRegistrationHookHandler =
+const kratosAfterRegistrationHookHandler =
   (
     context: ImpureGraphContext,
     logger: Logger,
@@ -38,6 +34,7 @@ export const kratosAfterRegistrationHookHandler =
     { identity: KratosUserIdentity }
   > =>
   (req, res) => {
+    // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
       logger.error("Kratos webhook called with invalid API key");
       Sentry.captureException(
@@ -62,47 +59,19 @@ export const kratosAfterRegistrationHookHandler =
     const authentication = { actorId: systemAccountId };
 
     void (async () => {
-      const { emails } = traits;
-      let shouldDeleteKratosIdentity = false;
-
       try {
+        const { emails } = traits;
+
         const hashInstance = await getHashInstance(context, authentication);
 
         if (!hashInstance.userSelfRegistrationIsEnabled) {
           throw new Error("User registration is disabled.");
         }
 
-        const existingUser = await getUser(context, authentication, {
+        const user = await createUser(context, authentication, {
           emails,
           kratosIdentityId,
         });
-
-        let user = existingUser;
-
-        if (!user) {
-          shouldDeleteKratosIdentity = true;
-          user = await createUser(context, authentication, {
-            emails,
-            kratosIdentityId,
-            provisionGraphActorId: false,
-          });
-          shouldDeleteKratosIdentity = false;
-        }
-
-        try {
-          await provisionGraphActorIdInKratos({
-            graphActorId: user.accountId,
-            kratosIdentityId,
-          });
-        } catch (error) {
-          logger.error("Error provisioning Graph actor ID in Kratos", {
-            kratosIdentityId,
-            error,
-          });
-          Sentry.captureException(error);
-          res.status(500).send("Error provisioning Graph actor ID");
-          return;
-        }
 
         // This is a Kratos -> server webhook, so there is no `req.user` and
         // `req.ip` is Kratos's, not the registrant's. Emit via the actor path
@@ -111,45 +80,23 @@ export const kratosAfterRegistrationHookHandler =
           accountId: user.accountId,
           shortname: user.shortname,
         };
-
-        try {
-          telemetry.identifyActor(actor, {
-            email: emails[0],
-            shortname: user.shortname,
-          });
-          telemetry.trackForActor(actor, "user_register", {
-            email: emails[0],
-          });
-        } catch (error) {
-          logger.error("Error recording user registration telemetry", {
-            kratosIdentityId,
-            error,
-          });
-          Sentry.captureException(error);
-        }
+        telemetry.identifyActor(actor, {
+          email: emails[0],
+          shortname: user.shortname,
+        });
+        telemetry.trackForActor(actor, "user_register", {
+          email: emails[0],
+        });
 
         res.status(200).end();
       } catch (error) {
+        // The kratos hook can interrupt creation on 4xx and 5xx responses.
+
         logger.error("Error creating user from kratos identity", {
           kratosIdentityId,
           error,
         });
         Sentry.captureException(error);
-
-        if (shouldDeleteKratosIdentity) {
-          try {
-            await deleteKratosIdentity({ kratosIdentityId });
-          } catch (cleanupError) {
-            logger.error(
-              "Error deleting Kratos identity after user creation failed",
-              {
-                kratosIdentityId,
-                error: cleanupError,
-              },
-            );
-            Sentry.captureException(cleanupError);
-          }
-        }
 
         res.status(400).send(
           JSON.stringify({
