@@ -4,6 +4,17 @@ on:
     types:
       - closed
 
+# Both steps here exist to delete things, so this is the one workflow in this
+# set that genuinely needs write scopes:
+#   - `actions: write` to list and delete the PR's Actions caches
+#   - `packages: write` to delete the PR's container image versions
+# Note that on pull requests from forks GitHub issues a read-only token
+# regardless of this block, so the cleanup is a no-op there either way.
+permissions:
+  contents: read
+  actions: write
+  packages: write
+
 jobs:
   cleanup:
     runs-on: ubuntu-latest

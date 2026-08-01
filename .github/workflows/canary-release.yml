@@ -1,5 +1,14 @@
 name: Canary Release
 on: workflow_dispatch
+
+permissions:
+  # The release job commits the versioned changesets, reverts that commit and
+  # pushes both back to the branch.
+  contents: write
+  # `install-tools` runs `install-sccache`, which authenticates to Vault over
+  # OIDC (`hashicorp/vault-action`, `method: jwt`).
+  id-token: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
