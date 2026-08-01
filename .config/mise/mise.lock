@@ -92,9 +92,25 @@ backend = "cargo:cargo-hack"
 version = "1.47.2"
 backend = "cargo:cargo-insta"
 
-[[tools."cargo:wasm-opt"]]
-version = "0.116.1"
-backend = "cargo:wasm-opt"
+[[tools."github:WebAssembly/binaryen"]]
+version = "version_131"
+backend = "github:WebAssembly/binaryen"
+
+[tools."github:WebAssembly/binaryen"."platforms.linux-arm64"]
+checksum = "sha256:ba991f677edd9a21d2bc96c0144bc8ac5b112d4d98a3eb266e075e22e557df2a"
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-aarch64-linux.tar.gz"
+
+[tools."github:WebAssembly/binaryen"."platforms.linux-x64"]
+checksum = "sha256:b5bf1f0eaf17c63ee588ff7a5954dc8f6ce2c26989051c66f24dfe9ece3e46db"
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-linux.tar.gz"
+
+[tools."github:WebAssembly/binaryen"."platforms.macos-arm64"]
+checksum = "sha256:e441b48dc22163d209b4f05e44dc7210909b01237642b6c9ae48fd710a3ef83e"
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-arm64-macos.tar.gz"
+
+[tools."github:WebAssembly/binaryen"."platforms.macos-x64"]
+checksum = "sha256:d209fadd8a894bdaf3bd3612a23c32a0af184d2f4a979b8c789e6e4f6a4de883"
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-macos.tar.gz"
 
 [[tools."github:wasm-bindgen/wasm-pack"]]
 version = "0.15.0"
