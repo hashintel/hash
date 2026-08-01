@@ -129,6 +129,7 @@ export const provisionGraphActorIdInKratos = async (params: {
         ...metadataAdmin,
         [graphActorIdMetadataKey]: graphActorId,
       },
+      metadata_public: identity.metadata_public,
     },
   });
 };

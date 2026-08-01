@@ -353,7 +353,6 @@ export const getUser: ImpureGraphFunction<
  * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
  * @param params.shortname (optional) - the shortname of the user
  * @param params.displayName (optional) - the display name of the user
- * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
   {
@@ -363,6 +362,7 @@ export const createUser: ImpureGraphFunction<
     shortname?: string;
     displayName?: string;
     isInstanceAdmin?: boolean;
+    provisionGraphActorId?: boolean;
   },
   Promise<User>
 > = async (ctx, authentication, params) => {
@@ -373,6 +373,7 @@ export const createUser: ImpureGraphFunction<
     enabledFeatureFlags,
     displayName,
     isInstanceAdmin = false,
+    provisionGraphActorId = true,
   } = params;
 
   const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
@@ -489,10 +490,12 @@ export const createUser: ImpureGraphFunction<
 
   const user = getUserFromEntity({ entity });
 
-  await provisionGraphActorIdInKratos({
-    graphActorId: user.accountId,
-    kratosIdentityId,
-  });
+  if (provisionGraphActorId) {
+    await provisionGraphActorIdInKratos({
+      graphActorId: user.accountId,
+      kratosIdentityId,
+    });
+  }
 
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
@@ -538,6 +541,8 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
     traits: currentKratosTraits,
     schema_id,
     state,
+    metadata_admin,
+    metadata_public,
   } = await getUserKratosIdentity(ctx, authentication, { user });
 
   /** @todo: figure out why the `state` can be undefined */
@@ -554,6 +559,8 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
         ...currentKratosTraits,
         ...updatedTraits,
       },
+      metadata_admin,
+      metadata_public,
     },
   });
 };
