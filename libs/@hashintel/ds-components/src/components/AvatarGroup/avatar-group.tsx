@@ -45,16 +45,21 @@ const containerStyles = css({
   // collapses the whole group and re-parts it, reading as jitter. Flush boxes
   // (kept slightly overlapped by the hovered avatar's scale) leave no gap, so
   // moving between avatars only re-animates the two that swap roles.
+  //
+  // Hovering the first avatar is a no-op: it is already on top and fully in
+  // view, so there is nothing to reveal. The `:not(:first-child)` guards skip
+  // its scale and forward shift (the back shift already no-ops — the first
+  // avatar has no preceding siblings to move).
   "& > *:has(~ *:hover)": {
     transform: "[translateX(calc(var(--avatar-group-size) * -0.3))]",
     _motionReduce: { transform: "[none]" },
   },
-  "& > *:hover ~ *": {
+  "& > *:not(:first-child):hover ~ *": {
     transform: "[translateX(calc(var(--avatar-group-size) * 0.3))]",
     _motionReduce: { transform: "[none]" },
   },
   // A gentle lift anchors focus on the hovered avatar; it stays in place.
-  "& > *:hover": {
+  "& > *:not(:first-child):hover": {
     transform: "[scale(1.05)]",
     _motionReduce: { transform: "[none]" },
   },
@@ -74,6 +79,26 @@ const surplusTextStyles = css({
   fontSize: "[36cqw]",
   fontWeight: "medium",
   whiteSpace: "nowrap",
+});
+
+// A white ring around each avatar separates overlapping avatars. Drawn as an
+// outset box-shadow — it sits outside the avatar's own border, follows its
+// radius (circle/square), and adds no layout width, so the overlap maths and
+// the avatar's tone border are both left intact. Ring width uses the same
+// formula as the Avatar recipe's border-width, so the ring tracks the border.
+const whiteRingStyles = css({
+  boxShadow: "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+});
+
+// A brand-tone avatar already has a white border while it shows its placeholder
+// (no image, or the image hasn't loaded), so the ring would be redundant there.
+// Gate it on data-loaded so it only appears once an image has loaded and the
+// border switches to the neutral fill.
+const whiteRingWhenLoadedStyles = css({
+  "&[data-loaded='true']": {
+    boxShadow:
+      "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+  },
 });
 
 export const AvatarGroup = ({
@@ -109,6 +134,10 @@ export const AvatarGroup = ({
 
   const shape = avatars[0]?.shape ?? "circle";
 
+  // Brand avatars only get the ring once an image loads (see above).
+  const ringStyles =
+    tone === "brand" ? whiteRingWhenLoadedStyles : whiteRingStyles;
+
   return (
     <div
       className={cx(containerStyles, className)}
@@ -130,6 +159,7 @@ export const AvatarGroup = ({
             {...(avatar as React.ComponentProps<typeof Avatar>)}
             size={size}
             tone={tone}
+            className={cx(ringStyles, avatar.className)}
           />
         </span>
       ))}
@@ -142,6 +172,7 @@ export const AvatarGroup = ({
             shape={shape}
             size={size}
             tone={tone}
+            className={ringStyles}
             alt={totalIsNode ? "more" : `${surplusCount} more`}
             placeholder={{
               custom: totalIsNode ? (
