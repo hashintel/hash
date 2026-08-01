@@ -34,18 +34,39 @@ const containerStyles = css({
   alignItems: "center",
   // Own the stacking context so the overlap z-indexes stay contained.
   isolation: "isolate",
+  // Reveal the hovered avatar by parting its neighbours rather than restacking
+  // it: earlier siblings slide back, later siblings slide forward. Because the
+  // reveal comes from the neighbours moving (not a z-index change), the hovered
+  // avatar surfaces smoothly — no pop, no sideways drift of itself, no fade.
+  //
+  // The shift exactly cancels the 0.3 overlap so neighbours come to rest flush
+  // against the hovered avatar. Overshooting would open a gap between the square
+  // hit-boxes, and dragging the cursor across that gap drops the hover — which
+  // collapses the whole group and re-parts it, reading as jitter. Flush boxes
+  // (kept slightly overlapped by the hovered avatar's scale) leave no gap, so
+  // moving between avatars only re-animates the two that swap roles.
+  "& > *:has(~ *:hover)": {
+    transform: "[translateX(calc(var(--avatar-group-size) * -0.3))]",
+    _motionReduce: { transform: "[none]" },
+  },
+  "& > *:hover ~ *": {
+    transform: "[translateX(calc(var(--avatar-group-size) * 0.3))]",
+    _motionReduce: { transform: "[none]" },
+  },
+  // A gentle lift anchors focus on the hovered avatar; it stays in place.
+  "& > *:hover": {
+    transform: "[scale(1.05)]",
+    _motionReduce: { transform: "[none]" },
+  },
 });
 
 const itemStyles = css({
   display: "inline-flex",
   zIndex: "[var(--avatar-group-z)]",
+  transition: "[transform 200ms ease]",
   "&:not(:first-child)": {
     // Overlap the preceding avatar by ~30% of its width.
     marginInlineStart: "[calc(var(--avatar-group-size) * -0.3)]",
-  },
-  // Lift the hovered avatar clear of its neighbours so it reads in full.
-  "&:hover": {
-    zIndex: "[100]",
   },
 });
 
