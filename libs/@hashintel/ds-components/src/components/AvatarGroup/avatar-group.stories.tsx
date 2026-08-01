@@ -3,12 +3,14 @@ import { Fragment, type ReactNode } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
+import { Avatar } from "../Avatar/avatar";
+import { Tooltip } from "../Tooltip/tooltip";
 import { AvatarGroup } from "./avatar-group";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 type AvatarGroupProps = React.ComponentProps<typeof AvatarGroup>;
-type Avatars = AvatarGroupProps["avatars"];
+type AvatarProps = React.ComponentProps<typeof Avatar>;
 
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
@@ -20,7 +22,9 @@ export default {
   },
 } satisfies StoryDefault<AvatarGroupProps>;
 
-const people: Avatars = [
+// Avatars are passed as children; the group sets size/tone via context, so the
+// children below leave those unset.
+const people: AvatarProps[] = [
   {
     shape: "circle",
     alt: "Christian Busch",
@@ -39,13 +43,16 @@ const people: Avatars = [
   { shape: "circle", alt: "Barbara Liskov", placeholder: { initials: "BL" } },
 ];
 
-const asShape = (shape: "circle" | "square"): Avatars =>
+const asShape = (shape: "circle" | "square"): AvatarProps[] =>
   people.map((avatar) => ({ ...avatar, shape }));
 
-const mixedShapes: Avatars = people.map((avatar, index) => ({
+const mixedShapes: AvatarProps[] = people.map((avatar, index) => ({
   ...avatar,
   shape: index % 2 === 0 ? "circle" : "square",
 }));
+
+const avatarsOf = (list: AvatarProps[]) =>
+  list.map((props) => <Avatar key={props.src ?? props.alt} {...props} />);
 
 // custom size drives the avatar box off the --avatar-size the consumer sets
 const customSizeClass = css({ "--avatar-size": "64px" });
@@ -81,47 +88,75 @@ const Rows = ({ rows }: { rows: LabeledRow[] }) => (
 export const Default: Story<AvatarGroupProps> = () => (
   <Rows
     rows={[
-      { label: "All avatars", content: <AvatarGroup avatars={people} /> },
       {
-        label: "max = 4",
-        content: <AvatarGroup avatars={people} max={4} />,
-      },
-      {
-        label: "max = 4 · total = 24",
-        content: <AvatarGroup avatars={people} max={4} total={24} />,
-      },
-      {
-        label: "total = 12 (no cap)",
-        content: <AvatarGroup avatars={people.slice(0, 3)} total={12} />,
+        label: "All avatars",
+        content: <AvatarGroup>{avatarsOf(people)}</AvatarGroup>,
       },
       {
         label: "lastOnTop",
-        content: <AvatarGroup avatars={people} max={4} lastOnTop />,
+        content: <AvatarGroup lastOnTop>{avatarsOf(people)}</AvatarGroup>,
+      },
+      {
+        label: "max = 4",
+        content: <AvatarGroup max={4}>{avatarsOf(people)}</AvatarGroup>,
+      },
+      {
+        label: "total = 24",
+        content: (
+          <AvatarGroup max={4} total={24}>
+            {avatarsOf(people)}
+          </AvatarGroup>
+        ),
       },
       {
         label: "custom overflow",
         content: (
-          <AvatarGroup
-            avatars={people.slice(0, 3)}
-            total={<span style={{ fontSize: 11 }}>99+</span>}
-          />
+          <AvatarGroup total={<span style={{ fontSize: 11 }}>99+</span>}>
+            {avatarsOf(people.slice(0, 3))}
+          </AvatarGroup>
         ),
       },
       {
         label: "brand tone",
-        content: <AvatarGroup avatars={people} max={4} tone="brand" />,
+        content: (
+          <AvatarGroup max={4} tone="brand">
+            {avatarsOf(people)}
+          </AvatarGroup>
+        ),
       },
       {
         label: "square",
-        content: <AvatarGroup avatars={asShape("square")} max={4} />,
+        content: (
+          <AvatarGroup max={4}>{avatarsOf(asShape("square"))}</AvatarGroup>
+        ),
       },
       {
         label: "mixed shapes",
-        content: <AvatarGroup avatars={mixedShapes} max={4} />,
+        content: <AvatarGroup max={4}>{avatarsOf(mixedShapes)}</AvatarGroup>,
       },
       {
         label: "spacing = sm",
-        content: <AvatarGroup avatars={people} max={4} spacing="sm" />,
+        content: (
+          <AvatarGroup max={4} spacing="sm">
+            {avatarsOf(people)}
+          </AvatarGroup>
+        ),
+      },
+      {
+        label: "with tooltips",
+        content: (
+          <AvatarGroup max={4}>
+            {people.map((props) => (
+              <Tooltip
+                key={props.src ?? props.alt}
+                content={props.alt}
+                position="bottom"
+              >
+                <Avatar {...props} />
+              </Tooltip>
+            ))}
+          </AvatarGroup>
+        ),
       },
     ]}
   />
@@ -132,17 +167,18 @@ export const Sizes: Story<AvatarGroupProps> = () => (
     rows={[
       ...formInputSizes.map((size) => ({
         label: size,
-        content: <AvatarGroup avatars={people} max={4} size={size} />,
+        content: (
+          <AvatarGroup max={4} size={size}>
+            {avatarsOf(people)}
+          </AvatarGroup>
+        ),
       })),
       {
         label: "custom (64px)",
         content: (
-          <AvatarGroup
-            avatars={people}
-            max={4}
-            size="custom"
-            className={customSizeClass}
-          />
+          <AvatarGroup max={4} size="custom" className={customSizeClass}>
+            {avatarsOf(people)}
+          </AvatarGroup>
         ),
       },
     ]}

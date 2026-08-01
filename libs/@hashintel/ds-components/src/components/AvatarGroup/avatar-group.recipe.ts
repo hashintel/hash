@@ -5,7 +5,7 @@ import { sva } from "@hashintel/ds-helpers/css";
 // avatar overlaps its neighbour. The per-item stacking `--avatar-group-z` is the
 // only style left inline, since it is computed per avatar.
 export const styles = sva({
-  slots: ["root", "item", "ring", "surplusText"],
+  slots: ["root", "item", "surplusText"],
   base: {
     root: {
       display: "inline-flex",
@@ -75,25 +75,32 @@ export const styles = sva({
     },
     // How tightly avatars overlap, as a fraction of the avatar width.
     spacing: {
-      sm: { root: { "--avatar-overlap": "0.7" } },
+      sm: { root: { "--avatar-overlap": "0.65" } },
       md: { root: { "--avatar-overlap": "0.3" } },
     },
-    // A white ring separates overlapping avatars. Drawn as an outset box-shadow
-    // — outside the avatar's own border, follows its radius (circle/square),
-    // adds no layout width — so the overlap maths and tone border are intact.
-    // Ring width uses the Avatar recipe's border-width formula, so it tracks the
-    // border. Brand avatars already have a white border while showing their
-    // placeholder, so their ring waits until an image has loaded.
+    // A white ring separates overlapping avatars, applied to the wrapped avatar
+    // itself so children need no styling of their own. The avatar is matched by
+    // its `data-loaded` attribute at any depth (`:not(img)` skips the inner
+    // image), so it still lands on the avatar even when a child wraps it (e.g. a
+    // Tooltip). `:where` keeps specificity at one class so the avatar's own
+    // focus ring still wins. Drawn as an outset box-shadow — outside the avatar's
+    // border, follows its radius (circle/square), adds no layout width — so the
+    // overlap maths and tone border are intact. Ring width uses the Avatar
+    // recipe's border-width formula, so it tracks the border. Brand avatars have
+    // a white border while showing their placeholder, so their ring waits until
+    // an image has loaded.
     tone: {
       neutral: {
-        ring: {
-          boxShadow:
-            "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+        item: {
+          "& :where([data-loaded]:not(img))": {
+            boxShadow:
+              "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+          },
         },
       },
       brand: {
-        ring: {
-          "&[data-loaded='true']": {
+        item: {
+          "& :where([data-loaded='true']:not(img))": {
             boxShadow:
               "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
           },

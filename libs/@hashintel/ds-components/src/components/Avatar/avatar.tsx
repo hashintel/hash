@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
+import { AvatarGroupContext } from "../AvatarGroup/avatar-group-context";
 import { Icon, type IconName } from "../Icon/icon";
 import { styles } from "./avatar.recipe";
 
@@ -46,11 +47,16 @@ export const Avatar = ({
   shape,
   src,
   alt,
-  size = "md",
-  tone = "neutral",
+  size: sizeProp,
+  tone: toneProp,
   placeholder,
   ...rest
 }: AvatarProps) => {
+  // An enclosing AvatarGroup supplies size/tone; an explicit prop still wins.
+  const group = useContext(AvatarGroupContext);
+  const size = sizeProp ?? group.size ?? "md";
+  const tone = toneProp ?? group.tone ?? "neutral";
+
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [trackedSrc, setTrackedSrc] = useState(src);
