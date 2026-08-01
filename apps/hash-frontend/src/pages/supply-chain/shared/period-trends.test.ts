@@ -204,6 +204,32 @@ describe("period helpers anchored to a fixed clock", () => {
     expect(threshold.pctChange).toBeCloseTo(-70, 6);
   });
 
+  it("uses filtered mean values without reducing raw sample counts", () => {
+    const node = siteNode({
+      observations: [
+        obs("2025-07", 10),
+        obs("2025-08", 10),
+        obs("2025-09", 1000),
+        obs("2026-01", 20),
+        obs("2026-02", 20),
+        obs("2026-03", 2000),
+      ],
+      mean_observations: [
+        obs("2025-07", 10),
+        obs("2025-08", 10),
+        obs("2026-01", 20),
+        obs("2026-02", 20),
+      ],
+    });
+
+    const trend = computeTimingTrend(node, "6m", "mean");
+
+    expect(trend.previousValue).toBe(10);
+    expect(trend.currentValue).toBe(20);
+    expect(trend.previousN).toBe(3);
+    expect(trend.currentN).toBe(3);
+  });
+
   it("computeCostTrend totals carrying cost across windows", () => {
     const node = siteNode({
       cost: cost(100),
@@ -251,7 +277,7 @@ describe("period helpers anchored to a fixed clock", () => {
     expect(deltas.previousRange).not.toBeNull();
   });
 
-  it("computePeriodDeltas can compare an outlier-filtered historical series", () => {
+  it("filters the mean delta while retaining raw percentile deltas", () => {
     const step = stepFrom([
       fixtureObs("2025-07", 10),
       fixtureObs("2025-08", 10),
@@ -265,11 +291,29 @@ describe("period helpers anchored to a fixed clock", () => {
     const selected = applyOutlierSelectionToStep(step, true);
 
     const rawDeltas = computePeriodDeltas(step.observations, "6m");
-    const filteredDeltas = computePeriodDeltas(selected.observations, "6m");
+    const filteredDeltas = computePeriodDeltas(
+      selected.observations,
+      "6m",
+      selected.mean_observations,
+    );
 
     expect(rawDeltas.previousStats?.median).toBe(505);
     expect(rawDeltas.medianPctChange).toBeCloseTo(-96.03960396039604, 6);
-    expect(filteredDeltas.previousStats?.median).toBe(10);
-    expect(filteredDeltas.medianPctChange).toBeCloseTo(100, 6);
+    expect(filteredDeltas.previousStats?.median).toBe(505);
+    expect(filteredDeltas.medianPctChange).toBeCloseTo(-96.03960396039604, 6);
+    expect(filteredDeltas.previousStats?.mean).toBe(10);
+    expect(filteredDeltas.statDeltas.mean).toBeCloseTo(100, 6);
+  });
+
+  it("leaves a period mean and its delta empty when no kept values remain", () => {
+    const observations = [obs("2025-07", 10), obs("2026-01", 20)];
+    const deltas = computePeriodDeltas(
+      observations,
+      "6m",
+      observations.slice(0, 1),
+    );
+
+    expect(deltas.previousStats?.mean).toBe(10);
+    expect(deltas.statDeltas.mean).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
 **/docs/dependency-diagram.mmd linguist-generated=true
 **/*.snap linguist-generated=true
 **/*.snap.* linguist-generated=true
+libs/@local/graph/api/openapi/** linguist-generated=true

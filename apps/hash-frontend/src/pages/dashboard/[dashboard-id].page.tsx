@@ -14,6 +14,7 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import {
+  getPrimaryChartType,
   type ChartConfig,
   type ChartType,
   type DashboardGridLayout,
@@ -242,7 +243,7 @@ const DashboardPage: NextPageWithLayout = () => {
         continue;
       }
 
-      const itemEntity = rightEntity[0] as
+      const itemEntity = rightEntity?.[0] as
         | HashEntity<DashboardItemEntity>
         | undefined;
 
@@ -253,6 +254,8 @@ const DashboardPage: NextPageWithLayout = () => {
       const itemProps = simplifyProperties(itemEntity.properties);
       const itemEntityId = itemEntity.metadata.recordId.entityId;
       const linkEntityId = link.metadata.recordId.entityId;
+      const chartConfig =
+        (itemProps.chartConfiguration as ChartConfig | undefined) ?? null;
 
       items.push({
         entityId: itemEntityId,
@@ -261,9 +264,11 @@ const DashboardPage: NextPageWithLayout = () => {
         userGoal: itemProps.goal,
         structuralQuery: normalizeStructuralQuery(itemProps.structuralQuery),
         pythonScript: itemProps.pythonScript ?? null,
-        chartType: (itemProps.chartType as ChartType | undefined) ?? null,
-        chartConfig:
-          (itemProps.chartConfiguration as ChartConfig | undefined) ?? null,
+        chartType:
+          (chartConfig && getPrimaryChartType(chartConfig)) ??
+          (itemProps.chartType as ChartType | undefined) ??
+          null,
+        chartConfig,
         gridPosition: (itemProps.gridPosition as GridPosition | undefined) ?? {
           i: itemEntityId,
           x: 0,

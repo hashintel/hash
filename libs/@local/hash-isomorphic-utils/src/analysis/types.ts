@@ -46,6 +46,12 @@ export interface ArtifactRef {
 }
 
 export type AnalysisResultStatus = "ready" | "computing" | "error";
+export type AnalysisErrorCode =
+  | "INVALID_ARGS"
+  | "NOT_FOUND"
+  | "EXECUTION_FAILED"
+  | "DATASET_UNAVAILABLE"
+  | "OPTIONAL_ARTIFACT_UNAVAILABLE";
 
 /** The result of a single {@link AnalysisInvocation}. */
 export interface AnalysisResult {
@@ -60,6 +66,8 @@ export interface AnalysisResult {
   metadata?: JsonObject;
   /** Present when `status === "error"`: human-readable reason. */
   error?: string;
+  /** Stable machine-readable reason for errors with defined client handling. */
+  errorCode?: AnalysisErrorCode;
 }
 
 /** Response body for `POST /api/analysis`. */

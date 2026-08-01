@@ -1,4 +1,7 @@
-use core::fmt::{self, Write as _};
+use core::{
+    fmt::{self, Write as _},
+    ops::ControlFlow,
+};
 
 use hash_graph_store::filter::PathToken;
 
@@ -46,6 +49,106 @@ pub enum Function {
     ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
     Now,
+}
+
+/// Direct-child traversal for [`Expression::visit`] and [`Expression::visit_mut`].
+///
+/// [`Expression::visit`]: super::Expression::visit
+/// [`Expression::visit_mut`]: super::Expression::visit_mut
+impl Function {
+    pub(super) fn for_each_child<B>(
+        &self,
+        visitor: &mut impl FnMut(&Expression) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        match self {
+            Self::Min(expr)
+            | Self::Max(expr)
+            | Self::JsonAgg(expr)
+            | Self::JsonExtractText(expr)
+            | Self::JsonExtractAsText(expr, _)
+            | Self::JsonScalar(expr)
+            | Self::ToJson(expr)
+            | Self::Lower(expr)
+            | Self::Upper(expr)
+            | Self::LowerInc(expr)
+            | Self::UpperInc(expr)
+            | Self::LowerInf(expr)
+            | Self::UpperInf(expr)
+            | Self::ExtractEpochMs(expr) => visitor(expr),
+            Self::JsonContains(lhs, rhs)
+            | Self::JsonPathQueryFirst(lhs, rhs)
+            | Self::Coalesce(lhs, rhs) => {
+                visitor(lhs)?;
+                visitor(rhs)
+            }
+            Self::JsonExtractPath(exprs)
+            | Self::JsonBuildArray(exprs)
+            | Self::Unnest(exprs)
+            | Self::ArrayLiteral {
+                elements: exprs, ..
+            } => {
+                for expr in exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::JsonBuildObject(pairs) => {
+                for (key, value) in pairs {
+                    visitor(key)?;
+                    visitor(value)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Now => ControlFlow::Continue(()),
+        }
+    }
+
+    pub(super) fn for_each_child_mut<B>(
+        &mut self,
+        visitor: &mut impl FnMut(&mut Expression) -> ControlFlow<B>,
+    ) -> ControlFlow<B> {
+        match self {
+            Self::Min(expr)
+            | Self::Max(expr)
+            | Self::JsonAgg(expr)
+            | Self::JsonExtractText(expr)
+            | Self::JsonExtractAsText(expr, _)
+            | Self::JsonScalar(expr)
+            | Self::ToJson(expr)
+            | Self::Lower(expr)
+            | Self::Upper(expr)
+            | Self::LowerInc(expr)
+            | Self::UpperInc(expr)
+            | Self::LowerInf(expr)
+            | Self::UpperInf(expr)
+            | Self::ExtractEpochMs(expr) => visitor(expr),
+            Self::JsonContains(lhs, rhs)
+            | Self::JsonPathQueryFirst(lhs, rhs)
+            | Self::Coalesce(lhs, rhs) => {
+                visitor(lhs)?;
+                visitor(rhs)
+            }
+            Self::JsonExtractPath(exprs)
+            | Self::JsonBuildArray(exprs)
+            | Self::Unnest(exprs)
+            | Self::ArrayLiteral {
+                elements: exprs, ..
+            } => {
+                for expr in exprs {
+                    visitor(expr)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::JsonBuildObject(pairs) => {
+                for (key, value) in pairs {
+                    visitor(key)?;
+                    visitor(value)?;
+                }
+                ControlFlow::Continue(())
+            }
+            Self::Now => ControlFlow::Continue(()),
+        }
+    }
 }
 
 impl Transpile for Function {

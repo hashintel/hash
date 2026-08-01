@@ -343,12 +343,6 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "sortingPaths": [
-    {
-      "path": ["properties", "http://localhost:3000/@alice/types/property-type/length/", "convert", "http://localhost:3000/@alice/types/data-type/length/"],
-      "ordering": "ascending"
-    }
-  ],
   "filter": {
     "greater": [
       { "path": ["properties", "http://localhost:3000/@alice/types/property-type/length/", "convert", "http://localhost:3000/@alice/types/data-type/meter/"] },
@@ -383,5 +377,43 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.entities.length === 1, "Unexpected number of entities");
         client.assert(response.body.entities[0].properties["http://localhost:3000/@alice/types/property-type/length/"] === 10, "Unexpected value");
+    });
+%}
+
+### Sorting by properties is rejected
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{user_id}}
+
+{
+  "sortingPaths": [
+    {
+      "path": ["properties", "http://localhost:3000/@alice/types/property-type/length/"],
+      "ordering": "ascending"
+    }
+  ],
+  "filter": {
+    "all": []
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
+    }
+  },
+  "includeDrafts": false,
+  "includePermissions": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Response status is not 400");
     });
 %}

@@ -19,9 +19,7 @@ test("/types page renders and loads types", async ({ page }) => {
     "Data Types": `${pathPrefix}data-type`,
   };
 
-  /**
-   * Check that all tabs have a non-zero type count
-   */
+  // Check that all tabs have a non-zero type count
   for (const [tabTitle, href] of Object.entries(hrefByTabTitle)) {
     await expect(page.locator(`[href*="${href}"]`)).toHaveText(
       new RegExp(`^${tabTitle}[1-9]\\d*$`),

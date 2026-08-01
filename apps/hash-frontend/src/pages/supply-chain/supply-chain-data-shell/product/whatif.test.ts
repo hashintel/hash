@@ -115,6 +115,42 @@ function baseBatch(overrides: Partial<BatchRow>): BatchRow {
   };
 }
 
+describe("aggregateSimulation (outlier policy)", () => {
+  it("excludes outliers from means without changing medians", () => {
+    const batches = [10, 11, 12, 13, 14, 15, 16, 17, 100].map(
+      (duration, index) =>
+        baseBatch({
+          batch: `B${index + 1}`,
+          seg_qa_to_customer: duration,
+        }),
+    );
+
+    const result = aggregateSimulation(
+      [],
+      batches,
+      {},
+      [],
+      null,
+      {
+        waccRate: 0.1,
+        storageCost: 0.336,
+      },
+      {
+        excludeOutliers: true,
+      },
+    );
+
+    expect(result.baselineMean).toBe(13.5);
+    expect(result.simulatedMean).toBe(13.5);
+    expect(result.baselineMedian).toBe(14);
+    expect(result.simulatedMedian).toBe(14);
+    expect(
+      result.simulatedStagesMean.find((stage) => stage.type === "transit")
+        ?.mean,
+    ).toBe(13.5);
+  });
+});
+
 function baseNode(overrides: Partial<GraphNode>): GraphNode {
   return {
     id: "ship",

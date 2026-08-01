@@ -40,6 +40,7 @@ const manifest = {
   datasetVersion: VERSION,
   products: ["democat-x100-extr"],
   productionSchedules: ["democat-x100-extr"],
+  siteProductionTimelines: ["demo-plant"],
   sites: ["demo-plant"],
   steps: { "democat-x100-extr": ["prod_to_qa_pla"] },
 };
@@ -138,10 +139,51 @@ describe("resolveInvocation (supply-chain analyses)", () => {
       });
       expect(result.status).toBe("error");
       expect(result.error).toMatch(/schedule unavailable/i);
+      expect(result.errorCode).toBe("OPTIONAL_ARTIFACT_UNAVAILABLE");
     } finally {
       storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
         original;
     }
+  });
+
+  it("resolves a site production timeline explicitly listed in the manifest", async () => {
+    const result = await resolve("siteProductionTimeline", {
+      siteId: "demo-plant",
+    });
+    expect(result.status).toBe("ready");
+    expect(result.artifacts![0]!.name).toBe("timeline");
+    expect(result.artifacts![0]!.url).toContain(
+      "site/demo-plant/production_timeline.json",
+    );
+  });
+
+  it("fails closed when the site timeline allow-list is absent", async () => {
+    const original =
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`]!;
+    storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+      JSON.stringify({ ...manifest, siteProductionTimelines: undefined });
+    try {
+      const result = await resolve("siteProductionTimeline", {
+        siteId: "demo-plant",
+      });
+      expect(result.status).toBe("error");
+      expect(result.error).toMatch(/occupancy unavailable/i);
+      expect(result.errorCode).toBe("OPTIONAL_ARTIFACT_UNAVAILABLE");
+    } finally {
+      storedFiles[`analysis/${WEB_ID}/supply-chain/${VERSION}/manifest.json`] =
+        original;
+    }
+  });
+
+  it("rejects unknown and non-slug site timeline ids", async () => {
+    expect(
+      await resolve("siteProductionTimeline", { siteId: "unknown-site" }),
+    ).toMatchObject({ status: "error" });
+    const invalid = await resolve("siteProductionTimeline", {
+      siteId: "../demo-plant",
+    });
+    expect(invalid.status).toBe("error");
+    expect(invalid.error).toMatch(/slug/i);
   });
 
   it("errors for an unknown product", async () => {

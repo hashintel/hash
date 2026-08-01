@@ -11,7 +11,11 @@ import {
   formatCost,
   formatNumber,
 } from "../shared/cost";
-import { fetchProductionSchedule } from "../shared/data";
+import {
+  fetchProductionSchedule,
+  fetchSiteProductionTimeline,
+  SiteProductionTimelineUnavailableError,
+} from "../shared/data";
 import {
   AnalysisSettingsPanel,
   HeaderActionButtons,
@@ -43,13 +47,15 @@ import { ProductionScheduleView } from "./product/production-schedule";
 import { recomputeBatchTimelines } from "./product/recompute-batch-timelines";
 import { PipelineHeader } from "./product/shared/pipeline-header";
 import { PipelineWaterfall } from "./product/shared/pipeline-waterfall";
+import { loadSiteProductionTimeline } from "./product/site-production-timeline-loader";
 import { ALL_SEGMENTS, type SegmentId } from "./product/whatif";
 import { useSupplyChainStatusState } from "./site/use-supply-chain-status-state";
 
 import type { ProductionSchedule } from "../shared/production-schedule-types";
 import type { GraphData, GraphNode, SiteNode } from "../shared/types";
+import type { SiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
 
-type ViewMode = "category" | "canvas" | "schedule";
+type ViewMode = "category" | "canvas" | "timeline";
 
 const DEFAULT_ACTIVE_SEGMENTS = ALL_SEGMENTS.filter(
   (id) => id !== "procurement",
@@ -114,6 +120,10 @@ const controlsBottomRow = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+});
+const planningLegendRow = css({
+  display: "flex",
+  justifyContent: "flex-end",
 });
 const contentBase = css({
   px: "6",
@@ -291,11 +301,14 @@ export const Overview = ({
     useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
-  const { products } = useRegistry();
-  const productMaterial = useMemo(
-    () =>
-      products.find((product) => product.id === productId)?.material ?? null,
+  const { products, sites } = useRegistry();
+  const registryProduct = useMemo(
+    () => products.find((candidate) => candidate.id === productId),
     [products, productId],
+  );
+  const productMaterial = useMemo(
+    () => registryProduct?.material ?? null,
+    [registryProduct],
   );
   const productNameByMaterial = useMemo(
     () => new Map(products.map((product) => [product.material, product.name])),
@@ -305,13 +318,21 @@ export const Overview = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedView = searchParams.get("view");
   const viewMode: ViewMode =
-    requestedView === "canvas" || requestedView === "schedule"
+    requestedView === "canvas" || requestedView === "timeline"
       ? requestedView
-      : "category";
+      : requestedView === "schedule"
+        ? "timeline"
+        : "category";
   const [productionSchedule, setProductionSchedule] =
     useState<ProductionSchedule | null>(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [siteProductionTimeline, setSiteProductionTimeline] =
+    useState<SiteProductionTimeline | null>(null);
+  const [occupancyLoading, setOccupancyLoading] = useState(false);
+  const [occupancyError, setOccupancyError] = useState<string | null>(null);
+  const [occupancyAbsent, setOccupancyAbsent] = useState(false);
+  const [occupancyRetry, setOccupancyRetry] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusTarget, setStatusTarget] = useState<SiteNode | null>(null);
 
@@ -322,7 +343,21 @@ export const Overview = ({
   }, [graph.analysis_settings, setAnalysisSettings]);
 
   useEffect(() => {
-    if (viewMode !== "schedule") {
+    if (requestedView !== "schedule") {
+      return;
+    }
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set("view", "timeline");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [requestedView, setSearchParams]);
+
+  useEffect(() => {
+    if (viewMode !== "timeline") {
       return;
     }
     let cancelled = false;
@@ -458,7 +493,7 @@ export const Overview = ({
         source:
           viewMode === "canvas"
             ? "product_graph"
-            : viewMode === "schedule"
+            : viewMode === "timeline"
               ? "production_schedule"
               : "category_view",
         stepId,
@@ -576,10 +611,15 @@ export const Overview = ({
   // history across scopes). The site code is smaller and less likely to change,
   // so derive it once from the graph and use it for the whole product page.
   //
-  // `node.plant` is the raw (upper-case) plant code, whereas the site
-  // overview scopes by the lower-cased route slug; `normaliseSiteCode` reconciles
-  // the two so status set on the site overview lines up with the product page.
+  // Prefer the explicit site artifact slug. Single-site datasets can use their
+  // sole registry entry; the plant code is retained only as a final fallback.
   const productSiteId = useMemo(() => {
+    if (registryProduct?.site_id) {
+      return normaliseSiteCode(registryProduct.site_id);
+    }
+    if (sites.length === 1) {
+      return normaliseSiteCode(sites[0]!.slug);
+    }
     const homeNode =
       graph.nodes.find((node) => node.type === "production") ??
       graph.nodes.find((node) => node.type === "qa_hold") ??
@@ -587,7 +627,57 @@ export const Overview = ({
         (node) => node.type !== "transit" && node.type !== "destination_dwell",
       );
     return normaliseSiteCode(homeNode?.plant ?? graph.nodes[0]?.plant ?? "");
-  }, [graph.nodes]);
+  }, [graph.nodes, registryProduct?.site_id, sites]);
+
+  useEffect(() => {
+    if (viewMode !== "timeline" || !productSiteId) {
+      setSiteProductionTimeline(null);
+      setOccupancyLoading(false);
+      setOccupancyError(null);
+      setOccupancyAbsent(false);
+      return;
+    }
+    const requestedSiteId = productSiteId;
+    let cancelled = false;
+    void loadSiteProductionTimeline({
+      fetchTimeline: fetchSiteProductionTimeline,
+      isCurrent: () => !cancelled,
+      onStart: () => {
+        setSiteProductionTimeline(null);
+        setOccupancyLoading(true);
+        setOccupancyError(null);
+        setOccupancyAbsent(false);
+      },
+      onSuccess: setSiteProductionTimeline,
+      onError: (caught) => {
+        setSiteProductionTimeline(null);
+        const absent = caught instanceof SiteProductionTimelineUnavailableError;
+        if (!absent) {
+          trackSupplyChainError({
+            interaction: "site_production_timeline_fetch_failed",
+            productId,
+            source: "production_schedule",
+          });
+        }
+        const message =
+          caught instanceof Error
+            ? caught.message
+            : "The site production timeline could not be loaded.";
+        setOccupancyAbsent(absent);
+        setOccupancyError(absent ? null : message);
+      },
+      onSettled: () => setOccupancyLoading(false),
+      siteId: requestedSiteId,
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [occupancyRetry, productId, productSiteId, viewMode]);
+
+  const currentSiteProductionTimeline =
+    siteProductionTimeline?.site_id === productSiteId
+      ? siteProductionTimeline
+      : null;
   const opportunityStatusStore = useSupplyChainStatusState(productSiteId);
   const selectedStatusKey = selectedNode
     ? statusKey(productSiteId, selectedNode)
@@ -653,7 +743,6 @@ export const Overview = ({
           {/* Right: primary view controls + lower-frequency settings/help. */}
           <div className={controlsCol}>
             <div className={controlsBottomRow}>
-              <PlanningParamLegend />
               <SegmentedControl
                 value={viewMode}
                 onChange={(nextViewMode) => {
@@ -678,7 +767,7 @@ export const Overview = ({
                 options={[
                   { value: "category", label: "Category" },
                   { value: "canvas", label: "Canvas" },
-                  { value: "schedule", label: "Timeline" },
+                  { value: "timeline", label: "Timeline" },
                 ]}
               />
 
@@ -695,7 +784,11 @@ export const Overview = ({
                   setSettingsOpen((open) => !open);
                 }}
                 docContext="product"
+                productView={viewMode}
               />
+            </div>
+            <div className={planningLegendRow}>
+              <PlanningParamLegend />
             </div>
           </div>
         </div>
@@ -725,7 +818,7 @@ export const Overview = ({
             timeRange={timeRange}
           />
         </div>
-        <div className={viewMode === "schedule" ? paneShow : hidden}>
+        <div className={viewMode === "timeline" ? paneShow : hidden}>
           {scheduleLoading ? (
             <LoadingState
               message="Loading production timeline…"
@@ -741,6 +834,11 @@ export const Overview = ({
             <ProductionScheduleView
               schedule={productionSchedule}
               productNameByMaterial={productNameByMaterial}
+              siteProductionTimeline={currentSiteProductionTimeline}
+              occupancyAbsent={occupancyAbsent}
+              occupancyLoading={occupancyLoading}
+              occupancyError={occupancyError}
+              onRetryOccupancy={() => setOccupancyRetry((value) => value + 1)}
             />
           ) : (
             <div className={scheduleLoadState}>
@@ -753,7 +851,7 @@ export const Overview = ({
       <div
         className={cx(
           pipelineWrap,
-          viewMode === "schedule" && hidden,
+          viewMode === "timeline" && hidden,
           pipelineExpanded ? pipelineExpandedH : pipelineAutoH,
         )}
       >
@@ -785,6 +883,7 @@ export const Overview = ({
             <E2EWhatIf
               graph={filteredGraph}
               timeRange={timeRange}
+              excludeOutliers={excludeOutliers}
               onCollapse={() => setPipelineExpanded(false)}
               onStepDrill={onStepSelect}
               activeSegments={activeSegments}
@@ -850,6 +949,11 @@ export const Overview = ({
               <StatusDialog
                 key={`${statusTarget.plant}-${statusTarget.id}`}
                 title={statusTarget.label}
+                entries={
+                  opportunityStatusStore.statusHistory[
+                    statusKey(productSiteId, statusTarget)
+                  ] ?? []
+                }
                 inline
                 onClose={() => setStatusTarget(null)}
                 onSave={(entry) => {
@@ -868,6 +972,11 @@ export const Overview = ({
         <StatusDialog
           key={`${statusTarget.plant}-${statusTarget.id}`}
           title={statusTarget.label}
+          entries={
+            opportunityStatusStore.statusHistory[
+              statusKey(productSiteId, statusTarget)
+            ] ?? []
+          }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
             opportunityStatusStore.actions.onSaveStatus(statusTarget, entry);

@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { parseProductionSchedule } from "@local/hash-isomorphic-utils/production-schedule";
+import { parseSiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
+
 import { isValidSlug, webScopedKey } from "../analysis/shared/storage-key";
 
 import type { WebId } from "@blockprotocol/type-system";
@@ -25,9 +28,14 @@ export interface SupplyChainManifest {
   datasetVersion: string;
   products: string[];
   productionSchedules: string[];
+  siteProductionTimelines?: string[];
   sites: string[];
   steps: Record<string, string[]>;
 }
+
+type SourceManifest = Partial<
+  Pick<SupplyChainManifest, "productionSchedules" | "siteProductionTimelines">
+>;
 
 export interface SupplyChainDatasetPlan {
   sourceDir: string;
@@ -95,35 +103,6 @@ const isSite = (value: unknown): value is SupplyChainImportSite =>
   value !== null &&
   typeof (value as JsonObject).slug === "string";
 
-const isProductionSchedule = (value: unknown, productId: string): boolean => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-  const schedule = value as JsonObject;
-  if (
-    schedule.artifact_type !== "production_schedule" ||
-    schedule.product_id !== productId ||
-    !Array.isArray(schedule.lanes) ||
-    schedule.lanes.length === 0
-  ) {
-    return false;
-  }
-  return schedule.lanes.every((lane) => {
-    if (typeof lane !== "object" || lane === null) {
-      return false;
-    }
-    const row = lane as JsonObject;
-    return (
-      typeof row.material === "string" &&
-      typeof row.name === "string" &&
-      typeof row.bom_depth === "number" &&
-      (row.role === "finished_good" || row.role === "intermediate") &&
-      Array.isArray(row.campaigns) &&
-      Array.isArray(row.batches)
-    );
-  });
-};
-
 const collectJsonFiles = (dir: string): string[] => {
   const out: string[] = [];
 
@@ -144,6 +123,34 @@ const relKeyFor = (sourceDir: string, absPath: string): string =>
 
 const shouldUploadSourceFile = (relKey: string): boolean =>
   relKey !== "current.json" && relKey !== "manifest.json";
+
+const readOptionalArtifactAllowList = ({
+  allowedIds,
+  field,
+  manifest,
+}: {
+  allowedIds: ReadonlySet<string>;
+  field: keyof SourceManifest;
+  manifest: SourceManifest | null;
+}): string[] => {
+  const value = manifest?.[field];
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`manifest.json ${field} must be an array`);
+  }
+  const ids = value.map((id) => assertValidSlug(id, `manifest.json ${field}`));
+  if (new Set(ids).size !== ids.length) {
+    throw new Error(`manifest.json ${field} contains duplicate ids`);
+  }
+  for (const id of ids) {
+    if (!allowedIds.has(id)) {
+      throw new Error(`manifest.json ${field} contains unknown id "${id}"`);
+    }
+  }
+  return ids;
+};
 
 export const defaultSupplyChainDatasetVersion = (now = new Date()): string => {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -195,8 +202,24 @@ export const planSupplyChainDatasetImport = (params: {
     throw new Error("sites.json contains duplicate site slugs");
   }
 
+  const sourceManifestPath = path.join(sourceDir, "manifest.json");
+  const sourceManifest = fs.existsSync(sourceManifestPath)
+    ? readJson<SourceManifest>(sourceManifestPath)
+    : null;
+  const productionSchedules = readOptionalArtifactAllowList({
+    allowedIds: new Set(productIds),
+    field: "productionSchedules",
+    manifest: sourceManifest,
+  });
+  const siteProductionTimelines = readOptionalArtifactAllowList({
+    allowedIds: new Set(siteIds),
+    field: "siteProductionTimelines",
+    manifest: sourceManifest,
+  });
+  const productionScheduleSet = new Set(productionSchedules);
+  const siteProductionTimelineSet = new Set(siteProductionTimelines);
+
   const steps: Record<string, string[]> = {};
-  const productionSchedules: string[] = [];
 
   for (const productId of productIds) {
     const graphPath = path.join(sourceDir, productId, "graph.json");
@@ -224,25 +247,63 @@ export const planSupplyChainDatasetImport = (params: {
       productId,
       "production_schedule.json",
     );
-    if (fs.existsSync(schedulePath)) {
-      if (!fs.statSync(schedulePath).isFile()) {
-        throw new Error(
-          `Product "${productId}" production_schedule.json is not a file`,
-        );
-      }
-      const schedule = readJson<unknown>(schedulePath);
-      if (!isProductionSchedule(schedule, productId)) {
-        throw new Error(
-          `Product "${productId}" has an invalid production_schedule.json`,
-        );
-      }
-      productionSchedules.push(productId);
+    if (!productionScheduleSet.has(productId)) {
+      continue;
+    }
+    if (!fs.existsSync(schedulePath) || !fs.statSync(schedulePath).isFile()) {
+      throw new Error(
+        `Product "${productId}" advertises a missing production_schedule.json`,
+      );
+    }
+    try {
+      parseProductionSchedule(readJson<unknown>(schedulePath), productId);
+    } catch (error) {
+      throw new Error(
+        `Product "${productId}" has an invalid production_schedule.json: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error },
+      );
+    }
+  }
+
+  for (const siteId of siteProductionTimelines) {
+    const timelinePath = path.join(
+      sourceDir,
+      "site",
+      siteId,
+      "production_timeline.json",
+    );
+    if (!fs.existsSync(timelinePath) || !fs.statSync(timelinePath).isFile()) {
+      throw new Error(
+        `Site "${siteId}" advertises a missing production_timeline.json`,
+      );
+    }
+    try {
+      parseSiteProductionTimeline(readJson<unknown>(timelinePath), siteId);
+    } catch (error) {
+      throw new Error(
+        `Site "${siteId}" has an invalid production_timeline.json: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error },
+      );
     }
   }
 
   const files = collectJsonFiles(sourceDir)
     .map((absPath) => ({ absPath, relKey: relKeyFor(sourceDir, absPath) }))
     .filter(({ relKey }) => shouldUploadSourceFile(relKey))
+    .filter(({ relKey }) => {
+      const schedule = /^([^/]+)\/production_schedule\.json$/.exec(relKey);
+      if (schedule) {
+        return productionScheduleSet.has(schedule[1]!);
+      }
+      const timeline = /^site\/([^/]+)\/production_timeline\.json$/.exec(
+        relKey,
+      );
+      return !timeline || siteProductionTimelineSet.has(timeline[1]!);
+    })
     .sort((left, right) => left.relKey.localeCompare(right.relKey));
 
   return {
@@ -254,6 +315,7 @@ export const planSupplyChainDatasetImport = (params: {
       datasetVersion: version,
       products: productIds,
       productionSchedules,
+      siteProductionTimelines,
       sites: siteIds,
       steps,
     },

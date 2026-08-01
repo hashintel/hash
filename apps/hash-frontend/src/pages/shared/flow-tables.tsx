@@ -42,10 +42,12 @@ export const FlowTableWebChip = ({
   avatarUrl,
   name,
   shortname,
+  isOrg,
 }: {
   avatarUrl?: string;
   name: string;
   shortname: string;
+  isOrg: boolean;
 }) => (
   <Link href={`/@${shortname}`} noLinkStyle>
     <Stack
@@ -61,7 +63,12 @@ export const FlowTableWebChip = ({
         transition: transitions.create("border"),
       })}
     >
-      <Avatar src={avatarUrl} title={name} size={14} />
+      <Avatar
+        src={avatarUrl}
+        title={name}
+        size={14}
+        borderRadius={isOrg ? "4px" : undefined}
+      />
       <Typography
         component="span"
         sx={{

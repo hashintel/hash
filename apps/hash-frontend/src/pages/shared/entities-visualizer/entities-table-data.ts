@@ -68,19 +68,18 @@ export type EntitiesTableColumnKey =
     >
   | BaseUrl;
 
-export type SortableEntitiesTableColumnKey =
-  | Exclude<
-      EntitiesTableColumnKey,
-      /**
-       * @todo H-3908 allow sorting by these fields
-       */
-      | "createdById"
-      | "lastEditedById"
-      | "sourceEntity"
-      | "targetEntity"
-      | "webId"
-    >
-  | BaseUrl;
+export type SortableEntitiesTableColumnKey = Exclude<
+  EntitiesTableColumnKey,
+  /**
+   * @todo H-3908 allow sorting by these fields
+   */
+  | "createdById"
+  | "lastEditedById"
+  | "sourceEntity"
+  | "targetEntity"
+  | "webId"
+  | BaseUrl
+>;
 
 export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;

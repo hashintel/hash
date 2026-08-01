@@ -8,6 +8,7 @@ import {
   systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
@@ -157,7 +158,9 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       authorProperties["https://hash.ai/@h/types/property-type/email/"] = [
         email,
       ];
-      authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
+      authorPropertyMetadata.value[
+        systemPropertyTypes.email.propertyTypeBaseUrl
+      ] = {
         value: [
           {
             metadata: {

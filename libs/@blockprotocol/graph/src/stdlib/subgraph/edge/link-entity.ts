@@ -330,6 +330,8 @@ export const getOutgoingLinkAndTargetEntities = <
     ([linkEntityId, linkEntityRevisions]) => {
       return {
         linkEntity: linkEntityRevisions,
+        // `undefined` if the link's `has-right-entity` edge is not resolved
+        // into the subgraph
         rightEntity: getRightEntityForLinkEntity(
           subgraph,
           linkEntityId,
@@ -337,7 +339,10 @@ export const getOutgoingLinkAndTargetEntities = <
         ),
       };
     },
-  ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+    // The cast is only needed for the caller-provided generic – the mapped
+    // value is a valid `LinkEntityAndRightEntity[]`.
+    // @todo consider fixing generics in functions called within
+  ) as LinkAndRightEntities;
 };
 
 /**
@@ -386,6 +391,8 @@ export const getIncomingLinkAndSourceEntities = <
     ([linkEntityId, linkEntityRevisions]) => {
       return {
         linkEntity: linkEntityRevisions,
+        // `undefined` if the link's `has-left-entity` edge is not resolved
+        // into the subgraph
         leftEntity: getLeftEntityForLinkEntity(
           subgraph,
           linkEntityId,
@@ -393,5 +400,8 @@ export const getIncomingLinkAndSourceEntities = <
         ),
       };
     },
-  ) as LinkAndLeftEntities; // @todo consider fixing generics in functions called within
+    // The cast is only needed for the caller-provided generic – the mapped
+    // value is a valid `LinkEntityAndLeftEntity[]`.
+    // @todo consider fixing generics in functions called within
+  ) as LinkAndLeftEntities;
 };

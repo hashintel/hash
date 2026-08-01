@@ -3,9 +3,17 @@ import { sendTelemetry } from "../../../shared/telemetry-client";
 import type { FrontendTrackEventName } from "@local/hash-isomorphic-utils/telemetry/types";
 
 type SupplyChainTelemetryProperties = {
+  identifierType?:
+    | "batch"
+    | "production_order"
+    | "dispatch"
+    | "delivery"
+    | "shipment"
+    | "sales_order";
   interaction?: string;
   opportunityKind?: string;
   opportunityType?: string;
+  outcome?: "matched" | "no_match";
   productId?: string;
   route?: string;
   siteId?: string;

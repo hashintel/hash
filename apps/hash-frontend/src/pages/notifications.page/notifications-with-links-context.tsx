@@ -221,25 +221,25 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInText = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInText.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (
               !occurredInEntity ||
@@ -247,9 +247,27 @@ export const useNotificationsWithLinksContextValue =
               !occurredInText ||
               !triggeredByUserEntity
             ) {
-              throw new Error(
-                `Mention notification "${entityId}" is missing required links`,
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                occurredInBlock,
+                occurredInText,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping mention notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
               );
+
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({
@@ -260,7 +278,7 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (occurredInComment) {
               return {
@@ -297,25 +315,25 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const occurredInBlock = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByComment = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             const triggeredByUserEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (
               !occurredInEntity ||
@@ -323,9 +341,27 @@ export const useNotificationsWithLinksContextValue =
               !triggeredByComment ||
               !triggeredByUserEntity
             ) {
-              throw new Error(
-                `Comment notification "${entityId}" is missing required links`,
+              /**
+               * The linked entities may be missing from the subgraph, e.g.
+               * because the user no longer has permission to view them –
+               * skip the notification rather than failing the whole list.
+               */
+              const missingLinks = Object.entries({
+                occurredInEntity,
+                occurredInBlock,
+                triggeredByComment,
+                triggeredByUser: triggeredByUserEntity,
+              })
+                .filter(([, linkedEntity]) => !linkedEntity)
+                .map(([linkName]) => linkName)
+                .join(", ");
+
+              // eslint-disable-next-line no-console -- TODO: consider using logger
+              console.warn(
+                `Skipping comment notification ${entityId} because the target of the following link(s) could not be resolved: ${missingLinks}`,
               );
+
+              return null;
             }
 
             const triggeredByUser = constructMinimalUser({
@@ -336,7 +372,7 @@ export const useNotificationsWithLinksContextValue =
               isLinkAndRightEntityWithLinkType(
                 systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
               ),
-            )?.rightEntity[0];
+            )?.rightEntity?.[0];
 
             if (repliedToComment) {
               return {

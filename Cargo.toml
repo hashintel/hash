@@ -117,6 +117,7 @@ aws-types                          = { version = "1.3.10", default-features = fa
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
 base16ct                           = { version = "1.0.0", default-features = false }
+base64                             = { version = "0.22.1" }
 bitvec                             = { version = "1.0.1", default-features = false }
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
@@ -299,6 +300,7 @@ unicode-segmentation               = { version = "1.12.0", default-features = fa
 unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
+utoipa-scalar                      = { version = "0.1.0", default-features = false }
 uuid                               = { version = "1.18.1", default-features = false }
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }

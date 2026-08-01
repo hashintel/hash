@@ -75,6 +75,13 @@ describe("deduplicateNodes", () => {
       plant: "PL-A",
       supplier_id: "A",
       receipt_basis: "ordinary",
+      material_value: {
+        unit_cost: 2,
+        currency: "USD",
+        unit_cost_source: "Database",
+        uom: "KG",
+        monthly: [{ month: "2026-01", quantity: 100 }],
+      },
     });
     const supplierB = node({
       ...supplierA,
@@ -110,6 +117,9 @@ describe("deduplicateNodes", () => {
     expect(
       procurement.find((row) => row.supplier_id === "B")?.products,
     ).toHaveLength(1);
+    expect(
+      procurement.find((row) => row.supplier_id === "A")?.material_value,
+    ).toEqual(supplierA.material_value);
   });
 
   it("merges shared raw-material nodes across products by material, plant, type, and series", () => {
@@ -165,9 +175,9 @@ describe("deduplicateNodes", () => {
     const monthly = [kgDayMonth("2026-01", 10000)];
     const sharedA = node({
       id: "im-a",
-      label: "Intermediate Dwell: MN-L Wet Cake",
+      label: "Intermediate Dwell: Intermediate Cake",
       type: "intermediate_dwell",
-      material: "MN-L Wet Cake",
+      material: "Intermediate Cake",
       plant: "PL-A",
       stats: stats(10, 23.5),
       cost: cost(100),

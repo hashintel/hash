@@ -7,6 +7,7 @@ import {
   AnalysisExecutionError,
   AnalysisNotFoundError,
   DatasetUnavailableError,
+  OptionalArtifactUnavailableError,
 } from "../shared/errors";
 import { isWebScopedKeyForWeb } from "../shared/storage-key";
 
@@ -219,14 +220,21 @@ export const resolveInvocation = async ({
       metadata: resolution.metadata,
     });
   } catch (error) {
+    if (error instanceof WebAuthorisationError) {
+      return asResult({ status: "error", error: error.message });
+    }
     if (
-      error instanceof WebAuthorisationError ||
       error instanceof AnalysisExecutionError ||
       error instanceof AnalysisArgError ||
       error instanceof AnalysisNotFoundError ||
-      error instanceof DatasetUnavailableError
+      error instanceof DatasetUnavailableError ||
+      error instanceof OptionalArtifactUnavailableError
     ) {
-      return asResult({ status: "error", error: error.message });
+      return asResult({
+        status: "error",
+        error: error.message,
+        errorCode: error.code,
+      });
     }
 
     logger.error(

@@ -337,13 +337,18 @@ export const OutgoingLinksTable = memo(
           linkEntity,
         );
 
-        for (const linkType of linkEntityClosedMultiType.allOf) {
-          linkEntityTypeIds.add(linkType.$id);
+        const rightEntity = rightEntityRevisions?.[0];
+        if (!rightEntity) {
+          /**
+           * The target entity may be missing from the subgraph (e.g. if it
+           * was not resolved when the subgraph was produced) – skip the link
+           * rather than crashing.
+           */
+          continue;
         }
 
-        const rightEntity = rightEntityRevisions[0];
-        if (!rightEntity) {
-          throw new Error("Expected at least one right entity revision");
+        for (const linkType of linkEntityClosedMultiType.allOf) {
+          linkEntityTypeIds.add(linkType.$id);
         }
 
         const rightEntityClosedMultiType = getClosedMultiEntityTypeFromMap(

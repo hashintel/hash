@@ -2,7 +2,7 @@
 mod tests;
 
 use alloc::borrow::Cow;
-use core::iter::once;
+use core::{iter::once, ops::ControlFlow};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail, ensure};
@@ -19,11 +19,14 @@ use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::knowledge::Entity;
 
-use super::ast::{ColumnReference, JoinType, TableName, TableReference};
+use super::ast::{
+    ColumnName, ColumnReference, JoinType, Materialization, TableName, TableReference,
+};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, FromItem, Function,
-    GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WindowStatement,
+    Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
+    GroupByClause, GroupingElement, Identifier, NonEmptyVec, NullsOrder, OrderByClause,
+    PostgresQueryPath, PostgresRecord, SelectExpression, SelectQuantifier, SelectStatement,
+    SimpleSelect, SortBy, SortDirection, Table, Transpile as _, WindowDefinition, WithClause,
     postgres_type::PostgresType,
     table::{
         DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
@@ -51,10 +54,12 @@ pub struct TableInfo<'p> {
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
-    required_tables: HashSet<TableReference<'p>>,
+    joins: Vec<CompiledJoin>,
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
     has_to_many_join: bool,
+    /// Set once an embeddings distance subquery is installed; a statement supports only one.
+    has_embeddings_filter: bool,
 }
 
 struct PathSelection {
@@ -73,11 +78,334 @@ enum FilterGroup {
     Any,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Distinctness {
+    Indistinct,
+    Distinct,
+}
+
+/// How [`SelectCompiler::compile`] lays out the statement.
+///
+/// Both keys-first shapes filter, sort, and limit a narrow key set in CTEs and hydrate the
+/// wide projection only for the surviving rows. They fall back to [`SinglePass`]; the fallback is
+/// logged, since it silently loses the shape the caller opted into.
+///
+/// Callers opting into a keys-first shape vouch for two preconditions the compiler cannot
+/// check. `INNER` hydration joins must always match their key row (foreign-key-total joins
+/// do), and the key query must produce at most one row per `DISTINCT ON` group. Both hold
+/// for the entity read path, whose distinct key pins all row-multiplying columns. Violating
+/// either returns short or shifted pages compared to [`SinglePass`].
+///
+/// [`SinglePass`]: Self::SinglePass
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum StatementShape {
+    /// One flat `SELECT` over all joins.
+    #[default]
+    SinglePass,
+    /// The keys-first split with the planner left free.
+    ///
+    /// The CTEs stay inlinable, so the planner may serve the ordering demand from an index
+    /// and abort early. A misestimated filter can still bait it into an ordered scan that
+    /// never fills the limit.
+    KeysFirst,
+    /// The keys-first split behind a `MATERIALIZED` fence.
+    ///
+    /// The materialization fences the planner: the key query is planned without the outer
+    /// ordering demand, which prevents ordered-pipeline bets built on unreliable row
+    /// estimates. In exchange the whole filtered set is computed, no matter how early an
+    /// index could have stopped.
+    FencedKeysFirst,
+}
+
+impl StatementShape {
+    /// The value the shape is recorded under as `statement.shape`.
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::SinglePass => "single_pass",
+            Self::KeysFirst => "keys_first",
+            Self::FencedKeysFirst => "fenced_keys_first",
+        }
+    }
+
+    /// The fence the shape puts on the key query's plan.
+    const fn materialization(self) -> Option<Materialization> {
+        match self {
+            Self::SinglePass | Self::KeysFirst => None,
+            Self::FencedKeysFirst => Some(Materialization::Materialized),
+        }
+    }
+}
+
+/// Why a keys-first [`StatementShape`] degraded to a single-pass statement.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ShapeFallback {
+    /// Without a limit the planner never bets on an ordered pipeline, so there is nothing to
+    /// fence off.
+    Unlimited,
+    /// Without sort keys there is no ordering demand to fence off.
+    Unsorted,
+    /// An asterisk select cannot be split into key and hydration columns.
+    AsteriskSelect,
+    /// A subquery expression may reference tables invisibly to the classifier.
+    OpaqueExpression,
+    /// A fanning-out join inside the key query would eat into `LIMIT n` with duplicates.
+    ToManyKeyJoin,
+    /// A right or full outer join generates rows its left side never had, which neither side of
+    /// the split can carry: in the key query they hold `NULL` keys that no hydration join
+    /// matches, and in the hydration statement they are rows the page never selected.
+    GeneratingJoin,
+    /// The statement reads nothing from the key query, leaving the CTE without columns.
+    NoKeyColumns,
+    /// A carried CTE already uses one of the names the split reserves for its own CTEs.
+    CteNameCollision,
+    /// Two key columns claim the same output name, which leaves every reference to it
+    /// ambiguous. Prefixing a shared column name with its table can land on a name another
+    /// column already carries unprefixed.
+    KeyColumnNameCollision,
+}
+
+impl ShapeFallback {
+    /// Logs the degradation, warning for the reasons that lose a shape the caller opted into.
+    fn log(self) {
+        match self {
+            // Unpaged statements have nothing to split, and fanning-out joins are structural
+            // for whole query families (link queries filter through one on every request) —
+            // neither is an anomaly worth a warning.
+            Self::Unlimited | Self::Unsorted | Self::ToManyKeyJoin => {
+                tracing::debug!(fallback = ?self, "compiling a single-pass statement");
+            }
+            Self::AsteriskSelect
+            | Self::OpaqueExpression
+            | Self::GeneratingJoin
+            | Self::NoKeyColumns
+            | Self::CteNameCollision
+            | Self::KeyColumnNameCollision => {
+                tracing::warn!(fallback = ?self, "falling back to a single-pass statement");
+            }
+        }
+    }
+}
+
+/// A join collected during compilation. The `FROM` tree is assembled from these records in
+/// [`SelectCompiler::compile`], so the compiler can reuse joins and allocate fresh alias
+/// numbers without reading a statement tree back.
+struct CompiledJoin {
+    table: Table,
+    alias: Alias,
+    join_type: JoinType,
+    source: JoinSource,
+    conditions: Vec<Expression>,
+    /// Whether any relation using this join can fan out the driving rows.
+    ///
+    /// Unlike [`CompilerArtifacts::has_to_many_join`], which is tracked per relation, this
+    /// marks the individual joins so they can be classified separately.
+    to_many: bool,
+}
+
+impl CompiledJoin {
+    /// The `FROM` item this join scans, aliased as [`table`](Self::table) at
+    /// [`alias`](Self::alias).
+    fn source_item(&self) -> FromItem<'static> {
+        let alias = self.table.aliased_name(self.alias);
+        match &self.source {
+            JoinSource::Table => FromItem::table(self.table).alias(alias).build(),
+            JoinSource::Subquery(statement) => FromItem::subquery((**statement).clone())
+                .alias(alias)
+                .build(),
+        }
+    }
+}
+
+/// What a [`CompiledJoin`] scans.
+enum JoinSource {
+    /// The aliased [`table`](CompiledJoin::table) itself.
+    Table,
+    /// A derived table standing in for the plain table. The embeddings distance filter swaps
+    /// its join over to the aggregated distance subquery.
+    Subquery(Box<SelectStatement>),
+}
+
+/// One keyset-pagination sort key.
+struct CursorKey {
+    expression: Expression,
+    /// The cursor value to continue after; `None` encodes a `NULL` cursor entry.
+    value: Option<Expression>,
+    ordering: Ordering,
+    nulls: Option<NullOrdering>,
+    /// Whether the key is provably `NOT NULL`, allowing the null-handling arms to be skipped.
+    non_null: bool,
+}
+
+impl From<Ordering> for SortDirection {
+    fn from(ordering: Ordering) -> Self {
+        match ordering {
+            Ordering::Ascending => Self::Ascending,
+            Ordering::Descending => Self::Descending,
+        }
+    }
+}
+
+impl From<NullOrdering> for NullsOrder {
+    fn from(ordering: NullOrdering) -> Self {
+        match ordering {
+            NullOrdering::First => Self::First,
+            NullOrdering::Last => Self::Last,
+        }
+    }
+}
+
+/// A subquery expression, whose column references stay invisible to [`Expression::visit`].
+///
+/// The break value of the collectors below, which the caller turns into
+/// [`ShapeFallback::OpaqueExpression`].
+struct Opaque;
+
+/// Collects the table names `expression` references into `tables`, breaking at a subquery.
+fn collect_referenced_tables(
+    expression: &Expression,
+    tables: &mut HashSet<TableName<'static>>,
+) -> ControlFlow<Opaque> {
+    expression.visit(&mut |node| {
+        if matches!(node, Expression::Select(_)) {
+            return ControlFlow::Break(Opaque);
+        }
+        if let Expression::ColumnReference(column) = node
+            && let Some(correlation) = &column.correlation
+        {
+            tables.insert(correlation.name.clone());
+        }
+        ControlFlow::Continue(())
+    })
+}
+
+/// The columns read from a set of key-query tables, deduplicated and in first-seen order.
+#[derive(Default)]
+struct KeyColumns {
+    columns: Vec<(TableName<'static>, ColumnName<'static>)>,
+    seen: HashSet<(TableName<'static>, ColumnName<'static>)>,
+}
+
+impl KeyColumns {
+    /// Adds every column `expression` reads from one of the `key_tables`, breaking at a subquery.
+    fn collect(
+        &mut self,
+        expression: &Expression,
+        key_tables: &HashSet<TableName<'static>>,
+    ) -> ControlFlow<Opaque> {
+        expression.visit(&mut |node| {
+            if matches!(node, Expression::Select(_)) {
+                return ControlFlow::Break(Opaque);
+            }
+            if let Expression::ColumnReference(column) = node
+                && let Some(correlation) = &column.correlation
+                && key_tables.contains(&correlation.name)
+            {
+                let key = (correlation.name.clone(), column.name.clone());
+                if self.seen.insert(key.clone()) {
+                    self.columns.push(key);
+                }
+            }
+            ControlFlow::Continue(())
+        })
+    }
+}
+
+/// The join split for the keys-first [`StatementShape`]s.
+struct KeyQueryPartition<'j> {
+    /// The joins the key query filters and sorts through, in creation order.
+    key_joins: Vec<&'j CompiledJoin>,
+    /// The joins the hydration statement re-applies to the page, in creation order.
+    hydrated_joins: Vec<&'j CompiledJoin>,
+    /// The aliased names of the base table and every key-query join.
+    tables: HashSet<TableName<'static>>,
+}
+
+/// Rewrites references to key-query tables into references to the key query's output columns.
+struct KeyColumnRewriter<'r> {
+    tables: &'r HashSet<TableName<'static>>,
+    /// Output column name per key-query source column.
+    outputs: HashMap<(TableName<'static>, ColumnName<'static>), ColumnName<'static>>,
+}
+
+impl<'r> KeyColumnRewriter<'r> {
+    /// Assigns each key column its natural name. Every column name shared between source
+    /// tables gets prefixed with its aliased table name instead.
+    ///
+    /// Reports [`ShapeFallback::KeyColumnNameCollision`] when that leaves two columns sharing
+    /// an output name.
+    fn new(
+        tables: &'r HashSet<TableName<'static>>,
+        key_columns: &[(TableName<'static>, ColumnName<'static>)],
+    ) -> Result<Self, ShapeFallback> {
+        let mut name_users = HashMap::<&ColumnName<'static>, usize>::new();
+        for (_, column) in key_columns {
+            *name_users.entry(column).or_default() += 1;
+        }
+
+        let outputs: HashMap<_, _> = key_columns
+            .iter()
+            .map(|(table, column)| {
+                let output = if name_users.get(column).is_some_and(|users| *users > 1) {
+                    ColumnName::from(format!("{}_{}", table.as_str(), column.as_str()))
+                } else {
+                    column.clone()
+                };
+                ((table.clone(), column.clone()), output)
+            })
+            .collect();
+
+        // A prefixed name can land on one another column already carries: `b` and `d` sharing a
+        // `c` produce `b_c`, which a `b_c` column elsewhere also claims. Unreachable while table
+        // aliases end in `_<condition>_<depth>_<number>`, but nothing enforces that, and the
+        // symptom would be an ambiguous column reference at execution time.
+        if outputs.values().collect::<HashSet<_>>().len() != outputs.len() {
+            return Err(ShapeFallback::KeyColumnNameCollision);
+        }
+
+        Ok(Self { tables, outputs })
+    }
+
+    /// The output column name assigned to a key-query source column.
+    fn output(
+        &self,
+        table: &TableName<'static>,
+        column: &ColumnName<'static>,
+    ) -> &ColumnName<'static> {
+        self.outputs
+            .get(&(table.clone(), column.clone()))
+            .expect("every key-table column is collected before it is rewritten")
+    }
+
+    /// Replaces every reference to a key-query table with a reference to the corresponding
+    /// output column, qualified with `target` (or bare when `target` is [`None`]).
+    fn rewrite(&self, expression: &Expression, target: Option<&TableName<'static>>) -> Expression {
+        let mut expression = expression.clone();
+        let ControlFlow::Continue(()) = expression.visit_mut(&mut |node| {
+            if let Expression::ColumnReference(column) = node
+                && let Some(correlation) = &column.correlation
+                && self.tables.contains(&correlation.name)
+            {
+                column.name = self.output(&correlation.name, &column.name).clone();
+                column.correlation = target.cloned().map(TableReference::from);
+            }
+            ControlFlow::<!>::Continue(())
+        });
+        expression
+    }
+}
+
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
-    statement: SelectStatement,
+    shape: StatementShape,
+    distinct_on: Vec<Expression>,
+    selects: Vec<SelectExpression>,
+    with: Option<WithClause>,
+    conditions: Vec<Expression>,
+    cursor: Vec<CursorKey>,
+    sort_by: Vec<SortBy>,
+    limit: Option<usize>,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
@@ -95,7 +423,7 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
 pub enum SelectCompilerError {
     #[display("Cannot convert parameter for distance function")]
     ConvertDistanceParameter,
-    #[display("Only a single embedding for the same path is allowed")]
+    #[display("Only a single embedding filter is allowed per statement")]
     MultipleEmbeddings,
     #[display("Only embeddings are supported for cosine distance")]
     UnsupportedEmbeddingPath,
@@ -105,6 +433,8 @@ pub enum SelectCompilerError {
     UnsupportedDistanceExpression,
     #[display("Cannot add a cursor: {reason}")]
     CursorDisallowed { reason: &'static str },
+    #[display("Parameters with a pending conversion cannot be compiled")]
+    PendingParameterConversion,
     #[display("String operations are not supported on paths backed by materialized array columns")]
     UnsupportedTextArrayOperation,
 }
@@ -128,20 +458,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
 
         Self {
-            statement: SelectStatement::builder()
-                .selects(Vec::new())
-                .from(
-                    FromItem::table(R::base_table()).alias(R::base_table().aliased(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    })),
-                )
-                .build(),
+            shape: StatementShape::default(),
+            distinct_on: Vec::new(),
+            selects: Vec::new(),
+            with: None,
+            conditions: Vec::new(),
+            cursor: Vec::new(),
+            sort_by: Vec::new(),
+            limit: None,
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
-                required_tables: HashSet::new(),
+                joins: Vec::new(),
                 table_info: TableInfo {
                     tables: HashSet::new(),
                     pinned_timestamp_index: None,
@@ -149,6 +477,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 cursor_disallowed_reason: None,
                 has_to_many_join: false,
+                has_embeddings_filter: false,
             },
             temporal_axes,
             table_hooks,
@@ -167,15 +496,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         include_drafts: bool,
     ) -> Self {
         let mut default = Self::new(temporal_axes, include_drafts);
-        default
-            .statement
-            .selects
-            .push(SelectExpression::Asterisk(None));
+        default.selects.push(SelectExpression::Asterisk(None));
         default
     }
 
     pub const fn set_limit(&mut self, limit: usize) {
-        self.statement.limit = Some(limit);
+        self.limit = Some(limit);
+    }
+
+    /// Requests a statement layout, see [`StatementShape`] for the semantics and the
+    /// preconditions callers vouch for.
+    pub const fn set_statement_shape(&mut self, shape: StatementShape) {
+        self.shape = shape;
     }
 
     fn time_index(&mut self, temporal_axes: &'p QueryTemporalAxes, time_axis: TimeAxis) -> usize {
@@ -325,35 +657,43 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             if distinctness == Distinctness::Distinct
                 && stored.distinctness == Distinctness::Indistinct
             {
-                self.statement.distinct.push(stored.column.clone());
+                self.distinct_on.push(stored.column.clone());
                 stored.distinctness = Distinctness::Distinct;
             }
             if stored.ordering.is_none()
                 && let Some((ordering, nulls)) = ordering
             {
-                self.statement
-                    .order_by_expression
-                    .push(stored.column.clone(), ordering, nulls);
+                self.sort_by.push(
+                    SortBy::builder()
+                        .expression(stored.column.clone())
+                        .direction(ordering.into())
+                        .maybe_nulls(nulls.map(Into::into))
+                        .build(),
+                );
                 stored.ordering = Some((ordering, nulls));
             }
             stored.index
         } else {
             let expression = self.compile_path_column(path);
-            self.statement.selects.push(SelectExpression::Expression {
+            self.selects.push(SelectExpression::Expression {
                 expression: expression.clone(),
-                alias: None,
+                output_name: None,
             });
 
             if distinctness == Distinctness::Distinct {
-                self.statement.distinct.push(expression.clone());
+                self.distinct_on.push(expression.clone());
             }
             if let Some((ordering, nulls)) = ordering {
-                self.statement
-                    .order_by_expression
-                    .push(expression.clone(), ordering, nulls);
+                self.sort_by.push(
+                    SortBy::builder()
+                        .expression(expression.clone())
+                        .direction(ordering.into())
+                        .maybe_nulls(nulls.map(Into::into))
+                        .build(),
+                );
             }
 
-            let index = self.statement.selects.len() - 1;
+            let index = self.selects.len() - 1;
             self.selections.insert(
                 path,
                 PathSelection {
@@ -387,10 +727,17 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if let Some(reason) = self.artifacts.cursor_disallowed_reason {
             bail!(SelectCompilerError::CursorDisallowed { reason });
         }
+        // JSON-extracted keys are always nullable; plain columns consult the schema whitelist.
+        let (terminating_column, json_field) = path.terminating_column();
+        let non_null = json_field.is_none() && terminating_column.is_non_null();
         let column = self.compile_path_column(path);
-        self.statement
-            .where_expression
-            .add_cursor(lhs(column), rhs, ordering, null_ordering);
+        self.cursor.push(CursorKey {
+            expression: lhs(column),
+            value: rhs,
+            ordering,
+            nulls: null_ordering,
+            non_null,
+        });
         Ok(self.add_distinct_selection_with_ordering(
             path,
             Distinctness::Distinct,
@@ -413,17 +760,469 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.statement.where_expression.conditions.push(condition);
+        self.conditions.push(condition);
         Ok(())
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    #[instrument(level = "info", skip_all)]
+    ///
+    /// Records the effective [`StatementShape`] on the span as `statement.shape`, which is the
+    /// place to check whether a fence request actually engaged.
+    #[instrument(
+        level = "info",
+        skip_all,
+        fields(statement.shape = tracing::field::Empty)
+    )]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
-        (
-            self.statement.transpile_to_string(),
-            &self.artifacts.parameters,
+        let (shape, statement) = match self.shape {
+            StatementShape::SinglePass => {
+                (StatementShape::SinglePass, self.single_pass_statement())
+            }
+            shape @ (StatementShape::KeysFirst | StatementShape::FencedKeysFirst) => {
+                match self.fetch_keys_then_hydrate_statement(shape.materialization()) {
+                    Ok(statement) => (shape, statement),
+                    Err(fallback) => {
+                        fallback.log();
+                        (StatementShape::SinglePass, self.single_pass_statement())
+                    }
+                }
+            }
+        };
+
+        tracing::Span::current().record("statement.shape", shape.as_str());
+        (statement.transpile_to_string(), &self.artifacts.parameters)
+    }
+
+    /// Lays out the statement as one flat `SELECT` over all joins.
+    fn single_pass_statement(&self) -> SelectStatement {
+        let simple = SimpleSelect::builder()
+            .maybe_quantifier(
+                NonEmptyVec::try_from(self.distinct_on.clone())
+                    .ok()
+                    .map(SelectQuantifier::DistinctOn),
+            )
+            .selects(self.selects.clone())
+            .from(Self::joined_table(&self.artifacts.joins))
+            .maybe_where_clause(self.where_condition())
+            .build();
+
+        SelectStatement::builder()
+            .maybe_with(self.with.clone())
+            .select_clause(simple)
+            .maybe_order_by(
+                NonEmptyVec::try_from(self.sort_by.clone())
+                    .ok()
+                    .map(|sort_by| OrderByClause::builder().sort_by(sort_by).build()),
+            )
+            .maybe_limit(self.limit)
+            .build()
+    }
+
+    /// Lays out the statement as the keys-first split, fenced when `materialization` says so,
+    /// or reports why the statement does not qualify.
+    fn fetch_keys_then_hydrate_statement(
+        &self,
+        materialization: Option<Materialization>,
+    ) -> Result<SelectStatement, ShapeFallback> {
+        let Some(limit) = self.limit else {
+            return Err(ShapeFallback::Unlimited);
+        };
+        if self.sort_by.is_empty() {
+            return Err(ShapeFallback::Unsorted);
+        }
+
+        let partition = self.partition_key_query_joins()?;
+        let key_columns = self.collect_key_query_columns(&partition)?;
+        let rewriter = KeyColumnRewriter::new(&partition.tables, &key_columns)?;
+        let limited = TableName::from("limited");
+
+        let mut common_table_expressions: Vec<CommonTableExpression> = self
+            .with
+            .as_ref()
+            .map(|with| with.common_table_expressions.to_vec())
+            .unwrap_or_default();
+        if common_table_expressions
+            .iter()
+            .any(|cte| matches!(cte.name.as_str(), "roots" | "limited"))
+        {
+            return Err(ShapeFallback::CteNameCollision);
+        }
+        common_table_expressions.push(self.key_query_cte(
+            &partition,
+            &key_columns,
+            &rewriter,
+            materialization,
+        ));
+        common_table_expressions.push(self.page_cte(&rewriter, limit));
+
+        Ok(SelectStatement::builder()
+            .with(
+                WithClause::builder()
+                    .recursive(self.with.as_ref().is_some_and(|with| with.recursive))
+                    .common_table_expressions(
+                        NonEmptyVec::try_from(common_table_expressions)
+                            .expect("the key and page CTEs were pushed above"),
+                    )
+                    .build(),
+            )
+            .select_clause(self.hydration_select(&partition, &rewriter, &limited))
+            .order_by(
+                OrderByClause::builder()
+                    .sort_by(self.rewritten_sort(&rewriter, Some(&limited)))
+                    .build(),
+            )
+            .limit(limit)
+            .build())
+    }
+
+    /// Splits the collected joins into the key query's and the hydration statement's share.
+    /// The key query takes everything referenced by a filter, the cursor, or a sort key,
+    /// closed transitively over the join conditions (a join's `ON` clause only references
+    /// earlier joins, so one reverse pass suffices).
+    fn partition_key_query_joins(&self) -> Result<KeyQueryPartition<'_>, ShapeFallback> {
+        // Checked before the split, because neither share can carry a generating join and
+        // which share it lands in is an accident of what the filters happen to reference.
+        if self
+            .artifacts
+            .joins
+            .iter()
+            .any(|join| matches!(join.join_type, JoinType::RightOuter | JoinType::FullOuter))
+        {
+            return Err(ShapeFallback::GeneratingJoin);
+        }
+
+        let mut required = HashSet::new();
+        for expression in self
+            .conditions
+            .iter()
+            .chain(
+                self.cursor
+                    .iter()
+                    .flat_map(|key| once(&key.expression).chain(key.value.as_ref())),
+            )
+            .chain(self.sort_by.iter().map(|sort| &sort.expression))
+        {
+            if collect_referenced_tables(expression, &mut required).is_break() {
+                return Err(ShapeFallback::OpaqueExpression);
+            }
+        }
+
+        let mut in_key_query = vec![false; self.artifacts.joins.len()];
+        for (slot, join) in in_key_query.iter_mut().zip(&self.artifacts.joins).rev() {
+            if required.contains(&join.table.aliased_name(join.alias)) {
+                *slot = true;
+                for condition in &join.conditions {
+                    if collect_referenced_tables(condition, &mut required).is_break() {
+                        return Err(ShapeFallback::OpaqueExpression);
+                    }
+                }
+            }
+        }
+
+        let mut key_joins = Vec::new();
+        let mut hydrated_joins = Vec::new();
+        for (join, in_key_query) in self.artifacts.joins.iter().zip(&in_key_query) {
+            if *in_key_query {
+                key_joins.push(join);
+            } else {
+                hydrated_joins.push(join);
+            }
+        }
+        if key_joins.iter().any(|join| join.to_many) {
+            return Err(ShapeFallback::ToManyKeyJoin);
+        }
+
+        let tables = once(R::base_table().aliased_name(Alias::default()))
+            .chain(
+                key_joins
+                    .iter()
+                    .map(|join| join.table.aliased_name(join.alias)),
+            )
+            .collect();
+
+        Ok(KeyQueryPartition {
+            key_joins,
+            hydrated_joins,
+            tables,
+        })
+    }
+
+    /// Collects every column the hydration statement reads from a key-query table, in
+    /// first-seen order. Each becomes an output column of the key query.
+    fn collect_key_query_columns(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+    ) -> Result<Vec<(TableName<'static>, ColumnName<'static>)>, ShapeFallback> {
+        let mut key_columns = KeyColumns::default();
+        for expression in self
+            .sort_by
+            .iter()
+            .map(|sort| &sort.expression)
+            .chain(self.distinct_on.iter())
+            .chain(self.selects.iter().filter_map(|select| match select {
+                SelectExpression::Expression { expression, .. } => Some(expression),
+                SelectExpression::Asterisk(_) => None,
+            }))
+            .chain(
+                partition
+                    .hydrated_joins
+                    .iter()
+                    .flat_map(|join| join.conditions.iter()),
+            )
+        {
+            if key_columns
+                .collect(expression, &partition.tables)
+                .is_break()
+            {
+                return Err(ShapeFallback::OpaqueExpression);
+            }
+        }
+        if self
+            .selects
+            .iter()
+            .any(|select| matches!(select, SelectExpression::Asterisk(_)))
+        {
+            return Err(ShapeFallback::AsteriskSelect);
+        }
+        if key_columns.columns.is_empty() {
+            Err(ShapeFallback::NoKeyColumns)
+        } else {
+            Ok(key_columns.columns)
+        }
+    }
+
+    /// Builds the `roots` CTE: the key-query columns under the full filter and cursor
+    /// conditions, `MATERIALIZED` on demand to fence its plan from the outer ordering demand.
+    fn key_query_cte(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+        key_columns: &[(TableName<'static>, ColumnName<'static>)],
+        rewriter: &KeyColumnRewriter<'_>,
+        materialization: Option<Materialization>,
+    ) -> CommonTableExpression {
+        CommonTableExpression::builder()
+            .name("roots")
+            .statement(
+                SimpleSelect::builder()
+                    .selects(
+                        key_columns
+                            .iter()
+                            .map(|(table, column)| {
+                                let output = rewriter.output(table, column);
+                                SelectExpression::Expression {
+                                    expression: Expression::ColumnReference(ColumnReference {
+                                        correlation: Some(TableReference::from(table.clone())),
+                                        name: column.clone(),
+                                    }),
+                                    output_name: (output != column)
+                                        .then(|| Identifier::from(output.as_str().to_owned())),
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .from(Self::joined_table(partition.key_joins.iter().copied()))
+                    .maybe_where_clause(self.where_condition()),
+            )
+            .maybe_materialization(materialization)
+            .build()
+    }
+
+    /// Builds the `limited` CTE: the sorted and limited page of `roots`.
+    fn page_cte(&self, rewriter: &KeyColumnRewriter<'_>, limit: usize) -> CommonTableExpression {
+        CommonTableExpression::builder()
+            .name("limited")
+            .statement(
+                SelectStatement::builder()
+                    .select_clause(
+                        SimpleSelect::builder()
+                            .selects(vec![SelectExpression::Asterisk(None)])
+                            .from(FromItem::table(TableName::from("roots")).build()),
+                    )
+                    .order_by(
+                        OrderByClause::builder()
+                            .sort_by(self.rewritten_sort(rewriter, None))
+                            .build(),
+                    )
+                    .limit(limit)
+                    .build(),
+            )
+            .build()
+    }
+
+    /// Builds the hydration `SELECT`: the original projection and `DISTINCT ON` over
+    /// `limited` plus the hydration joins, with all key-query references rewritten.
+    fn hydration_select(
+        &self,
+        partition: &KeyQueryPartition<'_>,
+        rewriter: &KeyColumnRewriter<'_>,
+        limited: &TableName<'static>,
+    ) -> SimpleSelect {
+        let mut from = FromItem::table(limited.clone()).build();
+        for join in &partition.hydrated_joins {
+            from = from
+                .join(join.join_type, join.source_item())
+                .on(join
+                    .conditions
+                    .iter()
+                    .map(|condition| rewriter.rewrite(condition, Some(limited)))
+                    .collect::<Vec<_>>())
+                .build();
+        }
+
+        SimpleSelect::builder()
+            .maybe_quantifier(
+                NonEmptyVec::try_from(
+                    self.distinct_on
+                        .iter()
+                        .map(|expression| rewriter.rewrite(expression, Some(limited)))
+                        .collect::<Vec<_>>(),
+                )
+                .ok()
+                .map(SelectQuantifier::DistinctOn),
+            )
+            .selects(
+                self.selects
+                    .iter()
+                    .map(|select| match select {
+                        SelectExpression::Expression {
+                            expression,
+                            output_name,
+                        } => SelectExpression::Expression {
+                            expression: rewriter.rewrite(expression, Some(limited)),
+                            output_name: output_name.clone(),
+                        },
+                        SelectExpression::Asterisk(_) => {
+                            unreachable!(
+                                "asterisk selects were ruled out while collecting the key columns"
+                            )
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .from(from)
+            .build()
+    }
+
+    /// The statement's sort keys with their key-query references rewritten.
+    fn rewritten_sort(
+        &self,
+        rewriter: &KeyColumnRewriter<'_>,
+        target: Option<&TableName<'static>>,
+    ) -> NonEmptyVec<SortBy> {
+        NonEmptyVec::try_from(
+            self.sort_by
+                .iter()
+                .map(|sort| SortBy {
+                    expression: rewriter.rewrite(&sort.expression, target),
+                    direction: sort.direction,
+                    nulls: sort.nulls,
+                })
+                .collect::<Vec<_>>(),
         )
+        .expect("the sort keys were checked to be non-empty")
+    }
+
+    /// Assembles the `FROM` tree from the base table and the given joins.
+    fn joined_table<'j>(joins: impl IntoIterator<Item = &'j CompiledJoin>) -> FromItem<'static> {
+        let mut from = FromItem::table(R::base_table())
+            .alias(R::base_table().aliased_name(Alias::default()))
+            .build();
+        for join in joins {
+            from = from
+                .join(join.join_type, join.source_item())
+                .on(join.conditions.clone())
+                .build();
+        }
+        from
+    }
+
+    /// Combines the collected filter conditions and the keyset-pagination continuation into the
+    /// `WHERE` condition of the statement.
+    fn where_condition(&self) -> Option<Expression> {
+        let mut conditions = self.conditions.clone();
+        conditions.extend(Self::cursor_condition(&self.cursor));
+        Expression::conjunction(conditions)
+    }
+
+    /// Builds the keyset-pagination continuation: one alternative per sort key, each requiring
+    /// all previous keys to be equal and the current key to be past the cursor value.
+    ///
+    /// Returns [`None`] only for an empty cursor. An exhausted cursor yields a never-matching
+    /// `FALSE` so the next page comes back empty instead of replaying from the start.
+    fn cursor_condition(cursor: &[CursorKey]) -> Option<Expression> {
+        if cursor.is_empty() {
+            return None;
+        }
+
+        let mut alternatives = Vec::new();
+        for current in (0..cursor.len()).rev() {
+            let mut criteria = Vec::new();
+            for (idx, key) in cursor.iter().enumerate() {
+                if idx == current {
+                    // Without an explicit hint Postgres sorts nulls last for ascending and
+                    // first for descending keys; the continuation has to mirror that default.
+                    let nulls = key.nulls.unwrap_or(match key.ordering {
+                        Ordering::Ascending => NullOrdering::Last,
+                        Ordering::Descending => NullOrdering::First,
+                    });
+
+                    if let Some(value) = &key.value {
+                        let comparison = match key.ordering {
+                            Ordering::Ascending => {
+                                Expression::greater(key.expression.clone(), value.clone())
+                            }
+                            Ordering::Descending => {
+                                Expression::less(key.expression.clone(), value.clone())
+                            }
+                        };
+
+                        match nulls {
+                            // A provably non-nullable key has no `NULL` rows to continue into.
+                            _ if key.non_null => criteria.push(comparison),
+                            NullOrdering::First => criteria.push(comparison),
+                            // With nulls sorted last, rows where the key is `NULL` also come
+                            // after the cursor value.
+                            NullOrdering::Last => criteria.push(Expression::any(vec![
+                                comparison,
+                                Expression::is_null(key.expression.clone()),
+                            ])),
+                        }
+                    } else {
+                        assert!(
+                            !key.non_null,
+                            "a non-nullable sort key cannot produce a `NULL` cursor value"
+                        );
+                        match nulls {
+                            NullOrdering::First => {
+                                criteria.push(Expression::is_not_null(key.expression.clone()));
+                            }
+                            // A `NULL` cursor value with nulls sorted last has no rows after it
+                            // on this key, so the alternative is dropped entirely.
+                            NullOrdering::Last => {
+                                criteria.clear();
+                                break;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                criteria.push(key.value.as_ref().map_or_else(
+                    || Expression::is_null(key.expression.clone()),
+                    |value| Expression::equal(key.expression.clone(), value.clone()),
+                ));
+            }
+            if let Some(alternative) = Expression::conjunction(criteria) {
+                alternatives.push(alternative);
+            }
+        }
+
+        // With every alternative dropped the cursor sits at the end of a trailing `NULL` group
+        // and no row sorts after it. The continuation has to be a never-matching condition (an
+        // empty `OR` transpiles to `FALSE`) rather than absent, which would replay the first
+        // page.
+        Some(Expression::disjunction(alternatives).unwrap_or_else(|| Expression::any(Vec::new())))
     }
 
     /// Whether any relation joined so far can fan out the base rows.
@@ -436,11 +1235,22 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         self.artifacts.has_to_many_join
     }
 
+    /// Whether an embeddings distance filter was compiled into the statement.
+    #[must_use]
+    pub const fn has_embeddings_filter(&self) -> bool {
+        self.artifacts.has_embeddings_filter
+    }
+
     /// Compiles a [`Filter`] to an [`Expression`].
     ///
     /// # Errors
     ///
     /// Returns an error if the filter compilation fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics when an embeddings table declares no grouping columns, though the static table
+    /// list makes that unreachable.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter<'f: 'q>(
@@ -463,29 +1273,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
             Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::NotEqual(lhs, rhs) => Expression::not_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Exists { path } => Expression::is_not_null(self.compile_path_column(path)),
             Filter::Greater(lhs, rhs) => Expression::greater(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::GreaterOrEqual(lhs, rhs) => Expression::greater_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::Less(lhs, rhs) => Expression::less(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::LessOrEqual(lhs, rhs) => Expression::less_or_equal(
-                self.compile_filter_expression(lhs).0,
-                self.compile_filter_expression(rhs).0,
+                self.compile_filter_expression(lhs)?.0,
+                self.compile_filter_expression(rhs)?.0,
             ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
                 (
@@ -497,6 +1307,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     FilterExpression::Path { path },
                 ) => {
                     let _span = tracing::info_span!("compile_cosine_distance").entered();
+                    ensure!(
+                        !self.artifacts.has_embeddings_filter,
+                        SelectCompilerError::MultipleEmbeddings
+                    );
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
@@ -513,7 +1327,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                     let path_alias = self.add_join_statements(path);
                     let parameter_expression = self.compile_parameter(parameter).0;
-                    let maximum_expression = self.compile_filter_expression(max).0;
+                    let maximum_expression = self.compile_filter_expression(max)?.0;
 
                     let (embeddings_column, None) = path.terminating_column() else {
                         bail!(SelectCompilerError::UnsupportedEmbeddingPath);
@@ -571,19 +1385,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         .aliased(path_alias),
                     );
 
-                    if let Some(FromItem::JoinOn {
-                        right: last_from, ..
-                    }) = self.statement.from.as_mut()
-                        && let Some(last_reference_table) = last_from.reference_table()
-                    {
+                    if let Some(last_join) = self.artifacts.joins.last_mut() {
+                        // The rewrite below replaces the topmost join with the distance
+                        // subquery, which is only sound when that join is the embeddings join
+                        // resolved for this path. A reused embeddings join buried under later
+                        // joins (created by an earlier non-distance filter on the embedding
+                        // path) cannot be rewritten.
                         ensure!(
-                            last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::PropertyTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityTypeEmbeddings)
-                                || last_reference_table.name
-                                    == TableName::from(Table::EntityEmbeddings),
+                            last_join.table == embeddings_table && last_join.alias == path_alias,
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -635,14 +1444,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        **last_from = FromItem::subquery(
-                            SelectStatement::builder()
+                        last_join.source = JoinSource::Subquery(Box::new(SelectStatement::from(
+                            SimpleSelect::builder()
                                 .selects(
                                     select_columns
                                         .iter()
                                         .map(|&column| SelectExpression::Expression {
                                             expression: Expression::ColumnReference(column.into()),
-                                            alias: None,
+                                            output_name: None,
                                         })
                                         .chain(once(SelectExpression::Expression {
                                             expression: Expression::Function(Function::Min(
@@ -653,51 +1462,66 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                                     parameter_expression,
                                                 )),
                                             )),
-                                            alias: Some(Identifier::from("distance")),
+                                            output_name: Some(Identifier::from("distance")),
                                         }))
-                                        .collect(),
+                                        .collect::<Vec<_>>(),
                                 )
                                 .from(FromItem::table(embeddings_table))
-                                .group_by_expression(GroupByExpression {
-                                    expressions: select_columns
-                                        .iter()
-                                        .map(|&column| Expression::ColumnReference(column.into()))
-                                        .collect(),
-                                }),
-                        )
-                        .alias(last_reference_table.clone())
-                        .build();
+                                .group_by(
+                                    GroupByClause::builder().grouping_elements(
+                                        NonEmptyVec::try_from(
+                                            select_columns
+                                                .iter()
+                                                .map(|&column| {
+                                                    GroupingElement::Expressions(NonEmptyVec::from(
+                                                        Expression::ColumnReference(column.into()),
+                                                    ))
+                                                })
+                                                .collect::<Vec<_>>(),
+                                        )
+                                        .expect(
+                                            "every embeddings table groups by at least one column",
+                                        ),
+                                    ),
+                                ),
+                        )));
+                        // The grouped subquery emits exactly one row per join key, so the
+                        // original relation's fan-out no longer applies.
+                        last_join.to_many = false;
+                        self.artifacts.has_embeddings_filter = true;
                     }
 
-                    self.statement.order_by_expression.insert_front(
-                        distance_expression.clone(),
-                        Ordering::Ascending,
-                        None,
+                    self.sort_by.insert(
+                        0,
+                        SortBy::builder()
+                            .expression(distance_expression.clone())
+                            .direction(SortDirection::Ascending)
+                            .build(),
                     );
-                    self.statement.selects.push(SelectExpression::Expression {
+                    self.selects.push(SelectExpression::Expression {
                         expression: distance_expression.clone(),
-                        alias: None,
+                        output_name: None,
                     });
-                    self.statement.distinct.push(distance_expression.clone());
+                    self.distinct_on.push(distance_expression.clone());
                     Expression::less_or_equal(distance_expression, maximum_expression)
                 }
                 _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),
             },
             Filter::In(lhs, rhs) => Expression::r#in(
-                self.compile_filter_expression(lhs).0,
+                self.compile_filter_expression(lhs)?.0,
                 self.compile_filter_expression_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -709,14 +1533,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::EndsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -728,14 +1552,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::ContainsSegment(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
+                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
                 let left_filter = if left_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
                 } else {
                     left_filter
                 };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs);
+                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
                 let right_filter = if right_parameter == ParameterType::Any {
                     Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
                 } else {
@@ -968,30 +1792,42 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement::builder()
-                .selects(vec![
-                    SelectExpression::Asterisk(None),
-                    SelectExpression::Expression {
-                        expression: Expression::Window(
-                            Box::new(Expression::Function(Function::Max(Box::new(
-                                Expression::ColumnReference(version_column.aliased(alias)),
-                            )))),
-                            WindowStatement::partition_by(Expression::ColumnReference(
-                                Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                            )),
-                        ),
-                        alias: Some(Identifier::from("latest_version")),
-                    },
-                ])
-                .from(
-                    FromItem::table(version_column.table())
-                        .alias(version_column.table().aliased(alias))
+        let latest_version_cte = CommonTableExpression::builder()
+            .name(Table::OntologyIds)
+            .statement(
+                SimpleSelect::builder()
+                    .selects(vec![
+                        SelectExpression::Asterisk(None),
+                        SelectExpression::Expression {
+                            expression: Expression::window(
+                                Expression::Function(Function::Max(Box::new(
+                                    Expression::ColumnReference(version_column.aliased(alias)),
+                                ))),
+                                WindowDefinition::builder().partition_by(
+                                    Expression::ColumnReference(
+                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                                    ),
+                                ),
+                            ),
+                            output_name: Some(Identifier::from("latest_version")),
+                        },
+                    ])
+                    .from(
+                        FromItem::table(version_column.table())
+                            .alias(version_column.table().aliased_name(alias))
+                            .build(),
+                    ),
+            );
+        match &mut self.with {
+            Some(with) => with.push(latest_version_cte),
+            with @ None => {
+                *with = Some(
+                    WithClause::builder()
+                        .common_table_expressions(latest_version_cte)
                         .build(),
-                )
-                .build(),
-        );
+                );
+            }
+        }
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
@@ -1101,10 +1937,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         if let Some(hook) = self.table_hooks.get(&column.table().into()) {
             let conditions = hook(self, alias);
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+            self.conditions.extend(conditions);
         }
 
         let mut column_expression = Expression::ColumnReference(column.aliased(alias));
@@ -1212,14 +2045,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
+    /// Compiles a [`FilterExpression`] to an [`Expression`] and its parameter type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SelectCompilerError::PendingParameterConversion`] when the parameter still
+    /// carries a conversion; conversions have to be resolved before compilation.
     pub fn compile_filter_expression<'f: 'q>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
-    ) -> (Expression, ParameterType)
+    ) -> Result<(Expression, ParameterType), Report<SelectCompilerError>>
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        match expression {
+        Ok(match expression {
             FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
                 let parameter_type =
@@ -1232,12 +2071,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 (self.compile_path_column(path), parameter_type)
             }
             FilterExpression::Parameter { parameter, convert } => {
-                if convert.is_some() {
-                    unimplemented!("Cannot convert parameter at this stage");
-                }
+                ensure!(
+                    convert.is_none(),
+                    SelectCompilerError::PendingParameterConversion
+                );
                 self.compile_parameter(parameter)
             }
-        }
+        })
     }
 
     #[instrument(level = "debug", skip_all)]
@@ -1308,25 +2148,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Joining the tables attempts to deduplicate join operations. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
     ///
+    /// Every condition a join is created with references only the join itself and earlier
+    /// joins, which [`Self::partition_key_query_joins`] relies on for its single reverse pass.
+    ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
-    #[expect(clippy::too_many_lines)]
     fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        let mut current_table = Cow::<TableReference<'_>>::Owned(TableReference {
-            schema: None,
-            name: R::base_table().into(),
-            alias: Some(Alias::default()),
-        });
+        let mut current_alias = Alias::default();
 
-        if let Some(hook) = self.table_hooks.get(&current_table.name) {
-            let conditions = hook(self, current_table.alias.unwrap_or_default());
-            self.statement
-                .where_expression
-                .conditions
-                .extend(conditions);
+        if let Some(hook) = self.table_hooks.get(&R::base_table().name()) {
+            let conditions = hook(self, current_alias);
+            self.conditions.extend(conditions);
         }
 
         let mut is_outer_join_chain = false;
@@ -1345,106 +2180,77 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     join_type
                 };
 
-                let mut join_table = foreign_key_reference.table().aliased(Alias {
+                let join_table = foreign_key_reference.table();
+                let mut join_alias = Alias {
                     condition_index: self.artifacts.condition_index,
-                    chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
+                    chain_depth: current_alias.chain_depth + 1,
                     number: 0,
-                });
-                let mut conditions = foreign_key_reference.conditions(
-                    current_table.alias.unwrap_or_default(),
-                    join_table.alias.unwrap_or_default(),
-                );
+                };
+                let mut conditions = foreign_key_reference.conditions(current_alias, join_alias);
 
-                let mut found = false;
+                let mut found = None;
                 let mut max_number = 0;
 
-                let mut existing = self.statement.from.as_ref();
-                while let Some(FromItem::JoinOn {
-                    left,
-                    join_type: _,
-                    right: existing_from_item,
-                    condition: existing_conditions,
-                }) = existing
-                {
-                    existing = Some(left);
-
-                    let Some(existing_table) = existing_from_item.reference_table() else {
-                        continue;
-                    };
-
+                for (existing_index, existing) in self.artifacts.joins.iter().enumerate().rev() {
                     // Check for exact match to reuse existing join
-                    if *existing_table == join_table {
+                    if existing.table.name() == join_table.name() && existing.alias == join_alias {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing_conditions.starts_with(&conditions) {
+                        if existing.conditions.starts_with(&conditions) {
                             // We already have a join statement for this column, so we can reuse
                             // it.
-                            current_table = Cow::Borrowed(existing_table);
-                            found = true;
+                            current_alias = existing.alias;
+                            found = Some(existing_index);
                             break;
                         }
                     }
 
                     // Track maximum number for joins with same table name and alias prefix
-                    if let Some(existing_alias) = existing_table.alias
-                        && join_table.name == existing_table.name
-                        && join_table
-                            .alias
-                            .map(|alias| (alias.condition_index, alias.chain_depth))
-                            == existing_table
-                                .alias
-                                .map(|alias| (alias.condition_index, alias.chain_depth))
+                    if existing.table.name() == join_table.name()
+                        && (existing.alias.condition_index, existing.alias.chain_depth)
+                            == (join_alias.condition_index, join_alias.chain_depth)
                     {
-                        max_number = max_number.max(existing_alias.number + 1);
+                        max_number = max_number.max(existing.alias.number + 1);
                     }
                 }
 
-                // If we didn't find an exact match but found alias conflicts, update the alias
-                if !found {
+                if let Some(existing_index) = found {
+                    // A fanning-out relation taints the reused join as well.
+                    if relation.is_to_many() {
+                        self.artifacts
+                            .joins
+                            .get_mut(existing_index)
+                            .expect("the reuse index originates from enumerating the joins")
+                            .to_many = true;
+                    }
+                } else {
                     if max_number > 0 {
-                        join_table.alias.get_or_insert_default().number = max_number;
+                        join_alias.number = max_number;
                         // Recalculate conditions with the updated alias
-                        conditions = foreign_key_reference.conditions(
-                            current_table.alias.unwrap_or_default(),
-                            join_table.alias.unwrap_or_default(),
-                        );
+                        conditions = foreign_key_reference.conditions(current_alias, join_alias);
                     }
 
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = Cow::Owned(join_table.clone());
-                    conditions.extend(relation.additional_conditions(&join_table));
-                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
-                        conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
+                    current_alias = join_alias;
+                    conditions.extend(relation.additional_conditions(join_table, join_alias));
+                    if let Some(hook) = self.table_hooks.get(&join_table.name()) {
+                        conditions.extend(hook(self, join_alias));
                     }
 
-                    self.statement.from = Some(
-                        self.statement
-                            .from
-                            .take()
-                            .expect(
-                                "Tried to join on a `SELECT` statement without a `FROM` statement",
-                            )
-                            .join(
-                                join_type,
-                                FromItem::table(TableReference {
-                                    alias: None,
-                                    ..join_table.clone()
-                                })
-                                .alias(join_table),
-                            )
-                            .on(conditions)
-                            .build(),
-                    );
+                    self.artifacts.joins.push(CompiledJoin {
+                        table: join_table,
+                        alias: join_alias,
+                        join_type,
+                        source: JoinSource::Table,
+                        conditions,
+                        to_many: relation.is_to_many(),
+                    });
                 }
             }
         }
 
-        let alias = current_table.alias.unwrap_or_default();
-        self.artifacts
-            .required_tables
-            .insert(current_table.into_owned());
-        alias
+        current_alias
     }
 }
 

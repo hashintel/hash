@@ -1,4 +1,7 @@
-import { AnalysisNotFoundError } from "../shared/errors";
+import {
+  AnalysisNotFoundError,
+  OptionalArtifactUnavailableError,
+} from "../shared/errors";
 import { requireSlugArg } from "../shared/storage-key";
 import { resolveDataset } from "./supply-chain/dataset";
 
@@ -17,6 +20,7 @@ import type { NamedAnalysis } from "../shared/analysis-registry";
  *   _global/supplier_performance.json
  *   _global/supplier-lines.json
  *   site/{siteId}/summary.json
+ *   site/{siteId}/production_timeline.json
  */
 
 const listProducts: NamedAnalysis = {
@@ -67,7 +71,7 @@ const productionSchedule: NamedAnalysis = {
     // Fail closed for old/partial datasets: product membership alone is not
     // evidence that the optional schedule artifact was published.
     if (!(manifest.productionSchedules ?? []).includes(productId)) {
-      throw new AnalysisNotFoundError(
+      throw new OptionalArtifactUnavailableError(
         `Production schedule unavailable for product "${productId}"`,
       );
     }
@@ -145,6 +149,30 @@ const siteSummary: NamedAnalysis = {
   },
 };
 
+const siteProductionTimeline: NamedAnalysis = {
+  name: "siteProductionTimeline",
+  resolve: async (ctx) => {
+    const siteId = requireSlugArg(ctx.args, "siteId");
+    const { base, manifest } = await resolveDataset(ctx);
+
+    if (!(manifest.siteProductionTimelines ?? []).includes(siteId)) {
+      throw new OptionalArtifactUnavailableError(
+        `Recorded line occupancy unavailable for site "${siteId}"`,
+      );
+    }
+
+    return {
+      status: "ready",
+      artifacts: [
+        {
+          name: "timeline",
+          key: `${base}/site/${siteId}/production_timeline.json`,
+        },
+      ],
+    };
+  },
+};
+
 export const supplyChainAnalyses: readonly NamedAnalysis[] = [
   listProducts,
   listSites,
@@ -153,4 +181,5 @@ export const supplyChainAnalyses: readonly NamedAnalysis[] = [
   stepDetail,
   supplierPerformance,
   siteSummary,
+  siteProductionTimeline,
 ];

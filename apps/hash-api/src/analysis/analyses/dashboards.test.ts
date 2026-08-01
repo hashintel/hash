@@ -267,6 +267,19 @@ describe("dashboardItemData analysis", () => {
     });
   });
 
+  it("allows a new Temporal run for an explicit recompute without an artifact", async () => {
+    const result = await resolve({
+      itemUuid: ITEM_UUID,
+      recompute: true,
+    });
+
+    expect(result.status).toBe("computing");
+    expect(workflowStart.mock.calls[0]![1]).toMatchObject({
+      workflowId: `compute-dashboard-item-${WEB_ID}-${configHash}`,
+      workflowIdReusePolicy: "ALLOW_DUPLICATE",
+    });
+  });
+
   it("does not compute without a web machine", async () => {
     mockedGetWebMachineId.mockResolvedValue(null);
 
@@ -312,13 +325,13 @@ describe("dashboardItemData analysis", () => {
     );
   });
 
-  it("recomputes even a fresh artifact when force is set", async () => {
+  it("recomputes even a fresh artifact when explicitly requested", async () => {
     artifactLastModified = new Date();
     artifactMetadata = Buffer.from(
       JSON.stringify({ generationDurationMs: 5_000 }),
     );
 
-    const result = await resolve({ itemUuid: ITEM_UUID, force: true });
+    const result = await resolve({ itemUuid: ITEM_UUID, recompute: true });
 
     expect(result.status).toBe("computing");
     expect(result.metadata).toMatchObject({
@@ -326,11 +339,17 @@ describe("dashboardItemData analysis", () => {
       isRefreshing: true,
     });
     expect(workflowStart).toHaveBeenCalledTimes(1);
+    expect(workflowStart.mock.calls[0]![1].workflowIdReusePolicy).toBe(
+      "ALLOW_DUPLICATE",
+    );
   });
 
-  it("waits for a forced refresh to supersede the previous artifact", async () => {
+  it("waits for a recompute to supersede the previous artifact", async () => {
     artifactLastModified = new Date();
-    const initialResult = await resolve({ itemUuid: ITEM_UUID, force: true });
+    const initialResult = await resolve({
+      itemUuid: ITEM_UUID,
+      recompute: true,
+    });
     const refreshAfter = initialResult.metadata?.refreshAfter as string;
 
     const waitingResult = await resolve({ itemUuid: ITEM_UUID, refreshAfter });

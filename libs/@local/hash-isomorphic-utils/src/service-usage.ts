@@ -41,14 +41,26 @@ const getServiceFeatureForUsage = ({
         systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
       ),
   );
-  if (serviceFeatureLinkAndEntities.length !== 1) {
+  const [serviceFeatureLinkAndEntity] = serviceFeatureLinkAndEntities;
+
+  if (
+    !serviceFeatureLinkAndEntity ||
+    serviceFeatureLinkAndEntities.length !== 1
+  ) {
     throw new Error(
       `Expected exactly one service feature link for service usage record ${usageRecord.metadata.recordId.entityId}, got ${serviceFeatureLinkAndEntities.length}.`,
     );
   }
 
-  const serviceFeatureEntity = serviceFeatureLinkAndEntities[0]!
-    .rightEntity[0]! as HashEntity<ServiceFeature>;
+  const serviceFeatureEntity = serviceFeatureLinkAndEntity.rightEntity?.[0] as
+    | HashEntity<ServiceFeature>
+    | undefined;
+
+  if (!serviceFeatureEntity) {
+    throw new Error(
+      `Service feature entity missing from subgraph for service usage record ${usageRecord.metadata.recordId.entityId}.`,
+    );
+  }
 
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,

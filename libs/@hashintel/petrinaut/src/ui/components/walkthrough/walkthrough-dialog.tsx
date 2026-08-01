@@ -36,7 +36,7 @@ const mediaVideoStyle = css({
 const stepBlockStyle = css({
   display: "flex",
   flexDirection: "column",
-  animation: "fadeIn 180ms ease-out",
+  animation: "petrinautFadeIn 180ms ease-out",
 });
 
 const textBlockStyle = css({

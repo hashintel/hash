@@ -83,7 +83,7 @@ export const getEntityMultiTypeDependencies = ({
       console.warn(`Link entity not found in subgraph`);
     }
 
-    const rightEntityRevision = rightEntity[0];
+    const rightEntityRevision = rightEntity?.[0];
 
     if (rightEntityRevision) {
       addEntityTypeIdsToSet(
@@ -110,7 +110,7 @@ export const getEntityMultiTypeDependencies = ({
       console.warn(`Link entity not found in subgraph`);
     }
 
-    const leftEntityRevision = leftEntity[0];
+    const leftEntityRevision = leftEntity?.[0];
 
     if (leftEntityRevision) {
       addEntityTypeIdsToSet(uniqueJoinedMultiEntityTypeIds, leftEntityRevision);
