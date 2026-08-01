@@ -167,7 +167,7 @@ fn products_refine_the_f32_counterparts(
     // The narrow path rounds each product at f32; those errors scale
     // with the products' magnitudes, which cancellation can leave far
     // above the result. The tolerance therefore follows the
-    // intermediates, not the (possibly tiny) final value.
+    // intermediates, not the final value.
     let products = (f64::from(ax) * f64::from(bx)).abs() + (f64::from(ay) * f64::from(by)).abs();
     let tolerance = f64::from(f32::EPSILON) * 4.0 * (products + 1.0);
     prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);

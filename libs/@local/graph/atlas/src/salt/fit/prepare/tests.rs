@@ -156,8 +156,8 @@ fn spot_check_certifies_a_normalized_matrix() {
     )
     .expect("a non-empty matrix under a sound budget checks");
 
-    // Five rows sit far below the sample size, so the check is
-    // exhaustive and the certification exact.
+    // The corpus sits far below the sample size, so the check is exhaustive and the certification
+    // exact.
     assert_eq!(check.rows, 5);
     assert_eq!(check.sampled_rows, 5);
     assert!(check.passes());
@@ -321,7 +321,7 @@ fn identity_table_translates_rows_both_ways() {
     assert_eq!(table.id(NodeRowId::new(2)), Some(U64::new(20)));
     assert_eq!(table.id(NodeRowId::new(3)), None);
 
-    // Id to row inverts it; absent ids resolve to nothing.
+    // Id to row inverts it. Absent ids resolve to nothing.
     assert_eq!(table.row_of(U64::new(30)), Some(NodeRowId::new(0)));
     assert_eq!(table.row_of(U64::new(10)), Some(NodeRowId::new(1)));
     assert_eq!(table.row_of(U64::new(20)), Some(NodeRowId::new(2)));
@@ -332,9 +332,8 @@ fn identity_table_translates_rows_both_ways() {
 
 #[test]
 fn identity_lookup_crosses_stride_boundaries() {
-    // 600 eight-byte ids stride at 256 pairs: three index keys, so
-    // lookups exercise block selection, not just the first stride.
-    // Big-endian bytes sort like the values themselves.
+    // 600 eight-byte ids stride at 256 pairs: three index keys, so lookups exercise block selection
+    // beyond the first stride. Big-endian bytes sort like the values themselves.
     let mut table = IdentityTable::new();
     for id in 0..600_u64 {
         table.push(id.to_be_bytes());
@@ -372,9 +371,8 @@ fn identity_table_rejects_duplicate_ids() {
     let _result = table.write_into(&mut bytes);
 }
 
-// Region offsets of the three-row fixture: the 24-byte id column at
-// 4096, one index key at 8192, and 16-byte pairs from 12288 - each
-// region padded to the next 4096-byte boundary.
+// Region offsets of the three-row fixture, with the 24-byte id column at 4096, one index key at
+// 8192, and 16-byte pairs from 12288. Each region pads to the next 4096-byte boundary.
 const IDS_OFFSET: usize = 4096;
 const INDEX_OFFSET: usize = 8192;
 const PAIRS_OFFSET: usize = 12288;

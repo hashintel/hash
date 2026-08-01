@@ -50,8 +50,8 @@ impl Sha256Digest {
     /// Adopts `bytes` as a digest without computing anything.
     ///
     /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this
-    /// value is meant to name; nothing here can check that. Use this to restore digests from
-    /// storage formats that persist raw bytes rather than hexadecimal text.
+    /// value names. This constructor cannot verify that. Use this to restore digests from storage
+    /// formats that persist raw bytes rather than hexadecimal text.
     #[must_use]
     #[inline]
     pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
@@ -92,8 +92,8 @@ impl FromStr for Sha256Digest {
 ///
 /// The hasher absorbs bytes incrementally through [`Update::update`] (or any
 /// stream via [`Writer`](super::Writer)) and finishes into a [`Sha256Digest`] with
-/// [`Sha256::finalize`]. The digest is determined by the concatenated byte stream alone, never by
-/// how it was chunked.
+/// [`Sha256::finalize`]. The concatenated byte stream alone determines the digest, never the chunk
+/// boundaries the caller used.
 ///
 /// Note that byte concatenation is ambiguous across component boundaries: `["ab", "c"]` and `["a",
 /// "bc"]` produce the same digest. When a digest covers multiple variable-length components, frame

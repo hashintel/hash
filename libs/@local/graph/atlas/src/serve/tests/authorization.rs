@@ -4,7 +4,8 @@
 //! layout by hand, the AEAD over a hand-assembled associated-data buffer - and compare bytes with
 //! what [`TokenAuthority`] produces, in both directions. Every width below is a hand-summed
 //! literal rather than a `size_of` over the production layout types, which is what keeps the
-//! battery an independent check on the byte order: agreement is asserted, never inherited.
+//! battery an independent check on the byte order. Each case asserts agreement rather than
+//! inheriting it.
 #![expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -36,7 +37,9 @@ use crate::{
 /// The format version's width.
 const VERSION_BYTES: usize = 1;
 
-/// The issue time's width: whole seconds as a little-endian unsigned 64-bit integer.
+/// The issue time's width.
+///
+/// The issue time is whole seconds as a little-endian unsigned 64-bit integer.
 const ISSUED_AT_BYTES: usize = 8;
 
 /// The nonce width: `XChaCha20`'s 192-bit extended nonce.
@@ -57,7 +60,9 @@ const DIGEST_BYTES: usize = 32;
 /// The delivery-cut offset's width.
 const OFFSET_BYTES: usize = 1;
 
-/// The sealed plaintext's width: an actor uuid, a presence byte, a filter digest, the offset.
+/// The sealed plaintext's width.
+///
+/// The sealed plaintext is an actor uuid, a presence byte, a filter digest, and the offset byte.
 const PLAINTEXT_BYTES: usize = ACTOR_BYTES + PRESENCE_BYTES + DIGEST_BYTES + OFFSET_BYTES;
 
 /// Poly1305's tag width.
@@ -95,7 +100,7 @@ fn generation() -> crate::file::generation::GenerationId {
         .expect("64 hexadecimal digits name a generation")
 }
 
-/// The fixture issue time: a round wall-clock second.
+/// The fixture issue time, a round wall-clock second.
 fn issued_at() -> SystemTime {
     SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
 }
@@ -139,7 +144,9 @@ fn header(now: SystemTime, nonce: &[u8]) -> [u8; HEADER_BYTES] {
     bytes
 }
 
-/// Assembles the sealed plaintext by hand: actor uuid, presence byte, filter digest, offset byte.
+/// Assembles the sealed plaintext by hand.
+///
+/// The bytes run actor uuid, presence byte, filter digest, and offset byte, in that order.
 fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> [u8; PLAINTEXT_BYTES] {
     let mut bytes = [0_u8; PLAINTEXT_BYTES];
     bytes[..ACTOR_BYTES].copy_from_slice(&Uuid::from_u128(actor).into_bytes());
@@ -155,8 +162,8 @@ fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> [u8; PLAINTEXT_BYTES]
 
 /// Seals a plaintext under the independent implementation.
 ///
-/// The counterpart of the byte-compared mint: a hand-assembled envelope the production `open` is
-/// expected to accept.
+/// The production `open` must accept the resulting envelope, which makes this the counterpart of
+/// the byte-compared mint.
 fn seal_raw(
     plaintext: &[u8; PLAINTEXT_BYTES],
     now: SystemTime,
@@ -182,11 +189,11 @@ fn seal_raw(
 
 /// A minted token is byte-identical to an independently assembled envelope, filtered or not.
 ///
-/// The associated data is the clear header's own bytes, so this case pins that too: an
+/// The associated data is the clear header's own bytes, so this case pins that too. An
 /// implementation that authenticated a re-encoded form of the same fields would produce a different
-/// tag and fail here. Filtered and unfiltered, at either offset, the envelope is the same fixed 99
-/// bytes - the digest field is zeroed rather than omitted when absent, so a filter's presence never
-/// shows in the length.
+/// tag and fail here. The envelope is the same fixed 99 bytes at either offset and with or without
+/// a filter. An absent filter leaves the digest field zero rather than dropping it, so a filter's
+/// presence never shows in the length.
 #[test]
 fn a_minted_token_matches_an_independent_envelope() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
@@ -229,9 +236,9 @@ fn a_minted_token_matches_an_independent_envelope() {
 
 /// An independent decryption recovers the sealed plaintext.
 ///
-/// The counterpart of the mint-side byte comparison: the body is decrypted under the independently
-/// derived key and compared with the hand-assembled plaintext, so the sealed bytes are pinned from
-/// both sides of the AEAD.
+/// The mint-side byte comparison has its counterpart here. This case decrypts the body under the
+/// independently derived key and compares it with the hand-assembled plaintext, which pins the
+/// sealed bytes from both sides of the AEAD.
 #[test]
 fn an_independent_open_recovers_the_scope() {
     let canonical = b"{\"kind\":\"all\"}".as_slice();
@@ -283,8 +290,8 @@ fn a_hand_assembled_envelope_opens() {
 /// A rewritten issue time refuses as an authentication fault.
 ///
 /// The clear header is in the associated data, so editing the field the age check reads invalidates
-/// the tag. The tag is judged first, which is why the cause is authentication rather than staleness
-/// whichever direction the edit moves the clock.
+/// the tag. `open` judges the tag first, which is why the cause is authentication rather than
+/// staleness whichever direction the edit moves the clock.
 #[test]
 fn a_rewritten_issue_time_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
@@ -378,10 +385,11 @@ fn a_foreign_secret_refuses() {
     );
 }
 
-/// Tampering any authenticated byte refuses: the nonce, the ciphertext, and the tag.
+/// Tampering with any authenticated byte refuses.
 ///
-/// The issue time has its own case; these cover the remaining regions. The nonce sits in the clear
-/// header, so its edit fails through the associated data; the other two fail as ciphertext.
+/// The issue time has its own case, and the nonce, the ciphertext, and the tag cover the remaining
+/// regions. The nonce is in the clear header, so its edit fails through the associated data, while
+/// the other two fail as ciphertext.
 #[test]
 fn a_tampered_byte_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
@@ -481,7 +489,7 @@ fn a_carried_read_still_enforces_tag_and_actor() {
     );
 }
 
-/// Two mints draw two nonces.
+/// A second mint draws a different nonce.
 ///
 /// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, so the property
 /// worth witnessing is the opposite of determinism: the entropy source advances per mint. Both

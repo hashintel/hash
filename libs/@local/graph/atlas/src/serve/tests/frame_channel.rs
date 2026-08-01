@@ -1,7 +1,7 @@
 //! Controlled proof that the visible set's key assignment is corpus-dependent.
 //!
-//! The delivery contract's fixed-view comparison holds three things equal across two worlds:
-//! visible row identity, visible Morton keys, and relative importance order among visible rows.
+//! The delivery contract's fixed-view comparison keeps visible row identity, visible Morton keys,
+//! and relative importance order among visible rows identical across two worlds.
 //! The scope cascade closes the channel that runs through the *bucket assignment*; this module is
 //! about the channel one layer further up, in the keys the cascade reads.
 //!
@@ -19,8 +19,8 @@
 //! That curve is the delivery policy's own input. A view-wide cut chosen from `C(m + k, V)` is
 //! therefore a function of the corpus bounding box, not of the visible set alone.
 //!
-//! Two corpora are required, for the same reason the metadata channel needs them: one corpus under
-//! two proofs shares one frame, so no comparison that varies the mask alone can observe this.
+//! These witnesses need two corpora, for the same reason the metadata channel does. One corpus
+//! under two proofs shares one frame, so no comparison that varies the mask alone can observe this.
 //!
 //! Scope of these witnesses: they establish what the *key assignment* does. They assert nothing
 //! about bucket assignment, which is [`super::metadata_channel`]'s subject and which an interior
@@ -57,7 +57,7 @@ struct Reading {
 
 /// Reproduces the production key assignment over `points`, then reads the first `visible` rows.
 ///
-/// The three staged steps are `stage.rs`'s own: fit the frame over every coordinate, normalize onto
+/// The staged steps are `stage.rs`'s own: fit the frame over every coordinate, normalize onto
 /// the wire frame, quantize. The ranking ranks row `r` at position `r`, and the cascade runs only
 /// to confirm the columns agree - no expectation here reads a bucket.
 fn read(points: &[Vec2], visible: usize) -> (Bounds2, Reading) {
@@ -112,9 +112,9 @@ fn depth(value: u8) -> Depth {
     Depth::new(value).expect("fixture depths lie within the key width")
 }
 
-/// The three visible rows shared by every world here, in world coordinates.
+/// The visible rows every world here shares, in world coordinates.
 ///
-/// Their bounding box is `[0, 3]^2`, and they are named in rank order.
+/// Their bounding box is `[0, 3]^2`, and the array lists them in rank order.
 const VISIBLE: [Vec2; 3] = [
     Vec2::new(0.0, 0.0),
     Vec2::new(1.0, 1.0),
@@ -127,9 +127,9 @@ const VISIBLE: [Vec2; 3] = [
 /// `V0` is the counterexample to the stronger reading: it sits at the fitted frame's lower corner,
 /// so it keys to zero in both worlds while its neighbours move.
 ///
-/// Both worlds hold the same three visible rows with the same identities and the same relative
-/// importance order - `read` ranks row `r` at position `r` in either world, so the comparison holds
-/// the rank inputs fixed alongside the identities. The blocked world adds one hidden row at `(7,
+/// Both worlds contain the same three visible rows with the same identities and the same relative
+/// importance order. `read` ranks row `r` at position `r` in either world, so the comparison fixes
+/// the rank inputs alongside the identities. The blocked world adds one hidden row at `(7,
 /// 7)`, widening the fitted frame from `[0, 3]^2` to `[0, 7]^2`. Each axis then maps `world -> [-1,
 /// 1]` with a different scale, so the visible unit coordinates change from `{0, 1/3, 1}` to `{0,
 /// 1/7, 3/7}`:
@@ -140,7 +140,7 @@ const VISIBLE: [Vec2; 3] = [
 /// | `V1` | `1, 1` | `1/3`        | `0x5555_5540`   | `1/7`         | `0x2492_4900`    |
 /// | `V2` | `3, 3` | `1`          | `0xffff_ffff`   | `3/7`         | `0x6db6_db60`    |
 ///
-/// The low bits carry the one f32 rounding the normalization admits; the cell prefixes are exact.
+/// The low bits carry the one f32 rounding the normalization admits. The cell prefixes are exact.
 /// Because prefixes move, occupancy moves with them: at depth 1 the sparse world holds `V0`, `V1`
 /// in one cell and `V2` in another, while the blocked world holds all three in one, so
 /// `C(1, V)` reads 2 and then 1. `C(d, V)` is the cut policy's input, so the corpus bounding box is

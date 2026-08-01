@@ -76,9 +76,8 @@ pub enum TileError {
     Unsupported(&'static str),
     /// The resolved cut offset lies past the key width.
     ///
-    /// A sealed offset is resolved against this same generation's schedule, so the value is a
-    /// defect to surface; delivery refuses it whole rather than clamping or substituting a
-    /// schedule.
+    /// This same generation's schedule resolves a sealed offset, so the value is a defect to
+    /// surface. Delivery refuses it whole rather than clamping or substituting a schedule.
     Schedule(ScheduleWidthError),
     /// The proof and the schedule it travelled with disagree about the serving contract.
     ///
@@ -123,7 +122,7 @@ impl Error for TileError {}
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TileQuery {
-    /// The delivery mode; delta when the request names none.
+    /// The delivery mode, defaulting to delta when the request names none.
     #[serde(default)]
     pub mode: Mode,
     /// Versioned type URLs conditioning the `TYPE_MASK` column, in request order.
@@ -133,7 +132,9 @@ pub struct TileQuery {
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
     pub colored_type_ids: Vec<VersionedUrl>,
-    /// The visibility filter, a reserved field: a request that carries one is rejected.
+    /// The visibility filter, a reserved field.
+    ///
+    /// Delivery rejects any request that carries one.
     #[serde(default)]
     pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
@@ -157,8 +158,8 @@ pub struct TileRequest {
 /// Everything [`Atlas::encode_tile`] needs except the columns it gathers at encode time.
 ///
 /// The document owns its derived data, so it crosses thread boundaries between assembly, hydration,
-/// and encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly
-/// and encoding are CPU-bound, hydration awaits the store between them.
+/// and encoding. The envelope orders hydration last, and the split mirrors that order: assembly and
+/// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
 pub struct TileDocument {
     coordinate: TileCoordinate,
@@ -177,14 +178,15 @@ impl Atlas {
     ///
     /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// A request that sets `includeDetailedData` is rejected by name: this path serves deployments
-    /// without a store connection. A transport with one assembles, hydrates, and encodes through
-    /// [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and [`Atlas::encode_tile`].
+    /// This path rejects a request that sets `includeDetailedData` by name, because it serves
+    /// deployments without a store connection. A transport with one assembles, hydrates, and
+    /// encodes through [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and
+    /// [`Atlas::encode_tile`].
     ///
     /// This path censuses `proof` and derives its schedule itself, once per call. A transport
-    /// resolves both with the scope and hands them to [`Atlas::assemble_tile`], so the walks are
-    /// paid per scope rather than per request; without a store there is no scope to hold them
-    /// on, so there is nothing to amortize against.
+    /// resolves both with the scope and hands them to [`Atlas::assemble_tile`], so the scope pays
+    /// for the walks rather than the request. Without a store, the deployment holds no scope for
+    /// them and nothing remains to amortize against.
     ///
     /// # Errors
     ///
@@ -213,15 +215,15 @@ impl Atlas {
 
     /// Censuses the visible view `proof` admits over this generation.
     ///
-    /// The corpus-wide aggregates a root tile publishes, resolved once per scope: an unmasked proof
+    /// A root tile publishes corpus-wide aggregates, resolved once per scope. An unmasked proof
     /// answers from the artifacts, and a masked one costs one pass over the base column. Every
-    /// root-tile request under a scope then reads the census rather than recomputing it, which is
-    /// what keeps the walk off the request path.
+    /// root-tile request under a scope then reads the census rather than recomputing it, which
+    /// keeps the walk off the request path.
     ///
-    /// Caller requirement: the census travels with the proof it was censused from. Assembly reads
-    /// it as the view's own aggregates without re-deriving them, so a census paired with a
-    /// different proof publishes that other scope's extent - the same contract, and the same
-    /// reason, as holding a proof to the generation it was evaluated for.
+    /// The caller must pass the census taken from this same proof. Assembly reads it as the view's
+    /// own aggregates without re-deriving them, so a census paired with a different proof publishes
+    /// that other scope's extent. Pinning a proof to its own generation carries the same contract
+    /// for the same reason.
     #[must_use]
     pub fn census(&self, proof: &VisibilityProof) -> ViewCensus {
         Walk::of(self, proof).visible_census(self.grid.cut(0), self.positions(), self.bounds)
@@ -229,8 +231,9 @@ impl Atlas {
 
     /// Aggregates the Morton occupancy of `proof`'s visible view.
     ///
-    /// The delivery-cut policy's input: one pass over the code column, paid only where a fresh
-    /// bootstrap resolves its offset, never on the request path.
+    /// The delivery-cut policy takes this aggregate as its input. Producing it costs one pass over
+    /// the code column, and only a fresh bootstrap that resolves its offset pays that pass. The
+    /// request path never does.
     #[must_use]
     pub(crate) fn visible_occupancy(&self, proof: &VisibilityProof) -> ViewOccupancy {
         Walk::of(self, proof).visible_occupancy()
@@ -240,21 +243,21 @@ impl Atlas {
     ///
     /// Every rejection happens here, so encoding cannot fail.
     ///
-    /// The `TYPE_MASK` column rides exactly the requests that supply `coloredTypeIds`: bit `i` of a
+    /// Exactly the requests that supply `coloredTypeIds` carry the `TYPE_MASK` column. Bit `i` of a
     /// point's mask reads 1 when the point carries the request's type `i` or one of its
     /// descendants. An id that resolves to no type in this generation is legal and reads 0 in every
     /// mask.
     ///
-    /// An operator proof delivers the generation's corpus schedule. A scoped proof delivers its
-    /// own cascade at the view's resolved cut `z + span + k`: one contiguous interval of scope
-    /// buckets per response, ascending bucket then Morton order, with every schedule-derived
-    /// `HEAD` field (`visible` counts, the `children` bitmask, the root's global metadata)
-    /// reduced over the visible view alone. A hidden point contributes to none of them, so a
-    /// scope's tile carries no evidence of what the mask removed - a fully masked tile is a tile
-    /// that never had rows.
+    /// An operator proof delivers the generation's corpus schedule. Under a scoped proof, delivery
+    /// instead follows the view's resolved cut `z + span + k`, which gives one contiguous interval
+    /// of scope buckets per response, ascending bucket then Morton order, with every
+    /// schedule-derived `HEAD` field (`visible` counts, the `children` bitmask, the root's global
+    /// metadata) reduced over the visible view alone. A hidden point contributes to none of them,
+    /// so a scope's tile carries no evidence of what the mask removed: a fully masked tile is a
+    /// tile that never had rows.
     ///
-    /// Version 0 serves the full unfiltered visible set in both modes; a request naming a filter is
-    /// rejected by name rather than answered with bytes that silently ignore it.
+    /// Version 0 serves the full unfiltered visible set in both modes. Delivery rejects a request
+    /// naming a filter by name rather than answering with bytes that ignore it without saying so.
     ///
     /// # Errors
     ///
@@ -303,8 +306,8 @@ impl Atlas {
             y: coordinate.y,
         })?;
 
-        // The contract discriminator: each proof constructor pairs with exactly one schedule
-        // variant, and a mismatched pair refuses before any bytes assemble.
+        // This match discriminates the contract. Each proof constructor pairs with exactly one
+        // schedule variant, and a mismatched pair refuses before any bytes assemble.
         let scope_cut = match (proof.is_full(), schedule) {
             (true, ViewSchedule::Corpus) => None,
             (false, ViewSchedule::Scope(scope)) => {
@@ -359,9 +362,9 @@ impl Atlas {
             walk.visible_population(cell)
         };
 
-        // The root publishes the view's own aggregates. The extent was resolved once with the
-        // scope; the count and resolution are the schedule's, so a scoped root names its own
-        // cascade rather than the corpus one.
+        // The root publishes the view's own aggregates. The scope resolved the extent once, and the
+        // count and resolution are the schedule's, so a scoped root names its own cascade rather
+        // than the corpus one.
         let global = (coordinate.z == 0).then(|| {
             scope_cut.map_or_else(
                 || GlobalHead {
@@ -399,7 +402,7 @@ impl Atlas {
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the row column, which open's cross-artifact
+    /// This panics when the identity table contradicts the row column, which open's cross-artifact
     /// validation rules out.
     #[must_use]
     pub fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities {
@@ -421,12 +424,12 @@ impl Atlas {
     /// Encodes an assembled document.
     ///
     /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
-    /// detail trailer riding iff `details` is supplied.
+    /// detail trailer included iff the caller supplies `details`.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's delivered points - a transport bug,
-    /// never request data.
+    /// This panics when supplied details do not cover the document's delivered points, a transport
+    /// bug rather than request data.
     #[must_use]
     pub fn encode_tile(&self, document: &TileDocument, details: Option<&NodeDetails>) -> Vec<u8> {
         let masks = document

@@ -1,9 +1,9 @@
 //! Cross-artifact agreement at open: each shared-domain disagreement names its own variant.
 //!
-//! `Atlas::open` is the only place the artifacts are checked against each other; every read path
+//! `Atlas::open` is the only place that checks the artifacts against each other; every read path
 //! below it indexes across them without re-validating. A generation whose artifacts disagree
-//! therefore has one chance to be refused, and refusing it under the wrong name is nearly as bad
-//! as serving it: the variant is what an operator repairs from.
+//! therefore gets one chance at refusal, and refusing it under the wrong name leaves an operator
+//! little better off than serving it would: the variant is what an operator repairs from.
 
 use core::assert_matches;
 use std::io::Write as _;
@@ -104,9 +104,9 @@ fn respan_adjacency(path: &Utf8PathBuf, rows: usize, endpoints: &[[NodeRowId; 2]
 
 /// Rewrites the quad artifact with the root's subtree count set to `points`.
 ///
-/// The topology, the runs, and the type sets are the published ones: the quad format validates its
-/// header, its fenceposts, and its child indexes, and never the subtree counts - which is the
-/// reason `open` has to.
+/// The topology, the runs, and the type sets are the published ones. The quad format validates the
+/// header, the fenceposts, and the child indexes, and never the subtree counts, which is why `open`
+/// must.
 fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
     // The mapping ends before the rewrite: the file backs the slices read here.
     let (mut nodes, sets) = {
@@ -135,11 +135,11 @@ fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
 
 /// Rewrites the postings artifact with its point domain set to `points`.
 ///
-/// Every other region is the published one. The header's point domain is read back only against
-/// the membership lists: widening it loosens the bound a list position is checked against, and the
-/// dense-run rules key off the domain's word count, which one extra point moves only across a
-/// multiple of 32. A fixture that widened across that boundary would be refused by the postings
-/// contract under its own name, which the caller's variant assertion reports rather than absorbs.
+/// Every other region is the published one. Only the membership lists read the header's point
+/// domain back. Widening it loosens the bound every list position must clear, and the dense-run
+/// rules key off the domain's word count, which one extra point moves only across a multiple of 32.
+/// The postings contract would refuse a fixture that widened across that boundary under its own
+/// name, which the caller's variant assertion reports rather than absorbs.
 fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
     // The mapping ends before the rewrite: the file backs the slices read here. The writer
     // speaks native build words, so the copies decode the mapped little-endian regions.
@@ -210,22 +210,22 @@ fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
 
 /// Every artifact disagreement `open` checks answers with its own variant, and repair restores it.
 ///
-/// One published generation, tampered one artifact at a time: each tamper moves a single domain by
-/// one row and leaves that artifact valid at its own format, so the only thing that moved is the
-/// domain under test. **The reopen after each repair is the negative control** - the fixture opens
-/// again every time, so each rejection is attributable to its own tamper rather than to a fixture
-/// that had quietly stopped opening.
+/// The tampers all run against a single published generation, changing one artifact at a time.
+/// Each tamper moves a single domain by one row and leaves that artifact valid at its own format,
+/// so the only thing that moved is the domain under test. The reopen after each repair is the
+/// negative control. The fixture opens again every time, so each rejection belongs to its own
+/// tamper rather than to a fixture that had stopped opening unnoticed.
 ///
-/// Which direction a tamper moves a domain is forced, not stylistic. Dropping a node row from the
-/// adjacency would drop that node's edge slots with it and move the edge domain in the same
+/// The artifact structure forces which direction a tamper moves a domain. Dropping a node row from
+/// the adjacency would drop that node's edge slots with it and move the edge domain in the same
 /// tamper; narrowing the postings' point domain can strand a membership position outside it, which
 /// the postings contract refuses first and under its own name. Both therefore add a row, and
 /// widening is as much a producer bug as truncation is.
 ///
-/// The two universe variants are absent and cannot be present: `Universe` and `EdgeUniverse` fire
-/// above `u32::MAX` rows, which no fixture constructs. They are guards against arithmetic the
-/// fixture cannot reach, not untested branches a cheaper test would cover. Every other variant of
-/// the cross-artifact pass has its tamper here.
+/// Both universe variants are absent and cannot be present: `Universe` and `EdgeUniverse` fire
+/// above `u32::MAX` rows, which no fixture constructs. They guard arithmetic the fixture cannot
+/// reach, so no tamper can exercise them. Every other variant of the cross-artifact pass has its
+/// tamper here.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn every_cross_artifact_disagreement_names_its_own_variant() {
@@ -235,7 +235,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
     let open = || Atlas::open(&root, generation.id(), test_open_options());
     let files = &generation.repository().files;
 
-    // The control: the untampered fixture opens, so every rejection
+    // As a control, the untampered fixture opens, so every rejection
     // below is its tamper's.
     let atlas = open().expect("the published fixture opens");
     let nodes = atlas.row_ids().len() as u64;

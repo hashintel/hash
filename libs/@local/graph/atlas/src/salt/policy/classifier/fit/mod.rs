@@ -10,24 +10,23 @@
 //!
 //! through the deterministic bounded trust-region exact-Newton [`solver`], which operates in
 //! contrast coordinates and certifies every solution against its gradient threshold. The data
-//! Gram matrix behind the solver's row-space factorization assembles once per fit and every
-//! fold solve reads its subset through a member view. Whole
-//! relation groups are assigned to seeded, size-balanced folds before fitting, so
-//! near-duplicate corpus entries never straddle a train/validation split. The penalty strength
-//! λ is selected over those folds ([`regularization`]): every candidate's fold models fit in
-//! parallel, the minimum out-of-fold cross-entropy wins with an exact tie preferring the
-//! stronger penalty, and the deployment model then fits at the winning strength over the
-//! complete corpus. The winner's concatenated out-of-fold logits calibrate one scalar
-//! deployment temperature ([`calibration`]), and the applicability distribution is fitted over
-//! the complete corpus ([`applicability`]). Each fit's arithmetic is sequential and the fold
-//! assignment is shared across candidates, so the result is deterministic. The out-of-fold
-//! metrics judge the selected configuration on the same folds that chose it.
+//! Gram matrix behind the solver's row-space factorization assembles once per fit and every fold
+//! solve reads its subset through a member view. Whole relation groups go to seeded, size-balanced
+//! folds before fitting, so near-duplicate corpus entries never straddle a train/validation split.
+//! [`regularization`] selects the penalty strength λ over those folds. Every candidate's fold
+//! models fit in parallel and the minimum out-of-fold cross-entropy wins, with an exact tie
+//! preferring the stronger penalty. The deployment model then fits at the winning strength over the
+//! complete corpus. The winner's concatenated out-of-fold logits calibrate one scalar deployment
+//! temperature ([`calibration`]), and [`applicability`] fits the applicability distribution over
+//! the complete corpus. Each fit's arithmetic is sequential and every candidate reuses the same
+//! fold assignment, so the result is deterministic. The out-of-fold metrics judge the selected
+//! configuration on the same folds that chose it.
 //!
-//! Every fit must certify at the configured gradient threshold: a solve that ends at any typed
-//! terminal - an exhausted budget, a stalled reduction, or arithmetic that left the finite
-//! domain - is an error, never a best-effort model. An atlas generation requires a valid
-//! classifier artifact and fails candidacy without one, so a questionable model must not be
-//! published for the pipeline to limp on with.
+//! Every fit certifies at the configured gradient threshold. A solve that ends at any typed
+//! terminal is an error, and the fit returns no best-effort model. The typed terminals are an
+//! exhausted budget, a stalled reduction, and arithmetic that left the finite domain. Since an
+//! atlas generation requires a valid classifier artifact and fails candidacy without one, the fit
+//! withholds a questionable model instead of letting the pipeline limp on.
 
 use core::{error::Error, fmt};
 use std::collections::HashMap;
@@ -116,7 +115,7 @@ impl Error for TrainingSetError {}
 pub enum FitError {
     /// The solver configuration violated a cross-field constraint.
     Config(SolverConfigError),
-    /// The fold count cannot hold one validation portion out. At least 2 folds are required.
+    /// The fold count cannot hold one validation portion out. A fit needs at least 2 folds.
     FoldCount { folds: usize },
     /// Fewer distinct groups than requested folds.
     InsufficientGroups { groups: usize, folds: usize },
@@ -160,9 +159,9 @@ impl Error for FitError {}
 
 /// One soft label, vote weight, and indivisible validation group.
 ///
-/// The group digest names the finest unit a validation split may not divide. Corpus assembly unions
-/// every leakage axis - relation family, inverse pair, base URL, publisher, near-duplicate card
-/// family - into this one label before rows reach the fit, so near-identical corpus entries can
+/// The group digest names the finest unit a validation split never divides. Corpus assembly unions
+/// every leakage axis (relation family, inverse pair, base URL, publisher, near-duplicate card
+/// family) into this one label before rows reach the fit, so near-identical corpus entries can
 /// never straddle a train/validation boundary and inflate the out-of-fold metrics.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct TrainingRow {
@@ -356,9 +355,9 @@ pub(crate) struct Fit {
 /// portion violating the preparation contract, a solve ending at a typed terminal, or a
 /// non-finite out-of-fold evaluation.
 ///
-/// The candidate fold fits are the long part of the stage and run in parallel; a fold reports
-/// to `progress` when its last candidate lands, so completions arrive in whatever order the
-/// pool finishes them.
+/// The candidate fold fits are the long part of the stage and run in parallel. A fold reports to
+/// `progress` when its last candidate completes, so completions arrive in whatever order the pool
+/// finishes them.
 pub(crate) fn fit<P: Progress + Sync>(
     training: TrainingSet<'_>,
     config: FitConfig,
@@ -427,12 +426,10 @@ fn fit_model(
     gram: &Gram,
     counters: WorkCounters,
 ) -> Result<(Parameters, u64), FitError> {
-    // The held-out fold's complement materializes densely: the solver
-    // traverses whole corpora, and fold membership is not its contract.
-    // The gather re-bases the complement into the solve's own positional
-    // row space, so the card-row domain ends here; the window carries
-    // each solve row's original corpus index, the form the Gram view is
-    // documented to speak.
+    // The held-out fold's complement materializes densely because the solver traverses whole
+    // corpora and fold membership is not its contract. The gather re-bases the complement into the
+    // solve's own positional row space, so the card-row domain ends here. The window records each
+    // solve row's original corpus index, which is the form the Gram view documents.
     let subset = held_out.map(|held_out| {
         let members: Vec<CardRow> = folds
             .iter_enumerated()
@@ -479,8 +476,8 @@ fn fit_model(
         Ok(converged) => converged,
         Err(failure) => {
             // The typed terminal, the candidate strength, the aggregate counters, and the fold
-            // identity are the whole routine failure diagnostic; the probe replays `seed:fold`
-            // when vectors are needed.
+            // identity are the whole routine failure diagnostic. The probe replays `seed:fold` when
+            // a caller needs the vectors.
             tracing::error!(
                 ?failure,
                 ?held_out,
@@ -519,7 +516,7 @@ fn split_parameters(
 
 /// Assigns whole groups to seeded, size-balanced folds.
 ///
-/// Groups are placed largest first onto the currently smallest fold; equal sizes break by a seeded
+/// Each group joins the currently smallest fold, largest group first. Equal sizes break by a seeded
 /// hash of the group digest and then by the digest itself, so the assignment is deterministic and
 /// independent of row order.
 fn grouped_folds(
@@ -539,7 +536,7 @@ fn grouped_folds(
         });
     }
 
-    // Priorities are precomputed: hashing inside the comparator would
+    // Precomputing the priorities keeps hashing out of the comparator, which would otherwise
     // recompute two digests per comparison.
     let mut ordered: Vec<_> = groups
         .into_iter()

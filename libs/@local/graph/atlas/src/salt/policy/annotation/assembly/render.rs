@@ -50,8 +50,8 @@ fn endpoint_constraints<'text, E>(
 ) -> Result<Vec<card::EndpointConstraint<'text>>, AssemblyError<E>> {
     let mut constraints = Vec::with_capacity(content.endpoint_constraints.len());
     for constraint in &content.endpoint_constraints {
-        // A constraint whose source label normalizes away has no
-        // association to render; its targets render nothing either.
+        // A constraint whose source label normalizes away has no association to render. Its targets
+        // render nothing either.
         let Some(source) = phrase(&constraint.source_type, template) else {
             continue;
         };

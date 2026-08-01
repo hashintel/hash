@@ -1,21 +1,21 @@
 //! Published files and their identities.
 //!
-//! A repository is a directory of immutable published files. Each file is known by its name,
-//! relative to the repository root, and by the SHA-256 of its bytes. The name locates the file; the
-//! hash is its identity: verification tooling recomputes it, and equal hashes across repositories
-//! mean the file can be shared rather than copied.
+//! A repository is a directory of immutable published files. Each file has a name relative to the
+//! repository root and a SHA-256 hash of its bytes. The name locates the file. The hash is its
+//! identity, which verification tooling recomputes. Equal hashes across repositories let the
+//! repositories share one file rather than copy it.
 //!
-//! The repository itself is versioned by [`RepositoryVersion`], recorded in the metadata document
-//! that describes it. It is the JSON analog of the pinned binary headers: the version leads the
-//! serialized document, so a repository of another layout is rejected before the rest of the
-//! document is interpreted. Field order carries that guarantee for documents this crate wrote; a
-//! document whose keys arrive in another order is rejected by whichever field fails first.
+//! [`RepositoryVersion`] versions the repository itself. The metadata document that describes the
+//! repository records it. That version is the JSON analog of the pinned binary headers. It leads
+//! the serialized document, so deserialization rejects a repository of another layout before it
+//! interprets the rest of the document. Field order carries that guarantee for documents this crate
+//! wrote. Whichever field fails first rejects a document whose keys arrive in another order.
 //!
-//! The layout (directory structure, naming) is version 2 and **mutable**: change it freely to fit
-//! what the pipeline needs and increment [`RepositoryVersion`] when you do; published files are
-//! immutable, the conventions around them are not, until they stabilize. Retired versions stay
-//! retired: a repository of an earlier layout is rejected whole, never reinterpreted, and its
-//! store requires a fresh generation.
+//! The layout is version 2 and **mutable**, covering the directory structure and naming. Change it
+//! to fit what the pipeline needs and increment [`RepositoryVersion`] when you do. Published files
+//! are immutable while the conventions around them stay mutable until they stabilize. Retired
+//! versions stay retired. Deserialization rejects a repository of an earlier layout whole and never
+//! reinterprets it. Its store requires a fresh generation.
 
 use alloc::borrow::Cow;
 
@@ -73,10 +73,10 @@ impl core::error::Error for UnknownRepositoryVersion {}
 
 /// A plain, visible file name within a repository directory.
 ///
-/// Names contain no path separators or NUL bytes and never start with a dot: files of one
-/// repository live flat in its directory, and dot-prefixed entries are transient staging state,
-/// never published files. Pinned names borrow ([`pinned`](Self::pinned), validated at compile time
-/// in const position); names read from disk or documents own their text.
+/// Names contain no path separators or NUL bytes and never start with a dot. Files of one
+/// repository live flat in its directory, and dot-prefixed entries are transient staging state
+/// rather than published files. Pinned names borrow ([`pinned`](Self::pinned), validated at compile
+/// time in const position). Names read from disk or documents own their text.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct FileName(Cow<'static, str>);
@@ -97,8 +97,9 @@ impl FileName {
     ///
     /// # Panics
     ///
-    /// Panics when the name is not a plain, visible file name; in const position the panic is a
-    /// compile error, so a pinned name that exists is valid.
+    /// This panics when the name is not a plain, visible file name. In const position the panic is
+    /// a compile error, so a pinned name that exists is valid. For untrusted input, use
+    /// [`Self::new`] instead.
     #[must_use]
     pub(crate) const fn pinned(name: &'static str) -> Self {
         assert!(
@@ -171,7 +172,7 @@ impl core::fmt::Display for InvalidFileName {
 
 impl core::error::Error for InvalidFileName {}
 
-/// One published file: its name within the repository and the SHA-256 of its bytes.
+/// One published file, identified by its name within the repository and the SHA-256 of its bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RepositoryFile {
     pub name: FileName,

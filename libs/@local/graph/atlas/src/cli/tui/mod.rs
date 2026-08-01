@@ -1,18 +1,18 @@
-//! The live dashboard: one fit's observations, drawn.
+//! One fit's observations, drawn live in the terminal.
 //!
 //! [`Dashboard`] is the operator surface behind the shell's `--tui` flag. It owns the terminal and
-//! a rendering thread, hands the run an [`Observer`] to report into ([`Progress`]) and the log
-//! subscriber a [`LogSink`] to write into, and restores the terminal at
-//! [`finish`](Dashboard::finish) before the shell prints the fit's verdict.
+//! a rendering thread. It hands the run an [`Observer`] to report into ([`Progress`]) and the log
+//! subscriber a [`LogSink`] to write into. [`finish`](Dashboard::finish) restores the terminal
+//! before the shell prints the fit's verdict.
 //!
-//! Reporting is one-way traffic: observations and log lines travel down a channel as
+//! Reporting is one-way traffic. Observations and log lines travel down a channel as
 //! [`Observation`]s, and the renderer owns the only [`RunState`], folding what has arrived into it
 //! before each frame. A reporting thread parts with its observation and carries on, so a hot loop
 //! never waits on the terminal.
 //!
-//! The dashboard observes and never steers, so nothing here can change what a run publishes: the
-//! channel takes every observation as it comes, a closed one is a dashboard that has already
-//! finished, and no observation can fail a fit.
+//! The dashboard observes and never steers, so nothing here can change what a run publishes. The
+//! channel takes every observation as it comes. A closed channel means the dashboard has already
+//! finished. No observation can fail a fit.
 //!
 //! One deliberate exception to that, because raw mode swallows the interrupt: `q` and `Ctrl-C`
 //! restore the terminal and exit `130`. That reproduces what `Ctrl-C` does to a fit today - the
@@ -64,15 +64,18 @@ const INTERRUPTED: u8 = 130;
 /// rather than a number chosen to feel large enough.
 const SNAPSHOT_ROWS: usize = render::MAP_CAPACITY;
 
-/// The live dashboard: a terminal, a rendering thread, and the channel that feeds it.
+/// The live dashboard for one fit.
+///
+/// A dashboard owns the terminal and the rendering thread that draws into it, plus the channel that
+/// carries observations to that thread.
 #[derive(Debug)]
 pub(super) struct Dashboard {
     /// The sending half every reporter clones.
     observations: Sender<Observation>,
     /// Raised to bring the rendering thread home.
     ///
-    /// A sending half outlives every run, since the log subscriber is installed globally and never
-    /// dropped, so this flag is what ends the loop.
+    /// A sending half outlives every run, since the shell installs the log subscriber globally and
+    /// never drops it, so this flag is what ends the loop.
     stop: Arc<AtomicBool>,
     /// The rendering thread, which owns the terminal and restores it as it leaves.
     renderer: JoinHandle<io::Result<()>>,
@@ -83,8 +86,8 @@ impl Dashboard {
     ///
     /// # Errors
     ///
-    /// Returns an [`io::Error`] when the terminal cannot be prepared or the rendering thread cannot
-    /// be spawned - both before the run begins, so a failure here costs nothing.
+    /// Returns an [`io::Error`] when this cannot take the terminal or cannot spawn the rendering
+    /// thread. Both happen before the run begins, so a failure here costs nothing.
     pub(super) fn start() -> io::Result<Self> {
         let terminal = ratatui::try_init()?;
         let (observations, arrived) = mpsc::channel();
@@ -118,12 +121,12 @@ impl Dashboard {
         }
     }
 
-    /// Draws the last frame, restores the terminal, and gives the shell its output back.
+    /// Draws the last frame and restores the terminal, handing the shell its output back.
     ///
     /// # Errors
     ///
-    /// Returns an [`io::Error`] when the final frame or the terminal restoration failed. The
-    /// terminal is restored either way: a panicking renderer has already run the hook
+    /// Returns an [`io::Error`] when the final frame or the terminal restoration failed. This
+    /// restores the terminal either way, because a panicking renderer has already run the hook
     /// [`ratatui::try_init`] installed.
     pub(super) fn finish(self) -> io::Result<()> {
         self.stop.store(true, Ordering::Release);
@@ -137,7 +140,7 @@ impl Dashboard {
     }
 }
 
-/// The dashboard's observer: every observation goes down the channel.
+/// The dashboard's observer, which sends every observation down the channel.
 #[derive(Debug, Clone)]
 pub(super) struct Observer {
     /// The renderer's end of the run's observations.
@@ -147,15 +150,15 @@ pub(super) struct Observer {
 impl Observer {
     /// Reports one observation, dropping it once the dashboard has finished.
     ///
-    /// A run may outlive the terminal it was watched on, and it publishes the same generation
-    /// either way.
+    /// A run may outlive the terminal an operator watched it on, and it publishes the same
+    /// generation either way.
     fn report(&self, observation: Observation) {
         drop(self.observations.send(observation));
     }
 }
 
 impl Progress for Observer {
-    /// The channel is the observer: a detached half reports into the same dashboard.
+    /// A detached half reports into the same dashboard through the same channel.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -237,7 +240,7 @@ impl Progress for Observer {
     }
 }
 
-/// The dashboard's log destination: the subscriber's records become the log pane's lines.
+/// The log destination that turns the subscriber's records into the log pane's lines.
 #[derive(Debug, Clone)]
 pub(super) struct LogSink {
     /// The renderer's end of the run's observations.
@@ -271,8 +274,8 @@ impl io::Write for LogWriter {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        // The subscriber writes one record as several calls and ends it
-        // with a newline; only whole lines become rows of the pane.
+        // The subscriber writes one record as a sequence of calls and ends it with a newline. Only
+        // whole lines become rows of the pane.
         while let Some(end) = self.pending.iter().position(|&byte| byte == b'\n') {
             let line: Vec<u8> = self.pending.drain(..=end).collect();
             let line = String::from_utf8_lossy(&line[..end]).into_owned();
@@ -415,8 +418,8 @@ mod tests {
         observer.classifier_fold_completed(0);
         observer.classifier_fold_completed(1);
 
-        // A fold that arrived before its announcement would be dropped,
-        // so the counter reads the arrival order rather than the set.
+        // The model drops a fold that arrives before its announcement, so the counter reads the
+        // arrival order rather than the set.
         let folds = absorbed(&arrived)
             .classifier()
             .expect("the announcement landed");
@@ -454,8 +457,7 @@ mod tests {
         let observer = Observer { observations };
         drop(arrived);
 
-        // The renderer is gone; the run is not, and an observation may
-        // not fail it.
+        // The renderer has left; the run has not, and an observation may not fail it.
         observer.stage_completed(Stage::Seal);
     }
 
@@ -486,8 +488,8 @@ mod tests {
             .without_time()
             .finish();
 
-        // The dispatcher is thread-local here on purpose: the test
-        // exercises the writer, not the shell's global installation.
+        // The dispatcher is thread-local here on purpose, so the test exercises the writer rather
+        // than the shell's global installation.
         tracing::subscriber::with_default(subscriber, || {
             tracing::info!(rows = 49, "staged the annotation corpus");
         });
@@ -510,8 +512,8 @@ mod tests {
         let sink = LogSink { observations };
         let mut writer = sink.make_writer();
 
-        // The formatter writes one record as several calls; a half
-        // record must not become a row of the pane.
+        // The formatter writes one record as a sequence of calls, and a half record must not become
+        // a row of the pane.
         writer
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");

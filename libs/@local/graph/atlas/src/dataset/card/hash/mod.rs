@@ -57,7 +57,7 @@ pub(crate) struct TypePhrase<'text> {
 /// One relation's own facts, resolved to its latest version.
 #[derive(Debug)]
 pub(crate) struct TypeFacts<'text, A: Allocator = Global> {
-    /// The relation's base id: a URL whose path ends in the type's slug and a trailing slash.
+    /// The relation's base id, a URL whose path ends in the type's slug and a trailing slash.
     pub id: &'text str,
     /// The relation's display title.
     pub title: &'text str,
@@ -82,7 +82,7 @@ pub(crate) struct EndpointAssociation<'text, A: Allocator = Global> {
     pub source_id: &'text str,
     /// The source type's prose. The title contains visible text.
     pub source: TypePhrase<'text>,
-    /// The allowed target types; an empty list allows any target type.
+    /// The allowed target types, where an empty list allows any target type.
     pub targets: Vec<TypePhrase<'text>, A>,
     /// The fewest targets one source instance links, when the schema records a minimum.
     pub minimum_targets: Option<usize>,
@@ -103,13 +103,13 @@ pub(crate) struct ExampleRow<'text, A: Allocator = Global> {
     pub source_label: &'text str,
     /// The target endpoint's display label.
     pub target_label: &'text str,
-    /// The source endpoint's first direct type id; empty when the store records no direct type.
+    /// The source endpoint's first direct type id, empty when the store records no direct type.
     pub source_direct_type: &'text str,
     /// The source endpoint's type ids, nearest first.
     pub source_type_closure: Vec<&'text str, A>,
-    /// Occurrences of the source entity among the relation's instances; at least 1.
+    /// Occurrences of the source entity among the relation's instances, always at least 1.
     pub source_frequency: u64,
-    /// Occurrences of the target entity among the relation's instances; at least 1.
+    /// Occurrences of the target entity among the relation's instances, always at least 1.
     pub target_frequency: u64,
 }
 
@@ -125,7 +125,7 @@ pub(crate) struct ExampleRow<'text, A: Allocator = Global> {
 ///
 /// # Errors
 ///
-/// Returns the segmenter's error when a description cannot be segmented.
+/// Returns the segmenter's error when it cannot segment a description.
 pub(crate) fn build_contents<'text, S, T, A>(
     facts: TypeFacts<'text, A>,
     mut associations: Vec<EndpointAssociation<'text, A>, A>,
@@ -241,12 +241,12 @@ where
 
 /// Builds one association's endpoint constraint.
 ///
-/// `Ok(None)` reports an association outside its contract; a target whose title holds no visible
-/// text is skipped.
+/// `Ok(None)` reports an association outside its contract, and this skips a target whose title
+/// holds no visible text.
 ///
 /// # Errors
 ///
-/// Returns the segmenter's error when a description cannot be segmented.
+/// Returns the segmenter's error when it cannot segment a description.
 fn endpoint_constraint<'text, S, T, A>(
     association: &EndpointAssociation<'text, A>,
     context: &CardContext<S, T>,

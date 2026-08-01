@@ -15,14 +15,14 @@
 //! ```
 //!
 //! by bisection, `target` being `log2(k)` for a `k`-neighbour table, which is what makes dense and
-//! sparse regions comparable. Neighbours at `d_j ≤ ρ` hold full membership at every `σ`, so the
-//! achievable sum is bounded below by their count: a row where more than `target` distances tie at
-//! or below `ρ` has no solution (a row of exact duplicates, whose sum is `k` for every `σ`, is the
+//! sparse regions comparable. Neighbours at `d_j ≤ ρ` hold full membership at every `σ`, so their
+//! count bounds the achievable sum from below. A row where more than `target` distances tie at or
+//! below `ρ` has no solution (a row of exact duplicates, whose sum is `k` for every `σ`, is the
 //! extreme case). On such rows the bisection drives `σ` toward zero, the floor takes over, and the
 //! sum settles at the tie count above the target. Membership sums accumulate in double precision,
-//! so the bisection tolerance is measured against accumulation noise well below it. The floor is
-//! proportional to the row's mean distance (the corpus mean when every distance ties at zero) and
-//! keeps `σ` positive everywhere.
+//! so accumulation noise stays well below the bisection tolerance. The floor is proportional to the
+//! row's mean distance (the corpus mean when every distance ties at zero) and keeps `σ` positive
+//! everywhere.
 
 use core::simd::{f32x8, f64x8, num::SimdFloat as _};
 use std::simd::Simd;
@@ -118,8 +118,8 @@ impl RowSolver {
 
     /// Writes the row's memberships under `bandwidth` into `out`.
     ///
-    /// Memberships are clamped to at least [`f32::MIN_POSITIVE`], so a stored edge never carries an
-    /// exact zero.
+    /// This clamps every membership to at least [`f32::MIN_POSITIVE`], so a stored edge never
+    /// carries an exact zero.
     pub(super) fn memberships(&self, bandwidth: Bandwidth, out: &mut [f32]) {
         let sigma = f32x8::splat(bandwidth.sigma);
         let floor = f32x8::splat(f32::MIN_POSITIVE);

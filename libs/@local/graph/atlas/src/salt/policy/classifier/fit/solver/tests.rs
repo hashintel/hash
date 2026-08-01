@@ -105,7 +105,8 @@ fn settings() -> PreparationSettings {
     }
 }
 
-/// Three valid rows with exact targets, weights summing to five, and known leading components.
+/// Builds the valid three-row corpus with exact targets, weights summing to five, and known leading
+/// components.
 fn valid_corpus() -> Corpus {
     let mut corpus = Corpus::new();
     corpus.push(&[2.0, -1.0], [1.0, 0.0, 0.0], 1.5);
@@ -165,7 +166,8 @@ fn flat_dot(left: &ContrastVector, right: &ContrastVector) -> f64 {
     checked_dot(&left.to_flat(), &right.to_flat()).expect("fixture dots stay finite")
 }
 
-/// Deterministic test directions: a coefficient axis, an intercept axis, and a mixed vector.
+/// Builds a coefficient axis, an intercept axis, and a mixed vector as the deterministic test
+/// directions.
 fn directions() -> [ContrastVector; 3] {
     let mut coefficient = ContrastVector::zero();
     coefficient.coefficients[0].as_array_mut()[0] = 1.0;
@@ -263,7 +265,7 @@ fn expanded_logits_stay_shift_free() {
 /// [`checked_dot`] passes an exactly representable dot through the gate.
 #[test]
 fn checked_dot_passes_finite_values() {
-    // Two exact terms: 2·4 + (−3)·5 = −7 under any fold shape.
+    // Both terms are exact, so 2·4 + (−3)·5 = −7 under any fold shape.
     let left = flat(&[(0, 2.0), (9, -3.0)]);
     let right = flat(&[(0, 4.0), (9, 5.0)]);
 
@@ -564,7 +566,7 @@ fn preparation_completes_yet_fails_aggregate_mass() {
     assert_eq!(counters.completed_preparation_traversals, 1);
 }
 
-/// [`Scaling::divide`] is one componentwise division; dividing the diagonal by itself is one.
+/// [`Scaling::divide`] is one componentwise division, and dividing the diagonal by itself is one.
 #[test]
 fn scaling_divides_componentwise() {
     let mut scales = BoxedDVecN::<AUGMENTED_DIMENSIONS>::zero();
@@ -963,7 +965,7 @@ fn non_finite_requests_start_no_traversal() {
     assert_eq!(counters.row_visits, baseline.row_visits);
 }
 
-/// Every exceptional spacing case of the objective resolution holds exactly.
+/// Every special spacing case of the objective resolution holds exactly.
 #[test]
 fn objective_resolution_pins_the_ulp_exceptional_cases() {
     let four = NonZeroU32::new(4).expect("four is nonzero");
@@ -986,7 +988,7 @@ fn objective_resolution_pins_the_ulp_exceptional_cases() {
         Some(4.0 * f64::from_bits(1)),
     );
 
-    // Normal magnitudes resolve at the next-up spacing; negatives contribute magnitude only.
+    // Normal magnitudes resolve at the next-up spacing, and negatives contribute magnitude only.
     assert_eq!(objective_resolution(1.0, one_ulp()), Some(f64::EPSILON));
     assert_eq!(objective_resolution(-1.0, one_ulp()), Some(f64::EPSILON));
     assert_eq!(
@@ -1066,12 +1068,12 @@ fn config_accepts_the_domain_boundaries() {
     .expect("the budget floors are inclusive");
 }
 
-/// Every violated cross-field ordering is rejected by name.
+/// Validation rejects every violated cross-field ordering by name.
 #[test]
 fn config_rejects_misordered_fields() {
     let base = solver_config();
 
-    // Every radius is individually in-domain; only the ordering is violated.
+    // Every radius is individually in-domain, and only the ordering fails.
     for (minimum, initial, maximum) in [(2.0, 1.0, 3.0), (1.0, 3.0, 2.0), (2.0, 2.0, 1.0)] {
         assert_matches!(
             SolverConfig {
@@ -1085,7 +1087,7 @@ fn config_rejects_misordered_fields() {
         );
     }
 
-    // Both thresholds are individually interior; equality and inversion are the violations.
+    // Both thresholds are individually interior, leaving equality and inversion as the violations.
     for (accept, expand) in [(0.5, 0.5), (0.5, 0.1)] {
         assert_matches!(
             SolverConfig {
@@ -1140,11 +1142,11 @@ fn gradient_threshold_follows_the_ruled_domain() {
         ..solver_config()
     };
 
-    // Absolute floor disabled: the threshold is the pure relative term.
+    // With the absolute floor at zero the threshold is the pure relative term.
     assert_eq!(config.gradient_threshold(8.0), Some(1.0e-6 * 8.0));
 
-    // Absolute floor disabled at an exactly-zero initial norm: the threshold is zero, and only
-    // the exactly-zero gradient satisfies the sole certificate predicate.
+    // With the absolute floor at zero and an exactly-zero initial norm the threshold is zero, and
+    // only the exactly-zero gradient satisfies the sole certificate predicate.
     let zero_threshold = config
         .gradient_threshold(0.0)
         .expect("a zero threshold is valid");
@@ -1181,7 +1183,7 @@ fn boundary_step_crosses_exactly_from_the_origin() {
     )
     .expect("the origin crossing is exact");
 
-    // τ = 4: the step lands on Δ·e₀ and the product advances by 4·H·d, all powers of two.
+    // τ = 4: the step equals Δ·e₀ and the product advances by 4·H·d, all powers of two.
     assert_eq!(crossed.step.as_array()[0], 4.0);
     assert_eq!(crossed.step.as_array()[1], 0.0);
     assert_eq!(crossed.hessian_step.as_array()[0], 2.0);
@@ -1276,7 +1278,8 @@ fn boundary_step_rejects_a_zero_direction() {
     assert_eq!(boundary_step(&interior, &zero, &zero, &zero, 4.0), None,);
 }
 
-/// An overflowing radius normalization is rejected before any coefficient forms.
+/// The boundary construction rejects an overflowing radius normalization before any coefficient
+/// forms.
 #[test]
 fn boundary_step_rejects_a_non_finite_normalization() {
     let interior = flat(&[(0, f64::MAX)]);
@@ -1329,8 +1332,9 @@ fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     assert_eq!(boundary_step(&zero, &direction, &zero, &zero, radius), None,);
 }
 
-/// A deterministic dense component: the Weyl sequence on the golden ratio at the given phase,
-/// folded to `[-1, 1]`, every third component thinned to vary magnitudes within the fill.
+/// Returns a deterministic dense component from the Weyl sequence on the golden ratio at the given
+/// phase, folded to `[-1, 1]`, with every third component thinned to vary magnitudes within the
+/// fill.
 #[expect(
     clippy::cast_precision_loss,
     reason = "solver indices stay far below 2^52"
@@ -1364,9 +1368,10 @@ fn spiked_dense(norm: f64, phase: f64) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     vector
 }
 
-/// The Euclidean norm through an independent reduction: a scalar Neumaier-compensated sum of
-/// squares, sharing no fold structure with the house kernels. A reference for reported
-/// residuals, not an accuracy oracle.
+/// Computes the Euclidean norm through an independent reduction.
+///
+/// The reduction is a scalar Neumaier-compensated sum of squares that shares no fold structure with
+/// the house kernels. This is a reference for reported residuals rather than an accuracy oracle.
 fn compensated_l2(values: &[f64]) -> f64 {
     let mut sum = 0.0_f64;
     let mut compensation = 0.0_f64;
@@ -1504,7 +1509,7 @@ fn honest_boundary_residuals_sit_inside_the_gross_defect_guard() {
 /// that value lands the step far off unit norm, and the guard names the defect.
 #[test]
 fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
-    // u = 0.6·e₀, v = e₀ + e₁ at Δ = 1: a = 2, b = 1.2, c = −0.64, honest τ = 0.34.
+    // u = 0.6·e₀, v = e₀ + e₁ at Δ = 1 gives a = 2, b = 1.2, c = −0.64, honest τ = 0.34.
     let interior = flat(&[(0, 0.6)]);
     let direction = flat(&[(0, 1.0), (1, 1.0)]);
     let zero = flat(&[]);
@@ -1591,8 +1596,8 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     );
     assert!((converged.point.objective - 3.0_f64.ln()).abs() < 1.0e-12);
 
-    // No outer iteration started: no receipts, no inner work, and the reserve was consumed by
-    // the final certificate alone.
+    // No outer iteration started, so the receipt list stays empty and the inner counters stay at
+    // zero. The final certificate alone consumed the reserve.
     assert_eq!(run.control.outer_iterations_started, 0);
     assert!(run.receipts.is_empty());
     assert!(!run.control.final_reserve);
@@ -1664,7 +1669,7 @@ fn solve_converges_on_the_fixture_corpus() {
         stable_l2(&converged.point.scaled_gradient).expect("the certified gradient is finite");
     assert!(final_norm <= evidence.gradient_threshold);
 
-    // One receipt per started outer iteration; the first one snapshots the origin.
+    // One receipt per started outer iteration, and the first one snapshots the origin.
     assert_eq!(
         run.receipts.len(),
         usize::try_from(run.control.outer_iterations_started).expect("small count")
@@ -1699,7 +1704,7 @@ fn solve_converges_on_the_fixture_corpus() {
             + counters.completed_hvp_traversals
             + counters.completed_newton_traversals,
     );
-    // Three assembly traversals and one factorization per started outer.
+    // Each started outer charges three assembly traversals and one factorization.
     assert_eq!(
         counters.completed_newton_traversals,
         3 * run.control.outer_iterations_started,
@@ -1896,8 +1901,8 @@ fn solve_preflight_prices_objective_then_gradient_then_rows() {
     );
     assert_matches!(row_starved.outcome, Err(SolverFailure::RowPassBudget));
     assert_eq!(row_starved.control.counters.hvp_requests, 1);
-    // The preflight death happened after the inner solve: tag and predicted are recorded, and
-    // no candidate was ever classified.
+    // The preflight death happened after the inner solve, so the receipt records the tag and the
+    // predicted reduction, and no candidate was ever classified.
     let last = row_starved.receipts.last().expect("one receipt exists");
     assert!(last.outcome.tag.is_some());
     assert!(last.outcome.predicted_reduction.is_some());
@@ -1974,13 +1979,13 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
         },
     );
 
-    // The tiny radius forces a boundary step whose small-step ratio expands the radius once;
-    // the certificate stays out of reach and the outer budget then ends the run.
+    // The `1e-3` radius forces a boundary step whose small-step ratio expands the radius once, the
+    // certificate stays out of reach, and the outer budget then ends the run.
     assert_matches!(run.outcome, Err(SolverFailure::OuterIterationBudget));
     assert_eq!(run.control.counters.candidate_acceptances, 1);
     assert_eq!(run.control.radius, 2.0e-3);
     assert_eq!(run.receipts[0].radius, 1.0e-3);
-    // The Newton point sits far outside the tiny radius, so the crossing is a boundary tag.
+    // The Newton point sits far outside that radius, so the crossing is a boundary tag.
     assert_matches!(
         run.receipts[0].outcome.tag,
         Some(NewtonTag::CauchyBoundary | NewtonTag::DoglegBoundary),
@@ -1993,7 +1998,7 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
 /// scaled gradient stays finite yet fails its relative certificate, so an inner solve must run.
 /// The per-row factor scale `wᵢ/λ` then overflows against the subnormal regularization, the
 /// weighted curvature block leaves the finite domain, and the machine reaches
-/// `NonFiniteNewton { Weights }` with the curvature traversal already honestly charged.
+/// `NonFiniteNewton { Weights }` with the curvature traversal already charged.
 #[test]
 fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
     let subnormal = f64::from_bits(1);
@@ -2064,8 +2069,9 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
 
     assert_matches!(run.outcome, Err(SolverFailure::FinalCertificationNonFinite));
 
-    // The admitted evidence is honest: an infinite accepted objective, a passing tiny gradient,
-    // no outer iteration started, and the reserve consumed by the failed certification.
+    // The admitted evidence is honest. The accepted objective is infinite and the gradient passes
+    // inside the absolute tolerance. No outer iteration started, and the failed certification
+    // consumed the reserve.
     assert!(run.accepted.objective.is_infinite());
     let evidence = run.certificate.expect("the threshold was derived");
     assert!(evidence.initial_gradient_norm <= evidence.gradient_threshold);
@@ -2114,7 +2120,7 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }
 
-/// The typed threshold-overflow mapping: a `None` threshold is `GradientThresholdOverflow`.
+/// A `None` threshold maps onto the typed `GradientThresholdOverflow` failure.
 #[test]
 fn derive_certificate_maps_none_onto_threshold_overflow() {
     let config = solver_config();
@@ -2241,7 +2247,7 @@ fn rejected_clips_to_the_minimum_then_underflows_with_one_clipped_attempt() {
         Err(SolverFailure::RadiusUnderflow),
     );
 
-    // The streak counter keeps counting: it reports, it never terminates.
+    // The streak counter keeps counting, because it reports and never terminates.
     assert_eq!(control.consecutive_rejections, 2);
 }
 
@@ -2251,14 +2257,14 @@ fn factor_block_reproduces_psd_blocks_and_drops_rank() {
     // A full-rank SPD block factors exactly on exactly-representable entries.
     assert_eq!(factor_block(4.0, 2.0, 5.0), [2.0, 1.0, 2.0]);
 
-    // A rank-one block: the trailing pivot cancels to zero and its column drops.
+    // In a rank-one block the trailing pivot cancels to zero and its column drops.
     assert_eq!(factor_block(1.0, 2.0, 4.0), [1.0, 2.0, 0.0]);
 
-    // A non-positive leading entry zeroes the first column; the trailing direction survives.
+    // A non-positive leading entry zeroes the first column, and the trailing direction survives.
     assert_eq!(factor_block(0.0, 0.0, 9.0), [0.0, 0.0, 3.0]);
     assert_eq!(factor_block(-1.0e-17, 3.0, 9.0), [0.0, 0.0, 3.0]);
 
-    // Wholly degenerate blocks factor to zero.
+    // A block degenerate in both pivots factors to zero.
     assert_eq!(factor_block(0.0, 0.0, 0.0), [0.0, 0.0, 0.0]);
     assert_eq!(factor_block(0.0, 0.0, -1.0e-17), [0.0, 0.0, 0.0]);
 }
@@ -2391,11 +2397,11 @@ fn newton_at_origin(
 
 /// The interior Newton point inverts the oracle within its recorded residual.
 ///
-/// The residual reads the step's Hessian product from the finite-difference-certified oracle,
-/// so the factorization is proven against an implementation it shares no arithmetic with. At
+/// The residual reads the step's Hessian product from the finite-difference-certified oracle, so
+/// the residual proves the factorization against an implementation it shares no arithmetic with. At
 /// the origin the scaled system is near-identity, so backward-stable factorization keeps the
-/// relative residual within a few ulps; the bound carries three orders of margin over that
-/// derivation. Work is fixed: three assembly traversals, one factorization, one priced
+/// relative residual within a few ulps, and the bound carries three orders of margin over that
+/// derivation. Each solve charges three assembly traversals, one factorization, and one priced
 /// product.
 #[test]
 fn newton_step_inverts_the_oracle_within_its_residual() {
@@ -2428,7 +2434,7 @@ fn newton_step_inverts_the_oracle_within_its_residual() {
         baseline.started_row_traversals + 4,
     );
 
-    // The engine is deterministic: a second identical solve returns identical bytes.
+    // A second identical solve returns identical bytes, so the engine is deterministic.
     let (again, _, _) = newton_at_origin(&corpus, config);
     let again = again.expect("the identical solve succeeds identically");
     assert_eq!(outcome.step().as_array(), again.step().as_array());
@@ -2440,10 +2446,10 @@ fn newton_step_inverts_the_oracle_within_its_residual() {
 
 /// A small trust radius exits the inner solve through the steepest-descent crossing.
 ///
-/// At the origin the scaled gradient norm is about `1.4`, so both the Newton point and the
-/// Cauchy point sit far outside a radius of `1e-4`: the crossing follows `−g` from the origin
-/// through the validated boundary construction, prices one oracle product for the Cauchy
-/// curvature, and never requests the Newton product.
+/// At the origin the scaled gradient norm is about `1.4`, so both the Newton point and the Cauchy
+/// point sit far outside a radius of `1e-4`. The crossing follows `−g` from the origin through the
+/// validated boundary construction. It prices one oracle product for the Cauchy curvature and never
+/// requests the Newton product.
 #[test]
 fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
     let corpus = valid_corpus();
@@ -2459,14 +2465,14 @@ fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
     assert!(outcome.is_boundary());
     assert_eq!(outcome.residual(), None);
 
-    // One priced product served the Cauchy curvature; the crossing rode it.
+    // One priced product served the Cauchy curvature, and the crossing used that product.
     assert_eq!(counters.hvp_requests, baseline.hvp_requests + 1);
     assert_eq!(
         counters.completed_newton_traversals,
         baseline.completed_newton_traversals + 3,
     );
 
-    // The returned payload satisfies the gross-defect guard it was validated against.
+    // The returned payload satisfies the gross-defect guard the construction applied.
     let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
     assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
@@ -2474,10 +2480,10 @@ fn newton_step_crosses_the_steepest_boundary_on_a_small_radius() {
 
 /// A radius between the Cauchy and Newton lengths exits through the dogleg leg.
 ///
-/// The witness derives its radius from the fixture's own measured geometry: the Newton length
-/// from a wide-radius solve, the Cauchy length from the oracle's own products. The crossing
-/// lands on the boundary within the gross-defect guard, prices both oracle products, and
-/// carries the Newton residual.
+/// The witness derives its radius from the fixture's own measured geometry, taking the Newton
+/// length from a wide-radius solve and the Cauchy length from the oracle's own products. The
+/// crossing reaches the boundary within the gross-defect guard. It prices both oracle products and
+/// reports the Newton residual.
 #[test]
 fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     let corpus = valid_corpus();
@@ -2544,7 +2550,7 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
     // Both oracle products priced: the Cauchy curvature and the Newton product.
     assert_eq!(counters.hvp_requests, baseline.hvp_requests + 2);
 
-    // The returned payload satisfies the gross-defect guard it was validated against.
+    // The returned payload satisfies the gross-defect guard the construction applied.
     let step_norm = stable_l2(outcome.step()).expect("the boundary step is finite");
     assert!((step_norm / radius - 1.0).abs() <= GROSS_DEFECT_GUARD);
     assert!(outcome.hessian_step().is_finite());
@@ -2583,8 +2589,8 @@ fn newton_step_survives_saturated_rows() {
         config,
     };
 
-    // Rows 0 and 2 carry a nonzero leading coordinate: their reference differences reach
-    // `±O(10³)` and the shifted exponentials underflow to exact vertices; row 1 stays interior.
+    // Rows 0 and 2 carry a nonzero leading coordinate, so their reference differences reach
+    // `±O(10³)` and the shifted exponentials underflow to exact vertices. Row 1 stays interior.
     let mut point = ContrastVector::zero();
     point.coefficients[0].as_array_mut()[0] = 4000.0;
     let (_objective, gradient) = problem

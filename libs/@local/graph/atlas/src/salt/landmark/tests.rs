@@ -123,7 +123,7 @@ fn selection_covers_a_small_corpus_entirely() {
 
 #[test]
 fn selection_honors_subgroup_minimums() {
-    // Rows 90..100 carry language 7; demand five of them.
+    // Rows 90..100 carry language 7, and the minimum demands five of them.
     let mut candidates = candidates(100);
     for candidate in &mut candidates[90..100] {
         candidate.axes[SubgroupDimension::Language] = 7;
@@ -190,8 +190,8 @@ fn selection_prefers_heavier_candidates() {
 
 #[test]
 fn selection_retains_prior_landmarks() {
-    // A quarter of a capacity-20 selection is reserved for the ten
-    // prior landmarks at rows 100..110.
+    // A capacity-20 selection reserves a quarter of its slots for the ten prior landmarks at rows
+    // 100..110.
     let mut candidates = candidates(200);
     for candidate in &mut candidates[100..110] {
         candidate.prior_landmark = true;
@@ -452,7 +452,7 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
     }
 }
 
-/// Six rows in three well-separated directions.
+/// A fixture of six rows in three well-separated directions.
 ///
 /// Rows 0 and 1 point one way, 2 and 3 another, 4 and 5 a third.
 fn clustered_embeddings() -> Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> {
@@ -582,8 +582,8 @@ fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph
 
 /// A corpus semantic graph over six rows.
 ///
-/// Edges within clusters carry weight 1.0, one bridge edge (1, 2) carries 0.5, and one weaker
-/// bridge (3, 4) carries 0.25.
+/// Edges within clusters have weight 1.0, one bridge edge (1, 2) has weight 0.5, and one weaker
+/// bridge (3, 4) has weight 0.25.
 fn corpus_graph() -> SemanticGraph<NodeRowId> {
     semantic_from_edges(
         6,
@@ -605,10 +605,9 @@ fn quotient_contracts_cross_landmark_edges() {
     let quotient = quotient_graph(&graph.view(), &assignment, QuotientOptions { .. })
         .expect("the fixture quotient has edges");
 
-    // Directed inflows: L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, L2 <-
-    // 0.25. Every row max-normalizes, then pairs combine by the
-    // probabilistic union: (L0, L1) = 1 + 1 - 1 = 1.0 and (L1, L2) =
-    // 0.5 + 1 - 0.5 = 1.0.
+    // The directed inflows are L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, and L2 <- 0.25. Every row
+    // max-normalizes, then pairs combine by the probabilistic union: (L0, L1) = 1 + 1 - 1 = 1.0 and
+    // (L1, L2) = 0.5 + 1 - 0.5 = 1.0.
     let view = quotient.view();
     assert_eq!(view.rows(), 3);
     let row0: Vec<(u64, f32)> = view
@@ -833,9 +832,8 @@ fn layout_separates_clusters() {
 
 #[test]
 fn repulsion_widens_the_gap_between_disconnected_components() {
-    // Same graph, same seed, one knob: with repulsion disabled the
-    // cliques only contract in place, so the gap the default schedule
-    // opens must exceed the unrepelled one.
+    // Same graph, same seed, one knob: with repulsion off the cliques only contract in place, so
+    // the gap the default schedule opens must exceed the unrepelled one.
     let graph = clique_pair();
     let repelled = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
         .expect("the fixture graph lays out");
@@ -861,10 +859,9 @@ fn repulsion_widens_the_gap_between_disconnected_components() {
 
 #[test]
 fn layout_drops_edges_weaker_than_the_epoch_budget() {
-    // The (2, 3) weight needs a hundred epochs between samples, beyond
-    // the fifty-epoch budget: the pair is never scheduled, receives no
-    // attraction, and keeps its initial separation while the
-    // full-weight pair gathers.
+    // The (2, 3) weight needs a hundred epochs between samples, beyond the fifty-epoch budget. The
+    // schedule never samples the pair, so it gets no attraction and keeps its initial separation
+    // while the full-weight pair gathers.
     let graph = semantic_from_edges(4, &[(0, 1, 1.0), (2, 3, 0.01)]);
 
     let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(50), rng())
@@ -882,7 +879,7 @@ fn layout_drops_edges_weaker_than_the_epoch_budget() {
 
 #[test]
 fn layout_leaves_edgeless_rows_on_the_initial_circle() {
-    // One edge between rows 0 and 1; rows 2 and 3 are isolated.
+    // One edge joins rows 0 and 1, and rows 2 and 3 have no edges.
     let graph = semantic_from_edges(4, &[(0, 1, 1.0)]);
 
     let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
@@ -929,7 +926,7 @@ fn scratch(name: &str) -> PathBuf {
 
 /// A skeleton from real stage outputs over the clustered fixture.
 ///
-/// Alongside the stage outputs it was assembled from.
+/// The tuple also includes the stage outputs that produced the skeleton.
 fn fixture_skeleton() -> (
     LandmarkSkeleton<NodeRowId>,
     LandmarkAssignment<NodeRowId>,
@@ -985,8 +982,8 @@ fn mapped_skeleton_rejects_violated_invariants() {
         .write_into(&mut bytes)
         .expect("writing into a vector cannot fail");
 
-    // The fixture's geometry: rows at 4096, assignment at 8192,
-    // coordinates at 12288 (each region padded to one 4096 unit).
+    // The fixture's geometry has rows at 4096, assignment at 8192, and coordinates at 12288, with
+    // each region padded to one 4096 unit.
     let open = |name: &str, bytes: &[u8]| {
         let path = scratch(name);
         fs::write(&path, bytes).expect("the scratch file is writable");

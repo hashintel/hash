@@ -84,8 +84,8 @@ fn compressed_dimension_spans_the_pointers() {
 
 #[test]
 fn narrow_elements_shrink_the_regions() {
-    // 1023 rows of u16 pointers: 2048 pointer bytes, exactly half a
-    // page, still pad to one.
+    // 1023 rows of u16 pointers make 2048 pointer bytes, exactly half a page, which still pads to
+    // one page.
     let header = FileHeader::new(
         ValueTag::U8,
         1,
@@ -213,7 +213,7 @@ fn written_matrix_reopens_as_the_same_view() {
     assert_eq!(reopened.indices(), matrix.indices());
     assert_eq!(reopened.data(), matrix.data());
 
-    // Requesting different element types is rejected, not misread.
+    // The typed accessor rejects different element types rather than misreading them.
     assert_matches!(
         file.matrix::<f64, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
@@ -354,8 +354,7 @@ fn opaque_values_are_identified_by_width_alone() {
         .expect("an equal-width opaque type views");
     assert_eq!(packed.data().len(), 2);
 
-    // A different width is rejected, as is a pinned scalar tag of the
-    // same width.
+    // The accessor rejects a different width, and also a pinned scalar tag of the same width.
     assert_matches!(
         file.matrix::<Narrow, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
@@ -449,14 +448,14 @@ fn structure_only_matrix_reopens_with_conjured_units() {
         "the units conjure at the entry count"
     );
 
-    // Requesting a valued view of a structure-only file is rejected.
+    // The typed accessor rejects a valued view of a structure-only file.
     assert_matches!(
         file.matrix::<f32, u32, u64>(),
         Err(SprsMatrixError::Elements { .. }),
     );
 
-    // The raw region accessors serve the validated regions without the
-    // structural pass; a wrong element type is still rejected.
+    // The raw region accessors serve the validated regions without the structural pass. They still
+    // reject a wrong element type.
     assert_eq!(
         file.indptr::<u64>().expect("the pointer region reads"),
         matrix.indptr().raw_storage(),

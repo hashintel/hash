@@ -1,4 +1,4 @@
-//! The projector model: a `FiLM`-conditioned residual MLP to 2D.
+//! A `FiLM`-conditioned residual MLP from node representations to 2D.
 //!
 //! A [`Projector`] maps a batch of node representations, each paired with a [`NodeRole`] and a
 //! global condition vector, to 2D coordinates:
@@ -11,13 +11,13 @@
 //! ```
 //!
 //! `FiLM` predicts a delta from unit scale and a shift out of the condition vector:
-//! `FiLM(v, c) = (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation, so
-//! it gates normalized features directly; placed before the block's linear and normalization
-//! instead, the downstream LN would cancel the modulation's scale component (exactly so for a
-//! uniform gamma). The model does not know what the condition columns mean; the batch assembler
-//! names them, and their count is the [`Architecture`]'s `condition_dimensions`.
+//! `FiLM(v, c) = (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation,
+//! where it gates normalized features directly. Modulation placed before the block's linear and
+//! normalization instead would lose its scale component to the downstream LN (exactly so for a
+//! uniform gamma). Condition columns are opaque to the model. The batch assembler names them, and
+//! their count is the [`Architecture`]'s `condition_dimensions`.
 //!
-//! Two initialization contracts hold, and the unit tests certify both:
+//! The unit tests certify both initialization contracts:
 //!
 //! - every residual block is the identity (its second linear and bias initialize to zero), so the
 //!   initial model is stem plus head;
@@ -28,9 +28,9 @@
 //! embedding, whose per-component scale matches the representation's (a unit-norm vector has
 //! per-component variance `1/dimensions`): no input block dominates the stem by construction.
 //!
-//! Every initial parameter is materialized from a caller-supplied random stream with sequential
-//! parameter identifiers, never from the backend's global random state: two models built from equal
-//! architectures, seeds, and stream types are identical on every backend.
+//! Construction draws every initial parameter from a caller-supplied random stream with sequential
+//! parameter identifiers, never from the backend's global random state. Models built from equal
+//! architectures, seeds, and stream types are therefore identical on every backend.
 
 #![expect(
     clippy::field_scoped_visibility_modifiers,
@@ -108,7 +108,7 @@ pub enum Dimension {
     Depth,
     /// The representation column width.
     RepresentationWidth,
-    /// A plain width: condition columns, the role embedding's rows.
+    /// A plain width, as for condition columns or the role embedding's rows.
     Width,
     /// The role embedding's vocabulary size.
     RoleCount,
@@ -152,7 +152,7 @@ pub struct ArchitectureMismatch {
     pub layer: Layer,
     /// The differing dimension.
     pub dimension: Dimension,
-    /// The residual block carrying the layer; [`None`] outside the block stack.
+    /// The residual block carrying the layer, or [`None`] outside the block stack.
     pub block: Option<usize>,
     /// The architecture's value.
     pub expected: usize,
@@ -223,11 +223,11 @@ const DEFAULT_CONDITION_DIMENSIONS: NonZero<usize> = const { NonZero::new(1).unw
 /// Output coordinates per row.
 const PROJECTED_DIMENSIONS: usize = 2;
 
-/// Shape of a [`Projector`]: every dimension the model is built from.
+/// Every dimension that gives a [`Projector`] its shape.
 ///
-/// All fields are construction-valid; building a model from an architecture cannot fail. Width and
-/// depth are benchmark axes - the defaults are the candidate the quality and throughput criteria
-/// judge first, not validated optima.
+/// All fields are construction-valid, so building a model from an architecture cannot fail. Width
+/// and depth are benchmark axes - the defaults are the candidate the quality and throughput
+/// criteria judge first, not validated optima.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Architecture {
     /// Hidden width of the stem and every residual block.
@@ -240,7 +240,7 @@ pub(crate) struct Architecture {
     pub role_dimensions: NonZero<usize> = DEFAULT_ROLE_DIMENSIONS,
     /// Width of the condition vector consumed by every `FiLM` layer.
     ///
-    /// The built pipeline feeds the single relation-lens column `[eta]`; the width is configurable and the model is parametric in it.
+    /// The built pipeline feeds the single relation-lens column `[eta]`. The width is configurable, and the model is parametric in it.
     pub condition_dimensions: NonZero<usize> = DEFAULT_CONDITION_DIMENSIONS,
 }
 
@@ -354,7 +354,7 @@ pub(crate) struct Projector<B: Backend> {
 impl<B: Backend> Projector<B> {
     /// Builds a freshly initialized model.
     ///
-    /// Every parameter is drawn from `rng` in construction order, so equal architectures, stream
+    /// This draws every parameter from `rng` in construction order, so equal architectures, stream
     /// types, and seeds produce identical models on every backend.
     #[must_use]
     pub(crate) fn new<R: Rng>(architecture: Architecture, device: &B::Device, mut rng: R) -> Self {
@@ -395,13 +395,12 @@ impl<B: Backend> Projector<B> {
     ///
     /// # Panics
     ///
-    /// Panics when the representation width, the condition width, or the per-tensor row counts
+    /// This panics when the representation width, the condition width, or the per-tensor row counts
     /// disagree with the architecture and each other.
     #[must_use]
     pub(crate) fn forward(&self, input: ProjectorInput<B>) -> Tensor<B, 2> {
-        // The shape checks cost integer compares against host-side dim
-        // metadata, once per forward call - not per element, and no
-        // device sync - so they are free beside the matmuls they guard.
+        // The shape checks cost integer compares against host-side dim metadata once per forward
+        // call, with no device sync, so they are free beside the matmuls they guard.
         let [rows, representation_dimensions] = input.representation.dims();
         assert_eq!(
             representation_dimensions, self.representation_dimensions,
@@ -440,9 +439,9 @@ impl<B: Backend> Projector<B> {
     /// Builds the model a record describes, verified against the architecture.
     ///
     /// A record loaded into a model adopts the record's tensor shapes, so a record decoded against
-    /// the wrong architecture would produce a structurally wrong model without an error of its own;
-    /// this constructor is what turns that into one. The block-stack depth is verified before the
-    /// record loads - a depth mismatch panics inside the module zip - and every parameter shape
+    /// the wrong architecture would produce a structurally wrong model without an error of its own.
+    /// This constructor reports that as an error: it verifies the block-stack depth before the
+    /// record loads (a depth mismatch panics inside the module zip) and every parameter shape
     /// after.
     ///
     /// # Errors
@@ -459,12 +458,10 @@ impl<B: Backend> Projector<B> {
             record.blocks.len(),
         )?;
 
-        // Every parameter this construction draws is replaced by
-        // `load_record` on the next line, so the stream's seed is
-        // meaningless by design - a throwaway is the price of reusing
-        // the one construction path. The checkpoint's rng state is a
-        // different object: it resumes the *training* draw sequence,
-        // and threading it here would launder meaning into dead draws.
+        // `load_record` on the next line replaces every parameter this construction draws, so the
+        // stream's seed is meaningless by design, and a throwaway is the price of reusing the one
+        // construction path. The checkpoint's rng state is a different object: it resumes the
+        // *training* draw sequence, and threading it here would launder meaning into dead draws.
         let throwaway = Xoshiro256PlusPlus::seed_from_u64(0);
         let model = Self::new(architecture, device, throwaway).load_record(record);
         model.check_architecture(architecture)?;
@@ -629,9 +626,9 @@ fn check_normalization<B: Backend>(
 
 /// Weight initialization of one linear layer.
 ///
-/// Every linear carries its bias, zero-initialized; only the weights differ. Zero layers are the
-/// identity-contract layers (block outputs, `FiLM`): together with their zero bias they contribute
-/// nothing until training moves them.
+/// Every linear carries its bias, zero-initialized, and only the weights differ. Zero layers are
+/// the identity-contract layers (block outputs, `FiLM`): together with their zero bias they
+/// contribute nothing until training moves them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum LinearInit {
     /// Uniform weights bounded by `1/√input`.
@@ -698,8 +695,8 @@ impl<R: Rng> Initialization<R> {
 
     /// Builds an embedding scaled to sit beside a unit-norm vector.
     ///
-    /// Rows are uniform with per-component variance `1/reference_dimensions` - the per-component
-    /// variance of a unit-norm `reference_dimensions`-vector - so concatenating a row to such a
+    /// Rows are uniform with per-component variance `1/reference_dimensions`, the per-component
+    /// variance of a unit-norm `reference_dimensions`-vector, so concatenating a row to such a
     /// vector lets neither block dominate a downstream linear by scale alone.
     fn embedding<B: Backend>(
         &mut self,

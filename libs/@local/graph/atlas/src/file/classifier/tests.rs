@@ -51,7 +51,7 @@ fn geometry_pads_every_region_to_page_boundaries() {
     assert_eq!(header.expected_file_len(), Some(4 * 4096 + 48));
 
     // 512 dimensions fill regions exactly: 3 rows are 12288 bytes and
-    // each moment vector 4096, no padding anywhere.
+    // each moment vector 4096, so every region ends on a page boundary.
     let exact = FileHeader::new(512, 0, 1.0, [0.0; 3]);
     assert_eq!(exact.mean_offset(), Some(4 * 4096));
     assert_eq!(exact.inverse_scales_offset(), Some(5 * 4096));

@@ -1,16 +1,16 @@
-//! The neighbour-construction instruments: audits and sweeps over a published generation.
+//! Audits and sweeps over a published generation's neighbour construction.
 //!
-//! Each instrument reopens the active generation's projector representation artifact, replays the
-//! production fit's random streams for the stage it measures, and scores one construction against
-//! an exact reference. [`backend`] sweeps the hannoy backend over its `ef_construction` ×
+//! Each instrument reopens the active generation's projector representation artifact and replays
+//! the production fit's random streams for the stage it measures. It then scores one construction
+//! against an exact reference. [`backend`] sweeps the hannoy backend over its `ef_construction` ×
 //! `ef_search` grid and [`descent`] audits NN-Descent constructions across candidate caps. An
-//! instrument observes the construction stage rather than participating in it: no fit consumes
-//! anything here, and a reading describes a generation that is already published.
+//! instrument observes the construction stage. No fit consumes anything here, and a reading
+//! describes a generation that is already published.
 //!
 //! Every instrument replays [`stage_rng`](crate::salt::fit::stage_rng) per fit seed, so a grid
 //! point reproduces what a live fit at that seed and setting would have measured, and a repeated
-//! seed measures the construction's own nondeterminism rather than seed spread. The exact
-//! reference is computed once per distinct seed and scores every reading taken against it.
+//! seed measures the construction's own nondeterminism rather than seed spread. An instrument
+//! computes the exact reference once per distinct seed and scores every reading against it.
 //!
 //! An instrument returns its readings and its host renders them.
 
@@ -37,22 +37,21 @@ use crate::{
 pub(crate) mod backend;
 pub(crate) mod descent;
 
-// Fixed reference size: an instrument compares settings against each
-// other, so its samples are sized once (SE ~0.007 at the measured
-// per-row deviation, resolving the construction effect) rather than
-// per-reading like the production check's staged sizing.
+// The reference size stays fixed because an instrument compares settings against each other. One
+// sizing of the samples yields SE ~0.007 at the measured per-row deviation and resolves the
+// construction effect. The production check stages its sizing per reading instead.
 const REFERENCE_ROWS: NonZero<usize> = NonZero::new(2_048).expect("the reference size is nonzero");
 
-/// One instrument's setup failure: the published representations could not be read.
+/// A setup failure that stopped an instrument from reading the published representations.
 #[derive(Debug)]
 pub(crate) enum SetupError {
-    /// The root's current-generation pointer could not be read.
+    /// Reading the root's current-generation pointer failed.
     Pointer(CurrentError),
     /// The root holds no activated generation.
     Inactive,
-    /// The active generation could not be opened.
+    /// Opening the active generation failed.
     Generation(OpenError),
-    /// The representation artifact could not be opened.
+    /// Opening the representation artifact failed.
     Artifact(OpenArrayError),
     /// The representation artifact does not hold rows of the projector width.
     Width,
@@ -90,9 +89,9 @@ impl Error for SetupError {
 /// One construction audit's failure, in the construction's own error vocabulary.
 #[derive(Debug)]
 pub(crate) enum AuditError<N, E> {
-    /// The published representations could not be read.
+    /// Reading the published representations failed.
     Setup(SetupError),
-    /// The exact reference could not be computed.
+    /// Computing the exact reference failed.
     Reference(KnnError<N, !>),
     /// The audited construction failed.
     Construct(E),
@@ -145,8 +144,9 @@ impl Display for Seconds {
 ///
 /// # Errors
 ///
-/// Returns a [`SetupError`] when the pointer, the generation, or the artifact cannot be read, or
-/// when no generation is activated.
+/// Returns a [`SetupError`] when the root holds no activated generation, when reading the
+/// current-generation pointer fails, or when the generation or its representation artifact fails to
+/// open.
 fn open_representations(root: &GenerationRoot) -> Result<(GenerationId, ArrayFile), SetupError> {
     let id = root
         .current()

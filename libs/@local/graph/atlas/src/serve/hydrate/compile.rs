@@ -1,21 +1,21 @@
-//! Store-side visibility resolution: the rows an actor may view, as a proof.
+//! Store-side visibility resolution that yields a proof of an actor's viewable rows.
 //!
-//! One query answers both halves of a request's scope. The actor's `ViewEntity` policies compile
-//! into a filter, the caller's own filter intersects with it when one is given, and the result
-//! selects the web id and entity uuid of every entity the actor may view. Each returned id resolves
-//! against the generation's identity tables, and the rows that resolve form the proof's two masks -
-//! node rows in one, link rows in the other.
+//! One query answers both halves of a request's scope. The actor's `ViewEntity` policies produce a
+//! filter. The caller's own filter intersects with it when the request carries one. The result
+//! selects the web id and entity uuid of every entity in the actor's viewable set. Each returned id
+//! resolves against the generation's identity tables, and the rows that resolve form the proof's
+//! two masks. Node rows go in one mask and link rows in the other.
 //!
 //! Because the caller's filter and the policy filter meet in the same statement, a filtered request
-//! and a permission-restricted request arrive at the serving surface in the same shape: a proof
+//! and a permission-restricted request arrive at the serving surface in the same shape, a proof
 //! that admits fewer rows. The proof therefore carries the request's whole visible view.
 //!
 //! A caller filter also carries the store's own protection obligation. The store's entity reads
 //! transform a caller's filter through [`PropertyProtectionFilterConfig`] before compiling it, so a
 //! filter over a protected property cannot enumerate the entity types that configuration excludes.
-//! This path compiles a caller filter as well, and a proof is observable - the rows it admits are
-//! the rows the surfaces deliver - so it applies the same transformation under the same condition,
-//! from a configuration its caller supplies.
+//! This path compiles a caller filter as well. A proof is observable (the rows it admits are the
+//! rows the surfaces deliver), so this path applies the same transformation under the same
+//! condition, from a configuration its caller supplies.
 //!
 //! The proof admits exactly the rows the query returned. Permissions evaluate against the live
 //! decision-time axes, so the proof reflects policy as it stands at request time; entities the
@@ -65,7 +65,7 @@ use crate::{
 pub(crate) enum ProofError {
     /// No store connection was available for the resolution.
     Connect(Report<StoreError>),
-    /// The actor's policy set could not be assembled.
+    /// Assembling the actor's policy set failed.
     Policies(Report<ContextCreationError>),
     /// The caller's filter does not compile against the entity query surface.
     Filter(Report<SelectCompilerError>),
@@ -105,13 +105,14 @@ impl Error for ProofError {
     }
 }
 
-/// Returns whether a request resolves to the whole generation without asking the store.
+/// Returns whether a request answers with the whole generation without asking the store.
 ///
-/// True for an unconstrained view: the caller narrows nothing and the actor's policies compile to
-/// the tautology, so the query would return every entity id the store holds and the proof it built
-/// would admit every row. The two conditions are read where they are decided rather than inferred
-/// from the actor's kind - an actor's administrative standing is a statement about its policies,
-/// and the compiled filter is where those policies have already been resolved.
+/// True for an unconstrained view, where the caller narrows nothing and the compiled policy filter
+/// is the tautology. Under those conditions the query returns every entity id the store holds and
+/// the resulting proof admits every row. The check reads both conditions where the code decides
+/// them rather than inferring them from the actor's kind. An actor's administrative standing is a
+/// statement about its policies. The compiled filter already holds the resolution of those
+/// policies.
 ///
 /// [`Filter::for_policies`] yields an empty [`Filter::All`] on exactly one path, an unconstrained
 /// permit meeting no forbid; every other shape carries a conjunct, a disjunct, or a negation. A
@@ -123,26 +124,26 @@ const fn admits_every_row(
     filter.is_none() && matches!(policy_filter, Filter::All(conjuncts) if conjuncts.is_empty())
 }
 
-/// Resolves the rows `actor` may view into a [`VisibilityProof`] over `atlas`.
+/// Resolves the rows visible to `actor` as a [`VisibilityProof`] over `atlas`.
 ///
 /// `filter` narrows the view the proof admits. A request without one resolves the actor's whole
-/// viewable set; a request with one resolves its intersection with that set, so the proof describes
-/// the view the request asked for.
+/// viewable set, while a request with one resolves its intersection with that set, so the proof
+/// describes the view the request asked for.
 ///
-/// An unconstrained view answers without the store: when the actor's policies compile to the
-/// tautology and the request narrows nothing, every row is visible, and the proof is
+/// An unconstrained view answers without the store. Every row is visible when the actor's policies
+/// compile to the tautology and the request narrows nothing. The proof is then
 /// [`VisibilityProof::full_visibility`] rather than one mask bit per row of the generation.
 ///
-/// A row is visible when the query returned its entity id. The two masks stay separate because the
-/// link rows an actor may read are not a function of the node rows it may read.
+/// A row is visible when the query returned its entity id. Both masks stay separate because the
+/// link rows an actor's policies admit are not a function of the node rows they admit.
 ///
-/// Caller requirement: `atlas` is the generation the proof will serve, since row ids are that
+/// Caller requirement: `atlas` is the generation the proof serves, since row ids are that
 /// generation's own. Caller requirement: the generation's node and link identity tables carry
-/// disjoint entity ids; an id that both tables carry resolves as a node row.
+/// disjoint entity ids. An id that both tables carry resolves as a node row.
 ///
 /// # Errors
 ///
-/// Returns [`ProofError::Policies`] when the actor's policy set cannot be assembled,
+/// Returns [`ProofError::Policies`] when assembling the actor's policy set fails,
 /// [`ProofError::Filter`] when `filter` does not compile, [`ProofError::PolicyFilter`] when the
 /// policy filter does not compile, [`ProofError::Query`] when the store rejects the statement, and
 /// [`ProofError::Rows`] when the row stream fails before it ends. A failure yields no proof, so a
@@ -177,9 +178,9 @@ where
         return Ok(VisibilityProof::full_visibility());
     }
 
-    // The store's read path transforms a caller's filter whenever protection is configured and the
-    // actor is not an instance admin; the same condition governs here, since the same filter
-    // reaches the same compiler.
+    // The store's read path transforms a caller's filter whenever the deployment configures
+    // protection and the actor is not an instance admin. The same condition governs here, since the
+    // same filter reaches the same compiler.
     let protected;
     let filter = match filter {
         Some(filter) if !protection.is_empty() && !policy_components.is_instance_admin() => {
@@ -261,7 +262,7 @@ mod tests {
     /// The compiled tautology plus no caller filter is the unconstrained view.
     ///
     /// The bug class is a short-circuit that reads a shape the policy compiler does not reserve for
-    /// unconstrained permits: the expectation therefore comes from
+    /// unconstrained permits. The expectation therefore comes from
     /// [`Filter::for_policies`](hash_graph_store::filter::Filter::for_policies) itself, not from a
     /// hand-built filter, so a change in what that constructor emits fails here rather than serving
     /// a scoped caller the operator's rows.
@@ -302,7 +303,7 @@ mod tests {
         );
         assert!(!admits_every_row(None, &partly));
 
-        // A scoped permit met by a forbid is the one shape that compiles to a NON-EMPTY
+        // A scoped permit met by a forbid is the one shape that compiles to a non-empty
         // conjunction. It is the dangerous neighbour of the tautology: reading the constructor
         // rather than the conjunction's emptiness would answer this scoped actor with the whole
         // generation.

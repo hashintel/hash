@@ -58,7 +58,7 @@ fn random_unions_match_reference_partition() {
 
     let mut components: DisjointSet<TestId> = DisjointSet::new(len as usize);
     // Reference: every index maps to a label; a union relabels one
-    // whole side. Quadratic and obviously correct.
+    // whole side. Quadratic and correct by inspection.
     let mut labels: Vec<u32> = (0..len).collect();
 
     for _ in 0..96 {

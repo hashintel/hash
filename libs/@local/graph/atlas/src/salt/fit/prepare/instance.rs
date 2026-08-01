@@ -1,9 +1,9 @@
-//! The relation-instance spool: the edge drain's working artifact.
+//! The relation-instance spool, the edge drain's working artifact.
 //!
-//! The edge stream is consumed exactly once, before the policy table exists, so the drain spools
-//! every `(edge, relation)` reading into a scratch file and the relation stage maps it back once
-//! the policies are resolved. The spool is transient by design: it lives in the run's
-//! [`ScratchDirectory`], is consumed by the run that wrote it, and never publishes.
+//! The drain consumes the edge stream exactly once, before the policy table exists, so it spools
+//! every `(edge, relation)` reading into a scratch file and the relation stage maps that file back
+//! once the policy table resolves. The spool is transient by design. It lives in the run's
+//! [`ScratchDirectory`], and only the run that wrote it consumes it. It never publishes.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use std::{
@@ -24,9 +24,8 @@ use crate::{
 
 /// One spooled `(edge, relation)` reading.
 ///
-/// The three confidences store their values beside presence bits - bit 0 link, bit 1 source, bit 2
-/// target, the attraction file's score vocabulary - so the absent-score distinction survives the
-/// spool.
+/// Each confidence stores its value beside a presence bit (bit 0 link, bit 1 source, bit 2 target,
+/// the attraction file's score vocabulary), so the absent-score distinction survives the spool.
 // `FromBytes` is sound here: every field is an unconstrained primitive
 // encoding, and the score ranges are the dataset stream's contract,
 // consumed rather than re-checked.
@@ -114,7 +113,7 @@ impl InstanceRecord {
     }
 }
 
-/// A spool being written during the edge drain.
+/// An open spool the edge drain writes readings into.
 #[derive(Debug)]
 pub(crate) struct InstanceSpoolWriter {
     writer: BufWriter<File>,
@@ -127,7 +126,7 @@ impl InstanceSpoolWriter {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file cannot be created.
+    /// Returns an error when creating the file fails.
     pub(crate) fn create(scratch: &ScratchDirectory) -> io::Result<Self> {
         let path = scratch.directory("relation")?.join("instances");
 
@@ -165,7 +164,7 @@ impl InstanceSpoolWriter {
     }
 }
 
-/// A finished spool: the handle the relation stage maps back.
+/// A finished spool, the handle the relation stage maps back.
 #[derive(Debug)]
 pub(crate) struct InstanceSpool {
     path: Utf8PathBuf,
@@ -187,12 +186,12 @@ impl InstanceSpool {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file cannot be opened or mapped.
+    /// Returns an error when opening or mapping the file fails.
     ///
     /// # Panics
     ///
-    /// Panics when the file length disagrees with the pushed count: the spool is written and
-    /// consumed within one run, so a mismatch is a program bug, not a data error.
+    /// This panics when the file length disagrees with the pushed count. One run writes and
+    /// consumes the spool, so a mismatch is a program bug rather than a data error.
     #[tracing::instrument(skip_all)]
     pub(crate) fn map(&self) -> io::Result<MappedInstances> {
         if self.count == 0 {
@@ -200,8 +199,8 @@ impl InstanceSpool {
         }
 
         let file = File::open(&self.path)?;
-        // SAFETY: the spool is written once and consumed within the run that owns its scratch
-        // directory; nothing rewrites it while mapped.
+        // SAFETY: the run that owns the scratch directory writes the spool once and consumes it
+        // there, and nothing rewrites it while mapped.
         let map = unsafe { Mmap::map(&file) }?;
 
         assert_eq!(

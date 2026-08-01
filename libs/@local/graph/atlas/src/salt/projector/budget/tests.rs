@@ -99,9 +99,8 @@ fn surrogate_deposits_exactly_the_requested_gradient_at_a_leaf() {
         .to_vec::<f32>()
         .expect("gradients should convert to f32 values");
 
-    // The surrogate's coordinate gradient IS the requested field, bit
-    // for bit: each entry is produced by `1 · requested`, untouched by
-    // any arithmetic that could round.
+    // The surrogate's coordinate gradient is the requested field bit for bit: `1 · requested`
+    // produces each entry, untouched by any arithmetic that could round.
     assert_eq!(deposited, requested);
 }
 
@@ -226,9 +225,9 @@ fn surrogate_matches_ordinary_autodiff_through_the_model() {
     let field = (coordinates.clone() * 2.0).inner();
     let surrogated = parameter_gradients(&model, &surrogate(coordinates, field).backward());
 
-    // Both paths reach every trainable parameter: stem linear (2) and
-    // norm (2), the role embedding (1), two blocks of norm + linear +
-    // FiLM linear + output linear (8 each), and the head (2).
+    // Both paths reach every trainable parameter. The 23 entries are stem linear (2) and norm (2),
+    // the role embedding (1), two blocks of norm + linear + FiLM linear + output linear (8 each),
+    // and the head (2).
     assert_eq!(direct.len(), 23);
     assert_eq!(
         direct.keys().collect::<Vec<_>>(),

@@ -1,4 +1,4 @@
-//! The compute side of one fit: every stage after ingest.
+//! The compute side of one fit, covering every stage after ingest.
 //!
 //! [`run`] executes on the rayon pool, so the tokio runtime thread stays free while the CPU-heavy
 //! stages - the neighbour link, the landmark layout, the level-of-detail sort - do their work.
@@ -84,17 +84,17 @@ pub(super) enum ClassifierPlan {
 pub(super) struct Inputs {
     /// The fit's configuration, echoed into the metadata.
     pub config: FitConfig,
-    /// The classifier supply: a fitted model, or the assembled corpus to fit one from.
+    /// A fitted model, or the assembled corpus to fit one from.
     pub classifier: ClassifierPlan,
-    /// The manifest binding of the supplied reviewed-verdicts file, when one was offered.
+    /// The manifest binding of the supplied reviewed-verdicts file, when the fit received one.
     pub reviewed_verdicts: Option<RepositoryFile>,
     /// The validated supplied reviewed-verdicts document.
     pub verdicts: Option<SuppliedVerdicts>,
-    /// The generation seeding reuse, when one was offered.
+    /// The generation seeding reuse, when the fit received one.
     pub prior: Option<Generation>,
 }
 
-/// The compute stages' shared borrows: every stage method hangs off this context.
+/// The shared borrows every compute stage method reads from.
 struct Context<'fit> {
     staging: &'fit StagedGeneration,
     scratch: &'fit ScratchDirectory,

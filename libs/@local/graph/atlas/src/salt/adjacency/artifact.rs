@@ -1,4 +1,4 @@
-//! The adjacency's published form: the writable builder, its matrix file, and the mapped reader.
+//! The writable builder, its matrix file, and the mapped reader that publish an adjacency.
 
 use core::ops::Range;
 
@@ -85,11 +85,11 @@ enum Width {
 
 /// A published adjacency opened over its mapped sparse matrix file.
 ///
-/// Construction checks the list contract once - the structure-only element types and compressed
-/// structure (fencepost coverage, strictly ascending runs, in-bound indices), paired runs, the
-/// domain-bound column dimension, and every edge in exactly one slot per direction - so an open
-/// adjacency only serves valid runs and consumers re-validate nothing. The regions stay in the page
-/// cache under memory pressure and off the heap.
+/// Construction checks the list contract once, covering the structure-only element types and
+/// compressed structure (fencepost coverage, strictly ascending runs, in-bound indices), paired
+/// runs, the domain-bound column dimension, and every edge in exactly one slot per direction. An
+/// open adjacency therefore serves only valid runs and consumers re-validate nothing. The regions
+/// stay in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct AdjacencyArchive {
     file: SprsFile,
@@ -109,8 +109,8 @@ impl AdjacencyArchive {
         let (width, (nodes, edges)) = match file.index() {
             IndexVariant::U16 => (Width::U16, validate::<u16>(&file)?),
             IndexVariant::U32 => (Width::U32, validate::<u32>(&file)?),
-            // The writer's widths are unsigned: the signed index types
-            // fail the element check inside, reported over the
+            // The writer emits unsigned widths only. The signed index
+            // types fail the element check inside, reported over the
             // described types.
             IndexVariant::U64 | IndexVariant::I16 | IndexVariant::I32 | IndexVariant::I64 => {
                 (Width::U64, validate::<u64>(&file)?)
@@ -196,8 +196,8 @@ impl AdjacencyArchive {
     ///
     /// The contiguous outgoing run followed by the incoming run - when the node row is in domain.
     ///
-    /// A self-loop at `node` appears in both runs; consumers merging the directions dedupe
-    /// knowingly.
+    /// A self-loop at `node` occurs in both runs, so a consumer merging the directions has to
+    /// dedupe.
     #[must_use]
     pub(crate) fn incident(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
@@ -219,10 +219,13 @@ impl AdjacencyArchive {
 
 /// Validates the list contract over a mapped file at index type `I`.
 ///
-/// Returns the node and edge row counts. The compressed structure - fencepost coverage, strictly
-/// ascending runs, indices below the column bound - is the matrix view's re-check; the walk below
-/// adds what the format cannot know: paired runs, the domain-bound column dimension, and the
-/// exactly-once slot rule.
+/// Returns the node and edge row counts. The matrix view re-checks the compressed structure
+/// (fencepost coverage, strictly ascending runs, indices below the column bound). The walk below
+/// adds the rules that the format leaves unexpressed.
+///
+/// - Runs pair two per node.
+/// - The column dimension equals the edge-domain bound.
+/// - Each edge occupies exactly one slot per direction.
 fn validate<I>(file: &SprsFile) -> Result<(u64, u64), InvalidAdjacencyFile>
 where
     I: SprsIndex + Into<u64> + Copy,
@@ -250,12 +253,12 @@ where
     }
     let values = file.indices::<I>().expect(expect);
 
-    // One bit set per direction: strict run order rules out duplicates
-    // within a run, the bit rules them out across runs, and 2E valid
-    // slots then force every edge into exactly one slot of each
-    // direction. Every index lies below the column bound, which equals
-    // the edge count whenever entries exist, so the bit domain covers
-    // every walked value.
+    // Each direction gets one bit set. Strict run order rules out
+    // duplicates within a run and the bit rules them out across runs, so
+    // 2E valid slots force every edge into exactly one slot of each
+    // direction. Every index lies below the column bound. That bound
+    // equals the edge count whenever entries exist, so the bit domain
+    // covers every walked value.
     let capacity = usize::try_from(edges).expect("resident edge domains fit usize");
     let mut seen = [
         DenseBitSet::new_empty(capacity),
@@ -319,7 +322,7 @@ impl EdgeValues<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is at or beyond [`len`](Self::len), like a slice.
+    /// This panics when `index` is at or beyond [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
     const fn get(&self, index: usize) -> u64 {
@@ -334,7 +337,7 @@ impl EdgeValues<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `range` escapes [`len`](Self::len), like a slice.
+    /// This panics when `range` escapes [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
     const fn slice(&self, range: Range<usize>) -> Self {
@@ -376,7 +379,7 @@ impl EdgeList<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is at or beyond [`len`](Self::len), like a slice.
+    /// This panics when `index` is at or beyond [`len`](Self::len), like a slice.
     #[inline]
     #[must_use]
     pub(crate) const fn get(&self, index: usize) -> EdgeRowId {
@@ -393,7 +396,7 @@ impl EdgeList<'_> {
     /// Correct over [`outgoing`](AdjacencyArchive::outgoing) and
     /// [`incoming`](AdjacencyArchive::incoming) lists, whose runs are strictly ascending. An
     /// [`incident`](AdjacencyArchive::incident) list concatenates two ascending runs and is not
-    /// globally sorted; query its directions separately.
+    /// globally sorted. Query each direction on its own.
     #[must_use]
     pub(crate) const fn contains(&self, edge: EdgeRowId) -> bool {
         let mut low = 0;

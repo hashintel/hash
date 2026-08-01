@@ -1,14 +1,14 @@
 //! Analytical objective, gradient, and Hessian-vector products over a prepared corpus.
 //!
-//! All evaluations share one per-row logits path: contrast logits `t = T·x̄`, class logits
-//! `ℓ = B·t`, reference differences `δ_c = ℓ_c − ℓ_ref` against the last class, one stable
-//! log-sum-exp over the reference differences and zero in class order, and probabilities from
-//! the same shifted exponentials. The
-//! objective, the gradient residual `p − q`, the Hessian curvature `diag(p) − ppᵀ`, and the
-//! per-row contrast curvature blocks of the exact Newton assembly all read these shared bytes,
-//! so no evaluation can disagree with another about a row's logits.
+//! All evaluations share one per-row logits path. It computes contrast logits `t = T·x̄`, then class
+//! logits `ℓ = B·t`, then reference differences `δ_c = ℓ_c − ℓ_ref` against the last class, then
+//! one stable log-sum-exp over the reference differences and zero in class order, and finally
+//! probabilities from the same shifted exponentials. The objective, the gradient residual `p − q`,
+//! the Hessian curvature `diag(p) − ppᵀ`, and the per-row contrast curvature blocks of the exact
+//! Newton assembly all read these shared bytes, so no evaluation can disagree with another about a
+//! row's logits.
 //!
-//! The evaluated quantities are normalized by the total weight `S`:
+//! Every evaluation normalizes its result by the total weight `S`:
 //!
 //! ```text
 //! F̄(T)   = (1/S)·[Σ_i w_i·(logsumexp(δ, 0) − Σ_c u_cδ_c) + (λ/2)·‖A‖²]
@@ -16,12 +16,11 @@
 //! H[U]   = (1/S)·Σ_i w_i·Bᵀ(diag(p_i) − p_ip_iᵀ)·B·U·x̄_i·x̄_iᵀ + (λ/S)·[U_coefficients|0]
 //! ```
 //!
-//! Rows accumulate in ascending original index; classes fold in discriminant order. Computed
-//! results are plain values that may be non-finite when the arithmetic overflows - every caller
+//! Rows accumulate in ascending original index. Classes fold in discriminant order. Computed
+//! results are plain values that may be non-finite when the arithmetic overflows, and every caller
 //! maps a non-finite objective, gradient, or product onto its own typed outcome. A request whose
-//! parameters are already non-finite is charged as a request only - it starts no traversal and
-//! visits no rows - and yields no vector at all: the scalar objective reports NaN, and the
-//! vector evaluations report [`None`].
+//! parameters are already non-finite counts as a request only. It traverses no rows and yields no
+//! vector at all: the scalar objective reports NaN, and the vector evaluations report [`None`].
 
 use super::{
     CONTRAST_ROWS, ContrastVector, LEADING_CLASSES, basis, prepare::Prepared, target::ClosedTarget,
@@ -277,7 +276,8 @@ impl Prepared<'_> {
         for (product_row, direction_row) in
             product.coefficients.iter_mut().zip(&direction.coefficients)
         {
-            // Divide-then-fma matches the fused single-loop bytes; see `finish_gradient`.
+            // Divide-then-fma matches the fused single-loop bytes: each component becomes
+            // `share.mul_add(direction, component / S)` with the same two roundings.
             **product_row /= self.total_weight;
             product_row.mul_add(direction_row, share);
         }

@@ -14,7 +14,7 @@ use crate::{
 
 /// The index stride filling one 4096-byte page of codes.
 ///
-/// So one index key resolves to one faulted page.
+/// One index key resolves to one faulted page.
 pub(crate) const PAGE_STRIDE: u32 = 512;
 const _: () = assert!(PAGE_STRIDE as u64 * size_of::<u64>() as u64 == PAGE);
 
@@ -22,9 +22,9 @@ const _: () = assert!(PAGE_STRIDE as u64 * size_of::<u64>() as u64 == PAGE);
 ///
 /// `codes` is the full code column in base delivery order: bucket-major with `fenceposts` naming
 /// the segment boundaries, non-decreasing within each segment (the deepest bucket may repeat a key
-/// for co-located points). The index keys are sampled from the column at every `stride` positions
-/// during the walk, so index, fenceposts, and codes cannot disagree. Every region streams in file
-/// order behind the header; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
+/// for co-located points). The walk samples the index keys from the column at every `stride`
+/// positions, so index, fenceposts, and codes cannot disagree. Every region streams in file order
+/// behind the header. Wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
 ///
 /// # Errors
 ///
@@ -32,9 +32,9 @@ const _: () = assert!(PAGE_STRIDE as u64 * size_of::<u64>() as u64 == PAGE);
 ///
 /// # Panics
 ///
-/// Panics when `stride` is zero (which matches no real file), when `codes` disagrees with the
-/// fencepost count, or when a segment's codes decrease - each a producer bug the file format cannot
-/// represent, caught before the bytes exist.
+/// This panics when `stride` is zero (which matches no real file), when `codes` disagrees with the
+/// fencepost count, or when a segment's codes decrease. Each is a producer bug the file format
+/// cannot represent, caught before the bytes exist.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; a malformed column is a caller contract \

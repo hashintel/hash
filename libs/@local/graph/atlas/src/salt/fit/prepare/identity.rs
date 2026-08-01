@@ -7,10 +7,10 @@
 //!
 //! The id type is the dataset's ([`Dataset::NodeId`] / [`Dataset::EdgeId`]): byte-level stable,
 //! opaque to the pipeline, ordered here by its bytes since source identifiers carry no other order.
-//! The file format is `file::identity`'s; this module owns the table's domain invariants - strictly
-//! ascending pair ids, rows inside the domain, pair agreement with the id column, index agreement
-//! with the pairs - validated once on open with one `O(N)` pass, so every lookup after that is
-//! unchecked.
+//! The file format is `file::identity`'s. This module owns the table's domain invariants. The pair
+//! ids ascend strictly, the rows lie inside the domain, the pairs agree with the id column, and the
+//! index agrees with the pairs. One `O(N)` pass validates all of that on open, so every lookup
+//! afterwards skips validation.
 //!
 //! [`Dataset::NodeId`]: crate::dataset::Dataset::NodeId
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
@@ -81,7 +81,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when two rows carry one id, which the dataset row contract excludes.
+    /// This panics when two rows carry one id, which the dataset row contract excludes.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries write failures; duplicate ids are an upstream contract \
@@ -190,7 +190,7 @@ impl Error for InvalidIdentityFile {}
 
 /// A written identity table reopened as its mapped lookup surface.
 ///
-/// Construction validates the domain invariants in one pass, so the lookups are unchecked
+/// Construction validates the domain invariants in one pass, so the lookups skip validation
 /// afterwards: [`id`](Self::id) indexes the id column and [`row_of`](Self::row_of) binary-searches
 /// the sorted pairs behind the file's index prelude. The table translates between one id domain
 /// and one row domain: `I` is the source id type, `R` the row identity its lookups answer.

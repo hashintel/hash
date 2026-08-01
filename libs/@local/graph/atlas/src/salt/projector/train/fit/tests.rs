@@ -184,12 +184,12 @@ fn corpus_with(
     }
 }
 
-/// The vacuous two-cluster corpus: no relation evidence at all.
+/// A vacuous two-cluster corpus with no relation evidence at all.
 fn semantic_corpus() -> Corpus {
     corpus_with(&[], Vec::new(), Vec::new(), AttractionOptions::default())
 }
 
-/// The boundary corpus: one Proximal relation spanning the clusters.
+/// A boundary corpus carrying one Proximal relation that spans the clusters.
 fn proximal_corpus(verdicts: Vec<ResolvedVerdict>) -> Corpus {
     corpus_with(
         &[proximal_policy(RELATION)],
@@ -234,7 +234,7 @@ fn semantic_graph(rows: usize, edges: &[(usize, usize, f32)]) -> SemanticGraph<N
     SemanticGraph::new(matrix).expect("the fixture graph is a valid semantic graph")
 }
 
-/// A complete-graph neighbour table: cluster mates near, others far.
+/// A complete-graph neighbour table that places cluster mates near and everything else far.
 fn knn_table() -> Knn<NodeRowId> {
     let mut indptr = vec![0_u64];
     let mut columns = Vec::new();
@@ -461,19 +461,17 @@ fn landmark_support_keeps_the_frame() {
 /// schedule that compounds the effect into a separated layout. (One optimizer step is not enough
 /// for a stable direction: Adam's first update is close to the coordinatewise sign of the gradient,
 /// so a single step can move an individual row either way even though the mean cluster displacement
-/// already improves; ten steps let the true gradient direction dominate.)
+/// already improves. Across ten steps the true gradient direction dominates.)
 #[test]
 fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, 0.0);
     let mut options = options(schedule(10, 10, 2), None);
-    // The default fixture carries other non-zero coefficients (ordinary,
-    // hard, landmark, and the evidence-less relation term); zeroing every
-    // force but the semantic one isolates the mechanism the certificate
-    // names. Rows in one cluster share almost the same input
-    // representation, so the shared network weights let any other active
-    // force move cluster mates in a correlated way - that confound must
-    // be off for the certificate to test what it names.
+    // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
+    // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
+    // the mechanism the certificate names. Rows in one cluster share almost the same input
+    // representation, so the shared network weights let any other active force move cluster mates
+    // in a correlated way, and that confound must be off for the certificate to test what it names.
     options.coefficients = Coefficients::new(
         Positive::ONE,
         NonNegative::ZERO,
@@ -512,18 +510,17 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
 /// anchored row toward its target well short of the full run. (One optimizer step is not
 /// enough: Adam's first update is close to the coordinatewise sign of the gradient rather than its
 /// true direction, so a single step can send an anchored row away from its target even under a
-/// dominant coefficient; ten steps let the true gradient direction dominate.)
+/// dominant coefficient. Across ten steps the true gradient direction dominates.)
 #[test]
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, 0.0);
     let mut options = options(schedule(10, 10, 2), None);
-    // A dominant landmark coefficient pins the anchored rows; the ordinary
-    // and hard repulsion terms are unrelated to any fixed target point, so
-    // zeroing them keeps their sampling noise from swinging the one row
-    // this certificate reads. The relation term has no evidence in this
-    // corpus and is zeroed with them; the semantic term's type admits no
-    // zero, so the 8:1 landmark dominance carries the isolation.
+    // A dominant landmark coefficient pins the anchored rows. Neither repulsion term aims at a
+    // fixed target point, so zeroing them keeps their sampling noise from swinging the one row this
+    // certificate reads. The relation term has no evidence in this corpus and goes to zero with
+    // them. The semantic term's type admits no zero, so the 8:1 landmark dominance carries the
+    // isolation.
     options.coefficients = Coefficients::new(
         Positive::ONE,
         NonNegative::ZERO,
@@ -634,7 +631,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     assert!(losses[7].relation > 0.0, "the half rung pulls");
     assert!(losses[8].relation > 0.0, "the full rung pulls");
 
-    // Relation-active nodes were measured and recorded.
+    // The evidence records the relation-active nodes the run measured.
     assert!(fitted.evidence.budget.overall().nodes() > 0);
 
     // Ticks at the cadence steps and the boundary.
@@ -936,8 +933,8 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
 
 #[test]
 fn schedule_validates_its_domain() {
-    // Out-of-range rates (negative, above one, non-finite) are unconstructible as
-    // `UnitFraction`s; the residual domain here is positivity and ordering.
+    // Out-of-range rates (negative, above one, non-finite) are unconstructible as `UnitFraction`s.
+    // The residual domain here is positivity and ordering.
     let valid = TrainingSchedule::new(
         nonzero(10),
         5,
@@ -1305,10 +1302,9 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     )
     .expect("the boundary fixture trains");
 
-    // The snapshot rides the refresh's own frame, so there is exactly
-    // one per tick - the telemetry counts the same ticks - and each
-    // reports the sample it was asked for, the corpus's two landmark
-    // rows first.
+    // Each snapshot comes from the refresh's own frame, so exactly one exists per tick and the
+    // telemetry counts the same ticks. Each snapshot reports the sample the observer requested,
+    // with the corpus's two landmark rows first.
     let snapshots = observer.snapshots();
     assert_eq!(snapshots.len(), watched.evidence.telemetry.len());
     assert!(!snapshots.is_empty());

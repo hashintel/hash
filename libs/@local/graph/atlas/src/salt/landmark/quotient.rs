@@ -1,21 +1,21 @@
 //! Quotient contraction of the semantic graph.
 //!
-//! The corpus semantic graph contracts through the nearest-landmark assignment: every corpus edge
+//! The corpus semantic graph contracts through the nearest-landmark assignment. Every corpus edge
 //! whose endpoints map to distinct landmarks contributes its weight to the directed landmark pair,
-//! in double precision. Each landmark row then normalizes by its largest inflow, keeps its
-//! strongest [`maximum_neighbours`](QuotientOptions::maximum_neighbours), and the two directions of
-//! a pair combine by the probabilistic union `a + b - a · b` - the same symmetrization the
-//! corpus-scale [`SemanticGraph`](crate::salt::semantic) is built with - so the result is a
-//! symmetric graph over the landmark domain with weights in `(0, 1]` and optimization memory
-//! proportional to the landmark count.
+//! in double precision. Each landmark row then normalizes by its largest inflow and keeps its
+//! strongest [`maximum_neighbours`](QuotientOptions::maximum_neighbours). Both directions of a pair
+//! combine by the probabilistic union `a + b - a · b`, the same symmetrization the corpus-scale
+//! [`SemanticGraph`](crate::salt::semantic) uses. The result is a symmetric graph over the landmark
+//! domain with weights in `(0, 1]` and optimization memory proportional to the landmark count.
 //!
-//! The union treats the two directions as fuzzy memberships, not as two measurements of one
-//! quantity: each is the pair's flow normalized by a *different* denominator (its own row's
-//! largest inflow), so a plain sum would double-count the shared corpus edges under mismatched
-//! scales, and a difference would measure asymmetry rather than affinity. The probabilistic union
-//! keeps a one-sided edge at its directed value - a hub's weak judgement of a satellite never
-//! erases the satellite's strong judgement of the hub - and reinforces edges both sides claim,
-//! exactly as at corpus scale, so the layout optimizer sees one weight semantics at either scale.
+//! The union treats the two directions as fuzzy memberships rather than as two measurements of one
+//! quantity. Each direction is the pair's flow normalized by a *different* denominator (its own
+//! row's largest inflow), so the two values carry mismatched scales. A plain sum double-counts the
+//! shared corpus edges and a difference reports asymmetry instead of affinity. The probabilistic
+//! union keeps a one-sided edge at its directed value (a hub's weak judgement of a satellite never
+//! erases the satellite's strong judgement of the hub) and reinforces edges both sides claim.
+//! Corpus scale behaves the same way, so the layout optimizer sees one weight semantics at either
+//! scale.
 //!
 //! The corpus graph stores every edge in both rows, so each undirected corpus edge feeds both
 //! directions of its landmark pair; the per-row normalization is what keeps the contraction from
@@ -40,11 +40,7 @@ const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuotientOptions {
     /// Strongest directed edges each landmark row keeps before the symmetric union.
-    // The default is an unvalidated starting point (legacy required
-    // the value as config, setting no precedent). It bounds quotient
-    // memory at roughly `M · 64` directed edges before the union; the
-    // layout quality criteria (trustworthiness, landmark rank
-    // correlation) revise it from evidence.
+    // The default is an unvalidated starting point (legacy required the value as config, setting no precedent). It bounds quotient memory at about `M · 64` directed edges before the union, and the layout quality criteria (trustworthiness, landmark rank correlation) revise it from evidence.
     pub maximum_neighbours: NonZero<usize> = MAXIMUM_NEIGHBOURS,
 }
 
@@ -301,11 +297,9 @@ where
         indptr.push(indices.len() as u64);
     }
 
-    // The sort, dedup and fill above are what make the pairs
-    // compressed-sparse-row shaped: ascending and unique by (row,
-    // column), every column a landmark ordinal, `indptr` monotone
-    // through the entry count. All three steps are load-bearing for
-    // that shape.
+    // The sort, dedup and fill above give the pairs their compressed-sparse-row shape: ascending
+    // and unique by (row, column), every column a landmark ordinal, `indptr` monotone through the
+    // entry count. Dropping any one of the three breaks that shape.
     let matrix = SemanticMatrix::try_new((landmarks, landmarks), indptr, indices, weights)
         .map_err(|(_, _, _, error)| error)
         .expect("mirrored sorted pairs form a compressed sparse row structure");

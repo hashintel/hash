@@ -1,40 +1,36 @@
 //! Wall-time benchmarks for the projector's training backend.
 //!
-//! The training backend decision holds train time as the binding
-//! constraint, and the training schedule's refresh risk is one
-//! full-corpus forward per ladder rung per cadence tick. Both price
-//! out through the two motions measured here, at the real default
-//! architecture (512-wide stem, four residual blocks, `FiLM` from the
-//! width-1 `[eta]` condition), on every backend flavor the build
+//! The training backend decision holds train time as the binding constraint, and the training
+//! schedule's refresh risk is one full-corpus forward per ladder rung per cadence tick. Both price
+//! out through the two motions measured here, at the real default architecture (512-wide stem, four
+//! residual blocks, `FiLM` from the width-1 `[eta]` condition), on every backend flavor the build
 //! carries - the CPU backend always, Metal behind `bench` + `gpu`:
 //!
 //! ```text
 //! cargo bench -p hash-graph-atlas --features bench,gpu --bench projector_backend
 //! ```
 //!
-//! - `step`: forward plus backward through the autodiff decorator at training minibatch sizes - the
-//!   per-step cost an epoch budget multiplies. A device sync fences asynchronous backends inside
-//!   the timed region, and batches materialize per iteration, so host-to-device transfer is priced
-//!   as it recurs per training step.
-//! - `forward`: inference forward at refresh-pass batch sizes - the per-rung refresh cost is
+//! - `step` times forward plus backward through the autodiff decorator at training minibatch sizes
+//!   (the per-step cost an epoch budget multiplies). A device sync fences asynchronous backends
+//!   inside the timed region, and batches materialize per iteration, so the measurement prices
+//!   host-to-device transfer as it recurs per training step.
+//! - `forward` times inference forward at refresh-pass batch sizes. The per-rung refresh cost is
 //!   (corpus rows / batch) of these.
-//! - `threads`: one fixed CPU step across rayon pool sizes. The CPU backend's matrix work runs on
-//!   matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected
+//! - `threads` times one fixed CPU step across rayon pool sizes. The CPU backend's matrix work runs
+//!   on matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected
 //!   reading, kept as the guard on that fact.
 //!
-//! - `live/*`: one real training step at the ratified batch plan over a synthesized corpus, phase
-//!   by phase - `draw`, `assemble`, and per backend `input`, `forward`, `objective` (readback +
-//!   hand-rolled fields + surrogate), and `step` (the whole motion, optimizer included). The phase
-//!   split is the backend decision's decomposition: burn tensor work vs hand-rolled CPU work vs
-//!   batch pipeline. Each backend's cold first step prints separately before its timed phases; on
-//!   autotuning backends that number is the warmup story criterion's steady state hides.
+//! - `live/*` times one real training step at the ratified batch plan over a synthesized corpus,
+//!   phase by phase: `draw`, `assemble`, and per backend `input`, `forward`, `objective` (readback
+//!   plus hand-rolled fields plus surrogate), and `step` (the whole motion, optimizer included).
+//!   The phase split decomposes the backend decision into burn tensor work vs hand-rolled CPU work
+//!   vs batch pipeline. Each backend's cold first step prints on its own before its timed phases;
+//!   on autotuning backends that number is the warmup story criterion's steady state hides.
 //!
-//! Set `PROJECTOR_BENCH_ROWS` to scale the largest forward batch
-//! (default 65536; the full corpus is ~1M rows, and forward cost is
-//! linear in rows past cache scale, so per-row numbers extrapolate).
-//! `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default
-//! 65536). Wall time depends on the host; compare within one
-//! machine, not across.
+//! Set `PROJECTOR_BENCH_ROWS` to scale the largest forward batch (default 65536; the full corpus is
+//! ~1M rows, and forward cost is linear in rows past cache scale, so per-row numbers extrapolate).
+//! `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default 65536). Wall time depends on the
+//! host; compare within one machine, not across.
 #![expect(
     clippy::decimal_literal_representation,
     clippy::significant_drop_tightening,
@@ -191,12 +187,10 @@ fn bench_live_step(criterion: &mut Criterion) {
                 BatchSize::PerIteration,
             );
         });
-        // The decomposition phases record autodiff graphs no backward
-        // consumes. Orphan graphs pin device buffers until reclamation,
-        // which a sampling loop outruns on a pooled asynchronous device,
-        // so the decomposition stays a synchronous-backend instrument;
-        // `refresh` and `step` are the production motions every backend
-        // measures.
+        // The decomposition phases record autodiff graphs no backward consumes. Orphan graphs pin
+        // device buffers until reclamation, which a sampling loop outruns on a pooled asynchronous
+        // device, so the decomposition stays a synchronous-backend instrument; `refresh` and `step`
+        // are the production motions every backend measures.
         if matches!(kind, BackendKind::Cpu) {
             group.bench_function(format!("{}/forward", kind.label()), |bencher| {
                 bencher.iter_batched(

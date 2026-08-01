@@ -14,7 +14,7 @@ use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
 /// The positive diagonal `D` between scaled and physical coordinates.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Scaling {
-    /// `D` in flat contrast-major layout; every row carries the same augmented-coordinate scales.
+    /// `D` in flat contrast-major layout. Every row repeats the same augmented-coordinate scales.
     diagonal: BoxedDVecN<SOLVER_DIMENSIONS>,
 }
 

@@ -3,10 +3,10 @@
 //! The manifest response mints a token and sends it hex-encoded in the `Atlas-Authority` header;
 //! every data request presents it back in the same header. The judgment - tag, window, actor - is
 //! [`TokenAuthority::open`]'s; this module owns the transport and the two ways a route reads a
-//! presentation. [`admit`] is the data routes' reading: it returns the sealed [`Scope`] only under
+//! presentation. [`admit`] is the data routes' reading. It returns the sealed [`Scope`] only under
 //! a fresh token naming the requesting actor, and collapses every refusal into one uniform `401`
 //! problem, so a caller learns that it must re-fetch the manifest and nothing about why.
-//! [`Presented`] is the manifest's reading: it distinguishes an absent token from a refused one
+//! [`Presented`] is the manifest's reading. It distinguishes an absent token from a refused one
 //! and never rejects, because the manifest judges the generation before it judges continuity.
 //!
 //! [`TokenAuthority::open`]: crate::serve::authorization::TokenAuthority::open
@@ -50,19 +50,19 @@ where
     tokens.open(&token.into_inner(), actor, now).ok()
 }
 
-/// Admits one data request: the sealed [`Scope`] under a fresh token naming the requesting actor.
+/// Admits one data request, returning the sealed [`Scope`] under a fresh actor-matching token.
 ///
 /// Runs inside [`Visibility`]'s extraction, ahead of the scope resolution, so an unauthorized
 /// request costs one AEAD open and never a store round trip. It also runs ahead of the handler
 /// body's generation check, and that order is the data routes' half of the contract: **a data route
-/// admits first and reaches the generation's `404` only under an acceptable token.** So a token
-/// minted under a retired generation answers `401` here - its tag fails under the current key -
-/// while a token this generation minted, presented at a route naming a retired one, is admitted and
-/// answers `404` `unknown-generation` from the handler body.
+/// admits first and reaches the generation's `404` only under an acceptable token.** A token
+/// minted under a retired generation therefore answers `401` here - its tag fails under the current
+/// key - while a token this generation minted, presented at a route naming a retired one, passes
+/// admission and answers `404` `unknown-generation` from the handler body.
 ///
 /// The manifest orders the two judgments the other way round, generation first, so a client that
-/// holds no acceptable token still discovers a re-pin there. Both orders are contractual: a `404`
-/// from a data route means the caller's pin is stale *and* its token is good, and a `401` never
+/// holds no acceptable token still discovers a re-pin there. Both orders are contractual. A `404`
+/// from a data route means the caller's pin is stale and its token is good, and a `401` never
 /// discriminates a stale pin from a stale token. The generation judgment stays in the handler body
 /// for exactly that reason.
 ///
@@ -86,11 +86,11 @@ pub(super) fn admit(parts: &Parts, state: &AppState) -> Result<Scope, Problem<'s
 
 /// A presented token's continuity reading, for the manifest's re-mint.
 ///
-/// Extraction never rejects on the token: the manifest judges the generation first, so a retired
+/// Extraction never rejects on the token. The manifest judges the generation first, so a retired
 /// generation answers `404` whatever the presentation, and the refusal of a present-but-invalid
-/// token is the handler's to give after that check. The window is forgiven - an expired token is
-/// the expected presentation at a refresh - while the tag and the actor are not: a token that
-/// fails either reads as [`Presented::Refused`], never as a fresh bootstrap.
+/// token is the handler's to give after that check. The reading forgives the window - an expired
+/// token is the expected presentation at a refresh - while the tag and the actor stay binding: a
+/// token that fails either reads as [`Presented::Refused`], never as a fresh bootstrap.
 #[derive(Debug)]
 pub(super) enum Presented {
     /// No token in the header: a fresh bootstrap.
@@ -147,7 +147,7 @@ impl OperationInput for Presented {
     /// Documents the presented token as an optional request header.
     ///
     /// Optional is the manifest's whole distinction from a data route: a request presenting no
-    /// token bootstraps a view rather than being refused.
+    /// token bootstraps a view where a data route would refuse.
     fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
         operation
             .parameters
@@ -186,7 +186,7 @@ mod tests {
         serde_json::to_value(&operation).expect("an operation serializes")
     }
 
-    /// The fixture issue time: a round wall-clock second.
+    /// The fixture issue time, a round wall-clock second.
     fn issued_at() -> SystemTime {
         SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
     }
@@ -227,8 +227,8 @@ mod tests {
 
     /// A present header outside the codec reads as refused, never as a fresh bootstrap.
     ///
-    /// The distinction the manifest's case split stands on: a client that presented something is
-    /// answered loudly, so a corrupted retention never silently becomes another view.
+    /// The manifest's case split depends on this distinction: a client that presented something
+    /// receives a refusal, so a corrupted retention never becomes another view without notice.
     #[test]
     fn a_garbage_header_reads_as_refused() {
         let tokens = authority();
@@ -248,9 +248,9 @@ mod tests {
 
     /// Another actor's authentic token reads as refused, never as a fresh bootstrap.
     ///
-    /// The witnessed hole this pins shut: an actor switch that leaves a stale token behind must
-    /// answer loudly rather than mint the new actor a fresh view under a `200` the client reads
-    /// as continuity.
+    /// This test closes a witnessed hole: an actor switch that leaves a stale token behind must
+    /// answer with a refusal rather than mint the new actor a fresh view under a `200` the client
+    /// reads as continuity.
     #[test]
     fn a_foreign_actors_token_reads_as_refused() {
         let tokens = authority();
@@ -278,11 +278,11 @@ mod tests {
         );
     }
 
-    /// The presented token is documented optional on the manifest and required on a data route.
+    /// The emitted OpenAPI documents the token optional on the manifest, required on a data route.
     ///
-    /// The two readings differ in exactly one emitted field, and a generated client's behaviour
-    /// follows it: a required header makes the token a precondition of the call, an optional one
-    /// leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
+    /// The readings differ in exactly one emitted field, and a generated client's behaviour
+    /// follows it. A required header makes the token a precondition of the call, while an optional
+    /// one leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
     /// builder call, because that is what a generator reads.
     #[test]
     fn the_presented_token_is_documented_by_reading() {
@@ -323,7 +323,7 @@ mod tests {
 
     /// Admission enforces the window the continuity reading forgives.
     ///
-    /// The same presentation diverges at the two readings: past the hard window a data request
+    /// The same presentation diverges at the two readings: past the enforced window a data request
     /// refuses while the manifest still carries the sealed view into a fresh mint.
     #[test]
     fn an_expired_token_refuses_at_admission_yet_reads_as_carried() {

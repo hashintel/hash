@@ -21,7 +21,7 @@ use crate::{
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };
 
-/// An edges request was rejected.
+/// A named rejection of one edges request.
 ///
 /// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
 /// vocabulary.
@@ -80,13 +80,13 @@ impl fmt::Display for EdgesError {
 
 impl Error for EdgesError {}
 
-/// One edges read: the ratified POST body.
+/// The POST body of one edges read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
     pub tiles: Vec<TileCoordinate>,
-    /// The visibility filter, a reserved field: a request that carries one is rejected.
+    /// The visibility filter, a reserved field: the endpoint rejects any request that carries one.
     #[serde(default)]
     pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
@@ -101,15 +101,15 @@ pub struct EdgesRequest {
 /// disagree.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EdgesLimits {
-    /// Most tiles one request may list; the manifest publishes this value as `limits.edgesTiles`.
+    /// Most tiles one request may list.
+    ///
+    /// The manifest publishes this value as `limits.edgesTiles`.
     pub tiles: u32 = 256,
     /// Most edges one response delivers.
     ///
     /// Beyond it the rank-ordered cap truncates and `HEAD` reports `complete: false`.
     ///
-    /// One delivered edge spends 40 bytes of columns: a 4-byte source, a 4-byte target, and its
-    /// 32-byte link entity id. The default cap of `0x4000` edges bounds one response's columns at
-    /// 640 KiB.
+    /// One delivered edge spends 40 bytes of columns across a 4-byte source, a 4-byte target, and its 32-byte link entity id. The default cap of `0x4000` edges bounds one response's columns at 640 KiB.
     pub edges: u32 = 0x4000,
 }
 
@@ -143,9 +143,10 @@ impl Atlas {
     /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// A request that sets `includeDetailedData` is rejected by name: this path serves deployments
-    /// without a store connection. A transport with one assembles, hydrates, and encodes through
-    /// [`Atlas::assemble_edges`], [`Atlas::delivered_edge_entities`], and [`Atlas::encode_edges`].
+    /// The endpoint rejects a request that sets `includeDetailedData` by name. This path serves
+    /// deployments without a store connection. A transport with one assembles, hydrates, and
+    /// encodes through [`Atlas::assemble_edges`], [`Atlas::delivered_edge_entities`], and
+    /// [`Atlas::encode_edges`].
     ///
     /// # Errors
     ///
@@ -177,13 +178,14 @@ impl Atlas {
     /// ranks best - an edge is only as prominent as its less-prominent endpoint - with ties
     /// broken by identity bytes, and `HEAD` reports `complete: false`.
     ///
-    /// An edge delivers under three conditions the proof states together: it holds the edge's own
-    /// link row, and it holds both endpoints. The delivered row sets intersect the proof before
-    /// edges qualify, and the link row carries the link entity's own authorization, which its
-    /// endpoints do not imply.
+    /// An edge delivers under three conditions the proof states together. The proof holds the
+    /// edge's own link row and both of its endpoints. The delivered row sets intersect the proof
+    /// before edges qualify, and the link row carries the link entity's own authorization, which
+    /// its endpoints do not imply.
     ///
-    /// Version 0 serves the full unfiltered edge set; a request naming a visibility filter is
-    /// rejected by name rather than answered with bytes that silently ignore it.
+    /// Version 0 serves the full unfiltered edge set. The endpoint rejects a request naming a
+    /// visibility filter by name rather than answering it with bytes that ignore the filter without
+    /// saying so.
     ///
     /// # Errors
     ///
@@ -212,8 +214,7 @@ impl Atlas {
         proof.intersect(&mut delivered);
 
         let neighbourhood = Neighbourhood::of(self, proof);
-        // The link identity rides selection: truncation ties and the
-        // delivery sort both compare identity bytes, so nothing the
+        // Truncation ties and the delivery sort both compare identity bytes, so nothing the
         // response exposes orders by internal id.
         let mut edges = neighbourhood.induced(&delivered);
         let complete = edges.len() <= limits.edges as usize;
@@ -248,7 +249,7 @@ impl Atlas {
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the adjacency's edge domain, which open's
+    /// This panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
     #[must_use]
     pub fn delivered_edge_entities(&self, document: &EdgesDocument) -> DeliveredEntities {
@@ -267,16 +268,16 @@ impl Atlas {
 
     /// Encodes an assembled document.
     ///
-    /// `SALTILEE` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
-    /// detail trailer riding iff `details` is supplied.
+    /// `SALTILEE` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. The
+    /// response carries the detail trailer iff the caller supplies `details`.
     ///
-    /// The trailer interns type URLs at encode time: the table is the bytewise-sorted union of
+    /// The trailer interns type URLs at encode time. The table is the bytewise-sorted union of
     /// every edge's first direct type, and each reference keys by index into it.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's delivered edges - a transport bug,
-    /// never request data.
+    /// This panics when supplied details do not cover the document's delivered edges, which is a
+    /// transport bug rather than request data.
     #[must_use]
     pub fn encode_edges(
         &self,

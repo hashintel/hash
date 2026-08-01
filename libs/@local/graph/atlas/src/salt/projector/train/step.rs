@@ -6,8 +6,8 @@
 //! [`evaluate`], which computes
 //! the composite objective in two regimes. The hand-gradient families (semantic attraction,
 //! ordinary and hard repulsion, relation attraction) evaluate value and per-node coordinate
-//! gradient against the detached coordinate frame; the relation field is measured per node
-//! against the semantic one for the budget diagnostics, and the combined field re-enters the
+//! gradient against the detached coordinate frame; the evaluation measures the relation field per
+//! node against the semantic one for the budget diagnostics, and the combined field re-enters the
 //! parameter graph through the surrogate scalar, whose single backward pass deposits exactly that
 //! field. The support families (temporal anchors, landmarks) ride ordinary autodiff on the
 //! coordinate tensor - they carry no budget diagnostics - and add onto the same scalar.
@@ -114,12 +114,14 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the forward pass produces a non-finite coordinate: training diverged.
+    /// Returns an error when the forward pass produces a non-finite coordinate, which means
+    /// training diverged.
     ///
     /// # Panics
     ///
-    /// Panics on wiring defects: input columns disagreeing with the batch rows, relation edges
-    /// without a frozen relation energy, or scale tables missing where relation edges are present.
+    /// This panics when the input columns disagree with the batch rows, when relation edges arrive
+    /// without a frozen relation energy, or when a scale table is missing where relation edges are
+    /// present. Each of those is a wiring defect.
     pub(crate) fn objective<B: AutodiffBackend<FloatElem = f32>, A: Allocator>(
         &self,
         model: &Projector<B>,
@@ -135,20 +137,22 @@ where
 /// Evaluates the composite objective against projected coordinates.
 ///
 /// `coordinates` are the batch rows' projections in the batch's local row order, optionally
-/// followed by alignment padding: trailing rows beyond the batch's are the materialized input's
+/// followed by alignment padding. Trailing rows beyond the batch's own are the materialized input's
 /// padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they carry exactly
-/// zero force. Split from [`objective`](Evaluation::objective) so the coordinate producer stays
-/// exchangeable: the training
-/// loop forwards the model, tests drive hand-built frames.
+/// zero force.
+///
+/// Splitting this from [`objective`](Evaluation::objective) keeps the coordinate producer
+/// exchangeable, so the training loop forwards the model while tests drive hand-built frames.
 ///
 /// # Errors
 ///
-/// Returns an error when a coordinate is non-finite: training diverged.
+/// Returns an error when a coordinate is non-finite, which means training diverged.
 ///
 /// # Panics
 ///
-/// Panics on wiring defects: a coordinate row count disagreeing with the batch, relation edges
-/// without a frozen relation energy, or a missing scale table.
+/// This panics when the coordinate row count disagrees with the batch, when relation edges arrive
+/// without a frozen relation energy, or when a scale table is missing. Each of those is a wiring
+/// defect.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "a frame/batch row mismatch is a wiring defect contract, not a recoverable error"
@@ -228,8 +232,8 @@ where
         )
     });
 
-    // The surrogate's field matches the coordinate tensor's padded
-    // shape; the padding rows carry exactly zero force.
+    // The surrogate's field matches the coordinate tensor's padded shape. The padding rows carry
+    // exactly zero force.
     combined.resize(frame_rows * 2, 0.0);
     let gradient = Tensor::from_data(TensorData::new(combined, [frame_rows, 2]), &device);
     let mut surrogate = budget::surrogate(coordinates, gradient);
@@ -258,7 +262,7 @@ where
     })
 }
 
-/// Evaluates the relation term per type, measures per node, and records the budget metrics.
+/// Evaluates the relation term per type and records its per-node measurements as budget metrics.
 ///
 /// Returns the relation loss value and the flattened combined field.
 fn relation_pass<N, A: Allocator>(
@@ -282,9 +286,8 @@ where
     let scale = batch.eta.get() * options.coefficients.relation.get() * batch.relation_scale;
     let rows = frame.len();
 
-    // One scratch field serves every type; only rows a type touches
-    // are read and re-zeroed, so the pass costs the edge lists, not
-    // types times batch rows.
+    // One scratch field serves every type. The pass reads and re-zeroes only the rows a type
+    // touches, so it costs the edge lists rather than types times batch rows.
     let mut relation_field = GradientField::new(rows);
     let mut scratch = GradientField::new(rows);
     let mut contributions: Vec<(BatchRowId, OntologyRowId, Vec2)> = Vec::new();
@@ -347,8 +350,8 @@ where
     }
 
     for (row, relation, gradient) in contributions {
-        // A row whose per-type contributions cancelled exactly has no
-        // budget outcome: no relation force was applied there.
+        // A row whose per-type contributions cancelled exactly has no budget outcome, because no
+        // relation force acted there.
         let Some(outcome) = outcomes[row] else {
             continue;
         };

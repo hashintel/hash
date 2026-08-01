@@ -40,7 +40,7 @@ fn clusters(atlas: &Atlas) -> HashMap<u64, Vec<NodeRowId>> {
     clusters
 }
 
-/// Counts the distinct depth-`depth` cells of `keys` with a set, not a histogram.
+/// Counts the distinct depth-`depth` cells of `keys` with a set.
 fn prefix_census(keys: &[MortonKey], depth: Depth) -> u64 {
     let cells: HashSet<u64> = keys.iter().map(|key| key.prefix(depth)).collect();
 
@@ -68,10 +68,10 @@ fn assert_census(occupancy: &ViewOccupancy, keys: &[MortonKey]) {
 
 /// Hiding a whole cluster removes its cell from every depth's count.
 ///
-/// The bug class is the one the delivery-cut policy rests on: a census reaching past the mask would
-/// let a hidden row choose how deep an authorized view is served. The mask must therefore move the
-/// aggregate, and it must move it by exactly the cell the hidden cluster occupied - which is why
-/// the case hides every row sharing one key rather than an arbitrary subset.
+/// The delivery-cut policy rests on this bug class. A census reaching past the mask would let a
+/// hidden row set how deep an authorized view goes. The mask must therefore move the aggregate by
+/// exactly the cell the hidden cluster occupied, which is why the case hides every row sharing one
+/// key rather than an arbitrary subset.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hiding_a_cluster_removes_its_cell() {
@@ -106,8 +106,8 @@ async fn hiding_a_cluster_removes_its_cell() {
     let masked = Walk::of(&atlas, &proof).visible_occupancy();
     assert_census(&masked, &visible_keys(&atlas, &hidden));
 
-    // The mask moved the aggregate: exactly one cell fewer at the depths that separated the
-    // vacated cell, and never one more at any depth.
+    // The mask left exactly one cell fewer at the depths that separated the vacated cell, and
+    // never one more at any depth.
     assert_eq!(masked.distinct_keys() + 1, full.distinct_keys());
     for depth in Depth::all() {
         assert!(

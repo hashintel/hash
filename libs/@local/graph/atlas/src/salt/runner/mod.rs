@@ -1,4 +1,4 @@
-//! The generation runner: one production run from snapshot to active generation.
+//! One production run from snapshot to active generation.
 //!
 //! [`run`] composes the pipeline's separate decisions into the one sequence production takes: the
 //! prior comes from the root's active generation, [`fit`] publishes a complete verified generation,
@@ -8,9 +8,9 @@
 //! to diagnose the report, correct data, configuration, or metric, and run again - a candidate
 //! never activates by hand.
 //!
-//! The whole run replays from the one fit seed: the admission probe's generator derives from it
-//! under a pinned name, exactly as the fit stages derive theirs, so equal configurations sample
-//! equal anchors.
+//! The whole run replays from the one fit seed. The admission probe's generator derives from that
+//! seed under a pinned name, exactly as the fit stages derive theirs, so equal configurations
+//! sample equal anchors.
 //!
 //! Retiring old generations is offline tooling over published directories.
 
@@ -58,7 +58,7 @@ pub(crate) enum PriorMode {
 /// Every setting of one generation run.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RunnerOptions {
-    /// The fit's settings; its seed also derives the admission probe's sampling.
+    /// The fit's settings, whose seed also derives the admission probe's sampling.
     pub fit: FitConfig,
     /// Where the prior generation comes from.
     pub prior: PriorMode = PriorMode::FromActive,
@@ -71,40 +71,40 @@ pub(crate) struct RunnerOptions {
 pub(crate) enum Admission {
     /// The report's thresholds held and the root's pointer names the generation.
     Active,
-    /// The report refused admission; the generation is published but not activated.
+    /// The report refused admission, so the generation stays published and unactivated.
     ///
     /// Serving it anyway is a decision recorded outside the runner.
     Candidate,
 }
 
-/// One finished run: the published generation and its admission evidence.
+/// The published generation of one finished run and its admission evidence.
 #[derive(Debug, Clone)]
 pub(crate) struct Outcome {
     /// The published generation, reopened and verified against its identity.
     pub generation: Generation,
     /// The admission probe's full evidence record.
     pub report: QualityReport,
-    /// Whether the generation was activated.
+    /// Whether the run activated the generation.
     pub admission: Admission,
 }
 
 /// Runs one generation end to end and activates it on admission.
 ///
-/// The dataset serves both halves of the run - the fit's ingest streams and the admission probe's
-/// sampled lookups - so the probed corpus is the fitted corpus by construction. The classifier
+/// The dataset serves both halves of the run (the fit's ingest streams and the admission probe's
+/// sampled lookups), so the probed corpus is the fitted corpus by construction. The classifier
 /// input is a supplied fitted artifact or an annotation corpus the fit assembles and fits inside
-/// the run ([`ClassifierInput`]). The reviewed verdicts are a supplied input the fit stages for
-/// the trainer; [`None`] runs without a review file.
+/// the run ([`ClassifierInput`]). The reviewed verdicts are a supplied input the fit stages for the
+/// trainer, and [`None`] runs without a review file.
 ///
 /// A report that refuses admission returns [`Admission::Candidate`] with the generation published
-/// and unactivated; only failures that prevent a verdict are errors.
+/// and unactivated. Only failures that prevent a verdict are errors.
 ///
 /// # Errors
 ///
-/// Returns an error when the prior cannot be resolved ([`RunnerError::Current`],
-/// [`RunnerError::Prior`]), the fit cannot publish ([`RunnerError::Fit`]), or - with the published
-/// generation's identity attached - when the generation cannot be reopened, the probe cannot
-/// produce a report, or the admitted generation cannot be activated.
+/// Returns an error when the run cannot resolve the prior ([`RunnerError::Current`],
+/// [`RunnerError::Prior`]), when the fit cannot publish ([`RunnerError::Fit`]), or, with the
+/// published generation's identity attached, when the run cannot reopen the generation, when the
+/// probe cannot produce a report, or when the run cannot activate the admitted generation.
 pub(crate) async fn run<D, E, P>(
     dataset: &D,
     embedder: &E,
@@ -158,11 +158,11 @@ where
     .await
     .map_err(|source| RunnerError::Quality { id, source })?;
 
-    // The battery's readings are reported here rather than from inside the probe, because the
+    // The run reports the battery's readings here rather than from inside the probe, because the
     // reading a control turns on is an extremum over the probe's rungs and only exists once the
     // report reduces them - and it is the same reduction the verdict reads. A control whose
-    // evidence is absent reports nothing: there is no measurement to observe, and the refusal
-    // is the report's to carry.
+    // evidence is absent reports nothing: there is no measurement to observe, and the refusal is
+    // the report's to carry.
     for control in report.controls() {
         if let Some(reading) = control.reading {
             progress.quality_probe(control.metric, reading);

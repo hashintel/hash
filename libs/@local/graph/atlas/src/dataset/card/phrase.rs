@@ -29,7 +29,7 @@ impl<'text> Phrase<'text> {
     ///
     /// # Errors
     ///
-    /// Returns the segmenter's error when the description cannot be segmented.
+    /// Returns the segmenter's error when it cannot split the description into sentences.
     pub(crate) fn new<S, T>(
         label: &'text str,
         description: Option<&'text str>,

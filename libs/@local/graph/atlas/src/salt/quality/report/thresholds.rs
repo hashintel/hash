@@ -1,30 +1,27 @@
-//! The assessment's thresholds: validated controls and their override document.
+//! Validated quality controls and their override document.
 
 use core::fmt;
 
 use crate::math::{NonNegative, UnitFraction, narrow_f32};
 
-// The degradation factor is normative: no important subgroup may
-// suffer more than twice the overall degradation. The
-// anchor floor bounds single-anchor leverage on a subgroup reading to
-// one eighth; it is a sampling-noise floor, not a statement about
-// which subgroups matter.
+// The degradation factor is normative: no important subgroup may suffer more than twice the overall
+// degradation. The anchor floor bounds single-anchor leverage on a subgroup reading to one eighth,
+// which is a sampling-noise floor and says nothing about which subgroups matter.
 const DEFAULT_DEGRADATION_FACTOR: f64 = 2.0;
 const DEFAULT_MINIMUM_SUBGROUP_ANCHORS: usize = 8;
 
 /// The maximally permissive density-spread ceiling.
 ///
-/// The spread of `ln` radius ratios over f32 radii is bounded by a few hundred, so the f32
-/// maximum is unbounded in practice while the type keeps the ceiling finite and non-negative by
-/// construction.
+/// A few hundred bounds the spread of `ln` radius ratios over f32 radii, so the f32 maximum imposes
+/// no practical ceiling while the type keeps the value finite and non-negative by construction.
 const PERMISSIVE_DENSITY_SPREAD: NonNegative =
     NonNegative::new(f32::MAX).expect("the f32 maximum is finite and non-negative");
 
 /// A quality-thresholds override document.
 ///
-/// The optional-file shape of the six absolute controls: a present field overrides its source
-/// default after domain validation, an absent field keeps it, and an unknown field refuses the
-/// whole document.
+/// Each of the six absolute controls takes an optional field. A present field overrides its source
+/// default after domain validation, an absent field keeps that default, and an unknown field
+/// refuses the whole document.
 #[derive(Debug, Copy, Clone, Default, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub(crate) struct ThresholdOverrides {
@@ -67,26 +64,33 @@ impl core::error::Error for ThresholdDomainError {}
 
 /// The thresholds of one assessment.
 ///
-/// Every control is a concrete validated value - floors and ceilings apply to the corpus
-/// map-versus-representation grid at every neighbourhood size, and there is no unpinned state:
-/// [`QualityReport::passes`](super::QualityReport::passes) compares all six controls and demands
-/// their evidence.
+/// Every control is a concrete validated value. Floors and ceilings apply to the corpus
+/// map-versus-representation grid at every neighbourhood size, and every control stays pinned
+/// because [`QualityReport::passes`](super::QualityReport::passes) compares all six controls and
+/// demands their evidence.
 ///
-/// The defaults are maximally permissive: every control sits at the edge of its domain, so the
-/// default verdict gates evidence presence rather than fidelity. Deployments impose measured
-/// bounds through an override document that replaces individual defaults after domain
-/// validation ([`ThresholdOverrides`]).
-// No serde derives: the derive macros cannot parse default field values, so the report carries
-// the applied thresholds as typed fields instead of embedding this struct.
+/// Every default is the most permissive value in its control's domain, so the default verdict gates
+/// evidence presence rather than fidelity. Deployments impose measured bounds through an override
+/// document that replaces individual defaults after domain validation ([`ThresholdOverrides`]).
+// No serde derives. The derive macros cannot parse default field values, so the report carries the
+// applied thresholds as typed fields instead of embedding this struct.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct QualityThresholds {
-    /// Minimum recall floor; the permissive zero imposes none.
+    /// Minimum recall floor.
+    ///
+    /// The permissive zero imposes none.
     pub minimum_recall: UnitFraction = UnitFraction::ZERO,
-    /// Minimum trustworthiness floor; the permissive zero imposes none.
+    /// Minimum trustworthiness floor.
+    ///
+    /// The permissive zero imposes none.
     pub minimum_trustworthiness: UnitFraction = UnitFraction::ZERO,
-    /// Minimum continuity floor; the permissive zero imposes none.
+    /// Minimum continuity floor.
+    ///
+    /// The permissive zero imposes none.
     pub minimum_continuity: UnitFraction = UnitFraction::ZERO,
-    /// Maximum intrusion-rate ceiling; the permissive one imposes none.
+    /// Maximum intrusion-rate ceiling.
+    ///
+    /// The permissive one imposes none.
     pub maximum_intrusion_rate: UnitFraction = UnitFraction::ONE,
     /// Maximum density-distortion spread.
     ///
@@ -96,7 +100,7 @@ pub(crate) struct QualityThresholds {
     pub maximum_density_spread: NonNegative = PERMISSIVE_DENSITY_SPREAD,
     /// Minimum map-versus-representation triplet agreement floor.
     ///
-    /// The permissive zero imposes no floor; it fails when the triplet readings are disabled.
+    /// The permissive zero imposes no floor. The control still fails when triplet sampling is off.
     pub minimum_triplet_agreement: UnitFraction = UnitFraction::ZERO,
     /// A subgroup flags when its degradation exceeds this factor times the overall degradation.
     ///
@@ -110,7 +114,8 @@ pub(crate) struct QualityThresholds {
 impl QualityThresholds {
     /// Applies an override document over these thresholds.
     ///
-    /// A present field replaces its default after domain validation; an absent field keeps it.
+    /// A present field replaces its default after domain validation, and an absent field keeps the
+    /// default.
     ///
     /// # Errors
     ///
@@ -160,10 +165,9 @@ impl QualityThresholds {
             &mut self.minimum_triplet_agreement,
         )?;
         if let Some(value) = overrides.maximum_density_spread {
-            // The f64 domain check precedes narrowing: a negative
-            // underflow narrows to -0.0 and a value just above the f32
-            // maximum rounds down onto it - both must refuse as
-            // written, not as rounded.
+            // The domain check runs on the f64 value before narrowing. A negative underflow narrows
+            // to -0.0 and a value barely above the f32 maximum rounds down onto it, so both must
+            // refuse as written rather than as rounded.
             let admitted = (value.is_finite() && value >= 0.0 && value <= f64::from(f32::MAX))
                 .then(|| narrow_f32(value))
                 .flatten()

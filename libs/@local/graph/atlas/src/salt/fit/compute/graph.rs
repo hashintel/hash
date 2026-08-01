@@ -38,11 +38,13 @@ type NeighbourTable = (
 impl Context<'_> {
     /// Constructs the neighbour lists over the distinct representation rows.
     ///
-    /// Admits them by exact recall, stages the corpus row-domain expansion - every row carries its
-    /// representative's list, neighbours named by their first rows - and returns the staged table
-    /// beside the distinct table the training stages consume, mapped back from `scratch`. One
-    /// construction runs at the wider of the spot check's depth and the stored width, so the
-    /// admitted lists, the persisted expansion, and the training table are the same lists.
+    /// Exact recall admits the lists. The staged expansion covers the corpus row domain, where
+    /// every row carries its representative's list and names its neighbours by their first rows.
+    ///
+    /// Returns the staged table beside the distinct table the training stages consume, mapped back
+    /// from `scratch`. One construction runs at the wider of the spot check's depth and the stored
+    /// width, so the admitted lists, the persisted expansion, and the training table are the same
+    /// lists.
     pub(super) fn build_neighbour_table<P>(
         &self,
         scratch: &ScratchDirectory,
@@ -54,7 +56,7 @@ impl Context<'_> {
         P: Progress + Sync,
     {
         let _span = tracing::info_span!("knn").entered();
-        // Construction speaks distinct rows; the published failure surface speaks corpus rows.
+        // Construction speaks distinct rows. The published failure surface speaks corpus rows.
         let corpus = |row: DistinctRowId| quotient.first_row(row);
 
         let width = self
@@ -92,8 +94,9 @@ impl Context<'_> {
             })
             .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?;
 
-        // Reported before the gate: a construction the floor rejects was
-        // measured, and the measurement is what an operator is watching for.
+        // The report comes before the gate. The run measured a construction
+        // the floor rejects, and that measurement is what an operator is
+        // watching for.
         progress.knn_recall(&recall);
 
         match recall.admission() {

@@ -112,7 +112,7 @@ fn header_parse_pins_identity() {
     wrong_magic[0] = b'W';
     FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
-    // Version 0 is the retired layout; its bytes must not parse as V1.
+    // Version 0 is the retired layout. Its bytes must not parse as V1.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
     FileHeader::try_read_from_bytes(&wrong_version)
@@ -121,14 +121,14 @@ fn header_parse_pins_identity() {
 
 #[test]
 fn region_geometry() {
-    // 1000 codes at stride 512: two keys, a 16-byte index padded to one
-    // page, codes at 8192, 8000 code bytes behind them.
+    // 1000 codes at stride 512 need two keys. Padding the 16-byte index to one page puts codes at
+    // 8192, with 8000 code bytes behind them.
     let header = FileHeader::new(512, posts_of(&[1000]));
     assert_eq!(header.index_keys(), Some(2));
     assert_eq!(header.codes_offset(), Some(8192));
     assert_eq!(header.expected_file_len(), Some(8192 + 8000));
 
-    // An empty file is exactly its header: no keys, no index page.
+    // An empty file is exactly its header, with zero keys and no index page.
     let empty = FileHeader::new(512, posts_of(&[]));
     assert_eq!(empty.index_keys(), Some(0));
     assert_eq!(empty.codes_offset(), Some(4096));
@@ -159,8 +159,8 @@ const SUB: u64 = 0x1000_0000_0000_0000;
 
 /// The hand fixture.
 ///
-/// Three segments over nine codes, non-decreasing within each, with a duplicated key in the deepest
-/// segment standing for catch-all co-location.
+/// Segments of length one, three, and five make up nine codes, non-decreasing within each, with a
+/// duplicated key in the deepest segment standing for catch-all co-location.
 ///
 /// ```text
 /// position: 0        1  2       3       4  5    6    7       8
@@ -188,7 +188,7 @@ fn fixture_posts() -> Fenceposts<BasePosition> {
     posts_of(&[1, 3, 5])
 }
 
-/// Writes the fixture at a deliberately tiny stride so queries walk a multi-key index.
+/// Writes the fixture at a stride short enough that queries walk a multi-key index.
 fn fixture_bytes(stride: u32) -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(stride, &fixture_posts(), &fixture_codes(), &mut bytes)
@@ -321,8 +321,7 @@ fn runs_agree_with_a_linear_scan(
     probe: u64,
     #[strategy = 0_u8..=6] probe_depth: u8,
 ) {
-    // Three segments cut from a sorted column: cuts inside the
-    // column keep each segment non-decreasing.
+    // Cutting a sorted column twice leaves each of the three segments non-decreasing.
     bits.sort_unstable();
     let mut cuts: Vec<usize> = cuts.iter().map(|cut| cut.index(bits.len() + 1)).collect();
     cuts.sort_unstable();
@@ -349,7 +348,7 @@ fn runs_agree_with_a_linear_scan(
         let bucket = depth(bucket);
         let run = file.run(bucket, cell);
 
-        // The reference: scan the segment linearly.
+        // A linear scan over the segment gives the reference result.
         let expected: Vec<BasePosition> = posts
             .segment(bucket)
             .filter(|&position| cell.contains(codes[position.as_usize()]))

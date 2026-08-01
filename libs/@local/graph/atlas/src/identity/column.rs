@@ -7,7 +7,7 @@ use hashql_core::id::{Id, IdSlice};
 use super::{BasePosition, ImportanceRank, NodeRowId};
 use crate::{file::array::ArrayFile, math::Vec2};
 
-/// An element type an array artifact can be viewed as.
+/// An element type an array artifact can yield.
 ///
 /// Implementations name the container's typed accessors; [`Column`] turns their per-call
 /// [`Option`] into a construction-time proof.
@@ -68,9 +68,8 @@ impl Element for [NodeRowId; 2] {
 ///
 /// Construction validates the recorded element shape once, so views are infallible for the value's
 /// lifetime: the file is immutable after open and the shape cannot change under it. The index
-/// domain is the column's position vocabulary - the id a caller must hold to read an element.
-/// A column over one domain therefore cannot be confused with a column over another at a call
-/// site.
+/// domain is the column's position vocabulary, the id a caller must hold to read an element. A call
+/// site therefore cannot mix a column over one domain with a column over another.
 #[derive(Debug)]
 pub(crate) struct Column<I, T> {
     file: ArrayFile,

@@ -41,7 +41,7 @@ impl fmt::Display for ArrayKind {
 
 /// The identity domain an identity artifact serves, for error reporting.
 ///
-/// Three artifacts share one file format, so a failure names which table it hit.
+/// The identity artifacts share one file format, so a failure names which table it hit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum IdentityDomain {
     /// The ontology identity table, joining type rows to type uuids.
@@ -82,7 +82,7 @@ pub enum OpenAtlasError {
     Postings(InvalidPostingsFile),
     /// The postings parent graph holds a cycle.
     ///
-    /// So no closure map exists to expand colouring requests.
+    /// A cycle leaves no closure map to expand colouring requests.
     Closure(ParentCycle),
     /// An identity file failed to open.
     OpenIdentity {
@@ -93,7 +93,7 @@ pub enum OpenAtlasError {
     },
     /// An identity file violates the table contract.
     ///
-    /// A key width other than the store's fails the open loudly: a generation whose ids are not
+    /// A key width other than the store's fails the open outright. A generation whose ids are not
     /// store identities does not serve.
     Identity {
         /// The identity domain the file serves.

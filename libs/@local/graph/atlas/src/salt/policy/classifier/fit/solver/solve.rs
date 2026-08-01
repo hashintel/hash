@@ -1,19 +1,19 @@
 //! The outer trust-region state machine.
 //!
-//! [`solve`] drives the loop over one [`ScaledProblem`]: every fit starts at `ζ = 0`, and each
-//! outer iteration certifies the accepted gradient, runs the exact Newton inner solve, prices
-//! the candidate against the predicted model reduction, and accepts or rejects it by ratio. The
-//! accepted point moves only on acceptance; rejection shrinks the trust radius toward its
-//! minimum and an expanded radius requires a validated boundary step. Success is
+//! [`solve`] drives the loop over one [`ScaledProblem`]. Every fit starts at `ζ = 0`. Each outer
+//! iteration certifies the accepted gradient and then runs the exact Newton inner solve. It prices
+//! the resulting candidate against the predicted model reduction and accepts or rejects it by
+//! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
+//! its minimum and an expanded radius requires a validated boundary step. Success is
 //! [`Converged`] - a fresh reserved joint evaluation re-proving the certificate - and every
 //! other terminal is a typed [`SolverFailure`] in the normative precedence order: validation,
 //! accepted-gradient success, outer budget, inner Newton, invalid predicted reduction,
 //! resolution construction, resolution stall, candidate preflight in objective/gradient/row
 //! order, candidate numerical failure, ratio classification, then radius underflow.
 //!
-//! One joint traversal stays reserved for the final certificate and is excluded from every
-//! availability check until the success path consumes it, so a solve can always afford to prove
-//! the answer it publishes.
+//! One joint traversal stays reserved for the final certificate, and every availability check
+//! excludes it until the success path consumes it, so a solve can always afford to prove the answer
+//! it publishes.
 
 use super::{
     SOLVER_DIMENSIONS,
@@ -32,7 +32,7 @@ use super::{
 };
 use crate::math::{AlignedDVecN, BoxedDVecN};
 
-/// The accepted iterate: the point in scaled coordinates with its objective and gradient.
+/// The accepted iterate in scaled coordinates, with its objective and gradient.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct AcceptedPoint {
     /// The accepted point `ζ` in scaled coordinates.
@@ -103,7 +103,7 @@ impl SolverControl {
     }
 }
 
-/// The persisted gradient-certificate evidence: the initial norm and its derived threshold.
+/// The initial gradient norm and its derived threshold, persisted as certificate evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CertificateEvidence {
     /// The initial scaled-gradient norm `‖gζ,0‖₂`.
@@ -112,7 +112,7 @@ pub(crate) struct CertificateEvidence {
     pub gradient_threshold: f64,
 }
 
-/// A certified solution: the accepted point re-proven by the reserved final evaluation.
+/// A certified solution, with its accepted point re-proven by the reserved final evaluation.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Converged {
     /// The accepted point carrying the fresh final objective and gradient.
@@ -125,25 +125,26 @@ pub(crate) struct Converged {
 pub(crate) struct SolverRun {
     /// The certified solution or the typed failure.
     pub outcome: Result<Converged, SolverFailure>,
-    /// The last accepted point; on failure its objective is the final objective.
+    /// The last accepted point. On failure its objective is the final objective.
     pub accepted: AcceptedPoint,
     /// Control state at termination, counters included.
     pub control: SolverControl,
-    /// Certificate evidence once the threshold was derived.
+    /// Certificate evidence, present once the solve derives the threshold.
     pub certificate: Option<CertificateEvidence>,
-    /// One receipt per started outer iteration under a debugging request; empty routinely.
+    /// One receipt per started outer iteration under a debugging request. A routine fit leaves
+    /// this empty.
     pub receipts: Vec<OuterReceipt>,
-    /// The coordinate/version identity of the receipts and their digests; present only under
-    /// a debugging request, with the receipts it describes.
+    /// The coordinate/version identity of the receipts and their digests, present only under a
+    /// debugging request, with the receipts it describes.
     pub coordinates: Option<ReceiptCoordinates>,
 }
 
 /// Runs the bounded trust-region solve from `ζ = 0` over a prepared problem.
 ///
-/// `counters` carries the preparation charges; the returned control state carries the counters
-/// of the whole fit. `detail` names whether receipts are stored at all: a routine fit stores
-/// none, and only an explicit debugging consumer requests them. The configuration is validated
-/// by its owner before the solve begins.
+/// `counters` carries the preparation charges, and the returned control state carries the counters
+/// of the whole fit. `detail` names whether the solve stores receipts at all. A routine fit stores
+/// none, and only an explicit debugging consumer requests them. The owner validates the
+/// configuration before the solve begins.
 pub(crate) fn solve(
     problem: &ScaledProblem<'_>,
     counters: WorkCounters,
@@ -158,7 +159,7 @@ pub(crate) fn solve(
     let mut receipts = Vec::new();
     let mut certificate = None;
 
-    // Every fit starts at ζ = 0; the initialized joint evaluation prices it.
+    // Every fit starts at ζ = 0, and the initialized joint evaluation prices it.
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     let point = problem.point(&origin);
     let Some((objective, scaled_gradient)) = problem.joint(&point, &mut control.counters) else {
@@ -209,7 +210,7 @@ fn run(
         let gradient_norm = stable_l2(&accepted.scaled_gradient)
             .ok_or(SolverFailure::NonFiniteAcceptedGradientNorm)?;
 
-        // The threshold derives once from the initial norm; the first loop pass sees it.
+        // The threshold derives once from the initial norm, and the first loop pass sees it.
         let threshold = if let Some(evidence) = certificate {
             evidence.gradient_threshold
         } else {
@@ -263,7 +264,7 @@ fn run(
             return Err(SolverFailure::ResolutionStall);
         }
 
-        // Candidate preflight: one objective-only traversal, one possible accepted-candidate
+        // Candidate preflight checks one objective-only traversal, one possible accepted-candidate
         // gradient traversal, and preservation of the final reserve.
         if control.free_objective_requests(config) < 1 {
             return Err(SolverFailure::ObjectiveRequestBudget);
@@ -367,7 +368,7 @@ pub(super) fn derive_certificate(
 }
 
 /// Returns the predicted model reduction `−g·p − ½·p·Hp` from the returned step and product
-/// alone, recording the inner-step summaries when a receipt is stored.
+/// alone, recording the inner-step summaries when the solve stores a receipt.
 ///
 /// The dots are algorithm inputs and always compute; the norms are diagnostic-only and compute
 /// solely for a stored receipt. A failed dot yields NaN, which the caller classifies as an
@@ -402,7 +403,7 @@ fn record_inner_step(
 /// Applies one rejection to the control state.
 ///
 /// The streak counter is a reported diagnostic only: no budget bounds it, because radius
-/// underflow always arrives first under any shrink factor at or below `0.4` over the shipped
+/// underflow always arrives first under any shrink factor at or below `0.4` over the default
 /// twelve-decade radius band.
 ///
 /// # Errors

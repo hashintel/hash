@@ -33,7 +33,7 @@ const RELATION_TYPES: usize = 1 + MEASURED_SPECIFIC_CUMULATIVE.len();
 
 /// Odd multiplier scattering hub ranks over the power-of-two row domain.
 ///
-/// Odd times anything is invertible modulo a power of two, so distinct ranks land on distinct rows.
+/// Odd times anything is invertible modulo a power of two, so distinct ranks map to distinct rows.
 const HUB_SCATTER: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// How a synthesized corpus distributes volume over relation types.
@@ -70,7 +70,7 @@ impl Profile {
 ///
 /// Holds the raw instance set; the group-sorted and pair-sorted copies each build stage starts from
 /// materialize on first use and stay cached, so a corpus that only runs full builds keeps one copy
-/// resident (roughly 250 MB at the live scale of 2.2M links) and one that isolates stages keeps
+/// resident (about 250 MB at the live scale of 2.2M links) and one that isolates stages keeps
 /// three.
 pub struct Corpus<N, E> {
     rows: usize,
@@ -86,16 +86,16 @@ impl<N, E> Corpus<N, E> {
     /// Synthesizes a corpus of `links` links under `profile`.
     ///
     /// The row domain is the largest power of two at most half the link count (the live ratio: 2.2M
-    /// links over 1M rows), floored at 64. Sources are uniform over the rows; targets follow a
-    /// truncated Zipf tail over one eighth of the rows (the measured hub shape: 124K distinct
-    /// targets, the largest gathering 9% of all links). Confidence is unscored throughout, the live
-    /// corpus's only shape. Every draw comes from `rng` seeded with `seed`, so equal arguments
+    /// links over 1M rows), floored at 64. Sources are uniform over the rows. Targets follow a
+    /// truncated Zipf tail over one eighth of the rows (the measured hub shape has 124K distinct
+    /// targets, the largest gathering 9% of all links). Confidence stays unscored throughout, the
+    /// live corpus's only shape. Every draw comes from `rng` seeded with `seed`, so equal arguments
     /// synthesize equal corpora.
     ///
     /// # Panics
     ///
-    /// Panics when the instance set does not fit the address space; every internal expectation is
-    /// satisfied by construction.
+    /// This panics when the instance set does not fit the address space. Construction satisfies
+    /// every internal expectation.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -162,10 +162,9 @@ impl<N, E> Corpus<N, E> {
                     instances.push(instance(edge, (link * 2 + 1) % RELATION_TYPES, at));
                 }
                 Profile::Mega => {
-                    // Two parallel single-reading links between one
-                    // endpoint pair: the same instance, pair, and
-                    // protection-entry volume as the other profiles
-                    // while one relation owns everything.
+                    // A parallel pair of single-reading links between one endpoint pair gives the
+                    // same instance, pair, and protection-entry volume as the other profiles while
+                    // one relation owns everything.
                     let at = endpoints(&mut rng);
                     instances.push(instance(edge * 2, 0, at));
                     instances.push(instance(edge * 2 + 1, 0, at));

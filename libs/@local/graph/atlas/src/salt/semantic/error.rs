@@ -5,11 +5,11 @@ use core::{error::Error, fmt};
 /// A matrix violated a [`SemanticGraph`](super::SemanticGraph) invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SemanticValidationError {
-    /// The matrix is compressed by column.
+    /// The matrix uses column compression.
     ColumnCompressed,
     /// The matrix is not square over the row domain.
     NotSquare { rows: usize, columns: usize },
-    /// The row domain holds fewer than two rows.
+    /// The row domain holds at most one row.
     InsufficientRows { rows: usize },
     /// A row references itself.
     SelfEdge { row: usize },
@@ -25,7 +25,7 @@ pub enum SemanticValidationError {
         column: usize,
         weight: f32,
     },
-    /// An edge is stored in one direction only.
+    /// The matrix stores an edge in one direction only.
     AsymmetricSupport { row: usize, column: usize },
     /// An edge's two stored weights differ.
     AsymmetricWeight {

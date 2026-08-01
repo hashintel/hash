@@ -3,13 +3,13 @@
 //! A similarity is the transform family produced by Procrustes alignment: it changes size,
 //! orientation, and position while preserving every angle and every length ratio, so aligned
 //! layouts keep their shape. [`Similarity`] restricts [`Transform`] to exactly this family, which
-//! buys a guarantee the general type gives up: the inverse is total. Where [`Transform::inverse`]
+//! buys a guarantee the general type gives up, a total inverse. Where [`Transform::inverse`]
 //! returns an [`Option`] because an affine map can collapse an axis, a similarity's scale is
 //! positive by construction and [`Similarity::inverse`] always succeeds.
 //!
-//! Use [`Similarity`] when a value is known to be a rigid motion plus uniform scaling, such as
-//! aligning one generation's layout onto the previous one; widen to [`Transform`] (via [`From`])
-//! only when composing with general affine maps.
+//! Use [`Similarity`] for a value that is a rigid motion plus uniform scaling (such as aligning one
+//! generation's layout onto the previous one). Widen to [`Transform`] (via [`From`]) only when
+//! composing with general affine maps.
 
 use core::simd::Simd;
 
@@ -29,12 +29,12 @@ mod tests;
 /// An orientation-preserving similarity of 2D space: uniform scale, rotation, and translation.
 ///
 /// A similarity maps a vector `p` to `scale · R · p + translation`, where `R` is the rotation's
-/// matrix. Lengths scale uniformly and angles are preserved, so shapes keep their proportions and
-/// their winding direction.
+/// matrix. It scales lengths uniformly and preserves every angle, so shapes keep their
+/// proportions and their winding direction.
 ///
-/// Every value upholds one invariant: the scale is a finite, strictly positive, normal number.
-/// [`new`](Self::new) and [`from_array`](Self::from_array) enforce this by returning [`None`] for
-/// invalid input, which makes [`inverse`](Self::inverse) total: every similarity can be undone.
+/// The scale of every value is a finite, strictly positive, normal number. [`new`](Self::new) and
+/// [`from_array`](Self::from_array) return [`None`] for invalid input, which makes
+/// [`inverse`](Self::inverse) total. Every similarity has an inverse.
 ///
 /// Obtain one from weighted point correspondences with [`fit`](Self::fit), the closed-form
 /// Procrustes alignment, or with [`fit_par`](Self::fit_par) when the pairs number in the hundreds
@@ -44,7 +44,7 @@ mod tests;
 /// losslessly into a [`Transform`] via [`From`], so it also composes with general affine transforms
 /// through [`Transform::then`].
 ///
-/// The five coefficients round-trip through [`to_array`](Self::to_array) and
+/// The coefficients round-trip through [`to_array`](Self::to_array) and
 /// [`from_array`](Self::from_array) in the persistence order `[scale, cos, sin, x, y]`.
 ///
 /// # Examples
@@ -130,8 +130,8 @@ impl Similarity {
     /// Returns the similarity equivalent to applying `self` first, then `next`.
     ///
     /// This reads in application order. The scales multiply, the rotations compose via
-    /// [`Rotation::then`], and `self`'s translation is carried through `next`. The product of the
-    /// two scales must remain in the normal positive range to uphold the type's invariant.
+    /// [`Rotation::then`], and `next` transforms `self`'s translation. The product of the two
+    /// scales must remain in the normal positive range to uphold the type's invariant.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Self {
@@ -152,7 +152,7 @@ impl Similarity {
     /// The scale invariant keeps the divisor away from zero, so every similarity has an inverse:
     /// applying a similarity and then its inverse reproduces the input up to floating-point
     /// rounding. The reciprocal of the scale must itself be a normal number to uphold the type's
-    /// invariant, which holds for scales up to roughly `8.5e37`.
+    /// invariant, which holds for scales up to about `8.5e37`.
     #[inline]
     #[must_use]
     pub const fn inverse(self) -> Self {
@@ -169,7 +169,8 @@ impl Similarity {
 
     /// Transforms a single vector.
     ///
-    /// The vector is rotated about the origin, scaled uniformly, and then moved by the translation.
+    /// This rotates the vector about the origin, then scales it uniformly and moves it by the
+    /// translation.
     #[inline]
     #[must_use]
     pub const fn apply(self, vec: Vec2) -> Vec2 {
@@ -183,10 +184,10 @@ impl Similarity {
 
     /// Transforms four vectors at once, entirely in SIMD registers.
     ///
-    /// The scale is folded into the rotation coefficients, so each axis is two fused multiply-adds
+    /// This folds the scale into the rotation coefficients, so each axis is two fused multiply-adds
     /// over the batch's lane groups with no shuffles. On targets with native FMA those fused
-    /// operations round once where [`apply`](Self::apply) rounds each multiply and add separately;
-    /// results differ by at most a few units in the last place of the intermediate terms, and by
+    /// operations round once where [`apply`](Self::apply) rounds after each multiply and each add.
+    /// Results differ by at most a few units in the last place of the intermediate terms, and by
     /// many units in the last place of the result itself where the terms cancel.
     #[inline]
     #[must_use]
@@ -236,9 +237,9 @@ impl Similarity {
 
     /// Creates a similarity from its five coefficients.
     ///
-    /// The array is read as `[scale, cos, sin, x, y]`, the layout produced by
-    /// [`to_array`](Self::to_array). The cosine and sine must lie on the unit circle up to
-    /// rounding, matching the caller contract of [`Rotation::from_cos_sin`].
+    /// This reads the array as `[scale, cos, sin, x, y]`, the layout [`to_array`](Self::to_array)
+    /// produces. The caller keeps the cosine and sine on the unit circle up to rounding, matching
+    /// the contract of [`Rotation::from_cos_sin`].
     ///
     /// Returns [`None`] unless the scale is a finite, strictly positive, normal number.
     #[inline]

@@ -62,7 +62,7 @@ impl PostgresArgs {
     }
 }
 
-/// The store could not be dialed.
+/// Dialing the store failed.
 #[derive(Debug)]
 pub enum ConnectError {
     /// The connection string did not parse.

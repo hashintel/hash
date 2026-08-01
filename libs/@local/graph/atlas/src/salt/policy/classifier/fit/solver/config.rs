@@ -161,10 +161,10 @@ impl SolverConfig {
     /// The gradient-certificate threshold `max(absolute, relative·‖gζ,0‖₂)`, derived once from
     /// the initial scaled gradient norm.
     ///
-    /// A zero threshold is valid: with the absolute floor disabled and an exactly-zero initial
-    /// norm, only an exactly-zero gradient certifies. Returns [`None`] for a non-finite initial
-    /// norm; a finite norm keeps the threshold finite, since the relative tolerance lies below
-    /// one and the absolute floor is finite by construction.
+    /// A zero threshold is valid. With the absolute floor at zero and an exactly-zero initial norm,
+    /// only an exactly-zero gradient certifies. Returns [`None`] for a non-finite initial norm. A
+    /// finite norm keeps the threshold finite, since the relative tolerance lies below one and the
+    /// absolute floor is finite by construction.
     pub(super) fn gradient_threshold(&self, initial_norm: f64) -> Option<f64> {
         if !initial_norm.is_finite() {
             return None;

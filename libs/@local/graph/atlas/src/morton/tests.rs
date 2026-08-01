@@ -133,7 +133,7 @@ fn children_partition_the_parent(bits: u64, #[strategy = 0_u8..32] depth: u8) {
     }
 }
 
-/// The child holding a key is indexed by the key's next axis bits.
+/// A key's next axis bits select the child that contains it.
 #[property_test]
 fn child_indexes_follow_the_axis_bits(bits: u64, #[strategy = 0_u8..32] depth: u8) {
     let depth = Depth::new(depth).expect("the strategy stays within the documented domain");

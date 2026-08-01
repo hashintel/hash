@@ -30,7 +30,7 @@ pub(crate) mod norm;
 #[cfg(test)]
 mod tests;
 
-/// The node representation matrix could not be persisted.
+/// Writing the node representation matrix failed.
 #[derive(Debug)]
 pub(crate) enum PrepareError<E> {
     /// The dataset failed to deliver a node.
@@ -73,8 +73,8 @@ pub(crate) struct NodeColumns<I> {
 ///
 /// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
 /// with every artifact keyed by [`NodeRowId`](crate::identity::NodeRowId), and entry `i` of the
-/// returned columns is that row's source id and type set. The finished file's repository digest is
-/// computed at publish.
+/// returned columns is that row's source id and type set. The publish step computes the finished
+/// file's repository digest.
 ///
 /// Every node issues one write; wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
@@ -82,7 +82,7 @@ pub(crate) struct NodeColumns<I> {
 /// # Errors
 ///
 /// Returns an error when the dataset fails to deliver a node or the destination fails to accept
-/// bytes; either way the destination holds an unfinished file no reader accepts.
+/// bytes. Either way the destination holds an unfinished file no reader accepts.
 pub(crate) async fn write_node_representations<D: Dataset>(
     dataset: &D,
     writer: impl Write + Seek,

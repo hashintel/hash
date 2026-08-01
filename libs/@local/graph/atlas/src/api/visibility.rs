@@ -1,18 +1,19 @@
 //! One request's visibility, resolved from its admitted authority token.
 //!
-//! Every corpus-bearing response is masked by a [`VisibilityProof`], and [`Visibility`] is that
-//! proof for one request: extraction admits the presented token through
-//! [`authorization::admit`], then resolves the scope the token seals - actor and filter digest,
-//! the visibility key's own fields - through the store, held in the visibility cache for its
-//! reuse window. A data route that resolves visibility without an admitted token is
-//! unrepresentable: the key's identity comes out of the sealed scope.
+//! A [`VisibilityProof`] masks every corpus-bearing response, and [`Visibility`] is that proof for
+//! one request. Extraction admits the presented token through [`authorization::admit`], then
+//! resolves the scope the token seals (actor and filter digest, the visibility key's own fields)
+//! through the store, held in the visibility cache for its reuse window. A data route that resolves
+//! visibility without an admitted token is unrepresentable, because the key's identity comes out of
+//! the sealed scope.
 //!
-//! The actor is named by the `X-Authenticated-User-Actor-Id` header, the trust boundary the graph's
-//! REST API stands on: the gateway authenticates the session and states the actor, and this process
-//! takes the header as that statement. A request carrying no such header is malformed and answers
-//! 400; one whose token refuses answers 401; one whose own filter document does not compile answers
-//! 400, and one the store cannot resolve for any other reason answers 503 - [`proof_problem`] is
-//! that split. Every refusal lands before any assembly reads the request.
+//! The `X-Authenticated-User-Actor-Id` header names the actor, and that header is the trust
+//! boundary the graph's REST API stands on. The gateway authenticates the session and states the
+//! actor, and this process takes the header as that statement. A request carrying no such header is
+//! a malformed request and answers 400. A request whose token refuses answers 401. A request whose
+//! own filter document does not compile answers 400, and a request the store cannot resolve for any
+//! other reason answers 503. [`proof_problem`] is that split. Every refusal happens before any
+//! assembly reads the request.
 
 use alloc::sync::Arc;
 use core::{
@@ -43,16 +44,16 @@ use crate::serve::{
 
 /// The header naming the authenticated actor.
 ///
-/// The spelling is fixed by parity with the graph's REST API, which accepts this name. Headers this
+/// Parity with the graph's REST API, which accepts this name, fixes the spelling. Headers this
 /// crate introduces carry no prefix.
 const ACTOR_HEADER: &str = "X-Authenticated-User-Actor-Id";
 
-/// Where a request's visibility comes from: the store, through the cache.
-///
 /// The resolution state behind every [`Visibility`].
 ///
+/// A request's visibility comes from the store, through the cache.
+///
 /// One cache and one store handle serve the whole router, so concurrent requests for one scope
-/// resolve once and a returning caller is answered from the held entry.
+/// resolve once and the held entry answers a returning caller.
 #[derive(Clone)]
 pub(super) struct Authority {
     /// The store permission resolution reads through.
@@ -80,10 +81,10 @@ impl core::fmt::Debug for Authority {
     }
 }
 
-/// One resolved scope's delivery inputs: the proof, its census, and its schedule.
+/// One resolved scope's delivery inputs.
 ///
-/// Everything a scope holds per resolution rather than per request. The manifest consumes this
-/// value directly; the data routes receive it through [`Visibility`], which adds the request's
+/// These are the values a scope holds per resolution rather than per request. The manifest consumes
+/// this value directly. The data routes receive it through [`Visibility`], which adds the request's
 /// token-bound cut offset.
 #[derive(Debug, Clone)]
 pub(super) struct Resolved {
@@ -95,7 +96,7 @@ pub(super) struct Resolved {
     pub schedule: ViewSchedule,
 }
 
-/// One request's visibility: the resolved scope plus the token-bound delivery-cut offset.
+/// The resolved scope for one request, plus the token-bound delivery-cut offset.
 #[expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -153,9 +154,9 @@ impl OperationInput for Visibility {
 
 /// Resolves one scope's visibility through the store, held in the cache for its reuse window.
 ///
-/// The manifest resolves in its handler body, after its generation and continuity judgments; the
-/// data routes resolve through [`Visibility`]'s extraction. Both land here, so one scope holds one
-/// entry wherever its resolution was asked for.
+/// The manifest resolves in its handler body, after its generation and continuity judgments. The
+/// data routes resolve through [`Visibility`]'s extraction. Both paths call this function, so one
+/// scope holds one entry wherever a caller asks for its resolution.
 ///
 /// A filtered resolution compiles `document`, the filter's bytes as presented, into the proof. A
 /// caller holding only the digest - a data route, whose scope travels sealed - reads the held
@@ -167,7 +168,8 @@ impl OperationInput for Visibility {
 /// The uniform `401` problem for a filtered scope with no document held anywhere - the client
 /// re-presents the document at the manifest - and, for a resolution that fails, whichever problem
 /// [`proof_problem`] gives the failing stage: `400` for the caller's own filter, the internal
-/// problem for ours, and the `503` visibility problem for every condition of the store's.
+/// problem for this deployment's, and the `503` visibility problem for every condition of the
+/// store's.
 pub(super) async fn resolve(
     state: &AppState,
     actor: ActorEntityUuid,
@@ -201,8 +203,8 @@ pub(super) async fn resolve(
         .authority
         .cache
         .resolve(key, Instant::now(), async move || {
-            // A connection is held for the resolution alone, and only a miss reaches here: a
-            // held scope answers without touching the pool.
+            // The resolution acquires a connection for itself alone, and only a miss reaches here:
+            // a held scope answers without touching the pool.
             let store = pool
                 .acquire(None)
                 .await
@@ -244,20 +246,19 @@ pub(super) async fn resolve(
 
 /// Answers one failed resolution with the problem its failing stage earns.
 ///
-/// Three readings, because a caller cannot repair all three the same way.
-/// [`ProofError::Filter`] is the caller's own filter document failing to compile against the entity
-/// query surface, which no retry repairs: it answers `400` `invalid-body`, the problem an
-/// unparsable document already earns at the manifest. [`ProofError::PolicyFilter`] is this
-/// deployment's policy set failing to compile, our fault and not the caller's, so it answers the
-/// internal problem with the compiler's message in the log rather than the response. Every
-/// remaining stage answers the `503`: the process cannot say what the caller may see, and a later
-/// attempt may succeed.
+/// Three readings, because a caller cannot repair all three the same way. [`ProofError::Filter`] is
+/// the caller's own filter document failing to compile against the entity query surface, which no
+/// retry repairs. It answers `400` `invalid-body`, the problem an unparsable document already earns
+/// at the manifest. [`ProofError::PolicyFilter`] is this deployment's policy set failing to
+/// compile, so it answers the internal problem with the compiler's message in the log rather than
+/// the response. Every remaining stage answers the `503`, because the process cannot say what the
+/// caller may see and a later attempt may succeed.
 ///
-/// [`ProofError::Query`] stays a `503` even though a caller's document can provoke it - a parameter
-/// whose type the compiler accepts and Postgres rejects - because that one variant also carries
-/// genuine store faults, and reading every filtered query failure as the caller's would answer an
-/// outage with a `400`. The variants are listed rather than defaulted, so a new failing stage has
-/// to choose its status instead of inheriting one.
+/// [`ProofError::Query`] stays a `503` even though a caller's document can provoke it (a parameter
+/// whose type the compiler accepts and Postgres rejects) because that one variant also carries real
+/// store faults. Reading every filtered query failure as the caller's would answer an outage with a
+/// `400`. The match lists every variant rather than defaulting, so a new failing stage has to
+/// choose its status instead of inheriting one.
 fn proof_problem(error: &ProofError) -> Problem<'static> {
     match error {
         ProofError::Filter(report) => Problem::new(
@@ -302,8 +303,8 @@ impl OperationInput for Actor {}
 
 /// Reads the actor the gateway authenticated.
 ///
-/// Absent, non-ASCII and unparsable headers answer one problem: the request is malformed, and the
-/// detail names which of the three it was.
+/// Absent, non-ASCII and unparsable headers answer one problem. Each is a malformed request, and
+/// the detail names which of the three it was.
 pub(super) fn actor(parts: &Parts) -> Result<AuthenticatedActor, Problem<'static>> {
     let header = parts
         .headers
@@ -359,8 +360,8 @@ mod tests {
         );
     }
 
-    /// Our policy filter failing to compile is ours: the internal problem, and the compiler's
-    /// message stays in the log.
+    /// This deployment's policy filter failing to compile answers the internal problem, and the
+    /// compiler's message stays in the log.
     #[test]
     fn the_policy_filter_answers_the_internal_problem_without_its_message() {
         let document = document(&ProofError::PolicyFilter(compiler_error()));

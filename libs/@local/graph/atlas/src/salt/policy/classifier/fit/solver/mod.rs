@@ -1,14 +1,14 @@
 //! Deterministic bounded solver components for the soft-target classifier objective.
 //!
-//! The classifier's external objective is weighted soft-target cross-entropy plus coefficient-only
-//! L2 regularization over the class logits. A common shift of the logits moves no probability, so
-//! the solver operates in the contrast space of dimension one below the class count, reached
-//! through the fixed [`basis`], where coefficient regularization plus positive aggregate class
-//! mass makes the minimizer finite and unique.
+//! The classifier's external objective combines weighted soft-target cross-entropy with
+//! coefficient-only L2 regularization over the class logits. A common shift of the logits moves no
+//! probability, so the solver operates in the contrast space of dimension one below the class
+//! count, reached through the fixed [`basis`], where coefficient regularization plus positive
+//! aggregate class mass makes the minimizer finite and unique.
 //!
-//! Everything here is deterministic bounded work: arithmetic visits rows in ascending original
-//! index and classes in discriminant order, there is no randomness, and every row traversal is
-//! charged to explicit counters.
+//! Everything here is deterministic bounded work. Arithmetic visits rows in ascending original
+//! index and classes in discriminant order, no step uses randomness, and explicit counters charge
+//! every row traversal.
 //!
 //! # Coordinates and vector layout
 //!
@@ -63,7 +63,9 @@ const AUGMENTED_DIMENSIONS: usize = CANONICAL_DIMENSIONS + 1;
 /// Contrast rows: one per class beyond the softmax shift gauge.
 const CONTRAST_ROWS: usize = GeometryClass::COUNT - 1;
 
-/// Leading classes with stored components; the last class is the derived reference.
+/// Leading classes with stored components.
+///
+/// The last class is the derived reference.
 const LEADING_CLASSES: usize = GeometryClass::COUNT - 1;
 
 /// Flat solver vector dimension: one block of augmented coordinates per contrast row.

@@ -15,9 +15,9 @@ use crate::{
 /// Opening an array file failed.
 #[derive(Debug)]
 pub enum OpenArrayError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header,
@@ -29,7 +29,7 @@ pub enum OpenArrayError {
         expected: Option<u64>,
         actual: u64,
     },
-    /// The file's native elements were written by the other byte order.
+    /// The other byte order wrote the file's native elements.
     ForeignArchitecture {
         /// The architecture that wrote the file.
         architecture: Architecture,
@@ -90,9 +90,9 @@ impl Error for OpenArrayError {
 /// An array file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own data exactly. The data is borrowed straight from the whole-file mapping and
-/// therefore starts 4096-byte aligned: aligned for every scalar and SIMD width, so typed views over
-/// it never fail for alignment.
+/// describes its own data exactly. Views borrow the data straight from the whole-file mapping,
+/// which starts 4096-byte aligned: aligned for every scalar and SIMD width, so typed views over it
+/// never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
     map: PageMap,
@@ -103,7 +103,7 @@ impl ArrayFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenArrayError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenArrayError::Io`] when opening or mapping the file fails,
     /// [`OpenArrayError::Header`] when its leading bytes are not a header this module speaks, and
     /// [`OpenArrayError::Length`] when the file length contradicts the header's shape.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
@@ -143,8 +143,8 @@ impl ArrayFile {
     pub(crate) fn header(&self) -> &FileHeader {
         let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
 
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and we have validated
-        // in the constructor that the map is large enough to contain the header and that its bytes
+        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor has
+        // validated that the map is large enough to contain the header and that its bytes
         // parse as one, so the deref target is a valid `FileHeader`. The constructor's validation
         // makes per-call `try_from_bytes` re-validation redundant.
         unsafe { &*ptr }

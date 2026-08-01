@@ -2,26 +2,26 @@
 //!
 //! Fits 2D maps over the entity embeddings stored in the HASH Graph, blending semantic similarity
 //! (what entities mean) with relational structure (how they connect), and distills each map into a
-//! small encoder so that new entities can be placed on existing maps without refitting.
+//! small encoder that places new entities on an existing map without refitting.
 //!
-//! The crate is organized as a foundation of domain-independent modules and the SALT pipeline built
-//! on top of them:
+//! The crate builds the SALT pipeline on top of a foundation of domain-independent modules:
 //!
 //! - [`math`] - 2D geometry, transforms, embedding kernels, and the affinity curve, all
 //!   SIMD-native.
 //! - [`random`] - unbiased sampling and statistical acceptance bounds.
 //! - [`bitset`] - fixed-capacity dense bit sets over row domains.
-//! - [`identity`] - positional identity: typed row ids over the dense row domains, and the
+//! - [`identity`] - positional identity, with typed row ids over the dense row domains and the
 //!   element-typed artifact column view.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
-//! - [`morton`] - Z-order keys: interleaved axes, grid cells, and contiguous key ranges.
-//! - [`progress`] - observation of a running fit: the seam operator surfaces render from.
-//! - [`file`](mod@file) - the on-disk artifact formats: plain files in a directory, described by
+//! - [`morton`] - Z-order keys from interleaved axes, plus grid cells and contiguous key ranges.
+//! - [`progress`] - observation of a running fit, the seam operator surfaces render from.
+//! - [`file`](mod@file) - the on-disk artifact formats, plain files in a directory described by
 //!   metadata beside them.
-//! - [`dataset`] - the [`Dataset`](dataset::Dataset) trait: the data one fit runs over, wherever it
-//!   lives, plus the relation-card format.
-//! - [`salt`] - the pipeline: graph construction, landmark layout, projector training, evaluation,
-//!   and materialization; `salt::runner::live` is the operator seam the `cli` commands drive.
+//! - [`dataset`] - the [`Dataset`](dataset::Dataset) trait for the data one fit runs over, wherever
+//!   it lives, plus the relation-card format.
+//! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
+//!   evaluation, and materialization. `salt::runner::live` is the operator seam the `cli` commands
+//!   drive.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Examples
@@ -66,7 +66,7 @@
 //!
 //! # Crate features
 //!
-//! Three features gate optional compilation beyond the default build.
+//! Each feature below gates optional compilation beyond the default build.
 //!
 //! - `bench` exposes `bench`, the measurement seams the five `[[bench]]` targets in `Cargo.toml`
 //!   consume; the lab instruments the standalone binary runs are not gated behind it and build with
@@ -86,9 +86,10 @@
 //! agreement a single time, so every read after that is an mmap gather and a wire encode, never a
 //! decode. Every published artifact is a plain file mapped whole by `mmap`, so serving cost after
 //! open is page-cache and address-space bound rather than parse bound. An opened [`serve::Atlas`]
-//! is `Send + Sync` and immutable, meant to be held in an `Arc` across requests for the process
-//! lifetime of the generation; reads are synchronous and CPU-bound over mapped memory, so an async
-//! transport schedules them on a compute pool rather than inline on its own runtime threads.
+//! is `Send + Sync` and immutable, so a caller can keep one in an `Arc` across requests for the
+//! process lifetime of the generation; reads are synchronous and CPU-bound over mapped memory, so
+//! an async transport schedules them on a compute pool rather than inline on its own runtime
+//! threads.
 //!
 //! # Limitations
 //!
@@ -145,9 +146,8 @@
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
-// The documentation's audience is the crate's developers: module docs
-// link private items deliberately, and the links resolve under
-// `--document-private-items`, the form the docs are read in.
+// The documentation's audience is the crate's developers. Module docs link private items on
+// purpose, and readers view the docs under `--document-private-items`, where those links resolve.
 #![allow(rustdoc::private_intra_doc_links)]
 extern crate alloc;
 

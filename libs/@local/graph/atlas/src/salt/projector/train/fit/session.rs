@@ -59,7 +59,7 @@ use crate::{
 /// The trainer's optimizer: Adam adapted over the projector.
 pub(crate) type TrainerOptimizer<B> = OptimizerAdaptor<Adam, Projector<B>, B>;
 
-/// The trainer optimizer's record: per-parameter Adam moments.
+/// Per-parameter Adam moments for the trainer's optimizer.
 pub(crate) type TrainerOptimizerRecord<B> =
     <TrainerOptimizer<B> as Optimizer<Projector<B>, B>>::Record;
 
@@ -75,10 +75,10 @@ pub(super) struct Training<B: AutodiffBackend<FloatElem = f32>> {
     pub evidence: TrainingEvidence,
 }
 
-/// Builds a fresh trainer optimizer; every call constructs a new one, nothing is shared.
+/// Builds a fresh trainer optimizer.
 ///
-/// One construction site keeps a resumed run's optimizer identical to the one the opening segment
-/// trained under.
+/// Every call constructs a new optimizer and shares no state across calls. One construction site
+/// keeps a resumed run's optimizer identical to the one the opening segment trained under.
 pub(super) fn optimizer<B: AutodiffBackend<FloatElem = f32>>() -> TrainerOptimizer<B> {
     AdamConfig::new().with_epsilon(1.0e-8).init()
 }
@@ -176,14 +176,14 @@ where
 
     /// Runs the loop over one step range and returns the advanced state.
     ///
-    /// The body is phase-agnostic: the opening segment passes `0..boundary`, the ladder
-    /// `boundary..steps`, and the boundary work (radius freeze, unconditional refresh) triggers on
-    /// the step index alone.
+    /// The body is phase-agnostic. The opening segment passes `0..boundary` and the ladder passes
+    /// `boundary..steps`, while the boundary work (radius freeze, unconditional refresh) triggers
+    /// on the step index alone.
     ///
     /// The loop is the only place a step's loss exists before the run ends, so it reports every
-    /// step to `progress` against the whole schedule - not against its own range, which is one
-    /// phase of it. The snapshot sample the refresh ticks report is chosen here, once per phase,
-    /// from the observer's stated appetite; the choice consumes no randomness, so the run's draws
+    /// step to `progress` against the whole schedule rather than against its own range, which is
+    /// one phase of it. This selects the snapshot sample the refresh ticks report once per phase
+    /// from the observer's stated appetite. The choice consumes no randomness, so the run's draws
     /// are the same under every observer.
     pub(super) fn run<B: AutodiffBackend<FloatElem = f32>, R: Rng + ?Sized, P: Progress>(
         &mut self,
@@ -301,8 +301,8 @@ const fn rung(step_index: usize, boundary: usize, vacuous: bool) -> usize {
 ///
 /// # Panics
 ///
-/// Panics when relation edges are drawn before a scale-bearing tick; the boundary always runs one,
-/// so a miss is a wiring defect.
+/// This panics when relation draws happen before a scale-bearing tick. The boundary always runs
+/// one, so a miss is a wiring defect.
 fn draw_batch<N, E>(
     sampler: &BatchSampler<'_, N, E>,
     rung_index: usize,
@@ -404,8 +404,8 @@ where
 /// Measures the reviewed-Proximal `z` population against the boundary's own coordinates, freezes
 /// the Proximal radius, and composes the relation energy.
 ///
-/// On a vacuous run - no attraction force at all - there is nothing to measure or compose, a
-/// configured assertion included; the evidence records the fact and the relation term stays absent.
+/// On a vacuous run - no attraction force at all - nothing exists to measure or compose, a
+/// configured assertion included. The evidence records the fact and the relation term stays absent.
 fn freeze_radius<N, E, B: AutodiffBackend<FloatElem = f32>>(
     model: &Projector<B>,
     inputs: &TrainerInputs<'_, N, E>,
@@ -452,9 +452,9 @@ where
     let (frozen, radius) = match (calibration.radius, options.lens.asserted_radius) {
         (_, Some(radius)) => (radius, FrozenRadius::Asserted { radius }),
         (Some(radius), None) => (radius, FrozenRadius::Measured { radius }),
-        // The entry check admits this run only with reviewed coverage
-        // or an assertion; reaching here means the two mass walks
-        // disagree, and failing honestly beats composing from nothing.
+        // The entry check admits this run only with reviewed coverage or an assertion. Reaching
+        // here means the two mass walks disagree, so this returns an error rather than composing
+        // from nothing.
         (None, None) => return Err(TrainError::MissingProximalReviews),
     };
 

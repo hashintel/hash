@@ -1,10 +1,10 @@
-//! The attraction index: force-bearing instances grouped by relation.
+//! Force-bearing instances grouped by relation.
 //!
 //! [`AttractionIndex`] stores every admitted instance that survives force pruning, contiguously per
 //! relation type. A group carries the factors shared by its relation (class weights, frozen
 //! strength); its edges carry the per-instance factors (effective confidence, degree
 //! normalization). Training weights one edge by multiplying the group and edge factors into its
-//! class energies, so every factor of the relation-attraction objective is applied exactly once by
+//! class energies, so every factor of the relation-attraction objective enters exactly once by
 //! construction.
 
 use super::EffectiveConfidence;
@@ -13,13 +13,14 @@ use crate::identity::OntologyRowId;
 /// Shared attraction settings of one generation, valid by construction.
 ///
 /// The Coincident coefficient `κ_C` scales the Coincident energy relative to Proximal's unit
-/// scale. It stays 0 until the generation's Coincident release criterion is met; after that, tuning
-/// grids ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start there.
+/// scale. It stays 0 until the generation meets its Coincident release criterion; after that,
+/// tuning grids ratios in `2..=8` (the composite-objective tuning protocol), so enabling runs start
+/// there.
 ///
 /// The pruning threshold `η_F` drops instances whose force mass `c · s · s+` cannot move the
-/// layout; 0 retains every instance. A threshold is audited by the omitted-mass fraction it
-/// produces ([`super::BuildMeasurements::omitted_mass_fraction`]) and controls only attraction
-/// sampling: protection masses never pass through it.
+/// layout, and 0 retains every instance. The omitted-mass fraction a threshold produces
+/// ([`super::BuildMeasurements::omitted_mass_fraction`]) audits it, and the threshold controls only
+/// attraction sampling. Protection masses never pass through it.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionOptions {
     coincident_coefficient: f32 = 0.0,
@@ -35,9 +36,9 @@ const impl Default for AttractionOptions {
 impl AttractionOptions {
     /// Creates settings from a Coincident coefficient and a pruning threshold.
     ///
-    /// Returns [`None`] unless both values are finite and non-negative. The default is `κ_C =
-    /// 0` (the Coincident class exerts no pull until its release criterion is met) and `η_F = 0`
-    /// (every admitted instance is retained).
+    /// Returns [`None`] unless both values are finite and non-negative. The default is `κ_C = 0`
+    /// (the Coincident class exerts no pull until the generation meets its release criterion) and
+    /// `η_F = 0` (every admitted instance survives).
     #[must_use]
     pub(crate) const fn new(coincident_coefficient: f32, pruning_threshold: f32) -> Option<Self> {
         if !(coincident_coefficient.is_finite() && coincident_coefficient >= 0.0) {
@@ -74,7 +75,7 @@ impl AttractionOptions {
 /// multiplier live on the owning [`AttractionGroup`].
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionEdge<N, E> {
-    /// The edge row the instance was read from.
+    /// The edge row that produced the instance.
     pub edge: E,
     /// The node the link points from.
     pub source: N,
@@ -99,7 +100,7 @@ pub(crate) struct AttractionWeights {
     pub coincident: f32,
     /// The Proximal class weight `p*_P`.
     pub proximal: f32,
-    /// The frozen strength multiplier `h`; exactly 1 while the strength head is disabled.
+    /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
     pub strength: f32,
 }
 
@@ -124,7 +125,9 @@ pub(crate) struct AttractionGroup<N, E> {
 }
 
 impl<N, E> AttractionGroup<N, E> {
-    /// Assembles a group; the builder upholds the documented edge order.
+    /// Assembles a group.
+    ///
+    /// The builder upholds the documented edge order.
     pub(super) const fn new(
         relation: OntologyRowId,
         weights: AttractionWeights,
@@ -170,14 +173,16 @@ pub(crate) struct AttractionIndex<N, E> {
 }
 
 impl<N, E> AttractionIndex<N, E> {
-    /// Assembles the index; the builder upholds the documented group order.
+    /// Assembles the index.
+    ///
+    /// The builder upholds the documented group order.
     pub(super) const fn new(groups: Vec<AttractionGroup<N, E>>) -> Self {
         Self { groups }
     }
 
     /// Returns the index carrying no force at all.
     ///
-    /// The trainer's vacuous run consumes it: a placement configured to withhold the relation
+    /// The trainer's vacuous run consumes it. A placement configured to withhold the relation
     /// evidence trains against every other term while the published relation artifacts stay real.
     #[must_use]
     pub(crate) const fn vacuous() -> Self {

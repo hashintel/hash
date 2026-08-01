@@ -48,7 +48,7 @@ fn types<R: Id>(lists: &[&[u64]]) -> IdVec<R, SmallVec<OntologyRowId, 2>> {
         .collect()
 }
 
-/// The hand fixture: eight rows over four types, gathered through a permutation.
+/// The hand fixture has eight rows over four types, gathered through a permutation.
 ///
 /// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{} 7:{0}`; `row_of_position =
 /// [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0 `[1, 2, 3, 6]`, type
@@ -199,7 +199,7 @@ fn inverted_ranges_are_a_caller_bug() {
 
 #[test]
 fn dense_iteration_crosses_word_boundaries() {
-    // Two words over forty positions: members {0, 31, 32, 39}.
+    // Members {0, 31, 32, 39} over forty positions in two words.
     let words = [0x8000_0001_u32, 0b1000_0001].map(U32::<LE>::new);
     let membership = Membership::Dense(&words);
 
@@ -223,7 +223,7 @@ fn evidence_counts_the_split() {
     let evidence = postings.measurements();
     assert_eq!(evidence.types, 4);
     assert_eq!(evidence.dense_types, 2, "types 0 and 2 went dense");
-    // Two dense words plus the two list entries of type 1.
+    // Both dense words plus the two list entries of type 1.
     assert_eq!(evidence.membership_entries, 4);
     assert_eq!(evidence.parent_edges, 4);
 }
@@ -257,7 +257,7 @@ fn build_rejects_out_of_domain_rows() {
 fn empty_domains_roundtrip() {
     let dir = scratch("empty");
 
-    // No rows, no types.
+    // An empty corpus has no rows and no types.
     let postings = Postings::build(
         &types::<NodeRowId>(&[]),
         IdSlice::from_raw(&[]),
@@ -421,7 +421,7 @@ fn closure_expands_the_fixture_graph() {
     assert_eq!(descendants(id(3)), Some(vec![id(3)]));
     assert!(descendants(id(4)).is_none());
 
-    // A type descends from itself; descent is not symmetric.
+    // A type descends from itself. Descent is not symmetric.
     assert_eq!(closure.contains(id(0), id(0)), Some(true));
     assert_eq!(closure.contains(id(0), id(3)), Some(true));
     assert_eq!(closure.contains(id(3), id(0)), Some(false));
@@ -479,7 +479,7 @@ fn built_postings_uphold_the_membership_contract(
 
     let points = u32::try_from(rows.len()).expect("test corpora stay far below u32");
 
-    // A deterministic non-trivial permutation: reversal.
+    // A deterministic permutation other than the identity: reversal.
     let row_of_position: Vec<u32> = (0..points).rev().collect();
 
     // Parents point strictly downward, so the graph is acyclic by

@@ -163,8 +163,8 @@ fn affinity() -> AffinityEnergy {
 
 /// The relation energy of the dyadic fixtures: Proximal radius one at temperature one half.
 ///
-/// So `z = 1` sits exactly on the radius with derivative `sigmoid(0) = 0.5`; the scale guard is
-/// `0.5` so unit normalization comes from local scales of `0.5`.
+/// `z = 1` therefore sits exactly on the radius with derivative `sigmoid(0) = 0.5`. The scale guard
+/// is `0.5`, so unit normalization comes from local scales of `0.5`.
 fn relation_energy() -> RelationEnergy {
     RelationEnergy::new(
         CoincidentEnergy::new(0.25, 1.0).expect("the fixture coincident energy is valid"),
@@ -264,10 +264,9 @@ fn unused_deciles() -> DegreeDeciles<NodeRowId> {
 
 #[test]
 fn degree_deciles_rank_participating_rows() {
-    // One relation with edges (0,1), (0,2), (0,3), (4,5) over seven
-    // rows: row 0 has degree three, rows 1-5 degree one, row 6 none.
-    // Participating degrees sorted: [1, 1, 1, 1, 1, 3], n = 6. Rank of
-    // degree 1 is 5 (entries at or below), so its decile is
+    // One relation with edges (0,1), (0,2), (0,3), (4,5) over seven rows. Row 0 has degree three,
+    // rows 1-5 degree one, and row 6 none. Participating degrees sorted: [1, 1, 1, 1, 1, 3], n
+    // = 6. Rank of degree 1 is 5 (entries at or below), so its decile is
     // (5-1)*10/6 = 6; rank of degree 3 is 6, decile (6-1)*10/6 = 8.
     let indexes = relation_indexes(
         7,
@@ -551,7 +550,7 @@ fn draw_computes_the_estimator_scales() {
     assert_eq!(populations.relation.len(), 1);
     assert_eq!(populations.relation_scale, 2.0);
 
-    // Two of three landmarks drawn: 3 / 2 = 1.5.
+    // Two of three landmarks drawn, so 3 / 2 = 1.5.
     assert_eq!(populations.landmarks.len(), 2);
     assert_eq!(populations.landmark_scale, 1.5);
 
@@ -565,9 +564,8 @@ fn draw_collects_pooled_mined_pairs() {
     let graph = semantic_graph(4, &[(0, 1, 0.5)]);
     let indexes = relation_indexes(4, &[proximal_policy(7)], vec![instance(0, 7, 2, 3)]);
 
-    // A line frame mined exhaustively: with every row drawn as a
-    // query, the drawn pairs are exactly the frame's and the
-    // estimator scale is one.
+    // The fixture mines a line frame exhaustively. With every row drawn as a query, the drawn pairs
+    // are exactly the frame's and the estimator scale is one.
     let coordinates = [
         Vec2::new(0.0, 0.0),
         Vec2::new(1.0, 0.0),
@@ -731,7 +729,7 @@ fn objective_matches_the_hand_computed_semantic_field() {
     let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
     assert_eq!(gradient, [-0.5, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, -1.0]);
 
-    // No relation edges: nothing is measured or recorded.
+    // With no relation edges the pass measures and records nothing.
     assert_eq!(metrics.overall().nodes(), 0);
 }
 
@@ -781,8 +779,8 @@ fn relation_batch(
 /// The relation field rides whole and every bucket records its measurement.
 #[test]
 fn objective_applies_the_relation_field_and_records_the_buckets() {
-    // Coordinates (0,0), (1,0): d = 1, local scales 0.5 with guard 0.5
-    // give unit normalization, z = 1 on the Proximal radius.
+    // Coordinates (0,0), (1,0) give d = 1. Local scales 0.5 with guard 0.5 give unit normalization,
+    // so z = 1 on the Proximal radius.
     //
     // Semantic gradient at row 0: (-0.5, 0), norm 0.5 = baseline.
     // Relation factor: η · λ_R · scale · c · ν · strength
@@ -799,8 +797,8 @@ fn objective_applies_the_relation_field_and_records_the_buckets() {
     let gradient = leaf_gradient(&coordinates, &batch, &options, &deciles, &mut metrics);
     assert_eq!(gradient, [-1.0, 0.0, 1.0, 0.0]);
 
-    // Both endpoints measured ratio 0.5 / 0.5 = 1 over the semantic
-    // baseline; the floor 0.25 stayed under both baselines.
+    // Both endpoints measured ratio 0.5 / 0.5 = 1 over the semantic baseline. The floor 0.25 stayed
+    // under both baselines.
     assert_eq!(metrics.overall().nodes(), 2);
     assert_eq!(metrics.overall().mean_ratio(), Some(1.0));
 
@@ -996,7 +994,7 @@ fn type_participants_deduplicate_and_order_rows() {
 fn displacement_summary_reports_every_axis() {
     // Rows 0 and 1 participate in relation 11 (degree one each, upper
     // rank two of two participants: decile (2-1)*10/2 = 5); row 2 has
-    // no attraction evidence and lands in the overall bucket only.
+    // no attraction evidence and enters the overall bucket only.
     // Displacements: row 0 moves by exactly 1, row 1 not at all, and
     // row 2 by exactly 5 (a 3-4-5 triangle).
     let indexes = relation_indexes(3, &[proximal_policy(11)], vec![instance(0, 11, 0, 1)]);
@@ -1048,11 +1046,11 @@ fn displacement_summary_reports_every_axis() {
 
 /// Corpus rows of the padding fixtures.
 ///
-/// Exactly 32 rows participate in the gradient certificate's batch: at 32 every tensor of both the
+/// Exactly 32 rows participate in the gradient certificate's batch. At 32 every tensor of both the
 /// padded and the unpadded graph reaches the CPU backend's SIMD dispatch threshold, so both graphs
-/// compute with the same element-wise kernels. Below it the dispatch is mixed and the comparison
-/// measures the backend's reciprocal estimate (the SIMD reciprocal is a hardware approximation that
-/// the autodiff division backward consumes), not the padding.
+/// compute with the same element-wise kernels. Below it the backend mixes dispatch paths, and the
+/// comparison then measures the backend's reciprocal estimate (the SIMD reciprocal is a hardware
+/// approximation that the autodiff division backward consumes) rather than the padding.
 const PADDING_ROWS: usize = 32;
 const PADDING_CAPACITY: usize = PADDING_ROWS * PROJECTOR_DIMENSIONS;
 
@@ -1482,7 +1480,9 @@ fn sampled_rows(
     (rows, landmarks)
 }
 
-/// One landmark on a corpus row; only the row participates in a snapshot sample.
+/// One landmark on a corpus row.
+///
+/// Only that row participates in a snapshot sample.
 fn landmark(row: usize) -> SupportAnchor<NodeRowId> {
     SupportAnchor {
         row: NodeRowId::from_usize(row),

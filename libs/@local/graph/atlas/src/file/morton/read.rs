@@ -19,9 +19,9 @@ use crate::{
 /// Opening a morton file failed.
 #[derive(Debug)]
 pub enum OpenMortonError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -85,11 +85,11 @@ impl Error for OpenMortonError {
 
 /// A morton file mapped read-only into memory.
 ///
-/// Opening parses the header, validates the fenceposts, and checks the length equation, so an open
+/// Opening parses the header, then validates its fenceposts and the length equation, so an open
 /// file's segment ranges always slice its code column without further checks. Codes within each
 /// segment are non-decreasing by the writer's contract (the cascade sort produces them; publish
-/// verifies coverage); the searches here assume it the way every binary search assumes its slice is
-/// sorted.
+/// verifies coverage); the searches here assume it the way every binary search assumes a sorted
+/// slice.
 ///
 /// [`run`](Self::run) is the serving query: the contiguous positions of one bucket's codes inside
 /// one tile cell, found by two index-accelerated searches that fault two pages instead of `log2(N)`
@@ -105,7 +105,7 @@ impl MortonFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenMortonError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenMortonError::Io`] when opening or mapping the file fails,
     /// [`OpenMortonError::Header`] when its leading bytes are not a header this module speaks,
     /// [`OpenMortonError::Fenceposts`] when the header's fenceposts break a structural rule, and
     /// [`OpenMortonError::Length`] when the file length contradicts the header's geometry.
@@ -170,7 +170,7 @@ impl MortonFile {
     ///
     /// # Panics
     ///
-    /// Panics when `position` is at or beyond [`count`](Self::count).
+    /// This panics when `position` is at or beyond [`count`](Self::count).
     #[must_use]
     pub(crate) fn bucket_of(&self, position: BasePosition) -> Depth {
         let position = position.as_u64();
@@ -233,8 +233,8 @@ impl MortonFile {
     ///
     /// One contiguous run of the base delivery order.
     ///
-    /// The run is found by two index-accelerated searches constrained to the bucket's segment. An
-    /// empty range means the bucket has no point in the cell.
+    /// Two index-accelerated searches constrained to the bucket's segment find the run. An empty
+    /// range means the bucket has no point in the cell.
     #[must_use]
     pub(crate) fn run(&self, bucket: Depth, cell: MortonCell) -> Range<BasePosition> {
         let segment = self.fenceposts.segment(bucket);
@@ -256,7 +256,7 @@ impl MortonFile {
     ///
     /// # Panics
     ///
-    /// Panics when `position` is at or beyond [`count`](Self::count).
+    /// This panics when `position` is at or beyond [`count`](Self::count).
     #[must_use]
     pub(crate) fn code(&self, position: BasePosition) -> MortonKey {
         MortonKey::from_bits(self.codes()[position].get())
@@ -264,11 +264,11 @@ impl MortonFile {
 
     /// Finds the first position in `range` whose code fails `pred`.
     ///
-    /// `pred` must be monotone over the range's codes - true for a prefix, false for the rest -
-    /// which every threshold predicate over non-decreasing codes is. The index narrows the search
-    /// to one final window of at most `stride` codes: sampled index keys inside the range locate
-    /// the window (one faulted index page, itself hot across queries), and the window search faults
-    /// one code page.
+    /// `pred` has to be monotone over the range's codes: true for a prefix, false for the rest.
+    /// Every threshold predicate over non-decreasing codes has that shape. The index narrows the
+    /// search to one final window of at most `stride` codes. Sampled index keys inside the range
+    /// locate that window from one faulted index page that stays hot across queries. The window
+    /// search then faults one code page.
     fn partition_point(&self, range: Range<u64>, pred: impl Fn(u64) -> bool) -> u64 {
         let stride = u64::from(self.header().stride());
 

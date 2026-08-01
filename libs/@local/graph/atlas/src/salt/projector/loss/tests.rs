@@ -1,8 +1,8 @@
 //! Certificates for the loss terms.
 //!
-//! Every hand-derived derivative is cross-checked against a finite difference of its own value
-//! function, hand-computed dyadic points are asserted bit-exactly, and the autodiff support term is
-//! compared against an independent analytic gradient formula.
+//! These tests cross-check every hand-derived derivative against a finite difference of its own
+//! value function and assert hand-computed dyadic points bit-exactly. They also compare the
+//! autodiff support term against an independent analytic gradient formula.
 
 #![expect(
     clippy::float_cmp,
@@ -244,9 +244,10 @@ fn coincident_energy_matches_hand_computed_regimes() {
 
     // Inside the radius: exactly zero value and derivative.
     assert_eq!(energy.evaluate(0.5), (0.0, 0.0));
-    // Quadratic regime: excess 0.5, huber 0.125, derivative the excess.
+    // In the quadratic regime an excess of 0.5 gives huber 0.125 and a derivative equal to the
+    // excess.
     assert_eq!(energy.evaluate(1.5), (0.125, 0.5));
-    // Linear regime: excess 2, value 1 · (2 - 0.5), derivative capped.
+    // In the linear regime an excess of 2 gives value 1 · (2 - 0.5) and a capped derivative.
     assert_eq!(energy.evaluate(3.0), (1.5, 1.0));
 }
 
@@ -394,8 +395,8 @@ fn frame() -> [Vec2; 4] {
 #[test]
 fn attraction_term_gradient_matches_finite_differences() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
-    // A duplicate pair certifies accumulation: proportional sampling
-    // legitimately draws one edge twice.
+    // The duplicate pair certifies accumulation, because proportional sampling can draw one edge
+    // twice.
     let pairs = [
         (pair(0, 1), 1.0),
         (pair(1, 2), 0.5),

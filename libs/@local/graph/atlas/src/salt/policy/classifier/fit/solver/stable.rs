@@ -1,18 +1,18 @@
 //! Checked arithmetic primitives behind every solver control decision.
 //!
-//! Three primitives carry all reductions whose values steer the solver: [`checked_dot`] and
+//! Every reduction whose value steers the solver goes through these primitives. [`checked_dot`] and
 //! [`checked_norm_squared`] are the sole scalar products for branch-controlling dots (curvature,
 //! residual norm squares, model reduction, boundary coefficients, accepted-step curvature), and
-//! [`stable_l2`] is the sole norm (gradient, residual, direction, Hessian-vector product,
-//! boundary, and diagnostic norms). All delegate to the house kernels — [`AlignedDVecN::dot`],
-//! [`AlignedDVecN::norm_squared`], and [`AlignedDVecN::stable_l2`] — whose striped fold shape is
-//! pinned there: fixed 8-lane groups, two interleaved fused-multiply-add accumulators, one fixed
-//! horizontal reduction, and a scalar-fma remainder, so a given environment reproduces identical
-//! control decisions run after run.
+//! [`stable_l2`] is the sole norm (gradient, residual, direction, Hessian-vector product, boundary,
+//! and diagnostic norms). All delegate to the house kernels ([`AlignedDVecN::dot`],
+//! [`AlignedDVecN::norm_squared`], and [`AlignedDVecN::stable_l2`]), which pin the striped fold
+//! shape. That shape uses fixed 8-lane groups, two interleaved fused-multiply-add accumulators, one
+//! fixed horizontal reduction, and a scalar-fma remainder, so a given environment reproduces
+//! identical control decisions run after run.
 //!
-//! All return [`None`] for non-finite results instead of letting an overflow or NaN steer a
-//! branch; each call site maps [`None`] onto its own typed failure. Operand dimensions agree at
-//! compile time — the vector lengths are part of the signatures.
+//! All return [`None`] for non-finite results instead of letting an overflow or NaN steer a branch.
+//! Each call site maps [`None`] onto its own typed failure. Operand dimensions agree at compile
+//! time, because the vector lengths are part of the signatures.
 
 use crate::math::AlignedDVecN;
 

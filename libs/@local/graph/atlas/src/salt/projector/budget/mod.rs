@@ -1,7 +1,7 @@
 //! Per-node relation-gradient diagnostics in coordinate space.
 //!
 //! The budget observes and never steers: relation gradients reach the shared model parameters
-//! whole, and every relation-active node records how hard the relation objective pushed it
+//! whole, and every relation-active node records how much the relation objective pushed it
 //! relative to its semantic layout. The measurement is pure 2D vector algebra over detached
 //! values:
 //!
@@ -25,9 +25,9 @@ use crate::math::{Positive, Vec2};
 
 /// The relation-gradient diagnostics' baseline convention.
 ///
-/// Every outcome measures the relation gradient against `max(‖semantic‖, floor)`. The floor is
-/// sized to the typical per-draw semantic gradient rather than to ε: in a sampled batch most
-/// nodes' semantic pairs are not co-drawn, and their baselines would otherwise vanish.
+/// Every outcome measures the relation gradient against `max(‖semantic‖, floor)`. The floor matches
+/// the typical per-draw semantic gradient rather than ε: in a sampled batch most nodes' semantic
+/// pairs are not co-drawn, and their baselines would otherwise vanish.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Budget {
     /// The semantic-baseline floor.
@@ -66,7 +66,7 @@ pub(crate) struct BudgetOutcome {
 ///
 /// One summary aggregates the nodes recorded into it; the training loop keeps one per reporting
 /// bucket (overall, per relation type, per degree decile) and records each node's outcome into
-/// every bucket it belongs to. The ratio mean is accumulated in double precision.
+/// every bucket it belongs to. The summary accumulates the ratio mean in double precision.
 #[derive(Debug, Default)]
 pub(crate) struct BudgetSummary {
     nodes: usize,

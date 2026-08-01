@@ -1,4 +1,4 @@
-//! The postings build: from the row-order type column to the file's regions.
+//! The postings build turns the row-order type column into the file's regions.
 
 use std::io;
 
@@ -101,8 +101,8 @@ impl Postings {
     ///
     /// # Panics
     ///
-    /// Panics when `types` and `row_of_position` cover different row counts - the lod build already
-    /// rejected mismatched columns, so a disagreement here is a producer bug.
+    /// This panics when `types` and `row_of_position` cover different row counts. The lod build
+    /// already rejected mismatched columns, so a disagreement here is a producer bug.
     #[expect(
         clippy::panic_in_result_fn,
         reason = "the Result carries domain errors; mismatched columns are a caller contract \
@@ -123,8 +123,8 @@ impl Postings {
         let points = types.len() as u64;
         let domain = parents.len();
 
-        // Member counts first: they pick each type's representation
-        // and become the fenceposts, so entries land in place below.
+        // Member counts first: they pick each type's representation and become the fenceposts, so
+        // the fill pass below writes each entry at its final slot.
         let mut counts = IdVec::from_elem(0, domain);
         for (row, list) in types.iter_enumerated() {
             for &id in list {
@@ -194,7 +194,7 @@ impl Postings {
 
     /// Measures the finished regions for the generation metadata.
     ///
-    /// The measurements the manifest records so the threshold knob is revised from data, not taste:
+    /// The measurements the manifest records so the threshold knob follows data rather than taste:
     /// how many types the split sent dense, and the region populations behind the artifact's size.
     #[must_use]
     pub(crate) fn measurements(&self) -> PostingsMeasurements {
@@ -246,8 +246,8 @@ impl WriteInto for Postings {
 
 /// The measurements of one postings build.
 ///
-/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
-/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
+/// What the manifest records so the configuration follows data rather than taste. Not evidence: the
+/// metadata's `Evidence` section holds admission checks, while these are build census numbers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsMeasurements {
     /// Types in the domain.

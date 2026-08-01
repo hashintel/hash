@@ -17,14 +17,14 @@ mod tests;
 
 /// An owned `T x N` matrix of `f32` components in one heap allocation aligned for [`f32x8`].
 ///
-/// The row width `N` must be a nonzero multiple of 8, so one row's `N · 4` bytes are a multiple of
-/// `align_of::<f32x8>()` and the base alignment carries to every row: [`rows`](Self::rows) views
-/// the matrix as [`AlignedVecN`] rows whose alignment invariant holds by construction, the same
-/// guarantee [`BoxedVecN`](super::BoxedVecN) gives one vector. A width that is not a multiple of 8
-/// fails to compile.
+/// The row width `N` is a nonzero multiple of 8, so one row's `N · 4` bytes are a multiple of
+/// `align_of::<f32x8>()` and every row begins at an alignment boundary. [`rows`](Self::rows) views
+/// the matrix as [`AlignedVecN`] rows that satisfy the alignment invariant by construction, and
+/// [`BoxedVecN`](super::BoxedVecN) gives one vector the same guarantee. A width that is not a
+/// multiple of 8 fails to compile.
 ///
-/// The row count is chosen at runtime; [`zeroed`](Self::zeroed) is the constructor and rows fill in
-/// place through [`rows_mut`](Self::rows_mut).
+/// The caller picks the row count at runtime. [`zeroed`](Self::zeroed) is the constructor, and rows
+/// fill in place through [`rows_mut`](Self::rows_mut).
 ///
 /// # Examples
 ///
@@ -64,7 +64,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     ///
     /// # Panics
     ///
-    /// Panics when the component count overflows the address space.
+    /// This panics when the component count overflows the address space.
     #[inline]
     fn layout(rows: usize) -> Layout {
         const {
@@ -85,7 +85,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
 
     /// Creates the zero matrix of `rows` rows in a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
+    /// This aborts the process through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
     /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
@@ -133,7 +133,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     #[must_use]
     pub const fn as_components_mut(&mut self) -> &mut [f32] {
         // SAFETY: `ptr` owns an initialized buffer of `rows · N` components for as long as `self`
-        // lives; the exclusive borrow of `self` guards the exclusive reference.
+        // lives. The exclusive borrow of `self` guards the exclusive reference.
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.rows * N) }
     }
 
@@ -165,9 +165,9 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
 
     /// Views the matrix as one flat slice of aligned 8-lane groups.
     ///
-    /// The lanes run row-major over the whole storage: row `i` occupies the `N / 8` consecutive
-    /// lanes from `i · N / 8`, and no lane straddles two rows, so whole-matrix elementwise
-    /// kernels iterate one slice without per-row dispatch. No scalar remainder exists: the row
+    /// The lanes run row-major over the whole storage. Row `i` occupies the `N / 8` consecutive
+    /// lanes from `i · N / 8`, and no lane straddles two rows, so whole-matrix elementwise kernels
+    /// iterate one slice without per-row dispatch. No scalar remainder exists, because the row
     /// width is a multiple of the lane width by construction.
     #[inline]
     #[must_use]
@@ -241,8 +241,8 @@ impl<const N: usize, A: Allocator> fmt::Debug for MatrixN<N, A> {
 impl<const N: usize, A: Allocator> Drop for MatrixN<N, A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `ptr` was allocated by `alloc` in `zeroed_in` with the same layout and has not
-        // been deallocated since.
+        // SAFETY: `zeroed_in` allocated `ptr` from `alloc` with the same layout, and nothing has
+        // deallocated it since.
         unsafe {
             self.alloc
                 .deallocate(self.ptr.cast::<u8>(), Self::layout(self.rows));

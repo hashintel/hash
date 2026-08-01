@@ -29,8 +29,8 @@ fn softplus_approaches_asymptotes() {
     // ln_1p(exp(-50)) is far below f32 ε at 50, so the positive
     // asymptote is exact.
     assert_eq!(softplus(50.0), 50.0);
-    // The negative tail decays like exp(value): tiny at -50, exactly zero
-    // once exp underflows f32 entirely.
+    // The negative tail decays like exp(value): below 1e-20 at -50, exactly zero once exp
+    // underflows f32 entirely.
     assert!(softplus(-50.0) > 0.0);
     assert!(softplus(-50.0) < 1e-20);
     assert_eq!(softplus(-200.0), 0.0);
@@ -69,8 +69,8 @@ fn sigmoid_matches_hand_computed_values() {
 
 #[test]
 fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
-    // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once
-    // exp(-|x|) drops below f32 ε; the direct ratio keeps the tail.
+    // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once exp(-|x|) drops below f32 ε.
+    // The direct ratio keeps the tail.
     let tail = sigmoid(-20.0);
     let expected = (-20.0_f32).exp();
     assert!(tail > 0.0);
@@ -97,8 +97,8 @@ fn huber_is_continuous_at_the_threshold() {
     let below = huber(threshold - step, threshold);
     let above = huber(threshold + step, threshold);
 
-    // The derivative at the threshold is the threshold itself, so values a
-    // step apart on either side differ by roughly 2 · step.
+    // The derivative at the threshold is the threshold itself, so values a step apart on either
+    // side differ by about 2 · step.
     assert!(below < above);
     assert!((above - below) < 1e-3);
 }
@@ -140,8 +140,8 @@ fn narrowing_preserves_negative_zero() {
 
 /// Softplus is non-negative and satisfies the shift identity.
 ///
-/// `softplus(x) - softplus(-x) == x` up to rounding scaled by `|x|`. Inputs are bounded to
-/// `-1e4..1e4`, where the stable form is well-conditioned; the asymptotes are pinned above.
+/// `softplus(x) - softplus(-x) == x` up to rounding scaled by `|x|`. The strategy bounds inputs to
+/// `-1e4..1e4`, where the stable form is well-conditioned. The tests above pin the asymptotes.
 #[property_test]
 fn softplus_is_non_negative_and_satisfies_the_shift_identity(
     #[strategy = -1e4_f32..1e4] value: f32,
@@ -160,8 +160,8 @@ fn softplus_is_non_negative_and_satisfies_the_shift_identity(
 
 /// The sigmoid is monotone non-decreasing and satisfies its complement identity.
 ///
-/// Values lie in `[0, 1]`; `sigmoid(-x) == 1 - sigmoid(x)` up to rounding. Inputs are bounded
-/// to `-1e4..1e4`; the asymptotes are pinned above.
+/// Values lie in `[0, 1]`, and `sigmoid(-x) == 1 - sigmoid(x)` up to rounding. The strategy bounds
+/// inputs to `-1e4..1e4`. The tests above pin the asymptotes.
 #[property_test]
 fn sigmoid_is_bounded_monotone_and_complementary(
     #[strategy = -1e4_f32..1e4] first: f32,
@@ -196,7 +196,7 @@ fn sigmoid_is_bounded_monotone_and_complementary(
 /// The Huber penalty is non-negative and monotone non-decreasing in the magnitude.
 ///
 /// For a fixed positive threshold, the quadratic and linear pieces are each monotone and meet
-/// continuously at the threshold. Magnitudes are bounded to `0..1e3` and thresholds to
+/// continuously at the threshold. The strategies bound magnitudes to `0..1e3` and thresholds to
 /// `1e-3..1e3`.
 #[property_test]
 fn huber_is_non_negative_and_monotone_in_the_magnitude(
@@ -272,7 +272,7 @@ fn log2_admits_exactly_the_shift_domain() {
     for value in 0_u8..64 {
         let exponent = Log2::new(value).expect("values below the shift width construct");
         assert_eq!(exponent.get(), value);
-        // The named guarantee: a shift by an exponent that exists cannot panic.
+        // The type guarantees that a shift by an exponent that exists cannot panic.
         let _power = 1_u64 << exponent.get();
     }
     for value in 64_u8..=u8::MAX {
@@ -280,7 +280,7 @@ fn log2_admits_exactly_the_shift_domain() {
     }
 }
 
-/// The double-precision positive domain: finite and strictly above zero, exactly.
+/// The double-precision positive domain is exactly the finite values strictly above zero.
 #[test]
 fn d_positive_admits_exactly_the_positive_finite_domain() {
     assert_eq!(

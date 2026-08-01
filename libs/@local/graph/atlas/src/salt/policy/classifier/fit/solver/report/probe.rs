@@ -1,19 +1,19 @@
 //! Terminal-diagnosis probe over one frozen classifier corpus.
 //!
 //! The probe reconstructs the classifier training set from staged annotation artifacts
-//! ([`replay`](crate::salt::policy::classifier::report::replay)) - a published generation's or
-//! a supplied directory's - re-runs the bounded solver over one fold subset, and dumps every
-//! receipt: the terminal is the observation, and each receipt carries the outer's Newton
-//! residual, the per-outer certificate of the factorization against the oracle. The
-//! fold-assignment seed and the regularization strength are the caller's, so any assignment and
-//! any candidate strength - the production CV candidates included - can be probed.
+//! ([`replay`](crate::salt::policy::classifier::report::replay)) held by a published generation or
+//! a supplied directory, re-runs the bounded solver over one fold subset, and dumps every receipt.
+//! The terminal is the observation, and each receipt reports the outer's Newton residual, the
+//! per-outer certificate of the factorization against the oracle. The caller owns the
+//! fold-assignment seed and the regularization strength, so the probe accepts any assignment and
+//! any candidate strength, the production CV candidates included.
 //!
 //! The per-row curvature-scale census prints at the origin and at the final accepted point, and
 //! a requested outer replays the production trajectory to that iteration - certifying every
 //! replayed outer against the production receipts' digests - and prints the census there.
 //!
-//! Failures panic with the failing step's error: a probe run has no recovery path, and the
-//! error is the diagnosis.
+//! Failures panic with the failing step's error. A probe run has no recovery path, and the error is
+//! the diagnosis.
 
 use camino::Utf8Path;
 
@@ -46,8 +46,8 @@ pub(crate) enum ProbeCorpus<'caller> {
         /// The published generation.
         generation: GenerationId,
     },
-    /// Supplied artifact files under their staged names, under the compiled deployment
-    /// defaults; the corpus of a fit that never published probes through this form.
+    /// Supplied artifact files under their staged names, under the compiled deployment defaults.
+    /// The corpus of a fit that never published probes through this form.
     Supplied {
         /// The directory holding the three annotation artifacts.
         directory: &'caller Utf8Path,
@@ -57,23 +57,25 @@ pub(crate) enum ProbeCorpus<'caller> {
 /// The probed solve's settings beside the corpus.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeSettings {
-    /// The fold-assignment seed; the configured seed probes the production assignment.
+    /// The fold-assignment seed. The configured seed probes the production assignment.
     pub seed: u64,
     /// The held-out fold of the probed subset.
     pub fold: usize,
-    /// Regularization-strength override; a CV candidate's fold solve probes through this.
+    /// Regularization-strength override. A CV candidate's fold solve probes through this.
     pub strength: Option<f64>,
-    /// The outer iteration whose accepted state is replayed for the curvature census.
+    /// The outer iteration whose accepted state the probe replays for the curvature census.
     pub census_outer: Option<u64>,
 }
 
-/// Solves one fold subset solo and dumps every receipt: the terminal-diagnosis probe.
+/// Solves one fold subset solo and dumps every receipt.
+///
+/// This is the terminal-diagnosis probe over one frozen classifier corpus.
 ///
 /// # Panics
 ///
-/// Panics when the corpus cannot be opened or fails reconstruction, or when a requested replay
-/// cannot certify its trajectory against the production receipts; the probed solve itself may
-/// fail - its terminal is the observation.
+/// This panics when the probe cannot open the corpus, when reconstruction fails, or when a
+/// requested replay cannot certify its trajectory against the production receipts. The probed solve
+/// itself may fail, and its terminal is the observation.
 #[expect(
     clippy::print_stdout,
     clippy::use_debug,
@@ -248,7 +250,7 @@ pub(crate) async fn probe_fold(corpus: ProbeCorpus<'_>, settings: ProbeSettings)
 ///
 /// # Panics
 ///
-/// Panics when a replayed outer disagrees with its production receipt, or when a stage the
+/// This panics when a replayed outer disagrees with its production receipt, or when a stage the
 /// production solve completed fails in replay.
 fn replay_to_outer(
     problem: &ScaledProblem<'_>,

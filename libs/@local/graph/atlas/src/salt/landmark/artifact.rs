@@ -1,4 +1,4 @@
-//! The landmark skeleton's published form: one combined file and its mapped reader.
+//! The landmark skeleton's published form, one combined file and its mapped reader.
 //!
 //! A fitted skeleton - selection, assignment, and layout coordinates - publishes as one
 //! [`crate::file::landmark`] file, so the three parts that share the ordinal vocabulary cannot fall
@@ -68,9 +68,9 @@ impl Error for InvalidLandmarkFile {}
 
 /// A fitted landmark skeleton, assembled for publication.
 ///
-/// The three parts share one ordinal vocabulary by construction: the assignment was built against
-/// the selection (its ordinal domain is the selection's length), and the constructor pins the
-/// coordinates to the same domain.
+/// Selection, assignment, and coordinates share one ordinal vocabulary by construction. The
+/// assignment stage works from the selection, so the assignment's ordinal domain is the selection's
+/// length, and the constructor pins the coordinates to the same domain.
 #[derive(PartialEq)]
 pub(crate) struct LandmarkSkeleton<N> {
     selection: LandmarkSelection<N>,
@@ -96,8 +96,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the parts disagree on the landmark count or a coordinate is not finite; both
-    /// violate the contracts of the stages that produced them.
+    /// This panics when the parts disagree on the landmark count or a coordinate is not finite.
+    /// Both cases violate the contracts of the stages that produced them.
     #[must_use]
     pub(crate) fn new(
         selection: LandmarkSelection<N>,
@@ -163,10 +163,10 @@ where
 
 /// A published landmark skeleton opened over its mapped file.
 ///
-/// Construction checks the skeleton invariants once - node rows strictly ascending, every
-/// assignment ordinal inside the landmark domain, every coordinate finite - so an open skeleton
-/// only serves valid views and consumers re-validate nothing. The regions stay in the page cache
-/// under memory pressure and off the heap.
+/// Construction checks the skeleton invariants once. Node rows are strictly ascending, every
+/// assignment ordinal lies inside the landmark domain, and every coordinate is finite. An open
+/// skeleton therefore serves only valid views, and consumers re-validate nothing. The regions stay
+/// in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct LandmarkSkeletonArchive {
     file: LandmarkFile,

@@ -11,8 +11,7 @@ hashql_core::id::newtype! {
     /// converting between them goes through the rows they rank, never by reinterpreting the
     /// integer.
     ///
-    /// The little-endian representation is the persisted form, so a column of these ranks is
-    /// written to and read from artifact files without conversion.
+    /// The little-endian representation is the persisted form, so an artifact file stores a column of these ranks with no conversion on write or read.
     #[id(endian = little, unaligned, const)]
     pub struct ImportanceRank(u32)
 }

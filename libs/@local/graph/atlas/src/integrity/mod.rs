@@ -1,16 +1,16 @@
 //! Content identity for atlas artifacts.
 //!
-//! One trust question is answered here: "are these the bytes the metadata meant?" [`Sha256Digest`]
-//! is a collision-resistant content identity, computed with [`Sha256`]. A digest pins content:
-//! recording it beside a published file commits to the exact artifact bytes, and tooling recomputes
-//! and compares digests to detect substitution or bitrot.
+//! This module answers one trust question: "are these the bytes the metadata meant?"
+//! [`Sha256Digest`] is a collision-resistant content identity, computed with [`Sha256`]. A digest
+//! pins content: recording it beside a published file commits to the exact artifact bytes, and
+//! tooling recomputes and compares digests to detect substitution or bitrot.
 //!
-//! Torn writes need no checksum: publication is temporary-path-and-rename, so a published file is
-//! either absent or complete (see [`crate::file`]).
+//! Torn writes need no checksum. Publication writes to a temporary path and renames it, so a
+//! published file is either absent or complete (see [`crate::file`]).
 //!
 //! [`Sha256`] implements [`Update`], and [`Writer`] adapts any [`Update`] implementation into
-//! [`std::io::Write`], [`tokio::io::AsyncWrite`], and [`Sink`](futures_sink::Sink), so a stream is
-//! digested during a copy without buffering it in memory:
+//! [`std::io::Write`], [`tokio::io::AsyncWrite`], and [`Sink`](futures_sink::Sink), so the writer
+//! digests a stream during a copy without buffering it in memory:
 //!
 //! ```rust
 //! use hash_graph_atlas::integrity::{Sha256, Update as _};

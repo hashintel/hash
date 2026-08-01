@@ -3,10 +3,10 @@
 //! [`HannoyIndex`] adapts one [hannoy] index inside one [heed] LMDB environment to
 //! [`NearestNeighboursIndex`]. The environment lives in a directory guarded by an advisory file
 //! lock, so one process owns the index at a time. Item keys are node rows narrowed to hannoy's
-//! `u32` key space; a generation whose row count exceeds `u32::MAX` does not fit this backend.
+//! `u32` key space. A generation whose row count exceeds `u32::MAX` does not fit this backend.
 //!
-//! Backend distances are rescaled onto the crate's `[0, 2]` cosine scale before they cross the
-//! seam, and results are ordered by ascending `(distance, id)`.
+//! The adapter rescales backend distances onto the crate's `[0, 2]` cosine scale before they cross
+//! the seam, and it orders results by ascending `(distance, id)`.
 
 use core::{error::Error, fmt, num::TryFromIntError};
 use std::{
@@ -28,7 +28,7 @@ use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, progress::Progress
 /// hannoy names its build steps through [`steppe::Progress`], whose implementors are `'static`, so
 /// the builder owns its reporter for the length of the build and the bridge cannot borrow the
 /// run's observer. It carries the observer's detached half instead. Only the step's name crosses
-/// the seam: hannoy hands its counted sub-step once, before its counter has moved, so the position
+/// the seam. hannoy hands its counted sub-step once, before its counter has moved, so the position
 /// it carries is always zero and reporting it would describe the phase's progress falsely.
 struct BuildPhases<D>(D);
 
@@ -41,11 +41,10 @@ where
     }
 }
 
-// HNSW connectivity, hannoy build-time const generics: M links per
-// node on the upper layers, M0 on the ground layer. M = 16 with
-// M0 = 2 · M follows the Malkov-Yashunin paper's defaults (reasonable
-// M range 5-48; higher values pay off only for extreme recall or
-// dimensionality); the recall spot check is the per-corpus arbiter.
+// HNSW connectivity, hannoy build-time const generics: M links per node on the upper layers, M0 on
+// the ground layer. M = 16 with M0 = 2 · M follows the Malkov-Yashunin paper's defaults (a
+// reasonable M range is 5-48 where higher values pay off only for extreme recall or
+// dimensionality). The recall spot check is the per-corpus arbiter.
 #[expect(
     clippy::min_ident_chars,
     reason = "M is the canonical HNSW connectivity name"
@@ -59,13 +58,13 @@ const INDEX: u16 = 0;
 const DEFAULT_MAP_SIZE: usize = 1 << 40;
 
 // Sized by a full-scale sweep (985,932 rows, recall@50, exact references replaying the fit's
-// streams): construction 128 -> 256 buys ~+0.009 sampled aggregate recall (~0.893 -> ~0.902 against
+// streams). Construction 128 -> 256 buys ~+0.009 sampled aggregate recall (~0.893 -> ~0.902 against
 // the 0.89 floor) for ~+90s build (155 -> 245s), and same-seed rebuilds spread ±0.007 (hannoy links
-// in parallel; the seed pins the level stream, not the link order), so the margin must clear that
-// spread. Search breadth measured inert: 64 -> 256 bought +0.002-0.005 on every build at 2.2x query
-// cost, so 128 stays - it is 2.5x the deepest query in this crate (the 50-neighbour recall audit)
-// and above hannoy's default of 100. Sweep instrument: `report::backend` (`report knn-backend`);
-// raise construction before search on a failed recall check.
+// in parallel, and the seed pins the level stream rather than the link order), so the margin must
+// clear that spread. Search breadth measured inert. 64 -> 256 bought +0.002-0.005 on every build at
+// 2.2x query cost, so 128 stays. It is 2.5x the deepest query in this crate (the 50-neighbour
+// recall audit) and above hannoy's default of 100. Sweep instrument: `report::backend` (`report
+// knn-backend`). Raise construction before search on a failed recall check.
 const DEFAULT_EF_CONSTRUCTION: usize = 256;
 const DEFAULT_EF_SEARCH: usize = 128;
 
@@ -74,11 +73,7 @@ const DEFAULT_EF_SEARCH: usize = 128;
 pub(crate) struct HannoyIndexOptions {
     /// Upper bound of the LMDB memory map, in bytes.
     ///
-    /// The map is a virtual-address reservation, not an allocation: pages materialize as the index
-    /// writes them, so the bound costs nothing until it is reached. A write beyond it fails with an
-    /// [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, and the remedy is a larger
-    /// bound. The 1 TiB default covers roughly 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two
-    /// orders of magnitude beyond a million-row generation.
+    /// The map reserves virtual addresses without allocating memory. Pages materialize as the index writes them, so the bound costs nothing until a write reaches it. A write beyond it fails with an [`MDB_MAP_FULL`](heed::MdbError::MapFull) environment error, which a larger bound prevents. The 1 TiB default covers about 4 KiB per item at [`PROJECTOR_DIMENSIONS`], two orders of magnitude beyond a million-row generation.
     pub map_size: usize = DEFAULT_MAP_SIZE,
     /// Breadth of the candidate frontier while linking one item into the graph.
     ///
@@ -146,7 +141,7 @@ enum IndexFault<N> {
     Hannoy(hannoy::Error),
     /// The LMDB environment rejected an operation.
     Heed(heed::Error),
-    /// The lock file could not be created.
+    /// Creating the lock file failed.
     Io(io::Error),
     /// Another handle holds the environment's lock file.
     Locked(TryLockError),
@@ -249,7 +244,7 @@ impl HannoyIndex {
     ///
     /// # Errors
     ///
-    /// Returns an error when the lock file cannot be created or is held elsewhere, or the
+    /// Returns an error when creating the lock file fails, another handle holds the lock, or the
     /// environment cannot open.
     pub(crate) fn new(
         base: impl AsRef<Utf8Path>,
@@ -265,8 +260,9 @@ impl HannoyIndex {
         let lock = File::create(&lockfile)?;
         lock.try_lock()?;
 
-        // SAFETY: While we cannot guarantee that we're the only one that accesses it, any opening
-        // of the database through our controlled access surface goes through a mandatory file lock.
+        // SAFETY: The crate cannot rule out another process opening the same database, but every
+        // opening through this crate's controlled access surface goes through a mandatory file
+        // lock.
         let env = unsafe {
             EnvOpenOptions::new()
                 .map_size(options.map_size)

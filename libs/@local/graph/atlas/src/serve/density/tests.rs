@@ -9,7 +9,9 @@ use crate::{
     morton::{Depth, MortonCell, MortonKey},
 };
 
-/// The fixtures' span exponent: a view's cut at offset `k` is depth `1 + k`.
+/// The fixtures' span exponent.
+///
+/// A view's cut at offset `k` is depth `1 + k`.
 const SPAN: u8 = 1;
 
 /// The fixtures' deepest served zoom.
@@ -69,9 +71,10 @@ fn occupancy(keys: &[MortonKey]) -> ViewOccupancy {
 
 /// A view whose occupancy plateaus once and then splits.
 ///
-/// Four depth-3 cells in two depth-1 halves: `(0,0)` with `(1,0)`, and `(4,0)` with `(5,0)`. Each
-/// pair shares one depth-2 cell and separates at depth 3, so the counts run
-/// `C(1) = 2`, `C(2) = 2`, `C(3) = 4`, saturating at depth 3.
+/// The view occupies the depth-3 cells `(0,0)`, `(1,0)`, `(4,0)`, and `(5,0)`. The first two share
+/// one depth-1 half and the last two share the other. Each pair shares one depth-2 cell and
+/// separates at depth 3, so the counts run `C(1) = 2`, `C(2) = 2`, `C(3) = 4`, saturating at depth
+/// 3.
 fn plateau_view() -> ViewOccupancy {
     occupancy(&[key(3, 0, 0), key(3, 1, 0), key(3, 4, 0), key(3, 5, 0)])
 }
@@ -117,10 +120,10 @@ fn the_default_band_is_two_thousand_through_four_thousand() {
 
 /// The key width caps a resolution that would otherwise keep going deeper.
 ///
-/// A span-6 schedule serving 18 zooms leaves room for 8: the deepest bucket `18 + 6 + 8` is exactly
-/// the 32 subdivisions a 64-bit key resolves, and one more would wrap a cut the walk then reads.
-/// The deep view saturates at depth 24, so `k_sat = 18` and an unreachable band pulls the argmin
-/// toward every deeper cut it is offered; the ceiling is the only thing that stops it at 8.
+/// A span-6 schedule serving 18 zooms leaves room for 8. The deepest bucket `18 + 6 + 8` is exactly
+/// the 32 subdivisions a 64-bit key resolves. One more would wrap a cut the walk then reads. The
+/// deep view saturates at depth 24, so `k_sat = 18` and an unreachable band pulls the argmin toward
+/// every deeper cut the search offers it. The ceiling alone stops it at 8.
 #[test]
 fn the_ceiling_caps_a_resolution_at_the_key_width() {
     let policy = DensityPolicy::new(band(100, 200), span(6), 18)
@@ -148,8 +151,8 @@ fn the_ceiling_caps_a_resolution_at_the_key_width() {
 
 /// Configuration refuses a terminal root and a schedule already past the key width.
 ///
-/// Both are schedules no offset repairs, so they fail where the policy is configured rather than
-/// where a view resolves.
+/// Both are schedules no offset repairs, so they fail when a caller configures the policy rather
+/// than when a view resolves.
 #[test]
 fn configuration_refuses_a_schedule_no_offset_deepens() {
     assert_eq!(
@@ -214,9 +217,8 @@ fn occupancy_saturates_at_the_separating_depth() {
 
 /// An empty view resolves to the base offset.
 ///
-/// The resolution with no occupancy behind it, reached through the same argmin as every other: an
-/// empty view has nothing to aim with, and the alternative - falling back on a corpus quantity - is
-/// the channel this policy exists to close.
+/// The same argmin produces this resolution as every other one. An empty view has nothing to aim
+/// with, and falling back on a corpus quantity is the channel this policy exists to close.
 #[test]
 fn an_empty_view_resolves_to_the_base_offset() {
     assert_eq!(policy(band(2, 4)).resolve(&occupancy(&[])), CutOffset::ZERO);
@@ -236,7 +238,7 @@ fn a_co_located_view_resolves_to_the_base_offset() {
     );
 }
 
-/// The coarsest in-band offset wins when several land inside.
+/// The coarsest in-band offset wins when the band admits more than one.
 ///
 /// Under the plateau view, offset 0 counts 2 and offset 2 counts 4; a band holding both must keep
 /// the coarser cut, since a deeper one costs response bytes for no policy gain.
@@ -282,19 +284,19 @@ fn a_view_above_the_band_keeps_the_base_offset() {
     assert_eq!(policy(band(1, 1)).resolve(&plateau_view()).get(), 0);
 }
 
-/// No resolution runs deeper than the view's saturation depth.
+/// No resolution cuts deeper than the view's saturation depth.
 ///
 /// The plateau view saturates at depth 3, so with span 1 offset 2 is the deepest cut that separates
 /// anything: a deeper one would deliver more buckets and more response for identical occupancy.
 /// The band `[10, 20]` is unreachable from above, so nothing but this property stops the argmin at
 /// 2 rather than at [`CEILING`], which is 27 and therefore not what caps this resolution.
 ///
-/// What the test pins is the property, not one mechanism, and the deletion controls say so: over a
-/// contiguous candidate range the resolution is guarded twice, by `resolve`'s saturation cap and by
-/// the tie-break, and removing either one alone leaves this green. Both together resolve 27 here.
-/// Counts are constant past saturation, so no view and no band can separate the two guards - the
-/// cap is unwitnessable through the output by construction, and it stays for the stated law rather
-/// than for a behaviour a test could lose. The single-fault witness for the other cap is
+/// What the test pins is the property rather than one mechanism, and the deletion controls say so.
+/// Over a contiguous candidate range two guards cover the resolution, `resolve`'s saturation cap
+/// and the tie-break, and removing either one alone leaves this green. Both together resolve 27
+/// here. Counts are constant past saturation, so no view and no band can separate the two guards -
+/// the cap is unwitnessable through the output by construction, and it stays for the stated law
+/// rather than for a behaviour a test could lose. The single-fault witness for the other cap is
 /// [`the_ceiling_caps_a_resolution_at_the_key_width`].
 #[test]
 fn a_resolution_never_runs_deeper_than_saturation() {
@@ -362,9 +364,9 @@ fn occupied_cells_match_a_direct_prefix_census(
 
 /// A resolution reads the band and the schedule, and nothing else about the view.
 ///
-/// Two views with identical count profiles resolve identically however their keys are arranged,
-/// which is the property a hidden row must not be able to break: it can only reach the resolution
-/// through the aggregate the policy reads.
+/// Views with identical count profiles resolve identically whatever key layout produced them, which
+/// is the property a hidden row must not be able to break: it can only reach the resolution through
+/// the aggregate the policy reads.
 #[property_test]
 fn resolution_is_a_function_of_the_count_profile(
     #[strategy = proptest::collection::vec(0_u64..1_u64 << 8, 1..16_usize)] bits: Vec<u64>,
@@ -405,8 +407,8 @@ fn resolution_is_a_function_of_the_count_profile(
 /// A re-bind keeps the session's coarser cut when the new view resolves deeper.
 ///
 /// The band is unreachable for the plateau view, whose deepest cut holds 4 cells, so its bootstrap
-/// resolves the deepest offset it has: 2. The deep view reaches the band exactly at offset 18 -
-/// `C(19, V) = 20` - so re-optimizing would deepen the session by sixteen subdivisions and change
+/// resolves the deepest offset it has: 2. The deep view reaches the band exactly at offset 18
+/// (`C(19, V) = 20`), so re-optimizing would deepen the session by sixteen subdivisions and change
 /// the detail every tile carries at a fixed zoom. The re-bind keeps 2.
 #[test]
 fn a_rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
@@ -428,8 +430,8 @@ fn a_rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
 
 /// A re-bind clamps the session down when the new view resolves coarser.
 ///
-/// The reverse pairing: a session bootstrapped on the deep view holds offset 18, and re-binding to
-/// the plateau view would carry that cut into a view whose band asks for 2. Carrying it would
+/// In the reverse pairing, a session bootstrapped on the deep view holds offset 18, and re-binding
+/// to the plateau view would carry that cut into a view whose band asks for 2. Carrying it would
 /// deliver a depth-19 cut over four cells, so the coarser resolution wins.
 #[test]
 fn a_rebind_clamps_down_when_the_new_view_resolves_coarser() {

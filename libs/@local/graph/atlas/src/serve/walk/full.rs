@@ -13,8 +13,8 @@ use crate::{file::quad::Node, identity::BasePosition, morton::MortonCell};
 
 /// One full-visibility delivery.
 ///
-/// The wire head's run vocabulary: the first delivered bucket, the per-bucket point counts, and
-/// the delivered base-position ranges in delivery order.
+/// The wire head's run vocabulary, with the first delivered bucket, the per-bucket point counts,
+/// and the delivered base-position ranges in delivery order.
 #[derive(Debug)]
 pub(in crate::serve) struct RangeDelivery {
     /// The first bucket the response's runs describe.

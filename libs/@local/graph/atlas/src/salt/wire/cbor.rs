@@ -1,16 +1,16 @@
 //! The deterministic CBOR emitter.
 //!
-//! RFC 8949 section 4.2.1 deterministic encoding, restricted further by the wire contract: definite
-//! lengths only, integer map keys, no tags, no indefinite items. Floats are fixed-width by
-//! originating type - geometry and `HEAD` values are IEEE 754 single, locate trailer property
-//! values double (WIRE 6b; store scalars are doubles) - never the deterministic-core
-//! value-dependent shortest form. The writer emits exactly this subset and nothing else - tags in
-//! particular have no emitter, which is the profile's proof surface staying minimal.
+//! The wire contract restricts RFC 8949 section 4.2.1 deterministic encoding further. It admits
+//! definite lengths, integer map keys, and untagged items only. The originating type fixes each
+//! float's width - geometry and `HEAD` values are IEEE 754 single, locate trailer property values
+//! double (WIRE 6b, store scalars are doubles) - never the deterministic-core value-dependent
+//! shortest form. The writer emits exactly this subset and nothing else - tags in particular have
+//! no emitter, which is the profile's proof surface staying minimal.
 //!
-//! Two profile laws live with the caller, checked by the fixtures rather than writer state: map
-//! keys are emitted in ascending numeric order (single-byte encodings below 24 make numeric order
-//! the required bytewise order), and a declared map or array length is followed by exactly that
-//! many items. Every emission site in this module's consumers writes its keys as literals in
+//! The caller upholds two profile laws, which the fixtures check rather than writer state. The
+//! caller emits map keys in ascending numeric order (single-byte encodings below 24 make numeric
+//! order the required bytewise order), and it follows a declared map or array length with exactly
+//! that many items. Every emission site in this module's consumers writes its keys as literals in
 //! ascending source order.
 //!
 //! Heads follow RFC 8949's shortest form: the argument rides inline below 24 and in the narrowest
@@ -93,9 +93,9 @@ impl<'buf> CborWriter<'buf> {
 
     /// Emits a single-precision float.
     ///
-    /// Geometry and `HEAD` floats originate as `f32` and stay single on the wire; the
-    /// deterministic-core shortest float form is deliberately NOT applied - width is fixed by the
-    /// originating type, not the value.
+    /// Geometry and `HEAD` floats originate as `f32` and stay single on the wire. The emitter never
+    /// applies the deterministic-core shortest float form, because the originating type fixes the
+    /// width, not the value.
     pub(crate) fn f32(&mut self, value: f32) {
         self.bytes.push(Self::HEAD_F32);
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -118,8 +118,8 @@ impl<'buf> CborWriter<'buf> {
 
     /// Emits a zero-filled byte string of `length` bytes and returns its content slice.
     ///
-    /// The head and the zeroed content land in the buffer immediately; the returned slice is the
-    /// content region, ready to be written in place.
+    /// This appends the head and the zeroed content to the buffer immediately. The returned slice
+    /// is the content region, ready for in-place writes.
     pub(crate) fn bytes_zeroed(&mut self, length: usize) -> &mut [u8] {
         self.head(Self::MAJOR_BYTES, length as u64);
         let start = self.bytes.len();
@@ -134,7 +134,7 @@ impl<'buf> CborWriter<'buf> {
         self.bytes.extend_from_slice(value.as_bytes());
     }
 
-    /// Emits an array head; the caller emits `length` items after it.
+    /// Emits an array head that the caller follows with `length` items.
     pub(crate) fn array(&mut self, length: u64) {
         self.head(Self::MAJOR_ARRAY, length);
     }

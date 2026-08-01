@@ -2,9 +2,9 @@
 //!
 //! ε is a calibrated configuration value, so its default must carry measured corpus structure
 //! rather than a guess: the calibration opens a published table and reads the grouping's shape -
-//! clump count, multi-row group count, covered rows - at every candidate threshold. A candidate is
-//! judged by how closely it reproduces the audited corpus shape and by whether the flagged
-//! subgroups it is expected to resolve actually restore.
+//! clump count, multi-row group count, covered rows - at every candidate threshold. A candidate
+//! qualifies by how well it reproduces the audited corpus shape and by whether the flagged
+//! subgroups it should resolve actually restore.
 //!
 //! The calibration observes a published artifact and never participates in a fit: it reads the
 //! stored table, so a reading describes the grouping a run at that threshold would have built.
@@ -24,15 +24,15 @@ use crate::{
     },
 };
 
-/// The candidate thresholds swept by default: one below the calibrated plateau, both of its edges,
-/// the deployed value, and the percolation boundary above it, so a bare invocation re-derives the
-/// evidence [`DEFAULT_EPSILON`] was pinned on.
+/// The candidate thresholds swept by default cover one value below the calibrated plateau, both
+/// plateau edges, the deployed value, and the percolation boundary above it, so a bare invocation
+/// re-derives the evidence behind [`DEFAULT_EPSILON`].
 pub(crate) const DEFAULT_EPSILONS: &[f32] = &[0.0005, 0.0012, DEFAULT_EPSILON, 0.0028, 0.0045];
 
 /// The grouping's shape at one candidate threshold.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Reading {
-    /// The distance threshold the grouping was built at.
+    /// The distance threshold that formed the grouping.
     pub epsilon: f32,
     /// The clump count, singletons included.
     pub clumps: usize,
@@ -108,17 +108,17 @@ impl Display for Calibration {
     }
 }
 
-/// A calibration input's refusal: the path does not hold a readable k-NN table.
+/// The path does not hold a readable k-NN table.
 ///
 /// Splices into the chain transparently: the display text and the sources are the wrapped
 /// crate-internal fault's, unchanged.
 #[derive(Debug)]
 pub(crate) struct CalibrationError(CalibrationFault);
 
-/// The two ways the table fails to open.
+/// The ways the table fails to open.
 #[derive(Debug)]
 enum CalibrationFault {
-    /// The sparse file could not be opened.
+    /// The sparse file did not open.
     Open(OpenSprsError),
     /// The file does not hold a valid k-NN table.
     Archive(InvalidKnnFile),
@@ -146,8 +146,7 @@ impl Error for CalibrationError {
 ///
 /// # Errors
 ///
-/// Returns a [`CalibrationError`] when the file cannot be opened or does not hold a valid k-NN
-/// table.
+/// Returns a [`CalibrationError`] when the file fails to open or does not hold a valid k-NN table.
 pub(crate) fn calibrate(
     path: impl AsRef<Path>,
     epsilons: &[f32],

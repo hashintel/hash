@@ -1,10 +1,12 @@
-//! The served tile grid: the bucket schedule and its addressing.
+//! The served tile grid.
 //!
-//! One generation serves a quadtree of tiles whose delivery follows the recorded bucket schedule:
-//! a tile at zoom `z` delivers the Morton buckets at or below the cut `z + span`, and the deepest
+//! The bucket schedule and its addressing.
+//!
+//! One generation serves a quadtree of tiles whose delivery follows the recorded bucket schedule. A
+//! tile at zoom `z` delivers the Morton buckets at or below the cut `z + span`, and the deepest
 //! zoom's cut is the catch-all bucket holding every remaining point. [`Grid`] is that schedule
-//! validated against the key width - `max_tile_depth + span ≤ 32`, the subdivisions a 64-bit
-//! Morton key resolves - so every depth the serve paths derive from it exists by construction.
+//! validated against the key width (`max_tile_depth + span ≤ 32`, the subdivisions a 64-bit Morton
+//! key resolves), so every depth the serve paths derive from it exists by construction.
 //!
 //! Addressing lives beside the schedule: [`cell_of`] maps a request's tile coordinate onto the
 //! Morton grid, and [`tile_of`] inverts a point's key back to the tile owning it at a zoom.
@@ -66,8 +68,8 @@ impl Grid {
     ///
     /// # Panics
     ///
-    /// Panics beyond the served grid; a zoom above [`max_tile_depth`](Self::max_tile_depth) is a
-    /// caller defect, never request data - request validation rejects it first.
+    /// This panics beyond the served grid. A zoom above [`max_tile_depth`](Self::max_tile_depth) is
+    /// a caller defect rather than request data, and request validation rejects it first.
     pub(super) const fn cut(self, z: u8) -> Depth {
         assert!(
             z <= self.max_tile_depth,
@@ -88,7 +90,7 @@ impl Grid {
 
     /// Iterates the delta schedule of zoom `z`: the buckets the zoom newly delivers.
     ///
-    /// The root delivers its whole cut range; every deeper zoom delivers exactly its cut.
+    /// The root delivers its whole cut range. Every deeper zoom delivers exactly its cut.
     ///
     /// # Panics
     ///
@@ -101,8 +103,8 @@ impl Grid {
 
     /// Returns the first zoom whose cumulative schedule delivers bucket `bucket`.
     ///
-    /// The cut rule inverted: bucket `b` first appears at zoom `b - span`, clamped to the root for
-    /// the buckets the root itself spans.
+    /// Bucket `b` first enters the schedule at zoom `b - span`, clamped to the root for the buckets
+    /// the root itself spans.
     pub(super) const fn first_zoom(self, bucket: Depth) -> u8 {
         bucket.get().saturating_sub(self.span)
     }
@@ -121,11 +123,11 @@ pub(super) const fn cell_of(coordinate: TileCoordinate) -> Option<MortonCell> {
 
 /// Returns the tile owning a Morton key at zoom `zoom`.
 ///
-/// The key's axis indices truncate to the zoom's grid; zoom 0 is the root tile whole.
+/// The key's axis indices truncate to the zoom's grid. Zoom 0 is the root tile whole.
 ///
 /// # Panics
 ///
-/// Panics beyond the key width, which the schedule's zooms rule out.
+/// This panics beyond the key width, which the schedule's zooms rule out.
 pub(super) const fn tile_of(key: MortonKey, zoom: u8) -> TileCoordinate {
     assert!(zoom <= AXIS_BITS, "zooms lie within the key width");
     if zoom == 0 {

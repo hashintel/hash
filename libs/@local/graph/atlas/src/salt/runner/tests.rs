@@ -228,12 +228,10 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
             probe: ProbeOptions {
                 anchors: NonZero::new(8).expect("nonzero"),
                 comparisons: NonZero::new(16).expect("nonzero"),
-                // Rung 2 is all-degenerate on this 8-node landmark-baseline
-                // fixture (coincident map placements zero the radii), and the
-                // verdict fails closed on absent density evidence - the
-                // fail-closed arm itself is pinned in the quality tests. The
-                // runner fixtures probe the run protocol, so they read the
-                // rung where evidence exists.
+                // Rung 2 is all-degenerate on this 8-node landmark-baseline fixture (coincident map
+                // placements zero the radii), and the verdict fails closed on absent density
+                // evidence. The quality tests pin the fail-closed arm itself, while the runner
+                // fixtures probe the run protocol, so they read the rung where evidence exists.
                 neighbourhoods: Cow::Owned(vec![NonZero::new(4).expect("nonzero")]),
                 triplet_pairs: 8,
                 ..
@@ -263,7 +261,7 @@ impl RecordingBattery {
 }
 
 impl Progress for RecordingBattery {
-    /// The log is shared, so a detached half records into the same fixture.
+    /// Both halves share the log, so a detached half records into the same fixture.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -301,9 +299,9 @@ async fn passing_run_activates_the_generation() {
     .expect("the run should reach a verdict");
 
     assert_eq!(outcome.admission, Admission::Active);
-    // The battery reports the readings its own verdict turns on: one per
-    // control, and the same numbers the report reduces, so an observer
-    // and the gate can never disagree about what was measured.
+    // The battery reports the readings its own verdict turns on, one per control. They are the same
+    // numbers the report reduces, so an observer and the gate can never disagree about the
+    // measurement.
     assert_eq!(
         outcome
             .report
@@ -380,7 +378,7 @@ async fn refused_run_leaves_a_candidate() {
     );
 }
 
-/// The second run reuses the active generation as its prior; a fresh run ignores it.
+/// The second run reuses the active generation as its prior, while a fresh run ignores it.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn prior_modes_route_reuse() {

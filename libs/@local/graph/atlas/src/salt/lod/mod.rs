@@ -10,8 +10,8 @@
 //! measures the publish evidence over the result; [`quad`] cuts the finished columns into the quad
 //! file's tile topology.
 //!
-//! Everything here is a pure function of its inputs: equal inputs give byte-equal columns, so a
-//! generation's spatial index is reproducible from its coordinates, rank inputs, and seed alone.
+//! Every function here is pure. Equal inputs give byte-equal columns, so a generation's spatial
+//! index is reproducible from its coordinates, rank inputs, and seed alone.
 
 #[cfg(feature = "bench")]
 pub mod bench;

@@ -83,7 +83,7 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
 }
 
 /// An instance of `relation` between `source` and `target` with the given link confidence (`None`
-/// is unscored, the neutral 1).
+/// means unscored, the neutral 1).
 fn instance(
     edge: u64,
     relation: u64,
@@ -128,7 +128,7 @@ fn hard_config(threshold: f32) -> ProtectionConfig {
     .expect("the fixture channels are ordered")
 }
 
-/// Eight collinear points at triangular-number positions.
+/// Collinear points at the triangular-number positions 0, 1, 3, 6, 10, 15, 21, 28.
 ///
 /// Every coordinate and squared distance is a small exact integer, and row 2 sees rows 0 and 3 at
 /// the same distance, exercising the row tie-break.
@@ -264,9 +264,9 @@ fn mined_rows_match_a_brute_force_reference() {
         }
     }
 
-    // Spot contracts on top of the reference agreement: nothing mines
-    // itself, the hard-protected pair is vetoed, the weakly linked
-    // pair and the semantic edge behave by their own evidence.
+    // These spot contracts hold on top of the reference agreement. No row mines itself, the miner
+    // vetoes the hard-protected pair, and the pair linked below the threshold and the semantic edge
+    // behave by their own evidence.
     for row in 0..8_usize {
         assert!(
             negatives
@@ -298,8 +298,8 @@ fn mined_rows_match_a_brute_force_reference() {
 
 #[test]
 fn rank_weights_are_dyadic_at_unit_exponent() {
-    // Five points, no exclusions: row 0 fills its quota of four, and
-    // the unit-exponent weights are exactly 1, 3/4, 1/2, 1/4.
+    // With five points and no exclusions, row 0 fills its quota of four, and the unit-exponent
+    // weights are exactly 1, 3/4, 1/2, 1/4.
     let coordinates = line_frame()[..5].to_vec();
     let semantic = semantic_graph(5, &[]);
     let indexes = relation_indexes(5, Vec::new());

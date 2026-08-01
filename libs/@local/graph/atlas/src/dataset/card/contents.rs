@@ -79,7 +79,7 @@ impl<W: fmt::Write> fmt::Write for IndentationWriter<W> {
     }
 }
 
-/// A bulleted block: a header line, then one indented item per line.
+/// A bulleted block, with a header line and then one indented item per line.
 fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Display {
     fmt::from_fn(move |fmt| {
         writeln!(fmt, "{header}")?;
@@ -92,7 +92,7 @@ fn bullets<'this, T: Display>(header: &'this str, items: &'this [T]) -> impl Dis
     })
 }
 
-/// Structured card body; its [`Display`] output is the canonical text.
+/// Structured card body, whose [`Display`] output is the canonical text.
 ///
 /// Adapters construct the contents directly from their own data: every field is public,
 /// [`Phrase::new`] normalizes labelled prose, and [`format::build_card`](super::format::build_card)
@@ -220,8 +220,8 @@ impl<A: Allocator> CardContents<'_, A> {
         for index in indices.iter().rev() {
             self.examples.remove(*index);
         }
-        // "None" is the persisted-diagnostic placeholder for an absent
-        // group label; existing card rows already carry it.
+        // "None" is the persisted-diagnostic placeholder for an absent group label, and existing
+        // card rows already carry it.
         Some(Cow::Owned(format!(
             "example_group[{}]",
             label.as_deref().unwrap_or("None")

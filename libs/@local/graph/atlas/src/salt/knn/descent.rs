@@ -11,17 +11,16 @@
 //!
 //! # Shape of one iteration
 //!
-//! 1. **Candidate sampling.** Each row splits its list by the *new* flag - set on entries that have
-//!    not yet participated in a join - and samples up to
-//!    [`maximum_candidates`](NnDescentOptions::maximum_candidates) of each side. Sampled new
-//!    entries are marked old: without the flag protocol, every iteration would recompare the same
-//!    pairs.
-//! 2. **Reversal.** The sampled sets are transposed, so a row is also introduced by the rows that
-//!    list it. Reverse pools are sampled to the same cap: without the cap, rows that many others
-//!    list would join quadratically in their in-degree.
-//! 3. **Local join.** Per row, every sampled new candidate meets every other sampled candidate;
-//!    each pair's cosine distance is offered to both sides' lists. The cap bounds one row's join at
-//!    O(cap²) distances regardless of degree skew.
+//! 1. **Candidate sampling.** Each row splits its list by the *new* flag (set on entries that have
+//!    not yet participated in a join) and samples up to
+//!    [`maximum_candidates`](NnDescentOptions::maximum_candidates) of each side. Sampling marks the
+//!    drawn new entries old, which keeps a later iteration from recomparing the same pairs.
+//! 2. **Reversal.** The step transposes the sampled sets, so the rows listing a row also introduce
+//!    it. Sampling limits each reverse pool to the same cap so that rows which many others list
+//!    cannot join quadratically in their in-degree.
+//! 3. **Local join.** Every sampled new candidate of a row meets every other sampled candidate of
+//!    that row, and the join offers each pair's cosine distance to both sides' lists. The cap
+//!    bounds one row's join at O(cap²) distances regardless of degree skew.
 //!
 //! Iteration stops when an iteration's accepted updates fall to
 //! [`termination`](NnDescentOptions::termination) of the total entry count, or at
@@ -32,10 +31,11 @@
 //! Sampling streams derive from the seed alone: initialization and every per-row draw use a
 //! generator keyed by `(seed, row, iteration)` through [`keyed_rng`]. Update application is
 //! parallel and unordered, however, and a list's acceptances depend on the updates applied before
-//! it, so converged lists can differ between same-seed runs. The search backends share this
-//! property (their parallel linking is unordered the same way); the recall spot check downstream
-//! is the arbiter of every construction, and the persisted table's contract is carried by that
-//! check, never by replaying the construction.
+//! it, so converged lists need not agree between same-seed runs.
+//!
+//! The search backends share this property, because their parallel linking runs unordered the same
+//! way. The recall spot check downstream arbitrates every construction, and that check alone
+//! establishes the persisted table's contract. A replay of the construction never does.
 
 use core::{
     error::Error,
@@ -83,7 +83,7 @@ pub(crate) struct NnDescentOptions {
     pub maximum_candidates: usize = DEFAULT_MAXIMUM_CANDIDATES,
     /// Iterations after which construction stops regardless of convergence.
     pub maximum_iterations: usize = DEFAULT_MAXIMUM_ITERATIONS,
-    /// The accepted-update fraction of the total entry count below which the join is converged.
+    /// The accepted-update fraction of the total entry count below which the join converges.
     pub termination: f64 = DEFAULT_TERMINATION,
 }
 
@@ -96,7 +96,7 @@ const impl Default for NnDescentOptions {
 /// The NN-Descent construction failed.
 #[derive(Debug)]
 pub enum NnDescentError {
-    /// The corpus holds fewer than two rows.
+    /// The corpus has at most one row.
     InsufficientRows { rows: usize },
     /// The row domain exceeds the resident lists' `u32` id encoding.
     TooManyRows { rows: usize },
@@ -130,7 +130,7 @@ impl NnDescent {
     }
 }
 
-/// One resident list entry: a neighbour and its join-participation flag.
+/// A neighbour with its join-participation flag.
 #[derive(Debug, Copy, Clone)]
 struct Entry<N> {
     distance: f32,
@@ -140,13 +140,14 @@ struct Entry<N> {
 
 /// One row's bounded neighbour list, ascending by `(distance, id)`.
 ///
-/// The worst distance is mirrored into an atomic beside the lock so offers can reject without
-/// contending. Every stored value is a worst read under the lock and the live worst only
+/// The list mirrors the worst distance into an atomic beside the lock, which lets an offer reject
+/// without contending. Every stored value is a worst read under the lock and the live worst only
 /// decreases, so however unlock-and-store pairs interleave, the mirror never falls below the live
-/// worst: a stale read is always at or above it, and a rejection against it is always sound.
-/// `Relaxed` suffices because the mirror guards no other memory - every admission re-checks under
-/// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy
-/// ordering for data read outside the lock, and no such read exists.
+/// worst. A stale read is always at or above it, and a rejection against it is always sound.
+///
+/// `Relaxed` suffices because the mirror guards no other memory. Every admission re-checks under
+/// the lock, and the lock orders the entries. A `Release`/`Acquire` pairing would only buy ordering
+/// for data read outside the lock, and no such read exists.
 #[derive(Debug)]
 struct RowList<N> {
     entries: Mutex<Vec<Entry<N>>>,
@@ -171,11 +172,12 @@ where
         }
     }
 
-    /// Offers a candidate; returns whether it displaced the worst entry.
+    /// Offers a candidate and reports whether it displaced the worst entry.
     ///
-    /// The lock is held for the containment scan and the insertion together: membership and
-    /// placement must be decided against one list state, or two concurrent offers of the same id
-    /// could both pass the scan. The held section is O(width) over a width-bounded list.
+    /// The offer holds the lock for the containment scan and the insertion together, because
+    /// membership and placement must resolve against one list state, or two concurrent offers of
+    /// the same id could both pass the scan. The section under the lock is O(width) over a
+    /// width-bounded list.
     fn offer(&self, id: N, distance: f32) -> bool {
         if distance >= f32::from_bits(self.worst.load(Ordering::Relaxed)) {
             return false;
@@ -208,7 +210,7 @@ where
     }
 }
 
-/// Samples `count` of `pool` uniformly without replacement; the whole pool when it fits.
+/// Samples `count` of `pool` uniformly without replacement, taking the whole pool when it fits.
 ///
 /// The pool is ascending afterwards on every path - the retirement scan in [`sample_forward`]
 /// binary-searches it.
@@ -268,8 +270,8 @@ where
 
 /// Samples each row's forward candidates and retires the drawn new entries.
 ///
-/// Splits each list by the *new* flag, samples each side to `cap`, and clears the flag on the
-/// sampled new entries so no join recompares them.
+/// Splits each list by the *new* flag and samples each side to `cap`. It then clears the flag on
+/// the sampled new entries so no later join recompares them.
 fn sample_forward<N>(
     lists: &IdSlice<N, RowList<N>>,
     cap: usize,
@@ -369,10 +371,10 @@ where
 
 /// One iteration's accepted updates per stored list entry.
 ///
-/// The convergence reading the iteration is judged by: it falls toward
-/// [`termination`](NnDescentOptions::termination) as the join exhausts itself. A join offers each
-/// pair to both sides and one entry can be displaced repeatedly, so the reading is a rate and not
-/// a share - an early iteration stands above `1`.
+/// This reading judges convergence. It falls toward [`termination`](NnDescentOptions::termination)
+/// as the join exhausts itself. A join offers each pair to both sides and can displace one entry
+/// more than once, so the reading is a rate rather than a share. Early iterations stand above
+/// `1`.
 #[expect(
     clippy::cast_precision_loss,
     reason = "an accepted-update count and an entry count both stay far below exact f64 integer \
@@ -437,8 +439,8 @@ where
             let reverse_new = reverse(&forward_new, rows, cap, seed, iteration);
             let reverse_old = reverse(&forward_old, rows, cap, seed, iteration);
 
-            // Local join: sampled new candidates meet every other
-            // sampled candidate; each distance is offered both ways.
+            // Local join: sampled new candidates meet every other sampled candidate, and the join
+            // offers each distance both ways.
             let accepted = Atomic::<u64>::new(0);
             (0..rows).into_par_iter().for_each(|row| {
                 let row = N::from_usize(row);

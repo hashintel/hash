@@ -1,9 +1,9 @@
 //! Wire encoder tests: hand-derived bytes for every layer.
 //!
-//! CBOR expectations come from RFC 8949 appendix A where the profile covers them and are derived by
-//! hand at the byte level otherwise; envelope and response expectations are derived in comments
-//! before the assertions. The checked-in fixtures (`fixtures.rs`) carry the cross-language corpus;
-//! these tests pin the layers separately so a failure names its layer.
+//! CBOR expectations come from RFC 8949 appendix A where the profile covers them, and otherwise
+//! this module derives them by hand at the byte level. Comments above the assertions derive the
+//! envelope and response expectations. The checked-in fixtures (`fixtures.rs`) carry the
+//! cross-language corpus, and these tests pin one layer each so a failure names its layer.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the tests read and write the contract's little-endian wire integers"
@@ -49,7 +49,7 @@ pub(crate) fn directory(bytes: &[u8], slot: usize) -> (u32, u32) {
     (start, end)
 }
 
-/// Slices slot `slot`'s payload; [`None`] when the slot is absent.
+/// Slices slot `slot`'s payload, or [`None`] when the slot is absent.
 pub(crate) fn section(bytes: &[u8], slot: usize) -> Option<&[u8]> {
     let (start, end) = directory(bytes, slot);
     if (start, end) == (0, 0) {
@@ -157,8 +157,8 @@ mod cbor {
 
     #[test]
     fn doubles_are_fixed_width() {
-        // RFC 8949 appendix A: 1.1 = 0xFB_3FF199999999999A; 0.5
-        // derived by hand from the IEEE 754 double layout.
+        // RFC 8949 appendix A gives 1.1 = 0xFB_3FF199999999999A. The 0.5 case follows by hand from
+        // the IEEE 754 double layout.
         assert_eq!(
             encoded(|cbor| cbor.f64(1.1)),
             [0xFB, 0x3F, 0xF1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9A]
@@ -346,7 +346,7 @@ mod tile {
         TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow, section,
     };
 
-    /// A tiny consistent tile: two points from one delta run.
+    /// Builds a consistent tile of two points from one delta run.
     fn minimal<'doc>(
         positions: &'doc [Vec2],
         rows: &'doc [WireRow<NodeRowId>],
@@ -414,7 +414,7 @@ mod tile {
         let bytes = response.encode();
 
         let head = section(&bytes, 0).expect("HEAD is present");
-        // Eleven entries now, and key 8 sits between 7 and 9:
+        // The head map now holds eleven entries, and key 8 sits between 7 and 9:
         // map(3): 0 uint 40 | 1 [-0.5, -1.0, 0.25, 1.0] | 2 uint 12.
         assert_eq!(head[0], 0xAB);
         let global = [
@@ -518,7 +518,7 @@ mod tile {
         let ranges = [0_u32..4]
             .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
-        // Nine types: stride 2. Type 8's bit is byte 1, bit 0.
+        // With nine types the stride is 2. Type 8's bit is byte 1, bit 0.
         let low = [0_u32, 2].map(BasePosition::from_u32);
         let high = [2_u32].map(BasePosition::from_u32);
         let empty: [BasePosition; 0] = [];
@@ -578,8 +578,8 @@ mod tile {
         );
     }
 
-    /// Scope-bucket delivery order does not ascend in corpus base position, so every column
-    /// association is proven against delivered lists that break the ascent.
+    /// Scope-bucket delivery order does not ascend in corpus base position, so this test proves
+    /// every column association against delivered lists that break the ascent.
     ///
     /// The memberships give the five points five distinct masks, so no permutation error can
     /// coincide with the right answer, and the first list keeps the lowest position first and the
@@ -606,7 +606,8 @@ mod tile {
             Membership::Dense(&dense),
             Membership::List(&third),
         ];
-        // Masks by base position: 4 -> 0b010, 5 -> 0b001, 6 -> 0b100, 20 -> 0b011, 21 -> 0b110.
+        // Masks by base position are 0b010 at 4, 0b001 at 5, 0b100 at 6, 0b011 at 20, and 0b110 at
+        // 21.
 
         let scrambled = [4_u32, 20, 6, 5, 21].map(BasePosition::from_u32);
         let mut response = minimal(&positions, &rows, &[]);
@@ -637,14 +638,14 @@ mod tile {
         let delivered_rows: Vec<u32> = row_ids.iter().copied().map(u32::from_le_bytes).collect();
         assert_eq!(delivered_rows, [104, 120, 106, 105, 121]);
 
-        // Point order 4, 20, 6, 5, 21. A monotone cursor answers [2, 3, 0, 0, 6] here: the
-        // right count, the right length, no panic, two points silently unmasked.
+        // Point order 4, 20, 6, 5, 21. A monotone cursor answers [2, 3, 0, 0, 6] here. The count
+        // and the length are right and nothing panics, yet two points come back unmasked.
         assert_eq!(
             section(&bytes, 3).expect("TYPE_MASK is present"),
             [0b010, 0b011, 0b100, 0b001, 0b110]
         );
 
-        // The literal inversion: delivery order fully descending in base position.
+        // The literal inversion sets delivery order fully descending in base position.
         let inverted = [21_u32, 20, 6, 5, 4].map(BasePosition::from_u32);
         response.delivered = DeliveredSet::Positions(&inverted);
         let bytes = response.encode();
@@ -912,9 +913,9 @@ mod locate {
 
     /// A three-node, two-edge response with an all-null trailer.
     ///
-    /// Delivered base positions 2, 0, 3 (source first) over a four-point base column. The trailer
-    /// always rides - locate is the detail view - so the minimal document carries empty tables
-    /// and null columns.
+    /// Delivered base positions 2, 0, 3 (source first) over a four-point base column. Locate is the
+    /// detail view, so every document includes the trailer, and the minimal document has empty
+    /// tables and null columns.
     fn minimal(positions: &[Vec2]) -> LocateResponse<'_> {
         LocateResponse {
             generation: Sha256Digest::from_bytes_unchecked([0xAB; 32]),

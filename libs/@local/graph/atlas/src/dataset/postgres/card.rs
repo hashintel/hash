@@ -1,15 +1,15 @@
 //! Store-fact queries behind [`PostgresDataset`]'s card rendering.
 //!
 //! [`corpus_facts`] gathers everything [`build_contents`] consumes for every type in the dataset's
-//! type table, inside the frozen transaction and at its temporal axes. Four queries cover the whole
-//! table - prose, ancestors, associations, examples - so the expensive scans over the entity tables
-//! amortize across all cards instead of repeating per type:
+//! type table, inside the frozen transaction and at its temporal axes. One query per fact kind
+//! (prose, ancestors, associations, examples) covers the whole table at once, so the expensive
+//! scans over the entity tables amortize across all cards instead of repeating per type:
 //!
-//! - each type's prose and its (depth, id)-ordered ancestor chain, with the type itself and the
-//!   link root excluded;
-//! - the endpoint associations: every current source type whose resolved schema constrains a scoped
-//!   type as a link under any version of its id, with allowed targets resolved to their
-//!   latest-current prose and per-source cardinality;
+//! - each type's prose and its (depth, id)-ordered ancestor chain, which omits the type itself and
+//!   the link root;
+//! - the endpoint associations, which cover every current source type whose resolved schema
+//!   constrains a scoped type as a link under any version of its id, plus allowed targets resolved
+//!   to their latest-current prose and per-source cardinality;
 //! - pooled example candidates over each link type's current instances, with display labels,
 //!   nearest-first source-type closures, and endpoint frequencies within the relation.
 //!
@@ -17,9 +17,9 @@
 //! nothing constrains as a link and that has no link instances - every non-link entity type - the
 //! association and example sets are empty and the card carries prose and ancestry alone.
 //!
-//! Type prose resolves by pinned ontology id without a liveness check: the type table derives from
-//! current editions under the same snapshot, and the versioned type rows it references are
-//! immutable. The association query filters to current types, where liveness decides which
+//! Type prose resolves by pinned ontology id without a liveness check, because the type table
+//! derives from current editions under the same snapshot and the versioned type rows it references
+//! are immutable. The association query filters to current types, where liveness decides which
 //! constraints exist.
 //!
 //! Every identifier the queries resolve - type ids at every version, entity ids of example
@@ -54,9 +54,9 @@ pub(crate) struct CardParameters {
     ///
     /// A multiple of [`example_count`](Self::example_count).
     ///
-    /// A transfer bound: the diverse selector consumes candidates from each subgroup in a
-    /// deterministic order, and the pool is the slack it has for rejecting duplicates and
-    /// conflicts. Rows beyond the pool can never be selected.
+    /// The pool bounds what the query transfers, and the diverse selector consumes candidates from
+    /// each subgroup in a deterministic order, so the pool is the slack it has for rejecting
+    /// duplicates and conflicts. The selector never reaches rows beyond the pool.
     pub subgroup_pool_factor: usize = 8,
     /// Example candidates fetched per relation across all subgroups.
     ///
@@ -188,8 +188,8 @@ impl RelationFacts {
 ///
 /// # Panics
 ///
-/// Panics when the store violates its own referential contracts: a type in `types` without a
-/// versioned type row (the `entity_is_of_type` foreign key forbids this).
+/// This panics when the store violates its own referential contracts, such as a type in `types`
+/// without a versioned type row (the `entity_is_of_type` foreign key forbids this).
 pub(super) async fn corpus_facts(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -274,8 +274,8 @@ async fn prose_rows(
 
 /// Fetches every type's ancestors ordered by (depth, id).
 ///
-/// The store's inheritance table holds no self rows, other versions of a type's own base id are
-/// filtered out with it, and the link root contributes no prose.
+/// The store's inheritance table holds no self rows, and the query excludes other versions of a
+/// type's own base id along with it. The link root contributes no prose.
 async fn ancestor_rows(
     transaction: &Transaction<'_>,
     types: &[Uuid],
@@ -415,9 +415,10 @@ const ASSOCIATIONS: &str = "
 /// Fetches every current source type constraining each scoped type.
 ///
 /// A source constrains a type when the latest current version of its resolved schema holds a
-/// `links` key under the type's base id at any version; a source constraining several versions
-/// contributes the newest constraint. Allowed targets resolve per base id to their latest current
-/// prose, ordered by target id; a target reference whose base id is no longer current drops out.
+/// `links` key under the type's base id at any version, and a source constraining more than one
+/// version contributes the newest constraint. Allowed targets resolve per base id to their latest
+/// current prose, ordered by target id. A target reference whose base id is no longer current drops
+/// out.
 async fn association_rows(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -620,7 +621,7 @@ const EXAMPLES: &str = "
 /// Instances are entities whose direct type is the relation, current and non-draft at the dataset's
 /// axes, with both endpoints equally current and carrying a visible display label. One row survives
 /// per endpoint pair, frequencies count each endpoint's occurrences among the relation's instances
-/// before that dedup, and pooling bounds transfer: per source-direct-type subgroup first, then per
+/// before that dedup, and pooling bounds transfer per source-direct-type subgroup first, then per
 /// relation, in a deterministic hash order.
 async fn example_rows(
     transaction: &Transaction<'_>,

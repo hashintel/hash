@@ -64,8 +64,7 @@ impl<'columns, I> RankInputs<'columns, I> {
 /// Rank 0 is the most important row. The cascade consumes the ascending direction to claim cells.
 /// The published columns record each position's rank through the inverse. The row domain `R` is
 /// whatever universe the ranking orders - the generation's rows at fit time, or a view's own row
-/// vocabulary when a scope ranks its visible subset. A ranking can never be read against rows it
-/// did not rank.
+/// vocabulary when a scope ranks its visible subset. A ranking applies only to the rows it ranked.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Ranking<R> {
     /// Row by rank: `row_of_rank[rank]` is the row holding that rank.
@@ -80,8 +79,8 @@ where
 {
     /// Completes a ranking from its filled rank order.
     ///
-    /// `row_of_rank` must be a permutation of the row universe it ranks; the inverse view is
-    /// derived from it.
+    /// `row_of_rank` must be a permutation of the row universe it ranks. The inverse view follows
+    /// from it.
     #[must_use]
     pub(crate) fn from_row_of_rank(row_of_rank: IdVec<ImportanceRank, R>) -> Self {
         let mut rank_of_row = IdVec::from_elem(ImportanceRank::MIN, row_of_rank.len());
@@ -105,7 +104,7 @@ impl Ranking<NodeRowId> {
     /// every bit pattern; both score columns arrive finite - importance by the
     /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal) contract, priority as a
     /// constant column until it grows a source - and nothing here re-checks them. Equal seeds give
-    /// equal rankings; the seed is recorded in the generation's metadata.
+    /// equal rankings. The generation's metadata records the seed.
     #[must_use]
     pub(crate) fn new<I>(inputs: RankInputs<'_, I>, seed: u64) -> Self
     where

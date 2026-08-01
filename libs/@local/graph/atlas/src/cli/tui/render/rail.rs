@@ -1,9 +1,8 @@
-//! The stage rail: one row per pipeline stage, with the run's clock and its completion bar.
+//! One row per pipeline stage, with the run's clock and its completion bar.
 //!
-//! The rail is the run's whole shape from the first frame - every stage is listed before any of
-//! them has happened, so the pane reads as remaining work rather than as a growing log. A running
-//! stage carries the counter of whatever it is counting; a finished one trades that counter for
-//! its span.
+//! The rail is the run's whole shape from the first frame - it lists every stage before any of them
+//! has happened, so the pane reads as remaining work rather than as a growing log. A running stage
+//! carries the counter of whatever it is counting. A finished one trades that counter for its span.
 //!
 //! The admission probe's readings hang under the rail as its one detail block. A running stage's
 //! counter goes away the moment that stage finishes, while the battery's readings are the numbers
@@ -37,8 +36,8 @@ use crate::{
 /// Frames of the running stage's spinner, in braille.
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The rail's label column: the widest stage label, and the space that separates it from what
-/// follows.
+/// The rail's label column, wide enough for the widest stage label plus the space that separates it
+/// from what follows.
 const LABEL_WIDTH: usize = {
     let mut widest = 0;
     let mut index = 0;
@@ -158,8 +157,8 @@ fn stage_row<'row>(
         )
     });
 
-    // Glyph, its space, the label column, a space either side of the
-    // dots, and the span; whatever is left over becomes leader dots.
+    // Glyph, its space, the label column, a space either side of the dots, and the span. The
+    // remainder becomes leader dots.
     let used = 4 + LABEL_WIDTH.max(label.len()) + counter_width + span.len();
     let dots = width.saturating_sub(used);
 
@@ -199,7 +198,7 @@ fn counter(run: &RunState, stage: Stage) -> Option<String> {
     }
 }
 
-/// The neighbour-table counter: whichever part of the construction reported last.
+/// The neighbour-table counter, showing whichever part of the construction reported last.
 ///
 /// The stage runs a batched loop, then a phase the backend names, then a loop again, then its
 /// verdict, so the row carries whichever of those the construction is inside - one counter for a
@@ -217,9 +216,9 @@ fn knn_counter(activity: &KnnActivity) -> String {
     }
 }
 
-/// One batched loop's counter: its position as a bar, and what the covered rows did.
+/// One batched loop's counter, showing its position as a bar and what the covered rows did.
 ///
-/// The two loops of a construction count rows to the same total, so each says which one it is.
+/// Both loops of a construction count rows to the same total, so each says which one it is.
 fn batch_counter(batch: Batch, covered: &str) -> String {
     let Some(total) = NonZero::new(batch.total) else {
         return String::new();
@@ -232,7 +231,7 @@ fn batch_counter(batch: Batch, covered: &str) -> String {
     )
 }
 
-/// The placement counter: the schedule's steps as a bar, once training has begun.
+/// The placement counter, which shows the schedule's steps as a bar once training has begun.
 fn projector_counter(training: &ProjectorTraining) -> String {
     let Some(steps) = NonZero::new(training.steps) else {
         return String::new();
@@ -245,7 +244,7 @@ fn projector_counter(training: &ProjectorTraining) -> String {
     )
 }
 
-/// The classifier counter: folds landed as a bar, and the selected strength once chosen.
+/// The classifier counter, showing completed folds as a bar and the selected strength once chosen.
 fn classifier_counter(folds: ClassifierFolds, regularization: Option<f64>) -> String {
     let Some(total) = NonZero::new(folds.total) else {
         return String::new();
@@ -259,7 +258,8 @@ fn classifier_counter(folds: ClassifierFolds, regularization: Option<f64>) -> St
     )
 }
 
-/// The card-embedding counter: the provider's share as a bar, or the reuse that avoided it.
+/// The card-embedding counter, showing either the provider's share as a bar or the reuse that
+/// avoided it.
 fn embedding_counter(workload: EmbeddingWorkload) -> String {
     let Some(embedded) = NonZero::new(workload.embedded) else {
         return format!("{} reused", workload.reused);
@@ -274,8 +274,9 @@ fn embedding_counter(workload: EmbeddingWorkload) -> String {
 
 /// A fixed-width bar of one workload's completion.
 ///
-/// Cells of a text row, not a [`ratatui::widgets::Gauge`]: a gauge owns a rectangle, and a counter
-/// shares its row with the stage's name, its numbers, and the leader dots.
+/// Cells of a text row rather than a [`ratatui::widgets::Gauge`], because a gauge owns a whole
+/// rectangle while one counter shares its row with the stage's name, its numbers and the leader
+/// dots.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -292,12 +293,11 @@ fn counter_bar(done: usize, total: NonZero<usize>) -> String {
     )
 }
 
-/// The rail's completion bar: filled blocks over the stages still to come.
+/// The rail's completion bar, filled blocks over the stages still to come.
 ///
-/// A [`Line`], because it is drawn as the rail frame's own bottom title.
+/// A [`Line`], because the rail frame draws it as its own bottom title.
 fn progress_bar(completed: usize, total: usize) -> Line<'static> {
-    // One cell per stage: the bar is the rail's own index, not a
-    // rescaling of it.
+    // One cell per stage, so the bar is the rail's own index rather than a rescaling of it.
     let filled = completed.min(BAR_WIDTH);
     let color = if completed == total {
         Color::Green

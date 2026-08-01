@@ -6,10 +6,10 @@ use std::io;
 use futures_sink::Sink;
 use pin_project_lite::pin_project;
 
-/// A byte accumulator: state that absorbs a stream of bytes.
+/// A byte accumulator that absorbs a stream of bytes into running state.
 ///
-/// [`Sha256`](super::Sha256) implements this. The absorbed value is determined by the concatenated
-/// byte stream alone: feeding one large slice and feeding the same bytes across many calls are
+/// [`Sha256`](super::Sha256) implements this. The concatenated byte stream alone determines the
+/// absorbed value: feeding one large slice and feeding the same bytes across many calls are
 /// equivalent.
 pub trait Update {
     /// Absorbs `bytes` into the accumulator.

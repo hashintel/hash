@@ -1,4 +1,4 @@
-//! The rendering tests: whole frames drawn over a [`TestBackend`], read back as rows.
+//! Whole frames drawn over a [`TestBackend`], read back as rows.
 //!
 //! [`TestBackend`]: ratatui::backend::TestBackend
 use core::time::Duration;
@@ -383,9 +383,8 @@ fn a_pane_too_narrow_for_the_breakdown_drops_it_rather_than_the_corner() {
     let drawn = draw_on(&training(150, 600), 0, 60, 30);
 
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
-    // A title wider than its frame is drawn from the left corner
-    // outward, so the footer row is unbroken border or it is a
-    // truncated sentence starting mid-word. Absence of the whole
+    // The widget draws a title wider than its frame from the left corner outward, so the footer row
+    // is unbroken border or it is a truncated sentence starting mid-word. Absence of the whole
     // breakdown is not enough to tell those apart.
     assert!(
         drawn[22]
@@ -405,8 +404,8 @@ fn the_map_draws_beside_the_curve_on_a_wide_pane() {
     let drawn = draw_on(&placed(), 0, 120, 30);
     let band = drawn[14..23].join("\n");
 
-    // One band, two frames: the descent on the left, the placement
-    // itself on the right, with the sample it draws named under it.
+    // One band, two frames. The descent goes on the left and the placement itself on the right,
+    // with the sample it draws named under it.
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
     assert!(drawn[14].contains(" map "), "{drawn:#?}");
     assert!(band.contains("66 rows"), "{band}");
@@ -451,9 +450,8 @@ fn a_landmark_colors_the_cell_it_lands_in() {
         .map(|cell| cell.fg)
         .collect();
 
-    // The skeleton is drawn after the interior, so a cell holding a
-    // landmark reads as skeleton and the rest as the sample. Both
-    // colors are present: the map distinguishes them.
+    // The map draws the skeleton after the interior, so a cell holding a landmark reads as skeleton
+    // and the rest as the sample. Both colors are present: the map distinguishes them.
     assert!(colors.contains(&SKELETON), "{colors:?}");
     assert!(colors.contains(&ACCENT), "{colors:?}");
 }
@@ -477,9 +475,8 @@ fn the_map_keeps_the_placement_square() {
 
         let across = (horizontal[1] - horizontal[0]) / (f64::from(inner.width) * 2.0);
         let down = (vertical[1] - vertical[0]) / (f64::from(inner.height) * 4.0);
-        // The viewport is built in `f32` and widened for the canvas,
-        // so the two readings agree to within a rounding of the
-        // extent they were rebuilt from.
+        // The map builds the viewport in `f32` and widens it for the canvas, so the two readings
+        // agree to within a rounding of the extent they were rebuilt from.
         let tolerance = 4.0 * f64::from(f32::EPSILON) * across;
         assert!(
             (across - down).abs() <= tolerance,
@@ -626,9 +623,8 @@ fn the_step_axis_spans_exactly_the_curve_it_draws() {
     let points: Vec<(f64, f64)> = curve(plotted).into_iter().collect();
     let [first, last] = step_bounds(plotted);
 
-    // One point per reported step, the first on the axis's left edge
-    // and the last on its right: a curve drawn past either bound
-    // would be clipped at the frame.
+    // One point per reported step, the first on the axis's left edge and the last on its right. The
+    // frame would clip a curve drawn past either bound.
     assert_eq!(points.len(), 150);
     assert_eq!(points.first().map(|&(step, _)| step), Some(first));
     assert_eq!(points.last().map(|&(step, _)| step), Some(last));
@@ -660,8 +656,8 @@ fn the_log_pane_shows_the_newest_lines_that_fit() {
     let drawn = draw(&state, 0);
     let pane = drawn[15..].join("\n");
 
-    // The pane is a tail, not a scrollback: the newest line is
-    // always visible and the oldest is dropped off the top.
+    // The pane is a tail rather than a scrollback, so the newest line is always visible and the
+    // pane drops the oldest off the top.
     assert!(pane.contains("line 39"), "{pane}");
     assert!(!pane.contains("line 0 "), "{pane}");
 }

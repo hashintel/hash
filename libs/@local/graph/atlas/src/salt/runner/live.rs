@@ -1,17 +1,17 @@
-//! The operator seam: one production run over a live store.
+//! The operator seam for one production run over a live store.
 //!
 //! [`live`] drives the generation runner end to end over a pinned snapshot - prior resolution,
 //! fit, admission probe, and the activation decision - configured by [`Options`] and read back as
 //! a plain-number [`Summary`]. Failures return a [`RunError`] naming the failing step, the step's
 //! concrete fault chained beneath.
 //!
-//! The option vocabulary is typed: [`ClassifierSource`] names the classifier supply every run
+//! Types carry the option vocabulary: [`ClassifierSource`] names the classifier supply every run
 //! carries, and [`Placement`] carries exactly the controls its placer consumes, so option
 //! combinations the pipeline cannot honor are unrepresentable.
 //!
-//! The run embeds cards through the external embedding provider the shell constructs and
-//! supplies; the embedder fingerprint recorded in the published artifacts names the provider
-//! contract, and prior-generation reuse is guarded by fingerprint equality.
+//! The run embeds cards through the external embedding provider the shell constructs and supplies;
+//! the embedder fingerprint recorded in the published artifacts names the provider contract, and
+//! fingerprint equality guards prior-generation reuse.
 //!
 //! Nothing here is API for consumers of the crate; the module exists for the
 //! [`cli`](crate::cli) operator commands, which re-export its vocabulary.
@@ -59,7 +59,7 @@ const DEFAULT_COMPARISONS: NonZero<usize> = const { NonZero::new(4_096).unwrap()
 /// The refresh cadence of a step-count-overridden projector run.
 const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 
-/// The relation classifier's supply: the one input every run names.
+/// The relation classifier's supply, the one input every run names.
 ///
 /// A run fits the classifier from an annotation corpus or adopts an already-fitted artifact; the
 /// variant carries the document's path.
@@ -67,7 +67,7 @@ const REFRESH: NonZero<usize> = const { NonZero::new(250).unwrap() };
 pub enum ClassifierSource {
     /// Fit the classifier in-run from the annotation-corpus document at the path.
     ///
-    /// The run assembles the corpus, fits the relation classifier, and stages the corpus, the
+    /// The run assembles the corpus and fits the relation classifier, then stages the corpus, the
     /// embedding table, and the model beside the generation.
     Annotations(Utf8PathBuf),
     /// Adopt the fitted classifier artifact (`.clsf`) at the path.
@@ -95,7 +95,7 @@ pub enum Placement {
         asserted_radius: Option<f32>,
         /// Withhold the relation evidence from the trained placement.
         ///
-        /// Every other objective term trains and no reviewed verdicts are demanded. For corpora
+        /// Every other objective term trains, and the run needs no reviewed verdicts. For corpora
         /// without reviewed-Proximal coverage that still want the full trained placement.
         vacuous: bool,
     },
@@ -122,11 +122,7 @@ pub struct Options<P> {
     pub verdicts: Option<Utf8PathBuf> = None,
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
-    /// Six optional fields (`minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`,
-    /// `maximum_intrusion_rate`, `maximum_density_spread`, `minimum_triplet_agreement`); a present
-    /// field overrides its default after domain validation, an absent field keeps it, an unknown
-    /// field refuses the document. The source defaults are maximally permissive, gating evidence
-    /// presence rather than fidelity.
+    /// The optional fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`, `maximum_intrusion_rate`, `maximum_density_spread`, and `minimum_triplet_agreement`. A present field overrides its default after domain validation, an absent field keeps it, and an unknown field refuses the document. The source defaults are maximally permissive, gating evidence presence rather than fidelity.
     pub quality_thresholds: Option<Utf8PathBuf> = None,
     /// The relation classifier's supply.
     pub classifier: ClassifierSource,
@@ -156,7 +152,7 @@ pub struct Summary {
     /// The neighbour backend's recall evidence, admission reading included.
     ///
     /// A published generation carries either an admitted reading or an unresolved one; the
-    /// difference is what the sample demonstrated, not whether a number was measured.
+    /// difference is what the sample demonstrated, not whether the probe measured a number.
     pub recall: RecallSpotCheck,
     /// Unique card texts copied from the prior generation.
     pub reused: usize,
@@ -164,7 +160,7 @@ pub struct Summary {
     pub embedded: usize,
     /// Whether the admission report's gates held.
     pub passes: bool,
-    /// Whether the generation was activated.
+    /// Whether the run activated the generation.
     pub activated: bool,
     /// The full admission report as pretty-printed JSON.
     pub report: String,
@@ -173,7 +169,7 @@ pub struct Summary {
 /// The refusal grounds of a supplied quality-thresholds document.
 #[derive(Debug)]
 pub enum ThresholdSupplyError {
-    /// The document could not be read.
+    /// The run could not read the document.
     Io(io::Error),
     /// The document does not parse as the override shape.
     Parse(serde_json::Error),
@@ -209,15 +205,15 @@ impl core::error::Error for ThresholdSupplyError {
 pub enum RunError {
     /// The store could not open a snapshot transaction.
     Snapshot(PostgresDatasetError),
-    /// The supplied verdicts document was refused.
+    /// The run refused the supplied verdicts document.
     Verdicts(VerdictSupplyError),
-    /// The supplied quality-thresholds document was refused.
+    /// The run refused the supplied quality-thresholds document.
     Thresholds(ThresholdSupplyError),
-    /// The supplied annotation-corpus document was refused.
+    /// The run refused the supplied annotation-corpus document.
     Annotations(AnnotationSupplyError),
-    /// The supplied classifier artifact was refused.
+    /// The run refused the supplied classifier artifact.
     Classifier(ClassifierSupplyError),
-    /// The asserted Proximal radius was refused.
+    /// The run refused the asserted Proximal radius.
     ///
     /// The radius must be finite and strictly above the Coincident radius.
     ProximalRadius(f32),
@@ -264,7 +260,7 @@ impl core::error::Error for RunError {
 /// Builds the ratified schedule shrunk to a requested step count.
 ///
 /// The midpoint boundary splits the opening segment and the ladder evenly, mirroring the ratified
-/// schedule's shape; the learning-rate envelope stays the ratified one.
+/// schedule's shape. The learning-rate envelope stays the ratified one.
 const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
     TrainingSchedule::new(
         steps,
@@ -280,8 +276,8 @@ const fn shortened_schedule(steps: NonZero<usize>) -> TrainingSchedule {
 ///
 /// # Errors
 ///
-/// Returns [`RunError::Annotations`] or [`RunError::Classifier`] when the named document is
-/// refused.
+/// Returns [`RunError::Annotations`] or [`RunError::Classifier`] when the run refuses the named
+/// document.
 fn classifier_input(source: &ClassifierSource) -> Result<ClassifierInput, RunError> {
     match source {
         ClassifierSource::Annotations(path) => Ok(ClassifierInput::Annotations(
@@ -297,8 +293,8 @@ fn classifier_input(source: &ClassifierSource) -> Result<ClassifierInput, RunErr
 ///
 /// # Errors
 ///
-/// Returns a [`ThresholdSupplyError`] when the document cannot be read, does not parse as the
-/// override shape, or carries an out-of-domain value.
+/// Returns a [`ThresholdSupplyError`] when the run cannot read the document, when the document does
+/// not parse as the override shape, or when an override lies outside its control's domain.
 fn quality_thresholds(
     defaults: QualityThresholds,
     path: Option<&Utf8Path>,
@@ -361,8 +357,8 @@ fn placement_options(
 
 /// Runs one production generation over the store's snapshot at `axes`.
 ///
-/// The published generation lands in the generation root at `root`; the caller names the snapshot
-/// explicitly, so equal inputs describe the same run. Cards embed through `embedder`, the
+/// The run publishes the generation under the generation root at `root`; the caller names the
+/// snapshot explicitly, so equal inputs describe the same run. Cards embed through `embedder`, the
 /// provider the shell constructed with its credentials.
 ///
 /// # Errors

@@ -1,4 +1,4 @@
-//! The log pane: the tail of what the run said, colored by level.
+//! The log pane, showing the tail of what the run said, colored by level.
 //!
 //! A tail rather than a scrollback - the newest lines that fit, so the pane never scrolls away
 //! from what is happening now. The level token the formatter leads with is the only thing read

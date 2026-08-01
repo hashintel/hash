@@ -1,12 +1,12 @@
 //! Diagnostic receipts of solver work, stored only for an explicit debugging consumer.
 //!
-//! A routine fit stores no receipts: its solve returns the outcome, control state, counters,
-//! and certificate alone ([`ReceiptDetail::None`]), and the diagnostic-only arithmetic behind
-//! receipt fields is skipped with them. Under a debugging request ([`ReceiptDetail::Digests`])
-//! one [`OuterReceipt`] is stored for every started outer iteration at the moment its start is
-//! counted, and its [`OuterOutcome`] fields populate at reached outer-stage boundaries: an
-//! iteration that dies inside a stage keeps that stage's fields [`None`], while the work
-//! counters and the run terminal preserve the failed stage's work.
+//! A routine fit stores no receipts. Its solve returns the outcome, control state, counters, and
+//! certificate alone ([`ReceiptDetail::None`]), and skips the diagnostic-only arithmetic behind
+//! receipt fields. Under a debugging request ([`ReceiptDetail::Digests`]) the solve stores one
+//! [`OuterReceipt`] for every started outer iteration at the moment it counts that start, and the
+//! receipt's [`OuterOutcome`] fields populate at reached outer-stage boundaries. An iteration that
+//! dies inside a stage keeps that stage's fields [`None`], while the work counters and the run
+//! terminal preserve the failed stage's work.
 //!
 //! Receipts carry scalar summaries - tags, counters, norms, dots, reductions, ratios - and
 //! SHA-256 digests of the solver's vectors, never the vectors themselves. Digests commit to
@@ -66,11 +66,11 @@ pub(crate) struct OuterReceipt {
 /// The candidate classification of one outer iteration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum CandidateOutcome {
-    /// The trial objective was not finite; the candidate was rejected.
+    /// The iteration rejected the candidate because the trial objective was not finite.
     RejectedNonFinite,
-    /// The acceptance ratio fell below its threshold; the candidate was rejected.
+    /// The iteration rejected the candidate because the acceptance ratio fell below its threshold.
     RejectedByRatio,
-    /// The candidate was accepted and committed.
+    /// The iteration accepted the candidate and committed it.
     Accepted,
     /// The ratio accepted the candidate, but its fresh gradient was not finite.
     AcceptedGradientNonFinite,
@@ -79,7 +79,7 @@ pub(crate) enum CandidateOutcome {
 /// The accepted-step curvature diagnostic; a failure is a recorded reason, never a terminal.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum CurvatureDiagnostic {
-    /// The accepted-step curvature: the dot `p·y` and its normalization `(p·y) / (p·p)`.
+    /// The accepted-step curvature, given as the dot `p·y` and its normalization `(p·y) / (p·p)`.
     Value {
         /// The dot `p·y` with `y = g_trial − g`.
         along: f64,
@@ -96,11 +96,11 @@ pub(crate) enum CurvatureDiagnostic {
 
 /// Completion facts of one outer iteration, populated at reached outer-stage boundaries.
 ///
-/// Inner-step fields populate once the inner solve returns, candidate fields once the trial is
-/// priced, and the curvature diagnostic on acceptance; every field of a stage the iteration
-/// never completed stays [`None`]. Work performed inside a failed stage is preserved by the
-/// counters and the run terminal, not here. A recorded scalar that failed its own finiteness is
-/// also [`None`]; the terminal outcome of the run names the failure.
+/// Inner-step fields populate once the inner solve returns, candidate fields once the solve prices
+/// the trial, and the curvature diagnostic on acceptance. Every field of a stage the iteration
+/// never completed stays [`None`]. The counters and the run terminal record the work performed
+/// inside a failed stage. A recorded scalar that failed its own finiteness is also [`None`], and
+/// the terminal outcome of the run names the failure.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct OuterOutcome {
     /// The inner Newton outcome tag.
@@ -130,10 +130,10 @@ pub(crate) struct OuterOutcome {
 
 /// The exposed coordinate/version identity of one run's receipts and digests.
 ///
-/// Archived digest bytes are not self-describing; this value names the digest version and the
-/// coordinate system that generated them. The domain tag and declared dimension are
-/// byte-identical to the prefix of every digest preimage; the coordinate system is separately
-/// exposed by this identity and does not enter the preimage.
+/// Archived digest bytes are not self-describing, so this value names the digest version and the
+/// coordinate system that generated them. The domain tag and declared dimension are byte-identical
+/// to the prefix of every digest preimage. This identity exposes the coordinate system on its own,
+/// and the coordinate system does not enter the preimage.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ReceiptCoordinates {
     /// The digest preimage domain tag, naming the receipt/digest version.
@@ -156,8 +156,8 @@ impl ReceiptCoordinates {
 /// The digest of a flat solver vector: the domain tag's UTF-8 bytes, the declared dimension,
 /// then every component in vector order, both as native in-memory bytes.
 ///
-/// Digest identity is environment-scoped: a replay in the same environment reproduces the
-/// bytes bit-for-bit, and no cross-build or cross-architecture byte identity is claimed.
+/// Digest identity is environment-scoped. A replay in the same environment reproduces the bytes
+/// bit-for-bit, and byte identity does not extend across builds or architectures.
 pub(super) fn vector_digest(vector: &AlignedDVecN<SOLVER_DIMENSIONS>) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(ReceiptCoordinates::CURRENT.domain_tag.as_bytes());

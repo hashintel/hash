@@ -1,7 +1,7 @@
 //! Benchmark seams over the relation-index build.
 //!
 //! Wall-time claims about the build - the mega relation no longer serializes emission, assembly is
-//! sort-dominated, the emission chunk is a granularity rather than a tuned number - are claims
+//! sort-dominated, the emission chunk is a batch size rather than a tuned number - are claims
 //! about parallel composition, and only hold or fail at realistic scale and skew. This module gives
 //! the bench target (an external crate) exactly the levers those claims need while every internal
 //! type stays private: corpus synthesis at measured live shapes ([`Corpus`], [`Profile`]), each
@@ -9,9 +9,9 @@
 //! ([`BuildSummary`]).
 //!
 //! The stage runners call the production functions that [`RelationIndexes::build`] composes, never
-//! mirrors of them, so a change to the build is measured rather than silently diverged from. Stages
-//! that reorder their input take a [`Scratch`] buffer the caller clones outside the timed region;
-//! stages that only read consume the corpus's pre-sorted copies directly.
+//! mirrors of them, so the benchmarks measure a change to the build rather than diverging from it
+//! unnoticed. Stages that reorder their input take a [`Scratch`] buffer the caller clones outside
+//! the timed region. Stages that only read consume the corpus's pre-sorted copies directly.
 //!
 //! Beside the build seams, the judge runners (`judge`) compare the two access layouts hard-negative
 //! mining could vet candidates through: pointwise pair probes against per-row partner merges, over
@@ -35,7 +35,7 @@ mod judge;
 #[cfg(test)]
 mod tests;
 
-/// The production emission granularity, for sweeping around it.
+/// The production emission chunk size, for sweeping around it.
 #[must_use]
 pub const fn production_chunk() -> usize {
     EMISSION_CHUNK
@@ -50,7 +50,9 @@ pub struct BuildSummary {
     pub pruned_edges: usize,
     /// The fraction of total force mass the pruning dropped.
     pub omitted_mass_fraction: f64,
-    /// Stored protection entries; each linked pair counts twice.
+    /// Stored protection entries.
+    ///
+    /// Each linked pair counts twice.
     pub protection_entries: usize,
 }
 
@@ -103,8 +105,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the settings are not finite and non-negative, or the build rejects the corpus,
-    /// which the synthesis contract excludes.
+    /// This panics when the settings are not finite and non-negative, or the build rejects the
+    /// corpus, which the synthesis contract excludes.
     #[must_use]
     pub fn build_in(
         &self,
@@ -126,14 +128,14 @@ where
         }
     }
 
-    /// Runs the group emission alone at `chunk` granularity.
+    /// Runs the group emission alone with `chunk` as the emission chunk size.
     ///
     /// Reads the corpus's group-sorted instances and allocates the protection record buffer it
     /// fills, exactly as the production build does.
     ///
     /// # Panics
     ///
-    /// Panics when the corpus references an uncovered relation, which the synthesis contract
+    /// This panics when the corpus references an uncovered relation, which the synthesis contract
     /// excludes.
     pub fn emit_groups(&self, chunk: usize) {
         let ranges = build::resolve_groups(self.grouped(), self.policies())
@@ -148,7 +150,9 @@ where
         ));
     }
 
-    /// Runs the protection assembly alone: the record sort, the aggregation, and the scatter.
+    /// Runs the protection assembly alone.
+    ///
+    /// The assembly covers the record sort, the aggregation, and the scatter.
     pub fn assemble_protection(&self, records: &mut Records<N>) {
         drop(build::assemble_protection(self.rows(), &mut records.0));
     }
@@ -161,7 +165,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the assembled matrix fails its own validation, which the scatter contract
+    /// This panics when the assembled matrix fails its own validation, which the scatter contract
     /// excludes.
     pub fn validate_protection(&self) {
         let matrix = self.protection().matrix();

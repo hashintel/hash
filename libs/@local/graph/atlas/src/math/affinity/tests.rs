@@ -28,8 +28,8 @@ const CURVE_B: f32 = 0.895;
 /// The residual sum of squares of a candidate curve against the target falloff sampled on the
 /// crate's default grid, 300 samples over `[0, 3 · spread]`.
 ///
-/// The grid constants are written out by hand so the reference breaks loudly when the documented
-/// default contract changes.
+/// This reference spells the grid constants out by hand, so it fails when the documented default
+/// contract changes.
 fn reference_rss(spread: f64, minimum_distance: f64, curve_a: f64, curve_b: f64) -> f64 {
     let mut rss = 0.0;
     for index in 0..300_u16 {
@@ -214,8 +214,9 @@ fn fitted_curve_tracks_its_target_falloff() {
     assert_eq!(fitted.affinity(0.0), 1.0);
     assert!(fitted.affinity(0.25 * 0.25) > 0.9);
 
-    // Beyond it the curve follows the exponential falloff loosely: the
-    // fit trades pointwise accuracy for least-squares balance.
+    // Beyond it the curve tracks the exponential falloff to within
+    // 0.05: the fit trades pointwise accuracy for least-squares
+    // balance.
     for distance in [0.75_f32, 1.5, 3.0, 4.5] {
         let target = (-(distance - minimum_distance) / spread).exp();
         let affinity = fitted.affinity(distance * distance);
@@ -228,7 +229,7 @@ fn fitted_curve_tracks_its_target_falloff() {
 
 #[test]
 fn fit_rejects_degenerate_inputs() {
-    // Degenerate spreads.
+    // Degenerate spread values.
     assert!(AffinityCurve::fit(0.0, 0.1).is_none());
     assert!(AffinityCurve::fit(-1.0, 0.1).is_none());
     assert!(AffinityCurve::fit(f32::NAN, 0.1).is_none());
@@ -247,7 +248,7 @@ fn fit_with_rejects_degenerate_configs() {
     // Too few samples for the two-parameter fit.
     assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 7, .. }).is_none());
     assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 0, .. }).is_none());
-    // The documented lower bound itself is accepted.
+    // The fit accepts the documented lower bound itself.
     assert!(AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 8, .. }).is_some());
 
     // Degenerate ranges.
@@ -425,12 +426,12 @@ fn gradients_stay_finite_at_extreme_distances() {
 
 /// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
 ///
-/// Extreme-distance behaviour is pinned by the example-based tests above.
+/// The example-based tests above pin extreme-distance behaviour.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Four arbitrary in-range points, one per batch lane.
+/// Arbitrary in-range points, one per batch lane.
 fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
     proptest::array::uniform4(point_strategy())
 }
@@ -449,7 +450,7 @@ fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
 /// A matching absolute floor covers near-zero gradients.
 ///
 /// The bound covers the batch kernels' vectorized `d^(2b)` power, which composes sleef's 3.5-ulp
-/// `exp2`/`log2` stages: the exponent's absolute error grows with `|log2(d^2)|`, so the power's
+/// `exp2`/`log2` stages. The exponent's absolute error grows with `|log2(d^2)|`, so the power's
 /// relative error reaches a few times `1e-5` over the strategy's distance range, well inside
 /// `1e-3`, against the scalar path's 0.5-ulp libm `powf`.
 #[track_caller]
@@ -465,7 +466,7 @@ fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
 
 /// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance.
 ///
-/// Monotonicity holds up to a few ulps of libm `powf` rounding. Squared distances are bounded
+/// Monotonicity holds up to a few ulps of libm `powf` rounding. This test bounds squared distances
 /// to `0..1e6`, where `a · d^(2b)` stays finite for every curve in the strategy.
 #[property_test]
 fn affinity_is_a_monotone_probability(
@@ -499,7 +500,7 @@ fn affinity_is_a_monotone_probability(
     );
 }
 
-/// Attraction pulls `from` toward `to`; repulsion pushes it away.
+/// Attraction pulls `from` toward `to`, and repulsion pushes it away.
 ///
 /// For distinct points, the attraction gradient is anti-parallel to the difference vector and
 /// the repulsion gradient is parallel. The separation floor keeps the coefficients away from
@@ -519,9 +520,8 @@ fn gradients_align_with_the_difference_vector(
 
 /// The batch attraction kernel agrees with the scalar kernel in every lane.
 ///
-/// This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the
-/// whole in-range input space; the tolerance follows the kernel's documented 3.5-ulp-stage
-/// bound.
+/// This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the whole
+/// in-range input space. The tolerance follows the kernel's documented 3.5-ulp-stage bound.
 #[property_test]
 fn attraction_x4_matches_scalar_attraction_per_lane(
     #[strategy = point_array_strategy()] from: [Vec2; 4],

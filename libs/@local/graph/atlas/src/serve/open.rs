@@ -4,7 +4,7 @@
 //! agreement once, so every read after it trusts its views. The pass is one linear derivation:
 //! map and type each artifact, prove the artifacts agree on their shared domains, derive the
 //! serving state (the schedule, the wire codec and its encoded row column, the frame extent), and
-//! construct the [`Atlas`] whole - no partially initialized value exists at any point.
+//! construct the [`Atlas`] whole - no half-initialized value exists at any point.
 
 use hashql_core::id::Id;
 
@@ -49,7 +49,7 @@ pub struct OpenOptions {
     ///
     /// Operator contract, unenforced by any binding: the secret must not change for a generation
     /// that has ever served. Nothing fingerprints the secret, so reopening the same generation
-    /// under a different value silently re-keys every wire id while client cache identity
+    /// under a different value re-keys every wire id while client cache identity
     /// (authorization context, generation, route, canonical query) stays constant. A secret
     /// change therefore requires a generation rotation and application-cache invalidation.
     pub wire_secret: WireSecret,
@@ -116,8 +116,8 @@ impl Atlas {
 
         let grid = Grid::new(generation.repository().metadata.reproducibility.config.lod)?;
 
-        // Cross-artifact agreement: every shared domain is checked here, so the read paths index
-        // across artifacts without re-validating.
+        // Cross-artifact agreement: this pass checks every shared domain once, so the read paths
+        // index across artifacts without re-validating.
         let codes = morton.count();
         if points.len() as u64 != codes
             || rows.len() as u64 != codes

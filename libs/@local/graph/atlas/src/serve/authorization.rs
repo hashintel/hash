@@ -1,16 +1,16 @@
-//! The authority token: one view's sealed identity and state, carried by a client across requests.
+//! The authority token, which this server seals and a client carries across requests.
 //!
-//! A token seals the [`Scope`] that names an authorized view: the actor, the filter digest - the
-//! visibility proof's identity, resolved over the filter at bootstrap - and the view state derived
-//! for that proof: the delivery-cut offset `k`. The plaintext is encrypted under a
-//! per-generation key and the tag proves this server minted it. The server keeps no token state:
-//! a re-mint reads the sealed state out of the presented token, so a refresh renews authority
-//! while the view stays fixed.
+//! A token seals the [`Scope`] that names an authorized view. The scope holds the actor, the filter
+//! digest (the visibility proof's identity, resolved over the filter at bootstrap), and the view
+//! state derived for that proof, the delivery-cut offset `k`. A per-generation key encrypts the
+//! plaintext, and the tag proves this server minted it. The server keeps no token state, because a
+//! re-mint reads the sealed state out of the presented token, so a refresh renews authority while
+//! the view stays fixed.
 //!
-//! The filter travels as its digest. The client holds the filter document itself and re-presents
-//! it when a server-side entry has expired; the sealed digest is the check that the presented
-//! document is this view's filter. One actor may hold several active filters as several tokens,
-//! distinguished by their digests. A filter binds at the manifest, where the token re-mints: a
+//! The filter travels as its digest. The client holds the filter document itself and re-presents it
+//! when a server-side entry has expired. The sealed digest is the check that the presented document
+//! is this view's filter. An actor with more than one active filter holds one token per filter, and
+//! the digests tell them apart. A filter binds at the manifest, where the token re-mints, and a
 //! pinned run accumulates delivered state under one filter for its whole lifetime.
 //!
 //! # The envelope
@@ -20,25 +20,26 @@
 //! The header is [`AuthorityHeader`] in the clear, the ciphertext seals the [`Scope`] itself -
 //! the scope is its own byte-level form - and the trailer is Poly1305's tag.
 //!
-//! The associated data is the header's own bytes, so both sides authenticate an identical form.
-//! The clear header is fixed at mint: a rewritten `issued_at` invalidates the tag.
+//! The associated data is the header's own bytes, so both sides authenticate an identical form. The
+//! clear header stays as minted, because a rewritten `issued_at` invalidates the tag.
 //!
 //! # The key
 //!
-//! `HKDF-SHA256` over the server secret, salted by the generation digest, expanded under the fixed
-//! label `atlas.authorization.v0`. RFC 5869 admits a public and predictable salt, and this one
-//! separates generations cryptographically: a token opens under the generation that sealed it. The
-//! secret arrives as [`SecretHexBytes`], which fixes its width by type, and the derivation runs
-//! once, when the authority is built: the authority holds the key, never the secret.
+//! The key comes from `HKDF-SHA256` over the server secret, with the generation digest as the salt
+//! and the fixed label `atlas.authorization.v0` as the expansion label. RFC 5869 admits a public
+//! and predictable salt, and this one separates generations cryptographically, so a token opens
+//! only under the generation that sealed it. The secret arrives as [`SecretHexBytes`], which fixes
+//! its width by type. The derivation runs once, when this module constructs the authority, and the
+//! authority keeps only the key, never the secret.
 //!
 //! # The nonce
 //!
-//! Sampled per mint from an injected [`TryCryptoRng`] held behind a lock: minting locks for the
-//! draw alone and seals outside it, and opening never touches the generator. A nonce is unique per
-//! key, because reuse repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s 192-bit
-//! width makes sampling a safe way to reach uniqueness, with collision probability below 2⁻³²
-//! until roughly 2⁸⁰ mints, and it holds for a fleet of replicas that derive one key per
-//! generation from shared configuration.
+//! Each mint samples the nonce from an injected [`TryCryptoRng`] behind a lock. Minting locks for
+//! the draw alone and seals outside it, and opening never touches the generator. A nonce is unique
+//! per key, because reuse repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s
+//! 192-bit width makes sampling a safe way to reach that uniqueness. Collision probability stays
+//! below 2⁻³² until about 2⁸⁰ mints, and the same bound covers a fleet of replicas that derive one
+//! key per generation from shared configuration.
 #![expect(
     clippy::empty_enums,
     reason = "zerocopy's TryFromBytes derive expands to an empty enum for the discriminant check, \
@@ -61,7 +62,7 @@ use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 use super::{CutOffset, GenerationId, cache::FilterDigest};
 use crate::integrity::SecretHexBytes;
 
-/// The HKDF expansion label: one sealed value, one label, versioned in place.
+/// The HKDF expansion label, versioned in place for the one value this module seals.
 const LABEL: &[u8] = b"atlas.authorization.v0";
 
 /// The nonce width: the cipher's own.
@@ -148,16 +149,15 @@ struct AuthorityHeader {
     version: MessageVersion,
     /// The issue time as whole seconds since the Unix epoch.
     ///
-    /// The wall clock narrows to seconds at this field, and every signature in this module speaks
-    /// [`SystemTime`]. The field's accuracy is bounded by clock agreement between the process that
-    /// mints and the process that opens, and the acceptance window it feeds is measured in
-    /// minutes. Truncation reads earlier than the instant it records, so a token expires
-    /// marginally early.
+    /// The wall clock narrows to seconds at this field. Every signature in this module speaks
+    /// [`SystemTime`]. Clock agreement between the process that mints and the process that opens
+    /// bounds the field's accuracy, and the acceptance window it feeds spans minutes. Truncation
+    /// reads earlier than the instant it records, so a token expires marginally early.
     issued_at: U64<LE>,
     nonce: [u8; NONCE_BYTES],
 }
 
-/// The token envelope's trailer: the AEAD's tag over the ciphertext and the clear header.
+/// The token envelope's trailer, the AEAD's tag over the ciphertext and the clear header.
 #[derive(
     Debug,
     Copy,
@@ -241,7 +241,7 @@ pub(crate) enum ScopeFilter {
 }
 
 impl ScopeFilter {
-    /// Returns the filter's digest, absent when the scope is unfiltered.
+    /// Returns the filter's digest, absent when the scope names no filter.
     pub(crate) const fn digest(self) -> Option<FilterDigest> {
         match self {
             Self::Present(digest) => Some(digest),
@@ -256,19 +256,19 @@ impl From<Option<FilterDigest>> for ScopeFilter {
     }
 }
 
-/// One view's sealed identity and state: what a token carries and a mint seals.
+/// One view's sealed identity and state.
 ///
-/// The actor and filter digest name the visibility proof the view answers under; `k` is the
+/// The actor and filter digest name the visibility proof the view answers under. `k` is the
 /// delivery depth the session serves at, resolved at its bootstrap over the occupancy then in
-/// force. A re-mint carries `k` forward, so a session holds one delivery depth rather than
+/// force. A re-mint carries `k` forward, so a session keeps one delivery depth rather than
 /// re-optimizing it per request, and a re-bind of the filter digest keeps it unless the new view
-/// resolves coarser - which clamps it down. The carried value is the caller's own earlier
-/// resolution, so delivery depth can reflect that caller's own session history, never another
+/// resolves coarser, which clamps it down. The carried value is the caller's own earlier
+/// resolution, so delivery depth reflects that caller's own session history and never another
 /// actor's rows.
 ///
-/// The scope is its own byte-level form - every field is a zerocopy type - so a mint seals it
-/// verbatim and an open reads it in place. The filter discriminant is the one validated byte;
-/// every other pattern is a valid value, trusted because the tag already vouched for it.
+/// The scope is its own byte-level form, with every field a zerocopy type, so a mint seals it
+/// verbatim and an open reads it in place. The filter discriminant is the one validated byte. Every
+/// other pattern is a valid value, and the tag already vouched for it.
 #[derive(
     Debug,
     Copy,
@@ -287,10 +287,10 @@ impl From<Option<FilterDigest>> for ScopeFilter {
 )]
 #[repr(C)]
 pub(crate) struct Scope {
-    /// The actor the view is authorized for.
+    /// The one actor allowed to present this view.
     pub actor: ArchivedActorEntityUuid,
-    /// The digest of the filter the view's visibility proof was resolved over, absent when
-    /// unfiltered.
+    /// The digest of the filter the view's visibility proof resolved over, absent when the view
+    /// has no filter.
     pub filter: ScopeFilter,
     /// The view's delivery-cut offset.
     pub k: CutOffset,
@@ -311,7 +311,7 @@ impl Scope {
     }
 }
 
-/// One sealed token: the envelope as a type, read in place.
+/// One sealed token, the envelope as a type, read in place.
 ///
 /// Every field sits at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
 /// ciphertext, and trailer in one zerocopy cast, and the cast validates the format version.
@@ -337,24 +337,27 @@ impl SealedAuthority {
     const SIZE: usize = size_of::<Self>();
 }
 
-/// The token envelope's width: the clear header, the sealed scope, and the tag.
+/// The token envelope's width, covering the clear header, the sealed scope, and the tag.
 ///
 /// Derived from the envelope type itself, so it moves when the layout does.
 pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
 
 /// Mints and opens the authority tokens of one generation.
 ///
-/// The whole judgment context in one value: the generation's sealing key (derived once, at
-/// construction), the acceptance window, and the entropy source - the latter behind its own lock,
-/// held for the nonce draw alone, so opening never contends with minting. A token opens under the
-/// authority whose generation sealed it, for the actor it names, within the window.
+/// One value holds the whole judgment context. The generation's sealing key comes from one
+/// derivation at construction, the acceptance window bounds a token's age, and the entropy source
+/// stays behind its own lock, held for the nonce draw alone, so opening never contends with
+/// minting. A token opens under the authority whose generation sealed it, for the actor it names,
+/// and only while its issue time lies inside the window.
 #[derive(Debug)]
 pub(crate) struct TokenAuthority<R> {
     /// This generation's sealing key.
     ///
     /// Derived once, at construction, with the generation digest as the derivation's salt.
     key: SecretHexBytes<KEY_BYTES>,
-    /// The acceptance window: a token older than this at open refuses as stale.
+    /// The acceptance window.
+    ///
+    /// A token older than this at open refuses as stale.
     hard: Duration,
     rng: Mutex<R>,
 }
@@ -363,8 +366,10 @@ impl<R> TokenAuthority<R>
 where
     R: TryCryptoRng,
 {
-    /// Builds the authority of one generation: key derived from `secret`, tokens accepted for
-    /// `hard`, nonces sampled from `rng`.
+    /// Builds the authority of one generation.
+    ///
+    /// The key derives from `secret` with the generation digest as its salt. A token stays
+    /// acceptable for `hard` after its issue time, and nonces come from `rng`.
     pub(crate) fn new<const N: usize>(
         generation: GenerationId,
         secret: &SecretHexBytes<N>,
@@ -387,8 +392,8 @@ where
 
     /// Mints the token naming `scope`, issued at `now`.
     ///
-    /// `now` is wall-clock time: a token's age is judged by whichever process opens it, and
-    /// [`SystemTime`] is the clock that carries meaning across a process boundary.
+    /// `now` is wall-clock time, because whichever process opens the token judges its age, and
+    /// [`SystemTime`] is the clock whose value still means the same in another process.
     ///
     /// # Errors
     ///
@@ -440,7 +445,7 @@ where
     /// Opens `blob` as presented by `actor` at `now`, returning the view state it seals.
     ///
     /// Refuses a token whose issue time is older than the acceptance window at `now`, one dated
-    /// after `now`, and one naming an actor other than `actor`. The tag is checked first, so a
+    /// after `now`, and one naming an actor other than `actor`. The tag check comes first, so a
     /// rewritten issue time refuses as [`AuthorityError::Authentication`] and only an authentic
     /// token reaches the window and the actor comparison.
     ///
@@ -466,13 +471,12 @@ where
 
     /// Reads the view state a presented token carries, for a re-mint.
     ///
-    /// The acceptance window is deliberately not judged: an expired token is no longer authority,
-    /// but it remains authentic evidence of the view state a past mint sealed, and carrying that
-    /// state into a fresh mint is what keeps a view stable across a refresh. The tag and the actor
-    /// are still enforced, and the leniency reaches no further than the mint: this read
-    /// authenticates a scope and carries it, while every data request under the fresh token
-    /// resolves that scope through the visibility cache, whose own hard window bounds how old a
-    /// resolution may answer.
+    /// This read does not judge the acceptance window. An expired token is no longer authority, yet
+    /// it remains authentic evidence of the view state a past mint sealed, and carrying that state
+    /// into a fresh mint keeps a view stable across a refresh. The tag and the actor still bind,
+    /// and the leniency reaches no further than the mint. This read authenticates a scope and
+    /// carries it forward, while every data request under the fresh token resolves that scope
+    /// through the visibility cache, whose own hard window bounds how old a resolution may answer.
     ///
     /// # Errors
     ///

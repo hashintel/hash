@@ -13,7 +13,7 @@ use crate::{
 /// An opened postings file does not hold a valid postings artifact.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InvalidPostingsFile {
-    /// A flags bit at or beyond the type count is set.
+    /// The flags word sets a bit at or beyond the type count.
     FlagsTail,
     /// The membership fenceposts break anchoring, ordering, or coverage at `position`.
     MembershipPosts { position: usize },
@@ -301,7 +301,8 @@ impl Membership<'_> {
     ///
     /// # Panics
     ///
-    /// When the range is inverted: every caller holds an ascending range by construction.
+    /// This panics when `range.start` exceeds `range.end`. Every caller supplies an ascending range
+    /// by construction.
     pub(crate) fn positions_in(&self, range: Range<BasePosition>) -> MembershipPositions<'_> {
         assert!(
             range.start <= range.end,

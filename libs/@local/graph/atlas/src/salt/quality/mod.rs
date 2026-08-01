@@ -1,20 +1,21 @@
-//! The quality suite: map-fidelity metrics and release thresholds.
+//! Map-fidelity metrics and release thresholds for the quality suite.
 //!
-//! A projected map is judged by how faithfully small neighbourhoods survive the trip from the
-//! canonical embedding space to 2D. The suite compares neighbour rankings between three spaces -
-//! the 2D map, the 512-component training representation, and exact 3072-component canonical
-//! distances over bounded probe sets - and reports recall, trustworthiness, continuity, intrusion
-//! rates, triplet agreement, and density distortion, each overall and per subgroup. The
-//! 512-versus-3072 comparison is the representation baseline the map readings are judged against.
+//! The suite judges a projected map by how well small neighbourhoods survive the trip from the
+//! canonical embedding space to 2D. It compares neighbour rankings between three spaces - the 2D
+//! map, the 512-component training representation, and exact 3072-component canonical distances
+//! over bounded probe sets - and reports recall, trustworthiness, continuity, intrusion rates,
+//! triplet agreement, and density distortion, each for the whole probe and per subgroup. The
+//! 512-versus-3072 comparison is the representation baseline the suite judges the map readings
+//! against.
 //!
 //! [`metric`] holds the rank-based kernels: pure functions over neighbour orderings and distances,
 //! independent of which spaces produced them. [`clump`] groups near-duplicate rows over the
-//! 512-component neighbour table, so readings can collapse orderings onto clump ids and separate
-//! placement error from reshuffling among near-identical siblings. [`probe`] orchestrates the
-//! measurement: anchor and comparison sampling, canonical embeddings through the dataset's
-//! probe-scoped stream, rankings in all three spaces, and per-anchor reading grids. [`report`]
-//! renders the readings under configured thresholds: overall and per-subgroup metric rows, the
-//! subgroup degradation flags, and the release verdict.
+//! 512-component neighbour table, which lets a reading collapse orderings onto clump ids and
+//! separate placement error from reshuffling among near-identical siblings. [`probe`] orchestrates
+//! the measurement from anchor and comparison sampling through canonical embeddings, three-space
+//! rankings, and per-anchor reading grids. [`report`] renders the readings under configured
+//! thresholds: whole-probe and per-subgroup metric rows, the subgroup degradation flags, and the
+//! release verdict.
 //!
 //! Every metric here is a function of rankings over a shared comparison universe. Probe-scoped
 //! readings are exact over their probe sets and estimates of the corpus-wide quantity; the report
@@ -32,8 +33,8 @@ mod tests;
 
 /// One quality metric of the admission probe's six-threshold set.
 ///
-/// The suite's gated vocabulary: each variant names one control of the release battery, so a
-/// report's verdict and an observer's reading identify a metric the same way.
+/// Each variant names one control of the release battery, so a report's verdict and an observer's
+/// reading identify a metric the same way.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum QualityMetric {

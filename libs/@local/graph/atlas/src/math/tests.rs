@@ -2,7 +2,7 @@
 
 use super::Vec2;
 
-/// Four sample points with distinct, exactly representable coordinates.
+/// Sample points with distinct, exactly representable coordinates.
 pub(crate) const POINTS: [Vec2; 4] = [
     Vec2::new(1.0, 5.0),
     Vec2::new(2.0, 6.0),

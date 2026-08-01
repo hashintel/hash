@@ -39,7 +39,9 @@ mod open;
 mod row_codec;
 mod schedule;
 
-/// The tests' default authority: the operator proof, byte-identical to the pre-visibility serve.
+/// The tests' default authority.
+///
+/// The operator proof is byte-identical to the pre-visibility serve.
 const FULL: VisibilityProof = VisibilityProof::full_visibility();
 use crate::{
     dataset::{
@@ -91,7 +93,7 @@ const EDGE_IDS: usize = 3;
 
 /// The fixture edge list: `(id, source row, target row)`, edge row order.
 ///
-/// Row 2 carries a self-loop; rows 3 and 4 are a reciprocal pair sharing both endpoints.
+/// Row 2 carries a self-loop. Rows 3 and 4 are a reciprocal pair sharing both endpoints.
 const FIXTURE_EDGES: [(u64, u64, u64); 6] = [
     (100, 0, 1),
     (101, 1, 2),
@@ -299,7 +301,7 @@ fn fixture_config() -> FitConfig {
 /// Fits and publishes one fixture generation, as the pipeline writes it.
 ///
 /// Identity artifacts carry the memory dataset's 8-byte positional ids, which the serving open
-/// rejects loudly.
+/// rejects.
 async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
     let root = GenerationRoot::new(scratch(name)).expect("the root should open");
     let published = fit(
@@ -344,8 +346,8 @@ const EDGE_SEED: u8 = 64;
 ///
 /// The memory dataset speaks 8-byte positional ids, which the serving open rejects; the rewrite
 /// is the test-lane bridge that gives a fixture generation store-width ids. Open
-/// trusts the metadata document's hash, not per-file digests (those are verified by tooling), so
-/// the rewritten artifacts serve.
+/// trusts the metadata document's hash, not per-file digests (tooling verifies those), so the
+/// rewritten artifacts serve.
 fn store_identities(generation: &Generation) {
     use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
@@ -405,7 +407,7 @@ fn rewrite_identities<I>(
         .expect("the identities should write");
 }
 
-/// The suite's wire secret: exactly the codec's key width, value arbitrary.
+/// The suite's wire secret, exactly the codec's key width, with an arbitrary value.
 const TEST_WIRE_SECRET: [u8; 32] = *b"atlas-test-wire-secret-32-bytes!";
 
 /// The open options every suite open uses.
@@ -1080,7 +1082,7 @@ async fn edges_exclude_partially_delivered_pairs() {
         MortonKey::from_bits(codes[BasePosition::from_u32(position)].get()).cell(depth)
     };
 
-    // An edge whose endpoints land in different deepest-zoom cells:
+    // An edge whose endpoints occupy different deepest-zoom cells:
     // its source tile alone delivers the source but not the target.
     let (crossing, &[source, _]) = endpoints
         .iter()
@@ -1261,8 +1263,8 @@ async fn edges_reject_and_report_the_contract() {
         Err(EdgesError::Grid { z: 2, x: 4, y: 0 }),
     );
 
-    // No tiles, no edges: the honest empty response with every column
-    // present-empty.
+    // An empty tile list serves the honest empty response, with every
+    // column present-empty.
     let bytes = atlas
         .edges(&edges_request(Vec::new()), EdgesLimits::default(), &FULL)
         .expect("the empty request should serve");
@@ -1351,10 +1353,10 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     assert_eq!(bytes, expected, "the trailer rides the pinned envelope");
 }
 
-/// Source resolution answers the delivery contract, not just a formula.
+/// Source resolution answers the delivery contract rather than a formula alone.
 ///
 /// The resolved (zoom, cell) tile delivers the row under the cumulative schedule, and at zoom > 0
-/// the parent tile's schedule does not - so `zoom` really is the first visible zoom.
+/// the parent tile's schedule does not. `zoom` is therefore the first visible zoom.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_sources_resolve_to_their_first_visible_tile() {
@@ -1520,7 +1522,7 @@ async fn locate_subgraph_delivers_the_ego_graph() {
 /// The locate edge cap keeps the nearest partners, and their nodes leave with their edges.
 ///
 /// The selection key is ascending (squared wire-frame distance to the partner, partner
-/// first-visible zoom, link-entity identity bytes); presentation stays ascending identity bytes.
+/// first-visible zoom, link-entity identity bytes). Presentation stays ascending identity bytes.
 /// Proven by hand on the self-loop - its partner is the source itself at distance zero, so it
 /// survives every nonzero cap - and against an independent key derivation swept over every
 /// fixture source and cap.
@@ -1546,9 +1548,9 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
     };
 
     // Row 2 carries the self-loop (edge 2, distance zero) and one
-    // link to row 1 (edge 1). The rows land on distinct wire
-    // coordinates - asserted, so the hand derivation cannot silently
-    // degenerate into a tie.
+    // link to row 1 (edge 1). The rows occupy distinct wire
+    // coordinates, which the case asserts so that the hand derivation
+    // cannot degenerate into an unnoticed tie.
     assert_ne!(distance_of(2, 1), 0, "rows 1 and 2 are not co-located");
     let source = atlas
         .resolve_source(&FULL, &entity_string_of(2))
@@ -1597,9 +1599,10 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
                 "ego({source_row}) cap {cap}",
             );
 
-            // The independent key: distance bits, then the partner's
-            // first visible zoom through the public resolve path (the
-            // HEAD fly-to derivation), then the identity bytes.
+            // The independent key runs distance bits, then the
+            // partner's first visible zoom through the public resolve
+            // path (the HEAD fly-to derivation), then the identity
+            // bytes.
             let mut expected = full.edges.clone();
             expected.sort_unstable_by_key(|&(edge, id)| {
                 let partner = if edge.source.as_u32() == u32::from(source_row) {
@@ -1690,8 +1693,8 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
 
     let rows = section(&bytes, ROW_IDS).expect("ROW_IDS is present");
     let mask = section(&bytes, TYPE_MASK).expect("TYPE_MASK rides colored requests");
-    // Three requested ids: stride ceil(3/8) = 1 byte per point, so
-    // four row-id bytes stand behind every mask byte.
+    // With three requested ids the stride is ceil(3/8) = 1 byte per
+    // point, so four row-id bytes stand behind every mask byte.
     assert_eq!(mask.len() * 4, rows.len());
     assert!(
         mask.iter().all(|&byte| byte & !0b1 == 0),
@@ -1705,7 +1708,7 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
 
 /// A generation carrying the memory dataset's 8-byte positional ids does not serve.
 ///
-/// The open fails loudly on the key width.
+/// The open fails on the key width.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn foreign_key_widths_fail_the_open() {
@@ -1995,8 +1998,9 @@ fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
 
 /// Derives a fixture edge row's link-entity identity from the seeding rule.
 ///
-/// Identity bytes ascend with the edge row - `entity_id_of` leads with its seed byte - so
-/// ascending internal row order IS the wire's ascending-identity delivery order for the fixture.
+/// Identity bytes ascend with the edge row, because `entity_id_of` leads with its seed byte.
+/// Ascending internal row order is therefore the wire's ascending-identity delivery order for the
+/// fixture.
 fn edge_identity_of(row: u32) -> crate::dataset::ArchivedEntityId {
     entity_id_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
 }
@@ -2076,7 +2080,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
             entity_string_of(0xAB),                        // unknown: absent
         ],
     };
-    // Three node rows are the table's universe; the expectations
+    // The table's universe is three node rows, and the expectations
     // below encode through the same derivation.
     let node_codec = codec::RowCodec::derive(
         &WireSecret::new(TEST_WIRE_SECRET),
@@ -2128,7 +2132,7 @@ fn translate_resolves_nodes_and_edges_by_identity() {
     );
 }
 
-/// The cap rejects by count before any id is looked up.
+/// The cap rejects by count before any id lookup.
 #[test]
 fn translate_rejects_over_cap() {
     use super::translate::{
@@ -2172,8 +2176,8 @@ fn translate_rejects_over_cap() {
 
 /// Translate over the published fixture.
 ///
-/// The rewritten store-width identities resolve end to end - node row and wire position agree with
-/// the serving columns, an edge id answers its row, and an unknown id reads absent.
+/// The rewritten store-width identities resolve end to end. Node row and wire position agree with
+/// the serving columns. An edge id answers its row, and an unknown id reads absent.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_resolves_store_identities_end_to_end() {
@@ -2255,7 +2259,7 @@ fn simple_properties_parse_every_simple_shape() {
         ("https://x.test/j/", SimpleValue::Integer(-3)),
         ("https://x.test/n/", SimpleValue::Null),
         ("https://x.test/t/", SimpleValue::Text("text".to_owned())),
-        // u64::MAX itself is not an f64; the fallback lands on the
+        // u64::MAX itself is not an f64, so the fallback rounds to the
         // nearest double.
         (
             "https://x.test/u/",
@@ -2352,10 +2356,10 @@ fn encode_unhydrated(atlas: &Atlas, document: &super::LocateDocument) -> Vec<u8>
 
 /// A locate source names one subject in one of two identity domains.
 ///
-/// A by-`row` request resolves through the wire codec's ingress - pure arithmetic, no store - to
-/// the same response bytes as the by-`entityId` request for that node, a wire value outside the
-/// encoded image collapses into `unknown-entity`, and a body carrying both or neither source field
-/// is rejected by name with its count.
+/// A by-`row` request resolves through the wire codec's ingress, pure arithmetic with no store, and
+/// answers the same response bytes as the by-`entityId` request for that node. A wire value outside
+/// the encoded image collapses into `unknown-entity`, and `assemble_locate` rejects a body carrying
+/// both or neither source field by name with its count.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_by_wire_row_matches_by_entity() {
@@ -2430,7 +2434,7 @@ async fn locate_by_wire_row_matches_by_entity() {
 ///
 /// Assembly and encoding against the groundwork layers' own outputs, all-`null` details standing
 /// in for hydration: the mandatory trailer rides empty tables and null columns, and both source
-/// completeness flags read `false` - nothing can be attested for an unhydrated source.
+/// completeness flags read `false` - an unhydrated source can attest nothing.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_end_to_end_encodes_the_pinned_envelope() {
@@ -2686,8 +2690,9 @@ fn source_type_coverage_follows_the_subset_rule() {
     let parsed = |name: &str| url(name).parse().expect("test urls parse");
     let colored = Palette::of(&[parsed("a"), parsed("b")]);
 
-    // The ratified example: the source carries {a, c}, the request
-    // colours {a, b} - c is not in the set, so coverage fails.
+    // In the ratified example the source carries {a, c} and the
+    // request colours {a, b}, so coverage fails because c is outside
+    // the set.
     assert!(!covers_source_types(true, &[url("a"), url("c")], &colored));
     assert!(covers_source_types(true, &[url("a")], &colored));
     assert!(covers_source_types(true, &[url("b"), url("a")], &colored));
@@ -2700,9 +2705,9 @@ fn source_type_coverage_follows_the_subset_rule() {
         &colored,
     ));
 
-    // An empty palette covers nothing; an unreadable or unrecorded
-    // type list is never attested; an unparsable direct type is
-    // covered by nothing.
+    // An empty palette covers nothing, an unreadable or unrecorded
+    // type list attests nothing, and nothing covers an unparsable
+    // direct type.
     assert!(!covers_source_types(true, &[url("a")], &Palette::of(&[])));
     assert!(!covers_source_types(true, &[], &colored));
     assert!(!covers_source_types(false, &[url("a")], &colored));
@@ -2724,8 +2729,8 @@ fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
 /// A proof hiding `hidden_nodes` among the atlas's node rows and `hidden_edges` among its link
 /// rows.
 ///
-/// Both masks are built by exclusion over the generation's own domains, so the proof differs from
-/// the full-visibility proof in exactly the listed rows.
+/// Exclusion over the generation's own domains builds both masks, so the proof differs from the
+/// full-visibility proof in exactly the listed rows.
 fn mask_hiding_rows(atlas: &Atlas, hidden_nodes: &[u32], hidden_edges: &[u32]) -> VisibilityProof {
     VisibilityProof::from_masks(
         domain_mask(atlas.row_ids().len(), hidden_nodes),
@@ -2887,8 +2892,8 @@ impl CborReader<'_> {
     fn skip(&mut self) {
         let (major, argument) = self.read_head();
         match major {
-            // Uints and simple values / floats: the argument or its trailing bytes were consumed
-            // by the head read already.
+            // Uints and simple values / floats: the head read already consumed the argument or
+            // its trailing bytes.
             0 | 7 => {}
             // Byte and text strings carry their content inline.
             2 | 3 => self.at += usize::try_from(argument).expect("section lengths fit usize"),

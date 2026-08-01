@@ -9,26 +9,23 @@
 //! - `build`: full-build wall time across the live, uniform, and single-mega-relation profiles. The
 //!   profiles share endpoints, volume, and policies, so a spread between them is the cost of skew
 //!   alone - the two-level parallelism claim is that the spread stays small.
-//! - `stages`: the two whole-slice sorts, the group emission, the protection assembly, and the
+//! - `stages` times the two whole-slice sorts, the group emission, the protection assembly, and the
 //!   index re-validation in isolation, each from its own pre-sorted input state - the split that
 //!   attributes the build's wall time and shows what caps its thread scaling.
-//! - `threads`: the full build across pool sizes, on the live profile.
-//! - `chunk`: group emission across granularities around the production emission chunk - the claim
-//!   that the constant is a granularity, not a tuned number, predicts a flat response.
+//! - `threads` times the full build across pool sizes, on the live profile.
+//! - `chunk` times group emission across chunk sizes around the production emission chunk. The
+//!   claim that the constant is only a work-splitting unit predicts a flat response.
 //!
-//! Timings run at 1/8 of live scale by default so a full sweep stays
-//! in minutes; set `RELATION_BENCH_LINKS` (e.g. to `2200000`) for
-//! live-scale headline numbers. Wall time on rayon passes depends on
-//! the host's core count and topology: compare numbers within one
+//! Timings run at 1/8 of live scale by default so a full sweep stays in minutes. Set
+//! `RELATION_BENCH_LINKS` (e.g. to `2200000`) for live-scale headline numbers. Wall time on rayon
+//! passes depends on the host's core count and topology. Compare numbers within one
 //! machine, not across.
 //!
-//! Before the timed groups, one report prints the pruned-edge and
-//! omitted-mass outcomes of a pruning-threshold sweep on the live
-//! profile: a threshold is admissible while the omitted mass fraction
-//! stays numerically negligible, and these are the numbers that
-//! judgement reads. The fixture's masses come from its policy spread
-//! (live confidence is unscored), so the sweep calibrates thresholds
-//! against policy mass, not against a confidence distribution.
+//! Before the timed groups, one report prints the pruned-edge and omitted-mass outcomes of a
+//! pruning-threshold sweep on the live profile. A threshold is admissible while the omitted mass
+//! fraction stays numerically negligible, and these are the numbers that judgement reads. The
+//! fixture's masses come from its policy spread (the live store leaves confidence unscored), so the
+//! sweep calibrates thresholds against policy mass, not against a confidence distribution.
 #![expect(
     clippy::print_stderr,
     clippy::significant_drop_tightening,
@@ -152,11 +149,11 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// Emission response to the chunk granularity, on the mega profile.
+/// Emission response to the chunk size, on the mega profile.
 ///
 /// The mega profile gives group-level parallelism nothing to hide
 /// behind, so the emission pass rides on chunking alone - the sharpest
-/// view of the granularity claim.
+/// view of the flat-response claim.
 fn bench_chunk_sensitivity(criterion: &mut Criterion) {
     let corpus = corpus(Profile::Mega);
     let production = production_chunk();

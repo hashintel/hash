@@ -1,29 +1,31 @@
 //! Classifier training-set assembly over a validated annotation corpus.
 //!
-//! [`assemble`] turns an [`AnnotationCorpus`] into everything the classifier fit consumes: each
-//! admitted card is rendered through the canonical card template, embedded, given a smoothed soft
-//! target and a vote weight, and assigned to the indivisible validation group its leakage axes and
-//! near-duplicate neighbours imply. The output is deterministic in the corpus bytes, the embedding
-//! provider, and the [`AssemblyConfig`], so one corpus assembles to one training set.
+//! [`assemble`] produces everything the classifier fit consumes from an [`AnnotationCorpus`]. It
+//! renders each admitted card through the canonical card template and embeds the rendered text.
+//! Each row then carries a smoothed soft target and a vote weight, and it joins the indivisible
+//! validation group its leakage axes and near-duplicate neighbours imply. The output is
+//! deterministic in the corpus bytes, the embedding provider, and the [`AssemblyConfig`], so one
+//! corpus always yields the same training set.
 //!
 //! Rendering goes through the same template, budgets, and lint as generation-time production cards,
-//! so classifier-time and generation-time card text cannot drift from each other; the adapters live
-//! in [`render`]. The grouping and subdivision machinery lives in [`groups`].
+//! so classifier-time and generation-time card text cannot drift from each other. The adapters live
+//! in [`render`], and the grouping and subdivision machinery lives in [`groups`].
 //!
 //! # Card policy
 //!
-//! Flags record facts; this module is the explicit policy deciding what they mean for training:
+//! Flags record facts, and this module holds the explicit policy that decides what they mean for
+//! training:
 //!
-//! - shot-excluded cards are excluded: their verdicts were disclosed in judging prompts, so
-//!   training on them would leak the prompt material into the model;
-//! - holdout cards are excluded from training: they answer to their human verdict. They are still
-//!   rendered and embedded, and [`AssembledCorpus::holdouts`] carries them beside their verdicts as
-//!   the fitted model's evaluation set;
-//! - cards whose votes assert no geometry class (all unclear or abstain) drop with zero weight:
+//! - shot-excluded cards stay out of training, because judging prompts disclosed their verdicts and
+//!   training on such a card would teach the model the prompt material;
+//! - holdout cards stay out of training and keep their human verdict as the answer. The assembly
+//!   still renders and embeds them, and [`AssembledCorpus::holdouts`] carries them beside their
+//!   verdicts as the fitted model's evaluation set;
+//! - cards whose votes assert no geometry class (all unclear or abstain) drop with zero weight, so
 //!   uncertainty discounts a card without distorting its target;
 //! - `prescreen_stratum` is a stratification fact and has no effect here.
 //!
-//! Every exclusion is counted in [`AssemblyEvidence`].
+//! [`AssemblyEvidence`] counts every exclusion.
 //!
 //! # Targets and weights
 //!
@@ -34,39 +36,40 @@
 //! q_k = (n_k + α) / (m + K · α),    α = 1/2,
 //! ```
 //!
-//! the Jeffreys prior: a card's target stays a proper distribution at any vote count, and few-vote
+//! the Jeffreys prior. A card's target stays a proper distribution at any vote count, and few-vote
 //! cards shrink toward uniform instead of asserting certainty their evidence does not carry. The
 //! row weight is `m`, so the fit's cross-entropy counts each geometry vote once.
 //!
 //! # Validation groups
 //!
-//! Rows that could leak shared content across a train/validation split must share a group. A
-//! union-find joins cards through every value-keyed leakage axis - relation family, inverse pair
-//! (through the named identity, on or off corpus), base URL - and through near-duplication of the
-//! rendered cards themselves: two rows join when the cosine distance `1 - cos` between their
-//! embeddings is at most a boundary derived from the corpus, and the exact all-pairs graph is
-//! affordable at annotation-corpus scale. The boundary is the geometric midpoint of the widest
-//! multiplicative void among the sorted pairwise distances within
-//! `(0, median · NEAR_DUPLICATE_CEILING_FRACTION]`, the trailing void up to the ceiling included
-//! and the leading gap from zero excluded: a duplicate cluster sits decades below the corpus
-//! bulk, and the void between them is the boundary's evidence. A corpus without such structure
-//! over-joins only its few closest pairs, and subdivision cuts far near-duplicate edges first,
-//! so the failure direction is toward more conservative validation. The derived boundary, its
-//! void, and its ceiling are recorded in the evidence. The group label is the SHA-256 over the
-//! component's member identity URLs in ascending byte order, so it is stable under any traversal
-//! order.
+//! Rows whose shared content leaks across a train/validation split share one group. A union-find
+//! joins cards through every value-keyed leakage axis (relation family, inverse pair through the
+//! named identity on or off corpus, and base URL) and through near-duplication of the rendered
+//! cards themselves. Any two rows join when the cosine distance `1 - cos` between their embeddings
+//! is at most a boundary derived from the corpus, and the exact all-pairs graph is affordable at
+//! annotation-corpus scale.
 //!
-//! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows would
-//! starve grouped validation, so subdivision relaxes its axes in information order - the axis whose
-//! one edge says least about leakage goes first. Family edges drop inside the component, then
+//! The boundary is the geometric midpoint of the widest multiplicative void among the sorted
+//! pairwise distances within `(0, median · NEAR_DUPLICATE_CEILING_FRACTION]`, with the trailing
+//! void ending at the ceiling included and the leading gap from zero excluded. A duplicate cluster
+//! sits decades below the corpus bulk, and the void between them is the boundary's evidence. A
+//! corpus without such structure over-joins only its few closest pairs, and subdivision cuts far
+//! near-duplicate edges first, so the failure direction is toward more conservative validation. The
+//! evidence records the derived boundary with its void and its ceiling. The group label is the
+//! SHA-256 over the component's member identity URLs in ascending byte order, so it is stable under
+//! any traversal order.
+//!
+//! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows is too
+//! large for grouped validation, so subdivision relaxes its axes in information order, and the axis
+//! whose one edge says least about leakage goes first. Family edges drop inside the component, then
 //! base-URL edges, then near-duplicate edges cut farthest-first (the kept cut is the largest
-//! distance under which every part fits the budget). Identity and inverse edges never relax: a part
-//! they alone hold over budget is accepted and recorded in the evidence rather than split.
-//! Relaxation is per-component - groups already within budget keep every axis.
+//! distance under which every part fits the budget). Identity and inverse edges never relax, so a
+//! part they alone hold over budget stays one group, and the evidence records it. Relaxation is
+//! per-component, and groups already within budget keep every axis.
 //!
-//! Publisher is not a union axis: on the live corpus it collapses the 1,684 cards into 5 components
-//! (1,619 under `wikidata`), leaving grouped validation nothing to validate - and a publisher axis
-//! would teach fold assignment to segregate publishers, where validation wants them intermingled.
+//! Publisher is not a union axis. On the live corpus it collapses the 1,684 cards into 5 components
+//! (1,619 under `wikidata`), leaving grouped validation nothing to validate, and a publisher axis
+//! would teach fold assignment to segregate publishers where validation wants them intermingled.
 //! The axis stays on the wire as a recorded fact for stratified evaluation.
 
 use groups::{dirichlet_target, validation_groups, weight};
@@ -98,20 +101,21 @@ const DIRICHLET_ALPHA: f64 = 0.5;
 /// The near-duplicate search region's top, as a fraction of the median pairwise distance.
 ///
 /// The boundary derivation looks for a duplicate/bulk void strictly below the corpus's typical
-/// inter-card distance; the median is that typical distance by construction, and the quarter
-/// stands the region off from the bulk's lower tail. The boundary lands on the widest void
-/// within the region, so the fraction only bounds the search: any value materially below one and
-/// above the duplicate scale finds the same void on a corpus with duplicate structure.
+/// inter-card distance. The median is that typical distance by construction, and the quarter stands
+/// the region off from the bulk's lower tail. The derivation picks the widest void within the
+/// region, so the fraction only bounds the search: any value materially below one and above the
+/// duplicate scale finds the same void on a corpus with duplicate structure.
 const NEAR_DUPLICATE_CEILING_FRACTION: f64 = 0.25;
 
 /// The prose language every corpus card must declare.
 ///
-/// A constant and not a config field: the template renders exactly one language - its sentence
-/// segmentation, token budgets, and connective phrases are calibrated to it - so a knob offering
-/// languages the template cannot render would be a lever wired to nothing. The per-card `language`
-/// field exists on the wire so a corpus declares what it holds and a mismatch fails loudly here
-/// instead of rendering garbage; the day a second template lands, the tag becomes that template's
-/// property.
+/// This is a constant rather than a configuration field. The template renders exactly one language,
+/// and its sentence segmentation, token budgets, and connective phrases all follow that language,
+/// so a knob offering languages the template cannot render would be a lever wired to nothing.
+///
+/// The per-card `language` field exists on the wire so a corpus declares what it holds and a
+/// mismatch fails here instead of rendering garbage. When a second template arrives, the tag
+/// becomes that template's property.
 const CARD_LANGUAGE: &str = "en";
 
 /// Assembly settings.
@@ -123,7 +127,7 @@ pub(crate) struct AssemblyConfig {
     pub maximum_group_fraction: f64 = 0.1,
 }
 
-/// The corpus could not be assembled into a training set.
+/// Assembling the corpus into a training set failed.
 #[derive(Debug)]
 pub enum AssemblyError<E> {
     /// A card declares a prose language the template does not render.
@@ -183,7 +187,7 @@ impl<E: core::error::Error + 'static> core::error::Error for AssemblyError<E> {
 /// What one assembly admitted, dropped, and derived.
 ///
 /// Destined for the generation metadata beside the fit evidence, so a published classifier names
-/// the corpus policy outcomes it was trained under.
+/// the corpus policy outcomes its training ran under.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct AssemblyEvidence {
     /// Cards the corpus supplied.
@@ -198,7 +202,8 @@ pub(crate) struct AssemblyEvidence {
     pub trained: usize,
     /// Distinct card texts embedded.
     pub unique_texts: usize,
-    /// Rows whose rendering exceeded the hard budget or dropped more than half their examples.
+    /// Rows whose rendering exceeded the `hard_token_budget` or dropped more than half their
+    /// examples.
     pub severely_truncated: usize,
     /// Indivisible validation groups over the trained rows, after subdivision.
     pub fold_groups: usize,
@@ -206,10 +211,13 @@ pub(crate) struct AssemblyEvidence {
     pub near_duplicate_pairs: usize,
     /// The derived cosine-distance boundary under which rows joined as near-duplicates.
     pub near_duplicate_epsilon: f64,
-    /// The winning void's edges the boundary bisects geometrically; zeros when none was found.
+    /// The winning void's edges the boundary bisects geometrically.
+    ///
+    /// Zeros when the derivation found no void.
     #[serde(default)]
     pub near_duplicate_void: [f64; 2],
-    /// The derivation's search ceiling: the median pairwise distance scaled by the fraction.
+    /// The derivation's search ceiling, which is the median pairwise distance scaled by the
+    /// fraction.
     #[serde(default)]
     pub near_duplicate_ceiling: f64,
     /// Over-budget components subdivision split.
@@ -243,11 +251,11 @@ pub(crate) enum Relaxation {
     /// Every group fit the budget under the full union.
     #[default]
     None,
-    /// Relation-family edges were dropped inside over-budget groups.
+    /// Subdivision dropped relation-family edges inside over-budget groups.
     Family,
-    /// Base-URL edges were dropped inside over-budget groups.
+    /// Subdivision dropped base-URL edges inside over-budget groups.
     Base,
-    /// Near-duplicate edges were cut farthest-first inside over-budget groups.
+    /// Subdivision cut near-duplicate edges farthest-first inside over-budget groups.
     NearDuplicate,
 }
 

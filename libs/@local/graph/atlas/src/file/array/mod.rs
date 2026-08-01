@@ -1,9 +1,9 @@
 //! Raw scalar array files.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 0 is mutable, so change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode. The format carries no migration or compatibility machinery by design until it
+//! stabilizes.
 //!
 //! An array file is a 4096-byte [`FileHeader`] followed by the array's elements, packed in
 //! row-major order with nothing between them:
@@ -20,46 +20,44 @@
 //! | 4096   |      | data                                           |
 //! ```
 //!
-//! The flags field is carved from the padding region: writers emit zero padding, so an all-zero
-//! flags word and plain padding are byte-identical, and zero is therefore every flag's default.
-//! Unknown bits read as zero and are reserved.
+//! The flags field takes four bytes from the padding region. Writers emit zero padding, so an
+//! all-zero flags word and plain padding are byte-identical, and zero is therefore every flag's
+//! default. Unknown bits read as zero and remain reserved.
 //!
 //! # Byte order
 //!
-//! Element bytes are the writer's native byte order, and the flags field records the writer's
-//! architecture: bit 0, clear = little-endian, set = big-endian. The open refuses a file whose
-//! multi-byte native elements were written by the other byte order, so every view a reader
+//! Element bytes are the writer's native byte order, and bit 0 of the flags field records the
+//! writer's architecture, where clear means little-endian and set means big-endian. The open
+//! refuses a file whose multi-byte native elements use the other byte order, so every view a reader
 //! obtains is exact on its own host. Variants that pin a byte order in the element type itself -
 //! [`ArrayVariant::U64Le`] - are readable on every architecture and carry the pin in the view's
-//! type. The flags field itself is pinned little-endian, so it means the same bits on every
-//! host.
+//! type. The format pins the flags field to little-endian, so it means the same bits on every host.
 //!
-//! The shape is the longest prefix of nonzero dimensions; the first zero terminates it and
-//! everything after is ignored. An empty shape (leading zero) is a zero-element array, and the
-//! header is the whole file. There is no rank field and no invalid shape: every bit pattern means
+//! The shape is the longest prefix of nonzero dimensions. The first zero terminates it, and the
+//! parse ignores everything after. An empty shape (leading zero) is a zero-element array, and the
+//! header is the whole file. No rank field and no invalid shape exist: every bit pattern means
 //! something, so parsing a header never validates more than the magic, version, and variant, which
-//! are pinned single-variant enums that fail byte-level parsing for files this module does not
-//! speak.
+//! the format pins as single-variant enums that fail byte-level parsing for files this module does
+//! not speak.
 //!
-//! The single structural rule lives where it can be checked totally: the file length equals `4096 +
+//! The open checks the format's single structural rule in full. The file length equals `4096 +
 //! element count · element width` ([`FileHeader::expected_file_len`]). A shape whose element count
-//! or byte length overflows `u64` matches no real file and is rejected by that same rule.
+//! or byte length overflows `u64` matches no real file, and that same rule rejects it.
 //!
 //! # Mapping and alignment
 //!
-//! Map the whole file and slice the data at [`FileHeader::SIZE`]; never map at a nonzero file
-//! offset. A whole-file mapping starts page-aligned on every supported target, every page size is a
-//! multiple of 4096, and the data begins 4096 bytes in, so the data slice is 4096-byte aligned:
-//! aligned for every scalar and SIMD width without further checks. This guarantee is a property of
-//! mapping; a header read into an arbitrary heap buffer is only as aligned as the buffer.
+//! Map the whole file and slice the data at [`FileHeader::SIZE`], never at a nonzero file offset. A
+//! whole-file mapping starts page-aligned on every supported target, every page size is a multiple
+//! of 4096, and the data begins 4096 bytes in, so the data slice is 4096-byte aligned: aligned for
+//! every scalar and SIMD width without further checks. This guarantee is a property of mapping. A
+//! header read into an arbitrary heap buffer inherits only the buffer's alignment.
 //!
-//! There are no checksums. Torn writes are prevented by writing to a temporary path and renaming
-//! into place; corruption detection, where wanted, is a strong hash stored beside the file by
-//! whoever names it.
+//! The format has no checksums. Writing to a temporary path and renaming into place prevents a torn
+//! write. Whoever names a file stores a strong hash beside it when corruption detection matters.
 //!
-//! [`ArrayFile`] opens a file under these rules and hands out typed views of its data;
-//! [`ArrayWriter`] streams rows behind a reserved header for arrays whose leading dimension is
-//! discovered by writing.
+//! [`ArrayFile`] opens a file under these rules and hands out typed views of its data.
+//! [`ArrayWriter`] streams rows behind a reserved header for arrays whose leading dimension the
+//! writer counts while streaming.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -80,7 +78,7 @@ pub(crate) use self::{
     write::{ArrayWriter, SizedArrayWriter},
 };
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -122,11 +120,11 @@ impl FileHeaderMagic {
     pub(crate) const MAGIC: Self = Self(FileHeaderMagicInner::Salt);
 }
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment this version on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -147,9 +145,8 @@ pub(crate) enum Version {
 
 /// The header's flag word, pinned little-endian.
 ///
-/// Bit 0 records the writer's byte order. The remaining bits are reserved and read as zero, and
-/// a flag's zero value is its default: an all-zero word is byte-identical to the padding it is
-/// carved from.
+/// Bit 0 records the writer's byte order. The remaining bits stay reserved and read as zero, and a
+/// flag's zero value is its default, so an all-zero word is byte-identical to plain padding.
 // The little-endian pin keeps the word self-describing: a native flag
 // word would byte-swap the architecture bit it records.
 #[derive(
@@ -168,7 +165,9 @@ pub(crate) enum Version {
 pub(crate) struct HeaderFlags(U32<LE>);
 
 impl HeaderFlags {
-    /// The big-endian-writer bit; clear means little-endian.
+    /// The big-endian-writer bit.
+    ///
+    /// A clear bit means little-endian.
     const BIG_ENDIAN: u32 = 1 << 0;
     /// The flags this host writes.
     pub(crate) const HOST: Self = Self(U32::new(if cfg!(target_endian = "big") {
@@ -313,7 +312,7 @@ impl ArrayVariant {
     /// Returns whether the element bytes mean different values under different byte orders.
     ///
     /// Single-byte elements and variants that pin their byte order in the element type read
-    /// identically everywhere; every other variant is native to the architecture that wrote it.
+    /// identically everywhere. Every other variant is native to the architecture that wrote it.
     pub(crate) const fn byte_order_sensitive(self) -> bool {
         self.width() > 1 && !self.little_endian()
     }
@@ -356,10 +355,10 @@ impl Dim {
     }
 }
 
-/// A scalar array shape: the longest prefix of nonzero dimensions.
+/// A scalar array shape, the longest prefix of nonzero dimensions.
 ///
-/// The first zero dimension terminates the shape and everything after it is ignored, so every bit
-/// pattern is a meaningful shape and there is nothing to validate. An empty shape (a leading zero)
+/// The first zero dimension terminates the shape and the parse ignores everything after it, so
+/// every bit pattern is a valid shape and nothing needs validation. An empty shape (a leading zero)
 /// is a zero-element array.
 #[derive(
     Debug,
@@ -382,8 +381,8 @@ impl ArrayShape {
 
     /// Creates a shape from its dimensions.
     ///
-    /// Returns `None` when `dims` holds more than [`Self::MAX_RANK`] dimensions. A zero dimension
-    /// is allowed; it terminates the shape there.
+    /// Returns `None` when `dims` holds more than [`Self::MAX_RANK`] dimensions. `dims` may hold a
+    /// zero dimension, which terminates the shape there.
     #[must_use]
     pub(crate) const fn new(dims: &[Dim]) -> Option<Self> {
         if dims.len() > Self::MAX_RANK {
@@ -497,7 +496,7 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected: it is the format's single
+    /// The open rejects a file whose length differs from this value, which is the format's single
     /// structural rule. Returns `None` on `u64` overflow, in which case no real file matches the
     /// header.
     #[must_use]

@@ -30,7 +30,7 @@ fn base_field() -> Vec<Vec2> {
 
 /// Swaps the axes of every even-indexed point.
 ///
-/// A genuine deformation no similarity can explain (axis swap alone is a reflection, which the
+/// A deformation no similarity can explain (axis swap alone is a reflection, which the
 /// orientation-preserving family excludes).
 fn deformed_field(base: &[Vec2]) -> Vec<Vec2> {
     base.iter()
@@ -71,8 +71,8 @@ fn conditions_reject_each_violated_invariant() {
         Conditions::new(vec![0.5, 1.0]),
         Err(ConditionsError::BaselineNotZero { value: 0.5 })
     );
-    // The baseline is bit-exact: the negative zero conditions the
-    // projector with different bits and is rejected.
+    // The baseline is bit-exact: negative zero conditions the projector with different bits, so
+    // validation rejects it.
     assert_eq!(
         Conditions::new(vec![-0.0, 1.0]),
         Err(ConditionsError::BaselineNotZero { value: -0.0 })
@@ -384,7 +384,7 @@ fn canonical_selection_requires_an_exact_member() {
     assert_eq!(risen.index, 2);
     assert_eq!(risen.measurement.relation_loss, 2.0);
 
-    // Values outside the schedule are rejected, not interpolated.
+    // Selection rejects a value outside the schedule rather than interpolating.
     assert_eq!(
         select_canonical(&measurements, 0.25),
         Err(CanonicalError::UnknownRung { value: 0.25 })

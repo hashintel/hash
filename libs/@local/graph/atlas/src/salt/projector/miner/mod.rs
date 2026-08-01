@@ -1,21 +1,21 @@
 //! The 2D hard-negative miner over detached coordinate frames.
 //!
 //! At a configured cadence training mines each node's closest projected points and admits the ones
-//! no other evidence explains: a mined pair must not be a semantic edge, must not be protected
-//! under the hard channel, and must not be the node itself. What survives is independent evidence
-//! of a false neighbour - two points close on the map that nothing says belong together - and is
-//! repelled by the same bounded negative energy as ordinary negatives, weighted by closeness rank.
+//! no other evidence explains. A mined pair joins two distinct nodes that share no semantic edge
+//! and that the hard channel does not protect. What survives is independent evidence of a false
+//! neighbour, two points close on the map that nothing says belong together. The same bounded
+//! negative energy that repels ordinary negatives repels this pair, weighted by closeness rank.
 //!
 //! Under a conditioned model the current map is one map per lens value, so a refresh tick mines one
-//! [`SpatialField`] per lens extreme and pools the frames with [`MinedFrame::pool`]: a pair mined
-//! in both keeps its maximum weight. Pooling is safe by saturation - the bounded negative energy
-//! exerts vanishing force on pairs far apart in a frame, so pooled pairs act only where they are
-//! genuinely close.
+//! [`SpatialField`] per lens extreme and pools the frames with [`MinedFrame::pool`], where a pair
+//! mined in both keeps its maximum weight. Saturation makes pooling safe. The bounded negative
+//! energy exerts vanishing force on pairs far apart in a frame, so pooled pairs act only where they
+//! lie close together.
 //!
-//! The spatial index is exact (a balanced kd-tree), so a query returns the exact nearest points: no
-//! recall accounting, and no retry loop widening the search when exclusions thin the candidates. A
-//! node whose map neighbourhood is fully explained yields an honest short set - it has no false
-//! neighbours to repel.
+//! The spatial index is exact (a balanced kd-tree), so a query returns the exact nearest points.
+//! Mining needs no recall accounting and no retry loop that widens the search when exclusions thin
+//! the candidates. A node whose map neighbourhood other evidence fully explains yields an honest
+//! short set, because it has no false neighbours to repel.
 
 #[cfg(test)]
 mod tests;
@@ -99,7 +99,7 @@ impl MinerOptions {
 
     /// Computes the weight of the candidate at closeness `rank`.
     ///
-    /// Ranks lie below the quota; rank zero carries the full bound.
+    /// Ranks lie below the quota, and rank zero carries the full bound.
     fn weight(self, rank: usize) -> f32 {
         #[expect(
             clippy::cast_precision_loss,
@@ -148,8 +148,9 @@ impl<N> Error for SpatialFieldError<N> where N: fmt::Debug + fmt::Display {}
 
 /// The exact 2D neighbour index over one frame's detached coordinates.
 ///
-/// One field is built per lens extreme at every refresh tick and dropped with it; queries are
-/// read-only and thread-safe. Exactness is part of the contract: consumers account for no recall.
+/// Every refresh tick builds one field per lens extreme and drops it with the tick. Queries never
+/// mutate the field and are thread-safe. Exactness is part of the contract:
+/// consumers account for no recall.
 pub(crate) struct SpatialField<'frame, N> {
     tree: ImmutableKdTree<f32, u32, 2, 32>,
     points: &'frame IdSlice<N, Vec2>,
@@ -203,7 +204,7 @@ where
     /// Returns the `count` nearest rows to `row`, ascending by `(squared distance, row)`.
     ///
     /// The query point is in the index, so `row` itself leads the result. The secondary row order
-    /// pins ties: equal distances are returned in one order regardless of tree traversal.
+    /// pins ties, so equal distances come back in one order regardless of tree traversal.
     ///
     /// Items are frame row indexes in the tree's compact `u32` domain;
     /// [`NodeRowId::from_u32`](crate::identity::NodeRowId::from_u32) widens one losslessly.
@@ -250,7 +251,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the two views disagree about the row domain; both artifacts come from one
+    /// This panics when the two views disagree about the row domain. Both artifacts come from one
     /// generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
@@ -306,14 +307,14 @@ where
         accepted
     }
 
-    /// Mines one frame: per row, the admissible closest projected points with their rank weights.
+    /// Mines each row's admissible closest projected points with their rank weights.
     ///
-    /// Rows mine independently and in parallel; the result is a function of the inputs alone.
+    /// Rows mine independently and in parallel, and the result is a function of the inputs alone.
     ///
     /// # Panics
     ///
-    /// Panics when the frame's row domain disagrees with the exclusion evidence; both come from one
-    /// generation, so a mismatch is a wiring defect.
+    /// This panics when the frame's row domain disagrees with the exclusion evidence. Both come
+    /// from one generation, so a mismatch is a wiring defect.
     pub(crate) fn mine(&self, field: &SpatialField<'_, N>) -> MinedFrame<N> {
         assert_eq!(
             field.rows(),
@@ -389,7 +390,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is not below [`rows`](Self::rows).
+    /// This panics when `row` is not below [`rows`](Self::rows).
     pub(crate) fn row(&self, row: N) -> impl ExactSizeIterator<Item = (NodePair<N>, f32)> + '_
     where
         N: Id,
@@ -410,8 +411,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the frames disagree about the row domain; both come from one refresh tick, so a
-    /// mismatch is a wiring defect.
+    /// This panics when the frames disagree about the row domain. Both come from one refresh tick,
+    /// so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn pool(&self, other: &Self) -> Self
     where

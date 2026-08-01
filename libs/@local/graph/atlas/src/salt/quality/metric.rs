@@ -12,11 +12,11 @@
 //! - shared neighbours: `|R_k intersect M_k|`, where `X_k` is the ordering's first `k` points;
 //!   recall at `k` is the shared count over `k`.
 //! - trust penalty: `sum (rank_R(j) - k)` over the map neighbours `j in M_k \ R_k`, with ranks
-//!   1-based - how far into the reference ordering the map's false neighbours really live.
+//!   1-based - how far into the reference ordering the map's false neighbours live.
 //! - continuity penalty: the mirror image, `sum (rank_M(j) - k)` over `j in R_k \ M_k` - how far
 //!   the map banishes true neighbours.
 //! - intrusions and extrusions: the false neighbours whose rank excess passes a configured horizon,
-//!   separating genuinely foreign points from near-boundary reshuffling among close ranks.
+//!   separating foreign points from near-boundary reshuffling among close ranks.
 //!
 //! [`NeighbourhoodAggregate`] accumulates these over queries and normalizes trustworthiness and
 //! continuity onto `[0, 1]` (1 is a perfect map, 0 the worst permutation) by the worst-case penalty
@@ -118,11 +118,12 @@ impl NeighbourhoodAggregate {
     /// Accumulates one query's pair of orderings.
     ///
     /// Each slice lists the universe's points nearest-first in its space and must be a permutation
-    /// of `0..universe`; the query itself is not a universe point, so it appears in neither.
+    /// of `0..universe`; the query itself is not a universe point, so neither ordering lists it.
     ///
     /// # Panics
     ///
-    /// Panics when either ordering's length differs from the universe or names a point outside it.
+    /// This panics when either ordering's length differs from the universe or names a point
+    /// outside it.
     pub(crate) fn observe(
         &mut self,
         by_reference: &[u32],
@@ -165,7 +166,8 @@ impl NeighbourhoodAggregate {
     ///
     /// # Panics
     ///
-    /// Panics when either slice's length differs from `k` or a rank lies outside the universe.
+    /// This panics when either slice's length differs from `k` or a rank lies outside the
+    /// universe.
     pub(crate) fn observe_ranks(
         &mut self,
         reference_ranks_of_map_neighbours: &[u32],
@@ -237,13 +239,13 @@ impl NeighbourhoodAggregate {
     /// Folds another aggregate's observations into this one.
     ///
     /// Merging aggregates observed over disjoint query sets equals one aggregate observing their
-    /// union, so per-query aggregates roll up into overall and per-subgroup readings without
-    /// revisiting orderings.
+    /// union, so per-query aggregates roll up into per-subgroup readings and a reading over every
+    /// query without revisiting orderings.
     ///
     /// # Panics
     ///
-    /// Panics when the aggregates disagree about the universe, the neighbourhood size, or the
-    /// horizon; readings normalized against different shapes do not share totals.
+    /// This panics when the aggregates disagree about the universe, the neighbourhood size, or the
+    /// horizon. Totals combine only across readings normalized against the same shape.
     pub(crate) fn merge(&mut self, other: &Self) {
         assert!(
             self.universe == other.universe && self.k == other.k && self.horizon == other.horizon,
@@ -277,6 +279,7 @@ impl NeighbourhoodAggregate {
     /// An empty aggregate reads 1.
     #[must_use]
     pub(crate) fn recall(&self) -> f64 {
+        // NOTE: `UnitFraction`
         let Some(pairs) = self.pairs() else {
             return 1.0;
         };
@@ -286,7 +289,7 @@ impl NeighbourhoodAggregate {
 
     /// Returns the fraction of map neighbours past the horizon in the reference ordering.
     ///
-    /// In `[0, 1]`; an empty aggregate reads 0.
+    /// The rate lies in `[0, 1]`, and an empty aggregate reads 0.
     #[must_use]
     pub(crate) fn intrusion_rate(&self) -> f64 {
         let Some(pairs) = self.pairs() else {
@@ -298,7 +301,7 @@ impl NeighbourhoodAggregate {
 
     /// Returns the fraction of reference neighbours past the horizon in the map ordering.
     ///
-    /// In `[0, 1]`; an empty aggregate reads 0.
+    /// The rate lies in `[0, 1]`, and an empty aggregate reads 0.
     #[must_use]
     pub(crate) fn extrusion_rate(&self) -> f64 {
         let Some(pairs) = self.pairs() else {
@@ -308,13 +311,17 @@ impl NeighbourhoodAggregate {
         self.extrusions as f64 / pairs
     }
 
-    /// Returns the trustworthiness reading, in `[0, 1]`; an empty aggregate reads 1.
+    /// Returns the trustworthiness reading, in `[0, 1]`.
+    ///
+    /// An empty aggregate reads 1.
     #[must_use]
     pub(crate) fn trustworthiness(&self) -> f64 {
         self.normalized(self.trust_penalty)
     }
 
-    /// Returns the continuity reading, in `[0, 1]`; an empty aggregate reads 1.
+    /// Returns the continuity reading, in `[0, 1]`.
+    ///
+    /// An empty aggregate reads 1.
     #[must_use]
     pub(crate) fn continuity(&self) -> f64 {
         self.normalized(self.continuity_penalty)
@@ -348,11 +355,11 @@ impl NeighbourhoodAggregate {
 
 /// Accumulated order agreement over sampled triplets.
 ///
-/// A triplet fixes an anchor and two comparison points and is preserved when the map orders the
-/// points' distances from the anchor as the reference space does, both spaces compared under the
-/// shared `(distance, row)` total order - a pair coincident in both spaces is therefore preserved,
-/// and one coincident in exactly one space is not. An aggregate over one anchor's pairs is that
-/// anchor's own reading.
+/// A triplet fixes an anchor and two comparison points, and the map preserves that triplet when it
+/// orders the points' distances from the anchor as the reference space does, both spaces compared
+/// under the shared `(distance, row)` total order - a pair coincident in both spaces is therefore
+/// preserved, and one coincident in exactly one space is not. An aggregate over one anchor's pairs
+/// is that anchor's own reading.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub(crate) struct TripletAggregate {
     triplets: u64,
@@ -388,7 +395,9 @@ impl TripletAggregate {
         self.preserved
     }
 
-    /// Returns the preserved fraction; an empty aggregate reads one.
+    /// Returns the preserved fraction.
+    ///
+    /// An empty aggregate reads one.
     #[must_use]
     pub(crate) fn agreement(&self) -> UnitFraction {
         if self.triplets == 0 {

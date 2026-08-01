@@ -11,7 +11,7 @@ use crate::{
     integrity::Sha256Digest,
 };
 
-/// A published generation could not be opened.
+/// Opening a published generation failed.
 #[derive(Debug)]
 pub enum OpenError {
     /// The generation is not published in this root.
@@ -25,7 +25,7 @@ pub enum OpenError {
     },
     /// The document does not parse as a repository this module speaks.
     Document(serde_json::Error),
-    /// The document could not be read.
+    /// Reading the document failed.
     Io(io::Error),
 }
 
@@ -59,12 +59,12 @@ impl Error for OpenError {
 
 /// A published generation opened for reading.
 ///
-/// Its identity, directory, and parsed metadata document.
+/// The accessors give the generation's identity, the directory, and the parsed metadata document.
 ///
-/// Opening verifies the document against the generation id - the directory is named by the SHA-256
-/// of `metadata.json` - so a value of this type names bytes that hash to its id. Artifact files are
-/// located by [`path_of`](Self::path_of) and opened by their format modules; the per-file hashes
-/// the document records are verified by tooling, not on every open.
+/// Opening verifies the document against the generation id. The directory's name is the SHA-256 of
+/// `metadata.json`, so a value of this type names bytes that hash to its id.
+/// [`path_of`](Self::path_of) locates artifact files and their format modules open them. Tooling
+/// verifies the per-file hashes the document records, and opening does not check them.
 #[derive(Debug, Clone)]
 pub(crate) struct Generation {
     id: GenerationId,
@@ -80,7 +80,7 @@ impl GenerationRoot {
     /// Returns [`OpenError::Unpublished`] when the generation is not published in this root,
     /// [`OpenError::Identity`] when the document's bytes do not hash to `id`,
     /// [`OpenError::Document`] when they do not parse as a repository this module speaks, and
-    /// [`OpenError::Io`] when they cannot be read.
+    /// [`OpenError::Io`] when reading them fails.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(&self, id: GenerationId) -> Result<Generation, OpenError> {
         let path = self.generation_path(id);

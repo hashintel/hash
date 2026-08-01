@@ -23,7 +23,7 @@ mod tests;
 
 /// An axis-aligned bounding box with finite, ordered corners.
 ///
-/// A [`Bounds2`] is defined by its minimum and maximum corners. Every value upholds two invariants:
+/// The minimum and maximum corners define a [`Bounds2`]. Every value upholds two invariants:
 /// both corners are finite, and `min ≤ max` holds per component. Constructors enforce this by
 /// returning [`None`] for invalid input, so downstream code can rely on the box being usable
 /// without re-validating.
@@ -77,9 +77,9 @@ impl Bounds2 {
 
     /// Creates a bounding box from its corners.
     ///
-    /// Returns [`None`] unless both corners are finite and `min ≤ max` holds per component. A
-    /// degenerate box with `min == max` on an axis is allowed; widen it with
-    /// [`with_minimum_extent`](Self::with_minimum_extent) if a positive extent is required.
+    /// Returns [`None`] unless both corners are finite and `min ≤ max` holds per component. This
+    /// constructor accepts a degenerate box with `min == max` on an axis. Widen it with
+    /// [`with_minimum_extent`](Self::with_minimum_extent) when an axis needs a positive extent.
     #[must_use]
     pub const fn new(min: Vec2, max: Vec2) -> Option<Self> {
         if !min.is_finite() || !max.is_finite() || min.x() > max.x() || min.y() > max.y() {
@@ -115,7 +115,7 @@ impl Bounds2 {
     ///
     /// The contract is identical to [`from_points`](Self::from_points): [`None`] for an empty slice
     /// or any non-finite coordinate. The batch-aligned middle of the slice folds four points per
-    /// step; the unaligned edges fold scalar.
+    /// step. The unaligned edges fold scalar.
     #[must_use]
     pub fn from_slice(points: &[Vec2]) -> Option<Self> {
         if points.is_empty() {
@@ -134,7 +134,8 @@ impl Bounds2 {
         }
 
         // The infinite accumulator values are harmless: any real point
-        // replaces them, and validity is tracked from the data alone.
+        // replaces them, and the fold tracks validity from the data
+        // alone.
         let (mut min, mut max) = (min.reduce_min(), max.reduce_max());
 
         for &point in prefix.iter().chain(suffix) {
@@ -149,24 +150,23 @@ impl Bounds2 {
     /// Computes the tight bounding box of a large point slice in parallel.
     ///
     /// The contract is identical to [`from_points`](Self::from_points): [`None`] for an empty slice
-    /// or any non-finite coordinate. The slice is split into chunks folded with
-    /// [`from_slice`](Self::from_slice) on rayon workers, then combined with
-    /// [`union`](Self::union).
+    /// or any non-finite coordinate. Rayon workers fold chunks of the slice with
+    /// [`from_slice`](Self::from_slice), and [`union`](Self::union) combines the results.
     ///
-    /// The fold is memory-bound: a single core already streams near the machine's bandwidth, so the
+    /// The fold is memory-bound. A single core already streams near the machine's bandwidth, so the
     /// parallel gain is real but modest (measured around a third at a million points) and does not
-    /// grow with core count. Below roughly a hundred thousand points,
+    /// grow with core count. Below about a hundred thousand points,
     /// [`from_slice`](Self::from_slice) is faster outright.
     ///
-    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points; use
-    /// [`from_slice_par_with`](Self::from_slice_par_with) to tune the granularity.
+    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) points. Use
+    /// [`from_slice_par_with`](Self::from_slice_par_with) to choose a different chunk size.
     #[inline]
     #[must_use]
     pub fn from_slice_par(points: &[Vec2]) -> Option<Self> {
         Self::from_slice_par_with(points, Self::PARALLEL_CHUNK)
     }
 
-    /// Computes the tight bounding box in parallel with a caller-chosen chunk granularity.
+    /// Computes the tight bounding box in parallel with a caller-chosen chunk size.
     ///
     /// The contract is identical to [`from_slice`](Self::from_slice). Each rayon work item folds
     /// `chunk` points; smaller chunks balance better across uneven core loads, larger chunks
@@ -260,13 +260,13 @@ impl Bounds2 {
     /// `size().x() / size().y() = ratio` holds to within one rounding of the ratio itself.
     ///
     /// This is the viewport operation for a grid of square cells. A point set drawn on `across` by
-    /// `down` cells keeps its own shape when its extent is grown to `across / down` first, because
-    /// equal extent per cell on both axes is what one square cell means; fitting the grown box
-    /// with [`fit`](Self::fit) then scales both axes by the same factor.
+    /// `down` cells keeps its own shape when this method grows its extent to `across / down` first,
+    /// because equal extent per cell on both axes is what one square cell means; fitting the
+    /// grown box with [`fit`](Self::fit) then scales both axes by the same factor.
     ///
     /// An axis with no extent grows out of the other one, so a point set collapsed onto a line
     /// still yields a viewport. A box degenerate on both axes has no extent to take a ratio of and
-    /// stays degenerate; [`with_minimum_extent`](Self::with_minimum_extent) is what gives it one.
+    /// stays degenerate. [`with_minimum_extent`](Self::with_minimum_extent) gives it one.
     ///
     /// # Examples
     ///
@@ -288,8 +288,8 @@ impl Bounds2 {
         let size = self.size();
         let centre = self.centre();
 
-        // Both extents are read from the original size, so exactly one
-        // axis grows: whichever is short for the ratio.
+        // Both components read the original size, so exactly one axis
+        // grows: whichever is short for the ratio.
         let half = Vec2::new(
             size.x().max(size.y() * ratio.get()),
             size.y().max(size.x() / ratio.get()),
@@ -303,9 +303,9 @@ impl Bounds2 {
 
     /// Scales the box about its centre by `factor`.
     ///
-    /// Both axes scale by the same factor and the centre is fixed, so the result contains this box
-    /// for a factor above one and sits inside it below one. A factor of one returns the same
-    /// extent, to within the rounding of the halved arithmetic.
+    /// Both axes scale by the same factor and the centre does not move, so the result contains this
+    /// box for a factor above one and sits inside it below one. A factor of one returns the
+    /// same extent, to within the rounding of the halved arithmetic.
     ///
     /// # Examples
     ///
@@ -334,9 +334,10 @@ impl Bounds2 {
 
     /// Returns the transform mapping this box onto `target`.
     ///
-    /// Each axis is scaled and translated independently, so `self.min` lands on `target.min` and
-    /// `self.max` on `target.max`. This is the normalize-into-viewport operation: fit a layout's
-    /// extent, then map every point into `[0, size]` coordinates with one batched transform.
+    /// The transform scales and translates each axis independently, so `self.min` lands on
+    /// `target.min` and `self.max` on `target.max`. This is the normalize-into-viewport
+    /// operation: fit a layout's extent, then map every point into `[0, size]` coordinates with
+    /// one batched transform.
     ///
     /// Returns [`None`] when this box has an axis with zero, subnormal, or otherwise non-normal
     /// extent, where the scale factor degenerates; widen with
@@ -380,13 +381,13 @@ impl Bounds2 {
     /// Each axis maps affinely in `f64` - subtract this box's minimum, divide by its extent, scale
     /// onto the target axis - and rounds once to `f32`, so every output component is within one
     /// `f32` ULP of the exact mapping for every input magnitude, including boxes sitting far from
-    /// the origin relative to their extent. This box's corners land on the target's corners; points
-    /// outside this box extrapolate along the same map. A zero-extent axis (every point identical
-    /// on it) maps to the centre of the target's axis.
+    /// the origin relative to their extent. This box's corners map onto the target's corners.
+    /// Points outside this box extrapolate along the same map. A zero-extent axis (every point
+    /// identical on it) maps to the centre of the target's axis.
     ///
-    /// Points are mapped in parallel, four at a time per axis: each batch converts to [`Vec2x4T`]
-    /// at the loop boundary and widens its lane groups to `f64`, so the batched and scalar paths
-    /// round identically and the output is independent of the split.
+    /// This method maps points in parallel, four at a time per axis: each batch converts to
+    /// [`Vec2x4T`] at the loop boundary and widens its lane groups to `f64`, so the batched and
+    /// scalar paths round identically and the output is independent of the split.
     ///
     /// # Examples
     ///
@@ -431,8 +432,8 @@ impl Bounds2 {
 impl Bounds2 {
     /// Quantizes a point onto the bounds' 32-bit-per-axis grid.
     ///
-    /// Each axis maps affinely onto `[0, 2^32)` in `f64` - so every `f32` coordinate quantizes
-    /// exactly - and floors. Coordinates outside the bounds clamp onto the boundary cells: points
+    /// Each axis maps affinely onto `[0, 2^32)` in `f64` (so every `f32` coordinate quantizes
+    /// exactly) and floors. Coordinates outside the bounds clamp onto the boundary cells: points
     /// at or beyond the maximum edge take the last cell, points below the minimum take cell zero.
     /// A zero-extent axis maps to cell zero.
     ///

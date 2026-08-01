@@ -1,13 +1,13 @@
 //! The search-backend parameter sweep over a published generation.
 //!
-//! One hannoy index is built per (fit seed, `ef_construction`) grid cell and scored at every
-//! `ef_search` value against the exact reference of every distinct seed's sample. `ef_search` is a
-//! query-time setting, so one build serves its whole search row by reopening the persisted
-//! environment, and the environment is removed as soon as its row is read, bounding peak disk to
-//! one index.
+//! The sweep builds one hannoy index per (fit seed, `ef_construction`) grid cell and scores it at
+//! every `ef_search` value against the exact reference of every distinct seed's sample. `ef_search`
+//! is a query-time setting, so one build serves its whole search row by reopening the persisted
+//! environment. The sweep removes the environment as soon as it finishes that row, which keeps peak
+//! disk at one index.
 //!
-//! The production check reads the grid's diagonal - a build scored against its own seed's sample;
-//! off-diagonal readings separate build quality from sample hardness, and the sweep's decision
+//! The production check reads the grid's diagonal, a build scored against its own seed's sample.
+//! Off-diagonal readings separate build quality from sample hardness, and the sweep's decision
 //! surface is the worst recall a setting produced anywhere in the grid.
 
 use alloc::borrow::Cow;
@@ -40,18 +40,22 @@ use crate::{
     },
 };
 
-/// Fit seeds the sweep replays by default: three distinct seeds, one of them twice, so the grid
-/// carries both build nondeterminism and seed spread.
+/// Fit seeds the sweep replays by default.
+///
+/// The list holds three distinct seeds and repeats one of them, so the grid carries both build
+/// nondeterminism and seed spread.
 pub(crate) const DEFAULT_SEEDS: &[u64] = &[0, 0, 1, 2];
 /// `ef_construction` values swept by default: the deployed setting and the one below it.
 pub(crate) const DEFAULT_CONSTRUCTIONS: &[usize] = &[128, 256];
-/// `ef_search` values swept by default: the deployed setting, one below, and two above.
+/// `ef_search` values swept by default.
+///
+/// The list covers the deployed setting, one value below it, and two above.
 pub(crate) const DEFAULT_SEARCHES: &[usize] = &[64, 128, 192, 256];
 
 /// The sweep grid.
 #[derive(Debug, Clone)]
 pub(crate) struct Options {
-    /// Fit seeds whose build and sample streams are replayed.
+    /// Fit seeds whose build and sample streams the sweep replays.
     ///
     /// A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
     pub seeds: Cow<'static, [u64]> = Cow::Borrowed(DEFAULT_SEEDS),
@@ -72,7 +76,7 @@ const impl Default for Options {
 pub(crate) struct Point {
     /// The fit seed whose `recall-check` stream drew the sample.
     pub sample_seed: u64,
-    /// The query-time frontier breadth the reading was taken at.
+    /// The query-time frontier breadth of this reading.
     pub ef_search: usize,
     /// Aggregate recall@50 against the exact reference.
     pub recall: f64,
@@ -102,7 +106,7 @@ pub(crate) struct ReferenceCost {
     pub wall: Duration,
 }
 
-/// One finished sweep: the corpus identity and every reading.
+/// One finished sweep of the backend grid, with its corpus identity and every reading.
 #[derive(Debug, Clone)]
 pub(crate) struct Sweep {
     /// The measured generation's identity.
@@ -146,8 +150,8 @@ impl Sweep {
 
     /// The worst recall one setting produced across every build and sample that measured it.
     ///
-    /// The sweep's decision surface: a setting is admitted on what it guarantees, not on its best
-    /// grid cell.
+    /// This reading is the sweep's decision surface, because a setting earns admission on what it
+    /// guarantees rather than on its best grid cell.
     fn minimum_recall(&self, ef_construction: usize, ef_search: usize) -> f64 {
         self.builds
             .iter()
@@ -221,13 +225,13 @@ impl Display for Sweep {
 /// One sweep's failure, by step.
 #[derive(Debug)]
 pub(crate) enum SweepError {
-    /// The published representations could not be read.
+    /// Reading the published representations failed.
     Setup(SetupError),
-    /// The scratch directory for an index could not be created or removed.
+    /// Creating or removing an index's scratch directory failed.
     Scratch(io::Error),
-    /// The exact reference could not be computed.
+    /// Computing the exact reference failed.
     Reference(KnnError<NodeRowId, !>),
-    /// The index could not be opened, filled, or linked.
+    /// Opening, filling, or linking the index failed.
     Index(HannoyIndexError<NodeRowId>),
     /// A scored query failed against the built index.
     Query(KnnError<NodeRowId, HannoyIndexError<NodeRowId>>),
@@ -257,7 +261,7 @@ impl Error for SweepError {
     }
 }
 
-/// Inserts every row and links the index; returns the wall clock.
+/// Inserts every row and links the index, returning the wall clock.
 ///
 /// # Errors
 ///
@@ -346,8 +350,8 @@ fn score_grid(
 ///
 /// # Errors
 ///
-/// Returns a [`SweepError`] when the representations cannot be read, an index cannot be built, or
-/// a sampled query fails.
+/// Returns a [`SweepError`] when reading the representations fails, when an index build fails, or
+/// when a sampled query fails.
 pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, SweepError> {
     let started = Instant::now();
 
@@ -357,9 +361,8 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
     let check = SpotCheckOptions::default();
     let scratch = root.scratch().map_err(SweepError::Scratch)?;
 
-    // Every distinct seed's sample, in first-appearance order: each
-    // build scores against all of them, so build quality and sample
-    // hardness read separately.
+    // Every distinct seed's sample, in first-appearance order. Each build scores against all of
+    // them, so the readings separate build quality from sample hardness.
     let mut references: Vec<(u64, ExactReference<NodeRowId>)> = Vec::new();
     let mut reference_costs = Vec::new();
     for &seed in &*options.seeds {

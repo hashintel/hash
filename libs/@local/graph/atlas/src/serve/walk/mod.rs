@@ -1,6 +1,6 @@
 //! The LOD walk: schedule-driven point delivery over one generation's spatial columns.
 //!
-//! A tile's delivery reads the Morton column through the bucket schedule: zoom `z` delivers the
+//! A tile's delivery reads the Morton column through the bucket schedule. Zoom `z` delivers the
 //! buckets at or below its cut, each bucket contributing the code-column run of the tile's cell.
 //! [`Walk`] carries the columns that walk needs - the quadtree, the Morton column, the row column,
 //! the validated schedule - bound to one visibility proof, and the submodules deliver over it:

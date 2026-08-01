@@ -8,9 +8,9 @@
 //! derives its request echo context from the sidecar `HEAD`; a request field the `HEAD` does not
 //! echo joins the sidecar the day a fixture needs one.
 //!
-//! A fixture is pinned only after its schema is ratified and its endpoint serves - pinning bytes
-//! before the schema exists would pin an invention. The end-to-end fixture over a real published
-//! generation is separate: it pins a whole artifact tree, not an envelope. Every
+//! Pinning a fixture waits on a ratified schema and a serving endpoint, because pinning bytes
+//! before the schema exists pins an invention. The end-to-end fixture over a real published
+//! generation is separate, and it covers a whole artifact tree instead of one envelope. Every
 //! fixture here uses `spanLog2 = 2`, so the cut rule reads `bucket = z + 2` and the root spans
 //! buckets `0..=2`.
 //!
@@ -51,7 +51,7 @@ use crate::{
     serve::WireRow,
 };
 
-/// One pinned fixture: fixture name, response bytes, sidecar.
+/// One pinned fixture with its name, response bytes, and sidecar.
 struct Fixture {
     name: &'static str,
     bytes: Vec<u8>,
@@ -290,10 +290,10 @@ fn g1_minimal_tile() -> Fixture {
     let ranges = [8_u32..11]
         .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
-    // type 0: base positions 8 and 9 deliver; 3 and 11 lie outside
-    // the run. type 1: dense representation, no delivered bit (bit 2
-    // is outside the run). type 2: position 9, making point 9 the
-    // multi-bit point (types 0 and 2). Point 10 matches nothing.
+    // Type 0 delivers base positions 8 and 9, while 3 and 11 lie outside the run. Type 1 uses a
+    // dense representation whose single bit (bit 2) lies outside the run, so it delivers nothing.
+    // Type 2 delivers position 9, which makes point 9 the multi-bit point (types 0 and 2). Point 10
+    // matches nothing.
     let t0 = [3_u32, 8, 9, 11].map(BasePosition::from_u32);
     let t1_dense = [1_u32 << 2].map(U32::<LE>::new);
     let t2 = [9_u32].map(BasePosition::from_u32);
@@ -430,7 +430,7 @@ fn g3_total_tile() -> Fixture {
     let ranges = [0_u32..1, 1..1, 4..7, 8..10]
         .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
-    // Nine types: stride 2, type 8's bit lands in the second byte.
+    // Stride 2 over nine types, with type 8's bit in the second byte.
     let t0 = [0_u32, 5, 9].map(BasePosition::from_u32);
     let t1_dense = [(1_u32 << 5) | (1 << 3)].map(U32::<LE>::new);
     let t3 = [4_u32].map(BasePosition::from_u32);
@@ -610,10 +610,10 @@ fn g5_trailer_tile() -> Fixture {
 
 /// G6: an edges response - three columns.
 ///
-/// `complete = false` (the cap flag is the point), `EDGE_IDS` as raw identity records ascending
-/// per the delivery-order pin - fixtures conform to ratified contracts, not just structure - and
-/// the interned detail trailer: the type table, labels with nulls, and first-type references
-/// including a store-absent `null`.
+/// `complete = false` (the cap flag is the point) and `EDGE_IDS` as raw identity records ascending
+/// per the delivery-order pin, so the fixture matches the ratified contract rather than structure
+/// alone. The interned detail trailer holds the type table plus labels with nulls and first-type
+/// references including a store-absent `null`.
 fn g6_edges() -> Fixture {
     let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
     let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"];
@@ -674,7 +674,7 @@ fn g6_edges() -> Fixture {
 /// `TYPE_MASK` probed per point, `complete = false` (the locate edge cap flag is the point), both
 /// source completeness flags exercised in opposite states, and the full detail trailer: both
 /// intern tables, labels with nulls and non-ASCII, node first-type references including a `null`,
-/// the source map covering every simple value shape (text, positive and negative integers,
+/// the source map covering every scalar value shape (text, positive and negative integers,
 /// doubles, booleans, explicit null), link type lists in non-ascending canonical order with an
 /// empty entry, link property maps covering map, `null`, and empty shapes, and both completeness
 /// bitmasks.
@@ -694,10 +694,9 @@ fn g7_locate() -> Fixture {
     let rows: Vec<WireRow<NodeRowId>> = (0..8)
         .map(|index| WireRow::pinned(10 * index + 1))
         .collect();
-    // Source at base position 6, then partners ascending by wire
-    // row id per the delivery pin: rows 61, then 11 < 21 < 41 -
-    // the fixture conforms to the ratified order, not just the
-    // envelope structure.
+    // Source at base position 6, then partners ascending by wire row id per the delivery pin. Row
+    // 61 comes first, then 11 < 21 < 41, so the fixture matches the ratified order, not the
+    // envelope structure alone.
     let delivered = [6_u32, 1, 2, 4].map(BasePosition::from_u32);
 
     // type 0: list members at 1 and 6; type 1: dense bit at 4 over
@@ -819,9 +818,9 @@ fn g7_locate() -> Fixture {
 
 /// Renders a locate fixture's sidecar.
 ///
-/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. The property
-/// maps arrive pre-rendered because their JSON forms are pinned alongside the wire values in the
-/// fixture itself; the completeness bitmasks render as their logical boolean lists.
+/// Prefix, directory, decoded `HEAD`, gathered columns, and the detail trailer. The property maps
+/// arrive pre-rendered because the fixture itself pins their JSON forms alongside the wire values.
+/// The completeness bitmasks render as their logical boolean lists.
 fn locate_sidecar(
     name: &str,
     response: &LocateResponse<'_>,
@@ -995,7 +994,7 @@ fn g9_padding_low() -> Fixture {
     let ranges = [3_u32..8]
         .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
-    // Three types, stride 1: five mask bytes pad with 3.
+    // Stride 1 over three types, so five mask bytes pad with 3.
     let t0 = [3_u32, 6].map(BasePosition::from_u32);
     let t1 = [4_u32, 5, 6].map(BasePosition::from_u32);
     let empty: [BasePosition; 0] = [];

@@ -1,28 +1,29 @@
-//! The quadtree build: cutting the base delivery order into tiles.
+//! The quadtree build, which cuts the base delivery order into tiles.
 //!
-//! [`QuadTree::build`] derives the quad file's regions from the finished lod columns: one node per
-//! tile the bucket-cut schedule can deliver something new into, each carrying its own-bucket run of
-//! the base order, its subtree point count, and its direct-type set.
+//! [`QuadTree::build`] derives the quad file's regions from the finished lod columns. The tree
+//! holds one node for every tile the bucket-cut schedule delivers something new into. Each node
+//! carries its own-bucket run of the base order. A node also records the point count of its subtree
+//! and the set of direct types under it.
 //!
-//! The root always exists and covers the wire frame; a deeper cell gets a node exactly when it
-//! contains a point the parent tile's cut did not deliver - a point whose bucket is at least the
-//! cell's own cut `z + span_log2`. Two cascade facts shape the tree:
+//! The root always exists and covers the wire frame. A deeper cell gets a node exactly when it
+//! contains a point the parent tile's cut did not deliver, a point whose bucket is at least the
+//! cell's own cut `z + span_log2`. The cascade shapes the tree in two ways:
 //!
-//! - Chains self-terminate: a point alone in its depth-`d` cell is that cell's best-ranked
+//! - Chains self-terminate. A point alone in its depth-`d` cell is that cell's best-ranked
 //!   occupant, so the first-occupant cascade assigns it a bucket no deeper than the first depth
 //!   where it stands alone. Isolated points never force node chains.
-//! - Runs partition the base order: a point with bucket `b` beyond the root's cut appears in
+//! - Runs partition the base order. A point with bucket `b` beyond the root's cut shows up in
 //!   exactly one node's run - its cell at depth `b - span_log2`, which exists because the point
-//!   itself witnesses the rule - and the root's run carries buckets `0..=span_log2` whole,
-//!   contiguous because the base order is bucket-major. Every point is delivered exactly once
-//!   across the incremental tile pyramid.
+//!   itself witnesses the rule - and the root's run carries buckets `0..=span_log2` whole and
+//!   contiguous, because the base order is bucket-major. The tile pyramid therefore delivers every
+//!   point exactly once.
 //!
-//! No depth cap appears in the recursion: the cascade assigns no bucket beyond `max_tile_depth +
+//! The recursion needs no depth cap. The cascade assigns no bucket beyond `max_tile_depth +
 //! span_log2`, so leaves at the deepest tile zoom fall out by construction.
 //!
-//! Each node's run is narrowed by the partition-point searches of `file/morton`'s `run` query
-//! (first code at or above the cell's minimum key, first beyond its maximum), so the builder and
-//! the served lookups can never disagree about a run's extent.
+//! The partition-point searches of `file/morton`'s `run` query narrow each node's run (first code
+//! at or above the cell's minimum key, first beyond its maximum), so the builder and the served
+//! lookups can never disagree about a run's extent.
 
 use alloc::collections::BTreeSet;
 use core::ops::Range;
@@ -52,7 +53,7 @@ pub enum QuadError {
     Columns { rows: usize },
     /// The lod columns hold points in a bucket beyond the configuration's deepest grid.
     ///
-    /// The configuration is not the one the lod was built under.
+    /// The lod ran under a different configuration.
     Bucket { bucket: u8 },
     /// A direct type names an ontology row beyond the `u32` ordinals the quad file stores.
     TypeOrdinal { row: NodeRowId, id: u64 },
@@ -90,11 +91,11 @@ impl core::fmt::Display for QuadError {
 
 impl core::error::Error for QuadError {}
 
-/// The quadtree of one generation: the quad file's regions in writable form.
+/// The quad file's regions for one generation, in writable form.
 ///
 /// Node 0 is the root; records are in depth-first pre-order with children in Morton child order, so
-/// every child index points deeper in the table. [`measurements`](Self::measurements) is measured
-/// from the finished tree and belongs in the generation's metadata document.
+/// every child index points deeper in the table. [`measurements`](Self::measurements) reads the
+/// finished tree and yields the numbers that belong in the generation's metadata document.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct QuadTree {
     /// The node table in depth-first pre-order.
@@ -109,10 +110,12 @@ impl QuadTree {
     /// Builds the quadtree over the finished lod columns.
     ///
     /// `types` holds each row's direct types in **row** order, exactly as the dataset streams them
-    /// (ascending, deduplicated); the builder gathers them into base order through the lod's
-    /// permutation. `config` must be the configuration the lod was built under: a mismatch surfaces
-    /// as [`QuadError::Bucket`] when the lod's cascade ran deeper than the configuration allows,
-    /// and cannot be observed here otherwise.
+    /// (ascending, deduplicated). The builder gathers them into base order through the lod's
+    /// permutation.
+    ///
+    /// `config` must be the configuration the lod ran under. A mismatch surfaces as
+    /// [`QuadError::Bucket`] when the lod's cascade ran deeper than the configuration allows, and
+    /// nothing else here detects it.
     ///
     /// # Errors
     ///
@@ -214,8 +217,9 @@ impl WriteInto for QuadTree {
 
 /// The measurements of one quadtree build.
 ///
-/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
-/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
+/// What the manifest records so that data rather than taste drives a revision of the configuration.
+/// These are build census numbers rather than evidence, and the metadata's `Evidence` section holds
+/// the admission checks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct QuadMeasurements {
     /// Nodes in the table.
@@ -228,7 +232,7 @@ pub(crate) struct QuadMeasurements {
     pub type_entries: u64,
 }
 
-/// One range per bucket: the positions of the bucket's codes inside the cell under construction.
+/// The positions of each bucket's codes inside the cell under construction, one range per bucket.
 type BucketRanges = [Range<BasePosition>; SEGMENTS];
 
 struct Builder<'lod> {
@@ -236,7 +240,9 @@ struct Builder<'lod> {
     codes: &'lod IdSlice<BasePosition, MortonKey>,
     /// Each base position's direct types as `u32` ordinals.
     position_types: IdVec<BasePosition, SmallVec<u32, 2>>,
-    /// The cut's span exponent `m`: a tile at zoom `z` delivers buckets at or below `z + m`.
+    /// The cut's span exponent `m`.
+    ///
+    /// A tile at zoom `z` delivers buckets at or below `z + m`.
     span_log2: u8,
     /// The deepest bucket the cascade assigned into.
     deepest: Depth,
@@ -275,8 +281,8 @@ impl Builder<'_> {
         let mut children = [None; 4];
         let mut set = BTreeSet::new();
         if self.exhausted(cut, ranges) {
-            // A leaf: every point in the cell is delivered by this
-            // tile's cut, and all of them feed the type set directly.
+            // This tile's cut delivers every point in the cell. The cell is a leaf, and all of its
+            // points feed the type set directly.
             for range in ranges {
                 self.gather(&mut set, range.clone());
             }
@@ -288,8 +294,8 @@ impl Builder<'_> {
             for (quadrant, child_cell) in cells.into_iter().enumerate() {
                 let child_ranges = self.narrow(ranges, child_cell);
                 if self.exhausted(cut, &child_ranges) {
-                    // A pruned quadrant: its points contribute their
-                    // types here, at the deepest node containing them.
+                    // This quadrant needs no node, so its points contribute their types here, at
+                    // the deepest node containing them.
                     for range in &child_ranges {
                         self.gather(&mut set, range.clone());
                     }

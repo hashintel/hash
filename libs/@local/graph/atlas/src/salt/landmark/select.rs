@@ -1,7 +1,7 @@
 //! Weighted stratified landmark selection.
 //!
-//! Selection is weighted sampling without replacement by exponential clocks: candidate `i` receives
-//! the priority
+//! Selection uses weighted sampling without replacement by exponential clocks: candidate `i`
+//! receives the priority
 //!
 //! ```text
 //! t_i = -ln(U_i) / w_i,
@@ -12,7 +12,7 @@
 //! minimums first, then prior landmarks up to the retained target, then a free fill to capacity.
 //! Later phases never evict earlier picks, so every minimum still holds in the final selection.
 //!
-//! The corpus-scale passes run in parallel and deterministically: priorities come from one
+//! The corpus-scale passes run in parallel and deterministically. Priorities come from one
 //! generator per fixed-size candidate chunk, each seeded by the caller's generator, and every phase
 //! reduces thread-local top-`k` heaps into the unique best set under the (priority, index) total
 //! order. A rerun over equal candidates with an equally seeded generator selects identical rows at
@@ -142,7 +142,7 @@ pub(crate) struct SubgroupMinimum {
 pub(crate) struct SamplingWeight(f64);
 
 impl SamplingWeight {
-    /// The neutral sampling weight: every row draws with equal likelihood.
+    /// The neutral sampling weight, giving every row equal likelihood.
     pub(crate) const UNIFORM: Self = Self(1.0);
 
     /// Validates a weight.
@@ -190,9 +190,7 @@ impl<N> LandmarkCandidate<N> {
 pub(crate) struct SelectionOptions {
     /// The landmark capacity `M`.
     ///
-    /// At most this many rows are selected, fewer only when the corpus is smaller. The `u32` width
-    /// is the [`LandmarkOrdinal`] encoding's contract: every selection position fits the persisted
-    /// ordinal form.
+    /// Selection returns at most this many rows, fewer only when the corpus is smaller. The `u32` width is the [`LandmarkOrdinal`] encoding's contract: every selection position fits the persisted ordinal form.
     pub maximum_count: NonZero<u32>,
     /// Fraction of the capacity reserved for prior landmarks when enough are on offer.
     ///
@@ -202,9 +200,7 @@ pub(crate) struct SelectionOptions {
     pub retained_fraction: UnitFraction = const { UnitFraction::new(0.25).unwrap() },
     /// Candidates per generator stream: the priority pass's seeding and parallel work unit.
     ///
-    /// Which stream draws for which candidate is fixed by this value, so equal seeds reproduce
-    /// equal selections only under an equal chunk; the manifest echo records it beside the seed.
-    /// The chunk is sized so that per-task overhead disappears against the scans.
+    /// This value fixes which stream draws for which candidate, so equal seeds reproduce equal selections only under an equal chunk. The manifest echo records the chunk beside the seed. The chunk holds enough candidates that per-task overhead disappears against the scans.
     pub parallel_chunk: NonZero<usize> = PARALLEL_CHUNK,
 }
 
@@ -212,8 +208,7 @@ hashql_core::id::newtype! {
     /// A reference to a landmark by its position in a [`LandmarkSelection`].
     ///
     /// Ordinals are dense and zero-based: the value is the position of the landmark's node row in the
-    /// selection's ascending row order. The little-endian representation is the persisted form, so a
-    /// column of these ordinals is written to and read from artifact files without conversion.
+    /// selection's ascending row order. The little-endian representation is the persisted form, so a column of these ordinals moves to and from artifact files without conversion.
     #[id(endian = little, unaligned, derive(Step), const)]
     pub(crate) struct LandmarkOrdinal(u32)
 }
@@ -252,13 +247,14 @@ where
 
     /// Maps every selected row through `map`, preserving ordinals and the retained count.
     ///
-    /// The selection's vocabulary is positional - ordinal `i` names the `i`-th selected row - so a
-    /// row translation composes without touching the assignment or the layout built against it.
+    /// The selection's vocabulary is positional, where ordinal `i` names the `i`-th selected row. A
+    /// row translation therefore composes without touching the assignment or the layout built
+    /// against it.
     ///
     /// # Panics
     ///
-    /// Panics when the mapped rows break the strictly ascending row order; a strictly increasing
-    /// `map` preserves it.
+    /// This panics when the mapped rows break the strictly ascending row order. A strictly
+    /// increasing `map` preserves it.
     #[must_use]
     pub(crate) fn map_rows<M>(&self, map: impl FnMut(N) -> M) -> LandmarkSelection<M>
     where
@@ -290,7 +286,7 @@ where
 /// The selection inputs are unsatisfiable or malformed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SelectionError {
-    /// No candidates were offered.
+    /// The corpus offers no candidates.
     EmptyCorpus,
     /// Candidate rows are not strictly ascending.
     UnorderedCandidates { index: usize },
@@ -348,8 +344,7 @@ hashql_core::id::newtype! {
 hashql_core::id::newtype! {
     /// A minimum's position in the subgroup-ordered minimums.
     ///
-    /// Distinct from [`CandidateId`]: candidates and minimums are unrelated index domains, and
-    /// mixing them is a type error rather than a silent off-by-everything.
+    /// Candidates and minimums index unrelated domains, so mixing a [`MinimumId`] with a [`CandidateId`] is a type error rather than a silent off-by-everything.
     #[id(derive(Step))]
     pub(crate) struct MinimumId(u64)
 }
@@ -472,7 +467,7 @@ fn retained_target(capacity: usize, retained_fraction: UnitFraction) -> usize {
 
 /// Returns the indices of the `count` smallest-priority unselected candidates.
 ///
-/// Only candidates satisfying `predicate` qualify; fewer return when the pool is smaller.
+/// Only candidates satisfying `predicate` qualify, and fewer return when the pool is smaller.
 ///
 /// Workers filter in parallel and one exact selection cuts the (priority, index) total order at
 /// `count`: the result is the unique best set, independent of how the scan splits across threads.
@@ -541,7 +536,7 @@ pub(crate) const PARALLEL_CHUNK: NonZero<usize> = const { NonZero::new(4096).unw
 
 /// Selects at most the configured capacity, honoring minimums and retention.
 ///
-/// `candidates` arrive in strictly ascending row order; `rng` seeds the priority streams. The
+/// `candidates` arrive in strictly ascending row order, and `rng` seeds the priority streams. The
 /// selection satisfies every subgroup minimum, then retains prior landmarks up to `ceil(capacity *
 /// retained_fraction)` when enough are on offer, then fills to capacity, all by ascending
 /// exponential-clock priority.

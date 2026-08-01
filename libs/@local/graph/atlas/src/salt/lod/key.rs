@@ -9,11 +9,12 @@ use crate::{
 
 /// Quantizes each point onto the frame's 32-bit-per-axis grid.
 ///
-/// Each point rides [`Bounds2::quantize`]: the grid outresolves the data - points closer than one
-/// coordinate ULP share cells, nothing else does.
+/// [`Bounds2::quantize`] maps each point onto the grid. The grid outresolves the data, so only
+/// points closer together than one coordinate ULP share a cell.
 ///
-/// The frame is the caller's contract: it contains every point (the frame fit produces it from
-/// these coordinates), and coordinates outside it clamp onto the boundary cells.
+/// The caller owns the frame and guarantees that it contains every point. The frame fit produces
+/// such a frame from these coordinates. Coordinates outside the frame clamp onto the boundary
+/// cells.
 #[must_use]
 pub(crate) fn keys(points: &[Vec2], frame: Bounds2) -> Box<[MortonKey]> {
     points

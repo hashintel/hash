@@ -77,7 +77,7 @@ fn fixture() -> Classifier {
     }
 }
 
-/// The fixture's header: the offset equations for tamper patches.
+/// Returns the fixture's header, whose offset equations locate the tamper patches.
 fn fixture_header() -> FileHeader {
     FileHeader::new(CANONICAL_DIMENSIONS as u64, 5, 1.5, [0.25, -0.5, 0.125])
 }

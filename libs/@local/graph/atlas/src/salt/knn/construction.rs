@@ -1,13 +1,13 @@
 //! k-nearest-neighbour list construction.
 //!
-//! [`KnnConstruction`] separates what the pipeline needs - every row's nearest-neighbour list -
-//! from how a constructor produces it. [`NeighbourLists`] is the produced currency: the recall
-//! spot check reads sampled rows from it, and the persisted table slices its stored prefix from
-//! it, so one construction at one width feeds both consumers.
+//! [`KnnConstruction`] separates what the pipeline needs (every row's nearest-neighbour list) from
+//! how a constructor produces it. Both consumers read one [`NeighbourLists`] value. The recall spot
+//! check reads sampled rows from it, and the persisted table slices its stored prefix from it, so
+//! one construction at one width feeds both.
 //!
-//! [`IndexConstruction`] adapts any [`NearestNeighboursIndex`] search backend to the seam: it
-//! ingests every row, links the backend, and answers the lists by one search per row. A
-//! constructor that derives the lists directly, without a search structure, implements the trait
+//! [`IndexConstruction`] adapts any [`NearestNeighboursIndex`] search backend to the seam. It
+//! ingests every row and links the backend, then answers each row's list with one search. A
+//! constructor that derives the lists directly without a search structure implements the trait
 //! itself.
 
 use core::{
@@ -32,9 +32,9 @@ use crate::{
 
 /// Rows one batched loop covers between progress reports.
 ///
-/// The insertion and the readback both report at this cadence: a corpus of a million rows draws a
-/// couple of hundred observations, so a watching operator sees the counter move while the loops
-/// pay one report per few thousand rows rather than one per row.
+/// The insertion and the readback both report at this cadence. A corpus of a million rows draws a
+/// couple of hundred observations, so a watching operator sees the counter move while the loops pay
+/// one report per few thousand rows rather than one per row.
 const REPORT_CADENCE: usize = 4_096;
 
 /// Whether a batched loop over `total` rows reports at `done` rows covered.
@@ -56,7 +56,7 @@ hashql_core::id::newtype! {
 ///
 /// Row-major storage: row `i` holds exactly [`width`](Self::width) entries in ascending
 /// `(distance, id)` order, with distances on the `[0, 2]` cosine scale. The producing constructor
-/// guarantees the entries; the type only carries them.
+/// guarantees the entries, and the type only stores them.
 #[derive(Debug)]
 pub(crate) struct NeighbourLists<N> {
     entries: IdMatrix<N, NeighbourSlot, Neighbour<N>>,
@@ -70,7 +70,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `width` is zero or does not divide the entry count exactly.
+    /// This panics when `width` is zero or does not divide the entry count exactly.
     pub(super) fn new(entries: Box<[Neighbour<N>]>, width: usize) -> Self {
         Self {
             entries: IdMatrix::from_flat(entries.into_vec(), width),
@@ -95,7 +95,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the row domain.
+    /// This panics when `row` is outside the row domain.
     #[inline]
     #[must_use]
     pub(crate) const fn row(&self, row: N) -> &[Neighbour<N>]
@@ -110,8 +110,9 @@ where
 ///
 /// One construction serves one generation's rows: `embeddings` holds the l2-normalized projector
 /// representations in node-row order, and the result holds each row's `width` nearest non-self
-/// neighbours. A `width` at or beyond the corpus is clamped to every non-self row. `rng` drives
-/// the constructor's randomized choices, so a seeded generator pins its sampling streams.
+/// neighbours. The construction clamps a `width` at or beyond the corpus to every non-self row.
+/// `rng` drives the constructor's randomized choices, so a seeded generator pins its sampling
+/// streams.
 pub(crate) trait KnnConstruction<N>
 where
     N: Id,
@@ -139,11 +140,13 @@ where
 
 /// Adapts a [`NearestNeighboursIndex`] search backend to [`KnnConstruction`].
 ///
-/// The construction ingests every row, links the backend under `rng`, and queries each row's
-/// neighbours in parallel; the assembled lists are deterministic for a deterministic backend
-/// because each row's results land in that row's slot regardless of completion order. The
-/// backend's responses are distrusted at the seam: a short result, a duplicate, or a neighbour
-/// outside the row domain fails the construction.
+/// The construction ingests every row and links the backend under `rng`, then queries each row's
+/// neighbours in parallel. The assembled lists are deterministic for a deterministic backend
+/// because the construction writes each row's results into that row's slot regardless of completion
+/// order.
+///
+/// The construction distrusts the backend's responses at the seam. A short result, a duplicate, or
+/// a neighbour outside the row domain fails the construction.
 #[derive(Debug)]
 pub(crate) struct IndexConstruction<I>(I);
 

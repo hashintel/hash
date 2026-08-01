@@ -78,7 +78,7 @@ impl<const N: usize> DVecN<N> {
     pub const fn from_mut(value: &mut [f64; N]) -> &mut Self {
         let ptr = (&raw mut *value).cast::<Self>();
         // SAFETY: `Self` is a transparent wrapper around `[f64; N]`, so the cast preserves layout
-        // and validity; the mutable borrow is carried through to the wrapper unchanged.
+        // and validity. The mutable borrow passes through to the wrapper unchanged.
         unsafe { &mut *ptr }
     }
 
@@ -112,7 +112,7 @@ impl<const N: usize> DVecN<N> {
 
     /// Returns the sum of the components.
     ///
-    /// The components are folded four lanes at a time; the sum of the empty vector is zero.
+    /// The fold consumes four lanes at a time. The sum of the empty vector is zero.
     #[inline]
     #[must_use]
     pub fn sum(self) -> f64 {
@@ -130,7 +130,7 @@ impl<const N: usize> DVecN<N> {
 
     /// Computes the softmax of the components with max-shifting for stability.
     ///
-    /// The maximum component is subtracted before exponentiation, so the result is finite for any
+    /// Subtracting the maximum component before exponentiation keeps the result finite for any
     /// finite input, including components with magnitudes far beyond the range where a naive `exp`
     /// overflows. Every output lies in `[0, 1]`, the outputs sum to 1 up to rounding whenever `N ≥
     /// 1`, and shifting all components by a common constant leaves the result unchanged up to
@@ -141,7 +141,7 @@ impl<const N: usize> DVecN<N> {
     /// ```
     /// use hash_graph_atlas::math::DVecN;
     ///
-    /// // A naive `exp(1000.0)` overflows; the shifted form stays finite.
+    /// // A naive `exp(1000.0)` overflows. The shifted form stays finite.
     /// let probabilities = DVecN::new([1_000.0, 999.0, -1_000.0]).softmax();
     ///
     /// let total: f64 = probabilities.as_array().iter().sum();
@@ -158,18 +158,18 @@ impl<const N: usize> DVecN<N> {
 
     /// Computes `ln(sum(exp(components)))` with max-shifting for stability.
     ///
-    /// The maximum is factored out as `max + ln(sum(exp(value - max)))`, keeping every intermediate
-    /// exponent non-positive: the result is finite for any finite, non-empty input. A
-    /// single-component vector returns that component exactly, and `N` equal components give
-    /// `value + ln(N)`. For `N = 0` the result is [`f64::NEG_INFINITY`], the logarithm of the
-    /// empty sum.
+    /// The computation factors out the maximum as `max + ln(sum(exp(value - max)))`, keeping every
+    /// intermediate exponent non-positive: the result is finite for any finite, non-empty
+    /// input. A single-component vector returns that component exactly, and `N` equal
+    /// components give `value + ln(N)`. For `N = 0` the result is [`f64::NEG_INFINITY`], the
+    /// logarithm of the empty sum.
     ///
     /// # Examples
     ///
     /// ```
     /// use hash_graph_atlas::math::DVecN;
     ///
-    /// // A naive `exp(1000.0)` overflows; the shifted form stays finite.
+    /// // A naive `exp(1000.0)` overflows. The shifted form stays finite.
     /// let result = DVecN::new([1_000.0, 1_000.0]).log_sum_exp();
     /// assert!((result - (1_000.0 + 2.0_f64.ln())).abs() < 1e-9);
     ///
@@ -181,10 +181,9 @@ impl<const N: usize> DVecN<N> {
         let maximum = self.max();
         let (_, sum) = self.shifted_exponentials(maximum);
 
-        // The empty case needs no branch: the fold leaves the maximum at
-        // negative infinity, the empty sum is zero, and `ln(0)` is
-        // negative infinity, so the two addends agree on the empty-sum
-        // identity.
+        // The empty case needs no branch. The fold leaves the maximum at negative infinity while
+        // the empty sum is zero, and `ln(0)` is negative infinity, so the two addends agree on the
+        // empty-sum identity.
         maximum + sum.ln()
     }
 
@@ -216,8 +215,8 @@ impl<const N: usize> DVecN<N> {
 
     /// Returns the dot product of the two vectors.
     ///
-    /// The products are fused and summed eight lanes at a time; see [`VecN::dot_wide`] for the
-    /// mixed-precision variant over `f32` data.
+    /// The kernel fuses and sums the products eight lanes at a time. See [`VecN::dot_wide`] for
+    /// the mixed-precision variant over `f32` data.
     // Lane-width choice: as in `VecN::dot_accumulated` - `f64x8` is a
     // fourfold unroll on 128-bit NEON, and two independent accumulators
     // keep enough FMA chains in flight to cover the latency-throughput
@@ -281,7 +280,7 @@ impl<const N: usize> DVecN<N> {
     /// Returns the largest component magnitude, or `0.0` for the empty vector.
     ///
     /// Folds `simd_max` over the absolute lanes and finishes with the scalar remainder. The
-    /// maximum follows IEEE-754 `maxNum`: NaN components are ignored in favor of any finite
+    /// maximum follows IEEE-754 `maxNum`: the fold ignores NaN components in favor of any finite
     /// magnitude, so callers that must reject NaN gate with [`is_finite`](Self::is_finite).
     #[inline]
     #[must_use]
@@ -313,7 +312,7 @@ impl<const N: usize> DVecN<N> {
     ///
     /// The all-zero and empty vectors have norm `0.0`. A vector containing NaN or an infinity
     /// yields a non-finite result: infinities force a NaN or infinite product through the second
-    /// pass, and a NaN alongside only zeros is caught by the zero-scale finiteness check.
+    /// pass, and the zero-scale finiteness check catches a NaN alongside only zeros.
     #[inline]
     #[must_use]
     pub fn stable_l2(&self) -> f64 {
@@ -346,7 +345,7 @@ impl<const N: usize> DVecN<N> {
     /// Returns whether every component is finite.
     ///
     /// The lane groups accumulate one finiteness mask with a single horizontal test at the end:
-    /// the all-finite case - the gate that nearly always passes - runs branch-free at load
+    /// the all-finite case - the expected case - runs branch-free at load
     /// bandwidth, measured ~12% faster than a short-circuiting scan on the same vector.
     #[inline]
     #[must_use]
@@ -547,12 +546,12 @@ const impl<const N: usize> From<DVecN<N>> for [f64; N] {
 pub struct AlignedDVecN<const N: usize>([f64; N]);
 
 impl<const N: usize> AlignedDVecN<N> {
-    /// Wraps a borrowed array the caller promises is aligned.
+    /// Wraps a borrowed array under the caller's alignment promise.
     ///
     /// # Safety
     ///
-    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of the wrapper are allowed
-    /// to rely on that alignment for aligned loads.
+    /// `value` must start at an address aligned to `align_of::<f64x8>()` bytes. Consumers of the
+    /// wrapper may rely on that alignment for aligned loads.
     #[inline]
     #[must_use]
     pub const unsafe fn from_ref_unchecked(value: &[f64; N]) -> &Self {
@@ -561,12 +560,12 @@ impl<const N: usize> AlignedDVecN<N> {
         unsafe { &*ptr::from_ref(value).cast::<Self>() }
     }
 
-    /// Wraps a mutably borrowed array the caller promises is aligned.
+    /// Wraps a mutably borrowed array under the caller's alignment promise.
     ///
     /// # Safety
     ///
-    /// `value` must be aligned to `align_of::<f64x8>()` bytes. Consumers of the wrapper are allowed
-    /// to rely on that alignment for aligned loads and stores.
+    /// `value` must start at an address aligned to `align_of::<f64x8>()` bytes. Consumers of the
+    /// wrapper may rely on that alignment for aligned loads and stores.
     #[inline]
     #[must_use]
     pub const unsafe fn from_mut_unchecked(value: &mut [f64; N]) -> &mut Self {
@@ -578,28 +577,30 @@ impl<const N: usize> AlignedDVecN<N> {
     /// Wraps a borrowed array, checking its alignment.
     ///
     /// Returns [`None`] when `value` is not aligned to `align_of::<f64x8>()` bytes. Stack arrays
-    /// and plain boxes usually are not; obtain aligned storage from [`BoxedDVecN`].
+    /// and plain boxes have no alignment guarantee beyond `f64`'s. Obtain aligned storage from
+    /// [`BoxedDVecN`].
     #[must_use]
     pub fn from_ref(value: &[f64; N]) -> Option<&Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f64x8>()) {
             return None;
         }
 
-        // SAFETY: the alignment was just checked.
+        // SAFETY: the early return above rejects unaligned input.
         unsafe { Some(Self::from_ref_unchecked(value)) }
     }
 
     /// Wraps a mutable array, checking its alignment.
     ///
     /// Returns [`None`] when `value` is not aligned to `align_of::<f64x8>()` bytes. Stack arrays
-    /// and plain boxes usually are not; obtain aligned storage from [`BoxedDVecN`].
+    /// and plain boxes have no alignment guarantee beyond `f64`'s. Obtain aligned storage from
+    /// [`BoxedDVecN`].
     #[must_use]
     pub fn from_mut(value: &mut [f64; N]) -> Option<&mut Self> {
         if !value.as_ptr().is_aligned_to(align_of::<f64x8>()) {
             return None;
         }
 
-        // SAFETY: the alignment was just checked.
+        // SAFETY: the early return above rejects unaligned input.
         unsafe { Some(Self::from_mut_unchecked(value)) }
     }
 
@@ -653,12 +654,14 @@ impl<const N: usize> AlignedDVecN<N> {
         (lanes, suffix)
     }
 
-    // Arithmetic kernels over the lane view: alignment is part of the type, so every group
+    // Arithmetic kernels over the lane view. Alignment is part of the type, so every group
     // loads and stores as one aligned `f64x8` and the remainder follows in order. Fold shapes
-    // match the `DVecN` kernels exactly - the aligned allocation splits at the same 8-lane
-    // boundary - so both types reduce identical inputs to identical bits.
+    // match the `DVecN` kernels exactly: the aligned allocation splits at the same 8-lane
+    // boundary, so both types reduce identical inputs to identical bits.
 
-    /// Returns the dot product of the two vectors; the fold shape of [`DVecN::dot`].
+    /// Returns the dot product of the two vectors.
+    ///
+    /// The fold shape matches [`DVecN::dot`].
     #[inline]
     #[must_use]
     pub fn dot(&self, other: &Self) -> f64 {
@@ -687,7 +690,9 @@ impl<const N: usize> AlignedDVecN<N> {
         self.dot(self)
     }
 
-    /// Returns the l1 norm; the fold shape of [`DVecN::abs_sum`].
+    /// Returns the l1 norm.
+    ///
+    /// The fold shape matches [`DVecN::abs_sum`].
     #[inline]
     #[must_use]
     pub fn abs_sum(&self) -> f64 {
@@ -710,8 +715,8 @@ impl<const N: usize> AlignedDVecN<N> {
 
     /// Returns the largest component magnitude, or `0.0` for the empty vector.
     ///
-    /// The maximum follows IEEE-754 `maxNum` exactly as [`DVecN::max_abs`]: NaN components are
-    /// ignored in favor of any finite magnitude, so callers that must reject NaN gate with
+    /// The maximum follows IEEE-754 `maxNum` exactly as [`DVecN::max_abs`]: the fold ignores NaN
+    /// components in favor of any finite magnitude, so callers that must reject NaN gate with
     /// [`is_finite`](Self::is_finite).
     #[inline]
     #[must_use]
@@ -843,9 +848,9 @@ impl<const N: usize> AlignedDVecN<N> {
 
     /// Adds `factor` times an aligned working-precision vector, component-wise.
     ///
-    /// Each `f32` component of `direction` widens to `f64` exactly, as [`DVecN::add_scaled`];
-    /// both operands load as aligned lane groups, and the group boundaries coincide - eight
-    /// components per group on either side - so the fold shape matches the unaligned kernel
+    /// Each `f32` component of `direction` widens to `f64` exactly, as [`DVecN::add_scaled`].
+    /// Both operands load as aligned lane groups, and the group boundaries coincide (eight
+    /// components per group on either side), so the fold shape matches the unaligned kernel
     /// bit for bit.
     #[inline]
     pub fn add_scaled(&mut self, direction: &AlignedVecN<N>, factor: f64) {
@@ -984,8 +989,8 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
 
     /// Creates the zero vector in a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
-    /// the allocator cannot provide the buffer.
+    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) aborts the process when the
+    /// allocator cannot provide the buffer.
     #[inline]
     #[must_use]
     pub fn zero_in(alloc: A) -> Self {
@@ -1003,8 +1008,8 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
 
     /// Copies the vector into a new aligned allocation in `alloc`.
     ///
-    /// The process is aborted through [`handle_alloc_error`](std::alloc::handle_alloc_error) when
-    /// the allocator cannot provide the buffer.
+    /// [`handle_alloc_error`](std::alloc::handle_alloc_error) aborts the process when the
+    /// allocator cannot provide the buffer.
     #[inline]
     #[must_use]
     pub fn new_in(value: &DVecN<N>, alloc: A) -> Self {
@@ -1019,16 +1024,16 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] when the allocator cannot provide the buffer. No memory is leaked in
-    /// that case.
+    /// Returns [`AllocError`] when the allocator cannot provide the buffer. The error path leaks
+    /// no memory.
     #[inline]
     pub fn try_new_in(value: &DVecN<N>, alloc: A) -> Result<Self, AllocError> {
         let layout = Self::layout();
         let allocation = alloc.allocate(layout)?;
         let ptr = allocation.cast::<f64>();
 
-        // SAFETY: the buffer was just allocated for at least `N` components and cannot overlap the
-        // borrowed source.
+        // SAFETY: `allocate` returned a fresh buffer of at least `N` components, so it cannot
+        // overlap the borrowed source.
         unsafe {
             ptr::copy_nonoverlapping(value.as_array().as_ptr(), ptr.as_ptr(), N);
         }
@@ -1063,8 +1068,8 @@ impl<const N: usize, A: Allocator + Clone> Clone for BoxedDVecN<N, A> {
     }
 
     fn clone_from(&mut self, source: &Self) {
-        // Both buffers share the same layout for a given `N`, so the
-        // existing allocation is reused instead of reallocating.
+        // Both buffers share the same layout for a given `N`, so `clone_from` reuses the existing
+        // allocation instead of reallocating.
         //
         // SAFETY: both pointers own initialized buffers of `N` components, and two live boxes
         // cannot alias.
@@ -1119,8 +1124,8 @@ const impl<const N: usize, A: Allocator> PartialEq for BoxedDVecN<N, A> {
 impl<const N: usize, A: Allocator> Drop for BoxedDVecN<N, A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `ptr` was allocated by `alloc` in `new_in` with the same layout and has not been
-        // deallocated since.
+        // SAFETY: `alloc` allocated `ptr` in `new_in` with the same layout and nothing has
+        // deallocated it since.
         unsafe {
             self.alloc.deallocate(self.ptr.cast::<u8>(), Self::layout());
         }

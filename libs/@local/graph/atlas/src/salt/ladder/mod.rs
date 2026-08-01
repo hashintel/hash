@@ -2,14 +2,16 @@
 //!
 //! One projected layout per relation-lens condition, aligned and measured against its neighbours.
 //!
-//! A generation publishes one coordinate field: the configured canonical rung's, aligned into the
-//! baseline frame. Every other rung is a measurement counterfactual - the same jointly trained
-//! model projected at a different lens strength - recorded as evidence, never delivered.
-//! [`Conditions`] carries the schedule, valid by construction: the first rung is the zero-condition
-//! value `0.0` (the jointly trained model with the lens off, not a separately trained relation-free
-//! model), the rungs ascend strictly, and every value is finite. The rung count is deliberately
-//! unbounded - each rung costs one projection pass plus four alignment passes, so the schedule
-//! length is configuration, not a format limit.
+//! A generation publishes one coordinate field, the configured canonical rung's layout aligned into
+//! the baseline frame. Every other rung is a measurement counterfactual (the same jointly trained
+//! model projected at a different lens strength) that persists as evidence and never publishes as
+//! the coordinate field.
+//!
+//! [`Conditions`] carries the schedule, valid by construction. The first rung is the zero-condition
+//! value `0.0`, the jointly trained model with the lens off rather than a relation-free model
+//! trained on its own. The rungs ascend strictly and every value is finite. The rung count has no
+//! upper bound. Each rung costs one projection pass plus four alignment passes, so the schedule
+//! length is configuration rather than a format limit.
 //!
 //! [`measure_ladder`] derives each rung's evidence. Every rung aligns onto the baseline and onto
 //! its predecessor with the unweighted Procrustes fit ([`Similarity::fit_uniform_par`]); the RMS
@@ -18,9 +20,9 @@
 //! measurements are diagnostics: they persist as evidence and surface as structured log events, and
 //! they never gate publication.
 //!
-//! [`select_canonical`] names the rung that publishes as the canonical field: the configured
-//! condition must be an exact member of the measured schedule - configuration naming a rung, not an
-//! interpolation point.
+//! [`select_canonical`] names the rung that publishes as the canonical field. The configured
+//! condition names an exact member of the measured schedule, so configuration picks a rung rather
+//! than an interpolation point.
 //!
 //! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-rung
 //! relation loss is its frozen objective; both enter here as plain values, so the seam between the
@@ -38,19 +40,20 @@ pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
 /// A validated relation-lens condition schedule.
 ///
-/// The invariants hold by construction: at least two rungs, the first bit-exactly `0.0` (the
-/// zero-condition rung every other rung is measured against; `-0.0` is rejected because the value
-/// conditions the projector and enters reproducibility records bit-for-bit), strictly ascending,
-/// every value finite. The values sit behind a [`Cow`] so the reference schedule is a constant.
+/// Construction validates the schedule. A schedule has at least two rungs. The first rung is
+/// bit-exactly `0.0`, the zero-condition rung that every other rung measures against. Validation
+/// rejects `-0.0` because the value conditions the projector and enters reproducibility records
+/// bit-for-bit. The rungs ascend strictly and every value is finite. The values sit behind a
+/// [`Cow`] so the reference schedule is a constant.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Conditions {
     values: Cow<'static, [f32]>,
 }
 
 impl Conditions {
-    /// The reference schedule: the baseline plus four evenly spaced rungs.
+    /// The reference schedule, the baseline plus four evenly spaced rungs.
     ///
-    /// An unvalidated starting point carried over from the legacy pipeline; the ladder's own
+    /// An unvalidated starting point carried over from the legacy pipeline. The ladder's own
     /// movement evidence revises it.
     pub(crate) const REFERENCE: Self = Self {
         values: Cow::Borrowed(&[0.0, 0.25, 0.5, 0.75, 1.0]),
@@ -60,8 +63,8 @@ impl Conditions {
     ///
     /// # Errors
     ///
-    /// Returns an error when fewer than two rungs are offered, the first rung is not bit-exactly
-    /// `0.0`, a rung is not finite, or a rung does not strictly exceed its predecessor.
+    /// Returns an error when the schedule has fewer than two rungs, the first rung is not
+    /// bit-exactly `0.0`, a rung is not finite, or a rung does not strictly exceed its predecessor.
     pub(crate) fn new(values: impl Into<Cow<'static, [f32]>>) -> Result<Self, ConditionsError> {
         let values = values.into();
         if values.len() < 2 {
@@ -103,7 +106,7 @@ impl Conditions {
         &self.values
     }
 
-    /// Returns the rung count; at least two by construction.
+    /// Returns the rung count, which is at least two by construction.
     #[inline]
     #[must_use]
     pub(crate) fn len(&self) -> usize {
@@ -253,8 +256,8 @@ pub(crate) struct CanonicalSelection<'ladder> {
 
 /// Selects the rung publishing as the canonical field.
 ///
-/// The value must be an exact (bit-level) member of the measured schedule - the canonical condition
-/// is configuration naming a rung, not an interpolation point.
+/// The value must be an exact (bit-level) member of the measured schedule, so the canonical
+/// condition names an existing rung.
 ///
 /// # Errors
 ///
@@ -275,7 +278,7 @@ pub(crate) fn select_canonical(
 /// Fits the alignment of `source` onto `target` and measures the RMS movement it cannot explain.
 ///
 /// Returns [`None`] when the fit rejects the pair (coincident points or an exactly cancelling
-/// covariance); the residual of a successful fit over validated fields is always finite.
+/// covariance). The residual of a successful fit over validated fields is always finite.
 fn aligned_movement(source: &[Vec2], target: &[Vec2]) -> Option<(Similarity, f64)> {
     let alignment = Similarity::fit_uniform_par(source, target)?;
     let movement = alignment

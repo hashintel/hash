@@ -2,12 +2,11 @@
 //!
 //! When the inner solve's step leaves the trust region, the returned step is an interior
 //! iterate advanced to the boundary: the positive `τ` with `‖(p + τd)/Δ‖ = 1`. The
-//! crossing is found in radius-normalized coordinates `u = p/Δ`, `v = d/Δ` through the
-//! cancellation-free quadratic root `q = −½·(b + copysign(√(b² − 4ac), b))`, and the construction
-//! is validated rather than trusted: the normalized step must land within the gross-defect guard
-//! of unit norm both as built and as returned after the radius rescaling. The matching Hessian
-//! product extends along the same `τ`, so a boundary step never charges a fresh Hessian-vector
-//! product.
+//! construction finds the crossing in radius-normalized coordinates `u = p/Δ`, `v = d/Δ` through
+//! the cancellation-free quadratic root `q = −½·(b + copysign(√(b² − 4ac), b))`, and it then checks
+//! its own result, requiring the normalized step to lie within the gross-defect guard of unit norm
+//! both as built and as returned after the radius rescaling. The matching Hessian product extends
+//! along the same `τ`, so a boundary step never charges a fresh Hessian-vector product.
 //!
 //! Every arithmetic escape - a non-finite normalization, coefficient, discriminant, root, or
 //! product - returns [`None`]; the caller maps [`None`] onto its typed no-finite-boundary-step
@@ -21,15 +20,14 @@ use crate::math::{AlignedDVecN, BoxedDVecN, DVecN};
 
 /// Unit-norm residual guard of the boundary construction: `2⁻⁴⁰` of unit norm.
 ///
-/// The guard names one bug class: gross non-root τ defects - mis-built coefficients or signs,
-/// collapsed discriminants, catastrophic cancellation - whose residuals sit at the
-/// square-root-of-epsilon scale or far above. Exact root-sign selection is separately owned by
-/// the finite-positive-τ rule, because either mathematical root lies on the unit boundary.
-/// Honest striped-fold rounding stays orders of magnitude below the guard,
-/// and the margin is asymmetric on purpose: a false abort costs a production fit, while drift
-/// the guard admits is still gated by the final gradient certificate. The exact value is an
-/// implementation choice - not configuration, not persisted metadata, and not a cross-target
-/// identity.
+/// The guard names one bug class: gross non-root τ defects (mis-built coefficients or signs,
+/// collapsed discriminants, catastrophic cancellation) whose residuals sit at the
+/// square-root-of-epsilon scale or far above. Exact root-sign selection belongs to the
+/// finite-positive-τ rule instead, because either mathematical root lies on the unit boundary.
+/// Honest striped-fold rounding stays orders of magnitude below the guard, and the margin is
+/// asymmetric by intent. A false abort costs a production fit, while the final gradient certificate
+/// still gates any drift the guard admits. The exact value is an implementation choice that no
+/// configuration exposes, no file persists, and no cross-target identity depends on.
 pub(super) const GROSS_DEFECT_GUARD: f64 = 4096.0 * f64::EPSILON;
 
 /// A validated step onto the numerical trust-region boundary.
@@ -84,7 +82,7 @@ pub(super) fn boundary_step(
         return None;
     }
 
-    // With c < 0 the roots q/a and c/q carry opposite signs; the selection order is fixed so a
+    // With c < 0 the roots q/a and c/q carry opposite signs. The selection order never varies, so a
     // degenerate pair still resolves deterministically.
     let crossing = [root / quadratic, constant / root]
         .into_iter()

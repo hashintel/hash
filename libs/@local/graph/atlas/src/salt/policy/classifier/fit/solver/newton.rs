@@ -11,27 +11,27 @@
 //! (ŨᵀŨ)_{(i,k),(j,l)} = Kᵢⱼ·(L̃ᵢᵀL̃ⱼ)_{k,l},  L̃ᵢ = √(wᵢ/λ)·Lᵢ
 //! ```
 //!
-//! `Kᵢⱼ` is the data Gram assembled once per fit ([`gram`](super::gram)); only the per-row `2×2`
-//! factors `L̃ᵢ` are per-outer. `Ũ` is applied row-structurally - two wide dots per row on the
-//! way down, two scaled accumulations on the way up - and is never materialized. One
+//! `Kᵢⱼ` is the data Gram assembled once per fit ([`gram`](super::gram)), and only the per-row
+//! `2×2` factors `L̃ᵢ` are per-outer. The solve applies `Ũ` row-structurally, two wide dots per row
+//! on the way down and two scaled accumulations on the way up, and never materializes it. One
 //! capacitance Cholesky factor serves the three coefficient solves (the gradient and the two
-//! intercept coupling columns); the `2×2` intercept Schur system finishes the point. The system
-//! is solved in physical coordinates and the step returns as `sζ = D·sφ`, exact Newton being
-//! invariant under the preparation diagonal.
+//! intercept coupling columns), and the `2×2` intercept Schur system finishes the point. The solve
+//! runs in physical coordinates and the step returns as `sζ = D·sφ`, exact Newton being invariant
+//! under the preparation diagonal.
 //!
-//! A Newton point inside the trust radius returns as [`NewtonTag::NewtonInterior`] with its
-//! Hessian product priced through one certified oracle product - which also yields the recorded
-//! relative Newton residual `‖Hζ·p + gζ‖/‖gζ‖`, the per-outer certificate of the factorization
-//! against the oracle. A Newton point at or past the radius falls back to the classic dogleg:
-//! the Cauchy point prices one additional oracle product, degenerate Cauchy curvature takes the
-//! steepest-descent boundary crossing, and every crossing constructs through the validated
+//! A Newton point inside the trust radius returns as [`NewtonTag::NewtonInterior`] with its Hessian
+//! product priced through one certified oracle product, which also yields the recorded relative
+//! Newton residual `‖Hζ·p + gζ‖/‖gζ‖`, the per-outer certificate of the factorization against the
+//! oracle. A Newton point at or past the radius takes the classic dogleg fallback. The Cauchy point
+//! prices one additional oracle product, degenerate Cauchy curvature takes the steepest-descent
+//! boundary crossing, and every crossing constructs through the validated
 //! [`boundary`](super::boundary) machinery.
 //!
-//! Work is bounded before it happens: the three assembly traversals preflight the row budget
-//! and every oracle product preflights the Hessian-vector and row budgets, all net of the final
-//! reserve. Every arithmetic escape is a typed [`SolverFailure`] naming its [`NewtonStage`].
-//! The factored blocks define the model the step solves; rounding drift between that model and
-//! the oracle is measured by the recorded residual, never assumed away.
+//! The solve bounds its work before doing it. All three assembly traversals preflight the row
+//! budget and every oracle product preflights the Hessian-vector and row budgets, all net of the
+//! final reserve. Every arithmetic escape is a typed [`SolverFailure`] naming its [`NewtonStage`].
+//! The factored blocks define the model the step solves, and the recorded residual measures the
+//! rounding drift between that model and the oracle.
 
 use super::{
     CONTRAST_ROWS, ContrastVector, SOLVER_DIMENSIONS,
@@ -58,7 +58,7 @@ pub(crate) enum NewtonTag {
     CauchyBoundary,
 }
 
-/// A successful inner outcome: the step, its Hessian product, the tag, and the residual.
+/// The step of a successful inner solve, with its Hessian product, tag, and residual.
 #[derive(Debug)]
 pub(super) struct NewtonOutcome {
     /// The returned step `p` in scaled coordinates.
@@ -67,8 +67,9 @@ pub(super) struct NewtonOutcome {
     hessian_step: BoxedDVecN<SOLVER_DIMENSIONS>,
     /// The terminating tag.
     tag: NewtonTag,
-    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` where the Newton point was priced;
-    /// [`None`] on a steepest-descent outer, whose Newton product is never requested.
+    /// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` where the solve priced the Newton point.
+    ///
+    /// [`None`] on a steepest-descent outer, which never requests a Newton product.
     residual: Option<f64>,
 }
 
@@ -93,7 +94,7 @@ impl NewtonOutcome {
         self.tag
     }
 
-    /// The relative Newton residual, where the Newton product was priced.
+    /// The relative Newton residual, where the solve priced the Newton product.
     pub(super) const fn residual(&self) -> Option<f64> {
         self.residual
     }
@@ -158,16 +159,16 @@ fn column_dot(left: RowFactor, k: usize, right: RowFactor, l: usize) -> f64 {
 /// `point` is the physical image `θ(ζ)` of the accepted iterate and `gradient` its scaled
 /// gradient. The Newton point prices one oracle Hessian-vector product; a boundary outer prices
 /// one for the Cauchy curvature first and the dogleg segment prices the Newton product as well.
-/// Budgets are tested before the work they fence: the row budget before every assembly
-/// traversal, the Hessian-vector and row budgets before every oracle product.
+/// The solve tests every budget before the work it fences, taking the row budget before every
+/// assembly traversal and the Hessian-vector and row budgets before every oracle product.
 ///
 /// # Errors
 ///
 /// Returns [`SolverFailure::HvpBudget`] or [`SolverFailure::RowPassBudget`] when another unit
 /// of work would exceed its budget, [`SolverFailure::NonFiniteNewton`] naming the stage where a
 /// value left the finite domain, [`SolverFailure::SingularInterceptCurvature`] when no row
-/// offers the intercepts curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when a boundary
-/// crossing could not be validated.
+/// offers the intercepts curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when the boundary
+/// construction yields no validated crossing.
 #[expect(
     clippy::too_many_lines,
     reason = "the assembly, factorization, back-substitution, and dogleg fallback are one solve; \
@@ -198,14 +199,14 @@ pub(super) fn newton_step(
         "the gram view covers exactly the prepared corpus rows",
     );
 
-    // The physical right-hand side: gφ = D·gζ, one componentwise multiplication.
+    // The physical right-hand side is gφ = D·gζ, one componentwise multiplication.
     let physical_flat = prepared.scaling.multiply(gradient);
     if !physical_flat.is_finite() {
         return Err(non_finite(NewtonStage::Weights));
     }
     let physical_gradient = ContrastVector::from_flat(&physical_flat);
 
-    // Three assembly traversals per solve: curvature, projection down, lift back up.
+    // Each solve makes three assembly traversals: curvature, projection down, lift back up.
     if control.free_row_traversals(config) < 3 {
         return Err(SolverFailure::RowPassBudget);
     }
@@ -332,8 +333,8 @@ pub(super) fn newton_step(
     }
     let [descent, coupling_first, coupling_second] = solved;
 
-    // Intercept Schur complement: S[j][k] = A₂₂[j][k] − ⟨A₁₂e_j, Z_k⟩, solved as the strict
-    // 2×2 Cholesky; a non-positive pivot means no row offers the intercepts curvature.
+    // Intercept Schur complement: S[j][k] = A₂₂[j][k] − ⟨A₁₂e_j, Z_k⟩, solved as the strict 2×2
+    // Cholesky. A non-positive pivot means no row offers the intercepts curvature.
     let couplings = [&coupling_first, &coupling_second];
     let mut schur = [0.0_f64; 3];
     let schur_entries = [(0_usize, 0_usize), (1, 0), (1, 1)];

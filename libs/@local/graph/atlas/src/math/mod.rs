@@ -1,9 +1,9 @@
 //! SIMD-native math primitives for fitting and serving 2D maps of embeddings.
 //!
-//! Everything here exists to make one pipeline fast and correct: take high-dimensional embedding
-//! vectors, lay them out on a 2D map, and keep transforming, aligning, and verifying that map. The
-//! types are `f32` throughout, batch four-wide where hot loops iterate, and every performance claim
-//! in their docs traces to emitted assembly or a hardware-counter measurement.
+//! Everything here serves one pipeline that has to be fast and correct. The pipeline places
+//! high-dimensional embedding vectors on a 2D map and goes on transforming, aligning, and verifying
+//! that map. The types are `f32` throughout, batch four-wide where hot loops iterate, and every
+//! performance claim in their docs traces to emitted assembly or a hardware-counter measurement.
 //!
 //! ```
 //! use hash_graph_atlas::math::{Bounds2, Vec2};
@@ -42,7 +42,7 @@
 //! answers symmetric positive-definite linear systems.
 //!
 //! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
-//! attraction/repulsion gradients over batches; its parameters come from [`AffinityCurve::fit`].
+//! attraction/repulsion gradients over batches. Its parameters come from [`AffinityCurve::fit`].
 //!
 //! Scalar helpers: [`softplus`], [`huber`], and the checked narrowings [`narrow_f32`] /
 //! [`narrow_f32_exact`].
@@ -51,16 +51,16 @@
 //!
 //! `f32` is the working precision: coordinates, transforms, gradients, and distances take and
 //! return `f32`. Long reductions accumulate in `f64` internally and round once at the end, which
-//! the kernel docs state as an accuracy guarantee rather than exposing in signatures. `f64` appears
-//! in a signature only where a consumer's algorithm demands it, such as classifier logits on
+//! the kernel docs state as an accuracy guarantee rather than exposing in signatures. A signature
+//! takes `f64` only where a consumer's algorithm demands it, such as classifier logits on
 //! [`DVecN`].
 //!
 //! # Batching
 //!
-//! Hot loops work in [`Vec2x4T`]: convert `[Vec2; 4]` once at the loop boundary (paying one
-//! shuffle), run axis-parallel arithmetic inside, and write back with [`Vec2x4T::from_lanes`].
-//! Batch types are aligned for full-width vector loads, and conversions to [`Simd`] compile to
-//! single load and store instructions.
+//! Hot loops work in [`Vec2x4T`]. Convert `[Vec2; 4]` once at the loop boundary (paying one
+//! shuffle), then run axis-parallel arithmetic inside and write back with [`Vec2x4T::from_lanes`].
+//! Batch types align for full-width vector loads, and conversions to [`Simd`] compile to single
+//! load and store instructions.
 //!
 //! [`Simd`]: core::simd::Simd
 #![expect(unsafe_code)]

@@ -14,9 +14,9 @@ use crate::file::region::PageMap;
 /// Opening an attraction file failed.
 #[derive(Debug)]
 pub(crate) enum OpenAttractionError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -75,9 +75,9 @@ impl Error for OpenAttractionError {
 /// An attraction file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
-/// geometry alone; the index's domain invariants are `salt::relation`'s artifact contract.
+/// describes its own regions exactly. The regions borrow straight from the whole-file mapping and
+/// start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose geometry
+/// alone. The index's domain invariants are `salt::relation`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct AttractionFile {
     map: PageMap,
@@ -88,7 +88,7 @@ impl AttractionFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAttractionError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenAttractionError::Io`] when opening or mapping the file fails,
     /// [`OpenAttractionError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenAttractionError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenAttractionError> {

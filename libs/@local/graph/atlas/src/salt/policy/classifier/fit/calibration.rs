@@ -3,7 +3,7 @@
 //! [`fit_temperature`] minimizes weighted-mean soft-label cross-entropy over `T` in `[0.05, 20]` by
 //! golden-section search in `ln T`, with `T = 1` always among the final candidates; ties prefer the
 //! temperature closest to one. [`metrics`] reports cross-entropy and Brier score at `T = 1` and at
-//! the deployment temperature, so raw and calibrated quality stay separately visible.
+//! the deployment temperature, so raw and calibrated quality both stay visible.
 
 use hashql_core::id::IdSlice;
 

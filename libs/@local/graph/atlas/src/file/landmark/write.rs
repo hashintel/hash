@@ -20,8 +20,8 @@ use crate::{file::region::write_region, math::Vec2};
 ///
 /// # Panics
 ///
-/// Panics when `coordinates` and `rows` disagree on the landmark count, which no file geometry can
-/// represent.
+/// This panics when `coordinates` and `rows` disagree on the landmark count, which no file geometry
+/// can represent.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; disagreeing regions are a caller contract \

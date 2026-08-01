@@ -59,8 +59,8 @@ fn prediction_resolves_through_the_applicability_mix() {
             proximal: 0.25,
         },
     );
-    // Attraction scales the stored components by the applicability;
-    // the ceded mass lands in the implicit Overlay remainder.
+    // Attraction scales the stored components by the applicability, and the implicit Overlay
+    // remainder absorbs the ceded mass.
     assert_eq!(
         policy.attraction,
         ClassProbabilities {
@@ -167,8 +167,7 @@ fn admission_reroutes_failing_coincident_mass() {
     assert_eq!(policies[2].attraction.coincident, 0.0);
     // Proximal never gains rerouted mass and is never judged.
     assert_eq!(policies[1].attraction.proximal, 0.25);
-    // The selected distribution is untouched by mix and admission
-    // alike.
+    // Neither the mix nor admission changes the selected distribution.
     assert_eq!(policies[1].selected.coincident, 0.25);
 }
 

@@ -5,24 +5,24 @@
 //! the fit in the same category as the policy override table: supplied beside the corpus, recorded
 //! by content hash, never derived by the pipeline.
 //!
-//! A type verdict for a store-native type names the exact type VERSION whose rendered card the
-//! reviewer saw, and resolution is version-precise: the verdict binds only that version's ontology
-//! row. Other versions of the same type are unreviewed and take their policy from lower-precedence
-//! sources, and a reviewed version absent from the corpus snapshot resolves to no row at all -
-//! reported as evidence, not an error, because snapshots legitimately move on. Verdicts for
-//! foreign-corpus types carry no store identity and are likewise evidence: the review is preserved,
-//! nothing in this corpus answers to it. because snapshots legitimately move past reviewed
-//! versions.
+//! A type verdict for a store-native type names the exact type version whose rendered card the
+//! reviewer saw, and resolution is version-precise, so the verdict binds only that version's
+//! ontology row. No review covers the other versions of the same type, and they take their policy
+//! from lower-precedence sources. A reviewed version absent from the corpus snapshot resolves to no
+//! row at all, which resolution reports as evidence rather than an error, because snapshots
+//! legitimately move past reviewed versions. Verdicts for foreign-corpus types carry no store
+//! identity and are likewise evidence. The record keeps the review, and nothing in this corpus
+//! answers to it.
 //!
 //! Resolution derives the id naming each reviewed versioned URL in the corpus's own id space
-//! ([`OntologyIdentity`]) and matches it against the corpus type table, whose position IS the
+//! ([`OntologyIdentity`]) and matches it against the corpus type table, whose position is the
 //! ontology row. The primary consumer is the training loop's phase boundary, which calibrates the
 //! Proximal radius from the reviewed-Proximal types' attraction pairs.
 //!
-//! Pair-level verdicts (a placement class for one concrete entity pair) are parsed and validated
-//! but not yet resolved: no exporter emits them, so the wire form of their entity references has
-//! never been pinned against real bytes. Their resolution lands with the first exporter that
-//! produces one.
+//! The reader parses and validates pair-level verdicts (a placement class for one concrete entity
+//! pair) but does not yet resolve them. No exporter emits them, so nothing has pinned the wire form
+//! of their entity references against real bytes. Their resolution lands with the first exporter
+//! that produces one.
 
 pub(crate) mod calibrate;
 
@@ -113,8 +113,8 @@ impl Error for InvalidReviewedVerdicts {
 
 /// A human-confirmed placement class.
 ///
-/// `excluded` reviews are supervised exclusions, not placements; the exporter omits them, so no
-/// fourth variant exists here.
+/// An `excluded` review records a supervised exclusion rather than a placement. The exporter omits
+/// those reviews, so no fourth variant exists here.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum PlacementClass {
@@ -142,13 +142,13 @@ pub(crate) struct TypeVerdict {
     /// The exact type version whose card the reviewer saw - the resolution key.
     ///
     /// Only types with a store identity record one; a verdict for a foreign-corpus type carries
-    /// [`None`], can never resolve to an ontology row, and lands in the unresolved evidence.
+    /// [`None`], can never resolve to an ontology row, and enters the unresolved evidence.
     pub versioned_url: Option<VersionedUrl>,
 }
 
 /// One reviewed placement class for a concrete entity pair.
 ///
-/// Carried and validated, not yet resolved; see the module documentation.
+/// The reader validates and retains these verdicts without resolving them to ontology rows.
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PairVerdict {
@@ -175,13 +175,13 @@ struct Document {
 
 /// A validated reviewed-verdicts document.
 ///
-/// Construction checks the whole wire contract - declared schema, type verdicts strictly ascending
-/// by relation with unique versioned URLs, pair verdicts strictly ascending by `(left, right)`, no
-/// empty identity fields - so consumers read verdicts without re-checking.
+/// Construction checks the whole wire contract (declared schema, type verdicts strictly ascending
+/// by relation with unique versioned URLs, pair verdicts strictly ascending by `(left, right)`, and
+/// no empty identity fields), so consumers read verdicts without re-checking.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReviewedVerdicts {
-    // One parse per fit: construction validates the wire document into
-    // owned, normalized verdicts, and nothing downstream re-reads the bytes.
+    // Construction validates the wire document into owned, normalized verdicts once per fit, and
+    // nothing downstream re-reads the bytes.
     type_verdicts: Vec<TypeVerdict>,
     pair_verdicts: Vec<PairVerdict>,
     sources: BTreeMap<Box<str>, Sha256Digest>,
@@ -222,8 +222,8 @@ impl ReviewedVerdicts {
                 return Err(InvalidReviewedVerdicts::UnorderedTypeVerdicts { index });
             }
 
-            // Two verdicts without a store identity are not duplicates
-            // of each other; only a repeated identity conflicts.
+            // Verdicts without a store identity are not duplicates of each other. Only a repeated
+            // identity conflicts.
             if verdict.versioned_url.is_some()
                 && document.type_verdicts[..index]
                     .iter()
@@ -359,7 +359,7 @@ impl<'verdicts> ResolvedVerdicts<'verdicts> {
     /// Returns the verdicts that resolve to no row.
     ///
     /// The reviewed version is not in the snapshot, or the verdict records no store identity at
-    /// all; returned in document order. Evidence data, not a failure.
+    /// all. The slice follows document order and records evidence rather than a failure.
     #[inline]
     #[must_use]
     pub(crate) const fn unresolved(&self) -> &[&'verdicts TypeVerdict] {

@@ -1,20 +1,20 @@
-//! The scope cascade: delivery buckets built over exactly the visible view.
+//! Delivery buckets built over exactly the visible view.
 //!
-//! A restricted response delivers from a schedule of its own: a first-occupant cascade over the
+//! A restricted response delivers from a schedule of its own, a first-occupant cascade over the
 //! visible rows alone, under the corpus rank restricted to them, read at the view's resolved cut
-//! offset `k`. Every schedule-derived output - delivered rows, per-bucket runs, the child
-//! bitmask, the root's visible count and resolution - is a function of the visible rows, their
-//! pinned keys and ranks, and public policy. A hidden row contributes to none of them, so a
-//! scope's responses carry no evidence of what its mask removed.
+//! offset `k`. Every schedule-derived output - delivered rows, per-bucket runs, the child bitmask,
+//! the root's visible count and resolution - is a function of the visible rows, their pinned keys
+//! and ranks, and public policy. A hidden row contributes to none of them, so a scope's responses
+//! carry no evidence of what its mask removed.
 //!
-//! [`ScopeSchedule::of`] builds the cascade once per scope; [`ScopeSchedule::cut`] binds one
-//! resolved offset and answers the delivery queries. The cascade is computed at the natural
-//! depth and shared by every offset: the first-occupant scan at depth `d` is decided entirely by
-//! depths at or above `d`, so a deeper catch-all never changes which row claims a shallower cell
-//! and a row's bucket at deepest cut `D` is `min(natural, D)`. One slot column in
-//! `(bucket, key, rank)` order therefore serves every admissible `k` - buckets above the cut
-//! read as slot ranges, and only the catch-all tail is re-sorted into Morton order, once per
-//! offset, on first read.
+//! [`ScopeSchedule::of`] builds the cascade once per scope, and [`ScopeSchedule::cut`] binds one
+//! resolved offset and answers the delivery queries. Construction computes the cascade at the
+//! natural depth, and every offset shares it, because depths at or above `d` decide the
+//! first-occupant scan at depth `d`. A deeper catch-all therefore never changes which row claims a
+//! shallower cell, and a row's bucket at deepest cut `D` is `min(natural, D)`. One slot column in
+//! `(bucket, key, rank)` order therefore serves every admissible `k`. Buckets above the cut read as
+//! slot ranges, and only the catch-all tail re-sorts into Morton order, once per offset, on first
+//! read.
 
 use alloc::sync::Arc;
 use core::{cmp::Ordering, ops::Range};
@@ -33,9 +33,7 @@ use crate::{
 hashql_core::id::newtype! {
     /// A reference to a visible row by its slot in one scope schedule's natural order.
     ///
-    /// Slots are dense and zero-based over one view's visible rows, ascending by natural bucket
-    /// and, within a bucket, by `(key, rank)`. A slot is valid only against the schedule that
-    /// assigned it: two views, or one view under two proofs, share no slot vocabulary.
+    /// Slots are dense and zero-based over one view's visible rows. The order is bucket-major at the natural depth, ascending by `(key, rank)` inside a bucket. A slot is valid only against the schedule that assigned it, because two views, or one view under two proofs, share no slot vocabulary.
     pub struct ScopeSlot(u32)
 }
 
@@ -77,11 +75,11 @@ impl BucketPost {
 /// cascade built over exactly its visible rows. The constructor derives the variant from the
 /// proof, so production has one build site and the pairing law in one place.
 ///
-/// Caller requirement: as with the census, a schedule travels with the proof it was derived
-/// from. Assembly refuses a proof paired with the other variant's schedule.
+/// Caller requirement: as with the census, a schedule travels with the proof it derives from.
+/// Assembly refuses a proof paired with the other variant's schedule.
 #[derive(Debug, Clone)]
 pub enum ViewSchedule {
-    /// The generation's corpus schedule: every zoom keeps its recorded cut.
+    /// The generation's corpus schedule, where every zoom keeps its recorded cut.
     Corpus,
     /// The view's own cascade, shared by every request of its scope.
     Scope(Arc<ScopeSchedule>),
@@ -113,11 +111,11 @@ pub(crate) struct ScopeRow {
     pub position: BasePosition,
     /// The row's Morton key, quantized from the delivered coordinate column.
     pub key: MortonKey,
-    /// The row's corpus importance rank; its order restricted to the view ranks the view.
+    /// The row's corpus importance rank. Its order restricted to the view ranks the view.
     pub rank: ImportanceRank,
 }
 
-/// One slot of the schedule: a visible row with its natural cascade bucket.
+/// A visible row with its natural cascade bucket.
 #[derive(Debug, Copy, Clone)]
 struct SlottedRow {
     /// The row's first-occupant bucket at the natural depth.
@@ -138,8 +136,8 @@ struct PositionBucket {
 /// A resolved cut past the key width.
 ///
 /// The deepest scope bucket is `max_tile_depth + span + k` and a complete Morton key resolves 32
-/// subdivisions, so an offset that lands beyond them has no grid to deliver on. The offset is
-/// refused whole: nothing clamps it and nothing substitutes another schedule.
+/// subdivisions, so an offset that lands beyond them has no grid to deliver on. The binding refuses
+/// that offset whole, and nothing clamps it or substitutes another schedule.
 #[expect(
     clippy::min_ident_chars,
     reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -174,21 +172,21 @@ impl core::error::Error for ScheduleWidthError {}
 /// The scope cascade of one visible view, computed once and read at any admissible cut offset.
 ///
 /// Construction assigns every visible row the shallowest grid depth at which it is its cell's
-/// first representative in rank order - the same first-occupant law the corpus schedule is built
-/// with - and orders the slots bucket-major, ascending by key inside a bucket, rank breaking
-/// exact-key ties. [`Self::cut`] binds a resolved offset over the result. The value is immutable
-/// after construction and per-offset catch-all tails materialize behind [`OnceLock`]s, so one
-/// schedule serves every request of its scope concurrently.
+/// first representative in rank order - the same first-occupant law behind the corpus schedule -
+/// and orders the slots bucket-major, ascending by key inside a bucket, rank breaking exact-key
+/// ties. [`Self::cut`] binds a resolved offset over the result. The value is immutable after
+/// construction and per-offset catch-all tails materialize behind [`OnceLock`]s, so one schedule
+/// serves every request of its scope concurrently.
 ///
-/// A schedule is resolved once per scope beside the proof it was built from and shared by the
-/// requests under that scope.
+/// A schedule resolves once per scope beside the proof it builds from, and the requests under that
+/// scope share it.
 ///
-/// Caller requirement: a schedule travels with the proof it was built over. Delivery reads it as
-/// the view's own cascade without re-deriving it, so a schedule paired with a foreign proof
-/// serves the wrong view's rows.
+/// Caller requirement: a schedule travels with the proof it builds over. Delivery reads it as the
+/// view's own cascade without re-deriving it, so a schedule paired with a foreign proof serves the
+/// wrong view's rows.
 #[derive(Debug)]
 pub struct ScopeSchedule {
-    /// The slot column: every visible row in natural order.
+    /// Every visible row in natural order.
     slots: Box<IdSlice<ScopeSlot, SlottedRow>>,
     /// Each fencepost's slot: bucket `b` spans its opening post's slot to its closing post's.
     posts: IdArray<BucketPost, ScopeSlot, { Self::BUCKETS + 1 }>,
@@ -204,8 +202,8 @@ impl ScopeSchedule {
 
     /// Builds the cascade over the visible view `proof` admits on `atlas`.
     ///
-    /// One pass over the base columns gathers each admitted row's position, pinned key, and
-    /// pinned rank; [`Self::over`] assigns the buckets.
+    /// One pass over the base columns gathers each admitted row's position, pinned key, and pinned
+    /// rank. [`Self::over`] assigns the buckets.
     pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
         let row_ids = atlas.rows.view();
         let ranks = atlas.ranks.view();
@@ -228,11 +226,11 @@ impl ScopeSchedule {
 
     /// Builds the cascade over exactly the given rows.
     ///
-    /// [`cascade::buckets`] - the function the corpus schedule is built with at fit time - runs
-    /// over the rows' keys under their restricted rank order, to [`Depth::MAX`]: rows co-located
-    /// at the complete key width never claim a cell and take the deepest bucket, exactly as the
-    /// corpus catch-all takes them. An empty view builds an empty schedule, which delivers
-    /// nothing and occupies no cell at any depth.
+    /// [`cascade::buckets`], the function behind the corpus schedule at fit time, runs over the
+    /// rows' keys under their restricted rank order, down to [`Depth::MAX`]. Rows co-located at the
+    /// complete key width never claim a cell and take the deepest bucket, exactly as the corpus
+    /// catch-all takes them. An empty view builds an empty schedule, which delivers nothing and
+    /// occupies no cell at any depth.
     pub(crate) fn over(rows: Vec<ScopeRow>) -> Self {
         // The cascade claims cells in ascending restricted rank; the gather order is the local
         // row domain.
@@ -256,7 +254,7 @@ impl ScopeSchedule {
         let buckets = cascade::buckets(keys.as_slice(), &ranking, Depth::MAX);
 
         // Slot order: bucket-major, ascending key within a bucket, rank breaking exact-key
-        // ties. One sorted column carries the whole schedule.
+        // ties. One sorted column is the whole schedule.
         let mut slots: Vec<SlottedRow> = rows
             .into_iter()
             .zip(&*buckets)
@@ -301,9 +299,9 @@ impl ScopeSchedule {
     ///
     /// # Errors
     ///
-    /// Returns [`ScheduleWidthError`] when that deepest bucket lies past the key width. The
-    /// offset is refused rather than clamped: a sealed offset was resolved against this same
-    /// generation's schedule, so an out-of-domain value is a defect to surface.
+    /// Returns [`ScheduleWidthError`] when that deepest bucket lies past the key width. Binding
+    /// refuses the offset rather than clamping it, because a sealed offset resolves against this
+    /// same generation's schedule, so an out-of-domain value is a defect to surface.
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -399,8 +397,8 @@ impl ScheduleCut<'_> {
     ///
     /// # Panics
     ///
-    /// Panics beyond the served grid; a zoom above the generation's deepest tile is a caller
-    /// defect, never request data - request validation rejects it first.
+    /// This panics beyond the served grid. A zoom above the generation's deepest tile is a caller
+    /// defect rather than request data, because request validation rejects it first.
     pub(crate) fn cut_of(&self, z: u8) -> Depth {
         let cut = z + self.span + self.k.get();
         assert!(
@@ -410,7 +408,7 @@ impl ScheduleCut<'_> {
         Depth::new(cut).expect("binding validated the deepest cut against the key width")
     }
 
-    /// Returns the resolved offset this cut was bound at.
+    /// Returns the resolved offset this cut binds.
     pub(crate) const fn offset(&self) -> CutOffset {
         self.k
     }
@@ -473,7 +471,7 @@ impl ScheduleCut<'_> {
 
     /// Counts the view's rows delivered by the root's cumulative schedule.
     ///
-    /// The root's visible count: rows whose scope bucket lies at or below `d(0)`.
+    /// The root's visible count covers rows whose scope bucket lies at or below `d(0)`.
     pub(crate) fn root_delivered(&self) -> u64 {
         let cut = self.cut_of(0);
         if cut >= self.deepest {
@@ -567,7 +565,7 @@ impl ScheduleCut<'_> {
     }
 }
 
-/// One scope delivery: the gathered positions and the wire head's run vocabulary.
+/// The gathered positions and the wire head's run vocabulary of one scope delivery.
 #[derive(Debug)]
 pub(crate) struct ScopeDelivery {
     /// The delivered base positions, bucket-major, ascending by `(key, rank)` within a bucket.

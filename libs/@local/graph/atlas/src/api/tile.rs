@@ -45,7 +45,9 @@ The `filter` field is reserved: a request that carries one is rejected with `uns
 pub(super) struct VariantPath {
     /// The sha256 generation id, as returned by `current`.
     generation: GenerationId,
-    /// The fitted variant name; the manifest lists what this generation serves.
+    /// The fitted variant name.
+    ///
+    /// The manifest lists what this generation serves.
     variant: String,
 }
 
@@ -55,7 +57,7 @@ pub(super) struct VariantPath {
 /// `invalid-coordinate` problem, the same slug an out-of-range address earns from assembly.
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 pub(super) struct CellPath {
-    /// The zoom: a subdivision depth; `0` addresses the root.
+    /// The zoom, a subdivision depth where `0` addresses the root.
     z: u8,
     /// The cell's `x` index on the `2^z` grid.
     x: u32,
@@ -133,8 +135,8 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        // A refused cut or a mismatched proof/schedule pair is a server-side defect: both
-        // values were resolved and sealed by this process, so neither is request data.
+        // A refused cut or a mismatched proof/schedule pair is a server-side defect: this
+        // process resolved and sealed both values, so neither is request data.
         Err(error @ (TileError::Schedule(_) | TileError::Contract)) => {
             return Err(Problem::internal(
                 error,

@@ -1,4 +1,4 @@
-//! The policy stage: classification and precedence resolution.
+//! The policy stage classifies relation cards and resolves the policy table.
 
 use alloc::collections::BTreeSet;
 

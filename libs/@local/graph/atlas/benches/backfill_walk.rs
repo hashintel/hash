@@ -1,11 +1,11 @@
 //! Wall-time benchmarks for the restricted-view backfill walk variants.
 //!
-//! The two candidate-selection variants share one response shape and differ in cost structure
-//! alone: the independent walk visits one extent, the chained walk re-derives every ancestor
-//! delivery first. The decision between them is a number - per-tile selection time as the zoom
-//! deepens - so this target produces exactly that curve.
+//! The independent walk and the chained walk share one response shape and differ in cost structure
+//! alone. The independent walk visits one extent, while the chained walk re-derives every ancestor
+//! delivery first. The decision between them is per-tile selection time as the zoom deepens, and
+//! this target produces exactly that curve.
 //!
-//! Before the timed groups, one report prints the full sweep: both variants across mask shape
+//! Before the timed groups, one report prints the full sweep of both variants across mask shape
 //! (independent rows hidden versus whole spatial blocks), visible fraction, and zoom along the
 //! fixture's densest descent path, with scan counts, per-tile medians, and the independent
 //! variant's re-delivery census (the crowding the chained variant exists to remove). The timed
@@ -42,7 +42,9 @@ use hash_graph_atlas::{
 /// The corpus scale a default sweep runs at.
 const DEFAULT_POINTS: usize = 300_000;
 
-/// The fixture seed: equal seeds reproduce the corpus, the masks, and the path.
+/// The fixture seed.
+///
+/// Equal seeds reproduce the corpus, the masks, and the path.
 const SEED: u64 = 0x0BAC_F111;
 
 /// Median-of-five timing repetitions per sweep cell.
@@ -226,7 +228,7 @@ fn zoom(value: Option<u8>) -> String {
 /// Returns the cross-check's tile set: every shallow tile plus the descent path and its siblings.
 ///
 /// Zooms 0 through 3 whole put every extent of the domain in the comparison, dense and empty
-/// alike; the path's cells and their children carry it into the deepest zooms.
+/// alike. The path's cells and their children carry it into the deepest zooms.
 fn audit_tiles(bench: &WalkBench, path: &[(u8, u32, u32)]) -> Vec<(u8, u32, u32)> {
     let mut tiles: Vec<(u8, u32, u32)> = Vec::new();
     for z in 0..=3_u8 {
@@ -936,7 +938,7 @@ fn dot_count(rules: &[FillRule], rows: &[(bool, f64, Vec<Tally>)], tiles: usize)
 
 /// Prints the noninterference census: delivered rows over two corpora sharing one visible view.
 ///
-/// Corpus B is the masked fixture; corpus A holds the same visible rows and nothing else. A rule
+/// Corpus B is the masked fixture. Corpus A contains the same visible rows and nothing else. A rule
 /// whose delivery is a function of the visible view alone delivers equal rows over both.
 fn noninterference(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[FillRule]) {
     println!(
@@ -996,7 +998,7 @@ fn noninterference(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fil
     }
 }
 
-/// Prints the granularity of whole-level refinement against the partial orders.
+/// Prints delivered count against the budget for whole-level refinement and the partial orders.
 fn granularity(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
     println!(
         "\nrefinement granularity: delivered count against the budget, over {} tiles per row",
@@ -1044,8 +1046,8 @@ fn granularity(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
                         }
                         tally.observe(&audit);
                         over += usize::from(audit.delivered > budget);
-                        // A tile delivering every visible point it holds is resolved, not
-                        // starved: no budget buys it another dot.
+                        // The sweep counts a tile delivering every visible point it holds as
+                        // resolved, not starved: no budget buys it another dot.
                         if audit.cumulative >= column.population(cell_of(z, x, y)) {
                             continue;
                         }
@@ -1218,7 +1220,7 @@ fn served_identity(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fil
 
 /// Prints the noninterference census over the served engine.
 ///
-/// The generation is built from the visible entries alone and cascaded over them alone, so a served
+/// The generation derives from the visible entries alone and cascades over them alone, so a served
 /// delivery must agree row for row across the two corpora exactly as the scanning form does. A row
 /// with a nonzero `differ` under a hidden-independent rule means the artifact reintroduced a
 /// dependence on the hidden rows.
@@ -1635,7 +1637,7 @@ fn scope_construction_micros(bench: &WalkBench, construction: ScopeConstruction)
 ///
 /// # Panics
 ///
-/// Panics when `N` is zero.
+/// This panics when `N` is zero.
 fn sample_median<const N: usize>(mut samples: [f64; N]) -> f64 {
     assert!(N > 0, "a median needs at least one sample");
     samples.sort_by(f64::total_cmp);
@@ -1648,7 +1650,7 @@ fn sample_median<const N: usize>(mut samples: [f64; N]) -> f64 {
 ///
 /// # Panics
 ///
-/// Panics when `index` lies beyond `N`.
+/// This panics when `index` lies beyond `N`.
 fn record_sample<const N: usize>(samples: &mut [f64; N], index: usize, value: f64) {
     *samples
         .get_mut(index)
@@ -2120,7 +2122,7 @@ fn delivery_order(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     }
 }
 
-/// Prints the sweep: variants across mask shape, visible fraction, and zoom.
+/// Prints the sweep of both variants across mask shape, visible fraction, and zoom.
 fn sweep(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!(
         "backfill walk sweep: {} points, deepest zoom {}, densest-descent path of {} tiles",
@@ -2996,7 +2998,7 @@ fn benches(criterion: &mut Criterion) {
 /// mask.
 fn timings(criterion: &mut Criterion, bench: &mut WalkBench, deep: (u8, u32, u32)) {
     let (deep_z, deep_x, deep_y) = deep;
-    // The decision points: both variants at the root and at the deepest zoom, under the
+    // The decision points are both variants at the root and at the deepest zoom, under the
     // adversarial mask.
     bench.mask_clustered(0.01, SEED);
     let pyramid = bench.pyramid();

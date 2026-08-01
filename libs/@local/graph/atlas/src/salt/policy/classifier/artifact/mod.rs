@@ -1,4 +1,4 @@
-//! The classifier's published form: one combined file and its validated read.
+//! Publishes a fitted classifier as one combined file and validates it on read.
 //!
 //! A fitted classifier publishes as one [`crate::file::classifier`] file, so the parameters that
 //! predict together cannot fall out of sync. [`Classifier::from_artifact`] validates the domain
@@ -136,8 +136,8 @@ impl Classifier {
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates a model invariant: a foreign dimension, a non-finite
-    /// parameter, a non-positive temperature or inverse scale, or training distances that are
+    /// Returns an error when the file declares a foreign dimension, when a parameter is not finite,
+    /// when a temperature or inverse scale is not positive, or when the training distances are
     /// empty, negative, or unordered.
     #[tracing::instrument(skip_all)]
     pub(crate) fn from_artifact(file: &ClassifierFile) -> Result<Self, InvalidClassifierFile> {

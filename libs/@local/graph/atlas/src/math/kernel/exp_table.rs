@@ -7,14 +7,15 @@
 //! # Design
 //!
 //! Reduction: `n = round(x · 16/ln 2)`, split as `n = 16q + j`, so `e^x = 2^q · 2^(j/16) · e^r`
-//! with `|r| ≤ ln(2)/32 ≈ 0.0217`. The table entry `T = 2^(j/16)` is stored as an f32 pair
-//! `(T_hi, T_lo)` with `T_lo = round(T - T_hi)`, and the product `T · e^r` is reconstructed as
+//! with `|r| ≤ ln(2)/32 ≈ 0.0217`. The table stores each entry `T = 2^(j/16)` as an f32 pair
+//! `(T_hi, T_lo)` with `T_lo = round(T - T_hi)`, and the kernel reconstructs the product `T · e^r`
+//! as
 //!
 //! ```text
 //! T_hi + fma(T_hi, expm1(r), T_lo)
 //! ```
 //!
-//! which keeps the table's rounding error out of the result: the only half-ulp-scale rounding
+//! which keeps the table's rounding error out of the result. The only half-ulp-scale rounding
 //! left is the final add. Error budget: 0.5 (final add) + 0.078 (tail fit, measured in exact
 //! arithmetic) + ≈0.03 (small-scale roundings + reduction residual). The Cody-Waite split keeps
 //! `n · LN2_16_HI` exact for `n < 4096` (12-bit significand times `|n| ≤ 2402`), and both
@@ -22,8 +23,8 @@
 //!
 //! # Lookup portability
 //!
-//! The arithmetic is target-independent; only the 16-entry lookup is not.
-//! [`Simd::gather_or_default`] is the portable form: on AVX2/AVX-512 it lowers to `vgatherdps`
+//! The arithmetic is target-independent. Only the 16-entry lookup is not.
+//! [`Simd::gather_or_default`] is the portable form. On AVX2/AVX-512 it lowers to `vgatherdps`
 //! (fine), on NEON it scalarizes (poor). The `aarch64` path below instead uses `vqtbl4q_u8` - a
 //! single-instruction 64-byte table lookup, which is exactly a 16-entry f32 table for four lanes.
 //! On x86 without fast gathers, the analogous trick is two `u8x32` `swizzle_dyn` calls per table
@@ -38,7 +39,7 @@ use super::sleef::scale_by_pow2_f32;
 /// `16 / ln(2)` (= 23.083120346069336).
 const INVLN2_16: f32 = f32::from_bits(0x41B8_AA3B);
 
-/// `ln(2)/16` with the low 12 mantissa bits zeroed: 12 significant bits, so `n · LN2_16_HI` is
+/// `ln(2)/16` with the low 12 mantissa bits zeroed: a 12-bit significand, so `n · LN2_16_HI` is
 /// exact for `|n| < 4096` (the reduction produces `|n| ≤ 2402`).
 const LN2_16_HI: f32 = {
     let base = core::f32::consts::LN_2 / 16.; // exact: power-of-two divide
@@ -98,9 +99,9 @@ const EXP16_LO: [f32; 16] = [
 
 /// Looks four lanes of a 16-entry `f32` table up in a single `TBL4`.
 ///
-/// Lane `i` with index `j` reads bytes `4j..4j+4`; the byte indices are built in the `u32` domain
-/// (`4j` replicated to all four bytes, plus `0,1,2,3`) and reinterpreted, which assumes
-/// little-endian lane layout.
+/// Lane `i` with index `j` reads bytes `4j..4j+4`. The lookup builds the byte indices in the
+/// `u32` domain (`4j` replicated to all four bytes, plus `0,1,2,3`) and reinterprets them, which
+/// assumes little-endian lane layout.
 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
 #[inline]
 fn tbl4_lookup(table: &[f32; 16], index: Simd<u32, 4>) -> Simd<f32, 4> {
@@ -186,7 +187,7 @@ pub(crate) fn exp_f32x4(values: Simd<f32, 4>) -> Simd<f32, 4> {
     exp_f32(values)
 }
 
-/// Eight lanes through the four-lane `TBL4` form, in two halves.
+/// Evaluates eight lanes as two four-lane `TBL4` halves.
 #[cfg(all(target_arch = "aarch64", target_endian = "little"))]
 #[inline]
 pub(crate) fn exp_f32x8(values: Simd<f32, 8>) -> Simd<f32, 8> {

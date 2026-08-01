@@ -1,13 +1,13 @@
-//! The protection index: per-row no-repel evidence over linked pairs.
+//! Per-row no-repel evidence over linked pairs.
 //!
-//! [`ProtectionIndex`] answers one question for an endpoint pair: does its link evidence veto
-//! targeted repulsion? Two channels answer it independently, because mined hard negatives aim
-//! repulsion at specific pairs while ordinary sampled negatives spread it broadly: each channel
-//! carries its own applicability floor and admission threshold.
+//! [`ProtectionIndex`] answers one question for an endpoint pair. Does its link evidence veto
+//! targeted repulsion? Separate channels answer it independently, because mined hard negatives aim
+//! repulsion at specific pairs while ordinary sampled negatives spread it across many pairs. Each
+//! channel carries its own applicability floor and admission threshold.
 //!
-//! Evidence is stored, judgement is computed: the index holds one [`PairEvidence`] per linked
-//! pair (the maxima of the applicability-discounted and undiscounted class evidence over the
-//! pair's instances), and every channel's mass under a floor `F` is
+//! The index stores evidence and computes judgement. It holds one [`PairEvidence`] per linked pair
+//! (the maxima of the applicability-discounted and undiscounted class evidence over the pair's
+//! instances), and every channel's mass under a floor `F` is
 //!
 //! ```text
 //! m_F = max(discounted, F · undiscounted),
@@ -18,14 +18,14 @@
 //! both query-time parameters ([`ProtectionConfig`]), and one built index serves every floor and
 //! threshold calibration unchanged.
 //!
-//! The index is a symmetric compressed sparse row matrix over the node-row domain, each linked pair
-//! stored in both of its rows with bit-equal evidence: row `i` lists every partner whose link
+//! The index is a symmetric compressed sparse row matrix over the node-row domain, with each linked
+//! pair stored in both of its rows with bit-equal evidence. Row `i` lists every partner whose link
 //! protects the pair, which is the shape hard-negative mining consumes when it vets the candidates
 //! of one projected point.
 //!
-//! Protection is deliberately blind to attraction strength: class coefficients, degree
-//! normalization, strength, and force pruning answer how strongly an admitted force pulls, while
-//! protection answers whether repulsion is safe, so none of those factors enters the evidence.
+//! Protection is blind to attraction strength. Class coefficients, degree normalization, strength,
+//! and force pruning answer how strongly an admitted force pulls, while protection answers whether
+//! repulsion is safe, so none of those factors enters the evidence.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::{
@@ -42,7 +42,7 @@ use crate::{
     math::NonNegative,
 };
 
-/// The index's matrix layout: evidence values, `u32` partner columns, `u64` row pointers.
+/// The index's matrix layout of evidence values, `u32` partner columns, and `u64` row pointers.
 pub(crate) type ProtectionMatrix = CsMatI<PairEvidence, u32, u64>;
 
 /// A borrowed [`ProtectionMatrix`].
@@ -51,9 +51,9 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 /// One linked pair's aggregated class evidence.
 ///
 /// Both components take the maximum over every admitted instance between the pair's rows, parallel
-/// links and distinct relations alike: one strong link suffices to veto repulsion, however many
+/// links and distinct relations alike. One strong link suffices to veto repulsion, however many
 /// weak ones accompany it. Per instance, the class evidence is the effective confidence times the
-/// selected Coincident and Proximal probability; `discounted` additionally multiplies the
+/// selected Coincident and Proximal probability. `discounted` additionally multiplies the
 /// relation's calibrated applicability. The index validates both components finite, non-negative,
 /// and ordered `discounted ≤ undiscounted`.
 // FromBytes on purpose: the components carry no construction invariant
@@ -79,8 +79,8 @@ pub(crate) struct PairEvidence {
 }
 
 impl SprsValue for PairEvidence {
-    // Opaque on purpose: the pair is this stage's vocabulary, not a
-    // scalar the format vocabulary pins; width is the wire identity.
+    // Opaque on purpose: the pair is this stage's vocabulary, not a scalar the format vocabulary
+    // pins. Width is the wire identity.
     const TAG: ValueTag = ValueTag::Opaque;
 }
 
@@ -99,10 +99,11 @@ impl PairEvidence {
 /// One protection channel's applicability floor and admission threshold, valid by construction.
 ///
 /// The floor lifts a relation's calibrated applicability before it enters the channel's mass, so a
-/// relation too unfamiliar to earn pull can still retain enough evidence to veto repulsion; 0
-/// leaves applicability undisturbed. The threshold is the mass at which the channel protects; 0
-/// protects every linked pair, the conservative reading of link evidence. Floors and thresholds
-/// jointly determine the protected set and are calibrated together from reviewed validation pairs.
+/// relation too unfamiliar to earn pull can still retain enough evidence to veto repulsion. A floor
+/// of 0 leaves applicability undisturbed. The threshold is the mass at which the channel protects.
+/// A threshold of 0 protects every linked pair, the conservative reading of link evidence. Floors
+/// and thresholds jointly determine the protected set. Calibration fixes them together from
+/// reviewed validation pairs.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ChannelConfig {
     floor: f32 = 0.0,
@@ -175,9 +176,9 @@ impl ProtectionConfig {
     /// Creates a protection configuration from the two channels.
     ///
     /// Returns [`None`] unless `ordinary.floor ≤ hard.floor` and `hard.threshold ≤
-    /// ordinary.threshold`. `protect_ordinary` disables the ordinary channel outright: every
-    /// ordinary negative is admitted while hard-negative protection stands. The default is both
-    /// channels at floor 0 and threshold 0 with both active.
+    /// ordinary.threshold`. `protect_ordinary` disables the ordinary channel outright, so every
+    /// ordinary negative passes while hard-negative protection stands. The default is both channels
+    /// at floor 0 and threshold 0 with both active.
     #[must_use]
     pub(crate) const fn new(
         hard: ChannelConfig,
@@ -219,8 +220,8 @@ impl ProtectionConfig {
 
 /// An unordered pair of node rows in canonical order.
 ///
-/// The two rows are stored with [`lhs`](Self::lhs) at most [`rhs`](Self::rhs), so a pair equals
-/// itself however its rows arrive, and the derived order is total over pairs.
+/// The smaller row becomes [`lhs`](Self::lhs) and the larger becomes [`rhs`](Self::rhs), so a pair
+/// equals itself however its rows arrive, and the derived order is total over pairs.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct NodePair<N> {
     lhs: N,
@@ -266,9 +267,9 @@ impl<N> NodePair<N> {
 /// A pair's protection verdict under a configuration.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PairVerdict {
-    /// Whether the pair is barred from hard-negative mining.
+    /// Whether protection bars the pair from hard-negative mining.
     pub hard: bool,
-    /// Whether the pair is barred from ordinary negative sampling.
+    /// Whether protection bars the pair from ordinary negative sampling.
     pub ordinary: bool,
 }
 
@@ -292,7 +293,7 @@ pub(crate) struct ProtectedPartner<N> {
 /// A matrix violated a [`ProtectionIndex`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum ProtectionValidationError {
-    /// The matrix is compressed by column.
+    /// The matrix uses column compression.
     ColumnCompressed,
     /// The matrix is not square over the row domain.
     NotSquare { rows: usize, columns: usize },
@@ -302,7 +303,7 @@ pub(crate) enum ProtectionValidationError {
     EvidenceOutOfRange { row: usize, column: usize },
     /// A stored evidence pair has `discounted > undiscounted`.
     EvidenceOrdering { row: usize, column: usize },
-    /// An edge is stored in one direction only.
+    /// The matrix stores an edge in one direction only.
     AsymmetricSupport { row: usize, column: usize },
     /// An edge's two stored evidence pairs differ.
     AsymmetricEvidence { row: usize, column: usize },
@@ -348,9 +349,8 @@ impl core::error::Error for ProtectionValidationError {}
 ///
 /// Rows check in parallel; the reported violation is the first in row order regardless of
 /// scheduling, so failures are deterministic.
-// The symmetry check compares the two directions bit-exactly (derived
-// PartialEq over the f32 components): both are written from one
-// aggregated value, so bit equality is the constructed contract.
+// The symmetry check compares the two directions bit-exactly (derived PartialEq over the f32
+// components): one aggregated value produces both, so bit equality is the constructed contract.
 pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), ProtectionValidationError> {
     if !matrix.is_csr() {
         return Err(ProtectionValidationError::ColumnCompressed);
@@ -410,9 +410,9 @@ fn validate_row(
 /// The symmetric no-repel evidence matrix of one generation.
 ///
 /// Row `i` stores the evidence of every protected pair at node row `i`, keyed by the other endpoint
-/// in ascending row order; every pair appears in both of its rows with bit-equal evidence, and no
-/// row references itself. A pair absent from the matrix has no admitted link between its rows and
-/// is unprotected under every configuration.
+/// in ascending row order. Every pair occupies both of its rows with bit-equal evidence, and no row
+/// references itself. A pair absent from the matrix has no admitted link between its rows and stays
+/// unprotected under every configuration.
 #[derive(Debug, Clone)]
 pub(crate) struct ProtectionIndex<N>(ProtectionMatrix, PhantomData<N>);
 
@@ -483,7 +483,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the matrix's row domain.
+    /// This panics when `row` is outside the matrix's row domain.
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = ProtectedPartner<N>> + '_ {
         let (columns, evidence) = self
             .0
@@ -514,7 +514,7 @@ where
     /// Judges a pair's protection under the given configuration.
     ///
     /// A channel protects when the pair's evidence mass under the channel's floor reaches the
-    /// channel's threshold; a pair without link evidence is unprotected in both channels.
+    /// channel's threshold. A pair with no link evidence stays unprotected in both channels.
     #[must_use]
     pub(crate) fn judge(&self, pair: NodePair<N>, config: ProtectionConfig) -> PairVerdict {
         let Some(evidence) = self.get(pair) else {

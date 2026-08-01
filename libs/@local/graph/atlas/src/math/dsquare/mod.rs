@@ -1,7 +1,7 @@
 //! Runtime-order square `f64` matrices and their Cholesky factorization.
 //!
 //! [`DSquareMatrix`] holds an order × order matrix chosen at runtime in one SIMD-aligned
-//! allocation; entries fill in place through [`row_mut`](DSquareMatrix::row_mut).
+//! allocation. Entries fill in place through [`row_mut`](DSquareMatrix::row_mut).
 //! [`DSquareMatrix::cholesky`] consumes the matrix and factors its lower triangle in place into
 //! the lower-triangular [`DCholeskyFactor`] `L` with `A = L·Lᵀ`, and
 //! [`solve_in_place`](DCholeskyFactor::solve_in_place) then answers `A·x = b` by forward and back
@@ -10,15 +10,15 @@
 //!
 //! # Determinism
 //!
-//! Every reduction folds in a fixed order that depends only on the operand lengths: prefix dots
+//! Every reduction folds in a fixed order that depends only on the operand lengths. Prefix dots
 //! fold eight fused lanes at a time into two interleaved accumulators and finish with a scalar
 //! tail, the fold shape of [`DVecN::dot`](super::DVecN::dot). Factoring the same bytes therefore
-//! yields bit-identical factors, and solving with the same factor and right-hand side yields
+//! yields bit-identical factors. Solving with the same factor and right-hand side yields
 //! bit-identical solutions. The kernels are single-threaded by construction.
 //!
 //! # Layout
 //!
-//! Rows are padded to a stride of whole [`f64x8`] lanes and the allocation is aligned for
+//! The constructor pads rows to a stride of whole [`f64x8`] lanes and aligns the allocation for
 //! [`f64x8`], so every row starts at an aligned address. Row views carry that alignment as a
 //! type invariant, so the kernels load whole aligned lanes. Padding components are `0.0` from
 //! construction on and are never read as data: the triangular prefixes the factorization reduces
@@ -39,7 +39,7 @@ use super::kernel::mul_add_f64x8;
 #[cfg(test)]
 mod tests;
 
-/// The row stride in components: the order rounded up to whole [`f64x8`] lanes.
+/// The row stride in components, the order rounded up to whole [`f64x8`] lanes.
 const fn stride_for(order: usize) -> usize {
     order.next_multiple_of(8)
 }
@@ -60,8 +60,8 @@ impl DSquareRowBlock {
     ///
     /// Views come from rows of the aligned allocation and their prefixes; debug builds check the
     /// address.
-    // A safe fn: the alignment invariant guards which lane split `lanes` sees - a correctness
-    // property - not memory safety.
+    // This is a safe fn because the alignment invariant guards which lane split `lanes` sees, a
+    // correctness property rather than memory safety.
     #[inline]
     fn from_slice(value: &[f64]) -> &Self {
         debug_assert!(
@@ -97,9 +97,9 @@ impl DSquareRowBlock {
 
     /// Returns the dot product of two equal-length views in a fixed fold order.
     ///
-    /// The fold shape of [`DVecN::dot`](super::DVecN::dot): fused products accumulate eight lanes
-    /// at a time into two interleaved accumulators, and the trailing `len % 8` components fold
-    /// scalarly, so the summation order depends only on the length.
+    /// The fold shape matches [`DVecN::dot`](super::DVecN::dot). Fused products accumulate eight
+    /// lanes at a time into two interleaved accumulators, and the trailing `len % 8` components
+    /// fold scalarly, so the summation order depends only on the length.
     #[inline]
     fn dot(&self, other: &Self) -> f64 {
         debug_assert_eq!(self.len(), other.len());
@@ -173,8 +173,8 @@ impl DSquareRowBlock {
 /// The Cholesky factorization rejected the matrix at a pivot.
 ///
 /// The pivot at `index` is `A[i][i] − Σ_{p<i} L[i][p]²`, the value whose square root would become
-/// the factor's diagonal component `L[i][i]`. The factorization stops at the first bad pivot; no
-/// perturbation or recovery is attempted.
+/// the factor's diagonal component `L[i][i]`. The factorization stops at the first bad pivot and
+/// attempts no perturbation or recovery.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum DCholeskyError {
     /// The pivot is NaN or infinite: the fate of any non-finite component in the lower
@@ -216,13 +216,13 @@ const fn block_rows_for(stride: usize) -> usize {
 
 /// An owned order × order matrix of `f64` components in one SIMD-aligned heap allocation.
 ///
-/// The order is chosen at runtime; [`zeroed`](Self::zeroed) is the constructor and entries fill
-/// in place through [`row_mut`](Self::row_mut). Rows are padded to whole [`f64x8`] lanes and
-/// every row starts at an address aligned for [`f64x8`]; the padding stays `0.0` and is never
-/// read as data.
+/// The caller chooses the order at runtime. [`zeroed`](Self::zeroed) is the constructor and entries
+/// fill in place through [`row_mut`](Self::row_mut). The constructor pads rows to whole [`f64x8`]
+/// lanes and every row starts at an address aligned for [`f64x8`]. The padding stays `0.0` and
+/// nothing reads it as data.
 ///
 /// [`cholesky`](Self::cholesky) consumes the matrix and factors it. Only the lower triangle is
-/// authoritative for the factorization: entries above the diagonal are ignored.
+/// authoritative for the factorization, which ignores entries above the diagonal.
 ///
 /// # Examples
 ///
@@ -253,7 +253,7 @@ impl DSquareMatrix {
     ///
     /// # Panics
     ///
-    /// Panics when the padded component count overflows the address space.
+    /// This panics when the padded component count overflows the address space.
     #[inline]
     #[must_use]
     pub fn zeroed(order: usize) -> Self {
@@ -269,7 +269,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     ///
     /// # Panics
     ///
-    /// Panics when the component count overflows the address space.
+    /// This panics when the component count overflows the address space.
     fn layout_for(order: usize) -> Layout {
         order
             .checked_mul(stride_for(order))
@@ -283,13 +283,12 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// Creates the zero matrix of the given order in a new aligned allocation in `alloc`.
     ///
     /// Every component is `0.0` and the buffer fills in place through
-    /// [`row_mut`](Self::row_mut). The process is aborted through
-    /// [`handle_alloc_error`](alloc::alloc::handle_alloc_error) when the allocator cannot provide
-    /// the buffer.
+    /// [`row_mut`](Self::row_mut). [`handle_alloc_error`](alloc::alloc::handle_alloc_error) aborts
+    /// the process when the allocator cannot provide the buffer.
     ///
     /// # Panics
     ///
-    /// Panics when the padded component count overflows the address space.
+    /// This panics when the padded component count overflows the address space.
     #[inline]
     #[must_use]
     pub fn zeroed_in(order: usize, alloc: A) -> Self {
@@ -328,7 +327,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// The components as one mutable row-major slice of `order · stride` components.
     const fn components_mut(&mut self) -> &mut [f64] {
         // SAFETY: `ptr` owns an initialized buffer of `order · stride` components for as long as
-        // `self` lives; the exclusive borrow of `self` guards the exclusive reference.
+        // `self` lives. The exclusive borrow of `self` guards the exclusive reference.
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.order * self.stride()) }
     }
 
@@ -336,7 +335,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is not below the order.
+    /// This panics when `index` is not below the order.
     #[inline]
     #[must_use]
     pub fn row(&self, index: usize) -> &[f64] {
@@ -353,7 +352,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is not below the order.
+    /// This panics when `index` is not below the order.
     #[inline]
     #[must_use]
     pub fn row_mut(&mut self, index: usize) -> &mut [f64] {
@@ -370,9 +369,9 @@ impl<A: Allocator> DSquareMatrix<A> {
 
     /// Factors the matrix in place into its lower-triangular Cholesky factor.
     ///
-    /// Only the lower triangle is read: entry `(i, j)` with `j ≤ i` is `A[i][j]`, and the strict
-    /// upper triangle is ignored. The returned factor owns the same allocation and holds `L` with
-    /// `A = L·Lᵀ`, zeros above the diagonal, and the padding untouched.
+    /// The factorization reads only the lower triangle: entry `(i, j)` with `j ≤ i` is `A[i][j]`,
+    /// and it ignores the strict upper triangle. The returned factor owns the same allocation
+    /// and holds `L` with `A = L·Lᵀ`, zeros above the diagonal, and the padding untouched.
     ///
     /// # Errors
     ///
@@ -387,7 +386,7 @@ impl<A: Allocator> DSquareMatrix<A> {
         // The factor takes over the allocation; skipping the matrix's drop keeps ownership
         // unique.
         let matrix = ManuallyDrop::new(self);
-        // SAFETY: the matrix's drop is skipped, so the allocator moves out exactly once.
+        // SAFETY: `ManuallyDrop` skips the matrix's drop, so the allocator moves out exactly once.
         let alloc = unsafe { ptr::read(&raw const matrix.alloc) };
         Ok(DCholeskyFactor {
             ptr: matrix.ptr,
@@ -400,13 +399,13 @@ impl<A: Allocator> DSquareMatrix<A> {
     ///
     /// Row-wise Cholesky: `L[i][j] = (A[i][j] − Σ_{p<j} L[i][p]·L[j][p]) / L[j][j]` below the
     /// diagonal and `L[i][i] = √(A[i][i] − Σ_{p<i} L[i][p]²)` on it. Rows settle in blocks of
-    /// [`block_rows_for`] rows: the panel pass streams each settled row once through the whole
-    /// block, then the diagonal pass settles the block's rows against each other in row order, so
-    /// every pivot is checked before anything divides by it. Every entry is the same prefix-dot
+    /// [`block_rows_for`] rows. The panel pass streams each settled row once through the whole
+    /// block, then the diagonal pass settles the block's rows against each other in row order,
+    /// checking every pivot before anything divides by it. Every entry is the same prefix-dot
     /// expression at every block height, so the factor's bytes depend only on the input bytes.
     ///
-    /// Each settled row's tail beyond its diagonal is zeroed, leaving the strict upper triangle of
-    /// the factor all-zero regardless of the input's.
+    /// The diagonal pass zeroes each settled row's tail beyond its diagonal, leaving the strict
+    /// upper triangle of the factor all-zero regardless of the input's.
     fn factorize(&mut self) -> Result<(), DCholeskyError> {
         let order = self.order;
         let stride = self.stride();
@@ -482,8 +481,8 @@ impl<A: Allocator> fmt::Debug for DSquareMatrix<A> {
 impl<A: Allocator> Drop for DSquareMatrix<A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `ptr` was allocated by `alloc` in `zeroed_in` with the same order-derived
-        // layout and has not been deallocated since.
+        // SAFETY: `alloc` allocated `ptr` in `zeroed_in` with the same order-derived layout and
+        // nothing has deallocated it since.
         unsafe {
             self.alloc
                 .deallocate(self.ptr.cast::<u8>(), Self::layout_for(self.order));
@@ -491,17 +490,17 @@ impl<A: Allocator> Drop for DSquareMatrix<A> {
     }
 }
 
-// SAFETY: the matrix owns its buffer exclusively and its `f64` components are `Send`; the
+// SAFETY: the matrix owns its buffer exclusively and its `f64` components are `Send`. The
 // allocator's own thread-safety carries the bound.
 unsafe impl<A: Allocator + Send> Send for DSquareMatrix<A> {}
 
 // SAFETY: shared access hands out only `&[f64]`-shaped views of the owned buffer with no interior
-// mutability; the allocator's own thread-safety carries the bound.
+// mutability. The allocator's own thread-safety carries the bound.
 unsafe impl<A: Allocator + Sync> Sync for DSquareMatrix<A> {}
 
 /// The lower-triangular Cholesky factor `L` of a factored [`DSquareMatrix`].
 ///
-/// The factor owns the allocation of the matrix it was factored from: row `i` holds
+/// The factor owns the allocation of the matrix that produced it: row `i` holds
 /// `L[i][0..=i]` followed by zeros, and `L·Lᵀ` recovers the factored matrix's lower triangle.
 /// [`solve_in_place`](Self::solve_in_place) answers `A·x = b` for the factored `A`.
 pub struct DCholeskyFactor<A: Allocator = Global> {
@@ -542,12 +541,12 @@ impl<A: Allocator> DCholeskyFactor<A> {
     /// with the settled solution prefix; back substitution solves `Lᵀ·x = y` bottom-up, each
     /// settled component removing its column's contribution from the equations above it - a
     /// column of `Lᵀ` is a row of `L`, so both passes read the factor along its rows. The
-    /// factor's rows load as aligned lanes; `vector` may have any alignment. The solution's
+    /// factor's rows load as aligned lanes. `vector` may have any alignment. The solution's
     /// bytes depend only on the factor's and right-hand side's bytes.
     ///
     /// # Panics
     ///
-    /// Panics when the length of `vector` differs from the order.
+    /// This panics when the length of `vector` differs from the order.
     #[inline]
     pub fn solve_in_place(&self, vector: &mut [f64]) {
         assert_eq!(
@@ -589,9 +588,9 @@ impl<A: Allocator> fmt::Debug for DCholeskyFactor<A> {
 impl<A: Allocator> Drop for DCholeskyFactor<A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `ptr` was allocated by `alloc` in `DSquareMatrix::zeroed_in` with the same
-        // order-derived layout; `cholesky` moved ownership of both here and skipped the matrix's
-        // drop, so no other deallocation happens.
+        // SAFETY: `alloc` allocated `ptr` in `DSquareMatrix::zeroed_in` with the same order-derived
+        // layout. `cholesky` moved ownership of both here and skipped the matrix's drop, so
+        // no other deallocation happens.
         unsafe {
             self.alloc.deallocate(
                 self.ptr.cast::<u8>(),
@@ -601,10 +600,10 @@ impl<A: Allocator> Drop for DCholeskyFactor<A> {
     }
 }
 
-// SAFETY: the factor owns its buffer exclusively and its `f64` components are `Send`; the
+// SAFETY: the factor owns its buffer exclusively and its `f64` components are `Send`. The
 // allocator's own thread-safety carries the bound.
 unsafe impl<A: Allocator + Send> Send for DCholeskyFactor<A> {}
 
 // SAFETY: shared access hands out only `&[f64]`-shaped views of the owned buffer with no interior
-// mutability; the allocator's own thread-safety carries the bound.
+// mutability. The allocator's own thread-safety carries the bound.
 unsafe impl<A: Allocator + Sync> Sync for DCholeskyFactor<A> {}

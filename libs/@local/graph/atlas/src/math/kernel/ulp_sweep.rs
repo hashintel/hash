@@ -1,18 +1,16 @@
 //! Exhaustive ULP verification for the vendored transcendental kernels.
 //!
-//! Each sweep runs every `f32` bit pattern in a kernel's non-trivial domain (the region the
-//! backstop clamps do not decide) against an `f64` libm reference, threaded across all cores. The
-//! tests are ignored by default; run them explicitly in release mode, where the full set takes
-//! tens of seconds:
+//! Each sweep compares a kernel against an `f64` libm reference on every `f32` bit pattern the
+//! backstop clamps do not decide, threaded across all cores. Every test here carries `#[ignore]`,
+//! so run them in release mode, where the full set takes tens of seconds:
 //!
 //! ```text
 //! cargo test --release -p hash-graph-atlas --features bench ulp_sweep -- --ignored --nocapture
 //! ```
 //!
 //! An `f64` reference carries far more precision than one `f32` ULP, so it measures the `f32`
-//! kernels exactly. It cannot certify `exp_f64` to sub-ULP; that kernel's overflow classes are
-//! pinned exhaustively in [`sleef`](super::sleef)'s tests and its distance bound rides the strided
-//! sweep there.
+//! kernels exactly. It cannot certify `exp_f64` to sub-ULP. [`sleef`](super::sleef)'s tests pin
+//! that kernel's overflow classes exhaustively, and the strided sweep there bounds its distance.
 #![expect(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,

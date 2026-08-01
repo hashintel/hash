@@ -1,24 +1,23 @@
 //! Vectorized transcendental kernels for the SIMD wrappers in [`math::kernel`](super).
 //!
 //! [`exp_f32`], [`exp2_f32`], [`log2_f32`], and [`exp_f64`] evaluate their function on every lane
-//! of a portable-SIMD vector without a libm call, in three steps each: range reduction splits the
-//! input into an integer power of two and a small residual, a short minimax polynomial approximates
-//! the function on the residual, and reconstruction applies the power of two through direct
-//! exponent-field arithmetic. Each function documents its own error bound; the bounds are inherited
-//! from the SLEEF accuracy tiers the kernels derive from (`u10` is within 1.0 ULP, `u35` within
-//! 3.5).
+//! of a portable-SIMD vector without a libm call. Range reduction splits the input into an integer
+//! power of two and a small residual. A short minimax polynomial approximates the function on the
+//! residual. Reconstruction then applies the power of two through direct exponent-field arithmetic.
+//! Each function documents its own error bound, and each bound comes from the SLEEF accuracy tier
+//! its kernel derives from (`u10` is within 1.0 ULP, `u35` within 3.5).
 //!
 //! # Reproducibility contract
 //!
-//! Fit artifacts are content-hashed, so these kernels must produce bit-identical results on every
-//! target the crate builds for. Two properties carry that guarantee:
+//! Content-hashed fit artifacts require bit-identical results from these kernels on every target
+//! the crate builds for. Unconditional fusion and plain lane arithmetic give that guarantee:
 //!
 //! - Every multiply-accumulate is a fused [`mul_add`](std::simd::StdFloat::mul_add). A fused
 //!   multiply-add has exactly one correctly rounded result, defined by IEEE 754 independently of
 //!   how a target lowers it, and both baselines the crate builds for lower it in hardware (aarch64
-//!   FMLA; x86-64 the v3 baseline's FMA). Targets differ in speed, never in bits.
+//!   FMLA, x86-64 the v3 baseline's FMA). Targets differ in speed, never in bits.
 //! - Every step is plain `f32`/`f64` lane arithmetic, bit shifts, and lane selects, with one
-//!   rounding per operation as IEEE 754 requires; no step depends on a target-specific instruction.
+//!   rounding per operation as IEEE 754 requires. No step depends on a target-specific instruction.
 //!
 //! # Provenance and divergences
 //!
@@ -29,17 +28,17 @@
 //! `f32x::exp_u10`, `f32x::exp2_u35`, `f32x::log2_u35`, and `f64x::exp_u10`. This module diverges
 //! from upstream in form, never in result bits:
 //!
-//! - Multiply-accumulates are fused unconditionally. Upstream selects fusion per target under
-//!   `cfg!(target_feature = "fma")`, an x86-only cfg string, and rounds twice per step where it is
-//!   false; this module's ladders round once everywhere and their result bits are their own
-//!   contract, verified against libm by the tests below.
+//! - This module fuses every multiply-accumulate unconditionally. Upstream selects fusion per
+//!   target under `cfg!(target_feature = "fma")`, an x86-only cfg string, and rounds twice per step
+//!   where it is false. This module's ladders round once everywhere, and their result bits are
+//!   their own contract, verified against libm by the tests below.
 //! - `exp_f64` keeps the coefficient set of upstream's non-FMA branch, evaluated fused. Upstream's
 //!   FMA branch carries a different degree-10 set, so the fused ladder here matches neither
 //!   upstream branch bit-for-bit; one coefficient set on every architecture is what keeps content
 //!   hashes reproducible.
 //! - Nearest-integer rounding uses [`round_ties_even`](std::simd::StdFloat::round_ties_even)
-//!   directly. Upstream computes the same round-half-to-even through an add-subtract trick against
-//!   `2^23` (`2^52` for `f64`) plus sign restoration, predating the portable-SIMD API; the
+//!   directly. Upstream predates the portable-SIMD API and computes the same round-half-to-even
+//!   through an add-subtract trick against `2^23` (`2^52` for `f64`) plus sign restoration. The
 //!   intrinsic returns the identical value in every rounding regime, including the pass-through
 //!   above `2^23` where the trick's guard bit runs out.
 //! - Lane suppression uses mask selects against zero where upstream masks the raw bits through a
@@ -49,11 +48,11 @@
 //!
 //! # Verification
 //!
-//! The tests at the bottom of this file sweep strided samples of the full input bit range - every
-//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads - and bound each kernel's
-//! distance from a scalar libm reference evaluated in wider precision. The bounds are each
-//! kernel's accuracy tier plus the reference's own rounding step; the special points consumers
-//! lean on are asserted exactly in [`math::kernel`](super)'s tests.
+//! The tests at the bottom of this file sweep strided samples of the full input bit range (every
+//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads) and bound each kernel's
+//! distance from a scalar libm reference evaluated in wider precision. Each bound is the kernel's
+//! accuracy tier plus the reference's own rounding step. [`math::kernel`](super)'s tests assert the
+//! special points exactly.
 
 use core::{f32, f64, f128, simd::prelude::*};
 use std::simd::StdFloat as _;
@@ -78,24 +77,24 @@ const F64_MASK: u64 = 0xFFF;
 const LN2_HI_F64: f64 = f64::from_bits(f64::consts::LN_2.to_bits() & !F64_MASK);
 const LN2_LO_F64: f64 = (f128::consts::LN_2 - (LN2_HI_F64 as f128)) as f64;
 
-/// Two raised to each lane of `exponent`, built directly in the result's exponent field.
+/// Raises two to the power in each lane of `exponent`, directly in the result's exponent field.
 ///
 /// Exact for exponents where the result is a normal `f32`; the callers keep exponents in that range
 /// by splitting (see [`scale_by_pow2_f32`]).
 #[inline]
 fn pow2_f32<const N: usize>(exponent: Simd<i32, N>) -> Simd<f32, N> {
-    // 0x7F is the f32 exponent bias; 23 the mantissa width.
+    // 0x7F is the f32 exponent bias, and 23 the mantissa width.
     Simd::from_bits(((exponent + Simd::splat(0x7F)) << Simd::splat(23)).cast())
 }
 
-/// Two raised to each lane of `exponent`, as `f64`.
+/// Raises two to the power in each lane of `exponent`, as `f64`.
 ///
-/// The `f64` counterpart of [`pow2_f32`]; exact for exponents where the result is a normal `f64`.
+/// The `f64` counterpart of [`pow2_f32`], exact for exponents where the result is a normal `f64`.
 #[inline]
 fn pow2_f64<const N: usize>(exponent: Simd<i32, N>) -> Simd<f64, N> {
-    // 0x3FF is the f64 exponent bias; the field starts 20 bits into
-    // the upper half of the word, so the biased value is widened to
-    // the upper 32 bits first and shifted into place there.
+    // 0x3FF is the f64 exponent bias, and the field starts 20 bits into the upper half of the word,
+    // so the cast widens the biased value into the upper 32 bits before the shift moves it into
+    // place there.
     let biased = Simd::splat(0x3FF) + exponent;
     let upper = biased.cast::<i64>() << Simd::splat(32);
     Simd::from_bits((upper << Simd::splat(20)).cast())
@@ -105,9 +104,9 @@ fn pow2_f64<const N: usize>(exponent: Simd<i32, N>) -> Simd<f64, N> {
 ///
 /// Applying `2^(exponent/2)` twice keeps each factor a normal number for the exponent range the
 /// reconstruction step produces, where a single factor could overflow or flush to zero before the
-/// scaled value lands back in range. Both multiplies are by powers of two with normal
-/// intermediate results, so the scaling is exact except for the single rounding when the final
-/// value lands in the subnormal range.
+/// scaled value lands back in range. Both multiplies are by powers of two with normal intermediate
+/// results, so the scaling is exact except for the single rounding when the final result is
+/// subnormal.
 #[inline]
 pub(super) fn scale_by_pow2_f32<const N: usize>(
     values: Simd<f32, N>,
@@ -129,7 +128,7 @@ fn scale_by_pow2_f64<const N: usize>(values: Simd<f64, N>, exponent: Simd<i32, N
 /// Scales each lane by two raised to `exponent`, by adding to the exponent field in place.
 ///
 /// One integer add instead of two multiplies, valid only while input and result are both normal
-/// numbers; the caller guarantees the range.
+/// numbers. The caller guarantees the range.
 #[inline]
 fn scale_by_pow2_direct_f32<const N: usize>(
     values: Simd<f32, N>,
@@ -140,8 +139,8 @@ fn scale_by_pow2_direct_f32<const N: usize>(
 
 /// The unbiased binary exponent of each lane, read from the exponent field.
 ///
-/// For a normal lane this is `floor(log2(|lane|))`; subnormal lanes are scaled into the normal
-/// range by the caller first.
+/// For a normal lane this is `floor(log2(|lane|))`. The caller scales subnormal lanes into the
+/// normal range first.
 #[inline]
 fn binary_exponent_f32<const N: usize>(values: Simd<f32, N>) -> Simd<i32, N> {
     let field = (values.to_bits().cast::<i32>() >> Simd::splat(23)) & Simd::splat(0xFF);
@@ -150,9 +149,8 @@ fn binary_exponent_f32<const N: usize>(values: Simd<f32, N>) -> Simd<i32, N> {
 
 /// Base-e exponential of each lane, accurate to the u10 tier (1.0 ULP).
 ///
-/// Measured faithfully rounded: 0.988 ULP maximum over an exhaustive sweep of the non-trivial
-/// domain (2.24e9 inputs, `|x| ≤ 110`), zero misclassified specials, monotone across the
-/// reduction boundaries.
+/// Measured faithfully rounded: 0.988 ULP maximum over an exhaustive sweep of the domain `|x| ≤
+/// 110` (2.24e9 inputs), zero misclassified specials, monotone across the reduction boundaries.
 #[inline]
 pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     // Range reduction: with n = round(x / ln 2), exp(x) = 2^n · exp(r)
@@ -196,9 +194,9 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 
 /// Base-2 exponential of each lane, accurate to the u35 tier (3.5 ULP).
 ///
-/// Measured far inside the tier, faithfully rounded: 0.885 ULP maximum over an exhaustive sweep
-/// of the non-trivial domain (2.25e9 inputs, `|x| ≤ 160`). The reduction `x - round(x)` is
-/// exact, so the polynomial fit dominates the error budget.
+/// Measured far inside the tier, faithfully rounded: 0.885 ULP maximum over an exhaustive sweep of
+/// the domain `|x| ≤ 160` (2.25e9 inputs). The reduction `x - round(x)` is exact, so the polynomial
+/// fit dominates the error budget.
 #[inline]
 pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     // Range reduction is exact: 2^x = 2^n · 2^f for n = round(x) and
@@ -238,11 +236,10 @@ pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 /// ratio, not a better polynomial.
 #[inline]
 pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // Subnormal lanes are scaled into the normal range (by 2^64) so
-    // the exponent-field read is exact; the factor is repaid on the
-    // exponent afterwards. Zero, negative, and NaN lanes compute
-    // whatever the arithmetic yields and are overwritten by the
-    // selects at the end.
+    // The select below multiplies subnormal lanes by 2^64, which brings them into the normal range
+    // so the exponent-field read is exact, and the exponent subtraction afterwards repays the
+    // factor. Zero, negative, and NaN lanes compute whatever the arithmetic yields, and the
+    // selects at the end overwrite them.
     let is_subnormal = values.is_subnormal();
     let scaled = is_subnormal.select(values * Simd::splat(1.844_674_4e19), values);
 
@@ -252,9 +249,8 @@ pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     let mantissa = scale_by_pow2_direct_f32(scaled, -exponent);
     let exponent = is_subnormal.select(exponent - Simd::splat(64), exponent);
 
-    // The atanh identity: with r = (m-1)/(m+1), ln(m) = 2 atanh(r) =
-    // 2 (r + r^3/3 + r^5/5 + ...), so log2(m) is a series in odd
-    // powers of r.
+    // With r = (m-1)/(m+1), the atanh identity gives ln(m) = 2 atanh(r) = 2 (r + r^3/3 + r^5/5 +
+    // ...), so log2(m) is a series in odd powers of r.
     let ratio = (mantissa - Simd::splat(1.)) / (mantissa + Simd::splat(1.));
     let ratio_squared = ratio * ratio;
 
@@ -297,12 +293,10 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
     let reduced = nearest.mul_add(-Simd::splat(LN2_HI_F64), values);
     let reduced = nearest.mul_add(-Simd::splat(LN2_LO_F64), reduced);
 
-    // Degree-12 minimax polynomial for exp on the reduced interval,
-    // coefficients near the Taylor 1/k! through 1/12!, evaluated in
-    // Estrin form: coefficient pairs first, then quads folded over the
-    // squared and quartic powers, then the top pair over the octic
-    // power. Estrin shortens the dependency chain a Horner ladder
-    // would serialize.
+    // Degree-12 minimax polynomial for exp on the reduced interval, coefficients near the Taylor
+    // 1/k! through 1/12!, evaluated in Estrin form. The ladder folds coefficient pairs first, then
+    // quads over the squared and quartic powers, then the top pair over the octic power. Estrin
+    // shortens the dependency chain a Horner ladder would serialize.
     let reduced_2 = reduced * reduced;
     let reduced_4 = reduced_2 * reduced_2;
     let reduced_8 = reduced_4 * reduced_4;
@@ -345,8 +339,8 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
     // region beyond, where the saturating cast and the exponent-field
     // scaling break down (near |x| = 1421 the biased half-exponent
     // leaves the normal range). Any upper constant ∈ [710, 1421) is
-    // correct; one at or below ln(f64::MAX) misclassifies the finite
-    // doubles just under the boundary as infinite.
+    // correct, and one at or below ln(f64::MAX) misclassifies the finite doubles immediately under
+    // the boundary as infinite.
     let result = values
         .simd_gt(Simd::splat(710.))
         .select(Simd::splat(f64::INFINITY), result);
@@ -366,10 +360,9 @@ mod tests {
 
     use super::{exp_f32, exp_f64, exp2_f32, log2_f32};
 
-    // The strides are odd so consecutive samples land in different
-    // exponent/mantissa phases; full-bit-range iteration covers
-    // negative inputs, subnormals, both zeros, both infinities, and
-    // NaN payloads without listing them.
+    // The strides are odd, so consecutive samples differ in exponent/mantissa phase. Full-bit-range
+    // iteration covers negative inputs, subnormals, both zeros, both infinities, and NaN payloads
+    // without listing them.
     const F32_STRIDE: usize = 641;
     const F64_STRIDE: usize = 0x0400_0000_000D;
 
@@ -408,7 +401,7 @@ mod tests {
 
     /// Checks one `f32` lane against its reference.
     ///
-    /// NaN must map to NaN; every other pair must sit within `tolerance` representation steps.
+    /// NaN must map to NaN. Every other pair must lie within `tolerance` representation steps.
     fn assert_lane_f32(name: &str, at: f32, kernel: f32, reference: f32, tolerance: u64) {
         if reference.is_nan() {
             assert!(

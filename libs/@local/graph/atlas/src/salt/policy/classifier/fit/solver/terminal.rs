@@ -1,10 +1,10 @@
 //! Typed terminal failures of the bounded solve.
 //!
-//! Every way a solve ends short of a certified minimizer is a named [`SolverFailure`]: an
-//! exhausted resource budget, a reduction indistinguishable from rounding noise, or arithmetic
-//! that left the finite domain. Failures carry enough structure to be matched on - a non-finite
-//! Newton value names its [`NewtonStage`] - and none of them publishes a model. Validation
-//! failures before the solve live with their owners,
+//! Every way a solve ends short of a certified minimizer is a named [`SolverFailure`]. The named
+//! ways are an exhausted resource budget, a reduction indistinguishable from rounding noise, and
+//! arithmetic that left the finite domain. Each failure carries the structure a match arm needs,
+//! and a non-finite Newton value names its [`NewtonStage`]. None of them publishes a model.
+//! Validation failures before the solve live with their owners,
 //! [`SolverConfigError`](super::config::SolverConfigError)
 //! and [`PreparationError`](super::prepare::PreparationError).
 
@@ -44,7 +44,7 @@ pub enum SolverFailure {
     ResolutionStall,
     /// The accepted objective admits no valid resolution.
     ResolutionScaleOverflow,
-    /// A candidate was rejected at the minimum trust radius.
+    /// The iteration rejected a candidate at the minimum trust radius.
     RadiusUnderflow,
     /// The accepted scaled-gradient norm is not finite.
     NonFiniteAcceptedGradientNorm,
@@ -56,7 +56,7 @@ pub enum SolverFailure {
     /// The intercept Schur system is not positive-definite: no row carries interior
     /// probabilities, so the corpus offers the intercepts no curvature.
     SingularInterceptCurvature,
-    /// No finite positive boundary crossing could be constructed.
+    /// The boundary search found no finite positive crossing.
     NoFiniteBoundaryStep,
     /// A ratio-accepted candidate's fresh gradient is not finite.
     NonFiniteAcceptedCandidateGradient,
@@ -64,7 +64,7 @@ pub enum SolverFailure {
     FinalCertificationNonFinite,
     /// The reserved final evaluation no longer satisfies the gradient certificate.
     FinalCertificateMismatch,
-    /// The gradient-certificate threshold could not be derived.
+    /// No valid gradient-certificate threshold derives from the initial norm.
     GradientThresholdOverflow,
     /// The predicted reduction is non-finite or not positive.
     InvalidPredictedReduction,

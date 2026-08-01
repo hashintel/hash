@@ -22,7 +22,7 @@ mod tests;
 /// [`From`] is exact for every value, so per-component products of widened inputs carry no `f32`
 /// rounding.
 ///
-/// The surface is deliberately the accumulator's: arithmetic, the two products, and the exact
+/// The surface is the accumulator's own: arithmetic, the two products, and the exact
 /// widening and checked narrowing conversions. Geometry (interpolation, clamping, bounds) belongs
 /// to [`Vec2`].
 ///
@@ -133,7 +133,9 @@ impl DVec2 {
     }
 }
 
-/// Widens both components; exact for every [`Vec2`].
+/// Widens both components.
+///
+/// The conversion is exact for every [`Vec2`].
 const impl From<Vec2> for DVec2 {
     #[inline]
     fn from(vec: Vec2) -> Self {
@@ -206,7 +208,7 @@ const impl Div<f64> for DVec2 {
 ///     Vec2::new(4.0, 8.0),
 /// ]));
 ///
-/// // Weighted sum of the batch, accumulated per lane, reduced once.
+/// // Accumulate the weighted sum per lane, then reduce once.
 /// let weighted = batch.mul_add(Simd::splat(0.5), DVec2x4T::ZERO);
 /// assert_eq!(weighted.reduce(), DVec2::new(5.0, 13.0));
 /// ```
@@ -318,8 +320,8 @@ impl DVec2x4T {
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add is fused;
-    /// for components widened from `f32` both lane products are exact, so the fused and separate
+    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add fuses.
+    /// For components widened from `f32` both lane products are exact, so the fused and separate
     /// forms agree bit for bit and the result carries a single rounding either way.
     #[inline]
     #[must_use]
@@ -348,7 +350,7 @@ impl DVec2x4T {
     ///
     /// With lane `i` of `factor` scaling both components of vector `i`.
     ///
-    /// This is the weighted-moment accumulation step: on targets with native FMA each component
+    /// This is the weighted-moment accumulation step. On targets with native FMA each component
     /// fuses, and for components widened from `f32` scaled by a widened weight the products are
     /// exact, so the fused and separate forms agree bit for bit.
     #[inline]
@@ -375,7 +377,9 @@ impl DVec2x4T {
     }
 }
 
-/// Widens every component; exact for every [`Vec2x4T`].
+/// Widens every component.
+///
+/// The conversion is exact for every [`Vec2x4T`].
 impl From<Vec2x4T> for DVec2x4T {
     #[inline]
     fn from(batch: Vec2x4T) -> Self {

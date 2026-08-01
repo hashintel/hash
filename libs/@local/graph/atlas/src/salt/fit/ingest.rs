@@ -51,7 +51,7 @@ use crate::{
 pub(super) struct Ingested {
     /// The bitemporal point the dataset observed.
     pub axes: Option<TemporalAxes>,
-    /// The embedding contract the card table was produced under.
+    /// The embedding contract the card render ran under.
     pub fingerprint: EmbedderFingerprint,
     /// Nodes the dataset streamed.
     pub nodes: u64,
@@ -59,7 +59,7 @@ pub(super) struct Ingested {
     pub node_types: Vec<SmallVec<OntologyRowId, 2>>,
     /// Edges the dataset streamed.
     pub edges: u64,
-    /// The relation universe: distinct ontology rows the edge stream carried, ascending.
+    /// Distinct ontology rows the edge stream carried, ascending, forming the relation universe.
     pub relations: Vec<OntologyRowId>,
     /// Each ontology row's direct parents, in row order: the postings build's parent column.
     pub type_parents: Vec<SmallVec<OntologyRowId, 2>>,
@@ -73,7 +73,8 @@ pub(super) struct Ingested {
     pub edge_endpoints: RepositoryFile,
     /// The spooled `(edge, relation)` readings the relation stage consumes.
     pub instances: InstanceSpool,
-    /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
+    /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
+    /// readings.
     pub multi_typed: Vec<u64>,
     /// Stream confidence readings the drain clamped into `0.0..=1.0`, counted per reading.
     pub clamped_confidences: u64,
@@ -85,9 +86,9 @@ pub(super) struct Ingested {
 
 /// Drains the dataset into the staged stream artifacts.
 ///
-/// The stages run in the dataset's documented ingest order - nodes, edges, ontology, then the card
-/// render over the same type table - and the representation contract is certified before the card
-/// stream touches the embedding provider, so a defective corpus never spends provider budget.
+/// The stages run in the dataset's documented ingest order (nodes, edges, ontology, then the card
+/// render over the same type table) and the ingest certifies the representation contract before the
+/// card stream touches the embedding provider, so a defective corpus never spends provider budget.
 pub(super) async fn run<D, E, P>(
     dataset: &D,
     embedder: &E,
@@ -126,9 +127,9 @@ where
         instances = edge_artifacts.instances.count(),
         "staged the edge identities, endpoints, and instance spool"
     );
-    // The count is published either way; the warning is what a running
-    // fit shows, because a nonzero count means the rows this system
-    // wrote violate the contract this system declares.
+    // The generation publishes the count either way. The warning is what a running fit shows,
+    // because a nonzero count means the rows this system wrote violate the contract this system
+    // declares.
     if edge_artifacts.clamped_confidences > 0 {
         tracing::warn!(
             clamped = edge_artifacts.clamped_confidences,
@@ -136,8 +137,8 @@ where
         );
     }
 
-    // Ontology: the parent column stays resident for the postings
-    // build; the card stream below covers the same rows.
+    // Ontology: the parent column stays resident for the postings build, and the card stream below
+    // covers the same rows.
     let type_parents = collect_type_parents(dataset)
         .instrument(tracing::info_span!("ontology"))
         .await?;
@@ -263,7 +264,7 @@ fn certify_representations<D, E>(
 struct EdgeArtifacts {
     /// Edges the stream carried.
     edges: u64,
-    /// The relation universe: distinct ontology rows the edges carried, ascending.
+    /// Distinct ontology rows the edges carried, ascending, forming the relation universe.
     relations: Vec<OntologyRowId>,
     /// The staged edge identity table.
     identities: RepositoryFile,
@@ -271,25 +272,26 @@ struct EdgeArtifacts {
     endpoints: RepositoryFile,
     /// The spooled `(edge, relation)` readings.
     instances: InstanceSpool,
-    /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
+    /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
+    /// readings.
     multi_typed: Vec<u64>,
     /// Stream confidence readings clamped into `0.0..=1.0`, counted per reading.
     clamped_confidences: u64,
 }
 
-/// Narrows a stream confidence to working precision, clamping what the dataset contract forbids.
+/// Narrows a stream confidence to working precision and clamps what the dataset contract forbids.
 ///
-/// [`Dataset`] declares every confidence to lie in `0.0..=1.0`, and nothing between the store and
-/// this drain enforces it: the readings arrive as double-precision columns and reach the force
+/// [`Dataset`] declares every confidence to lie in `0.0..=1.0`. Nothing between the store and this
+/// drain enforces that range. The readings arrive as double-precision columns and reach the force
 /// algebra unchecked. A violating reading is therefore this system's own bug rather than a caller's
-/// mistake, so the drain clamps it instead of refusing the fit - a refusal would make one part of
-/// the system punish the corpus for another part's defect while leaving that defect invisible - and
-/// increments `clamped`, so the count travels to the generation's evidence where a climbing number
-/// is the defect arriving with a witness.
+/// mistake. The drain clamps it instead of refusing the fit. A refusal would make one part of the
+/// system punish the corpus for another part's defect while leaving that defect invisible. The
+/// drain also increments `clamped` so the count travels to the generation's evidence where a
+/// climbing number is the defect arriving with a witness.
 ///
-/// `NaN` is a violation with no nearest bound, and it enters as `0.0`: the reading that contributes
-/// no force. A propagated `NaN` would instead poison every mass it is summed into, and no later
-/// stage could name the reading it came from.
+/// `NaN` is a violation with no nearest bound. It enters as `0.0`, the reading that contributes no
+/// force. A propagated `NaN` would instead poison every mass that accumulates it. No later stage
+/// could then name the reading it came from.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the accepted and clamped values both lie in [0, 1]; f32 is the working precision"
@@ -315,7 +317,7 @@ fn narrow(confidence: f64, clamped: &mut u64) -> f32 {
 /// relation stage.
 ///
 /// The endpoint digest streams over the finished file because the array writer seals its header by
-/// seeking; the identity writer is forward-only and digests inline.
+/// seeking. The identity writer is forward-only and digests inline.
 async fn stage_edges<D, E>(
     dataset: &D,
     staging: &StagedGeneration,
@@ -356,9 +358,8 @@ where
                 .target_confidence
                 .map(|reading| narrow(reading, &mut clamped_confidences)),
         };
-        // Every direct type reads separately at share 1/multiplicity:
-        // a multi-typed link is a mixture of its relation domains'
-        // opinions, one link's worth of force in total.
+        // Every direct type produces its own reading at share 1/multiplicity: a multi-typed link is
+        // a mixture of its relation domains' opinions, one link's worth of force in total.
         let multiplicity = u32::try_from(edge.ontology.len())
             .expect("an edge's deduplicated direct types are far below u32");
         if multiplicity > 0 {
@@ -427,17 +428,17 @@ pub(super) struct CardArtifacts {
     pub hashes: RepositoryFile,
     /// The staged ontology identity table.
     pub identities: RepositoryFile,
-    /// How the rows were obtained; metadata evidence.
+    /// How the embedding pass obtained the rows, recorded as metadata evidence.
     pub stats: CardEmbeddingStats,
 }
 
-/// Renders every card, embeds the unique texts, and stages the card-embedding columns.
+/// Renders every card and stages the card-embedding columns from the embedded unique texts.
 ///
 /// Both columns land beside the ontology identity table collected from the same stream.
 ///
-/// A prior generation's card files map back as the reuse table: texts whose hash appears there keep
-/// their rows without touching the provider. Reuse is fingerprint-guarded inside [`embed_cards`],
-/// so a changed embedding contract re-embeds everything.
+/// A prior generation's card files map back as the reuse table: texts whose hash the reuse table
+/// lists keep their rows without touching the provider. Reuse is fingerprint-guarded inside
+/// [`embed_cards`], so a changed embedding contract re-embeds everything.
 async fn embed_card_table<D, E, P>(
     dataset: &D,
     embedder: &E,

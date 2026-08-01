@@ -47,7 +47,7 @@ impl Context<'_> {
     ///
     /// The prior skeleton's rows translate through the prior identity table to source ids and
     /// through the staged current table back to rows; nodes that left the corpus since the prior
-    /// generation simply mark nothing.
+    /// generation mark nothing.
     pub(super) fn prior_landmark_marks<I>(
         &self,
         prior: &Generation,

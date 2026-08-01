@@ -1,23 +1,23 @@
-//! The semantic graph: fuzzy edge weights over the k-NN table.
+//! The semantic graph of fuzzy edge weights over the k-NN table.
 //!
-//! The deliverable is [`SemanticGraph`]: a symmetric sparse matrix over the node-row domain whose
-//! entry `(i, j)` weights the semantic edge between rows `i` and `j` in `(0, 1]`. It is the
-//! weighted form of the [`Knn`](super::knn::table::Knn) table: distances calibrate into directed
-//! fuzzy memberships per row ([`bandwidth`]), and the directed memberships combine into one
-//! undirected weight by the probabilistic union
+//! [`SemanticGraph`] is a symmetric sparse matrix over the node-row domain whose entry `(i, j)`
+//! weights the semantic edge between rows `i` and `j` in `(0, 1]`. It is the weighted form of the
+//! [`Knn`](super::knn::table::Knn) table: distances calibrate into directed fuzzy memberships per
+//! row ([`bandwidth`]), and the directed memberships combine into one undirected weight by the
+//! probabilistic union
 //!
 //! ```text
 //! w(i, j) = p(i → j) + p(j → i) - p(i → j) · p(j → i),
 //! ```
 //!
 //! an absent direction contributing zero, so a one-sided edge keeps its directed membership. The
-//! union's support is the union of the directed supports: a row carries its `k` outgoing edges
-//! plus one edge for every other row that names it, so degrees start at `k` and are bounded only
-//! by the row domain - a hub named by many rows carries many edges. Every edge appears in both of
+//! union's support is the union of the directed supports. A row carries its `k` outgoing edges plus
+//! one edge for every other row that names it, so degrees start at `k` and only the row domain
+//! bounds them. A hub named by many rows carries many edges. The graph stores every edge in both of
 //! its rows with bit-equal weight.
 //!
-//! The graph is the training-side attraction structure and is consumed from its published artifact
-//! by training and release evaluation alike, so backend variation in the k-NN build cannot confound
+//! The graph is the training-side attraction structure, and training and release evaluation both
+//! read it from its published artifact, so backend variation in the k-NN build cannot confound
 //! model comparisons ([`artifact::SemanticGraphArchive`] reopens the published file).
 
 use core::marker::PhantomData;
@@ -133,8 +133,8 @@ fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationErro
 /// The symmetric fuzzy-weight graph of one generation.
 ///
 /// Row `i` stores the weights of every semantic edge at node row `i`, keyed by the other endpoint
-/// in ascending row order. Weights are finite in `(0, 1]`, no row references itself, and every edge
-/// is stored in both of its rows with bit-equal weight. A row's edges are the union of the
+/// in ascending row order. Weights are finite in `(0, 1]`, no row references itself, and the graph
+/// stores every edge in both of its rows with bit-equal weight. A row's edges are the union of the
 /// directed supports: at least the `k` outgoing edges of a `k`-neighbour table, plus one for every
 /// other row naming it.
 #[derive(Debug, Clone)]
@@ -159,9 +159,9 @@ where
     /// Weighs a k-NN table into the symmetric semantic graph.
     ///
     /// Each row's distances calibrate a [`bandwidth`] whose exponential memberships sum to
-    /// `log2(k)`; the directed memberships then combine by the probabilistic union. Rows calibrate
-    /// in parallel and deterministically: every row's result lands in its own slot regardless of
-    /// completion order.
+    /// `log2(k)`. The directed memberships then combine by the probabilistic union. Rows calibrate
+    /// in parallel and deterministically: each row writes its result into its own slot regardless
+    /// of completion order.
     #[expect(
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
@@ -285,7 +285,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the graph's row domain.
+    /// This panics when `row` is outside the graph's row domain.
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = SemanticEdge<N>> + '_ {
         let (columns, weights) = self
             .0

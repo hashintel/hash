@@ -115,9 +115,9 @@ fn sample_indices_rejects_undersized_populations() {
 fn sample_indices_hits_every_index_over_repetitions() {
     let mut rng = rng(3);
 
-    // Sampling 2 of 5 repeatedly must eventually pick every index; with
-    // 400 draws the expected count per index is 160 and the chance of an
-    // index staying below 100 is negligible.
+    // Sampling 2 of 5 across 400 draws must pick every index. The expected
+    // count per index is 160 and the chance of an index staying below 100 is
+    // negligible.
     let mut counts = [0_u32; 5];
     for _ in 0..400 {
         let picked = sample_indices::<2>(&mut rng, 5).expect("the population covers the sample");
@@ -147,9 +147,10 @@ fn sample_indices_vec_matches_the_array_contract() {
 
 #[test]
 fn acceptance_sample_size_matches_hand_checked_values() {
-    // ln(0.05) / ln(0.99) = 298.07...; the rule-of-three neighbourhood.
+    // ln(0.05) / ln(0.99) = 298.07..., which sits in the rule-of-three
+    // neighbourhood.
     assert_eq!(acceptance_sample_size(0.01, 0.95), Some(299));
-    // The doc example: one-in-a-hundred defects at 99.9% confidence.
+    // The doc example uses one-in-a-hundred defects at 99.9% confidence.
     assert_eq!(acceptance_sample_size(0.01, 0.999), Some(688));
     assert_eq!(acceptance_sample_size(0.001, 0.999_999), Some(13_809));
 }
@@ -170,7 +171,7 @@ fn acceptance_sample_size_rejects_degenerate_parameters() {
 ///
 /// `n` all-pass samples push the false-acceptance probability to the target or below, and `n -
 /// 1` samples do not. This is the function's entire contract, certified over the whole
-/// meaningful parameter space.
+/// in-domain parameter space.
 #[property_test]
 fn acceptance_sample_size_is_sufficient_and_minimal(
     #[strategy = 1e-6_f64..0.5] defect_rate: f64,
@@ -236,7 +237,7 @@ fn sample_indices_is_a_valid_subset(
 
 /// The quantile matches tabulated standard normal values.
 ///
-/// Both rational-approximation regions are exercised.
+/// The tabulated cases cover both rational-approximation regions.
 #[test]
 fn normal_quantile_matches_tabulated_values() {
     // Central region.
@@ -311,7 +312,7 @@ fn mean_sample_size_follows_the_closed_form() {
     assert!(smaller_deviation < base);
 
     // Halving the margin exactly quadruples the requirement before
-    // rounding; allow one count of ceiling slack.
+    // rounding, so allow one count of ceiling slack.
     assert!(tighter_margin >= base * 4 - 4 && tighter_margin <= base * 4 + 4);
 }
 

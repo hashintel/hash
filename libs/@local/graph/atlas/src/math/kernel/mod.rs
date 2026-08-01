@@ -1,13 +1,13 @@
 //! Shared portable-SIMD operations.
 //!
-//! Multiply-adds are semantically fused: one correctly rounded result per lane, defined by
-//! IEEE 754 on every target, so content-hashed artifacts reproduce across platforms by
-//! construction. The transcendentals are vectorized through the SLEEF kernels vendored in
-//! [`self::sleef`]. Each wrapper documents its own accuracy bound: the variant is chosen per kernel
-//! by measuring the consumers' requirements against instruction counts, from the 1.0-ulp `u10` tier
-//! down to compositions of the cheaper 3.5-ulp `u35` tier. The wrappers are the crate's single seam
-//! onto the vendored kernels: every consumer routes through here, and the `math::kernel` tests
-//! bound each wrapper's error against scalar libm.
+//! The multiply-add wrappers keep the fusion semantic, rounding once per lane to the result IEEE
+//! 754 defines on every target, so content-hashed artifacts reproduce across platforms by
+//! construction. The vendored SLEEF kernels in [`self::sleef`] vectorize the transcendentals. Each
+//! wrapper documents its own accuracy bound, picked per kernel by measuring the consumers'
+//! requirements against instruction counts, from the 1.0-ulp `u10` tier down to compositions of the
+//! cheaper 3.5-ulp `u35` tier. These wrappers are the crate's single seam onto the vendored
+//! kernels. Every consumer routes through here, and the `math::kernel` tests bound each wrapper's
+//! error against scalar libm.
 // `StdFloat` also exposes vector `exp`/`ln`, but the compiler lowers them
 // to one libm call per lane on every current target (verified against the
 // emitted assembly), which is why the bodies below call the vendored
@@ -32,7 +32,7 @@ mod ulp_sweep;
 ///
 /// # Panics
 ///
-/// Panics when the CPU lacks the compiled baseline's instruction-set extensions.
+/// This panics when the CPU lacks the compiled baseline's instruction-set extensions.
 #[expect(
     clippy::missing_const_for_fn,
     reason = "const only where the x86-64 arm compiles out; the runtime feature detection is the \
@@ -53,8 +53,8 @@ pub(crate) fn verify_cpu_baseline() {
 
 /// Fused multiply-add, correctly rounded on every target.
 ///
-/// The fusion is semantic: one rounding per lane, so every lane matches scalar [`f32::mul_add`] bit
-/// for bit. Both baselines the crate builds for lower it in hardware (aarch64 FMLA; x86-64 the
+/// The fusion is semantic. Each lane rounds once, so every lane matches scalar [`f32::mul_add`] bit
+/// for bit. Both baselines the crate builds for lower it in hardware (aarch64 FMLA, x86-64 the
 /// workspace's x86-64-v3 FMA), and lowering changes speed, never bits.
 #[inline(always)]
 pub(crate) fn mul_add_f32x4(lhs: f32x4, rhs: f32x4, accumulator: f32x4) -> f32x4 {
@@ -96,8 +96,7 @@ pub(crate) fn exp_f64x4(values: f64x4) -> f64x4 {
 
 /// Exponential of each lane, accurate to 1.0 unit in the last place.
 ///
-/// Exact at the special points consumers lean on: a zero lane yields exactly one and a
-/// negative-infinity lane yields exactly zero.
+/// A zero lane yields exactly one, and a negative-infinity lane yields exactly zero.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -110,33 +109,27 @@ pub(crate) fn exp_f32x8(values: f32x8) -> f32x8 {
 
 /// Raises each lane of `base` to the matching lane of `exponent`, for strictly positive bases.
 ///
-/// The power is evaluated as `exp2(exponent · log2(base))` from the vendored SLEEF 3.5-ulp stages.
-/// The relative error grows with the magnitude of the result's binary exponent: a few units in the
-/// last place for results near one, on the order of `1e-4` at the edges of the normal range.
-/// Gradient kernels tolerate far more; callers needing 1-ulp powers should take the scalar
-/// [`f32::powf`] per lane instead.
+/// This evaluates the power as `exp2(exponent · log2(base))` through the vendored SLEEF 3.5-ulp
+/// stages. The relative error grows with the magnitude of the result's binary exponent, from a few
+/// units in the last place for results near one to the order of `1e-4` at the edges of the normal
+/// range. Gradient kernels tolerate far more. For 1-ulp powers, take the scalar [`f32::powf`] per
+/// lane instead.
 ///
 /// A `base` of zero yields zero for positive exponents, infinity for negative exponents, and NaN
-/// when the exponent is also zero; negative bases yield NaN.
-// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf,
-// fused ladders): this composition 68 instructions / 18 cycles, four
-// scalar libm `powf` calls 311 / 36. The scalar near-tie in
-// standalone cycles vanishes under load: embedded in the
-// attraction-coefficient arithmetic the composition rides idle issue
-// slots while the scalar bodies compete for them. The tie also does
-// not generalize across machines: it needs an out-of-order engine
-// wide and deep enough to overlap four independent libm bodies (IPC
-// ≈8.6 here) and Apple's branch-free `powf`; production Linux targets
-// have neither, and glibc's `powf` is a different, branchier function
-// with different rounding. The composition's cost travels with the
-// binary - same vendored code, bit-identical results on every
-// platform - which also keeps content-hashed fits reproducible across
-// dev and prod. Inside the fused gradient kernels the instruction
-// count is additionally the shared resource: the composition leaves
-// three quarters of the issue slots to the surrounding batch
-// arithmetic and stays in vector registers. `StdFloat` offers no
-// vector `pow`, and its `exp2`/`log2` scalarize to one libm call per
-// lane.
+/// when the exponent is also zero. Negative bases yield NaN.
+// Measured on an M5 Max (per 4-lane call, criterion via darwin-kperf, fused ladders): this
+// composition 68 instructions / 18 cycles, four scalar libm `powf` calls 311 / 36. The scalar
+// near-tie in standalone cycles vanishes under load. Embedded in the attraction-coefficient
+// arithmetic, the composition occupies idle issue slots while the scalar bodies compete for them.
+// The tie also does not generalize across machines. It needs an out-of-order engine wide and deep
+// enough to overlap four independent libm bodies (IPC ≈8.6 here) and Apple's branch-free `powf`.
+// Production Linux targets have neither, and glibc's `powf` is a different, branchier function with
+// different rounding. The composition's cost is the same wherever the binary runs, because the same
+// vendored code produces bit-identical results on every platform, and that also keeps
+// content-hashed fits reproducible across dev and prod. Inside the fused gradient kernels the
+// instruction count also becomes the shared resource, and the composition leaves three quarters of
+// the issue slots to the surrounding batch arithmetic while staying in vector registers. `StdFloat`
+// offers no vector `pow`, and its `exp2`/`log2` scalarize to one libm call per lane.
 #[expect(
     clippy::inline_always,
     reason = "SIMD values cross non-inlined call boundaries through memory; the wrapper must be \
@@ -287,9 +280,8 @@ mod tests {
                 let vectorized = pow_f32x4(Simd::splat(base), Simd::splat(exponent)).to_array()[0];
                 let reference = base.powf(exponent);
 
-                // Overflowing cases must agree exactly on the infinity; a
-                // relative distance is only meaningful between finite
-                // values.
+                // Overflowing cases must agree exactly on the infinity. A relative distance applies
+                // only between finite values.
                 if !reference.is_finite() {
                     assert_eq!(
                         vectorized, reference,

@@ -1,11 +1,11 @@
-//! The placement stage: the trained projector or the landmark baseline.
+//! The placement stage runs either the trained projector or the landmark baseline.
 //!
 //! The stage owns the coordinate seam of one fit. Under the baseline placement every row takes its
-//! assigned landmark's layout coordinate; under the projector placement the stage trains the
-//! conditioned model over the staged artifacts, stages its checkpoint, projects the whole corpus at
-//! every ladder rung, measures the ladder, and publishes the canonical rung's field aligned into
-//! the baseline frame. The metadata records which placement ran and, for a trained one, the
-//! training and ladder measurements.
+//! assigned landmark's layout coordinate. Under the projector placement the stage trains the
+//! conditioned model over the staged artifacts and stages its checkpoint. It projects the whole
+//! corpus at every ladder rung and measures the ladder. It publishes the canonical rung's field
+//! aligned into the baseline frame. The metadata records which placement ran and, for a trained
+//! one, the training and ladder measurements.
 //!
 //! Rung frames are transient: each projects into the run's scratch directory and maps back for
 //! measurement, so the stage's owned working set stays one frame regardless of the schedule length.
@@ -67,7 +67,9 @@ use crate::{
     },
 };
 
-/// The inference half of the placement backend: Metal behind the `gpu` feature, the CPU otherwise.
+/// The inference half of the placement backend.
+///
+/// The `gpu` feature selects Metal and its absence selects the CPU.
 ///
 /// The CPU backend stays the fixture and determinism harness, so tests run without the feature.
 ///
@@ -100,7 +102,8 @@ pub(in crate::salt::fit) fn device() -> burn::backend::ndarray::NdArrayDevice {
 pub(super) struct PlacementInputs<'fit> {
     /// The mapped representation matrix, one aligned row per corpus node.
     ///
-    /// The publication domain: ladder frames and the canonical coordinate column cover these rows.
+    /// These rows are the publication domain that ladder frames and the canonical coordinate
+    /// column cover.
     pub rows: &'fit IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     /// The staged landmark skeleton, over the corpus row domain.
     pub skeleton: &'fit LandmarkSkeletonArchive,
@@ -112,9 +115,9 @@ pub(super) struct PlacementInputs<'fit> {
 
 /// The trainer's distinct-row view of the corpus.
 ///
-/// The quotient and the artifacts built over it: training and the ladder's loss measurements run
-/// here, where byte-identical rows are one point, while publication evaluates the full corpus -
-/// identical representations project identically, so the two domains describe one field.
+/// Training and the ladder's loss measurements run over the quotient and the artifacts built on it,
+/// where byte-identical rows are one point. Publication evaluates the full corpus, and identical
+/// representations project identically, so the two domains describe one field.
 pub(super) struct DistinctInputs<'fit> {
     /// The distinct representation rows, first occurrences in corpus order.
     pub rows: &'fit IdSlice<DistinctRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -141,7 +144,9 @@ pub(in crate::salt::fit) struct VerdictResolution {
 pub(super) struct PlacementArtifacts {
     /// The staged canonical coordinate column.
     pub coordinates: RepositoryFile,
-    /// The staged projector checkpoint; present exactly for a trained placement.
+    /// The staged projector checkpoint.
+    ///
+    /// Present exactly for a trained placement.
     pub checkpoint: Option<RepositoryFile>,
     /// Which placement ran.
     pub placement: Placement,
@@ -212,10 +217,10 @@ impl Context<'_> {
             roles: IdSlice::from_raw(&roles[..distinct.rows.len()]),
         };
 
-        // A vacuous placement withholds the relation evidence: the
-        // trainer sees no force at all, so no radius freezes and no
-        // reviewed verdicts are demanded, while the published relation
-        // artifacts stay real for serving.
+        // A vacuous placement withholds the relation evidence. The
+        // trainer sees no force at all, so no radius freezes and the
+        // trainer demands no reviewed verdicts, while the published
+        // relation artifacts stay real for serving.
         let vacuous = AttractionIndex::vacuous();
         let attraction = if options.vacuous {
             tracing::info!("the placement is vacuous: the relation term stays absent");
@@ -232,15 +237,15 @@ impl Context<'_> {
             knn: distinct.knn.view(),
             columns: trainer_columns,
             landmarks: &landmarks,
-            // No stage supplies temporal anchors; the pool is empty.
+            // No stage supplies temporal anchors, so the pool is empty.
             anchors: &[],
             verdicts: &inputs.resolution.resolved,
         };
 
-        // Mass normalization: the configured coefficients are corpus-free bases. The semantic and
+        // The configured coefficients are corpus-free bases. The semantic and
         // ordinary bases divide by the total semantic edge weight, the hard-negative base
         // by the row count, and the support bases by the pools the trainer receives, so each base
-        // weighs the same objective share on every corpus; the relation base is already mass-free.
+        // weighs the same objective share on every corpus. The relation base is already mass-free.
         // The masses are the training domain's - the distinct rows and their graph -
         // matching the objective the trainer optimizes. A weightless graph passes the bases
         // through - the trainer rejects it as evidence-free immediately after.
@@ -273,8 +278,8 @@ impl Context<'_> {
         )?;
         let checkpoint = self.stage_checkpoint(&fitted.model)?;
 
-        // Inference runs on the inner backend. The lens is trained
-        // exactly when the boundary froze a radius; without one the
+        // Inference runs on the inner backend. The trainer fits the lens
+        // exactly when the boundary froze a radius. Without one the
         // condition column received zero gradient at every step, every
         // rung provably projects the identical field, and the baseline
         // publishes directly with no ladder to measure.
@@ -370,8 +375,8 @@ impl Context<'_> {
 
     /// Projects, measures, and publishes the condition ladder, returning its evidence.
     ///
-    /// Every rung projects into the scratch directory and maps back; the canonical rung's field,
-    /// aligned into the baseline frame, stages as the coordinate column, and the relation loss
+    /// Every rung projects into the scratch directory and maps back. The canonical rung's field
+    /// aligns into the baseline frame and stages as the coordinate column, and the relation loss
     /// re-measures over the persisted bytes.
     fn measure_conditions(
         &self,
@@ -538,7 +543,7 @@ impl Context<'_> {
 /// Read under the dataset's ontology id type `O`.
 ///
 /// Each verdict's reviewed versioned URL derives the id naming it in the corpus's own id space
-/// ([`OntologyIdentity`]); verdicts whose identity derives no id there record as unresolved. A
+/// ([`OntologyIdentity`]). Verdicts whose identity derives no id there record as unresolved. A
 /// column file keyed by any other id type fails the open.
 pub(in crate::salt::fit) fn resolve_supplied<O>(
     path: &Utf8Path,
@@ -656,8 +661,8 @@ fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
 
 /// Warns when the persisted canonical loss is not below the zero-condition raw loss.
 ///
-/// Carries the absolute delta; the relative delta is omitted over a zero baseline rather than
-/// manufactured as inf/NaN.
+/// Reports the absolute delta. A zero baseline leaves out the relative delta rather than
+/// manufacturing inf/NaN.
 fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
     if persisted < baseline {
         return;
@@ -691,10 +696,10 @@ fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
 /// Anchor rows are the trainer's: the skeleton publishes corpus rows, and each selected row maps
 /// to its distinct index through the quotient.
 ///
-/// The radius is the median layout distance to the landmark's nearest skeleton neighbours - the
-/// same local-scale convention the relation loss normalizes by - so a landmark in a dense skeleton
-/// region holds its row tighter than one in a sparse region. A one-landmark skeleton has no ruler
-/// and anchors at radius zero; the support term's ε guards the division.
+/// The radius is the median layout distance to the landmark's nearest skeleton neighbours. That is
+/// the same local-scale convention the relation loss normalizes by. A landmark in a dense skeleton
+/// region therefore holds its row tighter than one in a sparse region. A one-landmark skeleton has
+/// no ruler and anchors at radius zero. The support term's ε guards the division.
 fn landmark_anchors(
     skeleton: &LandmarkSkeletonArchive,
     options: &ProjectorOptions,
@@ -731,16 +736,16 @@ fn gather_distinct(
 /// The neighbour count and median convention are the corpus local-scale kernel's
 /// ([`insert_nearest`] and [`sorted_median`]); the skeleton is capacity-bounded, so the nearest set
 /// comes from a plain pass over the layout.
-// PERF: called once per landmark, this is an all-nearest-neighbours
-// scan - O(S^2) distance evaluations over the capacity-bounded
-// skeleton, tens of milliseconds once per fit. If skeleton capacity
-// ever rises enough to matter, the fix is algorithmic before it is
-// SIMD: build one kd-tree over the layout (kiddo, already in-tree
-// for serving) and take the fifteen nearest per landmark in
-// O(S log S) total. The median consumes distances only, so tied
-// neighbour choices cannot change the result - an exact index
-// reproduces the brute-force output bit for bit. Measure at a
-// raised capacity before acting.
+// PERF: this runs once per landmark and is an all-nearest-neighbours
+// scan. The cost is O(S^2) distance evaluations over the
+// capacity-bounded skeleton and tens of milliseconds once per fit. If
+// skeleton capacity ever rises enough to matter, the fix is algorithmic
+// before it is SIMD. Build one kd-tree over the layout (kiddo is
+// already in-tree for serving) and take the fifteen nearest per
+// landmark in O(S log S) total. The median consumes distances only, so
+// tied neighbour choices cannot change the result. An exact index
+// reproduces the brute-force output bit for bit. Measure at a raised
+// capacity before acting.
 fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> f32
 where
     N: Id,
@@ -777,8 +782,8 @@ where
 /// Normalizes the configured coefficient bases by their objective masses.
 ///
 /// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, and each
-/// support base by its own pool size: the anchor base by the temporal anchor pool, the landmark
-/// base by the landmark pool.
+/// support base by its own pool size. The anchor base divides by the temporal anchor pool and the
+/// landmark base by the landmark pool.
 ///
 /// The relation base passes through, and a pool of zero keeps its base inert rather than dividing
 /// by nothing. A weightless graph passes every base through unchanged.

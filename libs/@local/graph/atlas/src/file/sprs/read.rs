@@ -16,9 +16,9 @@ use crate::file::region::PageMap;
 // pub: rides `OpenAtlasError`'s public adjacency variant.
 #[derive(Debug)]
 pub enum OpenSprsError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -129,8 +129,8 @@ impl Error for SprsMatrixError {
 /// A sparse matrix file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned: aligned for every scalar and SIMD width.
+/// describes its own regions exactly. The regions borrow straight from the whole-file mapping and
+/// start on a 4096-byte boundary, an alignment that suits every scalar and SIMD width.
 #[derive(Debug)]
 pub(crate) struct SprsFile {
     map: PageMap,
@@ -141,7 +141,7 @@ impl SprsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenSprsError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenSprsError::Io`] when opening or mapping the file fails,
     /// [`OpenSprsError::Header`] when its leading bytes are not a header this module speaks, and
     /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {
@@ -236,12 +236,12 @@ impl SprsFile {
     ///
     /// The view exists exactly for the element combination the header describes
     /// ([`value`](Self::value) tag and [`value_width`](Self::value_width) both,
-    /// [`index`](Self::index), [`iptr`](Self::iptr)), so a region is never read at the wrong width;
-    /// an [`Opaque`](ValueTag::Opaque) value carries no identity beyond its width, which is that
-    /// tag's documented contract. A [`Unit`](ValueTag::Unit) matrix stores no value bytes; its `()`
+    /// [`index`](Self::index), [`iptr`](Self::iptr)), so a region is never read at the wrong width.
+    /// An [`Opaque`](ValueTag::Opaque) value carries no identity beyond its width, which is that
+    /// tag's documented contract. A [`Unit`](ValueTag::Unit) matrix stores no value bytes. Its `()`
     /// entries materialize at the recorded entry count, so the structure-only view drives sparse
     /// algorithms like any other. Every call re-checks the compressed-row structure, which costs
-    /// one pass over the entries; callers hold on to the view within a stage.
+    /// one pass over the entries. Reuse the view within a stage rather than calling again.
     ///
     /// # Errors
     ///

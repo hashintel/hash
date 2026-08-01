@@ -11,9 +11,9 @@ use crate::{file::region::PageMap, morton::MortonCell};
 /// Opening a quad file failed.
 #[derive(Debug)]
 pub enum OpenQuadError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header,
@@ -98,10 +98,11 @@ impl Error for OpenQuadError {
 
 /// A quad file mapped read-only into memory.
 ///
-/// Opening parses the header, checks the length equation, and validates the structural rules -
-/// fenceposts anchored, non-decreasing and closing at the header's entry count; children inside the
-/// table and pointing deeper - so traversals and set slices never re-check. Within-set ascending
-/// order is the writer's contract, assumed the way every merge assumes its sorted inputs.
+/// Opening parses the header and checks the length equation, then validates the structural rules.
+/// Fenceposts anchor at zero, never decrease, and close at the header's entry count. Every child
+/// index stays inside the table and points deeper in the pre-order. Traversals and set slices
+/// therefore never re-check. Within-set ascending order is the writer's contract, assumed the way
+/// every merge assumes its sorted inputs.
 ///
 /// [`locate`](Self::locate) is the serving query: the node owning one tile cell, found by walking
 /// the two-bit digits of the cell's key prefix from the root.
@@ -115,7 +116,7 @@ impl QuadFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenQuadError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenQuadError::Io`] when opening or mapping the file fails,
     /// [`OpenQuadError::Header`] when its leading bytes are not a header this module speaks,
     /// [`OpenQuadError::Nodes`] when the node count collides with the child sentinel,
     /// [`OpenQuadError::Length`] when the file length contradicts the header's geometry,
@@ -209,7 +210,7 @@ impl QuadFile {
         <[Node]>::ref_from_bytes(bytes).expect("node records tolerate any alignment")
     }
 
-    /// Views the type-set fenceposts: one entry count per node plus the closing count.
+    /// Views the type-set fenceposts, one entry count per node plus the closing count.
     ///
     /// Unlike the morton file's 34 header posts, these are `N + 1` entries, so they stay a raw
     /// view (validated once at open, read through `.get()` twice per set lookup) rather than a
@@ -241,7 +242,7 @@ impl QuadFile {
     ///
     /// # Panics
     ///
-    /// Panics when `node` is at or beyond the node count.
+    /// This panics when `node` is at or beyond the node count.
     #[must_use]
     pub(crate) fn type_set(&self, node: u32) -> &[U32<LE>] {
         let posts = self.posts();

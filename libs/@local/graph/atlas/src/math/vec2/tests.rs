@@ -213,7 +213,7 @@ fn from_slice_reinterprets_in_place() {
             Vec2::new(5.0, 6.0)
         ],
     );
-    // A view, not a copy: the points alias the component storage.
+    // The points alias the component storage.
     assert_eq!(points.as_ptr().cast::<f32>(), components.as_ptr());
 
     assert_eq!(
@@ -304,7 +304,7 @@ fn natural_from_slice_splits_and_rejoins_at_every_offset() {
             .collect();
         assert_eq!(rejoined, window, "offset {offset}");
 
-        // The middle is genuinely aligned and aliases the input storage.
+        // The middle meets the batch alignment and aliases the input storage.
         assert!(batches.as_ptr().addr().is_multiple_of(align_of::<Vec2x4>()));
         if !batches.is_empty() {
             assert_eq!(
@@ -438,8 +438,7 @@ fn natural_from_lanes_interleaves_axis_groups() {
 
 /// A coordinate bounded to a well-conditioned range.
 ///
-/// The laws below are algebraic contracts; overflow behaviour is pinned separately by the
-/// example-based tests above.
+/// The laws below are algebraic contracts. The example-based tests above pin overflow behaviour.
 fn coordinate() -> impl Strategy<Value = f32> {
     -1e5_f32..1e5
 }
@@ -449,14 +448,14 @@ fn vec2_strategy() -> impl Strategy<Value = Vec2> {
     (coordinate(), coordinate()).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Four arbitrary in-range vectors, one per batch lane.
+/// Arbitrary in-range vectors, one per batch lane.
 fn vec2_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
     proptest::array::uniform4(vec2_strategy())
 }
 
 /// The dot product commutes bit for bit: both orders multiply and add the same values.
 ///
-/// Coordinates are bounded to `-1e5..1e5`.
+/// Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn dot_is_commutative(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -468,7 +467,7 @@ fn dot_is_commutative(
 /// The perpendicular product is antisymmetric.
 ///
 /// Swapping the operands negates the result exactly, because IEEE negation of a difference is
-/// exact. Coordinates are bounded to `-1e5..1e5`.
+/// exact. Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn perp_dot_is_antisymmetric(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -479,7 +478,7 @@ fn perp_dot_is_antisymmetric(
 
 /// Distance is symmetric, and the distance from a point to itself is exactly zero.
 ///
-/// Coordinates are bounded to `-1e5..1e5`.
+/// Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn distance_is_symmetric_with_zero_self_distance(
     #[strategy = vec2_strategy()] left: Vec2,
@@ -492,8 +491,8 @@ fn distance_is_symmetric_with_zero_self_distance(
 /// Lerp hits its endpoints.
 ///
 /// Factor zero is exact; factor one holds up to rounding scaled by the operands' magnitude (the
-/// interpolation computes `from + (to - from) · factor`, which rounds twice). Coordinates are
-/// bounded to `-1e5..1e5`.
+/// interpolation computes `from + (to - from) · factor`, which rounds twice). Coordinates lie in
+/// `-1e5..1e5`.
 #[property_test]
 fn lerp_hits_endpoints_on_arbitrary_vectors(
     #[strategy = vec2_strategy()] from: Vec2,
@@ -520,7 +519,7 @@ fn lerp_hits_endpoints_on_arbitrary_vectors(
 
 /// Batch arithmetic operators match the scalar operators bit for bit in every lane.
 ///
-/// SIMD IEEE arithmetic is scalar arithmetic per lane. Coordinates are bounded to `-1e5..1e5`.
+/// SIMD IEEE arithmetic is scalar arithmetic per lane. Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
     #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],
@@ -546,7 +545,7 @@ fn batch_operators_match_scalar_lanes_on_arbitrary_inputs(
 /// Batch reductions match the scalar reductions per lane up to FMA contraction.
 ///
 /// The contraction's rounding scales with the products' magnitude rather than the (possibly
-/// cancelled) result. Coordinates are bounded to `-1e5..1e5`.
+/// cancelled) result. Coordinates lie in `-1e5..1e5`.
 #[property_test]
 fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
     #[strategy = vec2_array_strategy()] lhs: [Vec2; 4],

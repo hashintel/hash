@@ -8,10 +8,10 @@
 //! ```
 //!
 //! which regularizes sparse high-dimensional samples while retaining dimension-level scale where
-//! the sample supports it. The training rows' own standardized distances are sorted and retained,
-//! so a prediction's applicability is its empirical upper-tail rank: an embedding far from
-//! everything the model was fitted on scores near zero, flagging the prediction as unsupported.
-//! Applicability is not a fourth geometry class; it is evidence about the embedding.
+//! the sample supports it. The fit sorts and retains the training rows' own standardized distances,
+//! so a prediction's applicability is its empirical upper-tail rank. An embedding far from every
+//! training row scores near zero, flagging the prediction as unsupported. Applicability is evidence
+//! about the embedding. It is not a fourth geometry class.
 
 use super::{FitError, TrainingSet};
 use crate::{

@@ -1,6 +1,6 @@
-//! The identity file: a row-ordered id column and its sorted lookup pairs.
+//! An identity file stores a row-ordered id column and its sorted lookup pairs.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and
 //! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
@@ -9,9 +9,9 @@
 //! directions: `row → id` is indexing into the id column, and `id → row` is binary search over
 //! the sorted pairs, with an index prelude in front so a cold lookup faults two pages instead of
 //! `log2(N)` scattered ones. Ids are opaque `K`-byte strings; the pair order is the order of those
-//! bytes, since source identifiers carry no other one. This is a combined file: the pairs and the
-//! index are derived from the id column, meaningless without it, and always read with it. The
-//! regions:
+//! bytes, since source identifiers carry no other one. The pairs and the index derive from the id
+//! column and mean nothing without it. One file stores all three regions, so every open maps them
+//! together. The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -35,10 +35,11 @@
 //! and the stride with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose
 //! geometry overflows, or whose width or stride is zero, matches no real file. Every region starts
 //! on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of the array format
-//! applies unchanged: map the whole file and slice, never mmap at a file offset.
+//! applies unchanged. A reader maps the whole file and slices it rather than mmapping at a file
+//! offset.
 //!
-//! [`read::IdentityFile`] opens a file under these rules and hands out the raw byte regions;
-//! [`write::write_regions`] streams them into place. The format owns geometry alone - the table's
+//! [`read::IdentityFile`] opens a file under these rules and hands out the raw byte regions, and
+//! [`write::write_regions`] streams them into place. The format owns geometry alone. The table's
 //! domain invariants (strictly ascending pair ids, rows inside the domain, pair agreement with the
 //! column, index agreement with the pairs) are `salt::fit::prepare::identity`'s contract, validated
 //! where the typed table lives.
@@ -63,7 +64,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -107,7 +108,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment this version on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -229,9 +230,9 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64` or the width or stride is zero, in which case no real file matches the
-    /// header.
+    /// Opening rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64` or the width or stride is zero, in which case no real file matches
+    /// the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let pair_bytes = self.rows().checked_mul(self.pair_size())?;

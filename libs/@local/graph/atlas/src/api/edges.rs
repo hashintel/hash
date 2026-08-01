@@ -54,14 +54,16 @@ The `filter` field is reserved: a request that carries one is rejected with `uns
 pub(super) struct VariantPath {
     /// The sha256 generation id, as returned by `current`.
     generation: GenerationId,
-    /// The fitted variant name; the manifest lists what this generation serves.
+    /// The fitted variant name.
+    ///
+    /// The manifest lists what this generation serves.
     variant: String,
 }
 
 /// `POST /v1/atlas/edges/{generation}/{variant}`.
 ///
 /// The edges among the listed tiles' delivered rows, as `SALTILEE` bytes. The tiles list is the
-/// request's subject, so the body is required.
+/// request's subject, so the route requires the body.
 pub(super) async fn handler(
     State(state): State<AppState>,
     visibility: Visibility,

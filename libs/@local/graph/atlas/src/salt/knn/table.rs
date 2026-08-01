@@ -14,11 +14,11 @@ use super::{Neighbour, construction::NeighbourLists, error::KnnError};
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum KnnValidationError {
-    /// The matrix is compressed by column.
+    /// The matrix uses column-compressed storage.
     ColumnCompressed,
     /// The matrix is not square over the row domain.
     NotSquare { rows: usize, columns: usize },
-    /// The row domain holds fewer than two rows.
+    /// The row domain covers at most one row.
     InsufficientRows { rows: usize },
     /// The neighbour count is zero or not below the row count.
     NeighbourBounds { neighbours: usize, rows: usize },
@@ -94,7 +94,7 @@ impl Error for KnnValidationError {}
 /// Checks every table invariant over a borrowed matrix.
 ///
 /// Structural invariants (in-bounds, strictly ascending row entries, consistent pointers) hold for
-/// any existing [`KnnMatrixView`]; this checks the domain invariants layered on top.
+/// any existing [`KnnMatrixView`]. This check covers the domain invariants layered on top.
 pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationError> {
     if !matrix.is_csr() {
         return Err(KnnValidationError::ColumnCompressed);
@@ -154,9 +154,9 @@ pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationErr
 
 /// The table's matrix layout: `u32` neighbour columns under `u64` row pointers.
 ///
-/// Columns are `u32` because node rows are bound to a `u32` encoding end to end (the wire row ids,
-/// the search backend's item keys, the persisted column region); row pointers are `u64` so the
-/// persisted and resident layouts coincide and a mapped table is the same type as a built one.
+/// Columns are `u32` because a `u32` encoding carries node rows end to end (the wire row ids, the
+/// search backend's item keys, the persisted column region). Row pointers are `u64` so the
+/// persisted and resident layouts coincide and a mapped table has the same type as a built one.
 pub(crate) type KnnMatrix = CsMatI<f32, u32, u64>;
 
 /// A borrowed [`KnnMatrix`].
@@ -164,11 +164,11 @@ pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 
 /// The persisted directed k-nearest-neighbour table of one generation.
 ///
-/// A square compressed sparse row matrix over the node-row domain: row `i` stores the cosine
+/// A square compressed sparse row matrix over the node-row domain. Row `i` stores the cosine
 /// distances of the `k` nearest non-self neighbours of node row `i`, keyed by neighbour row in
 /// ascending row order. Every row stores exactly `k` entries, no row references itself, and every
-/// distance is finite in `[0, 2]`. The row format makes duplicate neighbours unrepresentable:
-/// entries within a row are strictly ascending by column.
+/// distance is finite in `[0, 2]`. Entries within a row are strictly ascending by column, which
+/// makes duplicate neighbours unrepresentable.
 ///
 /// A `0.0` distance is a stored value (duplicate embeddings are exactly coincident), never an
 /// absent entry.
@@ -383,7 +383,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the table's row domain.
+    /// This panics when `row` is outside the table's row domain.
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = Neighbour<N>> + 'view {
         // outer_view reborrows at `&self`; the raw storage carries the
         // view's own lifetime.

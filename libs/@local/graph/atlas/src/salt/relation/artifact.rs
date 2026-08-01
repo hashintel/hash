@@ -43,8 +43,8 @@ where
 
     /// Writes the index as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
+    /// Returns the SHA-256 of the written bytes, which is the identity the repository records for
+    /// the published file.
     ///
     /// # Errors
     ///
@@ -390,7 +390,7 @@ impl AttractionArchive {
     ///
     /// # Panics
     ///
-    /// Panics when `index` is not below [`group_count`](Self::group_count).
+    /// This panics when `index` is not below [`group_count`](Self::group_count).
     #[must_use]
     pub(crate) fn group(&self, index: usize) -> AttractionGroupView<'_> {
         let groups = self.file.groups();

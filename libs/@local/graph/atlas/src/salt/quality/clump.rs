@@ -288,7 +288,7 @@ impl ClumpAggregate {
     ///
     /// # Panics
     ///
-    /// Panics when the aggregates disagree about the neighbourhood size.
+    /// This panics when the aggregates disagree about the neighbourhood size.
     pub(crate) const fn merge(&mut self, other: &Self) {
         assert!(
             self.k == other.k,

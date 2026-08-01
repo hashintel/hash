@@ -1,4 +1,4 @@
-//! The first-occupant cascade: a minimum-zoom bucket per point.
+//! The first-occupant cascade, which gives every point a minimum-zoom bucket.
 
 use std::collections::HashSet;
 
@@ -9,7 +9,7 @@ use crate::morton::{Depth, MortonKey};
 
 /// Assigns every point its bucket.
 ///
-/// The shallowest grid depth at which the point is its cell's first occupant.
+/// The bucket is the shallowest grid depth at which the point first occupies its cell.
 ///
 /// The cascade scans depths coarse to fine. At each depth, every occupied cell that no
 /// earlier-assigned point lies in receives its first still-unassigned point in rank order; the rest
@@ -18,14 +18,14 @@ use crate::morton::{Depth, MortonKey};
 /// cell.
 ///
 /// Delivering every point with a bucket at or below a cut depth therefore covers every occupied
-/// cell of the cut's grid; the claim is checkable per generation with [`verify_coverage`].
+/// cell of the cut's grid. [`verify_coverage`] rechecks that claim for one generation.
 ///
 /// The assignment is a pure function of the keys, the ranking, and `deepest`, over whatever row
 /// domain `R` the two agree on.
 ///
 /// # Panics
 ///
-/// Panics when `keys` and `ranking` disagree on the row count.
+/// This panics when `keys` and `ranking` disagree on the row count.
 #[must_use]
 pub(crate) fn buckets<R: Id>(
     keys: &IdSlice<R, MortonKey>,
@@ -38,14 +38,14 @@ pub(crate) fn buckets<R: Id>(
         "the keys and the ranking must cover the same rows",
     );
 
-    // The catch-all initialization: rows no pass assigns keep `deepest`.
+    // Rows that no pass assigns keep `deepest`, the catch-all bucket.
     let mut buckets = IdVec::<R, Depth>::from_elem(deepest, keys.len());
     let mut assigned = DenseBitSet::<R>::new_empty(keys.len());
 
-    // The cell set is hashed, not bitmapped. Its elements are `prefix(depth)` keys, and their
-    // `4^depth`-cell domain outgrows the row count from depth ~10 on while the populated cells
-    // stay bounded by the rows. The hashed set pays only for the cells the cascade touches.
-    // The row set fills a linear domain, which a dense bit set fits.
+    // A hash set holds the cells. Its elements are `prefix(depth)` keys, and their `4^depth`-cell
+    // domain outgrows the row count from depth ~10 on while the populated cells stay bounded by the
+    // rows, so the hash set pays only for the cells the cascade touches. The row set fills a linear
+    // domain, which a dense bit set fits.
     let mut seen = HashSet::new();
 
     // One rank-ordered pass per depth suffices with a single cell set. Within any cell an
@@ -92,7 +92,7 @@ pub(crate) struct CoverageGap {
 ///
 /// # Panics
 ///
-/// Panics when `keys` and `buckets` disagree on the row count.
+/// This panics when `keys` and `buckets` disagree on the row count.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "mismatched row counts are a programmer error, not a coverage gap"

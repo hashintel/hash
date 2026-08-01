@@ -67,7 +67,7 @@ fn renormalize_removes_composition_drift() {
         "renormalizing must not move the vector further off the unit circle",
     );
     assert!((norm(renormalized) - 1.0).abs() < 4.0 * f32::EPSILON);
-    // The angle must survive: after ~2 pi the rotation is nearly identity.
+    // Renormalizing preserves the angle, so after ~2 pi the rotation is close to the identity.
     assert!((renormalized.radians()).abs() < 1e-2);
 }
 

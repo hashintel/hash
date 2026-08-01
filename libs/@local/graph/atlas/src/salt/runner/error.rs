@@ -14,20 +14,20 @@ use crate::{
 /// that id.
 #[derive(Debug)]
 pub enum RunnerError<D, E> {
-    /// The current-generation pointer could not be read.
+    /// The run could not read the current-generation pointer.
     Current(CurrentError),
-    /// The active generation could not be opened as the prior.
+    /// The run could not open the active generation as the prior.
     Prior(OpenError),
-    /// The fit could not publish; nothing is on disk.
+    /// The fit could not publish, so nothing is on disk.
     Fit(FitError<D, E>),
-    /// The published generation could not be reopened.
+    /// The run could not reopen the published generation.
     Reopen { id: GenerationId, source: OpenError },
     /// The admission probe could not produce a report.
     Quality {
         id: GenerationId,
         source: QualityRunError<D>,
     },
-    /// The admitted generation could not be activated.
+    /// The run could not activate the admitted generation.
     Activate {
         id: GenerationId,
         source: ActivateError,

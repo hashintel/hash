@@ -7,10 +7,10 @@ use super::{ParseHexError, hex::HexBytes};
 
 /// A variable-length secret string.
 ///
-/// Key-material hygiene by construction: the bytes zero on drop, and no path encodes them back
-/// out - [`fmt::Debug`] prints the length alone, [`fmt::Display`] a fixed placeholder, and the
-/// type has no `Serialize` - so a held secret cannot leak through logging or document dumps.
-/// Consuming the secret with [`expose`](Self::expose) is the one way to reach the held value.
+/// The bytes zero on drop, and no path encodes them back out. [`fmt::Debug`] prints the length
+/// alone, [`fmt::Display`] prints a fixed placeholder, and the type has no `Serialize`, so logging
+/// or dumping a held secret discloses nothing. Consuming the secret with [`expose`](Self::expose)
+/// is the one way to reach the held value.
 #[derive(Clone)]
 pub struct SecretString(String);
 
@@ -52,9 +52,9 @@ impl FromStr for SecretString {
 
 /// An `N`-byte secret configured in the canonical hexadecimal encoding.
 ///
-/// Key-material hygiene by construction: the bytes zero on drop, this type's own renderings
-/// redact - [`fmt::Debug`] prints the width alone and [`fmt::Display`] a fixed placeholder - and
-/// the type has no `Serialize`, so logging or serializing the value discloses nothing.
+/// The bytes zero on drop, and this type's own renderings redact: [`fmt::Debug`] prints the width
+/// alone and [`fmt::Display`] prints a fixed placeholder. The type has no `Serialize`, so logging
+/// or serializing the value discloses nothing.
 ///
 /// The redaction covers this value, not everything reachable through it: [`HexBytes`] renders
 /// every byte, so rendering the dereferenced inner value writes the key in full. Code that holds
@@ -139,8 +139,8 @@ mod tests {
 
     /// Asserts that no eight-byte window of `material` survives into `rendered`.
     ///
-    /// Windows rather than the whole value: a truncated or partially encoded rendering discloses
-    /// held material just as a complete one does.
+    /// Windows rather than the whole value: a rendering that truncates or encodes only part of the
+    /// material discloses it as much as a complete one does.
     #[track_caller]
     fn assert_redacted(rendered: &str, material: &str) {
         for (start, window) in material.as_bytes().windows(8).enumerate() {
@@ -156,10 +156,10 @@ mod tests {
 
     /// Neither rendering of a held key encodes its bytes.
     ///
-    /// Both renderings are checked against every eight-byte window of the canonical form, so a
-    /// partial disclosure fails as loudly as a whole one. The dereferenced inner value is outside
-    /// this witness: [`HexBytes`] renders every byte, and a rendering taken through the deref is
-    /// what the type documentation covers.
+    /// This test checks both renderings against every eight-byte window of the canonical form, so a
+    /// partial disclosure fails the same way a whole one does. The dereferenced inner value is
+    /// outside this witness: [`HexBytes`] renders every byte, and a rendering taken through the
+    /// deref is what the type documentation covers.
     #[test]
     fn hex_secrets_redact_both_renderings() {
         let secret =

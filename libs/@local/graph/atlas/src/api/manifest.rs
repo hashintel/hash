@@ -1,7 +1,7 @@
 //! `POST /v1/atlas/generation/{generation}/manifest`.
 //!
-//! Immutable bootstrap data - configuration and snapshot provenance, no corpus-derived aggregates -
-//! delivered beside a fresh per-caller authority token in the `Atlas-Authority` response header.
+//! Immutable bootstrap data (configuration and snapshot provenance only), delivered beside a
+//! fresh per-caller authority token in the `Atlas-Authority` response header.
 //! An optional body carries the filter document that binds the view.
 
 use alloc::sync::Arc;
@@ -101,30 +101,31 @@ pub(super) struct GenerationPath {
 
 /// `POST /v1/atlas/generation/{generation}/manifest`.
 ///
-/// Immutable bootstrap data: configuration and snapshot provenance, no corpus-derived aggregates.
+/// Immutable bootstrap data (configuration and snapshot provenance only).
 ///
 /// The document is the same for every caller; the response is not, carrying a freshly minted
-/// authority token in the `Atlas-Authority` header - which is why it sends `no-store` where the
-/// document alone could be immutable. Fetching it also resolves the caller's scope: a client
-/// bootstraps here, so the resolution lands on the request that expects to wait rather than on the
+/// authority token in the `Atlas-Authority` header - which is why it sends `no-store` even though
+/// the document itself never changes. Fetching it also resolves the caller's scope. A client
+/// bootstraps here, so the resolution costs the request that expects a wait rather than the
 /// first tile.
 ///
-/// The generation is judged first, so a retired generation answers `404` whatever the caller
-/// presented, and a client re-fetching there discovers the re-pin. At the pinned generation a token
-/// that is present and unacceptable answers `401`, never a silent fresh view under the caller's
-/// `200`; an absent token bootstraps.
+/// The handler judges the generation first, so a retired generation answers `404` whatever the
+/// caller presented, and a client re-fetching there discovers the re-pin. At the pinned generation
+/// a token that is present and unacceptable answers `401`, never a silent fresh view under the
+/// caller's `200`. An absent token bootstraps.
 ///
-/// The body states the view the request wants: a filter document, or nothing for the unfiltered
-/// view. No renewal mode leaves the wanted view unstated, because a filter document is purged with
-/// the cache entry it was resolved for and cannot be recovered from a token - the token seals the
+/// The body states the view the request wants, either a filter document or nothing for the
+/// unfiltered view. No renewal mode leaves the wanted view unstated, because the server purges a
+/// filter document with its cache entry and a token cannot rebuild it. The token seals the
 /// filter's digest, and a digest names no document.
 ///
-/// So the wanted view decides. Equal to the sealed one, the session keeps its delivery depth `k`,
-/// and a wanted filter is resolved from the resent bytes so a purged document and its proof are
-/// rebuilt. Different from the sealed one - a changed filter, or its removal - the wanted view is
-/// resolved and `k` is kept unless that view resolves coarser, which clamps it down through
-/// [`DensityPolicy::rebind`]; an empty wanted view therefore seals zero. Without a density policy
-/// the seal is [`CutOffset::ZERO`]. A bootstrap resolves both the wanted view and its depth.
+/// The wanted view therefore decides. When it equals the sealed one, the session keeps its
+/// delivery depth `k`, and the handler still resolves a wanted filter from the resent bytes so a
+/// purged document and its proof are rebuilt. When it differs from the sealed one - a changed
+/// filter, or its removal - the handler resolves the wanted view and keeps `k` unless that view
+/// resolves coarser, which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view
+/// therefore seals zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap
+/// resolves both the wanted view and its depth.
 ///
 /// [`DensityPolicy::rebind`]: crate::serve::DensityPolicy::rebind
 pub(super) async fn handler(
@@ -136,7 +137,8 @@ pub(super) async fn handler(
 ) -> Result<impl IntoApiResponse, Problem<'static>> {
     reject_generation(&state, generation)?;
 
-    // The order is the contract's: the generation above, the presentation here, the body below.
+    // The contract orders the judgments as the generation above, then the presentation here, then
+    // the body below.
     let carried = match presented {
         Presented::Refused => return Err(unauthorized()),
         Presented::Absent => None,
@@ -178,8 +180,8 @@ pub(super) async fn handler(
 
             scope
         }
-        // A different wanted view, removal included: it is resolved, and the session keeps its
-        // delivery depth unless the wanted view resolves coarser.
+        // A different wanted view, removal included: the handler resolves it, and the session
+        // keeps its delivery depth unless the wanted view resolves coarser.
         Some(scope) => {
             let visibility = visibility::resolve(&state, actor, wanted, document).await?;
 
@@ -237,8 +239,8 @@ pub(super) async fn handler(
 /// The filter document's schema.
 ///
 /// One JSON object in the graph's entity-query filter grammar, which lives in that surface rather
-/// than being restated here: the server validates the document against it and answers
-/// `invalid-body` when it does not parse. The digest that names the view is taken over the bytes
+/// than in a restatement here: the server validates the document against it and answers
+/// `invalid-body` when it does not parse. The digest that names the view hashes the bytes
 /// exactly as presented, so a client re-presenting a filter sends the same bytes it sent before.
 struct FilterDocument;
 
@@ -269,8 +271,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .description(&format!("{DESCRIPTION}\n\n{FILTER}"))
         .input::<Json<FilterDocument>>();
 
-    // A bodyless request states the unfiltered view - a bootstrap, or a renewal that removes its
-    // filter - so the declared body is optional; the input declaration marks it required.
+    // A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
+    // filter), so the declared body is optional. The input declaration marks it required.
     if let Some(openapi::ReferenceOr::Item(body)) = operation.inner_mut().request_body.as_mut() {
         body.required = false;
     }
@@ -329,8 +331,10 @@ mod tests {
         serve::{CutOffset, DensityBand, DensityPolicy, ViewOccupancy},
     };
 
-    /// The fixture policy: span exponent 1, so offset `k` cuts at depth `1 + k`, over the band
-    /// `[2, 3]` occupied cells and a deepest served zoom of 4.
+    /// The fixture policy.
+    ///
+    /// The span exponent is 1, so offset `k` cuts at depth `1 + k`. The band is `[2, 3]` occupied
+    /// cells, and the deepest served zoom is 4.
     ///
     /// The band is narrow and small on purpose. Under the default `[2_000, 4_000]` band every
     /// fixture view small enough to hand-derive sits below the band at every depth, so the argmin
@@ -352,7 +356,7 @@ mod tests {
     /// The fixture view, hand-derived: four points on one row of the depth-3 grid.
     ///
     /// Cells `(0, 0)`, `(1, 0)`, `(2, 0)`, `(3, 0)` at depth 3. Folding the grid coarser: at depth
-    /// 2 they pair into `(0, 0)` and `(1, 0)`, at depth 1 they all fall in `(0, 0)`. So
+    /// 2 they pair into `(0, 0)` and `(1, 0)`, at depth 1 they all fall in `(0, 0)`, so
     /// `C(1, V) = 1`, `C(2, V) = 2`, `C(3, V) = 4`, constant below that, and the saturation depth
     /// is 3 - every occupied cell holds one key there.
     ///
@@ -397,7 +401,7 @@ mod tests {
         );
     }
 
-    /// A carried offset coarser than the wanted view's resolution is kept, not deepened.
+    /// The rebind keeps a carried offset coarser than the wanted view's resolution.
     #[test]
     fn a_carried_coarser_offset_is_kept() {
         assert_eq!(
@@ -434,8 +438,8 @@ mod tests {
 
     /// Renders the operation's emitted OpenAPI.
     ///
-    /// The assertions read the serialized document rather than the builder calls, because what a
-    /// client is owed is the emitted contract.
+    /// The assertions read the serialized document rather than the builder calls, because the
+    /// emitted contract is what a client receives.
     fn emitted() -> serde_json::Value {
         let mut operation = Operation::default();
         let _documented = document(TransformOperation::new(&mut operation));
@@ -443,10 +447,10 @@ mod tests {
         serde_json::to_value(&operation).expect("an operation serializes")
     }
 
-    /// The filter document is declared, and declared optional.
+    /// The operation declares the filter document, and declares it optional.
     ///
-    /// A bodyless request states the unfiltered view - a bootstrap, or a renewal that removes its
-    /// filter - so a body marked required would document a refusal this operation does not make.
+    /// A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
+    /// filter), so a body marked required would document a refusal this operation does not make.
     #[test]
     fn the_filter_document_is_declared_and_optional() {
         let emitted = emitted();
@@ -478,7 +482,7 @@ mod tests {
         );
     }
 
-    /// The catch-all response is declared, because resolving a scope can fail two more ways.
+    /// The operation declares the catch-all response.
     ///
     /// A manifest fetch resolves the caller's visibility, so it answers `visibility-unavailable`
     /// and `internal` beside the four statuses it declares by name. Without the default

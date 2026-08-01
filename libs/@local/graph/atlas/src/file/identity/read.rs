@@ -14,9 +14,9 @@ use crate::file::region::PageMap;
 /// Opening an identity file failed.
 #[derive(Debug)]
 pub enum OpenIdentityError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -75,8 +75,8 @@ impl Error for OpenIdentityError {
 /// An identity file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so the regions come
+/// describes its own regions exactly. Every region borrows straight from the whole-file mapping and
+/// starts 4096-byte aligned. Ids are opaque `K`-byte strings at this layer, so the regions come
 /// out as raw bytes of validated length; the typed table over them, and its domain invariants, are
 /// `salt::fit::prepare::identity`'s contract.
 #[derive(Debug)]
@@ -89,7 +89,7 @@ impl IdentityFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenIdentityError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenIdentityError::Io`] when opening or mapping the file fails,
     /// [`OpenIdentityError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenIdentityError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

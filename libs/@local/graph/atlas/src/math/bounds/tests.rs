@@ -18,7 +18,7 @@ use crate::math::{
 #[test]
 fn new_validates_corners() {
     assert!(Bounds2::new(Vec2::new(0.0, 0.0), Vec2::new(1.0, 1.0)).is_some());
-    // Degenerate boxes are allowed.
+    // The constructor accepts degenerate boxes.
     assert!(Bounds2::new(Vec2::splat(3.0), Vec2::splat(3.0)).is_some());
 
     // Swapped corners, on either axis.
@@ -200,7 +200,7 @@ fn from_slice_rejects_non_finite_in_batch_and_remainder() {
 
 #[test]
 fn from_slice_par_matches_serial() {
-    // Spans several parallel chunks (chunk size is 4096).
+    // Spans three parallel chunks (chunk size is 4096).
     let points = scattered_points(10_000);
 
     assert_eq!(
@@ -271,7 +271,7 @@ fn normalize_into_maps_corners_and_midpoints_exactly() {
         Bounds2::new(Vec2::ZERO, Vec2::splat(10.0)).expect("corners are finite and ordered");
 
     // The scale factor 10/3 is not exactly representable, but the mapping
-    // never materializes it: the unit coordinate is computed first, so
+    // never materializes it: the map computes the unit coordinate first, so
     // corners (unit 0 and 1) and the centre (unit 0.5) land exactly.
     let mapped = layout.normalize_into(viewport, &[layout.min(), layout.max(), layout.centre()]);
     assert_eq!(mapped, [Vec2::ZERO, Vec2::splat(10.0), Vec2::splat(5.0)]);
@@ -392,9 +392,9 @@ fn normalize_into_agrees_between_batched_body_and_remainder(
 
 /// The fitted transform maps source corners onto target corners.
 ///
-/// Rounding scales with the target box's magnitude: extents are bounded to `1..1e3`
-/// (well-conditioned scale factors), and the cancellation in `point - min` is amplified by at
-/// most the extent ratio.
+/// Rounding scales with the target box's magnitude. The strategy bounds extents to `1..1e3`
+/// (well-conditioned scale factors), and the cancellation in `point - min` grows by at most the
+/// extent ratio.
 #[property_test]
 fn fit_maps_source_corners_onto_target_corners(
     #[strategy = bounds_strategy()] source: Bounds2,
@@ -430,7 +430,7 @@ fn factor_strategy() -> impl Strategy<Value = Positive> {
     (1e-2_f32..1e2).prop_map(|value| Positive::new(value).expect("the range is positive"))
 }
 
-/// Growing to a ratio contains the original box, keeps its centre, and reaches the ratio.
+/// Growing to a ratio yields a box at that ratio which contains the original and shares its centre.
 ///
 /// Corners come back through `centre ± size / 2`, so every assertion carries a tolerance scaled by
 /// the grown box's magnitude: the rounding of a corner is a rounding of the extent it was rebuilt

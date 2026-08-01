@@ -1,9 +1,9 @@
 //! The supplied annotation-corpus input of one fit.
 //!
-//! An annotation corpus is supplied beside the dataset rather than derived from it - the same input
-//! category as the reviewed verdicts. [`SuppliedAnnotations`] runs the document's whole wire
-//! contract at construction through the annotation reader and keeps the exact wire bytes, so the
-//! staged artifact is byte-identical to the supplied file and the digest computed here is the
+//! A fit receives an annotation corpus beside the dataset rather than deriving one from it, the
+//! same input category as the reviewed verdicts. [`SuppliedAnnotations`] runs the document's whole
+//! wire contract at construction through the annotation reader and keeps the exact wire bytes, so
+//! the staged artifact is byte-identical to the supplied file and the digest computed here is the
 //! supplied file's identity.
 //!
 //! The fit consumes the document through the training-set assembly: the classifier stage fits the
@@ -22,10 +22,10 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// The supplied annotation-corpus file could not be admitted.
+/// The supplied annotation-corpus file failed admission.
 #[derive(Debug)]
 pub enum SupplyError {
-    /// The file could not be read.
+    /// Reading the file failed.
     Io(io::Error),
     /// The bytes violate the annotation-corpus wire contract.
     Invalid(InvalidAnnotationCorpus),
@@ -53,9 +53,9 @@ impl Error for SupplyError {
 
 /// One validated annotation-corpus document with its exact wire bytes.
 ///
-/// A value of this type is admissible by existence: construction validated the document, so a fit
-/// holding one stages the bytes verbatim and binds the digest without any further check - and a
-/// document that would fail admission is rejected before the fit spends anything.
+/// A value of this type is admissible by existence. Construction validated the document, so a fit
+/// holding one stages the bytes verbatim and binds the digest without any further check. Admission
+/// rejects a document that would fail it before the fit spends anything.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuppliedAnnotations {
     /// The exact wire bytes, kept beside their parse: staging writes these verbatim, so the
@@ -92,7 +92,7 @@ impl SuppliedAnnotations {
     ///
     /// # Errors
     ///
-    /// Returns a [`SupplyError`] when the file cannot be read or its bytes violate the wire
+    /// Returns a [`SupplyError`] when reading the file fails or its bytes violate the wire
     /// contract.
     pub(crate) fn open(path: impl AsRef<Utf8Path>) -> Result<Self, SupplyError> {
         let bytes = std::fs::read(path.as_ref().as_std_path()).map_err(SupplyError::Io)?;

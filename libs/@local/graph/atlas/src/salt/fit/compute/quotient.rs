@@ -1,12 +1,12 @@
-//! Byte-exact representation quotient: the fit's distinct-row training domain.
+//! Byte-exact representation quotient forming the fit's distinct-row training domain.
 //!
-//! Corpora render distinct entities onto byte-identical representation rows (whole entity
-//! types collapse onto a handful of cards), and the geometric constructions downstream of the
-//! matrix degenerate on the copies: neighbour lists saturate with them, local scales measure
-//! zero over them, and the semantic graph calibrates memberships across their self-edges. The
-//! quotient maps every corpus row to its first byte-identical occurrence so those stages run
-//! over distinct rows, while the published coordinate artifacts still evaluate the full corpus
-//! directly: identical representations project identically through the trained model.
+//! Corpora render distinct entities onto byte-identical representation rows, and whole entity types
+//! collapse onto a handful of cards. The geometric constructions downstream of the matrix then
+//! degenerate on the copies. The copies saturate neighbour lists and make local scales measure
+//! zero, and the semantic graph calibrates memberships across their self-edges. The quotient
+//! maps every corpus row to its first byte-identical occurrence, which keeps those stages over
+//! distinct rows. The published coordinate artifacts still evaluate the full corpus directly,
+//! because identical representations project identically through the trained model.
 
 use std::{
     collections::HashMap,
@@ -33,12 +33,12 @@ use crate::{
 };
 
 hashql_core::id::newtype! {
-    /// A distinct representation row: one byte-exact class of corpus rows.
+    /// A distinct representation row, one byte-exact class of corpus rows.
     ///
-    /// The fit's training row domain. It is deliberately distinct from the corpus's
-    /// [`NodeRowId`]: a corpus row and its representation's distinct row are different keys, and
-    /// confusing them is the wiring defect this type exists to prevent. The `u32` width matches
-    /// the store's row encoding, which bounds the corpus and with it the quotient.
+    /// The fit's training row domain, distinct by design from the corpus's [`NodeRowId`]. A corpus
+    /// row and its representation's distinct row are different keys, and confusing them is the
+    /// wiring defect this type exists to prevent. The `u32` width matches the store's row encoding,
+    /// which bounds the corpus and with it the quotient.
     #[id(const)]
     pub(super) struct DistinctRowId(u32)
 }
@@ -51,7 +51,7 @@ hashql_core::id::newtype! {
 ///
 /// # Errors
 ///
-/// Returns an error when the file cannot be created or written.
+/// Returns an error when creating or writing the file fails.
 pub(super) fn write_scratch<A>(
     directory: &ScratchDirectory,
     name: &str,
@@ -87,8 +87,8 @@ impl RowQuotient {
     ///
     /// # Panics
     ///
-    /// Panics when the corpus exceeds `u32::MAX` rows; row identifiers are `u32` throughout the
-    /// store.
+    /// This panics when the corpus exceeds `u32::MAX` rows. Row identifiers are `u32` throughout
+    /// the store.
     pub(super) fn build<const N: usize>(rows: &IdSlice<NodeRowId, AlignedVecN<N>>) -> Self {
         u32::try_from(rows.len()).expect("the corpus row count fits the store's u32 row domain");
 
@@ -151,7 +151,7 @@ impl RowQuotient {
 ///
 /// # Errors
 ///
-/// Returns an error when the file cannot be created or written.
+/// Returns an error when creating or writing the file fails.
 pub(super) fn materialize_distinct<const N: usize>(
     directory: &ScratchDirectory,
     rows: &IdSlice<NodeRowId, AlignedVecN<N>>,
@@ -223,13 +223,13 @@ pub(super) fn expand_neighbours(
 
 /// Maps relation instances onto the distinct row domain and collapses duplicate readings.
 ///
-/// Endpoints map to their representations' distinct indices; instances that agree on
-/// `(relation, source, target)` after the map collapse to the one with the highest effective
-/// confidence, ties to the lowest edge row - byte-identical rows render one asserted link as many
-/// edge rows, and the trainer weighs the assertion once, not per copy. Instances whose endpoints
-/// collapse onto one distinct row pass through: the index build drops and counts them as
-/// self-references. The collapse orders totally before deduplicating, so the result is a function
-/// of the instance set.
+/// Endpoints map to their representations' distinct indices. Instances that agree on `(relation,
+/// source, target)` after the map collapse to the one with the highest effective confidence,
+/// breaking ties toward the lowest edge row. Byte-identical rows render one asserted link as many
+/// edge rows, and the trainer weighs the assertion once rather than per copy. Instances whose
+/// endpoints collapse onto one distinct row pass through, and the index build drops and counts them
+/// as self-references. The collapse orders totally before deduplicating, so the result is a
+/// function of the instance set.
 pub(super) fn collapse_instances(
     instances: &[RelationInstance<NodeRowId, EdgeRowId>],
     quotient: &RowQuotient,
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn copies_map_to_their_first_occurrence() {
-        // Rows: A B A C B — distinct A(0) B(1) C(3).
+        // The rows A B A C B have distinct classes A(0), B(1), C(3).
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
         let quotient = RowQuotient::build(matrix.view());
 
@@ -425,8 +425,8 @@ mod tests {
                     .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
             })
             .collect();
-        // Rows A B A C B: copies carry their representative's list,
-        // neighbours land on first rows (B's first row is 1).
+        // For rows A B A C B, copies take their representative's list and neighbours name first
+        // rows (B's first row is 1).
         assert_eq!(lists, [(1, 0.5), (0, 0.5), (1, 0.5), (1, 0.25), (0, 0.5)],);
     }
 
@@ -449,8 +449,8 @@ mod tests {
         };
 
         let instances = [
-            // Ghost pair: rows 2 and 0 are copies of A, rows 1 and 4 of
-            // B; the stronger reading wins.
+            // A ghost pair, because rows 2 and 0 are copies of A and rows 1 and 4 are copies of B.
+            // The stronger reading wins.
             instance(10, 7, 2, 1, Some(0.8)),
             instance(11, 7, 0, 4, Some(0.9)),
             // Equal confidence: the lower edge row wins.

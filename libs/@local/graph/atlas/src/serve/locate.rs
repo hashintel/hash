@@ -2,10 +2,11 @@
 //!
 //! Source resolution, ego-graph assembly, and the request/assembly/encode surface.
 //!
-//! Locate answers the source's ego-graph: every edge incident to the source whose other endpoint
-//! is visible, and the partners those edges connect. Assembly is one adjacency probe plus column
-//! gathers - no spatial index stands behind it. Locate IS the detail view: the trailer always
-//! rides, so serving locate requires a store connection for hydration.
+//! Locate answers the source's ego-graph, which is every edge incident to the source whose other
+//! endpoint is visible, together with the partners those edges connect. Assembly is one adjacency
+//! probe plus column gathers, with no spatial index behind it. Locate is the detail view, and the
+//! trailer always accompanies the response, so serving locate requires a store connection for
+//! hydration.
 
 use type_system::ontology::id::VersionedUrl;
 
@@ -34,18 +35,18 @@ pub struct LocateLimits {
     /// reports `complete: false`. Every delivered edge also costs live link hydration, so the cap
     /// bounds the store round trip and not only wire bytes.
     pub edges: u32 = 512,
-    /// Most properties the source ships.
+    /// Most properties the source delivers.
     ///
     /// An over-cap entity drops properties reverse-lexicographically by base URL with its label
-    /// property protected to the very end, so the label survives every cap that admits at least
+    /// property protected to the end, so the label survives every cap that admits at least
     /// one property.
     pub properties: u32 = 10,
-    /// Most direct types one delivered edge ships.
+    /// Most direct types one delivered edge delivers.
     ///
     /// An over-cap link truncates its type list in canonical order and its completeness bit
     /// reads unset.
     pub link_type_ids: u32 = 5,
-    /// Most properties one delivered edge ships.
+    /// Most properties one delivered edge delivers.
     ///
     /// The source's drop rule per link.
     pub link_properties: u32 = 10,
@@ -57,7 +58,7 @@ const impl Default for LocateLimits {
     }
 }
 
-/// One resolved locate source: the subject's identity in every domain a locate response speaks.
+/// The subject's identity in every domain a locate response speaks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct SourcePoint {
     /// The node row id.
@@ -94,9 +95,9 @@ impl Atlas {
     ///
     /// The identifier a rendered tile put in the client's hand.
     ///
-    /// Ingress rides [`Atlas::resolve`] - the same keyed codec as egress, so the lookup is pure
-    /// arithmetic, no store round trip. [`None`] for out-of-universe values and for rows the proof
-    /// hides, collapsed at the seam before any caller observes the cause.
+    /// Ingress goes through [`Atlas::resolve`], the same keyed codec as egress, so the lookup is
+    /// pure arithmetic that resolves in process. [`None`] for out-of-universe values and for rows
+    /// the proof hides, collapsed at the seam before any caller observes the cause.
     pub(super) fn resolve_wire_source(
         &self,
         proof: &VisibilityProof,
@@ -212,10 +213,10 @@ impl Atlas {
                 let position = positions_of_row[partner];
                 let point = positions[position];
                 let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
-                // The selection key is pinned to unfused f32
-                // arithmetic so independent derivations from the wire
-                // coordinates agree bit for bit. Squared distances
-                // are non-negative finite floats, whose bit patterns
+                // Unfused f32 arithmetic pins the selection key, so
+                // independent derivations from the wire coordinates
+                // agree bit for bit. Squared distances are
+                // non-negative finite floats, whose bit patterns
                 // order exactly as their values do.
                 #[expect(
                     clippy::suboptimal_flops,
@@ -244,7 +245,7 @@ impl Atlas {
 
 /// The nearest-partner truncation's sort key.
 ///
-/// The derived order is the selection rule: ascending squared distance to the partner, then the
+/// The derived order is the selection rule, ascending squared distance to the partner, then the
 /// partner's first visible zoom, then the link-entity identity bytes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct NearestKey {
@@ -252,9 +253,10 @@ struct NearestKey {
     ///
     /// Non-negative finite floats order by bits exactly as by value.
     distance: u32,
-    /// The partner's first visible zoom: equidistant partners cede to the earlier-visible one.
+    /// The partner's first visible zoom, by which equidistant partners cede to the earlier-visible
+    /// one.
     zoom: u8,
-    /// The link-entity identity: distinct identities make the key a total order.
+    /// The link-entity identity, whose distinctness makes the key a total order.
     identity: ArchivedEntityId,
 }
 
@@ -270,16 +272,16 @@ pub(super) struct LocateSubgraph {
     pub positions: Vec<BasePosition>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
     pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
-    /// Whether every qualifying edge is delivered; `false` iff the cap truncated.
+    /// Whether the response delivers every qualifying edge. `false` iff the cap truncated.
     pub complete: bool,
 }
 
-/// One locate request: the source entity and the delivery knobs.
+/// The source entity and the delivery knobs of one locate request.
 ///
-/// The source is named in exactly one of two domains: `entityId` (the upstream identity a search
-/// result or deep link carries) XOR `row` (the wire node row id a rendered tile put in the client's
-/// hand). The fields are distinct JSON types, so the union is unambiguous; carrying both or neither
-/// is rejected by name.
+/// Exactly one of two domains names the source: `entityId` (the upstream identity a search result
+/// or deep link carries) XOR `row` (the wire node row id a rendered tile put in the client's hand).
+/// The fields are distinct JSON types, so the union is unambiguous, and assembly rejects both or
+/// neither by name.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LocateRequest {
@@ -293,7 +295,7 @@ pub struct LocateRequest {
     /// Exactly one of this and `entityId` names the source.
     #[serde(default)]
     pub row: Option<WireRow<NodeRowId>>,
-    /// Versioned type URLs conditioning the `TYPE_MASK` column; absent or empty omits it.
+    /// Versioned type URLs conditioning the `TYPE_MASK` column. Absent or empty omits it.
     ///
     /// Also the `typeIdsComplete` reference set: the flag reads `true` exactly when these ids
     /// cover the source's direct types. Entries parse at the transport boundary: a malformed URL
@@ -302,7 +304,7 @@ pub struct LocateRequest {
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
     pub colored_type_ids: Vec<VersionedUrl>,
-    /// The visibility filter, a reserved field: a request that carries one is rejected.
+    /// The visibility filter, a reserved field: assembly rejects a request that carries one.
     #[serde(default)]
     pub filter: Option<Filter>,
 }
@@ -315,9 +317,9 @@ pub struct LocateRequest {
 pub enum LocateError {
     /// The source id does not name a visible node - nonexistent.
     ///
-    /// Denied, and unparsable are IDENTICAL by doctrine (missing = denied; an id that cannot name
-    /// an entity is an entity that does not exist). An out-of-universe wire `row` collapses here
-    /// too: one body, whatever the input domain.
+    /// Denied and unparsable are identical by doctrine (missing equals denied, and an id that
+    /// cannot name an entity is an entity that does not exist). An out-of-universe wire `row`
+    /// collapses here too: one body, whatever the input domain.
     UnknownEntity,
     /// The request does not name exactly one source.
     ///
@@ -369,8 +371,8 @@ impl core::error::Error for LocateError {}
 /// One assembled locate response: everything [`Atlas::encode_locate`] needs.
 ///
 /// The document owns its columns, so it crosses thread boundaries between assembly, hydration, and
-/// encoding - the envelope was designed for hydration-last, and the split mirrors it: assembly and
-/// encoding are CPU-bound, hydration awaits the store between them.
+/// encoding. The envelope places hydration last, and the split mirrors it. Assembly and encoding
+/// are CPU-bound, and hydration awaits the store between them.
 #[derive(Debug)]
 pub struct LocateDocument {
     source: SourcePoint,
@@ -386,7 +388,7 @@ pub struct LocateDocument {
     internal_rows: Vec<EdgeRowId>,
     complete: bool,
     mask_set: Option<super::colour::MaskSet>,
-    /// The request's parsed palette: the `typeIdsComplete` reference set.
+    /// The request's parsed palette, the `typeIdsComplete` reference set.
     palette: Palette,
 }
 
@@ -396,10 +398,10 @@ impl Atlas {
     /// Every rejection happens here, so encoding cannot fail.
     ///
     /// The `coloredTypeIds` cap is the tile endpoint's own - one manifest key,
-    /// `limits.coloredTypeIds`, governs the field wherever it appears.
+    /// `limits.coloredTypeIds`, governs the field wherever it occurs.
     ///
-    /// Version 0 serves the full unfiltered set; a request naming a visibility filter is rejected
-    /// by name rather than answered with bytes that silently ignore it.
+    /// Version 0 serves the full unfiltered set. Assembly rejects a request naming a visibility
+    /// filter by name rather than answering it with bytes that ignore the filter.
     ///
     /// # Errors
     ///
@@ -424,9 +426,8 @@ impl Atlas {
             });
         }
 
-        // The two source forms resolve through different ingress  paths but land in the same
-        // SourcePoint domain, and every failure past this match is one rejection:
-        // unknown-entity.
+        // Both source forms resolve through different ingress paths yet reach the same SourcePoint
+        // domain, and every failure past this match is one rejection: unknown-entity.
         let source = match (request.entity_id.as_deref(), request.row) {
             (Some(id), None) => self.resolve_source(proof, id),
             (None, Some(wire)) => self.resolve_wire_source(proof, wire),
@@ -479,7 +480,7 @@ impl Atlas {
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the row column, which open's cross-artifact
+    /// This panics when the identity table contradicts the row column, which open's cross-artifact
     /// validation rules out.
     #[must_use]
     pub fn locate_node_entities(&self, document: &LocateDocument) -> DeliveredEntities {
@@ -502,7 +503,7 @@ impl Atlas {
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the adjacency's edge domain, which open's
+    /// This panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
     #[must_use]
     pub fn locate_link_entities(&self, document: &LocateDocument) -> DeliveredEntities {
@@ -521,21 +522,21 @@ impl Atlas {
 
     /// Encodes an assembled document with its hydrated details.
     ///
-    /// `SALTILEL` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. Locate is
-    /// the detail view, so the trailer always rides and hydrated details are required.
+    /// `SALTILEL` envelope bytes, ready for the wire under `application/vnd.hash.saltile-v1`.
+    /// Locate is the detail view, so the trailer always accompanies the response and every call
+    /// needs hydrated details.
     ///
-    /// The trailer interns type and property URLs at encode time: each table is the
-    /// bytewise-sorted union of every reference the trailer makes, and every reference keys by
-    /// index into it - the per-entity ascending-name order the hydration layer produces IS
-    /// ascending index order, so the wire laws hold by construction. The source's `HEAD` flags
-    /// derive here: `typeIdsComplete` tests the source's direct types against the request's
-    /// `coloredTypeIds`, and `propertiesComplete` echoes the hydration layer's whole-set
-    /// attestation.
+    /// The trailer interns type and property URLs at encode time. Each table is the bytewise-sorted
+    /// union of every reference the trailer makes, and every reference keys by index into it. The
+    /// per-entity ascending-name order the hydration layer produces is ascending index order, so
+    /// the wire laws hold by construction. The source's `HEAD` flags derive here: `typeIdsComplete`
+    /// tests the source's direct types against the request's `coloredTypeIds`, and
+    /// `propertiesComplete` echoes the hydration layer's whole-set attestation.
     ///
     /// # Panics
     ///
-    /// Panics when supplied details do not cover the document's delivered nodes and edges - a
-    /// transport bug, never request data.
+    /// This panics when supplied details do not cover the document's delivered nodes and edges,
+    /// which is a transport bug rather than request data.
     #[must_use]
     pub fn encode_locate(
         &self,
@@ -548,9 +549,9 @@ impl Atlas {
             .as_ref()
             .map(|set| set.memberships(&self.postings));
 
-        // The source's identity always rides HEAD; the per-edge link
-        // identities are first-class columns. Both read the
-        // generation-frozen tables, no store.
+        // The source's identity always travels in HEAD, and the
+        // per-edge link identities are first-class columns. Both read
+        // the generation-frozen tables in process.
         let entity_id = self
             .node_ids
             .id(document.rows[0])
@@ -614,11 +615,11 @@ type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 
 /// Returns whether a request's palette covers the source's direct types.
 ///
-/// The `typeIdsComplete` predicate: every direct type of the source names a palette entry.
-/// Coverage compares parsed ontology identities, the same parse the `TYPE_MASK` resolution
-/// applies. `false` when the store no longer serves the source (`present` reads false) or
-/// records no types for it - coverage of an unreadable set is never attested - and on a palette
-/// with no resolvable entry, which covers nothing.
+/// The `typeIdsComplete` predicate holds when every direct type of the source names a palette
+/// entry. Coverage compares parsed ontology identities, the same parse the `TYPE_MASK` resolution
+/// applies. `false` when the store no longer serves the source (`present` reads false) or records
+/// no types for it, since coverage of an unreadable set carries no attestation. `false` too on a
+/// palette with no resolvable entry, which covers nothing.
 pub(super) fn covers_source_types(present: bool, types: &[String], palette: &Palette) -> bool {
     present && !types.is_empty() && types.iter().all(|url| palette.covers(url))
 }
@@ -627,7 +628,7 @@ pub(super) fn covers_source_types(present: bool, types: &[String], palette: &Pal
 ///
 /// The table is the bytewise-sorted, deduplicated union of each node's first direct type and
 /// each link's capped type list. Node references are the first-type indexes (`None` for a node
-/// without a recorded type); link references keep the hydration layer's canonical type order.
+/// without a recorded type). Link references keep the hydration layer's canonical type order.
 pub(super) fn intern_types<'doc>(
     nodes: &'doc [Vec<String>],
     links: &'doc [Vec<String>],

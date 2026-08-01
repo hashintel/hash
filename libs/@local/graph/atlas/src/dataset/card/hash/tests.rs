@@ -287,8 +287,8 @@ fn contested_rows() -> Vec<ExampleRow<'static>> {
 
 #[test]
 fn examples_are_endpoint_deduplicated_bounded_and_input_order_independent() {
-    // Five candidates, two sharing a source endpoint: only four can
-    // coexist, however many slots the budget offers.
+    // Two of the five candidates share a source endpoint, so only four can coexist, however many
+    // slots the budget offers.
     let unbounded = build(facts(), vec![person_association()], contested_rows(), 5);
     assert_eq!(unbounded.examples.len(), 4);
     let shared_lines = example_lines(&unbounded)

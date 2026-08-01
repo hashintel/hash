@@ -14,9 +14,9 @@ use crate::file::region::PageMap;
 /// Opening a policy file failed.
 #[derive(Debug)]
 pub enum OpenPolicyError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -75,7 +75,7 @@ impl Error for OpenPolicyError {
 /// A policy file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own region exactly. The rows are borrowed straight from the whole-file mapping.
+/// describes its own region exactly. Row views borrow straight from the whole-file mapping.
 /// The accessor exposes geometry alone; the table's domain invariants are `salt::policy`'s artifact
 /// contract.
 #[derive(Debug)]
@@ -88,7 +88,7 @@ impl PolicyFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPolicyError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenPolicyError::Io`] when opening or mapping the file fails,
     /// [`OpenPolicyError::Header`] when its leading bytes are not a header this module speaks, and
     /// [`OpenPolicyError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

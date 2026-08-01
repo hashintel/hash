@@ -57,7 +57,7 @@ fn header_wire_layout() {
     assert_eq!(bytes[12], 0x0D);
     assert_eq!(bytes[13..21], (1_u64 << 18).to_le_bytes());
     assert_eq!(bytes[21..29], 2_u64.to_le_bytes());
-    // The flags word: zero on a little-endian writer, so the whole
+    // The flags word is zero on a little-endian writer, so the whole
     // tail is byte-identical to a pre-flags header.
     assert_eq!(bytes[77..81], 0_u32.to_le_bytes());
     assert!(bytes[29..].iter().all(|&byte| byte == 0));
@@ -134,7 +134,7 @@ fn header_parse_pins_identity() {
     FileHeader::try_read_from_bytes(&wrong_variant)
         .expect_err("an unknown variant should not parse");
 
-    // Padding is ignored, not validated.
+    // The parse ignores padding without validating it.
     let mut dirty_padding = bytes;
     dirty_padding[FileHeader::SIZE - 1] = 0xAB;
     FileHeader::try_read_from_bytes(&dirty_padding).expect("padding bytes should be ignored");
@@ -142,7 +142,7 @@ fn header_parse_pins_identity() {
 
 #[test]
 fn shape_is_the_longest_nonzero_prefix() {
-    // The first zero terminates the shape; bytes past it are ignored.
+    // The first zero terminates the shape, and the parse ignores bytes past it.
     let raw = [3_u64, 4, 0, 7, 0, 9, 0, 0];
     let terminated = ArrayShape::read_from_bytes(raw.as_bytes())
         .unwrap_or_else(|_| panic!("every bit pattern should be a shape"));
@@ -264,8 +264,8 @@ fn open_rejects_what_the_header_contradicts() {
     let file = TempFile::create(&unfinished);
     assert_matches!(ArrayFile::open(&file.path), Err(OpenArrayError::Header));
 
-    // A file shorter than one header is a length problem, not a parse
-    // problem.
+    // A file shorter than one header fails the length check before any
+    // parse.
     let file = TempFile::create(&[0xAB; 16]);
     assert_matches!(
         ArrayFile::open(&file.path),
@@ -310,7 +310,7 @@ fn vectors_exists_exactly_for_f32_matrices() {
     assert!(opened.vectors::<8>().is_none());
 }
 
-/// The two writers share one format.
+/// The sized and streaming writers share one format.
 ///
 /// The same rows through the sized writer produce the streaming writer's bytes exactly, and the
 /// returned digest is the digest of those bytes.

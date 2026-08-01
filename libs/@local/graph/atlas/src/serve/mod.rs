@@ -1,4 +1,4 @@
-//! The serving read surface: opened generations answering atlas reads.
+//! Opened generations answering atlas reads.
 //!
 //! [`Atlas::open`] maps one published generation's serving artifacts - quadtree topology, Morton
 //! code column, wire coordinates, the base-order row column, the incident-edge adjacency with its
@@ -8,33 +8,33 @@
 //! edges request with `SALTILEE` bytes, both ready to send under `application/vnd.hash.saltile-v1`;
 //! the manifest document of the Surface v1 bootstrap is [`Atlas::manifest`].
 //!
-//! An [`Atlas`] is immutable after open and `Send + Sync`: hold it in an [`Arc`](alloc::sync::Arc)
-//! across requests for the process lifetime of the generation. Reads are synchronous and CPU-bound
-//! (the columns are mapped memory), so an async transport schedules them on a compute pool - rayon
-//! plus `catch_unwind` - never inline on its runtime threads.
+//! An [`Atlas`] is immutable after open and `Send + Sync`, so hold it in an
+//! [`Arc`](alloc::sync::Arc) across requests for the process lifetime of the generation. Reads are
+//! synchronous and CPU-bound (the columns live in mapped memory), so an async transport schedules
+//! them on a compute pool - rayon plus `catch_unwind` - never inline on its runtime threads.
 //!
-//! The route and body vocabulary and the response bytes are pinned public contracts. The one
-//! deferral rejects honestly instead of serving wrong bytes: a request that names a visibility
-//! `filter` receives an `Unsupported` rejection.
+//! The route and body vocabulary and the response bytes form pinned public contracts. The one
+//! deferral rejects instead of serving wrong bytes. A request that names a visibility `filter`
+//! receives an `Unsupported` rejection.
 //!
-//! Every assembly path takes a [`VisibilityProof`] - the server-held statement of which node rows
-//! and which link rows the bound scope may see. Responses compute over the masked view: delivered
-//! sets intersect the node mask, an edge delivers only when the proof holds its own link row and
-//! both endpoints, and row ingress factors through [`Atlas::resolve`], where decode failure,
-//! out-of-universe values, and mask misses collapse to one `None` - forbidden and nonexistent
+//! Every assembly path takes a [`VisibilityProof`], the server-held statement of which node rows
+//! and which link rows the bound scope may see. Responses compute over the masked view. Delivered
+//! sets intersect the node mask, an edge delivers only when the proof admits the edge's link row
+//! and both endpoints, and row ingress factors through [`Atlas::resolve`], where decode failure,
+//! out-of-universe values, and mask misses collapse to one `None`, so forbidden and nonexistent
 //! answer identical bytes.
 //!
-//! Every surface answers under any proof, the link-bearing ones included: a proof carries a mask
+//! Every surface answers under any proof, the link-bearing ones included. A proof carries a mask
 //! per identity domain, so the authorization of a link row is a statement the proof holds rather
-//! than something its endpoints imply. Refusals are per row - an unproven row is absent - so a
+//! than something its endpoints imply. Refusals are per row, and an unproven row is absent, so a
 //! scope that may see nothing receives a well-formed response that delivers nothing.
 //!
 //! # Architecture
 //!
 //! Each domain concept lives in exactly one module. The foundation: `open` is the open pass -
 //! map, validate, derive, construct; `column` holds the element-typed column views that
-//! validation produces; `grid` is the bucket schedule and its addressing; `secret` the wire
-//! secret; `error` the open-failure taxonomy.
+//! validation produces; `grid` is the bucket schedule and its addressing; `secret`, the wire
+//! secret; and `error`, the open-failure taxonomy.
 //!
 //! The domain: `visibility` carries the proof and the resolution seam; `codec` the keyed row-id
 //! permutation; `density` the public band that resolves one scope's delivery cut; `walk` the
@@ -130,9 +130,9 @@ pub const VARIANTS: [&str; 1] = ["plain"];
 ///
 /// The transport constructs one - flags and environment over the defaults - and the handlers
 /// enforce it. Every published manifest limit derives from an enforced value through
-/// [`ServeLimits::manifest_limits`], so advertisement and enforcement cannot disagree; not every
-/// control is published. Defaults are documented on the per-endpoint limits types; none of them is
-/// a wire constant.
+/// [`ServeLimits::manifest_limits`], so advertisement and enforcement cannot disagree, and the
+/// manifest publishes only some of the controls. The per-endpoint limits types document their
+/// defaults, and none of those defaults is a wire constant.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ServeLimits {
     /// The tile endpoint's limits.
@@ -166,7 +166,7 @@ pub struct Filter(serde_json::Value);
 /// One opened generation, ready to answer reads.
 ///
 /// Opening maps every serving artifact and validates each format plus their cross-artifact
-/// agreement once; the value is immutable after that and shared across requests.
+/// agreement once. The value is immutable after that and shared across requests.
 ///
 /// # Examples
 ///
@@ -191,7 +191,7 @@ pub struct Filter(serde_json::Value);
 ///     },
 /// )?);
 ///
-/// // Authority over the whole corpus, stated deliberately.
+/// // Authority over the whole corpus, stated at the call site.
 /// let proof = VisibilityProof::full_visibility();
 /// let bytes = atlas.tile(
 ///     &TileRequest {
@@ -208,11 +208,11 @@ pub struct Filter(serde_json::Value);
 #[derive(Debug)]
 pub struct Atlas {
     generation: Generation,
-    /// The server secret this generation was opened with.
+    /// The server secret this generation opened under.
     ///
-    /// Every wire-facing derivation keys from it: the row-id codec's round keys at open, and the
-    /// authority token key at router construction. Held for the generation's lifetime, which is
-    /// the retention its type documents.
+    /// Every wire-facing derivation keys from it, both the row-id codec's round keys at open and
+    /// the authority token key at router construction. Held for the generation's lifetime, which
+    /// is the retention its type documents.
     wire_secret: WireSecret,
     /// The validated bucket schedule and its addressing.
     grid: Grid,
@@ -223,7 +223,7 @@ pub struct Atlas {
     /// The row column in base order: the node universe's permutation.
     rows: Column<BasePosition, NodeRowId>,
     adjacency: AdjacencyArchive,
-    /// The endpoint column: edge row to `[source, target]`.
+    /// The endpoint column mapping each edge row to `[source, target]`.
     endpoints: Column<EdgeRowId, [NodeRowId; 2]>,
     /// The rank column in base order.
     ranks: Column<BasePosition, ImportanceRank>,
@@ -242,7 +242,7 @@ pub struct Atlas {
     edge_ids: IdentityTableArchive<ArchivedEntityId, EdgeRowId>,
     /// The node universe's wire row-id codec, derived at open.
     ///
-    /// The one wire-id domain: edges cross the wire as link-entity identities.
+    /// The one wire-id domain, since edges cross the wire as link-entity identities.
     node_codec: codec::RowCodec<NodeRowId>,
     /// The wire row-id column in base order.
     ///
@@ -266,7 +266,7 @@ impl Atlas {
         self.generation.id()
     }
 
-    /// Views the server secret this generation was opened with.
+    /// Views the server secret this generation opened under.
     pub(crate) const fn wire_secret(&self) -> &WireSecret {
         &self.wire_secret
     }

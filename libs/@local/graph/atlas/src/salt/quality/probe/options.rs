@@ -5,15 +5,15 @@ use core::num::NonZero;
 
 use super::error::ProbeError;
 
-// The neighbourhood sizes are the ones the suite's measured evidence
-// was recorded at: overall readings of 0.883, 0.890 and 0.893 at
+// The neighbourhood sizes match the suite's measured evidence:
+// whole-probe readings of 0.883, 0.890 and 0.893 at
 // k = 15, 30 and 50, the representation baseline of one run over the
 // 985,932-row development corpus (2,196,562 edges, 49 types, 1,024
 // anchors and 4,096 comparisons at seed 0). Reading at
 // those sizes compares against that record without interpolation.
 // The record anchors the sizes and the scale, not any threshold: it
 // is one generation under the landmark-baseline placement rather
-// than the trained projector, and the shipped thresholds gate
+// than the trained projector, and the default thresholds gate
 // evidence presence rather than fidelity. The anchor and comparison
 // defaults bound the canonical fetch (anchors + comparisons rows of
 // 3,072 f32 components, ~53 MB) while keeping subgroup cells at a few
@@ -31,8 +31,9 @@ const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[
 const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
     NonZero::new(2).expect("the default horizon factor is nonzero");
 // 64 shared pairs over 256 anchors read 16,384 triplet verdicts, but
-// the design is crossed rather than independent: one pair sample
-// serves every anchor and one anchor sample serves every pair, so the
+// the design crosses the samples rather than drawing them
+// independently: one pair sample serves every anchor and one anchor
+// sample serves every pair, so the
 // mean's error does not shrink as 1/√16,384. The pair-driven variance
 // component shrinks only with the 64 pairs, which bounds the standard
 // error at 0.5/√64 = 0.0625 of agreement in the worst case - 16× the
@@ -51,24 +52,24 @@ pub(crate) struct ProbeOptions {
     /// More rows sharpen the canonical readings toward finer neighbourhood scales and grow the
     /// canonical fetch linearly.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
-    /// Neighbourhood sizes to read at, in reporting order; must be non-empty.
+    /// Neighbourhood sizes to read at, in reporting order.
     ///
-    /// The trend across sizes is itself evidence: recall rising with `k` is the near-tie
-    /// reshuffling fingerprint.
+    /// The list must name at least one size. The trend across sizes is itself evidence: recall
+    /// rising with `k` is the near-tie reshuffling fingerprint.
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
     /// Horizon multiplier for the intrusion and extrusion readings.
     ///
     /// A false neighbour counts as an intrusion or extrusion when its opposite-space rank reaches
-    /// `factor · k` (clamped to the universe), separating genuinely foreign points from reshuffling
-    /// near the neighbourhood boundary.
+    /// `factor · k` (clamped to the universe), separating foreign points from reshuffling near the
+    /// neighbourhood boundary.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
     /// Comparison-point pairs sampled for the triplet readings.
     ///
-    /// Every anchor reads the one shared pair sample, so the estimate's mean is unbiased while
-    /// pair-driven variance is shared across anchors: the reading's resolution tracks this count,
-    /// not the anchor-times-pair triplet total. Zero disables the readings - and with them
-    /// admission: the verdict demands the full battery, so a triplet-free probe is report-only by
-    /// construction.
+    /// Every anchor reads the one shared pair sample, so the estimate's mean stays unbiased while
+    /// all anchors share one pair-driven variance. The reading's resolution therefore tracks this
+    /// count rather than the anchor-times-pair triplet total. Zero disables the readings - and with
+    /// them admission: the verdict demands the full battery, so a triplet-free probe is report-only
+    /// by construction.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 

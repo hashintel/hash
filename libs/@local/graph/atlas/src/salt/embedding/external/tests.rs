@@ -254,9 +254,9 @@ async fn every_completed_request_reports_its_position_in_the_workload() {
         .await
         .expect("the fixture generator should embed every text");
 
-    // Three requests over five texts: each report counts the texts
-    // behind it against the workload the provider was handed, and the
-    // last one closes on the whole.
+    // The provider issues three requests for the five texts. Each report
+    // counts the texts behind it against the workload the caller handed
+    // the provider, and the last report closes on the full workload.
     assert_eq!(
         progress.batches(),
         [
@@ -332,8 +332,9 @@ async fn splits_requests_at_the_token_ceiling() {
     ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
 )]
 async fn splits_requests_at_the_byte_estimate_ceiling() {
-    // A word whose byte estimate exceeds its exact count: the provider's
-    // admission gate, not the tokenizer, is the binding accounting.
+    // A word whose byte estimate exceeds its exact count, so the
+    // provider's admission gate binds the request size rather than the
+    // tokenizer.
     let word = " information";
     let tokens = Cl100kTokenizer
         .count_tokens(word)
@@ -345,9 +346,9 @@ async fn splits_requests_at_the_byte_estimate_ceiling() {
     );
 
     let generator = RecordingGenerator::default();
-    // Six estimated tokens per request: two twelve-byte words fit
-    // (⌈24 / 4⌉ = 6), a third crosses; the exact count alone would
-    // admit all five in one request.
+    // The ceiling is six estimated tokens per request. Two twelve-byte
+    // words fit (⌈24 / 4⌉ = 6) and a third crosses. The exact count
+    // alone would admit all five in one request.
     let provider = ExternalEmbeddingProvider::new(
         generator,
         &contract(),
@@ -415,8 +416,9 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
         NoProgress,
     );
 
-    // Two exact tokens in twenty-four bytes: legal by the tokenizer,
-    // above the ceiling in the gate's estimate (⌈24 / 4⌉ = 6).
+    // The text carries two exact tokens in twenty-four bytes. The
+    // tokenizer allows it, and the gate's estimate (⌈24 / 4⌉ = 6) puts
+    // it above the ceiling.
     let result = provider.embed([" information information"]).await;
 
     assert_matches!(
@@ -581,8 +583,8 @@ async fn a_preflight_refuses_an_answer_of_the_wrong_length() {
 
     let result = provider.preflight().await;
 
-    // One text is one vector; anything else is refused rather than
-    // indexed into.
+    // One text is one vector. The provider refuses any other count
+    // rather than indexing into the response.
     assert_matches!(
         result,
         Err(ExternalEmbeddingError::BatchCount {

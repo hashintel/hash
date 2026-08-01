@@ -306,7 +306,8 @@ fn axis(component: usize, value: f32) -> [f32; PROJECTOR_DIMENSIONS] {
     row
 }
 
-/// `e0`, `e1`, `e0 + e1`, and `-e0`: every pairwise distance is known geometry.
+/// The vectors `e0`, `e1`, `e0 + e1`, and `-e0`, where known geometry gives every pairwise
+/// distance.
 fn plane_fixture() -> [[f32; PROJECTOR_DIMENSIONS]; 4] {
     let mut mix = [0.0; PROJECTOR_DIMENSIONS];
     mix[0] = 1.0;
@@ -386,7 +387,7 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The log is shared, so a detached half records into the same fixture.
+    /// A detached half shares the log, so it records into the same fixture.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -659,9 +660,8 @@ fn descent_passes_the_admission_gate() {
     let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
 
-    // The production width: the wider of the spot check's depth and
-    // the stored count, so the admitted lists and the persisted table
-    // are the same lists.
+    // The width is the wider of the spot check's depth and the stored count, so the admitted lists
+    // and the persisted table are the same lists.
     let width = recall::SpotCheckOptions::default()
         .neighbours
         .max(DEFAULT_NEIGHBOURS);
@@ -735,7 +735,7 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
     let matrix = Matrix::new(&rows);
     let progress = RecordingProgress::default();
 
-    // The backend starts empty: the construction is what fills it.
+    // The backend starts empty, and the construction fills it.
     IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(
             matrix.view(),
@@ -745,9 +745,8 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
         )
         .expect("the fixture is well-formed");
 
-    // A corpus below the report cadence reports each loop once, as its
-    // last row lands, and this backend names no build phases: so the
-    // whole log is the two loops' completions, insertion first.
+    // A corpus below the report cadence reports each loop once, as its last row lands. This backend
+    // names no build phases, so the whole log is the two loops' completions, insertion first.
     let complete = Batch {
         done: 64,
         total: 64,
@@ -1134,9 +1133,9 @@ fn spot_check_stops_at_the_sampling_budget() {
     let matrix = Matrix::new(&rows);
     let index = MixedIndex(ExactIndex::from_rows(&rows));
 
-    // The same ramp against a minimum above its aggregate: the sizing
-    // asks for the corpus, the budget affords nothing beyond the pilot's
-    // own size, and four rows cannot separate 0.94 from what they read.
+    // The same ramp runs against a minimum above its aggregate. The sizing asks for the corpus
+    // while the budget affords nothing beyond the pilot's own size, and four rows cannot separate
+    // 0.94 from what they read.
     let check = recall::spot_check(
         &index,
         matrix.view(),
@@ -1154,7 +1153,7 @@ fn spot_check_stops_at_the_sampling_budget() {
         check.sampled_rows, 4,
         "the budget buys no rows past the pilot"
     );
-    // The four drawn rows skip 18 of their 200 exact neighbours, so the
+    // Those four rows skip 18 of their 200 exact neighbours, so the
     // aggregate reads 0.91 - below the minimum, and by less than the
     // 0.047 such a sample resolves. A shortfall the sample cannot
     // demonstrate is not a refusal.
@@ -1373,9 +1372,8 @@ fn hannoy_honours_the_seam_contract() {
         "a stored vector matches itself"
     );
 
-    // The production path: a fresh backend behind the construction
-    // wrapper, the lists admitted by exact recall, the table sliced
-    // from the same lists.
+    // The production path puts a fresh backend behind the construction wrapper. Exact recall admits
+    // the lists, and the table comes from those same lists.
     let construction_base = base.join("construction");
     std::fs::create_dir_all(&construction_base).expect("the temp directory is writable");
     let lists = IndexConstruction::new(
@@ -1390,8 +1388,7 @@ fn hannoy_honours_the_seam_contract() {
     )
     .construct(
         embeddings,
-        // The production width: the wider of the spot check's depth
-        // and the stored count.
+        // The width is the wider of the spot check's depth and the stored count.
         recall::SpotCheckOptions::default()
             .neighbours
             .max(DEFAULT_NEIGHBOURS),

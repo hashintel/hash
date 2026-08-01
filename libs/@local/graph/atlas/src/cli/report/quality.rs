@@ -1,4 +1,4 @@
-//! The quality report: one live assessment of the active generation, with its evidence record.
+//! One live assessment of the active generation, with its evidence record.
 
 use core::{
     fmt::{self, Display},
@@ -20,7 +20,7 @@ pub(crate) struct QualityArgs {
     #[command(flatten)]
     store: crate::cli::PostgresArgs,
 
-    /// The probe seed; equal seeds replay the sampling.
+    /// The probe seed. Equal seeds replay the sampling.
     #[arg(long, default_value_t = live::Options::default().seed)]
     seed: u64,
 
@@ -42,7 +42,7 @@ pub(crate) struct QualityArgs {
 pub(crate) struct QualityVerdict {
     /// The assessment's own verdict.
     assessment: Assessment,
-    /// The path the evidence record was written to.
+    /// The path the run wrote the evidence record to.
     output: Utf8PathBuf,
 }
 
@@ -58,8 +58,8 @@ impl QualityArgs {
     ///
     /// # Errors
     ///
-    /// Returns a [`ReportError`] when the store cannot be dialed, the assessment fails, or the
-    /// record cannot be written.
+    /// Returns a [`ReportError`] when the run cannot dial the store, the assessment fails, or the
+    /// run cannot write the record.
     pub(super) async fn run(self) -> Result<QualityVerdict, ReportError> {
         crate::math::kernel::verify_cpu_baseline();
 

@@ -1,11 +1,11 @@
-//! The atlas read API: Surface v1 routes over one opened generation.
+//! The atlas read API, serving Surface v1 routes over one opened generation.
 //!
-//! Six routes serve the surface: the mutable `current` pointer, the immutable per-generation
+//! The surface comprises the mutable `current` pointer, the immutable per-generation
 //! manifest, the tile, edges, and locate endpoints answering binary `SALTILE` envelopes, and the
-//! JSON translate endpoint. The generation is pinned at startup and served until restart.
+//! JSON translate endpoint. The server pins the generation at startup and serves it until restart.
 //!
-//! Each route lives in its own module - handler, path parameters, and OpenAPI documentation
-//! together - so a new endpoint is a new module plus one line in [`router`]'s table. The shared
+//! Each route lives in its own module (handler, path parameters, and OpenAPI documentation
+//! together), so a new endpoint is a new module plus one line in [`router`]'s table. The shared
 //! pieces are [`problem`] (the RFC 9457 error surface), [`extract`] (request extraction whose
 //! rejections are problem documents), [`saltile`] (binary envelope responses and their assembly
 //! worker), [`headers`] (the Cache-Control postures, sent and documented from one constant), and
@@ -15,7 +15,7 @@
 //! `catch_unwind` and never inline on the async runtime. Every error a route answers is an RFC
 //! 9457 problem document - handler failures directly, extraction failures through [`extract`]'s
 //! wrappers; only the router's own rejections (an unmatched route, a wrong method) stay plain.
-//! Binary responses ship `Cache-Control: private, no-store` because the client's
+//! Binary responses send `Cache-Control: private, no-store` because the client's
 //! application-layer cache is the cache.
 
 use alloc::sync::Arc;
@@ -85,8 +85,8 @@ const API_DESCRIPTION: &str =
 
 /// The wire-format contract, exported verbatim from `docs/wire.md`.
 ///
-/// The binary envelope is observable from the outside, so its normative text ships inside the
-/// OpenAPI document rather than pointing at a repository file.
+/// The binary envelope is observable from the outside, so the OpenAPI document includes its
+/// normative text rather than pointing at a repository file.
 const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 
 /// The shared route state.
@@ -115,14 +115,15 @@ struct AppState {
 ///
 /// A visibility proof scopes every corpus-bearing response the router serves, and every request
 /// answers under the scope of the actor it names: `pool` is the store every read goes through and
-/// `visibility` the window a resolved scope is reused for. No request is served without an actor,
-/// and no actor is served another's rows. The authority token's key derives from the secret the
-/// atlas was opened with: the manifest mints one per fetch, and the data routes refuse without one.
+/// `visibility` the window the router reuses a resolved scope for. The router serves no request
+/// without an actor, and serves no actor another's rows. The authority token's key derives from
+/// the secret that opened the atlas. The manifest mints one per fetch, and the data routes refuse
+/// without one.
 ///
 /// # Panics
 ///
-/// Panics when the OpenAPI document fails to serialize, which the statically declared route table
-/// rules out.
+/// This panics when the OpenAPI document fails to serialize, which the statically declared route
+/// table rules out.
 pub fn router(
     atlas: Arc<Atlas>,
     limits: ServeLimits,
@@ -145,7 +146,7 @@ pub fn router(
         remote: details,
     };
 
-    // Responses are declared explicitly per operation; the
+    // Each operation declares its responses explicitly; the
     // handler-signature inference would double-declare them.
     aide::generate::infer_responses(false);
 
@@ -192,7 +193,7 @@ pub fn router(
         .with_state(state)
         .finish_api(&mut api);
 
-    // The generation is pinned at startup, so the document is too:
+    // Startup pins the generation and therefore the document too:
     // rendered once, served as bytes.
     let document =
         Bytes::from(serde_json::to_string(&api).expect("the OpenAPI document serializes"));

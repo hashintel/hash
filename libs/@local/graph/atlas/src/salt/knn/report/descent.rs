@@ -27,8 +27,10 @@ use crate::{
     },
 };
 
-/// Fit seeds the audit replays by default: two distinct seeds, one of them twice, so the readings
-/// carry construction nondeterminism as well as seed spread.
+/// Fit seeds the audit replays by default.
+///
+/// The list holds two distinct seeds and repeats one of them, so the readings carry construction
+/// nondeterminism as well as seed spread.
 pub(crate) const DEFAULT_SEEDS: &[u64] = &[0, 0, 1];
 /// Candidate caps audited by default: the constructor's own setting, so a bare invocation reads
 /// the deployed construction.
@@ -47,7 +49,7 @@ pub(crate) struct Reading {
     pub recall: f64,
 }
 
-/// One finished audit: the corpus identity and every reading.
+/// One finished audit of NN-Descent constructions, with its corpus identity and every reading.
 #[derive(Debug, Clone)]
 pub(crate) struct Audit {
     /// The measured generation's identity.
@@ -98,8 +100,8 @@ impl Display for Audit {
 ///
 /// # Errors
 ///
-/// Returns an [`AuditError`] when the representations cannot be read, the reference cannot be
-/// computed, or a construction fails.
+/// Returns an [`AuditError`] when reading the representations fails, when computing the reference
+/// fails, or when a construction fails.
 pub(crate) fn audit(
     root: &GenerationRoot,
     seeds: &[u64],

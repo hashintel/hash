@@ -4,51 +4,44 @@
 //! bounded 2D frame, at both relation-lens extremes, at a configured
 //! cadence: one tick is two index builds plus two full query sweeps,
 //! and each build starts from scratch because every point moves
-//! between ticks. Two engines are measured against each other:
+//! between ticks. The suite pits `kiddo` against `grid`:
 //!
 //! - `kiddo`: `ImmutableKdTree`, the miner's index. A balanced kd-tree adapts its partition depth
 //!   to local density, so its query cost is immune to the cluster skew attraction exists to produce
 //!   - the property the timings here certify.
 //! - `grid`: a uniform bucket grid over the known frame, written here (counting-sort build,
-//!   ring-expansion exact kNN). The natural alternative when the frame is known ahead of time, and
-//!   the control that prices its one assumption: a query scans whole cells, so one global cell size
-//!   makes the sweep's cost grow with the sum of squared cell occupancies, quadratic in exactly the
-//!   density skew a projected map carries.
+//!   ring-expansion exact kNN). The natural alternative when the caller knows the frame ahead of
+//!   time, and the control that prices its one assumption. A query scans whole cells, so one global
+//!   cell size makes the sweep's cost grow with the sum of squared cell occupancies, quadratic in
+//!   exactly the density skew a projected map carries.
 //!
-//! Fixtures are synthesized point sets in the `[0, 10]^2` frame:
-//! `clustered` (Gaussian mixture over a uniform background - the shape
-//! a projected map takes), `uniform` (the grid's best case), and
-//! `pathological` (an eighth of all points in one near-coincident
-//! blob - the bucket-skew stress a coincident-geometry pile-up would
-//! produce). Both engines are measured per fixture on:
+//! The fixtures are synthetic point sets in the `[0, 10]^2` frame: `clustered` (Gaussian mixture
+//! over a uniform background - the shape a projected map takes), `uniform` (the grid's best case),
+//! and `pathological` (an eighth of all points in one near-coincident blob - the bucket-skew stress
+//! a coincident-geometry pile-up would produce). The suite measures both engines per fixture on:
 //!
 //! - `build`: one index construction, single-threaded.
 //! - `sweep`: one full per-point kNN pass at k = 24, single-threaded. Sweeps parallelize
 //!   embarrassingly and identically for both engines, so the single-threaded number is the
 //!   comparative one.
-//! - `tick`: two builds plus two sweeps over the two lens extremes' point sets, on the clustered
-//!   shape - the unit the training-loop cadence actually spends.
+//! - `tick`: two builds plus two sweeps over the two lens extremes' point sets on the clustered
+//!   shape, which is the unit the training-loop cadence actually spends.
 //!
-//! One more group rides along: `judge` compares the two access layouts
-//! mining could vet its mined pairs through - pointwise protection
-//! probes against per-row partner merges - over a live-shape relation
-//! corpus and one synthesized sweep's candidates, at a hit-poor and a
-//! hit-rich partner rate. The index layout and the vetting layout are
-//! one decision: the vet runs once per mined sweep, right where the
-//! index hands its neighbours over.
+//! One more group, `judge`, compares the two access layouts available for vetting mined pairs
+//! (pointwise protection probes against per-row partner merges) over a live-shape relation
+//! corpus and one synthesized sweep's candidates, at a hit-poor and a hit-rich partner rate. The
+//! index layout and the vetting layout are one decision. The vet runs once per mined sweep, right
+//! where the index hands its neighbours over.
 //!
-//! Before the timed groups, one report prints each engine's recall
-//! against brute-force ground truth on sampled queries (both engines
-//! are exact by design; ties at the k-boundary can shave a fraction)
-//! and the grid's occupancy skew, the number that explains its
-//! pathological-fixture behaviour.
+//! Before the timed groups, one report prints each engine's recall against brute-force ground truth
+//! on sampled queries and the grid's occupancy skew, the number that explains its
+//! pathological-fixture behaviour. Both engines are exact by design, though ties at the k-boundary
+//! can shave a fraction off the reported recall.
 //!
-//! Timings default to 250K points so a full sweep stays in minutes;
-//! set `MINER_BENCH_POINTS` (e.g. to `1000000`) for headline numbers
-//! at the expected map scale. Eligible-set subtraction (512-d
-//! neighbours, protected pairs, self) is frame-independent and happens
-//! downstream of the index, so every engine returns raw neighbours
-//! here, self included.
+//! Timings default to 250K points so a full sweep stays in minutes. Set `MINER_BENCH_POINTS` (e.g.
+//! to `1000000`) for headline numbers at the expected map scale. Eligible-set subtraction (512-d
+//! neighbours, protected pairs, self) is frame-independent and happens downstream of the index, so
+//! every engine returns raw neighbours here, self included.
 #![expect(
     clippy::print_stderr,
     clippy::significant_drop_tightening,
@@ -86,7 +79,9 @@ use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-/// The frame's side length: projected maps land in `[0, FRAME]^2`.
+/// The frame's side length.
+///
+/// Projected maps lie in `[0, FRAME]^2`.
 const FRAME: f32 = 10.0;
 
 /// Neighbours per query, the middle of the miner's k range.
@@ -212,10 +207,9 @@ impl Ord for Candidate {
 
 /// A uniform bucket grid over the frame, the in-bench candidate.
 ///
-/// Cells are sized so the average cell holds about k points. Build is
-/// one counting sort; a query expands Chebyshev rings around its cell,
-/// keeping the k best in a bounded heap, and stops once no unvisited
-/// ring can beat the current worst - so results are exact.
+/// The build sizes cells so the average cell holds about k points. Build is one counting sort; a
+/// query expands Chebyshev rings around its cell, keeping the k best in a bounded heap, and stops
+/// once no unvisited ring can beat the current worst, so results are exact.
 struct Grid {
     cell: f32,
     dim: usize,
@@ -225,8 +219,7 @@ struct Grid {
 }
 
 impl Grid {
-    /// Builds the grid over `points`, sizing cells for about
-    /// `occupancy` points each.
+    /// Builds the grid over `points`, sizing cells for about `occupancy` points each.
     fn build(points: &[[f32; 2]], occupancy: usize) -> Self {
         let cells = points.len().div_ceil(occupancy).max(1);
         let dim = ((cells as f32).sqrt().ceil() as usize).max(1);
@@ -539,7 +532,7 @@ fn bench_sweep(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// The cadence-tick unit: two builds plus two sweeps, clustered shape.
+/// Times the cadence-tick unit of two builds plus two sweeps on the clustered shape.
 fn bench_tick(criterion: &mut Criterion) {
     let count = points_count();
     let extremes = [
@@ -576,8 +569,7 @@ fn bench_tick(criterion: &mut Criterion) {
 /// of probe pairs.
 const JUDGE_LINKS: usize = 275_000;
 
-/// The two access layouts a mined sweep's protection vetting can take,
-/// per hit rate.
+/// Times the access layouts a mined sweep's protection vetting can take, per hit rate.
 fn bench_judge(criterion: &mut Criterion) {
     let corpus: Corpus<NodeRowId, EdgeRowId> =
         Corpus::synthesize::<Xoshiro256PlusPlus>(Profile::Live, JUDGE_LINKS, SEED);
@@ -586,9 +578,9 @@ fn bench_judge(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("miner_index/judge");
     group.sample_size(10);
 
-    // Mining candidates are close 2D points: attraction pulls linked
-    // pairs together, so the realistic sweep is partner-rich; the
-    // uniform sweep bounds the layouts' spread from the other side.
+    // Mining candidates are close 2D points: attraction pulls linked pairs together, so the
+    // realistic sweep is partner-rich; the uniform sweep bounds the layouts' spread from the
+    // other side.
     for (label, fraction) in [("uniform", 0.0), ("linked", 0.5)] {
         let probes = corpus.judge_probes::<Xoshiro256PlusPlus>(per_row, fraction, SEED);
         group.throughput(Throughput::Elements(probes.pairs() as u64));

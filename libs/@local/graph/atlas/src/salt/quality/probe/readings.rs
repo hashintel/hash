@@ -1,8 +1,8 @@
-//! The probe's output contract: reading grids and their axes.
+//! The probe's reading grids and their axes.
 //!
 //! Everything here is a value the probe hands back: per-anchor aggregate grids, neighbourhood
-//! radii, and the triplet readings with their shared pair sample. Consumers regroup these -
-//! overall, per subgroup - by merging cells; nothing here re-ranks.
+//! radii, and the triplet readings with their shared pair sample. Consumers regroup these by
+//! merging cells, whole-probe or by subgroup, and nothing here re-ranks.
 
 use core::{mem, num::NonZero};
 
@@ -16,8 +16,8 @@ use super::super::{
 hashql_core::id::newtype! {
     /// One position on the grids' neighbourhood axis, in the options' reporting order.
     ///
-    /// The probe reads every metric at a ladder of neighbourhood sizes; a rung addresses one of
-    /// them. Cells are addressed by rung, and the rung's neighbourhood size lives in
+    /// The probe reads every metric at a ladder of neighbourhood sizes, and a rung addresses one of
+    /// them. The grids address cells by rung, and the rung's neighbourhood size lives in
     /// [`ProbeReadings::neighbourhoods`], so a rung index and a neighbourhood size can never
     /// stand in for one another.
     #[id(const)]
@@ -58,7 +58,7 @@ pub(crate) type SpacePairArray<T> = IdArray<SpacePair, T, { SpacePair::COUNT }>;
 /// Per-anchor aggregates for one space pair, anchor-major.
 ///
 /// Every cell reads one anchor at one neighbourhood size; the neighbourhood axis follows the
-/// options' reporting order. Roll-ups merge cells, so a consumer groups anchors - overall, by
+/// options' reporting order. Roll-ups merge cells, so a consumer groups anchors - whole-probe or by
 /// subgroup - without touching orderings again. The cell type is the aggregate the grid holds: rank
 /// aggregates for the space-pair grids, clump aggregates for the collapsed corpus grid.
 #[derive(Debug, Clone)]
@@ -71,8 +71,8 @@ impl<A> ReadingGrid<A> {
     ///
     /// # Panics
     ///
-    /// Panics when a row's cell count differs from `rungs`; every anchor reads the same rungs, so
-    /// a ragged row is a wiring defect.
+    /// This panics when a row's cell count differs from `rungs`; every anchor reads the same rungs,
+    /// so a ragged row is a wiring defect.
     pub(in crate::salt::quality) fn from_anchor_cells(rows: Vec<Vec<A>>, rungs: usize) -> Self {
         Self {
             cells: IdMatrix::from_rows(rows, rungs),
@@ -97,7 +97,7 @@ impl<A> ReadingGrid<A> {
     ///
     /// # Panics
     ///
-    /// Panics when `anchor` or `rung` lies outside the grid.
+    /// This panics when `anchor` or `rung` lies outside the grid.
     #[inline]
     #[must_use]
     pub(crate) const fn anchor(&self, anchor: AnchorOrdinal, rung: Rung) -> &A {
@@ -105,14 +105,14 @@ impl<A> ReadingGrid<A> {
     }
 }
 
-// `overall` is implemented per cell type rather than through a shared
-// merge trait.
+// Each cell type implements its own column merge rather than sharing
+// one merge trait.
 impl ReadingGrid<NeighbourhoodAggregate> {
     /// Merges every anchor's reading at one rung.
     ///
     /// # Panics
     ///
-    /// Panics when `rung` lies outside the grid or the grid holds no anchor.
+    /// This panics when `rung` lies outside the grid or the grid holds no anchor.
     #[must_use]
     pub(crate) fn overall(&self, rung: Rung) -> NeighbourhoodAggregate {
         let mut column = self.cells.column(rung);
@@ -134,7 +134,7 @@ impl ReadingGrid<ClumpAggregate> {
     ///
     /// # Panics
     ///
-    /// Panics when `rung` lies outside the grid or the grid holds no anchor.
+    /// This panics when `rung` lies outside the grid or the grid holds no anchor.
     #[must_use]
     pub(crate) fn overall(&self, rung: Rung) -> ClumpAggregate {
         let mut column = self.cells.column(rung);
@@ -159,13 +159,13 @@ pub(crate) struct RadiusPair {
     pub representation: f32,
 }
 
-/// Clump-granularity readings, collapsed onto clump ids.
+/// Readings collapsed onto clump ids.
 ///
-/// The grids hold readings with both neighbourhoods collapsed onto clump ids, beside the grouping's
-/// shape at the threshold it was built at - the evidence a collapsed reading is judged against.
+/// The grids hold readings with both neighbourhoods collapsed onto clump ids, beside the shape the
+/// grouping took at its distance threshold - the evidence for judging a collapsed reading.
 #[derive(Debug)]
 pub(crate) struct ClumpReadings {
-    /// The distance threshold the grouping was built at.
+    /// The distance threshold that formed the grouping.
     pub epsilon: f32,
     /// The clump count, singletons included.
     pub count: usize,
@@ -179,7 +179,7 @@ pub(crate) struct ClumpReadings {
     pub map_representation: ReadingGrid<ClumpAggregate>,
     /// Collapsed representation-versus-canonical readings over the comparison rows.
     ///
-    /// The representation baseline at clump granularity, on the sampled grids' anchor and
+    /// The representation baseline collapsed onto clump ids, on the sampled grids' anchor and
     /// neighbourhood axes.
     pub representation_canonical: ReadingGrid<ClumpAggregate>,
 }
@@ -197,7 +197,7 @@ pub(crate) struct ProbeReadings<N> {
     pub comparisons: Box<[N]>,
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
-    /// The grids' neighbourhood axis: the size at each [`Rung`].
+    /// The size at each [`Rung`] of the grids' neighbourhood axis.
     pub neighbourhoods: Box<IdSlice<Rung, NonZero<usize>>>,
     /// Map versus representation, ranking every non-anchor row against each sampled anchor. The
     /// comparison universe is every row that is not itself an anchor - exact, and the whole corpus
@@ -216,7 +216,7 @@ pub(crate) struct ProbeReadings<N> {
     pub sampled_map_canonical: ReadingGrid,
     /// Representation versus canonical space over the comparison rows.
     ///
-    /// The representation baseline the map's canonical reading is judged against.
+    /// The representation baseline for the map's canonical reading.
     pub sampled_representation_canonical: ReadingGrid,
     /// Corpus neighbourhood radii.
     ///

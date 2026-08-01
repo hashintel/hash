@@ -2,16 +2,17 @@
 //!
 //! Each training step draws three edge populations:
 //!
-//! - [`SemanticEdgeSampler`]: positive pairs from the semantic graph, drawn proportional to their
-//!   fuzzy weight (with replacement), so gradient work concentrates where the attraction evidence
+//! - [`SemanticEdgeSampler`] draws positive pairs from the semantic graph proportional to their
+//!   fuzzy weight, with replacement, so gradient work concentrates where the attraction evidence
 //!   is;
-//! - [`RelationEdgeSampler`]: typed attraction instances, relation types drawn uniformly and edges
-//!   capped per type, so raw edge frequency cannot hand the layout to high-volume relations;
-//! - [`OrdinaryNegativeSampler`]: uniform distinct node pairs admitted only past every veto - self
-//!   pairs, semantic-positive pairs, and pairs the protection evidence bars from ordinary
-//!   repulsion. Typed-separation control sets and signed-policy conflicts are further vetoes the
-//!   admission contract names; the initial generation has no signed policies, so both sets are
-//!   empty here.
+//! - [`RelationEdgeSampler`] draws typed attraction instances, choosing relation types uniformly
+//!   and capping edges per type, so raw edge frequency cannot hand the layout to high-volume
+//!   relations;
+//! - [`OrdinaryNegativeSampler`] draws uniform distinct node pairs and admits them only past every
+//!   veto - self pairs, semantic-positive pairs, and pairs the protection evidence bars from
+//!   ordinary repulsion. Typed-separation control sets and signed-policy conflicts are further
+//!   vetoes the admission contract names; the initial generation has no signed policies, so both
+//!   sets are empty here.
 //!
 //! Every sampler draws from a caller-supplied random stream and nothing else: equal artifacts,
 //! stream types, and seeds reproduce a batch exactly.
@@ -179,10 +180,10 @@ pub(crate) struct SampledRelationEdges<'index, N, E> {
 
 /// Per-type-capped relation attraction sampler.
 ///
-/// Relation types are drawn uniformly without replacement, then each selected type contributes at
-/// most the per-type cap of distinct edges: the cap is the relation objective's own semantic
-/// anti-domination factor - a high-volume type must not own the geometry by edge count - not a
-/// performance knob. Uniform type selection is the strongest anti-skew choice; a
+/// The sampler draws relation types uniformly without replacement, and each selected type
+/// contributes at most the per-type cap of distinct edges: the cap is the relation objective's own
+/// semantic anti-domination factor - a high-volume type must not own the geometry by edge count -
+/// not a performance knob. Uniform type selection is the strongest anti-skew choice; a
 /// square-root-of-edge-count weighting is the sanctioned alternative if quality evidence shows the
 /// cap alone starves high-volume relations.
 #[derive(Debug)]
@@ -275,7 +276,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the two views disagree about the row domain; both artifacts come from one
+    /// This panics when the two views disagree about the row domain. Both artifacts come from one
     /// generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
@@ -298,8 +299,8 @@ where
 
     /// Draws up to `count` distinct admissible pairs.
     ///
-    /// Rejection is bounded: the attempt budget guarantees termination when the admissible pool is
-    /// smaller than the request (dense tiny corpora, aggressive protection), where the honest
+    /// The attempt budget bounds rejection and guarantees termination when the admissible pool is
+    /// smaller than the request (a dense small corpus, aggressive protection), where the honest
     /// outcome is a shorter batch. At corpus scale the vetoed fraction of all pairs is vanishing
     /// and the budget never binds.
     pub(crate) fn sample(&self, count: usize, rng: impl Rng) -> Vec<NodePair<N>> {
@@ -316,7 +317,7 @@ where
         alloc: A,
     ) -> Vec<NodePair<N>, A> {
         let rows = u64::try_from(self.semantic.rows()).expect("graph rows fit the row-id encoding");
-        // Pairs need two distinct rows; the empty and singleton corpora sample nothing.
+        // Pairs need two distinct rows, so the empty and singleton corpora sample nothing.
         let Some(bound) = NonZero::new(rows).filter(|bound| bound.get() >= 2) else {
             return Vec::new_in(alloc);
         };

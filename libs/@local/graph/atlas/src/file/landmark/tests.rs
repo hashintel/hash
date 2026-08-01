@@ -36,7 +36,8 @@ fn header_wire_layout() {
 #[test]
 fn geometry_pads_every_region_to_page_boundaries() {
     // 3 rows are 24 bytes, padded to one 4096-byte unit; 7 ordinals are
-    // 28 bytes, padded likewise; 3 coordinates end the file unpadded.
+    // 28 bytes, padded likewise. The trailing 3 coordinates end the file
+    // unpadded.
     let header = FileHeader::new(3, 7);
     assert_eq!(header.assignment_offset(), Some(8192));
     assert_eq!(header.coordinates_offset(), Some(12288));

@@ -71,9 +71,9 @@ where
         retained_mass: 0.0,
         pruned_mass: 0.0,
         self_references,
-        // Starts empty: the histogram counts readings per edge, which
-        // only the fit's relation stage sees while draining the edge
-        // stream; it writes the counts here after the build returns.
+        // Starts empty: the histogram counts readings per edge, which only the fit's relation stage
+        // sees while draining the edge stream. That stage writes the counts here after the build
+        // returns.
         multi_typed_edges: Vec::new(),
         // Starts at zero for the same reason: the clamp happens at the
         // drain, and its count joins these measurements afterwards.
@@ -189,9 +189,8 @@ pub(super) struct GroupMeasurements {
 ///
 /// Each group also emits its instances' protection records into its slice of `records`,
 /// positionally: the record at a group-relative offset describes the instance at that offset.
-/// `chunk` is the emission granularity; the index build passes [`EMISSION_CHUNK`], and the
-/// granularity claim on that constant is verified by benchmarking other values through this
-/// parameter.
+/// `chunk` is the emission batch size. The index build passes [`EMISSION_CHUNK`], and benchmarking
+/// other values through this parameter verifies the batch-size claim on that constant.
 pub(super) fn build_groups<N, E>(
     proper: &[RelationInstance<N, E>],
     group_ranges: Vec<(Range<usize>, &RelationPolicy)>,
@@ -387,10 +386,10 @@ where
     (AttractionGroup::new(relation, weights, edges), measurements)
 }
 
-/// One group column: endpoint rows ascending, with the running share total ahead of every position.
+/// One group column of endpoint rows.
 ///
-/// A row's degree is the share sum over its run, read as a prefix difference; lookups stay binary
-/// searches.
+/// The rows ascend, with the running share total ahead of every position. A row's degree is the
+/// share sum over its run, read as a prefix difference. Lookups stay binary searches.
 struct DegreeColumn {
     rows: Vec<u64>,
     prefix: Vec<f64>,
@@ -449,9 +448,9 @@ where
     for (instance, record) in chunk.iter().zip(records) {
         let confidence = instance.confidence.effective();
 
-        // value · a ≤ value exactly: multiplying a non-negative f32 by
-        // a factor ∈ [0, 1] cannot round above it, so the index's
-        // ordering invariant holds per instance and survives the max.
+        // value · a ≤ value exactly: multiplying a non-negative f32 by a factor ∈ [0, 1] cannot
+        // round above it, so every record keeps `discounted ≤ undiscounted`, and taking the maximum
+        // over records keeps that ordering.
         let value = confidence.value() * factors.positive;
         *record = ProtectionRecord {
             pair: instance.pair(),

@@ -11,10 +11,10 @@
 //! Every term takes a premultiplied `scale`: the term's loss coefficient times any estimator
 //! normalization (the semantic term's total-weight-over-batch-size factor, the relation term's lens
 //! factor). The terms speak the batch-local row domain: pairs, edges, and anchors carry
-//! [`BatchRowId`] positions into the coordinate slice they are evaluated against, a key
-//! deliberately distinct from the corpus's [`NodeRowId`](crate::identity::NodeRowId) - the assembly
-//! that re-indexes corpus draws into a batch owns the conversion, and the two domains cannot be
-//! mixed by type.
+//! [`BatchRowId`] positions into the coordinate slice each term evaluates. That key is distinct
+//! from the corpus's [`NodeRowId`](crate::identity::NodeRowId) by design. The assembly that
+//! re-indexes corpus draws into a batch owns the conversion, and the type system keeps the two
+//! domains apart.
 //!
 //! Pairs at exactly zero distance contribute their value but no gradient: a coincident pair has no
 //! direction to move along. Coincidence is the attraction and relation energies' minimum and the
@@ -43,7 +43,7 @@ hashql_core::id::newtype! {
     /// A batch-local row position.
     ///
     /// Batch assembly re-indexes one step's drawn corpus rows into a dense local domain; this key names
-    /// positions in that domain and nothing else. It is deliberately distinct from the corpus's
+    /// positions in that domain and nothing else. It is distinct by design from the corpus's
     /// `NodeRowId`: a corpus row and its batch-local position are different keys, and confusing them is
     /// the wiring defect this type exists to prevent. The `u32` width is a representation bound: a
     /// batch indexes one step's participating rows.
@@ -72,7 +72,7 @@ pub(crate) struct RelationEdge<N> {
     pub source: N,
     /// The instance's target position.
     pub target: N,
-    /// The effective confidence `c`, in `(0, 1]`; validated where the corpus edge was scored.
+    /// The effective confidence `c`, in `(0, 1]`. Corpus edge scoring validates the domain.
     pub confidence: f32,
     /// The degree normalization `ν`, in `(0, 1]`.
     pub normalization: f32,
@@ -144,8 +144,8 @@ where
 ///
 /// # Panics
 ///
-/// Panics when a pair references a row outside `coordinates` or `field`; pairs and coordinates come
-/// from one batch assembly, so a mismatch is a wiring defect.
+/// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
+/// come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn attraction_term<N>(
     coordinates: &IdSlice<N, Vec2>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
@@ -169,8 +169,8 @@ where
 ///
 /// # Panics
 ///
-/// Panics when a pair references a row outside `coordinates` or `field`; pairs and coordinates come
-/// from one batch assembly, so a mismatch is a wiring defect.
+/// This panics when a pair references a row outside `coordinates` or `field`. Pairs and coordinates
+/// come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn repulsion_term<N>(
     coordinates: &IdSlice<N, Vec2>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
@@ -186,7 +186,7 @@ where
     })
 }
 
-/// The shared affinity-term loop: value plus chain rule through the squared distance.
+/// Evaluates the shared affinity-term loop: value plus chain rule through the squared distance.
 fn affinity_term<N>(
     coordinates: &IdSlice<N, Vec2>,
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
@@ -209,10 +209,9 @@ where
 
         total = f64::from(factor).mul_add(f64::from(value), total);
 
-        // d(d^2)/dy_left = 2 · (y_left - y_right); the pair energy's
-        // derivative is taken in the squared distance, so no division
-        // by the distance appears and coincident pairs need no branch
-        // beyond the energy's own zero-derivative contract.
+        // d(d^2)/dy_left = 2 · (y_left - y_right). The pair energy supplies its derivative in the
+        // squared distance, so no division by the distance occurs and coincident pairs need no
+        // branch beyond the energy's own zero-derivative contract.
         let gradient = difference * (2.0 * factor * derivative);
         field.accumulate(left, gradient);
         field.accumulate(right, -gradient);
@@ -230,13 +229,13 @@ where
 ///
 /// Per instance the contribution is `scale · confidence · normalization · strength` times the
 /// weighted class mixture at the locally normalized distance `z = d / √((ρ_i + ε)(ρ_j + ε))`.
-/// The local scales are detached measurements: the gradient flows through `d` only, so
-/// `dz/dd` is a per-pair constant.
+/// The local scales enter as detached measurements. The gradient flows through `d` only, so `dz/dd`
+/// is a per-pair constant.
 ///
 /// # Panics
 ///
-/// Panics when the scales do not cover the coordinate rows, or when an edge references a row
-/// outside them; all three come from one batch assembly, so a mismatch is a wiring defect.
+/// This panics when the scales do not cover the coordinate rows, or when an edge references a row
+/// outside them. All three come from one batch assembly, so a mismatch is a wiring defect.
 pub(crate) fn relation_term<N>(
     coordinates: &IdSlice<N, Vec2>,
     scales: &LocalScales<N>,
@@ -295,9 +294,9 @@ where
 
 /// One anchored node for the support term, in the batch-local domain.
 ///
-/// `row` positions the anchor in the coordinate tensor the term evaluates against; `target` is the
-/// prior or skeleton coordinate the node is held to, `radius` the local scale the residual is
-/// normalized by, and `weight` the anchor's mass in the sum.
+/// `row` positions the anchor in the coordinate tensor the term evaluates against. `target` is the
+/// prior or skeleton coordinate the node anchors to, `radius` the local scale that normalizes the
+/// residual, and `weight` the anchor's mass in the sum.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct BatchAnchor {
     pub row: BatchRowId,
@@ -349,7 +348,7 @@ impl SupportOptions {
 ///
 /// Anchors and landmarks share this shape: the temporal-anchor term materializes prior coordinates,
 /// the landmark term the skeleton layout. A first generation without prior coordinates has no
-/// temporal anchors and simply builds no target set.
+/// temporal anchors and builds no target set.
 #[derive(Debug)]
 pub(crate) struct SupportTargets<B: Backend> {
     rows: Tensor<B, 1, Int>,
@@ -408,11 +407,12 @@ impl<B: Backend> SupportTargets<B> {
 /// Evaluates a support term against anchored coordinates.
 ///
 /// The value is `scale · Σ_i weight_i · huber(‖y_i - target_i‖ / (radius_i + ε), threshold)`,
-/// differentiable through `coordinates`. The Euclidean distance is smoothed as
-/// `√(d^2 + ε^2) - ε`: exact at zero, within `ε` of the true distance
-/// everywhere, and with a well-defined zero gradient at coincidence - anchored nodes start exactly
-/// on their targets, so the unsmoothed square root would differentiate at its singular point on the
-/// very first step.
+/// differentiable through `coordinates`.
+///
+/// Smoothing replaces the Euclidean distance with `√(d^2 + ε^2) - ε`. The smoothed form is exact at
+/// zero and stays within `ε` of the true distance everywhere. Its gradient is well defined and zero
+/// at coincidence. Anchored nodes start exactly on their targets, so the unsmoothed square root
+/// would differentiate at its singular point on the first step.
 ///
 /// Every anchor row must index into `coordinates`; anchors and coordinates come from one batch
 /// assembly, so an out-of-range row is a wiring defect the backend's row selection rejects.

@@ -51,7 +51,7 @@ impl NodeDetails {
         Self { labels, icons }
     }
 
-    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
+    /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
     pub(in crate::serve) fn empty(count: usize) -> Self {
         Self {
@@ -73,16 +73,19 @@ impl NodeDetails {
     }
 }
 
-/// One simple property value: the only shape hydrated properties ship.
+/// One simple property value.
 ///
-/// Nested objects and arrays are filtered in the store and never cross the connection.
+/// A hydrated property value takes no other shape. The store filters out nested objects and arrays,
+/// so they never cross the connection.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimpleValue {
     /// A text scalar.
     Text(String),
     /// A number the store renders integral, within `i64`.
     Integer(i64),
-    /// Any other number; store scalars are doubles on the wire.
+    /// Any other number.
+    ///
+    /// Store scalars are doubles on the wire.
     Float(f64),
     /// A boolean scalar.
     Boolean(bool),
@@ -130,7 +133,7 @@ impl LocateNodeDetails {
         }
     }
 
-    /// All-`null` details covering `count` points: the honest answer when no id can resolve.
+    /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
     pub(in crate::serve) fn empty(count: usize) -> Self {
         Self {
@@ -153,7 +156,9 @@ impl LocateNodeDetails {
         &self.type_urls
     }
 
-    /// Views the source's surviving properties; `None` marks a store-absent source.
+    /// Views the source's surviving properties.
+    ///
+    /// `None` marks a store-absent source.
     #[inline]
     pub(in crate::serve) const fn source_properties(&self) -> Option<&Vec<(String, SimpleValue)>> {
         self.source_properties.as_ref()
@@ -168,8 +173,8 @@ impl LocateNodeDetails {
 
 /// Hydrated per-link locate details, aligned to the delivered edge order.
 ///
-/// The detail view's full link story: label, capped direct types, capped properties, and both
-/// completeness flags per edge.
+/// Every edge carries a label, direct types under a cap, properties under a cap, and both
+/// completeness flags.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocateLinkDetails {
     /// The link entity's display label per delivered edge.
@@ -208,7 +213,7 @@ impl LocateLinkDetails {
         }
     }
 
-    /// All-`null` details covering `count` edges: the honest answer when no id can resolve.
+    /// All-`null` details covering `count` edges, the result when no id can resolve.
     #[must_use]
     pub(in crate::serve) fn empty(count: usize) -> Self {
         Self {
@@ -253,7 +258,7 @@ impl LocateLinkDetails {
 
 /// Hydrated per-link edges details, aligned to the delivered edge order.
 ///
-/// The bulk surface's lean columns: one label and one first-type reference per edge.
+/// One label and one first-type reference per edge.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EdgeLinkDetails {
     /// The link entity's display label per delivered edge.
@@ -274,7 +279,7 @@ impl EdgeLinkDetails {
         }
     }
 
-    /// All-`null` details covering `count` edges: the honest answer when no id can resolve.
+    /// All-`null` details covering `count` edges, the result when no id can resolve.
     #[must_use]
     pub(in crate::serve) fn empty(count: usize) -> Self {
         Self {

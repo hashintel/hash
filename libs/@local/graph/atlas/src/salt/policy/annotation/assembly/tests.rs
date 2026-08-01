@@ -66,11 +66,11 @@ struct ProgrammedEmbedder;
 impl ProgrammedEmbedder {
     /// The polar angle of each card's programmed embedding.
     ///
-    /// Alpha and beta lie `0.005` radians apart (`1 - cos(0.005) ≈ 1.25e-5`): a true
-    /// near-duplicate pair, decades below every other distance. Beta and delta lie `0.006`
-    /// radians apart (`≈ 1.8e-5`), a farther member of the same duplicate cluster; the next
-    /// distance up in any corpus here is `≥ 1.0e-2`, so the boundary derivation finds the void
-    /// between the cluster and the bulk.
+    /// Alpha and beta lie `0.005` radians apart (`1 - cos(0.005) ≈ 1.25e-5`), a true near-duplicate
+    /// pair decades below every other distance. Beta and delta lie `0.006` radians apart (`≈
+    /// 1.8e-5`), a farther member of the same duplicate cluster. The next distance up in any corpus
+    /// here is `≥ 1.0e-2`, so the boundary derivation finds the void between the cluster and the
+    /// bulk.
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
@@ -429,8 +429,8 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     let rows = assembled.rows();
     assert_eq!(rows.len(), 6);
 
-    // The rich card: three overlay and one proximal geometry vote;
-    // unclear and abstain shift neither the counts nor the weight.
+    // The rich card has three overlay votes and one proximal geometry vote. Unclear and abstain
+    // shift neither the counts nor the weight.
     assert_eq!(
         rows[CardRow::from_u32(0)].target,
         [0.5 / 5.5, 1.5 / 5.5, 3.5 / 5.5]
@@ -472,8 +472,8 @@ async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
         group_digest(&[EMPLOYED_BY])
     );
 
-    // The holdout card embeds after every trained row and carries its
-    // human verdict; the training rows stay untouched by it.
+    // The holdout card embeds after every trained row and carries its human verdict. The training
+    // rows stay untouched by it.
     let holdouts = assembled.holdouts();
     assert_eq!(holdouts.len(), 1);
     assert_eq!(holdouts[0].identity.canonical_url(), HOLDOUT);
@@ -588,8 +588,8 @@ async fn assemble_under(cards: &[Value], maximum_group_fraction: f64) -> super::
 
 #[tokio::test]
 async fn subdivision_relaxes_family_inside_the_oversized_component() {
-    // Six cards glued into one component by a single family key; the
-    // alpha/beta near-tie survives the family relaxation.
+    // A single family key glues six cards into one component. The alpha/beta near-tie survives the
+    // family relaxation.
     let cards: Vec<Value> = [
         ("http://www.wikidata.org/entity/P90a", "alpha"),
         ("http://www.wikidata.org/entity/P90b", "beta"),
@@ -636,8 +636,8 @@ async fn subdivision_relaxes_family_inside_the_oversized_component() {
 
 #[tokio::test]
 async fn subdivision_relaxes_base_when_family_is_not_the_glue() {
-    // Four cards glued only by a shared base URL; families are unique,
-    // embeddings far apart.
+    // A shared base URL alone glues four cards. Their families are unique and their embeddings far
+    // apart.
     let cards: Vec<Value> = [
         ("http://www.wikidata.org/entity/P91a", "gamma", "f-1"),
         ("http://www.wikidata.org/entity/P91b", "Employed By", "f-2"),
@@ -725,8 +725,8 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
 
 #[tokio::test]
 async fn identity_web_is_accepted_over_budget() {
-    // Two cards name a third as their inverse: identity edges alone
-    // hold all three together, and identity never relaxes.
+    // A pair of cards names a third as their inverse. Identity edges alone hold all three together,
+    // and identity never relaxes.
     let cards: Vec<Value> = [
         ("http://www.wikidata.org/entity/P93a", "gamma", "f-1"),
         ("http://www.wikidata.org/entity/P93b", "Employed By", "f-2"),

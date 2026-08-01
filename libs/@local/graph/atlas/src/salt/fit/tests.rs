@@ -259,9 +259,9 @@ fn classifier_fit_echo_round_trips_every_knob() {
 ///
 /// The fixture inserts `relative_cg_residual_tolerance`, `maximum_cg_iterations` and
 /// `maximum_consecutive_rejections` verbatim into an otherwise-default solver echo, so the decode
-/// pins unknown-field tolerance for the current record shape: an unknown solver field is ignored
-/// rather than rejected. The first two retired with the inner CG recurrence, the third with the
-/// rejection budget radius underflow always preceded.
+/// pins unknown-field tolerance for the current record shape. The decoder ignores an unknown solver
+/// field instead of rejecting the record. The first two retired with the inner CG recurrence, the
+/// third with the rejection budget radius underflow always preceded.
 #[test]
 fn config_echo_decodes_the_retired_solver_knobs() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -287,7 +287,7 @@ fn config_echo_decodes_the_retired_solver_knobs() {
     assert_eq!(echoed.0, config());
 }
 
-/// A config echo names every setting; absence is a rupture, not a default.
+/// A config echo names every setting, and a missing setting fails the parse.
 #[test]
 fn config_echo_requires_every_setting() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -320,7 +320,7 @@ fn config_echo_requires_every_setting() {
 /// The bare four-constant array `[positive, total, floor, epsilon]` is the exact shape every
 /// generation published under the enforcing clamp carries. The fixture pins the ratified
 /// constants verbatim, so this decode is the standing witness that those manifests parse under
-/// the current binary: the floor is extracted and the retired clamp coefficients are dropped.
+/// the current binary. The decode keeps the floor and discards the retired clamp coefficients.
 #[test]
 fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -457,9 +457,8 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
         repository.metadata.evidence.relations.multi_typed_edges,
         vec![2],
     );
-    // The zero control for the confidence clamp: this corpus is
-    // unscored, so no reading can violate the contract and the count
-    // published beside the histogram is zero.
+    // The zero control for the confidence clamp: this corpus has no scores, so no reading can
+    // violate the contract and the count published beside the histogram is zero.
     assert_eq!(
         repository.metadata.evidence.relations.clamped_confidences,
         0,
@@ -515,10 +514,10 @@ async fn fit_publishes_a_complete_generation() {
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_digests_match(published.path(), &repository);
 
-    // No verdicts were supplied: the manifest records the absence.
+    // The call supplied no verdicts, so the manifest records the absence.
     assert!(repository.files.reviewed_verdicts.is_none());
-    // The classifier was supplied: the manifest records the source
-    // digest and stages no annotation artifacts.
+    // The call supplied the classifier, so the manifest records the source digest and stages no
+    // annotation artifacts.
     assert!(repository.files.annotation_corpus.is_none());
     assert!(repository.files.annotation_embeddings.is_none());
     assert!(repository.files.annotation_hashes.is_none());
@@ -554,8 +553,8 @@ async fn fit_publishes_a_complete_generation() {
     assert_eq!(repository.metadata.evidence.cards.reused, 0);
     assert_eq!(repository.metadata.evidence.cards.embedded, 3);
 
-    // The policy stage resolved exactly the edge stream's relation
-    // universe: the fixture's single link type, no overrides.
+    // The policy stage resolved the edge stream's relation universe to the fixture's single link
+    // type and applied zero overrides.
     assert_eq!(repository.metadata.evidence.policy.relations, 1);
     assert_eq!(repository.metadata.evidence.policy.overridden, 0);
 
@@ -973,7 +972,8 @@ fn annotation_card(
 
 /// Composes the six-card fixture corpus: four trained cards in four fold groups.
 ///
-/// One geometry-verdict holdout, one unclear-verdict holdout; cards ascend by identity.
+/// The remaining two cards are a geometry-verdict holdout and an unclear-verdict holdout, and every
+/// card ascends by identity.
 fn annotation_document() -> String {
     serde_json::json!({
         "cards": [
@@ -1304,12 +1304,11 @@ async fn equal_seeds_publish_equal_generations() {
     .await
     .expect("the second fit should publish");
 
-    // The generation id digests the metadata document, which digests
-    // every artifact: equal ids certify byte-equal generations. The
-    // converse is a property of the wired stage set, every member of
-    // which is deterministic by construction - not a pipeline contract;
-    // determinism is best effort, and a stage under the training
-    // carve-out rescopes this assertion to the deterministic artifacts.
+    // The generation id digests the metadata document, which in turn digests every artifact, so
+    // equal ids certify byte-equal generations. The converse follows from the wired stage set,
+    // whose every member is deterministic by construction. The pipeline promises no such contract
+    // of its own. Determinism is best effort, and a stage under the training carve-out rescopes
+    // this assertion to the deterministic artifacts.
     assert_eq!(first.id(), second.id());
 }
 
@@ -1361,7 +1360,7 @@ async fn defective_corpus_publishes_nothing() {
         "the defective corpus should fail the norm check",
     );
 
-    // Failure leaves nothing behind: no generation, no transients.
+    // Failure leaves the root empty: the fit clears its transients and publishes no generation.
     let entries: Vec<_> = fs::read_dir(&path)
         .expect("the root should list")
         .map(|entry| entry.expect("the entry should read").file_name())
@@ -1374,8 +1373,8 @@ async fn defective_corpus_publishes_nothing() {
 
 /// A one-step schedule with the boundary at step zero.
 ///
-/// For orchestration certificates whose asserted behaviour does not depend on trained movement:
-/// the run still reaches the boundary and (when force is present and the radius is asserted) opens
+/// For orchestration certificates whose asserted behaviour does not depend on trained movement: the
+/// run still reaches the boundary and (when force is present and the options assert a radius) opens
 /// the ladder, at the minimum cost a valid schedule allows.
 fn minimal_schedule() -> TrainingSchedule {
     TrainingSchedule::new(
@@ -1487,12 +1486,11 @@ async fn forceless_projector_publishes_the_baseline_rung() {
     let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
     let dataset = dataset();
 
-    // An Overlay override strips the fixture's link type of force: the
-    // boundary freezes nothing, the lens provably never trains, and the
-    // ladder is skipped whole. The zero force makes the run vacuous by
-    // construction (`admit` sees no force at all), so the schedule
-    // carries no trained behaviour: one step certifies the same
-    // orchestration a longer run would.
+    // An Overlay override strips the fixture's link type of force. The boundary then freezes
+    // nothing, the lens provably never trains, and the run skips the ladder whole.
+    // The zero force makes the run vacuous by construction (`admit` sees no force at all), so the
+    // schedule carries no trained behaviour and one step certifies the same orchestration a longer
+    // run would.
     let mut options = projector_options(None);
     options.schedule = minimal_schedule();
     let config = FitConfig {
@@ -1574,9 +1572,8 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
     let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
     let dataset = dataset();
 
-    // A Proximal override gives the link type full force; the memory
-    // dataset's ids carry no store identity, so the radius must be
-    // asserted for the boundary to freeze.
+    // A Proximal override gives the link type full force. The memory dataset's ids carry no store
+    // identity, so the caller must assert the radius for the boundary to freeze.
     let options = projector_options(Some(1.0));
     let config = FitConfig {
         placement: PlacementOptions::Projector(options.clone()),
@@ -1646,8 +1643,7 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
             .iter()
             .all(|rung| rung.relation_loss.is_finite()),
     );
-    // The lens is trained: the canonical rung moved measurably against
-    // its predecessor.
+    // The run trained the lens, and the canonical rung moved measurably against its predecessor.
     let canonical = &ladder.rungs[ladder.canonical_index];
     assert!(canonical.adjacent_movement > 0.0);
 
@@ -1672,11 +1668,13 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
 /// A corpus whose representation stream carries byte-identical copies.
 ///
 /// Rows 1 and 40..=43 carry row 0's representation, rows 44..=46 carry row 2's, and row 47 carries
-/// row 3's: 39 distinct representations over 48 rows, with copies both adjacent to their first row
-/// and at the far end of the stream. Edge 100 relates two distinct representations, edge 101
-/// relates two rows of one representation, and edge 102 restates edge 100's representation pair
-/// through a copy: the collapsed trainer view keeps one reading of the pair and drops the
-/// self-reading, while the published index keeps all three edges.
+/// row 3's. That gives 39 distinct representations over 48 rows, with copies both beside their
+/// first row and at the far end of the stream.
+///
+/// Edge 100 relates two distinct representations. Edge 101 relates two rows of one representation,
+/// and edge 102 restates edge 100's representation pair through a copy. The collapsed trainer view
+/// keeps one reading of the pair and drops the self-reading, while the published index keeps all
+/// three edges.
 fn duplicate_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xD0B1);
 
@@ -1747,8 +1745,8 @@ fn duplicate_dataset() -> MemoryDataset {
 
 /// Asserts the rows of one duplicate cluster publish as one point of the quotient.
 ///
-/// The cluster's first entry is its representation's first occurrence; every other member shares
-/// its neighbour list, its landmark ordinal, and its published coordinate bit for bit.
+/// The cluster's first entry is its representation's first occurrence. Every other member shares
+/// that entry's neighbour list, landmark ordinal, and published coordinate bit for bit.
 fn assert_cluster_shares_one_point(
     table: &KnnView<'_, NodeRowId>,
     assignment: &IdSlice<NodeRowId, LandmarkOrdinal>,
@@ -1789,11 +1787,13 @@ fn assert_cluster_shares_one_point(
 
 /// Byte-identical rows share one training seat and publish over the full row domain.
 ///
-/// The placement trains over the corpus's 39 distinct representations and publication expands
-/// back to all 48 rows: every published artifact covers the row domain, every published neighbour
-/// and selected landmark is a representation's first row, and the rows of one duplicate cluster
-/// share their neighbour list, their landmark ordinal, and their published coordinate bit for bit
-/// - the distinct-domain training evidence and the full-domain column describe one field.
+/// The placement trains over the corpus's 39 distinct representations, and publication expands back
+/// over all 48 rows.
+///
+/// Every published artifact covers the row domain, and every published neighbour and selected
+/// landmark is a representation's first row. The rows of one duplicate cluster share one neighbour
+/// list, one landmark ordinal, and one published coordinate bit for bit, so the distinct-domain
+/// training evidence and the full-domain column describe one field.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
@@ -2078,10 +2078,11 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
 
 /// A corpus exercising the edge artifacts.
 ///
-/// Two relation types, a parallel pair, a self-loop, scored and unscored confidences.
+/// This corpus has two relation types, a parallel pair, a self-loop, and both scored and unscored
+/// confidences.
 ///
-/// Edge rows: 0 and 3 both `0 → 1` under relation 2 (row 0 scored), 1 is `2 → 3` under relations
-/// 2 and 3, 2 is the self-loop `3 → 3` under relation 3.
+/// Rows 0 and 3 both relate `0 → 1` under relation 2, with row 0 scored. Row 1 relates `2 → 3`
+/// under relations 2 and 3, and row 2 is the self-loop `3 → 3` under relation 3.
 fn relation_dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xED6E);
 
@@ -2152,12 +2153,13 @@ fn relation_dataset() -> MemoryDataset {
     MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
 }
 
-/// A corpus whose confidence readings violate the dataset contract is clamped, counted, published.
+/// The drain clamps out-of-range confidence readings and publishes the count.
 ///
 /// The dataset contract puts every confidence in `0.0..=1.0` and nothing enforces it, so the drain
-/// bounds each violating reading and publishes how many it bounded. Three readings violate here -
-/// one above the range, one below it, one `NaN` - and the second edge's in-range reading is the
-/// control: the count is the number of violations and not the number of scored readings.
+/// bounds each violating reading and publishes how many it bounded. The fixture supplies one
+/// reading above the range, one below it, and one `NaN`, while the second edge's in-range reading
+/// is the control. The count therefore reports the number of violations rather than the number of
+/// scored readings.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn out_of_range_confidences_are_clamped_and_counted() {
@@ -2238,8 +2240,9 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
 
 /// Asserts the published attraction index against the [`relation_dataset`] readings.
 ///
-/// Three retained instances under relation 2, one under relation 3 (the self-loop reading carries
-/// no force and is dropped), with the overridden weights and confidence provenance intact.
+/// Relation 2 retains three instances and relation 3 retains one, since the self-loop reading
+/// carries no force and the drain discards it. The overridden weights and confidence provenance
+/// stay intact.
 fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert_eq!(attraction.rows(), NODES as u64);
     assert_eq!(attraction.group_count(), 2);
@@ -2389,20 +2392,18 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_eq!(repository.metadata.evidence.policy.relations, 2);
     assert_eq!(repository.metadata.evidence.policy.overridden, 2);
 
-    // Force masses by hand: each retained instance weighs c · s+ · s
-    // with s+ = 0.5 and the reading share s = 1/multiplicity. The
-    // scored single-typed edge gives 0.5 · 0.5, the two-typed edge's
-    // readings give two 1.0 · 0.5 · 0.5, and the unscored single-typed
-    // edge gives 1.0 · 0.5: total 1.25. Every factor is a power of
-    // two, so the sum is exact.
+    // Each retained instance weighs c · s+ · s with s+ = 0.5 and the reading share s =
+    // 1/multiplicity. By hand, the scored single-typed edge gives 0.5 · 0.5, the two-typed edge's
+    // readings give two 1.0 · 0.5 · 0.5, and the unscored single-typed edge gives 1.0 · 0.5, which
+    // totals 1.25. Every factor is a power of two, so the sum is exact.
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.retained_edges, 4);
     assert_eq!(relations.pruned_edges, 0);
     assert_eq!(relations.self_references, 1);
     assert_eq!(relations.retained_mass.to_bits(), 1.25_f64.to_bits());
     assert_eq!(relations.pruned_mass.to_bits(), 0.0_f64.to_bits());
-    // Three edges carry one relation reading (the self-loop counts at
-    // the drain), one carries two.
+    // Of the four edges, three carry one relation reading each (the self-loop counts at the drain)
+    // and one carries two.
     assert_eq!(relations.multi_typed_edges, vec![3, 1]);
 
     let quad = &repository.metadata.evidence.quad;
@@ -2450,11 +2451,10 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
         ],
     );
 
-    // Three verdicts: one from a foreign store, one reviewed at a
-    // version the column does not hold, one reviewed at a version it
-    // does. Only the exact reviewed version resolves - versions are
-    // immutable and distinct, so a verdict for another version of the
-    // same base URL is evidence about a different card.
+    // The fixture supplies one verdict from a foreign store, one reviewed at a version the column
+    // does not hold, and one reviewed at a version it does. Only the exact reviewed version
+    // resolves, because versions are immutable and distinct, so a verdict for another version of
+    // the same base URL is evidence about a different card.
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
         r#""type_verdicts":["#,

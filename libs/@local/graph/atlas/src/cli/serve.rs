@@ -1,4 +1,4 @@
-//! The serve surface: opening the active generation behind the read-API router.
+//! Opening the active generation behind the read-API router.
 
 use alloc::sync::Arc;
 use core::{error::Error, fmt};
@@ -63,7 +63,7 @@ struct LimitsArgs {
     )]
     locate_edges: u32,
 
-    /// Most properties one located source ships in its trailer map.
+    /// Most properties one located source delivers in its trailer map.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_PROPERTIES",
@@ -71,7 +71,7 @@ struct LimitsArgs {
     )]
     locate_properties: u32,
 
-    /// Most direct types one locate edge ships.
+    /// Most direct types one locate edge delivers.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_LINK_TYPE_IDS",
@@ -79,7 +79,7 @@ struct LimitsArgs {
     )]
     locate_link_type_ids: u32,
 
-    /// Most properties one locate edge ships.
+    /// Most properties one locate edge delivers.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_LIMIT_LOCATE_LINK_PROPERTIES",
@@ -137,11 +137,11 @@ pub struct ServeArgs {
 /// One serve invocation's failure, by step.
 #[derive(Debug)]
 pub enum ServeError {
-    /// The current-generation pointer could not be read.
+    /// Reading the current-generation pointer failed.
     Current(CurrentError),
     /// The root holds no activated generation.
     Missing,
-    /// No wire secret is configured.
+    /// The invocation supplies no wire secret.
     Secret,
     /// The active generation's artifacts could not open.
     Open(OpenAtlasError),
@@ -198,14 +198,15 @@ impl ServeCommand {
     ///
     /// The hosting binary owns the listener, lifecycle, middleware, the dialed store connection
     /// `pool` - every store read the serving process makes goes through it, detail trailers and
-    /// permission resolution alike - and `visibility`, the window a resolved scope is reused for.
-    /// The router carries everything the atlas serves.
+    /// permission resolution alike - and `visibility`, the window over which the router reuses a
+    /// resolved scope. The router carries everything the atlas serves.
     ///
     /// # Errors
     ///
-    /// Returns a [`ServeError`] naming the step that failed: reading the current-generation
-    /// pointer, the pointer being absent, the wire secret being unconfigured, or opening the
-    /// generation's artifacts.
+    /// Returns a [`ServeError`] naming the step that failed: [`ServeError::Current`] for reading
+    /// the current-generation pointer, [`ServeError::Missing`] for a root with no activated
+    /// generation, [`ServeError::Secret`] for an invocation with no wire secret, and
+    /// [`ServeError::Open`] for artifacts that do not open.
     pub fn run(
         self,
         pool: Arc<PostgresStorePool>,
@@ -230,7 +231,7 @@ impl ServeCommand {
             "serving the active generation"
         );
 
-        // The store rides every serve: detail trailers hydrate live and each caller's scope
+        // Every serve reads the store, so detail trailers hydrate live and each caller's scope
         // resolves through the same pool.
         let details = Arc::new(GraphDatabaseClient::new(Arc::clone(&pool)));
         tracing::info!("detail trailers hydrate from the store");

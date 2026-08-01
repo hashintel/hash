@@ -1,9 +1,9 @@
 //! Scalar pair energies and their hand-derived first derivatives.
 //!
 //! Every energy exposes its value together with the derivative the batch terms fold into coordinate
-//! gradients, so the pair loops in the parent module stay pure plumbing. Each derivative is
-//! certified against a finite-difference reference in the unit tests; the value and derivative
-//! always compute in one fused evaluation.
+//! gradients, so the pair loops in the parent module stay pure plumbing. The unit tests certify
+//! each derivative against a finite-difference reference. The value and derivative always compute
+//! in one fused evaluation.
 
 use crate::math::{AffinityCurve, huber, sigmoid, softplus};
 
@@ -93,15 +93,18 @@ impl AffinityEnergy {
     }
 }
 
-/// The Proximal class energy: a bounded pull softening inside its radius.
+/// The Proximal class energy, a bounded pull that softens inside its radius.
 ///
 /// `E(z) = temperature · softplus((z - radius) / temperature)` rises linearly once the normalized
-/// distance exceeds the radius and decays exponentially toward zero below it; the temperature sets
-/// the width of the soft transition. The pull is `sigmoid((z - radius) / temperature)`: half
-/// strength exactly at the radius, positive at every finite distance (asymptotically a factor of
-/// `e` per temperature of depth inside), residual `sigmoid(-radius / temperature)` at coincidence.
-/// The energy is strictly increasing, so coincidence is its unique minimum; a pair's equilibrium
-/// distance is set jointly by that residual and the competing terms.
+/// distance exceeds the radius and decays exponentially toward zero below it. The temperature sets
+/// the width of the soft transition.
+///
+/// The pull is `sigmoid((z - radius) / temperature)`. It reaches half strength exactly at the
+/// radius and stays positive at every finite distance, asymptotically a factor of `e` per
+/// temperature of depth inside, with residual `sigmoid(-radius / temperature)` at coincidence.
+///
+/// The energy is strictly increasing, so coincidence is its unique minimum. That residual and the
+/// competing terms jointly set a pair's equilibrium distance.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
     radius: f32,
@@ -141,10 +144,10 @@ impl ProximalEnergy {
     }
 }
 
-/// The Coincident class energy: a robust pull below a tight radius.
+/// The Coincident class energy, an outlier-resistant pull below a tight radius.
 ///
-/// `E(z) = huber(max(z - radius, 0), threshold)` is zero inside the radius, quadratic just outside
-/// it, and linear beyond the threshold, so one far-flung pair cannot dominate a batch. The
+/// `E(z) = huber(max(z - radius, 0), threshold)` is zero inside the radius, quadratic immediately
+/// outside it, and linear beyond the threshold, so one far-flung pair cannot dominate a batch. The
 /// derivative is continuous everywhere.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentEnergy {
@@ -195,7 +198,7 @@ impl CoincidentEnergy {
 ///
 /// A weighted Coincident and Proximal mixture over locally normalized distance.
 ///
-/// The two radii satisfy `coincident < proximal`: the tight class must ask for a strictly closer
+/// The radii satisfy `coincident < proximal`: the tight class must ask for a strictly closer
 /// placement than the loose one. `epsilon` guards the local scales in the normalization `z = d /
 /// √((scale_i + ε)(scale_j + ε))`, keeping `z` finite where a diverged
 /// neighbourhood measured a zero radius.
@@ -241,8 +244,8 @@ impl RelationEnergy {
 
     /// Evaluates the weighted class mixture and its derivative at a normalized distance.
     ///
-    /// Each class energy is scaled by its weight; the derivative is the matching weighted sum of
-    /// class derivatives.
+    /// The mixture scales each class energy by its weight, and the derivative is the matching
+    /// weighted sum of class derivatives.
     #[must_use]
     pub(crate) fn mixture(
         self,

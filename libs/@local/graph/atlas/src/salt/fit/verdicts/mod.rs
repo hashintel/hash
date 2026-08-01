@@ -1,10 +1,10 @@
 //! The supplied reviewed-verdicts input of one fit.
 //!
-//! A reviewed-verdicts document is supplied beside the corpus rather than derived from it - the
-//! same input category as the policy override table. [`SuppliedVerdicts`] runs the document's whole
-//! wire contract at construction through the verdict reader and keeps the exact wire bytes, so the
-//! staged artifact is byte-identical to the supplied file and the digest computed here is the
-//! supplied file's identity.
+//! The caller supplies a reviewed-verdicts document beside the corpus rather than deriving it,
+//! which puts the document in the same input category as the policy override table.
+//! [`SuppliedVerdicts`] runs the document's whole wire contract at construction through the verdict
+//! reader and keeps the exact wire bytes, so the staged artifact is byte-identical to the supplied
+//! file and the digest computed here is the supplied file's identity.
 //!
 //! The fit carries the document into the generation without acting on it: fan-out from verdicts to
 //! row pairs happens at the trainer's phase boundary, which consumes the staged artifact like every
@@ -23,10 +23,10 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-/// The supplied verdicts file could not be admitted.
+/// The supplied verdicts file failed admission.
 #[derive(Debug)]
 pub enum SupplyError {
-    /// The file could not be read.
+    /// Reading the file failed.
     Io(io::Error),
     /// The bytes violate the reviewed-verdicts wire contract.
     Invalid(InvalidReviewedVerdicts),
@@ -55,8 +55,8 @@ impl Error for SupplyError {
 /// One validated reviewed-verdicts document with its exact wire bytes.
 ///
 /// A value of this type is admissible by existence: construction validated the document, so a fit
-/// holding one stages the bytes verbatim and binds the digest without any further check - and a
-/// document that would fail admission is rejected before the fit spends anything.
+/// holding one stages the bytes verbatim and binds the digest without any further check.
+/// Construction rejects a document that would fail admission before the fit spends anything.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuppliedVerdicts {
     bytes: Box<[u8]>,
@@ -89,7 +89,7 @@ impl SuppliedVerdicts {
     ///
     /// # Errors
     ///
-    /// Returns a [`SupplyError`] when the file cannot be read or its bytes violate the wire
+    /// Returns a [`SupplyError`] when reading the file fails or its bytes violate the wire
     /// contract.
     pub(crate) fn open(path: impl AsRef<Utf8Path>) -> Result<Self, SupplyError> {
         let bytes = std::fs::read(path.as_ref().as_std_path()).map_err(SupplyError::Io)?;

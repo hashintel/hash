@@ -99,7 +99,7 @@ pub enum LadderError {
     Degenerate {
         /// Position of the unalignable field.
         index: usize,
-        /// Position of the field it was aligned against.
+        /// Position of the compared field.
         against: usize,
     },
 }

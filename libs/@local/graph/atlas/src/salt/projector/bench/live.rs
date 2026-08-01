@@ -14,7 +14,7 @@
 //! populated (relation at the lens's active extreme), so a measured step carries the full
 //! composite objective, not a placeholder loss.
 //!
-//! Values are synthetic; costs are not. Every phase runs the production code path with the
+//! Values are synthetic and costs are real. Every phase runs the production code path with the
 //! production types, and the numbers mean shape and traversal, never convergence.
 
 use burn::{
@@ -100,8 +100,8 @@ impl Fixture {
     ///
     /// # Panics
     ///
-    /// Panics when `rows` is too small to carry the synthetic topology (fewer than 64 rows); the
-    /// fixture exists for live-scale measurement, not smoke sizes.
+    /// This panics when `rows` is too small to carry the synthetic topology (fewer than 64 rows).
+    /// The fixture exists for live-scale measurement, not smoke sizes.
     #[must_use]
     pub fn build(rows: usize, seed: u64) -> Self {
         assert!(rows >= 64, "the live fixture starts at 64 rows");
@@ -164,12 +164,13 @@ impl Fixture {
 
     /// Binds the production sampler over the fixture's artifacts.
     ///
-    /// Sampler construction builds cumulative weight tables and is a per-run cost, not a per-step
-    /// one; benches bind once outside the timed region.
+    /// Sampler construction builds cumulative weight tables once per run rather than once per step.
+    /// Benches bind the sampler outside the timed region.
     ///
     /// # Panics
     ///
-    /// Panics when the semantic graph carries no edge weight; the synthetic graph always does.
+    /// This panics when the semantic graph carries no edge weight. The synthetic graph always has
+    /// some.
     #[must_use]
     pub fn sampler(&self) -> Sampler<'_> {
         Sampler {
@@ -210,11 +211,11 @@ impl Sampler<'_> {
     }
 }
 
-/// One backend's live stepper: the training-decorated model, its optimizer, and the evaluation
-/// context.
+/// One backend's live stepper.
 ///
-/// The evaluation context - columns, numerical contract, decile axis - binds once at build, as
-/// the session binds it once per run; the timed phases never pay setup.
+/// The stepper owns the training-decorated model, its optimizer, and the evaluation context. That
+/// context - columns, numerical contract, decile axis - binds once at build, as the session binds
+/// it once per run. The timed phases never pay setup.
 pub struct Stepper<'fixture> {
     flavor: StepFlavor,
     evaluation: Evaluation<'fixture, NodeRowId>,
@@ -275,7 +276,7 @@ impl<'fixture> Stepper<'fixture> {
 
     /// Runs the training-path forward (autodiff graph recorded), fenced by a scalar readback.
     ///
-    /// The recorded graph is dropped unconsumed: no backward ever runs. On a pooled asynchronous
+    /// This drops the recorded graph unconsumed: no backward ever runs. On a pooled asynchronous
     /// device a tight loop of these outruns buffer reclamation and exhausts memory, so the
     /// decomposition phases are a synchronous-backend instrument; the production forward motion is
     /// [`refresh`](Self::refresh).
@@ -290,8 +291,8 @@ impl<'fixture> Stepper<'fixture> {
 
     /// Runs the refresh forward on the plain backend, fenced by a scalar readback.
     ///
-    /// No autodiff graph is recorded: this is the per-rung refresh motion as production performs
-    /// it, safe to loop on any backend.
+    /// This records no autodiff graph: it is the per-rung refresh motion as production performs it,
+    /// safe to loop on any backend.
     #[must_use]
     pub fn refresh(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
@@ -301,10 +302,11 @@ impl<'fixture> Stepper<'fixture> {
         }
     }
 
-    /// Runs input, forward, and the full composite objective; returns the loss total.
+    /// Runs input, forward, and the full composite objective, returning the loss total.
     ///
-    /// This is the step up to but excluding the backward pass: the readback, the hand-rolled
-    /// budget-family fields, the clip, the surrogate construction, and the support terms.
+    /// This is everything a step does before its backward pass. It covers the readback, the
+    /// hand-rolled budget-family fields, the clip, the surrogate construction, and the support
+    /// terms.
     #[must_use]
     pub fn objective(&self, batch: &Assembled) -> f32 {
         match &self.flavor {
@@ -314,7 +316,7 @@ impl<'fixture> Stepper<'fixture> {
         }
     }
 
-    /// Runs one full training step: objective, backward, optimizer; returns the loss total.
+    /// Runs one full training step (objective, backward, optimizer) and returns the loss total.
     #[must_use]
     pub fn step(&mut self, batch: &Assembled) -> f32 {
         match &mut self.flavor {
@@ -392,8 +394,8 @@ impl<B: Backend<FloatElem = f32>> Live<B> {
 
 /// The ratified numerical contract with the relation energy frozen.
 ///
-/// Constants are cost-neutral: they steer values, never operation counts. The relation energy is
-/// present, as in the ladder regime the ratified schedule spends most steps in.
+/// The constants stay cost-neutral. They steer values and never operation counts. The relation
+/// energy is present, as in the ladder regime the ratified schedule spends most steps in.
 fn objective_options() -> ObjectiveOptions {
     let ratified = crate::salt::fit::ProjectorOptions::ratified();
     ObjectiveOptions {
@@ -416,7 +418,7 @@ fn objective_options() -> ObjectiveOptions {
     }
 }
 
-/// Builds a symmetric semantic graph of roughly six edges per row.
+/// Builds a symmetric semantic graph of about six edges per row.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "the synthetic topology cycles by row position"

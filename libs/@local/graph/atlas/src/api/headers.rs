@@ -11,7 +11,9 @@ use aide::openapi;
 /// to prevent.
 pub(super) const REVALIDATE: &str = "private, no-cache";
 
-/// The authority token header: minted on the manifest response, presented back on data requests.
+/// The authority token header.
+///
+/// The manifest response mints it, and data requests present it back.
 ///
 /// The canonical spelling is `Atlas-Authority`; the constant is lowercase because static header
 /// names are, and header matching is case-insensitive either way.
@@ -19,14 +21,15 @@ pub(super) const AUTHORITY: &str = "atlas-authority";
 
 /// The same header in its canonical spelling, for the documents that name it.
 ///
-/// OpenAPI parameter and header keys are read by people and by generators that echo them verbatim,
+/// People and generators that echo them verbatim read the OpenAPI parameter and header keys,
 /// so the document carries the canonical form while the wire carries [`AUTHORITY`].
 pub(super) const AUTHORITY_DOCUMENTED: &str = "Atlas-Authority";
 
-/// The query-response posture: the client's application-layer cache is the cache.
+/// The query-response posture.
 ///
-/// Binary envelopes and translate maps key on (authorization context, generation, route, canonical
-/// body), which shared caches cannot see; `no-store` keeps them out of the way.
+/// The client's application-layer cache is the cache. Binary envelopes and translate maps key on
+/// (authorization context, generation, route, canonical body), which shared caches cannot see.
+/// `no-store` keeps them out of the way.
 pub(super) const NO_STORE: &str = "private, no-store";
 
 /// Whether a documented parameter is mandatory.
@@ -49,7 +52,7 @@ impl From<Required> for bool {
 
 /// Documents the presented authority token's request header.
 ///
-/// `required` separates the two readings: a data route answers nothing without a token, while the
+/// `required` separates the two readings. A data route answers nothing without a token, while the
 /// manifest accepts a request that presents none and bootstraps it. The schema pins the alphabet
 /// and not the width, and names no sealed field - the token is opaque to every caller.
 #[expect(
@@ -88,8 +91,8 @@ pub(super) fn presented_authority(required: Required) -> openapi::Parameter {
 
 /// Documents the minted authority token's response header.
 ///
-/// The pattern fixes the alphabet and not the width: the envelope's width is derived, and no client
-/// may depend on it.
+/// The pattern fixes the alphabet and not the width: the width follows from the envelope's
+/// construction, and no client may depend on it.
 #[expect(
     clippy::default_trait_access,
     reason = "we do not want to pull in a dependency just to pin its default"

@@ -11,26 +11,26 @@
 //! > Overlay fallback for unclassifiable relations
 //! ```
 //!
-//! The classifier is the default operational source: no exhaustive policy table is required, and a
-//! relation type minted after release receives a policy as soon as its card is embedded and
-//! classified. Overrides are supplied as [`PolicyOverride`] records; where they come from is the
-//! caller's concern.
+//! The classifier is the default operational source. Resolution needs no exhaustive policy table,
+//! and a relation type minted after release receives a policy as soon as its card has an embedding
+//! and a classification. The caller supplies overrides as [`PolicyOverride`] records from any
+//! source.
 //!
 //! Each resolved policy carries two distributions. The **selected** distribution `p` is the winning
-//! source's own answer; protection masses are computed from it. The **attraction** distribution
-//! `p*` additionally passes the applicability mix and Coincident admission:
+//! source's own answer, and protection masses derive from it. The **attraction** distribution `p*`
+//! additionally passes the applicability mix and Coincident admission:
 //!
 //! ```text
 //! p~ = a · p + (1 - a) · Overlay
-//! g  = 1[p~_C ≥ τ_C and a ≥ τ_A]      (when admission is enforced)
+//! g  = 1[p~_C ≥ τ_C and a ≥ τ_A]      (when the generation enforces admission)
 //! p*_C = g · p~_C,   p*_P = p~_P,   p*_O = remainder
 //! ```
 //!
-//! A Coincident prediction that fails admission becomes Overlay, never Proximal. Only the
-//! Coincident and Proximal components are stored; Overlay is the remainder, so the mix reduces to
-//! scaling both stored components by `a`. Overrides are asserted, not predicted, and carry
-//! applicability 1; unclassifiable relations fall back to pure Overlay with applicability 0.
-//! Strength is the unit multiplier while the strength head is disabled.
+//! A Coincident prediction that fails admission becomes Overlay, never Proximal. The policy row
+//! keeps the Coincident and Proximal components alone. Overlay is the remainder, so the mix reduces
+//! to scaling both stored components by `a`. An override asserts its distribution and has
+//! applicability 1. Unclassifiable relations fall back to pure Overlay with applicability 0.
+//! Strength is the unit multiplier while the strength head is off.
 //!
 //! Resolution is where policy values leave the solver's double precision and narrow to
 //! working-precision data.
@@ -48,7 +48,7 @@ mod tests;
 /// A resolution input violated the table contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ResolveError {
-    /// A relation appears more than once in the classifications.
+    /// A relation occurs more than once in the classifications.
     DuplicateRelation { relation: OntologyRowId },
     /// A relation carries two overrides of the same precedence.
     AmbiguousOverride {
@@ -86,9 +86,9 @@ impl Error for ResolveError {}
 /// The classifier's outcome for one relation's card.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum Classification {
-    /// The card was classified.
+    /// The classifier produced a prediction.
     Predicted(Prediction),
-    /// No card could be constructed; the relation falls back to Overlay for every channel.
+    /// The relation has no card, so it falls back to Overlay for every channel.
     Unclassified,
 }
 
@@ -128,13 +128,13 @@ pub(crate) struct PolicyOverride {
 
 /// The generation's global Coincident admission criteria.
 ///
-/// Admission is enforced only in generations that enable Coincident geometry; unenforced, the
-/// attraction distribution passes through the mix unchanged and the Coincident force coefficient
-/// governs downstream. The default thresholds are maximally conservative placeholders: a generation
+/// Only generations that enable Coincident geometry enforce admission; unenforced, the attraction
+/// distribution passes through the mix unchanged and the Coincident force coefficient governs
+/// downstream. The default thresholds are maximally conservative placeholders: a generation
 /// enforcing admission configures them from its precision release evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CoincidentAdmission {
-    /// Whether admission is enforced.
+    /// Whether the generation enforces admission.
     pub enforced: bool = false,
     /// Minimum mixed Coincident probability `τ_C`.
     pub class_probability_threshold: UnitFraction = UnitFraction::ONE,

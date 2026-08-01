@@ -1,7 +1,7 @@
 //! Fixture tests for the canonical card format.
 //!
-//! The expected strings are the format's contract: rendered text is asserted byte-for-byte, so any
-//! layout change is a deliberate format revision that shows up here.
+//! The expected strings are the format's contract: every test compares rendered text
+//! byte-for-byte, so any layout change is a deliberate format revision that shows up here.
 use alloc::borrow::Cow;
 use core::assert_matches;
 
@@ -559,6 +559,6 @@ fn empty_groups_do_not_consume_guaranteed_slots() {
     assert_eq!(groups, ["alpha", "beta"]);
 }
 
-// A negative example count and a zero slot cap are unrepresentable
-// (`count` is unsigned and `slot_cap` is `NonZeroUsize`), so no
-// rejection tests exist.
+// The types rule out a negative example count and a zero slot cap
+// (`count` has type `usize` and `slot_cap` has type `NonZeroUsize`),
+// so no rejection tests exist.

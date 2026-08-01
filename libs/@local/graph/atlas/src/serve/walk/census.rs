@@ -1,8 +1,7 @@
 //! Point counts and occupancy over the walkable columns.
 //!
-//! Every masked count is computed over the visible view alone: a hidden point contributes to no
-//! population, no extent, and no resolution, so a scope's numbers carry no evidence of what the
-//! mask removed.
+//! Every masked count covers the visible view alone. A hidden point adds nothing to population,
+//! extent, or resolution, so a scope's numbers carry no evidence of what the mask removed.
 
 use hashql_core::id::{Id as _, IdSlice, bit_vec::DenseBitSet};
 
@@ -18,16 +17,17 @@ use crate::{
 ///
 /// The aggregates a root tile publishes about the whole view rather than about its own cell: how
 /// many points the root's schedule delivers, where the visible set lies, and how deep it goes.
-/// Every one of them is a function of the generation's artifacts and the proof alone - not of the
-/// request - so a census is resolved once per scope and read by every root-tile request under it.
+/// Every one of them is a function of the generation's artifacts and the proof alone rather than of
+/// the request, so a scope resolves its census once and every root-tile request under it reads that
+/// census.
 ///
 /// A hidden point contributes to none of the three, so a scope's census carries no evidence of what
 /// its mask removed.
 ///
-/// This is deliberately not [`ViewOccupancy`], which the delivery-cut policy reads: an occupancy is
-/// occupied *cells* per depth, because the ratified policy may not read row counts, while a census
-/// is row counts and coordinates. Two views a policy must not distinguish can carry different
-/// censuses.
+/// The census type differs from [`ViewOccupancy`] on purpose. An occupancy counts occupied *cells*
+/// per depth, the form the delivery-cut policy reads, because the ratified policy may not read row
+/// counts. Row counts and coordinates make a census instead. Two views a policy must not
+/// distinguish can therefore carry different censuses.
 ///
 /// The extent carries wire coordinates, so the value is [`PartialEq`] and not [`Eq`]: two censuses
 /// compare equal when their counts and their extents agree.
@@ -44,8 +44,8 @@ pub struct ViewCensus {
 impl ViewCensus {
     /// The census of a view holding no visible point.
     ///
-    /// What [`Walk::visible_census`] answers for a proof admitting nothing: no delivered point, no
-    /// extent, no depth.
+    /// [`Walk::visible_census`] answers this for a proof admitting nothing, with zero delivered
+    /// points, an absent extent, and a depth of zero.
     pub(crate) const EMPTY: Self = Self {
         visible: 0,
         bounds: None,
@@ -111,9 +111,9 @@ impl Walk<'_> {
 
     /// Inserts the rows of one tile's cumulative delivered set.
     ///
-    /// A tile's delivered set is mode-independent - its cumulative delta set equals its total
-    /// set - so the gather is one run scan per bucket of the cumulative schedule, deduplicated by
-    /// the set itself.
+    /// A tile's delivered set is mode-independent, because its cumulative delta set equals its
+    /// total set, so the gather is one run scan per bucket of the cumulative schedule, deduplicated
+    /// by the set itself.
     pub(crate) fn delivered_rows_into(
         &self,
         z: u8,
@@ -180,10 +180,10 @@ impl Walk<'_> {
     /// schedule bucket, `positions` the base coordinate column, and `bounds` the generation's own
     /// extent.
     ///
-    /// An unmasked proof answers from the artifacts alone - the fencepost prefix is the visible
-    /// count, the generation's own extent is the visible extent - so authority over the corpus
-    /// costs no walk. **This is the sole place the two regimes part**: a census reads the same
-    /// way whichever proof produced it.
+    /// An unmasked proof answers from the artifacts alone, where the fencepost prefix is the
+    /// visible count and the generation's own extent is the visible extent, so authority over the
+    /// corpus costs no walk. This is the sole place the two regimes part, and a census reads the
+    /// same way whichever proof produced it.
     ///
     /// `bounds` is the generation's extent, absent exactly when the generation holds no point, and
     /// a masked view's extent is absent whenever the view is empty.

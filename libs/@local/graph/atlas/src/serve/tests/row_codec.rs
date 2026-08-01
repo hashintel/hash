@@ -1,5 +1,7 @@
-//! The wire row-id codec battery: round trips, image exactness, key separation, and the spec
-//! reference.
+//! Tests for the wire row-id codec.
+//!
+//! The battery covers round trips, exactness of the image, key separation, and agreement with the
+//! spec reference.
 
 use super::*;
 
@@ -203,8 +205,8 @@ fn codec_derivation_is_deterministic() {
 ///
 /// From the documented construction and pinned parameter picks rather than from `serve::codec`.
 ///
-/// Agreement between the two freezes the wire mapping itself - a refactor that changes any derived
-/// bit fails loudly.
+/// Agreement between the two freezes the wire mapping itself. A refactor that changes any derived
+/// bit fails these tests.
 mod codec_reference {
     use core::hash::Hasher as _;
 
@@ -335,8 +337,8 @@ fn codec_agrees_with_the_spec_reference() {
             );
         }
 
-        // Both expressions agree on the misses too: decode exactness
-        // holds across implementations, not merely within one.
+        // Both expressions also agree on the misses, because each rejects the same wire ids, so
+        // exactness of decoding is a property of the two together rather than of one alone.
         for wire in (0..2_048).chain([1 << 31, u32::MAX]) {
             assert_eq!(
                 codec
@@ -404,8 +406,8 @@ fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
     let sample = 100_u32;
     let trials = 128_u32;
 
-    // Two selections a mapping bias would separate: the first block
-    // of assignment order, and a stride spanning the universe.
+    // A mapping bias would separate the first block of assignment order from a stride spanning the
+    // universe.
     let block: Vec<u32> = (0..sample).collect();
     let spread: Vec<u32> = (0..sample).map(|index| index * 97).collect();
 
@@ -429,26 +431,22 @@ fn codec_wire_ids_estimate_the_full_range_never_the_universe() {
         spread_total += widest(&spread);
     }
 
-    // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1
-    // applied to full-range ids recovers the u32 range - never N.
-    // Comparisons stay in the scale of 2^32 · k · trials -
-    // multiplied out, never divided. This is regression evidence
-    // against gross mapping bias - a codec issuing [0, N) or
-    // assignment-ordered ids fails both selections by orders of
-    // magnitude. A distribution smoke at 128 keys cannot establish
-    // indistinguishability from a random permutation or bound
-    // leakage at corpus observation volume; the stronger property
-    // stays a design target.
+    // Averaged over trials, the German-tank estimate m(1 + 1/k) - 1 applied to full-range ids
+    // recovers the u32 range rather than N, and comparisons stay in the scale of 2^32 · k · trials,
+    // multiplied out rather than divided. The comparison is regression evidence against gross
+    // mapping bias, because a codec issuing [0, N) or assignment-ordered ids fails both selections
+    // by orders of magnitude. A distribution smoke at 128 keys cannot establish
+    // indistinguishability from a random permutation or bound leakage at corpus observation volume,
+    // and that stronger property stays a design target.
     //
     // The tolerance derives from the estimator's own spread. The
     // maximum of k uniform draws on [0, M) has variance
     // M^2 k / ((k+1)^2 (k+2)); the scaled per-trial statistic
     // (k+1) · max has standard deviation M · √(k / (k+2)), and
     // the sum over t independent trials spreads by √(t) of that.
-    // Twelve standard deviations never flakes and still binds the
-    // distribution two-sidedly - about four times tighter than the
-    // loose bound it replaces, and five orders of magnitude away
-    // from what the retired [0, N) codec would have produced.
+    // A tolerance of twelve standard deviations never flakes and still binds the distribution
+    // two-sidedly, about four times tighter than the loose bound it replaces and five orders of
+    // magnitude away from what the retired [0, N) codec would have produced.
     let scaled = |total: u64| total * u64::from(sample + 1);
     let target = (1_u64 << 32) * u64::from(sample) * u64::from(trials);
     let deviation =

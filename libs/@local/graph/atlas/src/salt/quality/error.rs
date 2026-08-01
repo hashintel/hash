@@ -12,19 +12,19 @@ use crate::{
 /// The quality run could not produce a report.
 #[derive(Debug)]
 pub enum QualityRunError<E> {
-    /// The k-NN artifact could not be opened.
+    /// Opening the k-NN artifact failed.
     OpenKnn(OpenSprsError),
     /// The opened k-NN file does not hold a valid table.
     InvalidKnn(InvalidKnnFile),
-    /// The representation artifact could not be opened.
+    /// Opening the representation artifact failed.
     OpenRepresentations(OpenArrayError),
     /// The representation artifact is not a projector matrix.
     InvalidRepresentations,
-    /// The coordinate artifact could not be opened.
+    /// Opening the coordinate artifact failed.
     OpenCoordinates(OpenArrayError),
     /// The coordinate artifact is not a coordinate frame.
     InvalidCoordinates,
-    /// The node-identity artifact could not be opened.
+    /// Opening the node-identity artifact failed.
     OpenIdentities(OpenIdentityError),
     /// The node-identity artifact does not hold a valid table over the dataset's id type.
     InvalidIdentities(InvalidIdentityFile),
@@ -37,7 +37,7 @@ pub enum QualityRunError<E> {
     },
     /// The probe could not run.
     Probe(ProbeError<E>),
-    /// The anchors' type lists could not be resolved.
+    /// Resolving the anchors' type lists failed.
     Types(DeliveryError<E>),
 }
 

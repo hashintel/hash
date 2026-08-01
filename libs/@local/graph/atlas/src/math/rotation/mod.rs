@@ -12,20 +12,20 @@ mod tests;
 
 /// A rotation about the origin, stored as the unit vector `(cos, sin)`.
 ///
-/// The decomposed representation is the contract of this type: the angle's cosine and sine are
-/// computed once (or supplied directly) and every subsequent operation is plain arithmetic on them.
+/// The decomposed representation is the contract of this type. It computes the angle's cosine and
+/// sine once, or accepts them directly, and every later operation is plain arithmetic on them.
 /// Composing two rotations via [`then`](Self::then) multiplies the unit vectors, which adds the
-/// angles without any trigonometric calls, and [`inverse`](Self::inverse) negates the sine, which
-/// is exact: no rounding occurs at all.
+/// angles without any trigonometric calls. [`inverse`](Self::inverse) negates the sine, which is
+/// exact, so no rounding occurs at all.
 ///
 /// Angles follow the mathematical convention: radians, counterclockwise, with `x` growing right and
 /// `y` growing up. In a `y`-down space (such as screen coordinates) the visual direction of
-/// rotation is reversed.
+/// rotation reverses.
 ///
 /// Note that long chains of [`then`](Self::then) accumulate rounding in the stored vector, letting
-/// it drift off the unit circle by roughly one unit in the last place per composition. Call
-/// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally; the
-/// angle is unaffected, only the vector's length is corrected.
+/// it drift off the unit circle by about one unit in the last place per composition. Call
+/// [`renormalize`](Self::renormalize) periodically when composing rotations incrementally.
+/// Renormalizing leaves the angle alone and corrects only the vector's length.
 ///
 /// # Examples
 ///
@@ -59,8 +59,8 @@ impl Rotation {
 
     /// Creates a rotation from an angle in radians.
     ///
-    /// This is the only constructor that calls into trigonometry; the resulting cosine and sine are
-    /// reused by every later operation.
+    /// This is the only constructor that calls into trigonometry. Every later operation reuses the
+    /// resulting cosine and sine.
     #[inline]
     #[must_use]
     pub fn from_radians(radians: f32) -> Self {
@@ -117,7 +117,7 @@ impl Rotation {
 
     /// Rescales the stored vector back onto the unit circle.
     ///
-    /// Composition accumulates rounding in the vector's length at roughly one unit in the last
+    /// Composition accumulates rounding in the vector's length at about one unit in the last
     /// place per [`then`](Self::then); a drifted length scales every vector passed to
     /// [`apply`](Self::apply) by that factor. Renormalizing divides the drift out at the cost of
     /// one square root, leaving the angle unchanged up to rounding. Calling it once every few
@@ -158,7 +158,7 @@ impl Rotation {
     /// Rotates four vectors at once, entirely in SIMD registers.
     ///
     /// On targets with native FMA the fused multiply-adds round once where [`apply`](Self::apply)
-    /// rounds each multiply and add separately. Results differ by at most a few units in the last
+    /// rounds after each multiply and each add. Results differ by at most a few units in the last
     /// place of the intermediate products; where the products cancel, that absolute difference
     /// spans many units in the last place of the small result.
     #[inline]

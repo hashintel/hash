@@ -279,8 +279,8 @@ fn a_landmark_count_past_the_reported_rows_is_clamped() {
     let mut state = RunState::new();
     state.place_projector(vec![Vec2::new(0.0, 0.0)], 9);
 
-    // The renderer splits the prefix off; a count past the rows it
-    // was handed would slice past the end of them.
+    // The renderer splits the prefix off, and a count past the rows it received would slice past
+    // the end of them.
     let placement = state.placement().expect("the snapshot opened the map");
     assert_eq!(placement.landmarks, 1);
 }

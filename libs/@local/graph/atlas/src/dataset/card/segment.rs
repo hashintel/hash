@@ -12,7 +12,7 @@ pub(crate) trait TextSegmenter {
     ///
     /// # Errors
     ///
-    /// Returns the segmenter's error when `text` cannot be segmented.
+    /// Returns this segmenter's error when it cannot split `text` into sentences.
     fn split_sentences<'text>(
         &self,
         text: &'text str,
@@ -24,7 +24,7 @@ pub(crate) trait TextSegmenter {
 ///
 /// Sentence boundaries follow the Unicode default rules for every language, so segmentation is
 /// deterministic and needs no training data. Abbreviation-heavy prose can split early ("Dr.
-/// Smith"); truncation quality degrades gracefully when it does.
+/// Smith"). An early split lowers truncation quality without causing an error.
 #[derive(Debug, Copy, Clone, Default)]
 pub(crate) struct UnicodeSegmenter;
 

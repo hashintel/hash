@@ -1,4 +1,4 @@
-//! The probe's ranking passes: per-anchor workers over shared inputs.
+//! Per-anchor ranking workers over the probe's shared inputs.
 //!
 //! Each pass is a context binding its shared inputs once; running one ranks the anchors
 //! independently and in parallel under one total order - distances by [`f32::total_cmp`], ties by
@@ -17,15 +17,15 @@
 
 // PERF: at the default search depth (K = 50) the linear threshold-
 // counting loops in the corpus pass cost cycles comparable to the
-// 512-component distance kernel itself, so the corpus pass is
+// 512-component distance kernel itself. The corpus pass is then
 // plausibly 30-40% scalar counting. If the suite's runtime ever
-// matters, the fix is algorithmic before it is SIMD: sort the K
-// thresholds once per anchor, binary-search each candidate's
-// insertion point (log K compares instead of K), and suffix-sum a
-// small histogram into the per-threshold counts - exact, and cheaper
-// than vectorizing compares whose order is lexicographic
-// (distance, row) rather than a plain float compare. Measure at live
-// shape (1M rows x 256 anchors) before acting.
+// matters, the algorithmic fix comes before SIMD. Sort the K
+// thresholds once per anchor. Then binary-search each candidate's
+// insertion point for log K compares instead of K and suffix-sum a
+// small histogram into the per-threshold counts. That stays exact and
+// costs less than vectorizing compares whose order is lexicographic
+// over distance and row rather than a plain float compare. Measure at
+// live shape (1M rows x 256 anchors) before acting.
 
 use alloc::collections::BinaryHeap;
 use core::{cmp::Ordering, num::NonZero};
@@ -144,7 +144,7 @@ pub(super) struct AnchorReading {
     pub clumps: Vec<ClumpAggregate>,
 }
 
-/// The corpus pass's shared inputs: every anchor against every non-anchor row.
+/// Shared inputs for ranking every anchor against every non-anchor row.
 pub(super) struct CorpusPass<'pass, N> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -160,7 +160,7 @@ pub(super) struct CorpusPass<'pass, N> {
     pub neighbourhoods: &'pass [NonZero<usize>],
     /// Clump labels over the corpus rows.
     ///
-    /// When the probe reads clump-granularity recall beside the plain reading.
+    /// When the probe reads recall collapsed onto clump ids beside the plain reading.
     pub clumps: Option<&'pass Clumps<N>>,
 }
 
@@ -187,7 +187,7 @@ where
     ///
     /// The rank of a neighbour is the count of universe rows strictly nearer under the total order,
     /// accumulated against the opposite space's nearest [`search`](Self::search) rows during each
-    /// scan; the representation matrix is scanned once and the coordinate frame twice.
+    /// scan. The pass scans the representation matrix once and the coordinate frame twice.
     fn anchor(
         &self,
         anchor: N,
@@ -347,7 +347,7 @@ pub(super) struct SampledReading {
     pub baseline_clumps: Vec<ClumpAggregate>,
 }
 
-/// The sampled pass's shared inputs: every anchor against the comparison rows in all three spaces.
+/// Shared inputs for ranking every anchor against the comparison rows in all three spaces.
 pub(super) struct SampledPass<'pass> {
     /// The representation matrix, in row order.
     pub representations: &'pass IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -357,7 +357,7 @@ pub(super) struct SampledPass<'pass> {
     pub anchor_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
     /// The comparison rows' canonical embeddings, in comparison order.
     pub comparison_canonical: &'pass [BoxedVecN<CANONICAL_DIMENSIONS>],
-    /// The comparison rows: the pass's shared universe.
+    /// The pass's shared universe of comparison rows.
     pub comparison_rows: &'pass [NodeRowId],
     /// Prevalidated empty aggregates, one per neighbourhood size.
     pub template: &'pass [NeighbourhoodAggregate],
@@ -367,7 +367,7 @@ pub(super) struct SampledPass<'pass> {
     pub pairs: &'pass [[u32; 2]],
     /// Clump labels over the corpus rows.
     ///
-    /// When the probe reads the representation baseline at clump granularity beside the plain
+    /// When the probe reads the representation baseline collapsed onto clump ids beside the plain
     /// reading.
     pub clumps: Option<&'pass Clumps<NodeRowId>>,
 }
@@ -483,8 +483,8 @@ impl SampledPass<'_> {
     ///
     /// Both orderings arrive whole-universe nearest-first, so the collapsed baseline costs two
     /// small label sweeps per neighbourhood size. The canonical ordering is the reference: the
-    /// collapse reads how much of each exact canonical neighbourhood the representation keeps once
-    /// rows are relabeled by their connected-component id.
+    /// collapse reads how much of each exact canonical neighbourhood the representation keeps after
+    /// relabeling rows by their connected-component id.
     fn clump_cells(
         &self,
         canonical_order: &[u32],

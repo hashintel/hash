@@ -1,21 +1,23 @@
-//! The operator commands: fit a generation, serve the atlas.
+//! The operator commands that fit a generation and serve the atlas.
 //!
-//! Two entry points consume this module. The `hash-graph atlas` subcommand: [`FitArgs`] and
-//! [`FitCommand`] run one production generation over the live store, and [`ServeArgs`] and
-//! [`ServeCommand`] open the root's active generation and build the read-API router
-//! ([`crate::api`]) the graph binary hosts. And the standalone `hash-graph-atlas` binary, whose
-//! shell the `cli` feature gates: its command line carries the fit command over its own store
-//! flags ([`PostgresArgs`]) plus the report instruments ([`ReportCommand`], one subcommand per
-//! report - the certified classifier bundle, the fold probe, the clump-threshold calibration, the
-//! neighbour-construction audits, and one live quality assessment) over a generation root's
-//! published artifacts; serving stays exclusive to the graph binary. The store flags mirror the
-//! graph's `HASH_GRAPH_PG_*` environment, so one deployment configuration drives every entry
-//! point, and the instruments are the standalone binary's alone: nothing outside this crate names
-//! them.
+//! The `hash-graph atlas` subcommand is one entry point. [`FitArgs`] and [`FitCommand`] run one
+//! production generation over the live store. [`ServeArgs`] and [`ServeCommand`] open the root's
+//! active generation and build the read-API router ([`crate::api`]) the graph binary hosts.
 //!
-//! A command produces its verdict rather than printing one ([`FitVerdict`]), and its host renders
-//! it: the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the
-//! verdict is written after the dashboard gives it back.
+//! The standalone `hash-graph-atlas` binary is the other entry point, and the `cli` feature gates
+//! its shell. Its command line carries the fit command over its own store flags ([`PostgresArgs`])
+//! plus the report instruments over a generation root's published artifacts. [`ReportCommand`]
+//! holds one subcommand per report (the certified classifier bundle, the fold probe, the
+//! clump-threshold calibration, the neighbour-construction audits, and one live quality
+//! assessment). Serving stays exclusive to the graph binary.
+//!
+//! The store flags mirror the graph's `HASH_GRAPH_PG_*` environment, so one deployment
+//! configuration drives every entry point. The instruments belong to the standalone binary alone.
+//! Nothing outside this crate names them.
+//!
+//! A command produces its verdict rather than printing one ([`FitVerdict`]). Its host renders it:
+//! the standalone shell's `--tui` dashboard owns the terminal until the run ends, so the shell
+//! writes the verdict after the dashboard gives it back.
 //!
 //! The hosts dial: a command runs over the store connection its host supplies -
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a

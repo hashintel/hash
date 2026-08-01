@@ -50,7 +50,7 @@ const CERT_WEIGHTS: [f32; 12] = [
 
 /// Small asymmetric offsets keeping the fitted residual nonzero.
 ///
-/// So the error surface has a strict minimum away from the exact-recovery case.
+/// The error surface then has a strict minimum away from the exact-recovery case.
 const CERT_NOISE: [Vec2; 12] = [
     Vec2::new(0.02, -0.03),
     Vec2::new(-0.04, 0.01),
@@ -343,8 +343,8 @@ fn fit_par_matches_fit_on_large_input() {
     let known = Similarity::new(1.25, Rotation::from_radians(-0.35), Vec2::new(4.0, -2.0))
         .expect("scale 1.25 is normal and positive");
 
-    // A logistic-map scramble: deterministic, allocation-light, and
-    // chaotic enough to spread points, noise, and weights.
+    // The logistic map below is deterministic, allocation-light, and chaotic enough to spread
+    // points, noise, and weights.
     let mut value = 0.37_f32;
     let mut pseudo = move || {
         value = 3.9 * value * (1.0 - value);
@@ -390,8 +390,8 @@ fn fit_ignores_zero_weight_pairs() {
     let without_outlier = Similarity::fit(&FIT_POINTS, &target, &[1.0; 6])
         .expect("exact correspondences determine the transform");
 
-    // Append a wildly wrong pair with weight zero: every sum it touches
-    // gains an exact zero, so the fit is bit-identical.
+    // Append a pair far outside the correspondence with weight zero: every sum it touches gains an
+    // exact zero, so the fit is bit-identical.
     let mut source = FIT_POINTS.to_vec();
     let mut target = target.to_vec();
     source.push(Vec2::new(1000.0, -1000.0));
@@ -484,9 +484,8 @@ fn rms_residual_vanishes_on_an_exact_image() {
         .rms_residual(&FIT_POINTS, &target)
         .expect("the pairs are finite");
 
-    // The targets were produced by the `f32` application while the
-    // residual applies widened `f64` coefficients, so the mismatch is
-    // the `f32` rounding of the application, not zero.
+    // The `f32` application produced the targets while the residual applies widened `f64`
+    // coefficients, so the mismatch is the `f32` rounding of the application, not zero.
     assert!(residual < 1e-5, "exact image residual was {residual}");
 }
 
@@ -496,8 +495,8 @@ fn rms_residual_is_the_fit_objective_at_the_minimizer() {
     let fitted = Similarity::fit(&CERT_POINTS, &target, &CERT_WEIGHTS)
         .expect("twelve spread pairs determine the transform");
 
-    // The unweighted residual of a nearby similarity must not fall
-    // below the unweighted optimum's; certify against the uniform fit.
+    // The unweighted residual of a nearby similarity must not fall below the unweighted optimum's,
+    // so this certifies against the uniform fit.
     let uniform = Similarity::fit_uniform(&CERT_POINTS, &target)
         .expect("twelve spread pairs determine the transform");
     let best = uniform
@@ -558,8 +557,7 @@ fn rms_residual_rejects_invalid_pairings() {
     assert!(similarity.rms_residual_par(&points, &points[..1]).is_none());
     assert!(similarity.rms_residual_par(&[], &[]).is_none());
 
-    // A non-finite coordinate propagates into the sum and is rejected
-    // rather than returned.
+    // A non-finite coordinate propagates into the sum, and the finishing step refuses it.
     let nan = [Vec2::new(f32::NAN, 0.0), Vec2::new(1.0, 0.0)];
     assert!(similarity.rms_residual(&nan, &points).is_none());
     assert!(similarity.rms_residual(&points, &nan).is_none());
@@ -663,8 +661,8 @@ fn similarity_strategy() -> impl Strategy<Value = Similarity> {
 /// A similarity scales all distances uniformly.
 ///
 /// For any two points separated by at least one unit, the distance ratio equals the scale up to
-/// a relative tolerance. Coordinates are bounded to `-1e3..1e3` and the separation floor keeps
-/// the subtraction's cancellation error small relative to the distance.
+/// a relative tolerance. The strategy bounds coordinates to `-1e3..1e3`, and the separation floor
+/// keeps the subtraction's cancellation error small relative to the distance.
 #[property_test]
 fn apply_scales_distances_uniformly(
     #[strategy = similarity_strategy()] similarity: Similarity,

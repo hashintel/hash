@@ -24,7 +24,7 @@ use crate::{
 /// The row domain every fixture spans.
 const ROWS: usize = 8;
 
-/// A neutral policy: full Proximal attraction, full applicability, unit strength.
+/// Builds a neutral policy with full Proximal attraction, full applicability, and unit strength.
 fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
@@ -93,7 +93,7 @@ fn pair(one: u64, other: u64) -> NodePair<NodeRowId> {
     NodePair::new(NodeRowId::new(one), NodeRowId::new(other))
 }
 
-/// A configuration with the given hard/ordinary floors and thresholds.
+/// Builds a protection configuration from each channel's floor and threshold pair.
 fn config(hard: (f32, f32), ordinary: (f32, f32)) -> ProtectionConfig {
     ProtectionConfig::new(
         ChannelConfig::new(hard.0, hard.1).expect("the fixture channel is in domain"),
@@ -281,7 +281,7 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
         AttractionOptions::new(0.0, 0.25).expect("the fixture settings are in domain"),
     );
 
-    // The mass exactly at the threshold is retained.
+    // The build retains the mass exactly at the threshold.
     assert_eq!(indexes.measurements.retained_edges, 2);
     assert_eq!(indexes.measurements.pruned_edges, 1);
     assert_eq!(indexes.measurements.retained_mass, 0.75);
@@ -336,10 +336,9 @@ fn pruning_never_reaches_protection() {
 
 #[test]
 fn evidence_components_aggregate_independently_by_maximum() {
-    // Two parallel links: the high-applicability link wins the
-    // discounted component (0.75 · 0.5 = 0.375 against 0.25 · 1.0),
-    // the high-evidence link the undiscounted one (1.0 against 0.5).
-    // Under a 0.5 floor the mass is max(0.375, 0.5 · 1.0) = 0.5.
+    // Of the two parallel links, the high-applicability link wins the discounted component (0.75 ·
+    // 0.5 = 0.375 against 0.25 · 1.0) and the high-evidence link wins the undiscounted one (1.0
+    // against 0.5). Under a 0.5 floor the mass is max(0.375, 0.5 · 1.0) = 0.5.
     let policies = [
         RelationPolicy {
             selected: ClassProbabilities {
@@ -432,7 +431,7 @@ fn judge_compares_floored_masses_against_thresholds() {
         },
     );
 
-    // A pair without link evidence is unprotected under any settings.
+    // A pair without link evidence stays unprotected under any settings.
     assert_eq!(
         view.judge(pair(0, 2), ProtectionConfig::default()),
         PairVerdict::UNPROTECTED,
@@ -441,7 +440,7 @@ fn judge_compares_floored_masses_against_thresholds() {
 
 #[test]
 fn floors_rescue_low_applicability_relations_at_query_time() {
-    // An unfamiliar relation: strong link evidence, applicability 0.25.
+    // An unfamiliar relation has strong link evidence and applicability 0.25.
     let policy = RelationPolicy {
         applicability: 0.25,
         ..proximal_policy(0)
@@ -585,7 +584,7 @@ fn option_constructors_reject_out_of_domain_settings() {
 #[test]
 fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
     // A chain 0 → 1 → ... → n under one relation forces the group
-    // through several fixed emission chunks: source runs cross chunk
+    // through multiple fixed emission chunks: source runs cross chunk
     // boundaries, and every degree must still count the whole group.
     let nodes = 3 * build::EMISSION_CHUNK + 7;
     let instances: Vec<RelationInstance<NodeRowId, EdgeRowId>> = (0..nodes - 1)
@@ -661,7 +660,7 @@ fn assert_indexes_equal(
 prop_compose! {
     /// Instances over three relations and eight rows.
     ///
-    /// Edge rows are unique; optional scores are arbitrary.
+    /// Edge rows are unique, and optional scores are arbitrary.
     fn arbitrary_instances()(
         raw in proptest::collection::vec(
             (
@@ -776,10 +775,9 @@ fn build_is_order_independent_and_sorted(
     }
     prop_assert_eq!(mirrored, view.entries());
 
-    // The floor identity is exact: the stored two-component
-    // evidence reproduces every floored per-instance mass. The
-    // reference deliberately applies the floor inside the
-    // per-instance maximum, the form the identity factorizes.
+    // The floor identity is exact: the stored two-component evidence reproduces every floored
+    // per-instance mass. The reference applies the floor inside the per-instance maximum, the form
+    // the identity factorizes.
     for floor in [0.0_f32, 0.25, 0.5, 1.0] {
         for row in 0..ROWS as u64 {
             for entry in view.row(NodeRowId::new(row)) {
@@ -832,8 +830,7 @@ fn published_index_reopens_mapped() {
     )
     .expect("the published index validates");
 
-    // The mapped view serves the same evidence and verdicts as the
-    // resident index it was written from.
+    // The mapped view serves the same evidence and verdicts as the resident index that produced it.
     let (resident, mapped) = (indexes.protection.view(), mapped.view());
     assert_eq!(resident.rows(), mapped.rows());
     assert_eq!(resident.entries(), mapped.entries());
@@ -873,7 +870,7 @@ fn published_attraction_index_reopens_mapped() {
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
-    // Two relations with distinct weights; one scored instance so the
+    // The fixture uses two relations with distinct weights and one scored instance, so the
     // provenance bits round-trip a non-default value.
     let policies = [
         RelationPolicy {
@@ -910,8 +907,8 @@ fn published_attraction_index_reopens_mapped() {
     )
     .expect("the published index validates");
 
-    // The mapped view serves the same groups, weights, and edges as
-    // the resident index it was written from.
+    // The mapped view serves the same groups, weights, and edges as the resident index that
+    // produced it.
     assert_eq!(mapped.rows(), ROWS as u64);
     assert_eq!(mapped.group_count(), indexes.attraction.groups().len());
     assert_eq!(mapped.edge_count(), indexes.attraction.edge_count());
@@ -1077,10 +1074,9 @@ fn multi(
 
 #[test]
 fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
-    // One edge read under two relations at multiplicity 2 versus the
-    // same two readings as independent single-typed edges: the mixture
-    // halves each reading's mass, so the total is the mean. Every
-    // factor is a power of two, so the arithmetic is exact.
+    // One edge read under two relations at multiplicity 2 versus the same two readings as
+    // independent single-typed edges. The mixture halves each reading's mass, so the total is the
+    // mean. Every factor is a power of two, so the arithmetic is exact.
     let policies = [proximal_policy(0), proximal_policy(1)];
     let mixed = build_default(
         &policies,
@@ -1113,7 +1109,7 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
 
 #[test]
 fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
-    // The narrowed conservation law: shares conserve the pre-ν mass
+    // Under the narrowed conservation law, shares conserve the pre-ν mass
     // exactly, while the realized coefficients (ν · s) of an unpruned
     // k-typed edge sum to T with M ≤ T < 2M against the mean M of its
     // single-typed counterfactuals. The isolated 2-typed edge realizes
@@ -1179,7 +1175,7 @@ fn protection_evidence_ignores_multiplicity() {
 fn single_typed_builds_are_unchanged_by_the_share_machinery() {
     // Shares of 1.0 sum to exact integer degrees and multiply masses
     // by exactly 1: the k = 1 path is bit-identical to the pre-share
-    // arithmetic. Two edges meet at row 1, so the shared endpoint's
+    // arithmetic. Both edges meet at row 1, so the shared endpoint's
     // degree is 2 and the far endpoints' degrees are 1.
     let policies = [proximal_policy(0)];
     let indexes = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 0, 1, 3)]);

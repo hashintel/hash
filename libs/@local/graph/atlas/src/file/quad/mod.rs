@@ -1,6 +1,6 @@
-//! The quad file: quadtree topology over the base delivery order.
+//! The quad file stores quadtree topology over the base delivery order.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and
 //! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
@@ -8,15 +8,15 @@
 //! Each node is one tile of the bucket-cut schedule: the node at depth `z` stores the `(start,
 //! length)` run of its own-bucket points (bucket `z + span_log2` inside the node's cell, buckets
 //! `0..=span_log2` for the root) in the base delivery order of the generation's row-aligned
-//! columns. The runs are derived state, rebuildable from the morton file by binary search, stored
-//! so node records are total and serving does no searches. Together the runs partition the base
-//! order: every point belongs to exactly one node's run, the tile that first delivers it. No
-//! per-node point-cloud files exist; a node's points are slices of the flat columns.
+//! columns. A binary search over the morton file rebuilds the runs. The file stores this derived
+//! state so node records are total and serving does no searches. Together the runs partition the
+//! base order. Every point belongs to exactly one node's run, the tile that first delivers it. No
+//! per-node point-cloud files exist. A node's points are slices of the flat columns.
 //!
 //! Beside the topology each node stores its subtree point count (every point whose key lies in the
-//! node's cell, whatever its bucket) and its direct-type set: the union of per-point direct type
-//! ids over the subtree, sorted ascending, held as one shared id array plus per-node fenceposts.
-//! Closures are never materialized; the type graph is the authority for inheritance.
+//! node's cell, whatever its bucket) and its direct-type set, the union of per-point direct type
+//! ids over the subtree. One shared id array plus per-node fenceposts store the sets, each sorted
+//! ascending. Closures are never materialized. The type graph is the authority for inheritance.
 //!
 //! The node table, the fenceposts, and the id array are all derived from one cut of one generation
 //! and are meaningless apart, so they form one combined file. The regions:
@@ -57,8 +57,8 @@
 //! orientation the format does not own.)
 //!
 //! Node `n`'s type set is `ids[posts[n]..posts[n + 1]]` and the last fencepost is the entry count
-//! `T`, mirrored in the header because the length equation needs the region sizes before any region
-//! is mapped. Opening validates the header, the length equation
+//! `T`, mirrored in the header because the length equation needs the region sizes before the open
+//! path views any region. Opening validates the header, the length equation
 //! ([`FileHeader::expected_file_len`]), the fencepost rules (anchored at zero, non-decreasing,
 //! closing at `T`), and the child rules (below the node count, pointing deeper in the table - the
 //! writer emits depth-first pre-order), so traversals and set slices never re-check. Within-set
@@ -88,7 +88,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -132,7 +132,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -151,11 +151,11 @@ pub(crate) enum Version {
     V1 = 1,
 }
 
-/// One quadtree node: child links, the own-bucket run, and the subtree point count.
+/// One quadtree node with child links, the own-bucket run, and the subtree point count.
 ///
 /// The `u32::MAX` sentinel marks an absent child, so [`Node::new`] rejects it as an index and every
-/// other bit pattern is meaningful. The run is a range of base delivery positions: the node's
-/// own-bucket points, sliced from the flat base-ordered columns.
+/// other bit pattern denotes a child node. The run is a range of base delivery positions: the
+/// node's own-bucket points, sliced from the flat base-ordered columns.
 #[derive(
     Debug,
     Copy,
@@ -170,7 +170,9 @@ pub(crate) enum Version {
 )]
 #[repr(C)]
 pub(crate) struct Node {
-    /// Child node indexes in Morton child order; `u32::MAX` marks no child.
+    /// Child node indexes in Morton child order.
+    ///
+    /// `u32::MAX` marks no child.
     children: [U32<LE>; 4],
     /// First base position of the own-bucket run.
     start: U64<LE>,
@@ -192,7 +194,7 @@ impl Node {
     ///
     /// # Panics
     ///
-    /// Panics when a child index is the `u32::MAX` sentinel, which no node table this size can
+    /// This panics when a child index is the `u32::MAX` sentinel, which no node table this size can
     /// contain.
     #[must_use]
     pub(crate) const fn new(
@@ -226,7 +228,7 @@ impl Node {
     ///
     /// # Panics
     ///
-    /// Panics when `quadrant` is not below 4.
+    /// This panics when `quadrant` is not below 4.
     #[inline]
     #[must_use]
     pub(crate) const fn child(&self, quadrant: usize) -> Option<u32> {
@@ -270,12 +272,12 @@ impl Node {
     }
 }
 
-/// The per-node direct-type sets: one shared id array segmented by node fenceposts.
+/// The per-node direct-type sets, stored as one shared id array segmented by node fenceposts.
 ///
 /// Fencepost `n` is where node `n`'s set begins and the last fencepost is the total entry count, so
-/// node `n`'s set is `ids[posts[n]..posts[n + 1]]`. Posts are anchored at zero and non-decreasing,
-/// and every set is strictly ascending, all by construction, so the writer streams the regions
-/// without further checks.
+/// node `n`'s set is `ids[posts[n]..posts[n + 1]]`. Posts anchor at zero and never decrease, and
+/// every set is strictly ascending, all by construction, so the writer streams the regions without
+/// further checks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TypeSets {
     posts: Box<[u64]>,
@@ -287,8 +289,8 @@ impl TypeSets {
     ///
     /// # Panics
     ///
-    /// Panics when a set is not strictly ascending - a producer bug the format cannot represent,
-    /// caught before any bytes exist.
+    /// This panics when a set is not strictly ascending - a producer bug the format cannot
+    /// represent, caught before any bytes exist.
     #[must_use]
     pub(crate) fn from_sets(sets: &[Vec<u32>]) -> Self {
         let mut posts = Vec::with_capacity(sets.len() + 1);
@@ -335,7 +337,7 @@ impl TypeSets {
     ///
     /// # Panics
     ///
-    /// Panics when `node` is at or beyond the node count.
+    /// This panics when `node` is at or beyond the node count.
     #[must_use]
     pub(crate) fn set(&self, node: usize) -> &[u32] {
         let start = usize::try_from(self.posts[node]).expect("resident sets fit the address space");
@@ -416,8 +418,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The open path rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let ids = self.type_ids.get().checked_mul(size_of::<u32>() as u64)?;

@@ -14,7 +14,7 @@ use crate::math::BoxedVecN;
 
 /// A [`Dataset`] held entirely in memory.
 ///
-/// The dataset is a fixture: it serves whatever rows it was constructed with, and
+/// The dataset is a fixture: it serves exactly the rows the caller supplies, and
 /// [`new`](Self::new) validates the structural contracts once so every stream is consistent by
 /// construction. Ids in all three domains are plain little-endian integers chosen by the caller.
 ///
@@ -32,14 +32,14 @@ impl MemoryDataset {
     /// Creates a dataset serving exactly the given rows.
     ///
     /// `canonical` maps node ids to their full canonical embeddings and may cover any subset of the
-    /// nodes; requests outside the covered subset panic. `cards` maps ontology ids to their
+    /// nodes. Requests outside the covered subset panic. `cards` maps ontology ids to their
     /// finished cards and must cover every ontology row once
-    /// [`render_cards`](Dataset::render_cards) streams; uncovered rows panic there.
+    /// [`render_cards`](Dataset::render_cards) streams. Uncovered rows panic there.
     ///
     /// # Panics
     ///
-    /// Panics when the rows violate the dataset contracts: an edge endpoint or a type reference
-    /// names a row outside its stream, or a type list is not strictly ascending.
+    /// This panics when an edge endpoint or a type reference names a row outside its stream, or
+    /// when a type list is not strictly ascending.
     pub(crate) fn new(
         nodes: Vec<Node<U64<LE>>>,
         edges: Vec<Edge<U64<LE>>>,

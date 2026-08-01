@@ -1,49 +1,49 @@
-//! The quality report: rendered probe evidence and its release verdict.
+//! Rendered probe evidence and the release verdict it supports.
 //!
-//! [`assess`] turns one probe's readings into a flat, serializable record: every grid's overall
+//! [`assess`] turns one probe's readings into a flat, serializable record: every grid's whole-probe
 //! metrics per neighbourhood size, per-subgroup readings on the primary grid, the subgroup flags
-//! the degradation rule raises, and the thresholds that were applied. The report is a rendering of
+//! the degradation rule raises, and the thresholds the run applied. The report is a rendering of
 //! [`ProbeReadings`] - regrouping or re-assessment starts from the readings, never from the report.
 //!
-//! The primary fidelity surface is the corpus-exact map-versus-representation grid: each sampled
-//! anchor is ranked against the full corpus, so the comparison universe carries no subsampling -
-//! but the anchors themselves are sampled, so aggregate means retain anchor-sampling uncertainty.
-//! The thresholds bind there and gate the observed probe statistic, not a population guarantee or
-//! lower confidence bound. The sampled grids provide context - the canonical triangle whose
-//! representation baseline the map's canonical reading is judged against - and stay report-only.
+//! The primary fidelity surface is the corpus-exact map-versus-representation grid. The pass ranks
+//! each sampled anchor against the full corpus, so the comparison universe carries no subsampling,
+//! while the anchors themselves come from a sample, so aggregate means retain anchor-sampling
+//! uncertainty. The thresholds bind there and gate the observed probe statistic, not a population
+//! guarantee or lower confidence bound. The sampled grids provide context - the canonical triangle
+//! that supplies the representation baseline for the map's canonical reading - and stay
+//! report-only.
 //!
 //! Subgroups are entity types: an anchor contributes to one subgroup per direct type, so
 //! multi-typed anchors count in each of their groups. A subgroup flags at a neighbourhood size when
-//! its degradation - one minus recall - exceeds the configured factor times the overall
-//! degradation - twice, by the normative default. Flags are raised per neighbourhood size,
-//! so the size trend - recall rising with the neighbourhood suggests near-tie reshuffling rather
-//! than genuine placement loss, evidence rather than a classifier - is visible in the flags and in
-//! every subgroup's rows. Subgroups
-//! below the configured anchor floor never flag - a handful of anchors cannot support a degradation
-//! ratio - but their rows are still reported.
+//! its degradation - one minus recall - exceeds the configured factor times the whole-probe
+//! degradation - twice, by the normative default. The rule raises a flag per neighbourhood size, so
+//! the size trend - recall rising with the neighbourhood suggests near-tie reshuffling rather than
+//! placement loss, evidence rather than a classifier - shows up in the flags and in every
+//! subgroup's rows. Subgroups below the configured anchor floor never flag - a handful of anchors
+//! cannot support a degradation ratio - but the report still carries their rows.
 //!
 //! Density distortion reads the spread of log neighbourhood-radius ratios over the anchors, a
 //! unit-free reading of uneven compression; the triplet rows read distance-order preservation over
-//! the probe's shared pair sample for all three space pairs. Both are rendered from the readings
-//! like every other row.
+//! the probe's shared pair sample for all three space pairs. The report renders both from the
+//! readings like every other row.
 //!
 //! When the probe carries a clump grouping, the report adds the corpus reading collapsed onto clump
-//! ids and re-evaluates every flag at that granularity. A flag whose collapsed degradation
-//! satisfies the same factor rule is recorded as clump-resolved: the breach vanishes when recall
-//! is measured on component labels - a triage diagnostic and nothing stronger, since ε
-//! single-linkage components can chain to arbitrary diameter, so resolution certifies neither
-//! component compactness nor within-component placement. Subgroup flags and their resolution are
-//! report-only either way: they steer the human reading the report and never affect admission.
+//! ids and re-evaluates every flag on those ids. A flag whose collapsed degradation satisfies the
+//! same factor rule comes out clump-resolved, meaning the breach vanishes once recall counts by
+//! component label. That is a triage diagnostic and nothing stronger, since chaining lets ε
+//! single-linkage components reach arbitrary diameter, so resolution certifies neither component
+//! compactness nor within-component placement. Subgroup flags and their resolution are report-only
+//! either way, and they steer the human reading the report without affecting admission.
 //!
-//! The thresholds default to maximally permissive values - floors at zero, ceilings at their
-//! domain edge - so the default verdict gates evidence presence rather than fidelity: an
+//! The thresholds default to maximally permissive values - floors at zero, ceilings at their domain
+//! edge - and the default verdict therefore gates evidence presence rather than fidelity. An
 //! invented floor would rest release verdicts on fiction. Deployments impose measured bounds
 //! through the run's validated thresholds document.
 //!
 //! The suite's instruments over published artifacts live beside the rendering they read:
-//! [`calibration`] sweeps the clump threshold over a published k-NN table, the evidence the
-//! grouping's default is pinned on, and [`live`] runs one whole assessment of a root's active
-//! generation against the store at the snapshot the generation records.
+//! [`calibration`] sweeps the clump threshold over a published k-NN table for the evidence behind
+//! the grouping's default, and [`live`] runs one whole assessment of a root's active generation
+//! against the store at the snapshot the generation records.
 
 use alloc::collections::BTreeMap;
 
@@ -71,13 +71,13 @@ mod thresholds;
 /// Renders one probe's readings into a report under the thresholds.
 ///
 /// `anchor_types` lists each anchor's direct types, parallel to the readings' anchors; an empty
-/// list leaves an anchor in the overall readings only. Subgroup readings merge the per-anchor
+/// list leaves an anchor in the whole-probe readings only. Subgroup readings merge the per-anchor
 /// cells, so the report costs no ranking work.
 ///
 /// # Panics
 ///
-/// Panics when `anchor_types` and the readings disagree about the anchor count; both describe one
-/// probe, so a mismatch is a wiring defect.
+/// This panics when `anchor_types` and the readings disagree about the anchor count; both describe
+/// one probe, so a mismatch is a wiring defect.
 #[must_use]
 pub(crate) fn assess<N>(
     readings: &ProbeReadings<N>,
@@ -184,8 +184,8 @@ pub(crate) fn assess<N>(
 
 /// Merges subgroup memberships into per-type rows and degradation flags.
 ///
-/// Every breach is re-evaluated at clump granularity when clump readings exist: the same factor
-/// rule over the collapsed recalls decides the flag's resolution.
+/// When clump readings exist, the same factor rule over the collapsed recalls re-evaluates every
+/// breach on clump ids and decides the flag's resolution.
 fn subgroup_reports<N>(
     readings: &ProbeReadings<N>,
     overall: &[MetricRow],
@@ -221,8 +221,8 @@ fn subgroup_reports<N>(
                     continue;
                 }
 
-                // The triage re-evaluation: the same rule at clump
-                // granularity, subgroup against overall.
+                // The triage re-evaluation applies the same rule on clump
+                // ids, subgroup against the whole probe.
                 let collapsed = readings.clumps.as_ref().map(|clumps| {
                     let mut merged = *clumps.map_representation.anchor(first, rung);
                     for &anchor in rest {
@@ -353,10 +353,10 @@ fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
 }
 
 // Statistics vocabulary promotes to a shared module on its second
-// consumer; median and MAD have one.
-/// Returns the median, averaging the middle pair over even lengths; [`None`] on empty input.
+// consumer. Median and MAD have one consumer.
+/// Returns the median, averaging the middle pair over even lengths.
 ///
-/// Sorts `values` in place.
+/// Empty input yields [`None`]. Sorts `values` in place.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,

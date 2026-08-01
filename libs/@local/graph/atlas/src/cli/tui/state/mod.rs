@@ -1,10 +1,11 @@
-//! The dashboard's model of one run: stage progression, the embedding workload, the projector's
-//! loss curve and placement, the admission probe's readings, and the log tail.
+//! The dashboard's model of one run.
 //!
-//! [`RunState`] absorbs [`Observation`]s and answers the questions the renderer asks - what is each
-//! stage doing, how far the paid embedding has come, how the placement is descending, where its
-//! rows currently sit, and what the run has said lately. It holds no terminal, no channel, and no
-//! clock beyond the run's start, so the whole reduction is exercisable without drawing anything.
+//! [`RunState`] holds the stage progression, the embedding workload, the projector's loss curve and
+//! placement, the admission probe's readings, and the log tail. It absorbs [`Observation`]s and
+//! answers the questions the renderer asks - what is each stage doing, how far the paid embedding
+//! has come, how the placement is descending, where its rows currently sit, and what the run has
+//! said lately. The model holds no terminal and no channel, and its only clock is the run's start,
+//! so the whole reduction is exercisable without drawing anything.
 
 use alloc::collections::VecDeque;
 use core::time::Duration;
@@ -35,16 +36,16 @@ pub(super) enum StageStatus {
     Pending,
 }
 
-/// One card-embedding workload: the split that sized it, and what the provider has returned.
+/// One card-embedding workload, with the split that sized it and what the provider has returned.
 ///
 /// `reused` and `embedded` partition the run's distinct card texts; `done` counts the `embedded`
-/// share that has come back, so a workload wholly served from the prior generation is complete at
+/// share that has come back, so a workload served entirely from the prior generation is complete at
 /// `embedded == 0`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct EmbeddingWorkload {
     /// Unique texts the prior generation covered.
     pub reused: usize,
-    /// Unique texts the provider was handed.
+    /// Unique texts the run submitted to the provider.
     pub embedded: usize,
     /// Texts of the provider's share that have come back.
     pub done: usize,
@@ -56,7 +57,7 @@ pub(super) struct EmbeddingWorkload {
 /// run's entire descent; a longer schedule scrolls, oldest first, rather than growing the model.
 const LOSS_CAPACITY: usize = 4_096;
 
-/// One classifier fit's cross-validation folds: how many there are, and how many have landed.
+/// One classifier fit's cross-validation folds, how many there are and how many have completed.
 ///
 /// The folds fit in parallel and report in completion order, so the model counts arrivals rather
 /// than tracking which index is outstanding.
@@ -68,7 +69,7 @@ pub(super) struct ClassifierFolds {
     pub done: usize,
 }
 
-/// One placement training run: how far it has come, and the loss curve it has drawn.
+/// One placement training run, how far it has come and the loss curve it has drawn.
 ///
 /// `losses` is the retained tail of the composite objective, oldest first, so the window is the
 /// curve: `done` places it on the schedule, and the chart draws its offsets.
@@ -86,11 +87,11 @@ pub(super) struct ProjectorTraining {
 
 /// What the neighbour-table construction is doing, from its latest observation.
 ///
-/// A construction runs one part at a time and always in this order - every row into the search
-/// backend, the backend's own linking (or NN-Descent's iterations, which need no backend), every
-/// row's list back out, then the recall verdict - so each observation replaces the last instead of
-/// accumulating. The model carries the construction's newest word, which is what the stage is
-/// doing.
+/// A construction runs one part at a time and always in the same order. Every row goes into the
+/// search backend, the backend does its own linking (or NN-Descent runs its iterations, which need
+/// no backend), every row's list comes back out, and the recall verdict arrives last. Each
+/// observation therefore replaces the last instead of accumulating. The model carries the
+/// construction's newest word, which is what the stage is doing.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum KnnActivity {
     /// Rows entering the search backend.
@@ -105,7 +106,7 @@ pub(super) enum KnnActivity {
     Measured(RecallSpotCheck),
 }
 
-/// One placement snapshot: where the sampled corpus rows sit right now.
+/// One placement snapshot of where the sampled corpus rows currently are.
 ///
 /// `positions[..landmarks]` are the landmark rows - the skeleton the placement hangs on - and the
 /// rest is the interior sample. Each snapshot replaces the last: the map says where the placement
@@ -118,12 +119,12 @@ pub(super) struct PlacementMap {
     pub landmarks: usize,
 }
 
-/// One thing the run reported: a progress observation, or a line it logged.
+/// One thing the run reported, either a progress observation or a line it logged.
 ///
-/// This is the model's whole input vocabulary. Each variant carries what one [`Progress`] method
-/// was handed, owned, so a reporting thread parts with it and never waits on the renderer - except
-/// [`Knn`](Self::Knn), where one stage's five observations arrive as the one activity vocabulary
-/// they fold into.
+/// This is the model's whole input vocabulary. Each variant owns what the run handed one
+/// [`Progress`] method, so a reporting thread parts with it and never waits on the renderer -
+/// except [`Knn`](Self::Knn), where one stage's five observations arrive as the one activity
+/// vocabulary they fold into.
 ///
 /// [`Progress`]: crate::progress::Progress
 #[derive(Debug)]
@@ -259,8 +260,8 @@ impl RunState {
 
     /// Advances the open workload to a completed request's position.
     ///
-    /// A batch without a split is dropped rather than guessed at: the provider's count describes
-    /// its own workload, and nothing here may invent the reuse the split reported.
+    /// This drops a batch without a split rather than guessing at it: the provider's count
+    /// describes its own workload, and nothing here may invent the reuse the split reported.
     pub(super) const fn advance_embedding(&mut self, batch: Batch) {
         let Some(workload) = self.embedding.as_mut() else {
             return;
@@ -280,7 +281,7 @@ impl RunState {
 
     /// Counts one completed cross-validation fold.
     ///
-    /// A completion without an announced fold count is dropped rather than guessed at: only the
+    /// This drops a completion without an announced fold count rather than guessing at it: only the
     /// fit knows how many folds it will run.
     pub(super) const fn complete_classifier_fold(&mut self) {
         let Some(folds) = self.classifier.as_mut() else {
@@ -302,7 +303,7 @@ impl RunState {
 
     /// Records what the neighbour-table construction is doing now.
     ///
-    /// Each activity replaces the last: the construction's loops, phases and verdict happen in one
+    /// Each activity replaces the last. The construction's loops, phases and verdict happen in one
     /// order, so nothing behind the newest one is still in flight.
     pub(super) fn report_knn(&mut self, activity: KnnActivity) {
         self.knn = Some(activity);
@@ -333,10 +334,10 @@ impl RunState {
         training.done = step + 1;
     }
 
-    /// Replaces the placement map with the rows a refresh tick just reported.
+    /// Replaces the placement map with the rows a refresh tick reported.
     ///
-    /// A landmark count past the reported rows is clamped rather than trusted: the map draws the
-    /// skeleton out of the prefix, and a renderer must not slice past what it was handed.
+    /// This clamps a landmark count past the reported rows rather than trusting it: the map draws
+    /// the skeleton out of the prefix, and a renderer must not slice past the rows it received.
     pub(super) fn place_projector(&mut self, positions: Vec<Vec2>, landmarks: usize) {
         self.placement = Some(PlacementMap {
             landmarks: landmarks.min(positions.len()),
@@ -394,7 +395,7 @@ impl RunState {
     ///
     /// Spans are differences between completions: a stage's own span is the gap between its
     /// completion and its predecessor's, and the running stage's span is the gap since the last
-    /// completion. So the rail's numbers always sum to the wall clock.
+    /// completion. The rail's numbers therefore always sum to the wall clock.
     pub(super) fn status(&self, index: usize, elapsed: Duration) -> StageStatus {
         let previous = index
             .checked_sub(1)
@@ -405,8 +406,8 @@ impl RunState {
             return StageStatus::Done(completion.saturating_sub(previous));
         }
 
-        // The run is inside the first stage that has not reported, and
-        // every stage behind that one is unreached.
+        // The run is inside the first stage that has not reported, and it has not reached any stage
+        // behind that one.
         if self.completed[..index].iter().all(Option::is_some) {
             StageStatus::Running(elapsed.saturating_sub(previous))
         } else {

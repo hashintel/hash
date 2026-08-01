@@ -1,10 +1,10 @@
 //! Training-step machinery for the conditioned projector.
 //!
-//! One training step draws a minibatch over the built artifacts, projects its rows at the step's
-//! relation-lens rung, evaluates the composite objective against the detached coordinates,
-//! measures the relation forces per node for the budget diagnostics, and returns one
-//! backward-ready scalar whose gradient carries exactly the combined per-node field through the
-//! shared model parameters.
+//! One training step draws a minibatch over the built artifacts and projects its rows at the step's
+//! relation-lens rung. The step then evaluates the composite objective against the detached
+//! coordinates and measures the relation forces per node for the budget diagnostics. Its return
+//! value is one backward-ready scalar whose gradient carries exactly the combined per-node field
+//! through the shared model parameters.
 //!
 //! The step splits along the module seams: [`batch`] draws the step's populations and re-indexes
 //! them into a batch-local coordinate domain, [`step`] evaluates the objective over the assembled
@@ -14,20 +14,21 @@
 //! [`mod@fit`] composes them all into the optimization loop with its lens schedule and phase
 //! boundary.
 //!
-//! Estimator conventions, shared by every family: each term's batch sum is scaled so its
-//! expectation is independent of the batch plan's draw counts, keeping the loss coefficients'
-//! meaning stable across configurations.
+//! Every family shares one estimator convention. Each term scales its batch sum so the expectation
+//! stays independent of the batch plan's draw counts, which keeps the loss coefficients' meaning
+//! stable across configurations.
 //!
-//! - Semantic attraction scales by `W / m`: total positive edge weight over drawn pairs, the
+//! - Semantic attraction scales by `W / m` (total positive edge weight over drawn pairs), the
 //!   unbiased estimator of the full weighted attraction.
 //! - Ordinary repulsion scales by `W / m` as well, so the ordinary coefficient over the semantic
 //!   one reads directly as the repulsion-to-attraction balance.
-//! - Hard-negative repulsion scales by `N / m`: corpus rows over drawn query rows, the unbiased
+//! - Hard-negative repulsion scales by `N / m` (corpus rows over drawn query rows), the unbiased
 //!   estimator of the pooled mined-frame total.
-//! - Relation attraction scales by `G / g`: total relation groups over drawn groups, the unbiased
-//!   estimator of the capped relation objective (the specified per-type clipped total) - the same
-//!   force-mass population the boundary calibration measures its radius over. The two surfaces move
-//!   in lockstep by contract: changing the per-type factor re-derives both together.
+//! - Relation attraction scales by `G / g` (total relation groups over drawn groups), the unbiased
+//!   estimator of the capped relation objective. That objective is the specified per-type clipped
+//!   total over the same force-mass population the boundary calibration measures its radius over.
+//!   Changing the per-type factor re-derives both surfaces together, so they move in lockstep by
+//!   contract.
 //! - Support terms scale by their pool size over the drawn count.
 
 pub(crate) mod batch;
@@ -69,11 +70,12 @@ use crate::{
 ///
 /// The first and last entries are the lens extremes.
 ///
-/// This is the training curriculum, not the published schedule: the lens is a continuous
+/// This is the training curriculum rather than the published schedule. The lens is a continuous
 /// conditioning input, and these three points (both extremes plus the midpoint) are where the
 /// trainer samples it. The configurable rung set lives on the ladder
-/// ([`LadderOptions`](crate::salt::ladder::LadderOptions)), which decides where the fitted model
-/// is *evaluated* for publication - any rung in `[0, 1]`, independent of the curriculum.
+/// ([`LadderOptions`](crate::salt::ladder::LadderOptions)), which decides where the fitted model is
+/// *evaluated* for publication. Publication admits any rung in `[0, 1]`, independent of the
+/// curriculum.
 pub(crate) const RUNGS: [NonNegative; 3] = [
     NonNegative::ZERO,
     NonNegative::new(0.5).expect("the midpoint rung is finite and non-negative"),
@@ -114,9 +116,9 @@ impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 
 /// Objective coefficients, one per loss family.
 ///
-/// The semantic attraction coefficient is strictly positive - the semantic layout is the frame
-/// every other force is measured against, and a run without it has no baseline to measure by -
-/// and every other coefficient is finite and non-negative.
+/// The semantic attraction coefficient is strictly positive - the semantic layout is the frame for
+/// every other force, and a run without it has no baseline to measure by - and every other
+/// coefficient is finite and non-negative.
 ///
 /// The relation coefficient is the lens-independent factor; the training loop multiplies it by the
 /// step's rung, so a zero rung contributes nothing regardless of the configured value.
@@ -194,7 +196,7 @@ impl Coefficients {
     }
 }
 
-/// The per-step sampling plan: how many draws each family receives.
+/// The per-step sampling plan, with one draw count per family.
 ///
 /// A zero count disables its family for the run; the semantic draw and the relation cap are
 /// structurally positive because a batch without semantic pairs cannot train and a zero cap would
@@ -219,9 +221,9 @@ pub(crate) struct BatchPlan {
 
 /// The step objective's numerical contract.
 ///
-/// Every field is a validated value; the struct is plain wiring. The relation energy is absent
-/// exactly while no Proximal radius has been frozen - the opening semantic-only segment - and the
-/// loop supplies it when the ladder opens.
+/// Every field is a validated value. The struct is plain wiring. The relation energy is absent
+/// exactly while the run has no frozen Proximal radius - the opening semantic-only segment - and
+/// the loop supplies it when the ladder opens.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ObjectiveOptions {
     /// The semantic affinity energy shared by attraction and both repulsion families.

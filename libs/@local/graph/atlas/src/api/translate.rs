@@ -54,13 +54,15 @@ The JSON body is required; the manifest's `limits.translateEntityIds` caps the i
 pub(super) struct VariantPath {
     /// The sha256 generation id, as returned by `current`.
     generation: GenerationId,
-    /// The fitted variant name; the manifest lists what this generation serves.
+    /// The fitted variant name.
+    ///
+    /// The manifest lists what this generation serves.
     variant: String,
 }
 
 /// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity ids to atlas identity.
 ///
-/// The id list is the request's subject, so the body is required.
+/// The id list is the request's subject, so this route requires a body.
 pub(super) async fn handler(
     State(state): State<AppState>,
     visibility: Visibility,

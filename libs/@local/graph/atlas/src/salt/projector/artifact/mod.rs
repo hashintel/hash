@@ -3,16 +3,16 @@
 //! Both artifacts are burn's own named-MessagePack record format, written and parsed by the
 //! framework - the deliberate framework-parse exception to the crate's zerocopy mapping doctrine,
 //! because the payload is the framework's serialized module state and stays exactly as the
-//! framework writes it, with no envelope of ours around it. Validation therefore happens on the
-//! decoded values, never on bytes: every open verifies the record against the architecture (and the
-//! resume flavour against its own schedule) before a model is handed out.
+//! framework writes it, with no envelope from this crate around it. Validation therefore happens on
+//! the decoded values, never on bytes: every open verifies the record against the architecture (and
+//! the resume flavour against its own schedule) before it returns a model.
 //!
 //! The model checkpoint is a generation's published artifact: the trained projector alone, openable
 //! on any backend for inference. The resume checkpoint is the fork point of the tuning protocol:
 //! the full training state at entry of the boundary step - model, optimizer moments, scheduler
 //! position, schedule, and the caller's generator state - from which a ladder segment resumes
 //! bit-equally on a deterministic backend. Resume checkpoints pin the pipeline's generator
-//! algorithm: the generator state is stored as the generator's own 32 state bytes.
+//! algorithm: the record stores the generator state as the generator's own 32 state bytes.
 
 #[cfg(test)]
 mod tests;
@@ -36,7 +36,7 @@ use crate::{
     },
 };
 
-/// A checkpoint could not be written or opened.
+/// An error from writing or opening a checkpoint.
 #[derive(Debug)]
 pub enum CheckpointError {
     /// Reading or writing the checkpoint bytes failed.
@@ -124,7 +124,7 @@ impl From<ArchitectureMismatch> for CheckpointError {
     }
 }
 
-/// The resume checkpoint's record: the training state at entry of the boundary step.
+/// The resume checkpoint's record of the training state at entry of the boundary step.
 ///
 /// The schedule rides in full so a resumed run can verify it trains under the schedule the opening
 /// segment ran under; the scheduler position is redundant with the boundary by construction, and
@@ -144,8 +144,8 @@ struct ResumeRecord<B: AutodiffBackend<FloatElem = f32>> {
 
 /// Writes the published model checkpoint.
 ///
-/// Consumes the model: recording moves the parameters into the record, so a caller keeping its
-/// model clones at the call site, where the copy is visible.
+/// Consumes the model. Recording moves the parameters into the record, so a caller that keeps its
+/// own copy clones at the call site where the copy is visible.
 ///
 /// # Errors
 ///
@@ -186,14 +186,15 @@ pub(crate) fn open_model<B: Backend>(
     Ok(Projector::from_record(architecture, record, device)?)
 }
 
-/// Writes a resume checkpoint: the boundary state plus the caller's generator.
+/// Writes a resume checkpoint from the boundary state and the caller's generator.
 ///
-/// The generator is the run's batch-draw stream as it stands at the boundary; a resumed ladder
-/// continues it, which is what makes the resumed run's draws identical to the straight run's.
+/// The generator is the run's batch-draw stream as it stands at the boundary. A resumed ladder
+/// continues that stream, which is what makes the resumed run's draws identical to the straight
+/// run's.
 ///
-/// The written bytes are not canonical: the optimizer record is a map whose serialization order may
+/// The written bytes are not canonical. The optimizer record is a map whose serialization order may
 /// differ between processes, so two writes of one training state need not be byte-equal. Identity
-/// lives in the decoded state, which round-trips exactly.
+/// lives in the decoded state and round-trips exactly.
 ///
 /// # Errors
 ///
@@ -224,13 +225,12 @@ pub(crate) fn write_resume<B: AutodiffBackend<FloatElem = f32>>(
     Ok(())
 }
 
-/// Opens a resume checkpoint: the boundary state and the generator to continue with.
+/// Opens a resume checkpoint and returns the boundary state with its generator.
 ///
-/// Every decoded value is verified before the state is handed out: the parameters against
-/// `architecture`, the schedule against its own validity domain, and the scheduler position against
-/// the boundary; the generator state's length is carried by the record type itself. The state
-/// round-trip is exact: a generator captured from a live stream is never the all-zero state the
-/// generator's seeding remaps.
+/// The open path verifies the parameters against `architecture`, the schedule against its own
+/// validity domain, and the scheduler position against the boundary before it returns the state.
+/// The record type fixes the generator state's length. The state round-trip is exact: a generator
+/// captured from a live stream is never the all-zero state the generator's seeding remaps.
 ///
 /// # Errors
 ///

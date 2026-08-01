@@ -1,8 +1,10 @@
-//! The store boundary: live detail reads over the serving store pool.
+//! The store boundary.
+//!
+//! Live detail reads over the serving store pool.
 //!
 //! One batched query per request, input order preserved through the ordinality column, absent
-//! entities simply missing from the result. A connection is held for the duration of one query and
-//! returned, so a request's hydration waits only on the store's own work.
+//! entities missing from the result. Each query borrows a connection for its own duration and
+//! returns it, so a request's hydration waits only on the store's own work.
 //!
 //! Every read of an entity's properties object passes through [`MASKED_PROPERTIES`], so a protected
 //! property reaches no properties column of any trailer. A label is a materialized property value
@@ -34,9 +36,9 @@ const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
 ///
 /// Every property value a hydration query reads comes from this expression, and `$3` carries the
 /// protected base URLs in every query that has one. Removing the keys at the JSONB itself covers
-/// each derived column at once: an aggregate, a count and a single-key lookup all read the masked
-/// object. The parens hold the subtraction to the whole object, since `->` binds tighter than `-`:
-/// without them `properties - keys -> 'f'` subtracts `keys -> 'f'`.
+/// each derived column at once, so an aggregate, a count and a single-key lookup all read the
+/// masked object. The parens hold the subtraction to the whole object, since `->` binds tighter
+/// than `-`: without them `properties - keys -> 'f'` subtracts `keys -> 'f'`.
 ///
 /// The store removes the same keys with the same operator under a per-actor condition, so an
 /// unconditional removal withholds at least what the store withholds from any actor. The tests pin
@@ -45,17 +47,17 @@ const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
 
 /// The tile hydration query.
 ///
-/// One batched lookup, input order preserved through the ordinality column, absent entities simply
-/// missing from the result. `$3` carries the protected properties and `$4` the icon's base URL.
+/// One batched lookup, input order preserved through the ordinality column, absent entities missing
+/// from the result. `$3` carries the protected properties and `$4` the icon's base URL.
 ///
-/// The type icon resolves set-wise rather than per row. An icon belongs to an entity's types, and
-/// a deployment holds far fewer entity types than a tile holds points, so the map from versioned
-/// URL to icon is built once per query and joined. Resolving it inside a per-row lateral instead
-/// costs a sequential scan of `ontology_ids` for every delivered point: the join key there is
+/// The type icon resolves set-wise rather than per row. An icon belongs to an entity's types, and a
+/// deployment holds far fewer entity types than a tile holds points, so the query builds the map
+/// from versioned URL to icon once and joins it. Resolving it inside a per-row lateral instead
+/// costs sequential `ontology_ids` scans, one for every delivered point. The join key there is
 /// `base_url || 'v/' || version`, an expression no index answers, so the planner rebuilds the same
 /// small map once per point. That shape dominated tile hydration until this one replaced it.
 ///
-/// `DISTINCT ON` keeps the lateral's selection rule: among the icon-bearing entries of an entity's
+/// `DISTINCT ON` keeps the lateral's selection rule. Among the icon-bearing entries of an entity's
 /// direct types, the shallowest wins and the type's position breaks the tie, and an entity whose
 /// types carry no icon keeps its row with a null.
 const DETAIL_QUERY: &str = "
@@ -104,7 +106,7 @@ const DETAIL_QUERY: &str = "
 /// Labels and direct-type URLs for every delivered node, plus - gated to the first input, the
 /// source - the simple-valued properties, the whole-set property count, and the base URL
 /// providing the display label. Input order preserved through the ordinality column, absent
-/// entities simply missing from the result.
+/// entities missing from the result.
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
 /// nested values never cross the connection - while `total` counts the whole masked object, the
@@ -113,8 +115,8 @@ const DETAIL_QUERY: &str = "
 /// `total` against the delivered map is no signal that a withheld property exists.
 ///
 /// The `label_property` lateral mirrors the `entity_edition_cache` label derivation (migration
-/// V51): the first `allOf` `labelProperty` path that resolves non-null, in canonical direct-type
-/// order, is the path behind `labels[1]`. It reads the *unmasked* object on purpose - masking it
+/// V51). The path behind `labels[1]` is the first `allOf` `labelProperty` path that resolves
+/// non-null in canonical direct-type order. It reads the *unmasked* object on purpose - masking it
 /// would attribute the label to the next candidate path instead of the one that produced it - and
 /// it delivers no value, only the path's own name.
 const LOCATE_DETAIL_QUERY: &str = "
@@ -214,12 +216,12 @@ const LOCATE_LINK_QUERY: &str = "
 
 /// The edges link hydration query.
 ///
-/// The bulk surface's lean columns: the link's label and its first direct type URL, input order
-/// preserved through the ordinality column, absent entities simply missing from the result.
+/// The link's label and its first direct type URL, input order preserved through the ordinality
+/// column, absent entities missing from the result.
 ///
-/// Both columns read the edition cache, and the properties object is not among them, so this query
-/// takes no protected-property parameter. Its label carries whatever the cache materialized, under
-/// the label rule every surface here shares.
+/// Both columns read the edition cache alone, so this query takes no protected-property parameter.
+/// The label carries whatever the cache materialized, under the label rule every surface here
+/// shares.
 const EDGES_LINK_QUERY: &str = "
     SELECT
         ids.index,
@@ -265,7 +267,7 @@ impl core::fmt::Display for DetailError {
 impl core::error::Error for DetailError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
-            // A report is not an `Error`; its own display carries the chain.
+            // A report does not implement `Error`, and its own display carries the chain.
             Self::Connect(_) => None,
             Self::Query(error) => Some(error),
         }
@@ -325,8 +327,8 @@ impl GraphDatabaseClient {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain or with the wrong column
-    /// types: a query bug, never data.
+    /// This panics when the store answers rows outside the request domain or with the wrong column
+    /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
     pub async fn labels_and_icons(
         &self,
@@ -374,8 +376,8 @@ impl GraphDatabaseClient {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain or with the wrong column
-    /// types: a query bug, never data.
+    /// This panics when the store answers rows outside the request domain or with the wrong column
+    /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
     pub async fn locate_details(
         &self,
@@ -423,10 +425,10 @@ impl GraphDatabaseClient {
         ))
     }
 
-    /// Hydrates the locate response's link columns, aligned to the delivered edge order.
+    /// Hydrates the locate response's link columns in the delivered edge order.
     ///
-    /// Every delivered edge hydrates its label, its capped direct-type URLs, and its capped
-    /// simple-valued properties, each cap paired with a completeness flag. Links the store no
+    /// Every delivered edge hydrates a label together with capped direct-type URLs and capped
+    /// simple-valued properties, and a completeness flag accompanies each cap. Links the store no
     /// longer serves read `null` columns and `false` flags.
     ///
     /// # Errors
@@ -435,8 +437,8 @@ impl GraphDatabaseClient {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain or with the wrong column
-    /// types: a query bug, never data.
+    /// This panics when the store answers rows outside the request domain or with the wrong column
+    /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(edges = entities.count()))]
     pub async fn locate_link_details(
         &self,
@@ -491,7 +493,7 @@ impl GraphDatabaseClient {
 
     /// Hydrates the edges response's link columns, aligned to the delivered edge order.
     ///
-    /// Labels and first direct-type URLs; links the store no longer serves read `null`.
+    /// Labels and first direct-type URLs. Links the store no longer serves read `null`.
     ///
     /// # Errors
     ///
@@ -499,8 +501,8 @@ impl GraphDatabaseClient {
     ///
     /// # Panics
     ///
-    /// Panics when the store answers rows outside the request domain or with the wrong column
-    /// types: a query bug, never data.
+    /// This panics when the store answers rows outside the request domain or with the wrong column
+    /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(edges = entities.count()))]
     pub async fn link_details(
         &self,
@@ -535,10 +537,10 @@ impl GraphDatabaseClient {
 ///
 /// The row carries the property columns at fixed positions: `simple` (3), `total` (4), and
 /// `label_property` (5). Both columns read the masked object, so completeness attests the
-/// **deliverable** set: the survivors are that whole set iff nothing was filtered as non-simple and
-/// nothing exceeds the cap. A protected property is in neither column and moves the flag not at
-/// all - a count taken before masking would have made `total` against the delivered map into the
-/// enumeration signal the protection exists to close.
+/// **deliverable** set: the survivors are that whole set iff the filter dropped nothing as
+/// non-simple and nothing exceeds the cap. A protected property is in neither column and moves the
+/// flag not at all - a count taken before masking would have made `total` against the delivered map
+/// into the enumeration signal the protection exists to close.
 fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(String, SimpleValue)>, bool) {
     let simple: Option<String> = row.get(3);
     let total: Option<i32> = row.get(4);
@@ -601,8 +603,8 @@ mod tests {
     /// Returns the offset of each read of `edition.properties` that is neither masked nor
     /// attribution.
     ///
-    /// A read is masked when the whole [`MASKED_PROPERTIES`] spelling, opening paren included,
-    /// stands at the occurrence.
+    /// The mask covers a read when the whole [`MASKED_PROPERTIES`] spelling, opening paren
+    /// included, stands at the occurrence.
     fn unmasked_reads(query: &str) -> Vec<usize> {
         let bytes = query.as_bytes();
 
@@ -641,8 +643,8 @@ mod tests {
 
     /// A query that masks binds the protected array at `$3`, and one that does not binds no `$3`.
     ///
-    /// The mask is spelled with a parameter index, so the index has to be the same one every query
-    /// passes its protected set as - and the icon's own parameter sits after it.
+    /// The mask contains a parameter index, so every query has to pass its protected set at that
+    /// same index - and the icon's own parameter sits after it.
     #[test]
     fn the_masked_parameter_index_is_uniform() {
         for (name, query, reads_properties) in QUERIES {
@@ -669,8 +671,8 @@ mod tests {
 
     /// The census above covers every query constant in this module.
     ///
-    /// A fifth query would otherwise be masked by nobody and witnessed by nothing: the source is
-    /// the only place that knows how many there are.
+    /// Nothing else would mask a fifth query or witness it, and the source is the only place that
+    /// knows how many there are.
     #[test]
     fn the_census_covers_every_query() {
         let mut declared: Vec<&str> = include_str!("client.rs")

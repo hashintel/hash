@@ -172,8 +172,8 @@ fn judge_hit_rate_follows_partner_fraction() {
     let live = corpus(Profile::Live);
     let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
 
-    // Under zero thresholds every linked pair is protected, so drawing
-    // candidates from the partner lists must raise the protected count.
+    // Zero thresholds protect every linked pair, so drawing candidates from the partner lists must
+    // raise the protected count.
     let uniform = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.0, SEED);
     let linked = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.9, SEED);
     assert!(live.judge_pointwise(&linked) > live.judge_pointwise(&uniform) * 4);

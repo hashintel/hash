@@ -27,8 +27,9 @@ pub(crate) struct Regions<'build> {
 
 /// Streams the postings regions as a postings file.
 ///
-/// Regions stream in file order behind the header, so nothing is buffered here; wrap a raw
-/// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) - the per-entry writes are small.
+/// Regions stream in file order behind the header, so this function buffers nothing. Wrap a raw
+/// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter), because the per-entry writes are
+/// small.
 ///
 /// # Errors
 ///
@@ -36,11 +37,13 @@ pub(crate) struct Regions<'build> {
 ///
 /// # Panics
 ///
-/// Panics when the region slices contradict each other - a flags region not sized to the fencepost
-/// count, fencepost regions of differing lengths, or a final fencepost that is not its array's
-/// length - which violates the caller's construction contract; no file geometry can represent it.
-/// The membership and parent list rules (ascent, domains, dense run lengths) are
-/// `salt::postings`'s construction contract, asserted where the lists are built.
+/// This panics when the region slices contradict each other. A flags region not sized to the
+/// fencepost count, fencepost regions of differing lengths, and a final fencepost that differs from
+/// its array's length each violate the caller's construction contract, and no file geometry can
+/// represent them.
+///
+/// `salt::postings` owns the membership and parent list rules (ascent, domains, dense run lengths)
+/// as its construction contract and asserts them where it builds the lists.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; contradictory slices are a caller contract \

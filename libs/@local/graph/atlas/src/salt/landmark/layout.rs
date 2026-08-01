@@ -1,30 +1,30 @@
 //! Semantic-graph layout by UMAP's negative-sampling update rule.
 //!
-//! [`layout_landmarks`] places one 2D point per graph row: sampled edges pull their endpoints
+//! [`layout_landmarks`] places one 2D point per graph row. Sampled edges pull their endpoints
 //! together and uniformly drawn vertices push the sampled endpoint away, each step the gradient of
 //! its own pair energy under the [`AffinityCurve`]. The expected update is a field with no scalar
 //! objective behind it (negatives move the anchor only); its expected per-pair repulsion is vertex
 //! degree times the negative rate over the vertex count, so the layout reproduces the graph's
-//! near-binary neighbourhood structure - the scaffold the skeleton stages consume - and the fuzzy
+//! near-binary neighbourhood structure (the scaffold the skeleton stages consume) and the fuzzy
 //! weights act through the edge schedule rather than as calibrated similarity targets.
 //!
-//! Sampling follows the edge weights: an edge is first due one full period of
-//! `maximum_weight / weight` epochs in, so the strongest edge applies every epoch after the first
-//! and weaker edges proportionally less often. Edges never due within the epoch budget are dropped
-//! up front. Every sampled edge additionally repels
-//! [`negative_sample_rate`](LayoutOptions::negative_sample_rate) uniformly drawn vertices, and the
-//! learning rate decays linearly toward zero across the epoch budget (the final epoch steps at
-//! `initial / epochs`).
+//! Sampling follows the edge weights. An edge is first due one full period of `maximum_weight /
+//! weight` epochs in, so the strongest edge applies every epoch after the first and weaker edges
+//! proportionally less often. An edge never due within the epoch budget drops out up front. Every
+//! sampled edge additionally repels [`negative_sample_rate`](LayoutOptions::negative_sample_rate)
+//! uniformly drawn vertices, and the learning rate decays linearly toward zero across the epoch
+//! budget (the final epoch steps at `initial / epochs`).
 //!
-//! Due edges apply in [`Vec2x4T`] batches of four: gradients within one batch are evaluated at the
-//! batch's entry coordinates and the four negative-sample gradients of one chunk accumulate against
-//! one anchor position - mini-batch semantics rather than strictly sequential updates.
+//! Due edges apply in [`Vec2x4T`] batches of four. Gradients within one batch evaluate at the
+//! batch's entry coordinates, and the four negative-sample gradients of one chunk accumulate
+//! against one anchor position, which gives mini-batch semantics rather than strictly sequential
+//! updates.
 //!
 //! Points start on a jittered circle of diameter ten, the span the per-axis [gradient
-//! clip](AffinityCurve::GRADIENT_CLIP) is designed against. Every draw comes from the caller-seeded
-//! generator, so a rerun over an equal graph, curve, options, and seed reproduces the layout
-//! exactly. Rows without edges keep their initial placement: no attraction schedules them, and
-//! repulsion moves only the sampled endpoint.
+//! clip](AffinityCurve::GRADIENT_CLIP) assumes. Every draw comes from the caller-seeded generator,
+//! so a rerun over an equal graph, curve, options, and seed reproduces the layout exactly. Rows
+//! without edges keep their initial placement: no attraction schedules them, and repulsion moves
+//! only the sampled endpoint.
 //!
 //! The optimizer is serial by design: each gradient step reads coordinates the previous step wrote,
 //! and the bit-reproducible layout is the property the serial order buys. Parallelism belongs to
@@ -59,7 +59,7 @@ impl fmt::Display for LearningRateError {
 
 impl Error for LearningRateError {}
 
-/// An epoch-zero learning rate: finite and strictly positive, valid by construction.
+/// A finite, strictly positive epoch-zero learning rate, valid by construction.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "f32", into = "f32")]
 pub(crate) struct LearningRate(f32);
@@ -118,7 +118,7 @@ impl fmt::Display for RepulsionStrengthError {
 
 impl Error for RepulsionStrengthError {}
 
-/// A repulsion weight: finite and non-negative, valid by construction.
+/// A finite, non-negative repulsion weight, valid by construction.
 ///
 /// Zero disables repulsion.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
@@ -178,7 +178,7 @@ const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwra
 pub(crate) struct LayoutOptions {
     /// Optimization epochs.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
-    /// Learning rate at epoch zero; it decays linearly toward zero across the epoch budget.
+    /// Learning rate at epoch zero, decaying linearly toward zero across the epoch budget.
     pub initial_learning_rate: LearningRate = DEFAULT_INITIAL_LEARNING_RATE,
     /// Weight of repulsive updates.
     pub repulsion_strength: RepulsionStrength = DEFAULT_REPULSION_STRENGTH,
@@ -248,11 +248,10 @@ where
 /// Radius of the initial circle.
 ///
 /// A diameter of ten matches the span the per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
-/// is designed against.
-// Pinned, not configurable: the radius and the clip fix one ratio -
-// how far a single sample can move a point relative to the layout's
-// extent - and a knob on one side silently changes it. If the frame
-// ever moves, both move together.
+/// assumes.
+// Pinning the radius and the clip fixes one ratio: how far a single sample can move a point
+// relative to the layout's extent. A knob on one side changes that ratio with nothing to signal the
+// change. If the frame ever moves, both move together.
 const INITIAL_RADIUS: f32 = 5.0;
 /// Relative radial jitter of the initial circle, breaking the regular polygon's symmetry.
 // Pinned, not configurable: any small positive value serves; the only
@@ -321,8 +320,8 @@ where
 
             for entry in position(start)..position(end) {
                 let period = maximum / weights[entry];
-                // Deadlines run to one below the budget, and an edge
-                // first applies at the deadline matching its period.
+                // Deadlines run to one below the budget, and each edge's period fixes the deadline
+                // at which it first applies.
                 if period > budget - 1.0 {
                     continue;
                 }
@@ -450,7 +449,7 @@ where
     ///
     /// Draws apply in chunks of four against the anchor's position at chunk entry, with a scalar
     /// remainder. A draw of the anchor itself is a coincident pair and contributes no gradient, so
-    /// no draw is rejected.
+    /// the loop keeps every draw.
     fn repel(&mut self, anchor: N, learning_rate: f32) {
         let mut remaining = self.options.negative_sample_rate.get();
 

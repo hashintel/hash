@@ -3,17 +3,17 @@
 //! Resolving `coloredTypeIds` to per-type memberships with descendant expansion, the `TYPE_MASK`
 //! column's serving source.
 //!
-//! Each requested id arrives as a [`VersionedUrl`] - the transport parses the request body, so a
-//! malformed entry is rejected before assembly begins. [`Palette::of`] derives each entry's
-//! ontology identity once at the assembly boundary, and everything after it carries those
-//! trivially copyable identities. Resolution is pinned to the generation's snapshot: the identity
-//! joins the generation's ontology identity table, and the resulting row names a closure-map row
-//! whose set bits are every type the request matches - the type itself and all its descendants.
-//! The tile path never consults the live store.
+//! Each requested id arrives as a [`VersionedUrl`] - the transport parses the request body, so it
+//! rejects a malformed entry before assembly begins. [`Palette::of`] derives each entry's ontology
+//! identity once at the assembly boundary, and everything after it carries those trivially copyable
+//! identities. Every resolution reads the generation's snapshot. The identity joins the
+//! generation's ontology identity table, and the resulting row names a closure-map row whose set
+//! bits are every type the request matches - the type itself and all its descendants. The tile path
+//! never consults the live store.
 //!
-//! Failure to resolve stays legal: a well-formed id this generation never ingested - a client
-//! ontology newer than the snapshot, a corpus whose ontology ids are not store identities -
-//! reads as zero bits in every point's mask, never as an error.
+//! Failure to resolve stays legal. A well-formed id this generation never ingested (a client
+//! ontology newer than the snapshot, or a corpus whose ontology ids are not store identities) reads
+//! as zero bits in every point's mask and never as an error.
 
 use hashql_core::id::{Id as _, bit_vec::RowRef};
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
@@ -29,10 +29,10 @@ use crate::{
     },
 };
 
-/// One request's colour palette: the `coloredTypeIds` entries as ontology identities.
+/// One request's colour palette.
 ///
-/// Slot order is the request's: `TYPE_MASK` bit `i`, mask source `i`, and palette slot `i` are
-/// one request entry.
+/// Each slot is one `coloredTypeIds` entry as an ontology identity. Slot order is the request's:
+/// `TYPE_MASK` bit `i`, mask source `i`, and palette slot `i` are one request entry.
 #[derive(Debug)]
 pub(super) struct Palette {
     entries: Vec<ArchivedOntologyTypeUuid>,
@@ -54,8 +54,8 @@ impl Palette {
     /// Returns whether `url` names a palette entry.
     ///
     /// Comparison is by parsed ontology identity - any spelling that names the same versioned
-    /// type covers it, matching the mask resolution's own parse. An unparsable `url` is covered
-    /// by nothing.
+    /// type covers it, matching the mask resolution's own parse. No entry covers an unparsable
+    /// `url`.
     pub(super) fn covers(&self, url: &str) -> bool {
         url.parse::<VersionedUrl>()
             .is_ok_and(|url| self.entries.contains(&identity_of(&url)))

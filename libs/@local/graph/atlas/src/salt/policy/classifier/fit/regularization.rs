@@ -1,14 +1,14 @@
 //! Regularization-strength selection by grouped cross-validation.
 //!
 //! [`select`] fits one model per candidate strength and fold over the shared seeded fold
-//! assignment, scores every candidate by the weighted-mean out-of-fold cross-entropy of its
-//! uncalibrated posteriors, and picks the minimizer; an exact tie prefers the stronger penalty.
-//! The full curve rides the winner into the fit evidence, so a reader sees the plateau the
+//! assignment. It scores every candidate by the weighted-mean out-of-fold cross-entropy of its
+//! uncalibrated posteriors and picks the minimizer. An exact tie prefers the stronger penalty. The
+//! fit evidence records the full curve alongside the winner, so a reader sees the plateau the
 //! selection stood on.
 //!
-//! The candidate grid is fixed: the preparation scaling normalizes coefficient coordinates
-//! before any candidate is solved, so the parity strength `1.0` is the natural center and the
-//! grid brackets it by three decades either side in a logarithmic 1–3 progression.
+//! The candidate grid never changes. The preparation scaling normalizes coefficient coordinates
+//! before the solver sees any candidate, so the parity strength `1.0` is the natural center and the
+//! grid brackets it by three decades either side in a logarithmic 1-3 progression.
 
 use core::{
     iter,
@@ -56,7 +56,7 @@ pub(crate) struct RegularizationReading {
     pub cross_entropy: f64,
 }
 
-/// A completed selection: the winning strength and the evidence that chose it.
+/// The winning strength and the evidence that chose it.
 pub(super) struct Selection {
     /// The winning candidate's strength.
     pub regularization: DPositive,
@@ -66,7 +66,8 @@ pub(super) struct Selection {
     pub out_of_fold_logits: IdVec<CardRow, [f64; GeometryClass::COUNT]>,
 }
 
-/// The winning position: minimum cross-entropy, an exact tie to the stronger penalty.
+/// Returns the position of the minimum cross-entropy, with an exact tie going to the stronger
+/// penalty.
 pub(super) fn winner(curve: &[RegularizationReading]) -> usize {
     let mut winner = 0;
     for (candidate, reading) in curve.iter().enumerate() {

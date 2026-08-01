@@ -3,28 +3,29 @@
 //! For each sampled node row, [`spot_check`] compares an approximate query with a brute-force
 //! cosine ranking over the same projector matrix. Both rankings exclude the query row and resolve
 //! equal distances by ascending row. Recall is the total intersection count divided by the total
-//! number of exact neighbours across the sample, and a backend is admitted when that aggregate's
-//! lower bound clears the configured [minimum](SpotCheckOptions::minimum_recall).
+//! number of exact neighbours across the sample, and the check admits a backend when that
+//! aggregate's lower bound clears the configured [minimum](SpotCheckOptions::minimum_recall).
 //!
-//! The sample is sized in three stages, because the criterion is an aggregate mean whose per-row
-//! variance is a corpus property. A pilot measures three things: the mean's deviation, the
-//! aggregate's clearance of the minimum, and the rate the brute force runs at. Those size one
-//! fresh verdict sample - the count that resolves the *measured* clearance at the configured
-//! [confidence](SpotCheckOptions::confidence), floored at the pilot's size, capped by the corpus
-//! and by what the [budget](SpotCheckOptions::budget) buys at the measured rate. The verdict sample
-//! alone decides, and it decides by interval: [`RecallAdmission`] reads the recall's one-sided
-//! bound against the minimum, never the point estimate. No fixed margin appears anywhere - what a
-//! decision must resolve is the clearance the run measures, so a backend far above the floor
-//! settles at the pilot's size and one near the floor draws until the budget stops it.
+//! The check sizes the sample in three stages, because the criterion is an aggregate mean whose
+//! per-row variance is a corpus property. A pilot measures the mean's deviation, the aggregate's
+//! clearance of the minimum, and the rate the brute force runs at. Those measurements size one
+//! fresh verdict sample. Its count resolves the *measured* clearance at the configured
+//! [confidence](SpotCheckOptions::confidence), with a floor at the pilot's size and a cap from the
+//! corpus and from what the [budget](SpotCheckOptions::budget) buys at the measured rate. The
+//! verdict sample alone decides, and it decides by interval, because [`RecallAdmission`] reads the
+//! recall's one-sided bound against the minimum, never the point estimate. No fixed margin shows up
+//! anywhere. What a decision has to resolve is the clearance the run measures, so a backend far
+//! above the floor settles at the pilot's size and one near the floor draws until the budget stops
+//! it.
 //!
 //! The pilot sizes but does not vote. A bound holds at its stated confidence only over data the
-//! sizing could not see, so the verdict sample is drawn fresh and read once: a check that re-read a
-//! growing sample until the bound cleared the floor would admit a backend sitting exactly on the
-//! floor sooner or later, whatever confidence it printed. The knobs are scale-free, and both the
-//! variance and the clearance are measured rather than configured. (An acceptance-sampling budget -
-//! this check's original sizing - certifies all-pass criteria and carries no guarantee about a
-//! mean: per-row recall is strongly bimodal, and at the acceptance-sized 688 rows the check refused
-//! sound backends on sampling noise.)
+//! sizing never saw, so the check draws the verdict sample fresh and reads it once. A check
+//! that re-read a growing sample until the bound cleared the floor admits a backend sitting exactly
+//! on the floor sooner or later, whatever confidence it printed. The knobs are scale-free, and the
+//! check measures both the variance and the clearance rather than reading them from configuration.
+//! (An acceptance-sampling budget, which was this check's original sizing, certifies all-pass
+//! criteria and carries no guarantee about a mean: per-row recall is strongly bimodal, and at the
+//! acceptance-sized 688 rows the check refused sound backends on sampling noise.)
 //!
 //! The exact side of the check stands alone as [`ExactReference`]: one sampled brute-force
 //! reference scores any number of backends or backend settings, so a parameter sweep pays the exact
@@ -57,20 +58,18 @@ const DEFAULT_NEIGHBOURS: NonZero<usize> =
 const DEFAULT_MINIMUM_RECALL: f64 = 0.89;
 // A one-in-a-hundred risk that the aggregate's sampling error exceeds
 // the reported resolution in the admitting direction. The sample grows
-// as the square of the normal quantile, so the level is priced in rows:
-// 0.999 costs ~1.8x the sample this one sizes, and 0.95 costs half of
-// it while admitting one backend in twenty whose true aggregate sits
-// below the floor.
+// as the square of the normal quantile, so the sample size prices the level in rows. 0.999 costs
+// ~1.8x the sample this one sizes, and 0.95 costs half of it while admitting one backend in twenty
+// whose true aggregate sits below the floor.
 const DEFAULT_CONFIDENCE: f64 = 0.99;
 // The acceptance-era sample size, kept as the pilot: large enough to
 // read the per-row deviation within a few percent, small enough that
 // a decisively good or bad backend settles at ~19s of brute force.
 const DEFAULT_PILOT: NonZero<usize> = NonZero::new(688).expect("the default pilot size is nonzero");
-// How long a build may spend proving its own admission - a decision
-// about a machine's time, not a measured quantity. Ten minutes covers
-// the sizing at the scale the check runs at: the full-scale backend
-// sweep (985,932 rows) measured healthy builds at ~0.902 against the
-// 0.89 floor with a per-row deviation of ~0.32 (near-tie rows score
+// How long a build may spend proving its own admission. The value is a policy decision about a
+// machine's time rather than a measured quantity. Ten minutes covers the sizing at the scale the
+// check runs at: the full-scale backend sweep (985,932 rows) measured healthy builds at ~0.902
+// against the 0.89 floor with a per-row deviation of ~0.32 (near-tie rows score
 // ~0.5 on any ANN index), so a healthy build's clearance sizes ~3,850
 // rows, ~108s of brute force, and a build clearing by half of that
 // sizes four times as many. Past the budget the check reports the
@@ -91,13 +90,11 @@ pub(crate) struct SpotCheckOptions {
     /// One-sided confidence that the aggregate's sampling error stays inside the reported
     /// [resolution](RecallSpotCheck::resolution).
     ///
-    /// Strictly inside `(0, 1)`.
+    /// Inside the open interval `(0, 1)`.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
-    /// Rows of the sizing pilot; a corpus smaller than this compares every row exhaustively.
+    /// Rows of the sizing pilot.
     ///
-    /// The pilot measures the per-row deviation, the aggregate's clearance of the minimum, and the
-    /// rate the brute force runs at, and its size floors the verdict sample: a normal bound over a
-    /// sample too small to estimate its own deviation resolves nothing.
+    /// A corpus smaller than this compares every row exhaustively. The pilot measures the per-row deviation, the aggregate's clearance of the minimum, and the rate the brute force runs at, and its size floors the verdict sample, because a normal bound over a sample too small to estimate its own deviation resolves nothing.
     pub pilot: NonZero<usize> = DEFAULT_PILOT,
     /// Wall clock the verdict sample may spend, at the rate the pilot measured.
     ///
@@ -128,13 +125,13 @@ pub struct RecallSpotCheck {
     /// What this sample measured, not what sized it: the pilot's own reading of the spread is what
     /// chose this sample's size.
     pub deviation: f64,
-    /// The admission minimum the check was configured with.
+    /// The admission minimum the check ran under.
     pub minimum_recall: f64,
     /// The one-sided sampling resolution the verdict sample achieved, in recall units.
     ///
     /// The half-width `z · deviation / sqrt(sampled_rows)` the [admission](Self::admission)
     /// reading compares against the minimum, narrowed by the finite-population factor. Zero
-    /// when the sample is the corpus: a census has no sampling error to bound.
+    /// when the sample is the corpus, because a census has no sampling error to bound.
     pub resolution: f64,
     /// The one-sided confidence the resolution holds at.
     pub confidence: f64,
@@ -169,11 +166,11 @@ impl RecallSpotCheck {
 
     /// Returns what the sample demonstrated about the configured admission minimum.
     ///
-    /// Admission asks the interval, not the point estimate: a backend is admitted when its
-    /// recall's lower bound clears the minimum, refused when its upper bound falls below it, and
-    /// [`Unresolved`](RecallAdmission::Unresolved) when the achieved
-    /// [resolution](Self::resolution) spans it - a sample that ran out of budget has measured
-    /// something, just not the thing the floor asks about.
+    /// Admission asks the interval rather than the point estimate. This reading admits a backend
+    /// when its recall's lower bound clears the minimum. It refuses one when the upper bound falls
+    /// below the minimum, and it reports [`Unresolved`](RecallAdmission::Unresolved) when the
+    /// achieved [resolution](Self::resolution) spans the minimum. A sample that ran out of budget
+    /// has measured something, though not the thing the floor asks about.
     ///
     /// Each side spends the confidence once, and a one-sided quantile bounds both risks: for any
     /// one true recall only one of the two errors is possible, so admitting a backend below the
@@ -347,9 +344,9 @@ where
 
     /// Scores constructed lists against the reference rankings.
     ///
-    /// Sampled rows read their list prefix at the reference depth and compare in parallel; lists
+    /// Sampled rows read their list prefix at the reference depth and compare in parallel. Lists
     /// narrower than the reference depth score what they hold. The reading carries raw counts and
-    /// the per-row spread; admission criteria live with the caller.
+    /// the per-row spread, and admission criteria live with the caller.
     pub(crate) fn score_lists(&self, lists: &NeighbourLists<N>) -> Scoring {
         let depth = self.neighbours_per_row.min(lists.width());
         let (matched, squares) = self
@@ -397,9 +394,10 @@ where
 
     /// Scores a backend's queries against the reference rankings.
     ///
-    /// Sampled rows are queried through [`search_by_id`](NearestNeighboursIndex::search_by_id) and
-    /// compared in parallel. The reading carries raw counts and the per-row spread; admission
-    /// criteria live with the caller.
+    /// This scoring queries sampled rows through
+    /// [`search_by_id`](NearestNeighboursIndex::search_by_id) and compares them in parallel. The
+    /// reading carries raw counts and the per-row spread, and admission criteria live with the
+    /// caller.
     ///
     /// # Errors
     ///
@@ -505,8 +503,8 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
         reason = "spot-check edge counts remain far below exact f64 integer precision"
     )]
     let (count, mean) = (rows as f64, matched as f64 / expected as f64);
-    // Squares can dip below the mean term by rounding when the spread
-    // is tiny; the clamp keeps the root real.
+    // Squares can dip below the mean term by rounding when the spread is near zero. The clamp keeps
+    // the root real.
     let variance = (count * mean).mul_add(-mean, squares).max(0.0) / (count - 1.0);
 
     variance.sqrt()
@@ -515,11 +513,12 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
 /// Returns the rows that resolve the pilot's measured clearance of the admission minimum.
 ///
 /// [`mean_sample_size`]'s identity, with the clearance the pilot measured standing where a
-/// configured margin otherwise would: what a decision has to resolve is how far the aggregate sits
-/// from the floor, and only the run knows that. A caller that has already read a quantile out of
-/// `confidence` leaves one way for the sizing to come back empty - an aggregate sitting exactly on
-/// the floor, which no finite sample resolves and which therefore asks for every row a budget
-/// allows.
+/// configured margin otherwise would. What a decision has to resolve is how far the aggregate sits
+/// from the floor, and only the run knows that.
+///
+/// A caller that has already read a quantile out of `confidence` leaves one way for the sizing to
+/// come back empty: an aggregate sitting exactly on the floor, which no finite sample resolves and
+/// which therefore asks for every row a budget allows.
 fn sizing_rows(piloted: &Scoring, minimum_recall: f64, confidence: f64) -> usize {
     let clearance = (piloted.recall() - minimum_recall).abs();
 
@@ -529,9 +528,9 @@ fn sizing_rows(piloted: &Scoring, minimum_recall: f64, confidence: f64) -> usize
 /// Returns the rows `budget` buys at the rate `measured` rows took to sample and score.
 ///
 /// The exact reference scans the whole corpus per sampled row, so the pilot's own cost per row is
-/// the verdict sample's cost per row - the budget converts to rows against a rate this machine just
-/// demonstrated, never against a per-row cost recorded from another one. A pilot too fast to time
-/// affords everything.
+/// the verdict sample's cost per row. The budget converts to rows against a rate this machine
+/// demonstrated in the same run, never against a per-row cost recorded from another one. A pilot
+/// too fast to time affords everything.
 fn budget_rows(budget: Duration, elapsed: Duration, measured: usize) -> usize {
     #[expect(
         clippy::cast_precision_loss,
@@ -579,9 +578,9 @@ fn resolution(quantile: f64, scored: &Scoring, rows: usize) -> f64 {
 
 /// Sizes and reads one staged recall check, scoring sampled rows through `score`.
 ///
-/// The three stages of the module documentation: a pilot, the sizing it feeds, and the fresh
-/// verdict sample that alone decides. Both draws come from the one generator, and the two entry
-/// points differ only in what `score` compares against.
+/// A pilot runs first, its measurements size the verdict sample, and the fresh verdict sample alone
+/// decides. Both draws come from the one generator, and the two entry points differ only in what
+/// `score` compares against.
 fn staged_check<N, E>(
     embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
     options: SpotCheckOptions,
@@ -604,9 +603,8 @@ where
     let elapsed = started.elapsed();
 
     let scored = if pilot.sampled_rows() >= rows {
-        // A pilot that covered the corpus is a census: there is no
-        // sample size left to choose, so the sizing had no freedom to
-        // bias and the reading stands as it was taken.
+        // A pilot that covered the corpus is a census. No sample size remains to choose, so the
+        // sizing had no freedom to bias and the reading is exactly what the pilot measured.
         piloted
     } else {
         // Stages two and three. The pilot sizes the verdict sample
@@ -666,12 +664,14 @@ where
 
 /// Measures recall of `index` against exact cosine rankings, sizing the sample in three stages.
 ///
-/// `embeddings` holds the projector representations the backend indexed, in row order; a mapped
-/// `f32[T, 512]` artifact yields the slice directly. A pilot measures the per-row deviation, the
-/// aggregate's clearance of the minimum, and the sampling rate; those size one fresh verdict
-/// sample, floored at the pilot's size and capped by the corpus and the budget's reach; and that
-/// sample alone carries the [admission](RecallSpotCheck::admission) reading. A pilot that already
-/// covers the corpus is exhaustive and stands as the reading itself.
+/// `embeddings` holds the projector representations the backend indexed, in row order, and a mapped
+/// `f32[T, 512]` artifact yields the slice directly.
+///
+/// A pilot measures the per-row deviation, the aggregate's clearance of the minimum, and the
+/// sampling rate. Those measurements size one fresh verdict sample, floored at the pilot's size and
+/// capped by the corpus and the budget's reach, and that sample alone carries the
+/// [admission](RecallSpotCheck::admission) reading. A pilot that already covers the corpus is
+/// exhaustive and is itself the reading.
 ///
 /// Both draws come from the one generator, so a seeded check replays exactly whenever the budget
 /// leaves the sizing alone. A run whose verdict sample the budget truncates samples what its own
@@ -679,8 +679,8 @@ where
 ///
 /// # Errors
 ///
-/// Returns an error when the corpus holds fewer than two rows, the confidence is degenerate
-/// ([`SampleConfidence`](KnnError::SampleConfidence)), or the backend fails a query.
+/// Returns an error when the corpus has at most one row, when the confidence is degenerate
+/// ([`SampleConfidence`](KnnError::SampleConfidence)), or when a backend query fails.
 pub(crate) fn spot_check<N, I>(
     index: &I,
     embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,

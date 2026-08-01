@@ -10,8 +10,8 @@
 //! scale table per rung, hard negatives mined at both extremes and pooled by maximum weight, and
 //! the per-node displacement between the extremes.
 //!
-//! Ticks run at a configured cadence, never per step: the artifacts a tick produces are
-//! deliberately stale between ticks, which is what keeps their cost off the step path.
+//! Ticks run at a configured cadence rather than per step. The artifacts a tick produces stay stale
+//! between ticks, and that staleness is what keeps their cost off the step path.
 
 use core::{error::Error, fmt, num::NonZero, ops::Range};
 
@@ -110,13 +110,13 @@ pub(crate) struct RefreshOutcome<N> {
 /// hangs on, and a renderer draws them apart - and they take at most half the budget, so a
 /// landmark-rich corpus still shows its interior. The rest is an even stride over the corpus rows
 /// no landmark holds, so the two shares partition the sample by role: every reported point past
-/// the landmark prefix really is an ordinary row.
+/// the landmark prefix is an ordinary row.
 ///
 /// The choice is deterministic by construction and consumes no randomness: an observer cannot
 /// move the run's draws, so a run publishes the same placement whether or not anything watches.
 #[derive(Debug, Default)]
 pub(super) struct SnapshotSample<N> {
-    /// The sampled rows: the landmark share first, then the strided share.
+    /// The sampled rows, with the landmark share first and the strided share after it.
     rows: Vec<N>,
     /// How many leading entries of `rows` are landmark rows.
     landmarks: usize,
@@ -129,12 +129,12 @@ where
     /// Chooses at most `budget` rows of a `rows`-row corpus to report.
     ///
     /// A zero budget - the default observer's - selects nothing, and every later report is a
-    /// no-op. Landmark rows outside the corpus are dropped rather than trusted; the trainer's own
-    /// admission rejects them, and a sample is not the place to discover it.
+    /// no-op. Selection drops landmark rows outside the corpus rather than trusting them. The
+    /// trainer's own admission rejects them, and a sample is not the place to discover it.
     pub(super) fn select(rows: usize, landmarks: &[SupportAnchor<N>], budget: usize) -> Self {
         if budget == 0 || rows == 0 {
-            // The silent observer's path: nothing is sorted, nothing is
-            // allocated, and every later report is a no-op.
+            // The zero-budget path allocates nothing and sorts nothing, so every later report is a
+            // no-op.
             return Self {
                 rows: Vec::new(),
                 landmarks: 0,
@@ -192,9 +192,9 @@ where
 
 /// Picks `count` of `len` positions, evenly spread across the sequence.
 ///
-/// Bresenham's accumulator: every position adds `count` and every crossing of `len` takes one, so a
-/// `count` at or below `len` picks exactly `count` positions at an even spacing - and the walk
-/// needs no division, which is also why the spacing is exact rather than rounded.
+/// The walk is a Bresenham accumulator. Every position adds `count` and every crossing of `len`
+/// takes one, so a `count` at or below `len` picks exactly `count` positions at an even spacing.
+/// The walk needs no division, which is also why the spacing is exact rather than rounded.
 fn even_ranks(len: usize, count: usize) -> impl Iterator<Item = usize> {
     let mut accumulator = 0;
     (0..len).filter(move |_rank| {
@@ -231,13 +231,13 @@ where
 {
     /// Runs one refresh tick over the current model.
     ///
-    /// `with_scales` selects the post-boundary shape: every rung is forwarded and measured into a
-    /// scale table. Without it only the two extremes are forwarded - the opening semantic-only
-    /// segment and the vacuous-relation run consume no scale tables, so the middle rung's forward
-    /// would be dead weight.
+    /// `with_scales` selects the post-boundary shape, where the tick forwards every rung and
+    /// measures each one into a scale table. Without it the tick forwards only the two extremes.
+    /// The opening semantic-only segment and the vacuous-relation run consume no scale tables, so a
+    /// middle-rung forward is dead weight.
     ///
-    /// The tick is where the whole corpus exists in coordinates, so the tick reports `sample`'s
-    /// rows of the low rung's frame to `progress` - the same frame the miner and the displacement
+    /// The tick is where the whole corpus exists in coordinates, so it reports `sample`'s rows of
+    /// the low rung's frame to `progress`. That is the same frame the miner and the displacement
     /// summary read, retained no longer than they retain it.
     ///
     /// # Errors

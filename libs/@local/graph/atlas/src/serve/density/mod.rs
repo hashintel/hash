@@ -1,28 +1,32 @@
-//! The scope-local delivery cut: a public density band over one authorized view's occupancy.
+//! The scope-local delivery cut.
+//!
+//! A public density band over one authorized view's occupancy.
 //!
 //! A tile's delivery cut is `d(z) = z + m + k`, where `m` is the generation's span exponent and `k`
-//! the offset this module resolves. The recorded schedule fixes `m`; `k` is the one degree of
+//! the offset this module resolves. The recorded schedule fixes `m`. `k` is the one degree of
 //! freedom a restricted view has, and it decides how deep that view's tiles reach.
 //!
 //! `k` reads the authorized view and public constants, and nothing else. An offset derived from a
-//! hidden row - a corpus-wide count, an unmasked bucket length, a per-tile occupancy statistic -
-//! would put the mask's own contents back on the wire as delivery depth: a client cannot see the
+//! hidden row (a corpus-wide count, an unmasked bucket length, or a per-tile occupancy statistic)
+//! would put the mask's own contents back on the wire as delivery depth. A client cannot see the
 //! hidden rows, but it can see how deep the server went to accommodate them. Delivery depth is
-//! therefore a public decision over `V`, the authorized view, never an inheritance from the corpus.
+//! therefore a public decision over the authorized view `V` and never an inheritance from the
+//! corpus.
 //!
 //! The rule is a public inclusive band `[L, U]` over `C(m + k, V)`, the number of distinct
 //! depth-`(m + k)` Morton cells `V` occupies. [`DensityPolicy::resolve`] chooses the offset whose
 //! count lies nearest the band, coarsest on a tie. The band is a target rather than a promise:
 //! occupied-cell counts step by whole subdivisions, so a coarse step can jump the band and the
-//! nearest result may sit below or above it. Two scopes are not promised equal counts.
+//! nearest result may sit below or above it. Counts across scopes need not agree.
 //!
-//! The candidate offsets are derived, not configured: `k` runs over `0..=ceiling`, where the
-//! ceiling is the room the recorded schedule leaves inside the 32 subdivisions a 64-bit Morton key
-//! resolves, `32 - (m + z_max)`. The cut applies at every zoom, so it is the deepest bucket
-//! `d(z_max)` that spends the key width, and `0` - the generation's own schedule - is always
-//! available. The ceiling binds on clustering rather than on scale: a small, tightly-clustered view
-//! never reaches the band, so `resolve` runs to its saturation depth, which sits as deep as the fit
-//! separates points - past the ceiling at shipped defaults. A filtered scope is exactly that shape.
+//! The schedule determines the candidate offsets rather than any configuration. `k` runs over
+//! `0..=ceiling`, where the ceiling is the room the recorded schedule leaves inside the 32
+//! subdivisions a 64-bit Morton key resolves, `32 - (m + z_max)`. The cut applies at every zoom, so
+//! it is the deepest bucket `d(z_max)` that spends the key width, and `0` - the generation's own
+//! schedule - is always available. The ceiling binds on clustering rather than on scale: a small,
+//! densely-clustered view never reaches the band, so `resolve` runs to its saturation depth, which
+//! sits as deep as the fit separates points - past the ceiling at default settings. A filtered
+//! scope is exactly that shape.
 //!
 //! Occupancy travels as [`ViewOccupancy`], a typed aggregate of `V`, rather than as a precomputed
 //! number, so a review can vary what a resolution reads. An opaque scalar would hide exactly the
@@ -33,16 +37,16 @@
 //! `C(·, V)` at every depth, `Q(V) = C(32, V)` - the distinct complete keys - and `d_sat(V) = min {
 //! d | C(d, V) = Q(V) }` all fall out of one pass over the view's sorted keys.
 //!
-//! Two keys share a depth-`d` cell exactly when their leading `2d` bits agree, so distinct keys `a
-//! ≠ b` first separate at depth `⌊lz(a ⊕ b) / 2⌋ + 1`, where `lz` counts leading zero bits.
-//! Sortedness makes adjacent pairs sufficient: when every adjacent distinct pair separates at or
-//! above depth `d`, so does every pair. One pass therefore histograms the adjacent separation
-//! depths, and `C(d, V) = 1 + #{ separations ≤ d }` for a non-empty view - the histogram's running
-//! sum, which is what the aggregate stores.
+//! Keys share a depth-`d` cell exactly when their leading `2d` bits agree, so distinct keys `a ≠ b`
+//! first separate at depth `⌊lz(a ⊕ b) / 2⌋ + 1`, where `lz` counts leading zero bits. Sortedness
+//! makes adjacent pairs sufficient, because when every adjacent distinct pair separates at or above
+//! depth `d`, so does every pair. One pass therefore histograms the adjacent separation depths, and
+//! `C(d, V) = 1 + #{ separations ≤ d }` for a non-empty view - the histogram's running sum, which
+//! is what the aggregate stores.
 //!
-//! The stored form is the count profile itself and nothing besides: a row count is not an input a
-//! policy may read, so the aggregate does not carry one. Two views whose profiles agree are one
-//! value, which is the equality a resolution's determinism is stated over.
+//! The stored form is the count profile alone. A row count is not an input any policy reads, so the
+//! aggregate does not carry one. Views whose profiles agree are one value, and a resolution returns
+//! the same offset for both.
 #![expect(
     clippy::empty_enums,
     reason = "zerocopy's FromBytes derive expands to an empty enum for its validation machinery"
@@ -143,8 +147,8 @@ const impl Default for DensityBand {
 /// carries it, so a session serves at one delivery depth for as long as its client holds a token.
 /// A view re-bound to another filter keeps that depth unless the new view resolves coarser, which
 /// clamps it down - see [`DensityPolicy::rebind`]. Production construction is [`Self::ZERO`], a
-/// policy's resolution or rebind, or the authenticated read of a sealed token, so a served offset
-/// was decided by the public-band rule and a client cannot forge one past the seal.
+/// policy's resolution or rebind, or the authenticated read of a sealed token, so the public-band
+/// rule fixes every served offset and a client cannot forge one past the seal.
 #[derive(
     Debug,
     Copy,
@@ -163,10 +167,10 @@ const impl Default for DensityBand {
 pub struct CutOffset(u8);
 
 impl CutOffset {
-    /// The generation's own schedule: every zoom keeps its recorded cut.
+    /// The generation's own schedule.
     ///
-    /// Every schedule leaves room for it, so it is the resolution of a view with no occupancy to
-    /// aim with.
+    /// Every zoom keeps its recorded cut. Every schedule leaves room for this offset, so it is the
+    /// resolution of a view with no occupancy to aim with.
     pub const ZERO: Self = Self(0);
 
     /// Returns the offset.
@@ -192,8 +196,10 @@ pub enum DensityPolicyError {
         /// The schedule's deepest served zoom.
         max_tile_depth: u8,
     },
-    /// The generation's root tile is its deepest: a terminal root is the catch-all bucket, and
-    /// deepening a catch-all delivers no proportional view.
+    /// The generation's root tile is its deepest.
+    ///
+    /// A terminal root is the catch-all bucket, and deepening a catch-all delivers no proportional
+    /// view.
     TerminalRoot,
 }
 
@@ -220,9 +226,10 @@ impl Error for DensityPolicyError {}
 
 /// The public rule resolving one scope's delivery cut.
 ///
-/// Carries the band, the generation's span exponent, and the offset ceiling the schedule leaves:
-/// everything a resolution reads besides the view's own occupancy. Two policies differing in any of
-/// them are different public policies, and a resolved cut is comparable only within one of them.
+/// A policy fixes the band, the generation's span exponent, and the offset ceiling the schedule
+/// leaves. Those are everything a resolution reads besides the view's own occupancy. Policies
+/// differing in any of them are different public policies, and a resolved cut is comparable only
+/// within one of them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DensityPolicy {
     band: DensityBand,
@@ -234,11 +241,12 @@ pub struct DensityPolicy {
 impl DensityPolicy {
     /// Configures a policy for one generation's schedule.
     ///
-    /// The candidate offsets are derived rather than configured: `0..=ceiling`, where the ceiling
-    /// is what the recorded schedule leaves inside the 32 subdivisions a 64-bit Morton key
-    /// resolves. Every candidate therefore keeps the scope cascade's deepest bucket - the sum
-    /// of `max_tile_depth`, `span` and the offset - within the key width by construction, and
-    /// the two failures below are the schedules where no offset at all exists.
+    /// The recorded schedule determines the candidate offsets rather than any configuration:
+    /// `0..=ceiling`, where the ceiling is what it leaves inside the 32 subdivisions a 64-bit
+    /// Morton key resolves. Every candidate therefore keeps the scope cascade's deepest bucket -
+    /// the sum of `max_tile_depth`, `span` and the offset - within the key width by
+    /// construction, and the two failures below are the schedules where no offset at all
+    /// exists.
     ///
     /// # Errors
     ///
@@ -298,11 +306,11 @@ impl DensityPolicy {
     /// `k_sat(V) = max(0, d_sat(V) - m)` caps the search where deeper cuts stop separating rows -
     /// past saturation every occupied cell holds one key, so a deeper cut buys no occupancy and the
     /// tie-break keeps the coarser cut. The ceiling caps it where the key width runs out, and it is
-    /// the binding cap exactly when a view clusters tightly enough to saturate below it.
+    /// the binding cap exactly when a view clusters densely enough to saturate below it.
     ///
     /// Over a contiguous candidate set the saturation cap no longer decides a result on its own:
     /// counts are constant past `d_sat`, so a deeper offset ties and the tie-break already holds
-    /// the coarser cut. It stays because it makes "no resolution runs deeper than saturation" true
+    /// the coarser cut. It stays because it makes "no resolution cuts deeper than saturation" true
     /// by construction rather than by that argument.
     ///
     /// An empty view - [`ViewOccupancy::is_empty`] - resolves to [`CutOffset::ZERO`] through this
@@ -311,7 +319,7 @@ impl DensityPolicy {
     /// No hidden or corpus quantity stands in for the occupancy it lacks.
     ///
     /// The result may lie outside the band. Counts step by whole subdivisions, so a coarse step can
-    /// jump the band, and a small, co-located, or saturation-capped view can stay below it.
+    /// jump the band and a small, co-located, or saturation-capped view can stay below it.
     #[must_use]
     pub fn resolve(self, occupancy: &ViewOccupancy) -> CutOffset {
         let saturation = occupancy
@@ -340,20 +348,21 @@ impl DensityPolicy {
 
     /// Rebinds a session's offset to a new view, never deepening it.
     ///
-    /// A session serves at one delivery depth: the offset its bootstrap resolved. When its view is
-    /// re-bound to a different filter, that depth is kept rather than re-optimized, so the detail a
-    /// tile carries at a fixed zoom does not move under a caller that only changed what it selects.
-    /// The exception is one-way: when the new view resolves coarser than the session's offset, the
-    /// coarser resolution wins, so a deep cut resolved over a sparse view never rides into a dense
-    /// one whose band asks for less depth.
+    /// A session serves at the one delivery depth its bootstrap resolved. Re-binding its view to a
+    /// different filter keeps that depth instead of re-optimizing it. The detail a tile carries at
+    /// a fixed zoom therefore does not move under a caller that only changed what it selects.
+    ///
+    /// The exception is one-way. A new view that resolves coarser than the session's offset wins,
+    /// so a deep cut resolved over a sparse view never reaches a dense one whose band asks for less
+    /// depth.
     ///
     /// Both directions therefore read off the minimum. A new view resolving deeper keeps the
-    /// carried, coarser cut; a new view resolving coarser clamps the session down to it. An empty
-    /// new view resolves [`CutOffset::ZERO`] and so clamps to zero.
+    /// carried and coarser cut. A new view resolving coarser clamps the session down to it. An
+    /// empty new view resolves [`CutOffset::ZERO`] and so clamps to zero.
     ///
-    /// The result stays admissible for the new view: the candidate offsets are contiguous from
+    /// The result stays admissible for the new view. The candidate offsets are contiguous from
     /// zero, so a value at or below a resolvable one is itself resolvable, and the key width stays
-    /// bounded because the carried value was bounded by the same generation's ceiling.
+    /// bounded because the same generation's ceiling bounded the carried value.
     #[must_use]
     pub fn rebind(self, carried: CutOffset, occupancy: &ViewOccupancy) -> CutOffset {
         carried.min(self.resolve(occupancy))

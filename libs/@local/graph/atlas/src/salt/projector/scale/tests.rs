@@ -125,7 +125,7 @@ fn rejects_non_finite_coordinates() {
         Vec2::new(f32::NAN, 4.0),
     ];
 
-    // Row 2's coordinate poisons rows 0, 1, and 2; row 0 is smallest.
+    // Row 2's coordinate poisons rows 0, 1, and 2. Row 0 is the smallest affected row.
     assert_eq!(
         LocalScales::compute(IdSlice::from_raw(&coordinates), &table.view()),
         Err(NonFiniteScale {

@@ -1,14 +1,14 @@
-//! Minibatch assembly: population draws and batch-local re-indexing.
+//! Population draws and batch-local re-indexing for one minibatch.
 //!
 //! [`BatchSampler::draw`] pulls one step's populations from the built artifacts in corpus row
 //! space, together with each family's estimator scale. [`Batch::assemble`] re-indexes the
 //! populations into the batch-local row domain the loss terms speak - corpus keys convert to
-//! `BatchRowId` positions here and nowhere else, so the two domains cannot be mixed by type - and
-//! [`Batch::input`] materializes the model input tensors for the participating rows, padded to
+//! `BatchRowId` positions here and nowhere else, so the type system keeps the two domains apart -
+//! and [`Batch::input`] materializes the model input tensors for the participating rows, padded to
 //! [`ROW_ALIGNMENT`] so the tensor shapes stay inside every GPU kernel's launch constraints.
 //!
 //! Draws consume the caller's random stream in a fixed family order (semantic, ordinary, hard,
-//! relation, landmark, anchor); a family whose draw is skipped consumes nothing. Equal artifacts,
+//! relation, landmark, anchor), and a skipped family consumes nothing. Equal artifacts,
 //! plans, stream types, and seeds therefore reproduce a batch exactly.
 //!
 //! The drawing and assembly paths allocate per step, so both expose `_in` variants in the
@@ -53,11 +53,11 @@ use crate::{
 /// The materialized model input's row alignment.
 ///
 /// The batch's gathered-row count is dynamic - draws and deduplication vary per step - and it
-/// becomes the reduction dimension of the backward matmuls. GPU matmul kernels elected by
-/// shape-bucketed autotune may constrain that dimension to a plane-size multiple and abort on
-/// shapes that violate it, so every materialized frame pads its row count to this alignment: a
-/// generous power of two covers every plausible plane size and collapses the per-step shape variety
-/// the election is sensitive to.
+/// becomes the reduction dimension of the backward matmuls. Some GPU matmul kernels elected by
+/// shape-bucketed autotune constrain that dimension to a plane-size multiple and abort on shapes
+/// that violate it, so every materialized frame pads its row count to this alignment. A generous
+/// power of two covers every plausible plane size and collapses the per-step shape variety the
+/// election is sensitive to.
 ///
 /// Padded rows replicate the last participating row and no population references them, so they
 /// receive exactly zero force and contribute exactly zero parameter gradient.
@@ -66,10 +66,10 @@ pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
 
 /// One anchored node of a support pool, in corpus row space.
 ///
-/// `row` names the anchored corpus row; `target` is the prior or skeleton coordinate the node is
-/// held to, `radius` the local scale the residual is normalized by, and `weight` the anchor's mass
-/// in the sum. Assembly converts drawn anchors into the batch-local [`BatchAnchor`] the support
-/// term consumes.
+/// `row` names the anchored corpus row, `target` the prior or skeleton coordinate holding the node,
+/// `radius` the local scale that normalizes the residual, and `weight` the anchor's mass in the
+/// sum. Assembly converts drawn anchors into the batch-local [`BatchAnchor`] the support term
+/// consumes.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SupportAnchor<N> {
     pub row: N,
@@ -80,10 +80,10 @@ pub(crate) struct SupportAnchor<N> {
 
 /// One step's drawn populations, in corpus row space.
 ///
-/// Each family carries its estimator scale: the factor that makes the family's batch sum an
-/// unbiased estimate of its family objective (see the module documentation of [`super`]; the
-/// relation family's is the capped-sampling objective, a per-type clipped total). An empty
-/// family carries a zero scale; its term contributes nothing.
+/// Each family carries its estimator scale, the factor that makes the family's batch sum an
+/// unbiased estimate of the family objective that [`super`] documents. For the relation family that
+/// objective is the capped-sampling one, a per-type clipped total. An empty family carries a zero
+/// scale, and its term contributes nothing.
 ///
 /// The population vectors live in the draw's allocator; the relation draws' nested edge vectors
 /// stay global (see the module documentation).
@@ -95,7 +95,7 @@ pub(crate) struct Populations<'index, N, E, A: Allocator = Global> {
     pub semantic: Vec<NodePair<N>, A>,
     /// `W / m`: total positive edge weight over drawn pairs.
     pub semantic_scale: f32,
-    /// Ordinary negative pairs; unit weights.
+    /// Ordinary negative pairs with unit weights.
     pub ordinary: Vec<NodePair<N>, A>,
     /// `W / m`: the commensurate-mass repulsion scale.
     pub ordinary_scale: f32,
@@ -142,8 +142,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when the semantic graph and the protection evidence disagree about the row domain;
-    /// both artifacts come from one generation, so a mismatch is a wiring defect.
+    /// This panics when the semantic graph and the protection evidence disagree about the row
+    /// domain. Both artifacts come from one generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
         semantic: SemanticGraphView<'view, N>,
@@ -175,14 +175,15 @@ where
 
     /// Draws one step's populations at the given lens rung.
     ///
-    /// The relation family is structurally skipped at `eta == 0`: the relation term contributes
-    /// nothing there, so its draws would be dead weight. Hard negatives are drawn from `mined` when
-    /// a pooled frame exists; before the first refresh tick there is none and the family is empty.
+    /// At `eta == 0` the draw structurally skips the relation family, because the relation term
+    /// contributes nothing there and its draws would be dead weight. Hard negatives come from
+    /// `mined` when a pooled frame exists. Before the first refresh tick no frame exists and the
+    /// family is empty.
     ///
     /// # Panics
     ///
-    /// Panics when the mined frame's row domain disagrees with the artifacts'; both come from one
-    /// training run, so a mismatch is a wiring defect.
+    /// This panics when the mined frame's row domain disagrees with the artifacts'. Both come from
+    /// one training run, so a mismatch is a wiring defect.
     pub(crate) fn draw(
         &self,
         eta: NonNegative,
@@ -196,7 +197,7 @@ where
 
     /// Draws one step's populations at the given lens rung, allocating them in `alloc`.
     ///
-    /// The population vectors land in `alloc`; sampler-internal scratch stays global. Contract
+    /// The population vectors live in `alloc`, and sampler-internal scratch stays global. Contract
     /// and panics as in [`BatchSampler::draw`].
     #[expect(
         clippy::cast_precision_loss,
@@ -405,8 +406,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when relation edges are present without a scale table, or when a drawn row lies
-    /// outside the table; the draws and the tables come from one training run, so a mismatch is a
+    /// This panics when relation edges are present without a scale table, or when a drawn row lies
+    /// outside the table. The draws and the tables come from one training run, so a mismatch is a
     /// wiring defect.
     #[must_use]
     pub(crate) fn assemble<E>(
@@ -554,13 +555,13 @@ where
     ///
     /// With the row dimension padded to [`ROW_ALIGNMENT`].
     ///
-    /// The condition vector is the relation lens: every row carries the batch's rung as its single
-    /// column; the model is parametric in the condition width.
+    /// The condition vector is the relation lens, and every row carries the batch's rung as its
+    /// single column. The model is parametric in the condition width.
     ///
     /// # Panics
     ///
-    /// Panics when the representation and role columns disagree in length or a batch row lies
-    /// outside them; the columns and the draws come from one generation, so a mismatch is a wiring
+    /// This panics when the representation and role columns disagree in length or a batch row lies
+    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
     /// defect.
     #[must_use]
     pub(crate) fn input<B: Backend>(
@@ -573,15 +574,15 @@ where
 
     /// Materializes the batch's model input at an explicit row alignment.
     ///
-    /// The row count pads up to the next `alignment` multiple; padded rows replicate the last
-    /// participating row, carry the batch's rung, and are referenced by no population, so they
-    /// project dead coordinates that receive exactly zero force. Production goes through
-    /// [`Batch::input`]; certificates pass `1` to obtain the unpadded frame.
+    /// The row count pads up to the next `alignment` multiple. Padded rows replicate the last
+    /// participating row and carry the batch's rung. No population references them, so they project
+    /// dead coordinates that receive exactly zero force. Production goes through [`Batch::input`],
+    /// and certificates pass `1` to obtain the unpadded frame.
     ///
     /// # Panics
     ///
-    /// Panics when the representation and role columns disagree in length or a batch row lies
-    /// outside them; the columns and the draws come from one generation, so a mismatch is a wiring
+    /// This panics when the representation and role columns disagree in length or a batch row lies
+    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
     /// defect.
     #[must_use]
     pub(crate) fn input_aligned<B: Backend>(

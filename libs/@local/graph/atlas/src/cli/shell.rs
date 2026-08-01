@@ -1,4 +1,4 @@
-//! The standalone binary's shell: the command line and the entry point.
+//! The standalone binary's command line and entry point.
 
 use clap::{Parser, Subcommand};
 
@@ -26,14 +26,14 @@ enum Command {
         #[command(flatten)]
         store: PostgresArgs,
 
-        // The fit flags dwarf the other variants; the box keeps the enum small.
+        // The fit flags dwarf the other variants, so the box keeps the enum small.
         #[command(flatten)]
         args: Box<FitArgs>,
 
         /// Watch the run on the live dashboard instead of a log stream.
         ///
         /// The stage rail, its timings, the placement's loss curve, and the log tail draw in place
-        /// until the run ends; `q` or Ctrl-C stops the process as an interrupt would. The
+        /// until the run ends. `q` or Ctrl-C stops the process as an interrupt would. The
         /// dashboard belongs to this binary: the graph server always logs.
         #[arg(long)]
         tui: bool,
@@ -53,9 +53,9 @@ enum Command {
 #[cfg(feature = "cli")]
 #[derive(Debug)]
 enum DashboardError {
-    /// The terminal could not be prepared, drawn, or restored.
+    /// Preparing, drawing, or restoring the terminal failed.
     Terminal(std::io::Error),
-    /// The store connection could not be dialed.
+    /// Dialing the store connection failed.
     Connect(super::ConnectError),
     /// The fit failed.
     Fit(super::FitError),
@@ -116,10 +116,10 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }
 
-/// Runs one fit on the live dashboard, restoring the terminal before anything is rendered.
+/// Runs one fit on the live dashboard, restoring the terminal before rendering anything.
 ///
-/// The subscriber is installed globally rather than around the run: the pipeline reports from the
-/// tokio and rayon halves both, and a thread-local dispatcher would collect neither.
+/// This installs the subscriber globally rather than around the run, because the pipeline reports
+/// from the tokio and rayon halves both and a thread-local dispatcher would collect neither.
 ///
 /// # Errors
 ///
@@ -154,7 +154,7 @@ async fn fit_on_dashboard(
     }
     .await;
 
-    // The terminal comes back before either result is rendered.
+    // The terminal comes back before the process renders either result.
     let restored = dashboard.finish();
     let verdict = outcome?;
     restored.map_err(DashboardError::Terminal)?;
@@ -170,15 +170,15 @@ async fn fit_on_dashboard(
 ///
 /// # Panics
 ///
-/// Panics when the tokio runtime cannot start or a global log subscriber is already installed.
+/// This panics when the tokio runtime cannot start or a global log subscriber is already installed.
 #[cfg(feature = "cli")]
 #[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
 
-    // The dashboard installs its own subscriber, because records written
-    // to stderr would land on the screen it draws.
+    // The dashboard installs its own subscriber, because records written to stderr would print over
+    // the screen it draws.
     if !matches!(cli.command, Command::Fit { tui: true, .. }) {
         tracing_subscriber::fmt()
             .with_env_filter(log_filter())

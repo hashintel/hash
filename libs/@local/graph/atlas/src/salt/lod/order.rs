@@ -32,7 +32,7 @@ impl BaseOrder {
     ///
     /// # Panics
     ///
-    /// Panics when `keys`, `buckets`, and `ranking` disagree on the row count.
+    /// This panics when `keys`, `buckets`, and `ranking` disagree on the row count.
     #[must_use]
     pub(crate) fn new(
         keys: &IdSlice<NodeRowId, MortonKey>,

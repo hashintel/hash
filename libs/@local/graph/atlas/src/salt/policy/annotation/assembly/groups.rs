@@ -161,8 +161,8 @@ fn farthest_first_cut(
     pairs: &[(u32, u32, f64)],
     budget: f64,
 ) -> Vec<Vec<u32>> {
-    // Candidate cuts are the distinct pair distances inside the
-    // component, ascending; a cut keeps every pair at or under it.
+    // Candidate cuts are the distinct pair distances inside the component in ascending order. A cut
+    // keeps every pair at or under it.
     let mut distances: Vec<f64> = {
         let members: HashSet<u32> = component.iter().copied().collect();
         pairs
@@ -221,9 +221,9 @@ fn farthest_first_cut(
 ///
 /// Recurses one rank deeper wherever a part stays over budget.
 ///
-/// The relaxation order is family, then base URL, then near-duplicate edges farthest-first;
-/// identity edges never relax. A part the deepest relaxation cannot fit is accepted over budget and
-/// counted in the evidence.
+/// The relaxation order is family, then base URL, then near-duplicate edges farthest-first.
+/// Identity edges never relax. A part the deepest relaxation cannot fit becomes a group over
+/// budget, and the evidence counts it.
 #[expect(
     clippy::cast_precision_loss,
     reason = "group sizes are far below f64's 2^53 exact-integer range"
@@ -290,23 +290,30 @@ fn subdivide(
 
 /// The derived near-duplicate boundary with its grounds.
 struct NearDuplicateBoundary {
-    /// The cosine-distance threshold under which two rows join; zero when no void was found.
+    /// The cosine-distance threshold under which two rows join.
+    ///
+    /// Zero when the search found no void.
     epsilon: f64,
-    /// The winning void's edges; zeros when no void was found.
+    /// The winning void's edges.
+    ///
+    /// Zeros when the search found no void.
     void: [f64; 2],
-    /// The search region's top: the median pairwise distance scaled by the fraction.
+    /// The top of the search region, the median pairwise distance scaled by the fraction.
     ceiling: f64,
 }
 
 /// Derives the near-duplicate boundary from every pairwise cosine distance.
 ///
 /// Sorts the distances and scans `(0, ceiling]` for the widest multiplicative void between
-/// consecutive distances, the trailing void up to the ceiling included and the leading gap from
-/// zero excluded; the boundary is the winning void's geometric midpoint, maximally far from the
-/// evidence on both sides, and ties keep the lowest void so a near-duplicate stays near. Exact
-/// coincidences (distances ≤ 0 after rounding) join under any non-negative boundary and carry no
-/// void evidence, and an empty region - no low tail below the ceiling - derives a zero boundary:
-/// no duplicate structure, no near-duplicate edges.
+/// consecutive distances. The search includes the trailing void ending at the ceiling and excludes
+/// the leading gap from zero.
+///
+/// The boundary is the winning void's geometric midpoint, maximally far from the evidence on both
+/// sides. Ties keep the lowest void so a near-duplicate stays near.
+///
+/// Exact coincidences (distances ≤ 0 after rounding) join under any non-negative boundary and carry
+/// no void evidence. An empty region has no low tail below the ceiling, which means no duplicate
+/// structure and no near-duplicate edges, so the boundary derives as zero.
 fn near_duplicate_boundary(mut distances: Vec<f64>) -> NearDuplicateBoundary {
     if distances.is_empty() {
         return NearDuplicateBoundary {

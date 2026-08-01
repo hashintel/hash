@@ -191,7 +191,7 @@ fn relation_caps_bind_per_type_under_skew() {
         8,
         &policies,
         vec![
-            // Six instances of relation 3, two of relation 9.
+            // The fixture lists six instances of relation 3 and two of relation 9.
             instance(0, 3, 0, 1),
             instance(1, 3, 0, 2),
             instance(2, 3, 0, 3),
@@ -299,10 +299,9 @@ fn negatives_pass_every_veto() {
         ProtectionConfig::default(),
     );
 
-    // Sixteen requested from an admissible pool of four: the batch is
-    // pool-limited and exhaustive, so the admissible set is asserted
-    // exactly - no self pairs, no semantic edge (0, 1), no protected
-    // pair (2, 3).
+    // A request for sixteen from an admissible pool of four is pool-limited and exhaustive, so the
+    // assertion pins the whole admissible set. The vetoes remove the self pairs, the semantic edge
+    // (0, 1), and the protected pair (2, 3).
     let mut draws = keys(&sampler.sample(16, rng(23)));
     draws.sort_unstable();
     assert_eq!(draws, [(0, 2), (0, 3), (1, 2), (1, 3)]);
@@ -349,7 +348,7 @@ fn negative_sampling_is_seeded() {
 
 #[test]
 fn tiny_domains_return_shorter_batches() {
-    // Two rows, one semantic edge: the admissible pool is empty.
+    // With two rows and one semantic edge, the admissible pool is empty.
     let graph = semantic_graph(2, &[(0, 1, 0.5)]);
     let policies = [proximal_policy(7)];
     let indexes = relation_indexes(2, &policies, vec![]);

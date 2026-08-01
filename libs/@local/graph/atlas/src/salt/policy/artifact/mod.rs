@@ -1,10 +1,10 @@
-//! The policy table's published form: one policy file and its mapped reader.
+//! Writes the resolved policy table to one policy file and reads it back through a mapping.
 //!
 //! The resolved table publishes as one [`crate::file::policy`] file in the order
-//! [`resolve`](super::resolve) produces: strictly ascending by relation row. [`PolicyTableArchive`]
-//! reopens the file over a whole-file mapping, validates the table invariants once, and hands out
-//! the rows as a borrowed [`RelationPolicy`] slice: the domain type's `repr(C)` layout is the
-//! file's pinned wire row, so reads decode nothing.
+//! [`resolve`](super::resolve) produces, strictly ascending by relation row. [`PolicyTableArchive`]
+//! reopens the file over a whole-file mapping and validates the table invariants once. An open
+//! table then serves its rows as a borrowed [`RelationPolicy`] slice. The domain type's `repr(C)`
+//! layout is the file's pinned wire row, so reads decode nothing.
 
 use core::{error::Error, fmt, mem::offset_of};
 use std::io;
@@ -22,8 +22,8 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-// The cast between the file's wire row and the domain type is sound
-// exactly while their layouts agree; any drift fails compilation here.
+// The cast between the file's wire row and the domain type is sound exactly while their layouts
+// agree. Any drift fails compilation here.
 const _: () = {
     assert!(size_of::<RelationPolicy>() == size_of::<PolicyRow>());
     assert!(offset_of!(RelationPolicy, relation) == offset_of!(PolicyRow, relation));
@@ -87,8 +87,8 @@ impl Error for InvalidPolicyFile {}
 ///
 /// # Panics
 ///
-/// Panics when the policies are not strictly ascending by relation, which violates the resolution
-/// contract.
+/// This panics when the policies are not strictly ascending by relation, which violates the
+/// resolution contract.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; an unordered table is a caller contract \
@@ -117,8 +117,8 @@ pub(crate) fn write_policies(
 
 /// A published policy table opened over its mapped file.
 ///
-/// Construction checks the table invariants once - relations strictly ascending, every value in its
-/// domain - so an open table only serves valid policies and consumers re-validate nothing. The rows
+/// Construction checks the table invariants once (relations strictly ascending, every value in its
+/// domain), so an open table only serves valid policies and consumers re-validate nothing. The rows
 /// stay in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct PolicyTableArchive {

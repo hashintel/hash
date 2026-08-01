@@ -22,8 +22,8 @@ use crate::{
 
 /// Dense corpus-to-landmark assignment in node-row order.
 ///
-/// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection the
-/// assignment was built against, so consumers index landmark-domain tables without re-validation.
+/// Every stored ordinal lies below [`landmarks`](Self::landmarks), the length of the selection
+/// whose ordinals it stores, so consumers index landmark-domain tables without re-validation.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LandmarkAssignment<N> {
     landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
@@ -52,7 +52,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when an ordinal lies at or beyond `landmarks`.
+    /// This panics when an ordinal lies at or beyond `landmarks`.
     #[cfg(test)]
     pub(super) fn from_ordinals(
         landmark_by_row: Box<IdSlice<N, LandmarkOrdinal>>,
@@ -75,7 +75,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `row` is outside the assigned corpus.
+    /// This panics when `row` is outside the assigned corpus.
     #[inline]
     #[must_use]
     pub(crate) fn get(&self, row: N) -> LandmarkOrdinal {
@@ -105,7 +105,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when a yielded row lies outside the assigned domain.
+    /// This panics when a yielded row lies outside the assigned domain.
     #[must_use]
     pub(crate) fn reindex<M>(&self, rows: impl ExactSizeIterator<Item = N>) -> LandmarkAssignment<M>
     where

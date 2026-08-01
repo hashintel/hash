@@ -23,7 +23,7 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-/// The hand fixture: three types over ten base positions.
+/// A hand-built fixture of three types over ten base positions.
 ///
 /// ```text
 /// type 0: list  {0, 3, 9}; no parents
@@ -71,7 +71,7 @@ fn header_wire_layout() {
     assert!(bytes[44..].iter().all(|&byte| byte == 0));
 }
 
-/// The region bytes are pinned: little-endian words, dense bitmaps LSB-first.
+/// Pins the region bytes: little-endian words, dense bitmaps LSB-first.
 ///
 /// Type 1's dense word `0b10_0110` (members {1, 2, 5}) must land as bytes `26 00 00 00`: the
 /// low-order byte first (little endian) and position `p` at bit `p & 31` (LSB-first), so member 1
@@ -144,8 +144,8 @@ fn header_parse_pins_identity() {
 
 #[test]
 fn region_geometry() {
-    // Three types: one flags word, two four-post regions, two parent
-    // ids, four entries - every region padded to its own page.
+    // A three-type header describes one flags word, two four-post regions, two parent ids, and four
+    // entries, with every region padded to its own page.
     let header = FileHeader::new(3, 10, 4, 2);
     assert_eq!(header.flags_words(), 1);
     assert_eq!(header.fencepost_count(), Some(4));

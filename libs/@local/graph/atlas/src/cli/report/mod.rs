@@ -1,9 +1,8 @@
-//! The report commands: analysis instruments over published generations, one submodule per
-//! report.
+//! Analysis instruments over published generations, one submodule per report.
 //!
-//! Every instrument reads artifacts a fit already published and returns its readings; the host
+//! Every instrument reads artifacts a fit already published and returns its readings. The host
 //! renders them. The certified refit and the live assessment also write their evidence record,
-//! because a bundle outlives the terminal it was read in.
+//! because a bundle outlives the terminal that shows it.
 
 use core::{
     error::Error,
@@ -68,9 +67,9 @@ impl Display for ReportVerdict {
 /// One report invocation's failure.
 #[derive(Debug)]
 pub(crate) enum ReportError {
-    /// The report bundle could not be written.
+    /// Writing the report bundle failed.
     Io(io::Error),
-    /// The store connection could not be dialed.
+    /// Dialing the store connection failed.
     Connect(super::ConnectError),
     /// The live assessment failed.
     Assess(AssessError),
@@ -113,8 +112,8 @@ impl Error for ReportError {
 /// The report subcommands, one per instrument.
 #[derive(Debug, clap::Subcommand)]
 pub(crate) enum ReportCommand {
-    /// Refits a published generation's classifier from its staged corpus, certifies the bytes
-    /// against the deployed artifact, and writes the report bundle.
+    /// Refits a published generation's classifier from its staged corpus and certifies the bytes
+    /// against the deployed artifact, then writes the report bundle.
     Classifier(ClassifierArgs),
 
     /// Reads the clump grouping's shape at every candidate ε over a published k-NN table.
@@ -143,7 +142,7 @@ impl ReportCommand {
     ///
     /// # Errors
     ///
-    /// Returns a [`ReportError`] when the instrument fails or its record cannot be written.
+    /// Returns a [`ReportError`] when the instrument fails or the process cannot write its record.
     pub(crate) async fn run(self) -> Result<Option<ReportVerdict>, ReportError> {
         match self {
             Self::Classifier(args) => args.run().await.map(ReportVerdict::Classifier).map(Some),

@@ -1,6 +1,6 @@
-//! The policy file: the resolved geometry policy table.
+//! The resolved geometry policy table.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! Layout version 0 is **mutable**: change the layout to fit what the pipeline needs and
 //! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
@@ -23,7 +23,7 @@
 //! Overlay is the remainder), the calibrated applicability, and the strength multiplier. The file
 //! length is `4096 + 32 · P` with checked arithmetic ([`FileHeader::expected_file_len`]); a header
 //! whose geometry overflows matches no real file. The region starts on a 4096-byte boundary, so the
-//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
+//! whole-file-mapping alignment guarantee of the array format applies unchanged. Map the whole file
 //! and slice, never mmap at a file offset.
 //!
 //! [`read::PolicyFile`] opens a file under these rules and hands out the raw typed rows;
@@ -46,7 +46,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -90,7 +90,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment it on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -111,7 +111,7 @@ pub(crate) enum Version {
 
 /// One resolved relation policy in wire form.
 ///
-/// Any byte pattern parses at this layer; the domain ranges are the typed layer's contract.
+/// Any byte pattern parses at this layer. The domain ranges are the typed layer's contract.
 #[derive(
     Debug,
     Copy,
@@ -187,8 +187,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// Opening rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let row_bytes = self.policies().checked_mul(size_of::<PolicyRow>() as u64)?;

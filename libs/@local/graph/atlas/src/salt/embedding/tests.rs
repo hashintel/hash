@@ -271,8 +271,8 @@ async fn the_resolved_split_reaches_the_observer_before_the_provider_does() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    // The observer learns the whole split - what the prior covers and
-    // what the provider will be asked for - as one report, and the
+    // The observer learns the whole split (what the prior covers and
+    // what the run asks the provider for) as one report, and the
     // published evidence says the same thing.
     assert_eq!(
         progress.splits(),

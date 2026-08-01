@@ -65,7 +65,7 @@ impl Translation {
     /// Returns the translation equivalent to applying `self` first, then `next`.
     ///
     /// Translations commute, so the order only matters for consistency with the other transform
-    /// types. The offsets are added.
+    /// types. This adds the two offsets.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Self {

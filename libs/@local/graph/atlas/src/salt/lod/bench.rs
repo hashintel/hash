@@ -9,12 +9,12 @@
 //! - [`WalkBench::chained`] first re-derives every ancestor's delivery over the same predicate and
 //!   starts its own fill where the chain left off, so no point crosses the wire twice.
 //!
-//! The delivery model both variants share: the base column is bucket-major (the cascade's
+//! Both variants share one delivery model. The base column is bucket-major (the cascade's
 //! coarse-to-fine assignment), a tile at zoom `z` with span exponent `m` schedules bucket `z + m`
 //! within its extent (the root schedules buckets `0..=m` whole), and the budget is the scheduled
 //! count before masking. A masked walk delivers the scheduled points the predicate admits, then
-//! fills the shortfall from buckets below the cut - in bucket order, morton order within a bucket -
-//! until the budget is met or the extent is exhausted.
+//! fills the shortfall from buckets below the cut, in bucket order and in morton order within a
+//! bucket, until the delivery meets the budget or exhausts the extent.
 //!
 //! [`WalkBench::deliver`] runs that same chain against a [`FillRule`], the count each level fills
 //! to: [`FillRule::Unmasked`] is the scheduled count before masking, [`FillRule::Coverage`] the
@@ -32,8 +32,8 @@
 //! [`WalkBench::served_deliver`] reads it out of a [`ServedGeneration`] instead: the visible view
 //! published as its own generation, bucket-major, where a cell of depth `d` holds exactly one point
 //! whose bucket lies at or below `d`, so the buckets-at-or-below-`d` ranges of an extent are its
-//! depth-`d` representatives and their lengths count its occupied cells. The two engines deliver
-//! the same rows in the same order, tile for tile, and the scanning one is the oracle that says so.
+//! depth-`d` representatives and their lengths count its occupied cells. Both engines deliver the
+//! same rows in the same order, tile for tile, and the scanning one is the oracle that says so.
 //!
 //! [`WalkBench::build`] synthesizes a clustered corpus and runs the production cascade over it;
 //! [`WalkBench::mask_uniform`] hides rows independently and [`WalkBench::mask_clustered`] hides
@@ -60,7 +60,7 @@ use crate::{
     random::{keyed_rng, uniform_below},
 };
 
-/// One range per bucket: the extent's positions inside each bucket segment.
+/// The extent's positions inside each bucket segment, one range per bucket.
 type Ranges = [Range<usize>; SEGMENTS];
 
 /// One tile delivery's outcome, as plain counts.
@@ -100,8 +100,8 @@ pub enum FillRule {
     /// One point per level-cut cell holding a visible point, the best-ranked visible point in it.
     ///
     /// Cells the chain already represents deliver nothing further, and the cells deliver in
-    /// ascending cell index. Both the cell set and the point chosen inside a cell are functions of
-    /// the visible view alone: a [`VisibleColumn`] is the whole input.
+    /// ascending cell index. Both the cell set and the point chosen inside a cell depend on the
+    /// visible view alone. A [`VisibleColumn`] is the whole input.
     CoverageRank,
     /// The same rule at depth `z + m + k`, `k` the finest grid a [`Refinement`] admits.
     ///
@@ -130,16 +130,16 @@ pub struct Refinement {
 
 /// The count one level of a refinement aims at.
 ///
-/// Both forms are functions of public data - a constant, or the corpus before any mask is applied -
-/// so neither carries a hidden row into the delivered count.
+/// Both forms are functions of public data (a constant, or the corpus before masking), so neither
+/// carries a hidden row into the delivered count.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DotBudget {
     /// One count for every tile.
     Constant(usize),
     /// The tile's own scheduled count before masking, which is today's per-tile budget.
     ///
-    /// A tile delivers what today's rule would have delivered had nothing been hidden, so a view
-    /// hiding nothing sees today's density exactly.
+    /// A tile delivers what today's rule would have delivered had the mask hidden nothing, so a
+    /// view hiding nothing sees today's density exactly.
     Scheduled,
 }
 
@@ -178,7 +178,7 @@ enum FillTarget<'cells> {
     /// One delivered point per cell of `cut` the extent covers.
     ///
     /// `represented` enters holding the cells the chain already covers and leaves holding every
-    /// cell the delivery covers; the fill stops once it holds `goal` of them.
+    /// cell the delivery covers. The fill stops once it holds `goal` of them.
     Cells {
         /// The cells the extent's visible points occupy at `cut`.
         goal: usize,
@@ -200,7 +200,7 @@ pub struct ChainAudit {
     pub inherited: usize,
     /// Cut-depth cells those chain deliveries occupy.
     pub inherited_cells: usize,
-    /// The tile's own delivery: scheduled admissions plus fill.
+    /// The tile's own delivery, scheduled admissions plus fill.
     pub delivered: usize,
     /// Chain and own deliveries inside the tile cell.
     pub cumulative: usize,
@@ -253,7 +253,7 @@ struct VisiblePoint {
 /// column for one `(corpus, mask)` pair, invalidated by a mask replacement.
 ///
 /// The rank column carries the corpus-wide importance rank, whose order restricted to the visible
-/// rows is the same order a visible-only generation would rank them in - so the representative a
+/// rows is the same order a visible-only generation would rank them in, so the representative a
 /// cell resolves to does not move when rows outside the view appear or vanish.
 #[derive(Debug)]
 pub struct VisibleColumn {
@@ -299,7 +299,7 @@ pub enum GenerationLayout {
 ///
 /// The visible points cascade alone at the finest grid and then sort as a published generation
 /// does, bucket-major and ascending by key inside a bucket. The cascade's contract makes this the
-/// whole input of a rank-representative delivery, without a scan: a cell of depth `d` holds exactly
+/// whole input of a rank-representative delivery, without a scan. A cell of depth `d` holds exactly
 /// one point whose bucket lies at or below `d`, its representative, so the buckets-at-or-below-`d`
 /// ranges of an extent hold one representative per occupied depth-`d` cell and their lengths count
 /// those cells.
@@ -333,7 +333,7 @@ pub enum VisibleRankOrder {
     Reversed,
 }
 
-/// The visible subcorpus's own cascade: the schedule a visible-only generation publishes.
+/// The visible subcorpus's own cascade, the schedule a visible-only generation publishes.
 ///
 /// The production first-occupant cascade over the visible points alone, at the corpus's deepest
 /// grid. [`VisibleCascade::schedule`] returns one tile's scheduled count under that assignment and
@@ -468,7 +468,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `points` is zero or exceeds the `u32` row domain.
+    /// This panics when `points` is zero or exceeds the `u32` row domain.
     #[must_use]
     #[expect(
         clippy::cast_possible_truncation,
@@ -581,8 +581,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the lengths overrun the bucket table or disagree with the code count, or when
-    /// the columns disagree on length.
+    /// This panics when the lengths overrun the bucket table or disagree with the code count, or
+    /// when the columns disagree on length.
     #[must_use]
     pub fn from_parts(
         code_bits: &[u64],
@@ -673,11 +673,12 @@ impl WalkBench {
         self.visible = mask;
     }
 
-    /// Replaces the mask, hiding whole spatial blocks until the quota is met.
+    /// Replaces the mask, hiding whole spatial blocks until the hidden rows meet the quota.
     ///
-    /// Blocks are cells drawn at depths 4 through 7; every row inside a drawn cell hides until
-    /// roughly `1 - visible` of the corpus is hidden. Spatially contiguous hiding is the
-    /// adversarial mask shape: whole scheduled runs vanish and fills walk deep.
+    /// Blocks are cells drawn at depths 4 through 7; every row inside a drawn cell hides until the
+    /// hidden rows reach the `1 - visible` share of the corpus, rounded down to whole rows.
+    /// Spatially contiguous hiding is the adversarial mask shape: whole scheduled runs vanish and
+    /// fills walk deep.
     #[expect(
         clippy::missing_panics_doc,
         clippy::cast_possible_truncation,
@@ -741,7 +742,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when a row lies beyond the corpus row domain.
+    /// This panics when a row lies beyond the corpus row domain.
     pub fn mask_rows(&mut self, visible: impl IntoIterator<Item = u32>) {
         let mut mask = DenseBitSet::new_empty(self.row_of_position.len());
         for row in visible {
@@ -753,11 +754,11 @@ impl WalkBench {
     /// Returns the visible keys the tile's cut reaches inside the tile cell, ascending.
     ///
     /// Every visible point whose bucket lies at or below `z + m`: what today's chain delivers
-    /// cumulatively for the tile's extent when no row is hidden.
+    /// cumulatively for the tile's extent when the mask hides nothing.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn reached(&self, z: u8, x: u32, y: u32) -> Vec<u64> {
         assert!(
@@ -792,7 +793,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid.
+    /// This panics when the coordinate lies off the grid.
     #[must_use]
     pub fn scheduled(&self, z: u8, x: u32, y: u32) -> usize {
         self.budget_of(z, x, y)
@@ -816,7 +817,9 @@ impl WalkBench {
         self.max_zoom
     }
 
-    /// Returns the cut's span exponent `m`: a tile at zoom `z` cuts at depth `z + m`.
+    /// Returns the cut's span exponent `m`.
+    ///
+    /// A tile at zoom `z` cuts at depth `z + m`.
     #[must_use]
     pub const fn span(&self) -> u8 {
         self.span
@@ -868,7 +871,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent(&self, z: u8, x: u32, y: u32) -> Selection {
         let taken = DenseBitSet::new_empty(0);
@@ -876,17 +879,17 @@ impl WalkBench {
         self.walk(z, x, y, &taken, &mut delivered, FillTarget::Scheduled)
     }
 
-    /// Delivers one tile behind its recomputed ancestor chain: the chained variant.
+    /// Delivers one tile behind its recomputed ancestor chain.
     ///
-    /// Every ancestor's delivery is re-derived against the same mask, top down, and the tile's own
-    /// fill skips everything the chain took. An ancestor whose fill ends short of budget spent its
-    /// subtree's visible pool, so the chain stops there and the tile delivers nothing - every
-    /// descendant extent is a subset of the spent one. [`Selection::scanned`] sums the chain's
-    /// scans; the other counts describe the tile itself.
+    /// The walk re-derives every ancestor's delivery against the same mask, top down, and the
+    /// tile's own fill skips everything the chain took. An ancestor whose fill ends short of budget
+    /// spent its subtree's visible pool, so the chain stops there and the tile delivers nothing.
+    /// Every descendant extent is a subset of the spent one. [`Selection::scanned`] sums the
+    /// chain's scans. The other counts describe the tile itself.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn chained(&self, z: u8, x: u32, y: u32) -> Selection {
         let mut taken = DenseBitSet::new_empty(self.codes.len());
@@ -928,7 +931,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn independent_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
         let taken = DenseBitSet::new_empty(0);
@@ -945,7 +948,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn chained_delivery(&self, z: u8, x: u32, y: u32) -> Vec<u32> {
         let mut taken = DenseBitSet::new_empty(self.codes.len());
@@ -983,7 +986,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the schedule's deepest cut lies beyond the key width.
+    /// This panics when the schedule's deepest cut lies beyond the key width.
     #[must_use]
     pub fn pyramid(&self) -> VisibleCellPyramid {
         let mut codes = Vec::with_capacity(self.visible.count());
@@ -1036,14 +1039,14 @@ impl WalkBench {
 
     /// Builds the visible base positions ascending by key.
     ///
-    /// Four bytes per visible row, the leanest per-view artifact that still answers a cell's
-    /// visible population and enumerates a grid's occupied cells: the key of an entry comes from
-    /// the corpus-wide base column the position indexes, and its importance rank from the
+    /// This is the leanest per-view artifact that still answers a cell's visible population and
+    /// enumerates a grid's occupied cells, at four bytes per visible row. The key of an entry comes
+    /// from the corpus-wide base column the position indexes, and its importance rank from the
     /// corpus-wide rank column.
     ///
     /// # Panics
     ///
-    /// Panics when the visible rows overrun the `u32` row domain.
+    /// This panics when the visible rows overrun the `u32` row domain.
     #[must_use]
     pub fn position_column(&self) -> Box<[u32]> {
         let mut positions: Vec<u32> = Vec::with_capacity(self.visible.count());
@@ -1063,14 +1066,14 @@ impl WalkBench {
 
     /// Builds the Morton-ordered visible column of one cell from the base column and the mask.
     ///
-    /// The extent's visible points alone, gathered out of the bucket segments the cell narrows to
-    /// and sorted. This is the same column [`Self::column`] holds, restricted to the cell and
-    /// computed without a resident per-view artifact: the mask bitmap and the served base column
-    /// are its whole input.
+    /// The gather takes the extent's visible points alone out of the bucket segments the cell
+    /// narrows to and sorts them. This is the same column [`Self::column`] holds, restricted to the
+    /// cell and computed without a resident per-view artifact. The mask bitmap and the served base
+    /// column are its whole input.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn gather(&self, z: u8, x: u32, y: u32) -> VisibleColumn {
         assert!(
@@ -1115,12 +1118,12 @@ impl WalkBench {
 
     /// Returns the rows the base positions carry, in the order given.
     ///
-    /// A delivery names base positions, which address one corpus's column; the rows it maps to are
-    /// what two corpora over the same view can be compared on.
+    /// A delivery names base positions, which address one corpus's column, and the rows those
+    /// positions map to are what two corpora over the same view compare on.
     ///
     /// # Panics
     ///
-    /// Panics when a position lies beyond the corpus column.
+    /// This panics when a position lies beyond the corpus column.
     #[must_use]
     pub fn rows(&self, positions: impl IntoIterator<Item = u32>) -> Vec<u32> {
         positions
@@ -1142,7 +1145,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the schedule's deepest cut lies beyond the key width.
+    /// This panics when the schedule's deepest cut lies beyond the key width.
     #[must_use]
     pub fn visible_only(&self) -> Self {
         // The gathered columns are the visible-only corpus's row-indexed
@@ -1230,7 +1233,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the visible rows overrun the `u32` row domain.
+    /// This panics when the visible rows overrun the `u32` row domain.
     #[must_use]
     pub fn generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let (keys, positions, ranks) = self.visible_entries();
@@ -1252,8 +1255,8 @@ impl WalkBench {
     ///
     /// A point is its cell's representative from the depth at which the cell no longer holds a
     /// better-ranked point on, so its bucket is one past the deepest grid it shares with any
-    /// better-ranked visible point - and the deepest shared grid is reached at the key-nearest
-    /// better-ranked point on either side. Deleting the entries from a key-ordered list in
+    /// better-ranked visible point, and the key-nearest better-ranked point on either side reaches
+    /// that deepest shared grid. Deleting the entries from a key-ordered list in
     /// worst-rank-first order exposes exactly those two neighbours, so two sorts and one linear
     /// pass assign every bucket.
     ///
@@ -1262,7 +1265,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the visible rows overrun the `u32` row domain.
+    /// This panics when the visible rows overrun the `u32` row domain.
     #[must_use]
     pub fn separated_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let (keys, positions, ranks) = self.visible_entries();
@@ -1405,7 +1408,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics if the corpus columns no longer form aligned permutations of the `u32` row domain.
+    /// This panics when the corpus columns no longer form aligned permutations of the `u32` row
+    /// domain.
     #[must_use]
     pub fn merged_generation(&self, layout: GenerationLayout) -> ServedGeneration {
         let mut visible_by_position = DenseBitSet::new_empty(self.codes.len());
@@ -1516,7 +1520,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when either artifact covers a different corpus or mask.
+    /// This panics when either artifact covers a different corpus or mask.
     #[must_use]
     pub fn bucket_movements(
         &self,
@@ -1561,7 +1565,9 @@ impl WalkBench {
         (shallower, deeper)
     }
 
-    /// Returns the visible entries in base order: their keys, base positions, and importance ranks.
+    /// Returns the visible entries in base order.
+    ///
+    /// The keys, base positions, and importance ranks come out as three aligned columns.
     fn visible_entries(&self) -> (Vec<MortonKey>, Vec<u32>, Vec<u32>) {
         let mut keys: Vec<MortonKey> = Vec::with_capacity(self.visible.count());
         let mut positions: Vec<u32> = Vec::with_capacity(self.visible.count());
@@ -1638,7 +1644,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the schedule's deepest cut lies beyond the key width.
+    /// This panics when the schedule's deepest cut lies beyond the key width.
     #[must_use]
     pub fn visible_cascade(&self, order: VisibleRankOrder) -> VisibleCascade {
         let mut keys = Vec::with_capacity(self.visible.count());
@@ -1678,13 +1684,13 @@ impl WalkBench {
 
     /// Delivers one tile behind its recomputed ancestor chain under a fill rule.
     ///
-    /// The chain, its per-level order, and its early exit follow [`Self::chained`];
+    /// The chain, the per-level order, and the early exit match [`Self::chained`].
     /// [`FillRule::Unmasked`] reproduces that variant's counts exactly. [`Selection::budget`] holds
     /// the tile's own target under `rule`.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn deliver(
         &self,
@@ -1715,7 +1721,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn delivery(
         &self,
@@ -1747,7 +1753,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn cumulative_delivery(
         &self,
@@ -1782,7 +1788,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn occupied_cells(&self, z: u8, x: u32, y: u32, depth: Depth) -> HashSet<u64> {
         let cell = cell_of(z, x, y);
@@ -1808,7 +1814,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn audit(
         &self,
@@ -2059,7 +2065,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[expect(
         clippy::too_many_arguments,
         reason = "the level's address, its view, the chain's state, its scratch, and its output \
@@ -2194,8 +2200,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `rule` is not a rank-representative rule, when the coordinate lies off the grid,
-    /// or beyond the schedule's deepest zoom.
+    /// This panics when `rule` is not a rank-representative rule, or when the coordinate lies off
+    /// the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn served_deliver(
         &self,
@@ -2224,8 +2230,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `rule` is not a rank-representative rule, when the coordinate lies off the grid,
-    /// or beyond the schedule's deepest zoom.
+    /// This panics when `rule` is not a rank-representative rule, or when the coordinate lies off
+    /// the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn served_delivery(
         &self,
@@ -2255,8 +2261,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `rule` is not a rank-representative rule, when the coordinate lies off the grid,
-    /// or beyond the schedule's deepest zoom.
+    /// This panics when `rule` is not a rank-representative rule, or when the coordinate lies off
+    /// the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn served_cumulative_delivery(
         &self,
@@ -2291,8 +2297,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `rule` is not a rank-representative rule, when the coordinate lies off the grid,
-    /// or beyond the schedule's deepest zoom.
+    /// This panics when `rule` is not a rank-representative rule, or when the coordinate lies off
+    /// the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn served_audit(
         &self,
@@ -2347,8 +2353,8 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid, beyond the schedule's deepest zoom, or when
-    /// `depth` lies above the tile cell's own depth.
+    /// This panics when the coordinate lies off the grid, beyond the schedule's deepest zoom, or
+    /// when `depth` lies above the tile cell's own depth.
     #[must_use]
     pub fn served_representatives(
         &self,
@@ -2388,7 +2394,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `z` lies beyond the schedule's deepest zoom.
+    /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> Depth {
         assert!(
@@ -2457,7 +2463,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_delivery(
         &self,
@@ -2477,13 +2483,13 @@ impl WalkBench {
 
     /// Accumulates a public uniform grid inside one tile in scope-bucket order.
     ///
-    /// The result is the visible-only generation prefix through
-    /// [`Self::uniform_grid_depth`], narrowed to the tile cell. It is set-equal to accumulating
-    /// [`Self::uniform_delivery`] down the tile's ancestor chain.
+    /// The result is the visible-only generation prefix through [`Self::uniform_grid_depth`],
+    /// narrowed to the tile cell. Accumulating [`Self::uniform_delivery`] down the tile's ancestor
+    /// chain yields the same set.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_cumulative_delivery(
         &self,
@@ -2508,7 +2514,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when `z` lies beyond the schedule's deepest zoom.
+    /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> Depth {
         let additional_depth = if z == self.max_zoom {
@@ -2529,7 +2535,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_step_delivery(
         &self,
@@ -2556,13 +2562,12 @@ impl WalkBench {
 
     /// Accumulates a public one-level refinement step inside one tile.
     ///
-    /// The result is the visible-only generation prefix through the cut below
-    /// `refine_from_zoom`, through one additional level from that zoom onward, and through the
-    /// catch-all at the deepest zoom.
+    /// The result is the visible-only generation prefix reaching the cut below `refine_from_zoom`,
+    /// one additional level from that zoom onward, and the catch-all at the deepest zoom.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn uniform_step_cumulative_delivery(
         &self,
@@ -2672,14 +2677,14 @@ impl WalkBench {
 
     /// Plans one level's delivered grid out of range reads and delivers its representatives.
     ///
-    /// The plan reads three quantities off the generation and none of them scans the extent: the
-    /// cells of a grid are counted by the lengths of the buckets-at-or-below-depth ranges, a cell's
-    /// children by the length of the one bucket below it, and a cell's population by one search of
-    /// the key index. The delivered points are the ranges themselves.
+    /// The plan reads three quantities off the generation without scanning the extent. The lengths
+    /// of the buckets-at-or-below-depth ranges count the cells of a grid, the length of the one
+    /// bucket below a cell counts its children, and one search of the key index answers a cell's
+    /// population. The delivered points are the ranges themselves.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[expect(
         clippy::too_many_arguments,
         reason = "the level's address, its generation, the chain's state, its scratch, and its \
@@ -3023,7 +3028,7 @@ impl WalkBench {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
+    /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
     pub fn crowding(&self, z: u8, x: u32, y: u32) -> Crowding {
         let mut taken = DenseBitSet::new_empty(self.codes.len());
@@ -3059,10 +3064,10 @@ impl WalkBench {
         }
     }
 
-    /// Delivers one tile: scheduled points first, then the fill from deeper buckets.
+    /// Delivers one tile, scheduled points first, then the fill from deeper buckets.
     ///
-    /// `taken` positions never deliver; every delivered position lands in `out`. The scheduled
-    /// admissions deliver whole, and the fill runs while the delivery stays below `fill`.
+    /// `taken` positions never deliver. The walk appends every delivered position to `out`. The
+    /// scheduled admissions deliver whole, and the fill runs while the delivery stays below `fill`.
     fn walk(
         &self,
         z: u8,
@@ -3086,7 +3091,7 @@ impl WalkBench {
         };
         let cut = usize::from(z + self.span);
 
-        // The root's schedule is buckets 0..=m whole; deeper tiles schedule bucket z + m alone.
+        // The root's schedule is buckets 0..=m whole. Deeper tiles schedule bucket z + m alone.
         let natural_buckets = if z == 0 { 0..=cut } else { cut..=cut };
         let scheduled: usize = ranges[natural_buckets.clone()]
             .iter()
@@ -3207,7 +3212,7 @@ impl VisibleCellPyramid {
     ///
     /// # Panics
     ///
-    /// Panics when `depth` lies outside the pyramid's levels or above `cell`'s own depth.
+    /// This panics when `depth` lies outside the pyramid's levels or above `cell`'s own depth.
     #[must_use]
     pub fn count(&self, cell: MortonCell, depth: Depth) -> usize {
         assert!(
@@ -3227,7 +3232,7 @@ impl VisibleCellPyramid {
     ///
     /// # Panics
     ///
-    /// Panics when `depth` lies outside the pyramid's levels.
+    /// This panics when `depth` lies outside the pyramid's levels.
     #[must_use]
     pub fn occupied(&self, depth: Depth) -> usize {
         self.level(depth).len()
@@ -3237,7 +3242,7 @@ impl VisibleCellPyramid {
     ///
     /// # Panics
     ///
-    /// Panics when a level's depth lies beyond the key width.
+    /// This panics when a level's depth lies beyond the key width.
     #[must_use]
     pub fn depths(&self) -> impl IntoIterator<Item = Depth> {
         let shallowest = self.shallowest;
@@ -3289,7 +3294,7 @@ impl VisibleColumn {
     ///
     /// # Panics
     ///
-    /// Panics when `depth` lies above `cell`'s own depth.
+    /// This panics when `depth` lies above `cell`'s own depth.
     #[must_use]
     pub fn coverage(&self, cell: MortonCell, depth: Depth) -> usize {
         assert!(
@@ -3444,8 +3449,8 @@ impl ServedGeneration {
             MortonKey::from_bits(self.ascending_key(index, codes)).prefix(depth) <= prefix
         };
 
-        // A grid cell holds few entries beside its representative, so the end is found by doubling
-        // out from the start before the search narrows: the probes stay logarithmic in the cell,
+        // A grid cell holds few entries beside its representative, so the search finds the end by
+        // doubling out from the start before it narrows: the probes stay logarithmic in the cell,
         // not in the extent.
         let mut probes = 0_usize;
         let mut inside = at;
@@ -3523,12 +3528,12 @@ impl ServedGeneration {
 impl VisibleCascade {
     /// Returns the tile's scheduled count under the visible-only assignment.
     ///
-    /// The tile's own cut alone: bucket `z + m` inside the tile cell, and buckets `0..=m` whole at
-    /// the root.
+    /// The count covers the tile's own cut alone: bucket `z + m` inside the tile cell, and buckets
+    /// `0..=m` whole at the root.
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the zoom's grid.
+    /// This panics when the coordinate lies off the zoom's grid.
     #[must_use]
     pub fn schedule(&self, z: u8, x: u32, y: u32) -> usize {
         let cut = z + self.span;
@@ -3549,7 +3554,7 @@ impl VisibleCascade {
     ///
     /// # Panics
     ///
-    /// Panics when the coordinate lies off the zoom's grid.
+    /// This panics when the coordinate lies off the zoom's grid.
     #[must_use]
     pub fn covered(&self, z: u8, x: u32, y: u32) -> usize {
         let cut = z + self.span;
@@ -3572,7 +3577,7 @@ impl VisibleCascade {
     ///
     /// # Panics
     ///
-    /// Panics when a stored bucket lies beyond the key width.
+    /// This panics when a stored bucket lies beyond the key width.
     #[must_use]
     pub fn coverage_holds(&self) -> bool {
         let keys: Vec<MortonKey> = self
@@ -3646,7 +3651,7 @@ struct RankStep {
     scanned: usize,
 }
 
-/// One served level's extent: its bucket ranges and the chain's keys inside it.
+/// One served level's extent, with its bucket ranges and the chain's keys inside it.
 #[derive(Debug)]
 struct ServedExtent<'level> {
     /// The extent's per-bucket ranges of the generation.
@@ -3667,7 +3672,7 @@ impl ServedExtent<'_> {
 /// The buffers one served chain reuses across its levels.
 #[derive(Debug, Default)]
 struct ServedScratch {
-    /// The level's grid: one representative per cell, ascending by key.
+    /// The level's grid, one representative per cell, ascending by key.
     candidates: Vec<(u64, u32)>,
     /// The merge target one bucket range accumulates into.
     merged: Vec<(u64, u32)>,
@@ -3690,7 +3695,7 @@ struct ServedScratch {
 /// The buffers one rank-representative chain reuses across its levels.
 #[derive(Debug, Default)]
 struct RankScratch {
-    /// The level's grid: one slice per cell, ascending by cell index.
+    /// The level's grid, one slice per cell, ascending by cell index.
     cells: Vec<Range<usize>>,
     /// The candidate grid one level finer.
     finer: Vec<Range<usize>>,
@@ -3704,7 +3709,7 @@ struct RankScratch {
 
 /// Delivers the slice's representative when no chain delivery already sits in its cell.
 ///
-/// Returns whether a point was delivered.
+/// Returns `true` when the representative delivers.
 fn represent(
     column: &VisibleColumn,
     range: Range<usize>,
@@ -3949,7 +3954,7 @@ const fn spent_budget(target: &FillTarget<'_>, scheduled: usize, entry: usize) -
 ///
 /// # Panics
 ///
-/// Panics on a rule outside the rank-representative family.
+/// This panics on a rule outside the rank-representative family.
 const fn served_plan(rule: FillRule) -> RankPlan {
     rank_plan(rule).expect("the served form delivers the rank-representative rules")
 }
@@ -3977,7 +3982,7 @@ fn covered_of(rule: FillRule, cell: MortonCell, cut: Depth, pyramid: &VisibleCel
 ///
 /// # Panics
 ///
-/// Panics on a rank-representative rule, which delivers through its own engine.
+/// This panics on a rank-representative rule, which delivers through its own engine.
 fn target_of(
     rule: FillRule,
     inherited: usize,
@@ -4004,7 +4009,7 @@ fn target_of(
 ///
 /// # Panics
 ///
-/// Panics when the zoom lies beyond the key width or the coordinate off the zoom's grid.
+/// This panics when the zoom lies beyond the key width or the coordinate off the zoom's grid.
 const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
     MortonCell::new(
         Depth::new(z).expect("tile zooms lie within the key width"),
@@ -4080,7 +4085,7 @@ mod tests {
         bench
     }
 
-    /// The three refinement orders under one budget.
+    /// Every refinement order under one budget.
     fn refinements(budget: DotBudget) -> Vec<FillRule> {
         [
             RefineOrder::Whole,
@@ -4092,7 +4097,7 @@ mod tests {
         .collect()
     }
 
-    /// The rank-representative rules the served form is checked against.
+    /// The rank-representative rules a check compares the served form against.
     ///
     /// The coarse rule, both constant budgets, and the scheduled budget in every refinement order:
     /// the whole family the last round measured.
@@ -4107,7 +4112,7 @@ mod tests {
 
     /// Returns the audit with its cost counter cleared.
     ///
-    /// Two engines delivering the same sequence report different work; every other field is the
+    /// Engines delivering the same sequence report different work, and every other field is the
     /// delivery's own description.
     const fn counts(audit: ChainAudit) -> ChainAudit {
         ChainAudit {
@@ -4157,7 +4162,9 @@ mod tests {
         }
     }
 
-    /// The tiles a check sweeps: every extent of the shallow zooms plus the densest descent.
+    /// Returns the tiles a check sweeps.
+    ///
+    /// The sweep covers every extent of the shallow zooms plus the densest descent.
     fn tiles(bench: &WalkBench) -> Vec<(u8, u32, u32)> {
         let mut tiles: Vec<(u8, u32, u32)> = Vec::new();
         for z in 0..=2_u8 {
@@ -4177,9 +4184,9 @@ mod tests {
 
     /// Returns the first tile whose delivered rows differ between the two corpora.
     ///
-    /// Corpus B is the masked fixture. Corpus A holds the same visible rows and nothing else, all
-    /// visible. A rule reading the visible view alone delivers the same rows over both, in the
-    /// same order; anything a hidden row reaches shows up here as a disagreement.
+    /// Corpus B is the masked fixture. Corpus A contains the same visible rows and nothing else,
+    /// all visible. A rule reading the visible view alone delivers the same rows over both, in the
+    /// same order. Anything a hidden row reaches shows up here as a disagreement.
     fn interference(rule: FillRule, clustered: bool, visible: f64) -> Option<(u8, u32, u32)> {
         let hidden = masked(clustered, visible);
         let alone = hidden.visible_only();
@@ -4209,7 +4216,7 @@ mod tests {
     /// Returns the first tile whose served delivered rows differ between the two corpora.
     ///
     /// [`interference`]'s comparison over the served engine: corpus B is the masked fixture, corpus
-    /// A holds the same visible rows and nothing else.
+    /// A contains the same visible rows and nothing else.
     fn served_interference(
         rule: FillRule,
         clustered: bool,
@@ -5214,9 +5221,8 @@ mod tests {
                          {z}/{x}/{y}, clustered {clustered}, visible {visible}",
                     );
 
-                    // The deepest cut's bucket is the cascade's catch-all: it holds every
-                    // co-located point, not one per cell, so the prefix is not a cell census
-                    // there.
+                    // The deepest cut's bucket is the cascade's catch-all. It holds every
+                    // co-located point, not one per cell, so the prefix is not a cell census there.
                     if z == bench.max_zoom() {
                         continue;
                     }

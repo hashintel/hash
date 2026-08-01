@@ -1,9 +1,9 @@
 //! The SALT generation repository.
 //!
-//! One published SALT generation is a repository: the fixed set of files it consists of, plus the
-//! metadata describing how they were produced. [`SaltFiles`] names each artifact role explicitly -
-//! a generation either has all of them or is not a generation - and every entry binds a file name
-//! to its hash, so a repository can be verified end to end from this value alone.
+//! One published SALT generation is a repository. It consists of a fixed set of files plus the
+//! metadata describing what produced them. [`SaltFiles`] names each artifact role, so a generation
+//! either has all of them or is not a generation. Every entry binds a file name to its hash, so a
+//! reader can verify a repository end to end from this value alone.
 
 use self::metadata::SaltMetadata;
 use super::repository::{RepositoryFile, RepositoryVersion};
@@ -20,7 +20,9 @@ pub(crate) struct SaltFiles {
     ///
     /// An array file.
     pub representations: RepositoryFile,
-    /// The `f32[T, 3072]` card embedding matrix in ontology row order; an array file.
+    /// The `f32[T, 3072]` card embedding matrix in ontology row order.
+    ///
+    /// An array file.
     pub card_embeddings: RepositoryFile,
     /// The card text hashes, one SHA-256 per ontology row.
     ///
@@ -46,9 +48,13 @@ pub(crate) struct SaltFiles {
     ///
     /// Force-bearing link instances grouped by relation type, one combined attraction file.
     pub attraction: RepositoryFile,
-    /// The protection index: the symmetric no-repel evidence matrix, a sparse matrix file.
+    /// The protection index.
+    ///
+    /// The symmetric no-repel evidence matrix, a sparse matrix file.
     pub protection: RepositoryFile,
-    /// The canonical `f32[N, 2]` coordinates, row-aligned with the node stream; an array file.
+    /// The canonical `f32[N, 2]` coordinates, row-aligned with the node stream.
+    ///
+    /// An array file.
     pub coordinates: RepositoryFile,
     /// The Morton code column in base delivery order with its bucket fenceposts and page index.
     ///
@@ -65,9 +71,11 @@ pub(crate) struct SaltFiles {
     pub postings: RepositoryFile,
     /// The wire `f32[N, 2]` coordinates in base delivery order.
     ///
-    /// Normalized into the `[-1, 1]` frame; an array file.
+    /// Normalized into the `[-1, 1]` frame. An array file.
     pub wire_coordinates: RepositoryFile,
-    /// Each base position's importance rank, `u32[N]`; an array file.
+    /// Each base position's importance rank, `u32[N]`.
+    ///
+    /// An array file.
     pub rank_of_position: RepositoryFile,
     /// Each rank's base position, `u32[N]`: the traversal order of filter registration.
     ///
@@ -75,15 +83,19 @@ pub(crate) struct SaltFiles {
     pub position_of_rank: RepositoryFile,
     /// Each node row's base position, `u32[N]`.
     ///
-    /// The permutation the filter contract maps entity bitmaps through; an array file.
+    /// The permutation the filter contract maps entity bitmaps through. An array file.
     pub position_of_row: RepositoryFile,
     /// Each base position's node row, `u32[N]`.
     ///
-    /// The gather order that assembles any row-aligned column into base order; an array file.
+    /// The gather order that assembles any row-aligned column into base order. An array file.
     pub row_of_position: RepositoryFile,
-    /// The node identities: source id per node row and the sorted lookup pairs, one identity file.
+    /// The node identities.
+    ///
+    /// Source id per node row and the sorted lookup pairs, one identity file.
     pub node_identities: RepositoryFile,
-    /// The edge identities: source id per edge row and the sorted lookup pairs, one identity file.
+    /// The edge identities.
+    ///
+    /// Source id per edge row and the sorted lookup pairs, one identity file.
     pub edge_identities: RepositoryFile,
     /// The ontology identities.
     ///
@@ -105,9 +117,9 @@ pub(crate) struct SaltFiles {
     ///
     /// The trainer's human-review input. `None` records that the fit ran without one.
     pub reviewed_verdicts: Option<RepositoryFile>,
-    /// The annotation-corpus document the classifier was fitted from, staged verbatim.
+    /// The annotation-corpus document the run fitted the classifier from, staged verbatim.
     ///
-    /// `None` records that the classifier was supplied instead of fitted.
+    /// `None` records that the run received a supplied classifier instead of fitting one.
     pub annotation_corpus: Option<RepositoryFile>,
     /// The `f32[R, 3072]` annotation card embedding matrix, row-aligned with the assembled corpus.
     ///
@@ -123,9 +135,11 @@ pub(crate) struct SaltFiles {
 impl SaltFiles {
     /// Returns every file of the generation, in role order.
     ///
-    /// The projector, supplied-verdicts, and annotation roles appear exactly when they were staged.
+    /// The projector, supplied-verdicts, and annotation roles appear exactly when the run staged
+    /// them.
     ///
-    /// Destructuring keeps the list total: a new role fails compilation here until it is listed.
+    /// Destructuring keeps the list total: a new role fails compilation here until this method
+    /// lists it.
     pub(crate) fn files(&self) -> impl Iterator<Item = &RepositoryFile> {
         let Self {
             representations,

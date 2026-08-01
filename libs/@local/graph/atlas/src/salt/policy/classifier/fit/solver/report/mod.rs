@@ -1,4 +1,4 @@
-//! The solver's reports: diagnosis instruments over frozen classifier corpora.
+//! Diagnosis instruments for the solver over frozen classifier corpora.
 //!
 //! Nothing here is pipeline machinery: a report observes a solve, it never participates in one.
 

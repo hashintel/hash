@@ -15,7 +15,7 @@ use crate::{
     salt::policy::classifier::fit::TrainingRow,
 };
 
-/// Six rows covering every class, with small deterministic embeddings.
+/// Builds a six-row corpus that covers every class with small deterministic embeddings.
 fn fixture_corpus() -> (MatrixN<CANONICAL_DIMENSIONS>, Vec<TrainingRow>) {
     let rows: u8 = 6;
     let classes = [0_usize, 1, 2].into_iter().cycle();

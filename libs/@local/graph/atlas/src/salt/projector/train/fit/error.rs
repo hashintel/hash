@@ -12,16 +12,16 @@ pub enum TrainError<N> {
     NoSemanticEvidence,
     /// The schedule's boundary is step zero.
     ///
-    /// So the Proximal radius would be measured on an untrained map instead of the semantic-only
-    /// baseline the measurement is defined over.
+    /// A radius measured there would describe an untrained map rather than the semantic-only
+    /// baseline that defines the measurement.
     UnbaselinedRadius,
     /// The attraction index carries Proximal force but no reviewed verdict covers any of it.
     ///
-    /// So no radius can be measured.
+    /// Without a reviewed verdict the measurement cannot produce a radius.
     MissingProximalReviews,
     /// The attraction index carries Coincident force but no Proximal force.
     ///
-    /// So no measurement can set the Proximal radius the relation energy composes with.
+    /// No measurement can therefore set the Proximal radius the relation energy composes with.
     CoincidentWithoutProximal,
     /// The frozen Proximal radius does not exceed the Coincident one.
     DegenerateRadius { radius: f32, coincident: f32 },
@@ -29,9 +29,9 @@ pub enum TrainError<N> {
     Refresh(RefreshError<N>),
     /// A training step failed.
     Step(StepError<N>),
-    /// A resumed ladder was handed a schedule differing from the one its opening segment ran under.
+    /// A resumed ladder received a schedule differing from the one its opening segment ran under.
     ///
-    /// So the scheduler position and the phase boundary no longer describe the same run.
+    /// The scheduler position and the phase boundary therefore no longer describe the same run.
     ScheduleChanged {
         opening: TrainingSchedule,
         resumed: TrainingSchedule,

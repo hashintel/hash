@@ -7,17 +7,18 @@
 //! ```
 //!
 //! over the 2D distance `d` between points, and descends its cross-entropy against the
-//! high-dimensional neighbour graph by stochastic gradient steps: sampled edges pull their
+//! high-dimensional neighbour graph by stochastic gradient steps. Sampled edges pull their
 //! endpoints together (attraction), and sampled non-edges push them apart (repulsion).
 //! [`AffinityCurve`] holds the fitted `a` and `b` parameters and evaluates both gradient families
 //! for four point pairs at a time over [`Vec2x4T`] batches.
 //!
-//! Every per-axis gradient component is clamped to [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
-//! before the learning rate is applied, which bounds the step a single sample can take and keeps
-//! early, badly-placed points from being flung across the layout.
+//! [`AffinityCurve`] clamps every per-axis gradient component to
+//! [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP) before the caller applies the learning rate,
+//! which bounds the step a single sample can take and stops one sample from flinging an early,
+//! badly-placed point across the layout.
 //!
-//! Exactly coincident points receive no gradient in either direction: their difference vector
-//! carries no direction to descend along, so layouts rely on distinct initial placement to separate
+//! Exactly coincident points receive no gradient in either direction. Their difference vector gives
+//! no direction for a descent step, so layouts rely on distinct initial placement to separate
 //! identical points.
 //!
 //! All gradient arithmetic is `f32` with FMA contraction where the target provides it, and the
@@ -75,9 +76,9 @@ impl AffinityCurve {
     /// The symmetric per-axis bound on every gradient component.
     ///
     /// Coefficients diverge as distances approach zero; the clamp bounds the displacement a single
-    /// sampled pair can cause, before the learning rate scales it. A displacement bound is only
-    /// meaningful relative to the frame it moves in: the clip and the caller's layout extent fix
-    /// one ratio, so a caller sizing its initial frame sizes it against this constant.
+    /// sampled pair can cause, before the learning rate scales it. A displacement bound takes its
+    /// scale from the frame it moves in: the clip and the caller's layout extent fix one ratio, so
+    /// a caller sizing its initial frame sizes it against this constant.
     pub const GRADIENT_CLIP: f32 = 4.0;
     /// Additive guard in the repulsion denominator.
     ///
@@ -124,7 +125,7 @@ impl AffinityCurve {
 
     /// Computes the clipped attraction gradients of four point pairs.
     ///
-    /// Entry `i` is the gradient acting on `from[i]` for the edge toward `to[i]`: a negative
+    /// Entry `i` is the gradient acting on `from[i]` for the edge toward `to[i]`. It is a negative
     /// multiple of the difference vector, clamped per axis, so it points from `from` toward `to`.
     /// The symmetric update applies `+lr · gradient` to `from` and `-lr · gradient` to `to`.
     ///

@@ -1,10 +1,10 @@
 //! The fit pipeline's failure surface.
 //!
-//! Two layers mirror the pipeline's thread boundary. [`StageError`] is the compute side: every
-//! failure a staged artifact or admission check can produce once ingest has finished streaming -
-//! carrying no dataset or provider type, it is `Send + 'static` by construction and crosses the
-//! rayon offload freely. [`FitError`] wraps it beside the failures only the async ingest can
-//! produce: the dataset's, the card stream's, and the embedding provider's.
+//! The failure surface mirrors the pipeline's thread boundary. [`StageError`] is the compute side
+//! and holds every failure a staged artifact or admission check produces once ingest has finished
+//! streaming. It carries no dataset or provider type, so it is `Send + 'static` by construction and
+//! crosses the rayon offload. [`FitError`] wraps [`StageError`] beside the failures only the async
+//! ingest produces. Those come from the dataset, the card stream, and the embedding provider.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -65,13 +65,13 @@ pub enum PlacementError {
     RepresentationWidth { configured: usize },
     /// Projector training failed.
     Train(TrainError<NodeRowId>),
-    /// The projector checkpoint could not be encoded or staged.
+    /// Encoding or staging the projector checkpoint failed.
     Checkpoint(CheckpointError),
     /// A whole-corpus inference pass failed.
     Projection(RefreshError<NodeRowId>),
     /// The ladder measurement rejected its fields.
     Ladder(LadderError),
-    /// The configured canonical condition was refused.
+    /// The ladder rejects the configured canonical condition.
     Canonical(CanonicalError),
 }
 
@@ -147,11 +147,11 @@ impl From<CanonicalError> for PlacementError {
     }
 }
 
-/// A prior generation offered for reuse could not serve it.
+/// A prior generation offered for reuse cannot serve it.
 ///
-/// The prior's artifacts are read exactly as published ones are; a prior that fails here is
-/// corrupt, of another layout version, or of another dataset's id type, and the fit aborts rather
-/// than silently running without reuse.
+/// The fit reads the prior's artifacts exactly as it reads published ones. A prior that fails here
+/// is corrupt, of another layout version, or of another dataset's id type, and the fit aborts
+/// rather than running without reuse.
 #[derive(Debug)]
 pub enum PriorError {
     /// A prior card-embedding array failed to map.
@@ -168,7 +168,7 @@ pub enum PriorError {
     InvalidIdentities(InvalidIdentityFile),
     /// The prior skeleton selects a row beyond the prior identity table.
     ///
-    /// The two artifacts describe different corpora.
+    /// The skeleton and the identity table describe different corpora.
     SkeletonBeyondIdentities { row: u64 },
 }
 
@@ -216,7 +216,7 @@ impl Error for PriorError {
     }
 }
 
-/// A compute-side stage failed; nothing was published.
+/// A compute-side stage failed and published nothing.
 ///
 /// Every variant is dataset- and provider-free, so the whole enum is `Send + 'static` and crosses
 /// the rayon offload boundary.
@@ -304,8 +304,8 @@ pub enum StageError {
     Seal(SealError),
     /// A stage panicked on the compute pool.
     ///
-    /// The payload's message survives, the staging directory was removed during unwinding, and the
-    /// async executor never observes the unwind.
+    /// The payload's message survives, unwinding removes the staging directory, and the async
+    /// executor never observes the unwind.
     Panicked { message: Option<String> },
 }
 
@@ -676,9 +676,9 @@ impl Error for StageError {
     }
 }
 
-/// One fit failed; nothing was published.
+/// One fit failed and published nothing.
 ///
-/// `D` is the dataset's error, `E` the embedding provider's; both can only arise during ingest.
+/// `D` is the dataset's error and `E` the embedding provider's. Both arise only during ingest.
 /// Every compute-side failure arrives as [`FitError::Stage`].
 #[derive(Debug)]
 pub enum FitError<D, E> {

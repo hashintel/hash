@@ -1,12 +1,12 @@
-//! The attraction file: relation groups over a flat edge array.
+//! The attraction file format for relation groups over a flat edge array.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode; no migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
-//! This is a combined file: the group records delimit ranges of the edge array, meaningless without
-//! it, and always read with it, so both live in one file and cannot fall out of sync. The regions:
+//! The group records delimit ranges of the edge array and have no meaning without it, so one
+//! combined file holds both regions and they cannot fall out of sync. The regions:
 //!
 //! ```text
 //! | offset | size   | region                                        |
@@ -28,7 +28,7 @@
 //! by `(group, offset)` and never re-sort. All region offsets derive from `G` and `E` with checked
 //! arithmetic ([`FileHeader::expected_file_len`]); a header whose geometry overflows matches no
 //! real file. Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment
-//! guarantee of the array format applies unchanged: map the whole file and slice, never mmap at a
+//! guarantee of the array format applies unchanged. Map the whole file and slice, never mmap at a
 //! file offset.
 //!
 //! [`read::AttractionFile`] opens a file under these rules and hands out the raw typed regions;
@@ -57,7 +57,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -101,7 +101,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment this on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -120,13 +120,13 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
-/// One relation group: identity, shared weights, and its edge range.
+/// A relation group's identity, shared weights, and edge range.
 ///
 /// The range starts at `first_edge` and ends at the next group's `first_edge`, or at the file's
 /// edge count for the final group.
-// `FromBytes` is sound here: every field is an unconstrained primitive
-// encoding, and the domain rules over them (ordering, ranges, weight
-// domains) are validated by the mapped bridge, not the record.
+// `FromBytes` is sound here. Every field is an unconstrained primitive
+// encoding, and the mapped bridge validates the domain rules over them
+// (ordering, ranges, weight domains) rather than the record.
 #[derive(
     Debug,
     Copy,
@@ -153,9 +153,9 @@ pub(crate) struct GroupRecord {
 }
 
 /// One force-bearing link instance.
-// `FromBytes` is sound here: every field is an unconstrained primitive
-// encoding, and the domain rules over them (row domain, score ranges,
-// in-group order) are validated by the mapped bridge, not the record.
+// `FromBytes` is sound here. Every field is an unconstrained primitive
+// encoding, and the mapped bridge validates the domain rules over them
+// (row domain, score ranges, in-group order) rather than the record.
 #[derive(
     Debug,
     Copy,
@@ -167,7 +167,7 @@ pub(crate) struct GroupRecord {
 )]
 #[repr(C)]
 pub(crate) struct EdgeRecord {
-    /// The edge row the instance was read from.
+    /// The edge row the instance came from.
     pub edge: U64<LE>,
     /// The node row the link points from.
     pub source: U64<LE>,
@@ -257,8 +257,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The open path rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let edge_bytes = self.edges().checked_mul(size_of::<EdgeRecord>() as u64)?;

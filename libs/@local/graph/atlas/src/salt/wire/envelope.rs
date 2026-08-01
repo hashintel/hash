@@ -1,4 +1,4 @@
-//! The envelope writer: prefix, offset directory, padded payloads.
+//! The envelope writer, which lays out a prefix, an offset directory, and padded payloads.
 //!
 //! One response is a 16-byte prefix (magic with kind byte, wire version, zero flags, slot count,
 //! zero reserved), a directory of `slotCount` absolute `(start, end)` byte offsets, the payloads
@@ -10,15 +10,15 @@
 //! The directory is the locating mechanism: `(0, 0)` marks an absent slot, `start == end` at a
 //! nonzero offset marks a present-but-empty payload, and every present `start` is 8-aligned by
 //! construction (the payload region begins at the 8-aligned `16 + 8 * slotCount` and each payload
-//! pads to the next 8 boundary). Emitting the right mark carries request semantics - a zero-point
-//! tile's columns are present-empty while an unrequested section is absent - so
-//! [`slot`](EnvelopeWriter::slot) and [`absent`](EnvelopeWriter::absent) are distinct calls that
-//! keep that distinction explicit at every call site.
+//! pads to the next 8 boundary). Emitting the right mark carries request semantics, because a
+//! zero-point tile's columns are present-empty while an unrequested section is absent.
+//! [`slot`](EnvelopeWriter::slot) and [`absent`](EnvelopeWriter::absent) are distinct calls, so
+//! every call site keeps that distinction explicit.
 //!
-//! The writer owns the one buffer a response is assembled in: a slot's payload is written
-//! directly into it through the closure handed to [`slot`](EnvelopeWriter::slot), and the
-//! directory entry is backfilled as the closure returns, so every payload reaches the response
-//! by exactly one write.
+//! The writer assembles a response in one buffer. The closure handed to
+//! [`slot`](EnvelopeWriter::slot) writes a slot's payload directly into that buffer, and the writer
+//! backfills the directory entry as the closure returns, so every payload reaches the response by
+//! exactly one write.
 //!
 //! Offsets are `u32`: directory-addressed payloads end below 4 GiB, the format's
 //! representability boundary. The writer enforces it with checked conversions - a payload
@@ -55,7 +55,7 @@ struct Prefix {
     reserved: U16<LE>,
 }
 
-/// One directory entry: absolute byte offsets, `end` exclusive and unpadded.
+/// One directory entry of absolute byte offsets, with `end` exclusive and unpadded.
 #[derive(zerocopy::IntoBytes, zerocopy::Immutable)]
 #[repr(C)]
 struct Entry {
@@ -67,10 +67,10 @@ struct Entry {
 
 /// A single-buffer writer assembling one response.
 ///
-/// Slots are recorded strictly in slot order, one call per slot; the payload is written directly
-/// into the envelope's buffer and the directory entry is backfilled into the reserved region as
-/// each slot closes, so the buffer is complete the moment the last slot is recorded.
-/// [`finish`](Self::finish) checks the slot count and returns the bytes;
+/// The caller records slots in slot order, one call per slot. Each payload goes directly into the
+/// envelope's buffer, and the writer backfills the directory entry into the reserved region as each
+/// slot closes, so the buffer is complete the moment the last slot closes. [`finish`](Self::finish)
+/// checks the slot count and returns the bytes, and
 /// [`finish_with_trailer`](Self::finish_with_trailer) writes the trailer tail first.
 #[derive(Debug)]
 pub(crate) struct EnvelopeWriter {
@@ -107,19 +107,19 @@ impl EnvelopeWriter {
 
     /// Reserves room for `additional` payload bytes beyond the buffer's current length.
     ///
-    /// An allocation hint only; the buffer grows as needed regardless.
+    /// An allocation hint only, since the buffer grows as needed regardless.
     pub(crate) fn reserve(&mut self, additional: usize) {
         self.bytes.reserve(additional);
     }
 
     /// Records the next slot as present, writing its payload directly into the buffer.
     ///
-    /// The closure appends the payload bytes; the slot's extent is whatever it appended.
-    /// Zero-padded to the next 8 boundary after the closure returns.
+    /// The closure appends the payload bytes. The slot's extent is whatever it appended. The writer
+    /// zero-pads the payload to the next 8 boundary after the closure returns.
     ///
     /// # Panics
     ///
-    /// Panics when every declared slot is already recorded, and when the closure shrinks the
+    /// This panics when every declared slot is already recorded, and when the closure shrinks the
     /// buffer.
     pub(crate) fn slot(&mut self, write: impl FnOnce(&mut Vec<u8>)) {
         assert!(
@@ -138,12 +138,13 @@ impl EnvelopeWriter {
         self.record(start, end);
     }
 
-    /// Records the next slot as absent: directory `(0, 0)`, no bytes.
+    /// Records the next slot as absent, leaving its directory entry `(0, 0)` and adding zero
+    /// payload bytes.
     ///
     /// # Panics
     ///
-    /// Panics when every declared slot is already recorded, and on slot 0 - the `HEAD` is always
-    /// present.
+    /// This panics when every declared slot is already recorded, and on slot 0, because the `HEAD`
+    /// is always present.
     pub(crate) fn absent(&mut self) {
         assert!(
             self.recorded < self.slots,
@@ -159,7 +160,7 @@ impl EnvelopeWriter {
     ///
     /// # Panics
     ///
-    /// Panics when fewer slots were recorded than declared.
+    /// This panics when the caller recorded fewer slots than the envelope declares.
     #[must_use]
     pub(crate) fn finish(self) -> Vec<u8> {
         assert_eq!(
@@ -178,7 +179,7 @@ impl EnvelopeWriter {
     ///
     /// # Panics
     ///
-    /// Panics when fewer slots were recorded than declared.
+    /// This panics when the caller recorded fewer slots than the envelope declares.
     #[must_use]
     pub(crate) fn finish_with_trailer(mut self, write: impl FnOnce(&mut Vec<u8>)) -> Vec<u8> {
         assert_eq!(
@@ -191,7 +192,7 @@ impl EnvelopeWriter {
         self.bytes
     }
 
-    /// Backfills the directory entry for the slot just written.
+    /// Backfills the directory entry for the most recently written slot.
     fn record(&mut self, start: usize, end: usize) {
         let entry = Entry {
             start: U32::new(

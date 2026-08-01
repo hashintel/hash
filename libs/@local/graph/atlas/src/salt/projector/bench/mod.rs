@@ -7,9 +7,9 @@
 //! crate) those levers over the production [`Projector`] - never a mirror - while the model types
 //! stay private.
 //!
-//! Batches are synthesized at the corpus shape the trainer feeds: unit-norm 512-wide
+//! This module synthesizes batches at the corpus shape the trainer feeds: unit-norm 512-wide
 //! representations, mixed roles, a width-1 `[eta]` condition. The backward pass drives a
-//! mean-coordinate loss; gradient VALUES are meaningless, but the traversal is the full autodiff
+//! mean-coordinate loss; gradient values are meaningless, but the traversal is the full autodiff
 //! graph the composite objective shares, so its wall time is the decision's number.
 
 use burn::{
@@ -81,9 +81,9 @@ impl BackendKind {
 
 /// A [`Projector`] pair at the default architecture on one backend.
 ///
-/// Holds the plain model for inference forwards and the autodiff-decorated model for training
-/// steps, built from equal seeds: the same function, differing only in bookkeeping. The backend
-/// stays an internal choice, selected by [`BackendKind`].
+/// The plain model serves inference forwards and the autodiff-decorated model serves training
+/// steps. Equal seeds give both the same function, so they differ only in bookkeeping.
+/// [`BackendKind`] selects the backend, which stays an internal choice.
 pub struct Model(Flavor);
 
 // Boxed for variant-size parity: a CPU pair holds its parameters
@@ -96,7 +96,7 @@ enum Flavor {
 
 /// The plain and autodiff-decorated models of one backend.
 ///
-/// In the f32 configuration every flavor is measured at.
+/// The benches measure every flavor in the f32 configuration.
 struct Pair<B: Backend<FloatElem = f32>> {
     projector: Projector<B>,
     trained: Projector<Autodiff<B>>,
@@ -129,8 +129,8 @@ where
             norm_squared = component.mul_add(component, norm_squared);
             representation.push(component);
         }
-        // A 512-dimensional uniform draw is never the zero vector in
-        // practice; the guard keeps the normalization total.
+        // A 512-dimensional uniform draw is never the zero vector in practice. The guard keeps the
+        // normalization total.
         let scale = if norm_squared > 0.0 {
             norm_squared.sqrt().recip()
         } else {
@@ -163,7 +163,7 @@ where
 impl Model {
     /// Builds the default architecture on the chosen backend.
     ///
-    /// The plain and decorated models are built from equal seeds, so every flavor computes the same
+    /// Equal seeds build the plain and decorated models, so every flavor computes the same
     /// function.
     #[must_use]
     pub fn build<R>(kind: BackendKind, seed: u64) -> Self

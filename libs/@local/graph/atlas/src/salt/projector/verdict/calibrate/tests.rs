@@ -83,7 +83,7 @@ fn proximal_verdict(relation: u64) -> ResolvedVerdict {
 
 /// Scales of 0.75 with the guard 0.25 make every normalization exactly one.
 ///
-/// So measured `z` equals raw 2D distance.
+/// Measured `z` therefore equals raw 2D distance.
 fn scale(value: f32) -> NonNegative {
     NonNegative::new(value).expect("test scales are finite and non-negative")
 }
@@ -101,11 +101,11 @@ fn options(cap: usize) -> CalibrationOptions {
 
 #[test]
 fn z_is_measured_in_the_loss_normalization_by_hand() {
-    // One disjoint pair: degrees 1 each, so ν = 1/√(2 · 2) = 0.5.
+    // One disjoint pair with degrees 1 each, so ν = 1/√(2 · 2) = 0.5.
     let index = attraction_index(2, &[proximal_policy(5)], vec![instance(0, 5, 0, 1)]);
 
-    // d = 5 (a 3-4-5 triangle); normalization = √((0.75 + 0.25) ·
-    // (24.75 + 0.25)) = √(25) = 5, so z = 1 exactly.
+    // d = 5 (a 3-4-5 triangle). Normalization = √((0.75 + 0.25) · (24.75 + 0.25)) = √(25) = 5, so z
+    // = 1 exactly.
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
     let scales = LocalScales::new(IdSlice::from_boxed_slice(Box::new([
         scale(0.75),
@@ -133,7 +133,7 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
 
 #[test]
 fn radius_is_the_weighted_p25() {
-    // Four disjoint pairs (all ν = 0.5, weight 0.5) at z = 1, 2, 3, 4.
+    // The fixture has four disjoint pairs (all ν = 0.5, weight 0.5) at z = 1, 2, 3, 4.
     let instances = (0..4)
         .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
         .collect();
@@ -228,9 +228,8 @@ fn cap_bounds_a_high_volume_type() {
 
 #[test]
 fn hubs_are_discounted_by_degree() {
-    // Type 5: one hub (node 0) linked to four leaves, z = 2 per pair;
-    // within the group the hub's degree is 4, so ν = 1/√(5 · 2).
-    // Type 9: three disjoint pairs at z = 1 with ν = 1/2.
+    // Type 5 has one hub (node 0) linked to four leaves at z = 2 per pair. Within the group the
+    // hub's degree is 4, so ν = 1/√(5 · 2). Type 9: three disjoint pairs at z = 1 with ν = 1/2.
     let instances = vec![
         instance(0, 5, 0, 1),
         instance(1, 5, 0, 2),
@@ -278,8 +277,8 @@ fn hubs_are_discounted_by_degree() {
     );
     assert_eq!(peers.mass, 1.5);
 
-    // The pooled p25 lands on the peers' z = 1: their 1.5 mass alone
-    // covers the quarter threshold before any hub pair enters.
+    // The pooled p25 equals the peers' z = 1, because their 1.5 mass alone covers the quarter
+    // threshold before any hub pair enters.
     let total = hub.mass + peers.mass;
     assert!(1.5 >= 0.25 * total);
     assert_eq!(outcome.radius, Some(1.0));
@@ -296,8 +295,8 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let scales = unit_scales(2);
 
-    // Relation 7 is reviewed Proximal but has no attraction group;
-    // relation 5's verdict is Overlay, which carries no geometry.
+    // Relation 7 has a reviewed Proximal verdict but no attraction group. Relation 5's verdict is
+    // Overlay, which carries no geometry.
     let verdicts = [
         ResolvedVerdict {
             relation: OntologyRowId::new(5),

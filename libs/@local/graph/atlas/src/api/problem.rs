@@ -1,6 +1,6 @@
-//! RFC 9457 problem documents: the error surface of every handler.
+//! RFC 9457 problem documents, the error surface of every handler.
 //!
-//! The `type` member carries Surface v1's stable root-relative URIs, the body ships as
+//! The `type` member carries Surface v1's stable root-relative URIs, the body goes out as
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
 //! live here beside the document they produce. Requests that fail before a handler runs -
 //! malformed bodies, wrong content types, unparsable tile addresses - route through
@@ -70,7 +70,7 @@ pub(super) enum ProblemType {
     /// A request whose authority token is absent, malformed, foreign, or stale.
     #[serde(rename = "/problems/atlas/unauthorized")]
     Unauthorized,
-    /// The caller's scope could not be resolved, so the process cannot say what they may see.
+    /// Resolving the caller's scope failed, so the process cannot say what they may see.
     #[serde(rename = "/problems/atlas/visibility-unavailable")]
     VisibilityUnavailable,
 }
@@ -114,8 +114,8 @@ impl<'content> Problem<'content> {
 
     /// A 500 whose source stays in the server log.
     ///
-    /// The document carries only the static `detail`; `source` is recorded at
-    /// error level. Driver errors and panic payloads are log material and
+    /// The document carries only the static `detail`; the log records `source`
+    /// at error level. Driver errors and panic payloads are log material and
     /// never reach a client.
     pub(super) fn internal(
         source: impl core::fmt::Display,
@@ -173,7 +173,7 @@ impl OperationOutput for Problem<'_> {
         ctx: &mut GenContext,
         operation: &mut openapi::Operation,
     ) -> Vec<(Option<openapi::StatusCode>, openapi::Response)> {
-        // The default response: a problem carries its own status.
+        // One default response suffices because a problem carries its own status.
         Self::operation_response(ctx, operation)
             .map(|response| vec![(None, response)])
             .unwrap_or_default()
@@ -203,18 +203,18 @@ pub(super) fn reject_generation(
 /// Refuses a request that names no authenticated actor.
 ///
 /// The gateway authenticates the session and states the actor in a header, so a request arriving
-/// without one is malformed and answers 400. `detail` names which way the header failed, and echoes
-/// nothing else.
+/// without one is a malformed request and answers 400. `detail` names which way the header failed,
+/// and echoes nothing else.
 pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'static> {
     Problem::new(StatusCode::BAD_REQUEST, ProblemType::MissingActor, detail)
 }
 
 /// Refuses a request that presents no acceptable authority token.
 ///
-/// One uniform answer for every cause - an absent header, a malformed encoding, a failed tag, a
-/// stale issue time, or an actor mismatch - so a caller learns that its presentation refused and
+/// One uniform answer for every cause (an absent header, a malformed encoding, a failed tag, a
+/// stale issue time, or an actor mismatch), so a caller learns that its presentation refused and
 /// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out,
-/// so no cause is logged.
+/// so the server logs no cause.
 pub(super) fn unauthorized() -> Problem<'static> {
     Problem::new(
         StatusCode::UNAUTHORIZED,
@@ -224,11 +224,11 @@ pub(super) fn unauthorized() -> Problem<'static> {
     )
 }
 
-/// Refuses a request whose scope could not be resolved.
+/// Refuses a request whose scope resolution failed.
 ///
-/// The caller's permissions are unknown, so the answer is a 503: this process cannot say what the
+/// The caller's permissions are unknown, so the answer is a 503. This process cannot say what the
 /// caller may see, and a later attempt may succeed. The cause stays in the server log, since a
-/// resolution failure names store internals; the client reads that the scope is unavailable.
+/// resolution failure names store internals. The client reads that the scope is unavailable.
 pub(super) fn visibility_unavailable(error: &(impl core::fmt::Debug + ?Sized)) -> Problem<'static> {
     tracing::error!(?error, "resolving the caller's visibility failed");
 

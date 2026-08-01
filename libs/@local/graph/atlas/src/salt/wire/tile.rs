@@ -1,17 +1,18 @@
 //! The tile response: `HEAD`, columns, and trailer as one envelope.
 //!
 //! A tile document borrows the generation's base-order columns and names its delivered set in one
-//! of [`DeliveredSet`]'s two shapes: contiguous base-position ranges in delivery order - what both
-//! modes produce unmasked (a non-root delta tile is its quad node's one run; the delta root and
-//! every total tile are bucket-major run lists) - or a gathered position list in delivery order,
-//! the shape a visibility mask leaves behind. Encoding gathers the column entries, assembles the
-//! per-point type masks from the postings membership, and lays everything into the `SALTILET`
-//! five-slot envelope: `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot,
-//! absent until the product wants density.
+//! of [`DeliveredSet`]'s two shapes. Contiguous base-position ranges in delivery order are what
+//! both modes produce unmasked, where a non-root delta tile is its quad node's one run and the
+//! delta root and every total tile are bucket-major run lists. A gathered position list in delivery
+//! order is the shape a visibility mask leaves behind. Encoding gathers the column entries and the
+//! per-point type masks from the postings membership, then writes the `SALTILET` five-slot envelope
+//! of `HEAD`, `POSITIONS`, `ROW_IDS`, `TYPE_MASK`, and the reserved `MASS` slot, which stays absent
+//! until the product wants density.
 //!
-//! The document's consistency laws are producer contracts and panic when violated: the range
-//! lengths and the `HEAD`'s per-bucket runs must agree on the delivered count, trailer arrays cover
-//! exactly the delivered points, and children bits beyond the low four are reserved zero.
+//! The document's consistency laws are producer contracts and panic when violated. The wire
+//! reserves children bits beyond the low four, and a producer writes them zero. The range lengths
+//! and the `HEAD`'s per-bucket runs must agree on the delivered count, and the trailer arrays must
+//! cover exactly the delivered points.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -46,7 +47,9 @@ pub(crate) struct TileResponse<'doc> {
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
     /// ids: the `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
-    /// The hydrated detail trailer; `Some` iff the request set `includeDetailedData`.
+    /// The hydrated detail trailer.
+    ///
+    /// `Some` iff the request set `includeDetailedData`.
     pub trailer: Option<TileTrailer<'doc>>,
 }
 
@@ -55,8 +58,8 @@ impl TileResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: range lengths and `HEAD` runs disagreeing on the
-    /// delivered count, reserved children bits set, or trailer arrays not covering the delivered
+    /// This panics when range lengths and `HEAD` runs disagree on the delivered count, when a
+    /// producer sets a reserved children bit, or when the trailer arrays do not cover the delivered
     /// points.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
@@ -121,13 +124,13 @@ impl TileResponse<'_> {
     ///
     /// Each membership contributes by a linear merge of its ascending positions against the
     /// delivered set, never a per-point containment probe. A point matching no requested type keeps
-    /// the zero mask; no sentinel exists.
+    /// the zero mask, and no sentinel exists.
     ///
     /// The merge needs the delivered set in ascending base-position order, which delivery order
-    /// does not supply: a range list numbers each point from its own range's start, and a gathered
-    /// list that does not already ascend is walked through a permutation of its point indices
-    /// sorted by position, built once and reused by every membership. Bits land on each point's
-    /// delivery index either way, so the column stays in delivery order.
+    /// does not supply. A range list numbers each point from its own range's start. For a gathered
+    /// list that does not already ascend, the merge walks a permutation of its point indices sorted
+    /// by position, built once and reused by every membership. Either way the bits for a point
+    /// occupy its delivery index, so the column stays in delivery order.
     fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let delivered =
             usize::try_from(self.delivered.count()).expect("delivered counts fit usize");
@@ -260,15 +263,16 @@ pub(crate) struct TileHead<'doc> {
     pub global: Option<GlobalHead>,
     /// Key 9: the occupied-child bitmask.
     ///
-    /// Bit `i` = Morton child `i` holds a point below this zoom's cut. Bits beyond the low four
-    /// are reserved zero.
+    /// Bit `i` = Morton child `i` holds a point below this zoom's cut. The wire reserves the bits
+    /// beyond the low four, and a producer writes them zero.
     pub children: u8,
 }
 
 impl TileHead<'_> {
     /// Encodes the `HEAD` map.
     ///
-    /// Key 4 (`delivered`) and key 10 (`trailer`) are derived from the response rather than stored.
+    /// Key 4 (`delivered`) and key 10 (`trailer`) come from the response rather than from a stored
+    /// field.
     fn encode(&self, buf: &mut Vec<u8>, delivered: u64, trailer: bool) {
         assert!(
             self.children < 16,
@@ -311,7 +315,7 @@ impl TileHead<'_> {
     }
 }
 
-/// A tile address: the route's `z/x/y`, echoed as `HEAD` key 2.
+/// A tile address, the route's `z/x/y` echoed as `HEAD` key 2.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 pub struct TileCoordinate {
     /// The zoom, a subdivision depth.

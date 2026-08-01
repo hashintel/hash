@@ -1,4 +1,5 @@
-//! The level-of-detail stage: served columns in base delivery order and the quadtree cut over them.
+//! The level-of-detail stage produces the served columns in base delivery order and the quadtree
+//! cut over them.
 
 use hashql_core::id::{Id, IdSlice, IdVec};
 use smallvec::SmallVec;
@@ -114,8 +115,8 @@ impl Context<'_> {
         // The priority column is the rank inputs' product-override
         // lane: a product-side boost (a pinned or promoted entity)
         // will feed it the day one exists. Until then every row
-        // carries the neutral 0 and the column rides along so the
-        // rank contract and the wire shape hold still when the
+        // carries the neutral 0 and the column stays present, so the
+        // rank contract and the wire shape do not change when the
         // signal arrives.
         let priority = IdVec::from_domain(0.0_f32, &importance);
         let inputs = RankInputs::new(&importance, &priority, ids.ids())

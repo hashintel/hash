@@ -1,9 +1,9 @@
 //! The SALT generation metadata document.
 //!
-//! The schema is **mutable** and carries no version of its own: it is nested inside the document
-//! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, so change it freely to
-//! fit what the pipeline needs and increment that version when you do; no migration or
-//! compatibility machinery exists on purpose until it stabilizes.
+//! The schema is **mutable** and carries no version of its own. It nests inside the document that
+//! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, so change it to fit
+//! what the pipeline needs and increment that version when you do. No migration or compatibility
+//! machinery exists on purpose until the schema stabilizes.
 
 use core::num::NonZero;
 
@@ -23,10 +23,10 @@ use crate::{
 
 /// Metadata describing one published SALT generation.
 ///
-/// The input snapshot, the declared inputs it ran under, and the evidence its files were admitted
-/// under.
+/// The input snapshot, the declared inputs the generation ran under, and the evidence that admitted
+/// its files.
 ///
-/// Each section's types live with the stage that produces its values; this document assembles them.
+/// Each section's types live with the stage that produces its values. This document assembles them.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SaltMetadata {
     pub snapshot: Snapshot,
@@ -36,10 +36,10 @@ pub(crate) struct SaltMetadata {
     pub evidence: Evidence,
 }
 
-/// How the generation's canonical coordinates were produced.
+/// What produced the generation's canonical coordinates.
 ///
-/// The identity keeps a baseline generation distinguishable from a trained one wherever the
-/// coordinates are consumed.
+/// The identity keeps a baseline generation distinguishable from a trained one wherever a reader
+/// consumes the coordinates.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum Placement {
@@ -56,8 +56,8 @@ pub(crate) enum Placement {
 
 /// Where the generation's rank inputs came from.
 ///
-/// The identity keeps the signals distinguishable wherever the ranking is consumed; it mirrors the
-/// configured [`RankingConfig`], recording what actually ran.
+/// The identity keeps the signals distinguishable wherever a reader consumes the ranking; it
+/// mirrors the configured [`RankingConfig`], recording what actually ran.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum RankingOrigin {
@@ -108,25 +108,24 @@ pub(crate) struct Reproducibility {
     /// tampered echo refuses to parse.
     #[serde(with = "FitConfigDef")]
     pub config: FitConfig,
-    /// The embedding contract the card embeddings were produced under.
+    /// The embedding contract under which the embedder produced the card embeddings.
     pub embedder: EmbedderFingerprint,
     /// The generation whose artifacts seeded reuse.
     ///
-    /// Card embeddings and landmark retention - when one was offered.
+    /// Card embeddings and landmark retention, reused when the fit received a prior generation.
     pub prior: Option<GenerationId>,
 }
 
 /// The admission evidence of one published generation.
 ///
-/// No check recorded here failed: a check that demonstrates its criterion is violated aborts the
+/// No check recorded here failed. A check that demonstrates a violation of its criterion aborts the
 /// fit, and an aborted fit publishes nothing. Demonstrating a violation is not the same as passing,
-/// and one check can end in neither - a sampled check whose budget runs out before its bound
-/// settles on one side of its criterion publishes what it measured, warned, and records the
-/// resolution it reached ([`RecallSpotCheck::resolution`]). Read the reading, not the presence of
-/// the block.
+/// and one check can end in neither. A sampled check whose budget runs out before its bound settles
+/// on one side of its criterion publishes what it measured, warned, and records the resolution it
+/// reached ([`RecallSpotCheck::resolution`]). Read the reading, not the presence of the block.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Evidence {
-    /// How the card-embedding rows were obtained.
+    /// Where the card-embedding rows came from.
     ///
     /// Reused from the prior generation or freshly embedded.
     pub cards: CardEmbeddingStats,
@@ -138,10 +137,10 @@ pub(crate) struct Evidence {
     pub landmarks: LandmarkEvidence,
     /// The policy stage's scale record.
     pub policy: PolicyEvidence,
-    /// How the relation-policy classifier was obtained.
+    /// Where the relation-policy classifier came from.
     ///
     /// With the fit and holdout measurements when this run fitted it. `None` records a generation
-    /// published before the classifier input was recorded.
+    /// published before the metadata recorded the classifier input.
     pub classifier: Option<ClassifierEvidence>,
     /// The relation build's dropped-instance and pruned-mass account.
     #[serde(with = "BuildMeasurementsDef")]
@@ -181,7 +180,7 @@ pub(crate) struct ProjectorEvidence {
     pub ladder: Option<LadderEvidence>,
 }
 
-/// How the Proximal radius was frozen at the trainer's phase boundary.
+/// How the trainer froze the Proximal radius at its phase boundary.
 ///
 /// The identity mirrors the trainer's frozen-radius outcome, recording what actually ran.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -258,7 +257,9 @@ mod similarity {
 
     use crate::math::{Rotation, Similarity, Vec2};
 
-    /// The alignment's wire form; the rotation is its unit vector.
+    /// The alignment's wire form.
+    ///
+    /// The rotation is its unit vector.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
         scale: f32,
@@ -400,9 +401,8 @@ struct BuildMeasurementsDef {
     retained_mass: f64,
     pruned_mass: f64,
     self_references: usize,
-    // Absent on documents published before the multiplicity mixture;
-    // no multi-typed edge existed in those stores, so the empty
-    // histogram records them faithfully.
+    // Absent on documents published before the multiplicity mixture. No multi-typed edge existed
+    // in those stores, so the empty histogram records them accurately.
     #[serde(default)]
     multi_typed_edges: Vec<u64>,
     // Absent on documents published before the drain clamped stream
@@ -489,16 +489,16 @@ pub(crate) struct PolicyEvidence {
     pub overridden: u64,
 }
 
-/// How the generation's relation-policy classifier was obtained.
+/// Where the generation's relation-policy classifier came from.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "provenance")]
 pub(crate) enum ClassifierEvidence {
-    /// The classifier was supplied as a fitted artifact.
+    /// The run received the classifier as a fitted artifact.
     Supplied {
         /// The SHA-256 of the supplied artifact's bytes.
         source: Sha256Digest,
     },
-    /// The classifier was fitted in this run from a supplied annotation corpus.
+    /// This run fitted the classifier from a supplied annotation corpus.
     Fitted {
         /// The SHA-256 of the corpus document's bytes, as staged.
         corpus: Sha256Digest,

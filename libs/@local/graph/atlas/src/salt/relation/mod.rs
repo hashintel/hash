@@ -117,7 +117,7 @@ mod tests;
 /// concerns); every instance handed to the build participates.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationInstance<N, E> {
-    /// The edge row the instance was read from.
+    /// The edge row that produced the instance.
     pub edge: E,
     /// The relation type, as an ontology row.
     pub relation: OntologyRowId,
@@ -219,7 +219,9 @@ pub(crate) struct BuildMeasurements {
     ///
     /// They carry no geometric force and enter no index.
     pub self_references: usize,
-    /// The edge multiplicity histogram: entry `i` counts edges carrying `i + 1` relation readings.
+    /// The edge multiplicity histogram.
+    ///
+    /// Entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed_edges: Vec<u64>,
     /// Stream confidence readings clamped into `0.0..=1.0` on the way in, counted per reading.
     ///
@@ -232,9 +234,8 @@ pub(crate) struct BuildMeasurements {
 impl BuildMeasurements {
     /// Returns the fraction of total force mass the pruning dropped.
     ///
-    /// This is the quantity the pruning threshold is audited by: a threshold is admissible while
-    /// the omitted fraction stays numerically negligible. An instance set without positive mass
-    /// omits nothing.
+    /// This quantity audits the pruning threshold: a threshold is admissible while the omitted
+    /// fraction stays numerically negligible. An instance set without positive mass omits nothing.
     #[must_use]
     pub(crate) fn omitted_mass_fraction(&self) -> f64 {
         let total = self.retained_mass + self.pruned_mass;
@@ -265,19 +266,19 @@ pub(crate) struct RelationIndexes<N, E> {
 impl<N, E> RelationIndexes<N, E> {
     /// Builds both indexes from the generation's admitted link instances.
     ///
-    /// `rows` is the node-row domain the protection matrix spans; every instance endpoint lies in
-    /// it under the dataset row contract. The instances are reordered in place; both indexes are
-    /// functions of the instance set alone, identical for any input order. Instances whose
-    /// endpoints are one row are dropped and counted in the measurements: they exert no force
-    /// between distinct points and protect nothing. Degrees and protection evidence cover the
-    /// complete remaining instance set regardless of pruning.
+    /// `rows` is the node-row domain the protection matrix spans, and every instance endpoint lies
+    /// in it under the dataset row contract. The build reorders the instances in place, and both
+    /// indexes are functions of the instance set alone, identical for any input order. The build
+    /// drops instances whose endpoints are one row and counts them in the measurements, because
+    /// they exert no force between distinct points and protect nothing. Degrees and protection
+    /// evidence cover the complete remaining instance set regardless of pruning.
     ///
-    /// Sorting and emission are parallel at two levels: groups build concurrently, and a group's
+    /// Sorting and emission are parallel at two levels. Groups build concurrently, and a group's
     /// instances emit over fixed-position chunks, so one high-volume relation cannot serialize the
-    /// pass. The fixed boundaries keep the double-precision mass sums a function of the
-    /// instance set alone. Time is `O(E log E)` in the instance count; beyond the returned indexes
-    /// the build allocates one two-column endpoint scratch per relation group and one per-instance
-    /// protection record buffer.
+    /// pass. The fixed boundaries keep the double-precision mass sums a function of the instance
+    /// set alone. Time is `O(E log E)` in the instance count. Beyond the returned indexes the build
+    /// allocates one two-column endpoint scratch per relation group and one per-instance protection
+    /// record buffer.
     ///
     /// # Errors
     ///
@@ -286,7 +287,7 @@ impl<N, E> RelationIndexes<N, E> {
     ///
     /// # Panics
     ///
-    /// Panics when an instance endpoint lies outside the `rows` domain, which the dataset row
+    /// This panics when an instance endpoint lies outside the `rows` domain, which the dataset row
     /// contract excludes.
     pub(crate) fn build(
         rows: usize,

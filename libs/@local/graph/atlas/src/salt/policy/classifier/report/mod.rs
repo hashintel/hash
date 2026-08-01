@@ -1,4 +1,4 @@
-//! The classifier report: a certified refit of one published generation's deployed model.
+//! A certified refit of one published generation's deployed model.
 //!
 //! The report reconstructs the classifier training set from the generation's staged annotation
 //! artifacts (the [`replay`] facility), re-runs the full production fit under the echoed
@@ -12,8 +12,8 @@
 //! training-distance distribution, and the out-of-fold metrics); and the certification verdict
 //! with both digests.
 //!
-//! Failures panic with the failing step's error: a report run has no recovery path, and the
-//! error is the diagnosis.
+//! Failures panic with the failing step's error. A report run has no recovery path, and the error
+//! is the diagnosis.
 
 pub(crate) mod replay;
 
@@ -32,18 +32,18 @@ use crate::{
     salt::policy::GeometryClass,
 };
 
-/// The certification verdict: the refit model against the staged artifact.
+/// The certification verdict of the refit model against the staged artifact.
 #[derive(Debug, serde::Serialize)]
 struct Certification {
     /// The staged `.clsf` artifact's recorded identity.
     staged: Sha256Digest,
     /// SHA-256 of the refit model's serialized bytes.
     recomputed: Sha256Digest,
-    /// The two digests agree: the report describes the deployed model.
+    /// Whether the digests agree, which certifies that the report describes the deployed model.
     verified: bool,
 }
 
-/// The deployed model's summary: parameters and out-of-fold evidence.
+/// The deployed model's parameters and out-of-fold evidence.
 #[derive(Debug, serde::Serialize)]
 struct ModelSummary {
     /// Euclidean norm of each coefficient row, in class order.
@@ -74,7 +74,7 @@ struct ModelSummary {
     training_distances: Box<[f64]>,
 }
 
-/// One training row's report: identity, supervision, and out-of-fold behaviour.
+/// One training row's identity, supervision, and out-of-fold behaviour.
 #[derive(Debug, serde::Serialize)]
 struct RowReport {
     /// The card's canonical identity URL.
@@ -110,13 +110,14 @@ pub(crate) struct ClassifierReport {
 }
 
 impl ClassifierReport {
-    /// Reconstructs the staged corpus, refits the deployed model, certifies the bytes, and
+    /// Reconstructs the staged corpus and refits the deployed model, then certifies the bytes and
     /// compiles the bundle.
     ///
     /// # Panics
     ///
-    /// Panics when the generation cannot be opened, its staged corpus fails reconstruction, the
-    /// refit fails, or the recomputed model does not reproduce the staged artifact bytes.
+    /// This panics when the report cannot open the generation, when its staged corpus fails
+    /// reconstruction, when the refit fails, or when the recomputed model does not reproduce the
+    /// staged artifact bytes.
     pub(crate) async fn compile(root: &GenerationRoot, generation: GenerationId) -> Self {
         let frozen = Frozen::load(root, generation);
         let reconstructed = frozen.reconstruct().await;

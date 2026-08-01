@@ -1,19 +1,19 @@
 //! Reconstruction of a frozen classifier corpus from staged annotation artifacts.
 //!
-//! The lab instruments (the fold probe, the classifier report) re-run classifier machinery over
-//! the exact bytes a production fit consumed. The staged `annotation-corpus.json` document
-//! replays through the production assembly under the generation's echoed assembly configuration,
-//! with an embedder that answers every card text from the staged embedding table by text hash
-//! and refuses to embed anything new. Serializing the reassembled table must reproduce the
-//! staged array files byte-for-byte (SHA-256 equality), so the replayed inputs are provably the
-//! bytes the production fit consumed.
+//! The lab instruments (the fold probe, the classifier report) re-run classifier machinery over the
+//! exact bytes a production fit consumed. The staged `annotation-corpus.json` document replays
+//! through the production assembly under the generation's echoed assembly configuration. The
+//! embedder answers every card text from the staged embedding table by text hash and refuses new
+//! embeddings. Reconstruction requires that serializing the reassembled table reproduce the staged
+//! array files byte-for-byte under SHA-256 equality, which proves the replayed inputs are the bytes
+//! the production fit consumed.
 //!
 //! The artifacts come from a published generation ([`Frozen::load`]) or from a directory of
-//! supplied artifact files ([`Frozen::from_supplied`]). The supplied form exists for the fit
-//! that cannot publish: a failing fit stages no generation to probe, but its input artifacts
-//! exist on disk, and the byte certification holds either way.
+//! supplied artifact files ([`Frozen::from_supplied`]). The supplied form exists for a fit that
+//! cannot publish. A failing fit stages no generation for probing, but its input artifacts exist on
+//! disk, and the byte certification holds either way.
 //!
-//! Failures panic with the failing step's error: a replay has no recovery path, and the error is
+//! Failures panic with the failing step's error. A replay has no recovery path, and the error is
 //! the diagnosis.
 
 use camino::Utf8Path;
@@ -105,7 +105,7 @@ impl CardEmbedder for TableEmbedder {
     }
 }
 
-/// The frozen generation inputs: document, staged table, and the echoed configuration.
+/// The document, staged table, and echoed configuration of one frozen generation.
 pub(crate) struct Frozen {
     supplied: SuppliedAnnotations,
     embedder: TableEmbedder,
@@ -138,8 +138,8 @@ impl Frozen {
     ///
     /// # Panics
     ///
-    /// Panics when the generation cannot be opened or did not fit its classifier in-run (a
-    /// supplied artifact stages no corpus).
+    /// This panics when the loader cannot open the generation, or when the generation did not fit
+    /// its classifier in-run (a supplied artifact stages no corpus).
     pub(crate) fn load(root: &GenerationRoot, id: GenerationId) -> Self {
         let generation = root.open(id).expect("the generation is published");
         let repository = generation.repository();
@@ -194,12 +194,13 @@ impl Frozen {
     /// Supplied artifacts carry no configuration echo, so the assembly and fit configurations
     /// are the compiled deployment defaults; [`reconstruct`](Self::reconstruct) still certifies
     /// the reassembled table against the supplied bytes, so a default assembly that diverges
-    /// from the one that produced the artifacts fails the byte certification instead of
-    /// silently probing a different corpus.
+    /// from the one that produced the artifacts fails the byte certification instead of probing a
+    /// different corpus.
     ///
     /// # Panics
     ///
-    /// Panics when an artifact file cannot be read or the corpus document fails validation.
+    /// This panics when reading an artifact file fails or when the corpus document fails
+    /// validation.
     pub(crate) fn from_supplied(directory: &Utf8Path) -> Self {
         let embeddings_path = directory.join("annotation-embeddings.arr");
         let hashes_path = directory.join("annotation-hashes.arr");
@@ -215,9 +216,9 @@ impl Frozen {
             std::fs::read(hashes_path.as_std_path()).expect("the supplied hash column reads"),
         );
 
-        // Supplied artifacts name no embedder; the fingerprint is minted from the supplied
-        // table's own digest and serves only as the reassembled table's identity label - it
-        // never enters the certified bytes.
+        // Supplied artifacts name no embedder, so the fingerprint derives from the supplied table's
+        // own digest and labels the reassembled table's identity without entering the certified
+        // bytes.
         let embedder = TableEmbedder::load(
             EmbedderFingerprint::new(embeddings_digest),
             &hashes_path,
@@ -241,7 +242,7 @@ impl Frozen {
     ///
     /// # Panics
     ///
-    /// Panics when the staged document does not reproduce its recorded digest, when it fails
+    /// This panics when the staged document does not reproduce its recorded digest, when it fails
     /// assembly, or when the reassembled table does not reproduce the staged bytes.
     pub(crate) async fn reconstruct(&self) -> Reconstructed {
         assert!(

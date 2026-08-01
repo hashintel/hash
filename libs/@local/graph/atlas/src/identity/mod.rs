@@ -10,12 +10,12 @@
 //! identity tables; an id here names an index in one generation's streams, valid only against the
 //! generation that assigned it.
 //!
-//! Rows and orders are different domains over the same points: a row names a stream entry, while a
+//! Rows and orders are different domains over the same points. A row names a stream entry, while a
 //! base position and a key ordinal name slots in two permutations of it. The generation's own
 //! columns convert between them.
 //!
 //! Row ids persist: the in-memory form is the little-endian byte form, so a column of these ids
-//! is written to and read from artifact files without conversion.
+//! writes to and reads back from artifact files without conversion.
 
 pub(crate) use self::column::{Column, Element};
 pub use self::{

@@ -1,15 +1,14 @@
-//! The solve-ready problem: a prepared corpus evaluated in scaled coordinates.
+//! A prepared corpus evaluated in the solver's scaled coordinates.
 //!
-//! [`ScaledProblem`] bundles one validated [`Prepared`] corpus with one validated
-//! [`SolverConfig`] and the corpus's [`GramView`], and exposes the physical evaluations
-//! transformed into the solver's scaled
-//! coordinates: with the preparation diagonal `D`, points map as `θ(ζ) = D⁻¹ζ`, gradients as
-//! `gζ = D⁻¹gθ`, and Hessian-vector products as `Hζ[v] = D⁻¹·Hθ[D⁻¹v]`. Physical evaluation
-//! receives `θ(ζ)` only at this boundary, so every quantity the loop compares or accumulates
-//! lives in one coordinate system.
+//! [`ScaledProblem`] bundles one validated [`Prepared`] corpus with one validated [`SolverConfig`]
+//! and the corpus's [`GramView`], and exposes the physical evaluations transformed into the
+//! solver's scaled coordinates. With the preparation diagonal `D`, points map as `θ(ζ) = D⁻¹ζ`,
+//! gradients as `gζ = D⁻¹gθ`, and Hessian-vector products as `Hζ[v] = D⁻¹·Hθ[D⁻¹v]`. Physical
+//! evaluation receives `θ(ζ)` only at this boundary, so every quantity the loop compares or
+//! accumulates lives in one coordinate system.
 //!
-//! Work is charged by the underlying evaluations themselves; the coordinate transformations add
-//! no traversals.
+//! The underlying evaluations charge all the work themselves, and the coordinate transformations
+//! add no traversals.
 
 use super::{
     ContrastVector, SOLVER_DIMENSIONS, config::SolverConfig, gram::GramView, prepare::Prepared,

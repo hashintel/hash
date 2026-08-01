@@ -95,7 +95,7 @@ fn config() -> FitConfig {
     }
 }
 
-/// Two rows with mixed targets and distinct groups.
+/// Builds a two-row corpus with mixed targets and distinct groups.
 fn mixed_corpus() -> Corpus {
     let mut corpus = Corpus::new();
     corpus.push(&[0.5, -0.25, 0.125, 0.75], [0.6, 0.3, 0.1], 1.5, b"group-a");
@@ -202,7 +202,7 @@ fn grouped_folds_keep_groups_whole_and_sizes_balanced() {
     let folds = grouped_folds(&rows, 2, 9).expect("four groups fill two folds");
 
     assert_eq!(folds.len(), rows.len());
-    // Rows sharing a group land in one fold.
+    // Rows sharing a group all receive the same fold.
     assert!(
         folds
             .prefix(CardRow::from_u32(3))
@@ -332,7 +332,7 @@ fn overconfident_logits_calibrate_above_one() {
     // softmax([6, 0, 0] / T) equals the target at exp(6 / T) = 3, an
     // interior optimum of the [0.05, 20] bracket. Near the optimum the
     // cross-entropy is flat below f64 resolution over a relative
-    // window of roughly √(2 · ε / 0.24) ~ 3e-8 in ln T, so the
+    // window of √(2 · ε / 0.24) ~ 3e-8 in ln T, so the
     // search cannot localize tighter than that.
     let expected = 6.0 / 3.0_f64.ln();
     assert!(temperature > 1.0);
@@ -705,9 +705,8 @@ fn every_cross_validation_fold_reports_once() {
     )
     .expect("the separable corpus fits");
 
-    // Four models are fitted; the fourth holds nothing out and is the
-    // deployment model, not a fold, so the counter's ceiling is the
-    // announced three.
+    // The fit trains four models. The fourth holds nothing out and is the deployment model rather
+    // than a fold, so the counter's ceiling is the announced three.
     assert_eq!(progress.announced(), [3]);
     assert_eq!(progress.completed(), [0, 1, 2]);
 }

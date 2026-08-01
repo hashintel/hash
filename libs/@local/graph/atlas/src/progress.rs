@@ -1,11 +1,12 @@
-//! Observation of a running fit: the seam operator surfaces render from.
+//! Observation of a running fit.
 //!
-//! [`Progress`] carries the pipeline's observations - stage boundaries, batch counters,
-//! convergence readouts, quality probes - to whatever the operator is watching:
-//! nothing, a log stream, or a live dashboard. The trait observes and never steers: every value
-//! flows outward, and a run behaves identically under any observer. Each method has an empty
-//! default body, so an observer implements exactly the observations it renders and the rest
-//! monomorphize to no-ops that cost nothing.
+//! [`Progress`] is the seam operator surfaces render from. It carries the pipeline's observations
+//! to whatever the operator is watching, whether that is nothing, a log stream, or a live
+//! dashboard. The observations are stage boundaries, batch counters, convergence readouts, and
+//! quality probes. The trait observes and never steers. Every value flows outward, and a run
+//! behaves identically under any observer. Each method has an empty default body, so an observer
+//! implements exactly the observations it renders and the rest monomorphize to no-ops that cost
+//! nothing.
 //!
 //! Observations travel as the pipeline's own types wherever one exists - [`CardEmbeddingStats`],
 //! [`RecallSpotCheck`], [`LossBreakdown`], [`QualityMetric`], re-exported here - and as this
@@ -58,15 +59,16 @@ impl Stage {
     /// Every stage, in the order the runner drives them.
     ///
     /// A renderer showing the run's remaining work needs the order before the run reaches it, so
-    /// the sequence is stated once here rather than inferred from arrival.
+    /// this constant states the sequence once instead of leaving a renderer to infer it from
+    /// arrival.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the index runs over the variant count, an order of magnitude inside u8"
     )]
     pub const ALL: [Self; core::mem::variant_count::<Self>()] =
-        // SAFETY: every variant is a unit variant of a `repr(u8)` enum, so the discriminants are
-        // exactly `0..variant_count`, and `from_fn` calls the closure once per index of that
-        // range.
+        // SAFETY: every variant is a unit variant of a `repr(u8)` enum. The discriminants are
+        // therefore exactly `0..variant_count`, and `from_fn` calls the closure once per index of
+        // that range.
         core::array::from_fn(const |index| unsafe { core::mem::transmute(index as u8) });
 
     /// The stage's name, in the vocabulary a run reports it under.
@@ -110,9 +112,9 @@ pub struct DescentIteration {
     pub iteration: usize,
     /// Neighbour updates the iteration accepted, per stored list entry.
     ///
-    /// Not a share of anything: a local join offers a pair to both sides and one entry can be
-    /// displaced repeatedly inside one iteration, so an early reading stands above `1`. What the
-    /// reading carries is convergence - it falls as the lists stop changing.
+    /// Not a share of anything: a local join offers a pair to both sides and one iteration can
+    /// displace the same entry more than once, so an early reading stands above `1`. The reading
+    /// measures convergence. It falls as the lists stop changing.
     pub accepted_per_entry: f64,
     /// The convergence threshold the reading is falling toward.
     pub threshold: f64,
@@ -133,10 +135,10 @@ pub struct DescentIteration {
 pub trait Progress {
     /// The observer a stage hands to machinery that owns its reporter.
     ///
-    /// A backend that reports through a foreign builder cannot lend this observer: the builder
-    /// takes its reporter by value and keeps it for the call. An observer answers with whatever
-    /// it can give away - [`NoProgress`] when nothing crosses, or a handle onto its own sink -
-    /// and what crosses observes exactly what that answer observes.
+    /// A backend that reports through a foreign builder cannot lend this observer. The builder
+    /// takes its reporter by value and keeps it for the call. Each observer answers with whatever
+    /// it can give away: [`NoProgress`] when nothing crosses, or a handle onto its own sink. What
+    /// crosses observes exactly what that answer observes.
     type Detached: Progress + Send + Sync + 'static;
 
     /// Hands out this observer's detached half.
@@ -176,16 +178,17 @@ pub trait Progress {
     /// How many placement rows the observer wants sampled into
     /// [`projector_snapshot`](Self::projector_snapshot) calls.
     ///
-    /// The capability probe: `0` - the default - means the run never gathers a snapshot. The rows
-    /// are chosen once at stage start - the landmark skeleton first, then an even stride over the
-    /// corpus - and every snapshot reports those same rows moving. The choice draws no randomness,
-    /// so an observer's appetite cannot move what the run publishes.
+    /// The capability probe: `0`, the default, means the run never gathers a snapshot. The run
+    /// chooses the rows once at stage start, taking the landmark skeleton first and then an even
+    /// stride over the corpus, and every snapshot reports those same rows moving. The choice draws
+    /// no randomness, so an observer's appetite cannot move what the run publishes.
     fn projector_sample_size(&self) -> usize {
         0
     }
 
-    /// The sampled placement positions at a training refresh; `positions[..landmarks]` are the
-    /// landmark rows.
+    /// The sampled placement positions at a training refresh.
+    ///
+    /// The landmark rows are `positions[..landmarks]`.
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {}
 
     /// The classifier fit started over `folds` cross-validation folds.
@@ -279,7 +282,7 @@ where
     }
 }
 
-/// The silent observer: every observation is a no-op.
+/// The silent observer, whose observations are all no-ops.
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct NoProgress;
 

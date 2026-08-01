@@ -1,12 +1,12 @@
 //! Extractors whose rejections are problem documents.
 //!
-//! The framework's own extractors answer plain-text rejections, which would break the API's
+//! The framework's own extractors answer plain-text rejections, which breaks the API's
 //! every-error-is-a-problem-document contract. [`Body`] wraps JSON request bodies - an absent
 //! body answers the `missing-body` problem, a body that is not the operation's JSON answers
 //! `invalid-body`. [`Coordinates`] wraps the numeric tile-address segments so an unparsable
 //! `z/x/y` answers `invalid-coordinate`, and [`Generation`] wraps the generation-bearing
 //! segments so a malformed generation id answers `invalid-generation`. All three delegate their
-//! OpenAPI schemas to the extractor they wrap, so the documented contract is unchanged.
+//! OpenAPI schemas to the extractor they wrap, so the documented contract stays unchanged.
 
 #![expect(
     clippy::field_scoped_visibility_modifiers,
@@ -30,10 +30,10 @@ use super::problem::{Problem, ProblemType};
 /// A JSON request body whose rejections are problem documents.
 ///
 /// [`Json`] with the failure paths routed into the problem surface: a request without a body
-/// answers `missing-body` when the body is required (`Option<Body<T>>` reads an absent body as
-/// `None`), and a present body that is not the operation's JSON - wrong content type, syntax
-/// error, shape mismatch, oversize - answers `invalid-body` with the framework's parse failure
-/// as its detail and status. The detail is a request echo, never server state.
+/// answers `missing-body` when the operation requires the body (`Option<Body<T>>` reads an absent
+/// body as `None`), and a present body that is not the operation's JSON - wrong content type,
+/// syntax error, shape mismatch, oversize - answers `invalid-body` with the framework's parse
+/// failure as its detail and status. The detail is a request echo, never server state.
 #[derive(Debug)]
 pub(super) struct Body<T>(pub(super) T);
 
@@ -126,7 +126,7 @@ impl<T: JsonSchema> OperationInput for Coordinates<T> {
 
 /// The generation-bearing path segments, whose parse failure answers `invalid-generation`.
 ///
-/// [`Path`] with the rejection routed into the problem surface: a generation segment that is not
+/// [`Path`] with the rejection routed into the problem surface. A generation segment that is not
 /// a sha256 generation id answers 400 with the parse failure as its detail, while a well-formed
 /// id the process does not serve stays the handler's 404.
 #[derive(Debug)]
@@ -236,7 +236,8 @@ mod tests {
 
     #[tokio::test]
     async fn a_mistyped_body_answers_the_invalid_body_problem() {
-        // Well-formed JSON of the wrong shape: a data error, not a syntax error.
+        // Well-formed JSON of the wrong shape reads as a data error (422) rather than a syntax
+        // error (400).
         let problem = Body::<Subject>::from_request(json_request(r#"{"name": 7}"#), &())
             .await
             .expect_err("a mistyped body must refuse");
@@ -266,7 +267,7 @@ mod tests {
         assert_eq!(document["type"], "/problems/atlas/invalid-body");
     }
 
-    /// The tile-address shape: the numeric segments that can fail to parse.
+    /// The tile-address shape whose numeric segments can fail to parse.
     #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
     struct Cell {
         z: u8,
@@ -370,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn a_wrong_content_type_answers_the_invalid_body_problem() {
-        // The handler is irrelevant; the extractor refuses first.
+        // The handler is irrelevant because the extractor refuses first.
         let router: Router = Router::new().route(
             "/subject",
             post(|Body(subject): Body<Subject>| async move { subject.name }),

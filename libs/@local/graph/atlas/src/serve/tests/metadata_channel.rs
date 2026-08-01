@@ -1,15 +1,15 @@
 //! Controlled schedule proof for hidden occupancy in restricted response metadata.
 //!
-//! A restricted root response publishes two scalars the corpus cascade derives: the visible count
-//! of the root's cumulative schedule, and the deepest bucket holding a visible row. Both read the
+//! A restricted root response publishes two scalars the corpus cascade derives, the visible count
+//! of the root's cumulative schedule and the deepest bucket holding a visible row. Both read the
 //! bucket assignment, and that assignment is a function of every corpus row, so a hidden row moves
 //! them while the visible view stays fixed.
 //!
-//! The comparison holds the visible view fixed in the sense the delivery contract names: identical
-//! visible row identity, identical visible Morton keys, identical relative importance order among
-//! visible rows. The two worlds differ only in rows the proof hides.
+//! The comparison keeps the visible view fixed in the sense the delivery contract names, with
+//! identical visible row identity, identical visible Morton keys, and identical relative importance
+//! order among visible rows. Both worlds differ only in rows the proof hides.
 //!
-//! Two corpora are required. One corpus under two proofs shares one bucket assignment, so the
+//! The witness needs two corpora. One corpus under two proofs shares one bucket assignment, so the
 //! channel is invisible to any comparison that varies the mask alone.
 
 use hashql_core::id::{Id as _, IdSlice};
@@ -20,7 +20,9 @@ use crate::{
     salt::lod::{cascade, rank::Ranking},
 };
 
-/// The fixture's span exponent: the root's cumulative schedule is buckets `0..=2`.
+/// The fixture's span exponent.
+///
+/// The root's cumulative schedule is buckets `0..=2`.
 const SPAN: u8 = 2;
 
 /// The fixture's deepest cascade grid.
@@ -112,7 +114,7 @@ fn a_hidden_row_changes_the_authorized_root_metadata() {
     let shares_depth_one = MortonKey::new(0x4000_0000, 0);
     let shares_depth_two = MortonKey::new(0x2000_0000, 0);
 
-    // The sparse world: the visible row alone, first occupant of the root cell.
+    // The sparse world admits the visible row alone, the first occupant of the root cell.
     let sparse = read(&[subject], &[0], 0);
     assert_eq!(
         sparse,
@@ -123,7 +125,7 @@ fn a_hidden_row_changes_the_authorized_root_metadata() {
         },
     );
 
-    // The blocked world: the same visible row, named last in rank order behind three hidden rows.
+    // The blocked world names the same visible row last in rank order, behind three hidden rows.
     let blocked = read(
         &[
             claims_depth_one,

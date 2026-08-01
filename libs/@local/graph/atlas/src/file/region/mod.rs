@@ -1,18 +1,18 @@
 //! Page-aligned region infrastructure shared by the artifact file formats.
 //!
-//! Every artifact file in [`crate::file`] follows one shape: a header page, then data regions in a
-//! fixed order, each starting on a [`PAGE`] boundary and zero padded up to the next. This module
-//! carries the pieces of that shape every format otherwise restates:
+//! Every artifact file in [`crate::file`] follows one shape. A header page comes first, then data
+//! regions in a fixed order, each starting on a [`PAGE`] boundary and zero padded up to the next.
+//! This module carries the pieces of that shape every format otherwise restates:
 //!
 //! - [`padded_size`] is the checked arithmetic step of a header's offset chain - one region's byte
 //!   size rounded to the boundary its successor starts on.
 //! - [`write_region`] and [`write_padding`] produce a region's bytes and the zero padding that
 //!   closes it, so a writer states its regions in order and never derives padding from offsets.
-//! - [`PageMap`] is the read-side mapping: one place holds the safety argument for mapping
-//!   published files, the header-page slice, and the region carving every reader repeats.
+//! - [`PageMap`] is the read-side mapping, which states the safety argument for mapping published
+//!   files once and provides the header-page slice and the region carving every reader repeats.
 //!
-//! Each format keeps its own header type, geometry validation, and error vocabulary; this module is
-//! deliberately ignorant of what a region holds.
+//! Each format keeps its own header type, geometry validation, and error vocabulary. This module
+//! never inspects what a region holds.
 
 use std::{
     fs::{self, File},
@@ -28,7 +28,7 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 /// One whose value is exactly its bytes, at any alignment.
 ///
 /// Identity columns and other opaque records persist as raw bytes and read back as typed slices
-/// straight from a mapping; this alias names the capability stack that contract needs in one place.
+/// straight from a mapping. This alias names the capability stack that contract needs in one place.
 /// The blanket implementation makes the alias free to adopt: any type with the constituent traits
 /// already is one.
 pub(crate) trait ByteStable:
@@ -41,7 +41,7 @@ impl<T: Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayou
 {
 }
 
-/// One page: the size of every format's header and the boundary every data region starts on.
+/// One page, the size of every format's header and the boundary every data region starts on.
 pub(crate) const PAGE: u64 = 4096;
 
 /// [`PAGE`] as a slice length.
@@ -86,12 +86,11 @@ pub(crate) fn write_padding(mut write: impl io::Write, len: u64) -> io::Result<(
 
 /// A memory-mapped artifact file.
 ///
-/// The mapping relies on the publish contract of [`crate::file`]: published artifact files are
-/// immutable, so the borrowed bytes cannot change beneath a reader. The map holds the file and a
-/// shared advisory lock for its whole lifetime, so a cooperating writer that takes an exclusive
-/// lock cannot truncate or rewrite the inode beneath a live mapping. [`Self::region`] carves the
-/// page-aligned data regions out of the mapping once a format's own validation has accepted the
-/// geometry they come from.
+/// Published artifact files are immutable under the publish contract of [`crate::file`], so the
+/// borrowed bytes cannot change beneath a reader. The map holds the file and a shared advisory lock
+/// for its whole lifetime, so a cooperating writer that takes an exclusive lock cannot truncate or
+/// rewrite the inode beneath a live mapping. [`Self::region`] carves the page-aligned data regions
+/// out of the mapping once a format's own validation has accepted the geometry they come from.
 #[derive(Debug)]
 pub(crate) struct PageMap {
     map: Mmap,
@@ -104,9 +103,9 @@ impl PageMap {
     ///
     /// # Errors
     ///
-    /// Returns the error when the file cannot be opened, locked, or mapped. A published file
-    /// never carries an exclusive lock, so a lock that would block reports
-    /// [`io::ErrorKind::WouldBlock`] instead of waiting.
+    /// Returns the error when opening, locking, or mapping the file fails. A published file never
+    /// carries an exclusive lock, so a lock that would block reports [`io::ErrorKind::WouldBlock`]
+    /// instead of waiting.
     pub(crate) fn open(path: impl AsRef<Path>) -> io::Result<Self> {
         let file = File::open(path)?;
         file.try_lock_shared().map_err(|error| match error {
@@ -116,10 +115,11 @@ impl PageMap {
                 "the artifact file is exclusively locked",
             ),
         })?;
-        // SAFETY: published artifact files are immutable (the `crate::file` publish contract:
-        // temporary path, rename into place, never rewritten), so the mapped bytes cannot change
-        // beneath the borrow. The shared advisory lock held for the mapping's lifetime makes a
-        // cooperating in-place writer fail loudly instead of invalidating the borrow.
+        // SAFETY: published artifact files are immutable. The `crate::file` publish contract writes
+        // to a temporary path and renames it into place without ever rewriting the file. The mapped
+        // bytes therefore cannot change beneath the borrow. The shared advisory lock held for the
+        // mapping's lifetime makes a cooperating in-place writer's exclusive lock fail instead of
+        // invalidating the borrow.
         let map = unsafe { Mmap::map(&file) }?;
         Ok(Self { map, _file: file })
     }
@@ -143,9 +143,9 @@ impl PageMap {
     ///
     /// # Panics
     ///
-    /// Panics when the region escapes the mapping. Offsets and lengths repeat checked computations
-    /// the format's open already accepted against the file length, so a validated caller never
-    /// reaches the panic.
+    /// This panics when the region escapes the mapping. Offsets and lengths repeat checked
+    /// computations the format's open already accepted against the file length, so a validated
+    /// caller never reaches the panic.
     pub(crate) fn region(&self, offset: u64, len: u64) -> &[u8] {
         let offset = usize::try_from(offset).expect("a mapped offset fits the address space");
         let len = usize::try_from(len).expect("a mapped region fits the address space");

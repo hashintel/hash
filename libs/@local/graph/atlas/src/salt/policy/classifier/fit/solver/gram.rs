@@ -2,11 +2,11 @@
 //!
 //! The exact Newton engine's capacitance blocks read pairwise embedding products
 //! `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`. Embeddings never change across outer iterations, regularization candidates,
-//! or folds, so [`Gram`] is assembled once per fit over the full training corpus and every fold
-//! solve reads its subset through a [`GramView`] carrying the fold's member indices. Entries
-//! accumulate in `f64` through the exact-product kernel
-//! [`AlignedVecN::dot_accumulated`], one independent dot per entry, so the assembled bytes are
-//! deterministic and a view's entries equal a direct assembly over the subset bit for bit.
+//! or folds, so the fit assembles [`Gram`] once over the full training corpus and every fold solve
+//! reads its subset through a [`GramView`] carrying the fold's member indices. Entries accumulate
+//! in `f64` through the exact-product kernel [`AlignedVecN::dot_accumulated`], one independent dot
+//! per entry, so the assembled bytes are deterministic and a view's entries equal a direct assembly
+//! over the subset bit for bit.
 //!
 //! Storage is the packed lower triangle - `n(n+1)/2` components for `n` rows - and lookups are
 //! symmetric: `entry(i, j)` and `entry(j, i)` read the same component.
@@ -28,8 +28,8 @@ impl Gram {
     /// Assembles the Gram matrix over the corpus embeddings in one charged pass.
     ///
     /// Each entry is one independent double-accumulated dot, so the assembly is deterministic
-    /// at any traversal order; rows fill in ascending index. The work is `n(n+1)/2` wide dots,
-    /// once per fit.
+    /// at any traversal order. Rows fill in ascending index. The work is `n(n+1)/2` wide dots, once
+    /// per fit.
     pub(crate) fn assemble(
         embeddings: &[AlignedVecN<CANONICAL_DIMENSIONS>],
         counters: &mut WorkCounters,
@@ -56,11 +56,11 @@ impl Gram {
         self.order
     }
 
-    /// The entry `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`; symmetric in its indices.
+    /// Returns the entry `Kᵢⱼ = x̄ᵢᵀx̄ⱼ`, symmetric in its indices.
     ///
     /// # Panics
     ///
-    /// Panics when an index is not below the order.
+    /// This panics when an index is not below the order.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -98,7 +98,9 @@ const fn packed_length(order: usize) -> usize {
 pub(crate) struct GramView<'fit> {
     /// The fit-level matrix.
     gram: &'fit Gram,
-    /// Original corpus index per solve row; [`None`] is the identity of a full-corpus solve.
+    /// Original corpus index per solve row.
+    ///
+    /// [`None`] is the identity of a full-corpus solve.
     members: Option<&'fit [usize]>,
 }
 
@@ -115,7 +117,7 @@ impl<'fit> GramView<'fit> {
     ///
     /// # Panics
     ///
-    /// Panics when a member index is not below the matrix order.
+    /// This panics when a member index is not below the matrix order.
     pub(crate) fn subset(gram: &'fit Gram, members: &'fit [usize]) -> Self {
         assert!(
             members.iter().all(|member| *member < gram.order()),
@@ -134,11 +136,11 @@ impl<'fit> GramView<'fit> {
             .map_or_else(|| self.gram.order(), <[usize]>::len)
     }
 
-    /// The entry `Kᵢⱼ` in the view's own row indices; symmetric in its indices.
+    /// Returns the entry `Kᵢⱼ` in the view's own row indices, symmetric in its indices.
     ///
     /// # Panics
     ///
-    /// Panics when an index is not below the view's order.
+    /// This panics when an index is not below the view's order.
     #[inline]
     pub(crate) fn entry(&self, i: usize, j: usize) -> f64 {
         self.members.map_or_else(

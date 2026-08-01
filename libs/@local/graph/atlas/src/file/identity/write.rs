@@ -9,7 +9,8 @@ use crate::file::region::{PAGE, write_padding, write_region};
 
 /// Returns the index stride for `key_width`-byte ids.
 ///
-/// The pairs one 4096-byte page holds, so one index key resolves to one faulted page.
+/// The stride is the number of pairs that fit one 4096-byte page, so one index key resolves to one
+/// faulted page.
 #[expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -39,7 +40,7 @@ pub(crate) const fn stride_for(key_width: u32) -> u32 {
 /// `ids` is the packed id column in row order, `key_width` bytes per id; `order` holds every row
 /// exactly once, ascending by id bytes, so pair `j` of the written file is `(ids[order[j]],
 /// order[j])` and the index keys fall out of the same walk. Every region streams in file order
-/// behind the header; wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
+/// behind the header. Wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
 ///
 /// # Errors
 ///
@@ -47,8 +48,8 @@ pub(crate) const fn stride_for(key_width: u32) -> u32 {
 ///
 /// # Panics
 ///
-/// Panics when `key_width` is zero or `ids` is not one whole id per `order` entry, neither of which
-/// any file geometry can represent. An `order` entry beyond the rows panics on the id column
+/// This panics when `key_width` is zero or `ids` is not one whole id per `order` entry, neither of
+/// which any file geometry can represent. An `order` entry beyond the rows panics on the id column
 /// access. Order violations beyond that (out-of-order or repeated rows) are the typed table's
 /// contract, validated where it lives.
 #[expect(

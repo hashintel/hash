@@ -1,13 +1,13 @@
-//! Proximal-radius calibration: the boundary measurement freezing `u_P`.
+//! Proximal-radius calibration, the boundary measurement that freezes `u_P`.
 //!
-//! At the end of semantic-only training the Proximal radius is set from data: measure the locally
-//! normalized distance `z` over the pairs of every reviewed-Proximal relation type and freeze the
-//! radius at the 25th percentile, so the Proximal energy pulls on the outlying three quarters.
-//! The low quartile anchors the boundary in the population the semantic baseline already
+//! At the end of semantic-only training the data sets the Proximal radius. The calibration measures
+//! the locally normalized distance `z` over the pairs of every reviewed-Proximal relation type and
+//! freezes the radius at the 25th percentile, so the Proximal energy pulls on the outlying three
+//! quarters. The low quartile anchors the boundary in the population the semantic baseline already
 //! satisfies - reviewed pairs the embedding placed together - and everything beyond it feels the
-//! pull, so reviewed geometry moves at the lens instead of being policed at its fringe.
-//! "Outlying three quarters" is meant in the units that matter: each pair's `z` is weighted by
-//! the force the training loop will actually apply to it,
+//! pull, so the lens moves reviewed geometry instead of policing its fringe. "Outlying three
+//! quarters" counts in the units that matter, since the force the training loop will actually apply
+//! to a pair weights that pair's `z`,
 //!
 //! ```text
 //! w = min(cap, n) / n · c · ν · p_P · h
@@ -15,20 +15,20 @@
 //! ```
 //!
 //! where `min(cap, n) / n` is the pair's inclusion probability once the relation sampler draws its
-//! type (types are drawn uniformly, so the type-level factor is constant and drops out of the
-//! percentile), `c` is effective confidence, `ν` the degree normalization, and `p_P · h` the
+//! type (the sampler draws types uniformly, so the type-level factor is constant and drops out of
+//! the percentile), `c` is effective confidence, `ν` the degree normalization, and `p_P · h` the
 //! group's Proximal class weight and strength multiplier. The sampler factor keeps a high-volume
 //! type from buying the radius with edge count; the degree factor keeps hub-heavy types from
-//! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout
-//! and pulls the percentile just as weakly. Both factors are read from the built artifacts, so the
-//! measurement cannot drift from what training consumes. The `min(cap, n) / n` factor is the
-//! relation objective's own per-type clip: this calibration and the training sampler move in
-//! lockstep by contract, so changing the factor re-derives both surfaces together.
+//! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout,
+//! and its pull on the percentile shrinks in the same proportion. Both factors come from the built
+//! artifacts, so the measurement cannot drift from what training consumes. The `min(cap, n) / n`
+//! factor is the relation objective's own per-type clip. This calibration and the training sampler
+//! move in lockstep by contract, so changing the factor re-derives both surfaces together.
 //!
-//! `z = d / √((ρ_i + ε)(ρ_j + ε))` is measured in the relation loss's own normalization
-//! convention, with the same local scales and the same scale guard the relation energy is
-//! constructed with. The measured radius is what makes that energy's "act outside the radius"
-//! contract mean the same population at training time.
+//! The calibration measures `z = d / √((ρ_i + ε)(ρ_j + ε))` in the relation loss's own
+//! normalization convention, using the same local scales and the same scale guard the relation
+//! energy uses. The measured radius is what makes that energy's "act outside the radius" contract
+//! mean the same population at training time.
 
 #[cfg(test)]
 mod tests;
@@ -41,10 +41,10 @@ use super::{PlacementClass, ResolvedVerdict};
 
 /// The weighted-quantile fraction at which the Proximal radius freezes.
 ///
-/// The radius policy: both the pooled radius and every leave-one-out radius freeze at this
-/// fraction, so the two surfaces cannot drift apart. The per-type evidence quartiles are
-/// descriptive and keep their own literals; their first entry coinciding with this fraction is
-/// today's policy choice, not a shared definition.
+/// Both the pooled radius and every leave-one-out radius freeze at this fraction, so the two
+/// surfaces cannot drift apart. The per-type evidence quartiles are descriptive and keep their own
+/// literals; their first entry coinciding with this fraction is today's policy choice, not a shared
+/// definition.
 const RADIUS_FRACTION: f64 = 0.25;
 use crate::{
     identity::OntologyRowId,
@@ -79,7 +79,7 @@ impl CalibrationOptions {
 pub(crate) struct TypeCalibration {
     /// The reviewed relation's ontology row.
     pub relation: OntologyRowId,
-    /// The type's retained attraction pairs; zero when the index holds no group for it.
+    /// The type's retained attraction pairs, or zero when the index holds no group for it.
     pub pairs: usize,
     /// The type's total pair weight - its mass in the pooled percentile.
     pub mass: f64,
@@ -110,14 +110,14 @@ pub(crate) struct ProximalCalibration {
 
 /// Measures the reviewed-Proximal `z` population and its percentiles.
 ///
-/// Verdicts with a class other than Proximal are ignored: Overlay carries no geometry and
-/// Coincident calibrates its own radius when it is enabled. A Proximal verdict whose relation has
-/// no attraction group contributes a zero-mass evidence entry.
+/// This skips verdicts with a class other than Proximal, because Overlay carries no geometry and
+/// Coincident calibrates its own radius when enabled. A Proximal verdict whose relation has no
+/// attraction group contributes a zero-mass evidence entry.
 ///
 /// # Panics
 ///
-/// Panics when the scales do not cover the coordinate rows, or when an edge references a row
-/// outside them; the index, coordinates, and scales all describe one corpus, so a mismatch is a
+/// This panics when the scales do not cover the coordinate rows, or when an edge references a row
+/// outside them. The index, coordinates, and scales all describe one corpus, so a mismatch is a
 /// wiring defect.
 pub(crate) fn calibrate<N, E>(
     verdicts: &[ResolvedVerdict],
@@ -164,9 +164,8 @@ where
         let edges = group.edges();
         let weights = group.weights();
 
-        // The pair's inclusion probability once its type is drawn; the
-        // uniform type draw itself is constant across types and drops
-        // out of the percentile.
+        // The pair's inclusion probability once the sampler draws its type. The uniform type draw
+        // itself is constant across types and drops out of the percentile.
         #[expect(
             clippy::cast_precision_loss,
             reason = "group sizes are far below f64 integer precision"

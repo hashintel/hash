@@ -12,7 +12,7 @@ fn version_serializes_as_a_plain_integer() {
 
 #[test]
 fn unsupported_versions_fail_to_deserialize() {
-    // The retired layouts are rejected whole, never reinterpreted.
+    // Deserialization rejects the retired layouts whole and never reinterprets them.
     for retired in ["0", "1"] {
         let error = serde_json::from_str::<RepositoryVersion>(retired)
             .expect_err("a retired version should be rejected");

@@ -1,17 +1,18 @@
 //! Truthful accounting of every solver work unit.
 //!
-//! [`WorkCounters`] separates logical work (what was requested: objective, gradient, and
-//! Hessian-vector-product requests, and which pass shape served them) from physical work (what
-//! actually ran: started row traversals and individual row visits, with preparation charged to
-//! its own counters as well as the global ones). Budget enforcement compares these counters
-//! against configured maxima, so every increment happens at the moment the work becomes real: a
-//! request is counted when made, a traversal when its first row is accessed, a visit per row
-//! examined, and a completion once every row has been seen.
+//! [`WorkCounters`] separates logical work from physical work. Logical work covers the objective,
+//! gradient, and Hessian-vector-product requests a fit makes, together with the pass shape that
+//! served each one. Physical work covers the row traversals a fit started and the individual rows
+//! it visited, and preparation charges its own counters as well as the global ones. Budget
+//! enforcement compares these counters against configured maxima, so every increment happens at the
+//! moment the work becomes real. A request counts when the fit makes it, a traversal when it
+//! accesses its first row, a visit per row it examines, and a completion once it has seen every
+//! row.
 //!
 //! The increment rules live here as methods rather than at call sites, so a joint pass can never
 //! forget that it serves one objective request and one gradient request with a single traversal,
-//! and a preparation row visit can never be charged to the preparation counters without also
-//! consuming the global row-visit budget.
+//! and a preparation row visit can never reach the preparation counters without also consuming the
+//! global row-visit budget.
 
 /// Logical and physical work counters of one fit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -65,7 +66,7 @@ pub(crate) struct WorkCounters {
 }
 
 impl WorkCounters {
-    /// Charges a preparation request; the traversal itself is charged when its first row runs.
+    /// Charges a preparation request, leaving the traversal itself to its first row access.
     pub(super) const fn request_preparation(&mut self) {
         self.preparation_requests += 1;
     }
@@ -89,8 +90,8 @@ impl WorkCounters {
 
     /// Charges a joint request: one objective and one gradient request.
     ///
-    /// The pass and its traversal are charged separately when the first row runs, so a request
-    /// rejected before any row access - a non-finite input - still counts as requested work.
+    /// The first row access charges the pass and its traversal on their own, so a request rejected
+    /// before any row access (a non-finite input) still counts as requested work.
     pub(super) const fn request_joint(&mut self) {
         self.objective_requests += 1;
         self.gradient_requests += 1;

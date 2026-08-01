@@ -1,21 +1,22 @@
 //! Card embedding through an external provider.
 //!
-//! [`ExternalEmbeddingProvider`] adapts any [`EmbeddingGenerator`] into a [`CardEmbedder`]. The
+//! [`ExternalEmbeddingProvider`] makes any [`EmbeddingGenerator`] usable as a [`CardEmbedder`]. The
 //! generator family already pins the vector type, the error type, and the input-order contract, so
-//! backends differ only in data: the [`EmbeddingContract`] naming the configuration the fingerprint
-//! commits to, and the [`RequestLimits`] the proxy packs requests under. One request never exceeds
-//! the document ceiling or the summed token ceiling; token counts are exact `cl100k_base` counts,
-//! the encoding of the embedding models this crate targets. The provider additionally gates
-//! admission on a byte estimate of the token count - UTF-8 bytes divided by four, measured
-//! bit-exact against its rejections - so requests stay under the token ceiling in both
-//! accountings.
+//! backends differ only in data. The [`EmbeddingContract`] names the configuration the fingerprint
+//! commits to, and the [`RequestLimits`] set the ceilings the proxy packs requests under. One
+//! request never exceeds the document ceiling or the summed token ceiling, and token counts are
+//! exact `cl100k_base` counts, the encoding of the embedding models this crate targets. The
+//! provider additionally gates admission on a byte estimate of the token count (UTF-8 bytes divided
+//! by four, measured bit-exact against its rejections), so requests stay under the token ceiling in
+//! both accountings.
 //!
 //! The request boundary is also the workload's only observable progress, so the proxy carries the
-//! run's [`Progress`] observer and reports each request it completes against the workload it was
-//! handed. Nothing above it can report that: a caller hands over the whole workload in one call.
+//! run's [`Progress`] observer and reports each request it completes against the workload the
+//! caller handed it. Nothing above it observes those boundaries, because a caller hands over the
+//! whole workload in one call.
 //!
 //! Because the workload arrives whole, the first request is also the first proof that the provider
-//! is reachable under the configured credentials - by which point a run has already read the store
+//! is reachable under the configured credentials, by which point a run has already read the store
 //! and assembled its cards. [`ExternalEmbeddingProvider::preflight`] buys that proof up front, for
 //! one text.
 
@@ -39,7 +40,7 @@ mod tests;
 /// The configuration an [`EmbedderFingerprint`] commits to.
 ///
 /// The fields name everything that determines the vector a text embeds to, as the caller configured
-/// the generator; the adapter adds the dimension it enforces. Stating a contract that differs from
+/// the generator. The adapter adds the dimension it enforces. Stating a contract that differs from
 /// the generator's actual configuration poisons cross-generation reuse, so construct it beside the
 /// generator, from the same values.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,8 +91,8 @@ const DEFAULT_TOKEN_LIMIT: NonZero<usize> = const { NonZero::new(300_000).unwrap
 
 /// The text a preflight request carries.
 ///
-/// Its content is immaterial - what is under test is whether the provider answers at all - so it is
-/// one short word, the cheapest request the endpoint accepts.
+/// Its content is immaterial, because the only question under test is whether the provider answers
+/// at all. The text is one short word, the cheapest request the endpoint accepts.
 const PREFLIGHT_TEXT: &str = "preflight";
 
 /// Ceilings one provider request must stay under.
@@ -113,18 +114,20 @@ pub(crate) struct RequestLimits {
 struct RequestCost {
     /// Exact `cl100k_base` tokens.
     tokens: usize,
-    /// UTF-8 bytes; the admission gate estimates tokens as bytes divided by four.
+    /// UTF-8 bytes.
+    ///
+    /// The admission gate estimates tokens as bytes divided by four.
     bytes: usize,
 }
 
 /// A [`CardEmbedder`] over an external [`EmbeddingGenerator`].
 ///
-/// The proxy owns request sizing: a workload splits into requests that respect both
-/// [`RequestLimits`] ceilings, each text's cost measured by its exact `cl100k_base` token count.
-/// Returned vectors are re-validated to the canonical width and handed back in input order.
+/// The proxy sizes the requests. It splits a workload into requests that respect both
+/// [`RequestLimits`] ceilings, measuring each text's cost by its exact `cl100k_base` token count.
+/// It re-validates returned vectors to the canonical width and hands them back in input order.
 ///
-/// Owning the split makes the proxy the only place a workload's advance is visible, so it reports
-/// every completed request to the run's observer.
+/// Sizing the requests here makes the proxy the only place a workload's advance is visible, so it
+/// reports every completed request to the run's observer.
 #[derive(Debug)]
 pub(crate) struct ExternalEmbeddingProvider<G, P> {
     generator: G,
@@ -153,13 +156,13 @@ impl<G, P> ExternalEmbeddingProvider<G, P> {
     /// Proves the provider answers, before anything expensive happens.
     ///
     /// One request for one short text, through the same generator, contract and canonical
-    /// validation the workload uses. It settles the three things a run cannot recover from and
-    /// otherwise discovers late: credentials the provider refuses, an endpoint that does not
-    /// answer, and a model whose vectors are not the canonical width.
+    /// validation the workload uses. It settles what a run cannot recover from and otherwise
+    /// discovers late, namely credentials the provider refuses, an endpoint that does not answer,
+    /// and a model whose vectors are not the canonical width.
     ///
-    /// The check is unconditional, including for runs that turn out to reuse every card. Whether
-    /// anything needs embedding is known only after the store is read and the cards are assembled
-    /// - which is exactly the work whose cost this exists to avoid paying twice.
+    /// The check is unconditional, including for runs that turn out to reuse every card. A run
+    /// learns whether anything needs embedding only after it reads the store and assembles the
+    /// cards, which is exactly the work whose cost this exists to avoid paying twice.
     ///
     /// # Errors
     ///
@@ -193,11 +196,11 @@ impl<G, P> ExternalEmbeddingProvider<G, P> {
 
     /// Admits the workload's next text into the request under assembly, or breaks.
     ///
-    /// Breaks with `Ok` when the request is full - a further text would cross a ceiling, or the
-    /// workload is exhausted - and with the workload-stopping error when the next text cannot
-    /// embed at all. An empty request admits any text that fits the token ceiling alone, so a
-    /// break with texts on the iterator always leaves a non-empty request; `index` locates the
-    /// next text in the workload for error reports.
+    /// Breaks with `Ok` when the request is full, either because a further text would cross a
+    /// ceiling or because the workload holds no more texts. Breaks with the workload-stopping error
+    /// when the next text cannot embed at all. An empty request admits any text that fits the token
+    /// ceiling alone, so a break with texts on the iterator always leaves a non-empty request.
+    /// `index` locates the next text in the workload for error reports.
     fn admit<'text>(
         &self,
         batch: &mut Vec<&'text str>,
@@ -259,15 +262,16 @@ impl<G: EmbeddingGenerator + Sync, P: Progress + Sync> CardEmbedder
         &self,
         texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
     ) -> Result<Vec<BoxedVecN<CANONICAL_DIMENSIONS>>, Self::Error> {
-        // The workload is counted before the first request goes out:
-        // every report states its position against the whole.
+        // The provider counts the workload before the first request goes
+        // out. Every report then states its position against the whole.
         let texts: Vec<&str> = texts.into_iter().collect();
         let total = texts.len();
 
         let mut iter = texts.into_iter().peekable();
         let mut embeddings = Vec::new();
         // One request buffer serves the whole workload, cleared between
-        // requests; the workload lifetime is shared, so reuse is free.
+        // requests. Every text shares the workload lifetime, so reuse
+        // costs nothing.
         let mut batch: Vec<&str> = Vec::new();
         let mut offset = 0;
 

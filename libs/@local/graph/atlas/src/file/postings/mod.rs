@@ -2,14 +2,14 @@
 //!
 //! Per-type membership over the base delivery order, and the type graph's direct parent edges.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode. No migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
-//! For every ontology row the file stores which base delivery positions carry that type directly,
-//! in one of two representations per type: a sorted position list, or a dense bitmap over all `N`
-//! positions. The flags region records each type's representation; the fenceposts delimit each
+//! For every ontology row the file stores which base delivery positions carry that type directly.
+//! Each type stores that membership either as a sorted position list or as a dense bitmap over all
+//! `N` positions. The flags region records each type's representation; the fenceposts delimit each
 //! type's run of the shared entries array either way. Beside the membership sits the type graph:
 //! each type's direct parent rows, the authority every descendant expansion derives from - per-row
 //! or per-type closures are never materialized.
@@ -45,9 +45,9 @@
 //! Type `t`'s membership run is `entries[posts[t]..posts[t + 1]]`: a list type's run holds its base
 //! positions sorted ascending; a dense type's run holds `ceil(N/32)` bitmap words, LSB-first
 //! (position `p` is bit `p & 31` of word `p >> 5`). Its parent list is
-//! `parent_ids[parent_posts[t]..parent_posts[t + 1]]`, direct parents only, ascending. Both last
-//! fenceposts are mirrored in the header (`M`, `P`) because the length equation needs the region
-//! sizes before any region is mapped.
+//! `parent_ids[parent_posts[t]..parent_posts[t + 1]]`, direct parents only, ascending. The header
+//! repeats both last fenceposts as `M` and `P` because the length equation needs the region sizes
+//! before the first region read.
 //!
 //! The format owns geometry alone - the header parse and the file length equation
 //! ([`FileHeader::expected_file_len`]). The membership and parent contracts (fencepost coverage,
@@ -76,7 +76,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -120,7 +120,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment this version on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -269,8 +269,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The open path rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let entries = self.entries.get().checked_mul(size_of::<u32>() as u64)?;

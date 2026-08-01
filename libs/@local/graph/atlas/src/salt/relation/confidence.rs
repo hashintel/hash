@@ -9,7 +9,7 @@ use crate::math::UnitFraction;
 
 /// Confidence scores attached to one link instance.
 ///
-/// Each score lies in `0.0..=1.0`, the dataset stream's confidence contract; `None` is unscored,
+/// Each score lies in `0.0..=1.0`, the dataset stream's confidence contract. `None` means unscored,
 /// which [`effective`](Self::effective) treats as the neutral factor 1 while retaining the
 /// scored/unscored distinction.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
@@ -25,8 +25,8 @@ pub(crate) struct RelationConfidence {
 impl RelationConfidence {
     /// Combines the three scores into one effective confidence.
     ///
-    /// The value is `link · √(source · target)` with missing scores contributing the neutral
-    /// factor 1; the provenance bits record which scores were present.
+    /// The value is `link · √(source · target)` with missing scores contributing the neutral factor
+    /// 1. The provenance bits record which scores were present.
     #[must_use]
     pub(crate) fn effective(self) -> EffectiveConfidence {
         let scored = Scored::new(
@@ -65,7 +65,7 @@ impl Scored {
 
     /// Reassembles presence bits from their wire encoding.
     ///
-    /// Returns [`None`] when a bit outside the three flags is set.
+    /// Returns [`None`] when `bits` sets a bit outside the three flags.
     #[inline]
     #[must_use]
     pub(crate) const fn from_bits(bits: u8) -> Option<Self> {

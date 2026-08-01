@@ -1,4 +1,4 @@
-//! The probe command: one receipt-dumping solve of a fold subset from a frozen corpus.
+//! One receipt-dumping solve of a fold subset from a frozen corpus.
 
 use camino::Utf8PathBuf;
 use clap::{Args, ValueHint};
@@ -16,7 +16,7 @@ use crate::{
         .args(["generation", "inputs"]),
 ))]
 pub(crate) struct ProbeArgs {
-    /// The generation root directory; consulted only with `--generation`.
+    /// The generation root directory. The probe reads it only with `--generation`.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_ROOT",
@@ -25,7 +25,7 @@ pub(crate) struct ProbeArgs {
     )]
     root: Option<GenerationRoot>,
 
-    /// Hex identity of the published generation whose staged corpus is probed.
+    /// Hex identity of the published generation whose staged corpus this probe covers.
     #[arg(long, requires = "root")]
     generation: Option<GenerationId>,
 
@@ -45,23 +45,23 @@ pub(crate) struct ProbeArgs {
     #[arg(long)]
     fold: usize,
 
-    /// Regularization-strength override; a CV candidate's fold solve probes through this.
+    /// Regularization-strength override. A CV candidate's fold solve probes through this.
     #[arg(long)]
     strength: Option<f64>,
 
-    /// The outer iteration whose accepted state is replayed for the curvature census.
+    /// The outer iteration whose accepted state the curvature census replays.
     #[arg(long)]
     census_outer: Option<u64>,
 }
 
 impl ProbeArgs {
-    /// Reconstructs the frozen corpus, solves the fold subset solo, and dumps every receipt
+    /// Reconstructs the frozen corpus and solves the fold subset solo, then dumps every receipt
     /// with its curvature censuses.
     ///
     /// # Panics
     ///
-    /// Panics when the corpus cannot be opened or its artifacts fail reconstruction; the
-    /// probed solve itself may fail - its terminal is the observation.
+    /// This panics when the probe cannot open the corpus or its artifacts fail reconstruction. The
+    /// probed solve itself may fail, and its terminal is the observation.
     pub(super) async fn run(self) {
         crate::math::kernel::verify_cpu_baseline();
 

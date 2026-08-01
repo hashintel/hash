@@ -13,14 +13,15 @@
 //! row ids ([`NodeRowId`], [`EdgeRowId`](crate::identity::EdgeRowId), [`OntologyRowId`]), so an
 //! edge names its endpoints by node row and a node names its types by ontology row.
 //!
-//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`], [`Dataset::OntologyId`]) are
-//! opaque to the pipeline: they are byte-level stable (the zerocopy bounds), which is exactly
-//! enough to persist them into the identity artifacts that let serving translate rows back to graph
-//! identities. The pipeline itself computes on rows alone.
+//! Source identifiers ([`Dataset::NodeId`], [`Dataset::EdgeId`], [`Dataset::OntologyId`]) stay
+//! opaque to the pipeline. Byte-level stability (the zerocopy bounds) is exactly enough to persist
+//! them into the identity artifacts that let serving translate rows back to graph identities. The
+//! pipeline itself computes on rows alone.
 //!
-//! The node and edge streams cover disjoint entities: an entity occupies a node row or an edge
-//! row, never both. An implementation that draws both streams' source identifiers from one id space
-//! therefore yields disjoint identifier sets, so an identifier resolves to at most one row domain.
+//! The node and edge streams cover disjoint entities. Each entity occupies a node row or an edge
+//! row but never both. An implementation that draws both streams' source identifiers from one id
+//! space therefore yields disjoint identifier sets, so an identifier resolves to at most one row
+//! domain.
 //!
 //! # Snapshot semantics
 //!
@@ -32,13 +33,13 @@
 //! stream to completion before starting the next. The pipeline ingests nodes, then edges, then
 //! ontology.
 //!
-//! # Types travel direct, closure is derived
+//! # Types travel direct, closure follows from reachability
 //!
 //! Nodes and edges carry their **direct** types only. The ontology stream carries each type's
-//! direct supertypes, so the full inheritance structure is available as a small graph and every
-//! closure question (admission checks, card rendering, serving-side filter expansion) is answered
-//! by reachability over it rather than by materialized per-node closures. One structure is the
-//! authority for inheritance; per-node closure data that could disagree with it never exists.
+//! direct supertypes, so the full inheritance structure is available as a small graph and
+//! reachability over that graph answers every closure question (admission checks, card rendering,
+//! serving-side filter expansion) without materialized per-node closures. One structure is the
+//! authority for inheritance. Per-node closure data that could disagree with it never exists.
 //!
 //! [`nodes`]: Dataset::nodes
 //! [`edges`]: Dataset::edges
@@ -83,14 +84,14 @@ pub(crate) const PROJECTOR_DIMENSIONS: usize = 512;
 
 /// The bitemporal point one dataset observes.
 ///
-/// The axes are declared inputs of a fit: a generation records them, and a rerun with equal axes
+/// The axes are inputs a fit declares: a generation records them, and a rerun with equal axes
 /// over unchanged history reads equal data. Axes in the past read the graph as it stood then; the
 /// store's temporal tables retain that history.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct TemporalAxes {
-    /// The transaction-time point: which writes are visible.
+    /// The transaction-time point that selects the visible writes.
     pub transaction_time: Timestamp<TransactionTime>,
-    /// The decision-time point: which decisions are in effect.
+    /// The decision-time point that selects the decisions in effect.
     pub decision_time: Timestamp<DecisionTime>,
 }
 
@@ -151,7 +152,7 @@ impl Deref for ArchivedEntityUuid {
 
         let ptr = &raw const *self;
         // SAFETY: `Self` is `repr(transparent)` over `[u8; 16]`, and the target chain
-        // `EntityUuid(Uuid)`, `Uuid([u8; 16])` is `repr(transparent)` at every link.
+        // `EntityUuid(Uuid)`, `Uuid([u8; 16])`, is `repr(transparent)` at every link.
         unsafe { &*ptr.cast::<EntityUuid>() }
     }
 }
@@ -253,7 +254,7 @@ impl Deref for ArchivedOntologyTypeUuid {
 /// Supplied inputs name types by canonical identity - reviewed verdicts carry versioned URLs -
 /// while each corpus keys its type table in its own id space. An id type derives the id naming a
 /// given identity in that space, or answers [`None`] for an identity form its provider does not
-/// mint ids from; a positional id space mints ids from no identity.
+/// mint ids from. Positional id spaces mint ids from no identity.
 pub(crate) trait OntologyIdentity: Sized {
     /// Derives the id naming `url` in this id space.
     fn from_versioned_url(url: &VersionedUrl) -> Option<Self>;
@@ -268,8 +269,7 @@ impl OntologyIdentity for ArchivedOntologyTypeUuid {
     }
 }
 
-// Positional ids are assigned by construction order; no identity
-// names one.
+// Construction order assigns positional ids, and no identity names one.
 impl OntologyIdentity for U64<LE> {
     #[inline]
     fn from_versioned_url(_url: &VersionedUrl) -> Option<Self> {
@@ -279,7 +279,7 @@ impl OntologyIdentity for U64<LE> {
 
 /// The byte-level form of a non-draft entity identity.
 ///
-/// Drafts never enter a dataset's scope; the identity is the web and entity components alone.
+/// Drafts never enter a dataset's scope, so the identity is the web and entity components alone.
 ///
 /// The derived order is identity-byte order: web id bytes, then entity uuid bytes.
 #[derive(
@@ -314,13 +314,13 @@ pub(crate) struct Ontology<O> {
 
     /// Direct supertypes, ascending by ontology row and deduplicated.
     ///
-    /// Only depth-one edges appear; ancestors beyond the direct parents are reached by walking the
-    /// type graph. A parent may occupy a later stream position than its child, so references
+    /// Only depth-one edges appear. Walking the type graph reaches ancestors beyond the direct
+    /// parents. A parent may occupy a later stream position than its child, so references
     /// resolve only once the ontology stream is fully ingested.
     pub parents: SmallVec<OntologyRowId, 2>,
 }
 
-/// One entity of the graph: a point the fit places on the map.
+/// One entity of the graph, which the fit places as a point on the map.
 #[derive(Debug, Clone)]
 pub(crate) struct Node<N> {
     /// The source identifier.
@@ -343,7 +343,7 @@ pub(crate) struct Node<N> {
 
     /// The store's confidence in the entity, in `0.0..=1.0`.
     ///
-    /// `None` is unscored, which consumers treat as the neutral factor 1 while retaining the
+    /// `None` means unscored. Consumers treat it as the neutral factor 1 while retaining the
     /// scored/unscored distinction.
     // f64 mirrors the store schema (DOUBLE PRECISION); working precision
     // narrows to f32 at the point of use.
@@ -377,7 +377,7 @@ pub(crate) struct Edge<E> {
 
     /// The store's confidence in the link itself, in `0.0..=1.0`.
     ///
-    /// `None` is unscored, which consumers treat as the neutral factor 1 while retaining the
+    /// `None` means unscored. Consumers treat it as the neutral factor 1 while retaining the
     /// scored/unscored distinction. The same reading applies to
     /// [`source_confidence`](Self::source_confidence) and
     /// [`target_confidence`](Self::target_confidence).
@@ -397,15 +397,15 @@ pub(crate) struct Edge<E> {
 /// The data one fit runs over, wherever it lives.
 ///
 /// See the [module documentation](self) for the row, snapshot, and type contracts every
-/// implementation upholds. In short: streams assign dense ids by position, all streams observe one
-/// frozen view of the graph, and types travel as direct types plus a parent graph.
+/// implementation upholds. Streams assign dense ids by position, all streams observe one frozen
+/// view of the graph, and types travel as direct types plus a parent graph.
 pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
     /// Byte-level stable so identity columns persist as raw bytes; opaque to the pipeline
-    /// otherwise. `Send + Sync + 'static` because id columns cross onto and are shared across
-    /// compute-pool workers (the fit offloads its stage tail to rayon; the ranking tiebreak hashes
-    /// id columns in parallel), which every plain-bytes id satisfies.
+    /// otherwise. `Send + Sync + 'static` because id columns cross onto compute-pool workers that
+    /// read them concurrently (the fit offloads its stage tail to rayon; the ranking tiebreak
+    /// hashes id columns in parallel), which every plain-bytes id satisfies.
     type NodeId: ByteStable + Send + 'static;
 
     /// The source identifier of an edge.
@@ -473,9 +473,9 @@ pub(crate) trait Dataset {
 
     /// Opens the edge stream.
     ///
-    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: links
-    /// whose endpoints fall outside the dataset's scope are filtered at the source and never
-    /// appear.
+    /// The `n`-th item occupies edge row `n`. Both endpoints of every edge are in scope: the
+    /// source filters out links whose endpoints fall outside the dataset's scope, so those links
+    /// never appear.
     #[must_use]
     fn edges(&self) -> Self::EdgeStream<'_>;
 

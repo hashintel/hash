@@ -10,12 +10,13 @@
 //!   sample rather than the population.
 //! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, the seam for
 //!   deterministic parallel draws.
-/// - [`acceptance_sample_size`] sizes a statistical spot check: how many uniformly sampled
-///   items must all pass to certify a defect-rate bound at a confidence level.
-/// - [`mean_sample_size`] sizes an aggregate spot check: how many uniformly sampled items
-///   estimate a mean within a margin at a confidence level, given the per-item deviation.
-/// - [`normal_quantile`] inverts the standard normal distribution, the kernel of
-///   [`mean_sample_size`].
+//! - [`acceptance_sample_size`] reports how many uniformly sampled items must all pass to certify a
+//!   defect-rate bound at a confidence level.
+//! - [`mean_sample_size`] reports how many uniformly sampled items estimate a mean within a margin
+//!   at a confidence level for a given per-item deviation.
+//! - [`normal_quantile`] inverts the standard normal distribution and supplies the `z` factor that
+//!   [`mean_sample_size`] uses.
+
 use core::num::NonZero;
 
 use rand::{
@@ -61,8 +62,8 @@ pub fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
 /// Without replacement, into a fixed-size array.
 ///
 /// Every `N`-element subset of the population is equally likely, and the returned order is itself
-/// uniformly random. Memory is proportional to the sample, never to the population, and nothing is
-/// heap-allocated.
+/// uniformly random. Memory scales with the sample size rather than the population size. The draw
+/// makes no heap allocation.
 ///
 /// Returns [`None`] when the population holds fewer than `N` indices: there is no `N`-element
 /// sample to draw.
@@ -90,12 +91,12 @@ pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> O
 /// Without replacement, for sample sizes chosen at runtime.
 ///
 /// Every `count`-element subset of the population is equally likely, and the returned order is
-/// itself uniformly random. Memory is proportional to the sample. Prefer [`sample_indices`] when
-/// the sample size is a compile-time constant; it skips the heap entirely.
+/// itself uniformly random. Memory scales with the sample size. Prefer [`sample_indices`] when the
+/// sample size is a compile-time constant, because that form makes no heap allocation.
 ///
 /// # Panics
 ///
-/// Panics when `count` exceeds `population`: there is no `count`-element sample to draw, and an
+/// This panics when `count` exceeds `population`. No `count`-element sample exists to draw, and an
 /// oversized request is a caller bug rather than a runtime condition.
 ///
 /// # Examples
@@ -127,9 +128,9 @@ const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 
 /// Builds a generator keyed by a seed and two stream indexes.
 ///
-/// The key mixes through the `SplitMix64` finalizer - the golden-ratio increment spreads `key`
-/// across the word, and the two multiply-xorshift rounds avalanche every input bit into the
-/// output - so generators with adjacent keys are statistically independent. Parallel work draws
+/// The key mixes through the `SplitMix64` finalizer. The golden-ratio increment spreads `key`
+/// across the word, and the two multiply-xorshift rounds avalanche every input bit into the output,
+/// so generators with adjacent keys are statistically independent. Parallel work draws
 /// one generator per `(seed, key, stream)` instead of sharing a sequence, and a seeded run
 /// reproduces exactly at any thread count.
 ///
@@ -180,11 +181,11 @@ pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
 ///
 /// // Verifying 688 uniformly sampled embeddings out of one million (for
 /// // example, that each is L2-normalized) and finding all of them valid
-/// // gives 99.9% confidence that fewer than 1% of the full set are
-/// // malformed.
+/// // gives 99.9% confidence that fewer than 1% of the full set fails
+/// // that check.
 /// assert_eq!(acceptance_sample_size(0.01, 0.999), Some(688));
 ///
-/// // Out-of-range parameters have no meaningful sample size.
+/// // Out-of-range parameters have no defined sample size.
 /// assert_eq!(acceptance_sample_size(0.0, 0.999), None);
 /// assert_eq!(acceptance_sample_size(0.01, 1.0), None);
 /// ```
@@ -220,9 +221,9 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 /// The estimate's standard error is `deviation / √n`, so `n = ceil((z · deviation /
 /// margin)^2)` with `z` the standard normal quantile of `confidence` keeps the probability of a
 /// sampling error beyond `margin` (in one direction) at most `1 - confidence`, by the central limit
-/// theorem. This sizes aggregate-mean criteria; an all-pass criterion is sized by
-/// [`acceptance_sample_size`] instead, and the two are not interchangeable - an acceptance budget
-/// carries no guarantee about a mean's error.
+/// theorem. This sizes aggregate-mean criteria. [`acceptance_sample_size`] sizes an all-pass
+/// criterion instead. An acceptance budget guarantees nothing about a mean's error, so neither
+/// sizing rule substitutes for the other.
 ///
 /// The deviation is the caller's to supply: bounded-per-item means admit the distribution-free
 /// bound (half the range), and a pilot sample's measured deviation sizes the final sample without
@@ -244,7 +245,7 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 /// // A deviation of zero needs no sample at all.
 /// assert_eq!(mean_sample_size(0.0, 0.01, 0.99), Some(0));
 ///
-/// // Out-of-domain parameters have no meaningful sample size.
+/// // Out-of-domain parameters have no defined sample size.
 /// assert_eq!(mean_sample_size(0.32, 0.0, 0.99), None);
 /// assert_eq!(mean_sample_size(0.32, 0.01, 1.0), None);
 /// ```

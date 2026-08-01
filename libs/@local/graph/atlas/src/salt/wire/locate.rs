@@ -8,12 +8,12 @@
 //! `EDGE_IDS` - the delivered edges' link-entity identities as raw 32-byte records, the only
 //! identity an edge carries on the wire.
 //!
-//! The trailer always rides: locate IS the detail view. It interns type and property URLs
-//! profile-natively - keys 0 and 1 are deduplicated, bytewise-sorted string tables; every type and
-//! property reference in the later keys is a uint index into them. Properties ship for the source
-//! and the delivered edges; neighbour nodes carry a label and a first type reference, and their
-//! own detail is one locate away. The document's consistency laws are producer contracts and panic
-//! when violated.
+//! Every locate document includes the detail trailer, because locate is the detail view. It interns
+//! type and property URLs profile-natively. Keys 0 and 1 are string tables that list every
+//! referenced URL once in bytewise order, and every type and property reference in the later keys
+//! is a uint index into them. The source and the delivered edges get property maps. Neighbour nodes
+//! carry a label and a first type reference, and their own detail is one locate away. The
+//! document's consistency laws are producer contracts and panic when violated.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -54,15 +54,15 @@ pub(crate) struct LocateResponse<'doc> {
     /// `HEAD` key 7: the source's upstream entity id, `bstr(32)`.
     ///
     /// The web uuid then the entity uuid, sixteen raw bytes each - the generation digest's
-    /// untagged byte-string shape. The by-row flow's identity answer: a client that named the
-    /// source by wire row id learns which entity it spotlighted.
+    /// untagged byte-string shape. A client that named the source by wire row id learns from this
+    /// key which entity it spotlighted.
     pub entity_id: ArchivedEntityId,
     /// `HEAD` key 8: whether the request's `coloredTypeIds` cover the source's direct types.
     ///
     /// `true` iff every direct type of the source lies in the requested set - the signal that the
     /// client's palette can name everything the source is. `false` on an empty request set and for
-    /// a source the store no longer serves: coverage of an unreadable type list cannot be
-    /// attested.
+    /// a source the store no longer serves: the server cannot attest coverage of a type list it
+    /// cannot read.
     pub type_ids_complete: bool,
     /// `HEAD` key 9: whether the trailer's source property map is the entity's whole deliverable
     /// set.
@@ -70,7 +70,7 @@ pub(crate) struct LocateResponse<'doc> {
     /// `false` when the simple-value filter or the property cap dropped anything, and for a source
     /// the store no longer serves.
     pub properties_complete: bool,
-    /// The delivered set: base positions in delivered order, source first.
+    /// Base positions in delivered order, source first.
     pub delivered: &'doc [BasePosition],
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc IdSlice<BasePosition, Vec2>,
@@ -99,9 +99,9 @@ impl LocateResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: the edge columns disagreeing on the edge count,
-    /// trailer arrays not covering the delivered nodes and edges, or a trailer whose intern
-    /// tables or property maps break the interning laws.
+    /// This panics when the edge columns disagree on the edge count, when the trailer arrays do not
+    /// cover the delivered nodes and edges, or when a trailer's intern tables or property maps
+    /// break the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         /// Bytes per delivered point across the node columns: an f32 pair and a row id.
@@ -192,7 +192,7 @@ impl LocateResponse<'_> {
     /// One `ceil(n/8)`-byte mask per delivered point, bit `i` LSB-first when the point carries the
     /// request's type `i` - the tile column's shape over an arbitrary delivered list, probed point
     /// by point (the set is a spotlight, never a bulk slice). A mask read as its set-bit indexes
-    /// is the point's colored-type index list; the source's list is the first mask's.
+    /// is the point's colored-type index list. The source's list is the first mask's.
     fn write_masks(&self, buf: &mut Vec<u8>, masks: &[Membership<'_>]) {
         let stride = masks.len().div_ceil(8);
         let base = buf.len();
@@ -214,8 +214,8 @@ impl LocateResponse<'_> {
 
 /// The locate detail trailer.
 ///
-/// The two intern tables first, then node detail in delivered order and link detail in edge
-/// order, every type and property reference a uint index into its table.
+/// The intern tables come first, then node detail in delivered order and link detail in edge order,
+/// every type and property reference a uint index into its table.
 #[derive(Debug)]
 pub(crate) struct LocateTrailer<'doc> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
@@ -233,8 +233,8 @@ pub(crate) struct LocateTrailer<'doc> {
     pub type_ids: &'doc [Option<u32>],
     /// Trailer key 4.
     ///
-    /// The SOURCE's property map: keyed by uint index into the property table, keys ascending.
-    /// `null` marks a source the store no longer serves. Neighbour nodes ship no properties -
+    /// The source's property map, keyed by uint index into the property table, keys ascending.
+    /// `null` marks a source the store no longer serves. Neighbour nodes carry no properties, and
     /// their detail is one locate away.
     pub properties: Option<&'doc [(u32, PropertyValue<'doc>)]>,
     /// Trailer key 5: link labels, edge order.
@@ -411,16 +411,19 @@ fn bitmask(cbor: &mut CborWriter<'_>, flags: &[bool]) {
     }
 }
 
-/// One simple property value: the only shapes the wire ships.
+/// One simple property value.
 ///
-/// Nested objects and arrays never survive hydration.
+/// These variants are the only value shapes the wire encodes. Nested objects and arrays never
+/// survive hydration.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum PropertyValue<'doc> {
     /// A text scalar.
     Text(&'doc str),
     /// An integral scalar.
     Integer(i64),
-    /// A floating scalar; store scalars are doubles and stay double on the wire.
+    /// A floating scalar.
+    ///
+    /// Store scalars are doubles and stay double on the wire.
     Float(f64),
     /// A boolean scalar.
     Boolean(bool),

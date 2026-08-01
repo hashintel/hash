@@ -2,15 +2,15 @@
 //!
 //! Bucket fenceposts and a page index in front of the delivery-ordered morton codes.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! Layout version 1 is **mutable**. Change the layout to fit what the pipeline needs and
 //! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
 //!
 //! The codes are in the base delivery order: bucket-major, ascending within each bucket segment.
-//! Nothing about that column is interpretable on its own - a binary search is valid only inside one
-//! segment, and the page index samples across segment boundaries - so the segment fenceposts live
-//! in the header, and index, fenceposts, and codes form one combined file that cannot fall out of
+//! Nothing about that column is interpretable on its own. A binary search is valid only inside one
+//! segment, and the page index samples across segment boundaries, so the segment fenceposts live
+//! in the header. Index, fenceposts, and codes form one combined file that cannot fall out of
 //! sync. The regions:
 //!
 //! ```text
@@ -148,8 +148,8 @@ impl<I> Fenceposts<I> {
 
         let ptr = &raw const *posts;
         // SAFETY: `Self` is `#[repr(transparent)]` over `[U64<LE>; POSTS]`, so the cast
-        // reinterprets the array as the wrapper without changing layout, and `validate` just
-        // upheld the type's structural rules.
+        // reinterprets the array as the wrapper without changing layout, and `validate` upheld the
+        // type's structural rules.
         Ok(unsafe { &*ptr.cast::<Self>() })
     }
 
@@ -180,7 +180,7 @@ impl<I> Fenceposts<I> {
 
     /// Accumulates per-segment lengths into fenceposts.
     ///
-    /// The result is anchored and non-decreasing by construction. Returns [`None`] when the
+    /// By construction the result anchors at zero and never decreases. Returns [`None`] when the
     /// running total overflows the persisted `u64` form, in which case no writable column matches
     /// the lengths.
     pub(crate) const fn from_lengths(lengths: &[u64; SEGMENTS]) -> Option<Self> {
@@ -247,7 +247,7 @@ impl<I: Id> Fenceposts<I> {
     }
 }
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -291,7 +291,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -363,8 +363,8 @@ impl FileHeader {
 
     /// Views the header's fenceposts, validated.
     ///
-    /// The header parse pins magic and version only, so the structural rules are checked here,
-    /// where the posts are first read as a segmentation.
+    /// The header parse pins magic and version only, so this accessor checks the structural rules
+    /// at the first read of the posts as a segmentation.
     ///
     /// # Errors
     ///
@@ -396,8 +396,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The open path rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let code_bytes = self.count().checked_mul(size_of::<u64>() as u64)?;

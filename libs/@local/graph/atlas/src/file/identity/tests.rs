@@ -39,7 +39,7 @@ fn header_wire_layout() {
 fn geometry_pads_every_region_to_page_boundaries() {
     // 7 four-byte ids are 28 bytes, padded to one 4096-byte unit; one
     // index key (stride 512 covers all 7 pairs) is 4 bytes, padded
-    // likewise; 7 pairs of 12 bytes end the file unpadded.
+    // likewise. The trailing 7 pairs of 12 bytes end the file unpadded.
     let header = FileHeader::new(4, 7, 512);
     assert_eq!(header.index_keys(), Some(1));
     assert_eq!(header.index_offset(), Some(8192));

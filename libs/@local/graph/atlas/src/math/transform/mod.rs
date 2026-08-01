@@ -169,10 +169,10 @@ impl Transform {
     /// batch's axis groups, so the whole transformation is two fused multiply-adds per axis with no
     /// shuffles. Transform batches in the [`Vec2x4T`] layout inside hot loops.
     ///
-    /// On targets with native FMA the per-axis results are computed with a single rounding per
-    /// multiply-add, so they can differ from [`apply`](Self::apply) by a few units in the last
-    /// place of the intermediate terms, and by many units in the last place of the result itself
-    /// where the terms cancel.
+    /// On targets with native FMA each per-axis result takes a single rounding per multiply-add, so
+    /// it can differ from [`apply`](Self::apply) by a few units in the last place of the
+    /// intermediate terms, and by many units in the last place of the result itself where the terms
+    /// cancel.
     ///
     /// # Examples
     ///
@@ -223,12 +223,12 @@ impl Transform {
     ///
     /// The result maps every output of [`apply`](Self::apply) back to its input, up to
     /// floating-point rounding. The rounding grows with the condition of the linear part: a
-    /// transform that nearly collapses an axis inverts with proportionally amplified error.
+    /// transform close to collapsing an axis inverts with proportionally amplified error.
     ///
     /// Returns [`None`] when the determinant of the linear part is zero, subnormal, or not finite,
     /// in which case no usable inverse exists. Note that [`Rotation::inverse`] and
-    /// [`Translation::inverse`] are infallible and exact; prefer them when the transform kind is
-    /// known.
+    /// [`Translation::inverse`] are infallible and exact; prefer them when you know the transform
+    /// kind.
     ///
     /// # Examples
     ///

@@ -1,10 +1,10 @@
 //! 2D vectors and fixed-size batches of them for SIMD processing.
 //!
-//! The scalar type is [`Vec2`]. For vectorized code, four vectors can be packed into one of two
-//! batch types, both 32 bytes and both aligned for [`Simd<f32, 8>`](Simd):
+//! The scalar type is [`Vec2`]. Vectorized code packs four vectors into one of two batch types,
+//! both 32 bytes and both aligned for [`Simd<f32, 8>`](Simd):
 //!
 //! - [`Vec2x4`] stores the vectors interleaved as `x0 y0 x1 y1 ...`, the natural memory order of
-//!   `[Vec2; 4]`, so packing is shuffle-free and individual vectors can be indexed.
+//!   `[Vec2; 4]`, so packing needs no shuffle and [`Vec2x4::get`] reads an individual vector.
 //! - [`Vec2x4T`] is the transposed layout: all four `x` components followed by all four `y`
 //!   components. Use this when an operation treats the axes independently, such as distances,
 //!   bounding boxes, or axis-wise clamping: [`Vec2x4T::xs`] and [`Vec2x4T::ys`] each yield a full
@@ -13,9 +13,9 @@
 //! Converting `[Vec2; 4]` into [`Vec2x4T`] performs the deinterleave at that boundary, which is the
 //! usual tradeoff: pay the shuffle once on entry and keep the hot loop axis-parallel.
 //!
-//! A borrowed point slice splits in place into batches via [`Vec2x4::from_slice`]: the aligned
-//! middle is processed four vectors at a time while the unaligned edges are handled one vector at a
-//! time, so bulk passes over `&[Vec2]` vectorize without copying.
+//! A borrowed point slice splits in place into batches via [`Vec2x4::from_slice`]: a bulk pass then
+//! walks the aligned middle four vectors at a time and the unaligned edges one vector at a time, so
+//! bulk passes over `&[Vec2]` vectorize without copying.
 //!
 //! Because both batch types match [`Simd<f32, 8>`](Simd) in size and meet its alignment,
 //! [`to_simd`](Vec2x4T::to_simd) and the [`From`] conversions compile to a single full-width vector
@@ -34,12 +34,12 @@ mod tests;
 
 /// A vector in 2D space with `f32` components.
 ///
-/// A [`Vec2`] is guaranteed to have the same layout as `[f32; 2]`, with the `x` component first.
-/// This makes `[Vec2; N]` bit-compatible with a flat component buffer in interleaved order, and the
-/// zerocopy derives expose that reinterpretation safely.
+/// A [`Vec2`] guarantees the same layout as `[f32; 2]`, with the `x` component first. This makes
+/// `[Vec2; N]` bit-compatible with a flat component buffer in interleaved order, and the zerocopy
+/// derives expose that reinterpretation without unsafe code.
 ///
-/// Note that [`Hash`] is derived over the raw bytes while equality follows `f32` semantics, so
-/// `-0.0` and `0.0` compare equal but hash differently.
+/// Note that [`Hash`] hashes the raw bytes while equality follows `f32` semantics, so `-0.0` and
+/// `0.0` compare equal but hash differently.
 ///
 /// # Examples
 ///
@@ -116,7 +116,7 @@ impl Vec2 {
         Some(unsafe { &*ptr })
     }
 
-    /// Returns the components as a `[f32; 2]` array.
+    /// Returns the components as an array in `x`, `y` order.
     #[must_use]
     pub const fn as_array(&self) -> &[f32; 2] {
         &self.0
@@ -145,8 +145,9 @@ impl Vec2 {
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
     ///
-    /// The sign tells which side of `self` the other vector lies on: positive when `other` is
-    /// counterclockwise from `self`, negative when clockwise, zero when the vectors are parallel.
+    /// The sign tells which side of `self` the other vector lies on. The result is positive when
+    /// `other` is counterclockwise from `self`, negative when clockwise, and zero when the vectors
+    /// are parallel.
     #[inline]
     #[must_use]
     pub const fn perp_dot(self, other: Self) -> f32 {
@@ -156,7 +157,7 @@ impl Vec2 {
     /// Returns the squared length of the vector.
     ///
     /// Prefer this over [`length`](Self::length) when comparing magnitudes or feeding a squared
-    /// metric; it avoids the square root.
+    /// metric. This avoids the square root.
     #[inline]
     #[must_use]
     pub const fn length_squared(self) -> f32 {
@@ -199,8 +200,8 @@ impl Vec2 {
 
     /// Returns the component-wise minimum of the two vectors.
     ///
-    /// NaN components lose: when exactly one operand is NaN in a component, the other operand's
-    /// component is returned, following [`f32::min`].
+    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
+    /// other operand's component, following [`f32::min`].
     #[inline]
     #[must_use]
     pub const fn min(self, other: Self) -> Self {
@@ -209,8 +210,8 @@ impl Vec2 {
 
     /// Returns the component-wise maximum of the two vectors.
     ///
-    /// NaN components lose: when exactly one operand is NaN in a component, the other operand's
-    /// component is returned, following [`f32::max`].
+    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
+    /// other operand's component, following [`f32::max`].
     #[inline]
     #[must_use]
     pub const fn max(self, other: Self) -> Self {
@@ -221,8 +222,8 @@ impl Vec2 {
     ///
     /// # Panics
     ///
-    /// Panics in debug builds when a component of `low` exceeds the matching component of `high`,
-    /// or when a bound is NaN, following [`f32::clamp`].
+    /// This panics in debug builds when a component of `low` exceeds the matching component of
+    /// `high`, or when a bound is NaN, following [`f32::clamp`].
     #[inline]
     #[must_use]
     pub const fn clamp(self, low: Self, high: Self) -> Self {
@@ -281,7 +282,9 @@ const impl Neg for Vec2 {
     }
 }
 
-/// Component-wise (Hadamard) product; use [`Vec2::dot`] for the scalar product.
+/// Component-wise (Hadamard) product.
+///
+/// For the scalar product, use [`Vec2::dot`].
 const impl Mul for Vec2 {
     type Output = Self;
 
@@ -353,7 +356,7 @@ const impl Index<usize> for Vec2 {
     ///
     /// # Panics
     ///
-    /// Panics if `index ≥ 2`.
+    /// This panics when `index ≥ 2`.
     #[inline]
     fn index(&self, index: usize) -> &f32 {
         &self.0[index]
@@ -489,7 +492,7 @@ impl Vec2x4T {
     ///
     /// # Panics
     ///
-    /// Panics if `index ≥ 4`.
+    /// This panics when `index ≥ 4`.
     #[inline]
     #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
@@ -511,8 +514,8 @@ impl Vec2x4T {
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA the multiply-add is fused,
-    /// rounding once instead of twice.
+    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA one instruction performs the
+    /// multiply-add, rounding once instead of twice.
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f32, 4> {
@@ -523,8 +526,8 @@ impl Vec2x4T {
     ///
     /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign semantics of [`Vec2::perp_dot`]:
     /// positive when `other`'s vector is counterclockwise from this batch's, negative when
-    /// clockwise, zero when the vectors are parallel. On targets with native FMA the multiply-add
-    /// is fused, rounding once instead of twice.
+    /// clockwise, zero when the vectors are parallel. On targets with native FMA one instruction
+    /// performs the multiply-add, rounding once instead of twice.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f32, 4> {
@@ -534,7 +537,7 @@ impl Vec2x4T {
     /// Returns the four pairwise squared Euclidean distances as SIMD lanes.
     ///
     /// Lane `i` holds the squared distance between `self[i]` and `other[i]`. On targets with native
-    /// FMA the multiply-add is fused, rounding once instead of twice.
+    /// FMA one instruction performs the multiply-add, rounding once instead of twice.
     #[inline]
     #[must_use]
     pub fn distance_squared(self, other: Self) -> Simd<f32, 4> {
@@ -553,7 +556,7 @@ impl Vec2x4T {
 
     /// Interleaves the batch back into natural (array-of-structures) order.
     ///
-    /// One shuffle pays the layout boundary cost; the result stores whole vectors again.
+    /// One shuffle pays the layout boundary cost. The result stores whole vectors again.
     #[inline]
     #[must_use]
     pub fn transpose(self) -> Vec2x4 {
@@ -634,11 +637,11 @@ const impl From<Vec2x4T> for Simd<f32, 8> {
 
 /// Four 2D vectors packed in natural (array-of-structures) order.
 ///
-/// The vectors are stored whole and interleaved, matching the memory layout of `[Vec2; 4]`: `x0 y0
-/// x1 y1 x2 y2 x3 y3`. Packing from `[Vec2; 4]` is therefore shuffle-free, individual vectors can
-/// be indexed directly, and the value is aligned for [`Simd<f32, 8>`](Simd). Use this layout when
-/// operations treat vectors as whole units; for axis-independent arithmetic, convert to
-/// [`Vec2x4T`].
+/// This layout keeps each vector whole and interleaves the components as `x0 y0 x1 y1 x2 y2 x3 y3`,
+/// the memory order of a four-element `Vec2` array. Packing from `[Vec2; 4]` therefore needs no
+/// shuffle, [`get`](Self::get) reads an individual vector directly, and the type's alignment
+/// satisfies [`Simd<f32, 8>`](Simd). Use this layout when operations treat vectors as whole units;
+/// for axis-independent arithmetic, convert to [`Vec2x4T`].
 ///
 /// # Examples
 ///
@@ -678,13 +681,13 @@ impl Vec2x4 {
 
     /// Splits a point slice into a batch-aligned middle and scalar edges.
     ///
-    /// The middle is a run of whole batches placed where the slice meets this type's alignment;
-    /// the prefix and suffix hold the points before and after it. Concatenating the three parts
-    /// in order yields the input exactly, so a bulk pass processes the middle four vectors at a
-    /// time and the edges one by one.
+    /// The middle is a run of whole batches placed where the slice meets this type's alignment. The
+    /// prefix and suffix hold the points before and after it. Concatenating the three parts in
+    /// order yields the input exactly, so a bulk pass processes the middle four vectors at a time
+    /// and the edges one by one.
     ///
-    /// Where the split falls depends on the slice's address and length, and any part may be
-    /// empty; only performance may depend on the middle's size, never correctness.
+    /// The slice's address and length decide where the split falls. Any part may be empty. The
+    /// middle's size affects performance only, never correctness.
     ///
     /// # Examples
     ///
@@ -741,7 +744,7 @@ impl Vec2x4 {
     ///
     /// # Panics
     ///
-    /// Panics if `index ≥ 4`.
+    /// This panics when `index ≥ 4`.
     #[inline]
     #[must_use]
     pub const fn get(self, index: usize) -> Vec2 {
@@ -764,8 +767,8 @@ impl Vec2x4 {
 
     /// Returns the component-wise minimum of the two batches.
     ///
-    /// NaN components lose: when exactly one operand is NaN in a component, the other operand's
-    /// component is returned, following [`f32::min`].
+    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
+    /// other operand's component, following [`f32::min`].
     #[inline]
     #[must_use]
     pub fn min(self, other: Self) -> Self {
@@ -774,8 +777,8 @@ impl Vec2x4 {
 
     /// Returns the component-wise maximum of the two batches.
     ///
-    /// NaN components lose: when exactly one operand is NaN in a component, the other operand's
-    /// component is returned, following [`f32::max`].
+    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
+    /// other operand's component, following [`f32::max`].
     #[inline]
     #[must_use]
     pub fn max(self, other: Self) -> Self {
@@ -939,16 +942,17 @@ impl Index<usize> for Vec2x4 {
     ///
     /// # Panics
     ///
-    /// Panics if `index ≥ 4`.
+    /// This panics when `index ≥ 4`.
     #[inline]
     fn index(&self, index: usize) -> &Vec2 {
         &self.0[index]
     }
 }
 
-// Both batch layouts must be usable as backing storage for `Simd<f32, 8>`: identical size, and at
-// least its alignment, which the `align(32)` on each type supplies. The lane views borrow
-// `Simd<f32, 4>` groups at byte offsets 0 and 16, so the half-width alignment must not exceed 16.
+// Both batch layouts must be usable as backing storage for `Simd<f32, 8>`, which requires identical
+// size and at least its alignment. The `align(32)` on each type supplies that alignment. The lane
+// views borrow `Simd<f32, 4>` groups at byte offsets 0 and 16, so the half-width alignment must not
+// exceed 16.
 const _: () = assert!(align_of::<Simd<f32, 4>>() <= 16);
 const _: () = assert!(size_of::<Vec2x4T>() == size_of::<Simd<f32, 8>>());
 const _: () = assert!(size_of::<Vec2x4>() == size_of::<Simd<f32, 8>>());

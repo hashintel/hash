@@ -5,7 +5,7 @@ use tiktoken_rs::cl100k_base_singleton;
 
 /// Tokenizes text for structural card budgets.
 pub(crate) trait Tokenizer {
-    /// The failure produced when `text` cannot be counted.
+    /// The failure this tokenizer reports when it cannot count `text`.
     type Error;
 
     /// Counts the encoded tokens in `text`.

@@ -12,7 +12,7 @@ use crate::file::region::write_padding;
 /// `rows` is the corpus row domain the edge records index into, and `edge_count` the number of
 /// records `edges` yields - edge streams are typically flattened over groups, which erases the
 /// exact length an iterator could promise. The header records all three counts verbatim. Records
-/// stream in file order behind the header, so nothing is buffered here; wrap a raw
+/// stream in file order behind the header, so this function buffers nothing; wrap a raw
 /// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter) - the per-record writes are small.
 ///
 /// # Errors
@@ -21,7 +21,7 @@ use crate::file::region::write_padding;
 ///
 /// # Panics
 ///
-/// Panics when a stream's length promise breaks, which no file geometry can represent.
+/// This panics when a stream's length promise breaks, which no file geometry can represent.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; a broken length promise is a caller contract \

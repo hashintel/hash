@@ -1,17 +1,18 @@
 //! The edges response: `HEAD` and three edge columns as one envelope.
 //!
-//! An edges document carries its delivery-order columns directly - the endpoint assembles them by
+//! An edges document carries its delivery-order columns directly. The endpoint assembles them by
 //! merging the adjacency artifact over the requested tiles' delivered rows and applying the
-//! rank-ordered cap - so unlike the tile document nothing here slices base-order arrays. The
+//! rank-ordered cap, so nothing here slices base-order arrays the way the tile document does. The
 //! `SALTILEE` envelope has four slots: `HEAD`, `EDGE_SOURCES`, `EDGE_TARGETS`, `EDGE_IDS`, every
 //! one always present (a tile set without visible edges delivers present-empty columns).
 //!
 //! An edge's wire identity is its link entity's: `EDGE_IDS` carries raw 32-byte identity records,
 //! and delivery order ascends by those bytes - client-verifiable from the column alone. The
-//! endpoint columns speak node row ids; no edge-scoped id domain exists on the wire.
+//! endpoint columns speak node row ids, and the wire has no edge-scoped id domain.
 //!
-//! The `HEAD` keeps an explicit `complete` flag: cap truncation is not derivable client-side, while
-//! auth-invisible edges are not truncation at all - missing is denied.
+//! The `HEAD` keeps an explicit `complete` flag, because cap truncation is not derivable
+//! client-side. Auth-invisible edges are not truncation at all: a missing edge means authorization
+//! denied it.
 #![expect(
     clippy::little_endian_bytes,
     reason = "column integers are pinned little-endian by the wire contract"
@@ -40,7 +41,7 @@ pub(crate) struct EdgesResponse<'doc> {
     /// The web uuid then the entity uuid, sixteen raw bytes each, generation-frozen. Delivery
     /// order ascends by these bytes.
     pub edge_ids: &'doc [ArchivedEntityId],
-    /// The hydrated detail trailer; `Some` iff the request set `includeDetailedData`.
+    /// The hydrated detail trailer, `Some` iff the request set `includeDetailedData`.
     pub trailer: Option<EdgesTrailer<'doc>>,
 }
 
@@ -49,19 +50,19 @@ impl EdgesResponse<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when the document is inconsistent: the three columns disagreeing on the edge count,
-    /// trailer arrays not covering the delivered edges, or a trailer whose intern table breaks
-    /// the interning laws.
+    /// This panics when the three columns disagree on the edge count, when trailer arrays do not
+    /// cover the delivered edges, or when a trailer's intern table breaks the interning laws.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         /// Bytes per delivered edge across the three columns: source, target, identity.
         const ROW_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<ArchivedEntityId>();
         /// Reserve allowance for the `HEAD` payload and the slot padding.
         ///
-        /// `HEAD` is `map(5)` with one-byte uint keys: the 34-byte generation echo, two uints
-        /// of at most nine encoded bytes, and two one-byte booleans - 60 bytes at the ceiling -
-        /// and the four slots pad to 8-byte boundaries for at most 28 more. The trailer is not
-        /// counted: its extent is store-shaped text, unknowable before hydration.
+        /// `HEAD` is `map(5)` with one-byte uint keys. Its payload is a 34-byte generation echo,
+        /// two uints of at most nine encoded bytes, and two one-byte booleans, reaching 60 bytes at
+        /// the ceiling, and the four slots pad to 8-byte boundaries for at most 28 more. The
+        /// trailer is not counted, because its extent is store-shaped text, unknowable before
+        /// hydration.
         const HEAD_AND_PADDING: usize = 96;
 
         let count = self.sources.len();
@@ -113,9 +114,9 @@ impl EdgesResponse<'_> {
 
 /// The edges detail trailer.
 ///
-/// The type intern table, then per-edge detail arrays in edge order; `null` marks an edge whose
-/// store entry did not resolve. The bulk surface stays lean - one label and one first-type
-/// reference per edge; locate is the detail view.
+/// The type intern table comes first, then per-edge detail arrays in edge order. A `null` marks an
+/// edge whose store entry did not resolve. The bulk surface stays lean, with one label and one
+/// first-type reference per edge, and locate is the detail view.
 #[derive(Debug)]
 pub(crate) struct EdgesTrailer<'doc> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
@@ -192,7 +193,7 @@ pub(super) fn write_column<I>(bytes: &mut Vec<u8>, values: &[WireRow<I>]) {
 
 /// Writes one identity column: raw 32-byte records, concatenated.
 ///
-/// The records are contiguous in memory, so the column is written as a single copy.
+/// The records are contiguous in memory, so one copy writes the whole column.
 pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &[ArchivedEntityId]) {
     bytes.extend_from_slice(zerocopy::IntoBytes::as_bytes(ids));
 }

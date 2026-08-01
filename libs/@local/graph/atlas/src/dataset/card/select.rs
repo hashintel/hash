@@ -1,8 +1,8 @@
 //! Deterministic, datasource-neutral relation-example selection.
 //!
-//! Adapters remain responsible for acquiring candidates, deciding which candidates are semantically
-//! eligible, and assigning them to ordered groups. This module handles the mechanics shared by
-//! relation-card sources:
+//! Adapters acquire candidates and decide which candidates are semantically eligible, then assign
+//! the eligible ones to ordered groups. This module handles the mechanics shared by relation-card
+//! sources:
 //!
 //! 1. order each group by recognizability while interleaving subgroups;
 //! 2. guarantee every non-empty group a slot, then deal capped rounds;
@@ -11,8 +11,8 @@
 //!    the card; and
 //! 5. redistribute slots lost to endpoint conflicts.
 //!
-//! Input order is the final deterministic tie-break throughout. Selected examples are returned
-//! grouped in group declaration order, matching the order used by the canonical card renderer.
+//! Input order is the final deterministic tie-break throughout. Selection returns the chosen
+//! examples grouped in group declaration order, matching the canonical card renderer's order.
 
 use alloc::{
     alloc::{Allocator, Global},
@@ -28,12 +28,16 @@ pub(crate) const DEFAULT_GROUP_SLOT_CAP: NonZero<usize> =
 /// One adapter-owned candidate annotated for common selection.
 pub(crate) struct Candidate<'text, P, S, A: Allocator = Global> {
     pub payload: P,
-    /// The source endpoint's identity token; two candidates sharing it never appear on one card.
+    /// The source endpoint's identity token.
+    ///
+    /// No two candidates on one card share this token.
     pub source: Cow<'text, str>,
     /// The target endpoint's identity token, under the same exclusion.
     pub target: Cow<'text, str>,
     pub subgroup: S,
-    /// Adapter-scored prominence; higher values are selected first.
+    /// Adapter-scored prominence.
+    ///
+    /// Selection takes higher values first.
     pub recognizability: f64,
     /// Text-level conflict tokens that endpoint identity does not capture.
     ///
@@ -64,8 +68,8 @@ pub(crate) struct Selected<K, P> {
 
 /// Selects a bounded, diverse, endpoint-disjoint example set.
 ///
-/// Empty groups do not consume guaranteed slots, and `count` may be zero. Invalid budgets are
-/// unrepresentable: `count` is unsigned and `slot_cap` is non-zero.
+/// Empty groups do not consume guaranteed slots, and `count` may be zero. The types rule out an
+/// invalid budget: `count` cannot be negative and `slot_cap` cannot be zero.
 pub(crate) fn select_diverse_examples<K, P, S, A>(
     groups: Vec<Group<'_, K, P, S, A>, A>,
     count: usize,
@@ -255,7 +259,7 @@ where
     members.sort_by(|left, right| stronger_first(left[0], right[0]));
 
     // Round-robin over the subgroups yields the interleaved rank of every
-    // arrival index; sorting by rank is the final permutation.
+    // arrival index. Sorting by rank produces the final permutation.
     let mut rank = Vec::new_in(alloc.clone());
     rank.resize(candidates.len(), 0_usize);
     let mut next = 0;

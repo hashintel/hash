@@ -11,9 +11,9 @@ use crate::{file::region::PageMap, math::Vec2};
 /// Opening a landmark file failed.
 #[derive(Debug)]
 pub enum OpenLandmarkError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header,
@@ -72,9 +72,9 @@ impl Error for OpenLandmarkError {
 /// A landmark file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
-/// geometry alone; the skeleton's domain invariants are `salt::landmark`'s artifact contract.
+/// describes its own regions exactly. Every region borrows straight from the whole-file mapping and
+/// starts 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose geometry
+/// alone. The skeleton's domain invariants are `salt::landmark`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct LandmarkFile {
     map: PageMap,
@@ -85,7 +85,7 @@ impl LandmarkFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenLandmarkError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenLandmarkError::Io`] when opening or mapping the file fails,
     /// [`OpenLandmarkError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenLandmarkError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

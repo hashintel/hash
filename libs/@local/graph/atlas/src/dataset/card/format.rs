@@ -29,7 +29,7 @@ pub(crate) struct CardsConfig {
     pub hard_token_budget: usize = 7_500,
 }
 
-/// A card could not be rendered under its canonical contract.
+/// A card failed to render under its canonical contract.
 #[derive(Debug, PartialEq, Eq)]
 pub enum CardError<T> {
     /// The tokenizer rejected the rendered text.
@@ -72,8 +72,8 @@ pub(crate) struct Card {
 impl Card {
     /// Adopts pre-rendered text as a finished card.
     ///
-    /// The text is adopted unchanged: no truncation and no lint run, the diagnostics record zero
-    /// truncation passes, and the token count is [`HeuristicTokenizer`]'s deterministic byte
+    /// This adopts the text unchanged, with no truncation and no lint run. The diagnostics record
+    /// zero truncation passes, and the token count is [`HeuristicTokenizer`]'s deterministic byte
     /// estimate.
     #[must_use]
     pub(crate) fn verbatim(card_text: String) -> Self {
@@ -118,12 +118,12 @@ impl Card {
     }
 }
 
-/// Budgets, renders, and lints one canonical relation card.
+/// Renders one canonical relation card under its token budgets.
 ///
-/// The contents arrive adapter-built; this applies the format's own normalization (the simple-pair
-/// hoist), truncates under the configured budgets, and verifies the final text is identifier-free.
-/// `forbidden_identifiers` contains source identifiers resolved by the caller; empty identifiers
-/// are ignored.
+/// The contents arrive adapter-built. This applies the format's own normalization (the simple-pair
+/// hoist) and truncates under the configured budgets, then verifies that the final text is
+/// identifier-free. `forbidden_identifiers` contains source identifiers the caller resolved, and
+/// this ignores empty identifiers.
 ///
 /// # Errors
 ///

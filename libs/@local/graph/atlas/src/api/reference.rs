@@ -12,7 +12,7 @@ pub(super) async fn serve_document(Extension(document): Extension<Bytes>) -> imp
 
 /// Builds the handler serving the Scalar reference page.
 ///
-/// aide's bundled theme asks for `"Inter", var(--system-fonts)` but ships neither: Inter never
+/// aide's bundled theme asks for `"Inter", var(--system-fonts)` but includes neither: Inter never
 /// loads and the standalone bundle never defines `--system-fonts`, so the `font-family` computes
 /// invalid and the page falls back to the browser's default serif. The patch pins a self-contained
 /// system stack instead.

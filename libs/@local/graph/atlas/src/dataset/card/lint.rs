@@ -31,8 +31,8 @@ impl Error for IdentifierLeakError {}
 
 /// Rejects universal keys and the adapter's known source identifiers.
 ///
-/// Every check requires the match to stand on its own token boundary, so ordinary prose that merely
-/// resembles an identifier passes. Empty identifiers are ignored.
+/// Every check requires that a match begin and end at a token boundary, so ordinary prose that
+/// merely resembles an identifier passes. This ignores empty identifiers.
 ///
 /// # Errors
 ///
@@ -76,14 +76,7 @@ pub(crate) fn lint_card_text(
     Ok(())
 }
 
-// `\b` cannot express these boundaries: it tests the word class
-// `[0-9A-Za-z_]`, while the URL check needs alphanumeric boundaries
-// (`_https://x` leaks but has no word boundary before `h`) and the UUID
-// check needs hex boundaries (`key123e4567-...` has no word boundary
-// before the `1`, so `\b` never even attempts that match). Consuming
-// prefix classes would distort offsets, so candidate matches are
-// re-sought from one past a failed match start until one stands on its
-// own boundary.
+// `\b` cannot express these boundaries. It tests the word class `[0-9A-Za-z_]`, while the URL check needs alphanumeric boundaries (`_https://x` leaks but has no word boundary before `h`) and the UUID check needs hex boundaries (`key123e4567-...` has no word boundary before the `1`, so `\b` never even attempts that match). Consuming prefix classes would distort offsets, so the search retries from one past a failed match start until a match begins and ends at a real boundary.
 fn find_with_boundaries(
     pattern: &Regex,
     text: &str,

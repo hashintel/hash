@@ -2,9 +2,9 @@
 //!
 //! Bit-exact round-trips across backends, and every open-path verification naming its failure.
 //!
-//! Forward-equality assertions are bit-exact by design: the record stores every f32 parameter at
-//! full precision, so a round-tripped model must compute the identical function or the round-trip
-//! is broken, not merely inexact.
+//! Forward-equality assertions are bit-exact by design. The record stores every f32 parameter at
+//! full precision, so a round-tripped model must compute the identical function. Any deviation
+//! breaks the round-trip rather than merely losing precision.
 
 use core::num::NonZero;
 

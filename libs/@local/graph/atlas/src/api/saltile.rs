@@ -1,7 +1,7 @@
 //! Binary envelope responses and the worker that assembles them.
 //!
 //! [`Saltile`] wraps assembled envelope bytes with the family's media type and the no-store cache
-//! posture; [`spawn`] runs the CPU-bound assembly off the async runtime.
+//! posture. [`spawn`] runs the CPU-bound assembly off the async runtime.
 
 use alloc::borrow::Cow;
 
@@ -13,7 +13,7 @@ use axum::{
 
 use super::{headers, problem::Problem};
 
-/// The tile response media type: the `SALTILE` family, version 1.
+/// The tile response media type, the `SALTILE` family at version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
 
 /// `SALTILE` envelope bytes as a response.

@@ -1,13 +1,13 @@
-//! The adjacency neighbourhood: edge sets over delivered or resolved rows.
+//! Edge sets over delivered or resolved rows.
 //!
-//! Serving delivers two edge-set shapes. [`Neighbourhood::incident`] answers a source's ego graph:
-//! every edge at the source whose other endpoint is visible. [`Neighbourhood::induced`] answers a
-//! delivered row set's induced subgraph: every edge whose endpoints both lie in the set. Both
-//! walk the adjacency's outgoing runs, and both collect each qualifying edge exactly once - an
-//! edge occupies exactly one outgoing slot, and a self-loop's one endpoint is both its source and
-//! its target.
+//! Serving delivers two edge-set shapes. [`Neighbourhood::incident`] answers a source's ego graph,
+//! which is every edge at the source whose other endpoint is visible. [`Neighbourhood::induced`]
+//! answers a delivered row set's induced subgraph, which is every edge whose endpoints both lie in
+//! the set. Both walk the adjacency's outgoing runs, and both collect each qualifying edge exactly
+//! once, because an edge occupies exactly one outgoing slot and a self-loop's one endpoint is both
+//! its source and its target.
 //!
-//! An edge delivers only when the proof holds its own link row and both of its endpoints. Both
+//! An edge delivers only when the proof admits the edge's link row and both of its endpoints. Both
 //! shapes reach their candidates through [`Neighbourhood::edge`], which answers [`None`] for an
 //! edge the proof withholds, so every collected edge carries its delivery proof in the type and
 //! neither walk states the rule a second time.
@@ -24,10 +24,10 @@ use crate::{
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };
 
-/// One qualifying edge during assembly: the wire columns' row ids.
+/// The wire columns' row ids for one qualifying edge during assembly.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct DeliveredEdge {
-    /// The edge row id, proven deliverable under the proof this value was collected against.
+    /// The edge row id, proven deliverable under the proof that collected this value.
     pub row: VisibleEdge,
     /// The source node row id.
     pub source: NodeRowId,
@@ -78,14 +78,15 @@ impl<'atlas> Neighbourhood<'atlas> {
     /// Collects the source's incident edges the proof delivers, paired with their link-entity
     /// identities, in no particular order.
     ///
-    /// A self-loop occupies one slot in each direction's run; its incoming appearance is the
-    /// duplicate and is skipped, so every incident edge is collected exactly once. An edge the
-    /// proof withholds, for a hidden partner or for a hidden link row, drops before any selection:
-    /// a response's cardinality is a function of the masked view.
+    /// A self-loop occupies one slot in each direction's run. The walk skips its incoming
+    /// appearance as the duplicate, so it collects every incident edge exactly once. An edge the
+    /// proof withholds, for a hidden partner or for a hidden link row, drops before any selection,
+    /// so a response's cardinality is a function of the masked view.
     ///
     /// # Panics
     ///
-    /// Panics when `source` lies outside the adjacency's node domain, which resolution rules out.
+    /// This panics when `source` lies outside the adjacency's node domain, which resolution rules
+    /// out.
     pub(super) fn incident(&self, node: NodeRowId) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
         let outgoing = self
             .adjacency
@@ -119,8 +120,8 @@ impl<'atlas> Neighbourhood<'atlas> {
     ///
     /// Caller requirement: `delivered` is already intersected with the visibility proof. The set
     /// membership test answers the induced-subgraph question - which rows this response draws
-    /// edges between - and never stands in for the delivery rule, which the proof answers as each
-    /// candidate is read.
+    /// edges between - and never stands in for the delivery rule, which the proof answers as the
+    /// walk reads each candidate.
     pub(super) fn induced(
         &self,
         delivered: &DenseBitSet<NodeRowId>,
@@ -149,11 +150,11 @@ impl<'atlas> Neighbourhood<'atlas> {
 
     /// Returns an edge row's link-entity identity.
     ///
-    /// Generation-frozen; the `EDGE_IDS` columns deliver exactly these identity bytes.
+    /// Generation-frozen. The `EDGE_IDS` columns deliver exactly these identity bytes.
     ///
     /// # Panics
     ///
-    /// Panics when the identity table contradicts the adjacency's edge domain, which open's
+    /// This panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
     pub(super) fn edge_identity(&self, row: VisibleEdge) -> ArchivedEntityId {
         self.edge_ids
@@ -207,8 +208,8 @@ impl<'atlas> Neighbourhood<'atlas> {
 
     /// Reads edge `row`'s wire-column ids off the endpoint column, when the proof delivers it.
     ///
-    /// [`None`] when the link row is hidden or either endpoint is: the value cannot be built for an
-    /// edge no response may name, which is why both walks filter by constructing.
+    /// [`None`] when the proof withholds the link row or either endpoint. The type admits no value
+    /// for an edge no response may name, which is why both walks filter by constructing.
     fn edge(&self, row: EdgeRowId) -> Option<DeliveredEdge> {
         let [source, target] = self.endpoints[row];
 

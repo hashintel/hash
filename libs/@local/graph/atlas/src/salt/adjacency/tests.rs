@@ -29,8 +29,8 @@ fn scratch(name: &str) -> Utf8PathBuf {
 
 /// The five-node fixture with a parallel pair, a self-loop, and a zero-degree node.
 ///
-/// Edge rows: 0 and 3 both `0 → 1` (parallel), 1 is `2 → 3`, 2 is the self-loop `3 → 3`. Node
-/// row 4 touches nothing.
+/// Edge row 0 and edge row 3 are both `0 → 1` (parallel). Edge row 1 is `2 → 3` and edge row 2 is
+/// the self-loop `3 → 3`. Node row 4 touches nothing.
 const ENDPOINTS: [[NodeRowId; 2]; 4] = [
     [NodeRowId::new(0), NodeRowId::new(1)],
     [NodeRowId::new(2), NodeRowId::new(3)],
@@ -81,7 +81,7 @@ fn build_matches_the_hand_computed_lists() {
     assert_eq!(list(mapped.incoming(NodeRowId::new(1))), [0, 3]);
     assert_eq!(list(mapped.incoming(NodeRowId::new(3))), [1, 2]);
 
-    // The incident slice concatenates the runs; the self-loop appears
+    // The incident slice concatenates the runs; the self-loop occurs
     // in both.
     assert_eq!(list(mapped.incident(NodeRowId::new(3))), [2, 1, 2]);
     assert_eq!(mapped.degree(NodeRowId::new(3)), Some(3));
@@ -221,9 +221,10 @@ fn shifted_fencepost_column_is_rejected() {
         .expect("the adjacency should write");
     drop(file);
 
-    // Shift every fencepost up by one: monotonicity and the relative
-    // entry count survive, the zero anchor does not. The posts sit in
-    // the page-aligned region behind the header, eight bytes each.
+    // Shift every fencepost up by one. Monotonicity and the relative
+    // entry count survive the shift, but the zero anchor does not. The
+    // posts sit in the page-aligned region behind the header, eight
+    // bytes each.
     let mut bytes = fs::read(&path).expect("the fixture file should read");
     let posts = 2 * 2 + 1;
     for post in 0..posts {

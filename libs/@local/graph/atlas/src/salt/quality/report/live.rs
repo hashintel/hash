@@ -29,7 +29,9 @@ use crate::{
 /// Probe sizing for one live assessment.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Options {
-    /// The probe seed; equal seeds replay the sampling.
+    /// The probe seed.
+    ///
+    /// Equal seeds replay the sampling.
     pub seed: u64 = 0,
     /// Sampled anchor rows.
     ///
@@ -72,11 +74,11 @@ impl Display for Assessment {
 /// One assessment's failure, by step.
 #[derive(Debug)]
 pub(crate) enum AssessError {
-    /// The root's current-generation pointer could not be read.
+    /// Reading the root's current-generation pointer failed.
     Pointer(CurrentError),
     /// The root holds no activated generation.
     Inactive,
-    /// The active generation could not be opened.
+    /// Opening the active generation failed.
     Generation(OpenError),
     /// The generation records no snapshot axes, so no store state reproduces its corpus.
     Snapshot,
@@ -84,7 +86,7 @@ pub(crate) enum AssessError {
     Dataset(PostgresDatasetError),
     /// The quality run failed.
     Run(QualityRunError<PostgresDatasetError>),
-    /// The report could not be serialized.
+    /// Serializing the report failed.
     Serialize(serde_json::Error),
 }
 
@@ -123,8 +125,8 @@ impl Error for AssessError {
 ///
 /// # Errors
 ///
-/// Returns an [`AssessError`] when the generation cannot be opened, the store cannot serve its
-/// snapshot, the run fails, or the report cannot be serialized.
+/// Returns an [`AssessError`] when the generation fails to open, the store cannot serve its
+/// snapshot, the run fails, or serializing the report fails.
 pub(crate) async fn assess(
     client: &mut Client,
     root: &GenerationRoot,

@@ -7,7 +7,7 @@
 //! pipeline's [`Stage`] carries no prose.
 //!
 //! One module per pane - [`rail`], [`loss`], [`map`], [`log`] - each owning the vocabulary it
-//! draws with. This module owns the composition: the geometry the panes are laid out in, and which
+//! draws with. This module owns the composition: the geometry it lays the panes out in, and which
 //! of them a given terminal is large enough to earn.
 
 use ratatui::{
@@ -52,17 +52,17 @@ const MAP_MINIMUM: u16 = 24;
 /// Columns past which the map stops growing and the curve takes the room.
 const MAP_MAXIMUM: u16 = 64;
 
-/// Dots a braille cell holds across.
+/// Dots one braille cell is wide.
 const DOTS_ACROSS: u16 = 2;
 
-/// Dots a braille cell holds down.
+/// Dots one braille cell is tall.
 const DOTS_DOWN: u16 = 4;
 
 /// Points the widest map can hold apart: its braille dot grid, two dots per column and four per
 /// row inside the frame.
 ///
 /// This is what the dashboard asks a run to sample. A larger sample would cost the run copies of
-/// coordinates that land on dots already lit.
+/// coordinates the map draws into dots already lit.
 pub(super) const MAP_CAPACITY: usize = (MAP_MAXIMUM as usize - 2)
     * DOTS_ACROSS as usize
     * (LOSS_HEIGHT as usize - 2)
@@ -71,8 +71,10 @@ pub(super) const MAP_CAPACITY: usize = (MAP_MAXIMUM as usize - 2)
 /// Rows the log pane keeps whatever else is on screen.
 const LOG_MINIMUM: u16 = 3;
 
-/// Draws one frame: the stage rail above, the log tail below, and between them the placement's
-/// band - its loss curve, and its map once the pane is wide enough to hold both.
+/// Draws one frame.
+///
+/// The rail occupies the top of the area and the log tail the bottom. Between them the placement's
+/// band shows its loss curve, plus its map once the pane is wide enough for both.
 pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
     let elapsed = state.elapsed();
     let area = frame.area();
@@ -127,8 +129,8 @@ fn rail_height(state: &RunState, available: u16) -> u16 {
 
 /// The rows the placement's band may claim, beneath a rail of `rail` rows.
 ///
-/// The band appears only once the placement has something to show, and it never crowds out the
-/// rail or the log: the rail is the run's shape and the log is its voice, so the band takes what
+/// The band takes rows only once the placement has something to show, and it never crowds out the
+/// rail or the log. The rail is the run's shape and the log is its voice, so the band takes what
 /// those two leave and stays away entirely below the height where a plot says anything. Readings
 /// arriving at the end of a run therefore cost the band its rows before they cost the log any. By
 /// then the placement's curve has told its story, and the battery's numbers have not.
@@ -148,7 +150,7 @@ const fn band_height(state: &RunState, available: u16, rail: u16) -> u16 {
 /// The columns the map takes out of the band, beside the curve.
 ///
 /// The curve is the reading an operator acts on, so it keeps its width first and the map takes
-/// what is left over; below the width where dots resolve anything the map stays away entirely,
+/// the remainder; below the width where dots resolve anything the map stays away entirely,
 /// and past the width where it stops gaining detail the curve takes the rest of the growth.
 const fn map_width(state: &RunState, available: u16) -> u16 {
     if state.placement().is_none() {

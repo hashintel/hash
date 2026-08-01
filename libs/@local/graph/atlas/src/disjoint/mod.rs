@@ -30,12 +30,12 @@ mod tests;
 
 /// A union-find partition of the indices `0..len`.
 ///
-/// Uses path halving and union by size, so both operations run in effectively constant amortized
-/// time.
+/// Uses path halving and union by size, so both operations run in amortized `O(α(len))` time, with
+/// the inverse-Ackermann factor below 5 for every physical input.
 #[derive(Debug, Clone)]
 pub struct DisjointSet<N> {
-    // parent[i] == i marks a representative; size is meaningful only
-    // at representatives.
+    // parent[i] == i marks a representative. The size entry counts a
+    // group's indices only at that group's representative.
     parent: IdVec<N, N>,
     size: IdVec<N, u32>,
     groups: usize,
@@ -49,7 +49,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `len` exceeds the `u32` index encoding.
+    /// This panics when `len` exceeds the `u32` index encoding.
     #[must_use]
     pub fn new(len: usize) -> Self {
         assert!(
@@ -91,12 +91,12 @@ where
 
     /// Returns `index`'s group representative.
     ///
-    /// Two indices share a group exactly when their representatives are equal at the same partition
+    /// Indices share a group exactly when their representatives are equal at the same partition
     /// state.
     ///
     /// # Panics
     ///
-    /// Panics when `index` lies outside the domain.
+    /// This panics when `index` lies outside the domain.
     #[must_use]
     pub fn find(&mut self, index: N) -> N {
         let mut current = index;
@@ -122,7 +122,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when either index lies outside the domain.
+    /// This panics when either index lies outside the domain.
     pub fn unite(&mut self, one: N, other: N) -> bool {
         let mut first = self.find(one);
         let mut second = self.find(other);
@@ -147,7 +147,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when `index` lies outside the domain.
+    /// This panics when `index` lies outside the domain.
     #[must_use]
     pub fn group_size(&mut self, index: N) -> u32 {
         let representative = self.find(index);

@@ -252,7 +252,7 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
     let staging = root.stage().expect("the staging should create");
     assert_matches!(staging.seal(&repository), Err(SealError::Missing { .. }));
 
-    // A staged file is unlisted.
+    // The manifest omits a staged file.
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     drop(
@@ -262,14 +262,14 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
     );
     assert_matches!(staging.seal(&repository), Err(SealError::Unlisted { .. }));
 
-    // A manifest that claims the document's name is rejected before any
-    // filesystem comparison.
+    // Sealing rejects a manifest that claims the document's name before
+    // any filesystem comparison.
     let mut reserved = repository.clone();
     reserved.files.knn.name = name(METADATA_FILE);
     let staging = root.stage().expect("the staging should create");
     assert_matches!(staging.seal(&reserved), Err(SealError::Reserved));
 
-    // One name for two roles is rejected.
+    // Sealing rejects one name used for two roles.
     let mut duplicated = repository;
     duplicated.files.knn.name = name("semantic.sprs");
     let staging = root.stage().expect("the staging should create");
@@ -312,7 +312,7 @@ fn activation_flips_the_pointer_and_supports_rollback() {
             .is_none()
     );
 
-    // Activating an unpublished generation is rejected and leaves the
+    // Activation rejects an unpublished generation and leaves the
     // pointer untouched.
     let unpublished = GenerationId(digest("unpublished"));
     assert_matches!(
@@ -378,7 +378,7 @@ fn activated_generation_opens_verified() {
     root.activate(published.id())
         .expect("the generation should activate");
 
-    // The serving entry: resolve the pointer, open what it names.
+    // The serving entry resolves the pointer and opens what it names.
     let id = root
         .current()
         .expect("the pointer should read")
@@ -426,7 +426,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
     );
 
     // A hand-built directory whose document hashes to its name but is
-    // no repository fails to parse; the seal path cannot produce this.
+    // no repository fails to parse. The seal path cannot produce this.
     let foreign = "not a repository";
     let id = GenerationId(digest(foreign));
     let path = root.generation_path(id);
@@ -457,8 +457,8 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
     // A body that no longer satisfies the current schema.
     let broken = document.replace(r#""reproducibility""#, r#""reproducibilty""#);
 
-    // A retired version reports the version rather than the body: the operator of
-    // a superseded generation is told to refit.
+    // A retired version reports the version rather than the body, so the error
+    // tells the operator of a superseded generation to refit.
     let retired = broken.replace(r#""version":2"#, r#""version":1"#);
     let error = root
         .open(publish(&retired))

@@ -10,8 +10,8 @@
 //! Validated fields ([`UnitFraction`], [`LearningRate`], [`RepulsionStrength`], [`AffinityCurve`],
 //! the `NonZero` counts) deserialize through their validating constructors, so a document whose
 //! echo violates a construction invariant refuses to parse. The `math` types serialize through the
-//! with-modules here rather than own impls: `math` is serialization-free, and how a curve or a
-//! fraction appears in a document is the document's concern.
+//! with-modules here rather than own impls: `math` is serialization-free, and how a document spells
+//! a curve or a fraction is the document's concern.
 //!
 //! [serde remote pattern]: https://serde.rs/remote-derive.html
 
@@ -351,8 +351,8 @@ mod placement {
     ///
     /// Writers emit the floor object. Readers additionally accept the retired clamp's bare
     /// four-constant array `[positive, total, floor, epsilon]`, taking its floor and dropping
-    /// the rest, so every published manifest deserializes. The untagged split is structural -
-    /// array against object - so either form reads back unambiguously.
+    /// the rest, so every published manifest deserializes. The untagged split is structural (array
+    /// against object), so either form reads back unambiguously.
     #[derive(serde::Serialize, serde::Deserialize)]
     #[serde(untagged)]
     enum BudgetRecord {
@@ -561,7 +561,7 @@ mod placement {
     }
 
     impl ProjectorRecord {
-        /// Validates the wire fields into the real options.
+        /// Validates the wire fields into the typed options.
         ///
         /// Field by field through the constructors.
         fn into_options<E: serde::de::Error>(self) -> Result<ProjectorOptions, E> {
@@ -595,8 +595,8 @@ mod placement {
             })?;
 
             let floor = match record.budget {
-                // The bare-array form carries the floor third; the other constants are
-                // read and dropped.
+                // The bare-array form carries the floor third, and the destructuring discards its
+                // other three constants.
                 BudgetRecord::Enforced([_, _, floor, _]) | BudgetRecord::Observed { floor } => {
                     floor
                 }
@@ -797,8 +797,8 @@ struct LayoutOptionsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "LodConfig")]
 struct LodConfigDef {
-    // Published manifests carry the suffixed key; the wire name is
-    // pinned independent of the field name.
+    // Published manifests carry the suffixed key, and the rename pins the wire name independent of
+    // the field name.
     #[serde(with = "log2", rename = "span_log2")]
     span: Log2,
     max_tile_depth: u8,
@@ -808,8 +808,8 @@ struct LodConfigDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "PostingsConfig")]
 struct PostingsConfigDef {
-    // Published manifests carry the suffixed key; the wire name is
-    // pinned independent of the field name.
+    // Published manifests carry the suffixed key, and the rename pins the wire name independent of
+    // the field name.
     #[serde(with = "log2", rename = "dense_threshold_log2")]
     dense_threshold: Log2,
 }
@@ -848,7 +848,9 @@ struct PolicyOptionsDef {
     classifier_fit: ClassifierFitConfig,
 }
 
-/// serde shadow of [`AssemblyConfig`]; deserialization revalidates the budget's domain.
+/// serde shadow of [`AssemblyConfig`].
+///
+/// Deserialization revalidates the budget's domain.
 mod assembly_config {
     use serde::{Deserialize as _, Serialize as _, de::Error as _};
 
@@ -893,10 +895,9 @@ mod assembly_config {
 
 /// serde shadow of the classifier's fit configuration.
 ///
-/// The wire form mirrors the typed configuration: every validated scalar is echoed as its
-/// plain value, and deserialization rebuilds each field through its validating constructor
-/// before revalidating the cross-field constraints through the configuration's own domain
-/// check.
+/// The wire form mirrors the typed configuration, echoing every validated scalar as its plain
+/// value. Deserialization rebuilds each field through its validating constructor before
+/// revalidating the cross-field constraints through the configuration's own domain check.
 mod classifier_fit_config {
     use core::num::NonZero;
 

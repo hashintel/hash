@@ -3,21 +3,22 @@
 //! Upstream entity ids to atlas identity, the correlation seam between entities the client fetched
 //! through the graph API and dots already on screen.
 //!
-//! The response is two maps keyed by the requested id string echoed verbatim - byte-for-byte, no
-//! normalization - so client-side map lookups are literal and kind is carried by which map answers.
-//! A node answers its row id plus the wire-frame position (the same `f32` domain as the `POSITIONS`
-//! column, so a translated entity lands pixel-identical to its tile-delivered dot); an edge answers
-//! its endpoints' node row ids - edges carry no wire id of their own (the requested entity id IS
-//! the edge's identity in every binary response), and no position by nature.
+//! The response is two maps keyed by the requested id string echoed verbatim, byte-for-byte and
+//! without normalization, so client-side map lookups are literal and which map answers gives the
+//! kind. A node answers its row id plus the wire-frame position in the same `f32` domain as the
+//! `POSITIONS` column, so a translated entity occupies the same pixel as its tile-delivered dot.
+//! Edges answer their endpoints' node row ids. An edge carries no wire id of its own, since the
+//! requested entity id is its identity in every binary response, and an edge has no position by
+//! nature.
 //!
-//! An id that resolves to nothing is an absent key, never an error and never a null entry:
-//! nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
+//! An id that resolves to nothing yields an absent key rather than an error or a null entry.
+//! Nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
 //! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers only
-//! when its row is visible; an edge only when both its endpoints are - edge visibility derives,
-//! never independently granted. The link domain is link-bearing, so it resolves under the operator
-//! scope alone: under a restricted scope every link id is an absent key, indistinguishable from an
-//! id belonging to neither domain. Served wholly from the published identity artifacts and the
-//! fitted coordinate column; the store is never consulted.
+//! when its row is visible, and an edge only when both its endpoints are visible, so edge
+//! visibility derives from its endpoints rather than arriving on its own. The link domain is
+//! link-bearing, so it resolves under the operator scope alone. Under a restricted scope every link
+//! id is an absent key, indistinguishable from an id belonging to neither domain. Translation reads
+//! the published identity artifacts and the fitted coordinate column alone, never the store.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};
@@ -82,7 +83,7 @@ impl fmt::Display for TranslateError {
 
 impl Error for TranslateError {}
 
-/// One translate read: the ratified POST body.
+/// The ratified POST body of one translate read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TranslateRequest {
@@ -105,10 +106,10 @@ pub struct TranslatedNode {
     pub y: f32,
 }
 
-/// An edge's atlas identity: its endpoints' node row ids.
+/// An edge's atlas identity, its endpoints' node row ids.
 ///
-/// An edge has no row id of its own - binary responses identify it by its link entity id, which
-/// the requester already holds - so translation answers the two points it joins.
+/// An edge has no row id of its own. Binary responses identify it by its link entity id, which the
+/// requester already holds, so translation answers the two points it joins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 pub struct TranslatedEdge {
     /// The source node row id, the `ROW_IDS` domain.
@@ -119,8 +120,8 @@ pub struct TranslatedEdge {
 
 /// The translate response.
 ///
-/// Two maps keyed by the requested id strings echoed verbatim, so which map answers carries the
-/// kind and lookups survive partial results.
+/// Both maps take the requested id string as their key, echoed verbatim, so the answering map gives
+/// the kind and lookups survive partial results.
 ///
 /// The maps serialize in key order, so identical requests yield identical response bytes.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, schemars::JsonSchema)]
@@ -134,13 +135,13 @@ pub struct TranslateResponse {
 impl Atlas {
     /// Answers one translate request.
     ///
-    /// Upstream entity ids to atlas row ids, plus wire-frame positions for nodes. The request is
-    /// consumed: each resolved id string moves into its response key, so translation allocates
+    /// Upstream entity ids to atlas row ids, plus wire-frame positions for nodes. Translation
+    /// consumes the request and reuses each resolved id string as its response key, so it allocates
     /// nothing per id.
     ///
-    /// A node id resolves when the proof holds its row. A link id resolves when the proof holds
-    /// the link row and both of its endpoints, and answers an absent key otherwise - the same
-    /// answer an id of neither domain receives.
+    /// A node id resolves when the proof holds its row. Link ids resolve when the proof holds the
+    /// link row and both of its endpoints, and answer an absent key otherwise, the same answer an
+    /// id of neither domain receives.
     ///
     /// # Errors
     ///
@@ -168,7 +169,9 @@ impl Atlas {
     }
 }
 
-/// One generation's translate inputs: the identity tables, fitted coordinates, and wire codec.
+/// One generation's translate inputs.
+///
+/// The columns are the identity tables, the fitted coordinates, and the wire codec.
 pub(super) struct TranslateColumns<'generation> {
     /// The node identity table.
     pub node_ids: &'generation IdentityTableArchive<ArchivedEntityId, NodeRowId>,
@@ -178,7 +181,7 @@ pub(super) struct TranslateColumns<'generation> {
     pub positions: &'generation IdSlice<BasePosition, Vec2>,
     /// The position permutation, row order.
     pub position_of_row: &'generation IdSlice<NodeRowId, BasePosition>,
-    /// The endpoint column: edge row to `[source, target]`.
+    /// The endpoint column, mapping each edge row to `[source, target]`.
     pub endpoints: &'generation IdSlice<EdgeRowId, [NodeRowId; 2]>,
     /// The node universe's wire row-id codec.
     pub node_codec: &'generation RowCodec<NodeRowId>,
@@ -189,7 +192,7 @@ impl TranslateColumns<'_> {
     ///
     /// # Panics
     ///
-    /// Panics beyond the edge-row domain, which resolution rules out.
+    /// This panics beyond the edge-row domain, which resolution rules out.
     const fn endpoint_rows(&self, edge: EdgeRowId) -> [NodeRowId; 2] {
         self.endpoints[edge]
     }

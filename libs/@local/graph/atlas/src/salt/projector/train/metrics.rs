@@ -2,16 +2,16 @@
 //!
 //! Overall, per relation type, per degree decile.
 //!
-//! The budget's training metrics answer one question per bucket: is any slice of the relation
-//! evidence overpowering the semantic layout at its nodes? A node's measured outcome lands in the
-//! overall bucket and its relation-degree decile bucket as-is. Per relation type the recorded
-//! outcome is that type's own share: a type contributing the gradient `g` records `‖g‖` against
-//! the node's baseline rather than double-counting the whole node into every type touching it.
+//! Each bucket answers whether any slice of the relation evidence overpowers the semantic layout at
+//! its nodes. A node's measured outcome enters the overall bucket and its relation-degree decile
+//! bucket unchanged. Per relation type the recorded outcome is that type's own share. A type
+//! contributing the gradient `g` records `‖g‖` against the node's baseline rather than
+//! double-counting the whole node into every type touching it.
 //!
-//! Displacement telemetry measures the relation lens's integrated effect at every refresh tick:
-//! with coordinates at both lens extremes in hand, the per-node displacement `Δ_i = ‖y_i(1) -
-//! y_i(0)‖` summarizes how far the lens moves each node, reported over the same axes as the
-//! budget. The displacement is evidence only: it never steers training.
+//! Displacement telemetry measures the relation lens's integrated effect at every refresh tick.
+//! From coordinates at both lens extremes, the per-node displacement `Δ_i = ‖y_i(1) - y_i(0)‖`
+//! summarizes how far the lens moves each node, reported over the same axes as the budget. The
+//! displacement is evidence and never steers training.
 
 use alloc::collections::BTreeMap;
 use core::mem;
@@ -47,7 +47,7 @@ enum Decile {
 }
 
 impl Decile {
-    /// The deciles ascending: the bucket order of every per-decile array.
+    /// The deciles in ascending order, matching the bucket order of every per-decile array.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the index ranges over the ten variants"
@@ -85,8 +85,8 @@ where
     ///
     /// # Panics
     ///
-    /// Panics when an attraction edge references a row at or beyond `rows`; the index and the row
-    /// domain come from one generation, so a mismatch is a wiring defect.
+    /// This panics when an attraction edge references a row at or beyond `rows`. The index and the
+    /// row domain come from one generation, so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new<E>(index: &AttractionIndex<N, E>, rows: usize) -> Self
     where
@@ -142,8 +142,8 @@ where
 
 /// The budget outcome accumulator across steps, per reporting bucket.
 ///
-/// Type buckets are keyed by the relation's ontology row and ordered by it; decile buckets follow
-/// [`DegreeDeciles`]. Buckets accumulate for the whole run - the loop owns when to snapshot them
+/// The relation's ontology row keys the type buckets and orders them. Decile buckets follow
+/// [`DegreeDeciles`]. Buckets accumulate for the whole run, and the loop owns when to snapshot them
 /// into evidence.
 #[derive(Debug, Default)]
 pub(crate) struct BudgetBreakdown {
@@ -199,9 +199,9 @@ impl BudgetBreakdown {
 
 /// Distinct participating rows per relation type, ascending by ontology row.
 ///
-/// A row participates in a type when any attraction instance of that type touches it; several
-/// instances count once. Built once per training run and reused by every telemetry tick, so the
-/// per-tick cost is the participant lists, not the edge lists.
+/// A row participates in a type when any attraction instance of that type touches it, and repeated
+/// instances count once. Construction happens once per training run and every telemetry tick reuses
+/// the result, so the per-tick cost is the participant lists rather than the edge lists.
 #[derive(Debug)]
 pub(crate) struct TypeParticipants<N> {
     types: Vec<(OntologyRowId, Box<[N]>)>,
@@ -248,7 +248,7 @@ where
 
 /// Streaming summary statistics for one displacement bucket.
 ///
-/// The sums are accumulated in double precision; `maximum` is zero until the first record.
+/// The sums accumulate in double precision. `maximum` is zero until the first record.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct DisplacementMoments {
     count: u64,
@@ -355,8 +355,8 @@ impl DisplacementHistogram {
 /// The overall and per-decile buckets carry full histograms; the per-type buckets carry summary
 /// moments only, because a corpus has thousands of relation types and the per-type question - is a
 /// type moving nodes it has little evidence for - reads from location and spread, not shape. Rows
-/// without attraction evidence land in the overall bucket only: the lens can move them indirectly,
-/// and the map-wide field is exactly what the overall histogram reports.
+/// without attraction evidence enter the overall bucket only, because the lens can move them
+/// indirectly and the map-wide field is exactly what the overall histogram reports.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct DisplacementSummary {
     overall: DisplacementHistogram,
@@ -371,7 +371,7 @@ impl DisplacementSummary {
     ///
     /// # Panics
     ///
-    /// Panics when the frames disagree in length or a participant row lies outside them; the
+    /// This panics when the frames disagree in length or a participant row lies outside them. The
     /// frames, the participants, and the deciles all describe one corpus, so a mismatch is a wiring
     /// defect.
     #[must_use]

@@ -174,7 +174,7 @@ fn point_strategy() -> impl Strategy<Value = Vec2> {
 ///
 /// The tolerance scales with the magnitude of the values flowing through the transforms under test.
 ///
-/// Intermediate coordinates reach roughly `magnitude`, and cancellation can leave a result far
+/// Intermediate coordinates reach the order of `magnitude`, and cancellation can leave a result far
 /// smaller than the values that produced it, so the tolerance scales with the inputs' magnitude
 /// rather than the result's.
 #[track_caller]

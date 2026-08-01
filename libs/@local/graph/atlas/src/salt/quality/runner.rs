@@ -1,13 +1,13 @@
-//! The quality runner: one probe over a published generation.
+//! One quality probe over a published generation.
 //!
-//! [`run`] wires the suite end to end: it opens the generation's mapped artifacts - the k-NN table
-//! for the clump grouping, the representation matrix, the coordinate frame, the node identities -
-//! probes them against the dataset's canonical space, resolves the sampled anchors' direct types
-//! through the dataset's probe-scoped type stream, and renders the readings into a
-//! [`QualityReport`] under the given thresholds.
+//! [`run`] wires the suite end to end. It opens the generation's mapped artifacts (the k-NN table
+//! for the clump grouping, the representation matrix, the coordinate frame, and the node
+//! identities) and probes them against the dataset's canonical space. It resolves the sampled
+//! anchors' direct types through the dataset's probe-scoped type stream, then renders the readings
+//! into a [`QualityReport`] under the given thresholds.
 //!
-//! The dataset must observe the snapshot the generation was fitted from (its metadata records the
-//! axes): the runner matches artifact rows to source identities through the identity artifact, and
+//! The dataset must observe the snapshot the fit read (the generation's metadata records the axes),
+//! because the runner matches artifact rows to source identities through the identity artifact and
 //! a dataset at other axes would resolve types for a different corpus.
 
 use hashql_core::id::IdSlice;

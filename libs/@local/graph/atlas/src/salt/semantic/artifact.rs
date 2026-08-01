@@ -1,4 +1,4 @@
-//! The semantic graph's published form: one sparse matrix file and its mapped reader.
+//! The semantic graph's published form as one sparse matrix file and its mapped reader.
 //!
 //! A [`SemanticGraph`] publishes as one [`crate::file::sprs`] file holding its
 //! [`SemanticMatrix`](super::SemanticMatrix) verbatim. [`SemanticGraphArchive`] reopens the file

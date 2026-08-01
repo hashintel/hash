@@ -1,10 +1,17 @@
-//! The lod stage: from canonical coordinates to the served columns.
+//! The lod stage, which derives the served columns from canonical coordinates.
 //!
-//! [`Lod::build`] runs the whole level-of-detail derivation for one generation: fit the world
-//! frame, normalize the coordinates into the wire frame, quantize Morton keys, rank, cascade, sort
-//! into the base delivery order, and gather every served column into that order. The result is a
-//! pure function of the coordinates, the rank inputs, the seed, and the configuration, so equal
-//! generations produce byte-equal columns.
+//! The result is a pure function of the coordinates, the rank inputs, the seed, and the
+//! configuration, so equal generations produce byte-equal columns.
+//!
+//! [`Lod::build`] runs the whole level-of-detail derivation for one generation:
+//!
+//! 1. Fit the world frame.
+//! 2. Normalize the coordinates into the wire frame.
+//! 3. Quantize the Morton keys.
+//! 4. Rank the rows.
+//! 5. Run the cascade.
+//! 6. Sort into the base delivery order.
+//! 7. Gather every served column into that order.
 
 use std::io;
 
@@ -37,8 +44,8 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 
 /// Configuration of the level-of-detail schedule.
 ///
-/// Both values are unvalidated starting points, revised against the [`LodMeasurements`] of real
-/// generations; the manifest records what a generation was built with.
+/// Both values are starting points that no measurement has validated. The [`LodMeasurements`] of
+/// real generations revise them, and the manifest records the configuration a generation used.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
@@ -120,13 +127,16 @@ impl core::error::Error for LodError {}
 
 /// The measurements of one lod build.
 ///
-/// What the manifest records so the configuration is revised from data, not taste. Not evidence:
-/// the metadata's `Evidence` section holds admission checks, while these are build census numbers.
+/// What the manifest records so that data rather than taste drives a revision of the configuration.
+/// These are build census numbers rather than evidence, and the metadata's `Evidence` section holds
+/// the admission checks.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LodMeasurements {
-    /// The world frame the wire coordinates were normalized from.
+    /// The world frame the normalization mapped onto the wire frame.
     pub world: Bounds2,
-    /// Points per bucket; the tail calibrates `max_tile_depth`.
+    /// Points per bucket.
+    ///
+    /// The tail calibrates `max_tile_depth`.
     pub bucket_histogram: [u64; SEGMENTS],
     /// Points in the deepest bucket.
     ///
@@ -145,13 +155,13 @@ pub(crate) struct LodMeasurements {
 
 /// The level-of-detail structure of one generation, every column in base delivery order.
 ///
-/// This is the writable form of the serving artifacts: the wire coordinate column, the Morton code
-/// column with its bucket fenceposts, the rank column, and the row permutations. The
-/// [`measurements`](Self::measurements) is measured from the finished columns and belongs in the
-/// generation's metadata document.
+/// The serving artifacts are the wire coordinate column, the Morton code column with its bucket
+/// fenceposts, the rank column, and the row permutations. [`measurements`](Self::measurements)
+/// reads the finished columns and yields the numbers that belong in the generation's metadata
+/// document.
 #[derive(Debug, PartialEq)]
 pub(crate) struct Lod {
-    /// The world frame the coordinates were normalized from.
+    /// The world frame the normalization mapped onto the wire frame.
     ///
     /// Together with the fixed `[-1, 1]` wire frame this is the frame transform: the manifest
     /// records it, clients and the placement path re-derive the identical map from it.
@@ -179,12 +189,13 @@ pub(crate) struct Lod {
 impl Lod {
     /// Builds the level-of-detail structure over the canonical coordinates.
     ///
-    /// `coordinates` is the canonical `f32[N, 2]` column in row order; `inputs` the per-row rank
-    /// columns; `seed` the generation's reproducibility seed. The world frame is fitted from the
-    /// coordinates and each axis normalized onto `[-1, 1]` in `f64` with one final rounding, so the
-    /// wire column is within `2^-23` of exact everywhere and reproducible across targets. Keys
-    /// quantize the normalized column, not the input, so wire coordinates and tile cells can never
-    /// disagree.
+    /// `coordinates` is the canonical `f32[N, 2]` column in row order. `inputs` holds the per-row
+    /// rank columns and `seed` the generation's reproducibility seed.
+    ///
+    /// The build fits the world frame from the coordinates and normalizes each axis onto `[-1, 1]`
+    /// in `f64` with one final rounding, so the wire column is within `2^-23` of exact everywhere
+    /// and reproducible across targets. Keys quantize the normalized column, not the input, so wire
+    /// coordinates and tile cells can never disagree.
     ///
     /// # Errors
     ///
@@ -220,11 +231,10 @@ impl Lod {
         let buckets = cascade::buckets(keyed, &ranking, deepest);
         let order = BaseOrder::new(keyed, &buckets, &ranking);
 
-        // row_of_position is the gather order: walking it assembles any
-        // row-ordered column into base delivery order. Each gather is an
-        // index swizzle whose element work is one copy, so parallelism
-        // pays per column, not per element; position_of_rank composes
-        // the permutations - a rank's row, then that row's base position.
+        // row_of_position is the gather order. Walking it assembles any row-ordered column into
+        // base delivery order. Each gather is an index swizzle whose element work is one copy, so
+        // parallelism pays per column, not per element. position_of_rank composes the permutations
+        // by taking a rank's row and then that row's base position.
         let mut coordinates = IdVec::<BasePosition, Vec2>::new();
         let mut codes = IdVec::<BasePosition, MortonKey>::new();
 
@@ -282,23 +292,22 @@ impl Lod {
 
     /// Measures the finished columns for the generation metadata.
     ///
-    /// The measurements the manifest records: the bucket histogram (whose tail calibrates
-    /// `max_tile_depth`), the catch-all population and its co-location excess, and the observed
-    /// per-tile own-bucket maximum against the geometric cap.
+    /// The manifest records the bucket histogram (whose tail calibrates `max_tile_depth`), the
+    /// catch-all population and its co-location excess, and the observed per-tile own-bucket
+    /// maximum against the geometric cap.
     ///
     /// # Panics
     ///
-    /// Panics when `config` is not the configuration the structure was built under, detected
-    /// through its unbuildable schedule.
+    /// This panics when `config` is not the configuration the structure ran under, which shows up
+    /// as an unbuildable schedule.
     #[must_use]
     pub(crate) fn measurements(&self, config: LodConfig) -> LodMeasurements {
         let deepest = config
             .deepest()
             .expect("the structure was built under this configuration");
 
-        // Codes sort within every segment, so cell populations are
-        // consecutive equal-prefix groups: one linear scan per
-        // measurement, no hashing.
+        // Codes sort within every segment, so cell populations are consecutive equal-prefix groups.
+        // One linear scan per measurement suffices.
         let catch_all = self.segment_codes(deepest);
         let catch_all_population = catch_all.len() as u64;
         let co_location_excess = catch_all_population - distinct_prefixes(catch_all, deepest);

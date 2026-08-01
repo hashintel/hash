@@ -1,4 +1,4 @@
-//! The probe's refusal grounds: design, domain, and delivery failures.
+//! Design, domain, and delivery failures that stop the probe.
 
 use core::{error::Error, fmt};
 

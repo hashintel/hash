@@ -1,28 +1,29 @@
 //! The single validated preparation traversal ahead of solving.
 //!
-//! [`prepare`] performs one deterministic pass over the corpus in ascending row order: it
-//! validates every row, closes every target ([`ClosedTarget`]), and accumulates the total weight
-//! `S = Σ_i w_i`, the aggregate class mass `Σ_i w_i u_ic`, and the weighted feature second
-//! moments `Σ_i w_i x̄_ij²` behind the initial scaling. The traversal is real bounded work and is
-//! charged like any other: the request when made, the pass at its first row access, one visit
-//! per examined row, and the completion once every row has been seen, so a validation failure at
-//! row `i` truthfully records `i + 1` visits and no completion.
+//! [`prepare`] performs one deterministic pass over the corpus in ascending row order. It validates
+//! every row and closes every target ([`ClosedTarget`]). The same pass accumulates the total weight
+//! `S = Σ_i w_i`, the aggregate class mass `Σ_i w_i u_ic`, and the weighted feature second moments
+//! `Σ_i w_i x̄_ij²` behind the initial scaling. The traversal is real bounded work and the counters
+//! charge it like any other, recording the request when made, the pass at its first row access, one
+//! visit per examined row, and the completion once the pass has visited every row. A validation
+//! failure at row `i` therefore records `i + 1` visits and no completion.
 //!
-//! Success requires more than a completed traversal: the accumulated total weight must be finite
-//! and positive, every class must carry positive aggregate mass, and the initial scaling must
-//! construct finite positive scales. A corpus can therefore scan to completion and still fail
-//! preparation.
+//! A completed traversal alone does not make preparation succeed. Preparation also requires a
+//! finite and positive accumulated total weight, positive aggregate mass in every class, and finite
+//! positive scales from the initial scaling. A traversal that reaches the last row therefore still
+//! fails preparation when one of these checks does not hold.
 //!
 //! # Initial scaling
 //!
 //! Every fit starts at physical `T₀ = 0`. At zero the normalized initial Hessian diagonal for
-//! coefficient coordinate `j` is `h_jj = (1/(3S))·Σ_i w_i x̄_ij² + λ/S`, identical for both
-//! contrast rows; the intercept moment is `S` itself, so the intercept curvature is exactly `⅓`
-//! and is written as that constant ([`INTERCEPT_CURVATURE`]). The per-coordinate scale is
-//! `D_j = √(max(h_jj, floor))` with `floor = curvature_relative_floor · max_k h_kk`: the floor
-//! rides the corpus's measured curvature scale rather than pinning an absolute magnitude, the
-//! intercept anchors `max_k h_kk ≥ ⅓`, and degenerate coordinates receive a finite positive
-//! scale instead of dividing the solver by zero.
+//! coefficient coordinate `j` is `h_jj = (1/(3S))·Σ_i w_i x̄_ij² + λ/S`, identical for both contrast
+//! rows. The intercept moment is `S` itself, so the intercept curvature is exactly `⅓`, and
+//! preparation reads it from [`INTERCEPT_CURVATURE`].
+//!
+//! Each coordinate then takes the scale `D_j = √(max(h_jj, floor))` with `floor =
+//! curvature_relative_floor · max_k h_kk`. The floor follows the corpus's measured curvature scale
+//! instead of pinning an absolute magnitude, the intercept anchors `max_k h_kk ≥ ⅓`, and degenerate
+//! coordinates receive a finite positive scale instead of dividing the solver by zero.
 
 use core::num::NonZero;
 
@@ -72,12 +73,13 @@ pub enum PreparationError {
 
 /// Solver-relevant knobs consumed by preparation.
 ///
-/// Every field carries a default; `PreparationSettings { .. }` is the deployment
-/// configuration. The tolerance default admits targets whose sums carry division rounding
-/// only.
+/// Every field carries a default, so `PreparationSettings { .. }` is the deployment configuration.
+/// The tolerance default admits targets whose sums carry division rounding only.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct PreparationSettings {
-    /// L2 penalty `λ` on contrast coefficients; intercepts are never regularized.
+    /// L2 penalty `λ` on contrast coefficients.
+    ///
+    /// The penalty never reaches the intercepts.
     pub regularization: DPositive = DPositive::ONE,
     /// Unit-sum tolerance for raw targets, in ulps of one.
     pub target_sum_tolerance_ulps: NonZero<u32> = const {
@@ -98,22 +100,24 @@ pub(crate) struct PreparationEvidence {
     pub maximum_adjustment: f64,
     /// Smallest and largest initial scale `D_j` across coordinates.
     pub scaling_range: [f64; 2],
-    /// The derived curvature floor: the largest initial curvature scaled by the relative floor.
+    /// The largest initial curvature scaled by the relative floor.
     pub curvature_floor: f64,
 }
 
 /// A validated corpus with closed targets, accumulated statistics, and initial scaling.
 #[derive(Debug)]
 pub(crate) struct Prepared<'corpus> {
-    /// Embeddings in row order; row `i` of the corpus reads embedding `i`.
+    /// Embeddings in row order.
+    ///
+    /// Row `i` of the corpus reads embedding `i`.
     pub embeddings: &'corpus [AlignedVecN<CANONICAL_DIMENSIONS>],
     /// Weighted training rows in original order.
     pub rows: &'corpus [TrainingRow],
     /// Closed target per row, in row order.
     pub targets: Box<[ClosedTarget]>,
-    /// Total weight `S`, accumulated in row order; finite and positive.
+    /// Finite positive total weight `S`, accumulated in row order.
     pub total_weight: f64,
-    /// The validated L2 penalty `λ` the corpus was prepared under.
+    /// The validated L2 penalty `λ` that preparation applied to the corpus.
     pub regularization: f64,
     /// Aggregate weighted class mass `Σ_i w_i u_ic`, positive for every class.
     pub class_mass: [f64; GeometryClass::COUNT],

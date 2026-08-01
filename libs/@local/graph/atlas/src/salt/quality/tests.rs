@@ -77,8 +77,7 @@ fn clumps_group_chains_and_duplicates() {
     let clumps = Clumps::from_knn(&table.view(), 0.1);
 
     assert_eq!(clumps.rows(), 6);
-    // {0, 1, 2} chains through 0.05/0.08 edges; {3, 4} are exact
-    // duplicates; 5 stays alone.
+    // {0, 1, 2} chains through 0.05/0.08 edges. {3, 4} are exact duplicates. Row 5 stays alone.
     assert_eq!(clumps.clumps(), 3);
     assert_eq!(clumps.groups(), 2);
     assert_eq!(clumps.grouped_rows(), 5);
@@ -199,7 +198,7 @@ fn clump_aggregate_counts_multiset_overlap() {
     );
 }
 
-/// The identity comparison: both spaces order the universe alike.
+/// Both spaces order the universe alike.
 #[test]
 fn identical_orderings_are_perfect() {
     let ordering: Vec<u32> = (0..10).collect();
@@ -264,11 +263,11 @@ fn hand_computed_partial_agreement() {
     assert_eq!(aggregate.extrusion_rate(), 0.0);
 }
 
-/// The horizon separates reshuffles from genuine intruders.
+/// The horizon separates near-boundary reshuffles from intruders.
 #[test]
 fn horizon_splits_reshuffles_from_intruders() {
-    // Map top-2 = {0, 5}: point 5 sits at reference position 5, past
-    // the horizon 4; point 1 is banished to map position 5 in return.
+    // Map top-2 = {0, 5}. Point 5 sits at reference position 5, past the horizon 4, and the swap
+    // banishes point 1 to map position 5 in return.
     let reference: Vec<u32> = (0..6).collect();
     let map = [0, 5, 2, 3, 4, 1];
     let mut aggregate = NeighbourhoodAggregate::new(6, NonZero::new(2).expect("nonzero"), 4)
@@ -280,7 +279,7 @@ fn horizon_splits_reshuffles_from_intruders() {
     assert_eq!(aggregate.recall(), 0.5);
     assert_eq!(aggregate.intrusion_rate(), 0.5);
     assert_eq!(aggregate.extrusion_rate(), 0.5);
-    // Excesses: intruder (5-2+1) = 4, banished (5-2+1) = 4, of 7.
+    // The intruder excess and the banished excess are both (5-2+1) = 4, out of 7.
     assert_eq!(aggregate.trustworthiness(), 1.0 - 4.0 / 7.0);
     assert_eq!(aggregate.continuity(), 1.0 - 4.0 / 7.0);
 }
@@ -349,7 +348,7 @@ fn sampled_pairs_are_distinct_and_in_bounds() {
 /// Rank-vector observation agrees with full-ordering observation.
 #[test]
 fn observe_ranks_matches_observe() {
-    // Universe of 8, k = 3, horizon 5, deliberately tangled orderings.
+    // Universe of 8, k = 3, horizon 5, with tangled orderings.
     let by_reference = [4_u32, 0, 6, 2, 7, 1, 3, 5];
     let by_map = [2_u32, 4, 1, 5, 0, 6, 7, 3];
 
@@ -781,7 +780,7 @@ async fn clump_readings_match_a_sorting_reference() {
             *cell, expected,
             "anchor {anchor} disagrees with the collapsed sorting reference",
         );
-        // The law: collapsing row identity can only help recall.
+        // Collapsing row identity can only help recall.
         assert!(
             cell.recall()
                 >= readings
@@ -903,8 +902,8 @@ fn assess_flags_degraded_subgroups() {
         .collect();
     assert_eq!(by_row, vec![(100, 4, 1.0), (200, 2, 0.0), (300, 2, 0.5)],);
 
-    // Only type 200 breaches: degradation 1 > 2 · (1/3). Type 300's
-    // 1/2 stays inside 2/3; type 100 has no degradation at all.
+    // Only type 200 breaches: degradation 1 > 2 · (1/3). Type 300's 1/2 stays inside 2/3, and type
+    // 100 has no degradation at all.
     assert_eq!(report.flags.len(), 1);
     let flag = report.flags[0];
     assert_eq!(flag.ontology_row, OntologyRowId::new(200));
@@ -958,8 +957,8 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
 
 /// The clump-resolution triage rule.
 ///
-/// A flag whose collapsed reading satisfies the factor is recorded as clump-resolved and stops
-/// failing the verdict; one that stays degraded keeps failing.
+/// A flag whose collapsed reading satisfies the factor counts as clump-resolved and stops failing
+/// the verdict. One that stays degraded keeps failing.
 #[test]
 fn clump_resolution_triages_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
@@ -1019,11 +1018,13 @@ fn clump_resolution_triages_flags() {
     assert!(report.passes());
 }
 
-/// Hand-computed density rows: log ratios, the median/MAD spread, and degenerate-radius exclusion.
+/// Hand-computed density rows.
+///
+/// The rows cover log ratios, the median/MAD spread, and degenerate-radius exclusion.
 #[test]
 fn assess_reads_density_from_radii() {
     let mut readings = flag_fixture(&[true, true, true]);
-    // Ratios ln 2 and ln 4; the zero map radius is degenerate.
+    // Ratios ln 2 and ln 4. The zero map radius is degenerate.
     readings.radii = Box::new([
         RadiusPair {
             map: 2.0,
@@ -1060,7 +1061,7 @@ fn assess_reads_density_from_radii() {
         Some(f64::midpoint((low - median).abs(), (high - median).abs())),
     );
 
-    // A pinned ceiling above the spread passes; below it fails.
+    // A pinned ceiling above the spread passes, and one below it fails.
     let spread = row.spread.expect("two anchors contribute");
     let lenient = assess(
         &readings,
@@ -1111,7 +1112,7 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     assert_eq!(report.density[0].spread, None);
     assert!(!report.passes());
 
-    // Disabled triplet readings fail the verdict outright.
+    // Triplet readings with no sampled pairs fail the verdict outright.
     let mut readings = flag_fixture(&[true, true]);
     readings.triplet_map_representation = vec![TripletAggregate::default(); 2].into();
     let report = assess(&readings, &types, &QualityThresholds::default());
@@ -1121,7 +1122,7 @@ fn assess_fails_pinned_thresholds_without_evidence() {
 
 /// The neighbourhood controls demand a nonempty grid.
 ///
-/// `all` over an empty grid is vacuously true; the verdict must not be. `assess` cannot emit an
+/// `all` over an empty grid is vacuously true. The verdict must not be. `assess` cannot emit an
 /// empty grid (it reads rung 0 unconditionally and panics), but the report is a serializable
 /// value whose verdict must hold under every construction - persisted reports get read back, and
 /// a control over zero rungs is the same evidence absence as a density ceiling over absent
@@ -1143,8 +1144,8 @@ fn neighbourhood_controls_demand_a_nonempty_grid() {
 
 /// Override documents validate at the boundary.
 ///
-/// A present field overrides its default after domain validation; an absent field keeps the
-/// default; an out-of-domain value names its field; an unknown field refuses the document.
+/// A present field overrides its default after domain validation, an absent field keeps the
+/// default, an out-of-domain value names its field, and an unknown field refuses the document.
 #[test]
 fn threshold_overrides_validate_at_the_boundary() {
     let overrides: ThresholdOverrides =
@@ -1184,9 +1185,9 @@ fn threshold_overrides_validate_at_the_boundary() {
         "an unknown field refuses the document",
     );
 
-    // The f64 domain check precedes narrowing: a negative underflow
-    // would narrow to -0.0 and a value just above the f32 maximum
-    // would round down onto it - both refuse as written.
+    // The domain check runs on the f64 value before narrowing. A negative underflow would narrow to
+    // -0.0 and a value barely above the f32 maximum would round down onto it, and both refuse as
+    // written.
     let underflow = ThresholdOverrides {
         maximum_density_spread: Some(-f64::MIN_POSITIVE),
         ..ThresholdOverrides::default()
@@ -1578,8 +1579,8 @@ fn runner_probe_options() -> QualityRunOptions {
 
 /// The runner end to end.
 ///
-/// The real fit publishes a generation, the runner reopens its artifacts, probes them against the
-/// same dataset, resolves anchor types, and reports.
+/// The real fit publishes a generation. The runner reopens its artifacts and probes them against
+/// the same dataset, then resolves anchor types and reports.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn runner_reports_a_published_generation() {
@@ -1690,10 +1691,9 @@ async fn runner_reports_a_published_generation() {
         }
     }
 
-    // Subgroups below the default anchor floor never flag. The verdict
-    // still refuses: rung 2 of this landmark-baseline fixture reads
-    // all-degenerate radii, so the density evidence is absent there and
-    // the gate fails closed on absence, permissive ceilings included.
+    // Subgroups below the default anchor floor never flag, and the verdict still refuses. Rung 2 of
+    // this landmark-baseline fixture reads all-degenerate radii, so the density evidence is absent
+    // there and the gate fails closed on absence, permissive ceilings included.
     assert!(report.flags.is_empty());
     assert!(
         report.density[0].spread.is_none(),

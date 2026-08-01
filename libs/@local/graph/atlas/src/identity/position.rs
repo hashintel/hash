@@ -5,17 +5,11 @@
 hashql_core::id::newtype! {
     /// A reference to a point by its slot in a generation's base order.
     ///
-    /// The base order is the bucket-major permutation the level-of-detail cascade assigns: slot `p`
-    /// holds the point that the cascade placed `p`-th, so slots ascend by bucket and, within a
-    /// bucket, by the order the cascade delivers. Positions are dense and zero-based over the
-    /// generation's points.
+    /// The level-of-detail cascade assigns the base order as a bucket-major permutation. Slot `p` names the point that the cascade placed `p`-th. Buckets ascend across slots and each bucket keeps the order the cascade delivers. Positions are dense and zero-based over the generation's points.
     ///
-    /// A position is not a row: the position column maps each slot to the [`NodeRowId`] whose point
-    /// occupies it, and that map is a permutation rather than an identity. Coordinates, keys, and
-    /// ranks are indexed by position; identity tables and visibility masks are indexed by row.
+    /// A position is not a row. The position column maps each slot to the [`NodeRowId`] whose point occupies it, and that map is a permutation rather than an identity. Coordinates, keys, and ranks use a position as their index. Identity tables and visibility masks use a row.
     ///
-    /// The little-endian representation is the persisted form, so a column of these positions is
-    /// written to and read from artifact files without conversion.
+    /// The little-endian representation is the persisted form, so an artifact file stores a column of these positions with no conversion on write or read.
     ///
     /// [`NodeRowId`]: crate::identity::NodeRowId
     #[id(derive(Step), endian = little, unaligned, const)]

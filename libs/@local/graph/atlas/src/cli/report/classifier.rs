@@ -1,4 +1,4 @@
-//! The classifier report: a certified refit written as one JSON bundle.
+//! The classifier report that writes a certified refit as one JSON bundle.
 
 use core::fmt::{self, Display};
 
@@ -14,7 +14,7 @@ pub(crate) struct ClassifierArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 
-    /// Hex identity of the published generation whose classifier is reported.
+    /// Hex identity of the published generation whose classifier this report covers.
     #[arg(long)]
     generation: GenerationId,
 
@@ -31,7 +31,7 @@ pub(crate) struct ClassifierArgs {
 pub(crate) struct ClassifierVerdict {
     /// The staged corpus's row count.
     rows: usize,
-    /// The path the report bundle was written to.
+    /// The path the run wrote the report bundle to.
     output: Utf8PathBuf,
 }
 
@@ -47,17 +47,17 @@ impl Display for ClassifierVerdict {
 }
 
 impl ClassifierArgs {
-    /// Refits the generation's classifier from its staged corpus, certifies the bytes against
-    /// the deployed artifact, and writes the report bundle.
+    /// Refits the generation's classifier from its staged corpus and certifies the bytes against
+    /// the deployed artifact, then writes the report bundle.
     ///
     /// # Errors
     ///
-    /// Returns a [`ReportError`] when the bundle cannot be written.
+    /// Returns a [`ReportError`] when the run cannot write the bundle.
     ///
     /// # Panics
     ///
-    /// Panics when the generation cannot be opened, its staged corpus fails reconstruction, the
-    /// refit fails, or the recomputed model does not reproduce the staged artifact bytes - a
+    /// This panics when the run cannot open the generation, its staged corpus fails reconstruction,
+    /// the refit fails, or the recomputed model does not reproduce the staged artifact bytes. A
     /// report run has no recovery path, and the error is the diagnosis.
     pub(super) async fn run(self) -> Result<ClassifierVerdict, ReportError> {
         crate::math::kernel::verify_cpu_baseline();

@@ -11,23 +11,23 @@ use crate::salt::wire::WIRE_VERSION;
 
 /// The serving limits of the manifest's `limits` block.
 ///
-/// Each value is read from a value the server enforces, so an advertised limit never disagrees
+/// Each value comes from a value the server enforces, so an advertised limit never disagrees
 /// with enforcement. Request-validation limits let a client validate before sending;
 /// response-shaping limits say what delivery truncates; the staleness windows say when a held
 /// authority token expires.
 ///
 /// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for,
 /// what it must expect back, when it should refresh - and the block carries nothing a client cannot
-/// act on. The staleness windows are the visibility cache's own pair: a token names a cached scope,
+/// act on. The staleness windows are the visibility cache's own pair. A token names a cached scope,
 /// so the token's validity and the entry's are one question and publish as one pair. The cache's
 /// entry capacity governs no client behaviour and stays absent.
 ///
-/// The windows are safe to publish because a validity bound is discoverable by the party the bound
-/// applies to: the holder of a token reads its issue time from the clear envelope, and presenting
-/// the token is itself the test of whether it still opens. Publication therefore states a threshold
-/// that holder could measure, and states nothing at all to a caller holding no token. What would be
-/// a disclosure is a refusal that distinguishes its cause; an authority refusal names none, and
-/// every cause answers one uniform refusal.
+/// The windows are safe for publication because a validity bound is discoverable by the party the
+/// bound applies to. The holder of a token reads its issue time from the clear envelope, and
+/// presenting the token is itself the test of whether it still opens. Publication therefore states
+/// a threshold that holder could measure, and states nothing at all to a caller holding no token.
+/// What would be a disclosure is a refusal that distinguishes its cause; an authority refusal names
+/// none, and every cause answers one uniform refusal.
 // Never built freehand outside tests: `ServeLimits::manifest_limits` is the one derivation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -38,11 +38,11 @@ pub struct ManifestLimits {
     pub edges_tiles: u32,
     /// Most ego-graph edges one locate response delivers before the nearest-partner truncation.
     pub locate_edges: u32,
-    /// Most properties a locate source ships.
+    /// Most properties a locate source delivers.
     pub locate_properties: u32,
-    /// Most direct types one locate edge ships.
+    /// Most direct types one locate edge delivers.
     pub locate_link_type_ids: u32,
-    /// Most properties one locate edge ships.
+    /// Most properties one locate edge delivers.
     pub locate_link_properties: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
@@ -74,7 +74,7 @@ impl ServeLimits {
     }
 }
 
-/// The manifest: everything a client needs before its first tile.
+/// Everything a client needs before its first tile.
 ///
 /// Every block except [`Manifest::scope_schedule`] derives from serving configuration and
 /// snapshot provenance alone and stays valid for the generation's lifetime; the scope block is
@@ -115,7 +115,7 @@ pub struct Manifest {
 pub struct BucketSchedule {
     /// Cells per tile axis of the delivery cut: `2^span`.
     pub span: u32,
-    /// The cut rule: zoom `z` delivers buckets at or below `z + span`.
+    /// The rule by which zoom `z` delivers buckets at or below `z + span`.
     #[schemars(with = "String")]
     pub cut: BucketCut,
     /// The deepest tile zoom the schedule serves.
@@ -132,7 +132,7 @@ pub struct BucketSchedule {
 pub struct ScopeCutSchedule {
     /// The resolved delivery-cut offset the authority token seals.
     pub k: u8,
-    /// The cut rule: zoom `z` delivers scope buckets at or below `z + span + k`.
+    /// The rule by which zoom `z` delivers scope buckets at or below `z + span + k`.
     #[schemars(with = "String")]
     pub cut: BucketCut,
 }

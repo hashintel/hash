@@ -1,4 +1,4 @@
-//! The bounded landmark skeleton: selection, assignment, contraction.
+//! The bounded landmark skeleton.
 //!
 //! The skeleton caps the nonlinear layout problem at a configured landmark count `M` independent of
 //! the corpus size `N`:
@@ -7,7 +7,7 @@
 //!    sampling without replacement, honoring subgroup minimums and a retained fraction of the prior
 //!    generation's landmarks.
 //! 2. [`assign_landmarks`](assignment::assign_landmarks) maps every corpus row to its nearest
-//!    selected landmark through the generation's search backend; landmarks assign to themselves.
+//!    selected landmark through the generation's search backend, and a landmark assigns to itself.
 //! 3. [`quotient_graph`](quotient::quotient_graph) contracts the corpus
 //!    [`SemanticGraph`](super::semantic::SemanticGraph) through the assignment into a semantic
 //!    graph over the landmark domain: the structure the nonlinear layout optimizes over, `M x M`

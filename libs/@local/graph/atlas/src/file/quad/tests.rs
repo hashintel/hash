@@ -87,7 +87,7 @@ fn header_parse_pins_identity() {
     wrong_magic[0] = b'W';
     FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
-    // Version 0 is the retired layout; its bytes must not parse as V1.
+    // Version 0 is the retired layout. Its bytes must not parse as V1.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
     FileHeader::try_read_from_bytes(&wrong_version)
@@ -124,12 +124,12 @@ fn type_sets_carry_the_structural_rules() {
     assert_eq!(sets.set(1), &[1, 5]);
     assert_eq!(sets.set(3), &[2]);
 
-    // The empty cover: one anchoring post, no ids.
+    // The empty cover has one anchoring post and no ids.
     let empty = TypeSets::from_sets(&[]);
     assert_eq!(empty.node_count(), 0);
     assert_eq!(empty.posts(), &[0]);
 
-    // An empty set is a zero-width segment, not a violation.
+    // An empty set is a zero-width segment that the writer accepts.
     let hollow = TypeSets::from_sets(&[vec![]]);
     assert_eq!(hollow.set(0), &[] as &[u32]);
 }
@@ -148,8 +148,8 @@ fn type_sets_reject_duplicate_ids() {
 
 #[test]
 fn region_geometry() {
-    // Four nodes: a 128-byte table padded to one page, five posts
-    // padded to one page, ten ids behind them.
+    // A 128-byte table for four nodes pads to one page, and the five posts pad to a second page.
+    // The last 40 bytes hold ten ids.
     let header = FileHeader::new(4, 10);
     assert_eq!(header.posts_offset(), Some(8192));
     assert_eq!(header.ids_offset(), Some(12288));
@@ -242,8 +242,8 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&retired, &bytes).expect("the scratch file is writable");
     assert_matches!(QuadFile::open(&retired), Err(OpenQuadError::Header));
 
-    // A node count colliding with the sentinel is rejected before the
-    // length equation could demand a table that size.
+    // Open rejects a node count colliding with the sentinel before the length equation could demand
+    // a table that size.
     let saturated = scratch("saturated.quad");
     fs::write(
         &saturated,
@@ -282,8 +282,8 @@ fn open_rejects_malformed_posts_and_children() {
         Err(OpenQuadError::Posts { index: 4 }),
     );
 
-    // Node 0's first child redirected at itself fails the
-    // point-deeper rule; redirected beyond the table it escapes.
+    // Node 0's first child redirected at itself fails the point-deeper rule. Redirected beyond the
+    // table, it escapes.
     let shallow = scratch("shallow-child.quad");
     let mut bytes = fixture_bytes();
     bytes[4096..4100].copy_from_slice(&0_u32.to_le_bytes());
@@ -322,8 +322,8 @@ fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
 /// The mapped locate agrees with the in-memory reference walk.
 #[property_test]
 fn written_tables_roundtrip(
-    // Children generated strictly deeper, so the pre-order rule
-    // holds by construction; the format admits shared children.
+    // Children generated strictly deeper, so construction preserves the pre-order rule. The format
+    // admits shared children.
     #[strategy = proptest::collection::vec(
         (
             any::<u64>(),

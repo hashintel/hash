@@ -1,15 +1,16 @@
 //! Statistical spot check of the representation contract.
 //!
-//! Every row of the persisted representation matrix promises the source contract: finite components
-//! and a unit L2 norm, normalized where the data lives. [`spot_check`] verifies the promise by
-//! acceptance sampling instead of recomputing it: checking [`acceptance_sample_size`] uniformly
-//! sampled rows and finding all of them valid certifies, with the configured confidence, that fewer
-//! than the configured defect rate of all rows violate the contract. One defective sampled row
-//! refutes the contract, and the evidence lists every defective sampled row with its diagnosis.
+//! Every row of the persisted representation matrix promises the source contract, which is finite
+//! components and a unit L2 norm, normalized where the data lives. [`spot_check`] verifies the
+//! promise by acceptance sampling rather than by recomputing it. Checking
+//! [`acceptance_sample_size`] uniformly sampled rows and finding all of them valid certifies, with
+//! the configured confidence, that fewer than the configured defect rate of all rows violate the
+//! contract. One defective sampled row refutes the contract, and the evidence lists every defective
+//! sampled row with its diagnosis.
 //!
 //! The check reads the rows a mapped `f32[N, 512]` artifact yields, so it faults only the sampled
-//! pages; sampled rows are visited in ascending order, keeping a cold mapping's faults forward. The
-//! sample is small and each row is one kernel pass, so the check runs serially.
+//! pages. The check visits sampled rows in ascending order, which keeps a cold mapping's faults
+//! forward. The sample is small and each row is one kernel pass, so the check runs serially.
 
 use core::{error::Error, fmt};
 
@@ -23,22 +24,19 @@ use crate::{
     random::{acceptance_sample_size, sample_indices_vec},
 };
 
-// The tolerance separates float noise from real defects by orders of
-// magnitude on both sides: narrowing an f64-normalized 512-component
-// row to f32 perturbs the squared norm by under 1e-6, while the
-// nearest real failure mode - a prefix that skipped renormalization -
-// keeps only the prefix's share of the parent vector's unit energy
-// (1/6 for energy spread evenly over 3072 components), thousands of
-// tolerances from one. The sampling budget matches the crate's other
-// acceptance checks: 688 rows certify a 1% defect rate at 99.9%
-// confidence when all pass.
+// The tolerance separates float noise from real defects by orders of magnitude on both sides.
+// Narrowing an f64-normalized 512-component row to f32 perturbs the squared norm by under 1e-6,
+// while the nearest real failure mode (a prefix that skipped renormalization) keeps only the
+// prefix's share of the parent vector's unit energy (1/6 for energy spread evenly over 3072
+// components), thousands of tolerances from one. The sampling budget matches the crate's other
+// acceptance checks: 688 rows certify a 1% defect rate at 99.9% confidence when all pass.
 const DEFAULT_TOLERANCE: f64 = 1e-4;
 const DEFAULT_DEFECT_RATE: f64 = 0.01;
 const DEFAULT_CONFIDENCE: f64 = 0.999;
 
-// The two magnitudes the argument above turns on: the squared-norm perturbation of
-// narrowing one row to f32, and the deviation of the nearest real failure mode - a
-// prefix that kept 1/6 of the parent vector's unit energy.
+// The magnitudes the tolerance sits between: the squared-norm perturbation of narrowing one row to
+// f32, and the deviation of the nearest real failure mode (a prefix that kept 1/6 of the parent
+// vector's unit energy).
 const NARROWING_PERTURBATION: f64 = 1e-6;
 const UNRENORMALIZED_DEVIATION: f64 = 1.0 - 1.0 / 6.0;
 const _: () = assert!(
@@ -54,9 +52,9 @@ pub(crate) struct SpotCheckOptions {
     ///
     /// See [`acceptance_sample_size`]. Smaller rates grow the sample.
     pub defect_rate: f64 = DEFAULT_DEFECT_RATE,
-    /// Confidence of the certification, strictly inside `(0, 1)`; see [`acceptance_sample_size`].
+    /// Confidence of the certification, strictly inside `(0, 1)`.
     ///
-    /// Higher confidence grows the sample.
+    /// See [`acceptance_sample_size`]. Higher confidence grows the sample.
     pub confidence: f64 = DEFAULT_CONFIDENCE,
 }
 
@@ -99,7 +97,7 @@ pub struct NormSpotCheck {
     pub rows: usize,
     /// Distinct rows verified.
     pub sampled_rows: usize,
-    /// The squared-norm tolerance the rows were judged against.
+    /// The squared-norm tolerance the check judged the rows against.
     pub tolerance: f64,
     /// The defect rate a pass certifies.
     pub defect_rate: f64,
@@ -151,8 +149,8 @@ impl Error for SpotCheckError {}
 /// Verifies the representation contract on a uniform sample of rows.
 ///
 /// `embeddings` holds the persisted representations in row order; a mapped `f32[N, 512]` artifact
-/// yields the slice directly. A corpus smaller than the sample size is checked exhaustively, making
-/// the certification exact.
+/// yields the slice directly. The check covers a corpus smaller than the sample size exhaustively,
+/// making the certification exact.
 ///
 /// # Errors
 ///
@@ -182,7 +180,7 @@ pub(crate) fn spot_check(
         let id = NodeRowId::from_usize(row);
         let components = embeddings[row].as_array();
 
-        // A non-finite component is one defect; its norm adds nothing.
+        // A non-finite component is one defect. Its norm adds nothing.
         if let Some(component) = components.iter().position(|value| !value.is_finite()) {
             defects.push(RepresentationDefect::NonFinite { row: id, component });
             continue;

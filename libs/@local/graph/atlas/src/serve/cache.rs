@@ -2,20 +2,21 @@
 //!
 //! Resolving one actor's visible rows costs a store round trip, and a single map view issues one
 //! request per tile. [`VisibilityCache`] holds each resolution so those requests share it, and
-//! collapses a burst: while one resolution is in flight, every request for the same scope waits on
-//! it and receives its result, so N concurrent tile requests cost one store query.
+//! collapses a burst. A request for the same scope arriving during one resolution waits on it and
+//! receives its result, so N concurrent tile requests cost one store query.
 //!
-//! A scope is a [`VisibilityKey`] - a generation, an authenticated actor, and the digest of the
-//! request filter when there is one. Two callers presenting the same filter for the same actor and
-//! generation share one entry; a filtered request and an unfiltered one are different scopes.
+//! A scope is a [`VisibilityKey`], naming a generation, an authenticated actor, and the digest of
+//! the request filter when the request carries one. Callers presenting the same filter for the same
+//! actor and generation share one entry. A filtered request and an unfiltered one are different
+//! scopes.
 //!
-//! Each entry carries a [`ProofDigest`] alongside its proof: the digest of what that proof admits.
-//! Re-resolving an unchanged permission set reproduces it, and any change to what the actor may see
+//! Each entry pairs its proof with a [`ProofDigest`], the digest of what that proof admits.
+//! Re-resolving an unchanged permission set reproduces it. Any change in the actor's visible rows
 //! produces a different one, because it reads the admitted rows and nothing else. It is internal
 //! instrumentation and never leaves the server - see its own documentation for why it is not a
 //! permission epoch and why no caller pins state to it.
 //!
-//! [`VisibilityLimits`] bounds reuse: past the soft window an entry keeps answering while a refresh
+//! [`VisibilityLimits`] bounds reuse. Past the soft window an entry keeps answering while a refresh
 //! runs behind it, and at the hard window it stops answering. An authority token presented by a
 //! caller carries its own authenticated issue time, and the authority's `open` bounds that age
 //! against the token's own evidence.
@@ -28,11 +29,11 @@
 //! let cache = VisibilityCache::new(VisibilityLimits::default());
 //! let scope = VisibilityKey { generation, actor, filter: None };
 //!
-//! // The first request resolves; a second inside the window reads the held entry.
+//! // The first request resolves. A second inside the window reads the held entry.
 //! let entry = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
 //! let again = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
 //! assert_eq!(entry.digest, again.digest);
-//! // The digest is the cache's own; nothing outside this module reads it.
+//! // The digest is the cache's own. Nothing outside this module reads it.
 //! ```
 #![expect(
     clippy::empty_enums,
@@ -58,11 +59,11 @@ use crate::{
 /// The digest of a request filter, over the bytes exactly as presented.
 ///
 /// Byte-equal filter documents share a digest, so one held entry answers both. Nothing here
-/// canonicalizes: documents differing only in whitespace or key order are different digests and
+/// canonicalizes, so documents differing only in whitespace or key order are different digests and
 /// resolve as different scopes, and a client re-presenting a filter sends the bytes it sent before.
-/// The digest is fixed-width and content-derived - equal bytes always produce equal digests, on any
-/// host and in any process - which is what lets it bind a scope inside a sealed token as well as
-/// name one in a key.
+/// Every digest has the same width, and equal bytes always produce equal digests, on any host and
+/// in any process, which is what lets it bind a scope inside a sealed token as well as name one in
+/// a key.
 #[derive(
     Debug,
     Copy,
@@ -82,9 +83,9 @@ pub(crate) struct FilterDigest(Sha256Digest);
 impl FilterDigest {
     /// Digests one filter document's bytes.
     ///
-    /// `presented` is the filter exactly as the request carried it. Two requests carrying
-    /// byte-equal filters share a scope; a request whose filter differs by so much as a space
-    /// describes a different scope and resolves on its own.
+    /// `presented` is the filter exactly as the request carried it. Requests carrying byte-equal
+    /// filters share a scope. A request whose filter differs by so much as a space describes a
+    /// different scope and resolves on its own.
     pub(crate) fn of(presented: &[u8]) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(b"filter");
@@ -100,9 +101,9 @@ impl FilterDigest {
 
     /// Restores a digest that travelled, as an authority token's does.
     ///
-    /// The bytes are a digest this process or another already computed over a filter document as it
-    /// was presented; nothing here recomputes it. A wrong value names a scope no filter produces,
-    /// which the resolution then fails to compile a document for.
+    /// The bytes are a digest this process or another already computed over a filter document
+    /// exactly as presented. Nothing here recomputes it. A wrong value names a scope no filter
+    /// produces, which the resolution then fails to compile a document for.
     pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
@@ -110,26 +111,27 @@ impl FilterDigest {
 
 /// The identity of a resolved permission set.
 ///
-/// Equal digests mean equal visible row sets: the value is a function of the admitted rows, so it
-/// survives re-resolution and refreshes and differs whenever what the actor may see differs. The
-/// full-visibility proof and a mask admitting every row carry different digests, matching the
-/// proofs themselves - one is authority over the corpus, the other a scope that happens to cover
-/// it.
+/// Equal digests mean equal visible row sets. The value is a function of the admitted rows, so it
+/// survives re-resolution and refreshes and differs whenever the actor's visible rows differ. The
+/// full-visibility proof and a mask admitting every row carry different digests that match the
+/// proofs themselves, since one is authority over the corpus and the other a scope that happens to
+/// cover it.
 ///
 /// **This is not a permission epoch, and it names no product concept.** It digests the *content of
 /// one resolved proof*, which is a weaker thing than an identity for the permission state that
-/// produced it: a permission set's change is observable here only by resolving it and comparing
+/// produced it. A permission set's change is observable here only by resolving it and comparing
 /// what came back. Invalidation driven by an epoch is a separate mechanism rather than this value
 /// grown up.
 ///
-/// **It is cache-local diagnostic state, never a client state identity.** A soft refresh may
-/// replace the proof under an unchanged cache key, so this value moves while the key that names the
-/// scope does not: nothing outside this module reads it and it does not travel. The refresh tests
-/// assert through it that a resolution admitting the same rows reproduces the same value.
+/// **It is cache-local diagnostic state, never a client state identity.** A soft refresh replaces
+/// the proof under an unchanged cache key when it publishes, so this value moves while the key that
+/// names the scope does not. Nothing outside this module reads it and it does not travel. The
+/// refresh tests assert through it that a resolution admitting the same rows reproduces the same
+/// value.
 ///
-/// Caller requirement: do not publish it. It is a digest over the admitted row identities, so two
-/// scopes admitting byte-identical sets share one - an equality oracle across actors, if it were
-/// ever to leave the server.
+/// Do not publish it. It is a digest over the admitted row identities, so two scopes admitting
+/// byte-identical sets share one, which would be an equality oracle across actors if it ever left
+/// the server.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ProofDigest(Sha256Digest);
 
@@ -143,7 +145,7 @@ impl ProofDigest {
     }
 }
 
-/// One scope: whose view of which generation, under which filter.
+/// One scope, naming an actor's view of one generation under one filter.
 ///
 /// Equal keys name the same view, so they share one held entry.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -156,18 +158,18 @@ pub(crate) struct VisibilityKey {
     pub filter: Option<FilterDigest>,
 }
 
-/// One resolution's product: a proof, and the census of the view it admits.
+/// A proof and the census of the view it admits, from one resolution.
 ///
-/// The pair exists because both are resolved per scope and neither is a function of a request. Its
-/// only constructor censuses the very proof it stores, so a census paired with a foreign proof is
-/// unconstructible rather than forbidden.
+/// The pair exists because one resolution produces both per scope, and neither is a function of a
+/// request. Its only constructor censuses the proof it stores, so a census paired with a foreign
+/// proof is unconstructible rather than forbidden.
 #[derive(Debug)]
 pub(crate) struct Resolution {
     /// The rows the actor may see.
     proof: VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits.
     census: ViewCensus,
-    /// The filter document [`Self::proof`] was resolved over, as presented, absent when
+    /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     ///
     /// Held so a refresh can recompile the filter without a client round trip: the client is the
@@ -176,11 +178,11 @@ pub(crate) struct Resolution {
 }
 
 impl Resolution {
-    /// Censuses `proof` over `atlas` and pairs them with the `filter` document they were resolved
-    /// over, as presented.
+    /// Pairs `proof` with its census over `atlas` and the `filter` document, as presented.
     ///
-    /// The census walks the base column once for a masked proof and reads the artifacts for an
-    /// unmasked one, so the cost lands on the resolution rather than on the requests that share it.
+    /// The `filter` is the document the resolution ran over. The census walks the base column once
+    /// for a masked proof and reads the artifacts for an unmasked one, so the resolution pays that
+    /// cost rather than the requests that share it.
     pub(crate) fn of(atlas: &Atlas, proof: VisibilityProof, filter: Option<Arc<[u8]>>) -> Self {
         Self {
             census: atlas.census(&proof),
@@ -193,7 +195,7 @@ impl Resolution {
     ///
     /// The cache neither reads a census nor derives one, so its own tests - over holding,
     /// refreshing and expiring entries - need no walked one. Production keeps exactly one
-    /// constructor, [`Self::of`], which censuses the very proof it stores.
+    /// constructor, [`Self::of`], which censuses the proof it stores.
     #[cfg(test)]
     pub(crate) const fn with_empty_census(proof: VisibilityProof) -> Self {
         Self {
@@ -215,14 +217,14 @@ pub(crate) struct ResolvedVisibility {
     pub census: ViewCensus,
     /// The identity of what [`Self::proof`] admits.
     pub digest: ProofDigest,
-    /// The filter document [`Self::proof`] was resolved over, as presented, absent when
+    /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
     /// The delivery schedule of [`Self::proof`]'s view, built on first read.
     ///
     /// Shared across the entry's clones, so one scope builds its cascade once and every request
-    /// under it reads the same value; the entry's replacement retires the schedule with the
-    /// proof it was built over.
+    /// under it reads the same value. Replacing the entry retires the schedule along with the
+    /// proof it describes.
     schedule: Arc<OnceLock<ViewSchedule>>,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
@@ -261,7 +263,7 @@ impl ResolvedVisibility {
             .clone()
     }
 
-    /// Returns the filter document the entry was resolved over, as presented.
+    /// Returns the filter document the resolution ran over, as presented.
     pub(crate) fn filter_document(&self) -> Option<Arc<[u8]>> {
         self.filter.clone()
     }
@@ -273,8 +275,8 @@ impl ResolvedVisibility {
 
     /// Returns whether this entry has outlived its reuse window by `now`.
     ///
-    /// The age is measured from the resolution, so the window bounds how long permissions may lag
-    /// however long the resolution itself took.
+    /// The age runs from the resolution, so the window bounds how long permissions may lag however
+    /// long the resolution itself took.
     fn is_expired(&self, now: Instant, hard: Duration) -> bool {
         now.saturating_duration_since(self.resolved_at) >= hard
     }
@@ -287,24 +289,24 @@ impl ResolvedVisibility {
     }
 }
 
-/// How long a resolved scope is reused, and how many scopes are held at once.
+/// How long the cache reuses a resolved scope, and how many scopes it holds at once.
 ///
-/// [`Self::hard`] is the setting to choose first: it is the ceiling on how long a request may still
-/// be answered under permissions that have since changed, which makes it the deployment's tolerated
-/// revocation lag. A ten-minute hard window means a revoked permission takes effect within ten
-/// minutes for a scope in continuous use, and on the next request for one that was idle.
+/// Choose [`Self::hard`] first. It is the ceiling on how long the cache goes on answering a request
+/// under permissions that have since changed, which makes it the deployment's tolerated revocation
+/// lag. A ten-minute hard window means a revoked permission takes effect within ten minutes for a
+/// scope in continuous use, and on the next request for one that was idle.
 ///
 /// [`Self::soft`] is where an entry begins refreshing behind the answer it still serves. The gap
-/// between the two windows is what the refresh runs in, so store latency lands on no request while
+/// between the two windows is what the refresh runs in, so no request waits on store latency while
 /// a scope stays in use.
 ///
-/// [`Self::entries`] bounds how many scopes are held. A deployment with more concurrently active
-/// actors than entries still answers every request; the scopes that fall out resolve again, one
-/// store round trip each.
+/// [`Self::entries`] bounds how many scopes the cache holds. A deployment with more concurrently
+/// active actors than entries still answers every request, and the scopes that fall out resolve
+/// again, one store round trip each.
 ///
-/// An authority token names a cached scope, so this pair also bounds a held token's age: the
-/// authority's `open` judges the issue time a token carries against the same `hard` window, and
-/// the manifest publishes both values as the client's refresh and expiry horizons.
+/// An authority token names a cached scope, so this pair also bounds a held token's age. The
+/// authority's `open` judges the issue time a token carries against the same `hard` window, and the
+/// manifest publishes both values as the client's refresh and expiry horizons.
 ///
 /// # Examples
 ///
@@ -328,22 +330,22 @@ impl ResolvedVisibility {
 /// halving it doubles the resolutions a steady population of actors produces.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VisibilityLimits {
-    /// How many scopes are held before the least valuable is dropped.
+    /// How many scopes the cache holds before dropping the least valuable.
     pub entries: u64,
     /// When a held entry starts refreshing behind the answer it serves.
     pub soft: Duration,
-    /// When a held entry stops being served.
+    /// When a held entry stops answering.
     pub hard: Duration,
 }
 
 impl Default for VisibilityLimits {
     /// A ten-minute revocation lag, refreshing at eight, holding 4096 scopes.
     ///
-    /// The two-minute gap between the windows is the refresh's room: a scope in continuous use is
-    /// re-resolved at eight minutes and keeps answering from the held proof while that runs, so the
-    /// hard window is reached only by a scope whose refresh failed or that stopped being asked for.
-    /// The entry count is an unvalidated starting point - it bounds concurrent hot scopes, and the
-    /// measurement that revises it is the cache's own hit rate against the deployment's
+    /// The refresh runs in the two-minute gap between the windows. A scope in continuous use
+    /// re-resolves at eight minutes and keeps answering from the held proof while that runs, so
+    /// only a scope whose refresh failed or that no longer receives requests reaches the hard
+    /// window. The entry count is an unvalidated starting point, bounding concurrent hot scopes,
+    /// and the measurement that revises it is the cache's own hit rate against the deployment's
     /// active-actor count.
     fn default() -> Self {
         Self {
@@ -357,14 +359,14 @@ impl Default for VisibilityLimits {
 /// Resolved scopes, held for their reuse window.
 ///
 /// One entry per scope, whatever its proof admits, so the capacity bound counts scopes rather than
-/// rows or bytes. A scope whose entry is gone resolves again on its next request and reproduces its
+/// rows or bytes. A scope with no held entry resolves again on its next request and reproduces its
 /// digest when its permissions have not moved, so eviction costs one store round trip and nothing
 /// else.
 ///
-/// Admission favours the scopes that come back. A filter belongs to a scope's key, so a client
-/// exploring filters produces a stream of scopes asked for once each; those cost one resolution
+/// Admission favours the scopes that come back. Since a scope's key includes its filter, a client
+/// exploring filters produces a stream of scopes asked for once each, and those cost one resolution
 /// apiece and leave returning callers' entries in place. A newly active scope pays an extra
-/// resolution or two before it is admitted while the cache is full.
+/// resolution or two before admission while the cache is full.
 #[derive(Debug)]
 pub(crate) struct VisibilityCache {
     entries: moka::future::Cache<VisibilityKey, ResolvedVisibility>,
@@ -403,35 +405,36 @@ impl VisibilityCache {
 
     /// Returns the scope `key` names at `now`, resolving it through `resolve` when needed.
     ///
-    /// A held entry inside the soft window answers immediately, and `resolve` goes uncalled: it is
-    /// handed over as the initializer of the miss path, which an entry that answers never reaches.
+    /// A held entry inside the soft window answers immediately, and `resolve` goes uncalled. The
+    /// cache hands it over as the initializer of the miss path, which an entry that answers never
+    /// reaches.
     ///
-    /// An entry past the soft window answers too, and one caller takes the refresh: the resolution
-    /// runs behind the answer that was already returned and replaces the entry when it lands. So a
-    /// request that crosses the horizon costs what a hit costs, and the proof it receives is the
-    /// one it already had.
+    /// An entry past the soft window answers too, and one caller takes the refresh. That resolution
+    /// runs behind the answer already returned and replaces the entry once it completes, so a
+    /// request that crosses the horizon costs what a hit costs and receives the proof it already
+    /// had.
     ///
-    /// An entry past the hard window answers nothing: it is dropped and resolved again, so the
-    /// answer is a resolution no older than `now`. The window is judged on the caller's `now` - the
-    /// clock `resolved_at` came from - and measured from the resolution the entry carries, so a
-    /// slow resolution shortens the entry's reuse rather than extending its window.
+    /// An entry past the hard window answers nothing. The cache drops it and resolves again, so the
+    /// answer is a resolution no older than `now`. The cache judges the window on the caller's
+    /// `now`, the clock `resolved_at` came from, and measures it from the resolution the entry
+    /// carries, so a slow resolution shortens the entry's reuse rather than extending its window.
     ///
     /// A refresh publishes only over the entry it refreshed, and only while that entry is the
-    /// newest held: a refresh that lands after a newer resolution, or after the entry it refreshed
-    /// is gone, publishes nothing. So the newest resolution of a scope is the one that answers, and
-    /// no proof re-enters the cache with a window it did not earn.
+    /// newest held. A refresh completing after a newer resolution, or after the entry it refreshed
+    /// has left the cache, publishes nothing, so the newest resolution of a scope is the one that
+    /// answers and no proof re-enters the cache with a window it did not earn.
     ///
     /// With nothing held, the resolution runs inline and every request arriving during it receives
-    /// its result: a burst of tile requests for one scope costs one store round trip.
+    /// its result, so a burst of tile requests for one scope costs one store round trip.
     ///
-    /// An unchanged permission set reproduces the digest it had. A refresh that lands a *narrower*
-    /// proof replaces the entry silently and the requests after it answer from the narrower view:
-    /// that mid-run change is accepted while the graph has no permission epochs to invalidate on,
-    /// and it is why nothing here announces a refresh to a caller.
+    /// An unchanged permission set reproduces the digest it had. When a refresh resolves a
+    /// *narrower* proof, it replaces the entry and the requests after it answer from the narrower
+    /// view. The cache takes that mid-run change while the graph has no permission epochs for
+    /// invalidating an entry, which is why no caller learns of a refresh.
     ///
     /// # Errors
     ///
-    /// Returns `resolve`'s error when an inline resolution fails, holding no entry: a failed
+    /// Returns `resolve`'s error when an inline resolution fails, holding no entry. A failed
     /// resolution publishes nothing, and the requests that shared it share its error. A failed
     /// refresh leaves the held entry serving and releases the refresh, so the next request past the
     /// soft window tries again.
@@ -449,16 +452,16 @@ impl VisibilityCache {
         let refresh = resolve.clone();
         let mut entry = self.held_or_resolved(key, now, resolve.clone()).await?;
 
-        // The window is judged on the caller's clock - the one `resolved_at` came from - and not on
-        // moka's, whose expiry would start when the resolution finished. Judging it after the read
-        // rather than before costs the answering path one lookup instead of two, and the retry
-        // cannot loop: what it inserts is dated `now`.
+        // This judges the window on the caller's clock, the one `resolved_at` came from, rather
+        // than on moka's, whose expiry starts when the resolution finishes. Judging it after the
+        // read rather than before costs the answering path one lookup instead of two, and the retry
+        // cannot loop, because the entry it inserts carries `now` as its `resolved_at`.
         if entry.is_expired(now, self.hard) {
             self.entries.invalidate(&key).await;
             entry = self.held_or_resolved(key, now, resolve).await?;
         }
 
-        // A resolution that just ran is not stale, so this is the held-entry path alone.
+        // A resolution that ran in this call is not stale, so this is the held-entry path alone.
         if entry.is_stale(now, self.soft) && entry.claim_refresh() {
             let entries = self.entries.clone();
             let refreshing = Arc::clone(&entry.refreshing);
@@ -466,8 +469,8 @@ impl VisibilityCache {
             drop(tokio::spawn(async move {
                 match refresh().await {
                     Ok(resolution) => {
-                        // The resolution is dated `now`, the request that triggered it: an entry is
-                        // never dated later than the permissions it reflects.
+                        // The refreshed entry carries `now`, the time of the request that triggered
+                        // it, so no entry claims a time later than the permissions it reflects.
                         let refreshed = ResolvedVisibility::new(resolution, now);
 
                         // Published under moka's key lock, so the comparison and the write cannot
@@ -499,7 +502,7 @@ impl VisibilityCache {
         Ok(entry)
     }
 
-    /// Answers from the entry held for `key`, resolving inline when none is held.
+    /// Answers from the entry held for `key`, resolving inline when the cache holds none.
     ///
     /// Concurrent callers of one key share one inline resolution: the initializer runs once and
     /// every waiter receives its result, which is what keeps a burst of tile requests for one scope
@@ -641,8 +644,8 @@ mod tests {
     /// An entry past the soft window answers from the held proof while a refresh replaces it.
     ///
     /// The request crossing the horizon pays nothing: it receives the proof it already had. The
-    /// refresh runs as a task, so the loop below drives the runtime until it lands rather than
-    /// waiting on a clock.
+    /// refresh runs as a task, so the loop below drives the runtime until the refresh publishes
+    /// rather than waiting on a clock.
     #[tokio::test]
     async fn a_stale_entry_answers_while_it_refreshes() {
         let cache = VisibilityCache::new(LIMITS);
@@ -713,10 +716,10 @@ mod tests {
 
     /// The capacity bound counts entries, so a proof's rows cannot evict its neighbours.
     ///
-    /// Two scopes hold six rows between them under a two-entry budget: a budget priced in rows
-    /// would admit each entry and evict it again, a budget priced in entries holds both. A third
-    /// scope is what the budget bites on - by eviction or by refused admission, since the count is
-    /// what this fixture pins.
+    /// Under a two-entry budget, two scopes hold six rows between them. A budget priced in rows
+    /// admits each entry and evicts it again, while a budget priced in entries holds both. The
+    /// budget bites on a third scope, by eviction or by refused admission, since the count is what
+    /// this fixture pins.
     #[tokio::test]
     async fn the_capacity_bound_counts_entries() {
         let cache = VisibilityCache::new(VisibilityLimits {
@@ -754,11 +757,11 @@ mod tests {
         );
     }
 
-    /// An entry past the hard window is not answered from.
+    /// The cache answers nothing from an entry past the hard window.
     ///
-    /// The window is measured from the resolution, so the clock this advances is the injected `now`
-    /// and not the cache's own: an entry whose age reaches `hard` resolves again inline, and the
-    /// answer carries the new proof rather than the held one.
+    /// The window runs from the resolution, so the clock this advances is the injected `now` and
+    /// not the cache's own. An entry whose age reaches `hard` resolves again inline, and the answer
+    /// carries the new proof rather than the held one.
     #[tokio::test]
     async fn an_expired_entry_resolves_again() {
         let cache = VisibilityCache::new(LIMITS);
@@ -789,11 +792,11 @@ mod tests {
 
     /// A refresh landing after a newer resolution publishes nothing.
     ///
-    /// The refresh task holds the proof it resolved; if it could `insert` unconditionally, an older
-    /// proof would replace a newer one *and* restart the window it lives in - a permission revoked
-    /// between would be served again for a fresh window. The fixture drives that order
-    /// deliberately: the refresh is claimed under a paused resolver, a newer inline resolution
-    /// publishes while it is in flight, and only then does the refresh complete.
+    /// The refresh task holds the proof it resolved. An unconditional `insert` would let an older
+    /// proof replace a newer one and restart the window it lives in. The cache would then go on
+    /// serving a permission revoked between the two for a fresh window. The fixture forces that
+    /// order. A paused resolver holds the refresh in flight until a newer inline resolution has
+    /// published, and only then does the refresh complete.
     #[tokio::test]
     async fn a_refresh_does_not_overwrite_a_newer_entry() {
         let cache = VisibilityCache::new(LIMITS);
@@ -805,7 +808,7 @@ mod tests {
             .await
             .expect("the resolution answers");
 
-        // The refresh resolver blocks on a permit that is buffered rather than signalled, so the
+        // The refresh resolver blocks on a permit that the gate stores rather than signals, so the
         // order below holds however the runtime interleaves the spawned task.
         let gate = Arc::new(tokio::sync::Notify::new());
         let refresh_gate = Arc::clone(&gate);
@@ -858,12 +861,12 @@ mod tests {
         );
     }
 
-    /// A refresh whose entry is gone publishes nothing.
+    /// A refresh whose entry has left the cache publishes nothing.
     ///
-    /// The slot empties for exactly the reasons the windows exist - the hard window dropped it, or
-    /// capacity evicted it - so a refresh that filled the slot again would give a proof resolved
-    /// before that removal a fresh window to live in, with no request having asked for it. A
-    /// refresh replaces the entry it refreshed; it creates none.
+    /// The slot empties for exactly the reasons the windows exist, either because the hard window
+    /// dropped the entry or because capacity evicted it, so a refresh that filled the slot again
+    /// would give a proof resolved before that removal a fresh window to live in, with no request
+    /// having asked for it. A refresh replaces the entry it refreshed and creates none.
     #[tokio::test]
     async fn a_refresh_does_not_resurrect_a_removed_entry() {
         let cache = VisibilityCache::new(LIMITS);
@@ -932,8 +935,8 @@ mod tests {
     /// An unchanged permission set reproduces its digest.
     ///
     /// The property holds of the digest itself rather than of any cache timing: two resolutions
-    /// admitting the same rows carry one digest, which is what lets a refresh be recognized as a
-    /// no-op.
+    /// admitting the same rows carry one digest, which is what lets a digest comparison identify a
+    /// refresh as a no-op.
     #[test]
     fn an_unchanged_permission_set_reproduces_its_digest() {
         assert_eq!(

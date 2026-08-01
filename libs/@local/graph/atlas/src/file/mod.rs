@@ -1,9 +1,10 @@
 //! On-disk storage for atlas artifacts.
 //!
 //! Artifacts are plain files in a directory, one artifact per file, described by metadata stored
-//! beside them. There is no container format: the filesystem is the container. A generation is
-//! published by writing every file to a temporary directory, syncing, and renaming it into place,
-//! so it is either absent or complete; published files are immutable and may be cached forever.
+//! beside them. No container format exists: the filesystem is the container. Publishing a
+//! generation writes every file to a temporary directory, syncs, and renames it into place, so a
+//! generation is either absent or complete. Published files never change, so caching them forever
+//! is safe.
 //!
 //! - [`array`](mod@array) is the raw scalar array file: a self-describing 4096-byte header followed
 //!   by the packed elements, so a whole-file mapping yields page-aligned data.
@@ -14,13 +15,13 @@
 //! - [`identity`] is the identity file: a row-ordered id column and its sorted `(id, row)` lookup
 //!   pairs behind an index prelude, page-aligned regions of one file, so rows translate to source
 //!   identities and back without decoding.
-//! - [`landmark`] is the landmark skeleton file: selected rows, the corpus assignment, and the
-//!   layout coordinates - three ordinal-keyed regions of one file, page-aligned.
+//! - [`landmark`] is the landmark skeleton file, three ordinal-keyed and page-aligned regions of
+//!   one file holding selected rows, the corpus assignment, and the layout coordinates.
 //! - [`classifier`] is the classifier file: the fitted relation-policy model - coefficient rows,
 //!   applicability moments, and training distances as page-aligned regions of one file, the scalar
 //!   parameters in the header.
-//! - [`policy`] is the policy file: the resolved geometry policy table, one fixed-width record per
-//!   relation type, ascending by relation.
+//! - [`policy`] is the policy file, the resolved geometry policy table with one fixed-width record
+//!   per relation type, ascending by relation.
 //! - [`postings`] is the postings file: per-type membership over the base delivery order - sorted
 //!   position lists or dense bitmaps, flagged per type - beside the type graph's direct parent
 //!   edges, page-aligned regions of one file.
@@ -30,33 +31,32 @@
 //! - [`quad`] is quadtree topology: the bucket-cut tile tree - node table, own-bucket runs into the
 //!   base delivery order, and per-node direct-type sets as page-aligned regions of one file.
 //! - [`repository`] names published files and binds each to a strong hash.
-//! - [`salt`] is the SALT generation repository: the files one published generation consists of and
-//!   the metadata describing them.
-//! - [`generation`] is the directory layer around them: staging, the atomic publish, and the
+//! - [`salt`] is the SALT generation repository, naming the files one published generation consists
+//!   of and the metadata describing them.
+//! - [`generation`] is the directory layer around them, with staging, the atomic publish, and the
 //!   current-generation pointer.
 //!
-//! Integrity is layered by cost. Array headers validate by parsing (the magic and version are
-//! pinned, so foreign bytes fail to parse), the one structural rule is the file length equation,
-//! torn writes are prevented by the temporary-path-and-rename publish, and corruption detection is
-//! the SHA-256 each repository file records, verified by tooling rather than on every load. No file
-//! carries an internal checksum: hashing at publish is one streaming pass the pipeline already
-//! makes, and the structure an internal checksum would protect is the directory, which the
-//! filesystem holds.
+//! Integrity mechanisms layer by cost. Array headers validate by parsing, because the pinned magic
+//! and version make foreign bytes fail to parse. The one structural rule is the file length
+//! equation. The temporary-path-and-rename publish prevents torn writes, and the SHA-256 each
+//! repository file records detects corruption, which tooling verifies rather than every load. No
+//! file carries an internal checksum. Hashing at publish is one streaming pass the pipeline already
+//! makes, and the structure an internal checksum protects is the directory, which the filesystem
+//! holds.
 //!
-//! Shapes need no validation because every bit pattern means something: the shape is the longest
-//! nonzero dimension prefix and a leading zero is the empty array. The single enforcement point is
-//! the total, the expected file length computed with checked arithmetic, where an overflowing
-//! computation matches no real file.
+//! Shapes need no validation because every bit pattern means something. The shape is the longest
+//! nonzero dimension prefix, and a leading zero is the empty array. The single enforcement point is
+//! the total, the expected file length computed with checked arithmetic. An overflowing computation
+//! matches no real file.
 //!
-//! Every format here is **mutable**: change any layout freely to fit what the pipeline needs and
-//! increment its version when you do. Pinned parses rejecting other versions is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until a format
-//! stabilizes.
+//! Every format here is **mutable**. Change any layout to fit what the pipeline needs and increment
+//! its version when you do. Pinned parses rejecting other versions is the intended failure mode. No
+//! migration or compatibility machinery exists on purpose until a format stabilizes.
 //!
-//! Two numbers carry that. Each binary header holds its own layout version, 0 today. The published
-//! JSON holds one: [`RepositoryVersion`](repository::RepositoryVersion) leads the serialized
-//! document and versions the repository layout and the metadata schema together, the schema being
-//! nested inside the document it leads.
+//! Each binary header states its own layout version, 0 today. The published JSON states one more
+//! number. [`RepositoryVersion`](repository::RepositoryVersion) leads the serialized document and
+//! versions the repository layout and the metadata schema together, with the schema nested inside
+//! the document it leads.
 //!
 //! # The filesystem is the container
 //!
@@ -64,11 +64,11 @@
 //! mappings, journaled metadata, atomic rename, and exclusive creation - page-aligned sections,
 //! crash-safe directory updates, atomic publish and provisioned append capacity, in a container
 //! format's vocabulary. The same layout maps onto object storage one to one, and it is the shape
-//! the array-plus-metadata families take: Zarr's raw chunk files beside JSON metadata, numpy's tiny
-//! header in front of a raw buffer, the OCI image layout.
+//! the array-plus-metadata families take: Zarr's raw chunk files beside JSON metadata, numpy's
+//! small header in front of a raw buffer, the OCI image layout.
 //!
 //! Packing many small files into fewer large ones stays available for the day file count measurably
-//! hurts. The candidate is the quadtree point clouds; raise bucket leaves to at least 64 KiB first.
+//! hurts. The candidate is the quadtree point clouds. Raise bucket leaves to at least 64 KiB first.
 //!
 //! # Whole-file mappings
 //!
@@ -76,8 +76,8 @@
 //! bytes, a multiple of every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon,
 //! 64 KiB on `aarch64` distributions), so the data behind it lands aligned for every scalar and
 //! SIMD width.
-//! Mapping from zero is what makes that provable: an mmap offset must itself be a page-size
-//! multiple, and 4096 is not one on 16 KiB pages.
+//! Mapping from zero is what makes that provable. The kernel accepts only page-size-multiple mmap
+//! offsets, and 4096 is not one on 16 KiB pages.
 //!
 //! # Format palette
 //!
@@ -90,35 +90,35 @@
 //! 2. **Specialized zerocopy file**: structured binary that a mapping must expose without decoding
 //!    but that is not a flat array. Built like the array header: a pinned 4096-byte preamble,
 //!    explicit little-endian layout, parse-is-validation.
-//! 3. **Parquet**: genuinely tabular data with heterogeneous columns, read once into memory or
-//!    queried analytically, never mapped. It buys compression and external tooling (`DuckDB`,
+//! 3. **Parquet**: tabular data with heterogeneous columns, loaded once into memory or queried
+//!    analytically rather than mapped. It buys compression and external tooling (`DuckDB`,
 //!    `polars`) over a live atlas - worth real debugging time at a million entities - at the cost
-//!    of decode and the arrow dependency tree in an otherwise lean crate, so the choice is made
+//!    of decode and the arrow dependency tree in an otherwise lean crate, so the choice happens
 //!    once, at adoption.
-//! 4. **rkyv**: only for pointer-rich structures, such as deep recursive graphs, where laying out
-//!    an explicit zerocopy format is unreasonable. An explicit `#[repr(C)]` layout with pinned
+//! 4. **rkyv**: pointer-rich structures alone, such as deep recursive graphs, where laying out an
+//!    explicit zerocopy format is unreasonable. An explicit `#[repr(C)]` layout with pinned
 //!    identity is inspectable in a hex dump and carries no schema-evolution machinery, so zerocopy
-//!    is preferred wherever a layout can be written down. The merge tree, the one candidate here,
-//!    flattens to three columns instead.
-//! 5. **JSON**: the metadata document alone - small, read once, and inspected by humans more often
-//!    than machines.
+//!    is the choice wherever writing the layout down is possible. The merge tree, the one candidate
+//!    here, flattens to three columns instead.
+//! 5. **JSON**: the metadata document alone. It is small, read once, and inspected by humans more
+//!    often than machines.
 //!
 //! Formats owned by frameworks (the burn checkpoint) stay as the framework writes them.
 //!
 //! # Combined files
 //!
-//! Parts combine into one file when they are derived from one another, meaningless apart, and
-//! always read together - a lookup index in front of the array it indexes is the canonical case.
-//! Parts that version or get replaced independently stay separate files.
+//! Parts combine into one file when they derive from one another, mean nothing apart, and always
+//! read together. A lookup index in front of the array it indexes is the canonical case. Parts that
+//! version or get replaced independently stay separate files.
 //!
-//! Three properties keep a combined file distinct from a container. Regions are fields of the
-//! kind's own pinned header, so there is no generic directory, no section table and no region
-//! count. The parts are derived from each other and read together, which is what makes them one
-//! artifact rather than two carrying a cross-file consistency invariant. And every array region
+//! Layout, derivation, and alignment keep a combined file distinct from a container. Regions are
+//! fields of the kind's own pinned header, so the format needs no generic directory, section table,
+//! or region count. The parts derive from each other and read together, which is what makes them
+//! one artifact rather than two carrying a cross-file consistency invariant. Every array region
 //! starts on a 4096-byte boundary, zero-padded up to it, so the whole-file mapping guarantee above
 //! holds unchanged.
 //!
-//! [`morton`] is the archetype: a small key index in front of the code array means a binary search
+//! [`morton`] is the archetype. A small key index in front of the code array means a binary search
 //! faults the index page plus one data page instead of log2(N) scattered pages, and the index
 //! cannot go stale, because it cannot exist apart from the array it indexes.
 //!

@@ -1,4 +1,4 @@
-//! The wire encoder: atlas responses as `SALTILE` envelope bytes.
+//! Atlas responses as `SALTILE` envelope bytes.
 //!
 //! The envelope layout is a pinned public contract; the checked-in fixtures under `fixtures/wire/`
 //! are the cross-language proof the TypeScript decoder builds against. One
@@ -7,12 +7,12 @@
 //! trailer tail. Structured payloads are CBOR under the deterministic profile in [`cbor`]; columns
 //! are raw little-endian arrays a decoder views without parsing.
 //!
-//! The module is pure byte emission: a response document in, one `Vec<u8>` out. Every input is
-//! assembled by server code from validated artifacts and an admitted request, so inconsistencies
-//! between document fields are producer bugs and panic; nothing here returns a data-dependent
-//! error. Encoding is deterministic - equal documents yield byte-identical responses, the property
-//! the client's application-layer cache keys on - and synchronous: the endpoint schedules it on a
-//! rayon worker, never on an async runtime thread.
+//! The module emits bytes and nothing else. A response document goes in and one `Vec<u8>` comes
+//! out. Server code assembles every input from validated artifacts and an admitted request, so a
+//! disagreement between document fields is a producer bug that panics. No function here returns a
+//! data-dependent error. Encoding is deterministic, so equal documents yield byte-identical
+//! responses, which is the property the client's application-layer cache keys on. Encoding is also
+//! synchronous: the endpoint schedules it on a rayon worker, never on an async runtime thread.
 //!
 //! [`tile::TileResponse`] and [`edges::EdgesResponse`] are the two v1 documents; the locate
 //! document lands with its endpoint.
@@ -41,7 +41,7 @@ pub(crate) mod tests;
 /// the grammar variant, the version tracks evolution of the whole family.
 pub(crate) const WIRE_VERSION: u16 = 1;
 
-/// A response kind: the eighth magic byte, an ASCII initial.
+/// A response kind, named by the eighth magic byte as an ASCII initial.
 ///
 /// The seven-byte family prefix `SALTILE` is constant; the kind byte selects the `HEAD` schema and
 /// slot table the decoder applies.
@@ -63,7 +63,8 @@ pub(crate) enum Kind {
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
-    /// This tile's own additions; the client accumulates ancestor deliveries. The default.
+    /// This tile's own additions, on top of the ancestor deliveries the client accumulates. The
+    /// default.
     #[default]
     Delta,
     /// The whole delivered set for the tile at its zoom, so the tile renders alone.

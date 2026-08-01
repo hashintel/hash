@@ -31,15 +31,9 @@ impl Similarity {
     /// Fits the weighted orientation-preserving Procrustes alignment of paired points.
     ///
     /// The result is the similarity minimizing the weighted squared error `sum(weights[i] *
-    /// |apply(source[i]) - target[i]|^2)`, in closed form: the weighted covariance between the
-    /// centred point sets determines the rotation and scale, and the translation recovers the
-    /// target centroid from the transformed source centroid. Pairs are folded four at a time with
-    /// SIMD lanes, the trailing `len % 4` pairs are handled one at a time, and every sum is
-    /// accumulated in double precision before the result narrows to the working `f32` coefficients.
-    /// Zero-weight pairs leave the fit unchanged. For large inputs, [`fit_par`](Self::fit_par)
-    /// runs the same accumulation across rayon workers.
+    /// |apply(source[i]) - target[i]|^2)` in closed form. The weighted covariance between the centred point sets determines the rotation and scale, and the translation recovers the target centroid from the transformed source centroid. The fold takes four pairs at a time on SIMD lanes and the trailing `len % 4` pairs one at a time, accumulating every sum in double precision before the result narrows to the working `f32` coefficients. Zero-weight pairs leave the fit unchanged. For large inputs, [`fit_par`](Self::fit_par) runs the same accumulation across rayon workers.
     ///
-    /// Returns [`None`] when the slice lengths differ, fewer than two pairs are given, any
+    /// Returns [`None`] when the slice lengths differ, the caller passes fewer than two pairs, any
     /// coordinate or weight is not finite, any weight is negative, the total weight is not a normal
     /// positive number, the weighted source points are coincident, the pairs do not determine an
     /// orientation (the covariance cancels exactly), or the resulting coefficients leave the `f32`
@@ -76,26 +70,27 @@ impl Similarity {
 
     /// Fits the weighted Procrustes alignment of large inputs in parallel.
     ///
-    /// The contract is identical to [`fit`](Self::fit): the same inputs yield [`Some`] and [`None`]
-    /// in the same cases. The slices are split into chunks whose moments accumulate on rayon
-    /// workers and combine at the end; floating-point addition rounds per operation, so the chunked
-    /// reduction can differ from [`fit`](Self::fit)'s serial fold by a few units in the last place.
+    /// The contract is identical to [`fit`](Self::fit), so the same inputs yield [`Some`] and
+    /// [`None`] in the same cases. This splits the slices into chunks whose moments accumulate on
+    /// rayon workers and combine at the end. Floating-point addition rounds per operation, so the
+    /// chunked reduction can differ from [`fit`](Self::fit)'s serial fold by a few units in the
+    /// last place.
     ///
-    /// The fold is memory-bound, so parallelism pays off from roughly a hundred thousand pairs;
-    /// below that, [`fit`](Self::fit) is faster.
+    /// The fold is memory-bound, so parallelism pays off from about a hundred thousand pairs. Below
+    /// that, [`fit`](Self::fit) is faster.
     ///
-    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs; use
-    /// [`fit_par_with`](Self::fit_par_with) to tune the granularity.
+    /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs. Use
+    /// [`fit_par_with`](Self::fit_par_with) to choose the pairs per chunk.
     #[inline]
     #[must_use]
     pub fn fit_par(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Option<Self> {
         Self::fit_par_with(source, target, weights, Self::PARALLEL_CHUNK)
     }
 
-    /// Fits the weighted Procrustes alignment in parallel with a caller-chosen chunk granularity.
+    /// Fits the weighted Procrustes alignment in parallel with a caller-chosen chunk size.
     ///
     /// The contract is identical to [`fit`](Self::fit). Each rayon work item accumulates the
-    /// moments of `chunk` pairs; smaller chunks balance better across uneven core loads, larger
+    /// moments of `chunk` pairs. Smaller chunks balance better across uneven core loads, larger
     /// chunks amortize task overhead. [`fit_par`](Self::fit_par) uses
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
@@ -127,12 +122,12 @@ impl Similarity {
     /// Fits the unweighted Procrustes alignment of paired points.
     ///
     /// Equivalent to [`fit`](Self::fit) with every weight `1.0`, without materializing a weight
-    /// slice: the uniform moments accumulate directly, so aligning corpus-scale fields costs no
+    /// slice. The uniform moments accumulate directly, so aligning corpus-scale fields costs no
     /// allocation.
     ///
     /// Returns [`None`] under [`fit`](Self::fit)'s data-dependent cases that remain reachable with
-    /// uniform weights: differing slice lengths, fewer than two pairs, a non-finite coordinate,
-    /// coincident source points, or an exactly cancelling covariance.
+    /// uniform weights. These are differing slice lengths, fewer than two pairs, a non-finite
+    /// coordinate, coincident source points, and an exactly cancelling covariance.
     ///
     /// # Examples
     ///
@@ -162,9 +157,9 @@ impl Similarity {
 
     /// Fits the unweighted Procrustes alignment of large inputs in parallel.
     ///
-    /// The contract is identical to [`fit_uniform`](Self::fit_uniform); the chunked reduction
-    /// carries [`fit_par`](Self::fit_par)'s units-in-the-last-place caveat and the same
-    /// roughly-a-hundred-thousand-pairs break-even. Work splits into chunks of
+    /// The contract is identical to [`fit_uniform`](Self::fit_uniform). The chunked reduction
+    /// carries [`fit_par`](Self::fit_par)'s units-in-the-last-place caveat and the same break-even
+    /// near a hundred thousand pairs. Work splits into chunks of
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[inline]
     #[must_use]
@@ -209,9 +204,9 @@ struct FitSums {
 impl FitSums {
     /// Accumulates the weighted raw moments of the paired slices.
     ///
-    /// The slices carry equal lengths; the `fit` entry points check this once before accumulating.
-    /// Pairs are folded four at a time on double-precision lanes, with the trailing `len % 4` pairs
-    /// handled one at a time.
+    /// The slices carry equal lengths, which the `fit` entry points check once before accumulating.
+    /// The fold takes four pairs at a time on double-precision lanes, and the trailing `len % 4`
+    /// pairs one at a time.
     fn from_slices(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Self {
         let (source_batches, source_rest) = source.as_chunks::<4>();
         let (target_batches, target_rest) = target.as_chunks::<4>();
@@ -308,9 +303,8 @@ impl FitSums {
 
             valid &= source.to_simd().is_finite() & target.to_simd().is_finite();
 
-            // Widening is exact and each product of two widened values
-            // fits in `f64`'s 53-bit significand, exactly as in the
-            // weighted pass; only the running additions round.
+            // Widening is exact and each product of two widened values fits in `f64`'s 53-bit
+            // significand, exactly as in the weighted pass. Only the running additions round.
             let source = DVec2x4T::from(Vec2x4T::from(source));
             let target = DVec2x4T::from(Vec2x4T::from(target));
 
@@ -391,10 +385,9 @@ impl FitSums {
         let perp_dot = self.perp_dot - self.source.perp_dot(self.target) / self.weight;
         let variance = self.source_norm - self.source.norm_squared() / self.weight;
 
-        // Coincident (up to weight) source points give no scale. The
-        // identity's cancellation can round a mathematically zero
-        // variance to a tiny negative value, which the sign check rejects
-        // together with the non-normal cases.
+        // Coincident (up to weight) source points give no scale. The identity's cancellation can
+        // round a mathematically zero variance below zero, which the sign check rejects together
+        // with the non-normal cases.
         if !variance.is_normal() || variance <= 0.0 {
             return None;
         }

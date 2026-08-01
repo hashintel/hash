@@ -1,29 +1,29 @@
-//! Probe orchestration: sampled anchor neighbourhoods in three spaces.
+//! Probe orchestration over sampled anchor neighbourhoods in three spaces.
 //!
-//! [`probe`] samples anchor rows and reads how faithfully each anchor's neighbourhood survives in
-//! the 2D map, judged against the 512-component representation and the full canonical space. Two
-//! passes feed one kernel set:
+//! [`probe`] samples anchor rows and reads how well each anchor's neighbourhood survives in the 2D
+//! map, judged against the 512-component representation and the full canonical space. Both passes
+//! feed one kernel set:
 //!
 //! - The corpus pass ranks every non-anchor row against each anchor in the map and the
-//!   representation. Ranks are counted, not sorted, so the map-versus-representation readings are
-//!   exact at corpus scale while per-anchor memory stays bounded by the largest neighbourhood.
+//!   representation. The pass counts ranks instead of materializing sorted orderings, so the
+//!   map-versus-representation readings are exact at corpus scale while per-anchor memory stays
+//!   bounded by the largest neighbourhood.
 //! - The sampled pass ranks a shared comparison universe - a bounded uniform sample whose canonical
 //!   embeddings arrive through the dataset's probe-scoped stream - in all three spaces, and reads
 //!   every space pair over that one universe. Canonical readings are never corpus-exact, because
-//!   the full canonical corpus stays at the source; the readings the map is judged against - the
-//!   representation baseline - are measured under the identical design, so the comparison is like
-//!   for like.
+//!   the full canonical corpus stays at the source. The sampled pass measures the representation
+//!   baseline under the identical design, so comparing a map reading against it is like for like.
 //!
-//! A sampled reading's neighbourhood is coarser than a corpus reading's at equal `k`: the `k`
-//! nearest of a uniform sample of `m` rows sit at the corpus-scale depth of roughly `k · rows / m`
-//! neighbours. The two passes therefore answer different questions - fine placement against the
+//! At equal `k`, a sampled reading covers a coarser neighbourhood than a corpus reading, because
+//! the `k` nearest of a uniform sample of `m` rows sit at a corpus-scale depth of about `k · rows /
+//! m` neighbours. The passes therefore answer different questions - fine placement against the
 //! representation, coarse placement against the canonical space - and [`ProbeReadings`] keeps them
 //! apart.
 //!
 //! Every ranking resolves distance ties by ascending row, so equal inputs produce equal readings.
-//! Readings are kept per anchor ([`ReadingGrid`]), so overall and per-subgroup roll-ups merge cells
-//! instead of re-ranking. Anchors rank independently and in parallel; the corpus pass performs
-//! `anchors · rows` representation-kernel evaluations and dominates the probe's runtime.
+//! The probe keeps readings per anchor ([`ReadingGrid`]), so whole-probe and per-subgroup roll-ups
+//! merge cells instead of re-ranking. Anchors rank independently and in parallel; the corpus pass
+//! performs `anchors · rows` representation-kernel evaluations and dominates the probe's runtime.
 #![expect(
     clippy::cast_possible_truncation,
     reason = "the corpus row domain is checked against the crate's u32 row encoding at entry"
@@ -70,10 +70,10 @@ mod readings;
 
 /// One generation's row-aligned probe inputs.
 ///
-/// The three slices describe the same rows in the same order; mapped `f32[N, 512]` and `f32[N, 2]`
-/// artifacts yield the representation and coordinate slices directly. A clump grouping over the
-/// same rows rides along through [`with_clumps`](Self::with_clumps) when the probe reads
-/// clump-granularity recall.
+/// The slices describe the same rows in the same order; mapped `f32[N, 512]` and `f32[N, 2]`
+/// artifacts yield the representation and coordinate slices directly.
+/// [`with_clumps`](Self::with_clumps) attaches a clump grouping over the same rows when the probe
+/// reads recall collapsed onto clump ids.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ProbeCorpus<'corpus, N> {
     node_ids: &'corpus IdSlice<NodeRowId, N>,
@@ -87,8 +87,8 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// Panics when the slices disagree about the row count; all three describe one generation, so a
-    /// mismatch is a wiring defect.
+    /// This panics when the slices disagree about the row count; all three describe one generation,
+    /// so a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn new(
         node_ids: &'corpus IdSlice<NodeRowId, N>,
@@ -118,8 +118,8 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
     ///
     /// # Panics
     ///
-    /// Panics when the grouping labels a different row count; both describe one generation, so a
-    /// mismatch is a wiring defect.
+    /// This panics when the grouping labels a different row count; both describe one generation, so
+    /// a mismatch is a wiring defect.
     #[must_use]
     pub(crate) fn with_clumps(mut self, clumps: &'corpus Clumps<NodeRowId>) -> Self {
         assert_eq!(
@@ -141,9 +141,9 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 /// Matches an unordered delivery stream against the requested rows' ids.
 ///
 /// Probe-scoped dataset streams owe no delivery order and identify their items only by source id,
-/// so deliveries are matched by id bytes and checked for completeness - every requested id exactly
-/// once, nothing else - and the payloads return in `rows` order. Requests are read straight off
-/// the `(node_ids, rows)` pair, so no caller materializes a request list.
+/// so this function matches deliveries by id bytes and checks completeness - every requested id
+/// exactly once, nothing else - before returning the payloads in `rows` order. It reads the
+/// requests straight off the `(node_ids, rows)` pair, so no caller materializes a request list.
 ///
 /// This function enforces exactly-once rather than assuming it, because a violation damages the
 /// reading it feeds. An unrequested id refuses, a short stream refuses, and a repeated id refuses
@@ -174,7 +174,8 @@ where
         .await
         .map_err(DeliveryError::Dataset)?
     {
-        // The search's `Err` is an insertion point, not a failure to keep.
+        // `Err` from the search carries the insertion point, so a miss means
+        // the id was never requested.
         let position = order
             .binary_search_by(|&slot| key(slot).cmp(id.as_bytes()))
             .map_err(|_insertion| DeliveryError::Unrequested)?;
@@ -226,9 +227,9 @@ async fn fetch_canonical<D: Dataset>(
 
 /// Reads the map's neighbourhood fidelity over sampled anchors.
 ///
-/// Anchor and comparison rows are sampled disjointly without replacement, and the anchors' and
-/// comparison rows' canonical embeddings are fetched through the dataset's probe-scoped stream
-/// before any ranking begins.
+/// This samples anchor and comparison rows disjointly without replacement, then fetches both
+/// samples' canonical embeddings through the dataset's probe-scoped stream before any ranking
+/// begins.
 ///
 /// # Errors
 ///
@@ -302,8 +303,8 @@ pub(crate) async fn probe<D: Dataset>(
     let rungs = options.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(sampled.triplets);
 
-    // The pair-indexed arrays move into named fields through the enum,
-    // so reordering the pair schema cannot silently swap readings.
+    // The pair-indexed arrays move into named fields through the enum, so
+    // reordering the pair schema cannot mismatch a reading with its field.
     let mut sampled_grids = transpose_pairs(sampled.cells)
         .map(|cells| Some(ReadingGrid::from_anchor_cells(cells, rungs)));
     let mut sampled_grid = |pair: SpacePair| {
@@ -430,8 +431,8 @@ pub(super) fn sample_pairs(mut rng: impl Rng, comparisons: usize, count: usize) 
     core::iter::repeat_with(|| {
         let first = uniform_below(&mut rng, choices) as u32;
         let mut second = uniform_below(&mut rng, second_choices) as u32;
-        // Skip-over-self, in place of a rejection loop: `second` is drawn
-        // from a universe one smaller, and shifting the values at or above
+        // Skip-over-self, in place of a rejection loop: `second` comes from
+        // a universe one smaller, and shifting the values at or above
         // `first` up by one maps them onto everything except `first`. The
         // largest shifted value is `comparisons - 1`, so the pair is
         // distinct and in bounds by construction.

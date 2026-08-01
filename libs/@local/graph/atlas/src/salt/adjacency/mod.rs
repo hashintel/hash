@@ -1,14 +1,16 @@
-//! The incident-edge adjacency: node rows to the edge rows touching them.
+//! An incident-edge adjacency lists the edge rows touching each node row.
 //!
-//! [`Adjacency`] is the serving contract's topology artifact: for every node row, the edge rows
-//! leaving it and the edge rows arriving at it, as two adjacent runs of one shared entry array.
+//! [`Adjacency`] is the serving contract's topology artifact. For every node row it records the
+//! edge rows leaving it and the edge rows arriving at it as two adjacent runs of one shared entry
+//! array.
 //!
-//! Every entry names an edge row: several edge rows may join the same node pair, and attributes
-//! resolve through edge-row-indexed columns. Naming the edge keeps parallel edges distinct and
-//! keeps the artifact stable - the adjacency never re-publishes when an attribute column changes.
+//! Every entry names an edge row rather than a node pair. The same node pair admits more than one
+//! edge row, and attributes resolve through edge-row-indexed columns. Naming the edge keeps
+//! parallel edges distinct and keeps the artifact stable, and the adjacency never re-publishes when
+//! an attribute column changes.
 //!
-//! Two nodes joined both ways - edge row `0` the `0 → 1` edge, edge row `1` the `1 → 0` edge -
-//! draw the incidence picture the file compresses:
+//! A node pair joined both ways draws the incidence picture the file compresses, with edge row `0`
+//! the `0 → 1` edge and edge row `1` the `1 → 0` edge:
 //!
 //! ```text
 //!                    edge 0   edge 1
@@ -34,12 +36,12 @@
 //! - Matrix row `2i` is node row `i`'s outgoing run and row `2i + 1` its incoming run, so one
 //!   fencepost column serves both directions and the whole incident slice is contiguous for free.
 //! - Every edge row occupies exactly one outgoing slot (at its source) and one incoming slot (at
-//!   its target). A self-loop occupies both slots of its one endpoint, so consumers merging the
-//!   directions dedupe knowingly.
+//!   its target). A self-loop occupies both slots of its one endpoint, so a consumer merging the
+//!   directions has to dedupe.
 //! - Within each run the edge row ids are strictly ascending: runs are binary-searchable, and
 //!   filtered merges walk them linearly.
 //! - Zero-degree nodes hold two empty runs.
-//! - The column dimension records the edge-domain bound `max(E, 1)`: the shape encoding terminates
+//! - The column dimension records the edge-domain bound `max(E, 1)`. The shape encoding terminates
 //!   on zero extents, so an edgeless adjacency records the smallest bound and zero entries, and the
 //!   edge count reads from the entry count alone.
 
@@ -103,7 +105,7 @@ impl Deref for UnitSlice {
     type Target = [()];
 
     fn deref(&self) -> &[()] {
-        // SAFETY: `()` is zero-sized, so the slice covers no bytes at any length: the pointer
+        // SAFETY: `()` is zero-sized, so the slice covers no bytes at any length. The pointer
         // to `self` is non-null and trivially aligned for `()`, zero bytes are valid for reads
         // at any address, and no element count of a zero-sized type overflows `isize` in bytes.
         unsafe { core::slice::from_raw_parts(core::ptr::from_ref(self).cast::<()>(), self.length) }
@@ -135,12 +137,13 @@ impl Adjacency {
     /// Builds the adjacency over the endpoint column.
     ///
     /// `endpoints[e]` is edge row `e`'s `[source, target]` node rows; `rows` is the node-row domain
-    /// they index into. Time and memory are `O(N + E)`: one counting pass, one prefix sum, and one
-    /// fill in edge-row order, which is what makes every run strictly ascending by construction.
+    /// they index into. Time and memory are `O(N + E)` over one counting pass, one prefix sum, and
+    /// one fill in edge-row order, which is what makes every run strictly ascending by
+    /// construction.
     ///
     /// # Panics
     ///
-    /// Panics when an endpoint lies outside the `rows` domain, which the dataset row contract
+    /// This panics when an endpoint lies outside the `rows` domain, which the dataset row contract
     /// excludes.
     #[must_use]
     pub(crate) fn build(rows: usize, endpoints: &[[NodeRowId; 2]]) -> Self {
@@ -238,13 +241,13 @@ impl WriteInto for Adjacency {
     ///
     /// At the narrowest index width covering the edge count.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
+    /// Returns the SHA-256 of the written bytes, which is the identity the repository records for
+    /// the published file.
     ///
     /// # Errors
     ///
-    /// Returns an error when the underlying writer fails, or when the adjacency spans no node rows:
-    /// the corpus contract places at least one node, and an empty row domain has no on-disk form.
+    /// Returns an error when the underlying writer fails, or when the adjacency spans no node rows.
+    /// The corpus contract places at least one node, and an empty row domain has no on-disk form.
     fn write_into(&self, write: impl io::Write) -> Result<Sha256Digest, WriteSprsError> {
         let mut writer = Writer {
             accumulator: Sha256::new(),

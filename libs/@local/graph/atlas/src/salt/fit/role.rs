@@ -212,7 +212,7 @@ pub(super) fn stage_column(
     Ok(role.file(digest))
 }
 
-/// Stages one array column whose row count is known up front.
+/// Stages one array column whose shape names the row count up front.
 ///
 /// Binds the digest accumulated over the single write pass to the role.
 ///

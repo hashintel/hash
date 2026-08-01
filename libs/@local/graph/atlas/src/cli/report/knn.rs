@@ -1,8 +1,8 @@
-//! The neighbour-construction reports: the backend sweep and the NN-Descent audit.
+//! The backend sweep and the NN-Descent audit over neighbour constructions.
 //!
 //! Each command reads the root's active generation and prints its readings. The grid arguments
-//! default to the settings the deployed configuration was pinned on, so an invocation without flags
-//! re-derives the calibration evidence rather than an arbitrary sample of it.
+//! default to the settings the deployment pinned, so an invocation without flags re-derives the
+//! calibration evidence rather than an arbitrary sample of it.
 
 use clap::Args;
 
@@ -20,7 +20,7 @@ pub(crate) struct BackendArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 
-    /// Fit seeds whose build and sample streams are replayed; a repeated seed measures build
+    /// Fit seeds whose build and sample streams the sweep replays. A repeated seed measures build
     /// nondeterminism.
     #[arg(long = "seed", value_delimiter = ',', default_values_t = backend::DEFAULT_SEEDS.to_vec())]
     seeds: Vec<u64>,
@@ -47,8 +47,8 @@ impl BackendArgs {
     ///
     /// # Errors
     ///
-    /// Returns the sweep's failure when the representations cannot be read, an index cannot be
-    /// built, or a sampled query fails.
+    /// Returns the sweep's failure when it cannot read the representations, cannot build an index,
+    /// or a sampled query fails.
     pub(super) fn run(self) -> Result<backend::Sweep, backend::SweepError> {
         crate::math::kernel::verify_cpu_baseline();
 
@@ -69,7 +69,7 @@ pub(crate) struct DescentArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 
-    /// Fit seeds whose `knn-link` streams are replayed; a repeated seed measures construction
+    /// Fit seeds whose `knn-link` streams the audit replays. A repeated seed measures construction
     /// nondeterminism.
     #[arg(long = "seed", value_delimiter = ',', default_values_t = descent::DEFAULT_SEEDS.to_vec())]
     seeds: Vec<u64>,
@@ -88,8 +88,8 @@ impl DescentArgs {
     ///
     /// # Errors
     ///
-    /// Returns the audit's failure when the representations cannot be read, the reference cannot
-    /// be computed, or a construction fails.
+    /// Returns the audit's failure when it cannot read the representations, cannot compute the
+    /// reference, or a construction fails.
     pub(super) fn run(self) -> Result<descent::Audit, AuditError<NodeRowId, NnDescentError>> {
         crate::math::kernel::verify_cpu_baseline();
 

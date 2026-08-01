@@ -21,7 +21,7 @@ use crate::file::region::{write_padding, write_region};
 ///
 /// # Panics
 ///
-/// Panics when the regions disagree on the dimension, which no file geometry can represent.
+/// This panics when the regions disagree on the dimension, which no file geometry can represent.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; disagreeing regions are a caller contract \

@@ -152,8 +152,8 @@ impl Positive {
 
 /// A finite, non-negative `f32`, valid by construction.
 ///
-/// The shared definition of the finite-and-non-negative check: zero is admitted, so the type
-/// carries magnitudes and weights that may legitimately switch a term off.
+/// The shared definition of the finite-and-non-negative check. Zero passes, so the type carries
+/// magnitudes and weights that may legitimately switch a term off.
 ///
 /// # Examples
 ///
@@ -295,8 +295,8 @@ impl UnitFraction {
     /// let fraction = UnitFraction::new_unchecked(f64::from(preserved) / f64::from(total));
     /// assert_eq!(fraction.get(), 0.75);
     /// ```
-    // Not `unsafe`: no unsafe code trusts the range, so a broken promise is a
-    // wrong fraction, not UB.
+    // This is not `unsafe` because no unsafe code trusts the range. A broken promise gives a wrong
+    // fraction rather than UB.
     #[inline]
     #[must_use]
     pub const fn new_unchecked(value: f64) -> Self {
@@ -385,8 +385,8 @@ impl DPositive {
 
 /// A finite, non-negative `f64`, valid by construction.
 ///
-/// The double-precision twin of [`NonNegative`]: zero is admitted, so the type carries
-/// tolerances and floors that may legitimately switch a check off.
+/// The double-precision twin of [`NonNegative`]. Zero passes, so the type carries tolerances and
+/// floors that may legitimately switch a check off.
 ///
 /// # Examples
 ///
@@ -464,7 +464,7 @@ pub struct OpenUnitFraction(f64);
 impl OpenUnitFraction {
     /// Validates a fraction strictly inside the unit interval.
     ///
-    /// Returns [`None`] unless the value lies in `(0, 1)`; NaN fails both comparisons.
+    /// Returns [`None`] unless the value lies in `(0, 1)`. NaN fails both comparisons.
     #[inline]
     #[must_use]
     pub const fn new(value: f64) -> Option<Self> {
@@ -535,9 +535,9 @@ impl GreaterThanOne {
 
 /// A power-of-two exponent below the `u64` shift width, valid by construction.
 ///
-/// Configuration fields named `*_log2` carry this type instead of a raw `u8`: shifting a `u64` by
-/// 64 or more panics in debug builds and masks in release, so the bound is checked where the
-/// value is constructed and the shifting site validates nothing.
+/// Configuration fields named `*_log2` carry this type instead of a raw `u8`. Shifting a `u64` by
+/// 64 or more panics in debug builds and masks in release, so the constructor checks the bound and
+/// the shifting site validates nothing.
 ///
 /// # Examples
 ///
@@ -589,7 +589,7 @@ impl Log2 {
 /// ```
 /// use hash_graph_atlas::math::softplus;
 ///
-/// // A naive `exp(50.0)` loses the asymptote; the stable form is exact.
+/// // A naive `exp(50.0)` loses the asymptote. The stable form is exact.
 /// assert_eq!(softplus(50.0), 50.0);
 /// assert!(softplus(-50.0) < 1e-20);
 /// assert!((softplus(0.0) - core::f32::consts::LN_2).abs() < 1e-7);
@@ -613,7 +613,7 @@ pub fn softplus(value: f32) -> f32 {
 /// use hash_graph_atlas::math::sigmoid;
 ///
 /// assert_eq!(sigmoid(0.0), 0.5);
-/// // A naive `exp(200.0)` overflows; the stable form saturates.
+/// // A naive `exp(200.0)` overflows. The stable form saturates.
 /// assert_eq!(sigmoid(200.0), 1.0);
 /// assert!(sigmoid(-200.0) < 1e-30);
 /// ```
@@ -630,13 +630,13 @@ pub fn sigmoid(value: f32) -> f32 {
     }
 }
 
-/// Computes the Huber penalty: quadratic below the threshold, linear above.
+/// Computes the Huber penalty, quadratic below the threshold and linear above.
 ///
-/// For `value ≤ threshold` the penalty is `value · value / 2`; above the threshold it continues
-/// along the tangent line `threshold · (value - threshold / 2)`. The two pieces meet at
-/// `threshold · threshold / 2` with matching first derivative `threshold`, so the penalty is
-/// continuous with a continuous first derivative at the threshold. The comparison is signed;
-/// callers pass non-negative magnitudes such as norms or distances.
+/// For `value ≤ threshold` the penalty is `value · value / 2`. Above the threshold it continues
+/// along the tangent line `threshold · (value - threshold / 2)`. Both branches meet at `threshold ·
+/// threshold / 2` with matching first derivative `threshold`, so the penalty is continuous with a
+/// continuous first derivative at the threshold. The comparison uses the signed value, and callers
+/// pass non-negative magnitudes such as norms or distances.
 ///
 /// # Examples
 ///
@@ -660,9 +660,9 @@ pub fn huber(value: f32, threshold: f32) -> f32 {
 
 /// Narrows an `f64` to `f32`, permitting rounding.
 ///
-/// The value is converted with round-to-nearest and returned whenever the result is finite. Inputs
-/// whose magnitude exceeds the `f32` range, the infinities, and NaN all yield [`None`]. Negative
-/// zero narrows to negative zero, preserving the sign bit.
+/// This converts with round-to-nearest and returns the result whenever it is finite. Inputs whose
+/// magnitude exceeds the `f32` range, the infinities, and NaN all yield [`None`]. Negative zero
+/// narrows to negative zero, preserving the sign bit.
 ///
 /// For a conversion that also demands bit-exact representability, use [`narrow_f32_exact`].
 ///

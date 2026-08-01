@@ -11,9 +11,9 @@ use crate::file::region::PageMap;
 /// Opening a classifier file failed.
 #[derive(Debug)]
 pub enum OpenClassifierError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header,
@@ -72,10 +72,9 @@ impl Error for OpenClassifierError {
 /// A classifier file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
-/// geometry alone; the model's domain invariants are `salt::policy::classifier`'s artifact
-/// contract.
+/// describes its own regions exactly. The regions borrow straight from the whole-file mapping and
+/// start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose geometry
+/// alone. The model's domain invariants are `salt::policy::classifier`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct ClassifierFile {
     map: PageMap,
@@ -86,7 +85,7 @@ impl ClassifierFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenClassifierError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenClassifierError::Io`] when opening or mapping the file fails,
     /// [`OpenClassifierError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenClassifierError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

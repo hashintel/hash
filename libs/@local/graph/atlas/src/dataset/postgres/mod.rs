@@ -1,35 +1,36 @@
 //! A [`Dataset`] over the live HASH graph store.
 //!
-//! One transaction, one graph: [`PostgresDataset::new`] opens a read-only repeatable-read
-//! transaction - Postgres snapshot isolation - and every stream the trait serves queries through
-//! it, so the nodes, the links, the type table, and the cards all describe one committed state
-//! even though they are separate queries issued at separate times. The [`TemporalAxes`] select
-//! which graph that state describes: every entity and link is gated to the editions whose
-//! transaction time and decision time contain the axes, so axes in the past read the graph as it
-//! stood then, and the axes a fit records make its input addressable after the fact.
+//! [`PostgresDataset::new`] opens one read-only repeatable-read transaction under Postgres snapshot
+//! isolation, and every stream the trait serves queries through it, so the nodes, the links, the
+//! type table, and the cards all describe one committed state even though they are separate queries
+//! issued at separate times. The [`TemporalAxes`] select which graph that state describes. The
+//! queries admit only the editions whose transaction time and decision time contain the axes, so
+//! axes in the past read the graph as it stood then, and the axes a fit records make its input
+//! addressable after the fact.
 //!
 //! Node row ids are positions, minted by the [`SCOPE`] CTE: `row_number()` over canonical
 //! `(web_id, entity_uuid)` order, zero-based. The ordering key is the entity's immutable identity,
-//! not its content, and under the frozen snapshot every query sees the same visible set - so every
-//! query that interpolates [`SCOPE`] re-derives the identical numbering. That agreement is
-//! load-bearing: [`LINKS`] densifies endpoints through `scope` in a different query execution than
-//! the node stream that delivers those rows, and the two coincide because of the snapshot, not by
-//! luck. Delivery order rides the same contract - the node stream orders by `scope.row`, so the
+//! not its content, and under the frozen snapshot every query sees the same visible set, so every
+//! query that interpolates [`SCOPE`] re-derives the identical numbering. An endpoint row id names
+//! the node the node stream delivered only because of that agreement: [`LINKS`] densifies endpoints
+//! through `scope` in a different query execution than the node stream that delivers those rows,
+//! and the two coincide because of the snapshot, not by luck.
+//!
+//! Delivery order rides the same contract - the node stream orders by `scope.row`, so the
 //! consumer's arrival index is the row id; the link stream orders by link identity - already a
 //! total order, since the store admits exactly one attachment pair per link entity, and the
-//! endpoint-row keys ride behind it as inert tiebreakers. The
-//! request-shaped streams (canonical embeddings, node types) carry no `ORDER BY` at all: their
-//! items are keyed by the returned identity, so order is pinned exactly where identity is
-//! positional and free where it is not.
+//! endpoint-row keys ride behind it as inert tiebreakers. The request-shaped streams (canonical
+//! embeddings, node types) carry no `ORDER BY` at all, because the returned identity keys each
+//! item. Order is therefore deterministic exactly where identity is positional and unconstrained
+//! where it is not.
 //!
-//! The corpus has one definition. [`SCOPE`] - non-draft, non-archived, non-link, holding a
-//! whole-entity embedding, current at both axes - is interpolated verbatim into every corpus
-//! query, so the
+//! The corpus has one definition. Every corpus query interpolates [`SCOPE`] verbatim (non-draft,
+//! non-archived, non-link, holding a whole-entity embedding, current at both axes), so the
 //! universe cannot drift between the type bootstrap, the node stream, and the link stream. The
 //! embedding join is the scope gate rather than an enrichment: an entity without a whole-entity
 //! embedding has no position to fit. One row per identity is the embedding table's unique index
 //! promise (`(web_id, entity_uuid, property)` `NULLS NOT DISTINCT`), so `row_number` cannot mint
-//! twice; the draft axis is decided by `entity_temporal_metadata.draft_id` alone.
+//! twice. `entity_temporal_metadata.draft_id` alone decides the draft axis.
 //!
 //! [`LINKS`] composes after [`SCOPE`]: a link entity's outgoing `has-left-entity` and
 //! `has-right-entity` edges self-join into the link's single `(source, target)` pair - the graph
@@ -39,8 +40,8 @@
 //! `target_row` are exactly the node stream's positions. The link entity itself passes the same
 //! temporal and archival gates as any node.
 //!
-//! The type table is the ontology universe: every type reachable from the corpus at any
-//! inheritance depth, in uuid byte order, its position being the ontology row id. The table
+//! The type table is the ontology universe. It lists every type reachable from the corpus at any
+//! inheritance depth in uuid byte order, and each position is the ontology row id. The table
 //! round-trips into later queries as the `$3` array, where `unnest WITH ORDINALITY` re-derives the
 //! same numbering store-side - both ends share one map by construction rather than by convention.
 //! Per-edition type lists take `inheritance_depth = 0` (the direct types); ancestry re-enters once
@@ -84,16 +85,16 @@ mod card;
 ///
 /// `scope` is every non-draft, non-archived, non-link entity holding a whole-entity embedding whose
 /// edition is current at the dataset's temporal axes, with its dense row assigned by canonical
-/// `(web_id, entity_uuid)` order. Link entities render as edges only: an edition typed by the link
-/// entity type - resolved through the store's materialized type closure, anchored on the type's
-/// base URL rather than a version-pinned ontology id - is excluded from the point universe
-/// unconditionally. The exclusion keys on what the edition IS rather than what edges it has, so a
-/// link with a missing left attachment is still no point glyph.
+/// `(web_id, entity_uuid)` order. Link entities render as edges only. The point universe excludes
+/// every edition typed by the link entity type unconditionally, resolving the type through the
+/// store's materialized type closure and anchoring on the type's base URL rather than a
+/// version-pinned ontology id. The exclusion keys on the edition's own type rather than on the
+/// edges it has, so a link with a missing left attachment is still no point glyph.
 //
-// The embeddings table's own `draft_id` column is deliberately not
-// consulted: the unique index `(web_id, entity_uuid, property)` NULLS NOT
-// DISTINCT already guarantees one whole-entity row per identity, and the
-// draft axis is decided by `entity_temporal_metadata.draft_id IS NULL`.
+// The queries do not consult the embeddings table's own `draft_id` column:
+// the unique index `(web_id, entity_uuid, property)` NULLS NOT DISTINCT
+// already guarantees one whole-entity row per identity, and
+// `entity_temporal_metadata.draft_id IS NULL` decides the draft axis.
 const SCOPE: &str = "
     scope AS (
         SELECT
@@ -163,7 +164,7 @@ const LINKS: &str = "
 /// The `type_rows` CTE: per-edition ordinal arrays over the type table.
 ///
 /// `$3` is the ordinal-ordered type table and `editions` names the CTE whose rows receive their
-/// direct-type ordinals. The aggregation is set-based over one hash join, so its cost scales with
+/// direct-type ordinals. The aggregation works over sets in one hash join, so its cost scales with
 /// the edition count, not with rendered output rows.
 fn type_rows_cte(editions: &str) -> String {
     format!(
@@ -429,7 +430,7 @@ fn render_card(
 /// embedding and is current at the dataset's [`TemporalAxes`], plus every link whose endpoints
 /// both fall inside that scope; link entities render as edges only, never as points. Prefix
 /// truncation, l2 normalization, and endpoint densification all happen inside the store's queries;
-/// the connection ships dense rows and normalized prefixes only.
+/// the connection transfers dense rows and normalized prefixes only.
 pub(crate) struct PostgresDataset<'client> {
     transaction: Transaction<'client>,
     axes: TemporalAxes,
@@ -443,7 +444,7 @@ pub(crate) struct PostgresDataset<'client> {
 impl<'client> PostgresDataset<'client> {
     /// Freezes one view of the store at `axes` and serves a dataset from it.
     ///
-    /// The view stays frozen until the dataset is dropped. The axes are the fit's declared
+    /// The view stays frozen until the caller drops the dataset. The axes are the fit's declared
     /// bitemporal inputs: record them in the generation metadata, and pass axes in the past to read
     /// the graph as it stood then. Card extraction starts from the default [`CardParameters`];
     /// assign [`cards`](Self::cards) to change them.
@@ -524,8 +525,8 @@ impl<'client> PostgresDataset<'client> {
     where
         T: 'this,
     {
-        // The `async move` here is required, so that `sql` lives just enough for the stream to be
-        // born, releasing the borrow.
+        // The `async move` matters here: `sql` must live long enough for the stream to exist, and
+        // moving it in releases the borrow.
         async move {
             let types = self.type_table().await?;
 
@@ -814,17 +815,17 @@ impl Dataset for PostgresDataset<'_> {
 
     /// Opens the stream of canonical relation cards, in ontology row order.
     ///
-    /// Each card is built from the store facts observed at the dataset's temporal axes: the type's
-    /// prose and ancestor chain, the source types constraining it as a link, and pooled live link
-    /// instances as examples. A type that nothing constrains and nothing instantiates as a link -
-    /// every non-link entity type - renders prose and ancestry alone. All facts arrive in one pass
-    /// over the store before the first card renders, so the per-card cost is rendering alone.
-    /// [`cards`](Self::cards) controls example selection and the token budgets, and the rendered
-    /// bytes are deterministic in the dataset and those parameters.
+    /// Each card renders the store facts observed at the dataset's temporal axes. The facts are the
+    /// type's prose and ancestor chain, the source types constraining it as a link, and pooled live
+    /// link instances as examples. A type that nothing constrains and nothing instantiates as a
+    /// link - every non-link entity type - renders prose and ancestry alone. All facts arrive
+    /// in one pass over the store before the first card renders, so the per-card cost is
+    /// rendering alone. [`cards`](Self::cards) controls example selection and the token
+    /// budgets, and the rendered bytes are deterministic in the dataset and those parameters.
     ///
     /// Items carry [`io::ErrorKind::InvalidData`] when a type's stored constraints violate the card
-    /// contract, and `io::Error::other` when a query fails, a rendered text cannot be tokenized, or
-    /// a final text leaks a source identifier.
+    /// contract, and `io::Error::other` when a query fails, the tokenizer rejects a rendered text,
+    /// or a final text leaks a source identifier.
     fn render_cards(&self) -> Self::CardStream<'_> {
         async move {
             let types = self.type_table().await.map_err(io::Error::other)?;

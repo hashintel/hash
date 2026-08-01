@@ -82,8 +82,8 @@ fn rank_orders_by_importance_then_priority_then_tiebreak() {
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the columns agree");
     let ranking = Ranking::new(inputs, 7);
 
-    // Row 3 has the lowest importance, row 2 the lower priority within
-    // the top importance; rows 0 and 1 tie down to the seeded hash.
+    // Row 3 has the lowest importance, row 2 the lower priority within the top importance. Rows 0
+    // and 1 tie down to the seeded hash.
     assert_eq!(ranking.rank_of_row[NodeRowId::from_u32(3)].as_u32(), 3);
     assert_eq!(ranking.rank_of_row[NodeRowId::from_u32(2)].as_u32(), 2);
     let mut top = [
@@ -131,8 +131,8 @@ fn rank_inputs_reject_disagreeing_columns() {
 
 #[test]
 fn non_finite_scores_rank_deterministically() {
-    // The dataset contract keeps scores finite; `totalOrder` keeps the
-    // pass total and reproducible even when it is violated.
+    // The dataset contract keeps scores finite. `totalOrder` keeps the pass total and reproducible
+    // even when a dataset breaks that contract.
     let importance = [f32::NAN, 1.0, f32::NAN, f32::INFINITY];
     let priority = [0.0_f32; 4];
     let ids = identities(4);
@@ -235,8 +235,8 @@ fn base_order_sorts_buckets_then_keys_then_ranks() {
 
     let order = BaseOrder::new(keyed, &buckets, &ranking);
 
-    // Hand order: a (bucket 0), b (bucket 1), then the bucket-2 pair by
-    // key: c's key (1, 1) interleaves below d's (0x4000_0000, 0).
+    // The hand-computed order is a (bucket 0), b (bucket 1), then the bucket-2 pair by key. c's key
+    // (1, 1) interleaves below d's (0x4000_0000, 0).
     assert_eq!(
         *order.row_of_position.as_raw(),
         [0, 1, 2, 3].map(NodeRowId::from_u32),
@@ -402,7 +402,7 @@ fn lod_config_carries_the_key_width_bound() {
 
 /// The hand stage fixture.
 ///
-/// Four points whose wire positions and cascade buckets are computed in the comments.
+/// The comments below compute the wire positions and cascade buckets of its four points.
 ///
 /// World frame [0, 1] x [0, 1]; `span` = 1, `max_tile_depth` = 1, so the deepest grid is 2 and
 /// the catch-all is bucket 2.
@@ -415,7 +415,7 @@ fn lod_config_carries_the_key_width_bound() {
 /// 3    (0.375, 0.25) (-0.25, -0.5)  (0, 0)            (1, 1)
 /// ```
 ///
-/// Importance ranks the rows in index order. The cascade: row 0 claims the domain, row 1 its
+/// Importance ranks the rows in index order. In the cascade, row 0 claims the domain, row 1 its
 /// depth-1 quadrant, row 2 the (1, 1) depth-2 cell, and row 3 - co-resident with row 2 at the
 /// deepest grid - takes the catch-all. Buckets [0, 1, 2, 2]; the base order is the row order (row
 /// 2's key sorts below row 3's).
@@ -526,8 +526,8 @@ fn evidence_measures_the_hand_computed_columns() {
             .all(|&count| count == 0)
     );
 
-    // Rows 2 and 3 share their deepest-grid cell: two catch-all
-    // points, one distinct cell, one point of co-location excess.
+    // Rows 2 and 3 share their deepest-grid cell. The catch-all therefore holds two points in one
+    // distinct cell, with one point of co-location excess.
     assert_eq!(evidence.catch_all_population, 2);
     assert_eq!(evidence.co_location_excess, 1);
 
@@ -707,8 +707,8 @@ fn built_columns_uphold_the_contract_laws(
         prop_assert_eq!(lod.rank_of_position[position].as_usize(), rank);
     }
 
-    // Every segment of the code column is sorted: the morton
-    // file writer's input contract.
+    // Every segment of the code column sorts, which the morton file writer's input contract
+    // requires.
     for bucket in 0..=deepest.get() {
         let segment = lod.fenceposts.segment(depth(bucket));
         prop_assert!(lod.codes[segment].is_sorted());
@@ -737,7 +737,7 @@ fn built_columns_uphold_the_contract_laws(
     // At most one delivered point per depth-d cell at every cut
     // d below the deepest grid, jointly across buckets - the
     // uniqueness claim the mass channel leans on. The
-    // cascade's represented rule guarantees it: a claim never
+    // cascade's represented rule guarantees it. A claim never
     // lands in a cell holding an earlier-assigned point, so two
     // points sharing a depth-d cell cannot both carry buckets at
     // or below d unless the later one is a catch-all leftover
@@ -811,8 +811,8 @@ fn quad_build_produces_the_hand_computed_tree() {
         ],
     );
 
-    // Root: all four rows' types. Child: rows 0, 2, and 3 - the three
-    // points inside quadrant (0, 0) - so {5} | {2, 5} | {9}.
+    // The root holds all four rows' types. The child holds rows 0, 2, and 3, the three points
+    // inside quadrant (0, 0), whose union is {5} | {2, 5} | {9}.
     assert_eq!(tree.sets.set(0), &[2, 5, 7, 9]);
     assert_eq!(tree.sets.set(1), &[2, 5, 9]);
 
@@ -826,11 +826,9 @@ fn quad_build_produces_the_hand_computed_tree() {
 
 #[test]
 fn quad_build_gathers_types_through_the_base_order() {
-    // The hand-stage points with their rows permuted: importance
-    // travels with each point, so the cascade and the tree are
-    // identical, but the base order is no longer the row order
-    // (row_of_position = [1, 0, 3, 2]) and the type column must be
-    // gathered through it.
+    // The hand-stage points with their rows permuted. Importance travels with each point, so the
+    // cascade and the tree are identical. The base order is no longer the row order
+    // (row_of_position = [1, 0, 3, 2]), and the builder must gather the type column through it.
     let coordinates = [
         Vec2::new(1.0, 1.0),
         Vec2::new(0.0, 0.0),
@@ -957,8 +955,7 @@ fn quad_tree_round_trips_through_the_quad_file() {
     let file = QuadFile::open(&path).expect("the written file reopens");
     assert_eq!(file.nodes(), tree.nodes.as_slice());
 
-    // The serving query: the child tile locates, its pruned siblings
-    // do not, and its type set reads back.
+    // The child tile locates, its pruned siblings do not, and its type set reads back.
     let quadrant = MortonCell::new(depth(1), 0, 0).expect("the quadrant exists");
     assert_eq!(file.locate(quadrant), Some(1));
     let sibling = MortonCell::new(depth(1), 1, 0).expect("the quadrant exists");
@@ -1007,9 +1004,8 @@ fn quad_trees_uphold_the_contract_laws(
         &tree,
     );
 
-    // Reconstruct each node's cell by walking the child links from
-    // the root; the walk also proves every node is reachable
-    // exactly once (the table is a tree, not a DAG).
+    // Reconstruct each node's cell by walking the child links from the root. The walk also proves
+    // every node is reachable exactly once, which makes the table a tree.
     let root = MortonCell::new(depth(0), 0, 0).expect("the root cell exists");
     let mut cells: Vec<Option<MortonCell>> = vec![None; tree.nodes.len()];
     let mut frontier = vec![(0_u32, root)];
@@ -1050,8 +1046,8 @@ fn quad_trees_uphold_the_contract_laws(
         })
         .collect();
 
-    // The runs partition the base order: every point is delivered
-    // exactly once across the incremental tile pyramid.
+    // The runs partition the base order, so the incremental tile pyramid delivers every point
+    // exactly once.
     let mut delivered = vec![0_u32; lod.codes.len()];
     for node in &tree.nodes {
         for position in node.run() {
@@ -1069,8 +1065,8 @@ fn quad_trees_uphold_the_contract_laws(
         // The subtree count is the cell's whole population.
         prop_assert_eq!(node.points() as usize, inside.len());
 
-        // The node rule: the root always, deeper cells exactly
-        // when a point escapes the parent's cut.
+        // The root always gets a node, and a deeper cell gets one exactly when a point escapes the
+        // parent's cut.
         let cut = cell.depth().get() + span_log2;
         if index > 0 {
             prop_assert!(

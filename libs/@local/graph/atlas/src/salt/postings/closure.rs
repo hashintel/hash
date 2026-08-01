@@ -1,6 +1,6 @@
-//! The type closure map: descendant bitsets over the parent graph.
+//! The type closure map gives each type a descendant bitset over the parent graph.
 //!
-//! Request-time inheritance expansion is one OR: a requested type's descendant row names every type
+//! Request-time inheritance expansion is one OR. A requested type's descendant row names every type
 //! whose instances the request matches, so expanding a request is `OR` of the requested rows and
 //! testing a type against a request is one bit read. The map derives at open from the published
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
@@ -48,9 +48,9 @@ pub(crate) struct ClosureMap {
 impl ClosureMap {
     /// Derives the closure map from the opened postings' parent graph.
     ///
-    /// Types are processed children-first (Kahn's ordering over the parent edges): a type's settled
-    /// descendant row ORs into each of its parents' rows, so every row settles in one pass over the
-    /// edges.
+    /// The derivation walks types children-first in Kahn's ordering over the parent edges. A type's
+    /// settled descendant row ORs into each of its parents' rows, so every row settles in one pass
+    /// over the edges.
     ///
     /// # Errors
     ///
@@ -68,8 +68,7 @@ impl ClosureMap {
             bits.insert(type_row, type_row);
         }
 
-        // Pending children per type; a type's row settles once every
-        // child's row has been folded into it.
+        // Pending children per type. A type's row settles once it has absorbed every child's row.
         let mut pending: IdVec<OntologyRowId, u64> = IdVec::from_elem(0, types);
         for type_row in OntologyRowId::MIN..bound {
             let parents = postings

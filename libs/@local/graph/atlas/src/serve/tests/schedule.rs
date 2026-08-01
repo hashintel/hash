@@ -1,13 +1,13 @@
-//! The scope-cascade battery: the delivery law replayed against an independent reference.
+//! Tests that replay the scope-cascade delivery law against an independent reference.
 //!
 //! The reference in [`reference`] is the restricted delivery law written a second time, from the
-//! documented contract rather than from `serve::schedule`: gather the visible rows with their
-//! pinned keys and ranks, assign first-occupant buckets to the complete key depth, clamp into
-//! the resolved catch-all, and deliver contiguous bucket intervals in `(bucket, key, rank)`
-//! order. Agreement across the battery freezes the delivered rows, their order, the per-bucket
-//! runs, the child bitmask, and the root's global metadata at once - and because the reference
-//! reads nothing but the visible rows, every agreement is a witness that production delivery
-//! reads nothing but the visible rows either.
+//! documented contract rather than from `serve::schedule`. It gathers the visible rows with their
+//! pinned keys and ranks, then assigns first-occupant buckets to the complete key depth. It clamps
+//! those buckets into the resolved catch-all and delivers contiguous bucket intervals in `(bucket,
+//! key, rank)` order. Agreement across the battery freezes the delivered rows, their order, the
+//! per-bucket runs, the child bitmask, and the root's global metadata at once, and because the
+//! reference reads nothing but the visible rows, every agreement is a witness that production
+//! delivery reads nothing but the visible rows either.
 
 #![expect(
     clippy::min_ident_chars,
@@ -45,7 +45,7 @@ pub(super) mod reference {
         serve::{Atlas, VisibilityProof},
     };
 
-    /// One visible row: base position, pinned key, pinned rank.
+    /// One visible row with its base position, pinned key, and pinned rank.
     #[derive(Debug, Copy, Clone)]
     pub(in crate::serve) struct Row {
         pub position: u32,
@@ -104,7 +104,7 @@ pub(super) mod reference {
         buckets
     }
 
-    /// One reference delivery: positions in wire order plus the head's run vocabulary.
+    /// One reference delivery of positions in wire order, with the head's run vocabulary.
     #[derive(Debug)]
     pub(in crate::serve) struct Delivery {
         pub positions: Vec<u32>,
@@ -158,7 +158,7 @@ pub(super) mod reference {
             hits.into_iter().map(|row| row.position).collect()
         }
 
-        /// The delivery of `(z, cell, mode)`: contiguous bucket intervals, no fill.
+        /// The delivery of `(z, cell, mode)`, made only of contiguous bucket intervals.
         pub(in crate::serve) fn delivery(&self, z: u8, cell: MortonCell, mode: Mode) -> Delivery {
             let cut = self.cut(z);
             let first = match (mode, z) {
@@ -200,7 +200,7 @@ pub(super) mod reference {
             bits
         }
 
-        /// The root's expected global metadata: visible count and deepest occupied bucket.
+        /// The visible count and deepest occupied bucket expected in the root's global metadata.
         pub(in crate::serve) fn global(&self) -> (u64, u64) {
             let visible = self
                 .clamped
@@ -214,9 +214,11 @@ pub(super) mod reference {
     }
 }
 
-/// Proof shapes that exercise the cascade: the operator proof aside, independent hiding at two
-/// rates, the corpus root schedule hidden whole, the densest `z = 1` subtree hidden whole,
-/// near-total hiding, and everything hidden.
+/// Builds the proof shapes that exercise the cascade.
+///
+/// The operator proof aside, the shapes are independent hiding at two rates, the corpus root
+/// schedule hidden whole, the densest `z = 1` subtree hidden whole, near-total hiding, and
+/// everything hidden.
 fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
     use rand::{RngExt as _, SeedableRng as _};
     use rand_xoshiro::Xoshiro256PlusPlus;
@@ -273,13 +275,13 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
     ]
 }
 
-/// The two expressions of the delivery law agree on every restricted delivery.
+/// Both expressions of the delivery law agree on every restricted delivery.
 ///
-/// The wire response against the reference, per proof shape, per offset, per coordinate of every
-/// zoom, in both modes: the delivered wire ids in order, the per-bucket runs, the delivered
-/// count, the child bitmask, and the root's global metadata. The same sweep accumulates every
-/// delta chain and holds it against the total response, so accumulation-equals-total rides every
-/// proof and offset rather than one fixture.
+/// The sweep compares the wire response with the reference at every proof shape, offset, zoom
+/// coordinate, and mode. Each comparison covers the delivered wire ids in order, the per-bucket
+/// runs, the delivered count, the child bitmask, and the root's global metadata. The same sweep
+/// accumulates every delta chain and checks it against the total response, so
+/// accumulation-equals-total covers every proof and offset rather than one fixture.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
@@ -450,14 +452,15 @@ async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
 
 /// The cascade puts co-located rows in the catch-all and everything reads back by position.
 ///
-/// Hand-derived: four rows on a `span = 1, max_tile_depth = 1` grid, deepest bucket `2 + k`.
-/// Rows a and b share the complete key, so the better-ranked a claims depth 0 and b never claims
-/// a cell; c claims depth 1 - its first depth apart from a - and d claims depth 2 under `k = 0`'s
-/// catch-all... at which the law stops distinguishing it from b.
+/// The hand derivation uses four rows on a `span = 1, max_tile_depth = 1` grid, whose deepest
+/// bucket is `2 + k`. Rows a and b share the complete key, so the better-ranked a claims depth 0
+/// and b never claims a cell; c claims depth 1 - its first depth apart from a - and d claims depth
+/// 2 under `k = 0`'s catch-all... at which the law stops distinguishing it from b.
 #[test]
 fn a_hand_cascade_pins_the_first_occupant_law() {
-    // Keys on the unit grid: a and b co-located in the north-west, c north-east, and d in a's
-    // depth-1 cell but its own depth-2 cell - a's x top bits read 00, d's read 01.
+    // On the unit grid, a and b share the north-west cell, c takes the north-east, and d shares a's
+    // depth-1 cell while occupying its own depth-2 cell, because a's x top bits read 00 and d's
+    // read 01.
     let a = MortonKey::new(0x1000_0000, 0x1000_0000);
     let b = MortonKey::new(0x1000_0000, 0x1000_0000);
     let c = MortonKey::new(0xC000_0000, 0x2000_0000);
@@ -497,7 +500,7 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
         .expect("k = 0 lies on the key width");
     let root = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
 
-    // d(0) = 1: a claims depth 0; c claims depth 1 (a's depth-1 cell differs from c's).
+    // d(0) = 1: a claims depth 0 and c claims depth 1 (a's depth-1 cell differs from c's).
     // Hand-derivation: at depth 0 all four share the root cell, rank 0 (a) claims it; at depth 1
     // a and d share cell (0,0) - taken cells block b and d - while c's cell (1,0) is free and
     // c claims it; at depth 2 d's cell parts from a's and d claims it, which k = 0 clamps into

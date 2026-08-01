@@ -44,14 +44,14 @@ fn spd_fixture(order: usize) -> DSquareMatrix {
     matrix
 }
 
-/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), several lanes
+/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), four lanes
 /// with a tail (33), and one past the derived block height (200).
 const ORDERS: [usize; 6] = [1, 2, 7, 8, 33, 200];
 
 #[test]
 fn the_largest_certificate_order_crosses_a_block_boundary() {
     // Keeps the panel pass certified: were the working-set budget ever raised past order 200's
-    // whole triangle, the roundtrip certificates would silently stop exercising it.
+    // whole triangle, the roundtrip certificates would stop exercising it without any test failing.
     assert!(super::block_rows_for(200) < 200);
 }
 
@@ -64,7 +64,7 @@ fn factor_times_its_transpose_recovers_the_lower_triangle() {
 
         // In IEEE arithmetic the factor satisfies A − L·Lᵀ = ΔA with
         // |ΔA[i][j]| ≤ c·(order + 1)·ε·‖Lᵢ‖·‖Lⱼ‖, and ‖Lᵢ‖² = A[i][i], so the largest diagonal
-        // entry bounds every ‖Lᵢ‖·‖Lⱼ‖; margin 8 absorbs the constant c.
+        // entry bounds every ‖Lᵢ‖·‖Lⱼ‖. Margin 8 absorbs the constant c.
         let max_diagonal = (0..order)
             .map(|index| fixture_entry(order, index, index))
             .fold(0.0_f64, f64::max);
@@ -99,7 +99,7 @@ fn the_solution_reproduces_the_right_hand_side() {
         // Factor-and-substitute is backward stable: (A + ΔA)·x̂ = b with
         // |ΔA[i][j]| ≤ c·order·ε·(max diagonal), so each residual component obeys
         // |A·x̂ − b|ᵢ ≤ c·order·ε·(max diagonal)·Σⱼ|x̂ⱼ|. The residual recomputation below rounds
-        // at the same order; margin 8 absorbs both constants.
+        // at the same order. Margin 8 absorbs both constants.
         let max_diagonal = (0..order)
             .map(|index| fixture_entry(order, index, index))
             .fold(0.0_f64, f64::max);
@@ -165,7 +165,7 @@ fn a_nan_below_the_diagonal_poisons_that_row_pivot() {
     let mut matrix = spd_fixture(3);
     matrix.row_mut(2)[0] = f64::NAN;
 
-    // Pivots 0 and 1 never read row 2; the NaN rides L[2][0] into pivot 2.
+    // Pivots 0 and 1 never read row 2. The NaN propagates through L[2][0] into pivot 2.
     assert_eq!(
         matrix
             .cholesky()
@@ -201,8 +201,8 @@ fn factoring_identical_bytes_yields_identical_bytes() {
 
 #[test]
 fn both_dots_reduce_equal_inputs_to_identical_bits() {
-    // Two aligned rows carry the operands; the shifted copy hands the plain-slice dot a start
-    // the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and whole lanes.
+    // The operands come from two aligned matrix rows; the shifted copy hands the plain-slice dot a
+    // start the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and whole lanes.
     const ORDER: usize = 40;
     let mut storage = DSquareMatrix::zeroed(ORDER);
     for column in 0..ORDER {

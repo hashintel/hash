@@ -1,4 +1,4 @@
-//! The training run: schedule, phase boundary, refresh ticks, and the optimization loop.
+//! The schedule, phase boundary, refresh ticks, and optimization loop of a training run.
 //!
 //! One run trains the conditioned projector end to end. It opens with a semantic-only segment at
 //! the zero rung; at the configured boundary step it freezes the Proximal radius from data - the
@@ -10,12 +10,12 @@
 //! mined at both lens extremes, and the displacement telemetry.
 //!
 //! Optimization is Adam under a cosine learning-rate schedule, with one backward pass per step
-//! through the budget surrogate. Batch draws are seeded and deterministic; gradient accumulation
-//! inside the backend is allowed to be nondeterministic.
+//! through the budget surrogate. A seed fixes every batch draw, so draws are deterministic. The
+//! backend's gradient accumulation need not be deterministic.
 //!
-//! The frozen radius follows the policy pattern: measured from reviewed evidence by default,
-//! superseded by a configured assertion when one is supplied, and always reported next to the
-//! measured quantiles so the assertion can be judged against data. A corpus whose attraction index
+//! The frozen radius follows the policy pattern. Measurement from reviewed evidence is the default,
+//! a configured assertion supersedes it, and the report always carries the measured quantiles
+//! beside it so a reader can judge the assertion against data. A corpus whose attraction index
 //! carries no force at all trains vacuously: the relation term stays absent and the run records
 //! why.
 
@@ -76,7 +76,7 @@ impl TrainingSchedule {
     /// Validates a schedule.
     ///
     /// The boundary is the step index at which the Proximal radius freezes and the rung ladder
-    /// opens; steps below it train at the zero rung only. A boundary equal to the step count never
+    /// opens. Steps below it train at the zero rung only. A boundary equal to the step count never
     /// opens the ladder: the run is semantic-only and records no boundary evidence. Refresh ticks
     /// run at step zero and every `refresh_interval` steps after it.
     ///
@@ -145,10 +145,10 @@ impl TrainingSchedule {
 /// The validated relation-lens constants the boundary composes with.
 ///
 /// The Coincident energy arrives fully configured - its radius is a configuration value until a
-/// reviewed-Coincident calibration exists. Only the Proximal radius is measured at the boundary;
+/// reviewed-Coincident calibration exists. The boundary measures only the Proximal radius, while
 /// `temperature` and the scale guard `epsilon` complete the composed energy. An asserted radius,
-/// when supplied, supersedes the measurement in the composed energy while the measured quantiles
-/// still land in evidence.
+/// when supplied, supersedes the measurement in the composed energy while the evidence still
+/// records the measured quantiles.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationLens {
     coincident: CoincidentEnergy,
@@ -207,7 +207,8 @@ impl RelationLens {
         self.epsilon
     }
 
-    /// Returns the configured radius superseding the boundary measurement, when one is asserted.
+    /// Returns the configured radius superseding the boundary measurement, when the configuration
+    /// asserts one.
     #[inline]
     #[must_use]
     pub(crate) const fn asserted_radius(self) -> Option<f32> {
@@ -217,7 +218,7 @@ impl RelationLens {
 
 /// The training run's numerical contract.
 ///
-/// Every field is a validated value; the struct is plain wiring. `forward_rows` bounds each
+/// Every field is a validated value, and the struct is plain wiring. `forward_rows` bounds each
 /// corpus-forward slice at refresh ticks and the boundary, and with it the peak device memory of a
 /// whole-corpus pass.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -262,13 +263,13 @@ pub(crate) struct TrainerInputs<'run, N, E> {
     pub columns: NodeColumns<'run, N>,
     /// The landmark skeleton's support anchors, corpus rows.
     pub landmarks: &'run [SupportAnchor<N>],
-    /// The temporal support anchors, corpus rows; empty for a first generation.
+    /// The temporal support anchors as corpus rows, empty for a first generation.
     pub anchors: &'run [SupportAnchor<N>],
     /// The resolved reviewed verdicts.
     pub verdicts: &'run [ResolvedVerdict],
 }
 
-/// How the Proximal radius was frozen at the boundary.
+/// How the boundary froze the Proximal radius.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum FrozenRadius {
     /// Measured from the reviewed-Proximal pairs.
@@ -279,7 +280,7 @@ pub(crate) enum FrozenRadius {
     Vacuous,
 }
 
-/// The phase boundary's record: when it ran, what it froze, and the measurement it froze from.
+/// The step the phase boundary ran at, what it froze, and the measurement it froze from.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundaryEvidence {
     /// The step index the boundary ran at.
@@ -302,10 +303,10 @@ pub(crate) struct TickTelemetry {
     pub displacement: DisplacementSummary,
 }
 
-/// A training run's evidence: everything the run measured about itself.
+/// Everything a training run measured about itself.
 #[derive(Debug)]
 pub(crate) struct TrainingEvidence {
-    /// The phase boundary's record; [`None`] when the boundary never ran.
+    /// The phase boundary's record, or [`None`] when the boundary never ran.
     pub boundary: Option<BoundaryEvidence>,
     /// The run-wide budget outcomes per reporting bucket.
     pub budget: BudgetBreakdown,
@@ -326,15 +327,15 @@ pub(crate) struct Fitted<B: AutodiffBackend> {
 
 /// The training state at entry of the boundary step.
 ///
-/// This is the fork point of a run: the opening segment produces it, the ladder consumes it, and
-/// the checkpoint artifact serializes it (with the caller's generator position) so a resumed ladder
-/// starts from the same boundary. The state is opaque - it exists only as the output of
-/// [`fit_to_boundary`] or of the checkpoint artifact's validated open path - so a ladder can never
-/// start from a state no opening segment produced.
+/// This is the fork point of a run. The opening segment produces the state and the ladder consumes
+/// it. The checkpoint artifact serializes it with the caller's generator position, so a resumed
+/// ladder starts from the same boundary. The state is opaque and exists only as the output of
+/// [`fit_to_boundary`] or of the checkpoint artifact's validated open path, so no ladder ever
+/// starts from a state no opening segment produced.
 ///
-/// The boundary work itself (radius freeze, opening refresh) is not part of the state: it happens
-/// at entry of [`fit_from_boundary`], deterministically from the model, so every ladder resumed
-/// from one boundary state freezes the bit-equal radius on a deterministic backend.
+/// The state excludes the boundary work itself, the radius freeze and the opening refresh. That
+/// work happens at entry of [`fit_from_boundary`] and derives from the model alone, so every ladder
+/// resumed from one boundary state freezes the bit-equal radius on a deterministic backend.
 // No Debug: the optimizer adaptor does not implement it.
 pub(crate) struct BoundaryState<B: AutodiffBackend<FloatElem = f32>> {
     training: Training<B>,
@@ -370,8 +371,8 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 
     /// Rebuilds a boundary state from its serialized parts.
     ///
-    /// The evidence starts fresh: a resumed ladder's evidence covers the segment it runs, boundary
-    /// measurement included; the opening segment's evidence belongs to the run that produced the
+    /// A resumed ladder's evidence starts fresh and covers the segment it runs, including the
+    /// boundary measurement. The opening segment's evidence belongs to the run that produced the
     /// checkpoint.
     ///
     /// Returns [`None`] when the scheduler position does not sit at the schedule's boundary - the
@@ -411,12 +412,12 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 
 /// Trains the projector over one generation's artifacts.
 ///
-/// The caller owns model initialization and seeds it before the call; batch draws consume `rng`.
-/// Equal models, inputs, options, and seeds draw equal batches; coordinate-level reproducibility
-/// additionally depends on the backend's own determinism.
+/// The caller owns model initialization and seeds it before the call, and batch draws consume
+/// `rng`. Equal models, inputs, options, and seeds draw equal batches; coordinate-level
+/// reproducibility additionally depends on the backend's own determinism.
 ///
-/// Every step reports its loss to `progress` as it is evaluated; the run behaves identically under
-/// any observer.
+/// Every step reports its loss to `progress` on evaluation. The run behaves identically under any
+/// observer.
 ///
 /// The run is the composition of [`fit_to_boundary`] and [`fit_from_boundary`]; call the phases
 /// directly to checkpoint or fork at the boundary.
@@ -431,8 +432,8 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
-/// outside it; all inputs come from one generation, so a mismatch is a wiring defect.
+/// This panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// outside it. All inputs come from one generation, so a mismatch is a wiring defect.
 pub(crate) fn fit<
     N: Id,
     E: Id,
@@ -464,7 +465,7 @@ pub(crate) fn fit<
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// This panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
 pub(crate) fn fit_to_boundary<
     N: Id,
@@ -519,7 +520,7 @@ pub(crate) fn fit_to_boundary<
 ///
 /// # Panics
 ///
-/// Panics when the inputs disagree about the corpus row domain or an anchor references a row
+/// This panics when the inputs disagree about the corpus row domain or an anchor references a row
 /// outside it.
 pub(crate) fn fit_from_boundary<
     N: Id,

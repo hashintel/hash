@@ -1,4 +1,4 @@
-//! The fit command: one production generation over the live store.
+//! The fit command that runs one production generation over the live store.
 
 use core::{error::Error, fmt, num::NonZero, time::Duration};
 use std::{io, time::Instant};
@@ -80,10 +80,10 @@ pub struct FitArgs {
     )]
     quality_thresholds: Option<Utf8PathBuf>,
 
-    /// Path of an annotation-corpus document: the classifier's training supply.
+    /// Path of an annotation-corpus document, the classifier's training supply.
     ///
-    /// The run assembles it, fits the relation classifier, and stages the corpus, the embedding
-    /// table, and the model beside the generation.
+    /// The run assembles the corpus and fits the relation classifier. It then stages the corpus,
+    /// the embedding table, and the model beside the generation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS", value_hint = ValueHint::FilePath)]
     annotations: Option<Utf8PathBuf>,
 
@@ -103,7 +103,7 @@ pub struct FitArgs {
 
     /// Assert the Proximal radius instead of measuring it at the phase boundary.
     ///
-    /// Finite, above the Coincident radius `0.05`; contradicts --baseline.
+    /// Finite, above the Coincident radius `0.05`. Contradicts --baseline.
     #[arg(long, conflicts_with = "baseline")]
     assert_proximal_radius: Option<f32>,
 
@@ -136,16 +136,16 @@ pub struct FitArgs {
 /// One fit invocation's failure, by step.
 ///
 /// The run variant splices into the chain transparently (its display text and sources are the
-/// wrapped fault's, unchanged); the report variant names its own step.
+/// wrapped fault's, unchanged). The report variant names its own step.
 #[derive(Debug)]
 pub enum FitError {
-    /// The embedding provider could not be constructed.
+    /// Constructing the embedding provider failed.
     Embedder(Report<EmbeddingError>),
     /// The embedding provider failed its preflight request.
     Preflight(ExternalEmbeddingError),
     /// The run failed.
     Run(RunError),
-    /// The admission report could not be written.
+    /// Writing the admission report failed.
     Io(io::Error),
 }
 
@@ -185,11 +185,11 @@ impl From<io::Error> for FitError {
     }
 }
 
-/// One fit's verdict: the run summary, the report location, and the wall time.
+/// One fit's verdict.
 ///
-/// The command's product, rendered by its host rather than printed in place - the standalone
-/// shell's dashboard owns the terminal until the run ends, so the verdict is written after the
-/// dashboard hands it back.
+/// The command's product, which its host renders rather than printing in place. The standalone
+/// shell's dashboard owns the terminal until the run ends, so the shell writes the verdict after
+/// the dashboard hands it back.
 #[derive(Debug)]
 pub struct FitVerdict {
     /// The run's plain-number summary.
@@ -296,8 +296,8 @@ where
     /// Runs one production generation over the live store and returns its verdict.
     ///
     /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
-    /// standalone shell, [`connect`] behind the graph binary's own store flags). The snapshot is
-    /// pinned here: the run reads the store as of the moment the command starts.
+    /// standalone shell, [`connect`] behind the graph binary's own store flags). This call pins the
+    /// snapshot, so the run reads the store as of the moment the command starts.
     ///
     /// # Errors
     ///
@@ -341,8 +341,8 @@ where
             // The provider holds its observer across every request, so it takes the detached half.
             self.options.progress.detach(),
         );
-        // Before the store is read: a refused key is minutes cheaper here than
-        // at the first workload request.
+        // The preflight runs before the run reads the store, because a refused key costs minutes
+        // less here than at the first workload request.
         embedder.preflight().await.map_err(FitError::Preflight)?;
 
         let started = Instant::now();
@@ -373,8 +373,8 @@ impl FitCommand<NoProgress> {
         let classifier = match (args.annotations, args.classifier) {
             (Some(annotations), None) => ClassifierSource::Annotations(annotations),
             (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
-            // The `classifier_input` argument group is required with
-            // exactly one member; the parser refuses every other shape.
+            // Clap requires the `classifier_input` argument group with exactly one member, and
+            // refuses every other shape.
             _ => unreachable!("the classifier_input argument group admits exactly one path"),
         };
 

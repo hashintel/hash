@@ -1,13 +1,13 @@
-//! The landmark file: selected rows, assignment, and coordinates.
+//! A landmark file stores the selected rows, the assignment, and the coordinates.
 //!
-//! Layout version 0 is **mutable**: change the layout freely to fit what the pipeline needs and
+//! Layout version 0 is mutable: change the layout to fit what the pipeline needs and
 //! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
 //! the intended failure mode; no migration or compatibility machinery exists on purpose until the
 //! format stabilizes.
 //!
-//! This is a combined file: the assignment and the coordinates are both keyed by the selection's
-//! ordinal order, meaningless without it, and always read with it, so all three live in one file
-//! and cannot fall out of sync. The regions:
+//! The assignment and the coordinates are both keyed by the selection's ordinal order and mean
+//! nothing without it. All three regions live in one file and therefore cannot fall out of sync.
+//! The regions:
 //!
 //! ```text
 //! | offset | size | region                                          |
@@ -31,12 +31,12 @@
 //! and row `i` of the coordinates region is its position. All region offsets derive from `M` and
 //! `N` with checked arithmetic ([`FileHeader::expected_file_len`]); a header whose geometry
 //! overflows matches no real file. Every region starts on a 4096-byte boundary, so the
-//! whole-file-mapping alignment guarantee of the array format applies unchanged: map the whole file
-//! and slice, never mmap at a file offset.
+//! whole-file-mapping alignment guarantee of the array format applies unchanged. A reader maps the
+//! whole file and slices it rather than mmapping at a file offset.
 //!
-//! [`read::LandmarkFile`] opens a file under these rules and hands out the raw typed regions;
-//! [`write::write_regions`] streams them into place. The format owns geometry alone - the
-//! skeleton's domain invariants (ascending rows, ordinals below `M`, finite coordinates) are
+//! [`read::LandmarkFile`] opens a file under these rules and hands out the raw typed regions, and
+//! [`write::write_regions`] streams them into place. The format owns geometry alone. The skeleton's
+//! domain invariants (ascending rows, ordinals below `M`, finite coordinates) are
 //! `salt::landmark`'s artifact contract, validated where the domain types live.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
@@ -59,7 +59,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -103,7 +103,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment this version on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -196,8 +196,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// Opening rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let coordinate_bytes = self.landmarks().checked_mul(2 * size_of::<f32>() as u64)?;

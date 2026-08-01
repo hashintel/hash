@@ -1,6 +1,6 @@
 //! Wire intern tables.
 //!
-//! A trailer ships each referenced string once: the table is the bytewise-sorted, deduplicated
+//! A trailer stores each referenced string once: the table is the bytewise-sorted, deduplicated
 //! union of every reference the trailer makes, and every reference keys by index into it. The
 //! per-entity ascending-name order the hydration layer produces maps to ascending index order,
 //! so the wire's ordering laws hold by construction.
@@ -29,7 +29,7 @@ impl<'doc> Table<'doc> {
     ///
     /// # Panics
     ///
-    /// Panics for a string the table does not intern, which construction over the whole
+    /// This panics for a string the table does not intern, which construction over the whole
     /// reference set rules out.
     pub(super) fn index_of(&self, reference: &str) -> u32 {
         let index = self

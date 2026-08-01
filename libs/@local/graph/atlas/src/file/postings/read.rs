@@ -14,9 +14,9 @@ use crate::file::region::PageMap;
 /// Opening a postings file failed.
 #[derive(Debug)]
 pub enum OpenPostingsError {
-    /// The file could not be opened or mapped.
+    /// Opening or mapping the file failed.
     Io(io::Error),
-    /// The file is shorter than one header.
+    /// The file ends before one full header.
     Undersized { actual: u64 },
     /// The leading bytes are not a header this module speaks.
     Header(ValidityError<(), FileHeader>),
@@ -75,9 +75,10 @@ impl Error for OpenPostingsError {
 /// A postings file mapped read-only into memory.
 ///
 /// Opening parses the header and checks the format's single structural rule, so an open file always
-/// describes its own regions exactly. The regions are borrowed straight from the whole-file mapping
-/// and start 4096-byte aligned: aligned for every scalar and SIMD width. The accessors expose
-/// geometry alone; the membership and parent contracts are `salt::postings`'s artifact contract.
+/// describes its own regions exactly. Each accessor borrows its region straight from the whole-file
+/// mapping, and every region starts on a 4096-byte boundary, which aligns it for every scalar and
+/// SIMD width. The accessors expose geometry alone. The membership and parent contracts are
+/// `salt::postings`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct PostingsFile {
     map: PageMap,
@@ -88,7 +89,7 @@ impl PostingsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPostingsError::Io`] when the file cannot be opened or mapped,
+    /// Returns [`OpenPostingsError::Io`] when opening or mapping the file fails,
     /// [`OpenPostingsError::Header`] when its leading bytes are not a header this module speaks,
     /// and [`OpenPostingsError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]

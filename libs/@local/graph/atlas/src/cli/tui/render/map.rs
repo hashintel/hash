@@ -1,8 +1,8 @@
-//! The placement map: the sampled rows as braille dots, the landmark skeleton picked out.
+//! The sampled rows as braille dots, with the landmark skeleton picked out.
 //!
 //! The map draws the sample the observer asked for, not the corpus, and it keeps the placement's
 //! own shape: equal data units per dot on both axes, so the atlas is never stretched to fill the
-//! frame. Nothing it cannot place is drawn at all.
+//! frame. The map draws nothing it cannot place.
 
 use ratatui::{
     Frame,
@@ -22,22 +22,22 @@ use crate::{
     math::{Bounds2, Positive, Vec2},
 };
 
-/// The color of the landmark skeleton, against the accent the interior sample is drawn in.
+/// The color of the landmark skeleton, against the accent the map draws the interior sample in.
 pub(super) const SKELETON: Color = Color::Magenta;
 
-/// How much wider than the placement the map's viewport is drawn.
+/// How much wider than the placement the map draws its viewport.
 ///
 /// The map carries no axis labels, so widening states nothing untrue - it only keeps the outermost
 /// rows a dot inside the frame rather than against its wall.
 const MAP_MARGIN: Positive = Positive::new(1.04).expect("1.04 is positive");
 
-/// Data units of viewport a placement with no extent of its own is drawn in.
+/// The viewport, in data units, that the map gives a placement with no extent of its own.
 ///
 /// The first refresh tick of a collapsed initialization reports rows that all sit together, which
 /// has a centre but no size to scale.
 const MINIMUM_EXTENT: f32 = 1.0;
 
-/// Draws the placement itself: the sampled rows as braille dots, the skeleton picked out.
+/// Draws the placement itself, the sampled rows as braille dots with the skeleton picked out.
 ///
 /// The map is the run's shape becoming true - a cloud that starts as noise around the landmarks
 /// and pulls itself into the atlas the fit will publish. It shows the sample the observer asked
@@ -80,9 +80,9 @@ pub(super) fn render_map(frame: &mut Frame, area: Rect, placement: &PlacementMap
 
 /// The positions a canvas can place, as its coordinates.
 ///
-/// A non-finite coordinate is dropped rather than drawn: the canvas clamps what it cannot compare
-/// into the corner of the frame, which would report a row sitting somewhere it is not. A run whose
-/// placement diverges fails in the trainer instead of arriving here.
+/// This drops a non-finite coordinate rather than drawing it: the canvas clamps what it cannot
+/// compare into the corner of the frame, which would report a row sitting somewhere it is not. A
+/// run whose placement diverges fails in the trainer instead of arriving here.
 fn drawable(positions: &[Vec2]) -> impl IntoIterator<Item = (f64, f64)> {
     positions
         .iter()
@@ -90,14 +90,14 @@ fn drawable(positions: &[Vec2]) -> impl IntoIterator<Item = (f64, f64)> {
         .filter(|&(x, y)| x.is_finite() && y.is_finite())
 }
 
-/// The map's viewport: the placement's own extent, squared against the pane's dot grid.
+/// The map's viewport, which is the placement's own extent squared against the pane's dot grid.
 ///
 /// A braille cell is [`DOTS_ACROSS`] dots wide and [`DOTS_DOWN`] tall over a terminal cell about
-/// twice as tall as it is wide, so a dot is very nearly square - and equal data units per dot on
-/// both axes is what keeps the atlas its own shape instead of a version stretched to fill the
-/// frame. The extent grows to the grid's aspect first, then by [`MAP_MARGIN`], and a placement with
-/// no extent of its own is widened to [`MINIMUM_EXTENT`] so its rows land in the middle of a frame
-/// rather than dividing by zero.
+/// twice as tall as it is wide, so a dot is approximately square. Equal data units per dot on both
+/// axes is what keeps the atlas its own shape instead of a version stretched to fill the frame. The
+/// extent grows to the grid's aspect first and then by [`MAP_MARGIN`]. A placement with no extent
+/// of its own grows to [`MINIMUM_EXTENT`] instead, so its rows sit in the middle of a frame rather
+/// than dividing by zero.
 pub(super) fn map_bounds(positions: &[Vec2], inner: Rect) -> [[f64; 2]; 2] {
     let Some(bounds) = Bounds2::from_points(
         positions
@@ -124,10 +124,10 @@ pub(super) fn map_bounds(positions: &[Vec2], inner: Rect) -> [[f64; 2]; 2] {
     ]
 }
 
-/// The map's footer: how many rows it is drawing, and how many of them are the skeleton.
+/// The map's footer, showing how many rows it is drawing and how many of them are the skeleton.
 ///
-/// All or nothing, like the chart's breakdown: a title wider than its frame is drawn over the
-/// corner rather than truncated inside it.
+/// All or nothing, like the chart's breakdown. The widget draws a title wider than its frame over
+/// the corner rather than truncating it inside.
 fn population(placement: &PlacementMap, width: u16) -> Line<'static> {
     let text = format!(
         " {} rows · {} landmarks ",

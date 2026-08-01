@@ -10,8 +10,8 @@ use crate::file::region::{write_padding, write_region};
 /// Streams the node table, the type-set fenceposts, and the type ids as a quad file.
 ///
 /// `nodes` is the node table in depth-first pre-order with the root at index 0, so every child
-/// index points deeper in the table; `sets` holds one direct-type set per node. Every region
-/// streams in file order behind the header; wrap a raw [`File`](std::fs::File) in a
+/// index points deeper in the table. `sets` holds one direct-type set per node. Every region
+/// streams in file order behind the header. Wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
 ///
 /// # Errors
@@ -20,10 +20,10 @@ use crate::file::region::{write_padding, write_region};
 ///
 /// # Panics
 ///
-/// Panics when the node count does not leave room for the absent-child sentinel, when a child index
-/// escapes the table or fails to point deeper, or when `sets` covers a different node count - each
-/// a producer bug the file format cannot represent, caught before the bytes exist. [`TypeSets`]
-/// carries the fencepost and set-order rules by construction.
+/// This panics when the node count does not leave room for the absent-child sentinel, when a child
+/// index escapes the table or fails to point deeper, or when `sets` covers a different node count.
+/// Each is a producer bug the file format cannot represent, caught before the bytes exist.
+/// [`TypeSets`] carries the fencepost and set-order rules by construction.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; a malformed table is a caller contract \

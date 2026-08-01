@@ -1,15 +1,15 @@
 //! Least-squares fitting of the affinity curve to a membership falloff.
 //!
 //! The fit is a two-parameter Levenberg-Marquardt loop whose normal equations are a symmetric 2x2
-//! system solved in closed form; no matrix library is involved, and no allocation happens on any
+//! system solved in closed form. The loop needs no matrix library and allocates nothing on any
 //! path.
 
 use super::AffinityCurve;
 use crate::math::scalar::narrow_f32;
 
-/// The sample grid a curve is fitted over.
+/// The sample grid a fit runs over.
 ///
-/// [`AffinityCurve::fit`] uses the default grid; [`AffinityCurve::fit_with`] accepts a custom one.
+/// [`AffinityCurve::fit`] uses the default grid. [`AffinityCurve::fit_with`] accepts a custom one.
 /// The grid determines which distances vote in the least-squares balance between the fitted curve
 /// and the target falloff: its resolution around the membership breakpoint and how far into the
 /// tail it reaches.
@@ -53,10 +53,10 @@ pub struct AffinityFitConfig {
 impl AffinityFitConfig {
     /// Fewest samples [`AffinityCurve::fit_with`] accepts.
     ///
-    /// The two-parameter fit needs the grid to populate both regimes of the piecewise target - the
-    /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it - with
-    /// a handful of points each; below eight samples the fit is underdetermined against the target
-    /// it is meant to trace.
+    /// The two-parameter fit needs the grid to populate both regimes of the piecewise target (the
+    /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it) with a
+    /// handful of points each. Below eight samples the grid underdetermines the fit against the
+    /// target the curve traces.
     pub const MIN_SAMPLES: u16 = 8;
 }
 
@@ -64,14 +64,15 @@ impl AffinityCurve {
     /// Fits a curve from the desired membership falloff.
     ///
     /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
-    /// minimum_distance) / spread)` beyond it. The falloff is sampled on the crate's default grid -
-    /// 300 evenly spaced distances over `[0, 3 · spread]` - and the curve is fitted to the samples
-    /// by Levenberg-Marquardt least squares. The fit runs once at initialization, in double
-    /// precision, and narrows the result to the working `f32` parameters.
+    /// minimum_distance) / spread)` beyond it. This method samples the falloff on the crate's
+    /// default grid (300 evenly spaced distances over `[0, 3 · spread]`) and fits the curve to the
+    /// samples by Levenberg-Marquardt least squares. The fit runs once at initialization in double
+    /// precision and narrows the result to the working `f32` parameters.
     ///
-    /// Returns [`None`] when `spread` is not finite and strictly positive, when `minimum_distance`
-    /// is not finite and strictly positive or exceeds `spread`, or when the least-squares fit fails
-    /// to converge to parameters that [`new`](Self::new) accepts.
+    /// Returns [`None`] when `spread` is not finite and strictly positive, or when
+    /// `minimum_distance` is not finite and strictly positive or exceeds `spread`. It also returns
+    /// [`None`] when the least-squares fit fails to converge to parameters that [`new`](Self::new)
+    /// accepts.
     ///
     /// # Examples
     ///
@@ -92,10 +93,10 @@ impl AffinityCurve {
     /// Fits a curve from the desired membership falloff over a configured sample grid.
     ///
     /// The falloff keeps membership at `1` inside `minimum_distance` and decays as `exp(-(d -
-    /// minimum_distance) / spread)` beyond it. It is sampled at
+    /// minimum_distance) / spread)` beyond it. This method samples it at
     /// [`samples`](AffinityFitConfig::samples) evenly spaced distances over `[0, range_in_spreads *
-    /// spread]` and the curve is fitted to the samples by Levenberg-Marquardt least squares, in
-    /// double precision, narrowing the result to the working `f32` parameters. [`fit`](Self::fit)
+    /// spread]` and fits the curve to the samples by Levenberg-Marquardt least squares, in double
+    /// precision, narrowing the result to the working `f32` parameters. [`fit`](Self::fit)
     /// delegates here with the default grid.
     ///
     /// Returns [`None`] when `spread` is not finite and strictly positive, when `minimum_distance`
@@ -180,7 +181,7 @@ impl SampleGrid {
 /// of the normal matrix `J^T J` and the `g_*` fields the entries of the gradient `J^T r`.
 #[derive(Debug, Copy, Clone)]
 struct NormalEquations {
-    /// Sum of squared residuals, the objective being minimized.
+    /// Sum of squared residuals, the objective the fit minimizes.
     residual_sum_of_squares: f64,
     /// The `a`-`a` entry of the normal matrix.
     j_aa: f64,
@@ -222,12 +223,12 @@ impl NormalEquations {
 ///
 /// Both parameters start at `1` and stay strictly positive throughout. Each iteration solves the
 /// damped 2x2 normal equations of the analytic Jacobian in closed form and accepts the step when it
-/// lowers the residual sum of squares; rejected steps raise the damping and retry. Returns the
+/// lowers the residual sum of squares. Rejected steps raise the damping and retry. Returns the
 /// fitted `(a, b)`, or [`None`] when the initial evaluation is non-finite, when every damping retry
 /// of an iteration fails, or when the iteration cap passes without convergence.
 pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option<(f64, f64)> {
     // Both parameters start at 1, the neutral point of the curve's
-    // O(1) parametrization; the damping retries absorb a rough start.
+    // O(1) parametrization. The damping retries absorb a rough start.
     let (mut a, mut b) = (1.0_f64, 1.0_f64);
     let mut equations = evaluate(grid, &target, a, b)?;
     let mut damping = INITIAL_DAMPING;
@@ -251,9 +252,9 @@ pub(super) fn fit_curve(grid: SampleGrid, target: impl Fn(f64) -> f64) -> Option
             }
 
             let (next_a, next_b) = (a + step_a, b + step_b);
-            // The curve is only meaningful for strictly positive
-            // parameters; a step that leaves the domain is a failed
-            // step, not an error.
+            // `AffinityCurve::new` accepts strictly positive parameters
+            // only; a step that leaves the domain is a failed step, not
+            // an error.
             if !next_a.is_finite() || !next_b.is_finite() || next_a <= 0.0 || next_b <= 0.0 {
                 damping *= DAMPING_SCALE;
                 continue;

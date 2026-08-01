@@ -1,14 +1,13 @@
 //! The wire secret.
 //!
-//! The server-held key material every wire-facing derivation keys from: the row-id codec's
-//! per-generation permutation draws its round keys from this value. [`WireSecret`] is the
-//! configuration boundary - a value of the type is always a full-width key, so a weak or
-//! malformed secret is rejected where configuration is parsed, never discovered where keys are
-//! derived.
+//! Every wire-facing derivation keys from this server-held key material. The row-id codec's
+//! per-generation permutation draws its round keys from the value, and [`WireSecret`] is the
+//! configuration boundary. A value of the type is always a full-width key, so configuration parsing
+//! rejects a weak or malformed secret before any key derivation reaches it.
 //!
-//! The format is exact: 32 bytes, configured as 64 lowercase hexadecimal characters - the
-//! crate's canonical hexadecimal form. Rejecting every other shape keeps the key space honest -
-//! a memorable passphrase is refused rather than silently accepted as low-entropy key material.
+//! The format is exact. A secret is 32 bytes, configured as 64 lowercase hexadecimal characters in
+//! the crate's canonical hexadecimal form. Rejecting every other shape keeps the key space honest,
+//! because a memorable passphrase fails to parse rather than passing as low-entropy key material.
 //! Generate one with `openssl rand -hex 32`.
 
 use core::{error::Error, fmt};
@@ -120,10 +119,10 @@ mod tests {
 
     /// The wire secret's diagnostic rendering carries no key material.
     ///
-    /// Scope is the outer rendering alone: [`WireSecret`]'s [`fmt::Debug`] formats no field, so
-    /// the held secret's own redaction is not observable here and is pinned where it lives. What
-    /// this does catch is the plausible regression - a rendering that reaches the bytes through
-    /// the held value's deref, whose hexadecimal form encodes them in full.
+    /// Scope is the outer rendering alone: [`WireSecret`]'s [`fmt::Debug`] formats no field, so the
+    /// held secret's own redaction is not observable here and its defining module pins it. What
+    /// this does catch is the plausible regression - a rendering that reaches the bytes through the
+    /// held value's deref, whose hexadecimal form encodes them in full.
     ///
     /// [`fmt::Debug`]: core::fmt::Debug
     #[test]
@@ -135,8 +134,8 @@ mod tests {
         let secret = WireSecret::from_hex(HEX).expect("the literal is 64 lowercase hex digits");
         let rendered = format!("{secret:?}");
 
-        // Any window of the configured form, not the whole string: a truncated or
-        // partially-encoded rendering leaks just as surely as a complete one.
+        // Any window of the configured form, not the whole string: a rendering that truncates the
+        // key or encodes only part of it leaks as surely as a complete one.
         for (start, window) in HEX.as_bytes().windows(8).enumerate() {
             assert!(
                 !rendered

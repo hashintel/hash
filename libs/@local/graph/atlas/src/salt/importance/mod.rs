@@ -19,8 +19,8 @@ mod tests;
 
 /// Selects the importance signal of one fit.
 ///
-/// The variant is echoed into the manifest and mirrored by the metadata's ranking origin, so a
-/// published generation names the signal its delivery order ran under.
+/// The manifest echoes the variant and the metadata's ranking origin mirrors it, so a published
+/// generation names the signal its delivery order ran under.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum RankingConfig {
     /// A constant column.
@@ -47,21 +47,18 @@ const impl Default for RankingConfig {
 ///
 /// Implementations are deterministic: the column is a function of the artifacts and the
 /// configuration alone, never of thread count or timing.
-// The first signal whose entries are not finite by construction (a
-// learned score read from an artifact) validates them behind a column
-// newtype at its own boundary; the constant and integer-cast signals
-// prove finiteness structurally.
-// PERF: derive materializes one f32[N] column per fit (4 MB at a
-// million rows), borrowed by the rank pass and dropped. A lazy return
-// cannot remove it - the rank comparator indexes by row - so if the
-// allocation ever shows in a fit profile, the fix is the house
-// `derive_in(allocator)` variant.
+// The first signal whose entries are not finite by construction (a learned score read from an
+// artifact) validates them behind a column newtype at its own boundary. The constant and
+// integer-cast signals prove finiteness structurally. PERF: `derive` materializes one f32[N] column
+// per fit (4 MB at a million rows) that the rank pass borrows and then drops. A lazy return cannot
+// remove the column, because the rank comparator indexes by row. If the allocation ever shows in a
+// fit profile, the fix is the house `derive_in(allocator)` variant.
 pub(crate) trait ImportanceSignal {
     /// Derives the importance column, one entry per node row.
     fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32>;
 }
 
-/// The constant signal: every row weighs the same.
+/// A signal that weighs every row the same.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct ConstantImportance;
 
@@ -97,7 +94,7 @@ impl ImportanceSignal for DegreeImportance<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `rows` disagrees with the adjacency's node domain, which the row-aligned
+    /// This panics when `rows` disagrees with the adjacency's node domain, which the row-aligned
     /// artifact contract excludes.
     #[expect(
         clippy::cast_precision_loss,

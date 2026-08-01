@@ -1,4 +1,4 @@
-//! The report document: rendered rows, the applied thresholds, and the verdict controls.
+//! The quality report's rendered rows, applied thresholds, and verdict controls.
 
 use core::{mem::variant_count, num::NonZero};
 
@@ -53,7 +53,7 @@ impl MetricRow {
 /// and is comparable only across probes of the same spaces.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DensityRow {
-    /// The neighbourhood size the radii were read at.
+    /// The neighbourhood size both radii come from.
     pub neighbourhood: NonZero<usize>,
     /// Anchors contributing a finite log ratio.
     pub anchors: usize,
@@ -76,7 +76,7 @@ pub(crate) struct TripletRow {
     pub triplets: u64,
     /// Triplets whose distance order both spaces share.
     pub preserved: u64,
-    /// The preserved fraction; one when nothing was observed.
+    /// The preserved fraction, one when the probe observed no triplet.
     pub agreement: UnitFraction,
 }
 
@@ -96,7 +96,7 @@ impl TripletRow {
     }
 }
 
-/// One neighbourhood size's clump-granularity recall reading.
+/// One neighbourhood size's recall reading collapsed onto clump ids.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClumpRow {
     /// The neighbourhood size the row reads at.
@@ -109,14 +109,14 @@ pub(crate) struct ClumpRow {
     pub recall: f64,
 }
 
-/// The clump-granularity evidence block.
+/// The clump-collapsed evidence block.
 ///
-/// The grouping's shape - counts at the threshold it was built at - travels with the collapsed
-/// readings, so the block justifies its own granularity: a threshold grouping half the corpus reads
-/// very differently from one grouping a few percent.
+/// The grouping's shape - counts at the distance threshold that formed it - accompanies the
+/// collapsed readings, because a threshold grouping half the corpus reads differently from one
+/// grouping a few percent.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClumpReport {
-    /// The distance threshold the grouping was built at.
+    /// The distance threshold that formed the grouping.
     pub epsilon: f32,
     /// The clump count, singletons included.
     pub count: usize,
@@ -130,8 +130,8 @@ pub(crate) struct ClumpReport {
     pub map_representation: Vec<ClumpRow>,
     /// Collapsed representation-versus-canonical readings over the comparison rows.
     ///
-    /// One row per neighbourhood size in reporting order: the representation baseline at clump
-    /// granularity.
+    /// One row per neighbourhood size in reporting order: the representation baseline collapsed
+    /// onto clump ids.
     pub representation_canonical: Vec<ClumpRow>,
 }
 
@@ -165,10 +165,10 @@ pub(crate) struct BaselineRow {
 
 /// One subgroup's representation-baseline readings over the sampled universe.
 ///
-/// The stratification separates representation loss from near-tie reshuffling per the
-/// triage rule: a subgroup whose plain baseline recall trails the overall reading but whose
-/// collapsed recall restores to it breaches only on component labels in the representation
-/// itself, before any projection - a triage signal, not a placement certification.
+/// The stratification separates representation loss from near-tie reshuffling under the triage
+/// rule. When a subgroup's plain baseline recall trails the whole-probe reading and its collapsed
+/// recall restores to it, the breach lies only on component labels in the representation itself,
+/// before any projection. That reading triages the breach and certifies nothing about placement.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BaselineSubgroupReport {
     /// The subgroup's type, as its ontology row.
@@ -183,27 +183,27 @@ pub(crate) struct BaselineSubgroupReport {
 
 /// One breach of the subgroup degradation rule.
 ///
-/// A flag carries its own triage evidence: when clump readings exist, the breach is re-evaluated
-/// at clump granularity, and a breach the collapse restores is marked resolved: component-label
-/// recall no longer breaches. The mark is triage evidence - not a certification of component
-/// compactness or within-component placement - and it never affects admission.
+/// A flag carries its own triage evidence. When clump readings exist, the report re-evaluates the
+/// breach on clump ids and marks a breach the collapse restores as resolved, meaning
+/// component-label recall no longer breaches. The mark is triage evidence and certifies neither
+/// component compactness nor within-component placement, and it never affects admission.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
     pub ontology_row: OntologyRowId,
-    /// The neighbourhood size the breach was read at.
+    /// The neighbourhood size of the breach.
     pub neighbourhood: NonZero<usize>,
     /// Anchors carrying the type.
     pub anchors: usize,
     /// The subgroup's degradation: one minus its recall.
     pub degradation: f64,
-    /// The overall degradation the factor multiplied.
+    /// The whole-probe degradation the factor multiplied.
     pub overall_degradation: f64,
-    /// The subgroup's degradation at clump granularity, when clump readings exist.
+    /// The subgroup's clump-collapsed degradation, when clump readings exist.
     pub clump_degradation: Option<f64>,
-    /// The overall clump-granularity degradation the re-evaluation compared against.
+    /// The whole-probe clump-collapsed degradation the re-evaluation compared against.
     pub clump_overall_degradation: Option<f64>,
-    /// Whether the clump-granularity re-evaluation satisfies the degradation rule.
+    /// Whether the clump-collapsed re-evaluation satisfies the degradation rule.
     ///
     /// Always false without clump readings.
     pub clump_resolved: bool,
@@ -228,7 +228,7 @@ impl Bound {
     }
 }
 
-/// One of the battery's controls: the reading its verdict turns on, against its threshold.
+/// One control of the battery, reading one metric against the threshold that admits it.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Control {
     /// The metric the control gates.
@@ -257,11 +257,11 @@ pub(crate) struct QualityReport {
     pub anchors: usize,
     /// The corpus grid's universe: every non-anchor row.
     pub corpus_universe: usize,
-    /// The sampled grids' universe: the comparison row count.
+    /// The comparison row count every sampled grid ranks over.
     pub comparisons: usize,
     /// Corpus map-versus-representation readings, per neighbourhood size.
     ///
-    /// The primary surface: the verdict binds here.
+    /// The primary surface the verdict binds to.
     pub map_representation: Vec<MetricRow>,
     /// The corpus reading collapsed onto clump ids and the grouping's shape.
     ///
@@ -310,10 +310,11 @@ pub(crate) struct QualityReport {
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// A control is a conjunction over the neighbourhood rungs, so the reading that decides it is
-    /// the extremum across them: the lowest against a floor, the highest against a ceiling. An
-    /// absent reading is absent evidence - an empty grid, a rung whose spread is undefined,
-    /// disabled triplet sampling - and a control refuses that rather than passing vacuously.
+    /// Each control is a conjunction over the neighbourhood rungs, so the reading that decides it
+    /// is the extremum across them - the lowest rung against a floor and the highest against a
+    /// ceiling. An absent reading is absent evidence - an empty grid, a rung whose spread is
+    /// absent, triplet sampling switched off - and a control refuses that rather than passing
+    /// vacuously.
     ///
     /// [`passes`](Self::passes) is this list's conjunction and an observer reports these same
     /// numbers, so the verdict and the observation read one reduction instead of two.
@@ -324,8 +325,8 @@ impl QualityReport {
         let highest =
             |read: fn(&MetricRow) -> f64| self.map_representation.iter().map(read).reduce(f64::max);
 
-        // A rung whose spread is undefined is a rung whose ceiling cannot be checked, so the
-        // control loses its evidence whole rather than reading the rungs that do have one.
+        // A rung with no spread reading gives the ceiling nothing to check, so the control loses
+        // its evidence whole rather than reading the rungs that do have one.
         let spread = self
             .density
             .iter()
@@ -376,10 +377,10 @@ impl QualityReport {
     /// Returns whether the full battery admits the generation.
     ///
     /// True exactly when every [control](Self::controls) holds: each reading present and inside its
-    /// bound. The controls are concrete validated values - maximally permissive by default - so the
-    /// verdict turns on evidence and readings, never on configuration shape. Subgroup flags and
-    /// their clump-resolution triage are report-only fields: they inform the human reading the
-    /// report and never affect admission.
+    /// bound. The controls are concrete validated values that stay maximally permissive by default.
+    /// The verdict therefore turns on evidence and readings, never on configuration shape. Subgroup
+    /// flags and their clump-resolution triage are report-only fields: they inform the human
+    /// reading the report and never affect admission.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
         self.controls().iter().all(Control::admits)

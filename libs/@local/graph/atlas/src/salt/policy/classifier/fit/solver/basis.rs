@@ -1,7 +1,7 @@
 //! The `HelmertV1` contrast basis between class logits and contrast coordinates.
 //!
-//! Three class logits carry one redundant degree of freedom: adding a common scalar to every
-//! logit moves no probability. The solver therefore parameterizes the classifier in a
+//! Adding a common scalar to every class logit moves no probability, so one degree of freedom among
+//! the class logits is redundant. The solver therefore parameterizes the classifier in a
 //! two-dimensional contrast space reached through the fixed matrix `B ∈ ℝ^(3×2)` whose rows, in
 //! [`GeometryClass`] discriminant order, are `(1/√2, 1/√6)`, `(−1/√2, 1/√6)`, and `(0, −2/√6)`.
 //! Its columns are orthonormal (`BᵀB = I₂`) and orthogonal to the constant vector (`Bᵀ1 = 0`), so
@@ -9,11 +9,11 @@
 //! contrast vector to class logits and [`reduce`] projects a class-space vector back, and the
 //! roundtrip is the identity up to rounding.
 //!
-//! The six matrix entries are fixed IEEE-754 bit patterns in source, pinned by `to_bits` tests;
-//! no platform math call recomputes them. Each magnitude is the correctly rounded value of its
-//! real number, and `2/√6` is the exact double of `1/√6`, which makes both column sums exactly
-//! `0.0` under plain class-order addition. Basis applications fold with `mul_add` in coordinate
-//! order; under that fold every entry of `BᵀB` lies within one ulp of `I₂`.
+//! The source fixes all six matrix entries as IEEE-754 bit patterns, and `to_bits` tests pin them.
+//! No platform math call recomputes them. Each magnitude is the correctly rounded value of its real
+//! number, and `2/√6` is the exact double of `1/√6`, which makes both column sums exactly `0.0`
+//! under plain class-order addition. Basis applications fold with `mul_add` in coordinate order.
+//! Under that fold every entry of `BᵀB` lies within one ulp of `I₂`.
 
 use core::f64::consts::FRAC_1_SQRT_2;
 

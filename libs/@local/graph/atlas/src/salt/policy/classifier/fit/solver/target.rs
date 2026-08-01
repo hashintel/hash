@@ -1,12 +1,12 @@
 //! Closed soft targets with an exact unit-sum contract.
 //!
-//! A raw soft target is one non-negative weight per geometry class that should sum to one but
-//! may carry rounding from upstream arithmetic. [`ClosedTarget`] canonicalizes the tuple once:
-//! the raw sum `s`, accumulated in class order, must lie within a configured ulp tolerance of
-//! one, the leading components are stored as `u_c = t_c/s`, and the reference component is
-//! always derived as `u_ref = 1 − Σ_c u_c` over the leading components in class order. Only the
-//! leading components are stored, so the unit sum holds by construction rather than by
-//! approximation, and a common shift of the class logits provably moves no loss.
+//! A raw soft target is one non-negative weight per geometry class. Those weights sum to one up to
+//! rounding from upstream arithmetic. [`ClosedTarget`] canonicalizes the tuple once. The raw sum
+//! `s` accumulates in class order. A sum outside a configured ulp tolerance of one fails
+//! canonicalization. [`ClosedTarget`] keeps the leading components as `u_c = t_c/s` and always
+//! derives the reference component as `u_ref = 1 − Σ_c u_c` over the leading components in class
+//! order. Keeping only the leading components makes the unit sum hold by construction rather than
+//! by approximation. A common shift of the class logits provably moves no loss.
 //!
 //! Construction reports the raw sum and the largest normalization adjustment
 //! `max_c |u_c − t_c/s|` alongside the target, so preparation can aggregate the raw sum range
@@ -37,8 +37,8 @@ pub(super) struct Canonicalization {
 
 /// A soft target over the geometry classes with an exact unit sum.
 ///
-/// Stores the leading normalized components; the reference component is derived as
-/// `u_ref = 1 − Σ_c u_c` on demand, so it can never disagree with the stored components.
+/// Stores the leading normalized components and derives the reference component `u_ref = 1 − Σ_c
+/// u_c` on demand, so it can never disagree with the stored components.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ClosedTarget {
     /// The stored leading components, one per class ahead of the reference.
@@ -48,9 +48,9 @@ pub(crate) struct ClosedTarget {
 impl ClosedTarget {
     /// Closes a raw target triple under the given unit-sum tolerance.
     ///
-    /// The raw sum `s` accumulates in class order and must satisfy
-    /// `|s − 1| ≤ target_sum_tolerance_ulps · ulp(1)`, where `ulp(1)` is [`f64::EPSILON`]; a NaN
-    /// sum fails the comparison and is rejected with it.
+    /// The raw sum `s` accumulates in class order and must satisfy `|s − 1| ≤
+    /// target_sum_tolerance_ulps · ulp(1)` where `ulp(1)` is [`f64::EPSILON`]. A NaN sum fails that
+    /// comparison and this method rejects it.
     ///
     /// # Errors
     ///

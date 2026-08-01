@@ -91,8 +91,8 @@ fn foreign_schema_is_rejected() {
 
 #[test]
 fn unknown_fields_and_classes_are_rejected() {
-    // A field this reader does not know is a schema evolution it has
-    // not been told about, at the document and the row level alike.
+    // A field this reader does not know is a schema evolution nobody taught it, at the document and
+    // the row level alike.
     let extra_document =
         document(&verdict("overlay", LINK, 1), "").replacen('{', r#"{"extra":1,"#, 1);
     assert_matches!(
@@ -109,7 +109,7 @@ fn unknown_fields_and_classes_are_rejected() {
         Err(InvalidReviewedVerdicts::Json(_)),
     );
 
-    // `excluded` reviews are omitted by the exporter, never a class.
+    // The exporter omits `excluded` reviews, so they are never a class.
     let excluded = document(&verdict("excluded", LINK, 1), "");
     assert_matches!(
         ReviewedVerdicts::from_slice(excluded.as_bytes()),

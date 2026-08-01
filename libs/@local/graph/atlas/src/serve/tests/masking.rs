@@ -1,4 +1,4 @@
-//! The visibility masking battery: every read surface computed over the masked view.
+//! The visibility masking battery, covering every read surface computed over the masked view.
 
 use super::*;
 use crate::math::{Bounds2, Vec2};
@@ -226,7 +226,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
 
     // Row 5 is an endpoint of the reciprocal fixture pair (edge rows
-    // 3 and 4); hiding it must remove exactly those two edges.
+    // 3 and 4). Hiding it must remove exactly those two edges.
     let hidden = 5_u32;
     let proof = mask_hiding(&atlas, &[hidden]);
     let endpoints: Vec<[u64; 2]> = FIXTURE_EDGES
@@ -280,8 +280,8 @@ async fn translate_answers_missing_for_denied() {
     assert!(!masked.edges.contains_key(&entity_string_of(EDGE_SEED + 3)));
     assert!(masked.edges.contains_key(&entity_string_of(EDGE_SEED)));
 
-    // The full proof answers all four: the absences above are the
-    // mask's, not the identity tables'.
+    // The full proof answers all four, so the absences above come from
+    // the mask rather than from the identity tables.
     let full = atlas
         .translate(request, TranslateLimits::default(), &FULL)
         .expect("the request is under the cap");
@@ -293,7 +293,7 @@ async fn translate_answers_missing_for_denied() {
 ///
 /// A hidden source answers the same `UnknownEntity` in both ingress domains; a hidden partner
 /// drops with its edges BEFORE the cap selects - `complete` stays `true`, so the response never
-/// discloses that anything was withheld.
+/// discloses that the mask withheld anything.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_filters_partners_under_the_mask() {
@@ -313,9 +313,8 @@ async fn locate_filters_partners_under_the_mask() {
     );
     assert_eq!(full.edges.len(), 2);
 
-    // Hiding the partner removes it and both its edges: the source
-    // stands alone, honestly complete - a masked ego-graph answers
-    // exactly like one where the partner never existed.
+    // Hiding the partner removes it and both its edges: the source stands alone, complete - a
+    // masked ego-graph answers exactly like one where the partner never existed.
     let proof = mask_hiding(&atlas, &[40]);
     let masked = atlas.locate_subgraph(source, limits.locate, &proof);
     assert_eq!(
@@ -361,11 +360,11 @@ async fn locate_filters_partners_under_the_mask() {
     );
 }
 
-/// A hidden link row is withheld from the edges grid though both its endpoints are visible.
+/// The edges grid withholds a hidden link row though both its endpoints are visible.
 ///
 /// An edge carries its link entity's own authorization, which its endpoints do not imply. The
 /// fixture pins the distinction exactly: edge rows 3 and 4 are the reciprocal pair over the same
-/// endpoint pair, so hiding row 3 alone must leave an edge over those very endpoints delivered. No
+/// endpoint pair, so hiding row 3 alone must leave an edge over those endpoints delivered. No
 /// rule stated over endpoints can answer this response - it must drop both or neither - and a rule
 /// that over-drops loses row 4 with it.
 #[tokio::test]
@@ -429,7 +428,7 @@ async fn a_hidden_link_row_is_withheld_from_the_locate_ego_graph() {
         .resolve_source(&FULL, &entity_string_of(5))
         .expect("row 5 resolves");
 
-    // The control: both directions deliver under full visibility.
+    // As a control, both directions deliver under full visibility.
     let full = atlas.locate_subgraph(source, limits.locate, &FULL);
     assert_eq!(full.edges.len(), 2, "the reciprocal pair, both directions");
 
@@ -480,7 +479,7 @@ async fn a_hidden_link_row_is_an_absent_key_in_translate() {
             .expect("the request is under the cap")
     };
 
-    // The control: under full visibility both link ids resolve, so the
+    // As a control, under full visibility both link ids resolve, so the
     // absence below is the link mask's.
     let control = translate(&FULL);
     assert!(control.edges.contains_key(&hidden));
@@ -567,12 +566,13 @@ fn visibility_proof_is_fail_closed() {
     assert!(FULL.contains(NodeRowId::from_u32(u32::MAX)));
 }
 
-/// The composition sweep: masked responses obey the backfill law on every endpoint. Exactness
-/// is per endpoint: tiles follow the chain-fill contract; edges, translate, and locate equal
-/// the unmasked response with the hidden rows' entries removed - the mask never leaks and never
-/// over-drops. The fixture serves without capacity pressure on the non-tile endpoints, so their
-/// filtered-full comparison is the law verbatim; locate's ground truth is the fixture edge list
-/// itself - the visible ego-graph, derived edge by edge.
+/// Masked responses obey the backfill law on every endpoint.
+///
+/// Exactness is per endpoint. Tiles follow the chain-fill contract, while edges, translate, and
+/// locate equal the unmasked response with the hidden rows' entries removed, so the mask never
+/// leaks and never over-drops. The fixture serves without capacity pressure on the non-tile
+/// endpoints, so their filtered-full comparison is the law verbatim. Locate's ground truth is the
+/// fixture edge list itself, the visible ego-graph derived edge by edge.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn composition_law_holds_under_random_masks() {
@@ -591,10 +591,10 @@ async fn composition_law_holds_under_random_masks() {
     }
 }
 
-/// Every tile coordinate, both modes: the masked rows are the scope cascade's rows.
+/// The masked rows are the scope cascade's rows at every tile coordinate in both modes.
 ///
 /// The delivered set, its order, and the run recounts equal the independent reference over
-/// exactly the visible rows, and no hidden row appears - the intersection with the corpus
+/// exactly the visible rows, and no hidden row shows up - the intersection with the corpus
 /// schedule is not the law, because a visible row may claim a shallower cell once its hidden
 /// competitor is out of its view.
 fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hidden: &[u32]) {
@@ -659,7 +659,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
     }
 }
 
-/// Returns whether `part` appears in `whole` in order.
+/// Returns whether `part` occurs in `whole` in order.
 fn is_subsequence(part: &[u32], whole: &[u32]) -> bool {
     let mut candidates = whole.iter();
     part.iter()
@@ -733,12 +733,11 @@ fn assert_translate_masks_by_visibility(atlas: &Atlas, proof: &VisibilityProof, 
 /// Every visible source's masked ego-graph is the fixture edge list filtered to visible partners.
 ///
 /// Edges ascend by link-entity identity bytes (for the fixture, edge row), partners derive from
-/// the delivered edges ascending wire row id, and `complete` stays `true`: visibility is not
-/// truncation. Wherever the mask shrinks a
-/// source's incident set, a second probe caps the query at exactly the visible cardinality:
-/// hidden partners drop before selection, so the tight cap truncates nothing and delivers the
-/// whole visible set, complete - independent of the truncation key. Selecting first and masking
-/// after would come up short in exactly these configurations.
+/// the delivered edges ascending wire row id, and `complete` stays `true` because visibility is not
+/// truncation. Wherever the mask shrinks a source's incident set, a second probe caps the query at
+/// exactly the visible cardinality. Hidden partners drop before selection, so the tight cap
+/// truncates nothing and delivers the whole visible set, complete and independent of the truncation
+/// key. Selecting first and masking after would come up short in exactly these configurations.
 fn assert_locate_delivers_the_visible_ego_graph(
     atlas: &Atlas,
     proof: &VisibilityProof,
@@ -759,8 +758,8 @@ fn assert_locate_delivers_the_visible_ego_graph(
         );
         assert!(masked.complete, "visibility is not truncation");
 
-        // Ground truth off the fixture edge list: incident to the
-        // source, each edge once, partner visible.
+        // Ground truth off the fixture edge list, one entry per edge
+        // incident to the source whose partner is visible.
         let mut expected_edges: Vec<u32> = FIXTURE_EDGES
             .iter()
             .enumerate()
@@ -850,12 +849,12 @@ fn assert_locate_delivers_the_visible_ego_graph(
 
 /// Hidden and nonexistent answer identically at every id-bearing ingress, under any mask.
 ///
-/// Eight seeded random proofs sweep every hidden row through the three ingresses that accept an
-/// identifier: locate by entity id, locate by wire row id, and translate. Each denied request is
-/// compared against the same request naming something that never existed - an unknown entity seed,
-/// a wire value outside the codec's image - and the answers are equal values at the seam. The
-/// renderers downstream are deterministic functions of those values, so equal values are equal
-/// response bytes: the collapse law, swept rather than sampled.
+/// The sweep drives eight seeded random proofs over every hidden row, through each of the three
+/// ingresses that accept an identifier. Those are locate by entity id, locate by wire row id, and
+/// translate. The case compares each denied request with the same request naming something that
+/// never existed - an unknown entity seed, a wire value outside the codec's image - and the answers
+/// are equal values at the seam. The renderers downstream are deterministic functions of those
+/// values, so equal values are equal response bytes: the collapse law, swept rather than sampled.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
@@ -946,7 +945,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
 
 /// The masked root publishes the visible view's own census, not the generation's.
 ///
-/// The root tile's global map carries three corpus-wide aggregates, and each one is resolved once
+/// The root tile's global map carries three corpus-wide aggregates, and each one resolves once
 /// per scope rather than per request. This pins all three against an independent derivation over
 /// the generation's own columns, under a mask chosen so that a census read off the artifacts
 /// instead of off the view fails on every one of them:
@@ -973,9 +972,9 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
     let proof = mask_hiding(&atlas, &hidden);
     let visible = |position: usize| !hidden.contains(&row_ids[position]);
 
-    // The three expectations, derived over the columns rather than through the serve path: the
-    // rows of the view's own cascade at or below the root cut, the tight extent of the whole
-    // visible set, and the deepest occupied scope bucket.
+    // The expectations come from the columns rather than the serve path, and they are the rows of
+    // the view's own cascade at or below the root cut, the tight extent of the whole visible set,
+    // and the deepest occupied scope bucket.
     let (expected_visible, expected_deepest) = super::schedule::reference::Schedule::new(
         super::schedule::reference::rows(&atlas, &proof),
         FIXTURE_LOD.span.get(),
@@ -1065,8 +1064,8 @@ async fn a_masked_root_publishes_the_visible_views_own_census() {
 ///
 /// [`Atlas::census`] reads the artifacts for a proof built as the full-visibility value and walks
 /// the base column for a mask. A mask admitting *every* row of the generation is the one input both
-/// regimes must agree on, so it pins the fast path against the general one: the two constructors
-/// carry different digests by design, and their censuses may not differ at all.
+/// regimes must agree on. It therefore pins the fast path against the general one. Both
+/// constructors carry different digests by design, and their censuses may not differ at all.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_unmasked_census_agrees_with_the_walked_one() {
@@ -1087,10 +1086,10 @@ async fn the_unmasked_census_agrees_with_the_walked_one() {
 
 /// The masked root publishes the view's own depth, not the generation's.
 ///
-/// A companion to the census witness above, which cannot fail on this clause: hiding the extreme
-/// coordinates leaves the deepest occupied bucket populated, so the visible depth and the corpus
-/// depth coincide there and a census ignoring the mask would answer correctly by accident. This
-/// hides exactly the deepest bucket's rows, so the two must part.
+/// This case accompanies the census witness above, which cannot fail on this clause. Hiding the
+/// extreme coordinates leaves the deepest occupied bucket populated, so the visible depth and the
+/// corpus depth coincide there and a census ignoring the mask would answer correctly by accident.
+/// This case hides exactly the deepest bucket's rows, so the two must part.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_masked_root_publishes_the_views_own_depth() {

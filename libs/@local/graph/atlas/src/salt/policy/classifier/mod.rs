@@ -1,9 +1,9 @@
 //! The open-world relation-policy classifier.
 //!
-//! The annotation corpus bootstraps a shared model; it is not an enumeration of the production type
-//! universe. Every relation type without a higher-precedence explicit policy record is classified,
-//! including types the corpus never saw - that is the open-world contract, and the applicability
-//! score below is its safety valve.
+//! The annotation corpus bootstraps a shared model. It is not an enumeration of the production type
+//! universe. Classification covers every relation type without a higher-precedence explicit policy
+//! record, including types the corpus never saw. That is the open-world contract, and the
+//! applicability score below is its safety valve.
 //!
 //! [`Classifier`] evaluates a three-class linear model over the full 3,072-component relation-card
 //! embedding. For embedding `e`, coefficient rows `W`, intercepts `b`, and calibration temperature
@@ -28,8 +28,8 @@
 //! How the score mixes a prediction toward Overlay is precedence resolution's contract, not the
 //! classifier's.
 //!
-//! [`fit()`] trains the model from a weighted soft-label corpus; raw and calibrated posteriors stay
-//! separate in [`Prediction`] so calibration cannot be applied twice.
+//! [`fit()`] trains the model from a weighted soft-label corpus. Raw and calibrated posteriors stay
+//! separate in [`Prediction`], so a caller cannot apply calibration twice.
 //!
 //! Inputs are `f32` data widened to `f64` at the arithmetic seams ([`AlignedVecN::dot_wide`]);
 //! parameters and outputs live in `f64`.
@@ -79,8 +79,8 @@ impl Error for PredictError {}
 
 /// Applicability evidence fitted from the training distribution.
 ///
-/// `inverse_scales` components are positive and `distances` is sorted ascending, nonnegative, and
-/// non-empty; [`fit()`] and validated artifact reads are the construction sites.
+/// `inverse_scales` components are positive, and `distances` is non-empty, nonnegative, and
+/// ascending. [`fit()`] and validated artifact reads are the construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Applicability {
     mean: BoxedDVecN<CANONICAL_DIMENSIONS>,

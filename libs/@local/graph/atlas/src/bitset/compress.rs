@@ -5,18 +5,18 @@ use roaring::RoaringBitmap;
 
 /// A compressed membership set over one row domain.
 ///
-/// Memory is proportional to what the set admits - its cardinality and the runs its rows form -
-/// rather than to the size of the domain it draws from: a set admitting a few thousand rows of a
-/// million-row domain costs kilobytes, and a set admitting one contiguous span costs a constant.
-/// That makes this the shape for a per-request or per-session row set, where one bit per domain row
-/// would be paid however few rows the set admits.
+/// Memory is proportional to what the set admits (its cardinality and the runs its rows form)
+/// rather than to the size of the domain it draws from. A set admitting a few thousand rows of a
+/// million-row domain costs kilobytes. A set admitting one contiguous span costs a constant. That
+/// makes this the shape for a per-request or per-session row set, where one bit per domain row
+/// costs the whole domain however few rows the set admits.
 ///
-/// The domain is the type parameter: a set of node rows and a set of link rows are values of
-/// different types, so neither can be read where the other belongs.
+/// The type parameter names the domain, so a set of node rows and a set of link rows have different
+/// types and the compiler rejects either one where the other belongs.
 ///
 /// The representable domain is `0..u32::MAX`. [`Self::contains`] answers `false` for a row above
-/// it, so a query is total over the id type, while [`Self::insert`] panics rather than silently
-/// admitting nothing.
+/// it, so a query is total over the id type, while [`Self::insert`] panics rather than dropping the
+/// row.
 ///
 /// # Examples
 ///
@@ -86,7 +86,7 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// # Panics
     ///
-    /// Panics when a row lies above the representable domain.
+    /// This panics when a row lies above the representable domain.
     #[must_use]
     pub fn from_rows(rows: impl IntoIterator<Item = T>) -> Self {
         let mut set = Self::new();
@@ -101,7 +101,7 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// # Panics
     ///
-    /// Panics when `row` lies above the representable domain.
+    /// This panics when `row` lies above the representable domain.
     pub fn insert(&mut self, row: T) -> bool {
         let row = u32::try_from(row.as_u64()).expect("the row lies in the representable domain");
         self.rows.insert(row)

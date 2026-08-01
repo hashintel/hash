@@ -1,4 +1,4 @@
-//! The relation stage: adjacency, instance assembly, and the relation indexes.
+//! The relation stage, covering adjacency, instance assembly, and the relation indexes.
 
 use super::{
     super::{
@@ -27,11 +27,11 @@ pub(super) struct RelationArtifacts {
     pub protection: RepositoryFile,
     // Owned rather than mapped back: edge-scale, bounded by the
     // retained instance count. The corpus row-domain truth the staged
-    // files persist; the manifest's relation measurements read here.
+    // files persist. The manifest's relation measurements read here.
     pub indexes: RelationIndexes<NodeRowId, EdgeRowId>,
-    // The placement stage's distinct-domain twin: endpoints mapped
-    // onto the representation quotient, duplicate readings collapsed
-    // to one assertion each. Never staged.
+    // The placement stage's distinct-domain twin, with endpoints
+    // mapped onto the representation quotient and duplicate readings
+    // collapsed to one assertion each. Never staged.
     pub trainer: RelationIndexes<DistinctRowId, EdgeRowId>,
 }
 
@@ -41,7 +41,7 @@ impl Context<'_> {
     /// # Errors
     ///
     /// Returns [`StageError::MapEndpoints`] when the staged endpoint column does not map, and an
-    /// I/O error when the adjacency cannot be written to the staging directory.
+    /// I/O error when writing the adjacency to the staging directory fails.
     pub(super) fn stage_adjacency(&self, rows: usize) -> Result<RepositoryFile, StageError> {
         let _span = tracing::info_span!("adjacency").entered();
 
@@ -75,8 +75,8 @@ impl Context<'_> {
     /// Returns [`StageError::MapPolicies`] or [`StageError::InvalidPolicies`] when the staged
     /// policy table does not map or does not certify, [`StageError::Relation`] when either index
     /// build rejects the instances, [`StageError::WriteSparse`] when the attraction index does not
-    /// write, and an I/O error when the instance spool does not map or a staged output cannot be
-    /// written.
+    /// write, and an I/O error when the instance spool does not map or a staged output does not
+    /// write.
     pub(super) fn stage_relations(
         &self,
         rows: usize,

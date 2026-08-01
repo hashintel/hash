@@ -182,7 +182,7 @@ fn div_assign_divides_every_component() {
 #[test]
 fn aligned_accumulators_delegate_to_the_widening_kernels() {
     // Exercises the `AlignedDVecN` delegate surface over aligned boxed
-    // storage; expectations are plain scalar arithmetic.
+    // storage. Expectations are plain scalar arithmetic.
     let mut accumulator = BoxedDVecN::<11>::zero();
     let value = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
         f32::from(u8::try_from(index).expect("test sizes are small")) - 4.5
@@ -236,7 +236,7 @@ fn wrapping_is_in_place() {
     );
 }
 
-/// Deterministic, sign-varying components crossing several 8-lane chunks.
+/// Deterministic, sign-varying components crossing multiple 8-lane chunks.
 #[expect(clippy::integer_division_remainder_used)]
 fn scattered<const N: usize>(offset: f64) -> [f64; N] {
     core::array::from_fn(|index| {
@@ -308,7 +308,7 @@ fn boxed_dvecn_is_aligned_deep_cloned_and_writable() {
     assert_eq!(cloned.as_array()[0], source[0]);
     assert_eq!(boxed.as_array()[0], 9.0);
 
-    // Lane writes land in place, exactly as for the f32 twin.
+    // Writes through the lane views modify the array in place, exactly as for the f32 twin.
     let (lanes, remainder) = boxed.lanes_mut();
     for lane in lanes.iter_mut() {
         *lane = core::simd::Simd::splat(2.0);
@@ -332,7 +332,8 @@ fn boxed_dvecn_zero_is_all_zeros() {
 
 /// Logits bounded to `-50..50`, where `exp` is well-conditioned.
 ///
-/// The stability of the shifted form under huge logits is pinned by the example-based tests above.
+/// The example-based tests above pin the shifted form's stability under logits large enough to
+/// overflow a naive `exp`.
 fn logits_strategy() -> impl Strategy<Value = [f64; 11]> {
     proptest::array::uniform11(-50.0_f64..50.0)
 }
@@ -352,7 +353,7 @@ fn softmax_outputs_form_a_distribution(#[strategy = logits_strategy()] logits: [
 /// Softmax is shift-invariant.
 ///
 /// Adding a common constant to every logit leaves the distribution unchanged up to rounding.
-/// The shift is bounded to `-1e2..1e2` so the shifted logits stay well-conditioned.
+/// The strategy bounds the shift to `-1e2..1e2` so the shifted logits stay well-conditioned.
 #[property_test]
 fn softmax_is_shift_invariant_on_arbitrary_logits(
     #[strategy = logits_strategy()] logits: [f64; 11],
@@ -366,7 +367,7 @@ fn softmax_is_shift_invariant_on_arbitrary_logits(
     }
 }
 
-/// Log-sum-exp is bracketed by its algebraic bounds.
+/// Log-sum-exp lies between its algebraic bounds.
 ///
 /// `max ≤ log_sum_exp ≤ max + ln(N)`, up to rounding.
 #[property_test]
@@ -390,7 +391,7 @@ fn log_sum_exp_is_bracketed_by_max_and_max_plus_ln_n(
 /// `add_scaled` matches the scalar fused reference loop bit for bit in every component.
 ///
 /// The SIMD path widens, multiplies, and adds with the same single rounding as scalar
-/// `mul_add`. Components and the factor are bounded to `-1e3..1e3`.
+/// `mul_add`. Components and the factor lie in `-1e3..1e3`.
 #[property_test]
 fn add_scaled_matches_a_scalar_reference_loop(
     #[strategy = proptest::array::uniform11(-1e3_f64..1e3)] accumulator: [f64; 11],
@@ -496,8 +497,8 @@ fn stable_l2_survives_huge_components() {
 fn stable_l2_propagates_non_finite_components() {
     assert!(DVecN::new([1.0, f64::NAN]).stable_l2().is_nan());
     assert!(!DVecN::new([f64::INFINITY, 1.0]).stable_l2().is_finite());
-    // A NaN alongside only zeros hides from the maxNum scale and is caught by the zero-scale
-    // finiteness gate.
+    // A NaN alongside only zeros hides from the maxNum scale, so the zero-scale finiteness gate
+    // catches it.
     assert!(DVecN::new([0.0, f64::NAN, 0.0]).stable_l2().is_nan());
 }
 

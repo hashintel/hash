@@ -1,9 +1,9 @@
-//! The sparse matrix file: one compressed-sparse-row matrix, mappable.
+//! The sparse matrix file, one mappable compressed-sparse-row matrix.
 //!
-//! Layout version 1 is **mutable**: change the layout freely to fit what the pipeline needs and
-//! increment [`Version`] when you do. The pinned parse rejects bytes of other versions, which is
-//! the intended failure mode; no migration or compatibility machinery exists on purpose until the
-//! format stabilizes.
+//! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
+//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
+//! failure mode. No migration or compatibility machinery exists on purpose until the format
+//! stabilizes.
 //!
 //! This is a combined file: a compressed sparse matrix is three columns (pointers, indices, values)
 //! derived together, meaningless apart, and always read together, so all three live in one file and
@@ -37,19 +37,20 @@
 //! [`Csr`]: StorageVariant::Csr
 //! [`Csc`]: StorageVariant::Csc
 //!
-//! The element types describe the regions exactly: value geometry derives from the recorded width,
-//! and [`read::SprsFile`]'s typed accessor exists only for the described combination - matching
-//! tag, matching width, matching index types - so a region is never read at the wrong width. The
-//! shape is a rank-2 [`ArrayShape`]: a shape of any other rank has no region geometry and matches
+//! The element types describe the regions exactly, and value geometry derives from the recorded
+//! width. [`read::SprsFile`]'s typed accessor exists only for the described combination, where the
+//! tag, the width, and the index types all match, so nothing reads a region at the wrong width. The
+//! shape is a rank-2 [`ArrayShape`]. A shape of any other rank has no region geometry and matches
 //! no real file, so a matrix with zero rows or columns is unrepresentable on purpose. All region
 //! offsets derive from the header fields with checked arithmetic
-//! ([`FileHeader::expected_file_len`]); a header whose geometry overflows matches no real file.
+//! ([`FileHeader::expected_file_len`]). A header whose geometry overflows matches no real file.
 //! Every region starts on a 4096-byte boundary, so the whole-file-mapping alignment guarantee of
-//! the array format applies unchanged: map the whole file and slice, never mmap at a file offset.
+//! the array format applies unchanged. Map the whole file and slice it, never mmap at a file
+//! offset.
 //!
-//! [`read::SprsFile`] opens a file under these rules; [`write::write_matrix`] streams a borrowed
-//! [`CsMatBase`](sprs::CsMatBase) into them. Reader and writer speak the same matrix types, so a
-//! written matrix reopens as the view it was written from.
+//! [`read::SprsFile`] opens a file under these rules. [`write::write_matrix`] streams a borrowed
+//! [`CsMatBase`](sprs::CsMatBase) into them. Reader and writer speak the same matrix types, so
+//! reopening a written matrix yields the view it came from.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
@@ -74,7 +75,7 @@ use crate::file::region::{PAGE, padded_size};
 // write path both count regions from one header page.
 const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
 
-// A single-variant enum: the derive validates the discriminant, so parsing admits exactly the
+// The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
     Debug,
@@ -118,7 +119,7 @@ impl FileHeaderMagic {
 
 /// A layout version this module implements.
 ///
-/// Byte-level construction admits no other value; increment on any layout change.
+/// Byte-level construction admits no other value. Increment on any layout change.
 #[derive(
     Debug,
     Copy,
@@ -181,12 +182,12 @@ impl IndexVariant {
 
 /// The type tag of a value region.
 ///
-/// A value entry's recorded geometry is its byte width; the tag is the identity layered on top. The
+/// A value entry's recorded geometry is its byte width. The tag is the identity layered on top. The
 /// scalar tags pin an exact type, so an `f32` region never reads back as `u32`.
-/// [`Opaque`](Self::Opaque) records no identity beyond the width: two opaque types of one width are
-/// interchangeable on the wire, and a type carries that tag exactly when it opts into being so. The
-/// scalar discriminants mirror [`ArrayVariant`], so the two formats
-/// speak one scalar vocabulary.
+/// [`Opaque`](Self::Opaque) records no identity beyond the width. Any two opaque types of one width
+/// are interchangeable on the wire, and a type carries that tag exactly when it opts into being so.
+/// The scalar discriminants mirror [`ArrayVariant`], so the two formats speak one scalar
+/// vocabulary.
 #[derive(
     Debug,
     Copy,
@@ -218,7 +219,7 @@ pub enum ValueTag {
     F32 = 0x0D,
     F64 = 0x0E,
     F128 = 0x0F,
-    /// The zero-width unit: the value region is empty and every entry is `()`.
+    /// The zero-width unit, with an empty value region and `()` for every entry.
     ///
     /// The tag of structure-only matrices, whose payload is the compressed pattern alone.
     Unit = 0x10,
@@ -227,8 +228,8 @@ pub enum ValueTag {
 impl ValueTag {
     /// Returns the width a scalar tag pins, in bytes.
     ///
-    /// [`Opaque`](Self::Opaque) pins no width: its types are described by the header's recorded
-    /// width alone.
+    /// [`Opaque`](Self::Opaque) pins no width, so the header's recorded width alone describes its
+    /// types.
     #[inline]
     #[must_use]
     pub(crate) const fn width(self) -> Option<u64> {
@@ -248,9 +249,9 @@ impl ValueTag {
 ///
 /// A value's recorded geometry is `size_of::<Self>()`, written into the header and re-checked
 /// against the viewing type, so a region is never sliced or reinterpreted at a width other than the
-/// type's own. The [`ValueTag`] is the identity on top of the width: scalar tags pin the exact
-/// type, while [`ValueTag::Opaque`] types are identified by width alone and accept that any
-/// equal-width opaque type reads the same region.
+/// type's own. The [`ValueTag`] is the identity on top of the width. Scalar tags pin the exact
+/// type, while width alone identifies [`ValueTag::Opaque`] types, which accept that any equal-width
+/// opaque type reads the same region.
 // Safe on purpose: both region geometry and byte reinterpretation
 // derive from size_of::<Self>() at write and view time alike, so no
 // impl-provided width exists to lie about. The compile-time asserts
@@ -273,7 +274,7 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
 
 /// A scalar type an index region stores.
 ///
-/// The variant is the type's wire identity: an index region reads back as `I` exactly when the
+/// The variant is the type's wire identity. An index region reads back as `I` exactly when the
 /// header records `I::VARIANT`. Every implementor is an [`SpIndex`], so a mapped region drives
 /// sparse algorithms directly.
 ///
@@ -312,7 +313,7 @@ macro_rules! sprs_index {
             const _: () =
                 assert!(IndexVariant::$variant.width() == size_of::<$element>() as u64);
 
-            // SAFETY: the width equality is asserted at compile time.
+            // SAFETY: the const assert above checks the width equality at compile time.
             unsafe impl SprsIndex for $element {
                 const VARIANT: IndexVariant = IndexVariant::$variant;
             }
@@ -358,8 +359,8 @@ sprs_index! {
     i64 => I64,
 }
 
-// The scalar tags mirror ArrayVariant's discriminants, so the two
-// formats speak one scalar vocabulary; the asserts hold the mirror.
+// The scalar tags mirror ArrayVariant's discriminants, so the two formats speak one scalar
+// vocabulary. The asserts below keep the two sets of discriminants equal.
 macro_rules! tag_mirrors_variant {
     ($($variant:ident,)*) => {
         const _: () = {
@@ -549,8 +550,8 @@ impl FileHeader {
 
     /// Returns the exact file length the header describes.
     ///
-    /// A file whose length differs from this value is rejected. Returns `None` when the geometry
-    /// overflows `u64`, in which case no real file matches the header.
+    /// The open path rejects a file whose length differs from this value. Returns `None` when the
+    /// geometry overflows `u64`, in which case no real file matches the header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
         let value_bytes = self.nnz.get().checked_mul(self.value_width.get())?;

@@ -1,20 +1,19 @@
 //! The property-selection policy.
 //!
-//! Pure functions over hydrated property sets: parsing the store's simple-value rendering and
-//! applying the per-entity cap, which drops the label property last.
+//! Pure functions over hydrated property sets parse the store's [`SimpleValue`] rendering and apply
+//! the per-entity cap, which drops the label property last.
 //!
-//! The cap is a size rule, not an access rule: the sets reaching it carry no protected property,
-//! because the queries remove those keys before any value crosses the connection
-//! ([`client`](super::client)).
+//! The cap bounds size only. The sets reaching it hold no protected property, because the queries
+//! remove those keys before any value crosses the connection ([`client`](super::client)).
 
 use super::columns::SimpleValue;
 
-/// Parses one entity's simple-property object off the store's text rendering.
+/// Parses one entity's [`SimpleValue`] properties off the store's text rendering.
 ///
 /// # Panics
 ///
-/// Panics when the text is not a JSON object of simple values - the query filters in the store, so
-/// anything else is a query bug, never data.
+/// This panics when the text is not a JSON object of [`SimpleValue`] renderings. The store's query
+/// filters those values, so any other shape is a query bug.
 pub(in crate::serve) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
     let object: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(json).expect("the store renders a JSON object");
@@ -42,8 +41,8 @@ pub(in crate::serve) fn simple_properties(json: &str) -> Vec<(String, SimpleValu
 
 /// Selects the surviving properties under the per-entity cap.
 ///
-/// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops very
-/// last, and survivors sort ascending by name - the wire's map-key order.
+/// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops last,
+/// and survivors sort ascending by name, which is the wire's map-key order.
 pub(in crate::serve) fn select_properties(
     mut entries: Vec<(String, SimpleValue)>,
     label_property: Option<&str>,

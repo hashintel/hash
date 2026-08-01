@@ -7,8 +7,8 @@
 //! table.
 //!
 //! The classes describe geometric behaviour, never semantic valence: opposition, contradiction, and
-//! citation are rendering concerns. No class imposes a repulsive force - a mistaken attraction is
-//! bounded, while a mistaken repulsion destroys local structure.
+//! citation are rendering concerns. No class imposes a repulsive force, because a mistaken
+//! attraction stays bounded while a mistaken repulsion destroys local structure.
 #![expect(clippy::empty_enums, reason = "zerocopy derive")]
 
 use core::{fmt, mem};
@@ -30,8 +30,8 @@ pub(crate) use self::precedence::{
 /// Geometry classes a relation type distributes over.
 ///
 /// The discriminants order the classes as every classifier target, posterior, and persisted
-/// coefficient row does: Coincident, Proximal, Overlay. The class schema is versioned; extending it
-/// (for example with a bounded-separation Deconflict class) is a new schema with its own corpus,
+/// coefficient row does: Coincident, Proximal, Overlay. The class schema has a version. Extending
+/// it (for example with a bounded-separation Deconflict class) is a new schema with its own corpus,
 /// model, and artifacts, never a runtime extension of this one.
 #[derive(
     Debug,
@@ -56,11 +56,13 @@ pub(crate) use self::precedence::{
               the same domain the unsafe discriminant construction is checked against"
 )]
 pub enum GeometryClass {
-    /// The endpoints share a referent; distance above a small normalized radius is penalized.
+    /// The endpoints share a referent.
+    ///
+    /// Distance above a small normalized radius incurs a penalty.
     Coincident = 0,
     /// The relation makes its endpoints discoverably nearby.
     ///
-    /// Distance above a larger normalized radius is penalized.
+    /// Distance above a larger normalized radius incurs a penalty.
     Proximal = 1,
     /// The relation renders as an edge but contributes zero layout energy.
     Overlay = 2,
@@ -116,9 +118,9 @@ impl Posterior {
     /// Validates a distribution in class order.
     ///
     /// Returns [`None`] when a component lies outside the unit interval or the components do not
-    /// sum to one within the documented tolerance. Negative zero passes: it compares equal to
-    /// zero, a legal component, and rejecting it would make admission depend on the sign bit of a
-    /// value arithmetic treats as zero.
+    /// sum to one within the documented tolerance. Negative zero passes. It compares equal to zero,
+    /// and zero is a legal component. Rejecting negative zero would make admission depend on the
+    /// sign bit of a value arithmetic treats as zero.
     #[must_use]
     pub(crate) fn new(components: [f64; GeometryClass::COUNT]) -> Option<Self> {
         let mut validated = [UnitFraction::ZERO; GeometryClass::COUNT];
@@ -134,7 +136,7 @@ impl Posterior {
         Some(Self(validated))
     }
 
-    /// Adopts softmax output, whose invariant holds by construction.
+    /// Adopts softmax output, whose components lie in the unit interval and sum to one.
     #[inline]
     #[must_use]
     pub(crate) const fn from_softmax_unchecked(components: [f64; GeometryClass::COUNT]) -> Self {
@@ -160,9 +162,8 @@ impl Posterior {
 ///
 /// Overlay, the third class, carries no geometric weight, so the two stored components are the
 /// distribution's entire geometric content. Each component lies in `0.0..=1.0`.
-// Byte-level constructors are admitted: the type carries no
-// construction invariant of its own; the mapped policy table validates
-// domains once at open.
+// This type has no construction invariant of its own, so the derives admit byte-level construction.
+// The mapped policy table validates domains once at open.
 #[derive(
     Debug,
     Copy,
@@ -202,12 +203,13 @@ impl ClassProbabilities {
 
 /// The resolved geometry policy of one relation type.
 ///
-/// The values the relation indexes weight instances by: the effective attraction distribution feeds
-/// attraction weights, the selected distribution and applicability feed protection masses, and the
-/// strength multiplier rides the attraction group unchanged.
-// Byte-level constructors are admitted: the type carries no
-// construction invariant of its own; the mapped policy table validates
-// domains once at open. The `repr(C)` layout is the policy file's
+/// The relation indexes weight instances by these values.
+///
+/// - Attraction weights come from the effective attraction distribution.
+/// - Protection masses come from the selected distribution and applicability.
+/// - The attraction group receives the strength multiplier unchanged.
+// This type has no construction invariant of its own, so the derives admit byte-level construction.
+// The mapped policy table validates domains once at open. The `repr(C)` layout is the policy file's
 // pinned wire row, checked field for field where the artifact casts.
 #[derive(
     Debug,
@@ -229,11 +231,11 @@ pub(crate) struct RelationPolicy {
     pub attraction: ClassProbabilities,
     /// The selected class distribution `p`, before applicability blending.
     ///
-    /// Protection masses are computed from it.
+    /// Protection masses derive from it.
     pub selected: ClassProbabilities,
     /// The calibrated applicability `a`, in `0.0..=1.0`.
     pub applicability: f32,
-    /// The frozen strength multiplier `h`; exactly 1 while the strength head is disabled.
+    /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
     pub strength: f32,
 }
 

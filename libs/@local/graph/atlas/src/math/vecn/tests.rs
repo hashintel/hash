@@ -17,7 +17,7 @@ use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy
 
 use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
-/// Deterministic, sign-varying components crossing several 8-lane chunks.
+/// Deterministic, sign-varying components crossing multiple 8-lane chunks.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     core::array::from_fn(|index| {
         let value = f32::from(u8::try_from(index % 200).expect("bounded by modulus"));
@@ -36,9 +36,8 @@ fn reference_dot(left: &[f32], right: &[f64]) -> f64 {
 
 #[test]
 fn is_finite_rejects_any_non_finite_component() {
-    // N = 11 crosses one full 8-lane chunk plus a remainder; the
-    // poison positions exercise the lane path (index 3) and the
-    // remainder path (index 9) separately.
+    // N = 11 crosses one full 8-lane chunk plus a remainder. Index 3
+    // poisons the lane path and index 9 poisons the remainder path.
     let finite: [f32; 11] = scattered(0.25);
     assert!(VecN::new(finite).is_finite());
 
@@ -233,7 +232,7 @@ fn boxed_vecn_zero_is_all_zeros_and_writable() {
     let mut vector = BoxedVecN::<24>::zero();
     assert_eq!(*vector.as_array(), [0.0_f32; 24]);
 
-    // The buffer is filled in place, the intended use of `zero`.
+    // The loop fills the buffer in place, the intended use of `zero`.
     for (index, slot) in vector.as_array_mut().iter_mut().enumerate() {
         *slot = f32::from(u8::try_from(index).expect("test dimensions are small"));
     }
@@ -250,7 +249,7 @@ fn boxed_vecn_is_aligned_and_preserves_contents() {
         f32::from(u8::try_from(index).expect("test dimensions are small"))
     });
 
-    // Allocate several boxes so one aligned pointer cannot be luck.
+    // Allocate sixteen boxes so one aligned pointer cannot be luck.
     let boxes: Vec<BoxedVecN<24>> = iter::repeat_with(|| BoxedVecN::new(VecN::from_ref(&source)))
         .take(16)
         .collect();
@@ -326,10 +325,10 @@ fn lanes_split_off_partial_group_as_remainder() {
 fn aligned_vecn_rejects_misaligned_storage() {
     let boxed = BoxedVecN::new(&VecN::new([0.0_f32; 16]));
 
-    // The box's own storage is aligned, so wrapping it succeeds.
+    // The box's own storage meets the f32x8 alignment, so wrapping it succeeds.
     assert!(AlignedVecN::<16>::from_ref(boxed.as_array()).is_some());
 
-    // One component past an aligned base is misaligned for f32x8.
+    // One component past an aligned base breaks the f32x8 alignment.
     let slice = &boxed.as_array()[1..9];
     let misaligned: &[f32; 8] = slice.try_into().expect("slice has length 8");
     assert!(AlignedVecN::<8>::from_ref(misaligned).is_none());
@@ -408,7 +407,7 @@ fn lanes_mut_writes_back_in_place() {
 fn try_as_aligned_agrees_between_shared_and_mutable() {
     let mut boxed = BoxedVecN::from([3.0_f32; 8]);
 
-    // Boxed storage is aligned, so both reinterpretations succeed.
+    // Boxed storage meets the f32x8 alignment, so both reinterpretations succeed.
     assert!(VecN::from_ref(boxed.as_array()).try_as_aligned().is_some());
 
     let vecn = VecN::from_mut(boxed.as_array_mut());
@@ -451,11 +450,11 @@ fn from_slice_rejects_what_would_break_the_invariant() {
     // A partial trailing row cannot be a vector.
     assert!(AlignedVecN::<12>::from_slice(components).is_none());
 
-    // One component past an aligned base is misaligned: a single `f32`
-    // is narrower than `f32x8`'s alignment on every supported target.
+    // One component past an aligned base breaks the alignment: a single
+    // `f32` is narrower than `f32x8`'s alignment on every supported target.
     assert!(AlignedVecN::<8>::from_slice(&components[1..25]).is_none());
 
-    // An empty slice at an aligned base is zero rows, not a failure.
+    // An empty slice at an aligned base yields zero rows.
     let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
     assert!(empty.is_empty());
 }

@@ -1,11 +1,11 @@
 //! Z-order keys: two 32-bit axes interleaved into one sortable `u64`.
 //!
-//! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair - `x` into the even bits, `y` into
-//! the odd bits - so that comparing keys compares positions along the Z-order curve. Every
+//! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair, `x` into the even bits and `y` into
+//! the odd bits, so that comparing keys compares positions along the Z-order curve. Every
 //! axis-aligned power-of-two cell of the grid is one contiguous key range, so a sorted key array
 //! answers cell queries with two binary searches.
 //!
-//! [`Depth`] counts subdivisions: depth 0 is the whole domain, each step quarters a cell, and depth
+//! [`Depth`] counts subdivisions. Depth 0 is the whole domain, each step quarters a cell, and depth
 //! 32 pins both axes to a single key. A tile address `(z, x, y)` names the cell
 //! [`MortonCell::new(z, x, y)`](MortonCell::new); the cell containing an existing key is
 //! [`MortonKey::cell`]. Cells subdivide in key order via [`MortonCell::children`].
@@ -24,7 +24,7 @@ pub struct Depth(u8);
 impl Depth {
     /// Both axes fully specified: one key per cell.
     pub const MAX: Self = Self(32);
-    /// The whole domain: one cell, no subdivisions.
+    /// One cell covering the whole domain.
     pub const MIN: Self = Self(0);
 
     /// Wraps a subdivision count.
@@ -63,11 +63,11 @@ impl Depth {
     }
 }
 
-/// A Z-order key: two 32-bit axes interleaved into one `u64`.
+/// A Z-order key interleaving two 32-bit axes into one `u64`.
 ///
-/// `x` occupies the even bits and `y` the odd bits, least significant pair first, so key order is
-/// Z-order curve order and every [`MortonCell`] is one contiguous key range. Every bit pattern is a
-/// valid key.
+/// `x` occupies the even bits and `y` the odd bits, starting at bit 0, so key order is Z-order
+/// curve order and every [`MortonCell`] is one contiguous key range. Every bit pattern is a valid
+/// key.
 ///
 /// # Examples
 ///
@@ -150,7 +150,9 @@ impl MortonKey {
 /// inclusive.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct MortonCell {
-    /// The smallest key in the cell; bits below the prefix are zero.
+    /// The smallest key in the cell.
+    ///
+    /// The bits below the prefix are zero.
     min: u64,
     depth: Depth,
 }
