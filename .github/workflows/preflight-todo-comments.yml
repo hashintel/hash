@@ -1,4 +1,4 @@
-name: Preflight (TODO comments)
+name: Preflight
 
 on:
   pull_request:
