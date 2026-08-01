@@ -82,8 +82,8 @@ export const deleteKratosIdentity = async (params: {
 const graphActorIdMetadataKey = "graph_actor_id";
 
 /**
- * Read the Graph actor identifier stored in a Kratos identity's admin
- * metadata, or `null` when the identity has not been provisioned.
+ * Read the Graph actor identifier in a Kratos identity's public metadata, or
+ * `null` when it carries none.
  */
 export const getGraphActorIdFromKratos = async (params: {
   kratosIdentityId: string;
@@ -92,22 +92,24 @@ export const getGraphActorIdFromKratos = async (params: {
     id: params.kratosIdentityId,
   });
 
-  const metadataAdmin = identity.metadata_admin as
+  const metadataPublic = identity.metadata_public as
     | Record<string, string>
     | null
     | undefined;
 
-  return metadataAdmin?.[graphActorIdMetadataKey] ?? null;
+  return metadataPublic?.[graphActorIdMetadataKey] ?? null;
 };
 
 /**
- * Store the Graph actor identifier in Kratos admin metadata, where it is the
- * mapping from a Kratos identity to the Graph actor that authorizes its
- * requests.
+ * Store the Graph actor identifier in Kratos public metadata, where it maps a
+ * Kratos identity to the Graph actor that authorizes its requests.
  *
- * Admin metadata is writable only through Kratos's admin API, so an identity
- * cannot change it through a self-service flow. Writing the same actor again
- * is idempotent, and a mismatch throws instead of overwriting.
+ * Public metadata is part of the `/sessions/whoami` payload, so validating a
+ * session and learning the actor are one answer. Only Kratos's admin API can
+ * write it, which keeps the actor out of reach of a self-service flow.
+ *
+ * A write of the actor already stored is a no-op. A mismatch throws rather
+ * than overwriting.
  */
 export const provisionGraphActorIdInKratos = async (params: {
   graphActorId: string;
@@ -129,18 +131,12 @@ export const provisionGraphActorIdInKratos = async (params: {
     );
   }
 
-  /**
-   * Kratos replaces the whole identity on `updateIdentity`, dropping every
-   * field left out of the request body. A patch touches only this one key, and
-   * Kratos accepts an "add" here even while `metadata_admin` is still null —
-   * RFC 6902 would require the parent to exist.
-   */
   await kratosIdentityApi.patchIdentity({
     id: kratosIdentityId,
     jsonPatch: [
       {
         op: "add",
-        path: `/metadata_admin/${graphActorIdMetadataKey}`,
+        path: `/metadata_public/${graphActorIdMetadataKey}`,
         value: graphActorId,
       },
     ],

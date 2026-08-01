@@ -99,7 +99,7 @@ describe("User model class", () => {
       id: identity.id,
     });
 
-    expect(provisionedIdentity.metadata_admin).toStrictEqual({
+    expect(provisionedIdentity.metadata_public).toStrictEqual({
       graph_actor_id: createdUser.accountId,
     });
 

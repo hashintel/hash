@@ -386,9 +386,9 @@ export const createUser: ImpureGraphFunction<
   }
 
   /**
-   * The actor ID only exists once the web below has been created, so the
-   * conflict is checked up front. Discovering it after the write would leave a
-   * web behind on every attempt.
+   * An actor ID exists only after the web below, so the conflict is the one
+   * part that can be established beforehand. A check after the write leaves
+   * an orphaned web behind.
    */
   const provisionedGraphActorId = await getGraphActorIdFromKratos({
     kratosIdentityId,
@@ -551,10 +551,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   const { id: kratosIdentityId, traits: currentKratosTraits } =
     await getUserKratosIdentity(ctx, authentication, { user });
 
-  /**
-   * Kratos replaces the whole identity on `updateIdentity`, dropping every
-   * field left out of the request body. A patch touches only the traits.
-   */
   await kratosIdentityApi.patchIdentity({
     id: kratosIdentityId,
     jsonPatch: [
