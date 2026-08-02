@@ -120,8 +120,11 @@ export const Default: Story<AvatarGroupProps> = () => (
       {
         label: "custom overflow",
         content: (
-          <AvatarGroup total={<span style={{ fontSize: 11 }}>99+</span>}>
+          <AvatarGroup>
             {avatarsOf(people.slice(0, 3))}
+            <AvatarGroup.More alt="99 or more people">
+              <span style={{ fontSize: 11 }}>99+</span>
+            </AvatarGroup.More>
           </AvatarGroup>
         ),
       },
