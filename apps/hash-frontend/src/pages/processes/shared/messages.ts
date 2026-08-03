@@ -179,12 +179,49 @@ export type HostToIframeMessage =
       message: string;
     }
   | {
-      /** First reply to an `optimizationRequest`. */
+      /**
+       * Reply to an `optimizationCreate`. On success carries the run id the
+       * NodeAPI issued for the detached run. On failure `category` classifies
+       * the problem, `status` carries the HTTP status (when one was received),
+       * `retryAfter` the parsed `Retry-After` header in seconds (when sent,
+       * e.g. on 429), and `message` is a safe, human-readable summary that
+       * never contains internal or user-authored content.
+       *
+       * `hashRequestId` and `optimizationRunId` mirror the correlation headers
+       * of the create response, so a failed creation can still be traced
+       * through NodeAPI and the optimizer's logs. NodeAPI forwards the
+       * upstream run id even when creation fails, and that is exactly the case
+       * worth correlating, so both are reported on failures too. They are
+       * absent when no response was received at all (a network failure).
+       */
+      kind: "optimizationCreateResult";
+      requestId: string;
+      ok: boolean;
+      runId?: string;
+      status?: number;
+      retryAfter?: number;
+      message?: string;
+      category?: "network" | "http" | "protocol" | "aborted";
+      hashRequestId?: string | null;
+      optimizationRunId?: string | null;
+    }
+  | {
+      /**
+       * First reply to an `optimizationAttach`, mirroring the proxied HTTP
+       * response's status line.
+       */
       kind: "optimizationResponseStart";
       requestId: string;
       ok: boolean;
       status: number;
       statusText: string;
+      /**
+       * NodeAPI's `x-hash-request-id` / `X-Optimization-Run-ID` response
+       * headers, forwarded so a later transport failure remains traceable to
+       * the NodeAPI and optimizer logs. Null when the header is absent.
+       */
+      hashRequestId: string | null;
+      optimizationRunId: string | null;
     }
   | {
       /** A verbatim chunk of the optimizer's NDJSON response body. */
@@ -198,10 +235,19 @@ export type HostToIframeMessage =
       requestId: string;
     }
   | {
-      /** The optimization fetch failed before or while streaming. */
+      /**
+       * The optimization fetch failed before or while streaming. `category`
+       * classifies the failure so the UI can show an actionable message
+       * instead of a raw exception string; `message` is a safe, human-readable
+       * summary that never contains internal or user-authored content.
+       */
       kind: "optimizationError";
       requestId: string;
+      category: "network" | "http" | "protocol" | "aborted";
       message: string;
+      hashRequestId?: string | null;
+      optimizationRunId?: string | null;
+      httpStatus?: number;
     };
 
 /**
@@ -303,17 +349,42 @@ export type IframeToHostMessage =
     }
   | {
       /**
-       * Ask the authenticated host to start a Petrinaut optimization. The
-       * host validates this public request before forwarding it to NodeAPI.
+       * Ask the authenticated host to create a detached optimization run.
+       * No events flow on this request id — the host replies once with
+       * `optimizationCreateResult` and the iframe then attaches to the run's
+       * event stream via `optimizationAttach`. The host validates this
+       * public request before forwarding it to NodeAPI.
        */
-      kind: "optimizationRequest";
+      kind: "optimizationCreate";
       requestId: string;
       input: PetrinautOptimizationInput;
+    }
+  | {
+      /**
+       * Attach to a detached optimization run's NDJSON event stream,
+       * replaying events with `seq` greater than `cursor` (0 replays
+       * everything) before tailing live events. The host relays the stream
+       * via the `optimizationResponseStart`/`optimizationChunk`/
+       * `optimizationEnd`/`optimizationError` family, keyed by `requestId`.
+       */
+      kind: "optimizationAttach";
+      requestId: string;
+      runId: string;
+      cursor: number;
     }
   | {
       /** Abort the matching in-flight optimization all the way upstream. */
       kind: "optimizationAbort";
       requestId: string;
+    }
+  | {
+      /**
+       * Idempotently cancel a detached optimization run server-side. Aborting
+       * a local `optimizationAttach` only drops the connection; this stops
+       * the run itself. Fire-and-forget: the host sends no reply.
+       */
+      kind: "optimizationCancel";
+      runId: string;
     }
   | {
       /**
@@ -346,6 +417,7 @@ const hostToIframeMessageKinds: ReadonlySet<string> = new Set<
   "aiChatChunk",
   "aiChatEnd",
   "aiChatError",
+  "optimizationCreateResult",
   "optimizationResponseStart",
   "optimizationChunk",
   "optimizationEnd",

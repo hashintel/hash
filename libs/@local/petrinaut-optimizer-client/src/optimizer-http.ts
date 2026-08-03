@@ -20,6 +20,22 @@ export class PetrinautOptimizerHttpError extends Error {
   }
 }
 
+/**
+ * Resolve a service-relative path against the optimizer endpoint, keeping any
+ * path prefix the endpoint carries (e.g. a dev proxy mounting the service
+ * under `/api/petrinaut-opt`).
+ */
+export const petrinautOptimizerUrl = (
+  endpoint: string | URL,
+  path: string,
+): URL => {
+  const base = new URL(endpoint);
+  if (!base.pathname.endsWith("/")) {
+    base.pathname = `${base.pathname}/`;
+  }
+  return new URL(path, base);
+};
+
 /** Return whether an unknown value is a non-array JSON object. */
 const isJsonRecord = (value: unknown): value is JsonRecord =>
   typeof value === "object" && value !== null && !Array.isArray(value);

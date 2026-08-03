@@ -7,6 +7,7 @@ import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   type PetrinautOptimization,
   type PetrinautOptimizationEvent,
+  type PetrinautOptimizationInput,
   type PetrinautOptimizationParameterBinding,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
@@ -177,8 +178,33 @@ const getFakeTrialState = (trial: number, seed: number): FakeTrialState => {
   return roll < 82 ? "complete" : roll < 94 ? "pruned" : "failed";
 };
 
+/** Inputs of the fake detached runs created in this story session. */
+const fakeRuns = new Map<string, PetrinautOptimizationInput>();
+let nextFakeRunId = 1;
+
 const fakeOptimization: PetrinautOptimization = {
-  async *optimize(input, options) {
+  createOptimizationRun: (input) => {
+    const runId = `story-run-${nextFakeRunId++}`;
+    fakeRuns.set(runId, input);
+    return Promise.resolve({ runId });
+  },
+  cancelOptimizationRun: (runId) => {
+    fakeRuns.delete(runId);
+    return Promise.resolve();
+  },
+  async *attachOptimizationRun(runId, options) {
+    const input = fakeRuns.get(runId);
+    if (!input) {
+      // Shaped like a classified transport 404 so the provider silently
+      // drops records restored from a previous story session.
+      throw Object.assign(new Error(`Unknown story run ${runId}`), {
+        category: "http",
+        httpStatus: 404,
+      });
+    }
+    options?.onAttached?.();
+
+    let seq = 0;
     const requestedTrials = input.study.trials;
     let completedTrials = 0;
     let prunedTrials = 0;
@@ -187,7 +213,12 @@ const fakeOptimization: PetrinautOptimization = {
       Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"]
     > | null = null;
 
-    yield { type: "started", requestedTrials };
+    const cursor = options?.cursor ?? 0;
+
+    seq += 1;
+    if (seq > cursor) {
+      yield { type: "started", requestedTrials, seq };
+    }
 
     for (let trial = 0; trial < requestedTrials; trial += 1) {
       await wait(250, options?.signal);
@@ -231,16 +262,21 @@ const fakeOptimization: PetrinautOptimization = {
         failedTrials += 1;
       }
 
-      yield {
-        type: "trial",
-        trial,
-        parameters,
-        objective,
-        state,
-        best,
-      };
+      seq += 1;
+      if (seq > cursor) {
+        yield {
+          type: "trial",
+          trial,
+          parameters,
+          objective,
+          state,
+          best,
+          seq,
+        };
+      }
     }
 
+    seq += 1;
     yield {
       type: "complete",
       requestedTrials,
@@ -248,6 +284,7 @@ const fakeOptimization: PetrinautOptimization = {
       prunedTrials,
       failedTrials,
       best,
+      seq,
     };
   },
 };

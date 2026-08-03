@@ -77,6 +77,23 @@ Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run. Completed, cancelled, and failed records can be removed from their
 result drawer.
 
-For the initial integration, an optimization is tied to its browser connection.
-Closing or reloading the page cancels the active request rather than creating a
-persistent background job.
+If a run fails, the drawer explains what happened — for example, a lost
+connection reports how many of the requested trials had completed and includes
+a diagnostic identifier for support. Trials received before the failure are
+kept, and a **Retry** action starts a fresh run with the same settings.
+
+## Connection drops and reloads
+
+An optimization runs on the server, not in your browser tab. If the connection
+drops while you watch one, Petrinaut reconnects automatically and resumes from
+the last result it received — the status shows **(reconnecting…)** while it
+retries, and no trials are lost or double-counted. Only if reconnecting keeps
+failing does the run report a connection error, which keeps the received
+trials and offers **Retry**.
+
+Reloading or closing the page is different: the page loses its view of a
+still-running optimization. The run itself continues on the server until it
+finishes or is cleaned up, and it can block you from starting a new
+optimization until then — so use **Cancel** first if you intend to reload and
+run something else. **Cancel** is also what actually stops a run: it ends the
+optimization on the server, not just your view of it.

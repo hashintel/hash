@@ -223,6 +223,9 @@ const OptimizationSummary = ({
           <span className={statLabelStyle}>Status</span>
           <span className={statValueStyle}>
             {formatStatus(optimization.status)}
+            {optimization.connectionState === "reconnecting"
+              ? " (reconnecting…)"
+              : ""}
           </span>
         </div>
         <div className={statStyle}>
@@ -283,7 +286,8 @@ export const ViewOptimizationDrawer = ({
   onClose: () => void;
   optimization: OptimizationRecord | undefined;
 }) => {
-  const { cancelOptimization, removeOptimization } = use(OptimizationsContext);
+  const { cancelOptimization, removeOptimization, retryOptimization } =
+    use(OptimizationsContext);
 
   if (!open || !optimization) {
     return null;
@@ -370,6 +374,25 @@ export const ViewOptimizationDrawer = ({
                 onClick={() => cancelOptimization(optimization.id)}
               >
                 Cancel
+              </Button>
+            ) : null}
+            {optimization.status === "error" ? (
+              <Button
+                variant="subtle"
+                tone="neutral"
+                size="sm"
+                prefix={<Icon name="rotate" size="sm" />}
+                /**
+                 * Retrying selects the new run, so the drawer re-points at it
+                 * and shows the fresh attempt — matching what creating a run
+                 * does. Closing here would undo that selection and leave the
+                 * retried run progressing behind an empty table.
+                 */
+                onClick={() => {
+                  void retryOptimization(optimization.id);
+                }}
+              >
+                Retry
               </Button>
             ) : null}
             <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
