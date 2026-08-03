@@ -1,17 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-// The `position: relative` wrapper around the anchor (`children`), so the
-// overlay overhangs the anchor's corner rather than the whole viewport.
 export const baseBadgeWrapper = css({
   position: "relative",
   display: "inline-flex",
 });
 
-// A passive layer the exact size of the anchor (inset: 0). It's an inline-size
-// query container, which lets the overlay position against the anchor's width
-// via `cqw` units (100cqw === the anchor's width). pointer-events: none —
-// inherited by the overlay — keeps it from swallowing clicks meant for the
-// anchor; it adds no paint containment, so the overlay can still overflow it.
 export const baseBadgeFrame = css({
   position: "absolute",
   inset: "0",
@@ -19,21 +12,12 @@ export const baseBadgeFrame = css({
   pointerEvents: "none",
 });
 
-// Positions the overlay (`content`) on a corner of the anchor. Normally it's
-// centred on the corner (the original behaviour); once the overlay's inner edge
-// would cross the anchor's horizontal midline — long content and/or a narrow
-// anchor — it clamps there and grows outward instead, so the overlay never
-// covers more than half the anchor's width.
-//
+// Positions the overlay (`content`) on a corner of the anchor.
 // The overlay is anchored by its left edge (left: 0) and shifted by a transform
 // mixing `cqw` (a share of the anchor's width) with `%` (a share of the
 // overlay's own width). For a right corner the inner (left) edge sits at
 // `max(100cqw - 50%, 50cqw)`: the corner-centred position (anchor width minus
 // half the overlay), floored at the 50cqw midline. Left corners mirror this.
-//
-// A trailing inset translate (`--align-inset`, 0 unless `alignTo: circle`)
-// nudges the overlay diagonally toward the centre so it lands on a circular
-// anchor's edge instead of its empty bounding-box corner.
 export const baseBadgePosition = cva({
   base: {
     position: "absolute",
