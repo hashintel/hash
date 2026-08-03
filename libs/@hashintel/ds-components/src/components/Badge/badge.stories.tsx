@@ -117,37 +117,41 @@ const AnchorCell = ({
 );
 
 // The range of elements a badge attaches to, all carrying the same `content`.
-const Anchors = ({ content, color }: Pick<BadgeProps, "content" | "color">) => (
+const Anchors = ({
+  content,
+  color,
+  position,
+}: Pick<BadgeProps, "content" | "color" | "position">) => (
   <div className={wideRow}>
     <AnchorCell label="icon">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <Bell />
       </Badge>
     </AnchorCell>
     <AnchorCell label="button">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <Button variant="subtle" onClick={noop}>
           Inbox
         </Button>
       </Badge>
     </AnchorCell>
     <AnchorCell label="avatar">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <Avatar fallback="AL" size="40" />
       </Badge>
     </AnchorCell>
     <AnchorCell label="small text">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <span className={smallText}>Messages</span>
       </Badge>
     </AnchorCell>
     <AnchorCell label="large text">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <span className={largeText}>Updates</span>
       </Badge>
     </AnchorCell>
     <AnchorCell label="tile">
-      <Badge content={content} color={color}>
+      <Badge content={content} color={color} position={position}>
         <span className={tile} />
       </Badge>
     </AnchorCell>
@@ -230,38 +234,33 @@ Default.parameters = {
   controls: { exclude: ["color", "shape", "position", "content"] },
 };
 
-// Each corner, at three content lengths, then the same across a range of anchor
-// elements — once with short content, once with long (~10 char) content.
-const positionRows: { label: string; content: BadgeProps["content"] }[] = [
-  { label: "short", content: 9 },
-  { label: "medium", content: "Beta" },
-  { label: "long", content: "Processing" },
-];
-
+// Short content at each corner, then the badge across a range of anchor
+// elements — with short content, and with long content at two corners to show
+// the width clamp extending outward from the anchor's midline.
 export const Position: Story<BadgeProps> = (args) => (
   <div className={column}>
-    {positionRows.map(({ label, content }) => (
-      <div className={wideRow} key={label}>
-        <div className={rowLabel}>{label}</div>
-        {positions.map((position) => (
-          <Badge
-            key={position}
-            content={content}
-            position={position}
-            color={args.color}
-            shape={args.shape}
-          >
-            <Bell />
-          </Badge>
-        ))}
-      </div>
-    ))}
+    <div className={wideRow}>
+      <div className={rowLabel}>short</div>
+      {positions.map((position) => (
+        <Badge
+          key={position}
+          content={9}
+          position={position}
+          color={args.color}
+          shape={args.shape}
+        >
+          <Bell />
+        </Badge>
+      ))}
+    </div>
 
     <SectionTitle>Attaches to any content</SectionTitle>
     <Anchors content={9} color={args.color} />
+    <Anchors content={null} color={args.color} />
 
     <SectionTitle>…and grows with longer content</SectionTitle>
     <Anchors content="Processing" color={args.color} />
+    <Anchors content="Processing" position="bottom-left" color={args.color} />
   </div>
 );
 Position.parameters = { controls: { exclude: ["position", "content"] } };

@@ -1,4 +1,8 @@
-import { baseBadgePosition, baseBadgeWrapper } from "./base-badge.recipe";
+import {
+  baseBadgeFrame,
+  baseBadgePosition,
+  baseBadgeWrapper,
+} from "./base-badge.recipe";
 
 export interface BaseBadgeProps {
   /** The element the overlay attaches to (e.g. an icon). */
@@ -21,6 +25,8 @@ export const BaseBadge = ({
 }: BaseBadgeProps) => (
   <span className={baseBadgeWrapper}>
     {children}
-    <span className={baseBadgePosition({ position })}>{content}</span>
+    <span className={baseBadgeFrame}>
+      <span className={baseBadgePosition({ position })}>{content}</span>
+    </span>
   </span>
 );

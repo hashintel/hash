@@ -7,32 +7,52 @@ export const baseBadgeWrapper = css({
   display: "inline-flex",
 });
 
-// Centres the overlay (`content`) on the chosen corner of the wrapper. It's a
-// passive layer (pointer-events: none, inherited by `content`), so it never
-// swallows clicks meant for the anchor it decorates.
+// A passive layer the exact size of the anchor (inset: 0). It's an inline-size
+// query container, which lets the overlay position against the anchor's width
+// via `cqw` units (100cqw === the anchor's width). pointer-events: none —
+// inherited by the overlay — keeps it from swallowing clicks meant for the
+// anchor; it adds no paint containment, so the overlay can still overflow it.
+export const baseBadgeFrame = css({
+  position: "absolute",
+  inset: "0",
+  containerType: "inline-size",
+  pointerEvents: "none",
+});
+
+// Positions the overlay (`content`) on a corner of the anchor. Normally it's
+// centred on the corner (the original behaviour); once the overlay's inner edge
+// would cross the anchor's horizontal midline — long content and/or a narrow
+// anchor — it clamps there and grows outward instead, so the overlay never
+// covers more than half the anchor's width.
+//
+// The overlay is anchored by its left edge (left: 0) and shifted by a transform
+// mixing `cqw` (a share of the anchor's width) with `%` (a share of the
+// overlay's own width). For a right corner the inner (left) edge sits at
+// `max(100cqw - 50%, 50cqw)`: the corner-centred position (anchor width minus
+// half the overlay), floored at the 50cqw midline. Left corners mirror this.
 export const baseBadgePosition = cva({
   base: {
     position: "absolute",
     display: "inline-flex",
-    pointerEvents: "none",
+    left: "0",
   },
   variants: {
     position: {
-      "top-left": { top: "0", left: "0", transform: "[translate(-50%, -50%)]" },
+      "top-left": {
+        top: "0",
+        transform: "[translate(min(-50%, 50cqw - 100%), -50%)]",
+      },
       "top-right": {
         top: "0",
-        right: "0",
-        transform: "[translate(50%, -50%)]",
+        transform: "[translate(max(100cqw - 50%, 50cqw), -50%)]",
       },
       "bottom-left": {
         bottom: "0",
-        left: "0",
-        transform: "[translate(-50%, 50%)]",
+        transform: "[translate(min(-50%, 50cqw - 100%), 50%)]",
       },
       "bottom-right": {
         bottom: "0",
-        right: "0",
-        transform: "[translate(50%, 50%)]",
+        transform: "[translate(max(100cqw - 50%, 50cqw), 50%)]",
       },
     },
   },
