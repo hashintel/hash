@@ -1,4 +1,11 @@
-import { Children, isValidElement, useMemo } from "react";
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -119,44 +126,224 @@ const AvatarGroupRoot = ({
 
   const contextValue = useMemo(() => ({ size, tone }), [size, tone]);
 
+  // Each avatar lifts to the front and cross-fades in over its own opaque clone,
+  // so it surfaces with no opacity dip while staying the real (interactive)
+  // element. A per-avatar phase lets an outgoing avatar fade out while an
+  // incoming one fades in, so sweeping across the group stays clean:
+  //   enter  — real avatar jumps to the front at opacity 0 (no transition);
+  //   active — it transitions opacity 0→1 as it and its clone scale up together;
+  //   exit   — it transitions back to opacity 0 and rest scale, then drops out.
+  // While any avatar is mid-animation the whole stack is cloned as an opaque
+  // backdrop, so every fading avatar always has something solid behind it.
+  type LiftPhase = "enter" | "active" | "exit";
+  const [phases, setPhases] = useState<Record<number, LiftPhase>>({});
+
+  // Keyboard focus also lifts an avatar to the front (instantly, no animation).
+  // Track the focused avatar plus whether hover or focus happened most recently,
+  // so that when a hover and a keyboard focus land on different avatars the last
+  // action wins the top spot.
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [lastAction, setLastAction] = useState<"hover" | "focus">("hover");
+
+  // The avatar the pointer currently maps to, so redundant moves within the same
+  // column don't re-trigger the lift.
+  const pointerIndex = useRef<number | null>(null);
+
+  const active = Object.keys(phases).length > 0;
+
+  const handleEnter = (index: number) => {
+    setLastAction("hover");
+    setPhases((prev) => {
+      const next: Record<number, LiftPhase> = {};
+      // Any avatar currently coming in yields to the newly hovered one; anything
+      // already exiting keeps exiting.
+      for (const [key, phase] of Object.entries(prev)) {
+        next[Number(key)] =
+          phase === "exit" || Number(key) === index ? phase : "exit";
+      }
+      next[index] = "enter";
+      return next;
+    });
+  };
+
+  const handleLeave = () => {
+    setPhases((prev) => {
+      const next: Record<number, LiftPhase> = {};
+      for (const key of Object.keys(prev)) {
+        next[Number(key)] = "exit";
+      }
+      return next;
+    });
+  };
+
+  // Advance every freshly-entered avatar enter→active on the next frame, so the
+  // opacity-0 start paints before the transition to 1 begins.
+  useEffect(() => {
+    const entering = Object.entries(phases)
+      .filter(([, phase]) => phase === "enter")
+      .map(([key]) => Number(key));
+    if (entering.length === 0) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      setPhases((prev) => {
+        const next = { ...prev };
+        for (const index of entering) {
+          if (next[index] === "enter") {
+            next[index] = "active";
+          }
+        }
+        return next;
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [phases]);
+
+  const settleExit = (index: number) => {
+    setPhases((prev) => {
+      if (prev[index] !== "exit") {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const handleFocus = (index: number, target: EventTarget) => {
+    // Ignore mouse-click focus (the hover lift covers that); only keyboard focus
+    // that shows a ring should lift.
+    if (target instanceof HTMLElement && target.matches(":focus-visible")) {
+      setFocusedIndex(index);
+      setLastAction("focus");
+    }
+  };
+
+  const handleBlur = (index: number) => {
+    setFocusedIndex((prev) => (prev === index ? null : prev));
+  };
+
+  // Every shown avatar plus the optional overflow badge, in stacking order, so
+  // the single hover clone can index into one flat list.
+  const entries: { key: string; node: React.ReactNode }[] = shown.map(
+    (child, index) => ({ key: child.key ?? String(index), node: child }),
+  );
+
+  if (showSurplus) {
+    entries.push({
+      key: "avatar-group-surplus",
+      node: moreElement ?? (
+        <Avatar
+          shape={shape}
+          alt={`${surplusCount} more`}
+          placeholder={{
+            custom: (
+              <span className={classes.surplusText}>{`+${surplusCount}`}</span>
+            ),
+          }}
+        />
+      ),
+    });
+  }
+
+  // The hovered avatar (if any). Both hover-active and keyboard focus otherwise
+  // resolve to the same front z-index in the recipe; when they land on different
+  // avatars, boost whichever was actioned last so it floats on top.
+  let hoverIndex: number | null = null;
+  for (const [key, phase] of Object.entries(phases)) {
+    if (phase === "enter" || phase === "active") {
+      hoverIndex = Number(key);
+      break;
+    }
+  }
+  let boostIndex: number | null = null;
+  if (
+    hoverIndex !== null &&
+    focusedIndex !== null &&
+    hoverIndex !== focusedIndex
+  ) {
+    boostIndex = lastAction === "focus" ? focusedIndex : hoverIndex;
+  }
+
+  // Hover is driven by the pointer's position over the group, split into equal
+  // columns — one per avatar — rather than by each avatar's own (overlapping,
+  // and once lifted, occluding) box. This gives every avatar an equal, easy hit
+  // target even at tight spacing. A lifted avatar always covers its own column
+  // (column width ≤ avatar width), so the avatar physically under the cursor
+  // stays the lifted one — its tint, tooltip and clicks remain correct.
+  const handlePointer = (event: React.MouseEvent<HTMLDivElement>) => {
+    const count = entries.length;
+    if (count === 0) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const ratio = (event.clientX - rect.left) / rect.width;
+    const index = Math.max(0, Math.min(count - 1, Math.floor(ratio * count)));
+    if (pointerIndex.current !== index) {
+      pointerIndex.current = index;
+      handleEnter(index);
+    }
+  };
+
+  const handlePointerLeave = () => {
+    pointerIndex.current = null;
+    handleLeave();
+  };
+
   return (
     <AvatarGroupContext.Provider value={contextValue}>
-      <div className={cx(classes.root, className)}>
-        {shown.map((child, index) => (
+      <div
+        className={cx(classes.root, className)}
+        onMouseEnter={handlePointer}
+        onMouseMove={handlePointer}
+        onMouseLeave={handlePointerLeave}
+      >
+        {entries.map((entry, index) => (
           <span
-            key={child.key}
+            key={entry.key}
             className={classes.item}
+            data-lift={phases[index]}
             style={
               {
                 "--avatar-group-z": String(zIndexAt(index)),
+                // Inline z wins over the recipe's front z (1001) so the
+                // last-actioned avatar sits above the other.
+                zIndex: index === boostIndex ? 1002 : undefined,
               } as React.CSSProperties
             }
+            onFocus={(event) => handleFocus(index, event.target)}
+            onBlur={() => handleBlur(index)}
+            onTransitionEnd={(event) => {
+              // Drop an avatar back into the stack once its exit fade completes.
+              if (event.propertyName === "opacity") {
+                settleExit(index);
+              }
+            }}
           >
-            {child}
+            {entry.node}
           </span>
         ))}
-        {showSurplus ? (
-          <span
-            className={classes.item}
-            style={
-              {
-                "--avatar-group-z": String(zIndexAt(shownCount)),
-              } as React.CSSProperties
-            }
-          >
-            {moreElement ?? (
-              <Avatar
-                shape={shape}
-                alt={`${surplusCount} more`}
-                placeholder={{
-                  custom: (
-                    <span
-                      className={classes.surplusText}
-                    >{`+${surplusCount}`}</span>
-                  ),
-                }}
-              />
-            )}
+        {/* While anything animates, the whole stack is cloned as an opaque
+            backdrop so every fading avatar has something solid behind it. The
+            layer overlays and mirrors the real row's flex layout, so clones stay
+            aligned at any size. `inert` keeps the copies out of the tab order and
+            accessibility tree; the real avatars on top stay the interactive ones. */}
+        {active ? (
+          <span className={classes.cloneLayer} inert>
+            {entries.map((entry, index) => (
+              <span
+                key={`clone:${entry.key}`}
+                className={classes.cloneItem}
+                data-lift={phases[index]}
+                style={
+                  {
+                    "--avatar-group-z": String(zIndexAt(index)),
+                  } as React.CSSProperties
+                }
+              >
+                {entry.node}
+              </span>
+            ))}
           </span>
         ) : null}
       </div>
