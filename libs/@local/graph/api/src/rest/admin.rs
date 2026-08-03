@@ -43,7 +43,7 @@ use axum::{
     extract::FromRequestParts,
     http::request::Parts,
     response::IntoResponse as _,
-    routing::{delete, get, post},
+    routing::{delete, post},
 };
 use error_stack::Report;
 use futures::TryStreamExt as _;
@@ -66,6 +66,7 @@ use uuid::Uuid;
 use super::{
     AuthenticatedUserHeader, http_tracing_layer,
     jwt::{JwtValidator, OptionalJwtAuthentication},
+    probe,
     status::{BoxedResponse, status_to_response},
 };
 use crate::{
@@ -97,7 +98,7 @@ pub fn routes(
     jwt_validator: Option<Arc<JwtValidator>>,
     external_services: ExternalServicesConfig,
 ) -> Router {
-    let public = Router::new().route("/health", get(async || "Healthy"));
+    let public = probe::router();
 
     let mut protected = Router::new()
         .route("/entities/delete", post(delete_entities))

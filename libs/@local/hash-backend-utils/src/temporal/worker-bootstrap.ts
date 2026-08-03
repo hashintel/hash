@@ -22,6 +22,7 @@ import {
   Worker,
 } from "@temporalio/worker";
 
+import { HEALTH_PATH } from "../opentelemetry.js";
 import { sleep } from "../utils.js";
 import {
   OpenTelemetryActivityInboundInterceptor,
@@ -124,10 +125,15 @@ const connectToTemporal = async (
 
 const createHealthCheckServer = (): http.Server =>
   http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
-      res.setHeader("Content-Type", "application/json");
+    // `HEAD` is what the `hash-graph` healthcheck subcommand issues, and Docker
+    // healthchecks using `wget --spider` send it too.
+    if (
+      (req.method === "GET" || req.method === "HEAD") &&
+      req.url === HEALTH_PATH
+    ) {
+      res.setHeader("Content-Type", "application/health+json");
       res.writeHead(200);
-      res.end(JSON.stringify({ msg: "worker healthy" }));
+      res.end(req.method === "HEAD" ? "" : JSON.stringify({ status: "pass" }));
       return;
     }
     res.writeHead(404);

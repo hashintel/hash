@@ -11,6 +11,8 @@ use tower::{Layer, Service};
 use tracing::{Instrument as _, Span, field::Empty};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 
+use crate::rest::probe;
+
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 
 impl Extractor for HeaderExtractor<'_> {
@@ -48,6 +50,10 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         .extensions()
         .get::<MatchedPath>()
         .map_or_else(|| request.uri().path(), MatchedPath::as_str);
+
+    if path == probe::HEALTH_PATH {
+        return Span::none();
+    }
 
     let http_span = tracing::info_span!(
         "HTTP request",

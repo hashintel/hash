@@ -49,7 +49,7 @@ _SERVICE_LOGGER_NAMES = ("pn_api", "pn_optimize", "pn_runs", "pn_telemetry")
 # SLIs and only exporting on disconnect). The route opens its own short
 # manual SERVER span over the attach itself instead — see
 # `get_optimize_run_events` in `optimization_api.py`.
-_FASTAPI_EXCLUDED_URLS = r"/status(/|$),/optimize/runs/[^/]+/events"
+_FASTAPI_EXCLUDED_URLS = r"/health(/|$),/status(/|$),/optimize/runs/[^/]+/events"
 
 log = logging.getLogger("pn_telemetry")
 

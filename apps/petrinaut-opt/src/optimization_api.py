@@ -651,6 +651,19 @@ def get_run_status(run_id: str) -> RunStatus:
     return status
 
 
+@app.get("/health")
+async def health() -> Response:
+    """Report liveness, without checking any dependency.
+
+    A probe that reaches through to a dependency takes every task out of
+    rotation as soon as that dependency is slow.
+    """
+    return Response(
+        content='{"status":"pass"}',
+        media_type="application/health+json",
+    )
+
+
 @app.get("/")
 async def root() -> dict[str, str]:
     """Return a welcome message for the API root."""
