@@ -11,224 +11,32 @@ import {
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { PetrinautOptimizationContext } from "../optimization-context";
 import {
+  readStoredActiveRuns,
+  removeStoredActiveRun,
+  storeActiveRun,
+} from "./active-run-storage";
+import {
   type OptimizationBest,
-  type OptimizationErrorCategory,
-  type OptimizationErrorDiagnostics,
   isOptimizationActive,
   type OptimizationRecord,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
+import { abortableDelay, decideAttachFailure } from "./reconnect-policy";
+import {
+  buildErrorMessage,
+  type ClassifiedError,
+  classifyError,
+  isAbortFailure,
+} from "./transport-errors";
 
 import type { PropsWithChildren } from "react";
 
-const ERROR_CATEGORIES = new Set<OptimizationErrorCategory>([
-  "network",
-  "http",
-  "protocol",
-  "aborted",
-]);
-
-/** First reconnect delay after a dropped detached-run event stream. */
-const RECONNECT_BASE_DELAY_MS = 1_000;
-/** Ceiling for the exponential reconnect backoff. */
-const RECONNECT_MAX_DELAY_MS = 30_000;
-/**
- * Consecutive failed attachments (no event received in between) after which
- * reconnecting stops and the classified failure is surfaced instead.
- */
-const MAX_CONSECUTIVE_RECONNECT_FAILURES = 8;
-
-/**
- * Gateway statuses a re-attach may transiently hit while the service
- * restarts or deploys; they reconnect within the same failure cap. Every
- * other http status (404 unknown run, other 4xx) is definitive.
- */
-const RECONNECTABLE_HTTP_STATUSES = new Set([502, 503, 504]);
-
-/** Exponential backoff: 1s, 2s, 4s, ... capped at 30s. */
-const reconnectDelayMs = (consecutiveFailures: number): number =>
-  Math.min(
-    RECONNECT_BASE_DELAY_MS * 2 ** (consecutiveFailures - 1),
-    RECONNECT_MAX_DELAY_MS,
-  );
-
-/** Resolve after `ms`, or immediately once `signal` aborts. */
-const abortableDelay = (ms: number, signal: AbortSignal): Promise<void> =>
-  new Promise<void>((resolve) => {
-    if (signal.aborted) {
-      resolve();
-      return;
-    }
-    const timer = setTimeout(resolve, ms);
-    // The listener stays attached when the delay elapses normally: at most a
-    // handful accumulate per run, and they die with the run's controller.
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
-  });
-
-/**
- * sessionStorage key recording the detached runs this tab may re-attach to
- * after a reload: a JSON object mapping run id to its manifest and creation
- * time. Session-scoped on purpose — a run belongs to the tab that started it.
- *
- * When storage is unavailable (e.g. Petrinaut runs in a sandboxed iframe with
- * an opaque origin) every helper degrades to a no-op: reload re-attachment is
- * lost, while in-page reconnection keeps working.
- */
-const ACTIVE_RUNS_STORAGE_KEY = "petrinaut:active-optimization-runs";
-
-type StoredActiveRun = { input: unknown; createdAt: number };
-
-const readStoredActiveRuns = (): Record<string, StoredActiveRun> => {
-  try {
-    const raw = sessionStorage.getItem(ACTIVE_RUNS_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      Array.isArray(parsed)
-    ) {
-      return {};
-    }
-    const runs: Record<string, StoredActiveRun> = {};
-    for (const [runId, value] of Object.entries(parsed)) {
-      if (typeof value === "object" && value !== null && "input" in value) {
-        const createdAt = (value as { createdAt?: unknown }).createdAt;
-        runs[runId] = {
-          input: (value as { input: unknown }).input,
-          createdAt: typeof createdAt === "number" ? createdAt : Date.now(),
-        };
-      }
-    }
-    return runs;
-  } catch {
-    // Unavailable or corrupted storage; see ACTIVE_RUNS_STORAGE_KEY.
-    return {};
-  }
-};
-
-const writeStoredActiveRuns = (runs: Record<string, StoredActiveRun>): void => {
-  try {
-    sessionStorage.setItem(ACTIVE_RUNS_STORAGE_KEY, JSON.stringify(runs));
-  } catch {
-    // Unavailable storage or exceeded quota; see ACTIVE_RUNS_STORAGE_KEY.
-  }
-};
-
-const storeActiveRun = (
-  runId: string,
-  input: PetrinautOptimizationInput,
-): void => {
-  const runs = readStoredActiveRuns();
-  runs[runId] = { input, createdAt: Date.now() };
-  writeStoredActiveRuns(runs);
-};
-
-const removeStoredActiveRun = (runId: string): void => {
-  const runs = readStoredActiveRuns();
-  if (runId in runs) {
-    delete runs[runId];
-    writeStoredActiveRuns(runs);
-  }
-};
-
-type ClassifiedError = {
-  category: OptimizationErrorCategory;
-  /** Seconds from a `Retry-After` header, when the service sent one (429). */
-  retryAfter: number | null;
-  diagnostics: OptimizationErrorDiagnostics;
-};
-
-function isAbortError(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === "AbortError") ||
-    (error instanceof Error && error.name === "AbortError")
-  );
-}
-
-/**
- * Read the structured fields off a classified transport error without
- * depending on the host bridge's class: the error crosses from the app into
- * this library, so it is duck-typed rather than matched with `instanceof`.
- */
-function classifyError(error: unknown): ClassifiedError | null {
-  if (typeof error !== "object" || error === null) {
-    return null;
-  }
-  const candidate = error as Record<string, unknown>;
-  if (
-    typeof candidate.category !== "string" ||
-    !ERROR_CATEGORIES.has(candidate.category as OptimizationErrorCategory)
-  ) {
-    return null;
-  }
-  return {
-    category: candidate.category as OptimizationErrorCategory,
-    retryAfter:
-      typeof candidate.retryAfter === "number" ? candidate.retryAfter : null,
-    diagnostics: {
-      hashRequestId:
-        typeof candidate.hashRequestId === "string"
-          ? candidate.hashRequestId
-          : null,
-      optimizationRunId:
-        typeof candidate.optimizationRunId === "string"
-          ? candidate.optimizationRunId
-          : null,
-      httpStatus:
-        typeof candidate.httpStatus === "number" ? candidate.httpStatus : null,
-    },
-  };
-}
-
-/** Build a safe, actionable message from a classified failure. */
-function buildErrorMessage(
-  classified: ClassifiedError,
-  progress: { completedTrials: number; requestedTrials: number },
-): string {
-  const after = `after ${progress.completedTrials} of ${progress.requestedTrials} trials`;
-  const { httpStatus, optimizationRunId, hashRequestId } =
-    classified.diagnostics;
-  const diagnosticId = optimizationRunId ?? hashRequestId;
-  const diagnostic = diagnosticId ? ` (diagnostic id: ${diagnosticId})` : "";
-
-  switch (classified.category) {
-    case "http":
-      if (httpStatus === 429) {
-        return `The optimization service is busy — another optimization may already be running for your account.${
-          classified.retryAfter === null
-            ? ""
-            : ` Try again in ~${classified.retryAfter}s.`
-        }${diagnostic}`;
-      }
-      return `The optimization service rejected the request${
-        httpStatus === null ? "" : ` (status ${httpStatus})`
-      } ${after}. Retry the optimization.${diagnostic}`;
-    case "protocol":
-      return `The optimization stream ended unexpectedly ${after}. Retry the optimization.${diagnostic}`;
-    case "aborted":
-      return "The optimization was cancelled.";
-    case "network":
-    default:
-      return `Connection to the optimization service was interrupted ${after}. Retry the optimization.${diagnostic}`;
-  }
-}
-
 /**
  * Fold a completed trial into the running best. Attachments deliver
- * `best: null` (the service no longer knows the objective direction after
- * the creating request ends), so the provider maintains the best itself from
- * every trial it applies; `event.best` is still preferred when present.
+ * `best: null`, so the provider maintains the best itself from every trial it
+ * applies; `event.best` is still preferred when present, and would be
+ * authoritative if the optimizer ever stamped it onto replayable frames.
  */
 const computeRunningBest = (
   current: OptimizationRecord,
@@ -460,28 +268,13 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   );
 
   /**
-   * Consume a detached run's event stream, re-attaching with exponential
-   * backoff when the connection drops. Every reconnect resumes from the last
-   * applied `seq`, and replayed events at or below that cursor are skipped so
-   * trials are never double-counted. Reconnecting stops after
-   * {@link MAX_CONSECUTIVE_RECONNECT_FAILURES} attachments in a row that
-   * failed before yielding an event; the classified failure is surfaced then.
+   * Consume a detached run's event stream, applying each event to the record
+   * and re-attaching when the connection drops. Every reconnect resumes from
+   * the last applied `seq`, and replayed events at or below that cursor are
+   * skipped so trials are never double-counted.
    *
-   * Four kinds of interruption reconnect, all sharing the failure cap:
-   * `network` failures, `protocol` failures (a proxy tearing an idle
-   * connection down cleanly surfaces as a `protocol` "stream ended without a
-   * terminal event"), NodeAPI-authored `retryable: true` error events (its
-   * per-attachment window died while the run continues), and gateway
-   * `http` statuses (502/503/504 — NodeAPI restarting or deploying).
-   * Resuming from the cursor is safe in every case because replayed events
-   * are deduplicated. Every other `http` failure (404 unknown run, other
-   * 4xx) is definitive and fails immediately, as do `retryable: false`
-   * error events.
-   *
-   * On every give-up path the run — which may still be live server-side —
-   * is cancelled fire-and-forget: releasing NodeAPI's per-account ownership
-   * slot means a follow-up run (e.g. the drawer's Retry) isn't rejected as
-   * busy for the rest of the ownership TTL.
+   * Which failures reconnect, and for how long, is
+   * {@link decideAttachFailure}'s decision; this loop only carries it out.
    */
   const runAttachLoop = useCallback(
     async ({
@@ -571,76 +364,67 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           const classified = classifyError(error);
           const retryableInterruption =
             error instanceof RetryableRunInterruption ? error : null;
-          if (
-            isCancelled() ||
-            isAbortError(error) ||
-            classified?.category === "aborted"
-          ) {
-            markOptimizationCancelled(optimizationId);
-            return;
-          }
-          if (sawTerminalEvent) {
-            // The run already settled; a trailing transport hiccup after the
-            // terminal event changes nothing.
-            removeStoredActiveRun(runId);
-            return;
-          }
-          if (
-            dropRecordOnNotFound &&
-            !receivedAnyEvent &&
-            classified?.category === "http" &&
-            classified.diagnostics.httpStatus === 404
-          ) {
-            removeStoredActiveRun(runId);
-            dropOptimizationRecord(optimizationId);
-            return;
-          }
+          // Counted before deciding: every decision other than `reconnect`
+          // leaves the loop, and only `reconnect` reads the tally.
           consecutiveFailures += 1;
-          const reconnectable =
-            retryableInterruption !== null ||
-            classified?.category === "network" ||
-            classified?.category === "protocol" ||
-            (classified?.category === "http" &&
-              classified.diagnostics.httpStatus !== null &&
-              RECONNECTABLE_HTTP_STATUSES.has(
-                classified.diagnostics.httpStatus,
-              ));
-          if (
-            reconnectable &&
-            consecutiveFailures < MAX_CONSECUTIVE_RECONNECT_FAILURES
-          ) {
-            patchOptimization(optimizationId, (current) => ({
-              ...current,
-              connectionState: "reconnecting",
-            }));
-            await abortableDelay(reconnectDelayMs(consecutiveFailures), signal);
-            if (isCancelled()) {
+          const decision = decideAttachFailure({
+            error,
+            classified,
+            isRetryableInterruption: retryableInterruption !== null,
+            aborted: isCancelled(),
+            sawTerminalEvent,
+            receivedAnyEvent,
+            dropRecordOnNotFound,
+            consecutiveFailures,
+          });
+
+          switch (decision.kind) {
+            case "cancelled":
               markOptimizationCancelled(optimizationId);
               return;
-            }
-            continue;
+            case "settled":
+              // A trailing transport hiccup after the terminal event changes
+              // nothing about the run's outcome.
+              removeStoredActiveRun(runId);
+              return;
+            case "expired":
+              removeStoredActiveRun(runId);
+              dropOptimizationRecord(optimizationId);
+              return;
+            case "reconnect":
+              patchOptimization(optimizationId, (current) => ({
+                ...current,
+                connectionState: "reconnecting",
+              }));
+              await abortableDelay(decision.delayMs, signal);
+              if (isCancelled()) {
+                markOptimizationCancelled(optimizationId);
+                return;
+              }
+              continue;
+            case "giveUp":
+              // The run may still be live server-side; cancelling it frees the
+              // account's single-flight so a fresh run (e.g. the drawer's
+              // Retry) isn't rejected as busy. The stored entry is
+              // deliberately kept — some hosts' cancel resolves before the
+              // server acted, so resolution proves nothing. The next reload's
+              // re-attach settles it: a delivered cancel replays the cancelled
+              // terminal, a reaped run 404s (silently dropped), and a run the
+              // cancel never reached is recovered live.
+              void cancel(runId).catch(() => undefined);
+              if (retryableInterruption) {
+                // Reconnection is exhausted: NodeAPI's own terminal error
+                // event (a safe, server-authored message) is the outcome.
+                applyOptimizationEvent(
+                  optimizationId,
+                  retryableInterruption.event,
+                  { extra: { lastSeq, connectionState: null } },
+                );
+              } else {
+                markOptimizationFailed(optimizationId, error, classified);
+              }
+              return;
           }
-          // Give up. The run may still be live server-side; cancelling it
-          // frees the account's single-flight so a fresh run (e.g. the
-          // drawer's Retry) isn't rejected as busy. The stored entry is
-          // deliberately kept — some hosts' cancel resolves before the
-          // server acted, so resolution proves nothing. The next reload's
-          // re-attach settles it: a delivered cancel replays the cancelled
-          // terminal, a reaped run 404s (silently dropped), and a run the
-          // cancel never reached is recovered live.
-          void cancel(runId).catch(() => undefined);
-          if (retryableInterruption) {
-            // Reconnection is exhausted: NodeAPI's own terminal error event
-            // (a safe, server-authored message) becomes the run's outcome.
-            applyOptimizationEvent(
-              optimizationId,
-              retryableInterruption.event,
-              { extra: { lastSeq, connectionState: null } },
-            );
-          } else {
-            markOptimizationFailed(optimizationId, error, classified);
-          }
-          return;
         }
       }
       // Aborted between attachments (e.g. while waiting to reconnect). The
@@ -682,9 +466,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         } catch (error) {
           const classified = classifyError(error);
           if (
-            abortController.signal.aborted ||
-            isAbortError(error) ||
-            classified?.category === "aborted"
+            isAbortFailure(error, classified, abortController.signal.aborted)
           ) {
             markOptimizationCancelled(optimizationId);
           } else {
