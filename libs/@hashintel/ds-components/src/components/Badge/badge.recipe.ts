@@ -28,9 +28,6 @@ export const badgeRecipe = cva({
     "--badge-radius": "var(--radii-sm)",
   },
   variants: {
-    // Each colour is a light tint background (s30) with a saturated text colour
-    // (s110, except orange's brighter s90 and grey's near-black s120) and a
-    // slightly deeper border tint (`--badge-bd`).
     color: {
       grey: {
         "--badge-bg": "var(--colors-neutral-s30)",
@@ -77,9 +74,6 @@ export const badgeRecipe = cva({
       square: {},
       round: { "--badge-radius": "var(--radii-full)" },
     },
-    // Content-less: collapse to a small round dot of the solid accent colour
-    // (the tint fill would be near-invisible at this size). `--badge-bd:
-    // transparent` drops the outline border so the dot stays a clean circle.
     dot: {
       true: {
         "--badge-size": "[8px]",
