@@ -48,7 +48,7 @@ markdownlint-cli2   = "0.22.1"
 # verified against the source tag. See https://linear.app/hash/issue/SRE-871
 "npm:renovate"       = { version = "43.212.4", trust_policy_excludes = ["@yarnpkg/libzip@3.2.2"] }
 oxfmt                = "0.50.0"
-"pipx:sqlfluff"      = "3.4.2"
+"pipx:sqlfluff"      = "4.2.2"
 sentry-cli           = "2.52.0"
 taplo                = "0.10.0"
 "ubi:terrastruct/d2" = "0.7.1"
