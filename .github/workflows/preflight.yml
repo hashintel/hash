@@ -14,7 +14,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@7968be8f8ddb5c20de24f53a3195ddb24cd7f943 # main
+    with:
+      # GHSA-frvp-7c67-39w9: advisory has a wrong affected-version range; the fix was
+      # backported in @hono/node-server. Remove once github/advisory-database#8824 merges.
+      allow-ghsas: GHSA-frvp-7c67-39w9
 
   labeler:
     name: Labeler
@@ -28,12 +32,6 @@ jobs:
         uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
         with:
           sync-labels: true
-
-  todo-comments:
-    name: Todo comments
-    permissions:
-      contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
 
   pr-title:
     name: PR title

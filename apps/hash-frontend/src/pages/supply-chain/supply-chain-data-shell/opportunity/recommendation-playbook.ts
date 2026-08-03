@@ -209,15 +209,15 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
   production: {
     diagnosis: {
       long_tail:
-        "A few orders take far longer than the typical campaign; check whether extended changeovers, equipment unavailability, or low-yield runs explain those events.",
+        "A few orders take far longer than the typical campaign; check whether equipment unavailability, interruptions, or low-yield runs explain those events.",
       tight_high_median:
         "Production runs cluster around a high duration, which is consistent with planned production time or campaign structure setting the floor.",
       worsening:
-        "Production duration is increasing; check changeovers, OEE, and whether a specific line or product mix is degrading.",
+        "Production duration is increasing; check OEE, interruptions, and whether a specific line or product mix is degrading.",
       improving:
         "Production duration is improving; confirm whether the improvement is driven by mix, OEE, or a one-off and whether it is sustainable.",
       mixed:
-        "Separate steady-state run time from changeover-heavy or low-yield campaigns before drawing conclusions.",
+        "Separate steady-state run time from interrupted or low-yield campaigns before drawing conclusions.",
     },
     dwellSummaryLead: (ctx) => DWELL_PLAN_LEAD(ctx, "production duration"),
     planningSummaryLead: () =>
@@ -225,7 +225,7 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
     recommendedActions: [
       {
         kind: "evidence",
-        text: "Review orders with the longest normalized durations and their changeover context.",
+        text: "Review orders with the longest normalized durations and their operating context.",
       },
       {
         kind: "evidence",
@@ -233,7 +233,7 @@ export const PLAYBOOKS: Record<StepType, StepTypePlaybook> = {
       },
       {
         kind: "process",
-        text: "Inspect changeover patterns and campaign sizing to identify whether the bottleneck is consistent or shifting.",
+        text: "Inspect campaign sizing and equipment availability to identify whether the bottleneck is consistent or shifting.",
       },
       {
         kind: "planning",

@@ -20,26 +20,28 @@ cargo-binstall = "1.19.1"
 uv             = "0.11.18"
 
 # Tools to compile the project
-'cargo:wasm-opt'  = "0.116.1"
-"cargo:wasm-pack" = "0.15.0"
-java              = "25"
-protoc            = "35.1"
+# binaryen provides `wasm-opt` prebuilt from its GitHub release assets — compiling the
+# wasm-opt crate from source added ~7 minutes to every install that needed it.
+"github:WebAssembly/binaryen"   = "version_131"
+"github:wasm-bindgen/wasm-pack" = "0.15.0"
+java                            = "25"
+protoc                          = "35.1"
 
 # CLI tools
-"cargo:cargo-codspeed" = "4.1.0"
-"cargo:cargo-hack"     = "0.6.45"
+"aqua:nextest-rs/nextest/cargo-nextest" = "0.9.137"
+"aqua:taiki-e/cargo-llvm-cov"           = "0.8.7"
+"cargo:cargo-codspeed"                  = "4.1.0"
+"cargo:cargo-hack"                      = "0.6.45"
 # cargo-insta publishes no linux-arm64 binary, so arm64 image builds compile it from source. Its
 # bundled Cargo.lock pins rustix 0.37.27, which fails to build under the repo's pinned nightly;
 # installing it on stable keeps `--locked` fully intact. TODO(SRE-878): remove the `install_env`
 # override once upstream refreshes its lockfile or ships arm64 binaries.
 # See https://linear.app/hash/issue/SRE-878
-"cargo:cargo-insta"    = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
-"cargo:cargo-llvm-cov" = "0.8.7"
-"cargo:cargo-nextest"  = "0.9.137"
-just                   = "1.51.0"
-markdownlint-cli2      = "0.22.1"
-"npm:@napi-rs/cli"     = "3.7.0"
-"npm:@redocly/cli"     = "2.31.5"
+"cargo:cargo-insta" = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
+just                = "1.51.0"
+markdownlint-cli2   = "0.22.1"
+"npm:@napi-rs/cli"  = "3.7.0"
+"npm:@redocly/cli"  = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2
 # ships (https://github.com/yarnpkg/berry/issues/7182). That exact version was published without
 # provenance by a legitimate maintainer (manual backfill of a failed CI release batch); content was

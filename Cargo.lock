@@ -3598,6 +3598,7 @@ dependencies = [
  "tracing-opentelemetry",
  "type-system",
  "utoipa",
+ "utoipa-scalar",
  "uuid",
 ]
 
@@ -10901,6 +10902,17 @@ dependencies = [
  "syn 2.0.118",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "utoipa-scalar"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3ab4b7269d14d93626b0bfedf212f1b0995cb7d13d35daba21d579511e7fae8"
+dependencies = [
+ "serde",
+ "serde_json",
+ "utoipa",
 ]
 
 [[package]]

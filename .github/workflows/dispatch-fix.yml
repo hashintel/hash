@@ -1,5 +1,9 @@
 name: Fix
 on: workflow_dispatch
+
+permissions:
+  contents: read
+
 jobs:
   yarn:
     runs-on: ubuntu-latest

@@ -32,7 +32,7 @@ use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
     http::{StatusCode, request::Parts},
-    response::{IntoResponse as _, Response},
+    response::{Html, IntoResponse as _, Response},
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
@@ -98,6 +98,7 @@ use utoipa::{
         SchemaFormat, SchemaType, schema,
     },
 };
+use utoipa_scalar::Scalar;
 use uuid::Uuid;
 
 use self::{
@@ -546,19 +547,38 @@ where
     pub api_config: ApiConfig,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
+    /// Whether to serve an interactive rendering of the `OpenAPI` specification.
+    ///
+    /// See [`openapi_only_router`] for the route this adds.
+    pub serve_api_reference: bool,
 }
 
 /// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
 /// the REST API.
-pub fn openapi_only_router() -> Router {
+///
+/// The specification is served at `/openapi.json`. It references its subschemas by relative path
+/// (`./models/…`), so `/models/{path}` has to stay a sibling of the specification for those
+/// references to resolve.
+///
+/// When `serve_api_reference` is set, an interactive rendering of the specification is served at
+/// `/openapi` in addition to the raw JSON. The rendered page pulls the viewer from a public CDN,
+/// so it requires the browser to have internet access.
+pub fn openapi_only_router(serve_api_reference: bool) -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-    Router::new().merge(probe::router()).nest(
-        "/api-doc",
-        Router::new()
-            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-            .route("/models/{*path}", get(serve_static_schema)),
-    )
+    let api_reference =
+        serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
+
+    let mut router = Router::new()
+        .merge(probe::router())
+        .route("/openapi.json", get(|| async { Json(open_api_doc) }))
+        .route("/models/{*path}", get(serve_static_schema));
+
+    if let Some(api_reference) = api_reference {
+        router = router.route("/openapi", get(|| async { api_reference }));
+    }
+
+    router
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
@@ -579,8 +599,8 @@ where
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc.
-    // We use a `ServiceBuilder` to add the layers in the correct order.
+    // The `OpenAPI` endpoints are merged in afterwards as we don't want any layers or handlers to
+    // apply to them. We use a `ServiceBuilder` to add the layers in the correct order.
     let mut router = merged_routes
         .layer(
             ServiceBuilder::new()
@@ -601,7 +621,7 @@ where
         router = router.layer(Extension(query_logger));
     }
 
-    router.merge(openapi_only_router())
+    router.merge(openapi_only_router(dependencies.serve_api_reference))
 }
 
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
