@@ -19,9 +19,7 @@ const colors: ChipColor[] = [
   "pink",
 ];
 
-const variants: NonNullable<BadgeProps["variant"]>[] = ["fill", "outline"];
-
-const shapes: NonNullable<BadgeProps["shape"]>[] = ["default", "round"];
+const shapes: NonNullable<BadgeProps["shape"]>[] = ["square", "round"];
 
 const positions: NonNullable<BadgeProps["position"]>[] = [
   "top-left",
@@ -119,41 +117,37 @@ const AnchorCell = ({
 );
 
 // The range of elements a badge attaches to, all carrying the same `content`.
-const Anchors = ({
-  content,
-  color,
-  variant,
-}: Pick<BadgeProps, "content" | "color" | "variant">) => (
+const Anchors = ({ content, color }: Pick<BadgeProps, "content" | "color">) => (
   <div className={wideRow}>
     <AnchorCell label="icon">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <Bell />
       </Badge>
     </AnchorCell>
     <AnchorCell label="button">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <Button variant="subtle" onClick={noop}>
           Inbox
         </Button>
       </Badge>
     </AnchorCell>
     <AnchorCell label="avatar">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <Avatar fallback="AL" size="40" />
       </Badge>
     </AnchorCell>
     <AnchorCell label="small text">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <span className={smallText}>Messages</span>
       </Badge>
     </AnchorCell>
     <AnchorCell label="large text">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <span className={largeText}>Updates</span>
       </Badge>
     </AnchorCell>
     <AnchorCell label="tile">
-      <Badge content={content} color={color} variant={variant}>
+      <Badge content={content} color={color}>
         <span className={tile} />
       </Badge>
     </AnchorCell>
@@ -167,7 +161,6 @@ export default {
   },
   argTypes: {
     color: { control: { type: "select", options: colors } },
-    variant: { control: { type: "select", options: variants } },
     shape: { control: { type: "select", options: shapes } },
     position: { control: { type: "select", options: positions } },
     content: { control: { type: "text" } },
@@ -175,26 +168,22 @@ export default {
   args: {
     content: "9",
     color: "red",
-    variant: "fill",
     shape: "round",
     position: "top-right",
   },
 } satisfies StoryDefault<BadgeProps>;
 
-// A single showcase covering colours/variants, shape, content, and clickable.
+// A single showcase covering colours, shape, and content.
 export const Default: Story<BadgeProps> = () => (
   <div className={column}>
-    <SectionTitle>Colours &amp; variants</SectionTitle>
-    {variants.map((variant) => (
-      <div className={row} key={variant}>
-        <div className={rowLabel}>{variant}</div>
-        {colors.map((color) => (
-          <Badge key={color} content={9} color={color} variant={variant}>
-            <Bell />
-          </Badge>
-        ))}
-      </div>
-    ))}
+    <SectionTitle>Colours</SectionTitle>
+    <div className={row}>
+      {colors.map((color) => (
+        <Badge key={color} content={9} color={color}>
+          <Bell />
+        </Badge>
+      ))}
+    </div>
 
     <SectionTitle>Shape</SectionTitle>
     <div className={row}>
@@ -235,21 +224,10 @@ export const Default: Story<BadgeProps> = () => (
         <Bell />
       </Badge>
     </div>
-
-    {/* A clickable badge renders as a button with hover and focus-ring states. */}
-    <SectionTitle>Clickable</SectionTitle>
-    <div className={row}>
-      <Badge content={9} onClick={noop} color="red">
-        <Bell />
-      </Badge>
-      <Badge onClick={noop} color="red">
-        <Bell />
-      </Badge>
-    </div>
   </div>
 );
 Default.parameters = {
-  controls: { exclude: ["color", "variant", "shape", "position", "content"] },
+  controls: { exclude: ["color", "shape", "position", "content"] },
 };
 
 // Each corner, at three content lengths, then the same across a range of anchor
@@ -271,7 +249,6 @@ export const Position: Story<BadgeProps> = (args) => (
             content={content}
             position={position}
             color={args.color}
-            variant={args.variant}
             shape={args.shape}
           >
             <Bell />
@@ -281,10 +258,10 @@ export const Position: Story<BadgeProps> = (args) => (
     ))}
 
     <SectionTitle>Attaches to any content</SectionTitle>
-    <Anchors content={9} color={args.color} variant={args.variant} />
+    <Anchors content={9} color={args.color} />
 
     <SectionTitle>…and grows with longer content</SectionTitle>
-    <Anchors content="Processing" color={args.color} variant={args.variant} />
+    <Anchors content="Processing" color={args.color} />
   </div>
 );
 Position.parameters = { controls: { exclude: ["position", "content"] } };

@@ -13,9 +13,8 @@ export interface BadgeProps {
    * dot with no content.
    */
   content?: React.ReactNode;
-  shape?: "default" | "round";
+  shape?: "square" | "round";
   color?: ChipColor;
-  variant?: "fill" | "outline";
   /** Which corner of the anchor the badge overhangs. */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /**
@@ -24,7 +23,6 @@ export interface BadgeProps {
    * content.
    */
   max?: number;
-  onClick?: () => void;
 }
 
 /**
@@ -37,38 +35,21 @@ export const Badge = ({
   className,
   children,
   content,
-  shape = "default",
+  shape = "round",
   color = "grey",
-  variant = "fill",
   position = "top-right",
   max = 99,
-  onClick,
 }: BadgeProps) => {
   const isDot = content === undefined || content === null;
   const display =
     typeof content === "number" && content > max ? `${max}+` : content;
 
-  const badgeClassName = badgeRecipe({
-    color,
-    variant,
-    shape,
-    position,
-    dot: isDot,
-    clickable: !!onClick,
-  });
-
-  const badge = onClick ? (
-    <button type="button" className={badgeClassName} onClick={onClick}>
-      {display}
-    </button>
-  ) : (
-    <span className={badgeClassName}>{display}</span>
-  );
+  const badgeClassName = badgeRecipe({ color, shape, position, dot: isDot });
 
   return (
     <span className={cx(badgeWrapper, className)}>
       {children}
-      {badge}
+      <span className={badgeClassName}>{display}</span>
     </span>
   );
 };
