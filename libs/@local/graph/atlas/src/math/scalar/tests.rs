@@ -6,9 +6,13 @@
 
 use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, prop_oneof, property_test};
 
-use crate::math::scalar::{
-    DNonNegative, DPositive, GreaterThanOne, Log2, OpenUnitFraction, UnitFraction, huber,
-    narrow_f32, narrow_f32_exact, sigmoid, softplus,
+use crate::math::{
+    d_finite, finite,
+    scalar::{
+        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
+        OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid,
+        softplus,
+    },
 };
 
 #[test]
@@ -496,6 +500,126 @@ fn open_unit_fraction_excludes_the_endpoints() {
     assert_eq!(OpenUnitFraction::new(-0.5), None);
     assert_eq!(OpenUnitFraction::new(1.5), None);
     assert_eq!(OpenUnitFraction::new(f64::NAN), None);
+}
+
+/// The finite `f32` domain is every value except NaN and the two infinities.
+#[test]
+fn finite_admits_exactly_the_finite_f32_domain() {
+    assert_eq!(Finite::new(0.0).expect("zero is finite"), Finite::ZERO);
+    assert_eq!(Finite::new(1.0).expect("one is finite"), Finite::ONE);
+    assert_eq!(
+        Finite::new(-2.5).expect("a negative value is finite").get(),
+        -2.5
+    );
+    assert_eq!(
+        Finite::new(f32::MIN).expect("the minimum is finite").get(),
+        f32::MIN
+    );
+    assert_eq!(
+        Finite::new(f32::MAX).expect("the maximum is finite").get(),
+        f32::MAX
+    );
+
+    assert_eq!(Finite::new(f32::NAN), None);
+    assert_eq!(Finite::new(f32::INFINITY), None);
+    assert_eq!(Finite::new(f32::NEG_INFINITY), None);
+}
+
+/// Negative zero is admitted and keeps its sign bit.
+#[test]
+fn finite_preserves_negative_zero() {
+    assert_eq!(
+        Finite::new(-0.0)
+            .expect("negative zero is finite")
+            .get()
+            .to_bits(),
+        (-0.0_f32).to_bits()
+    );
+    assert_eq!(
+        DFinite::new(-0.0)
+            .expect("negative zero is finite")
+            .get()
+            .to_bits(),
+        (-0.0_f64).to_bits()
+    );
+}
+
+/// The finite `f64` domain is every value except NaN and the two infinities.
+#[test]
+fn d_finite_admits_exactly_the_finite_f64_domain() {
+    assert_eq!(DFinite::new(0.0).expect("zero is finite"), DFinite::ZERO);
+    assert_eq!(DFinite::new(1.0).expect("one is finite"), DFinite::ONE);
+    assert_eq!(
+        DFinite::new(-1.0e-300)
+            .expect("a tiny negative is finite")
+            .get(),
+        -1.0e-300
+    );
+    assert_eq!(
+        DFinite::new(f64::MIN).expect("the minimum is finite").get(),
+        f64::MIN
+    );
+    assert_eq!(
+        DFinite::new(f64::MAX).expect("the maximum is finite").get(),
+        f64::MAX
+    );
+
+    assert_eq!(DFinite::new(f64::NAN), None);
+    assert_eq!(DFinite::new(f64::INFINITY), None);
+    assert_eq!(DFinite::new(f64::NEG_INFINITY), None);
+}
+
+/// The compile-time literal macros construct through the checked constructors.
+#[test]
+fn finite_literals_validate_in_const_position() {
+    assert_eq!(finite!(-2.5).get(), -2.5);
+    assert_eq!(d_finite!(1.0e-300).get(), 1.0e-300);
+}
+
+/// The sign-bounded types widen into the finiteness-only domain.
+#[test]
+fn finite_widens_from_the_sign_bounded_types() {
+    assert_eq!(Finite::from(Positive::ONE), Finite::ONE);
+    assert_eq!(Finite::from(NonNegative::ZERO), Finite::ZERO);
+    assert_eq!(DFinite::from(DPositive::ONE), DFinite::ONE);
+    assert_eq!(DFinite::from(DNonNegative::ZERO), DFinite::ZERO);
+}
+
+/// Finite values serialize as plain numbers and deserialization re-validates the domain.
+#[test]
+fn finite_round_trips_serde_and_refuses_the_escapes() {
+    let single = Finite::new(-2.5).expect("a negative value is finite");
+    let value = serde_json::to_value(single).expect("a number serializes");
+    assert_eq!(value, serde_json::json!(-2.5));
+    assert_eq!(
+        serde_json::from_value::<Finite>(value).expect("-2.5 is finite"),
+        single
+    );
+
+    let double = DFinite::new(0.125).expect("an eighth is finite");
+    let value = serde_json::to_value(double).expect("a number serializes");
+    assert_eq!(value, serde_json::json!(0.125));
+    assert_eq!(
+        serde_json::from_value::<DFinite>(value).expect("0.125 is finite"),
+        double
+    );
+
+    // A NaN written into JSON arrives as `null`, and an overflowing exponent
+    // arrives as an infinity or as a parse failure. Both refuse.
+    serde_json::from_str::<Finite>("null").expect_err("null is not a number");
+    serde_json::from_str::<DFinite>("null").expect_err("null is not a number");
+    serde_json::from_str::<Finite>("1e40").expect_err("1e40 overflows the f32 range");
+    serde_json::from_str::<DFinite>("1e400").expect_err("1e400 overflows the f64 range");
+}
+
+#[property_test]
+fn finite_admits_every_finite_f32(#[strategy = -f32::MAX..=f32::MAX] value: f32) {
+    prop_assert_eq!(Finite::new(value).map(Finite::get), Some(value));
+}
+
+#[property_test]
+fn d_finite_admits_every_finite_f64(#[strategy = -f64::MAX..=f64::MAX] value: f64) {
+    prop_assert_eq!(DFinite::new(value).map(DFinite::get), Some(value));
 }
 
 /// The greater-than-one domain rejects one itself, infinities, and everything below.

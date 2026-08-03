@@ -3,10 +3,11 @@
 //! Checked float narrowing rides beside them.
 //!
 //! These formalize numeric patterns that recur across the crate: a stable softplus and the Huber
-//! penalty for layout losses, checked `f64` to `f32` narrowing for persisted coordinates, and the
-//! unit-interval fractions [`UnitFraction`] and [`OpenUnitFraction`], validated once at
-//! construction and carried by configuration knobs and measured shares alike. Vector reductions
-//! such as softmax and log-sum-exp live on [`DVecN`](super::DVecN).
+//! penalty for layout losses, checked `f64` to `f32` narrowing for persisted coordinates, the
+//! unit-interval fractions [`UnitFraction`] and [`OpenUnitFraction`], and the finiteness-only
+//! guards [`Finite`] and [`DFinite`] for signed quantities, all validated once at construction and
+//! carried by configuration knobs and measured shares alike. Vector reductions such as softmax and
+//! log-sum-exp live on [`DVecN`](super::DVecN).
 #[cfg(test)]
 mod tests;
 mod unit;
@@ -39,6 +40,32 @@ macro_rules! non_negative {
 }
 #[cfg(test)]
 pub(crate) use non_negative;
+
+/// Validates a finite literal at compile time.
+///
+/// The expansion is a `const` block over [`Finite::new`], so a literal outside the domain fails the
+/// build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! finite {
+    ($value:expr) => {
+        const { $crate::math::Finite::new($value).expect("the literal is finite") }
+    };
+}
+#[cfg(test)]
+pub(crate) use finite;
+
+/// Validates a finite double-precision literal at compile time.
+///
+/// The expansion is a `const` block over [`DFinite::new`], so a literal outside the domain fails
+/// the build instead of a test run. Runtime values keep the checked constructor.
+#[cfg(test)]
+macro_rules! d_finite {
+    ($value:expr) => {
+        const { $crate::math::DFinite::new($value).expect("the literal is finite") }
+    };
+}
+#[cfg(test)]
+pub(crate) use d_finite;
 
 /// Validates a positive double-precision literal at compile time.
 ///
@@ -235,6 +262,100 @@ impl<'de> serde::Deserialize<'de> for NonNegative {
     }
 }
 
+/// A finite `f32`, valid by construction.
+///
+/// The finiteness-only guard, for a quantity whose contract is that it denotes a real number and
+/// nothing further: signed coordinates, residuals, and losses that legitimately take either sign
+/// carry this type, and the consuming site validates nothing. A quantity that also has a sign or
+/// interval bound carries the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`], which
+/// states that bound in the same place.
+///
+/// Both zeros are admitted and keep their sign bit. The value serializes as a plain number, so a
+/// format whose number grammar covers exactly the finite values represents every inhabitant of this
+/// type and reads it back through the same validation.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::Finite;
+///
+/// assert_eq!(Finite::new(-2.5).expect("-2.5 is finite").get(), -2.5);
+/// assert_eq!(
+///     Finite::new(f32::MIN).expect("the minimum is finite").get(),
+///     f32::MIN
+/// );
+///
+/// assert_eq!(Finite::new(f32::NAN), None);
+/// assert_eq!(Finite::new(f32::INFINITY), None);
+/// assert_eq!(Finite::new(f32::NEG_INFINITY), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct Finite(f32);
+
+impl Finite {
+    /// The value one.
+    pub const ONE: Self = Self(1.0);
+    /// The value zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Validates a finite value.
+    ///
+    /// Returns [`None`] for NaN and for both infinities, and admits every other value of the type,
+    /// including both zeros and either extreme.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f32) -> Option<Self> {
+        if !value.is_finite() {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f32 {
+        self.0
+    }
+}
+
+impl From<Positive> for Finite {
+    /// Widens into the enclosing domain: every positive value is finite.
+    #[inline]
+    fn from(value: Positive) -> Self {
+        Self(value.get())
+    }
+}
+
+impl From<NonNegative> for Finite {
+    /// Widens into the enclosing domain: every non-negative value is finite.
+    #[inline]
+    fn from(value: NonNegative) -> Self {
+        Self(value.get())
+    }
+}
+
+impl serde::Serialize for Finite {
+    /// Serializes as the plain number.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f32(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Finite {
+    /// Deserializes a plain number, refusing NaN and the infinities.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f32::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(f64::from(value)),
+                &"a finite number",
+            )
+        })
+    }
+}
+
 /// A finite, strictly positive `f64`, valid by construction.
 ///
 /// The double-precision twin of [`Positive`], named as [`DVecN`](super::DVecN) is to
@@ -335,6 +456,96 @@ impl From<DPositive> for DNonNegative {
     #[inline]
     fn from(value: DPositive) -> Self {
         Self(value.get())
+    }
+}
+
+/// A finite `f64`, valid by construction.
+///
+/// The double-precision twin of [`Finite`], for a quantity whose contract is that it denotes a real
+/// number and nothing further. A quantity that also has a sign or interval bound carries the
+/// narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`].
+///
+/// Both zeros are admitted and keep their sign bit. The value serializes as a plain number, so a
+/// format whose number grammar covers exactly the finite values represents every inhabitant of this
+/// type and reads it back through the same validation.
+///
+/// # Examples
+///
+/// ```
+/// use hash_graph_atlas::math::DFinite;
+///
+/// assert_eq!(
+///     DFinite::new(-1.0e-300)
+///         .expect("a tiny negative is finite")
+///         .get(),
+///     -1.0e-300
+/// );
+///
+/// assert_eq!(DFinite::new(f64::NAN), None);
+/// assert_eq!(DFinite::new(f64::INFINITY), None);
+/// assert_eq!(DFinite::new(f64::NEG_INFINITY), None);
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub struct DFinite(f64);
+
+impl DFinite {
+    /// The value one.
+    pub const ONE: Self = Self(1.0);
+    /// The value zero.
+    pub const ZERO: Self = Self(0.0);
+
+    /// Validates a finite value.
+    ///
+    /// Returns [`None`] for NaN and for both infinities, and admits every other value of the type,
+    /// including both zeros and either extreme.
+    #[inline]
+    #[must_use]
+    pub const fn new(value: f64) -> Option<Self> {
+        if !value.is_finite() {
+            return None;
+        }
+
+        Some(Self(value))
+    }
+
+    /// Returns the value.
+    #[inline]
+    #[must_use]
+    pub const fn get(self) -> f64 {
+        self.0
+    }
+}
+
+impl From<DPositive> for DFinite {
+    /// Widens into the enclosing domain: every positive value is finite.
+    #[inline]
+    fn from(value: DPositive) -> Self {
+        Self(value.get())
+    }
+}
+
+impl From<DNonNegative> for DFinite {
+    /// Widens into the enclosing domain: every non-negative value is finite.
+    #[inline]
+    fn from(value: DNonNegative) -> Self {
+        Self(value.get())
+    }
+}
+
+impl serde::Serialize for DFinite {
+    /// Serializes as the plain number.
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DFinite {
+    /// Deserializes a plain number, refusing NaN and the infinities.
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f64::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(serde::de::Unexpected::Float(value), &"a finite number")
+        })
     }
 }
 

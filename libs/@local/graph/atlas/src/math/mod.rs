@@ -86,8 +86,8 @@ mod tests;
 
 #[cfg(test)]
 pub(crate) use self::scalar::{
-    d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
-    unit_fraction,
+    d_finite, d_non_negative, d_positive, finite, greater_than_one, non_negative,
+    open_unit_fraction, positive, unit_fraction,
 };
 pub use self::{
     affinity::{AffinityCurve, AffinityFitConfig},
@@ -98,9 +98,9 @@ pub use self::{
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, NotInOpenUnitInterval,
-        NotInUnitInterval, OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32,
-        narrow_f32_exact, sigmoid, softplus,
+        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
+        NotInOpenUnitInterval, NotInUnitInterval, OpenUnitFraction, Positive, UnitFraction, huber,
+        narrow_f32, narrow_f32_exact, sigmoid, softplus,
     },
     similarity::Similarity,
     transform::Transform,
