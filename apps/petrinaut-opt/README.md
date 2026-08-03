@@ -214,6 +214,20 @@ Bootstrap lives in `src/telemetry.py` and runs once when the app is created. A
 misconfigured collector is logged and swallowed so it never stops the API from
 serving.
 
+## Security and isolation
+
+The execution path, its trust boundaries, per-layer mitigations, required
+deployment configuration, and the V8-sandbox decision are documented in
+[`docs/threat-model.md`](./docs/threat-model.md).
+
+Isolation-related environment variables (all optional):
+
+| Variable                               | Default      | Meaning                                                                                                                                                                                                                                     |
+| -------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HASH_PETRINAUT_OPT_CLI_CPU_SECONDS`   | `900`        | `RLIMIT_CPU` applied to each CLI process (Linux only); `0` disables.                                                                                                                                                                        |
+| `HASH_PETRINAUT_OPT_CLI_MEMORY_BYTES`  | `2147483648` | `RLIMIT_AS` applied to each CLI process (Linux only); `0` disables. This — not the Node heap cap — is the resident-memory bound per CLI.                                                                                                    |
+| `HASH_PETRINAUT_OPT_CLI_MAX_PROCESSES` | `256`        | `RLIMIT_NPROC` set on each CLI process (Linux only); `0` disables. Linux checks it against the real UID's **total** task count (uvicorn, tini, and all concurrent CLIs share the `petrinaut` user), so size it against total service tasks. |
+
 ## Development
 
 From `apps/petrinaut-opt`:

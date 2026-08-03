@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import os
 import select
@@ -14,13 +15,74 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+try:
+    import resource
+except ImportError:  # pragma: no cover - resource is Unix-only
+    resource = None  # type: ignore[assignment]
+
+
+log = logging.getLogger("pn_client")
 
 MAX_MANIFEST_BYTES = 8 * 1024 * 1024
 MAX_PROTOCOL_LINE_BYTES = 8 * 1024 * 1024
 BOOTSTRAP_TIMEOUT_SECONDS = 25
 PROTOCOL_READ_TIMEOUT_SECONDS = 240
 PROCESS_SHUTDOWN_TIMEOUT_SECONDS = 5
+DEFAULT_CLI_CPU_SECONDS = 900
+DEFAULT_CLI_MEMORY_BYTES = 2 * 1024 * 1024 * 1024
+DEFAULT_CLI_MAX_PROCESSES = 256
 _STDERR_DRAIN_CHUNK_BYTES = 64 * 1024
+
+
+def _limit_from_environment(name: str, default: int) -> int:
+    """Read one non-negative integer limit; zero disables the limit."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        log.warning("ignoring non-integer %s=%r", name, raw)
+        return default
+    return max(0, value)
+
+
+def _apply_child_resource_limits(process_id: int) -> None:
+    """Bound the CLI's CPU time, address space, and process count.
+
+    Uses ``resource.prlimit`` (Linux only) so the limits are applied from the
+    parent without a fork-unsafe ``preexec_fn``. The child runs unbounded for
+    the instants before this call; container-level limits remain the outer
+    backstop. On platforms without ``prlimit`` (e.g. macOS development) the
+    limits are skipped. Note that Linux checks ``RLIMIT_NPROC`` against the
+    real UID's total task count — shared by every process of the service
+    user — not against this child's own descendants.
+    """
+    prlimit = getattr(resource, "prlimit", None) if resource is not None else None
+    if prlimit is None:
+        return
+    limits = (
+        ("RLIMIT_CPU", "HASH_PETRINAUT_OPT_CLI_CPU_SECONDS", DEFAULT_CLI_CPU_SECONDS),
+        ("RLIMIT_AS", "HASH_PETRINAUT_OPT_CLI_MEMORY_BYTES", DEFAULT_CLI_MEMORY_BYTES),
+        (
+            "RLIMIT_NPROC",
+            "HASH_PETRINAUT_OPT_CLI_MAX_PROCESSES",
+            DEFAULT_CLI_MAX_PROCESSES,
+        ),
+    )
+    for limit_name, environment_name, default in limits:
+        value = _limit_from_environment(environment_name, default)
+        if value <= 0:
+            continue
+        try:
+            prlimit(process_id, getattr(resource, limit_name), (value, value))
+        except (OSError, ValueError) as error:
+            log.warning(
+                "could not apply %s=%d to the Petrinaut CLI: %s",
+                limit_name,
+                value,
+                error,
+            )
 
 
 def _child_environment() -> dict[str, str]:
@@ -128,6 +190,9 @@ class PetrinautModel:
                     f"failed to start the Petrinaut CLI: {error}"
                 ) from error
             self._process = process
+
+        if isinstance(process, subprocess.Popen):
+            _apply_child_resource_limits(process.pid)
 
         if process.stdin is None or process.stdout is None or process.stderr is None:
             self.close(graceful=False)
@@ -368,6 +433,25 @@ class PetrinautModel:
         else:
             process.kill()
 
+    @staticmethod
+    def _sweep_process_group(process: Any) -> None:
+        """Kill any CLI descendants that outlived the CLI process itself.
+
+        The graceful shutdown path never signals the group, and the escalation
+        path stops once the group leader exits, so grandchildren that ignored
+        or never received a signal would otherwise survive and reparent to
+        PID 1. Only real child processes are swept — signalling an arbitrary
+        test-double pid would hit unrelated processes.
+        """
+        if not isinstance(process, subprocess.Popen):
+            return
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+        except OSError:
+            pass
+
     def close(self, *, graceful: bool = True) -> None:
         """Terminate the owned CLI process; safe to call repeatedly.
 
@@ -404,6 +488,7 @@ class PetrinautModel:
                     process.wait(timeout=PROCESS_SHUTDOWN_TIMEOUT_SECONDS)
                 except subprocess.TimeoutExpired:
                     pass
+        self._sweep_process_group(process)
         for stream in (process.stdout, process.stderr):
             if stream is not None and not stream.closed:
                 try:

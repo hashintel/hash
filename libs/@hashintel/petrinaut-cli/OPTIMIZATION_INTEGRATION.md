@@ -130,6 +130,28 @@ and returns the objective value:
 Use one CLI process with a single Optuna worker, or start an independent CLI
 process for each parallel worker.
 
+### Cancellation and shutdown
+
+The protocol has no cancel method, and the CLI handles requests serially and
+synchronously: it only observes stdin EOF _between_ requests, and it registers
+no signal handlers in stdio mode. Parents must therefore shut the CLI down as
+follows:
+
+- **After a completed study** (the CLI is idle): close stdin and wait briefly —
+  the CLI exits on EOF.
+- **To cancel a busy CLI** (a trial is executing): signal the process
+  immediately; do not wait for EOF, which a mid-trial CLI never notices.
+  Because the default signal dispositions are intact, `SIGTERM` terminates the
+  CLI even mid-trial.
+- Spawn the CLI in its own process group (e.g. `start_new_session=True`) and
+  signal the **group**, escalating `SIGTERM` → `SIGKILL`, so descendants that
+  remain in the CLI's process group are terminated with it.
+
+The production parent (`apps/petrinaut-opt`) implements this contract,
+including a final `SIGKILL` sweep of the process group on every shutdown path
+and OS-level resource limits on the CLI process; see
+`apps/petrinaut-opt/docs/threat-model.md`.
+
 ## Python wrapper with Optuna
 
 This minimal wrapper starts the CLI with a manifest file and implements the

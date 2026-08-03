@@ -95,6 +95,12 @@ ENV PATH="/opt/venv/bin:${PATH}" \
 
 WORKDIR /app
 
+# tini reaps any CLI descendants that outlive their process group; uvicorn as
+# PID 1 would leave them as zombies.
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends tini && \
+    rm -rf /var/lib/apt/lists/*
+
 # Node is the only runtime from the Node image needed by the compiled CLI.
 COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 COPY --from=python-deps /opt/venv /opt/venv
@@ -117,5 +123,7 @@ EXPOSE 4004
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4004/health', timeout=4).close()"]
+
+ENTRYPOINT ["tini", "--"]
 
 CMD ["python", "-m", "uvicorn", "src.optimization_api:app", "--host", "0.0.0.0", "--port", "4004"]
