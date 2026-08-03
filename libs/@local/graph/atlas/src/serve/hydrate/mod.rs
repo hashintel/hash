@@ -65,10 +65,8 @@
 mod client;
 mod columns;
 pub(crate) mod compile;
-mod select;
+pub(super) mod select;
 
-#[cfg(test)]
-pub(super) use self::select::{select_properties, simple_properties};
 pub use self::{
     client::{DetailError, GraphDatabaseClient},
     columns::{

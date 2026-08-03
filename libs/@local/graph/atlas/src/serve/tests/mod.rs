@@ -2347,7 +2347,7 @@ fn simple_properties_parse_every_simple_shape() {
     // The store renders 2.5 and 1.0 with their points, so both read
     // as doubles; a number beyond i64 falls back to f64 (the wire's
     // integer is i64 - the simple-value shapes carry no wider integral form).
-    let mut entries = super::hydrate::simple_properties(
+    let mut entries = super::hydrate::select::simple_properties(
         r#"{
             "https://x.test/f/": 2.5,
             "https://x.test/g/": 1.0,
@@ -2388,7 +2388,7 @@ fn simple_properties_parse_every_simple_shape() {
 #[test]
 #[should_panic(expected = "the store renders a JSON object")]
 fn simple_properties_reject_non_objects() {
-    let _entries = super::hydrate::simple_properties("[1, 2]");
+    let _entries = super::hydrate::select::simple_properties("[1, 2]");
 }
 
 #[test]
@@ -2402,7 +2402,7 @@ fn select_properties_drop_reverse_lexicographically() {
 
     // Under the cap: nothing drops, output ascends by name.
     assert_eq!(
-        super::hydrate::select_properties(entries.clone(), None, 4),
+        super::hydrate::select::select_properties(entries.clone(), None, 4),
         vec![
             property("a/"),
             property("b/"),
@@ -2413,7 +2413,7 @@ fn select_properties_drop_reverse_lexicographically() {
 
     // Over the cap: d/ drops first, then c/ - the largest names go.
     assert_eq!(
-        super::hydrate::select_properties(entries, None, 2),
+        super::hydrate::select::select_properties(entries, None, 2),
         vec![property("a/"), property("b/")],
     );
 }
@@ -2426,17 +2426,17 @@ fn select_properties_protect_the_label_to_the_end() {
     // label property: it survives every cap that admits at least
     // one property, and the survivors still emit ascending.
     assert_eq!(
-        super::hydrate::select_properties(entries.clone(), Some("z/"), 2),
+        super::hydrate::select::select_properties(entries.clone(), Some("z/"), 2),
         vec![property("a/"), property("z/")],
     );
     assert_eq!(
-        super::hydrate::select_properties(entries.clone(), Some("z/"), 1),
+        super::hydrate::select::select_properties(entries.clone(), Some("z/"), 1),
         vec![property("z/")],
     );
 
     // A cap of zero admits nothing - even the label drops.
     assert_eq!(
-        super::hydrate::select_properties(entries, Some("z/"), 0),
+        super::hydrate::select::select_properties(entries, Some("z/"), 0),
         vec![],
     );
 }

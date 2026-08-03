@@ -17,14 +17,13 @@
 //! [`ScopeSchedule`]: super::schedule::ScopeSchedule
 
 mod census;
-mod full;
+pub(super) mod full;
 
 use core::ops::Range;
 
 use hashql_core::id::{Id as _, IdSlice};
 
 pub use self::census::ViewCensus;
-pub(super) use self::full::occupied_children;
 use super::{Atlas, grid::Grid, visibility::VisibilityProof};
 use crate::{
     file::{

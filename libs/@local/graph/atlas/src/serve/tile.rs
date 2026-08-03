@@ -16,7 +16,7 @@ use super::{
     schedule::ViewSchedule,
     view::{View, ViewError},
     visibility::VisibilityProof,
-    walk::{DeliveredPoints, ViewCensus, Walk, occupied_children},
+    walk::{DeliveredPoints, ViewCensus, Walk, full::occupied_children},
 };
 use crate::salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer};
 
