@@ -1,221 +1,76 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
-import type { ReactNode } from "react";
+import { badgeRecipe, badgeWrapper } from "./badge.recipe";
+
+import type { ChipColor } from "../Chip/chip";
 
 export interface BadgeProps {
-  /** The content of the badge */
-  children: ReactNode;
-  /** The color scheme of the badge */
-  colorScheme?:
-    | "gray"
-    | "brand"
-    | "green"
-    | "orange"
-    | "red"
-    | "purple"
-    | "pink"
-    | "yellow";
-  /** The size of the badge */
-  size?: "xs" | "sm" | "md" | "lg";
-  /** Whether the badge is square (for numeric badges) */
-  isSquare?: boolean;
-  /** Optional icon to display on the left */
-  iconLeft?: ReactNode;
-  /** Optional icon to display on the right */
-  iconRight?: ReactNode;
+  className?: string;
+  /** The element the badge attaches to (e.g. an icon). */
+  children: React.ReactNode;
+  /**
+   * The badge's own content (e.g. a `99` unread count). Omit to render a small
+   * dot with no content.
+   */
+  content?: React.ReactNode;
+  shape?: "default" | "round";
+  color?: ChipColor;
+  variant?: "fill" | "outline";
+  /** Which corner of the anchor the badge overhangs. */
+  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  /**
+   * Caps numeric `content`: a value above `max` renders as `{max}+` (e.g.
+   * `content={100}` with `max={99}` shows "99+"). Ignored for non-numeric
+   * content.
+   */
+  max?: number;
+  onClick?: () => void;
 }
 
-// Define recipe for badge styling variants
-const badgeRecipe = cva({
-  base: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "medium",
-    textAlign: "center",
-    whiteSpace: "nowrap",
-    userSelect: "none",
-    overflow: "clip",
-    paddingY: "2",
-  },
-  variants: {
-    colorScheme: {
-      gray: {
-        backgroundColor: "neutral.s20",
-        color: "neutral.s80",
-      },
-      brand: {
-        backgroundColor: "blue.s10",
-        color: "blue.s80",
-      },
-      green: {
-        backgroundColor: "green.s10",
-        color: "green.s80",
-      },
-      orange: {
-        backgroundColor: "orange.s10",
-        color: "orange.s80",
-      },
-      red: {
-        backgroundColor: "red.s00",
-        color: "red.s80",
-      },
-      purple: {
-        backgroundColor: "purple.s00",
-        color: "purple.s80",
-      },
-      pink: {
-        backgroundColor: "pink.s10",
-        color: "pink.s80",
-      },
-      yellow: {
-        backgroundColor: "yellow.s10",
-        color: "yellow.s80",
-      },
-    },
-    size: {
-      xs: {
-        fontSize: "[9px]",
-        lineHeight: "[12px]",
-        gap: "3",
-        height: "[14px]",
-      },
-      sm: {
-        fontSize: "xs",
-        lineHeight: "none",
-        gap: "3",
-        height: "[16px]",
-      },
-      md: {
-        fontSize: "sm",
-        lineHeight: "none",
-        gap: "3",
-        height: "[20px]",
-      },
-      lg: {
-        fontSize: "base",
-        lineHeight: "none",
-        gap: "3",
-        height: "[24px]",
-      },
-    },
-    isSquare: {
-      true: {},
-      false: {},
-    },
-  },
-  compoundVariants: [
-    // Rounded badges - padding and border radius
-    {
-      isSquare: false,
-      size: "xs",
-      css: {
-        paddingX: "3",
-        borderRadius: "sm",
-      },
-    },
-    {
-      isSquare: false,
-      size: "sm",
-      css: {
-        paddingX: "3",
-        borderRadius: "sm",
-      },
-    },
-    {
-      isSquare: false,
-      size: "md",
-      css: {
-        paddingX: "4",
-        borderRadius: "md",
-      },
-    },
-    {
-      isSquare: false,
-      size: "lg",
-      css: {
-        paddingX: "4",
-        borderRadius: "md",
-      },
-    },
-    // Square badges - fixed width and border radius
-    {
-      isSquare: true,
-      size: "xs",
-      css: {
-        paddingX: "3",
-        width: "[14px]",
-        borderRadius: "sm",
-      },
-    },
-    {
-      isSquare: true,
-      size: "sm",
-      css: {
-        paddingX: "3",
-        width: "[16px]",
-        borderRadius: "sm",
-      },
-    },
-    {
-      isSquare: true,
-      size: "md",
-      css: {
-        paddingX: "4",
-        width: "[20px]",
-        borderRadius: "md",
-      },
-    },
-    {
-      isSquare: true,
-      size: "lg",
-      css: {
-        paddingX: "4",
-        width: "[24px]",
-        borderRadius: "md",
-      },
-    },
-  ],
-  defaultVariants: {
-    colorScheme: "gray",
-    size: "xs",
-    isSquare: false,
-  },
-});
-
-export const Badge: React.FC<BadgeProps> = ({
+/**
+ * A small status pill that attaches to another element like a styled sup/sub —
+ * e.g. a "99+" unread count overhanging a mail icon. Pass the element to
+ * decorate as `children` and the badge's content as `content`; the badge is
+ * positioned in the chosen corner of that element.
+ */
+export const Badge = ({
+  className,
   children,
-  colorScheme = "gray",
-  size = "xs",
-  isSquare = false,
-  iconLeft,
-  iconRight,
-}) => {
+  content,
+  shape = "default",
+  color = "grey",
+  variant = "fill",
+  position = "top-right",
+  max,
+  onClick,
+}: BadgeProps) => {
+  const isDot = content === undefined || content === null;
+  const display =
+    max !== undefined && typeof content === "number" && content > max
+      ? `${max}+`
+      : content;
+
+  const badgeClassName = badgeRecipe({
+    color,
+    variant,
+    shape,
+    position,
+    dot: isDot,
+    clickable: !!onClick,
+  });
+
+  const badge = onClick ? (
+    <button type="button" className={badgeClassName} onClick={onClick}>
+      {display}
+    </button>
+  ) : (
+    <span className={badgeClassName}>{display}</span>
+  );
+
   return (
-    <span className={badgeRecipe({ colorScheme, size, isSquare })}>
-      {iconLeft && (
-        <span
-          className={css({
-            display: "inline-flex",
-            alignItems: "center",
-            flexShrink: "0",
-          })}
-        >
-          {iconLeft}
-        </span>
-      )}
+    <span className={cx(badgeWrapper, className)}>
       {children}
-      {iconRight && (
-        <span
-          className={css({
-            display: "inline-flex",
-            alignItems: "center",
-            flexShrink: "0",
-          })}
-        >
-          {iconRight}
-        </span>
-      )}
+      {badge}
     </span>
   );
 };
