@@ -7,6 +7,7 @@ import type { ChipColor } from "../Chip/chip";
 
 export interface BadgeProps {
   className?: string;
+  contentClassName?: string;
   /** The element the badge attaches to (e.g. an icon). */
   children: React.ReactNode;
   /**
@@ -34,6 +35,7 @@ export interface BadgeProps {
  */
 export const Badge = ({
   className,
+  contentClassName,
   children,
   content,
   shape = "round",
@@ -46,13 +48,18 @@ export const Badge = ({
     typeof content === "number" && content > max ? `${max}+` : content;
 
   const pill = (
-    <span className={cx(badgeRecipe({ color, shape, dot: isDot }), className)}>
+    <span
+      className={cx(
+        badgeRecipe({ color, shape, dot: isDot }),
+        contentClassName,
+      )}
+    >
       {display}
     </span>
   );
 
   return (
-    <BaseBadge position={position} content={pill}>
+    <BaseBadge className={className} position={position} content={pill}>
       {children}
     </BaseBadge>
   );

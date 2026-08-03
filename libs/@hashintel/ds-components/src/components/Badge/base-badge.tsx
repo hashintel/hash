@@ -1,3 +1,5 @@
+import { cx } from "@hashintel/ds-helpers/css";
+
 import {
   baseBadgeFrame,
   baseBadgePosition,
@@ -5,6 +7,7 @@ import {
 } from "./base-badge.recipe";
 
 export interface BaseBadgeProps {
+  className?: string;
   /** The element the overlay attaches to (e.g. an icon). */
   children: React.ReactNode;
   /** The overlay placed on the chosen corner of `children`. */
@@ -19,11 +22,12 @@ export interface BaseBadgeProps {
  * leaving the overlay's own appearance to the caller (see `Badge`).
  */
 export const BaseBadge = ({
+  className,
   children,
   content,
   position = "top-right",
 }: BaseBadgeProps) => (
-  <span className={baseBadgeWrapper}>
+  <span className={cx(baseBadgeWrapper, className)}>
     {children}
     <span className={baseBadgeFrame}>
       <span className={baseBadgePosition({ position })}>{content}</span>
