@@ -261,8 +261,8 @@ impl HannoyIndex {
         lock.try_lock()?;
 
         // SAFETY: The crate cannot rule out another process opening the same database, but every
-        // opening through this crate's controlled access surface goes through a mandatory file
-        // lock.
+        // opening through this crate's controlled access surface first claims the directory's
+        // exclusive advisory lock. The handle holds the lock for its whole life.
         let env = unsafe {
             EnvOpenOptions::new()
                 .map_size(options.map_size)

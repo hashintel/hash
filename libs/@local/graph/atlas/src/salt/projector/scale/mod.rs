@@ -116,8 +116,8 @@ where
             .into_iter()
             .map(|scale| {
                 NonNegative::new(scale).expect(
-                    "the scan above rejected non-finite scales, and a mean of distances is never \
-                     negative",
+                    "the scan above rejected non-finite scales, and a median of distances is \
+                     never negative",
                 )
             })
             .collect();
@@ -206,9 +206,8 @@ fn row_scale<N>(coordinates: &IdSlice<N, Vec2>, knn: &KnnView<'_, N>, row: N) ->
 where
     N: Id,
 {
-    // The nearest entries by (stored distance, row id); stored
-    // distances are finite by the table's validation, so plain
-    // lexicographic comparison is total.
+    // The nearest entries by (stored distance, row id); stored distances are finite by the table's
+    // validation, so plain lexicographic comparison is total.
     let mut nearest = [(f32::INFINITY, N::MAX); LOCAL_SCALE_NEIGHBOURS];
     for neighbour in knn.row(row) {
         insert_nearest(&mut nearest, (neighbour.distance, neighbour.id));

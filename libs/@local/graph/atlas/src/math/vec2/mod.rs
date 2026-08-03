@@ -222,8 +222,8 @@ impl Vec2 {
     ///
     /// # Panics
     ///
-    /// This panics in debug builds when a component of `low` exceeds the matching component of
-    /// `high`, or when a bound is NaN, following [`f32::clamp`].
+    /// This panics when a component of `low` exceeds the matching component of `high`, or when a
+    /// bound is NaN, following [`f32::clamp`]. The check runs in every build profile.
     #[inline]
     #[must_use]
     pub const fn clamp(self, low: Self, high: Self) -> Self {
@@ -514,8 +514,8 @@ impl Vec2x4T {
 
     /// Returns the four pairwise dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i] . other[i]`. On targets with native FMA one instruction performs the
-    /// multiply-add, rounding once instead of twice.
+    /// Lane `i` holds the dot product of the batches' `i`-th vectors. On targets with native FMA
+    /// one instruction performs the multiply-add, rounding once instead of twice.
     #[inline]
     #[must_use]
     pub fn dot(self, other: Self) -> Simd<f32, 4> {
@@ -524,10 +524,11 @@ impl Vec2x4T {
 
     /// Returns the four pairwise perpendicular dot products as SIMD lanes.
     ///
-    /// Lane `i` holds `self[i].perp_dot(other[i])`, with the sign semantics of [`Vec2::perp_dot`]:
-    /// positive when `other`'s vector is counterclockwise from this batch's, negative when
-    /// clockwise, zero when the vectors are parallel. On targets with native FMA one instruction
-    /// performs the multiply-add, rounding once instead of twice.
+    /// Lane `i` holds the perpendicular dot product of the batches' `i`-th vectors, with the sign
+    /// semantics of [`Vec2::perp_dot`]: the lane is positive when `other`'s vector is
+    /// counterclockwise from this batch's and negative when clockwise. Parallel vectors yield
+    /// zero. On targets with native FMA one instruction performs the multiply-add, rounding once
+    /// instead of twice.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f32, 4> {
@@ -536,8 +537,8 @@ impl Vec2x4T {
 
     /// Returns the four pairwise squared Euclidean distances as SIMD lanes.
     ///
-    /// Lane `i` holds the squared distance between `self[i]` and `other[i]`. On targets with native
-    /// FMA one instruction performs the multiply-add, rounding once instead of twice.
+    /// Lane `i` holds the squared distance between the batches' `i`-th vectors. On targets with
+    /// native FMA one instruction performs the multiply-add, rounding once instead of twice.
     #[inline]
     #[must_use]
     pub fn distance_squared(self, other: Self) -> Simd<f32, 4> {
@@ -568,7 +569,8 @@ impl Vec2x4T {
     }
 }
 
-/// Adds the batches vector-wise: entry `i` of the result is `self[i] + other[i]`.
+/// Adds the batches vector-wise: the result's `i`-th vector is the sum of the operands' `i`-th
+/// vectors.
 impl Add for Vec2x4T {
     type Output = Self;
 
@@ -578,7 +580,8 @@ impl Add for Vec2x4T {
     }
 }
 
-/// Subtracts the batches vector-wise: entry `i` of the result is `self[i] - other[i]`.
+/// Subtracts the batches vector-wise: the result's `i`-th vector is the difference of the
+/// operands' `i`-th vectors.
 impl Sub for Vec2x4T {
     type Output = Self;
 

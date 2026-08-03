@@ -110,7 +110,7 @@ impl fmt::Display for GeometryClass {
 pub(crate) struct Posterior([UnitFraction; GeometryClass::COUNT]);
 
 impl Posterior {
-    /// Sum tolerance accepted by [`new`](Self::new), in units in the last place of 1.0.
+    /// Sum tolerance accepted by [`new`](Self::new), as an absolute deviation from one.
     ///
     /// Covers the rounding of a summed softmax without admitting an unnormalized distribution.
     const SUM_TOLERANCE: f64 = 1.0e-9;

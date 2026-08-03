@@ -223,7 +223,7 @@ pub(crate) struct AssemblyEvidence {
     /// Over-budget components subdivision split.
     #[serde(default)]
     pub subdivided_groups: usize,
-    /// Groups accepted over budget because identity and near-duplication alone hold them together.
+    /// Groups accepted over budget because identity edges alone hold them together.
     #[serde(default)]
     pub oversized_accepted: usize,
     /// The weakest axis rank subdivision engaged.

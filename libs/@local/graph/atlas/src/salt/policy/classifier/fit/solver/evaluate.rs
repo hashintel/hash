@@ -278,6 +278,7 @@ impl Prepared<'_> {
         {
             // Divide-then-fma matches the fused single-loop bytes: each component becomes
             // `share.mul_add(direction, component / S)` with the same two roundings.
+            // `finish_gradient` keeps the same shape for the gradient.
             **product_row /= self.total_weight;
             product_row.mul_add(direction_row, share);
         }

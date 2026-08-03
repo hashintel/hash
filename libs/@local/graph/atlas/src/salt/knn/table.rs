@@ -184,7 +184,8 @@ where
     /// # Errors
     ///
     /// Returns an error when the matrix is not row-compressed, not square over at least two rows,
-    /// ragged, self-referencing, or carries a distance outside the finite `[0, 2]` range.
+    /// ragged, or self-referencing, when its per-row neighbour count is zero or not below the row
+    /// count, or when a stored distance lies outside the finite `[0, 2]` range.
     pub(crate) fn new(matrix: KnnMatrix) -> Result<Self, KnnValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix, PhantomData))
@@ -197,8 +198,12 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the lists are narrower than the stored width or the assembled table
-    /// violates a [`Knn`] invariant.
+    /// Returns [`KnnError::Invalid`] when the row domain or the assembled table violates a [`Knn`]
+    /// invariant, [`KnnError::ListsWidth`] when the lists are narrower than the stored width,
+    /// [`KnnError::TooManyRows`] when the row domain exceeds the table's `u32` column encoding,
+    /// [`KnnError::TooManyEntries`] when the requested shape overflows the entry count,
+    /// [`KnnError::NeighbourOutOfBounds`] when a list references a row outside the row domain, and
+    /// [`KnnError::DuplicateNeighbour`] when a list stores the same neighbour twice.
     pub(crate) fn from_lists<E: Send>(
         lists: &NeighbourLists<N>,
         neighbours: NonZero<usize>,

@@ -475,14 +475,23 @@ impl VisibilityCache {
 
                         // Published under moka's key lock, so the comparison and the write cannot
                         // straddle another writer. A refresh replaces the entry it refreshed and
-                        // creates none: an absent entry keeps an older proof from re-entering a
-                        // slot that the hard window or eviction emptied.
+                        // creates none, which keeps an older proof out of any slot the hard window
+                        // or eviction has cleared.
+                        //
+                        // Identity picks that entry, not age. The refresh latch is minted per entry
+                        // and shared by its clones. A stranger holding the slot therefore keeps it,
+                        // whatever its timestamp reads.
+                        //
+                        // Age cannot pick the entry. `now` is stamped when a request arrives rather
+                        // than when its insert completes. An entry resolved before the refresh
+                        // trigger can reach the slot after the refresh started, and an age
+                        // comparison overwrites exactly that entry.
                         drop(
                             entries
                                 .entry(key)
                                 .and_compute_with(async |held| {
                                     let replaces = held.is_some_and(|held| {
-                                        held.value().resolved_at <= refreshed.resolved_at
+                                        Arc::ptr_eq(&held.value().refreshing, &refreshing)
                                     });
 
                                     if replaces {
@@ -858,6 +867,76 @@ mod tests {
         assert_eq!(
             after.digest, newer.digest,
             "the newer resolution still answers: the refresh published nothing over it"
+        );
+    }
+
+    /// A refresh publishes only over the entry it refreshed.
+    ///
+    /// Identity names that entry. Age cannot name it: a request stamps `now` when it arrives, while
+    /// its insert completes only after a pool acquire and a store round trip. An entry resolved
+    /// before the refresh was triggered can therefore be written into the slot after that refresh
+    /// started. An age comparison overwrites it, and its proof is a different resolution that no
+    /// request asked to have replaced.
+    ///
+    /// The fixture holds a refresh in flight while it empties the slot and refills it with a
+    /// stranger stamped below the refresh trigger. Only then does the refresh complete.
+    #[tokio::test]
+    async fn refresh_publishes_only_over_its_own_entry() {
+        let cache = VisibilityCache::new(LIMITS);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let now = Instant::now();
+
+        let held = cache
+            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .await
+            .expect("the resolution answers");
+
+        let gate = Arc::new(tokio::sync::Notify::new());
+        let refresh_gate = Arc::clone(&gate);
+        let refresh_calls = Arc::clone(&calls);
+        let stale = cache
+            .resolve(key(), now + SOFT, move || {
+                let gate = Arc::clone(&refresh_gate);
+                let calls = Arc::clone(&refresh_calls);
+                async move {
+                    gate.notified().await;
+                    calls.fetch_add(1, Ordering::Relaxed);
+                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
+                }
+            })
+            .await
+            .expect("the held entry answers");
+        assert_eq!(stale.digest, held.digest, "the stale read answered as held");
+
+        // A different entry takes the slot while the refresh is in flight, stamped below the
+        // refresh trigger: the request that arrived before the refreshing one and whose insert
+        // landed after it.
+        cache.entries.invalidate(&key()).await;
+        let stranger = cache
+            .resolve(key(), now + SOFT / 2, answering(&[7], &calls))
+            .await
+            .expect("the stranger resolution answers");
+        assert!(
+            stranger.resolved_at < now + SOFT,
+            "the stranger is older than the refresh trigger, so an age test replaces it"
+        );
+
+        gate.notify_one();
+
+        // The refresh's own resolution must complete for this fixture to witness anything.
+        let mut resolved = false;
+        for _ in 0..64_u8 {
+            tokio::task::yield_now().await;
+            if calls.load(Ordering::Relaxed) == 3 {
+                resolved = true;
+            }
+        }
+        assert!(resolved, "the refresh resolved behind the stranger");
+
+        let after = cache.get(&key()).await.expect("an entry stays held");
+        assert_eq!(
+            after.digest, stranger.digest,
+            "the stranger still answers: a refresh publishes only over the entry it refreshed"
         );
     }
 

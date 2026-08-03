@@ -1124,8 +1124,8 @@ const impl<const N: usize, A: Allocator> PartialEq for BoxedDVecN<N, A> {
 impl<const N: usize, A: Allocator> Drop for BoxedDVecN<N, A> {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `alloc` allocated `ptr` in `new_in` with the same layout and nothing has
-        // deallocated it since.
+        // SAFETY: every constructor allocates `ptr` from `alloc` with `Self::layout()`, the
+        // layout passed here, and nothing has deallocated it since.
         unsafe {
             self.alloc.deallocate(self.ptr.cast::<u8>(), Self::layout());
         }

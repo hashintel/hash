@@ -32,9 +32,11 @@ mod tests;
 /// matrix. It scales lengths uniformly and preserves every angle, so shapes keep their proportions
 /// and their winding direction.
 ///
-/// The scale of every value is a finite, strictly positive, normal number. [`new`](Self::new) and
-/// [`from_array`](Self::from_array) return [`None`] for invalid input, which makes
-/// [`inverse`](Self::inverse) total. Every similarity has an inverse.
+/// The scale of a constructed value is a finite, strictly positive, normal number:
+/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else,
+/// which keeps the divisor in [`inverse`](Self::inverse) away from zero. [`then`](Self::then) and
+/// [`inverse`](Self::inverse) build their results without revalidating, so the invariant carries
+/// through them only inside the scale ranges their docs state.
 ///
 /// Obtain one from weighted point correspondences with [`fit`](Self::fit), the closed-form
 /// Procrustes alignment, or with [`fit_par`](Self::fit_par) when the pairs number in the hundreds

@@ -315,8 +315,8 @@ fn run(
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from the
-/// norm.
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite. The outer
+/// loop certifies its accepted norm finite before calling, so a solve never reaches this error.
 fn gradient_threshold(
     config: &SolverConfig,
     certificate: &mut Option<CertificateEvidence>,
@@ -392,8 +392,8 @@ const fn reserve_candidate_requests(
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when no valid threshold derives from the
-/// norm.
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite, the one case
+/// where no valid threshold derives.
 pub(super) fn derive_certificate(
     config: &SolverConfig,
     initial_norm: f64,
