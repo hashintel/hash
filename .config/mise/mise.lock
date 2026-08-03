@@ -258,7 +258,7 @@ url = "https://github.com/protocolbuffers/protobuf/releases/download/v35.1/proto
 url_api = "https://api.github.com/repos/protocolbuffers/protobuf/releases/assets/445060254"
 
 [[tools.rust]]
-version = "nightly-2026-07-13"
+version = "nightly-2026-07-20"
 backend = "core:rust"
 
 [tools.rust.options]
