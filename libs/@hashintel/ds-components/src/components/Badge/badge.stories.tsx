@@ -136,7 +136,12 @@ const Anchors = ({
       </Badge>
     </AnchorCell>
     <AnchorCell label="avatar">
-      <Badge content={content} color={color} position={position}>
+      <Badge
+        content={content}
+        color={color}
+        position={position}
+        alignTo="circle"
+      >
         <Avatar fallback="AL" size="40" />
       </Badge>
     </AnchorCell>

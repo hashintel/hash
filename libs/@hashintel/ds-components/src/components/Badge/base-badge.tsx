@@ -14,6 +14,12 @@ export interface BaseBadgeProps {
   content: React.ReactNode;
   /** Which corner of the anchor the overlay overhangs. */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  /**
+   * Set to `"circle"` to align the overlay to a circular anchor (e.g. a round
+   * avatar) — it sits on the circle's edge instead of the empty bounding-box
+   * corner. Assumes a square/circular anchor.
+   */
+  alignTo?: "circle";
 }
 
 /**
@@ -26,11 +32,14 @@ export const BaseBadge = ({
   children,
   content,
   position = "top-right",
+  alignTo,
 }: BaseBadgeProps) => (
   <span className={cx(baseBadgeWrapper, className)}>
     {children}
     <span className={baseBadgeFrame}>
-      <span className={baseBadgePosition({ position })}>{content}</span>
+      <span className={baseBadgePosition({ position, alignTo })}>
+        {content}
+      </span>
     </span>
   </span>
 );
