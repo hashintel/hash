@@ -113,18 +113,18 @@ impl FromStr for Sha256Digest {
 /// );
 /// ```
 #[derive(Debug, Default)]
-pub struct Sha256(sha2::Sha256);
+pub(crate) struct Sha256(sha2::Sha256);
 
 impl Sha256 {
     /// Creates a hasher over the empty byte sequence.
     #[must_use]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
     /// Finishes the digest over all bytes absorbed so far.
     #[must_use]
-    pub fn finalize(self) -> Sha256Digest {
+    pub(crate) fn finalize(self) -> Sha256Digest {
         Sha256Digest(HexBytes::new(self.0.finalize().into()))
     }
 }

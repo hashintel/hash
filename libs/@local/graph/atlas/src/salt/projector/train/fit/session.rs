@@ -40,6 +40,7 @@ use super::{
     TrainingEvidence, TrainingSchedule,
 };
 use crate::{
+    math::Finite,
     progress::Progress,
     salt::{
         projector::{
@@ -450,23 +451,32 @@ where
     );
 
     let (frozen, radius) = match (calibration.radius, options.lens.asserted_radius) {
-        (_, Some(radius)) => (radius, FrozenRadius::Asserted { radius }),
-        (Some(radius), None) => (radius, FrozenRadius::Measured { radius }),
+        // `RelationLens::new` refuses a non-finite assertion, so the lens carries a finite value.
+        (_, Some(radius)) => {
+            let radius = Finite::new(radius).expect("a validated lens asserts a finite radius");
+            (radius, FrozenRadius::Asserted { radius })
+        }
+        // The quantile is drawn from the locally normalized `z` population, whose values are
+        // finite.
+        (Some(radius), None) => {
+            let radius = Finite::new(radius).expect("a quantile of finite z values is finite");
+            (radius, FrozenRadius::Measured { radius })
+        }
         // The entry check admits this run only with reviewed coverage or an assertion. Reaching
         // here means the two mass walks disagree, so this returns an error rather than composing
         // from nothing.
         (None, None) => return Err(TrainError::MissingProximalReviews),
     };
 
-    let proximal = ProximalEnergy::new(frozen, options.lens.temperature.get())
-        .expect("a measured quantile of finite z values is finite and non-negative");
+    let proximal = ProximalEnergy::new(frozen.get(), options.lens.temperature.get())
+        .expect("a measured quantile of the z population is non-negative");
     let energy = RelationEnergy::new(
         options.lens.coincident,
         proximal,
         options.lens.epsilon.get(),
     )
     .ok_or_else(|| TrainError::DegenerateRadius {
-        radius: frozen,
+        radius: frozen.get(),
         coincident: options.lens.coincident.radius(),
     })?;
 

@@ -23,7 +23,7 @@ use core::ops::Range;
 
 use hashql_core::id::{Id as _, IdSlice};
 
-pub use self::census::ViewCensus;
+pub(crate) use self::census::ViewCensus;
 use super::{Atlas, grid::Grid, visibility::VisibilityProof};
 use crate::{
     file::{

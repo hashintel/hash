@@ -167,8 +167,9 @@ const _: () = assert!(LandmarkSupport::new(LandmarkSupport::default().weight()).
 /// stamped live configuration and the placement default.
 ///
 /// The semantic affinity energy composes at stage entry from the fit's low-dimensional kernel and
-/// [`affinity_offset`]: the projector objective and the landmark layout share one curve by design. The composition rejects a curve whose exponent lies below the energy's
-/// gradient-boundedness bound, aborting the fit before training.
+/// [`affinity_offset`]. The projector objective and the landmark layout share one curve by design.
+/// The composition rejects a curve whose exponent lies below the energy's gradient-boundedness
+/// bound, aborting the fit before training.
 ///
 /// [`affinity_offset`]: Self::affinity_offset
 #[derive(Debug, Clone, PartialEq)]

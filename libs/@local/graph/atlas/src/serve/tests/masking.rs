@@ -1,7 +1,20 @@
 //! The visibility masking battery, covering every read surface computed over the masked view.
 
-use super::*;
-use crate::math::{Bounds2, Vec2};
+use rand::{RngExt as _, SeedableRng as _};
+
+use super::{
+    Artifacts, Atlas, BasePosition, Bound, CutOffset, Depth, EDGE_SEED, EdgesLimits, FIXTURE_EDGES,
+    FIXTURE_LOD, FULL, Generation, HEAD, HashMap, HashSet, Id, IdSlice, Mode, MortonCell,
+    NodeRowId, POSITIONS, ROW_IDS, ServeLimits, TileHead, TileLimits, TileQuery, TileRequest,
+    TileResponse, VisibilityProof, Xoshiro256PlusPlus, codec, coordinate_of, decode_rows,
+    domain_mask, edges_request, entity_string_of, expected_edges_bytes, fixture_row_ids, full_grid,
+    head_global, locate_request, mask_hiding, mask_hiding_rows, narrow_usize, open_artifacts,
+    publish, qualifying_columns, request, section, test_codec, viewing, walk, wire_columns,
+};
+use crate::{
+    math::{Bounds2, Vec2},
+    serve::visibility::VisibleRow,
+};
 
 /// The generation's extent, and the rows attaining any of its four extremes.
 ///
@@ -43,8 +56,6 @@ fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn resolve_collapses_every_failure_to_one_none() {
-    use crate::serve::VisibleRow;
-
     let (_generation, atlas) = publish("resolve-seam").await;
     let node_codec = test_codec(&atlas);
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -1102,8 +1113,7 @@ async fn the_unmasked_census_agrees_with_the_walked_one() {
 
     let admits_everything = mask_hiding(&atlas, &[]);
     assert_ne!(
-        FULL.digest(),
-        admits_everything.digest(),
+        FULL, admits_everything,
         "the two proofs are distinct values, so the agreement below is not an identity"
     );
     assert_eq!(

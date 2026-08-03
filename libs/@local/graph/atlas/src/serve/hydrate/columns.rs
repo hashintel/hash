@@ -78,7 +78,7 @@ impl NodeDetails {
 /// A hydrated property value takes no other shape. The store filters out nested objects and arrays,
 /// so they never cross the connection.
 #[derive(Debug, Clone, PartialEq)]
-pub enum SimpleValue {
+pub(crate) enum SimpleValue {
     /// A text scalar.
     Text(String),
     /// A number the store renders integral, within `i64`.

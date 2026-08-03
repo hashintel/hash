@@ -21,7 +21,7 @@ use core::num::NonZero;
 
 use rand::{
     Rng, RngExt as _, SeedableRng as _,
-    seq::index::{IndexVec, sample, sample_array},
+    seq::index::{IndexVec, sample},
 };
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -53,37 +53,8 @@ mod tests;
 /// ```
 #[inline]
 #[must_use]
-pub fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
+pub(crate) fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
     rng.random_range(0..bound.get())
-}
-
-/// Samples `N` distinct indices from `[0, population)` uniformly at random.
-///
-/// Without replacement, into a fixed-size array.
-///
-/// Every `N`-element subset of the population is equally likely, and the returned order is itself
-/// uniformly random. Memory scales with the sample size rather than the population size. The draw
-/// makes no heap allocation.
-///
-/// Returns [`None`] when the population holds fewer than `N` indices: there is no `N`-element
-/// sample to draw.
-///
-/// # Examples
-///
-/// ```
-/// use hash_graph_atlas::random::sample_indices;
-/// use rand::SeedableRng as _;
-/// use rand_xoshiro::Xoshiro256PlusPlus;
-///
-/// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
-/// let picked = sample_indices::<3>(&mut rng, 1_000_000).expect("the population covers a sample");
-/// assert!(picked.iter().all(|&index| index < 1_000_000));
-/// assert_ne!(picked[0], picked[1]);
-/// ```
-#[inline]
-#[must_use]
-pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> Option<[usize; N]> {
-    sample_array::<_, N>(&mut rng, population)
 }
 
 /// Samples `count` distinct indices from `[0, population)` uniformly at random.
@@ -112,7 +83,7 @@ pub fn sample_indices<const N: usize>(mut rng: impl Rng, population: usize) -> O
 /// ```
 #[inline]
 #[must_use]
-pub fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) -> IndexVec {
+pub(crate) fn sample_indices_vec(mut rng: impl Rng, population: usize, count: usize) -> IndexVec {
     sample(&mut rng, population, count)
 }
 
@@ -148,7 +119,7 @@ const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 /// assert_ne!(draws.random::<u64>(), sibling.random::<u64>());
 /// ```
 #[must_use]
-pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
+pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
     let mut mixed = seed ^ key.wrapping_mul(SPLITMIX64_GAMMA);
     mixed ^= stream.wrapping_mul(SPLITMIX64_MIX_1);
     mixed = (mixed ^ (mixed >> 30)).wrapping_mul(SPLITMIX64_MIX_1);
@@ -190,7 +161,7 @@ pub fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
 /// assert_eq!(acceptance_sample_size(0.01, 1.0), None);
 /// ```
 #[must_use]
-pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize> {
+pub(crate) fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize> {
     let in_open_unit_interval = |value: f64| value > 0.0 && value < 1.0;
     if !in_open_unit_interval(defect_rate) || !in_open_unit_interval(confidence) {
         return None;
@@ -250,7 +221,7 @@ pub fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize
 /// assert_eq!(mean_sample_size(0.32, 0.01, 1.0), None);
 /// ```
 #[must_use]
-pub fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> Option<usize> {
+pub(crate) fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> Option<usize> {
     if !deviation.is_finite() || deviation < 0.0 || !margin.is_finite() || margin <= 0.0 {
         return None;
     }
@@ -298,7 +269,7 @@ pub fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> Option<
     reason = "A through D are the canonical names of Acklam's coefficient rows"
 )]
 #[must_use]
-pub fn normal_quantile(probability: f64) -> Option<f64> {
+pub(crate) fn normal_quantile(probability: f64) -> Option<f64> {
     // Acklam's coefficients: one rational approximation for the central
     // region and one for each tail, meeting at 0.02425.
     const A: [f64; 6] = [

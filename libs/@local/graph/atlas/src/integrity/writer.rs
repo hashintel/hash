@@ -11,7 +11,7 @@ use pin_project_lite::pin_project;
 /// [`Sha256`](super::Sha256) implements this. The concatenated byte stream alone determines the
 /// absorbed value: feeding one large slice and feeding the same bytes across many calls are
 /// equivalent.
-pub trait Update {
+pub(crate) trait Update {
     /// Absorbs `bytes` into the accumulator.
     fn update(&mut self, bytes: &[u8]);
 }

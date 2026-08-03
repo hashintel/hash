@@ -67,7 +67,7 @@ mod columns;
 pub(crate) mod compile;
 pub(super) mod select;
 
-pub use self::{
+pub(crate) use self::{
     client::{DetailError, GraphDatabaseClient},
     columns::{
         DeliveredEntities, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails, NodeDetails,

@@ -369,7 +369,9 @@ mod tests {
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
 
     use super::{proof_problem, view_problem};
-    use crate::serve::{CutOffset, ScheduleWidthError, ViewError, hydrate::compile::ProofError};
+    use crate::serve::{
+        CutOffset, ViewError, hydrate::compile::ProofError, schedule::ScheduleWidthError,
+    };
 
     /// One real compiler error, reused so the mapping is visibly a statement about the failing
     /// stage rather than about the error inside it.

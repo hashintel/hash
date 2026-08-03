@@ -31,8 +31,8 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
-        unit_fraction,
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, finite, non_negative,
+        positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -612,8 +612,8 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let FrozenRadius::Measured { radius } = boundary.radius else {
         panic!("an unasserted boundary measures its radius");
     };
-    assert!(radius.is_finite() && radius > 0.0);
-    assert_eq!(boundary.calibration.radius, Some(radius));
+    assert!(radius.get() > 0.0);
+    assert_eq!(boundary.calibration.radius, Some(radius.get()));
 
     let entry = &boundary.calibration.types[0];
     assert_eq!(entry.relation, OntologyRowId::new(RELATION));
@@ -682,7 +682,12 @@ fn asserted_radius_supersedes_the_measurement() {
         .boundary
         .as_ref()
         .expect("the boundary ran within the schedule");
-    assert_eq!(boundary.radius, FrozenRadius::Asserted { radius: 1.5 });
+    assert_eq!(
+        boundary.radius,
+        FrozenRadius::Asserted {
+            radius: finite!(1.5)
+        }
+    );
     assert!(
         boundary.calibration.radius.is_some(),
         "the measured quantiles still land in evidence for judging the assertion"
@@ -794,7 +799,12 @@ fn asserted_radius_permits_a_zero_boundary() {
         .as_ref()
         .expect("the boundary ran at step zero");
     assert_eq!(boundary.step, 0);
-    assert_eq!(boundary.radius, FrozenRadius::Asserted { radius: 1.5 });
+    assert_eq!(
+        boundary.radius,
+        FrozenRadius::Asserted {
+            radius: finite!(1.5)
+        }
+    );
 }
 
 #[test]
@@ -848,7 +858,12 @@ fn coincident_only_force_requires_an_assertion() {
         .boundary
         .as_ref()
         .expect("the boundary ran within the schedule");
-    assert_eq!(boundary.radius, FrozenRadius::Asserted { radius: 1.0 });
+    assert_eq!(
+        boundary.radius,
+        FrozenRadius::Asserted {
+            radius: finite!(1.0)
+        }
+    );
 }
 
 #[test]

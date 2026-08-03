@@ -17,7 +17,7 @@ use super::{ParseHexError, hex::HexBytes};
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
 #[derive(Clone)]
-pub struct SecretString(String);
+pub(crate) struct SecretString(String);
 
 impl SecretString {
     /// Consumes the secret, handing the held value onward in a wrapper that zeroizes on drop.
@@ -92,7 +92,7 @@ impl FromStr for SecretString {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct SecretHexBytes<const N: usize>(HexBytes<N>);
+pub(crate) struct SecretHexBytes<const N: usize>(HexBytes<N>);
 
 impl<const N: usize> SecretHexBytes<N> {
     /// Wraps raw secret bytes.

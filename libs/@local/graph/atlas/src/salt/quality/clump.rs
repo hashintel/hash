@@ -29,10 +29,10 @@
 
 use core::{cmp::Ordering, num::NonZero};
 
-use hashql_core::id::{Id, IdVec};
+use hashql_core::id::{Id, IdUnionFind, IdVec};
 
 use super::super::knn::table::KnnView;
-use crate::{disjoint::DisjointSet, math::UnitFraction};
+use crate::math::UnitFraction;
 
 /// The default clump threshold, as cosine distance over the 512-component representation.
 ///
@@ -82,14 +82,14 @@ where
     /// `epsilon` admits no edges.
     pub(crate) fn from_knn(table: &KnnView<'_, N>, epsilon: f32) -> Self {
         let rows = table.rows();
-        let mut components = DisjointSet::<N>::new(rows);
+        let mut components = IdUnionFind::<N>::new(rows);
 
         for row in 0..rows {
             let row = N::from_usize(row);
 
             for neighbour in table.row(row) {
                 if neighbour.distance <= epsilon {
-                    components.unite(row, neighbour.id);
+                    components.unify(row, neighbour.id);
                 }
             }
         }

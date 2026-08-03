@@ -1,5 +1,3 @@
-use core::ptr;
-
 use rand_core as rc10;
 use rand_core_06 as rc06;
 
@@ -12,16 +10,6 @@ impl<R: ?Sized> Compat<R> {
         R: Sized,
     {
         Self(rng)
-    }
-
-    pub(crate) const fn from_ref(rng: &R) -> &Self {
-        // SAFETY: repr(transparent)
-        unsafe { &*(ptr::from_ref::<R>(rng) as *const Self) }
-    }
-
-    pub(crate) const fn from_mut(rng: &mut R) -> &mut Self {
-        // SAFETY: repr(transparent)
-        unsafe { &mut *(ptr::from_mut::<R>(rng) as *mut Self) }
     }
 }
 

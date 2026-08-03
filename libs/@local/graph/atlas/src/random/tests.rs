@@ -4,31 +4,10 @@ use proptest::{arbitrary::any, prop_assert, property_test};
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{
-    Compat, acceptance_sample_size, mean_sample_size, normal_quantile, sample_indices,
-    sample_indices_vec, uniform_below,
-};
+use super::{acceptance_sample_size, mean_sample_size, normal_quantile, uniform_below};
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
-}
-
-#[test]
-fn compat_ref_casts_view_the_rng_in_place() {
-    use rand_core::Rng as _;
-    use rand_core_06::RngCore as _;
-
-    let mut wrapped = rng(7);
-    let mut reference = rng(7);
-
-    assert!(core::ptr::eq(
-        core::ptr::from_ref(Compat::from_ref(&wrapped)).cast::<Xoshiro256PlusPlus>(),
-        &raw const wrapped,
-    ));
-    assert_eq!(
-        Compat::from_mut(&mut wrapped).next_u64(),
-        reference.next_u64()
-    );
 }
 
 #[test]
@@ -86,63 +65,6 @@ fn uniform_below_is_deterministic_per_seed() {
             .array_windows::<2>()
             .any(|[left, right]| left != right)
     );
-}
-
-#[test]
-fn sample_indices_returns_distinct_in_range_indices() {
-    let mut rng = rng(1);
-
-    let picked = sample_indices::<16>(&mut rng, 1_000).expect("the population covers the sample");
-
-    let mut seen = picked;
-    seen.sort_unstable();
-    for [left, right] in seen.array_windows::<2>() {
-        assert!(left < right, "indices must be distinct");
-    }
-    assert!(picked.iter().all(|&index| index < 1_000));
-}
-
-#[test]
-fn sample_indices_rejects_undersized_populations() {
-    let mut rng = rng(2);
-
-    assert!(sample_indices::<4>(&mut rng, 3).is_none());
-    assert!(sample_indices::<4>(&mut rng, 4).is_some());
-    assert_eq!(sample_indices::<0>(&mut rng, 0), Some([]));
-}
-
-#[test]
-fn sample_indices_hits_every_index_over_repetitions() {
-    let mut rng = rng(3);
-
-    // Sampling 2 of 5 across 400 draws must pick every index. The expected
-    // count per index is 160 and the chance of an index staying below 100 is
-    // negligible.
-    let mut counts = [0_u32; 5];
-    for _ in 0..400 {
-        let picked = sample_indices::<2>(&mut rng, 5).expect("the population covers the sample");
-        for index in picked {
-            counts[index] += 1;
-        }
-    }
-
-    for (index, &count) in counts.iter().enumerate() {
-        assert!(count > 100, "index {index} picked {count} times");
-    }
-}
-
-#[test]
-fn sample_indices_vec_matches_the_array_contract() {
-    let mut rng = rng(4);
-
-    let picked = sample_indices_vec(&mut rng, 100_000, 688);
-    assert_eq!(picked.len(), 688);
-
-    let mut seen: Vec<usize> = picked.into_iter().collect();
-    seen.sort_unstable();
-    seen.dedup();
-    assert_eq!(seen.len(), 688, "indices must be distinct");
-    assert!(seen.iter().all(|&index| index < 100_000));
 }
 
 #[test]
@@ -216,23 +138,6 @@ fn uniform_below_stays_in_range(
     let value = uniform_below(&mut Xoshiro256PlusPlus::seed_from_u64(seed), bound);
 
     prop_assert!(value < bound.get());
-}
-
-/// Samples are always distinct, in range, and exactly `N` long for any covering population.
-#[property_test]
-fn sample_indices_is_a_valid_subset(
-    #[strategy = any::<u64>()] seed: u64,
-    #[strategy = 8_usize..10_000] population: usize,
-) {
-    let picked = sample_indices::<8>(&mut Xoshiro256PlusPlus::seed_from_u64(seed), population)
-        .expect("the population covers the sample");
-
-    let mut seen = picked;
-    seen.sort_unstable();
-    for [left, right] in seen.array_windows::<2>() {
-        prop_assert!(left < right);
-    }
-    prop_assert!(picked.iter().all(|&index| index < population));
 }
 
 /// The quantile matches tabulated standard normal values.

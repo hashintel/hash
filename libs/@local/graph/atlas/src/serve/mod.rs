@@ -52,27 +52,22 @@ use hashql_core::id::{IdSlice, IdVec};
 
 use self::grid::Grid;
 pub use self::{
-    cache::VisibilityLimits,
+    cache::VisibilityLimits, locate::LocateLimits, tile::TileLimits, translate::TranslateLimits,
+};
+pub(crate) use self::{
     codec::WireRow,
-    density::{CutOffset, DensityBand, DensityPolicy, DensityPolicyError, ViewOccupancy},
-    edges::{EdgesDocument, EdgesError, EdgesLimits, EdgesRequest},
+    density::{CutOffset, DensityBand, DensityPolicy, ViewOccupancy},
+    edges::{EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
-    hydrate::{
-        DeliveredEntities, DetailError, EdgeLinkDetails, GraphDatabaseClient, LocateLinkDetails,
-        LocateNodeDetails, NodeDetails, SimpleValue,
-    },
-    locate::{LocateDocument, LocateError, LocateLimits, LocateRequest},
-    manifest::{BucketSchedule, Manifest, ManifestLimits},
+    hydrate::{DetailError, GraphDatabaseClient},
+    locate::{LocateError, LocateRequest},
+    manifest::Manifest,
     open::OpenOptions,
-    schedule::{ScheduleWidthError, ScopeSchedule, ViewSchedule},
-    secret::{WireSecret, WireSecretError},
-    tile::{TileDocument, TileError, TileLimits, TileQuery, TileRequest},
-    translate::{
-        TranslateError, TranslateLimits, TranslateRequest, TranslateResponse, TranslatedEdge,
-        TranslatedNode,
-    },
+    secret::WireSecret,
+    tile::{TileError, TileQuery, TileRequest},
+    translate::{TranslateError, TranslateRequest, TranslateResponse},
     view::{View, ViewError},
-    visibility::{VisibilityProof, VisibleRow},
+    visibility::VisibilityProof,
     walk::ViewCensus,
 };
 use crate::{
@@ -104,7 +99,7 @@ mod locate;
 mod manifest;
 mod neighbourhood;
 mod open;
-mod schedule;
+pub(crate) mod schedule;
 mod secret;
 mod tile;
 mod translate;
@@ -120,7 +115,7 @@ mod tests;
 ///
 /// Surface v1 serves exactly `plain`; routes and manifests take variant names and indices from this
 /// constant.
-pub const VARIANTS: [&str; 1] = ["plain"];
+pub(crate) const VARIANTS: [&str; 1] = ["plain"];
 
 /// The serving controls in one configurable value: request-validation limits and response-shaping
 /// limits.
@@ -133,23 +128,18 @@ pub const VARIANTS: [&str; 1] = ["plain"];
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ServeLimits {
     /// The tile endpoint's limits.
-    pub tile: TileLimits,
+    pub tile: TileLimits = TileLimits::default(),
     /// The edges endpoint's limits.
-    pub edges: EdgesLimits,
+    pub edges: EdgesLimits = EdgesLimits::default(),
     /// The locate endpoint's limits.
-    pub locate: LocateLimits,
+    pub locate: LocateLimits = LocateLimits::default(),
     /// The translate endpoint's limits.
-    pub translate: TranslateLimits,
+    pub translate: TranslateLimits = TranslateLimits::default(),
 }
 
 const impl Default for ServeLimits {
     fn default() -> Self {
-        Self {
-            tile: TileLimits::default(),
-            edges: EdgesLimits::default(),
-            locate: LocateLimits::default(),
-            translate: TranslateLimits::default(),
-        }
+        Self { .. }
     }
 }
 
@@ -259,7 +249,7 @@ impl Atlas {
     /// Returns the generation identity: the `HEAD` echo, the route echo.
     #[inline]
     #[must_use]
-    pub const fn generation(&self) -> GenerationId {
+    pub(crate) const fn generation(&self) -> GenerationId {
         self.generation.id()
     }
 
@@ -299,11 +289,6 @@ impl Atlas {
     /// Views the endpoint column: edge row to `[source, target]`.
     fn endpoint_pairs(&self) -> &IdSlice<EdgeRowId, [NodeRowId; 2]> {
         self.endpoints.view()
-    }
-
-    /// Views the rank column in base order.
-    fn ranks(&self) -> &IdSlice<BasePosition, ImportanceRank> {
-        self.ranks.view()
     }
 
     /// Views the position permutation in row order.

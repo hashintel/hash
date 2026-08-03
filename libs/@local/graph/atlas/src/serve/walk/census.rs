@@ -32,7 +32,7 @@ use crate::{
 /// The extent carries wire coordinates, so the value is [`PartialEq`] and not [`Eq`]: two censuses
 /// compare equal when their counts and their extents agree.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct ViewCensus {
+pub(crate) struct ViewCensus {
     /// The visible points of the root's cumulative schedule.
     visible: u64,
     /// The tight wire-frame extent of the visible set, [`None`] when it is empty.
@@ -46,6 +46,7 @@ impl ViewCensus {
     ///
     /// [`Walk::visible_census`] answers this for a proof admitting nothing, with zero delivered
     /// points, an absent extent, and a depth of zero.
+    #[cfg(test)]
     pub(crate) const EMPTY: Self = Self {
         visible: 0,
         bounds: None,

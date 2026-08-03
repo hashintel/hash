@@ -41,7 +41,7 @@ use super::{
     step::LossBreakdown,
 };
 use crate::{
-    math::{Positive, UnitFraction},
+    math::{Finite, Positive, UnitFraction},
     progress::Progress,
     salt::{
         knn::table::KnnView,
@@ -273,9 +273,9 @@ pub(crate) struct TrainerInputs<'run, N, E> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum FrozenRadius {
     /// Measured from the reviewed-Proximal pairs.
-    Measured { radius: f32 },
+    Measured { radius: Finite },
     /// Asserted by configuration, superseding the measurement.
-    Asserted { radius: f32 },
+    Asserted { radius: Finite },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
 }

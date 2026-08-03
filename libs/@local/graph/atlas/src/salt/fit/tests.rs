@@ -45,7 +45,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
-        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+        d_non_negative, d_positive, finite, greater_than_one, open_unit_fraction,
     },
     progress::NoProgress,
     salt::{
@@ -1620,7 +1620,9 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         .expect("a trained placement records projector evidence");
     assert_eq!(
         evidence.boundary,
-        Some(FrozenRadiusEvidence::Asserted { radius: 1.0 }),
+        Some(FrozenRadiusEvidence::Asserted {
+            radius: finite!(1.0)
+        }),
         "the configured radius supersedes the empty review set"
     );
 

@@ -56,6 +56,7 @@ impl Scaling {
 
     /// The diagonal in flat contrast-major layout.
     #[inline]
+    #[cfg(test)]
     pub(super) const fn diagonal(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         &self.diagonal
     }

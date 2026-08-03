@@ -86,21 +86,6 @@ impl FilterDigest {
 
         Self(hasher.finalize())
     }
-
-    /// Returns the digest's bytes.
-    pub(crate) const fn digest(self) -> Sha256Digest {
-        self.0
-    }
-
-    /// Restores a digest that travelled, as an authority token's does.
-    ///
-    /// The bytes are a digest this process or another already computed over a filter document
-    /// exactly as presented. Nothing here recomputes it. A wrong value names a scope no filter
-    /// produces, and since no entry is held for that scope and no request carries its document,
-    /// admission refuses the request rather than resolving one.
-    pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
-        Self(digest)
-    }
 }
 
 /// Names one write into one slot, ordered against every other write this cache makes.

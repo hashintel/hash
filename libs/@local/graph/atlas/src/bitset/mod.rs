@@ -8,7 +8,7 @@
 //! [`DenseBitSet`]: hashql_core::id::bit_vec::DenseBitSet
 //! [`BitMatrix`]: hashql_core::id::bit_vec::BitMatrix
 
-pub use self::compress::CompressedBitSet;
+pub(crate) use self::compress::CompressedBitSet;
 
 mod compress;
 #[cfg(test)]

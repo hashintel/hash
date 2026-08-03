@@ -36,7 +36,7 @@ mod hex;
 mod secret;
 mod writer;
 
-pub use self::{
+pub(crate) use self::{
     hash::{Sha256, Sha256Digest},
     hex::{HexBytes, ParseHexError},
     secret::{SecretHexBytes, SecretString},

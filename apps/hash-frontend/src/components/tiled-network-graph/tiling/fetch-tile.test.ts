@@ -18,6 +18,7 @@ import {
   ATLAS_API_BASE_URL,
   AtlasAuthorityEndedError,
   ATLAS_AUTHORITY_HEADER,
+  AtlasDeliveryCutChangedError,
   clearAtlasSessionCache,
   fetchTile,
   FetchTileError,
@@ -1269,14 +1270,16 @@ describe("the atlas authority token", () => {
     expect(dataRoutes(seen)).toHaveLength(2);
   });
 
-  it("consumes only the header at a renewal, never the document", async () => {
+  it("reads the caller's cut at a renewal, never the generation's schedule or limits", async () => {
     const generation = genHex(0x61);
     let renewed = false;
     const seen = stubAuthorityTransport({
       "/atlas/current": () => json({ generation }),
       [`/atlas/generation/${generation}/manifest`]: (request) => {
-        // The manifest is immutable per generation, so this shrinking document cannot happen on a
-        // real server: it is here so that a refresh which re-read the document would fail loudly.
+        // Every block but `scopeSchedule` holds for the generation's lifetime, so this shrinking
+        // document cannot happen on a real server: it is here so that a refresh which re-read the
+        // schedule or the limits would fail loudly. Its `scopeSchedule` is the bootstrap's, which
+        // is what keeps the session alive across the renewal.
         if (request.authority === null) {
           return manifest(generation, 16, TOKEN_A);
         }
@@ -1293,6 +1296,129 @@ describe("the atlas authority token", () => {
 
     expect(nodes).toHaveLength(3);
     expect(manifestFetches(seen)).toHaveLength(2);
+  });
+
+  it("renews a restricted session at its own sealed cut without ending it", async () => {
+    const generation = genHex(0x63);
+    // The negative control for the case below, and the reason it is a separate test: a nonzero `k`
+    // is the normal state of a restricted caller, not a defect. A renewal carries the sealed offset
+    // verbatim, so the cut is unchanged, so the rows painted at `z + 8` stay painted.
+    let expired = true;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) => {
+        if (request.authority === null) {
+          return manifest(generation, 16, TOKEN_A, 2);
+        }
+        expired = false;
+        return manifest(generation, 16, TOKEN_B, 2);
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        expired ? unauthorized() : saltile(tileBytes(0x63, 1, 1, 0, 8)),
+    });
+
+    const before = getAtlasSessionRevision();
+    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE });
+
+    expect(nodes).toHaveLength(3);
+    // One renewal and no replacement: no `/current` re-read, and the binding never moved.
+    expect(manifestFetches(seen)).toHaveLength(2);
+    expect(
+      seen.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(1);
+    expect(getAtlasSessionRevision()).toBe(before);
+  });
+
+  it("ends the session when a renewal re-mints at a different delivery cut", async () => {
+    const generation = genHex(0x62);
+    // The one manifest block that is per-caller rather than per-generation: `scopeSchedule` states
+    // the delivery cut this caller's view resolved. The server seals no offset for a view that
+    // resolves as the corpus — at every mint, including a renewal carrying a predecessor's nonzero
+    // one — and refuses a token that carries one with the uniform `401` whose stated remedy is a
+    // fresh manifest request. So a session sealed at `k = 2` can be refused and then renewed at
+    // `k = 0`, and the renewal's `200` is where the change is visible.
+    //
+    // Without the cut comparison the recovery the server promises cannot complete: the renewal
+    // succeeds, the session keeps `m + 2`, and the retry decodes a corpus head counted from `m` and
+    // fails its `firstBucket` check — a terminal decode failure that no recovery path reaches, with
+    // every later tile of the session failing the same way.
+    let corpus = false;
+    let minted = TOKEN_A;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, 16, minted, corpus ? 0 : 2),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: (request) => {
+        if (request.authority !== minted) {
+          return unauthorized();
+        }
+        // The head is counted from the cut the current view serves, which is the whole point: the
+        // corpus view delivers at `z + 6` where the scoped one delivered at `z + 8`.
+        return saltile(tileBytes(0x62, 1, 1, 0, corpus ? 6 : 8));
+      },
+    });
+
+    // Painted under the scoped view, two levels deeper than the corpus serves.
+    expect((await fetchTile(1, 1, { baseUrl: BASE })).nodes).toHaveLength(3);
+    const before = getAtlasSessionRevision();
+    const settled = seen.length;
+
+    corpus = true;
+    minted = TOKEN_B;
+
+    // The session is replaced and the request retried, so the caller still sees a painted tile —
+    // decoded against the cut the successor session resolved.
+    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    expect(nodes).toHaveLength(3);
+
+    // Advanced once, so every holder of rows painted at the old cut discarded them: they are rows
+    // the renewed authority would not deliver, and no remap exists.
+    expect(getAtlasSessionRevision()).toBe(before + 1);
+    const recovery = seen.slice(settled);
+    // The renewal presented the refused token and succeeded; the replacement bootstrap presented
+    // none. Asserting token-lessness on the manifest is what proves the second one is a bootstrap.
+    expect(
+      manifestFetches(recovery).map((request) => request.authority),
+    ).toEqual([TOKEN_A, null]);
+    expect(dataRoutes(recovery).map((request) => request.authority)).toEqual([
+      TOKEN_A,
+      TOKEN_B,
+    ]);
+  });
+
+  it("names the moved cut as its own failure when the replacement is not available", async () => {
+    const generation = genHex(0x64);
+    // The class is the assertion. A superseded caller cannot replace the session, so the error it
+    // raised travels intact rather than being reported as a decode mismatch or a refusal — which is
+    // what lets the session's owner tell a successful renewal at a moved cut from a refused one.
+    let corpus = false;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) => {
+        if (request.authority === null) {
+          return manifest(generation, 16, TOKEN_A, 2);
+        }
+        // The pinned session is dropped by someone else — a principal transition, say — while this
+        // renewal is in flight, which is a real ordering because a renewal outlives its callers'
+        // signals on purpose. The caller is superseded, so it may replace nothing and its own
+        // failure is what reaches it.
+        clearAtlasSessionCache(BASE);
+        return manifest(generation, 16, TOKEN_B, 0);
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: (request) =>
+        !corpus && request.authority === TOKEN_A
+          ? saltile(tileBytes(0x64, 1, 1, 0, 8))
+          : unauthorized(),
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+    corpus = true;
+
+    await expect(
+      fetchTile(1, 1, { baseUrl: BASE, retry: 0 }),
+    ).rejects.toBeInstanceOf(AtlasDeliveryCutChangedError);
+    // One painted tile and one refusal: the superseded caller retried nothing.
+    expect(dataRoutes(seen)).toHaveLength(2);
   });
 });
 

@@ -111,13 +111,6 @@ fn the_bands_bounds_are_inside_it() {
     assert_eq!(band.distance(4_001), 1);
 }
 
-/// The band defaults to the ratified public bounds.
-#[test]
-fn the_default_band_is_two_thousand_through_four_thousand() {
-    assert_eq!(DensityBand::default().lower(), 2_000);
-    assert_eq!(DensityBand::default().upper(), 4_000);
-}
-
 /// The key width caps a resolution that would otherwise keep going deeper.
 ///
 /// A span-6 schedule serving 18 zooms leaves room for 8. The deepest bucket `18 + 6 + 8` is exactly

@@ -32,19 +32,6 @@ use crate::dataset::ArchivedEntityId;
 /// The base URL of the system `icon` property an entity may carry.
 const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
 
-/// The entity's properties with every protected key removed.
-///
-/// Every property value a hydration query reads comes from this expression, and `$3` carries the
-/// protected base URLs in every query that has one. Removing the keys at the JSONB itself covers
-/// each derived column at once, so an aggregate, a count and a single-key lookup all read the
-/// masked object. The parens hold the subtraction to the whole object, since `->` binds tighter
-/// than `-`: without them `properties - keys -> 'f'` subtracts `keys -> 'f'`.
-///
-/// The store removes the same keys with the same operator under a per-actor condition, so an
-/// unconditional removal withholds at least what the store withholds from any actor. The tests pin
-/// every query to this exact spelling.
-const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
-
 /// The tile hydration query.
 ///
 /// One batched lookup, input order preserved through the ordinality column, absent entities missing
@@ -243,7 +230,7 @@ const EDGES_LINK_QUERY: &str = "
 
 /// A detail hydration failed against the store.
 #[derive(Debug)]
-pub enum DetailError {
+pub(crate) enum DetailError {
     /// No connection was available for the query.
     Connect(Report<StoreError>),
     /// The store rejected the query.
@@ -330,7 +317,7 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
-    pub async fn labels_and_icons(
+    pub(crate) async fn labels_and_icons(
         &self,
         entities: &DeliveredEntities,
     ) -> Result<NodeDetails, DetailError> {
@@ -379,7 +366,7 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(points = entities.count()))]
-    pub async fn locate_details(
+    pub(crate) async fn locate_details(
         &self,
         entities: &DeliveredEntities,
         properties: u32,
@@ -440,7 +427,7 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(edges = entities.count()))]
-    pub async fn locate_link_details(
+    pub(crate) async fn locate_link_details(
         &self,
         entities: &DeliveredEntities,
         type_ids: u32,
@@ -504,7 +491,7 @@ impl GraphDatabaseClient {
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
     #[tracing::instrument(skip_all, fields(edges = entities.count()))]
-    pub async fn link_details(
+    pub(crate) async fn link_details(
         &self,
         entities: &DeliveredEntities,
     ) -> Result<EdgeLinkDetails, DetailError> {
@@ -583,7 +570,6 @@ fn domain_index(row: &tokio_postgres::Row) -> usize {
 mod tests {
     use super::{
         DETAIL_QUERY, EDGES_LINK_QUERY, ICON_PROPERTY, LOCATE_DETAIL_QUERY, LOCATE_LINK_QUERY,
-        MASKED_PROPERTIES,
     };
 
     /// The function whose call is the one read of the unmasked object.
@@ -591,6 +577,8 @@ mod tests {
     /// The label lateral resolves which `labelProperty` path produced the label, so it reads the
     /// object the label cache read and delivers no value from it.
     const LABEL_ATTRIBUTION: &str = "jsonb_extract_path(";
+
+    const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
 
     /// Every hydration query, with whether it reads the entity's properties object.
     const QUERIES: [(&str, &str, bool); 4] = [

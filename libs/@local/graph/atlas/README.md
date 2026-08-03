@@ -50,13 +50,23 @@ Serve the active generation and read from it (`atlas` with no subcommand serves 
 cargo run -p hash-graph -- atlas --root /var/lib/hash/atlas
 ```
 
+The manifest and every data route name their actor in `X-Authenticated-User-Actor-Id`, which the surrounding service sets. `current` and the OpenAPI routes take no actor. A data request also replays the `Atlas-Authority` token the manifest response minted for that actor:
+
 ```sh
+actor="00000000-0000-0000-0000-000000000000"   # whatever actor the gateway authenticated
 generation="$(curl -fsS http://127.0.0.1:4003/v1/atlas/current | jq -r .generation)"
-curl -fsS -X POST "http://127.0.0.1:4003/v1/atlas/generation/${generation}/manifest" | jq
+curl -fsS -X POST -D manifest.headers \
+  -H "X-Authenticated-User-Actor-Id: ${actor}" \
+  "http://127.0.0.1:4003/v1/atlas/generation/${generation}/manifest" | jq
+authority="$(tr -d '\r' < manifest.headers | awk 'tolower($1) == "atlas-authority:" { print $2 }')"
 curl -fS -X POST \
+  -H "X-Authenticated-User-Actor-Id: ${actor}" \
+  -H "Atlas-Authority: ${authority}" \
   "http://127.0.0.1:4003/v1/atlas/tile/${generation}/plain/0/0/0" \
   --output root.saltile
 ```
+
+Without the actor header a request answers `missing-actor` (400). A data request presenting no live token for that actor answers `unauthorized` (401).
 
 ## Concepts
 
@@ -123,7 +133,7 @@ Generation directories are immutable and publication is no-clobber. A publish wh
 
 ## Security posture
 
-The API serves only reads. It authenticates every data request against the `Atlas-Authority` token its manifest response mints, and resolves one visibility scope per authenticated actor. Bind it to loopback or a trusted internal network and put TLS and rate limits in the surrounding service.
+The API serves only reads, and the trust boundary runs through the surrounding service rather than through this crate. **Atlas does not authenticate a user.** It trusts `X-Authenticated-User-Actor-Id` as stated by whatever fronts it. What it authenticates is token continuity: a data request replays the `Atlas-Authority` token its manifest response minted, and that token's tag binds the actor presenting it. One visibility scope resolves per actor. Authenticating the user, and overwriting any actor header the caller supplied, belongs to the surrounding service, which in this repository is hash-api's `/atlas` proxy. Exposing this port directly therefore hands actor identity, and every scope with it, to the caller. Bind it to loopback or a trusted internal network and put TLS and rate limits in front of it.
 
 What the crate does guarantee, independent of the surrounding service:
 

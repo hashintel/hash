@@ -19,7 +19,7 @@ use crate::{
     },
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2},
+    math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, finite},
     morton::Depth,
     salt::{
         AssemblyEvidence, BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
@@ -284,7 +284,9 @@ fn evidence() -> Evidence {
         },
         projector: Some(ProjectorEvidence {
             steps: 12,
-            boundary: Some(FrozenRadiusEvidence::Measured { radius: 0.35 }),
+            boundary: Some(FrozenRadiusEvidence::Measured {
+                radius: finite!(0.35),
+            }),
             unresolved_verdicts: 1,
             ladder: Some(LadderEvidence {
                 rungs: vec![

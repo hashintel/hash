@@ -69,7 +69,7 @@ use crate::{
 ///
 /// Unconfigured, the band runs 2,000 through 4,000 occupied cells.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct DensityBand {
+pub(crate) struct DensityBand {
     lower: NonZero<u64>,
     upper: NonZero<u64>,
 }
@@ -97,7 +97,7 @@ impl DensityBand {
     /// assert_eq!(band.distance(4_500), 500);
     /// ```
     #[must_use]
-    pub const fn new(lower: NonZero<u64>, upper: NonZero<u64>) -> Option<Self> {
+    pub(crate) const fn new(lower: NonZero<u64>, upper: NonZero<u64>) -> Option<Self> {
         if upper.get() < lower.get() {
             return None;
         }
@@ -105,21 +105,9 @@ impl DensityBand {
         Some(Self { lower, upper })
     }
 
-    /// Returns the band's lower bound.
-    #[must_use]
-    pub const fn lower(self) -> u64 {
-        self.lower.get()
-    }
-
-    /// Returns the band's upper bound.
-    #[must_use]
-    pub const fn upper(self) -> u64 {
-        self.upper.get()
-    }
-
     /// Returns `count`'s distance to the band, zero inside it.
     #[must_use]
-    pub const fn distance(self, count: u64) -> u64 {
+    pub(crate) const fn distance(self, count: u64) -> u64 {
         if count < self.lower.get() {
             return self.lower.get() - count;
         }
@@ -231,7 +219,7 @@ impl Error for DensityPolicyError {}
 /// differing in any of them are different public policies, and a resolved cut is comparable only
 /// within one of them.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct DensityPolicy {
+pub(crate) struct DensityPolicy {
     band: DensityBand,
     span: Log2,
     /// The deepest offset the schedule leaves room for: `32 - (max_tile_depth + span)`.
@@ -266,7 +254,7 @@ impl DensityPolicy {
     /// assert_eq!(policy.band(), DensityBand::default());
     /// # Ok::<(), hash_graph_atlas::serve::DensityPolicyError>(())
     /// ```
-    pub fn new(
+    pub(crate) fn new(
         band: DensityBand,
         span: Log2,
         max_tile_depth: u8,
@@ -294,6 +282,7 @@ impl DensityPolicy {
 
     /// Returns the policy's band.
     #[must_use]
+    #[cfg(test)]
     pub const fn band(self) -> DensityBand {
         self.band
     }
@@ -320,7 +309,7 @@ impl DensityPolicy {
     /// The result may lie outside the band. Counts step by whole subdivisions, so a coarse step can
     /// jump the band and a small, co-located, or saturation-capped view can stay below it.
     #[must_use]
-    pub fn resolve(self, occupancy: &ViewOccupancy) -> CutOffset {
+    pub(crate) fn resolve(self, occupancy: &ViewOccupancy) -> CutOffset {
         let saturation = occupancy
             .saturation_depth()
             .get()
@@ -363,7 +352,7 @@ impl DensityPolicy {
     /// zero, so a value at or below a resolvable one is itself resolvable, and the key width stays
     /// bounded because the same generation's ceiling bounded the carried value.
     #[must_use]
-    pub fn rebind(self, carried: CutOffset, occupancy: &ViewOccupancy) -> CutOffset {
+    pub(crate) fn rebind(self, carried: CutOffset, occupancy: &ViewOccupancy) -> CutOffset {
         carried.min(self.resolve(occupancy))
     }
 }
@@ -374,7 +363,7 @@ impl DensityPolicy {
 /// saturation depth read off. The module doc carries the derivation and the reason the profile is
 /// the whole stored form.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ViewOccupancy {
+pub(crate) struct ViewOccupancy {
     /// Entry `d` holds `C(d, V)`: zero throughout for an empty view, and one at [`Depth::MIN`] -
     /// the whole domain - for every other.
     occupied: [u64; Self::DEPTHS],
@@ -389,7 +378,7 @@ impl ViewOccupancy {
     /// Sorts `keys` in place: the aggregate is a function of their multiset, and sorting is what
     /// lets one pass reach every depth's count.
     #[must_use]
-    pub fn of(keys: &mut [MortonKey]) -> Self {
+    pub(crate) fn of(keys: &mut [MortonKey]) -> Self {
         keys.sort_unstable();
 
         let mut occupied = [0_u64; Self::DEPTHS];
@@ -423,6 +412,7 @@ impl ViewOccupancy {
 
     /// Returns whether the view occupies nothing.
     #[must_use]
+    #[cfg(test)]
     pub const fn is_empty(&self) -> bool {
         self.occupied[Depth::MIN.get() as usize] == 0
     }
@@ -431,13 +421,13 @@ impl ViewOccupancy {
     ///
     /// Zero for an empty view; one for every other view at [`Depth::MIN`], the whole domain.
     #[must_use]
-    pub const fn occupied_cells(&self, depth: Depth) -> u64 {
+    pub(crate) const fn occupied_cells(&self, depth: Depth) -> u64 {
         self.occupied[depth.get() as usize]
     }
 
     /// Counts the distinct complete keys the view carries: `Q(V) = C(32, V)`.
     #[must_use]
-    pub const fn distinct_keys(&self) -> u64 {
+    pub(crate) const fn distinct_keys(&self) -> u64 {
         self.occupied_cells(Depth::MAX)
     }
 
@@ -446,7 +436,7 @@ impl ViewOccupancy {
     /// [`Depth::MIN`] when the view carries at most one distinct key, since the whole domain
     /// already separates them - an empty view included.
     #[must_use]
-    pub fn saturation_depth(&self) -> Depth {
+    pub(crate) fn saturation_depth(&self) -> Depth {
         let saturated = self.distinct_keys();
 
         // The profile's deepest entry is the count itself, so the search is total; the fallback is

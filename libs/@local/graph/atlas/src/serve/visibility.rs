@@ -32,29 +32,11 @@ use crate::{
     integrity::{Sha256, Sha256Digest, Update as _},
 };
 
-/// The server-held visibility proof, the visible node-row and link-row sets every assembly path
-/// masks by.
-///
-/// A proof enters a handler by construction, because the assembly signatures take one, so a missing
-/// proof is unrepresentable rather than defaulted. [`Self::from_masks`] builds the proof of an
-/// evaluated scope, one mask per identity domain, and [`Self::full_visibility`] the proof that
-/// admits every row of every domain, for a context that holds authority over the whole corpus.
-///
-/// Membership is fail-closed. A row a held mask does not admit is not visible, so a proof built
-/// against a smaller universe hides the excess rather than revealing it. The value authenticates
-/// nothing, so masks from the wrong universe mask the wrong rows undetected, and pinning the proof
-/// to its own generation is the caller's contract.
-#[derive(Debug, Clone)]
-pub struct VisibilityProof {
-    nodes: Rows<NodeRowId>,
-    edges: Rows<EdgeRowId>,
-}
-
 /// One domain's visible row set, either everything or exactly the mask.
 ///
 /// The domain is the type parameter, so a node mask and a link mask are values of different types
 /// and reading one where the other belongs does not compile.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Rows<T: Id> {
     /// Every row of the domain is visible.
     Full,
@@ -99,6 +81,24 @@ pub(crate) enum ProofKind {
     Scope,
 }
 
+/// The server-held visibility proof, the visible node-row and link-row sets every assembly path
+/// masks by.
+///
+/// A proof enters a handler by construction, because the assembly signatures take one, so a missing
+/// proof is unrepresentable rather than defaulted. [`Self::from_masks`] builds the proof of an
+/// evaluated scope, one mask per identity domain, and [`Self::full_visibility`] the proof that
+/// admits every row of every domain, for a context that holds authority over the whole corpus.
+///
+/// Membership is fail-closed. A row a held mask does not admit is not visible, so a proof built
+/// against a smaller universe hides the excess rather than revealing it. The value authenticates
+/// nothing, so masks from the wrong universe mask the wrong rows undetected, and pinning the proof
+/// to its own generation is the caller's contract.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VisibilityProof {
+    nodes: Rows<NodeRowId>,
+    edges: Rows<EdgeRowId>,
+}
+
 impl VisibilityProof {
     /// Constructs the proof under which every row of every domain is visible.
     ///
@@ -135,41 +135,6 @@ impl VisibilityProof {
             nodes: Rows::Mask(nodes),
             edges: Rows::Mask(edges),
         }
-    }
-
-    /// Returns a digest of what this proof admits.
-    ///
-    /// Proofs share a digest when they admit the same node rows, admit the same link rows, and come
-    /// from the same constructor. The node domain absorbs first and the link domain second, with
-    /// rows absorbing in ascending order, so the digest is a function of the admitted sets alone.
-    /// The full-visibility value and a mask admitting every row of a generation carry different
-    /// digests, matching [`Self::kind`].
-    ///
-    /// This names what a proof admits, never who may hold it: binding the digest to a generation,
-    /// an actor, or a permission epoch is its caller's contract.
-    #[expect(
-        clippy::little_endian_bytes,
-        reason = "the digest pins one byte order so equal admitted sets digest equally on every \
-                  target"
-    )]
-    pub(super) fn digest(&self) -> Sha256Digest {
-        fn absorb<T: Id>(hasher: &mut Sha256, rows: &Rows<T>) {
-            match rows {
-                Rows::Full => hasher.update(b"full"),
-                Rows::Mask(mask) => {
-                    hasher.update(b"mask");
-                    for row in mask.iter() {
-                        hasher.update(&row.as_u64().to_le_bytes());
-                    }
-                }
-            }
-        }
-
-        let mut hasher = Sha256::new();
-        absorb(&mut hasher, &self.nodes);
-        absorb(&mut hasher, &self.edges);
-
-        hasher.finalize()
     }
 
     /// Returns which delivery contract this proof serves.

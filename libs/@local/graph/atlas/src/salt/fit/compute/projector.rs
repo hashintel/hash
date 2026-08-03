@@ -579,8 +579,8 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
         FrozenRadius::Measured { radius } | FrozenRadius::Asserted { radius } => radius,
         FrozenRadius::Vacuous => return None,
     };
-    let proximal = ProximalEnergy::new(radius, options.lens.temperature().get())
-        .expect("the trainer froze a finite, non-negative radius");
+    let proximal = ProximalEnergy::new(radius.get(), options.lens.temperature().get())
+        .expect("the trainer froze a non-negative radius");
     Some(
         RelationEnergy::new(
             options.lens.coincident(),

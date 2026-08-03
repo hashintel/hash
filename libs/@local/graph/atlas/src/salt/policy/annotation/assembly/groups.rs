@@ -7,14 +7,13 @@
 
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, IdUnionFind};
 
 use super::{
     super::{Card, VoteCounts},
     AssemblyConfig, AssemblyEvidence, DIRICHLET_ALPHA, NEAR_DUPLICATE_CEILING_FRACTION, Relaxation,
 };
 use crate::{
-    disjoint::DisjointSet,
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
     salt::{embedding::CardEmbeddingView, policy::GeometryClass},
@@ -96,7 +95,7 @@ fn partition(
         local_of.insert(row, SubsetRowId::from_usize(local));
     }
 
-    let mut components: DisjointSet<SubsetRowId> = DisjointSet::new(subset.len());
+    let mut components = IdUnionFind::new(subset.len());
     let mut first_of_key: HashMap<u32, SubsetRowId> = HashMap::new();
     for (local, &row) in subset.iter().enumerate() {
         let local = SubsetRowId::from_usize(local);
@@ -104,7 +103,7 @@ fn partition(
 
         let mut join = |key: u32| match first_of_key.entry(key) {
             Entry::Occupied(first) => {
-                components.unite(local, *first.get());
+                components.unify(local, *first.get());
             }
             Entry::Vacant(slot) => {
                 slot.insert(local);
@@ -126,7 +125,7 @@ fn partition(
         if *distance <= ranks.cut
             && let (Some(&left), Some(&right)) = (local_of.get(left), local_of.get(right))
         {
-            components.unite(left, right);
+            components.unify(left, right);
         }
     }
 
@@ -141,6 +140,7 @@ fn partition(
                 parts.push(Vec::new());
                 parts.len() - 1
             });
+
         parts[part].push(row);
     }
 

@@ -23,8 +23,8 @@ use zerocopy::{LE, U64};
 use super::{
     Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot,
     Mode, OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    View, ViewCensus, ViewSchedule, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
-    error::OpenAtlasError,
+    View, ViewCensus, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
+    error::OpenAtlasError, locate::LocateDocument, schedule::ViewSchedule,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -2455,7 +2455,7 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
 ///
 /// Hydration is the transport's store round trip; empty details stand in for it everywhere the
 /// test subject is the assembly and envelope, not the hydrated content.
-fn encode_unhydrated(atlas: &Atlas, document: &super::LocateDocument) -> Vec<u8> {
+fn encode_unhydrated(atlas: &Atlas, document: &LocateDocument) -> Vec<u8> {
     let nodes = atlas.locate_node_entities(document);
     let links = atlas.locate_link_entities(document);
     let node_details = super::hydrate::LocateNodeDetails::empty(nodes.count());

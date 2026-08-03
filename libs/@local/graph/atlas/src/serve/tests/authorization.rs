@@ -152,7 +152,7 @@ fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> [u8; PLAINTEXT_BYTES]
     if let Some(canonical) = filter {
         bytes[ACTOR_BYTES] = 1;
         bytes[ACTOR_BYTES + PRESENCE_BYTES..PLAINTEXT_BYTES - OFFSET_BYTES]
-            .copy_from_slice(&FilterDigest::of(canonical).digest().to_bytes());
+            .copy_from_slice(&FilterDigest::of(canonical).as_bytes());
     }
     bytes[PLAINTEXT_BYTES - OFFSET_BYTES] = k;
 
