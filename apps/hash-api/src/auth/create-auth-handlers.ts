@@ -34,13 +34,6 @@ const kratosAfterRegistrationHookHandler =
     { identity: KratosUserIdentity }
   > =>
   (req, res) => {
-    const {
-      body: {
-        identity: { id: kratosIdentityId, traits },
-      },
-    } = req;
-    const authentication = { actorId: systemAccountId };
-
     // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
       logger.error("Kratos webhook called with invalid API key");
@@ -57,6 +50,13 @@ const kratosAfterRegistrationHookHandler =
 
       return;
     }
+
+    const {
+      body: {
+        identity: { id: kratosIdentityId, traits },
+      },
+    } = req;
+    const authentication = { actorId: systemAccountId };
 
     void (async () => {
       try {
