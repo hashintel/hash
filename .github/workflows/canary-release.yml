@@ -1,5 +1,11 @@
 name: Canary Release
 on: workflow_dispatch
+
+permissions:
+  contents: write
+  pull-requests: read # `@changesets/changelog-github`
+  id-token: write # Vault OIDC
+
 jobs:
   release:
     runs-on: ubuntu-latest

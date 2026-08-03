@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "*/3 * * * *" ## Every 3 minutes
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true

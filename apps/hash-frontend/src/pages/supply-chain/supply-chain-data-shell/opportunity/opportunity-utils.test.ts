@@ -145,7 +145,7 @@ describe("opportunity brief helpers", () => {
     expect(brief.calibrationDirection).toBe("increase");
     expect(brief.opportunityTrigger.primaryMetric).toContain("+50%");
     expect(brief.diagnosis[0]).toContain("below the observed high-percentile");
-    expect(brief.diagnosis.some((line) => line.includes("trend"))).toBe(true);
+    expect(brief.diagnosis.some((line) => /trend/i.test(line))).toBe(true);
     expect(brief.recommendedActions[0]?.text).toContain(
       "longest normalized durations",
     );

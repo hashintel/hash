@@ -78,6 +78,7 @@ const RESERVED_NAMES = [
   "Math",
   "Number",
   "RangeError",
+  "TypeError",
   "Infinity",
   "NaN",
 ];
@@ -91,11 +92,19 @@ type MetricPlaceRef = {
   elements: HirTokenElementInfo[];
 };
 
+/** A JS expression producing a number or boolean. */
+type ScalarValue = { kind: "scalar"; code: string };
+
+/** A JS expression producing a RuntimeDistribution (a hoisted const). */
+type DistributionValue = { kind: "dist"; code: string };
+
+/** A materialized scalar-or-distribution kernel output. */
+type MixedOutputValue = { kind: "mixed"; code: string };
+
 type Value =
-  /** A JS expression producing a number or boolean. */
-  | { kind: "scalar"; code: string }
-  /** A JS expression producing a RuntimeDistribution (a hoisted const). */
-  | { kind: "dist"; code: string }
+  | ScalarValue
+  | DistributionValue
+  | MixedOutputValue
   /** `Uuid.generate()` / `Uuid.from(...)` — resolved by the engine sink. */
   | { kind: "uuidSentinel"; mode: "generate" | "from"; code: string }
   /** The lambda/kernel first parameter (`tokensByPlace`). */
@@ -116,6 +125,14 @@ type Value =
   | ({ kind: "placeTokens" } & MetricPlaceRef)
   /** `a.concat(b)` over place token arrays (parts in source order). */
   | { kind: "placeTokensConcat"; parts: MetricPlaceRef[] };
+
+function isMixedOutputValue(
+  value: Value,
+): value is ScalarValue | DistributionValue | MixedOutputValue {
+  return (
+    value.kind === "scalar" || value.kind === "dist" || value.kind === "mixed"
+  );
+}
 
 function quoteKey(key: string): string {
   return JSON.stringify(key);
@@ -560,6 +577,20 @@ class BufferEmitter {
           );
           return { kind: thenValue.kind, code: result };
         }
+        if (isMixedOutputValue(thenValue) && isMixedOutputValue(elseValue)) {
+          const result = this.names.allocate("__conditionalValue");
+          this.lines.push(
+            `let ${result};`,
+            `if (${condition}) {`,
+            ...thenLines.map((line) => `  ${line}`),
+            `  ${result} = ${thenValue.code};`,
+            `} else {`,
+            ...elseLines.map((line) => `  ${line}`),
+            `  ${result} = ${elseValue.code};`,
+            `}`,
+          );
+          return { kind: "mixed", code: result };
+        }
         // Structural conditionals (records/tuples) stay on the object path.
         throw new BailError();
       }
@@ -909,6 +940,21 @@ export function emitBufferKernelJs(
             return null;
           }
 
+          if (value.kind === "mixed") {
+            if (element.type !== "real") {
+              return null;
+            }
+            writes.push(
+              `if (typeof ${value.code} === "number") {`,
+              `  outF64[${at >> 3}] = ${value.code};`,
+              `} else if (${value.code} !== null && typeof ${value.code} === "object" && ${value.code}.__brand === "distribution") {`,
+              `  __sink("dist", ${at >> 3}, ${value.code});`,
+              `} else {`,
+              `  throw new TypeError("Conditional real kernel outputs must produce a number or Distribution");`,
+              `}`,
+            );
+            continue;
+          }
           if (value.kind === "dist") {
             if (element.type !== "real") {
               return null;
