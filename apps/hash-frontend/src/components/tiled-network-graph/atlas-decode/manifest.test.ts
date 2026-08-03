@@ -15,7 +15,8 @@ const manifestBody = {
   generation: generationHex,
   wireVersion: 1,
   variants: ["plain"],
-  bucketSchedule: { span: 64, cut: "z+m", maxZoom: 16 },
+  bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
+  scopeSchedule: { k: 0, cut: "z+6" },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,
@@ -67,6 +68,40 @@ describe("parseManifest", () => {
     expect(manifest.limits.locateProperties).toBe(20);
     expect(manifest.limits.locateLinkTypeIds).toBe(5);
     expect(manifest.limits.locateLinkProperties).toBe(10);
+    expect(manifest.scopeSchedule.k).toBe(0);
+    expect(manifest.scopeSchedule.cut).toBe("z+6");
+    expect(manifest.createdAt).toBe("2026-07-19T16:00:00Z");
+  });
+
+  it("carries a restricted caller's own delivery offset", () => {
+    const manifest = parseManifest(
+      { ...manifestBody, scopeSchedule: { k: 2, cut: "z+8" } },
+      generationHex,
+    );
+    expect(manifest.scopeSchedule.k).toBe(2);
+  });
+
+  it("requires the scopeSchedule block, because a missing k reads as zero", () => {
+    const { scopeSchedule: _omitted, ...withoutScope } = manifestBody;
+    expect(() => parseManifest(withoutScope, generationHex)).toThrow(
+      /scopeSchedule/u,
+    );
+    expect(() =>
+      parseManifest(
+        { ...manifestBody, scopeSchedule: { k: -1, cut: "z+6" } },
+        generationHex,
+      ),
+    ).toThrow(/scopeSchedule k\/cut/u);
+  });
+
+  it("accepts an absent createdAt, which a fixture-fitted generation omits", () => {
+    const { createdAt: _omitted, ...withoutCreatedAt } = manifestBody;
+    expect(parseManifest(withoutCreatedAt, generationHex).createdAt).toBe(
+      undefined,
+    );
+    expect(() =>
+      parseManifest({ ...manifestBody, createdAt: 7 }, generationHex),
+    ).toThrow(/createdAt/u);
   });
 
   it("requires the generation to echo the route", () => {
@@ -80,7 +115,7 @@ describe("parseManifest", () => {
       parseManifest(
         {
           ...manifestBody,
-          bucketSchedule: { span: 63, cut: "z+m", maxZoom: 16 },
+          bucketSchedule: { span: 63, cut: "z+6", maxZoom: 16 },
         },
         generationHex,
       ),

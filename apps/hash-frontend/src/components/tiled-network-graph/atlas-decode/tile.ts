@@ -34,8 +34,15 @@ export interface SaltileTileRequest {
     readonly y: number;
   };
   readonly mode: SaltileMode;
-  /** log2 of the bucket-schedule span (the manifest's `m`). */
-  readonly spanLog2: number;
+  /**
+   * The delivery cut's addend for this caller: the manifest's `m + k`.
+   *
+   * Not `log2` of the bucket-schedule span alone. A restricted caller is
+   * served at `z + m + k`, where `k` comes from the manifest's
+   * `scopeSchedule` (`wire.md`, the runs contract), and the head's
+   * `firstBucket` and `runs` length are both counted from that cut.
+   */
+  readonly deliverySpanLog2: number;
   /** Count of colored type ids sent; 0 means TYPE_MASK is absent. */
   readonly coloredTypeIdCount: number;
   readonly includeDetailedData: boolean;
@@ -255,21 +262,32 @@ export const decodeSaltileTile = (
   }
 
   const { z } = request.coordinate;
-  const cut = z + request.spanLog2;
+  const cut = z + request.deliverySpanLog2;
   const delta = request.mode === SaltileMode.Delta;
   const expectedFirst = delta && z !== 0 ? cut : 0;
-  const expectedRuns = delta ? (z === 0 ? request.spanLog2 + 1 : 1) : cut + 1;
+  const expectedRuns = delta
+    ? z === 0
+      ? request.deliverySpanLog2 + 1
+      : 1
+    : cut + 1;
   expectEqual(firstBucket, expectedFirst, "firstBucket", headOffset);
   expectEqual(runs.length, expectedRuns, "runs length", headOffset);
 
+  // `sum(runs) = delivered` is law in every response, scoped or operator
+  // (wire.md: key 11 is retired to a reserved slot, and a restricted
+  // cascade delivers without fill, so every run counts exactly its
+  // bucket's delivered points). Dark from d26c824ab4 until 2026-08-03 on
+  // a premise that had expired: the fill this waited for is gone, both
+  // server paths derive runs and delivered from the same values, and
+  // TileHead has no key 11 to emit. So a violation here is a server
+  // defect rather than an accepted hole, and refusing is right.
   const runSum = runs.reduce((sum, entry) => sum + entry, 0);
-  // FIXME: removed until `CutOffset` lands
-  // if (runSum !== delivered) {
-  //   return fail(
-  //     `HEAD runs sum to ${runSum}; delivered is ${delivered}`,
-  //     headOffset,
-  //   );
-  // }
+  if (runSum !== delivered) {
+    return fail(
+      `HEAD runs sum to ${runSum}; delivered is ${delivered}`,
+      headOffset,
+    );
+  }
 
   const children = requireUint(
     head,

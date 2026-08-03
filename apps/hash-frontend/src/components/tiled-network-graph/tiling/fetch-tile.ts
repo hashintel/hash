@@ -745,8 +745,17 @@ export interface SaltileSession {
   readonly variant: string;
   /** Canonical variant's index in the manifest set; checked against the HEAD echo. */
   readonly variantIndex: number;
-  /** `log2` of the bucket-schedule span (the manifest's `m`). */
-  readonly spanLog2: number;
+  /**
+   * The delivery cut's addend for this caller: `m + k`.
+   *
+   * `m` is `log2` of the bucket-schedule span and `k` is the offset the
+   * authority token seals, so a restricted caller's addend exceeds the
+   * corpus span exponent. Every consumer wants the sum, because the cut
+   * the server actually served is `z + m + k` (`wire.md`, the runs
+   * contract). Taking `m` alone refused every restricted caller at the
+   * first tile's head.
+   */
+  readonly deliverySpanLog2: number;
   /** Deepest requestable zoom the manifest allows. */
   readonly maxZoom: number;
   /** Cap on the tile list of one edges request (manifest `limits.edgesTiles`). */
@@ -811,7 +820,8 @@ const fetchSaltileSession = async (
     generationBytes: generationBytes(current.generation),
     variant,
     variantIndex: 0,
-    spanLog2: Math.log2(manifest.bucketSchedule.span),
+    deliverySpanLog2:
+      Math.log2(manifest.bucketSchedule.span) + manifest.scopeSchedule.k,
     maxZoom: manifest.bucketSchedule.maxZoom,
     edgesTiles: manifest.limits.edgesTiles,
   };
@@ -1141,7 +1151,7 @@ const fetchAndDecodeTile = async (
     variant: session.variantIndex,
     coordinate,
     mode: SaltileMode.Delta,
-    spanLog2: session.spanLog2,
+    deliverySpanLog2: session.deliverySpanLog2,
     coloredTypeIdCount: coloredTypeIds.length,
     includeDetailedData,
   };

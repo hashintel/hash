@@ -42,8 +42,26 @@ export interface AtlasManifest {
     readonly cut: string;
     readonly maxZoom: number;
   };
+  /**
+   * This caller's resolved delivery schedule; see `wire.md`'s runs contract.
+   *
+   * `k` is the delivery-cut offset the authority token seals, so the cut
+   * this caller is served at is `z + log2(bucketSchedule.span) + k`. A
+   * full-visibility caller reads `k = 0`; a restricted one reads its own
+   * offset, and the server publishes the resulting rule in `cut`.
+   */
+  readonly scopeSchedule: {
+    readonly k: number;
+    readonly cut: string;
+  };
   readonly limits: AtlasLimits;
-  readonly createdAt: string;
+  /**
+   * Absent for a generation fitted from sources without temporal axes,
+   * such as a synthetic fixture: the server omits the key entirely
+   * (`skip_serializing_if` on `Option<String>`), so requiring it refused
+   * those generations at parse.
+   */
+  readonly createdAt?: string;
 }
 
 /** A JSON response violated the Surface v1 schema. */
@@ -133,6 +151,18 @@ export const parseManifest = (
   if (typeof cut !== "string" || !isUintValue(maxZoom)) {
     return contractFail("bucketSchedule cut/maxZoom are malformed");
   }
+  const scopeSchedule = field(manifest, "scopeSchedule") as Record<
+    string,
+    unknown
+  > | null;
+  if (typeof scopeSchedule !== "object" || scopeSchedule === null) {
+    return contractFail("manifest scopeSchedule is not an object");
+  }
+  const scopeOffset = field(scopeSchedule, "k");
+  const scopeCut = field(scopeSchedule, "cut");
+  if (!isUintValue(scopeOffset) || typeof scopeCut !== "string") {
+    return contractFail("scopeSchedule k/cut are malformed");
+  }
   const limits = field(manifest, "limits") as Record<string, unknown> | null;
   if (typeof limits !== "object" || limits === null) {
     return contractFail("manifest limits are malformed");
@@ -154,7 +184,7 @@ export const parseManifest = (
     return contractFail("manifest limits are malformed");
   }
   const createdAt = field(manifest, "createdAt");
-  if (typeof createdAt !== "string") {
+  if (createdAt !== undefined && typeof createdAt !== "string") {
     return contractFail("manifest createdAt must be an ISO-8601 string");
   }
   return {
@@ -162,6 +192,7 @@ export const parseManifest = (
     wireVersion,
     variants,
     bucketSchedule: { span, cut, maxZoom },
+    scopeSchedule: { k: scopeOffset, cut: scopeCut },
     limits: {
       coloredTypeIds,
       edgesTiles,

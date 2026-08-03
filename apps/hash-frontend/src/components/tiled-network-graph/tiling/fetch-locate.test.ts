@@ -39,7 +39,8 @@ const manifestBody = (generation: string): unknown => ({
   generation,
   wireVersion: 1,
   variants: ["plain"],
-  bucketSchedule: { span: 64, cut: "z+m", maxZoom: 16 },
+  bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
+  scopeSchedule: { k: 0, cut: "z+6" },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,

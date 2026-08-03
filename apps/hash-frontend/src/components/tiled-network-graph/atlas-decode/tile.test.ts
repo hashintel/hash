@@ -168,7 +168,7 @@ const fixture = ({
     variant: 2,
     coordinate: { z: 3, x: 5, y: 1 },
     mode: SaltileMode.Delta,
-    spanLog2: 6,
+    deliverySpanLog2: 6,
     coloredTypeIdCount: 0,
     includeDetailedData: false,
     ...request,
@@ -248,6 +248,66 @@ describe("decodeSaltileTile", () => {
     expect(tile.detail?.icons).toEqual([null, null, "rocket"]);
   });
 
+  it("refuses runs that do not sum to delivered, in either scope", () => {
+    // The identity is law in every response (wire.md), so a mismatch is a
+    // server defect and not the accepted hole an expired FIXME claimed.
+    // Both directions, because a sum that overshoots is as wrong as one
+    // that falls short and only one of them was ever exercised.
+    const short = fixture({
+      head: defaultHead({ 7: cborArray([cborUint(2)]) }),
+    });
+    expect(failure(short)).toMatch(/runs sum to 2; delivered is 3/u);
+
+    const over = fixture({
+      head: defaultHead({ 7: cborArray([cborUint(4)]) }),
+    });
+    expect(failure(over)).toMatch(/runs sum to 4; delivered is 3/u);
+  });
+
+  it("counts the head from the delivery cut a restricted caller is served at", () => {
+    // k = 1, so the cut is z + m + k = 3 + 6 + 1 and the delta head's
+    // firstBucket is 10 rather than 9. Taking m alone - the corpus span
+    // exponent, which is what the session used before scopeSchedule was
+    // read - refuses this tile at the head, which is how every restricted
+    // caller was refused on its first tile.
+    const restricted = defaultHead({ 6: cborUint(10) });
+    const accepted = fixture({
+      request: { deliverySpanLog2: 7 },
+      head: restricted,
+    });
+    expect(
+      decodeSaltileTile(accepted.buffer, accepted.request).firstBucket,
+    ).toBe(10);
+
+    const corpusSpanOnly = fixture({
+      request: { deliverySpanLog2: 6 },
+      head: restricted,
+    });
+    expect(failure(corpusSpanOnly)).toMatch(/firstBucket/u);
+  });
+
+  it("expects one run per bucket to the restricted cut in total mode", () => {
+    // A total response carries z+m+k+1 entries with b0 = 0 (wire.md).
+    const totalHead = (entries: number) =>
+      defaultHead({
+        3: cborUint(SaltileMode.Total),
+        6: cborUint(0),
+        7: cborArray(
+          Array.from({ length: entries }, (_, index) =>
+            cborUint(index === 0 ? 3 : 0),
+          ),
+        ),
+      });
+    const request = { mode: SaltileMode.Total, deliverySpanLog2: 7 } as const;
+    const accepted = fixture({ request, head: totalHead(3 + 7 + 1) });
+    expect(
+      decodeSaltileTile(accepted.buffer, accepted.request).runs.length,
+    ).toBe(11);
+
+    const corpusSpanOnly = fixture({ request, head: totalHead(3 + 6 + 1) });
+    expect(failure(corpusSpanOnly)).toMatch(/runs length/u);
+  });
+
   it("decodes the root tile with its required global bounds", () => {
     const rootHead = defaultHead({
       2: cborArray([cborUint(0), cborUint(0), cborUint(0)]),
@@ -264,7 +324,7 @@ describe("decodeSaltileTile", () => {
       9: cborUint(15),
     });
     const { buffer, request } = fixture({
-      request: { coordinate: { z: 0, x: 0, y: 0 }, spanLog2: 2 },
+      request: { coordinate: { z: 0, x: 0, y: 0 }, deliverySpanLog2: 2 },
       head: rootHead,
     });
     const tile = decodeSaltileTile(buffer, request);
@@ -273,7 +333,7 @@ describe("decodeSaltileTile", () => {
     expect(tile.global?.visibleAtZoom).toBe(40);
 
     const missingGlobal = fixture({
-      request: { coordinate: { z: 0, x: 0, y: 0 }, spanLog2: 2 },
+      request: { coordinate: { z: 0, x: 0, y: 0 }, deliverySpanLog2: 2 },
       head: defaultHead({
         2: cborArray([cborUint(0), cborUint(0), cborUint(0)]),
         6: cborUint(0),
@@ -364,11 +424,6 @@ describe("decodeSaltileTile", () => {
 
     const wrongMode = fixture({ request: { mode: SaltileMode.Total } });
     expect(failure(wrongMode)).toMatch(/HEAD mode is 0/u);
-
-    const badRunSum = fixture({
-      head: defaultHead({ 7: cborArray([cborUint(2)]) }),
-    });
-    expect(failure(badRunSum)).toMatch(/runs sum to 2/u);
 
     const badChildren = fixture({
       head: defaultHead({ 9: cborUint(16) }),

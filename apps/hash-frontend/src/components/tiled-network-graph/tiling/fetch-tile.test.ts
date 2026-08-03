@@ -107,11 +107,16 @@ const BASE = "http://api.test/atlas";
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
 
-const manifestBody = (generation: string, maxZoom = 16): unknown => ({
+const manifestBody = (
+  generation: string,
+  maxZoom = 16,
+  scopeOffset = 0,
+): unknown => ({
   generation,
   wireVersion: 1,
   variants: ["plain"],
-  bucketSchedule: { span: 64, cut: "z+m", maxZoom },
+  bucketSchedule: { span: 64, cut: "z+6", maxZoom },
+  scopeSchedule: { k: scopeOffset, cut: `z+${6 + scopeOffset}` },
   limits: {
     coloredTypeIds: 8,
     edgesTiles: 32,
@@ -132,6 +137,7 @@ const tileBytes = (
   z: number,
   x: number,
   y: number,
+  cutAddend = 6,
 ): ArrayBuffer =>
   buildResponse("tile", [
     cborMap([
@@ -141,7 +147,7 @@ const tileBytes = (
       [3, cborUint(0)],
       [4, cborUint(3)],
       [5, cborUint(40)],
-      [6, cborUint(z + 6)],
+      [6, cborUint(z + cutAddend)],
       [7, cborArray([cborUint(3)])],
       [9, cborUint(5)],
       [10, cborBool(false)],
@@ -269,8 +275,9 @@ const manifest = (
   generation: string,
   maxZoom = 16,
   minted = TOKEN_A,
+  scopeOffset = 0,
 ): Response =>
-  new Response(JSON.stringify(manifestBody(generation, maxZoom)), {
+  new Response(JSON.stringify(manifestBody(generation, maxZoom, scopeOffset)), {
     status: 200,
     headers: {
       "content-type": "application/json",
@@ -278,6 +285,28 @@ const manifest = (
       [ATLAS_AUTHORITY_HEADER]: minted,
     },
   });
+
+/**
+ * A data route that cannot resolve the caller's scope.
+ *
+ * Every cause the server maps to this refusal is a store-stage failure - no pool connection, the
+ * actor's policy set, the visibility query, its rows, or the held filter document - so a later
+ * attempt may succeed and the status alone is the retry signal. The cause stays in the server log,
+ * because a resolution failure names store internals.
+ */
+const scopeUnavailable = (): Response =>
+  new Response(
+    JSON.stringify({
+      type: "/problems/atlas/visibility-unavailable",
+      title: "Service Unavailable",
+      status: 503,
+      detail: "resolving the caller's visibility failed",
+    }),
+    {
+      status: 503,
+      headers: { "content-type": "application/problem+json" },
+    },
+  );
 
 /**
  * The one refusal a data route gives for authority.
@@ -340,6 +369,50 @@ describe("fetchTile", () => {
     expect(complete).toBe(false);
   });
 
+  it("serves a restricted caller, whose cut carries the manifest's k", async () => {
+    // The end-to-end shape of the defect this test was written for: the
+    // manifest publishes k = 1, so the server counts the head from
+    // z + m + k and the session has to carry that sum. Reading m alone
+    // refused every restricted caller at its first tile, with no partial
+    // render and no wrong colours - a contract error.
+    const generation = genHex(0x1a);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, 16, TOKEN_A, 1),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        saltile(tileBytes(0x1a, 3, 5, 1, 7)),
+    });
+
+    const { nodes } = await fetchTile(3, 13, { baseUrl: BASE });
+    expect(nodes).toHaveLength(3);
+  });
+
+  it("refuses a restricted tile counted from the corpus span alone", async () => {
+    // The same manifest, with the head the server would send if it had
+    // ignored k. The refusal is the decoder's, and it names firstBucket -
+    // so a desync between the two blocks is loud rather than silent.
+    const generation = genHex(0x1b);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, 16, TOKEN_A, 1),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        saltile(tileBytes(0x1b, 3, 5, 1, 6)),
+    });
+
+    // The wrapper names the tile and the cause names the contract, so the
+    // detail is one `.cause` away rather than lost.
+    const refusal = await fetchTile(3, 13, { baseUrl: BASE }).catch(
+      (error: unknown) => error,
+    );
+    expect(refusal).toBeInstanceOf(FetchTileError);
+    expect((refusal as Error).message).toMatch(
+      /failed to decode tile 3\/5\/1/u,
+    );
+    expect(((refusal as Error).cause as Error).message).toMatch(/firstBucket/u);
+  });
+
   it("bootstraps once and reuses the session, but does not cache tiles", async () => {
     const generation = genHex(0x22);
     const paths = stubTransport({
@@ -391,6 +464,28 @@ describe("fetchTile", () => {
       path.endsWith("/atlas/current"),
     ).length;
     expect(bootstraps).toBe(2);
+  });
+
+  it("does not drop the session when a data route cannot resolve the scope", async () => {
+    const generation = genHex(0x51);
+    const paths = stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/2/1/3`]: () => scopeUnavailable(),
+    });
+
+    await expect(
+      fetchTile(2, 13, { baseUrl: BASE, retry: 0 }), // y = 3, x = 1
+    ).rejects.toThrow(/503/);
+
+    // The contrast with the test above is the point. A `503` is not a session-ending refusal: every
+    // cause the server maps to it is a store stage that a later attempt may clear, so the recovery
+    // is this caller's bounded retry. Routing it through the session door instead would discard
+    // every painted tile to answer an outage, and the re-bootstrap would meet the same failure -
+    // the manifest resolves the caller's scope too. One bootstrap, and the refusal travels.
+    expect(
+      paths.filter((path) => path.endsWith("/atlas/current")),
+    ).toHaveLength(1);
   });
 
   it("requests the detail trailer and attaches per-point labels", async () => {
