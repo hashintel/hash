@@ -360,6 +360,35 @@ where
     }
 }
 
+// TODO(BE-688): Remove once the test harness uses per-test databases and no longer hands its
+//   tests a transaction they did not open.
+#[cfg(feature = "test-utils")]
+impl<C> PostgresStore<C, InTransaction>
+where
+    C: AsClient,
+{
+    /// Asks Postgres to report the diagnostics for this transaction's statements.
+    ///
+    /// A caller who opens the transaction asks through the builder's
+    /// [`observe`](crate::store::PostgresStoreTransactionBuilder::observe), which hands the
+    /// collector back with it. A caller given an open transaction cannot, because that builder
+    /// only exists before a transaction is begun — and that is the position every integration
+    /// test is in, since the harness wraps each test in a transaction it rolls back. Hence the
+    /// feature gate, on the same wart [`BeginReadOnlyTransaction`] is gated for.
+    ///
+    /// The collector is not handed back here. It belongs to the connection and has to be taken
+    /// from it, before the transaction is begun.
+    ///
+    /// # Errors
+    ///
+    /// - [`ConnectionError::Closed`] if a setting cannot be applied
+    ///
+    /// [`BeginReadOnlyTransaction`]: crate::store::postgres::BeginReadOnlyTransaction
+    pub async fn observe(&self, diagnostics: &[Diagnostic]) -> Result<(), Report<ConnectionError>> {
+        self.enable(diagnostics).await
+    }
+}
+
 impl Drop for ManagedConnection {
     fn drop(&mut self) {
         // The driver borrows nothing, so it would outlive the connection it

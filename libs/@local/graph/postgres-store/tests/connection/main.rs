@@ -24,7 +24,7 @@ use hash_graph_postgres_store::store::{
 use crate::common::DatabaseTestWrapper;
 
 #[tokio::test]
-async fn statement_s_plan_reaches_the_caller() {
+async fn plan_capture_reports_what_a_statement_read() {
     let mut database = DatabaseTestWrapper::new().await;
 
     let (transaction, mut capture) = database
@@ -62,7 +62,7 @@ async fn statement_s_plan_reaches_the_caller() {
 }
 
 #[tokio::test]
-async fn capture_holds_nothing_without_being_enabled() {
+async fn plan_capture_reports_nothing_unless_asked() {
     let database = DatabaseTestWrapper::new().await;
     let mut capture = database.connection.messages();
 
@@ -85,7 +85,7 @@ async fn capture_holds_nothing_without_being_enabled() {
 }
 
 #[tokio::test]
-async fn server_warning_reaches_the_caller() {
+async fn server_warnings_reach_the_caller() {
     let database = DatabaseTestWrapper::new().await;
     let mut capture = database.connection.messages();
 

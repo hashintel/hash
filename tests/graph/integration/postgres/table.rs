@@ -1381,3 +1381,75 @@ async fn a_continuation_reads_the_first_page_s_snapshot() {
         .expect("the table query should succeed");
     assert_eq!(fresh.rows.len(), 6);
 }
+
+/// Reads the plans of the statements this endpoint runs.
+///
+/// The endpoint's statement count and what any of them scans are properties of the data, so
+/// nothing here asserts them — a plan of a handful of rows would only pin the planner's choices
+/// for a handful of rows. What is asserted is that the plans belong to *this* call and that no
+/// bound value travelled with them.
+#[tokio::test]
+async fn plan_capture_reports_what_the_endpoint_ran() {
+    use hash_graph_postgres_store::store::postgres::connection::{
+        CaptureMessages as _, Diagnostic,
+    };
+
+    let mut database = DatabaseTestWrapper::new().await;
+    // The collector belongs to the connection, so it is taken before the harness borrows it for
+    // the transaction it wraps every test in.
+    let mut capture = database.connection.messages();
+
+    let mut api = insert(&mut database).await;
+    let actor_id = api.account_id;
+
+    // The harness already holds a transaction, so the settings apply to it and the endpoint's own
+    // transaction nests as a savepoint underneath.
+    api.store
+        .observe(&[Diagnostic::Plans])
+        .await
+        .expect("the plan capture should be enabled");
+
+    let mut params = page_params(50);
+    params.include_summary = true;
+
+    let response = api
+        .query_entities_table(actor_id, params)
+        .await
+        .expect("the table query should succeed");
+
+    let plans = capture.plans().expect("the plans should arrive");
+    assert!(
+        !plans.is_empty(),
+        "asking for plans should report the statements the endpoint ran",
+    );
+
+    // Every plan names the statement it belongs to, which is what tells one of a request's
+    // statements from the next.
+    for plan in &plans {
+        assert!(
+            plan.query.is_some(),
+            "a reported plan should name its statement, got {plan}",
+        );
+    }
+
+    // The rows the page query planned are the rows the caller was handed, which is what makes
+    // these the plans of this call rather than of some other statement on the connection.
+    let page = plans
+        .last()
+        .expect("the endpoint should have run a page query last");
+    assert_eq!(
+        page.rows_returned(),
+        response.rows.len() as u64,
+        "the page query's plan should account for the rows returned, got {page}",
+    );
+
+    // The values a caller filtered by must not travel with a plan, whatever the server is
+    // configured to report.
+    for plan in &plans {
+        let statement = plan.query.as_deref().unwrap_or_default();
+        assert!(
+            !statement.contains(&actor_id.to_string()),
+            "a plan should carry the statement's parameters as placeholders, got {statement}",
+        );
+    }
+}
