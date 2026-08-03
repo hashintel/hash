@@ -168,6 +168,12 @@ export const productOverviewSection: DocSectionDef = {
               material inventory dwell and consumption events.
             </LI>
             <LI>
+              <Term>Line use &mdash; Show</Term> adds recorded production-line
+              occupancy beneath each material. These rows show when the material
+              and other products used the same line, making overlaps and
+              competing line demand visible.
+            </LI>
+            <LI>
               <Term>Display &mdash; Continuous</Term> places every batch for a
               material on one line. This will mean some batches overlap. This
               view is suitable for getting an overview of production sequencing,
@@ -190,6 +196,20 @@ export const productOverviewSection: DocSectionDef = {
               <Term>Blue bar</Term> is the recorded or estimated production
               window. If 'inventory dwell' is enabled, the white section of the
               bar shows dwell time after production finish.
+            </LI>
+            <LI>
+              <Term>Recorded occupancy rows</Term> appear directly beneath a
+              material when <Term>Line use</Term> is enabled. Blue bars are
+              production windows for that material; grey bars provide context
+              from other materials using the same line. Expand a busy row to
+              reveal hidden overlapping tracks, and hover a bar for its line,
+              batch, order and timing evidence.
+            </LI>
+            <LI>
+              <Term>Uncertain line assignment</Term> means production was
+              recorded but the source data could not resolve it to one line.
+              Expand the message to inspect candidate lines and evidence
+              sources.
             </LI>
             <LI>
               <Term>Diagonal grey lines</Term> mean some quantity from the batch

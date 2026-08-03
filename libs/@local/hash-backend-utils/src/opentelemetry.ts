@@ -245,6 +245,7 @@ export const httpExpectedClientStatusHook: NonNullable<
 };
 
 /**
+<<<<<<< HEAD
  * Path every HASH service answers health probes on. The HTTP instrumentation
  * ignores it: a probe answered every few seconds per task carries no signal, and
  * tracing it only inflates the RED metrics derived from spans.
@@ -252,6 +253,8 @@ export const httpExpectedClientStatusHook: NonNullable<
 export const HEALTH_PATH = "/health";
 
 /**
+=======
+>>>>>>> origin/main
  * Default OTLP/gRPC port. Used when the configured endpoint URL does not
  * carry an explicit port (e.g. `http://collector` resolves via gRPC default).
  */
@@ -280,20 +283,33 @@ const otlpPortFromEndpoint = (otlpEndpoint: string): number => {
  * - Names spans `METHOD /path` via {@link httpRequestSpanNameHook}.
  * - Marks expected client-side failures as successful via
  *   {@link httpExpectedClientStatusHook}.
+<<<<<<< HEAD
  * - Skips incoming requests to {@link HEALTH_PATH}.
  *
  * Pass `extra` to merge per-service options. The hooks configured here are
  * intentionally not mergeable — callers needing different shapes should
  * construct `HttpInstrumentation` directly.
+=======
+ *
+ * Pass `extra` to merge per-service options (e.g. `ignoreIncomingPaths`).
+ * `ignoreOutgoingRequestHook`, `requestHook` and
+ * `applyCustomAttributesOnSpan` are intentionally not mergeable here —
+ * callers needing different shapes should construct `HttpInstrumentation`
+ * directly.
+>>>>>>> origin/main
  */
 export const createHttpInstrumentation = (
   otlpEndpoint: string,
   extra: Omit<
     HttpInstrumentationConfig,
+<<<<<<< HEAD
     | "applyCustomAttributesOnSpan"
     | "ignoreIncomingRequestHook"
     | "ignoreOutgoingRequestHook"
     | "requestHook"
+=======
+    "applyCustomAttributesOnSpan" | "ignoreOutgoingRequestHook" | "requestHook"
+>>>>>>> origin/main
   > = {},
 ): HttpInstrumentation => {
   const otlpPort = otlpPortFromEndpoint(otlpEndpoint);

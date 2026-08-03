@@ -300,6 +300,7 @@ unicode-segmentation               = { version = "1.12.0", default-features = fa
 unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
+utoipa-scalar                      = { version = "0.1.0", default-features = false }
 uuid                               = { version = "1.18.1", default-features = false }
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }

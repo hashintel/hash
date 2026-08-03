@@ -17,6 +17,43 @@ const writeJson = (filePath: string, value: unknown) => {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 };
 
+const neutralSiteTimeline = (siteId: string): Record<string, unknown> => ({
+  schema_version: "1.3",
+  artifact_type: "site_production_timeline",
+  artifact_version: "1.2",
+  site_id: siteId,
+  plant: "DEMO",
+  generated_at: "2026-07-20T00:00:00Z",
+  date_bounds: { start: null, end: null },
+  buildings: [],
+  lines: [],
+  resources: [],
+  product_families: [],
+  products: [],
+  batches: [],
+  consumption_edges: [],
+  data_quality: {
+    batch_count: 0,
+    edge_count: 0,
+    timing_kind_counts: {},
+    line_confidence_counts: {},
+    edge_confidence_counts: {},
+    batches_with_allocation_overage: 0,
+    batches_missing_family: 0,
+    negative_waiting_intervals: 0,
+    materials_with_multiple_lines: [],
+    products_missing_family: [],
+    unidentifiable_receipt_events: 0,
+  },
+  source: {
+    production_windows: "neutral test fixture",
+    receipt_events: "neutral test fixture",
+    consumption_edges: "neutral test fixture",
+    metadata: {},
+    unidentifiable_receipt_events: 0,
+  },
+});
+
 describe("supply-chain dataset import", () => {
   const tempDirs: string[] = [];
 
@@ -240,6 +277,14 @@ describe("supply-chain dataset import", () => {
     writeJson(path.join(sourceDir, "current.json"), {
       datasetVersion: "ignored",
     });
+    writeJson(path.join(sourceDir, "manifest.json"), {
+      datasetVersion: "source-version",
+      products: ["demo-product"],
+      productionSchedules: ["demo-product"],
+      siteProductionTimelines: [],
+      sites: ["demo-site"],
+      steps: { "demo-product": ["prod_to_qa"] },
+    });
 
     return sourceDir;
   };
@@ -254,6 +299,7 @@ describe("supply-chain dataset import", () => {
       datasetVersion: "local-test",
       products: ["demo-product"],
       productionSchedules: ["demo-product"],
+      siteProductionTimelines: [],
       sites: ["demo-site"],
       steps: { "demo-product": ["prod_to_qa"] },
     });
@@ -279,6 +325,91 @@ describe("supply-chain dataset import", () => {
         version: "local-test",
       }),
     ).toThrow("invalid production_schedule.json");
+  });
+
+  it("validates and advertises an optional site production timeline", () => {
+    const sourceDir = makeDataset();
+    writeJson(path.join(sourceDir, "manifest.json"), {
+      productionSchedules: ["demo-product"],
+      siteProductionTimelines: ["demo-site"],
+    });
+    writeJson(
+      path.join(sourceDir, "site", "demo-site", "production_timeline.json"),
+      neutralSiteTimeline("demo-site"),
+    );
+    const plan = planSupplyChainDatasetImport({
+      sourceDir,
+      version: "local-test",
+    });
+    expect(plan.manifest.siteProductionTimelines).toEqual(["demo-site"]);
+    expect(
+      plan.files.filter(
+        ({ relKey }) => relKey === "site/demo-site/production_timeline.json",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("rejects a site timeline whose identity does not match its directory", () => {
+    const sourceDir = makeDataset();
+    writeJson(
+      path.join(sourceDir, "site", "demo-site", "production_timeline.json"),
+      neutralSiteTimeline("wrong-site"),
+    );
+    writeJson(path.join(sourceDir, "manifest.json"), {
+      productionSchedules: ["demo-product"],
+      siteProductionTimelines: ["demo-site"],
+    });
+    expect(() =>
+      planSupplyChainDatasetImport({ sourceDir, version: "local-test" }),
+    ).toThrow(/Site "demo-site".*invalid production_timeline\.json/);
+  });
+
+  it("does not advertise or upload a stale timeline omitted from the manifest", () => {
+    const sourceDir = makeDataset();
+    writeJson(
+      path.join(sourceDir, "site", "demo-site", "production_timeline.json"),
+      neutralSiteTimeline("demo-site"),
+    );
+    const plan = planSupplyChainDatasetImport({
+      sourceDir,
+      version: "local-test",
+    });
+    expect(plan.manifest.siteProductionTimelines).toEqual([]);
+    expect(
+      plan.files.some(({ relKey }) =>
+        relKey.endsWith("production_timeline.json"),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects an advertised missing site timeline", () => {
+    const sourceDir = makeDataset();
+    writeJson(path.join(sourceDir, "manifest.json"), {
+      productionSchedules: ["demo-product"],
+      siteProductionTimelines: ["demo-site"],
+    });
+    expect(() =>
+      planSupplyChainDatasetImport({ sourceDir, version: "local-test" }),
+    ).toThrow(/advertises a missing production_timeline\.json/);
+  });
+
+  it("treats absent optional-artifact manifest fields as unavailable", () => {
+    const sourceDir = makeDataset();
+    writeJson(path.join(sourceDir, "manifest.json"), {
+      products: ["demo-product"],
+      sites: ["demo-site"],
+    });
+    const plan = planSupplyChainDatasetImport({
+      sourceDir,
+      version: "local-test",
+    });
+    expect(plan.manifest.productionSchedules).toEqual([]);
+    expect(plan.manifest.siteProductionTimelines).toEqual([]);
+    expect(
+      plan.files.some(({ relKey }) =>
+        relKey.endsWith("production_schedule.json"),
+      ),
+    ).toBe(false);
   });
 
   it("rejects unknown production schedule versions", () => {

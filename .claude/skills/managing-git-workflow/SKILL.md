@@ -77,6 +77,47 @@ Use the template at `.github/pull_request_template.md`. Key sections:
 8. **How to test** - Manual testing instructions
 9. **Demo** - Screenshots or videos
 
+## Merge Queue
+
+`hashintel/hash` merges through a GitHub **merge queue**. This changes both how a PR is enqueued and how that can be verified.
+
+### `auto_merge` is not evidence
+
+Enqueuing a PR ("Merge when ready") does **not** populate the PR's `auto_merge` field — it stays `null` even on a completely successful enqueue. Never verify an enqueue by reading `auto_merge`: it reads `null` in the success case and the failure case alike, so it carries no information.
+
+Verified 2026-07-31 on PR #9127: a human's successful enqueue at `14:07:40Z` produced no `auto_merge_enabled` event and no `auto_merge` value — indistinguishable from a "failed" one.
+
+### Verifying an enqueue
+
+Use either:
+
+- a recent `added_to_merge_queue` event in `GET /repos/hashintel/hash/issues/<NUMBER>/timeline`
+- fresh `merge_group` workflow runs on a `gh-readonly-queue/<base>/pr-<NUMBER>-<sha>` ref
+
+### Re-queuing after an ejection
+
+Re-queuing works from agent sessions via the GitHub MCP `enable_pr_auto_merge` tool. Its response is success-shaped with an empty `method` and `enabled at` — that empty shape is the expected signature of the repo routing to the queue instead of creating an `autoMergeRequest`, not a failure. (Verified on #9127: `added_to_merge_queue` by `claude[bot]` at `14:29:23Z`, `merge_group` CI restarted 23s later, merged unattended at `14:48:59Z` with `merged_by: claude[bot]`, no human action.)
+
+What does not work:
+
+- GraphQL `enablePullRequestAutoMerge` via `curl` — proxy-blocked in agent sessions ("only the pinned set of PR-review operations is served")
+- REST `PUT /repos/hashintel/hash/pulls/<NUMBER>/merge` — rejected for queue-protected branches, and it would bypass the queue rather than enter it
+
+### Diagnosing an ejection
+
+An ejection can be another PR's fault, or nobody's:
+
+- The `gh-readonly-queue/...` ref names every PR in the batch. If only yours is named, it was not batched with another.
+- Before treating an ejection as a defect in your diff, compare the failing step against the same step on the identical head in the PR-level run. A step that took 17 seconds there and timed out in the queue is infrastructure, not code. Do not push a "fix" for a flake.
+
+### The queue lints differently from the PR
+
+The PR runs `cargo clippy --all-features`; the merge queue runs `cargo hack --optional-deps --feature-powerset clippy`, dispatched on `GITHUB_EVENT_NAME` in the `.justfile`. `turbo.json` also puts `GITHUB_EVENT_NAME` in the `lint:clippy` task's `env`, so the queue cannot replay the PR's cache. The queue can therefore legitimately surface feature-conditional problems the PR lint never ran — including the package-level `warning: unused dependency` gate that `lint.yml` greps for and fails on.
+
+### Before reporting a failure
+
+Do not tell a human you were unable to do something without verifying that claim first, and re-check current state before asking them to do something you already attempted.
+
 ## PR Review Process
 
 ### Step 1: Gather Information

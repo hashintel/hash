@@ -107,7 +107,7 @@
     "nodemailer": "9.0.1",
     "oembed-providers": "1.0.20250926",
     "openai": "6.6.0",
-    "sanitize-html": "2.17.4",
+    "sanitize-html": "2.17.5",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",

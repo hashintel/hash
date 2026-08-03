@@ -42,3 +42,13 @@ export class DatasetUnavailableError extends Error {
     this.name = "DatasetUnavailableError";
   }
 }
+
+/** An optional published-dataset artifact was intentionally not advertised. */
+export class OptionalArtifactUnavailableError extends Error {
+  public readonly code = "OPTIONAL_ARTIFACT_UNAVAILABLE";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "OptionalArtifactUnavailableError";
+  }
+}

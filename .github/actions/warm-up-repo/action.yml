@@ -1,12 +1,6 @@
 name: Warm-up repo
 description: Prepares Node and Yarn dependencies
 
-inputs:
-  playwright-deps:
-    default: ""
-    description: "List of browsers separated by space, e.g. 'chrome firefox'"
-    required: false
-
 runs:
   using: composite
 
@@ -22,15 +16,6 @@ runs:
         # we disable hardened mode (https://yarnpkg.com/features/security), as it significantly slows down the installation
         # immutable installs are still enforced in CI
         command: |
-          export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD="${{ inputs.playwright-deps == '' }}"
+          export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
           export YARN_ENABLE_HARDENED_MODE=0
           yarn install --immutable
-
-    - name: npx playwright install
-      if: ${{ inputs.playwright-deps != '' }}
-      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
-      with:
-        max_attempts: 3
-        timeout_minutes: 10
-        shell: bash
-        command: npx playwright install --with-deps ${{ inputs.playwright-deps }}
