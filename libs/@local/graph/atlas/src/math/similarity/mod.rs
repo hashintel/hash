@@ -32,11 +32,11 @@ mod tests;
 /// matrix. It scales lengths uniformly and preserves every angle, so shapes keep their proportions
 /// and their winding direction.
 ///
-/// The scale of a constructed value is a finite, strictly positive, normal number:
-/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else, which
-/// keeps the divisor in [`inverse`](Self::inverse) away from zero. [`then`](Self::then) and
-/// [`inverse`](Self::inverse) build their results without revalidating, so the invariant carries
-/// through them only inside the scale ranges their docs state.
+/// The scale of every value and its reciprocal are both strictly positive normal numbers:
+/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else.
+/// Reciprocals of accepted scales are themselves accepted, so [`inverse`](Self::inverse) is total
+/// and every similarity has an inverse. [`then`](Self::then) revalidates its composed scale and
+/// returns [`None`] where the product leaves the range.
 ///
 /// Obtain one from weighted point correspondences with [`fit`](Self::fit), the closed-form
 /// Procrustes alignment, or with [`fit_par`](Self::fit_par) when the pairs number in the hundreds
@@ -92,12 +92,14 @@ impl Similarity {
 
     /// Creates a similarity from its scale, rotation, and translation.
     ///
-    /// Returns [`None`] unless `scale` is a finite, strictly positive, normal number. Every
-    /// constructed value therefore has a total [`inverse`](Self::inverse).
+    /// Returns [`None`] unless `scale` and its reciprocal are both strictly positive normal
+    /// numbers, which accepts magnitudes from [`f32::MIN_POSITIVE`] up to about `8.5e37`. The
+    /// reciprocal bound is what makes [`inverse`](Self::inverse) total and closed, because
+    /// reciprocals of accepted scales are themselves accepted.
     #[inline]
     #[must_use]
     pub const fn new(scale: f32, rotation: Rotation, translation: Vec2) -> Option<Self> {
-        if !scale.is_normal() || scale <= 0.0 {
+        if !scale.is_normal() || scale <= 0.0 || !(1.0 / scale).is_normal() {
             return None;
         }
 
@@ -132,29 +134,32 @@ impl Similarity {
     /// Returns the similarity equivalent to applying `self` first, then `next`.
     ///
     /// This reads in application order. The scales multiply, the rotations compose via
-    /// [`Rotation::then`], and `next` transforms `self`'s translation. The product of the two
-    /// scales must remain in the normal positive range to uphold the type's invariant.
+    /// [`Rotation::then`], and `next` transforms `self`'s translation.
+    ///
+    /// Returns [`None`] when the product of the scales leaves the range [`new`](Self::new)
+    /// accepts. Two accepted f32 scales can overflow to infinity or underflow past the normal
+    /// range, so composition is not closed and the revalidation is what upholds the type's
+    /// invariant.
     #[inline]
     #[must_use]
-    pub const fn then(self, next: Self) -> Self {
+    pub const fn then(self, next: Self) -> Option<Self> {
         let moved = next.rotation.apply(self.translation);
 
-        Self {
-            scale: self.scale * next.scale,
-            rotation: self.rotation.then(next.rotation),
-            translation: Vec2::new(
+        Self::new(
+            self.scale * next.scale,
+            self.rotation.then(next.rotation),
+            Vec2::new(
                 next.scale * moved.x() + next.translation.x(),
                 next.scale * moved.y() + next.translation.y(),
             ),
-        }
+        )
     }
 
     /// Returns the similarity that undoes `self`.
     ///
-    /// The scale invariant keeps the divisor away from zero, so every similarity has an inverse:
-    /// applying a similarity and then its inverse reproduces the input up to floating-point
-    /// rounding. The reciprocal of the scale must itself be a normal number to uphold the type's
-    /// invariant, which holds for scales up to about `8.5e37`.
+    /// [`new`](Self::new) admits only scales whose reciprocal is also normal, so the inverse's
+    /// scale satisfies the same invariant and inversion is total: applying a similarity and then
+    /// its inverse reproduces the input up to floating-point rounding.
     #[inline]
     #[must_use]
     pub const fn inverse(self) -> Self {
@@ -243,7 +248,7 @@ impl Similarity {
     /// produces. The caller keeps the cosine and sine on the unit circle up to rounding, matching
     /// the contract of [`Rotation::from_cos_sin`].
     ///
-    /// Returns [`None`] unless the scale is a finite, strictly positive, normal number.
+    /// Returns [`None`] unless the scale lies in the range [`new`](Self::new) accepts.
     #[inline]
     #[must_use]
     pub const fn from_array(

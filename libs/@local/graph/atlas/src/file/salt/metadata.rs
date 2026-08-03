@@ -301,7 +301,7 @@ mod similarity {
 
         Similarity::new(scale, Rotation::from_cos_sin(cos, sin), Vec2::new(x, y)).ok_or_else(|| {
             D::Error::custom(format_args!(
-                "the scale {scale} is not a finite, strictly positive, normal number"
+                "the scale {scale} or its reciprocal is not a strictly positive normal number"
             ))
         })
     }

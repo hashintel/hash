@@ -167,7 +167,9 @@ fn composition_matches_sequential_application() {
     let first = mixed_similarity();
     let second = Similarity::new(0.5, Rotation::from_radians(1.1), Vec2::new(-3.0, 4.0))
         .expect("scale 0.5 is normal and positive");
-    let composed = first.then(second);
+    let composed = first
+        .then(second)
+        .expect("the product 2.0 * 0.5 = 1.0 stays in the accepted range");
 
     // The scales multiply exactly for powers of two.
     assert_eq!(composed.scale(), 1.0);
@@ -190,6 +192,33 @@ fn inverse_round_trips_both_directions() {
         assert_vec2_close(inverse.apply(similarity.apply(point)), point);
         assert_vec2_close(similarity.apply(inverse.apply(point)), point);
     }
+}
+
+#[test]
+fn boundary_scales_and_their_inverses_stay_valid() {
+    // The smallest normal and its exact reciprocal 2¹²⁶ are the accepted range's two edges.
+    let bottom = Similarity::new(f32::MIN_POSITIVE, Rotation::IDENTITY, Vec2::ZERO)
+        .expect("the smallest normal has the reciprocal 2^126, which is normal");
+    let top = Similarity::new(2.0_f32.powi(126), Rotation::IDENTITY, Vec2::ZERO)
+        .expect("2^126 has the reciprocal f32::MIN_POSITIVE, which is normal");
+
+    // Powers of two invert exactly, so each edge maps onto the other.
+    assert_eq!(bottom.inverse().scale(), 2.0_f32.powi(126));
+    assert_eq!(top.inverse().scale(), f32::MIN_POSITIVE);
+}
+
+#[test]
+fn composition_rejects_scales_leaving_the_range() {
+    let large = Similarity::new(1.0e20, Rotation::IDENTITY, Vec2::ZERO)
+        .expect("1e20 and its reciprocal are normal");
+    let small = Similarity::new(1.0e-30, Rotation::IDENTITY, Vec2::ZERO)
+        .expect("1e-30 and its reciprocal are normal");
+
+    // 1e20 · 1e20 overflows to infinity. 1e-30 · 1e-30 underflows to zero.
+    assert!(large.then(large).is_none());
+    assert!(small.then(small).is_none());
+    // The same magnitudes compose once the scales cancel.
+    assert!(large.then(small).is_some());
 }
 
 #[test]
@@ -311,7 +340,9 @@ fn fit_is_equivariant_under_target_transformation() {
 
     let refitted = Similarity::fit(&CERT_POINTS, &moved_target, &CERT_WEIGHTS)
         .expect("a similarity image of a well-determined target stays well-determined");
-    let expected = base.then(post);
+    let expected = base
+        .then(post)
+        .expect("both scales are near one, so the product stays in the accepted range");
 
     for (actual, reference) in refitted.to_array().into_iter().zip(expected.to_array()) {
         assert_scalar_close(actual, reference);
@@ -628,6 +659,9 @@ fn invalid_scales_are_rejected() {
         f32::INFINITY,
         f32::NEG_INFINITY,
         f32::MIN_POSITIVE / 2.0,
+        // Normal scales whose reciprocals are subnormal.
+        1.0e38,
+        f32::MAX,
     ];
 
     for scale in invalid_scales {
@@ -716,4 +750,36 @@ fn fit_recovers_a_random_similarity(
             actual,
         );
     }
+}
+
+/// The inverse of any similarity satisfies the constructor's own invariant.
+///
+/// The scale spans the accepted range's full exponent spread with a non-dyadic mantissa, so the
+/// reciprocal rounds rather than inverting exactly, and the property exercises both boundaries,
+/// where a rounded reciprocal has the least room before the normal range ends.
+#[property_test]
+fn inverse_stays_inside_the_constructed_range(
+    #[strategy = (1.0_f32..2.0, -126_i32..=125, -16.0_f32..16.0)] (mantissa, exponent, radians): (
+        f32,
+        i32,
+        f32,
+    ),
+) {
+    let scale = mantissa * 2.0_f32.powi(exponent);
+    let similarity = Similarity::new(scale, Rotation::from_radians(radians), Vec2::new(1.0, -2.0))
+        .expect("a normal scale below 2^126 has a normal reciprocal");
+
+    let inverse = similarity.inverse();
+    prop_assert!(
+        Similarity::from_array(inverse.to_array()).is_some(),
+        "inverse scale {} left the accepted range",
+        inverse.scale(),
+    );
+
+    let double = inverse.inverse();
+    prop_assert!(
+        Similarity::from_array(double.to_array()).is_some(),
+        "double-inverse scale {} left the accepted range",
+        double.scale(),
+    );
 }
