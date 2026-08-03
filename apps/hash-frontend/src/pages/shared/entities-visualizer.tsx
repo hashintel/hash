@@ -242,6 +242,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     [setCursor],
   );
 
+  // The latest view, for the files-only auto-view effect to read without taking
+  // `view` as a dependency (which would fight a manual view selection).
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
   const [sort, _setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
   >({
@@ -507,21 +512,25 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const isDisplayingFilesOnly = useMemo(
     () =>
-      /**
-       * To allow the `Grid` view to come into view on first render where
-       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
-       * matches a `File` entity type from a statically defined list.
-       */
-      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
-      (entityTypeBaseUrl &&
-        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
-      /**
-       * Otherwise we check the fetched `entityTypes` as a fallback.
-       */
-      (closedMultiEntityTypes.length &&
-        closedMultiEntityTypes.every(({ allOf }) =>
-          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
-        )),
+      // Coerced to a boolean so a change between falsy shapes (e.g. `false` from
+      // `every` vs `0` from an empty `length`) doesn't retrigger the effect below.
+      Boolean(
+        /**
+         * To allow the `Grid` view to come into view on first render where
+         * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
+         * matches a `File` entity type from a statically defined list.
+         */
+        (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
+        (entityTypeBaseUrl &&
+          allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+        /**
+         * Otherwise we check the fetched `entityTypes` as a fallback.
+         */
+        (closedMultiEntityTypes.length &&
+          closedMultiEntityTypes.every(({ allOf }) =>
+            allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+          )),
+      ),
     [
       entityTypeBaseUrl,
       entityTypeId,
@@ -532,10 +541,18 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
+  // Prefer the gallery Grid view for files-only content, and leave it again once
+  // the content is no longer files-only (Grid is offered only then). An explicit
+  // NetworkGraph selection is never overridden: the graph is a valid view for any
+  // content, so a filter that narrows the result set — or empties it — must not
+  // eject the user from it (it shows its own "no results" state instead).
   useEffect(() => {
+    if (viewRef.current === "NetworkGraph") {
+      return;
+    }
     if (isDisplayingFilesOnly) {
       setView("Grid");
-    } else {
+    } else if (viewRef.current === "Grid") {
       setView("Table");
     }
   }, [isDisplayingFilesOnly, setView]);
