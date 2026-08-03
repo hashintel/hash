@@ -800,6 +800,13 @@ export const NetworkGraphView = ({
 
   const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data, toEdge]);
 
+  // The overview query has resolved (so `data` is defined) but carried no nodes:
+  // the view is empty — the filters match nothing. Distinct from the initial load
+  // (`data` still undefined), so an empty result shows a message rather than an
+  // endless spinner. `points.length` rather than `data` alone excludes the single
+  // render where the first non-empty load has nodes but `bounds` is not yet set.
+  const noResults = data !== undefined && points.length === 0;
+
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
   // stream in. Deriving state during render (not in an effect) is the pattern
@@ -1571,6 +1578,10 @@ export const NetworkGraphView = ({
               <Typography variant="smallTextParagraphs" color="gray.70">
                 {describeGraphError(error)} Start it, then reload — tiles are
                 fetched through hash-api’s <code>/atlas</code> route.
+              </Typography>
+            ) : noResults ? (
+              <Typography variant="smallTextParagraphs" color="gray.70">
+                No entities match the current filters.
               </Typography>
             ) : (
               <LoadingSpinner size={42} color={theme.palette.blue[60]} />
