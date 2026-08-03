@@ -14,11 +14,11 @@
 //! An id that resolves to nothing yields an absent key rather than an error or a null entry.
 //! Nonexistent ids, draft-suffixed ids (the corpus indexes live entities), and entities the
 //! visibility proof hides are indistinguishable by doctrine (missing = denied). A node answers only
-//! when its row is visible, and an edge only when both its endpoints are visible, so edge
-//! visibility derives from its endpoints rather than arriving on its own. The link domain is
-//! link-bearing, so it resolves under the operator scope alone. Under a restricted scope every link
-//! id is an absent key, indistinguishable from an id belonging to neither domain. Translation reads
-//! the published identity artifacts and the fitted coordinate column alone, never the store.
+//! when the proof admits its row, and an edge only when the proof admits its link row together with
+//! both endpoints, so the link domain carries an authorization its endpoints do not imply. Every
+//! scope resolves both domains, and a link id the proof does not admit is an absent key,
+//! indistinguishable from an id belonging to neither domain. Translation reads the published
+//! identity artifacts and the fitted coordinate column alone, never the store.
 
 use alloc::collections::BTreeMap;
 use core::{error::Error, fmt};

@@ -52,7 +52,7 @@ cargo run -p hash-graph -- atlas --root /var/lib/hash/atlas
 
 ```sh
 generation="$(curl -fsS http://127.0.0.1:4003/v1/atlas/current | jq -r .generation)"
-curl -fsS "http://127.0.0.1:4003/v1/atlas/generation/${generation}/manifest" | jq
+curl -fsS -X POST "http://127.0.0.1:4003/v1/atlas/generation/${generation}/manifest" | jq
 curl -fS -X POST \
   "http://127.0.0.1:4003/v1/atlas/tile/${generation}/plain/0/0/0" \
   --output root.saltile
@@ -74,7 +74,7 @@ The serving read path is `current` (which generation?) then `manifest` (how does
 | --------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
 | `/status`                                           | GET    | process liveness                                                                          |
 | `/v1/atlas/current`                                 | GET    | the served generation id - the one mutable read                                           |
-| `/v1/atlas/generation/{generation}/manifest`        | GET    | wire version, variants, bucket schedule, enforced limits                                  |
+| `/v1/atlas/generation/{generation}/manifest`        | POST   | wire version, variants, bucket schedule, this caller's delivery schedule, enforced limits |
 | `/v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}` | POST   | one tile: positions, row ids, optional type masks and detail trailer                      |
 | `/v1/atlas/edges/{generation}/{variant}`            | POST   | the edges among the listed tiles' delivered rows                                          |
 | `/v1/atlas/locate/{generation}/{variant}`           | POST   | an ego-graph by entity id or wire row id: fly-to cell, the source's edges, their partners |
@@ -84,9 +84,9 @@ The serving read path is `current` (which generation?) then `manifest` (how does
 
 The API documents itself - the OpenAPI reference is the authoritative per-route contract. The notes below are the semantics that span routes.
 
-Binary responses are `application/vnd.hash.saltile-v1` envelopes with `Cache-Control: private, no-store`: the client's application-layer cache is the cache, keyed by authorization context, generation, route, and canonical query. The manifest is cacheable for the generation's lifetime. Identical requests yield identical geometry bytes, per generation, server secret, and serving limits; detailed responses hydrate their trailers live from the store and leave the immutable cache - cache the geometry surfaces, refetch detail.
+Binary responses are `application/vnd.hash.saltile-v1` envelopes with `Cache-Control: private, no-store`: the client's application-layer cache is the cache, keyed by authorization context, generation, route, and canonical query. Identical requests yield identical geometry bytes, per generation, server secret, and serving limits; detailed responses hydrate their trailers live from the store and leave the immutable cache - cache the geometry surfaces, refetch detail. The manifest is `no-store` too. Each of its responses mints one caller's authority token and states that caller's own delivery schedule, so a shared copy would hand a second caller both.
 
-Rejections from the handlers are RFC 9457 `application/problem+json` documents whose `type` is a stable root-relative URI (`/problems/atlas/unknown-generation`, `/problems/atlas/invalid-coordinate`, ...). Requests the framework's extractors reject - malformed bodies, unparsable paths - answer plain rejections instead. `unknown-generation` means the route names a generation this process does not serve: re-read `current` and retry. Entities that do not exist and entities the caller may not see answer byte-identically - existence is never disclosed through an error shape.
+Rejections from the handlers are RFC 9457 `application/problem+json` documents whose `type` is a stable root-relative URI (`/problems/atlas/unknown-generation`, `/problems/atlas/invalid-coordinate`, ...). Extraction failures answer problem documents too. An absent required body answers `missing-body`. A body that is not the operation's JSON shape answers `invalid-body`, and an unparsable tile address answers `invalid-coordinate`. Only the router's own rejections - an unmatched route, a wrong method - stay plain. `unknown-generation` means the route names a generation this process does not serve: re-read `current` and retry. Entities that do not exist and entities the caller may not see answer byte-identically - existence is never disclosed through an error shape.
 
 ### Server configuration
 
@@ -119,24 +119,23 @@ A generation id is the SHA-256 of its metadata document:
     <artifact files>
 ```
 
-Generation directories are immutable and publication is no-clobber. Republishing an identical generation does nothing, and a same-id publish with different bytes fails as corruption. Readers open artifacts by role through the metadata, never by guessing file names. Activation is an atomic rename of `current`; a serving process resolves the pointer once at startup, so activation changes take effect on the next start. Back up a pointer together with its generation directory - a pointer without its generation is not recoverable state.
+Generation directories are immutable and publication is no-clobber. A publish whose metadata document already has its directory fails and leaves that directory untouched, so re-publishing an identical generation is a reported error rather than a silent no-op. The id is the SHA-256 of the metadata document. That document names every artifact's content hash, so a change to any artifact's bytes yields a different id and its own directory. Readers open artifacts by role through the metadata, never by guessing file names. Activation is an atomic rename of `current`; a serving process resolves the pointer once at startup, so activation changes take effect on the next start. Back up a pointer together with its generation directory - a pointer without its generation is not recoverable state.
 
 ## Security posture
 
-The API serves only reads and performs no authentication: bind it to loopback or a trusted internal network and put authentication, TLS, and rate limits in the surrounding service.
+The API serves only reads. It authenticates every data request against the `Atlas-Authority` token its manifest response mints, and resolves one visibility scope per authenticated actor. Bind it to loopback or a trusted internal network and put TLS and rate limits in the surrounding service.
 
 What the crate does guarantee, independent of the surrounding service:
 
 - Row ids cross the wire through a keyed permutation derived from the server secret (`HASH_GRAPH_ATLAS_SECRET`) per generation. The permutation's design target is that id values and response orders carry no information about internal row assignment; that hiding is the construction's target, not a demonstrated boundary. The secret is mandatory - the server refuses to start without one - and comes from a deployment secret store. Replicas serving one generation share it.
 - Missing and forbidden answer byte-identically on every id-bearing route.
 - Published manifest limits and their handler enforcement read the same value, by construction.
-- A server-held visibility proof governs every corpus-bearing response (tile, edges, locate, translate). Row sets intersect it, edges inherit visibility from their endpoints, and hidden rows are indistinguishable from nonexistent ones. Current serving uses the explicit full-visibility operator proof. The specification defines a sealed-bitmap session path that would supply per-scope proofs, and no code builds it yet.
+- A server-held visibility proof governs every corpus-bearing response (tile, edges, locate, translate). The proof carries one mask per identity domain, so a link row's authorization is a statement the proof holds and its endpoints do not imply. Hidden rows are indistinguishable from nonexistent ones on every id-bearing route. A manifest request resolves the caller's scope and seals it into the authority token the data routes require.
 
 ## Limitations
 
 - Each process serves one generation, pinning `current` at startup and never hot-swapping. Restart to serve a newly activated generation.
 - The server rejects `filter` fields by name (`unsupported-feature`) rather than ignoring them - the specification defines the filter surface, and no handler serves it.
-- Link-bearing surfaces answer the operator scope: the edges and locate routes answer a restricted scope with `unavailable-in-scope`, and translate's `edges` map is empty under one. Edge sets derive from node visibility, which states nothing about the link rows themselves, so the server refuses a scope without a statement about links rather than serving an inference.
 - Row ids do not survive a refit. A client persists anything it keeps in entity-identity terms and re-translates it per generation.
 - The server secret keys wire ids per generation, and nothing fingerprints the secret. Changing it for an already-served generation re-keys every wire id under unchanged cache identity. Treat the secret as immutable per generation, and rotate generations to rotate secrets.
 - Output-affecting serving limits (edge truncation, locate limits) are the same class of operator contract. Nothing fingerprints them, so keep them stable while a generation serves, or rotate the generation and clear application caches.
@@ -151,7 +150,7 @@ Domain-independent foundations with the SALT pipeline on top:
 - `file` - the on-disk artifact formats: plain files in a directory, described by metadata beside them.
 - `dataset` - the data one fit runs over, wherever it lives.
 - `salt` - the pipeline, covering graph construction, landmark layout, projector training, evaluation, and wire encoding.
-- `run` - the operator seam: one production run over a live store.
+- `cli`, `progress` - the operator seam: the commands that fit a generation and serve the atlas, and the observations a running fit reports.
 - `serve` - opened generations answering reads as wire bytes.
 
 ## Development

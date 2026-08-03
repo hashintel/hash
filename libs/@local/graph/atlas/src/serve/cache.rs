@@ -5,8 +5,8 @@
 //! collapses a burst. A request for the same scope arriving during one resolution waits on it and
 //! receives its result, so N concurrent tile requests cost one store query.
 //!
-//! A scope is a [`CacheKey`], naming a generation, an authenticated actor, and the digest of
-//! the request filter when the request carries one. Callers presenting the same filter for the same
+//! A scope is a [`CacheKey`], naming a generation, an authenticated actor, and the digest of the
+//! request filter when the request carries one. Callers presenting the same filter for the same
 //! actor and generation share one entry. A filtered request and an unfiltered one are different
 //! scopes.
 //!
@@ -429,8 +429,8 @@ impl VisibilityCache {
     /// The replacement takes the slot under moka's key lock, so a burst of requests past the hard
     /// window costs one store round trip: the first publishes and the rest read what it published.
     /// Dropping the entry and inserting its replacement as two operations would leave the slot
-    /// empty in between, where a concurrent refresh's publication or an inline resolution can
-    /// land and then be overwritten by this one.
+    /// empty in between, where a concurrent refresh's publication or an inline resolution can land
+    /// and then be overwritten by this one.
     async fn replaced_expired<R, E>(
         &self,
         key: CacheKey,
@@ -516,10 +516,10 @@ impl VisibilityCache {
     /// With nothing held, the resolution runs inline and every request arriving during it receives
     /// its result, so a burst of tile requests for one scope costs one store round trip.
     ///
-    /// An unchanged permission set resolves to the same rows. When a refresh resolves a
-    /// *narrower* proof, it replaces the entry and the requests after it answer from the narrower
-    /// view. The cache takes that mid-run change while the graph has no permission epochs for
-    /// invalidating an entry, so no caller learns of a refresh.
+    /// An unchanged permission set resolves to the same rows. When a refresh resolves a *narrower*
+    /// proof, it replaces the entry and the requests after it answer from the narrower view. The
+    /// cache takes that mid-run change while the graph has no permission epochs for invalidating an
+    /// entry, so no caller learns of a refresh.
     ///
     /// # Errors
     ///
@@ -957,8 +957,8 @@ mod tests {
     /// Identity names that entry. Age cannot name it: a request stamps `now` when it arrives, while
     /// its insert completes only after a pool acquire and a store round trip. An entry resolved
     /// before the refresh was triggered can be written into the slot after that refresh started. An
-    /// age comparison overwrites it, and its proof is a different resolution that no
-    /// request asked to have replaced.
+    /// age comparison overwrites it, and its proof is a different resolution that no request asked
+    /// to have replaced.
     ///
     /// The fixture holds a refresh in flight while it empties the slot and refills it with a
     /// stranger stamped below the refresh trigger. Only then does the refresh complete.

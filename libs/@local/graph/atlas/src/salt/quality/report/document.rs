@@ -32,6 +32,14 @@ pub(crate) struct MetricRow {
 
 impl MetricRow {
     /// Reads one aggregate at the given neighbourhood size.
+    ///
+    /// Every row a probe produces observes at least one query, from three independent reasons:
+    /// `ProbeOptions::anchors` is a `NonZero`, the sampled pass observes every rung cell once per
+    /// anchor, and a subgroup row merges at least the anchor that created its membership. A row
+    /// read from an empty aggregate publishes each reading's own optimum instead - recall one, the
+    /// rates zero - and [`controls`](QualityReport::controls) folds those into its extremum as
+    /// observed evidence, where the triplet control keys on its observed count and refuses. A new
+    /// row source either keeps that invariant or gives the controls `queries` to key on.
     pub(super) fn read(neighbourhood: NonZero<usize>, aggregate: &NeighbourhoodAggregate) -> Self {
         Self {
             neighbourhood,

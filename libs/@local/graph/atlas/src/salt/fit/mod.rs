@@ -548,9 +548,11 @@ pub(crate) struct Supplies<'fit> {
 /// # Errors
 ///
 /// Returns an error when the dataset or embedding provider fails ([`FitError::Dataset`],
-/// [`FitError::Cards`], [`FitError::Embedding`]), an ingest write fails, or any compute stage
-/// rejects its input, fails an admission check, or cannot write, map, or publish
-/// ([`FitError::Stage`]). The run publishes nothing on any error.
+/// [`FitError::Cards`], [`FitError::Embedding`]) or a supplied annotation corpus fails to assemble
+/// into the classifier's training set ([`FitError::Assembly`]). A streamed ingest write can also
+/// fail ([`FitError::Io`]), and any compute stage rejecting its input, failing an admission check,
+/// or unable to write, map, or publish answers [`FitError::Stage`]. The run publishes nothing on
+/// any error.
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the staging and scratch directories move into the compute closure whole; nothing \

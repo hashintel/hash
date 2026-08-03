@@ -1,8 +1,9 @@
 //! The atlas read API, serving Surface v1 routes over one opened generation.
 //!
-//! The surface comprises the mutable `current` pointer, the immutable per-generation manifest, the
-//! tile, edges, and locate endpoints answering binary `SALTILE` envelopes, and the JSON translate
-//! endpoint. The server pins the generation at startup and serves it until restart.
+//! The routes are the mutable `current` pointer, the per-generation manifest that also states one
+//! caller's resolved delivery schedule, the tile, edges, and locate endpoints answering binary
+//! `SALTILE` envelopes, and the JSON translate endpoint. The server pins the generation at startup
+//! and serves it until restart.
 //!
 //! Each route lives in its own module (handler, path parameters, and OpenAPI documentation
 //! together), so a new endpoint is a new module plus one line in [`router`]'s table. The shared
@@ -59,11 +60,13 @@ const API_DESCRIPTION: &str =
 ## Bootstrap
 
 1. `GET /v1/atlas/current` - the generation this process serves; the one mutable read.
-2. `POST /v1/atlas/generation/{generation}/manifest` - the immutable per-generation bootstrap \
-     (configuration and snapshot provenance): the served variants, the published serving limits \
-     (`limits`), and the bucket schedule the tile grid follows. Every successful response mints \
-     the authority token the data routes require, and the body states the view the request wants: \
-     a filter document, or nothing for the unfiltered view.
+2. `POST /v1/atlas/generation/{generation}/manifest` - the per-generation bootstrap: the served \
+     variants, the published serving limits (`limits`), the bucket schedule the tile grid follows \
+     (`bucketSchedule`), and the delivery schedule this caller's own responses follow \
+     (`scopeSchedule`, whose `k` a restricted decoder adds to the bucket span to attribute runs \
+     to buckets). Every block except `scopeSchedule` is immutable for the generation's lifetime. \
+     Every successful response mints the authority token the data routes require, and the body \
+     states the view the request wants: a filter document, or nothing for the unfiltered view.
 3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
      identity resolution.
 
@@ -80,6 +83,10 @@ const API_DESCRIPTION: &str =
      unparsable tile address answers `invalid-coordinate`, and a malformed generation id answers \
      `invalid-generation`. An `unknown-generation` problem always means: re-read `current` and \
      retry.
+- Authorization answers three problems. A request naming no authenticated actor answers \
+     `missing-actor` (400). An absent, malformed, foreign, or stale `Atlas-Authority` token \
+     answers `unauthorized` (401), one uniform refusal whose remedy is a fresh manifest request. \
+     A scope this process cannot resolve answers `visibility-unavailable` (503).
 - The binary envelope's normative contract is the `Atlas wire format` section below - this \
      document is self-contained; a decoder implements against it.";
 
