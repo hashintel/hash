@@ -34,6 +34,11 @@ export const styles = sva({
       // custom sizes, and lets a consumer tune it via `--avatar-lift-scale`.
       "&[data-lift='active']": {
         transform: "[scale(var(--avatar-lift-scale, 1.18))]",
+        // Counter-scale the white ring so it holds a constant on-screen width
+        // while the avatar pops: the tone box-shadow divides its width by this,
+        // cancelling the transform's magnification of the ring (it defaults to 1
+        // when not lifted, leaving the ring untouched).
+        "--avatar-ring-scale": "var(--avatar-lift-scale, 1.18)",
       },
     },
     // The interactive layer. Cross-fades over its opaque clone and re-stacks as
@@ -116,7 +121,7 @@ export const styles = sva({
         stackItem: {
           "& :where([data-loaded]:not(img))": {
             boxShadow:
-              "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+              "[0 0 0 calc(max(1px, min(calc(var(--avatar-size) / 32), 3px)) / var(--avatar-ring-scale, 1)) white]",
           },
         },
       },
@@ -124,7 +129,7 @@ export const styles = sva({
         stackItem: {
           "& :where([data-loaded='true']:not(img))": {
             boxShadow:
-              "[0 0 0 max(1px, min(calc(var(--avatar-size) / 32), 3px)) white]",
+              "[0 0 0 calc(max(1px, min(calc(var(--avatar-size) / 32), 3px)) / var(--avatar-ring-scale, 1)) white]",
           },
         },
       },
