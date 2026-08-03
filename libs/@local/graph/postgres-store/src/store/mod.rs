@@ -10,7 +10,8 @@ pub use self::{
     postgres::{
         AsClient, BeginReadOnlyTransaction, Context, InTransaction, IsolationLevel, NoTransaction,
         PostgresStore, PostgresStorePool, PostgresStoreSettings, PostgresStoreTransactionBuilder,
-        Transaction, TransactionBuilder, TransactionOptions, TransactionState,
+        SemanticSearchSettings, Transaction, TransactionBuilder, TransactionOptions,
+        TransactionState,
     },
     validation::{StoreCache, StoreProvider},
 };
