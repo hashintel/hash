@@ -566,19 +566,11 @@ where
 pub fn openapi_only_router(serve_api_reference: bool) -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-<<<<<<< HEAD
-    Router::new().merge(probe::router()).nest(
-        "/api-doc",
-        Router::new()
-            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-            .route("/models/{*path}", get(serve_static_schema)),
-    )
-=======
     let api_reference =
         serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
 
     let mut router = Router::new()
-        .route("/health", get(async || "Healthy".into_response()))
+        .merge(probe::router())
         .route("/openapi.json", get(|| async { Json(open_api_doc) }))
         .route("/models/{*path}", get(serve_static_schema));
 
@@ -587,7 +579,6 @@ pub fn openapi_only_router(serve_api_reference: bool) -> Router {
     }
 
     router
->>>>>>> origin/main
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
