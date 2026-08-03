@@ -46,7 +46,7 @@
 //!
 //! # Mapping and alignment
 //!
-//! Map the whole file and slice the data at [`FileHeader::SIZE`], never at a nonzero file offset. A
+//! Map the whole file and slice the data at offset 4096, never at a nonzero file offset. A
 //! whole-file mapping starts page-aligned on every supported target, every page size is a multiple
 //! of 4096, and the data begins 4096 bytes in, so the data slice is 4096-byte aligned: aligned for
 //! every scalar and SIMD width without further checks. This guarantee is a property of mapping. A
@@ -77,6 +77,7 @@ pub(crate) use self::{
     read::{ArrayFile, OpenArrayError},
     write::{ArrayWriter, SizedArrayWriter},
 };
+use crate::file::region::{PAGE, header::header};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -228,6 +229,7 @@ impl fmt::Display for Architecture {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(u8)]
 pub(crate) enum ArrayVariant {
@@ -423,10 +425,9 @@ impl ArrayShape {
     }
 }
 
-/// The 4096-byte header of an array file.
+/// The header of an array file.
 ///
-/// The data follows at offset [`Self::SIZE`], so a whole-file mapping yields a 4096-byte-aligned
-/// data slice.
+/// The data follows at offset 4096, so a whole-file mapping yields a 4096-byte-aligned data slice.
 #[derive(
     Copy,
     Clone,
@@ -434,6 +435,7 @@ impl ArrayShape {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
 pub(crate) struct FileHeader {
@@ -442,14 +444,11 @@ pub(crate) struct FileHeader {
     pub variant: ArrayVariant,
     pub shape: ArrayShape,
     pub flags: HeaderFlags,
-    pub padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4015;
-    /// Size of the header, and the offset of the data.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header recording this host as the writer architecture.
     #[must_use]
     pub(crate) const fn new(variant: ArrayVariant, shape: ArrayShape) -> Self {
@@ -459,7 +458,6 @@ impl FileHeader {
             variant,
             shape,
             flags: HeaderFlags::HOST,
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -501,7 +499,7 @@ impl FileHeader {
     /// header.
     #[must_use]
     pub(crate) fn expected_file_len(&self) -> Option<u64> {
-        self.byte_length()?.checked_add(Self::SIZE as u64)
+        self.byte_length()?.checked_add(PAGE)
     }
 }
 
@@ -520,5 +518,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

@@ -22,13 +22,25 @@ use crate::{
     math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, finite},
     morton::Depth,
     salt::{
-        AssemblyEvidence, BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
-        GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck, PolicyOptions, PolicyOverride,
-        PolicySource, Posterior, PostingsMeasurements, QuadMeasurements, RecallSpotCheck,
-        Relaxation, RepresentationDefect, SelectionOptions,
-        fit::{PlacementOptions, ProjectorOptions},
+        embedding::{CardEmbeddingStats, EmbedderFingerprint},
+        fit::{
+            FitConfig, PlacementOptions, PolicyOptions, ProjectorOptions,
+            prepare::norm::{NormSpotCheck, RepresentationDefect},
+        },
+        knn::recall::RecallSpotCheck,
         ladder::{Conditions, LadderOptions},
+        landmark::select::SelectionOptions,
+        lod::{quad::QuadMeasurements, stage::LodMeasurements},
+        policy::{
+            GeometryClass, PolicyOverride, PolicySource, Posterior,
+            annotation::{
+                HoldoutClass,
+                assembly::{AssemblyEvidence, Relaxation},
+            },
+        },
+        postings::build::PostingsMeasurements,
         projector::train::TrainingSchedule,
+        relation::BuildMeasurements,
     },
 };
 

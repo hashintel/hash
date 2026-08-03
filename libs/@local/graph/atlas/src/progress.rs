@@ -20,9 +20,12 @@
 //!
 //! [`NoProgress`] is the silent observer, for runs nothing watches.
 
-use crate::math::Vec2;
-pub use crate::salt::{
-    CardEmbeddingStats, LossBreakdown, QualityMetric, RecallAdmission, RecallSpotCheck,
+use crate::{
+    math::Vec2,
+    salt::{
+        embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+        projector::train::LossBreakdown, quality::QualityMetric,
+    },
 };
 
 /// One pipeline stage of a run, in the order the runner drives them.

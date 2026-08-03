@@ -109,6 +109,7 @@
     exhaustive_patterns,
     f128,
     never_type,
+    macro_metavar_expr_concat,
 
     // Library Features
     allocator_api,

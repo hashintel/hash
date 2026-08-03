@@ -1,13 +1,16 @@
 //! Opened array files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
+use std::path::Path;
 
-use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U32, U64, error::ConvertError};
+use zerocopy::{FromBytes as _, LE, U32, U64};
 
 use super::{Architecture, ArrayShape, ArrayVariant, FileHeader};
 use crate::{
-    file::region::PageMap,
+    file::region::{
+        PAGE_BYTES,
+        header::{HeaderError, HeaderMap},
+    },
     integrity::Sha256Digest,
     math::{AlignedVecN, Vec2},
 };
@@ -15,12 +18,8 @@ use crate::{
 /// Opening an array file failed.
 #[derive(Debug)]
 pub enum OpenArrayError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header,
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The file length contradicts the header's shape.
     Length {
         /// The length the header describes.
@@ -39,19 +38,7 @@ pub enum OpenArrayError {
 impl fmt::Display for OpenArrayError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the array file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header => {
-                write!(
-                    fmt,
-                    "the leading bytes are not an array-file header: The conversion failed \
-                     because the source bytes are not a valid value of the destination type."
-                )
-            }
+            Self::Header(error) => write!(fmt, "the array file's header page: {error}"),
             Self::ForeignArchitecture { architecture } => write!(
                 fmt,
                 "the file's elements are native to a {architecture} writer and unreadable on this \
@@ -78,11 +65,8 @@ impl fmt::Display for OpenArrayError {
 impl Error for OpenArrayError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
-            Self::Header
-            | Self::Undersized { .. }
-            | Self::Length { .. }
-            | Self::ForeignArchitecture { .. } => None,
+            Self::Header(error) => Some(error),
+            Self::Length { .. } | Self::ForeignArchitecture { .. } => None,
         }
     }
 }
@@ -95,7 +79,7 @@ impl Error for OpenArrayError {
 /// never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl ArrayFile {
@@ -103,27 +87,13 @@ impl ArrayFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenArrayError::Io`] when opening or mapping the file fails,
-    /// [`OpenArrayError::Undersized`] when the file ends before one full header,
-    /// [`OpenArrayError::Header`] when its leading bytes are not a header this module speaks,
+    /// Returns [`OpenArrayError::Header`] when the header page cannot be read,
     /// [`OpenArrayError::Length`] when the file length contradicts the header's shape, and
     /// [`OpenArrayError::ForeignArchitecture`] when the other byte order wrote the file's native
     /// elements.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenArrayError> {
-        let map = PageMap::open(path).map_err(OpenArrayError::Io)?;
-
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenArrayError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(_)) => {
-                return Err(OpenArrayError::Header);
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenArrayError::Header)?;
+        let header = map.header();
 
         let expected = header.expected_file_len();
         let actual = map.len();
@@ -144,13 +114,7 @@ impl ArrayFile {
     #[inline]
     #[must_use]
     pub(crate) fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor has
-        // validated that the map is large enough to contain the header and that its bytes
-        // parse as one, so the deref target is a valid `FileHeader`. The constructor's validation
-        // makes per-call `try_from_bytes` re-validation redundant.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Returns the element variant.
@@ -171,7 +135,7 @@ impl ArrayFile {
     #[inline]
     #[must_use]
     pub(crate) fn data(&self) -> &[u8] {
-        &self.map.bytes()[FileHeader::SIZE..]
+        &self.map.map().bytes()[PAGE_BYTES..]
     }
 
     /// Views the data as `N`-component SIMD-aligned vectors.

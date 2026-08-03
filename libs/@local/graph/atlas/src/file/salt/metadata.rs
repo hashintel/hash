@@ -14,10 +14,19 @@ use crate::{
     math::{Bounds2, Finite, Similarity},
     morton::Depth,
     salt::{
-        AssemblyEvidence, BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig,
-        FitConfigDef, GeometryClass, HoldoutClass, LodMeasurements, NormSpotCheck,
-        PostingsMeasurements, QuadMeasurements, RankingConfig, RecallSpotCheck,
-        ladder::RungMeasurement, projector::train::FrozenRadius,
+        embedding::{CardEmbeddingStats, EmbedderFingerprint},
+        fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
+        importance::RankingConfig,
+        knn::recall::RecallSpotCheck,
+        ladder::RungMeasurement,
+        lod::{quad::QuadMeasurements, stage::LodMeasurements},
+        policy::{
+            GeometryClass,
+            annotation::{HoldoutClass, assembly::AssemblyEvidence},
+        },
+        postings::build::PostingsMeasurements,
+        projector::train::FrozenRadius,
+        relation::BuildMeasurements,
     },
 };
 

@@ -5,7 +5,7 @@ use std::io;
 use hashql_core::id::Id as _;
 use zerocopy::{IntoBytes as _, LE, U64};
 
-use super::{Fenceposts, FileHeader};
+use super::{Fenceposts, FileHeader, PaddedFileHeader};
 use crate::{
     file::region::{PAGE, write_padding},
     identity::BasePosition,
@@ -66,7 +66,7 @@ pub(crate) fn write_regions(
         .expect("the stride is nonzero by construction")
         * size_of::<u64>() as u64;
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     for key in codes.iter().step_by(stride as usize) {
         write.write_all(U64::<LE>::new(key.to_bits()).as_bytes())?;
     }

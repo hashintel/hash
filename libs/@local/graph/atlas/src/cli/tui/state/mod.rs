@@ -13,9 +13,10 @@ use std::time::Instant;
 
 use crate::{
     math::Vec2,
-    progress::{
-        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, QualityMetric, RecallSpotCheck,
-        Stage,
+    progress::{Batch, DescentIteration, Stage},
+    salt::{
+        embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+        projector::train::LossBreakdown, quality::QualityMetric,
     },
 };
 

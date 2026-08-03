@@ -7,10 +7,13 @@ use std::{io::Cursor, path::PathBuf};
 use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader, SizedArrayWriter,
+    ArrayShape, ArrayVariant, ArrayWriter, Dim, FileHeader, PaddedFileHeader, SizedArrayWriter,
     read::{ArrayFile, OpenArrayError},
 };
-use crate::integrity::{Sha256, Update as _};
+use crate::{
+    file::region::{PAGE_BYTES, header::HeaderError},
+    integrity::{Sha256, Update as _},
+};
 
 /// A uniquely named file in the system temporary directory, removed on drop.
 struct TempFile {
@@ -49,7 +52,7 @@ fn extents(shape: &ArrayShape) -> Vec<u64> {
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2]));
+    let header = PaddedFileHeader::new(FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2])));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTARRY");
@@ -110,10 +113,14 @@ fn le_pinned_elements_survive_a_foreign_writer() {
 
 #[test]
 fn header_parse_pins_identity() {
-    let valid = FileHeader::new(ArrayVariant::F32, shape(&[16]));
-    let mut bytes = [0_u8; FileHeader::SIZE];
-    bytes.copy_from_slice(valid.as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
+    let page = PaddedFileHeader::new(FileHeader::new(ArrayVariant::F32, shape(&[16])));
+    let bytes: [u8; PAGE_BYTES] = page
+        .as_bytes()
+        .try_into()
+        .expect("a padded header is exactly one page");
+
+    let parsed =
+        PaddedFileHeader::try_ref_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.variant(), ArrayVariant::F32);
     assert_eq!(extents(parsed.shape()), [16]);
     assert_eq!(parsed.as_bytes(), bytes);
@@ -122,22 +129,22 @@ fn header_parse_pins_identity() {
     // parse at the byte level.
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
+    PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     let mut wrong_version = bytes;
     wrong_version[8] = 1;
-    FileHeader::try_read_from_bytes(&wrong_version)
+    PaddedFileHeader::try_ref_from_bytes(&wrong_version)
         .expect_err("an unsupported version should not parse");
 
     let mut wrong_variant = bytes;
     wrong_variant[12] = 0xFF;
-    FileHeader::try_read_from_bytes(&wrong_variant)
+    PaddedFileHeader::try_ref_from_bytes(&wrong_variant)
         .expect_err("an unknown variant should not parse");
 
     // The parse ignores padding without validating it.
     let mut dirty_padding = bytes;
-    dirty_padding[FileHeader::SIZE - 1] = 0xAB;
-    FileHeader::try_read_from_bytes(&dirty_padding).expect("padding bytes should be ignored");
+    dirty_padding[PAGE_BYTES - 1] = 0xAB;
+    PaddedFileHeader::try_ref_from_bytes(&dirty_padding).expect("padding bytes should be ignored");
 }
 
 #[test]
@@ -243,7 +250,7 @@ fn zero_rows_seal_as_the_empty_array() {
         .expect("writing to a cursor should succeed");
     let written = writer.finish().expect("sealing a cursor should succeed");
     assert_eq!(written, 0);
-    assert_eq!(buffer.get_ref().len(), FileHeader::SIZE);
+    assert_eq!(buffer.get_ref().len(), PAGE_BYTES);
 
     // A zero-element file records no row width, so it is zero vectors of
     // every dimension.
@@ -259,17 +266,22 @@ fn zero_rows_seal_as_the_empty_array() {
 fn open_rejects_what_the_header_contradicts() {
     // An unfinished write leaves the reserved zero header, which no
     // parse accepts.
-    let mut unfinished = vec![0_u8; FileHeader::SIZE];
+    let mut unfinished = vec![0_u8; PAGE_BYTES];
     unfinished.extend_from_slice([1.0_f32; 8].as_bytes());
     let file = TempFile::create(&unfinished);
-    assert_matches!(ArrayFile::open(&file.path), Err(OpenArrayError::Header));
+    assert_matches!(
+        ArrayFile::open(&file.path),
+        Err(OpenArrayError::Header(HeaderError::Invalid))
+    );
 
     // A file shorter than one header fails the length check before any
     // parse.
     let file = TempFile::create(&[0xAB; 16]);
     assert_matches!(
         ArrayFile::open(&file.path),
-        Err(OpenArrayError::Undersized { actual: 16 })
+        Err(OpenArrayError::Header(HeaderError::Undersized {
+            actual: 16
+        }))
     );
 
     // A truncated data region violates the length rule.
@@ -287,7 +299,10 @@ fn open_rejects_what_the_header_contradicts() {
 
     // A missing file surfaces the io error.
     let missing = std::env::temp_dir().join("atlas-array-missing");
-    assert_matches!(ArrayFile::open(&missing), Err(OpenArrayError::Io(_)));
+    assert_matches!(
+        ArrayFile::open(&missing),
+        Err(OpenArrayError::Header(HeaderError::Io(_)))
+    );
 }
 
 #[test]
@@ -411,5 +426,5 @@ fn sized_writer_seals_zero_rows() {
     let writer = SizedArrayWriter::new(&mut bytes, ArrayVariant::F32, &[Dim::ZERO, Dim::new(512)])
         .expect("writing to a vector should succeed");
     let _digest = writer.finish().expect("sealing a vector should succeed");
-    assert_eq!(bytes.len(), FileHeader::SIZE);
+    assert_eq!(bytes.len(), PAGE_BYTES);
 }

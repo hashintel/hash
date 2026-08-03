@@ -14,9 +14,10 @@ use super::{
 use crate::{
     cli::tui::state::{KnnActivity, RunState},
     math::Vec2,
-    progress::{
-        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, QualityMetric, RecallSpotCheck,
-        Stage,
+    progress::{Batch, DescentIteration, Stage},
+    salt::{
+        embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+        projector::train::LossBreakdown, quality::QualityMetric,
     },
 };
 

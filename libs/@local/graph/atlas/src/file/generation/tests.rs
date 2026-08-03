@@ -27,8 +27,13 @@ use crate::{
     math::{AffinityCurve, Bounds2, Vec2},
     morton::Depth,
     salt::{
-        BuildMeasurements, CardEmbeddingStats, EmbedderFingerprint, FitConfig, LodMeasurements,
-        NormSpotCheck, PostingsMeasurements, QuadMeasurements, RecallSpotCheck, SelectionOptions,
+        embedding::{CardEmbeddingStats, EmbedderFingerprint},
+        fit::{FitConfig, prepare::norm::NormSpotCheck},
+        knn::recall::RecallSpotCheck,
+        landmark::select::SelectionOptions,
+        lod::{quad::QuadMeasurements, stage::LodMeasurements},
+        postings::build::PostingsMeasurements,
+        relation::BuildMeasurements,
     },
 };
 

@@ -1,25 +1,21 @@
 //! Opened policy files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
+use std::path::Path;
 
-use zerocopy::{
-    FromBytes as _, TryFromBytes as _,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::FromBytes as _;
 
 use super::{FileHeader, PolicyRow};
-use crate::file::region::PageMap;
+use crate::file::region::{
+    PAGE_BYTES,
+    header::{HeaderError, HeaderMap},
+};
 
 /// Opening a policy file failed.
 #[derive(Debug)]
 pub enum OpenPolicyError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -34,16 +30,7 @@ pub enum OpenPolicyError {
 impl fmt::Display for OpenPolicyError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the policy file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header(error) => write!(
-                fmt,
-                "the leading bytes are not a policy file header: {error}",
-            ),
+            Self::Header(error) => write!(fmt, "the policy file's header page: {error}"),
             Self::Length {
                 expected: Some(expected),
                 actual,
@@ -65,9 +52,8 @@ impl fmt::Display for OpenPolicyError {
 impl Error for OpenPolicyError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
             Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Length { .. } => None,
         }
     }
 }
@@ -80,7 +66,7 @@ impl Error for OpenPolicyError {
 /// contract.
 #[derive(Debug)]
 pub(crate) struct PolicyFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl PolicyFile {
@@ -88,28 +74,13 @@ impl PolicyFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPolicyError::Io`] when opening or mapping the file fails,
-    /// [`OpenPolicyError::Undersized`] when the file ends before one full header,
-    /// [`OpenPolicyError::Header`] when its leading bytes are not a header this module speaks, and
+    /// Returns [`OpenPolicyError::Header`] when the header page cannot be read, and
     /// [`OpenPolicyError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPolicyError> {
-        let map = PageMap::open(path).map_err(OpenPolicyError::Io)?;
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenPolicyError::Header)?;
 
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenPolicyError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenPolicyError::Header(error.map_src(|_| ())));
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
-
-        let expected = header.expected_file_len();
+        let expected = map.header().expected_file_len();
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenPolicyError::Length { expected, actual });
@@ -121,7 +92,7 @@ impl PolicyFile {
     /// Views the policy rows.
     #[must_use]
     pub(crate) fn rows(&self) -> &[PolicyRow] {
-        <[PolicyRow]>::ref_from_bytes(&self.map.bytes()[FileHeader::SIZE..])
+        <[PolicyRow]>::ref_from_bytes(&self.map.map().bytes()[PAGE_BYTES..])
             .expect("open validated the region size against the header's count")
     }
 }

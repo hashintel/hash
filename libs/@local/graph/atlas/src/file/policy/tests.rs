@@ -12,14 +12,15 @@ use std::{fs, path::PathBuf};
 use zerocopy::{F32, IntoBytes as _, U64};
 
 use super::{
-    FileHeader, PolicyRow,
+    FileHeader, PaddedFileHeader, PolicyRow,
     read::{OpenPolicyError, PolicyFile},
     write::write_rows,
 };
+use crate::file::region::header::HeaderError;
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(3);
+    let header = PaddedFileHeader::new(FileHeader::new(3));
     let bytes = header.as_bytes();
 
     // The literal length pins the layout and bounds the region slice.
@@ -112,7 +113,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         PolicyFile::open(&undersized),
-        Err(OpenPolicyError::Undersized { actual: 16 }),
+        Err(OpenPolicyError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.plcy");

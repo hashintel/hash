@@ -12,11 +12,12 @@ use tokio_postgres::Client;
 use crate::{
     dataset::TemporalAxes,
     integrity::SecretString,
-    progress::{NoProgress, Progress, RecallAdmission},
+    progress::{NoProgress, Progress},
     salt::{
         embedding::external::{
             EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,
         },
+        knn::recall::RecallAdmission,
         runner::live::{ClassifierSource, Options, Placement, RunError, Summary, live},
     },
     serve::GenerationRoot,

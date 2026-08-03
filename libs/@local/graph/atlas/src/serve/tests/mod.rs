@@ -29,6 +29,11 @@ use super::{
 use crate::{
     bitset::CompressedBitSet,
     identity::{BasePosition, CardRow, NodeRowId, OntologyRowId},
+    salt::{
+        embedding::{CardEmbedder, EmbedderFingerprint},
+        landmark::select::SelectionOptions,
+        policy::classifier,
+    },
 };
 
 mod authorization;
@@ -58,10 +63,7 @@ use crate::{
     morton::{Depth, MortonCell, MortonKey},
     progress::NoProgress,
     salt::{
-        CardEmbedder, ClassifierFitConfig, EmbedderFingerprint, SelectionOptions, TrainingRow,
-        TrainingSet,
         fit::{ClassifierInput, FitConfig, PlacementOptions, Supplies, fit},
-        fit_classifier,
         lod::stage::LodConfig,
         wire::{
             edges::EdgesResponse,
@@ -251,7 +253,7 @@ fn fixture_classifier() -> ClassifierInput {
         AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
     );
 
-    let rows: IdVec<CardRow, TrainingRow> = [
+    let rows: IdVec<CardRow, _> = [
         ([0.7, 0.2, 0.1], b"group-a" as &[u8]),
         ([0.2, 0.6, 0.2], b"group-b"),
         ([0.1, 0.2, 0.7], b"group-c"),
@@ -261,7 +263,7 @@ fn fixture_classifier() -> ClassifierInput {
     .map(|(target, group)| {
         let mut hasher = Sha256::new();
         hasher.update(group);
-        TrainingRow {
+        classifier::TrainingRow {
             target,
             weight: 1.0,
             group: hasher.finalize(),
@@ -269,10 +271,15 @@ fn fixture_classifier() -> ClassifierInput {
     })
     .collect();
 
-    let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
-        .expect("the fixture classifier fits")
-        .classifier;
+    let training =
+        classifier::TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
+    let classifier = classifier::fit(
+        training,
+        classifier::FitConfig { folds: 2, .. },
+        &NoProgress,
+    )
+    .expect("the fixture classifier fits")
+    .classifier;
 
     let mut hasher = Sha256::new();
     hasher.update(b"serve fixture classifier");

@@ -12,7 +12,11 @@ use super::{
 };
 use crate::{
     math::Vec2,
-    progress::{Batch, CardEmbeddingStats, LossBreakdown, QualityMetric, RecallSpotCheck, Stage},
+    progress::{Batch, Stage},
+    salt::{
+        embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+        projector::train::LossBreakdown, quality::QualityMetric,
+    },
 };
 
 /// A spot check whose aggregate recall is `recall`, over ten thousand compared neighbours.

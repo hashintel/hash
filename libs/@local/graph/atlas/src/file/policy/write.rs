@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::IntoBytes as _;
 
-use super::{FileHeader, PolicyRow};
+use super::{FileHeader, PaddedFileHeader, PolicyRow};
 
 /// Streams the policy rows as a policy file.
 ///
@@ -18,7 +18,7 @@ use super::{FileHeader, PolicyRow};
 pub(crate) fn write_rows(rows: &[PolicyRow], mut write: impl io::Write) -> io::Result<()> {
     let header = FileHeader::new(rows.len() as u64);
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     write.write_all(rows.as_bytes())?;
 
     Ok(())

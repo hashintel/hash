@@ -4,8 +4,11 @@ use std::io::{self, Seek, SeekFrom, Write};
 
 use zerocopy::IntoBytes as _;
 
-use super::{ArrayShape, ArrayVariant, Dim, FileHeader};
-use crate::integrity::{Sha256, Sha256Digest, Writer};
+use super::{ArrayShape, ArrayVariant, Dim, FileHeader, PaddedFileHeader};
+use crate::{
+    file::region::PAGE_BYTES,
+    integrity::{Sha256, Sha256Digest, Writer},
+};
 
 /// Writes an array file row by row, counting rows as they stream.
 ///
@@ -66,7 +69,7 @@ impl<W: Write + Seek> ArrayWriter<W> {
 
         // The reserved region is zeros: not a parseable header, so a
         // write that never finishes leaves a file no reader accepts.
-        writer.write_all(&[0; FileHeader::SIZE])?;
+        writer.write_all(&[0; PAGE_BYTES])?;
 
         Ok(Self {
             writer,
@@ -115,7 +118,8 @@ impl<W: Write + Seek> ArrayWriter<W> {
         let header = FileHeader::new(self.variant, ArrayShape { dims: self.dims });
 
         self.writer.seek(SeekFrom::Start(0))?;
-        self.writer.write_all(header.as_bytes())?;
+        self.writer
+            .write_all(PaddedFileHeader::new(header).as_bytes())?;
         self.writer.flush()?;
 
         Ok(self.rows)
@@ -181,7 +185,7 @@ impl<W: Write> SizedArrayWriter<W> {
             accumulator: Sha256::new(),
             writer,
         };
-        writer.write_all(header.as_bytes())?;
+        writer.write_all(PaddedFileHeader::new(header).as_bytes())?;
 
         Ok(Self {
             writer,

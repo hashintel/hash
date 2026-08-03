@@ -59,11 +59,7 @@ pub(crate) mod write;
 #[cfg(test)]
 mod tests;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 /// A fencepost breaks a structural rule of the segmentation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -318,21 +314,19 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
-pub struct FileHeader {
+pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     stride: U32<LE>,
     fenceposts: [U64<LE>; POSTS],
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 3808;
-    /// Size of the header, and the offset of the index region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `fenceposts`-segmented codes indexed every `stride` codes.
     #[must_use]
     pub(crate) const fn new<I>(stride: u32, fenceposts: Fenceposts<I>) -> Self {
@@ -343,7 +337,6 @@ impl FileHeader {
             version: Unalign::new(Version::V1),
             stride: U32::new(stride),
             fenceposts: posts,
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -419,5 +412,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

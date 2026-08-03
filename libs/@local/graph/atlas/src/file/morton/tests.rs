@@ -10,11 +10,12 @@ use proptest::{arbitrary::any, prop_assert_eq, property_test};
 use zerocopy::{IntoBytes as _, TryFromBytes as _, U64};
 
 use super::{
-    FencepostError, Fenceposts, FileHeader, POSTS, SEGMENTS,
+    FencepostError, Fenceposts, FileHeader, POSTS, PaddedFileHeader, SEGMENTS,
     read::{MortonFile, OpenMortonError},
     write::{PAGE_STRIDE, write_regions},
 };
 use crate::{
+    file::region::{PAGE_BYTES, header::HeaderError},
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -84,7 +85,7 @@ fn fenceposts_carry_the_structural_rules() {
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(512, posts_of(&[600, 400]));
+    let header = PaddedFileHeader::new(FileHeader::new(512, posts_of(&[600, 400])));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTMRTN");
@@ -102,20 +103,25 @@ fn header_wire_layout() {
 
 #[test]
 fn header_parse_pins_identity() {
-    let mut bytes = [0_u8; FileHeader::SIZE];
-    bytes.copy_from_slice(FileHeader::new(512, posts_of(&[1000])).as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
+    let page = PaddedFileHeader::new(FileHeader::new(512, posts_of(&[1000])));
+    let bytes: [u8; PAGE_BYTES] = page
+        .as_bytes()
+        .try_into()
+        .expect("a padded header is exactly one page");
+
+    let parsed =
+        PaddedFileHeader::try_ref_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.stride(), 512);
     assert_eq!(parsed.count(), 1000);
 
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
+    PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     // Version 0 is the retired layout. Its bytes must not parse as V1.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
-    FileHeader::try_read_from_bytes(&wrong_version)
+    PaddedFileHeader::try_ref_from_bytes(&wrong_version)
         .expect_err("an unsupported version should not parse");
 }
 
@@ -276,7 +282,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         MortonFile::open(&undersized),
-        Err(OpenMortonError::Undersized { actual: 16 }),
+        Err(OpenMortonError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.mrtn");

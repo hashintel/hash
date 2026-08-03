@@ -43,9 +43,10 @@ use tracing_subscriber::fmt::MakeWriter;
 use self::state::{KnnActivity, Observation, RunState};
 use crate::{
     math::Vec2,
-    progress::{
-        Batch, CardEmbeddingStats, DescentIteration, LossBreakdown, Progress, QualityMetric,
-        RecallSpotCheck, Stage,
+    progress::{Batch, DescentIteration, Progress, Stage},
+    salt::{
+        embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
+        projector::train::LossBreakdown, quality::QualityMetric,
     },
 };
 
@@ -378,7 +379,8 @@ mod tests {
     use super::{LogSink, Observation, Observer, RunState, absorb};
     use crate::{
         math::Vec2,
-        progress::{Progress as _, QualityMetric, Stage},
+        progress::{Progress as _, Stage},
+        salt::quality::QualityMetric,
     };
 
     /// A reporter and the renderer's end of its channel.

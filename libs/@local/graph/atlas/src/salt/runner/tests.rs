@@ -19,7 +19,7 @@ use crate::{
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN},
-    progress::{NoProgress, Progress, QualityMetric},
+    progress::{NoProgress, Progress},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions},
@@ -27,7 +27,10 @@ use crate::{
         policy::classifier::{
             FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
         },
-        quality::{probe::ProbeOptions, report::QualityThresholds, runner::QualityRunOptions},
+        quality::{
+            QualityMetric, probe::ProbeOptions, report::QualityThresholds,
+            runner::QualityRunOptions,
+        },
     },
 };
 

@@ -1,17 +1,17 @@
 //! Opened morton files.
 
 use core::{error::Error, fmt, ops::Range};
-use std::{io, path::Path};
+use std::path::Path;
 
 use hashql_core::id::{Id as _, IdSlice};
-use zerocopy::{
-    FromBytes as _, LE, TryFromBytes as _, U64,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FencepostError, Fenceposts, FileHeader};
 use crate::{
-    file::region::PageMap,
+    file::region::{
+        PAGE,
+        header::{HeaderError, HeaderMap},
+    },
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
@@ -19,12 +19,8 @@ use crate::{
 /// Opening a morton file failed.
 #[derive(Debug)]
 pub enum OpenMortonError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The header's fenceposts break a structural rule.
     Fenceposts(FencepostError),
     /// The file length contradicts the header's geometry.
@@ -41,16 +37,7 @@ pub enum OpenMortonError {
 impl fmt::Display for OpenMortonError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the morton file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header(error) => write!(
-                fmt,
-                "the leading bytes are not a morton-file header: {error}",
-            ),
+            Self::Header(error) => write!(fmt, "the morton file's header page: {error}"),
             Self::Fenceposts(violation) => {
                 write!(fmt, "the header's fenceposts are malformed: {violation}")
             }
@@ -75,10 +62,9 @@ impl fmt::Display for OpenMortonError {
 impl Error for OpenMortonError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
             Self::Header(error) => Some(error),
             Self::Fenceposts(violation) => Some(violation),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Length { .. } => None,
         }
     }
 }
@@ -96,7 +82,7 @@ impl Error for OpenMortonError {
 /// scattered ones.
 #[derive(Debug)]
 pub(crate) struct MortonFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
     fenceposts: Fenceposts<BasePosition>,
 }
 
@@ -105,31 +91,18 @@ impl MortonFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenMortonError::Io`] when opening or mapping the file fails,
-    /// [`OpenMortonError::Undersized`] when the file ends before one full header,
-    /// [`OpenMortonError::Header`] when its leading bytes are not a header this module speaks,
+    /// Returns [`OpenMortonError::Header`] when the header page cannot be read,
     /// [`OpenMortonError::Fenceposts`] when the header's fenceposts break a structural rule, and
     /// [`OpenMortonError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenMortonError> {
-        let map = PageMap::open(path).map_err(OpenMortonError::Io)?;
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenMortonError::Header)?;
+        let header = map.header();
 
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenMortonError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenMortonError::Header(error.map_src(|_| ())));
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
-
-        // `posts` validates the header's array and returns it as a borrowed
-        // `Fenceposts` witness; the copy makes the witness owned - the file
-        // cannot hold a view into its own mapping. 272 bytes once per open.
+        // `posts` validates the header's array and returns it as a borrowed `Fenceposts` witness.
+        // Copying it once here keeps the segmentation reachable without re-running that validation
+        // on every query, which is what an accessor borrowing from the header page would cost.
+        // 272 bytes once per open.
         let fenceposts = *header.posts().map_err(OpenMortonError::Fenceposts)?;
 
         let expected = header.expected_file_len();
@@ -145,12 +118,7 @@ impl MortonFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse as
-        // one, so the deref target is a valid `FileHeader`.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Borrows the bucket fenceposts.
@@ -204,9 +172,7 @@ impl MortonFile {
         // The offsets and products in the region reads repeat checked
         // computations open already accepted, so none of them can
         // overflow here.
-        let bytes = self
-            .map
-            .region(FileHeader::SIZE as u64, keys * size_of::<u64>() as u64);
+        let bytes = self.map.map().region(PAGE, keys * size_of::<u64>() as u64);
         <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
 
@@ -221,7 +187,7 @@ impl MortonFile {
     /// The file-index machinery addresses this region in its own stride arithmetic, which speaks
     /// word offsets rather than base positions.
     fn code_words(&self) -> &[U64<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .codes_offset()
                 .expect("open validated the geometry"),

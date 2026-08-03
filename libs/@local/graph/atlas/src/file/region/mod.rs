@@ -45,8 +45,10 @@ impl<T: Copy + Sync + IntoBytes + FromBytes + Immutable + Unaligned + KnownLayou
 pub(crate) const PAGE: u64 = 4096;
 
 /// [`PAGE`] as a slice length.
-const PAGE_BYTES: usize = 4096;
-const _: () = assert!(PAGE_BYTES as u64 == PAGE);
+pub(crate) const PAGE_BYTES: usize = match usize::try_from(PAGE) {
+    Ok(bytes) => bytes,
+    Err(_) => panic!("PAGE overflow"),
+};
 
 /// The padded byte size of a region of `count` elements `width` bytes wide.
 ///
@@ -153,5 +155,6 @@ impl PageMap {
     }
 }
 
+pub(crate) mod header;
 #[cfg(test)]
 mod tests;

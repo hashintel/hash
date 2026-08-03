@@ -46,6 +46,8 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
+use crate::file::region::{PAGE, header::header};
+
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
 #[derive(
@@ -142,7 +144,7 @@ pub(crate) struct PolicyRow {
 
 const _: () = assert!(size_of::<PolicyRow>() == 32);
 
-/// The 4096-byte header of a policy file.
+/// The header of a policy file.
 #[derive(
     Copy,
     Clone,
@@ -150,22 +152,20 @@ const _: () = assert!(size_of::<PolicyRow>() == 32);
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
-pub struct FileHeader {
+pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     /// Alignment filler so the count sits on a natural boundary.
     reserved: U32<LE>,
     policies: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4072;
-    /// Size of the header, and the offset of the policies region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `policies` resolved relations.
     #[must_use]
     pub(crate) const fn new(policies: u64) -> Self {
@@ -174,7 +174,6 @@ impl FileHeader {
             version: Unalign::new(Version::V0),
             reserved: U32::new(0),
             policies: U64::new(policies),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -192,7 +191,7 @@ impl FileHeader {
     #[must_use]
     pub(crate) const fn expected_file_len(&self) -> Option<u64> {
         let row_bytes = self.policies().checked_mul(size_of::<PolicyRow>() as u64)?;
-        (Self::SIZE as u64).checked_add(row_bytes)
+        PAGE.checked_add(row_bytes)
     }
 }
 
@@ -209,5 +208,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);
