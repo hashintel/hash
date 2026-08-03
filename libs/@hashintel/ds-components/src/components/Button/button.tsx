@@ -17,7 +17,7 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     /** The overall style of the button */
     variant?: Variant;
     /** Sets the color treatment of the button for destructive actions. */
-    tone?: Tone;
+    tone?: Exclude<Tone, "caution" | "success">;
     /** The size (height) of the button */
     size?: FormInputSize;
     /** The shape of the button. Non default shapes should VERY rarely be used */

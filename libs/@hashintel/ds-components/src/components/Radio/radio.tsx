@@ -41,7 +41,7 @@ export const Radio = ({
   /** Vertical alignment of the circle against the label when it wraps over multiple lines */
   labelAlign?: "top" | "center";
   /** The tone applied when the radio is selected */
-  tone?: Exclude<Tone, "error"> | "success";
+  tone?: Exclude<Tone, "error" | "caution">;
   /** An optional value used for native form submissions */
   htmlValue?: string;
 } & SharedInputProps<HTMLInputElement, boolean> &

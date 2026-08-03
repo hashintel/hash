@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes, type Tone } from "../../util/form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
@@ -14,7 +14,11 @@ import {
 import type { Story, StoryDefault } from "@ladle/react";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
-const tones: Tone[] = ["neutral", "brand", "error"];
+const tones: NonNullable<ButtonElementProps["tone"]>[] = [
+  "neutral",
+  "brand",
+  "error",
+];
 
 export default {
   title: "Components/Button",
