@@ -112,4 +112,4 @@ ENV NODE_ENV=production
 ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health || exit 1

@@ -15,6 +15,7 @@ pub mod status;
 pub mod admin;
 pub mod http_tracing_layer;
 pub mod jwt;
+pub mod probe;
 
 pub mod hashql;
 mod json;
@@ -569,7 +570,7 @@ pub fn openapi_only_router(serve_api_reference: bool) -> Router {
         serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
 
     let mut router = Router::new()
-        .route("/health", get(async || "Healthy".into_response()))
+        .merge(probe::router())
         .route("/openapi.json", get(|| async { Json(open_api_doc) }))
         .route("/models/{*path}", get(serve_static_schema));
 

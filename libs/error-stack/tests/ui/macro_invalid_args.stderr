@@ -26,8 +26,8 @@ error[E0308]: mismatched types
    |     expected `Report<RootError>`, found `Report<&str>`
    |     arguments to this enum variant are incorrect
    |
-   = note: expected struct `error_stack::Report<RootError>`
-              found struct `error_stack::Report<&str>`
+   = note: expected struct `Report<RootError>`
+              found struct `Report<&str>`
 help: the type constructed contains `error_stack::Report<&str>` due to the type of the argument passed
   --> tests/ui/macro_invalid_args.rs:17:5
    |
@@ -85,8 +85,8 @@ error[E0308]: mismatched types
    |             expected `Report<RootError>`, found `Report<&str>`
    |             arguments to this enum variant are incorrect
    |
-   = note: expected struct `error_stack::Report<RootError>`
-              found struct `error_stack::Report<&str>`
+   = note: expected struct `Report<RootError>`
+              found struct `Report<&str>`
 help: the type constructed contains `error_stack::Report<&str>` due to the type of the argument passed
   --> tests/ui/macro_invalid_args.rs:21:13
    |
