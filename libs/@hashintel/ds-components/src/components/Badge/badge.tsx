@@ -41,14 +41,12 @@ export const Badge = ({
   color = "grey",
   variant = "fill",
   position = "top-right",
-  max,
+  max = 99,
   onClick,
 }: BadgeProps) => {
   const isDot = content === undefined || content === null;
   const display =
-    max !== undefined && typeof content === "number" && content > max
-      ? `${max}+`
-      : content;
+    typeof content === "number" && content > max ? `${max}+` : content;
 
   const badgeClassName = badgeRecipe({
     color,

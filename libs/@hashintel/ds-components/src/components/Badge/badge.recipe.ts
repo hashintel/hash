@@ -20,6 +20,7 @@ export const badgeRecipe = cva({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
+    gap: "0.5",
     boxSizing: "border-box",
     flexShrink: "0",
     minWidth: "[var(--badge-size)]",
