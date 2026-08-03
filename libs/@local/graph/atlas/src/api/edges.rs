@@ -83,17 +83,17 @@ pub(super) async fn handler(
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.edges;
-    let proof = visibility.proof;
-
     let assembled = spawn(move || {
-        atlas
-            .assemble_edges(&request, limits, &proof)
+        let view = visibility.view(&atlas)?;
+
+        Ok(atlas
+            .assemble_edges(&request, limits, &view)
             .map(|document| {
                 let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
                 (document, entities)
-            })
+            }))
     })
-    .await?;
+    .await??;
 
     let (document, entities) = match assembled {
         Ok(assembled) => assembled,
@@ -116,6 +116,14 @@ pub(super) async fn handler(
                 StatusCode::NOT_IMPLEMENTED,
                 ProblemType::UnsupportedFeature,
                 error.to_string(),
+            ));
+        }
+        // Only the self-binding convenience path answers this; the handler binds through
+        // `Visibility::view`, which reports a refused cut as the internal problem itself.
+        Err(error @ EdgesError::View(_)) => {
+            return Err(Problem::internal(
+                error,
+                "edges delivery refused its schedule",
             ));
         }
     };

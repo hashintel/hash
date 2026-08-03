@@ -19,15 +19,17 @@ use std::collections::{HashMap, HashSet};
 use hashql_core::id::Id as _;
 
 use super::{
-    CutOffset, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileError, TileLimits, children_of, codec,
-    decode_rows, head_counts, head_global, mask_hiding, publish, request, section, test_codec,
+    Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileError,
+    TileLimits, children_of, codec, decode_rows, edges_request, entity_string_of,
+    expected_edges_bytes, head_counts, head_global, mask_hiding, open_edge_artifacts, publish,
+    qualifying_columns, request, section, test_codec, wire_columns,
 };
 use crate::{
     identity::{BasePosition, ImportanceRank, NodeRowId},
     morton::{Depth, MortonCell, MortonKey},
     salt::wire::Mode,
     serve::{
-        Atlas, VisibilityProof,
+        Atlas, ViewError, VisibilityProof,
         schedule::{ScopeRow, ScopeSchedule, ViewSchedule},
     },
 };
@@ -198,6 +200,30 @@ pub(super) mod reference {
             }
 
             bits
+        }
+
+        /// The first zoom whose cumulative schedule delivers `position`, replayed from the law.
+        ///
+        /// [`Self::cut`] inverted: the smallest `z` with `clamped <= z + span + k`. Written as a
+        /// search rather than as the subtraction the implementation uses, so the two derivations
+        /// share no arithmetic. [`None`] when the view does not hold the position.
+        pub(in crate::serve) fn first_zoom(&self, position: u32) -> Option<u8> {
+            let local = self.rows.iter().position(|row| row.position == position)?;
+            let bucket = self.clamped[local];
+
+            (0..=u8::MAX).find(|&z| {
+                u16::from(bucket) <= u16::from(z) + u16::from(self.span) + u16::from(self.k)
+            })
+        }
+
+        /// The union of the listed tiles' delivered positions: the edges route's bounding set.
+        ///
+        /// A tile's delivered set is mode-independent, so the total delivery is the whole answer.
+        pub(in crate::serve) fn delivered_union(&self, tiles: &[(u8, MortonCell)]) -> HashSet<u32> {
+            tiles
+                .iter()
+                .flat_map(|&(z, cell)| self.delivery(z, cell, Mode::Total).positions)
+                .collect()
         }
 
         /// The visible count and deepest occupied bucket expected in the root's global metadata.
@@ -410,12 +436,16 @@ async fn an_out_of_domain_cut_refuses_delivery() {
         CutOffset::new(32),
     );
     assert!(
-        matches!(result, Err(TileError::Schedule(_))),
+        matches!(result, Err(TileError::View(ViewError::Schedule(_)))),
         "a cut past the key width must refuse, got {result:?}",
     );
 }
 
-/// A proof paired with the other contract's schedule refuses before assembly.
+/// A proof paired with the other contract's schedule refuses at the binding.
+///
+/// The refusal moved out of assembly when the delivery inputs became one bound value. No endpoint
+/// can receive a mismatched pair. The pair is checked where it is assembled, and [`Atlas::view`]
+/// is the only surface still accepting the four inputs apart.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
@@ -423,30 +453,207 @@ async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
     let masked = mask_hiding(&atlas, &[0]);
     let scope = ViewSchedule::of(&atlas, &masked);
 
-    let corpus_for_masked = atlas.assemble_tile(
-        &request(0, 0, 0, Mode::Delta),
-        TileLimits::default(),
-        &masked,
-        atlas.census(&masked),
-        &ViewSchedule::Corpus,
-        CutOffset::ZERO,
-    );
+    let corpus = ViewSchedule::Corpus;
+    let corpus_for_masked = atlas.view(&masked, atlas.census(&masked), &corpus, CutOffset::ZERO);
     assert_eq!(
         corpus_for_masked.expect_err("a masked proof must not serve the corpus schedule"),
-        TileError::Contract,
+        ViewError::Contract,
     );
 
-    let scope_for_full = atlas.assemble_tile(
-        &request(0, 0, 0, Mode::Delta),
-        TileLimits::default(),
-        &FULL,
-        atlas.census(&FULL),
-        &scope,
-        CutOffset::ZERO,
-    );
+    let scope_for_full = atlas.view(&FULL, atlas.census(&FULL), &scope, CutOffset::ZERO);
     assert_eq!(
         scope_for_full.expect_err("an operator proof must not serve a scope cascade"),
-        TileError::Contract,
+        ViewError::Contract,
+    );
+}
+
+/// The tile lists that discriminate the two delivery laws.
+///
+/// The deepest zoom's cut is the catch-all under both laws, so a full-grid request delivers the
+/// whole visible set either way and witnesses nothing. These lists stop short of it, where a row
+/// the corpus cascade buried behind a hidden neighbour is a row the scope cascade lifts.
+fn discriminating_tile_lists() -> Vec<Vec<TileCoordinate>> {
+    vec![
+        vec![TileCoordinate { z: 0, x: 0, y: 0 }],
+        (0..2_u32)
+            .flat_map(|x| (0..2_u32).map(move |y| TileCoordinate { z: 1, x, y }))
+            .collect(),
+    ]
+}
+
+/// The edges route bounds its subgraph by the view's own cascade, not by the corpus walk.
+///
+/// The listed tiles' delivered rows are what the tile route delivered under the same view, so the
+/// expectation replays the reference cascade's cumulative prefixes and induces the subgraph over
+/// exactly that union. Reading the corpus schedule under a scope answers about rows the client
+/// never received: it drops an edge whose endpoint the scope lifted into a shallower bucket and
+/// draws one between endpoints the scope's own tiles have yet to deliver.
+///
+/// The sweep carries its own negative control. It counts the cases where the two laws disagree and
+/// asserts the count is nonzero, so a fixture that stopped discriminating fails loudly here rather
+/// than passing this test for the wrong reason.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn scoped_edges_bound_the_view_cascade_delivery() {
+    let (generation, atlas) = publish("scope-edges").await;
+    let endpoints: Vec<[u64; 2]> = open_edge_artifacts(&generation)
+        .endpoints
+        .u64_le_pairs()
+        .expect("the endpoint column is little-endian u64 pairs")
+        .iter()
+        .map(|pair| pair.map(zerocopy::U64::get))
+        .collect();
+    let row_ids = atlas.row_ids();
+    let morton = &atlas.morton;
+    let row_at = |position: u32| row_ids[BasePosition::from_u32(position)].as_u32();
+
+    let mut discriminated = 0_usize;
+    for (name, proof) in scope_battery(&atlas) {
+        let rows = reference::rows(&atlas, &proof);
+        for k in 0..=2_u8 {
+            let schedule = reference::Schedule::new(
+                rows.clone(),
+                FIXTURE_LOD.span.get(),
+                FIXTURE_LOD.max_tile_depth,
+                k,
+            );
+
+            for tiles in discriminating_tile_lists() {
+                let at = format!("{name} k={k} {} tiles", tiles.len());
+                let cells: Vec<(u8, MortonCell)> = tiles
+                    .iter()
+                    .map(|&coordinate| {
+                        let depth = Depth::new(coordinate.z).expect("zooms are depths");
+                        (
+                            coordinate.z,
+                            MortonCell::new(depth, coordinate.x, coordinate.y)
+                                .expect("the lists stay on each zoom's grid"),
+                        )
+                    })
+                    .collect();
+
+                let delivered: HashSet<u32> = schedule
+                    .delivered_union(&cells)
+                    .into_iter()
+                    .map(row_at)
+                    .collect();
+
+                // The law this cut replaced is the corpus schedule's own runs, masked. Counting
+                // where it parts from the cascade is what proves the sweep can fail.
+                let corpus: HashSet<u32> = cells
+                    .iter()
+                    .flat_map(|&(z, cell)| {
+                        (0..=(z + FIXTURE_LOD.span.get()))
+                            .filter_map(Depth::new)
+                            .flat_map(move |bucket| morton.run(bucket, cell))
+                    })
+                    .map(|position| row_at(position.as_u32()))
+                    .filter(|&row| proof.contains(NodeRowId::from_u32(row)))
+                    .collect();
+                discriminated += usize::from(corpus != delivered);
+
+                let bytes = atlas
+                    .edges(
+                        &edges_request(tiles),
+                        EdgesLimits::default(),
+                        &proof,
+                        CutOffset::new(k),
+                    )
+                    .expect("the scoped edges request serves");
+
+                let (sources, targets, edge_rows) = qualifying_columns(&endpoints, &delivered);
+                let (sources, targets, edge_rows) =
+                    wire_columns(&atlas, &sources, &targets, &edge_rows);
+                assert_eq!(
+                    bytes,
+                    expected_edges_bytes(&generation, true, &sources, &targets, &edge_rows),
+                    "{at} draws the subgraph its own tiles delivered",
+                );
+            }
+        }
+    }
+
+    assert!(
+        discriminated > 0,
+        "no case in the sweep parts the corpus walk from the cascade, so it witnesses nothing",
+    );
+}
+
+/// A scoped locate names the zoom the view's own cascade first delivers the source at.
+///
+/// The fly-to zoom and the partner tie-break both read the source's first visible zoom. Under a
+/// scope that zoom must invert the view's own cut `z + span + k` over the view's own cascade. A
+/// corpus bucket is a first-occupant result over hidden rows too. Answering from one flies the
+/// client to a zoom its own tiles never deliver the source at. It also hands a hidden row the
+/// choice of which authorized partners survive the cap.
+///
+/// The reference finds the zoom by search where the implementation subtracts. No arithmetic is
+/// shared between them. The sweep then counts where the scope answer parts from the corpus one.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_scoped_locate_flies_to_the_view_cut_zoom() {
+    let (_generation, atlas) = publish("scope-locate").await;
+    let row_ids = atlas.row_ids();
+
+    let mut discriminated = 0_usize;
+    let mut resolved = 0_usize;
+    for (name, proof) in scope_battery(&atlas) {
+        let rows = reference::rows(&atlas, &proof);
+        for k in 0..=2_u8 {
+            let schedule = reference::Schedule::new(
+                rows.clone(),
+                FIXTURE_LOD.span.get(),
+                FIXTURE_LOD.max_tile_depth,
+                k,
+            );
+            let bound = Bound::new(&atlas, &proof, CutOffset::new(k));
+            let view = bound.view(&atlas);
+
+            for &row in &rows {
+                let at = format!("{name} k={k} position {}", row.position);
+                let entity = row_ids[BasePosition::from_u32(row.position)].as_u32();
+                let source = atlas
+                    .resolve_source(
+                        &view,
+                        &entity_string_of(u8::try_from(entity).expect("fixture rows fit u8")),
+                    )
+                    .expect("a visible row's own entity id resolves");
+                resolved += 1;
+
+                let expected = schedule
+                    .first_zoom(row.position)
+                    .expect("the reference holds every visible row");
+                assert_eq!(source.zoom, expected, "{at} names the cut's first zoom");
+
+                // The fly-to tile is that zoom's cell holding the source, checked by containment
+                // rather than by replaying the addressing the implementation used.
+                assert_eq!(source.cell.z, source.zoom, "{at} flies to its own zoom");
+                let cell = MortonCell::new(
+                    Depth::new(source.cell.z).expect("zooms are depths"),
+                    source.cell.x,
+                    source.cell.y,
+                )
+                .expect("the fly-to target is on its zoom's grid");
+                assert!(
+                    cell.contains(row.key),
+                    "{at} flies to a tile holding the source"
+                );
+
+                let corpus = atlas
+                    .morton
+                    .bucket_of(BasePosition::from_u32(row.position))
+                    .get()
+                    .saturating_sub(FIXTURE_LOD.span.get());
+                discriminated += usize::from(corpus != source.zoom);
+            }
+        }
+    }
+
+    assert!(resolved > 0, "the sweep resolved no source at all");
+    assert!(
+        discriminated > 0,
+        "no case in the sweep parts the corpus first zoom from the cascade's, so it witnesses \
+         nothing",
     );
 }
 

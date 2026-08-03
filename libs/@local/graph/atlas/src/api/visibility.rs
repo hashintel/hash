@@ -38,8 +38,8 @@ use super::{
     problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
-    CutOffset, FilterDigest, ProofError, Resolution, ViewCensus, ViewSchedule, VisibilityCache,
-    VisibilityKey, VisibilityLimits, VisibilityProof, visibility_proof,
+    Atlas, CacheEntry, CacheKey, CutOffset, FilterDigest, PendingCacheEntry, ProofError, View,
+    VisibilityCache, VisibilityLimits, VisibilityProof, visibility_proof,
 };
 
 /// The header naming the authenticated actor.
@@ -88,12 +88,15 @@ impl core::fmt::Debug for Authority {
 /// token-bound cut offset.
 #[derive(Debug, Clone)]
 pub(super) struct Resolved {
-    /// The rows the scope may see.
-    pub proof: Arc<VisibilityProof>,
-    /// The corpus-wide census of what [`Self::proof`] admits.
-    pub census: ViewCensus,
-    /// The delivery schedule of [`Self::proof`]'s view.
-    pub schedule: ViewSchedule,
+    /// The held entry the scope resolved to.
+    entry: Arc<CacheEntry>,
+}
+
+impl Resolved {
+    /// Returns the rows the scope may see.
+    pub(super) fn proof(&self) -> &VisibilityProof {
+        self.entry.proof()
+    }
 }
 
 /// The resolved scope for one request, plus the token-bound delivery-cut offset.
@@ -103,20 +106,38 @@ pub(super) struct Resolved {
 )]
 #[derive(Debug, Clone)]
 pub(super) struct Visibility {
-    /// The rows the request may see.
-    pub proof: Arc<VisibilityProof>,
-    /// The corpus-wide census of what [`Self::proof`] admits.
+    /// The held entry the request's scope resolved to.
     ///
-    /// Resolved once per scope with the proof, so the root tile's global metadata costs no walk on
-    /// the request that reads it.
-    pub census: ViewCensus,
-    /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
-    pub schedule: ViewSchedule,
+    /// The proof, the census resolved with it, and the view's delivery schedule are read through
+    /// it. One resolution per scope answers every request under that scope, so the root tile's
+    /// global metadata costs no walk on the request that reads it.
+    entry: Arc<CacheEntry>,
     /// The delivery-cut offset the presented token seals.
     ///
     /// Sealed at the manifest by the density policy and read back at admission, so the served cut
     /// and the declared cut are the same value by construction.
     pub k: CutOffset,
+}
+
+impl Visibility {
+    /// Returns the rows the request may see.
+    pub(super) fn proof(&self) -> &VisibilityProof {
+        self.entry.proof()
+    }
+
+    /// Binds the request's delivery view: the held resolution read at the token's cut offset.
+    ///
+    /// Every data route calls this once and hands the result to assembly, so the pairing of proof,
+    /// census and schedule is checked at the request boundary rather than restated per endpoint.
+    ///
+    /// # Errors
+    ///
+    /// The internal problem. Both binding failures name a server-side defect, because this process
+    /// produced every input the binding reads.
+    pub(super) fn view(&self, atlas: &Atlas) -> Result<View<'_>, Problem<'static>> {
+        View::of(atlas, &self.entry, self.k)
+            .map_err(|error| Problem::internal(error, "delivery refused its schedule"))
+    }
 }
 
 impl FromRequestParts<AppState> for Visibility {
@@ -130,9 +151,7 @@ impl FromRequestParts<AppState> for Visibility {
         let resolved = resolve(state, *scope.actor, scope.filter.digest(), None).await?;
 
         Ok(Self {
-            proof: resolved.proof,
-            census: resolved.census,
-            schedule: resolved.schedule,
+            entry: resolved.entry,
             k: scope.k,
         })
     }
@@ -176,7 +195,7 @@ pub(super) async fn resolve(
     filter: Option<FilterDigest>,
     document: Option<Arc<[u8]>>,
 ) -> Result<Resolved, Problem<'static>> {
-    let key = VisibilityKey {
+    let key = CacheKey {
         generation: state.atlas.generation(),
         actor,
         filter,
@@ -232,16 +251,12 @@ pub(super) async fn resolve(
             )
             .await?;
 
-            Ok::<_, ProofError>(Resolution::of(&atlas, proof, document))
+            Ok::<_, ProofError>(PendingCacheEntry::of(&atlas, proof, document))
         })
         .await
         .map_err(|error| proof_problem(&error))?;
 
-    Ok(Resolved {
-        schedule: entry.view_schedule(&state.atlas),
-        proof: entry.proof,
-        census: entry.census,
-    })
+    Ok(Resolved { entry })
 }
 
 /// Answers one failed resolution with the problem its failing stage earns.

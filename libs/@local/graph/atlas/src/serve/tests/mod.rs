@@ -23,7 +23,8 @@ use zerocopy::{LE, U64};
 use super::{
     Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot,
     Mode, OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec, error::OpenAtlasError,
+    View, ViewCensus, ViewSchedule, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
+    error::OpenAtlasError,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -42,7 +43,7 @@ mod schedule;
 /// The tests' default authority.
 ///
 /// The operator proof is byte-identical to the pre-visibility serve.
-const FULL: VisibilityProof = VisibilityProof::full_visibility();
+static FULL: VisibilityProof = VisibilityProof::full_visibility();
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node as CorpusNode, Ontology, PROJECTOR_DIMENSIONS, card::Card,
@@ -425,6 +426,57 @@ async fn publish(name: &str) -> (Generation, Atlas) {
         Atlas::open(&root, generation.id(), test_open_options()).expect("the atlas should open");
 
     (generation, atlas)
+}
+
+/// One proof's delivery inputs, owned, so a test can hand assembly a [`View`].
+///
+/// A view borrows the census and the schedule its scope resolved; production holds both in the
+/// visibility cache entry, and a test holds them here. Binding through [`Bound::view`] runs the
+/// same pairing check the request boundary runs.
+#[expect(
+    clippy::min_ident_chars,
+    reason = "`k` is the delivery-cut offset's name throughout the density contract"
+)]
+struct Bound<'proof> {
+    proof: &'proof VisibilityProof,
+    census: ViewCensus,
+    schedule: ViewSchedule,
+    k: CutOffset,
+}
+
+impl<'proof> Bound<'proof> {
+    /// Resolves `proof`'s census and schedule, the way a scope resolution would.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
+    fn new(atlas: &Atlas, proof: &'proof VisibilityProof, k: CutOffset) -> Self {
+        Self {
+            proof,
+            census: atlas.census(proof),
+            schedule: ViewSchedule::of(atlas, proof),
+            k,
+        }
+    }
+
+    /// Resolves `proof` at the zero offset, the corpus-equivalent cut.
+    fn of(atlas: &Atlas, proof: &'proof VisibilityProof) -> Self {
+        Self::new(atlas, proof, CutOffset::ZERO)
+    }
+
+    /// Binds the delivery view assembly reads.
+    fn view(&self, atlas: &Atlas) -> View<'_> {
+        atlas
+            .view(self.proof, self.census, &self.schedule, self.k)
+            .expect("the fixture's proof, schedule and offset pair")
+    }
+}
+
+/// Binds `proof`'s delivery view at the zero offset and reads it once.
+fn viewing<T>(atlas: &Atlas, proof: &VisibilityProof, body: impl FnOnce(&View<'_>) -> T) -> T {
+    let bound = Bound::of(atlas, proof);
+
+    body(&bound.view(atlas))
 }
 
 fn request(z: u8, x: u32, y: u32, mode: Mode) -> TileRequest {
@@ -977,7 +1029,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
 
     let request = edges_request(full_grid());
     let bytes = atlas
-        .edges(&request, EdgesLimits::default(), &FULL)
+        .edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO)
         .expect("the full grid should serve");
     assert_eq!(&bytes[..8], b"SALTILEE");
 
@@ -998,7 +1050,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
     // Identical requests yield identical bytes.
     assert_eq!(
         atlas
-            .edges(&request, EdgesLimits::default(), &FULL,)
+            .edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO)
             .expect("the repeat should serve"),
         bytes,
     );
@@ -1032,7 +1084,12 @@ async fn edges_serve_the_root_visible_subgraph() {
     let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let bytes = atlas
-        .edges(&edges_request(vec![root]), EdgesLimits::default(), &FULL)
+        .edges(
+            &edges_request(vec![root]),
+            EdgesLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+        )
         .expect("the root should serve");
     assert_eq!(
         bytes,
@@ -1046,6 +1103,7 @@ async fn edges_serve_the_root_visible_subgraph() {
             &edges_request(vec![root, root]),
             EdgesLimits::default(),
             &FULL,
+            CutOffset::ZERO,
         )
         .expect("the doubled root should serve");
     assert_eq!(doubled, bytes);
@@ -1097,6 +1155,7 @@ async fn edges_exclude_partially_delivered_pairs() {
             &edges_request(vec![coordinate_of(cell)]),
             EdgesLimits::default(),
             &FULL,
+            CutOffset::ZERO,
         )
         .expect("the source tile should serve");
 
@@ -1185,7 +1244,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         ..EdgesLimits::default()
     };
     let bytes = atlas
-        .edges(&edges_request(full_grid()), capped, &FULL)
+        .edges(&edges_request(full_grid()), capped, &FULL, CutOffset::ZERO)
         .expect("the capped request should serve");
     assert_eq!(
         bytes,
@@ -1201,6 +1260,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
                 ..EdgesLimits::default()
             },
             &FULL,
+            CutOffset::ZERO,
         )
         .expect("the zero cap should serve");
     assert_eq!(
@@ -1221,14 +1281,14 @@ async fn edges_reject_and_report_the_contract() {
             .expect("a filter document deserializes opaquely"),
     );
     assert_eq!(
-        atlas.edges(&filtered, EdgesLimits::default(), &FULL,),
+        atlas.edges(&filtered, EdgesLimits::default(), &FULL, CutOffset::ZERO),
         Err(EdgesError::Unsupported("filter")),
     );
 
     let mut detailed = edges_request(vec![root]);
     detailed.include_detailed_data = true;
     assert_eq!(
-        atlas.edges(&detailed, EdgesLimits::default(), &FULL,),
+        atlas.edges(&detailed, EdgesLimits::default(), &FULL, CutOffset::ZERO),
         Err(EdgesError::Unsupported("includeDetailedData")),
     );
 
@@ -1240,6 +1300,7 @@ async fn edges_reject_and_report_the_contract() {
                 ..EdgesLimits::default()
             },
             &FULL,
+            CutOffset::ZERO,
         ),
         Err(EdgesError::Tiles {
             count: 2,
@@ -1251,6 +1312,7 @@ async fn edges_reject_and_report_the_contract() {
             &edges_request(vec![TileCoordinate { z: 4, x: 0, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
+            CutOffset::ZERO,
         ),
         Err(EdgesError::Depth { z: 4, maximum: 3 }),
     );
@@ -1259,6 +1321,7 @@ async fn edges_reject_and_report_the_contract() {
             &edges_request(vec![TileCoordinate { z: 2, x: 4, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
+            CutOffset::ZERO,
         ),
         Err(EdgesError::Grid { z: 2, x: 4, y: 0 }),
     );
@@ -1266,7 +1329,12 @@ async fn edges_reject_and_report_the_contract() {
     // An empty tile list serves the honest empty response, with every
     // column present-empty.
     let bytes = atlas
-        .edges(&edges_request(Vec::new()), EdgesLimits::default(), &FULL)
+        .edges(
+            &edges_request(Vec::new()),
+            EdgesLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+        )
         .expect("the empty request should serve");
     assert_eq!(
         bytes,
@@ -1311,14 +1379,16 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     // The convenience path serves storeless deployments: it still
     // rejects the trailer by name.
     assert_eq!(
-        atlas.edges(&request, EdgesLimits::default(), &FULL,),
+        atlas.edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO),
         Err(EdgesError::Unsupported("includeDetailedData")),
     );
 
     // The transport path assembles, gathers, hydrates, encodes.
-    let document = atlas
-        .assemble_edges(&request, EdgesLimits::default(), &FULL)
-        .expect("assembly ignores the trailer flag");
+    let document = viewing(&atlas, &FULL, |view| {
+        atlas
+            .assemble_edges(&request, EdgesLimits::default(), view)
+            .expect("assembly ignores the trailer flag")
+    });
 
     let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
@@ -1363,6 +1433,8 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
     let (_generation, atlas) = publish("locate-resolve").await;
     let node_codec = test_codec(&atlas);
     let wire_of = |row: u32| node_codec.encode(NodeRowId::from_u32(row)).get();
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
 
     let row_of = |bytes: &[u8]| {
         let rows = section(bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -1375,7 +1447,7 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
 
     let mut resolved = 0;
     for row in 0..4_u8 {
-        let Some(source) = atlas.resolve_source(&FULL, &entity_string_of(row)) else {
+        let Some(source) = atlas.resolve_source(&view, &entity_string_of(row)) else {
             panic!("fixture node ids resolve");
         };
         assert_eq!(source.row.get(), NodeRowId::from_u32(u32::from(row)));
@@ -1428,17 +1500,17 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
 
     // Non-node shapes read absent: an edge id, an unknown id, junk.
     assert_eq!(
-        atlas.resolve_source(&FULL, &entity_string_of(EDGE_SEED)),
+        atlas.resolve_source(&view, &entity_string_of(EDGE_SEED)),
         None
     );
     assert_eq!(
         atlas.resolve_source(
-            &FULL,
+            &view,
             &format!("{}~{}", uuid::Uuid::nil(), uuid::Uuid::nil())
         ),
         None,
     );
-    assert_eq!(atlas.resolve_source(&FULL, "not an id"), None);
+    assert_eq!(atlas.resolve_source(&view, "not an id"), None);
 }
 
 /// The locate delivered set answers the wire pin over hand-derived fixture ego-graphs.
@@ -1453,6 +1525,8 @@ async fn locate_subgraph_delivers_the_ego_graph() {
 
     let (_generation, atlas) = publish("locate-ego").await;
     let node_codec = test_codec(&atlas);
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
 
     // The fixture edge list by row: 0 = (0 → 1), 1 = (1 → 2),
     // 2 = (2 → 2) self-loop, 3 = (5 → 40), 4 = (40 → 5),
@@ -1475,9 +1549,9 @@ async fn locate_subgraph_delivers_the_ego_graph() {
 
     for (source_row, partners, edge_rows) in cases {
         let source = atlas
-            .resolve_source(&FULL, &entity_string_of(source_row))
+            .resolve_source(&view, &entity_string_of(source_row))
             .expect("fixture node ids resolve");
-        let subgraph = atlas.locate_subgraph(source, LocateLimits::default(), &FULL);
+        let subgraph = atlas.locate_subgraph(source, LocateLimits::default(), &view);
         assert!(subgraph.complete, "ego({source_row}) is under the cap");
 
         // Partners deliver ascending by wire row id; the expectation
@@ -1533,6 +1607,8 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
 
     let (_generation, atlas) = publish("locate-truncation").await;
     let node_codec = test_codec(&atlas);
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
     let distance_of = |from: u32, to: u32| {
         let positions = atlas.positions();
         let origin = positions[atlas.positions_of_row()[NodeRowId::from_u32(from)]];
@@ -1553,7 +1629,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
     // cannot degenerate into an unnoticed tie.
     assert_ne!(distance_of(2, 1), 0, "rows 1 and 2 are not co-located");
     let source = atlas
-        .resolve_source(&FULL, &entity_string_of(2))
+        .resolve_source(&view, &entity_string_of(2))
         .expect("fixture node ids resolve");
     let capped = atlas.locate_subgraph(
         source,
@@ -1561,7 +1637,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
             edges: 1,
             ..LocateLimits::default()
         },
-        &FULL,
+        &view,
     );
     assert!(!capped.complete, "one of two incident edges truncated");
     assert_eq!(
@@ -1583,16 +1659,16 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
     // the delivered nodes are exactly the survivors' partners.
     for source_row in [0_u8, 1, 2, 3, 4, 5, 7, 40] {
         let source = atlas
-            .resolve_source(&FULL, &entity_string_of(source_row))
+            .resolve_source(&view, &entity_string_of(source_row))
             .expect("fixture node ids resolve");
-        let full = atlas.locate_subgraph(source, LocateLimits::default(), &FULL);
+        let full = atlas.locate_subgraph(source, LocateLimits::default(), &view);
 
         for cap in 0..=full.edges.len() {
             let limits = LocateLimits {
                 edges: u32::try_from(cap).expect("fixture edge counts are small"),
                 ..LocateLimits::default()
             };
-            let subgraph = atlas.locate_subgraph(source, limits, &FULL);
+            let subgraph = atlas.locate_subgraph(source, limits, &view);
             assert_eq!(
                 subgraph.complete,
                 full.edges.len() <= cap,
@@ -1612,7 +1688,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
                 };
                 let zoom = atlas
                     .resolve_source(
-                        &FULL,
+                        &view,
                         &entity_string_of(u8::try_from(partner).expect("fixture rows fit u8")),
                     )
                     .expect("fixture partners resolve")
@@ -1639,7 +1715,7 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
             // Determinism pair: identical assembly on repeat.
             assert_eq!(
                 subgraph,
-                atlas.locate_subgraph(source, limits, &FULL),
+                atlas.locate_subgraph(source, limits, &view),
                 "ego({source_row}) cap {cap}",
             );
         }
@@ -1891,16 +1967,11 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
     );
 
     // The transport path assembles, gathers, hydrates, encodes.
-    let document = atlas
-        .assemble_tile(
-            &detailed,
-            TileLimits::default(),
-            &FULL,
-            atlas.census(&FULL),
-            &super::schedule::ViewSchedule::Corpus,
-            CutOffset::ZERO,
-        )
-        .expect("assembly ignores the trailer flag");
+    let document = viewing(&atlas, &FULL, |view| {
+        atlas
+            .assemble_tile(&detailed, TileLimits::default(), view)
+            .expect("assembly ignores the trailer flag")
+    });
     let entities = atlas.delivered_entities(&document);
 
     let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
@@ -2365,6 +2436,8 @@ fn encode_unhydrated(atlas: &Atlas, document: &super::LocateDocument) -> Vec<u8>
 async fn locate_by_wire_row_matches_by_entity() {
     let (_generation, atlas) = publish("locate-by-row").await;
     let limits = ServeLimits::default();
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
 
     // Row 7's wire id round-trips by construction (the codec is a
     // bijection); the equivalence under test is the two request
@@ -2378,10 +2451,10 @@ async fn locate_by_wire_row_matches_by_entity() {
     assert_eq!(by_row.row, Some(wire));
     assert_eq!(by_row.entity_id, None);
     let entity_document = atlas
-        .assemble_locate(&by_entity, limits, &FULL)
+        .assemble_locate(&by_entity, limits, &view)
         .expect("the entity resolves");
     let row_document = atlas
-        .assemble_locate(&by_row, limits, &FULL)
+        .assemble_locate(&by_row, limits, &view)
         .expect("the wire row resolves");
     assert_eq!(
         encode_unhydrated(&atlas, &entity_document),
@@ -2404,7 +2477,7 @@ async fn locate_by_wire_row_matches_by_entity() {
         by_row.row = Some(codec::WireRow::pinned(garbage));
         assert_eq!(
             atlas
-                .assemble_locate(&by_row, limits, &FULL)
+                .assemble_locate(&by_row, limits, &view)
                 .expect_err("the value is outside the universe"),
             super::LocateError::UnknownEntity,
             "{garbage}",
@@ -2416,7 +2489,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     by_row.entity_id = Some(entity_string_of(7));
     assert_eq!(
         atlas
-            .assemble_locate(&by_row, limits, &FULL)
+            .assemble_locate(&by_row, limits, &view)
             .expect_err("two sources are ambiguous"),
         super::LocateError::Source { carried: 2 },
     );
@@ -2424,7 +2497,7 @@ async fn locate_by_wire_row_matches_by_entity() {
     by_row.entity_id = None;
     assert_eq!(
         atlas
-            .assemble_locate(&by_row, limits, &FULL)
+            .assemble_locate(&by_row, limits, &view)
             .expect_err("no source names no subject"),
         super::LocateError::Source { carried: 0 },
     );
@@ -2445,10 +2518,12 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 
     let (generation, atlas) = publish("locate-endpoint").await;
     let limits = ServeLimits::default();
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
 
     let mut request = locate_request(entity_string_of(0));
     let document = atlas
-        .assemble_locate(&request, limits, &FULL)
+        .assemble_locate(&request, limits, &view)
         .expect("the request is well-formed");
     let bytes = encode_unhydrated(&atlas, &document);
     assert_eq!(bytes[0..8], *b"SALTILEL");
@@ -2456,9 +2531,9 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     // The groundwork layers derive the expectation independently;
     // their own tests pin their behaviour.
     let source = atlas
-        .resolve_source(&FULL, &entity_string_of(0))
+        .resolve_source(&view, &entity_string_of(0))
         .expect("row 0 is a node");
-    let subgraph = atlas.locate_subgraph(source, limits.locate, &FULL);
+    let subgraph = atlas.locate_subgraph(source, limits.locate, &view);
     let node_codec = test_codec(&atlas);
     let wire_of = |row: NodeRowId| node_codec.encode(row);
     let sources: Vec<WireRow<NodeRowId>> = subgraph
@@ -2525,7 +2600,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             .expect("the literal is a versioned url"),
     ];
     let colored_document = atlas
-        .assemble_locate(&request, limits, &FULL)
+        .assemble_locate(&request, limits, &view)
         .expect("unresolvable colored ids are legal");
     assert_eq!(
         encode_unhydrated(&atlas, &colored_document),
@@ -2541,6 +2616,8 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 async fn locate_rejections_carry_their_names() {
     let (_generation, atlas) = publish("locate-rejects").await;
     let limits = ServeLimits::default();
+    let bound = Bound::of(&atlas, &FULL);
+    let view = bound.view(&atlas);
 
     // Unparsable, unknown, and an EDGE id (wrong identity domain)
     // are one rejection: an id that cannot name a visible node.
@@ -2551,7 +2628,7 @@ async fn locate_rejections_carry_their_names() {
     ] {
         assert_eq!(
             atlas
-                .assemble_locate(&locate_request(id.clone()), limits, &FULL,)
+                .assemble_locate(&locate_request(id.clone()), limits, &view)
                 .expect_err("the id names no visible node"),
             super::LocateError::UnknownEntity,
             "{id}",
@@ -2568,7 +2645,7 @@ async fn locate_rejections_carry_their_names() {
     ];
     assert_eq!(
         atlas
-            .assemble_locate(&colored, limits, &FULL)
+            .assemble_locate(&colored, limits, &view)
             .expect_err("the list is over the cap"),
         super::LocateError::Types {
             count: limits.tile.colored_type_ids as usize + 1,
@@ -2584,7 +2661,7 @@ async fn locate_rejections_carry_their_names() {
     .expect("a filter body deserializes");
     assert_eq!(
         atlas
-            .assemble_locate(&filtered, limits, &FULL)
+            .assemble_locate(&filtered, limits, &view)
             .expect_err("filter is a version-0 deferral"),
         super::LocateError::Unsupported("filter"),
     );

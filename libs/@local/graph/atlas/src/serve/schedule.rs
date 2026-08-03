@@ -515,6 +515,24 @@ impl ScheduleCut<'_> {
         bits
     }
 
+    /// Returns the first zoom whose cumulative schedule delivers `position`, [`None`] when the
+    /// position is not in the view.
+    ///
+    /// [`Self::cut_of`] inverted. Bucket `b` first enters at zoom `b - span - k`, clamped to the
+    /// root for the buckets the root itself spans. The catch-all inverts to the deepest served
+    /// zoom, because binding proved `deepest = max_tile_depth + span + k`. Every row of the view
+    /// therefore has a delivering zoom on the served grid.
+    ///
+    /// The scope counterpart of [`Grid::first_zoom`], which answers the same question for an
+    /// operator view off the corpus fenceposts.
+    pub(crate) fn first_zoom(&self, position: BasePosition) -> Option<u8> {
+        let bucket = self.bucket_of(position)?;
+
+        // Binding validated `max_tile_depth + span + k` into the key width, so the subtrahend is
+        // itself a depth and the difference is a served zoom.
+        Some(bucket.get().saturating_sub(self.span + self.k.get()))
+    }
+
     /// Returns a position's scope bucket, [`None`] when the position is not in the view.
     ///
     /// The natural bucket clamped into the catch-all.

@@ -89,19 +89,20 @@ pub(super) async fn handler(
     // last section by design, so the columns never wait on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits;
-    let proof = visibility.proof;
     let assembled = spawn(move || {
-        atlas
-            .assemble_locate(&request, limits, &proof)
+        let view = visibility.view(&atlas)?;
+
+        Ok(atlas
+            .assemble_locate(&request, limits, &view)
             .map(|document| {
                 let entities = (
                     atlas.locate_node_entities(&document),
                     atlas.locate_link_entities(&document),
                 );
                 (document, entities)
-            })
+            }))
     })
-    .await?;
+    .await??;
 
     let (document, entities) = match assembled {
         Ok(assembled) => assembled,

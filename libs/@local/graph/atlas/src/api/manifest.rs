@@ -191,7 +191,7 @@ pub(super) async fn handler(
                 k: sealed_offset(
                     state.density,
                     Some(scope.k),
-                    &state.atlas.visible_occupancy(&visibility.proof),
+                    &state.atlas.visible_occupancy(visibility.proof()),
                 ),
             }
         }
@@ -205,7 +205,7 @@ pub(super) async fn handler(
                 sealed_offset(
                     state.density,
                     None,
-                    &state.atlas.visible_occupancy(&visibility.proof),
+                    &state.atlas.visible_occupancy(visibility.proof()),
                 ),
             )
         }

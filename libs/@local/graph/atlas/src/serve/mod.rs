@@ -71,11 +71,12 @@ pub use self::{
         TranslateError, TranslateLimits, TranslateRequest, TranslateResponse, TranslatedEdge,
         TranslatedNode,
     },
+    view::{View, ViewError},
     visibility::{VisibilityProof, VisibleRow},
     walk::ViewCensus,
 };
 pub(crate) use self::{
-    cache::{FilterDigest, Resolution, VisibilityCache, VisibilityKey},
+    cache::{CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache},
     hydrate::compile::{ProofError, visibility_proof},
 };
 use crate::{
@@ -111,6 +112,7 @@ mod schedule;
 mod secret;
 mod tile;
 mod translate;
+mod view;
 mod visibility;
 mod walk;
 

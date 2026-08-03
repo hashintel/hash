@@ -526,9 +526,9 @@ impl Vec2x4T {
     ///
     /// Lane `i` holds the perpendicular dot product of the batches' `i`-th vectors, with the sign
     /// semantics of [`Vec2::perp_dot`]: the lane is positive when `other`'s vector is
-    /// counterclockwise from this batch's and negative when clockwise. Parallel vectors yield
-    /// zero. On targets with native FMA one instruction performs the multiply-add, rounding once
-    /// instead of twice.
+    /// counterclockwise from this batch's and negative when clockwise. Parallel vectors yield zero.
+    /// On targets with native FMA one instruction performs the multiply-add, rounding once instead
+    /// of twice.
     #[inline]
     #[must_use]
     pub fn perp_dot(self, other: Self) -> Simd<f32, 4> {
@@ -580,8 +580,8 @@ impl Add for Vec2x4T {
     }
 }
 
-/// Subtracts the batches vector-wise: the result's `i`-th vector is the difference of the
-/// operands' `i`-th vectors.
+/// Subtracts the batches vector-wise: the result's `i`-th vector is the difference of the operands'
+/// `i`-th vectors.
 impl Sub for Vec2x4T {
     type Output = Self;
 

@@ -93,24 +93,18 @@ pub(super) async fn handler(
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.tile;
-    let proof = visibility.proof;
-    let census = visibility.census;
-    let schedule = visibility.schedule;
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
-    let k = visibility.k;
 
     let assembled = spawn(move || {
-        atlas
-            .assemble_tile(&request, limits, &proof, census, &schedule, k)
+        let view = visibility.view(&atlas)?;
+
+        Ok(atlas
+            .assemble_tile(&request, limits, &view)
             .map(|document| {
                 let entities = detailed.then(|| atlas.delivered_entities(&document));
                 (document, entities)
-            })
+            }))
     })
-    .await?;
+    .await??;
 
     let (document, entities) = match assembled {
         Ok(assembled) => assembled,
@@ -135,9 +129,9 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        // A refused cut or a mismatched proof/schedule pair is a server-side defect: this
-        // process resolved and sealed both values, so neither is request data.
-        Err(error @ (TileError::Schedule(_) | TileError::Contract)) => {
+        // Only the self-binding convenience path answers this; the handler binds through
+        // `Visibility::view`, which reports a refused cut as the internal problem itself.
+        Err(error @ TileError::View(_)) => {
             return Err(Problem::internal(
                 error,
                 "tile delivery refused its schedule",

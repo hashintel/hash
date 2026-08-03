@@ -103,6 +103,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
+    async_fn_traits,
     const_trait_impl,
     default_field_values,
     exhaustive_patterns,

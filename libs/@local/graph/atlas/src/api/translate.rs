@@ -77,8 +77,7 @@ pub(super) async fn handler(
 
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.translate;
-    let proof = visibility.proof;
-    match spawn(move || atlas.translate(request, limits, &proof)).await? {
+    match spawn(move || atlas.translate(request, limits, visibility.proof())).await? {
         Ok(response) => Ok(([(header::CACHE_CONTROL, headers::NO_STORE)], Json(response))),
         Err(error @ TranslateError::Ids { .. }) => Err(Problem::new(
             StatusCode::BAD_REQUEST,

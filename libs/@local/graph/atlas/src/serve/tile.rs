@@ -13,7 +13,8 @@ use super::{
     density::{CutOffset, ViewOccupancy},
     grid,
     hydrate::{DeliveredEntities, NodeDetails},
-    schedule::{ScheduleWidthError, ViewSchedule},
+    schedule::ViewSchedule,
+    view::{View, ViewError},
     visibility::VisibilityProof,
     walk::{DeliveredPoints, ViewCensus, Walk, occupied_children},
 };
@@ -74,16 +75,11 @@ pub enum TileError {
     ///
     /// The carried name is the request field.
     Unsupported(&'static str),
-    /// The resolved cut offset lies past the key width.
+    /// The delivery view did not bind.
     ///
-    /// This same generation's schedule resolves a sealed offset, so the value is a defect to
-    /// surface. Delivery refuses it whole rather than clamping or substituting a schedule.
-    Schedule(ScheduleWidthError),
-    /// The proof and the schedule it travelled with disagree about the serving contract.
-    ///
-    /// Each proof constructor pairs with exactly one [`ViewSchedule`] variant; a mismatched pair
-    /// is a transport defect, and delivery refuses it rather than serving either contract.
-    Contract,
+    /// Only [`Atlas::tile`] answers this, because that path binds the view itself.
+    /// [`Atlas::assemble_tile`] takes a bound view, so its rejections are all request-shaped.
+    View(ViewError),
 }
 
 impl fmt::Display for TileError {
@@ -104,14 +100,7 @@ impl fmt::Display for TileError {
             Self::Unsupported(feature) => {
                 write!(fmt, "this build does not serve {feature} requests")
             }
-            Self::Schedule(error) => error.fmt(fmt),
-            Self::Contract => {
-                write!(
-                    fmt,
-                    "the visibility proof and its delivery schedule disagree about the serving \
-                     contract"
-                )
-            }
+            Self::View(error) => error.fmt(fmt),
         }
     }
 }
@@ -183,15 +172,15 @@ impl Atlas {
     /// encodes through [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and
     /// [`Atlas::encode_tile`].
     ///
-    /// This path censuses `proof` and derives its schedule itself, once per call. A transport
-    /// resolves both with the scope and hands them to [`Atlas::assemble_tile`], so the scope pays
-    /// for the walks rather than the request. Without a store, the deployment holds no scope for
-    /// them and nothing remains to amortize against.
+    /// This path resolves everything a view needs on its own, once per call. A transport instead
+    /// resolves the census and the schedule with the scope and binds through [`Atlas::view`], so
+    /// the scope pays for those walks and the request reads the result. Without a store, the
+    /// deployment holds no scope and nothing remains to amortize against.
     ///
     /// # Errors
     ///
     /// As [`Atlas::assemble_tile`], plus [`TileError::Unsupported`] when the query sets
-    /// `includeDetailedData`.
+    /// `includeDetailedData` and [`TileError::View`] when `k` resolves past the key width.
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -208,8 +197,11 @@ impl Atlas {
         }
 
         let schedule = ViewSchedule::of(self, proof);
-        let document =
-            self.assemble_tile(request, limits, proof, self.census(proof), &schedule, k)?;
+        let view = self
+            .view(proof, self.census(proof), &schedule, k)
+            .map_err(TileError::View)?;
+
+        let document = self.assemble_tile(request, limits, &view)?;
         Ok(self.encode_tile(&document, None))
     }
 
@@ -248,8 +240,8 @@ impl Atlas {
     /// descendants. An id that resolves to no type in this generation is legal and reads 0 in every
     /// mask.
     ///
-    /// An operator proof delivers the generation's corpus schedule. Under a scoped proof, delivery
-    /// instead follows the view's resolved cut `z + span + k`, which gives one contiguous interval
+    /// An operator view delivers the generation's corpus schedule. Under a scoped view, delivery
+    /// instead follows the bound cut `z + span + k`, which gives one contiguous interval
     /// of scope buckets per response, ascending bucket then Morton order, with every
     /// schedule-derived `HEAD` field (`visible` counts, the `children` bitmask, the root's global
     /// metadata) reduced over the visible view alone. A hidden point contributes to none of them,
@@ -264,21 +256,13 @@ impl Atlas {
     /// Returns [`TileError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.colored_type_ids`, [`TileError::Depth`] when the zoom exceeds the generation's
     /// deepest served tile, [`TileError::Grid`] when the coordinate lies outside the zoom's
-    /// grid, [`TileError::Unsupported`] when the query names a version-0 deferral,
-    /// [`TileError::Schedule`] when the resolved cut lies past the key width, and
-    /// [`TileError::Contract`] when `proof` and `schedule` pair the wrong variants.
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
+    /// grid, and [`TileError::Unsupported`] when the query names a version-0 deferral. The
+    /// delivery contract is `view`'s, checked when it bound, so no rejection here is about it.
     pub fn assemble_tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,
-        proof: &VisibilityProof,
-        census: ViewCensus,
-        schedule: &ViewSchedule,
-        k: CutOffset,
+        view: &View<'_>,
     ) -> Result<TileDocument, TileError> {
         if request.query.filter.is_some() {
             return Err(TileError::Unsupported("filter"));
@@ -306,17 +290,11 @@ impl Atlas {
             y: coordinate.y,
         })?;
 
-        // This match discriminates the contract. Each proof constructor pairs with exactly one
-        // schedule variant, and a mismatched pair refuses before any bytes assemble.
-        let scope_cut = match (proof.is_full(), schedule) {
-            (true, ViewSchedule::Corpus) => None,
-            (false, ViewSchedule::Scope(scope)) => {
-                Some(scope.cut(self.grid, k).map_err(TileError::Schedule)?)
-            }
-            (true, ViewSchedule::Scope(_)) | (false, ViewSchedule::Corpus) => {
-                return Err(TileError::Contract);
-            }
-        };
+        // The bound cut is the whole contract discriminant: present exactly under a scoped view,
+        // which is what binding proved when it paired the proof with its schedule.
+        let scope_cut = view.cut();
+        let proof = view.proof();
+        let census = view.census();
 
         let walk = Walk::of(self, proof);
         let node = walk.node_of(cell);
@@ -356,7 +334,7 @@ impl Atlas {
 
         let visible = if coordinate.z == 0 {
             proof.visible_below(self.morton.count())
-        } else if proof.is_full() {
+        } else if view.is_full() {
             node.map_or_else(|| walk.population(cell), |node| u64::from(node.points()))
         } else {
             walk.visible_population(cell)

@@ -87,7 +87,10 @@ impl<'atlas> Neighbourhood<'atlas> {
     ///
     /// This panics when `source` lies outside the adjacency's node domain, which resolution rules
     /// out.
-    pub(super) fn incident(&self, node: NodeRowId) -> Vec<(DeliveredEdge, ArchivedEntityId)> {
+    pub(super) fn incident(
+        &self,
+        node: NodeRowId,
+    ) -> impl IntoIterator<Item = (DeliveredEdge, ArchivedEntityId)> {
         let outgoing = self
             .adjacency
             .outgoing(node)
@@ -100,19 +103,13 @@ impl<'atlas> Neighbourhood<'atlas> {
         let incident = outgoing.iter().chain(
             incoming
                 .iter()
-                .filter(|&edge| self.endpoints[edge][0] != node),
+                .filter(move |&edge| self.endpoints[edge][0] != node),
         );
 
-        let mut edges = Vec::new();
-        for edge in incident {
-            let Some(delivered) = self.edge(edge) else {
-                continue;
-            };
-
-            edges.push((delivered, self.edge_identity(delivered.row)));
-        }
-
-        edges
+        incident.filter_map(move |edge| {
+            let delivered = self.edge(edge)?;
+            Some((delivered, self.edge_identity(delivered.row)))
+        })
     }
 
     /// Collects every edge whose endpoints both lie in `delivered`, paired with its link-entity

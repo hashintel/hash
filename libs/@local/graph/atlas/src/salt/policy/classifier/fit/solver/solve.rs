@@ -315,8 +315,8 @@ fn run(
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite. The outer
-/// loop certifies its accepted norm finite before calling, so a solve never reaches this error.
+/// Returns [`SolverFailure::GradientThresholdOverflow`] when the norm is not finite. The outer loop
+/// certifies its accepted norm finite before calling, so a solve never reaches this error.
 fn gradient_threshold(
     config: &SolverConfig,
     certificate: &mut Option<CertificateEvidence>,

@@ -5,35 +5,29 @@
 //! collapses a burst. A request for the same scope arriving during one resolution waits on it and
 //! receives its result, so N concurrent tile requests cost one store query.
 //!
-//! A scope is a [`VisibilityKey`], naming a generation, an authenticated actor, and the digest of
+//! A scope is a [`CacheKey`], naming a generation, an authenticated actor, and the digest of
 //! the request filter when the request carries one. Callers presenting the same filter for the same
 //! actor and generation share one entry. A filtered request and an unfiltered one are different
 //! scopes.
 //!
-//! Each entry pairs its proof with a [`ProofDigest`], the digest of what that proof admits.
-//! Re-resolving an unchanged permission set reproduces it. Any change in the actor's visible rows
-//! produces a different one, because it reads the admitted rows and nothing else. It is internal
-//! instrumentation and never leaves the server - see its own documentation for why it is not a
-//! permission epoch and why no caller pins state to it.
-//!
 //! [`VisibilityLimits`] bounds reuse. Past the soft window an entry keeps answering while a refresh
 //! runs behind it, and at the hard window it stops answering. An authority token presented by a
-//! caller carries its own authenticated issue time, and the authority's `open` bounds that age
+//! caller carries its own authenticated issue time, and opening a presented token bounds that age
 //! against the token's own evidence.
 //!
 //! # Examples
 //!
-//! Nothing in this module is public, so the sketch below stands in for a compiled example.
+//! [`VisibilityCache`] is crate-internal, so the sketch below stands in for a compiled example.
 //!
 //! ```ignore
 //! let cache = VisibilityCache::new(VisibilityLimits::default());
-//! let scope = VisibilityKey { generation, actor, filter: None };
+//! let scope = CacheKey { generation, actor, filter: None };
 //!
 //! // The first request resolves. A second inside the window reads the held entry.
 //! let entry = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
 //! let again = cache.resolve(scope, Instant::now(), || resolve_from_store(actor)).await?;
-//! assert_eq!(entry.digest, again.digest);
-//! // The digest is the cache's own. Nothing outside this module reads it.
+//! // One entry, shared: the second request reads what the first published.
+//! assert!(Arc::ptr_eq(&entry, &again));
 //! ```
 #![expect(
     clippy::empty_enums,
@@ -41,8 +35,7 @@
 )]
 use alloc::sync::Arc;
 use core::{
-    future::Future,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{Atomic, Ordering},
     time::Duration,
 };
 use std::{sync::OnceLock, time::Instant};
@@ -58,12 +51,12 @@ use crate::{
 
 /// The digest of a request filter, over the bytes exactly as presented.
 ///
-/// Byte-equal filter documents share a digest, so one held entry answers both. Nothing here
-/// canonicalizes, so documents differing only in whitespace or key order are different digests and
-/// resolve as different scopes, and a client re-presenting a filter sends the bytes it sent before.
-/// Every digest has the same width, and equal bytes always produce equal digests, on any host and
-/// in any process, which is what lets it bind a scope inside a sealed token as well as name one in
-/// a key.
+/// Byte-equal filter documents share a digest, so one held entry answers both. The digest is taken
+/// over the presented bytes alone, so documents differing only in whitespace or key order are
+/// different digests and resolve as different scopes, and a client re-presenting a filter sends the
+/// bytes it sent before. Every digest has the same width, and equal bytes always produce equal
+/// digests, on any host and in any process, which is what lets it bind a scope inside a sealed
+/// token as well as name one in a key.
 #[derive(
     Debug,
     Copy,
@@ -103,45 +96,41 @@ impl FilterDigest {
     ///
     /// The bytes are a digest this process or another already computed over a filter document
     /// exactly as presented. Nothing here recomputes it. A wrong value names a scope no filter
-    /// produces, which the resolution then fails to compile a document for.
+    /// produces, and since no entry is held for that scope and no request carries its document,
+    /// admission refuses the request rather than resolving one.
     pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
 }
 
-/// The identity of a resolved permission set.
+/// Names one write into one slot, ordered against every other write this cache makes.
 ///
-/// Equal digests mean equal visible row sets. The value is a function of the admitted rows, so it
-/// survives re-resolution and refreshes and differs whenever the actor's visible rows differ. The
-/// full-visibility proof and a mask admitting every row carry different digests that match the
-/// proofs themselves, since one is authority over the corpus and the other a scope that happens to
-/// cover it.
-///
-/// **This is not a permission epoch, and it names no product concept.** It digests the *content of
-/// one resolved proof*, which is a weaker thing than an identity for the permission state that
-/// produced it. A permission set's change is observable here only by resolving it and comparing
-/// what came back. Invalidation driven by an epoch is a separate mechanism rather than this value
-/// grown up.
-///
-/// **It is cache-local diagnostic state, never a client state identity.** A soft refresh replaces
-/// the proof under an unchanged cache key when it publishes, so this value moves while the key that
-/// names the scope does not. Nothing outside this module reads it and it does not travel. The
-/// refresh tests assert through it that a resolution admitting the same rows reproduces the same
-/// value.
-///
-/// Do not publish it. It is a digest over the admitted row identities, so two scopes admitting
-/// byte-identical sets share one, which would be an equality oracle across actors if it ever left
-/// the server.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct ProofDigest(Sha256Digest);
+/// Minted when a write publishes, so every publication is unique and names exactly the entry that
+/// write produced. A refresh reads an entry before it publishes over that entry, and the slot
+/// stands open to a stranger in between. The refresh recognises such a stranger by its publication
+/// and leaves it in place.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct Publication(u64);
 
-impl ProofDigest {
-    /// Digests the rows `proof` admits.
+/// One cache's source of publications.
+#[derive(Debug)]
+struct Publications(Atomic<u64>);
+
+impl Publications {
+    /// Returns a source that has published nothing.
+    const fn new() -> Self {
+        Self(Atomic::<u64>::new(0))
+    }
+
+    /// Returns a publication greater than every one this source has returned.
     ///
-    /// Absorbs every admitted row identity, so the cost is linear in the visible set - paid once
-    /// per resolution, never per request.
-    pub(crate) fn of(proof: &VisibilityProof) -> Self {
-        Self(proof.digest())
+    /// [`Ordering::Relaxed`] carries it, because the only ordering the comparison needs is moka's
+    /// key lock, which every read and write of a published value already happens under. This
+    /// counter owes uniqueness and monotonicity, which `fetch_add` gives at any ordering.
+    /// Exhausting `u64` at a billion publications a second takes over five centuries, so the count
+    /// does not wrap.
+    fn draw(&self) -> Publication {
+        Publication(self.0.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -149,7 +138,7 @@ impl ProofDigest {
 ///
 /// Equal keys name the same view, so they share one held entry.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct VisibilityKey {
+pub(crate) struct CacheKey {
     /// The generation whose row ids the proof indexes.
     pub generation: GenerationId,
     /// The actor whose policies the proof resolves.
@@ -161,10 +150,10 @@ pub(crate) struct VisibilityKey {
 /// A proof and the census of the view it admits, from one resolution.
 ///
 /// The pair exists because one resolution produces both per scope, and neither is a function of a
-/// request. Its only constructor censuses the proof it stores, so a census paired with a foreign
-/// proof is unconstructible rather than forbidden.
+/// request. Its production constructor censuses the proof it stores, so a census paired with a
+/// foreign proof is unconstructible rather than forbidden.
 #[derive(Debug)]
-pub(crate) struct Resolution {
+pub(crate) struct PendingCacheEntry {
     /// The rows the actor may see.
     proof: VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits.
@@ -177,7 +166,7 @@ pub(crate) struct Resolution {
     filter: Option<Arc<[u8]>>,
 }
 
-impl Resolution {
+impl PendingCacheEntry {
     /// Pairs `proof` with its census over `atlas` and the `filter` document, as presented.
     ///
     /// The `filter` is the document the resolution ran over. The census walks the base column once
@@ -206,61 +195,81 @@ impl Resolution {
     }
 }
 
-/// One resolved scope.
+/// One resolved scope, as the cache holds it.
 ///
-/// The rows the scope may see, the census of them, and the identity of that permission set.
-#[derive(Debug, Clone)]
-pub(crate) struct ResolvedVisibility {
+/// Everything one resolution produced, together with the bookkeeping that decides when it stops
+/// answering and which write may replace it.
+///
+/// The cache hands out one [`Arc`] per scope, so every reader shares the entry rather than a copy
+/// of its parts. No caller can detach a proof from the census resolved with it.
+///
+/// A refresh publishes a new entry instead of mutating this one. A caller holding an entry across a
+/// refresh keeps reading the resolution it was handed.
+#[derive(Debug)]
+pub(crate) struct CacheEntry {
     /// The rows the actor may see.
-    pub proof: Arc<VisibilityProof>,
+    proof: VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
-    pub census: ViewCensus,
-    /// The identity of what [`Self::proof`] admits.
-    pub digest: ProofDigest,
+    census: ViewCensus,
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
     /// unfiltered.
     filter: Option<Arc<[u8]>>,
     /// The delivery schedule of [`Self::proof`]'s view, built on first read.
     ///
-    /// Shared across the entry's clones, so one scope builds its cascade once and every request
-    /// under it reads the same value. Replacing the entry retires the schedule along with the
-    /// proof it describes.
-    schedule: Arc<OnceLock<ViewSchedule>>,
+    /// One scope builds its cascade once, and every request under it reads that one. Replacing the
+    /// entry retires the schedule along with the proof it describes.
+    schedule: OnceLock<ViewSchedule>,
     /// When the resolution behind [`Self::proof`] ran.
     resolved_at: Instant,
-    /// Held while a refresh of this entry is in flight, so one refresh runs per entry.
-    refreshing: Arc<AtomicBool>,
+    /// Which write into the slot published this entry.
+    publication: Publication,
+    /// Held while a refresh of this entry is in flight.
+    ///
+    /// This has one job. A burst of requests crossing the refresh horizon together runs one
+    /// resolution rather than one each. Which entry that resolution may publish over is
+    /// [`Publication`]'s question, and this answers nothing about it.
+    refreshing: Atomic<bool>,
 }
 
-impl ResolvedVisibility {
+impl CacheEntry {
     /// Builds an entry around a freshly resolved scope.
     fn new(
-        Resolution {
+        PendingCacheEntry {
             proof,
             census,
             filter,
-        }: Resolution,
+        }: PendingCacheEntry,
         resolved_at: Instant,
+        publication: Publication,
     ) -> Self {
         Self {
-            digest: ProofDigest::of(&proof),
-            proof: Arc::new(proof),
+            proof,
             census,
             filter,
-            schedule: Arc::new(OnceLock::new()),
+            schedule: OnceLock::new(),
             resolved_at,
-            refreshing: Arc::new(AtomicBool::new(false)),
+            publication,
+            refreshing: Atomic::<bool>::new(false),
         }
+    }
+
+    /// Returns the rows the scope may see.
+    pub(crate) const fn proof(&self) -> &VisibilityProof {
+        &self.proof
+    }
+
+    /// Returns the corpus-wide census of what [`Self::proof`] admits.
+    pub(crate) const fn census(&self) -> &ViewCensus {
+        &self.census
     }
 
     /// Returns the delivery schedule of this entry's view, building it on first read.
     ///
-    /// The build runs under the [`OnceLock`], so concurrent first readers of one scope wait for a
-    /// single construction instead of duplicating it.
-    pub(crate) fn view_schedule(&self, atlas: &Atlas) -> ViewSchedule {
+    /// Concurrent first readers of one scope wait for a single construction rather than duplicating
+    /// it.
+    pub(crate) fn view_schedule(&self, atlas: &Atlas) -> &ViewSchedule {
         self.schedule
             .get_or_init(|| ViewSchedule::of(atlas, &self.proof))
-            .clone()
     }
 
     /// Returns the filter document the resolution ran over, as presented.
@@ -304,6 +313,10 @@ impl ResolvedVisibility {
 /// active actors than entries still answers every request, and the scopes that fall out resolve
 /// again, one store round trip each.
 ///
+/// [`Self::soft`] is shorter than [`Self::hard`]. Where it is not, the expiry test runs first and
+/// no entry ever refreshes behind its answer, so every request past the hard window waits on a
+/// resolution of its own.
+///
 /// An authority token names a cached scope, so this pair also bounds a held token's age. The
 /// authority's `open` judges the issue time a token carries against the same `hard` window, and the
 /// manifest publishes both values as the client's refresh and expiry horizons.
@@ -323,7 +336,8 @@ impl ResolvedVisibility {
 ///     ..VisibilityLimits::default()
 /// };
 ///
-/// assert_eq!(limits.entries, VisibilityLimits::default().entries);
+/// assert_eq!(limits.hard, Duration::from_secs(60));
+/// assert_eq!(limits.hard - limits.soft, Duration::from_secs(15));
 /// ```
 ///
 /// The cost of a short window is store traffic: each active scope re-resolves once per window, so
@@ -359,8 +373,8 @@ impl Default for VisibilityLimits {
 /// Resolved scopes, held for their reuse window.
 ///
 /// One entry per scope, whatever its proof admits, so the capacity bound counts scopes rather than
-/// rows or bytes. A scope with no held entry resolves again on its next request and reproduces its
-/// digest when its permissions have not moved, so eviction costs one store round trip and nothing
+/// rows or bytes. A scope with no held entry resolves again on its next request and admits the same
+/// rows when its permissions have not moved, so eviction costs one store round trip and nothing
 /// else.
 ///
 /// Admission favours the scopes that come back. Since a scope's key includes its filter, a client
@@ -369,13 +383,14 @@ impl Default for VisibilityLimits {
 /// resolution or two before admission while the cache is full.
 #[derive(Debug)]
 pub(crate) struct VisibilityCache {
-    entries: moka::future::Cache<VisibilityKey, ResolvedVisibility>,
+    entries: moka::future::Cache<CacheKey, Arc<CacheEntry>>,
+    publications: Arc<Publications>,
     soft: Duration,
     hard: Duration,
 }
 
 impl VisibilityCache {
-    /// Builds a cache holding scopes under `limits`.
+    /// Builds a cache holding scopes under the given [`VisibilityLimits`].
     pub(crate) fn new(
         VisibilityLimits {
             entries,
@@ -393,21 +408,95 @@ impl VisibilityCache {
                 .eviction_policy(moka::policy::EvictionPolicy::tiny_lfu())
                 .time_to_live(hard)
                 .build(),
+            publications: Arc::new(Publications::new()),
             soft,
             hard,
         }
     }
 
     /// Returns the entry held for `key`.
-    pub(crate) async fn get(&self, key: &VisibilityKey) -> Option<ResolvedVisibility> {
+    pub(crate) async fn get(&self, key: &CacheKey) -> Option<Arc<CacheEntry>> {
         self.entries.get(key).await
     }
 
-    /// Returns the scope `key` names at `now`, resolving it through `resolve` when needed.
+    /// Returns the publication of the next write into a slot.
+    fn mint(&self) -> Publication {
+        self.publications.draw()
+    }
+
+    /// Resolves `key` again in place of the expired entry held for it.
     ///
-    /// A held entry inside the soft window answers immediately, and `resolve` goes uncalled. The
-    /// cache hands it over as the initializer of the miss path, which an entry that answers never
-    /// reaches.
+    /// The replacement takes the slot under moka's key lock, so a burst of requests past the hard
+    /// window costs one store round trip: the first publishes and the rest read what it published.
+    /// Dropping the entry and inserting its replacement as two operations would leave the slot
+    /// empty in between, where a concurrent refresh's publication or an inline resolution can
+    /// land and then be overwritten by this one.
+    async fn replaced_expired<R, E>(
+        &self,
+        key: CacheKey,
+        now: Instant,
+        resolver: R,
+    ) -> Result<Arc<CacheEntry>, Arc<E>>
+    where
+        R: AsyncFnOnce() -> Result<PendingCacheEntry, E>,
+        E: Send + Sync + 'static,
+    {
+        let published = self
+            .entries
+            .entry(key)
+            .and_try_compute_with(async |held| {
+                // Another caller past the same window may have published while this one queued, and
+                // its resolution is no older than the one this call would run.
+                if held.is_some_and(|held| !held.value().is_expired(now, self.hard)) {
+                    return Ok::<_, E>(Op::Nop);
+                }
+
+                Ok(Op::Put(Arc::new(CacheEntry::new(
+                    resolver().await?,
+                    now,
+                    self.publications.draw(),
+                ))))
+            })
+            .await
+            .map_err(Arc::new)?;
+
+        Ok(published
+            .into_entry()
+            .expect(
+                "a compute that publishes over an absent slot and removes nothing holds an entry",
+            )
+            .into_value())
+    }
+
+    /// Answers from the entry held for `key`, resolving inline when the cache holds none.
+    ///
+    /// Concurrent callers of one key share one inline resolution: the initializer runs once and
+    /// every waiter receives its result, which is what keeps a burst of tile requests for one scope
+    /// to a single store round trip.
+    async fn resolved_inline<R, E>(
+        &self,
+        key: CacheKey,
+        now: Instant,
+        resolver: R,
+    ) -> Result<Arc<CacheEntry>, Arc<E>>
+    where
+        R: AsyncFnOnce() -> Result<PendingCacheEntry, E>,
+        E: Send + Sync + 'static,
+    {
+        self.entries
+            .try_get_with(key, async {
+                // Called during the generation, not before, as the function indicates a write, not
+                // an intention to write.
+                resolver()
+                    .await
+                    .map(|resolution| Arc::new(CacheEntry::new(resolution, now, self.mint())))
+            })
+            .await
+    }
+
+    /// Returns the scope `key` names at `now`, resolving it through `resolver` when needed.
+    ///
+    /// A held entry inside the soft window answers immediately, and `resolver` goes uncalled.
     ///
     /// An entry past the soft window answers too, and one caller takes the refresh. That resolution
     /// runs behind the answer already returned and replaces the entry once it completes, so a
@@ -427,113 +516,90 @@ impl VisibilityCache {
     /// With nothing held, the resolution runs inline and every request arriving during it receives
     /// its result, so a burst of tile requests for one scope costs one store round trip.
     ///
-    /// An unchanged permission set reproduces the digest it had. When a refresh resolves a
+    /// An unchanged permission set resolves to the same rows. When a refresh resolves a
     /// *narrower* proof, it replaces the entry and the requests after it answer from the narrower
     /// view. The cache takes that mid-run change while the graph has no permission epochs for
-    /// invalidating an entry, which is why no caller learns of a refresh.
+    /// invalidating an entry, so no caller learns of a refresh.
     ///
     /// # Errors
     ///
-    /// Returns `resolve`'s error when an inline resolution fails, holding no entry. A failed
+    /// Returns `resolver`'s error when an inline resolution fails, holding no entry. A failed
     /// resolution publishes nothing, and the requests that shared it share its error. A failed
     /// refresh leaves the held entry serving and releases the refresh, so the next request past the
     /// soft window tries again.
-    pub(crate) async fn resolve<R, F, E>(
+    pub(crate) async fn resolve<R, E>(
         &self,
-        key: VisibilityKey,
+        key: CacheKey,
         now: Instant,
-        resolve: R,
-    ) -> Result<ResolvedVisibility, Arc<E>>
+        resolver: R,
+    ) -> Result<Arc<CacheEntry>, Arc<E>>
     where
-        R: FnOnce() -> F + Clone + Send + 'static,
-        F: Future<Output = Result<Resolution, E>> + Send + 'static,
+        R: AsyncFnOnce() -> Result<PendingCacheEntry, E> + Send + 'static,
+        R::CallOnceFuture: Send,
         E: Send + Sync + 'static,
     {
-        let refresh = resolve.clone();
-        let mut entry = self.held_or_resolved(key, now, resolve.clone()).await?;
+        // Exactly one of the three paths below resolves, which is what lets the signature ask for
+        // an `AsyncFnOnce`. Any call that resolves returns an entry younger than both windows, so
+        // no later path in the same call can resolve again. Reading the slot first is what makes
+        // that visible to the compiler as well as true.
+        //
+        // The windows are judged on the caller's clock, the one `resolved_at` came from, rather
+        // than on moka's, whose expiry starts when the resolution finishes.
+        let Some(entry) = self.entries.get(&key).await else {
+            return self.resolved_inline(key, now, resolver).await;
+        };
 
-        // This judges the window on the caller's clock, the one `resolved_at` came from, rather
-        // than on moka's, whose expiry starts when the resolution finishes. Judging it after the
-        // read rather than before costs the answering path one lookup instead of two, and the retry
-        // cannot loop, because the entry it inserts carries `now` as its `resolved_at`.
         if entry.is_expired(now, self.hard) {
-            self.entries.invalidate(&key).await;
-            entry = self.held_or_resolved(key, now, resolve).await?;
+            return self.replaced_expired(key, now, resolver).await;
         }
 
-        // A resolution that ran in this call is not stale, so this is the held-entry path alone.
         if entry.is_stale(now, self.soft) && entry.claim_refresh() {
             let entries = self.entries.clone();
-            let refreshing = Arc::clone(&entry.refreshing);
+            let publications = Arc::clone(&self.publications);
+            let refreshed = Arc::clone(&entry);
 
-            drop(tokio::spawn(async move {
-                match refresh().await {
-                    Ok(resolution) => {
+            let _handle = tokio::spawn(async move {
+                let Ok(resolution) = resolver().await else {
+                    // A failed refresh releases the latch and leaves the entry it read serving, so
+                    // the next request past the soft window tries again. Nothing here answers a
+                    // caller, because the request that triggered this refresh was answered before
+                    // it began.
+                    refreshed.refreshing.store(false, Ordering::Release);
+                    return;
+                };
+
+                // The resolution ran outside moka's key lock. The comparison and the write happen
+                // inside it with nothing awaited in between. The write goes to whatever holds the
+                // slot when this closure reads it.
+                //
+                // Publication names the entry this refresh read, and age cannot. A request stamps
+                // `now` on arrival, while its insert lands a pool acquire and a store round trip
+                // later, so an entry resolved before this refresh began can reach the slot after
+                // it. A slot emptied by the hard window or by an eviction gets refilled by a
+                // resolution carrying its own publication. That stranger keeps the slot however its
+                // timestamp reads, and no proof re-enters a slot with a window it did not earn.
+                let _result = entries
+                    .entry(key)
+                    .and_compute_with(async |held| {
+                        if held.is_none_or(|held| held.value().publication != refreshed.publication)
+                        {
+                            return Op::Nop;
+                        }
+
                         // The refreshed entry carries `now`, the time of the request that triggered
-                        // it, so no entry claims a time later than the permissions it reflects.
-                        let refreshed = ResolvedVisibility::new(resolution, now);
-
-                        // Published under moka's key lock, so the comparison and the write cannot
-                        // straddle another writer. A refresh replaces the entry it refreshed and
-                        // creates none, which keeps an older proof out of any slot the hard window
-                        // or eviction has cleared.
-                        //
-                        // Identity picks that entry, not age. The refresh latch is minted per entry
-                        // and shared by its clones. A stranger holding the slot therefore keeps it,
-                        // whatever its timestamp reads.
-                        //
-                        // Age cannot pick the entry. `now` is stamped when a request arrives rather
-                        // than when its insert completes. An entry resolved before the refresh
-                        // trigger can reach the slot after the refresh started, and an age
-                        // comparison overwrites exactly that entry.
-                        drop(
-                            entries
-                                .entry(key)
-                                .and_compute_with(async |held| {
-                                    let replaces = held.is_some_and(|held| {
-                                        Arc::ptr_eq(&held.value().refreshing, &refreshing)
-                                    });
-
-                                    if replaces {
-                                        Op::Put(refreshed)
-                                    } else {
-                                        Op::Nop
-                                    }
-                                })
-                                .await,
-                        );
-                    }
-                    Err(_error) => refreshing.store(false, Ordering::Release),
-                }
-            }));
+                        // it, so no entry claims a time later than the permissions it
+                        // reflects.
+                        Op::Put(Arc::new(CacheEntry::new(
+                            resolution,
+                            now,
+                            publications.draw(),
+                        )))
+                    })
+                    .await;
+            });
         }
 
         Ok(entry)
-    }
-
-    /// Answers from the entry held for `key`, resolving inline when the cache holds none.
-    ///
-    /// Concurrent callers of one key share one inline resolution: the initializer runs once and
-    /// every waiter receives its result, which is what keeps a burst of tile requests for one scope
-    /// to a single store round trip.
-    async fn held_or_resolved<R, F, E>(
-        &self,
-        key: VisibilityKey,
-        now: Instant,
-        resolve: R,
-    ) -> Result<ResolvedVisibility, Arc<E>>
-    where
-        R: FnOnce() -> F + Send + 'static,
-        F: Future<Output = Result<Resolution, E>> + Send + 'static,
-        E: Send + Sync + 'static,
-    {
-        self.entries
-            .try_get_with(key, async move {
-                resolve()
-                    .await
-                    .map(|resolution| ResolvedVisibility::new(resolution, now))
-            })
-            .await
     }
 }
 
@@ -541,7 +607,6 @@ impl VisibilityCache {
 mod tests {
     use alloc::sync::Arc;
     use core::{
-        future::{Ready, ready},
         sync::atomic::{AtomicUsize, Ordering},
         time::Duration,
     };
@@ -552,7 +617,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        FilterDigest, ProofDigest, Resolution, VisibilityCache, VisibilityKey, VisibilityLimits,
+        CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache, VisibilityLimits,
     };
     use crate::{
         bitset::CompressedBitSet,
@@ -571,8 +636,8 @@ mod tests {
     };
 
     /// The scope of the actor numbered `actor`.
-    fn key_of(actor: u128) -> VisibilityKey {
-        VisibilityKey {
+    fn key_of(actor: u128) -> CacheKey {
+        CacheKey {
             generation: "07"
                 .repeat(32)
                 .parse()
@@ -582,7 +647,7 @@ mod tests {
         }
     }
 
-    fn key() -> VisibilityKey {
+    fn key() -> CacheKey {
         key_of(11)
     }
 
@@ -594,17 +659,28 @@ mod tests {
         )
     }
 
-    /// A resolver answering `rows` and counting its calls.
-    fn answering(
-        rows: &'static [u32],
-        calls: &Arc<AtomicUsize>,
-    ) -> impl FnOnce() -> Ready<Result<Resolution, ()>> + Clone + Send + 'static {
-        let calls = Arc::clone(calls);
+    /// Whether `entry`'s proof admits the node row numbered `node`.
+    ///
+    /// The fixtures give each resolution a row of its own, so one membership test names which
+    /// resolution an entry carries.
+    fn admits(entry: &CacheEntry, node: u32) -> bool {
+        entry.proof().contains(NodeRowId::from_u32(node))
+    }
 
-        move || {
-            calls.fetch_add(1, Ordering::Relaxed);
-            ready(Ok(Resolution::with_empty_census(proof_of(rows))))
-        }
+    /// A resolver answering `rows` and counting its calls.
+    ///
+    /// A macro rather than a function, because the cache asks its resolver for a `Send` future at
+    /// every lifetime, and an opaque return type publishes only the bounds it names. Expanding at
+    /// the call site hands the compiler the closure itself, which carries the property.
+    macro_rules! answering {
+        ($rows:expr, $calls:expr) => {{
+            let calls = Arc::clone($calls);
+
+            async move || {
+                calls.fetch_add(1, Ordering::Relaxed);
+                Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of($rows)))
+            }
+        }};
     }
 
     /// An entry inside the soft window answers without resolving again.
@@ -616,7 +692,7 @@ mod tests {
 
         for elapsed in [Duration::ZERO, SOFT / 2] {
             cache
-                .resolve(key(), now + elapsed, answering(&[1, 2, 3], &calls))
+                .resolve(key(), now + elapsed, answering!(&[1, 2, 3], &calls))
                 .await
                 .expect("the resolution answers");
         }
@@ -639,15 +715,15 @@ mod tests {
         let now = Instant::now();
 
         let (first, second) = tokio::join!(
-            cache.resolve(key(), now, answering(&[1, 2, 3], &calls)),
-            cache.resolve(key(), now, answering(&[1, 2, 3], &calls)),
+            cache.resolve(key(), now, answering!(&[1, 2, 3], &calls)),
+            cache.resolve(key(), now, answering!(&[1, 2, 3], &calls)),
         );
 
         let first = first.expect("the resolution answers");
         let second = second.expect("the resolution answers");
 
         assert_eq!(calls.load(Ordering::Relaxed), 1, "one resolution ran");
-        assert_eq!(first.digest, second.digest);
+        assert!(Arc::ptr_eq(&first, &second), "both callers hold one entry");
     }
 
     /// An entry past the soft window answers from the held proof while a refresh replaces it.
@@ -662,16 +738,16 @@ mod tests {
         let now = Instant::now();
 
         let held = cache
-            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .resolve(key(), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
 
         let stale = cache
-            .resolve(key(), now + SOFT, answering(&[9], &calls))
+            .resolve(key(), now + SOFT, answering!(&[9], &calls))
             .await
             .expect("the held entry answers");
-        assert_eq!(
-            stale.digest, held.digest,
+        assert!(
+            Arc::ptr_eq(&stale, &held),
             "the stale read answered from the held proof"
         );
         assert_eq!(
@@ -684,14 +760,17 @@ mod tests {
         for _ in 0..16_u8 {
             tokio::task::yield_now().await;
             let entry = cache.get(&key()).await.expect("the entry stays held");
-            if entry.digest != held.digest {
+            if !Arc::ptr_eq(&entry, &held) {
                 refreshed = Some(entry);
                 break;
             }
         }
 
         let refreshed = refreshed.expect("the refresh replaced the held entry");
-        assert_eq!(refreshed.digest, ProofDigest::of(&proof_of(&[9])));
+        assert!(
+            admits(&refreshed, 9),
+            "the published entry carries the refresh's own resolution"
+        );
         assert_eq!(
             calls.load(Ordering::Relaxed),
             2,
@@ -711,7 +790,7 @@ mod tests {
 
         for scope in [key(), filtered] {
             cache
-                .resolve(scope, now, answering(&[1], &calls))
+                .resolve(scope, now, answering!(&[1], &calls))
                 .await
                 .expect("the resolution answers");
         }
@@ -740,7 +819,7 @@ mod tests {
 
         for actor in [1_u128, 2] {
             cache
-                .resolve(key_of(actor), now, answering(&[1, 2, 3], &calls))
+                .resolve(key_of(actor), now, answering!(&[1, 2, 3], &calls))
                 .await
                 .expect("the resolution answers");
         }
@@ -754,7 +833,7 @@ mod tests {
         }
 
         cache
-            .resolve(key_of(3), now, answering(&[1, 2, 3], &calls))
+            .resolve(key_of(3), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
         cache.entries.run_pending_tasks().await;
@@ -778,12 +857,12 @@ mod tests {
         let now = Instant::now();
 
         let held = cache
-            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .resolve(key(), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
 
         let answered = cache
-            .resolve(key(), now + HARD, answering(&[9], &calls))
+            .resolve(key(), now + HARD, answering!(&[9], &calls))
             .await
             .expect("the expired entry resolves again");
 
@@ -792,11 +871,11 @@ mod tests {
             2,
             "the expired read resolved rather than answering from the held proof"
         );
-        assert_ne!(
-            answered.digest, held.digest,
+        assert!(
+            !Arc::ptr_eq(&answered, &held),
             "the answer carries the new resolution"
         );
-        assert_eq!(answered.digest, ProofDigest::of(&proof_of(&[9])));
+        assert!(admits(&answered, 9), "the answer is the inline resolution");
     }
 
     /// A refresh landing after a newer resolution publishes nothing.
@@ -813,7 +892,7 @@ mod tests {
         let now = Instant::now();
 
         let held = cache
-            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .resolve(key(), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
 
@@ -831,17 +910,20 @@ mod tests {
                     // before this task was first polled or after.
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
                 }
             })
             .await
             .expect("the held entry answers");
-        assert_eq!(stale.digest, held.digest, "the stale read answered as held");
+        assert!(
+            Arc::ptr_eq(&stale, &held),
+            "the stale read answered as held"
+        );
 
         // A newer resolution replaces the entry while the refresh is still in flight.
         cache.entries.invalidate(&key()).await;
         let newer = cache
-            .resolve(key(), now + SOFT + SOFT, answering(&[7], &calls))
+            .resolve(key(), now + SOFT + SOFT, answering!(&[7], &calls))
             .await
             .expect("the newer resolution answers");
         assert_eq!(
@@ -864,8 +946,8 @@ mod tests {
         assert!(resolved, "the refresh resolved behind the newer entry");
 
         let after = cache.get(&key()).await.expect("an entry stays held");
-        assert_eq!(
-            after.digest, newer.digest,
+        assert!(
+            Arc::ptr_eq(&after, &newer),
             "the newer resolution still answers: the refresh published nothing over it"
         );
     }
@@ -874,8 +956,8 @@ mod tests {
     ///
     /// Identity names that entry. Age cannot name it: a request stamps `now` when it arrives, while
     /// its insert completes only after a pool acquire and a store round trip. An entry resolved
-    /// before the refresh was triggered can therefore be written into the slot after that refresh
-    /// started. An age comparison overwrites it, and its proof is a different resolution that no
+    /// before the refresh was triggered can be written into the slot after that refresh started. An
+    /// age comparison overwrites it, and its proof is a different resolution that no
     /// request asked to have replaced.
     ///
     /// The fixture holds a refresh in flight while it empties the slot and refills it with a
@@ -887,7 +969,7 @@ mod tests {
         let now = Instant::now();
 
         let held = cache
-            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .resolve(key(), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
 
@@ -901,19 +983,22 @@ mod tests {
                 async move {
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
                 }
             })
             .await
             .expect("the held entry answers");
-        assert_eq!(stale.digest, held.digest, "the stale read answered as held");
+        assert!(
+            Arc::ptr_eq(&stale, &held),
+            "the stale read answered as held"
+        );
 
         // A different entry takes the slot while the refresh is in flight, stamped below the
         // refresh trigger: the request that arrived before the refreshing one and whose insert
         // landed after it.
         cache.entries.invalidate(&key()).await;
         let stranger = cache
-            .resolve(key(), now + SOFT / 2, answering(&[7], &calls))
+            .resolve(key(), now + SOFT / 2, answering!(&[7], &calls))
             .await
             .expect("the stranger resolution answers");
         assert!(
@@ -934,8 +1019,8 @@ mod tests {
         assert!(resolved, "the refresh resolved behind the stranger");
 
         let after = cache.get(&key()).await.expect("an entry stays held");
-        assert_eq!(
-            after.digest, stranger.digest,
+        assert!(
+            Arc::ptr_eq(&after, &stranger),
             "the stranger still answers: a refresh publishes only over the entry it refreshed"
         );
     }
@@ -953,7 +1038,7 @@ mod tests {
         let now = Instant::now();
 
         cache
-            .resolve(key(), now, answering(&[1, 2, 3], &calls))
+            .resolve(key(), now, answering!(&[1, 2, 3], &calls))
             .await
             .expect("the resolution answers");
 
@@ -967,7 +1052,7 @@ mod tests {
                 async move {
                     gate.notified().await;
                     calls.fetch_add(1, Ordering::Relaxed);
-                    Ok::<_, ()>(Resolution::with_empty_census(proof_of(&[1, 2, 3])))
+                    Ok::<_, ()>(PendingCacheEntry::with_empty_census(proof_of(&[1, 2, 3])))
                 }
             })
             .await
@@ -999,8 +1084,8 @@ mod tests {
         let now = Instant::now();
 
         let failed = cache
-            .resolve(key(), now, || {
-                ready(Err::<Resolution, &'static str>("the store refused"))
+            .resolve(key(), now, async || {
+                Err::<PendingCacheEntry, &'static str>("the store refused")
             })
             .await;
 
@@ -1008,40 +1093,6 @@ mod tests {
         assert!(
             cache.get(&key()).await.is_none(),
             "a failed resolution leaves no entry"
-        );
-    }
-
-    /// An unchanged permission set reproduces its digest.
-    ///
-    /// The property holds of the digest itself rather than of any cache timing: two resolutions
-    /// admitting the same rows carry one digest, which is what lets a digest comparison identify a
-    /// refresh as a no-op.
-    #[test]
-    fn an_unchanged_permission_set_reproduces_its_digest() {
-        assert_eq!(
-            ProofDigest::of(&proof_of(&[4, 5, 6])),
-            ProofDigest::of(&proof_of(&[4, 5, 6])),
-        );
-    }
-
-    /// Losing a row replaces the digest.
-    #[test]
-    fn a_changed_permission_set_moves_the_digest() {
-        assert_ne!(
-            ProofDigest::of(&proof_of(&[4, 5, 6])),
-            ProofDigest::of(&proof_of(&[4, 5])),
-        );
-    }
-
-    /// The full-visibility proof and a mask carry different digests.
-    ///
-    /// The digest reads the constructor as well as the rows, so a saturated mask cannot present the
-    /// operator identity.
-    #[test]
-    fn a_saturated_mask_and_the_full_proof_differ() {
-        assert_ne!(
-            ProofDigest::of(&proof_of(&[0, 1, 2])),
-            ProofDigest::of(&VisibilityProof::full_visibility()),
         );
     }
 }

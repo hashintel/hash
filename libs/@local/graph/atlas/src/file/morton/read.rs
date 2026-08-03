@@ -265,11 +265,11 @@ impl MortonFile {
 
     /// Finds the first position in `range` whose code fails `pred`.
     ///
-    /// `pred` must be monotone over the range's codes: true for a prefix, false for the rest.
-    /// Every threshold predicate over non-decreasing codes has that shape. The index narrows the
-    /// search to one final window of at most `stride` codes. Sampled index keys inside the range
-    /// locate that window from one faulted index page that stays hot across queries. The window
-    /// search then faults one code page.
+    /// `pred` must be monotone over the range's codes: true for a prefix, false for the rest. Every
+    /// threshold predicate over non-decreasing codes has that shape. The index narrows the search
+    /// to one final window of at most `stride` codes. Sampled index keys inside the range locate
+    /// that window from one faulted index page that stays hot across queries. The window search
+    /// then faults one code page.
     fn partition_point(&self, range: Range<u64>, pred: impl Fn(u64) -> bool) -> u64 {
         let stride = u64::from(self.header().stride());
 

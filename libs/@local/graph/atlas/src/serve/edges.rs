@@ -8,10 +8,14 @@ use core::{error::Error, fmt};
 use hashql_core::id::bit_vec::DenseBitSet;
 
 use super::{
-    Atlas, Filter, TileCoordinate, WireRow, grid,
+    Atlas, Filter, TileCoordinate, WireRow,
+    density::CutOffset,
+    grid,
     hydrate::{DeliveredEntities, EdgeLinkDetails},
     intern::{self, Table},
     neighbourhood::Neighbourhood,
+    schedule::{ScheduleCut, ViewSchedule},
+    view::{View, ViewError},
     visibility::VisibilityProof,
     walk::Walk,
 };
@@ -54,6 +58,11 @@ pub enum EdgesError {
     ///
     /// The carried name is the request field.
     Unsupported(&'static str),
+    /// The delivery view did not bind.
+    ///
+    /// Only [`Atlas::edges`] answers this, because that path binds the view itself.
+    /// [`Atlas::assemble_edges`] takes a bound view, so its rejections are all request-shaped.
+    View(ViewError),
 }
 
 impl fmt::Display for EdgesError {
@@ -74,6 +83,7 @@ impl fmt::Display for EdgesError {
             Self::Unsupported(feature) => {
                 write!(fmt, "this build does not serve {feature} requests")
             }
+            Self::View(error) => error.fmt(fmt),
         }
     }
 }
@@ -148,21 +158,34 @@ impl Atlas {
     /// encodes through [`Atlas::assemble_edges`], [`Atlas::delivered_edge_entities`], and
     /// [`Atlas::encode_edges`].
     ///
+    /// This path resolves everything a view needs on its own, once per call, exactly as
+    /// [`Atlas::tile`] does and for the same reason.
+    ///
     /// # Errors
     ///
     /// As [`Atlas::assemble_edges`], plus [`EdgesError::Unsupported`] when the request sets
-    /// `includeDetailedData`.
+    /// `includeDetailedData` and [`EdgesError::View`] when `k` resolves past the key width.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
     pub fn edges(
         &self,
         request: &EdgesRequest,
         limits: EdgesLimits,
         proof: &VisibilityProof,
+        k: CutOffset,
     ) -> Result<Vec<u8>, EdgesError> {
         if request.include_detailed_data {
             return Err(EdgesError::Unsupported("includeDetailedData"));
         }
 
-        let document = self.assemble_edges(request, limits, proof)?;
+        let schedule = ViewSchedule::of(self, proof);
+        let view = self
+            .view(proof, self.census(proof), &schedule, k)
+            .map_err(EdgesError::View)?;
+
+        let document = self.assemble_edges(request, limits, &view)?;
         Ok(self.encode_edges(&document, None))
     }
 
@@ -178,6 +201,10 @@ impl Atlas {
     /// prominent as its less-prominent endpoint - with ties broken by identity bytes, and `HEAD`
     /// reports `complete: false`.
     ///
+    /// The bounding set is the tile route's own delivery under `view`. An operator view unions the
+    /// corpus schedule's cumulative prefixes at `z + span`, and a scoped view its own cascade's at
+    /// `z + span + k`, which is exactly the set of rows its tiles rendered.
+    ///
     /// An edge delivers under three conditions the proof states together. The proof holds the
     /// edge's own link row and both of its endpoints. The delivered row sets intersect the proof
     /// before edges qualify, and the link row carries the link entity's own authorization, which
@@ -192,12 +219,13 @@ impl Atlas {
     /// Returns [`EdgesError::Tiles`] when the request lists more tiles than `limits.tiles`,
     /// [`EdgesError::Depth`] when a listed zoom exceeds the generation's deepest served tile,
     /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid, and
-    /// [`EdgesError::Unsupported`] when the request names a version-0 deferral.
+    /// [`EdgesError::Unsupported`] when the request names a version-0 deferral. The delivery
+    /// contract is `view`'s, checked when it bound, so no rejection here is about it.
     pub fn assemble_edges(
         &self,
         request: &EdgesRequest,
         limits: EdgesLimits,
-        proof: &VisibilityProof,
+        view: &View<'_>,
     ) -> Result<EdgesDocument, EdgesError> {
         if request.filter.is_some() {
             return Err(EdgesError::Unsupported("filter"));
@@ -209,8 +237,13 @@ impl Atlas {
             });
         }
 
+        let proof = view.proof();
         let walk = Walk::of(self, proof);
-        let mut delivered = self.delivered_rows(&walk, &request.tiles)?;
+        let mut delivered = self.delivered_rows(&walk, view.cut(), &request.tiles)?;
+        // Both branches of the union already gather visible rows alone - a scope cascade holds
+        // only what its proof admitted, and the corpus walk answers only an operator view. The
+        // intersection is what discharges `induced`'s caller requirement rather than a second
+        // derivation of it, and it is the guard if either branch ever widens.
         proof.intersect(&mut delivered);
 
         let neighbourhood = Neighbourhood::of(self, proof);
@@ -322,11 +355,13 @@ impl Atlas {
     /// Collects the union of the listed tiles' delivered rows as a row-indexed set.
     ///
     /// A tile's delivered set is mode-independent - its cumulative delta set equals its total set -
-    /// so the union is one run scan per bucket of each tile's cumulative schedule, deduplicated by
-    /// the set itself.
+    /// so the union is one cumulative-schedule read per tile, deduplicated by the set itself. A
+    /// scoped view reads its own cascade's prefix through `cut`. An operator view reads the corpus
+    /// schedule's runs. Each is the delivery the tile route answers under that same view.
     fn delivered_rows(
         &self,
         walk: &Walk<'_>,
+        cut: Option<ScheduleCut<'_>>,
         tiles: &[TileCoordinate],
     ) -> Result<DenseBitSet<NodeRowId>, EdgesError> {
         let mut delivered = DenseBitSet::new_empty(self.rows.len());
@@ -344,7 +379,15 @@ impl Atlas {
                 y: coordinate.y,
             })?;
 
-            walk.delivered_rows_into(coordinate.z, cell, &mut delivered);
+            match cut {
+                Some(cut) => {
+                    let row_ids = self.rows.view();
+                    for position in cut.total(coordinate.z, cell).positions {
+                        delivered.insert(row_ids[position]);
+                    }
+                }
+                None => walk.delivered_rows_into(coordinate.z, cell, &mut delivered),
+            }
         }
 
         Ok(delivered)

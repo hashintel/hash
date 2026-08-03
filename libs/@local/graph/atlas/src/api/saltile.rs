@@ -83,6 +83,7 @@ pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,
 ) -> Result<T, Problem<'static>> {
     let (sender, receiver) = tokio::sync::oneshot::channel();
+
     rayon::spawn(move || {
         let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work));
         let _: Result<(), _> = sender.send(result);

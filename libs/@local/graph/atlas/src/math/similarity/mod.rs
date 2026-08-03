@@ -33,8 +33,8 @@ mod tests;
 /// and their winding direction.
 ///
 /// The scale of a constructed value is a finite, strictly positive, normal number:
-/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else,
-/// which keeps the divisor in [`inverse`](Self::inverse) away from zero. [`then`](Self::then) and
+/// [`new`](Self::new) and [`from_array`](Self::from_array) return [`None`] for anything else, which
+/// keeps the divisor in [`inverse`](Self::inverse) away from zero. [`then`](Self::then) and
 /// [`inverse`](Self::inverse) build their results without revalidating, so the invariant carries
 /// through them only inside the scale ranges their docs state.
 ///

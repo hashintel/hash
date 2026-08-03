@@ -17,7 +17,9 @@ use super::{
     hydrate::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
     intern::{self, Table},
     neighbourhood::{DeliveredEdge, Neighbourhood},
-    visibility::{VisibilityProof, VisibleRow},
+    schedule::ScheduleCut,
+    view::View,
+    visibility::VisibleRow,
 };
 use crate::{
     dataset::ArchivedEntityId,
@@ -79,16 +81,12 @@ impl Atlas {
     /// [`None`] for everything that does not name a visible node - unparsable, draft-suffixed,
     /// unknown, hidden by the proof, or an edge id - the transport's `unknown-entity` problem,
     /// identical for missing and denied.
-    pub(super) fn resolve_source(
-        &self,
-        proof: &VisibilityProof,
-        entity_id: &str,
-    ) -> Option<SourcePoint> {
+    pub(super) fn resolve_source(&self, view: &View<'_>, entity_id: &str) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
         let row = self.node_ids.row_of(id)?;
-        let row = proof.verify(row)?;
+        let row = view.proof().verify(row)?;
 
-        Some(self.source_point(row))
+        self.source_point(view, row)
     }
 
     /// Resolves a locate source named by its wire node row id.
@@ -100,35 +98,54 @@ impl Atlas {
     /// the proof hides, collapsed at the seam before any caller observes the cause.
     pub(super) fn resolve_wire_source(
         &self,
-        proof: &VisibilityProof,
+        view: &View<'_>,
         wire: WireRow<NodeRowId>,
     ) -> Option<SourcePoint> {
-        Some(self.source_point(self.resolve(proof, wire)?))
+        let row = self.resolve(view.proof(), wire)?;
+
+        self.source_point(view, row)
     }
 
-    /// Returns the first zoom whose cumulative schedule delivers a base position.
-    fn first_visible_zoom(&self, position: BasePosition) -> u8 {
-        // The position's bucket is its fencepost segment; the cut rule inverted answers the
-        // first delivering zoom.
-        self.grid.first_zoom(self.morton.bucket_of(position))
+    /// Returns the first zoom whose cumulative schedule delivers a base position under `cut`.
+    ///
+    /// [`None`] when the view's schedule does not hold the position.
+    ///
+    /// An operator view inverts the corpus cut rule off the position's fencepost segment. A scoped
+    /// view inverts its own rule `z + span + k` over its own cascade, so the answer is a function
+    /// of the visible rows alone and carries no evidence of what the mask removed.
+    fn first_visible_zoom(
+        &self,
+        cut: Option<ScheduleCut<'_>>,
+        position: BasePosition,
+    ) -> Option<u8> {
+        // A corpus bucket is a first-occupant result over every row, hidden ones included, so a
+        // scoped view reading it would let a hidden row decide a visible row's zoom.
+        cut.map_or_else(
+            || Some(self.grid.first_zoom(self.morton.bucket_of(position))),
+            |cut| cut.first_zoom(position),
+        )
     }
 
     /// Answers a proven-visible node row's identity in every domain a locate response speaks.
     ///
     /// Base position, first visible zoom, and fly-to tile.
-    fn source_point(&self, row: VisibleRow) -> SourcePoint {
+    ///
+    /// [`None`] when `view`'s schedule holds no bucket for the row, which collapses into the
+    /// endpoint's `unknown-entity`: a source the view's own delivery never reaches is a source
+    /// this view cannot locate, and the seam already answers missing and denied alike.
+    fn source_point(&self, view: &View<'_>, row: VisibleRow) -> Option<SourcePoint> {
         let position = self.positions_of_row()[row.get()];
-        let zoom = self.first_visible_zoom(position);
+        let zoom = self.first_visible_zoom(view.cut(), position)?;
 
         let key = MortonKey::from_bits(self.morton.codes()[position].get());
         let cell = grid::tile_of(key, zoom);
 
-        SourcePoint {
+        Some(SourcePoint {
             row,
             position,
             zoom,
             cell,
-        }
+        })
     }
 
     /// Assembles the locate ego-graph around a resolved source.
@@ -144,16 +161,20 @@ impl Atlas {
         &self,
         source: SourcePoint,
         limits: LocateLimits,
-        proof: &VisibilityProof,
+        view: &View<'_>,
     ) -> LocateSubgraph {
-        // Hidden partners drop before selection: the cap selects among visible edges alone, and
-        // a response's cardinality is a function of the masked view.
-        let mut edges = Neighbourhood::of(self, proof).incident(source.row.get());
+        // Hidden partners drop before selection: the cap selects among visible edges alone, and a
+        // response's cardinality is a function of the masked view.
+        let mut edges: Vec<_> = Neighbourhood::of(self, view.proof())
+            .incident(source.row.get())
+            .into_iter()
+            .collect();
 
         let complete = edges.len() <= limits.edges as usize;
         if !complete {
-            self.truncate_nearest(&mut edges, limits.edges as usize, source);
+            self.truncate_nearest(&mut edges, limits.edges as usize, source, view.cut());
         }
+
         edges.sort_unstable_by_key(|&(_, id)| id);
 
         // Partners derive from the delivered edge set. Distinct rows
@@ -190,11 +211,16 @@ impl Atlas {
     /// link-entity identity bytes): equidistant partners cede to the earlier-visible one, and
     /// distinct identities make the key a total order. The key only selects - presentation order
     /// stays ascending identity bytes.
+    ///
+    /// The zoom reads `cut`, so under a scoped view the tie-break ranks partners by that view's
+    /// own cascade and which authorized partners survive the cap is a function of the visible
+    /// rows alone.
     fn truncate_nearest(
         &self,
         edges: &mut Vec<(DeliveredEdge, ArchivedEntityId)>,
         cap: usize,
         source: SourcePoint,
+        cut: Option<ScheduleCut<'_>>,
     ) {
         if cap == 0 {
             edges.clear();
@@ -227,7 +253,10 @@ impl Atlas {
                 (
                     NearestKey {
                         distance,
-                        zoom: self.first_visible_zoom(position),
+                        // A partner the view's schedule does not hold cedes to every partner it
+                        // does. The proof admitted each of these rows, so the schedule built over
+                        // that proof holds them and the fallback never selects.
+                        zoom: self.first_visible_zoom(cut, position).unwrap_or(u8::MAX),
                         identity: id,
                     },
                     (edge, id),
@@ -409,12 +438,13 @@ impl Atlas {
     /// `row`, [`LocateError::UnknownEntity`] when the source does not resolve to a visible node,
     /// [`LocateError::Types`] when the request carries more `coloredTypeIds` than
     /// `limits.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
-    /// version-0 deferral.
+    /// version-0 deferral. The delivery contract is `view`'s, checked when it bound, so no
+    /// rejection here is about it.
     pub fn assemble_locate(
         &self,
         request: &LocateRequest,
         limits: super::ServeLimits,
-        proof: &VisibilityProof,
+        view: &View<'_>,
     ) -> Result<LocateDocument, LocateError> {
         if request.filter.is_some() {
             return Err(LocateError::Unsupported("filter"));
@@ -429,8 +459,8 @@ impl Atlas {
         // Both source forms resolve through different ingress paths yet reach the same SourcePoint
         // domain, and every failure past this match is one rejection: unknown-entity.
         let source = match (request.entity_id.as_deref(), request.row) {
-            (Some(id), None) => self.resolve_source(proof, id),
-            (None, Some(wire)) => self.resolve_wire_source(proof, wire),
+            (Some(id), None) => self.resolve_source(view, id),
+            (None, Some(wire)) => self.resolve_wire_source(view, wire),
             (entity, row) => {
                 return Err(LocateError::Source {
                     carried: usize::from(entity.is_some()) + usize::from(row.is_some()),
@@ -444,7 +474,7 @@ impl Atlas {
             positions,
             edges,
             complete,
-        } = self.locate_subgraph(source, limits.locate, proof);
+        } = self.locate_subgraph(source, limits.locate, view);
 
         let mut sources = Vec::with_capacity(edges.len());
         let mut targets = Vec::with_capacity(edges.len());
