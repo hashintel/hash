@@ -25,6 +25,8 @@ export interface BadgeProps {
    * corner.
    */
   alignTo?: "circle";
+  /** When true, the badge is not rendered — only the anchor (`children`) shows. */
+  hide?: boolean;
   /**
    * Caps numeric `content`: a value above `max` renders as `{max}+` (e.g.
    * `content={100}` with `max={99}` shows "99+"). Ignored for non-numeric
@@ -48,6 +50,7 @@ export const Badge = ({
   color = "grey",
   position = "top-right",
   alignTo,
+  hide,
   max = 99,
 }: BadgeProps) => {
   const isDot = content === undefined || content === null;
@@ -70,6 +73,7 @@ export const Badge = ({
       className={className}
       position={position}
       alignTo={alignTo}
+      hide={hide}
       content={pill}
     >
       {children}

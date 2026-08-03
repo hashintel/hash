@@ -20,6 +20,8 @@ export interface BaseBadgeProps {
    * corner. Assumes a square/circular anchor.
    */
   alignTo?: "circle";
+  /** When true, the overlay is not rendered — only the anchor shows. */
+  hide?: boolean;
 }
 
 /**
@@ -33,13 +35,16 @@ export const BaseBadge = ({
   content,
   position = "top-right",
   alignTo,
+  hide,
 }: BaseBadgeProps) => (
   <span className={cx(baseBadgeWrapper, className)}>
     {children}
-    <span className={baseBadgeFrame}>
-      <span className={baseBadgePosition({ position, alignTo })}>
-        {content}
+    {!hide && (
+      <span className={baseBadgeFrame}>
+        <span className={baseBadgePosition({ position, alignTo })}>
+          {content}
+        </span>
       </span>
-    </span>
+    )}
   </span>
 );
