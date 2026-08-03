@@ -1,6 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { badgeRecipe, badgeWrapper } from "./badge.recipe";
+import { badgeRecipe } from "./badge.recipe";
+import { BaseBadge } from "./base-badge";
 
 import type { ChipColor } from "../Chip/chip";
 
@@ -44,12 +45,15 @@ export const Badge = ({
   const display =
     typeof content === "number" && content > max ? `${max}+` : content;
 
-  const badgeClassName = badgeRecipe({ color, shape, position, dot: isDot });
+  const pill = (
+    <span className={cx(badgeRecipe({ color, shape, dot: isDot }), className)}>
+      {display}
+    </span>
+  );
 
   return (
-    <span className={cx(badgeWrapper, className)}>
+    <BaseBadge position={position} content={pill}>
       {children}
-      <span className={badgeClassName}>{display}</span>
-    </span>
+    </BaseBadge>
   );
 };

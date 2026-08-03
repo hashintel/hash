@@ -1,19 +1,10 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { cva } from "@hashintel/ds-helpers/css";
 
-// The `position: relative` wrapper around the anchor (`children`), so the badge
-// overhangs the anchor's corner rather than the whole viewport.
-export const badgeWrapper = css({
-  position: "relative",
-  display: "inline-flex",
-});
-
-// The badge itself: a small status pill (e.g. "99+") that overhangs a corner of
-// the wrapper like a styled sup/sub. It's a passive overlay
-// (pointer-events: none), so it never swallows clicks meant for the anchor it
-// decorates. With no `content` it collapses to a small dot.
+// The badge pill itself (e.g. "99+"): a small tinted status chip. `BaseBadge`
+// owns where it sits; this recipe owns how it looks. With no `content` it
+// collapses to a small dot.
 export const badgeRecipe = cva({
   base: {
-    position: "absolute",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -30,7 +21,6 @@ export const badgeRecipe = cva({
     fontVariantNumeric: "tabular-nums",
     whiteSpace: "nowrap",
     userSelect: "none",
-    pointerEvents: "none",
     background: "[var(--badge-bg)]",
     border: "[1px solid var(--badge-bd)]",
     borderRadius: "[var(--badge-radius)]",
@@ -87,25 +77,6 @@ export const badgeRecipe = cva({
       square: {},
       round: { "--badge-radius": "var(--radii-full)" },
     },
-    // Centre the badge on the chosen corner of the wrapper.
-    position: {
-      "top-left": { top: "0", left: "0", transform: "[translate(-50%, -50%)]" },
-      "top-right": {
-        top: "0",
-        right: "0",
-        transform: "[translate(50%, -50%)]",
-      },
-      "bottom-left": {
-        bottom: "0",
-        left: "0",
-        transform: "[translate(-50%, 50%)]",
-      },
-      "bottom-right": {
-        bottom: "0",
-        right: "0",
-        transform: "[translate(50%, 50%)]",
-      },
-    },
     // Content-less: collapse to a small round dot of the solid accent colour
     // (the tint fill would be near-invisible at this size). `--badge-bd:
     // transparent` drops the outline border so the dot stays a clean circle.
@@ -122,6 +93,5 @@ export const badgeRecipe = cva({
   defaultVariants: {
     color: "grey",
     shape: "round",
-    position: "top-right",
   },
 });
