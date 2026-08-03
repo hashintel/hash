@@ -3,12 +3,9 @@ import { describe, expect, it } from "vitest";
 import { walkHir } from "./hir";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { HirExpr } from "./hir";
+import type { HirExpr, HirSurfaceKind } from "./hir";
 
-function lowerOk(
-  code: string,
-  surface: "dynamics" | "lambda" | "kernel" | "metric",
-) {
+function lowerOk(code: string, surface: HirSurfaceKind) {
   const result = lowerTypeScriptToHir(code, surface);
   if (!result.ok) {
     throw new Error(
@@ -20,10 +17,7 @@ function lowerOk(
   return result.fn;
 }
 
-function lowerErr(
-  code: string,
-  surface: "dynamics" | "lambda" | "kernel" | "metric",
-) {
+function lowerErr(code: string, surface: HirSurfaceKind) {
   const result = lowerTypeScriptToHir(code, surface);
   if (result.ok) {
     throw new Error("Expected lowering to fail");
@@ -649,6 +643,105 @@ return missing;`;
     it("requires the metric body to end in a return", () => {
       const [diagnostic] = lowerErr(`const a = 1;`, "metric");
       expect(diagnostic!.code).toBe("hir:missing-return");
+    });
+  });
+
+  describe("scenario surfaces", () => {
+    it("lowers a scenario expression over scenario and parameters", () => {
+      const fn = lowerOk(
+        `scenario.rate * parameters.base + 1`,
+        "scenarioExpression",
+      );
+      expect(fn.surface).toBe("scenarioExpression");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "scenario",
+        "parameters",
+      ]);
+      const kinds: string[] = [];
+      const paramRefs: string[] = [];
+      walkHir(fn.body, (node) => {
+        kinds.push(node.kind);
+        if (node.kind === "paramRef") {
+          paramRefs.push(node.name);
+        }
+      });
+      expect(kinds).toContain("fieldAccess");
+      expect(paramRefs).toEqual(["base"]);
+    });
+
+    it("maps scenario expression spans onto the raw expression", () => {
+      const code = `scenario.rate ?? 1`;
+      const [diagnostic] = lowerErr(code, "scenarioExpression");
+      expect(diagnostic!.code).toBe("hir:unsupported-operator");
+      expect(
+        code.slice(
+          diagnostic!.span.start,
+          diagnostic!.span.start + diagnostic!.span.length,
+        ),
+      ).toBe("??");
+    });
+
+    it("rejects statement sequences in a scenario expression", () => {
+      const [diagnostic] = lowerErr(`1; 2`, "scenarioExpression");
+      expect(diagnostic!.code).toBe("hir:parse-error");
+    });
+
+    it("lowers a scenario initial-state body with bindings and a record result", () => {
+      const fn = lowerOk(
+        `const seeded = scenario.count * 2;
+return { Pool: seeded, Buffer: [{ x: parameters.base }] };`,
+        "scenarioInit",
+      );
+      expect(fn.surface).toBe("scenarioInit");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "scenario",
+        "parameters",
+      ]);
+      expect(fn.body.kind).toBe("let");
+    });
+
+    it("rejects loops in a scenario initial-state body", () => {
+      const [diagnostic] = lowerErr(
+        `while (true) {}\nreturn {};`,
+        "scenarioInit",
+      );
+      expect(diagnostic!.code).toBe("hir:loop-statement");
+    });
+
+    it("rejects bare `parameters` in scenario code", () => {
+      const [diagnostic] = lowerErr(`parameters`, "scenarioExpression");
+      expect(diagnostic!.code).toBe("hir:bare-parameters-object");
+    });
+
+    it("rejects redeclaring `scenario`/`parameters` in scenario code", () => {
+      const scenarioBinding = lowerErr(
+        `const scenario = 5;\nreturn { P: scenario };`,
+        "scenarioInit",
+      );
+      expect(scenarioBinding[0]!.code).toBe("hir:redeclared-parameter");
+      expect(
+        `const scenario = 5;\nreturn { P: scenario };`.slice(
+          scenarioBinding[0]!.span.start,
+          scenarioBinding[0]!.span.start + scenarioBinding[0]!.span.length,
+        ),
+      ).toBe("scenario");
+
+      expect(lowerErr(`const parameters = 5;`, "scenarioExpression")[0]!.code)
+        // A single expression cannot contain a `const`, but a comma/IIFE-free
+        // parse failure is still fail-closed.
+        .toBe("hir:parse-error");
+      expect(
+        lowerErr(
+          `const parameters = 5;\nreturn { P: parameters };`,
+          "scenarioInit",
+        )[0]!.code,
+      ).toBe("hir:redeclared-parameter");
+    });
+
+    it("still lets metric code shadow its `state` parameter (unchanged)", () => {
+      // The metric surface must not gain the scenario redeclaration check.
+      const fn = lowerOk(`const state = 5;\nreturn state;`, "metric");
+      expect(fn.surface).toBe("metric");
     });
   });
 

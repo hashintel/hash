@@ -4,7 +4,8 @@ The HIR is Petrinaut's source-spanned intermediate representation for
 user-authored simulation code. HIR nodes do not carry inferred types inline;
 `typecheck.ts` infers a separate `HirType` side table keyed by node id. The
 pipeline is the only runtime path for dynamics, transition lambdas, transition
-kernels and Monte-Carlo expression metrics.
+kernels and Monte-Carlo expression metrics — and, on the server, for scenario
+expressions and code-mode initial state.
 
 ```text
 TypeScript user code
@@ -17,8 +18,10 @@ TypeScript user code
   -> packed simulation buffers
 ```
 
-`emit-js.ts` is retained as an object-convention reference/test emitter. The
-simulator does not fall back to it; unsupported HIR shapes are compile errors.
+`emit-js.ts` is the object-convention emitter, used as a reference/test
+backend and for scenario programs (which run once per run/trial, outside the
+hot loop). The simulator does not fall back to it; unsupported HIR shapes are
+compile errors.
 
 ## Why HIR exists
 
@@ -45,16 +48,26 @@ Rejected code cannot run: loops, mutation, arbitrary helper calls, spread,
 computed object keys, dynamic transition-token indexes and structurally dynamic
 transition outputs.
 
+Equality is strict: `==`/`!=` emit `===`/`!==` with no implicit coercion. This
+matters for the scenario surfaces, which are also evaluated by the editor's
+non-HIR sandbox (loose equality): a mixed-type comparison such as
+`scenario.flag == 1` (boolean vs number) is silently strict server-side and can
+differ from the editor. The typechecker does not flag mixed-type equality — the
+user-facing scenario docs tell authors to compare like types. On the scenario
+surfaces the wrapper's `scenario`/`parameters` inputs may not be redeclared
+(`hir:redeclared-parameter`), matching the sandbox, where redeclaring a function
+parameter is a `SyntaxError`.
+
 ## Compilation coverage
 
-| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                 |
-| ----------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                         |
-| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                           |
-| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                   |
-| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                     |
-| Scenario initial-state code and per-place expressions | No                   | Compiled separately by `simulation/authoring/scenario/compile-scenario.ts` using sandboxed `new Function`; evaluated once before a run starts. |
-| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                     |
+| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                                                                                                                           |
+| ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                                                                                                                                   |
+| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                                                                                                                                     |
+| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                                                                                                                             |
+| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                                                                                                                               |
+| Scenario initial-state code and per-place expressions | Yes (server)         | Server-side (CLI/optimization) via `compile-scenario-program.ts`: lowered/typechecked once, emitted with `emit-js.ts`, evaluated per run/trial. The in-browser editor still evaluates raw text through the best-effort sandbox in `compile-scenario.ts`. |
+| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                                                                                                                               |
 
 There is no runtime fallback from an HIR surface to the non-HIR compilers. Code
 outside the supported HIR subset is a blocking diagnostic.

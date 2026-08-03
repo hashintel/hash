@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
+import * as compiledModel from "@hashintel/petrinaut-core/compiled-model";
+
 import {
   createOptimizationProtocol,
   loadOptimizationManifest,
@@ -12,6 +14,8 @@ import {
 } from "./optimization";
 
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
+
+vi.mock("@hashintel/petrinaut-core/compiled-model", { spy: true });
 
 const modelPath = fileURLToPath(
   new URL("../../examples/sir-model.json", import.meta.url),
@@ -341,6 +345,132 @@ describe("createOptimizationProtocol", () => {
       dt: 0.1,
       maxTime: 10,
     });
+  });
+
+  it("rejects a manifest whose scenario code is outside the supported subset at startup", async () => {
+    const baseManifest = await createManifest();
+    const baseScenario = baseManifest.model.definition.scenarios?.[0];
+    if (!baseScenario || baseScenario.initialState.type !== "per_place") {
+      throw new Error("The optimization fixture requires a per-place scenario");
+    }
+
+    const manifest = parseOptimizationManifest({
+      ...baseManifest,
+      model: {
+        ...baseManifest.model,
+        definition: {
+          ...baseManifest.model.definition,
+          scenarios: [
+            {
+              ...baseScenario,
+              parameterOverrides: {
+                ...baseScenario.parameterOverrides,
+                param__infection_rate: "process.env.SECRET ? 2 : 1",
+              },
+              initialState: {
+                type: "per_place",
+                content: {
+                  ...baseScenario.initialState.content,
+                  place__recovered: 'fetch("https://example.com")',
+                },
+              },
+            },
+          ],
+        },
+      },
+    });
+    const model: PetrinautCompiledModel = {
+      metadata: { parameters: [], places: [], metrics: [] },
+      run: vi.fn(() => {
+        throw new Error("should not run");
+      }),
+    };
+
+    // Both offending expression paths are listed, and nothing ever runs.
+    expect(() => createOptimizationProtocol({ manifest, model })).toThrow(
+      /Scenario "Seasonal Flu" could not be compiled: scenario\.parameterOverrides\["param__infection_rate"\]: Parameter "Infection Rate": Unknown identifier `process`\.; scenario\.initialState\.content\["place__recovered"\]: Initial state for place "place__recovered":/,
+    );
+  });
+
+  it("compiles the scenario program once per study, not per trial", async () => {
+    const manifest = await createManifest();
+    const run = vi.fn(() => ({
+      seed: 42,
+      status: "complete" as const,
+      completionReason: "maxTime" as const,
+      frameCount: 1,
+      finalTime: 10,
+      finalPlaceTokenCounts: {},
+      metrics: { "Infected Fraction": 0.25 },
+    }));
+    const model: PetrinautCompiledModel = {
+      metadata: { parameters: [], places: [], metrics: [] },
+      run,
+    };
+
+    const compileSpy = vi.mocked(compiledModel.compileScenarioProgram);
+    const compileCallsBefore = compileSpy.mock.calls.length;
+    const protocol = createOptimizationProtocol({ manifest, model });
+    protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } });
+    protocol.evaluate({ parameterValues: { infected_ratio: 0.2 } });
+
+    expect(compileSpy.mock.calls.length - compileCallsBefore).toBe(1);
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("performs no dynamic code evaluation per trial", async () => {
+    const manifest = await loadOptimizationManifest(
+      supplyChainOptimizationPath,
+    );
+    const run = vi.fn(() => ({
+      seed: 1234,
+      status: "complete" as const,
+      completionReason: "maxTime" as const,
+      frameCount: 101,
+      finalTime: 10,
+      finalPlaceTokenCounts: {},
+      metrics: { Profit: 42 },
+    }));
+    const model: PetrinautCompiledModel = {
+      metadata: { parameters: [], places: [], metrics: [] },
+      run,
+    };
+    // All compilation — including every `new Function` instantiation of
+    // compiler-emitted scenario code — happens at bootstrap.
+    const protocol = createOptimizationProtocol({ manifest, model });
+
+    const constructed: unknown[][] = [];
+    const originalFunction = globalThis.Function;
+    globalThis.Function = new Proxy(originalFunction, {
+      apply(target, thisArg, args) {
+        constructed.push(args);
+        return Reflect.apply(target, thisArg, args) as unknown;
+      },
+      construct(target, args, newTarget) {
+        constructed.push(args);
+        return Reflect.construct(target, args, newTarget) as object;
+      },
+    }) as FunctionConstructor;
+    try {
+      for (const productionRate of [125, 130]) {
+        expect(
+          protocol.evaluate({
+            parameterValues: {
+              production_rate: productionRate,
+              reorder_threshold: 300,
+              batch_size: 250,
+              selling_price: 50,
+              expedite_fraction: 0.4,
+              marketing_spend: 40,
+            },
+          }),
+        ).toEqual({ objective: 42 });
+      }
+    } finally {
+      globalThis.Function = originalFunction;
+    }
+
+    expect(constructed).toEqual([]);
   });
 
   it("requires every and only optimized value and validates its domain", async () => {

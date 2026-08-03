@@ -24,10 +24,10 @@ Petrinaut Optimizer (apps/petrinaut-opt, FastAPI + Optuna)
   │  JSON-lines over stdin/stdout, one CLI process per study
   ▼
 Petrinaut CLI (libs/@hashintel/petrinaut-cli, Node)
-     compiles and runs the embedded model; executes manifest-authored
-     code (metrics/dynamics via the restricted HIR pipeline; scenario
-     expressions via sandboxed `new Function` until the Scenario HIR
-     lands, see FE-1219)
+     compiles and runs the embedded model; all manifest-authored code
+     (metrics, dynamics, lambdas, kernels, and scenario expressions /
+     initial state) goes through the restricted HIR pipeline — only
+     compiler-emitted source is instantiated
 ```
 
 Because runs are detached, losing a connection no longer ends a study. A run
@@ -103,12 +103,12 @@ Known limitations at this layer:
 
 ### Petrinaut CLI (container + process posture)
 
-| Threat                                  | Mitigation                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Filesystem access from model code       | Node permission model: `--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut` — reads restricted to the CLI's own tree, **no** filesystem write permission granted; `--no-addons` blocks native modules; `--no-global-search-paths` and `--disable-proto=throw` reduce ambient surface.                                 |
-| Privilege escalation                    | Dedicated non-root `petrinaut` system user; `umask 0o077` on the child.                                                                                                                                                                                                                                                                                     |
-| Arbitrary code execution from manifests | Model metrics, dynamics, lambdas, and kernels are compiled through the restricted HIR pipeline (TypeScript-lowered, typechecked, compiler-emitted). Scenario parameter overrides and initial-state expressions still execute via `new Function` behind a best-effort sandbox — this is the remaining raw-code path that the Scenario HIR (FE-1219) removes. |
-| Network egress from model code          | **Not restricted by the Node permission model.** Until the Scenario HIR lands, egress control relies on deployment-level network policy (see below).                                                                                                                                                                                                        |
+| Threat                                  | Mitigation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Filesystem access from model code       | Node permission model: `--permission --allow-fs-read=/opt/petrinaut-cli --allow-fs-read=/usr/local/bin/petrinaut` — reads restricted to the CLI's own tree, **no** filesystem write permission granted; `--no-addons` blocks native modules; `--no-global-search-paths` and `--disable-proto=throw` reduce ambient surface.                                                                                                                                                                                   |
+| Privilege escalation                    | Dedicated non-root `petrinaut` system user; `umask 0o077` on the child.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Arbitrary code execution from manifests | All manifest-authored code — metrics, dynamics, lambdas, kernels, and (since FE-1219) scenario parameter overrides, per-place initial-state expressions, and code-mode initial state — is compiled through the restricted HIR pipeline (TypeScript-lowered, typechecked, compiler-emitted). Only compiler-emitted source is instantiated; raw manifest strings never reach `new Function`. Scenario code is compiled once at bootstrap, so manifests outside the supported subset fail before any trial runs. |
+| Network egress from model code          | **Not restricted by the Node permission model.** The HIR subset offers no I/O primitives, so egress would require a compiler escape; deployment-level network policy remains the backstop (see below).                                                                                                                                                                                                                                                                                                        |
 
 ## Required deployment configuration (outside this repository)
 
@@ -128,9 +128,9 @@ captured there:
    `HASH_PETRINAUT_OPT_CLI_MEMORY_BYTES` so four times the limit fits the
    task.
 3. An egress security group that denies all outbound traffic except any
-   destinations the service itself requires (it requires none today) — this
-   is the only network-level control on manifest-authored code until the
-   Scenario HIR removes raw execution.
+   destinations the service itself requires (it requires none today) — the
+   HIR pipeline leaves manifest-authored code no I/O primitives, but this is
+   the network-level backstop should the CLI process ever be compromised.
 4. `pidsLimit` (or equivalent) as a container-level backstop to
    `RLIMIT_NPROC`.
 5. No credentials or secrets in the task environment beyond what the service
@@ -143,12 +143,14 @@ We considered wrapping manifest-authored code in a dedicated V8 isolate
 sandbox (e.g. `isolated-vm`) or a separate JS runtime. Decision: **not now**,
 because:
 
-1. The hot code surfaces (metrics, dynamics, lambdas, kernels) already run
-   through the restricted HIR compiler — only compiler-emitted source is
-   instantiated, and code that cannot be lowered fails compilation.
-2. The remaining raw surface (scenario expressions) is being replaced by the
-   Scenario HIR (FE-1219), which removes unrestricted `new Function`
-   execution entirely rather than containing it.
+1. Every manifest-authored code surface (metrics, dynamics, lambdas,
+   kernels, and scenario expressions / initial state) runs through the
+   restricted HIR compiler — only compiler-emitted source is instantiated,
+   and code that cannot be lowered fails compilation before anything runs.
+2. The former raw surface (scenario expressions) was replaced by the
+   Scenario HIR (FE-1219), which removed unrestricted `new Function`
+   execution on the server entirely rather than containing it. (The
+   in-browser editor keeps its separate best-effort sandbox.)
 3. The CLI already runs as an isolated, non-root, allowlist-environment,
    fs-read-restricted, resource-limited, promptly-killable process inside a
    dedicated container — a compromised CLI has no credentials, no writable
@@ -163,9 +165,10 @@ features that preclude a deny-all egress policy.
 
 ## Residual risks
 
-- Scenario expressions execute as raw JavaScript in the CLI process until
-  FE-1219 lands (bounded by the container, user, filesystem, resource-limit,
-  and network layers above).
+- The HIR compiler and its emitters are trusted code: a bug that let hostile
+  input smuggle raw text into an emitted program would reintroduce code
+  execution (bounded by the container, user, filesystem, resource-limit, and
+  network layers above).
 - Network egress from the CLI is unconstrained until the deployment-level
   egress policy is applied.
 - Per-instance admission limits do not aggregate across replicas.

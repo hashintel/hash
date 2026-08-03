@@ -39,6 +39,8 @@ import type {
   OutputArc,
   Parameter,
   Place,
+  Scenario,
+  ScenarioParameter,
   SDCPN,
   Transition,
 } from "../types/sdcpn";
@@ -133,11 +135,42 @@ export type HirMetricContext = {
   places: HirMetricPlaceInfo[];
 };
 
+/** One scenario parameter as seen by scenario code (`scenario.<identifier>`). */
+export type HirScenarioParameterInfo = {
+  identifier: string;
+  type: ScenarioParameter["type"];
+};
+
+/**
+ * Environment for one scenario parameter-override or per-place initial-count
+ * expression: net parameters (read ambiently as `parameters.<name>`) plus the
+ * scenario's own parameters (`scenario.<identifier>`).
+ */
+export type HirScenarioExpressionContext = {
+  surface: "scenarioExpression";
+  parameters: HirParameterInfo[];
+  scenarioParameters: HirScenarioParameterInfo[];
+};
+
+/**
+ * Environment for a scenario's code-mode initial state — same as
+ * `scenarioExpression`. The result record is deliberately checked loosely
+ * (place names are not validated): the runtime skips unknown place names and
+ * non-count/non-array values by design, see `compile-scenario-core.ts`.
+ */
+export type HirScenarioInitContext = {
+  surface: "scenarioInit";
+  parameters: HirParameterInfo[];
+  scenarioParameters: HirScenarioParameterInfo[];
+};
+
 export type HirSurfaceContext =
   | HirDynamicsContext
   | HirLambdaContext
   | HirKernelContext
-  | HirMetricContext;
+  | HirMetricContext
+  | HirScenarioExpressionContext
+  | HirScenarioInitContext;
 
 const SCOPE_SEPARATOR = "::";
 
@@ -345,6 +378,53 @@ export function buildMetricContext(
     surface: "metric",
     parameters: toParameterInfos(extensions.parameters ? sdcpn.parameters : []),
     places: [...placesByName.values()],
+  };
+}
+
+function toScenarioParameterInfos(
+  scenario: Scenario,
+): HirScenarioParameterInfo[] {
+  const byIdentifier = new Map<string, HirScenarioParameterInfo>();
+  for (const parameter of scenario.scenarioParameters) {
+    // Unnamed drafts are skipped by scenario compilation too; for duplicate
+    // identifiers the last one wins, matching the runtime scenario-object
+    // assignment order.
+    if (parameter.identifier.trim() === "") {
+      continue;
+    }
+    byIdentifier.set(parameter.identifier, {
+      identifier: parameter.identifier,
+      type: parameter.type,
+    });
+  }
+  return [...byIdentifier.values()];
+}
+
+/**
+ * Builds the context for a scenario's parameter-override and per-place
+ * initial-count expressions. Scenario compilation works from the raw
+ * scenario/parameter lists (not a full SDCPN), mirroring `compileScenario`.
+ */
+export function buildScenarioExpressionContext(
+  scenario: Scenario,
+  netParameters: Parameter[],
+): HirScenarioExpressionContext {
+  return {
+    surface: "scenarioExpression",
+    parameters: toParameterInfos(netParameters),
+    scenarioParameters: toScenarioParameterInfos(scenario),
+  };
+}
+
+/** Builds the context for a scenario's code-mode initial state. */
+export function buildScenarioInitContext(
+  scenario: Scenario,
+  netParameters: Parameter[],
+): HirScenarioInitContext {
+  return {
+    surface: "scenarioInit",
+    parameters: toParameterInfos(netParameters),
+    scenarioParameters: toScenarioParameterInfos(scenario),
   };
 }
 

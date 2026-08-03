@@ -12,6 +12,17 @@ model snapshot with **one scenario** and **one metric**. Its
 `fixed` or `optimize`. Bounds, integer steps, and numeric scales belong to the
 manifest and are therefore transient to that optimization run.
 
+Manifests are fully validated at CLI bootstrap: besides the schema check, the
+scenario's user code (parameter overrides, per-place initial-state
+expressions, code-mode initial state) is compiled through the same restricted
+HIR pipeline as metrics and kernels. Code outside the supported TypeScript
+subset — loops, helper functions such as `Array.from`, `Math.random()`, or
+any access to the environment — fails the study start with an error listing
+each offending expression path (e.g.
+`scenario.parameterOverrides["param_x"]`). Raw manifest strings are never
+executed; the scenario is compiled once per study and only the pre-compiled
+program is evaluated per trial.
+
 ## Raw CLI
 
 Start one long-lived CLI process for a study, passing the manifest file:

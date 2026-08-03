@@ -1,58 +1,30 @@
-import { parseParameterValue } from "../../../parameter-values";
-import { coerceTokenRecord } from "../../engine/token-values";
-import { TYPE_POLICIES } from "../../engine/type-policies";
+/**
+ * Editor-side scenario compilation: evaluates a scenario's user-code
+ * surfaces with sandboxed `new Function` (see `sandbox.ts` — defense in
+ * depth, not an isolation boundary). Server-side execution must use the HIR
+ * program in `compile-scenario-program.ts` instead, which never passes raw
+ * user text to `new Function`. The shared orchestration (evaluation order,
+ * validation, coercion, error shapes) lives in `compile-scenario-core.ts`.
+ */
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
+import { compileScenarioWithEvaluators } from "./compile-scenario-core";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type {
-  InitialMarking,
-  InitialPlaceMarking,
-  InitialTokenAttributeValue,
-} from "../../api";
+  CompileScenarioOptions,
+  CompileScenarioOutcome,
+  NetParameterValues,
+  ScenarioEvaluators,
+} from "./compile-scenario-core";
 
-// -- Result types -------------------------------------------------------------
-
-/**
- * Compiled initial state entry for a single place.
- * - Uncolored places: token count number.
- * - Colored places: array of token records keyed by color element name.
- */
-export type CompiledPlaceMarking = InitialPlaceMarking;
-
-export interface CompiledScenarioResult {
-  /**
-   * Resolved parameter values keyed by variableName (matches the format
-   * expected by the simulation worker).
-   */
-  parameterValues: Record<string, string>;
-  /**
-   * Resolved initial marking keyed by place ID.
-   */
-  initialState: InitialMarking;
-}
-
-export interface ScenarioCompilationError {
-  /** Which field failed: "parameterOverride", "initialState", or "scenarioParameter" */
-  source: "parameterOverride" | "initialState" | "scenarioParameter";
-  /** ID of the parameter or place that failed */
-  itemId: string;
-  /** Human-readable error message */
-  message: string;
-}
-
-export type CompileScenarioOutcome =
-  | { ok: true; result: CompiledScenarioResult }
-  | { ok: false; errors: ScenarioCompilationError[] };
-
-export type ScenarioParameterValues = Record<string, number>;
-
-export interface CompileScenarioOptions {
-  /**
-   * Concrete scenario parameter values keyed by scenario parameter identifier.
-   * When omitted, the scenario's own default values are used.
-   */
-  scenarioParameterValues?: ScenarioParameterValues;
-}
+export type {
+  CompiledPlaceMarking,
+  CompiledScenarioResult,
+  CompileScenarioOptions,
+  CompileScenarioOutcome,
+  ScenarioCompilationError,
+  ScenarioParameterValues,
+} from "./compile-scenario-core";
 
 // -- Hardened expression evaluator --------------------------------------------
 
@@ -61,8 +33,6 @@ export interface CompileScenarioOptions {
  * Severs the prototype chain so `obj.constructor.constructor("return globalThis")()`
  * cannot escape to globals.
  */
-type NetParameterValues = Record<string, number | boolean>;
-
 function createSafeObject<T extends NetParameterValues>(obj: T): T {
   return Object.freeze(Object.assign(Object.create(null), obj));
 }
@@ -94,63 +64,23 @@ function evaluateExpression(
   );
 }
 
-type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
-
-/**
- * Coerces one raw token source through the runtime codec, then converts each
- * attribute to its at-rest form (uuid bigints become canonical lowercase
- * strings) so the compiled initial state stays JSON-serializable. Arbitrary
- * uuid inputs (free text, numbers) are normalized deterministically via
- * `toUuid` inside `coerceTokenRecord`.
- */
-function compileTokenRecord(
-  source: Record<string, unknown>,
-  elements: Color["elements"],
-): MarkingTokenRecord {
-  const coerced = coerceTokenRecord(
-    source,
-    elements,
-    "Scenario initial state token",
-  );
-  const token: MarkingTokenRecord = {};
-  for (const element of elements) {
-    token[element.name] = TYPE_POLICIES[element.type].encodeAtRest(
-      coerced[element.name]!,
+const sandboxEvaluators: ScenarioEvaluators = {
+  parameterOverride: (_paramId, expression, parameters, scenario) =>
+    evaluateExpression(expression, parameters, scenario),
+  initialStateExpression: (_placeId, expression, parameters, scenario) =>
+    evaluateExpression(expression, parameters, scenario),
+  initialStateCode: (code, parameters, scenario) => {
+    // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored code
+    const fn = new Function(
+      "parameters",
+      "scenario",
+      `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
+    ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
+    return runSandboxed(() =>
+      fn(createSafeObject(parameters), createSafeObject(scenario)),
     );
-  }
-  return token;
-}
-
-function tokenRecordsFromRows(
-  rows: readonly (number | boolean | string)[][],
-  elements: Color["elements"],
-): MarkingTokenRecord[] {
-  return rows.map((row) => {
-    const token: Record<string, unknown> = {};
-    for (let i = 0; i < elements.length; i++) {
-      token[elements[i]!.name] = row[i];
-    }
-    return compileTokenRecord(token, elements);
-  });
-}
-
-function normalizeTokenRecords(
-  tokens: unknown[],
-  elements: Color["elements"],
-): MarkingTokenRecord[] {
-  return tokens.flatMap((rawToken) => {
-    if (
-      typeof rawToken !== "object" ||
-      rawToken === null ||
-      Array.isArray(rawToken)
-    ) {
-      return [];
-    }
-
-    const source = rawToken as Record<string, unknown>;
-    return [compileTokenRecord(source, elements)];
-  });
-}
+  },
+};
 
 // -- Compiler -----------------------------------------------------------------
 
@@ -176,262 +106,12 @@ export function compileScenario(
   types: Color[] = [],
   options: CompileScenarioOptions = {},
 ): CompileScenarioOutcome {
-  const errors: ScenarioCompilationError[] = [];
-
-  // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
-
-  const scenarioObj: NetParameterValues = {};
-  for (const sp of scenario.scenarioParameters) {
-    if (sp.identifier.trim() === "") {
-      continue;
-    }
-
-    const value =
-      options.scenarioParameterValues?.[sp.identifier] ?? sp.default;
-    if (!Number.isFinite(value)) {
-      errors.push({
-        source: "scenarioParameter",
-        itemId: sp.identifier,
-        message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
-      });
-      scenarioObj[sp.identifier] =
-        sp.type === "boolean" ? sp.default !== 0 : sp.default;
-      continue;
-    }
-
-    scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
-  }
-
-  // ── Step 2: Evaluate parameter overrides ──
-  //
-  // Start with net-level defaults, then apply each override expression.
-  // Expressions have access to the base `parameters` and `scenario`.
-
-  const parametersObj: NetParameterValues = {};
-  for (const param of netParameters) {
-    try {
-      parametersObj[param.variableName] = parseParameterValue(
-        param,
-        param.defaultValue,
-      );
-    } catch (error) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: param.id,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  // Build a lookup: paramId → Parameter
-  const paramById = new Map(netParameters.map((p) => [p.id, p]));
-
-  for (const [paramId, expression] of Object.entries(
-    scenario.parameterOverrides,
-  )) {
-    const param = paramById.get(paramId);
-    if (!param) {
-      continue;
-    }
-    const trimmed = expression.trim();
-    if (trimmed === "") {
-      // No override — keep the default
-      continue;
-    }
-    try {
-      const value = evaluateExpression(trimmed, parametersObj, scenarioObj);
-      if (param.type === "boolean") {
-        if (typeof value !== "boolean") {
-          errors.push({
-            source: "parameterOverride",
-            itemId: paramId,
-            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a boolean.`,
-          });
-          continue;
-        }
-        parametersObj[param.variableName] = value;
-      } else {
-        if (typeof value !== "number" || !Number.isFinite(value)) {
-          errors.push({
-            source: "parameterOverride",
-            itemId: paramId,
-            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected a number.`,
-          });
-          continue;
-        }
-        if (param.type === "integer" && !Number.isInteger(value)) {
-          errors.push({
-            source: "parameterOverride",
-            itemId: paramId,
-            message: `Parameter "${param.name}" expression evaluated to ${String(value)}, expected an integer.`,
-          });
-          continue;
-        }
-        parametersObj[param.variableName] = value;
-      }
-    } catch (err) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: paramId,
-        message: `Parameter "${param.name}": ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
-  }
-
-  // ── Step 3: Evaluate initial state ──
-
-  const initialState: InitialMarking = {};
-  const placeById = new Map(places.map((p) => [p.id, p]));
-  const placeByName = new Map(places.map((p) => [p.name, p]));
-  const typeById = new Map(types.map((t) => [t.id, t]));
-
-  if (scenario.initialState.type === "code") {
-    // Code mode: evaluate the full code block as a function body.
-    // It returns an object keyed by place NAME (not ID) → array of token objects.
-    const code = scenario.initialState.content.trim();
-    if (code !== "") {
-      try {
-        // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored code
-        const fn = new Function(
-          "parameters",
-          "scenario",
-          `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
-        ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
-        const result = runSandboxed(() =>
-          fn(createSafeObject(parametersObj), createSafeObject(scenarioObj)),
-        );
-
-        if (typeof result !== "object" || result === null) {
-          errors.push({
-            source: "initialState",
-            itemId: "__code__",
-            message: `Initial state code must return an object, got ${typeof result}.`,
-          });
-        } else {
-          for (const [placeName, tokens] of Object.entries(result)) {
-            const place = placeByName.get(placeName);
-            if (!place) {
-              continue; // Unknown place name — skip silently
-            }
-
-            if (typeof tokens === "number") {
-              // Uncolored place: just a token count
-              initialState[place.id] = Math.max(0, Math.round(tokens));
-            } else if (Array.isArray(tokens)) {
-              // Colored place: array of token objects.
-              const color = place.colorId
-                ? typeById.get(place.colorId)
-                : undefined;
-              const elements = color?.elements ?? [];
-              initialState[place.id] = normalizeTokenRecords(tokens, elements);
-            }
-          }
-        }
-      } catch (err) {
-        errors.push({
-          source: "initialState",
-          itemId: "__code__",
-          message: `Initial state code: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
-    }
-  } else {
-    // Per-place mode: evaluate each expression individually
-    for (const [placeId, value] of Object.entries(
-      scenario.initialState.content,
-    )) {
-      // Colored places: row data stored directly by the UI.
-      if (Array.isArray(value)) {
-        const place = placeById.get(placeId);
-        const color = place?.colorId ? typeById.get(place.colorId) : undefined;
-        const hasTokenRows = value.length > 0;
-
-        if (hasTokenRows && !place) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" uses colored token rows, but the place does not exist.`,
-          });
-          continue;
-        }
-
-        if (hasTokenRows && (!color || color.elements.length === 0)) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" uses colored token rows, but the place has no color elements.`,
-          });
-          continue;
-        }
-
-        const elementCount = color?.elements.length ?? 0;
-        const tooWideRow = value.find((row) => row.length > elementCount);
-        if (tooWideRow) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" has ${tooWideRow.length} values per token, but the color type has ${elementCount} elements.`,
-          });
-          continue;
-        }
-
-        try {
-          initialState[placeId] = tokenRecordsFromRows(
-            value,
-            color?.elements ?? [],
-          );
-        } catch (error) {
-          // Row coercion throws on invalid typed values (e.g. a non-finite
-          // number); report it like every other compilation failure instead
-          // of letting compileScenario throw.
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message:
-              error instanceof Error
-                ? error.message
-                : `Invalid token rows for place "${placeId}".`,
-          });
-        }
-        continue;
-      }
-
-      // Uncolored places: expression string → evaluate to token count
-      const trimmed = value.trim();
-      if (trimmed === "") {
-        initialState[placeId] = 0;
-        continue;
-      }
-      try {
-        const result = evaluateExpression(trimmed, parametersObj, scenarioObj);
-        if (typeof result !== "number" || Number.isNaN(result)) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" evaluated to ${String(result)}, expected a number.`,
-          });
-          continue;
-        }
-        initialState[placeId] = Math.max(0, Math.round(result));
-      } catch (err) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}": ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
-    }
-  }
-
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
-
-  // Convert parameters to string values (simulation worker input format)
-  const parameterValues: Record<string, string> = {};
-  for (const [key, value] of Object.entries(parametersObj)) {
-    parameterValues[key] = String(value);
-  }
-
-  return { ok: true, result: { parameterValues, initialState } };
+  return compileScenarioWithEvaluators(
+    scenario,
+    netParameters,
+    places,
+    types,
+    options,
+    sandboxEvaluators,
+  );
 }

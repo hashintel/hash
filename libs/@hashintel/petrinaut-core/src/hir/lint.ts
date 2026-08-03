@@ -89,6 +89,12 @@ function canEmitBufferProgram(
       return emitBufferKernelJs(fn, context) !== null;
     case "metric":
       return emitBufferMetricJs(fn, context) !== null;
+    case "scenarioExpression":
+    case "scenarioInit":
+      // Scenario surfaces run through the object-convention emitter
+      // (`emit-js.ts`), which handles every HIR shape — no buffer-program
+      // gate applies.
+      return true;
   }
 }
 

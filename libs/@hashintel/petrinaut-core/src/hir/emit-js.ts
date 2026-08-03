@@ -1,9 +1,11 @@
 /**
  * Compiles HIR functions to JavaScript source.
  *
- * This object-convention emitter is kept as a reference/test backend. Runtime
- * simulation uses `emit-buffer-js.ts` artifacts only; unsupported buffer shapes
- * are compile errors rather than fallback calls into this module.
+ * This object-convention emitter serves as a reference/test backend and as
+ * the emitter for scenario programs (`compile-scenario-program.ts`), which
+ * run once per run/trial outside the hot simulation loop. Runtime simulation
+ * uses `emit-buffer-js.ts` artifacts only; unsupported buffer shapes are
+ * compile errors rather than fallback calls into this module.
  */
 import { foldHir } from "./analyze";
 

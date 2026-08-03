@@ -30,7 +30,11 @@ import type {
   HirType,
   Span,
 } from "./hir";
-import type { HirSurfaceContext, HirTokenElementInfo } from "./surface-context";
+import type {
+  HirScenarioParameterInfo,
+  HirSurfaceContext,
+  HirTokenElementInfo,
+} from "./surface-context";
 
 export type HirTypecheckResult = {
   /** Inferred type per HIR node id. */
@@ -90,6 +94,20 @@ function elementType(element: HirTokenElementInfo): HirType {
       return HIR_TYPE_UUID;
     case "string":
       return HIR_TYPE_STRING;
+  }
+}
+
+function scenarioParameterType(
+  type: HirScenarioParameterInfo["type"],
+): HirType {
+  switch (type) {
+    case "real":
+    case "ratio":
+      return HIR_TYPE_REAL;
+    case "integer":
+      return HIR_TYPE_INT;
+    case "boolean":
+      return HIR_TYPE_BOOL;
   }
 }
 
@@ -195,6 +213,17 @@ class Typechecker {
               element: tokenRecordType(place.elements),
               length: place.tokenCount,
             } satisfies HirType,
+          })),
+        };
+      case "scenarioExpression":
+      case "scenarioInit":
+        // `params[0]` is the `scenario` record of scenario-parameter values;
+        // net parameters flow through `paramRef` nodes like everywhere else.
+        return {
+          kind: "record",
+          fields: context.scenarioParameters.map((parameter) => ({
+            name: parameter.identifier,
+            type: scenarioParameterType(parameter.type),
           })),
         };
       case "metric":
@@ -448,6 +477,9 @@ class Typechecker {
         return this.infer(expr.body, scoped);
       }
       case "mathCall": {
+        if (expr.fn === "random") {
+          this.checkMathRandomAllowed(expr.span);
+        }
         const arity = MATH_FN_ARITY[expr.fn];
         if (expr.args.length < arity.min || expr.args.length > arity.max) {
           this.report(
@@ -641,6 +673,24 @@ class Typechecker {
     }
   }
 
+  /**
+   * Scenario evaluation runs outside the seeded simulation RNG, so
+   * `Math.random()` would make optimization trials non-reproducible — reject
+   * it there. Simulation surfaces keep the softer lint warning (`lint.ts`).
+   */
+  private checkMathRandomAllowed(span: Span): void {
+    if (
+      this.context.surface === "scenarioExpression" ||
+      this.context.surface === "scenarioInit"
+    ) {
+      this.report(
+        span,
+        "hir:math-random",
+        "`Math.random()` is not available in scenario code — scenario evaluation must be deterministic. Use a scenario parameter instead.",
+      );
+    }
+  }
+
   private checkUuidHelperAllowed(span: Span): void {
     if (this.context.surface !== "kernel") {
       this.report(
@@ -752,6 +802,32 @@ class Typechecker {
             bodySpan,
             "hir:metric-return",
             `Metrics must return a number, got ${formatHirType(returnType)}.`,
+          );
+        }
+        return;
+      }
+      case "scenarioExpression": {
+        // Numbers for counts and numeric parameter overrides, booleans for
+        // boolean parameter overrides; the runtime validates the value
+        // against the specific parameter/place it targets.
+        if (!isNumeric(returnType) && !isBoolish(returnType)) {
+          this.report(
+            bodySpan,
+            "hir:scenario-expression-return",
+            `Scenario expressions must evaluate to a number or boolean, got ${formatHirType(returnType)}.`,
+          );
+        }
+        return;
+      }
+      case "scenarioInit": {
+        // Field values stay unchecked: the runtime accepts counts and token
+        // arrays and skips everything else (including unknown place names)
+        // by design — see `compile-scenario-core.ts`.
+        if (returnType.kind !== "record" && returnType.kind !== "unknown") {
+          this.report(
+            bodySpan,
+            "hir:scenario-init-return",
+            `Initial state code must return an object mapping place names to token counts or token arrays, got ${formatHirType(returnType)}.`,
           );
         }
         return;

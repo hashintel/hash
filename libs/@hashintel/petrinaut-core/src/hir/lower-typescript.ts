@@ -37,21 +37,42 @@ export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-const CONSTRUCTOR_NAMES: Record<Exclude<HirSurfaceKind, "metric">, string> = {
+/**
+ * Wrapped surfaces are not `export default` modules: metric and scenario
+ * initial-state code are bare function *bodies*, and scenario expressions are
+ * single expressions. Each is wrapped in a synthetic arrow prefix/suffix
+ * before parsing; all spans in the lowering result are shifted back by the
+ * prefix length so they map onto the raw user text.
+ *
+ * Metrics read the ambient `parameters` only, so the wrapper declares just
+ * `state`. Scenario surfaces declare both `scenario` and `parameters` so the
+ * emitted function receives the resolved values as call arguments.
+ */
+const WRAPPED_SURFACE_SHAPES = {
+  metric: { prefix: "(state) => {\n", suffix: "\n}" },
+  scenarioInit: { prefix: "(scenario, parameters) => {\n", suffix: "\n}" },
+  scenarioExpression: {
+    prefix: "(scenario, parameters) => (\n",
+    suffix: "\n)",
+  },
+} as const;
+
+type WrappedSurfaceKind = keyof typeof WRAPPED_SURFACE_SHAPES;
+
+function isWrappedSurface(
+  surface: HirSurfaceKind,
+): surface is WrappedSurfaceKind {
+  return surface in WRAPPED_SURFACE_SHAPES;
+}
+
+const CONSTRUCTOR_NAMES: Record<
+  Exclude<HirSurfaceKind, WrappedSurfaceKind>,
+  string
+> = {
   dynamics: "Dynamics",
   lambda: "Lambda",
   kernel: "TransitionKernel",
 };
-
-/**
- * Metric user code is a bare function *body* (with `state` in scope and net
- * `parameters` available ambiently), not an `export default` module. It is
- * wrapped in this prefix (plus a closing `\n}`) before parsing; all spans in
- * the lowering result are shifted back by the prefix length so they map onto
- * the raw user body.
- */
-const METRIC_PREFIX = "(state) => {\n";
-const METRIC_SUFFIX = "\n}";
 
 const DISTRIBUTION_FACTORIES: Record<string, HirDistributionKind> = {
   Gaussian: "gaussian",
@@ -109,6 +130,15 @@ type LowerScope = {
   parameterAliases: Map<string, string>;
   /** Name of the `parameters` function parameter, if declared. */
   parametersName: string | null;
+  /**
+   * Wrapper-declared parameter names that user code may not redeclare (via a
+   * `const` binding or a callback parameter). Seeded for the scenario
+   * surfaces only, where `scenario`/`parameters` arrive as real function
+   * arguments — a redeclaration is a `SyntaxError` in the editor's sandbox,
+   * so rejecting it here keeps the two evaluation paths in parity. Empty for
+   * every other surface.
+   */
+  reservedParams: Set<string>;
 };
 
 function childScope(scope: LowerScope): LowerScope {
@@ -118,6 +148,7 @@ function childScope(scope: LowerScope): LowerScope {
     destructuredFields: new Map(scope.destructuredFields),
     parameterAliases: new Map(scope.parameterAliases),
     parametersName: scope.parametersName,
+    reservedParams: new Set(scope.reservedParams),
   };
 }
 
@@ -143,6 +174,25 @@ class Lowering {
     });
   }
 
+  /**
+   * Rejects user code that redeclares a wrapper-declared parameter name (see
+   * `LowerScope.reservedParams`). A no-op outside the scenario surfaces,
+   * whose `reservedParams` set is empty.
+   */
+  private checkNotReservedParam(
+    scope: LowerScope,
+    name: string,
+    node: ts.Node,
+  ): void {
+    if (scope.reservedParams.has(name)) {
+      this.fail(
+        node,
+        "hir:redeclared-parameter",
+        `\`${name}\` is already declared as a scenario input — choose a different name.`,
+      );
+    }
+  }
+
   private make<Init extends DistributiveOmit<HirExpr, "id" | "span">>(
     node: ts.Node,
     expr: Init,
@@ -155,17 +205,31 @@ class Lowering {
   }
 
   /**
-   * Lowers a wrapped metric body (`(state) => { <user body> }`, see
-   * `METRIC_PREFIX`). Spans are still relative to the wrapped text — the
-   * caller shifts them back onto the raw user body.
+   * Lowers a wrapped surface (see `WRAPPED_SURFACE_SHAPES`): a metric or
+   * scenario initial-state body (`(...) => { <user body> }`) or a scenario
+   * expression (`(...) => ( <user expression> )`). Spans are still relative
+   * to the wrapped text — the caller shifts them back onto the raw user text.
    */
-  lowerMetricModule(): HirFunction {
+  lowerWrappedModule(surface: WrappedSurfaceKind): HirFunction {
+    const isExpression = surface === "scenarioExpression";
+    const surfaceLabel =
+      surface === "metric"
+        ? "Metric code"
+        : surface === "scenarioInit"
+          ? "Initial state code"
+          : "Scenario expressions";
+    const shapeMessage = isExpression
+      ? `${surfaceLabel} must be a single expression.`
+      : `${surfaceLabel} must be a function body ending in \`return\`.`;
+
     const [statement, ...rest] = this.sourceFile.statements;
     if (rest.length > 0) {
       this.fail(
         rest[0]!,
         "hir:unsupported-statement",
-        "Metric code must be a single function body ending in `return`.",
+        isExpression
+          ? shapeMessage
+          : `${surfaceLabel} must be a single function body ending in \`return\`.`,
       );
     }
     const arrow =
@@ -174,41 +238,58 @@ class Lowering {
       ts.isArrowFunction(statement.expression)
         ? statement.expression
         : null;
-    const arrowBody = arrow && ts.isBlock(arrow.body) ? arrow.body : null;
-    if (!arrow || !arrowBody) {
+    if (!arrow || (!isExpression && !ts.isBlock(arrow.body))) {
       throw new LowerError({
         code: "hir:unsupported-syntax",
-        message: "Metric code must be a function body ending in `return`.",
+        message: shapeMessage,
         severity: "error",
         span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
       });
     }
-    const stateParam = arrow.parameters[0]!;
     const scope: LowerScope = {
-      locals: new Set(["state"]),
+      locals: new Set([surface === "metric" ? "state" : "scenario"]),
       distributionLocals: new Set(),
       destructuredFields: new Map(),
       parameterAliases: new Map(),
-      // Net parameters are ambient in metric code: `parameters.<name>` (and
-      // `const { <name> } = parameters`) lower to parameter reads even though
-      // `parameters` is not a declared function argument. Scenario parameters
-      // are not exposed.
+      // Net parameters are ambient: `parameters.<name>` (and
+      // `const { <name> } = parameters`) lower to parameter reads. Metric
+      // code does not declare `parameters` as a function argument; scenario
+      // wrappers do, so the resolved values arrive as a call argument.
       parametersName: "parameters",
+      // Scenario wrappers pass `scenario`/`parameters` as real function
+      // arguments, so user code cannot redeclare them (the editor sandbox
+      // throws a `SyntaxError`). Metric code reads `state` only and its body
+      // is emitted differently, so it keeps its existing (permissive)
+      // shadowing behaviour.
+      reservedParams:
+        surface === "metric"
+          ? new Set()
+          : new Set(
+              arrow.parameters.map(
+                (parameter) => (parameter.name as ts.Identifier).text,
+              ),
+            ),
     };
-    const body = this.lowerBlock(arrowBody, scope);
+    const body = ts.isBlock(arrow.body)
+      ? this.lowerBlock(arrow.body, scope)
+      : this.lowerExpr(arrow.body, scope);
     return {
       hirVersion: 1,
-      surface: "metric",
-      params: [{ name: "state", span: this.spanOf(stateParam.name) }],
+      surface,
+      params: arrow.parameters.map((parameter) => ({
+        // The wrapper only ever declares plain identifier parameters.
+        name: (parameter.name as ts.Identifier).text,
+        span: this.spanOf(parameter.name),
+      })),
       body,
       span: this.spanOf(arrow),
     };
   }
 
   lowerModule(): HirFunction {
-    if (this.surface === "metric") {
-      // Metric code has no module wrapper — see `lowerMetricModule`.
-      return this.lowerMetricModule();
+    if (isWrappedSurface(this.surface)) {
+      // Wrapped surfaces have no module wrapper — see `lowerWrappedModule`.
+      return this.lowerWrappedModule(this.surface);
     }
     const constructorName = CONSTRUCTOR_NAMES[this.surface];
     let exportAssignment: ts.ExportAssignment | undefined;
@@ -290,6 +371,7 @@ class Lowering {
       destructuredFields: new Map(),
       parameterAliases: new Map(),
       parametersName: null,
+      reservedParams: new Set(),
     };
 
     for (const [index, parameter] of fnArg.parameters.entries()) {
@@ -533,7 +615,12 @@ class Lowering {
     const initializer = declaration.initializer;
     const pattern = declaration.name;
 
-    const registerBinding = (name: string, value: HirExpr): void => {
+    const registerBinding = (
+      name: string,
+      value: HirExpr,
+      nameNode: ts.Node,
+    ): void => {
+      this.checkNotReservedParam(scope, name, nameNode);
       scope.locals.add(name);
       scope.destructuredFields.delete(name);
       scope.parameterAliases.delete(name);
@@ -547,7 +634,7 @@ class Lowering {
     // Simple binding: const name = expr
     if (ts.isIdentifier(pattern)) {
       const value = this.lowerExpr(initializer, scope);
-      registerBinding(pattern.text, value);
+      registerBinding(pattern.text, value, pattern);
       return [{ name: pattern.text, nameSpan: this.spanOf(pattern), value }];
     }
 
@@ -566,7 +653,7 @@ class Lowering {
           kind: "paramRef",
           name: bound.sourceName,
         });
-        registerBinding(bound.name, value);
+        registerBinding(bound.name, value, element);
         bindings.push({
           name: bound.name,
           nameSpan: bound.nameSpan,
@@ -605,7 +692,7 @@ class Lowering {
           field: bound.sourceName,
           fieldSpan: bound.sourceSpan,
         });
-        registerBinding(bound.name, value);
+        registerBinding(bound.name, value, element);
         bindings.push({ name: bound.name, nameSpan: bound.nameSpan, value });
       }
       return bindings;
@@ -637,7 +724,7 @@ class Lowering {
           target: sourceRef(element),
           index,
         });
-        registerBinding(element.name.text, value);
+        registerBinding(element.name.text, value, element.name);
         bindings.push({
           name: element.name.text,
           nameSpan: this.spanOf(element.name),
@@ -1116,6 +1203,11 @@ class Lowering {
           "`.reduce(...)` callback parameters must be plain names.",
         );
       }
+      this.checkNotReservedParam(
+        bodyScope,
+        parameter.name.text,
+        parameter.name,
+      );
       const bound = {
         name: parameter.name.text,
         span: this.spanOf(parameter.name),
@@ -1192,6 +1284,11 @@ class Lowering {
     if (!firstParam) {
       param = { name: "__element", span: this.spanOf(callback) };
     } else if (ts.isIdentifier(firstParam.name)) {
+      this.checkNotReservedParam(
+        bodyScope,
+        firstParam.name.text,
+        firstParam.name,
+      );
       param = {
         name: firstParam.name.text,
         span: this.spanOf(firstParam.name),
@@ -1214,6 +1311,7 @@ class Lowering {
             "Only simple destructuring like `({ x, y })` is supported in `.map(...)` callbacks.",
           );
         }
+        this.checkNotReservedParam(bodyScope, element.name.text, element.name);
         bodyScope.destructuredFields.set(element.name.text, param.name);
         bodyScope.locals.delete(element.name.text);
         bodyScope.distributionLocals.delete(element.name.text);
@@ -1237,6 +1335,11 @@ class Lowering {
           "The `.map(...)` index parameter must be a plain name.",
         );
       }
+      this.checkNotReservedParam(
+        bodyScope,
+        secondParam.name.text,
+        secondParam.name,
+      );
       indexParam = {
         name: secondParam.name.text,
         span: this.spanOf(secondParam.name),
@@ -1323,6 +1426,7 @@ class Lowering {
 
     const bodyScope = childScope(scope);
     const paramName = parameter.name.text;
+    this.checkNotReservedParam(bodyScope, paramName, parameter.name);
     bodyScope.locals.add(paramName);
     bodyScope.distributionLocals.delete(paramName);
     bodyScope.destructuredFields.delete(paramName);
@@ -1409,18 +1513,19 @@ class Lowering {
 }
 
 /**
- * Shifts a span from wrapped-metric-source coordinates back onto the raw
- * user body: subtracts the prefix length and clamps the result into
- * `[0, codeLength]` (spans covering the synthetic prefix/suffix collapse to
- * the nearest edge of the user text).
+ * Shifts a span from wrapped-source coordinates back onto the raw user text:
+ * subtracts the prefix length and clamps the result into `[0, codeLength]`
+ * (spans covering the synthetic prefix/suffix collapse to the nearest edge
+ * of the user text).
  */
-function shiftMetricSpan(span: Span, codeLength: number): void {
-  const start = Math.min(
-    Math.max(0, span.start - METRIC_PREFIX.length),
-    codeLength,
-  );
+function shiftWrappedSpan(
+  span: Span,
+  prefixLength: number,
+  codeLength: number,
+): void {
+  const start = Math.min(Math.max(0, span.start - prefixLength), codeLength);
   const end = Math.min(
-    Math.max(start, span.start + span.length - METRIC_PREFIX.length),
+    Math.max(start, span.start + span.length - prefixLength),
     codeLength,
   );
   // eslint-disable-next-line no-param-reassign -- in-place span rebasing over freshly-built nodes is the point of this helper
@@ -1429,44 +1534,48 @@ function shiftMetricSpan(span: Span, codeLength: number): void {
   span.length = end - start;
 }
 
-/** Shifts every span in a lowered metric function (nodes, binding names,
- * record keys, callback params, fn/params spans) onto the raw user body. */
-function shiftMetricFunctionSpans(fn: HirFunction, codeLength: number): void {
-  shiftMetricSpan(fn.span, codeLength);
+/** Shifts every span in a lowered wrapped function (nodes, binding names,
+ * record keys, callback params, fn/params spans) onto the raw user text. */
+function shiftWrappedFunctionSpans(
+  fn: HirFunction,
+  prefixLength: number,
+  codeLength: number,
+): void {
+  shiftWrappedSpan(fn.span, prefixLength, codeLength);
   for (const param of fn.params) {
-    shiftMetricSpan(param.span, codeLength);
+    shiftWrappedSpan(param.span, prefixLength, codeLength);
   }
   walkHir(fn.body, (node) => {
-    shiftMetricSpan(node.span, codeLength);
+    shiftWrappedSpan(node.span, prefixLength, codeLength);
     switch (node.kind) {
       case "fieldAccess":
-        shiftMetricSpan(node.fieldSpan, codeLength);
+        shiftWrappedSpan(node.fieldSpan, prefixLength, codeLength);
         break;
       case "let":
         for (const binding of node.bindings) {
-          shiftMetricSpan(binding.nameSpan, codeLength);
+          shiftWrappedSpan(binding.nameSpan, prefixLength, codeLength);
         }
         break;
       case "recordLit":
         for (const entry of node.entries) {
-          shiftMetricSpan(entry.keySpan, codeLength);
+          shiftWrappedSpan(entry.keySpan, prefixLength, codeLength);
         }
         break;
       case "arrayMap":
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.param.span, prefixLength, codeLength);
         if (node.indexParam) {
-          shiftMetricSpan(node.indexParam.span, codeLength);
+          shiftWrappedSpan(node.indexParam.span, prefixLength, codeLength);
         }
         break;
       case "arrayReduce":
-        shiftMetricSpan(node.accParam.span, codeLength);
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.accParam.span, prefixLength, codeLength);
+        shiftWrappedSpan(node.param.span, prefixLength, codeLength);
         if (node.indexParam) {
-          shiftMetricSpan(node.indexParam.span, codeLength);
+          shiftWrappedSpan(node.indexParam.span, prefixLength, codeLength);
         }
         break;
       case "distributionMap":
-        shiftMetricSpan(node.param.span, codeLength);
+        shiftWrappedSpan(node.param.span, prefixLength, codeLength);
         break;
       default:
         break;
@@ -1499,15 +1608,19 @@ function parseErrorDiagnostics(
 }
 
 /**
- * Lowers a metric function body (`state` in scope, statements ending in
- * `return`). The body is wrapped as `(state) => { ... }` for parsing; all
- * spans in the result (including diagnostics) are shifted back so they are
- * relative to the raw user body.
+ * Lowers a wrapped surface (a metric / scenario initial-state body, or a
+ * scenario expression). The user text is wrapped in the surface's synthetic
+ * arrow prefix/suffix for parsing; all spans in the result (including
+ * diagnostics) are shifted back so they are relative to the raw user text.
  */
-function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
-  const wrapped = METRIC_PREFIX + code + METRIC_SUFFIX;
+function lowerWrappedBodyToHir(
+  code: string,
+  surface: WrappedSurfaceKind,
+): LowerTypeScriptResult {
+  const { prefix, suffix } = WRAPPED_SURFACE_SHAPES[surface];
+  const wrapped = prefix + code + suffix;
   const sourceFile = ts.createSourceFile(
-    "user-metric.ts",
+    "user-code.ts",
     wrapped,
     ts.ScriptTarget.ES2020,
     /* setParentNodes */ true,
@@ -1515,7 +1628,7 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
 
   const shiftDiagnostic = (diagnostic: HirDiagnostic): HirDiagnostic => {
     const span = { ...diagnostic.span };
-    shiftMetricSpan(span, code.length);
+    shiftWrappedSpan(span, prefix.length, code.length);
     return { ...diagnostic, span };
   };
 
@@ -1525,8 +1638,8 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
   }
 
   try {
-    const fn = new Lowering(sourceFile, "metric").lowerMetricModule();
-    shiftMetricFunctionSpans(fn, code.length);
+    const fn = new Lowering(sourceFile, surface).lowerWrappedModule(surface);
+    shiftWrappedFunctionSpans(fn, prefix.length, code.length);
     return { ok: true, fn, diagnostics: [] };
   } catch (error) {
     if (error instanceof LowerError) {
@@ -1540,8 +1653,10 @@ function lowerMetricBodyToHir(code: string): LowerTypeScriptResult {
  * Lowers user-authored TypeScript to an `HirFunction`.
  *
  * For module surfaces (dynamics/lambda/kernel), `code` must be the
- * user-visible `export default Ctor(...)` module; for the `metric` surface it
- * is a bare function body with `state` in scope. All spans in the result are
+ * user-visible `export default Ctor(...)` module. For the wrapped surfaces it
+ * is bare user text: a metric body with `state` in scope, a scenario
+ * initial-state body, or a single scenario expression (the scenario surfaces
+ * see `scenario` and the ambient `parameters`). All spans in the result are
  * relative to `code`. Returns `ok: false` with a positioned diagnostic when
  * the code is syntactically invalid or falls outside the analyzable subset.
  */
@@ -1549,8 +1664,8 @@ export function lowerTypeScriptToHir(
   code: string,
   surface: HirSurfaceKind,
 ): LowerTypeScriptResult {
-  if (surface === "metric") {
-    return lowerMetricBodyToHir(code);
+  if (isWrappedSurface(surface)) {
+    return lowerWrappedBodyToHir(code, surface);
   }
 
   const sourceFile = ts.createSourceFile(

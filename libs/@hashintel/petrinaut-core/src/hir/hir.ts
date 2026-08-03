@@ -37,11 +37,21 @@ export type HirNodeId = number;
  * `metric` — Monte-Carlo/timeline metrics: a bare function *body* over a
  *   `state` object (statements ending in `return <number>`), not an
  *   `export default` module.
- *
- * Scenario expressions are expressible with the same node set but do not
- * have a lowering entry point yet (see `README.md`).
+ * `scenarioExpression` — scenario parameter overrides and per-place
+ *   initial-state counts: a single *expression* over the ambient net
+ *   `parameters` and the scenario's own `scenario` parameter record,
+ *   producing a scalar (number or boolean).
+ * `scenarioInit` — a scenario's code-mode initial state: a bare function
+ *   *body* over the same `(parameters, scenario)` environment, ending in
+ *   `return { <placeName>: count | tokenRecords[] }`.
  */
-export type HirSurfaceKind = "dynamics" | "lambda" | "kernel" | "metric";
+export type HirSurfaceKind =
+  | "dynamics"
+  | "lambda"
+  | "kernel"
+  | "metric"
+  | "scenarioExpression"
+  | "scenarioInit";
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =

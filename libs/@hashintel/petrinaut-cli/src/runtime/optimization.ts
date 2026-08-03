@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 
 import {
-  compileScenario,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
+import { compileScenarioProgram } from "@hashintel/petrinaut-core/compiled-model";
 
 import type {
   PetrinautOptimizationDescribeParameter,
@@ -12,6 +12,7 @@ import type {
   PetrinautOptimizationEvaluateResult,
   PetrinautOptimizationManifest,
   Scenario,
+  ScenarioCompilationError,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautCompiledModel } from "@hashintel/petrinaut-core/compiled-model";
 
@@ -137,6 +138,23 @@ export type OptimizationProtocol = {
   evaluate(params: unknown): PetrinautOptimizationEvaluateResult;
 };
 
+/** Manifest path of the scenario surface an error refers to. */
+function describeScenarioErrorPath({
+  source,
+  itemId,
+}: ScenarioCompilationError): string {
+  switch (source) {
+    case "parameterOverride":
+      return `scenario.parameterOverrides["${itemId}"]`;
+    case "initialState":
+      return itemId === "__code__"
+        ? "scenario.initialState.content"
+        : `scenario.initialState.content["${itemId}"]`;
+    case "scenarioParameter":
+      return `scenario.scenarioParameters["${itemId}"]`;
+  }
+}
+
 export function createOptimizationProtocol(args: {
   manifest: PetrinautOptimizationManifest;
   model: PetrinautCompiledModel;
@@ -160,6 +178,25 @@ export function createOptimizationProtocol(args: {
   const optimizedIdentifiers = new Set(
     optimizedParameters.map(({ parameter }) => parameter.identifier),
   );
+
+  // Compile the scenario's user-code surfaces through the restricted HIR
+  // pipeline once per study. Manifests whose scenario code falls outside the
+  // supported TypeScript subset fail here — before any trial runs — and raw
+  // manifest strings never reach `new Function`.
+  const compiledScenarioProgram = compileScenarioProgram(
+    scenario,
+    manifest.model.definition.parameters,
+    manifest.model.definition.places,
+    manifest.model.definition.types,
+  );
+  if (!compiledScenarioProgram.ok) {
+    throw new Error(
+      `Scenario "${scenario.name}" could not be compiled: ${compiledScenarioProgram.errors
+        .map((error) => `${describeScenarioErrorPath(error)}: ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+  const scenarioProgram = compiledScenarioProgram.program;
 
   return {
     describe() {
@@ -208,12 +245,8 @@ export function createOptimizationProtocol(args: {
           typeof value === "boolean" ? (value ? 1 : 0) : value;
       }
 
-      const compiledScenario = compileScenario(
-        scenario,
-        manifest.model.definition.parameters,
-        manifest.model.definition.places,
-        manifest.model.definition.types,
-        { scenarioParameterValues },
+      const compiledScenario = scenarioProgram.evaluate(
+        scenarioParameterValues,
       );
       if (!compiledScenario.ok) {
         throw new Error(

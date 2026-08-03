@@ -205,6 +205,36 @@ export function instantiateHirBufferKernel(
 }
 
 /**
+ * A compiled scenario evaluator (object convention, `emit-js.ts`): one
+ * scenario parameter-override / initial-count expression or a code-mode
+ * initial-state body. Scenario evaluation runs once per run/trial — outside
+ * the hot simulation loop — so it does not use a buffer program. `scenario`
+ * is the scenario-parameter record and `parameters` the net parameter values
+ * resolved so far (overrides are applied sequentially); both are read at
+ * call time, nothing is pre-bound.
+ */
+export type HirCompiledScenarioEvaluator = (
+  scenario: HirParameterValues,
+  parameters: HirParameterValues,
+) => unknown;
+
+/**
+ * Instantiates a compiled scenario evaluator. As everywhere in this module,
+ * `source` must be compiler-emitted (`emitUserFunctionJs`) — raw
+ * user/manifest text must never reach `new Function`.
+ */
+export function instantiateHirScenarioEvaluator(
+  source: string,
+): HirCompiledScenarioEvaluator {
+  // `__dist` is bound for ABI parity but unused: the typechecker rejects
+  // distributions outside kernels, so scenario programs never reference it.
+  // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+  return new Function("__dist", `"use strict"; return (${source});`)(
+    hirDistributionRuntime,
+  ) as HirCompiledScenarioEvaluator;
+}
+
+/**
  * Instantiates a compiled metric program. `placeIndices[ordinal]` maps each
  * of the artifact's `placeNames` to the frame's place index (resolve once
  * per experiment/simulation, not per frame). `parameterValues` binds the

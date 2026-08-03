@@ -88,6 +88,15 @@ Common patterns:
 
 Bindings are evaluated once at the start of each run, before the initial state is computed, so you can safely reference parameter values from inside initial-state expressions or code.
 
+## Running scenarios server-side
+
+When a model runs server-side -- for example as part of an optimization study -- scenario code (parameter bindings, per-place expressions, and code-mode initial state) is compiled with the same restricted TypeScript compiler used for metrics, so only the supported subset is accepted: `const` bindings, conditionals, arithmetic, `Math.*` (excluding `Math.random()`), `parameters.<name>` / `scenario.<identifier>` reads, and object/array literals. Constructs outside that subset -- loops, helper functions like `Array.from`, or access to the environment -- are rejected with a validation error before the run starts. In-editor behavior is unchanged.
+
+Two authoring notes for code that will run server-side:
+
+- **Equality is strict.** `==` and `!=` compile to `===` and `!==`, with no implicit type coercion. This is _not_ rejected -- it evaluates silently -- so a mixed-type comparison can differ from in-editor evaluation. For example, with a boolean scenario parameter `flag`, `scenario.flag == 1` is `true` in the editor but `false` server-side. Compare like types (`scenario.flag == true`, or use the boolean directly).
+- **Do not reuse the input names.** `scenario` and `parameters` are the inputs to your code; redeclaring either (e.g. `const scenario = ...`, or a `.map((scenario) => ...)` callback parameter) is a validation error server-side, matching the in-editor behavior.
+
 ## Running a scenario
 
 In **Edit** mode, open **Simulation Settings** (bottom panel). The **Scenario** dropdown lists "No scenario" plus every saved scenario. While a scenario is selected:

@@ -1,4 +1,4 @@
-import { compileScenario } from "@hashintel/petrinaut-core";
+import { compileScenarioProgram } from "@hashintel/petrinaut-core/compiled-model";
 
 import type {
   InitialMarking,
@@ -349,17 +349,25 @@ function compileRunScenario(
     throw new Error(`Scenario "${request.id}" does not exist in the model`);
   }
 
-  const outcome = compileScenario(
+  // Scenario user code goes through the restricted HIR pipeline (compiled
+  // once per request) — raw model strings never reach `new Function` on the
+  // server.
+  const program = compileScenarioProgram(
     scenario,
     sdcpn.parameters,
     sdcpn.places,
     sdcpn.types,
-    {
-      scenarioParameterValues: normalizeScenarioParameterValues(
-        scenario,
-        request.parameterValues,
-      ),
-    },
+  );
+  if (!program.ok) {
+    throw new Error(
+      `Scenario "${scenario.name}" could not be compiled: ${program.errors
+        .map(({ message }) => message)
+        .join("; ")}`,
+    );
+  }
+
+  const outcome = program.program.evaluate(
+    normalizeScenarioParameterValues(scenario, request.parameterValues),
   );
   if (!outcome.ok) {
     throw new Error(
