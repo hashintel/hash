@@ -1,6 +1,6 @@
 use core::{net::SocketAddr, time::Duration};
 
-use axum::{Router, http::StatusCode, routing::get};
+use axum::Router;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{http_tracing_layer::HttpTracingLayer, probe};
@@ -40,10 +40,7 @@ pub struct AtlasArgs {
 /// The SALT Atlas implementation replaces this router while keeping the
 /// subcommand, address, and healthcheck wiring.
 fn router() -> Router {
-    // TODO(SRE-884): Drop the `/status` route once internal-infra probes `/health`.
-    let legacy = Router::new().route("/status", get(async || StatusCode::OK));
-
-    probe::router().merge(legacy).layer(HttpTracingLayer)
+    probe::router().layer(HttpTracingLayer)
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.
