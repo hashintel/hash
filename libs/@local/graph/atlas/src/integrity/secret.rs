@@ -1,7 +1,7 @@
 use core::{convert::Infallible, fmt, ops::Deref, str::FromStr};
 
 use zerocopy::IntoBytes as _;
-use zeroize::Zeroize as _;
+use zeroize::{Zeroize as _, Zeroizing};
 
 use super::{ParseHexError, hex::HexBytes};
 
@@ -9,15 +9,35 @@ use super::{ParseHexError, hex::HexBytes};
 ///
 /// The bytes zero on drop, and no path encodes them back out. [`fmt::Debug`] prints the length
 /// alone, [`fmt::Display`] prints a fixed placeholder, and the type has no `Serialize`, so logging
-/// or dumping a held secret discloses nothing. Consuming the secret with [`expose`](Self::expose)
-/// is the one way to reach the held value.
+/// or dumping a held secret discloses nothing. [`expose`](Self::expose) hands the buffer onward
+/// under a guard that zeroizes it in turn, and [`into_unguarded`](Self::into_unguarded) is the one
+/// exit that ends zeroizing custody.
+///
+/// The zeroing covers buffers this type and its guard own, never copies made from them. A consumer
+/// that copies the exposed value into its own storage owns that copy's end of life. The value also
+/// arrives from the command line or environment, whose copies precede the type.
 #[derive(Clone)]
 pub struct SecretString(String);
 
 impl SecretString {
-    /// Consumes the secret, handing the held value to its final consumer.
+    /// Consumes the secret, handing the held value onward in a wrapper that zeroizes on drop.
+    ///
+    /// Custody transfers rather than lapsing: the returned guard owns the same allocation and
+    /// zeroizes it when dropped. Nothing copies in the transfer. A consumer whose API takes a bare
+    /// owned [`String`]
+    /// takes [`into_unguarded`](Self::into_unguarded) instead, because moving the value out of the
+    /// guard would otherwise force a copy the guard cannot follow.
     #[must_use]
-    pub(crate) fn expose(mut self) -> String {
+    pub(crate) fn expose(mut self) -> Zeroizing<String> {
+        Zeroizing::new(core::mem::take(&mut self.0))
+    }
+
+    /// Consumes the secret, moving the held value out of zeroizing custody.
+    ///
+    /// The returned [`String`] is the same allocation with no guard left on it: whoever consumes
+    /// it determines its end of life, and nothing zeroizes it.
+    #[must_use]
+    pub(crate) fn into_unguarded(mut self) -> String {
         core::mem::take(&mut self.0)
     }
 }

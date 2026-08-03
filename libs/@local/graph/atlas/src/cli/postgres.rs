@@ -50,10 +50,13 @@ impl PostgresArgs {
     ///
     /// Returns a [`ConnectError`] when the store refuses the connection or handshake.
     pub async fn connect(self) -> Result<Client, ConnectError> {
+        // The guard owns the password buffer and zeroizes it when this scope ends. The store
+        // config copies the bytes it is shown, and that copy is the library's own.
+        let password = self.password.expose();
         let mut config = Config::new();
         config
             .user(self.user)
-            .password(self.password.expose())
+            .password(&*password)
             .host(self.host)
             .port(self.port)
             .dbname(self.database);

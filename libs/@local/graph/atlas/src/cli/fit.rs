@@ -325,7 +325,9 @@ where
         );
 
         let generator = OpenAiEmbeddingClient::new(OpenAiEmbeddingClientConfig {
-            api_key: self.openai_api_key.expose(),
+            // Zeroizing custody ends here: the embeddings client's config takes the key as a
+            // bare owned `String`.
+            api_key: self.openai_api_key.into_unguarded(),
             base_url: Some(EMBEDDING_ENDPOINT.to_owned()),
         })
         .map_err(FitError::Embedder)?;
