@@ -20,6 +20,12 @@ export interface BadgeProps {
   /** Which corner of the anchor the badge overhangs. */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /**
+   * Set to `"circle"` to align the badge to a circular anchor (e.g. a round
+   * avatar) — it sits on the circle's edge instead of the empty bounding-box
+   * corner.
+   */
+  alignTo?: "circle";
+  /**
    * Caps numeric `content`: a value above `max` renders as `{max}+` (e.g.
    * `content={100}` with `max={99}` shows "99+"). Ignored for non-numeric
    * content.
@@ -41,6 +47,7 @@ export const Badge = ({
   shape = "round",
   color = "grey",
   position = "top-right",
+  alignTo,
   max = 99,
 }: BadgeProps) => {
   const isDot = content === undefined || content === null;
@@ -59,7 +66,12 @@ export const Badge = ({
   );
 
   return (
-    <BaseBadge className={className} position={position} content={pill}>
+    <BaseBadge
+      className={className}
+      position={position}
+      alignTo={alignTo}
+      content={pill}
+    >
       {children}
     </BaseBadge>
   );
