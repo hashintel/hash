@@ -369,12 +369,19 @@ const describeGraphError = (error: unknown): string => {
 export const NetworkGraphView = ({
   availableEntityTypes,
   typeColorOverrides,
+  filter,
   onOpenEntity,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
   /** The user's per-type colour choices from the filter dropdown. */
   typeColorOverrides: TypeColorOverrides;
+  /**
+   * The entity-query filter document (as serialized JSON bytes) the graph's view is bound to — built
+   * from the header's filter ribbon by `buildEntitiesFilter`. It binds the atlas session, so changing
+   * it refetches the whole graph under the new view; see {@link useGetViewportNodes}'s `filter`.
+   */
+  filter?: string;
   /** Opens the entity drawer for an entity — the popover's "Go to entity". */
   onOpenEntity?: (entityId: EntityId) => void;
 }) => {
@@ -769,6 +776,9 @@ export const NetworkGraphView = ({
       // labelled regardless of zoom rather than only in the detailed view.
       includeDetailedData: true,
       coloredTypeIds,
+      // Binds the atlas session to the header's filter (see `filter` prop). A
+      // change refetches the graph under the new view via `sessionRevision`.
+      filter,
     },
   );
 

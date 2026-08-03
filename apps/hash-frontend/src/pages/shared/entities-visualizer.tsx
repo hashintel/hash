@@ -25,6 +25,7 @@ import {
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
+import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
@@ -258,6 +259,22 @@ export const EntitiesVisualizer: FunctionComponent<{
   const graphSort = useMemo(
     () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
     [sort],
+  );
+
+  // The network graph reads the same filter the table does, serialized to the exact bytes the atlas
+  // manifest is POSTed — those bytes seal the view into the graph's session (see `NetworkGraphView`).
+  // Stable across renders for an unchanged filter so the session is not needlessly rebound.
+  const graphFilter = useMemo(
+    () =>
+      JSON.stringify(
+        buildEntitiesFilter({
+          filterState,
+          internalWebIds: internalWebs.map(({ webId }) => webId),
+          pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+          pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        }),
+      ),
+    [filterState, internalWebs, entityTypeBaseUrl, entityTypeId],
   );
 
   const entitiesData = useEntitiesVisualizerData({
@@ -617,6 +634,7 @@ export const EntitiesVisualizer: FunctionComponent<{
           <NetworkGraphView
             availableEntityTypes={availableEntityTypes}
             typeColorOverrides={typeColorOverrides}
+            filter={graphFilter}
             onOpenEntity={handleEntityClick}
           />
         </Box>

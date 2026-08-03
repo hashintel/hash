@@ -32,18 +32,19 @@ use hash_graph_authorization::policies::{
     store::{PolicyStore, PrincipalStore, error::ContextCreationError},
 };
 use hash_graph_postgres_store::store::{
-    AsClient,
+    AsClient, StoreProvider,
     error::StoreError,
     postgres::query::{SelectCompiler, SelectCompilerError},
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{
-        Filter,
+        Filter, ParameterConversionError,
         protection::{PropertyProtectionFilterConfig, transform_filter},
     },
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
+use hash_graph_types::ontology::DataTypeLookup;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityUuid},
@@ -69,6 +70,8 @@ pub(crate) enum ProofError {
     Policies(Report<ContextCreationError>),
     /// The caller's filter does not compile against the entity query surface.
     Filter(Report<SelectCompilerError>),
+    /// The caller's filter carries a parameter that does not match its path's type.
+    Convert(Report<ParameterConversionError>),
     /// The scope's held filter document does not parse.
     Document(serde_json::Error),
     /// The policy filter does not compile against the entity query surface.
@@ -85,6 +88,9 @@ impl fmt::Display for ProofError {
             Self::Connect(_) => fmt.write_str("the resolution reached no store connection"),
             Self::Policies(_) => fmt.write_str("the actor's policy set could not be assembled"),
             Self::Filter(_) => fmt.write_str("the request filter does not compile"),
+            Self::Convert(_) => {
+                fmt.write_str("the request filter's parameters do not match its paths")
+            }
             Self::Document(_) => fmt.write_str("the scope's held filter document does not parse"),
             Self::PolicyFilter(_) => fmt.write_str("the policy filter does not compile"),
             Self::Query(_) => fmt.write_str("the store rejected the visibility query"),
@@ -99,6 +105,7 @@ impl Error for ProofError {
             Self::Connect(report) => Some(report.current_context()),
             Self::Policies(report) => Some(report.current_context()),
             Self::Filter(report) | Self::PolicyFilter(report) => Some(report.current_context()),
+            Self::Convert(report) => Some(report.current_context()),
             Self::Document(error) => Some(error),
             Self::Query(error) | Self::Rows(error) => Some(error),
         }
@@ -143,6 +150,7 @@ const fn admits_every_row(
 /// # Errors
 ///
 /// Returns [`ProofError::Policies`] when the actor's policy set cannot be assembled,
+/// [`ProofError::Convert`] when a filter parameter does not match its path's type,
 /// [`ProofError::Filter`] when `filter` does not compile, [`ProofError::PolicyFilter`] when the
 /// policy filter does not compile, [`ProofError::Query`] when the store rejects the statement, and
 /// [`ProofError::Rows`] when the row stream fails before it ends. A failure yields no proof, so a
@@ -157,6 +165,9 @@ pub(crate) async fn visibility_proof<S>(
 ) -> Result<VisibilityProof, ProofError>
 where
     S: PrincipalStore + PolicyStore + AsClient + Sync,
+    // A caller filter's parameters are converted to their paths' types through the store, exactly
+    // as the entity read path does, so the store must back the same `DataTypeLookup` provider.
+    for<'a> StoreProvider<'a, S>: DataTypeLookup + Sync,
 {
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
     let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
@@ -176,6 +187,26 @@ where
     if admits_every_row(filter, &policy_filter) {
         return Ok(VisibilityProof::full_visibility());
     }
+
+    // Convert the caller filter's parameters to the types its paths expect - a web-id text
+    // parameter to a UUID, a property value to its data type - exactly as the entity read path
+    // does before it compiles (`PostgresStore::query_entities_impl`). The compiler binds a
+    // converted parameter with its column's type; an unconverted text parameter against a UUID
+    // or typed column compiles but the store rejects the statement at execution. The conversion
+    // reads data types through the same `StoreProvider` the read path builds.
+    let converted;
+    let filter = match filter {
+        Some(filter) => {
+            let mut owned = filter.clone();
+            owned
+                .convert_parameters(&StoreProvider::new(store, &policy_components))
+                .await
+                .map_err(ProofError::Convert)?;
+            converted = owned;
+            Some(&converted)
+        }
+        None => None,
+    };
 
     // The store's read path transforms a caller's filter whenever protection is configured and the
     // actor is not an instance admin; the same condition governs here, since the same filter

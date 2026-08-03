@@ -214,11 +214,12 @@ pub(super) async fn resolve(
 /// Three readings, because a caller cannot repair all three the same way.
 /// [`ProofError::Filter`] is the caller's own filter document failing to compile against the entity
 /// query surface, which no retry repairs: it answers `400` `invalid-body`, the problem an
-/// unparsable document already earns at the manifest. [`ProofError::PolicyFilter`] is this
-/// deployment's policy set failing to compile, our fault and not the caller's, so it answers the
-/// internal problem with the compiler's message in the log rather than the response. Every
-/// remaining stage answers the `503`: the process cannot say what the caller may see, and a later
-/// attempt may succeed.
+/// unparsable document already earns at the manifest. [`ProofError::Convert`] joins it - a filter
+/// parameter that cannot be coerced to its path's type is the caller's document to fix, so it too
+/// answers `400` `invalid-body`. [`ProofError::PolicyFilter`] is this deployment's policy set
+/// failing to compile, our fault and not the caller's, so it answers the internal problem with the
+/// compiler's message in the log rather than the response. Every remaining stage answers the `503`:
+/// the process cannot say what the caller may see, and a later attempt may succeed.
 ///
 /// [`ProofError::Query`] stays a `503` even though a caller's document can provoke it - a parameter
 /// whose type the compiler accepts and Postgres rejects - because that one variant also carries
@@ -232,6 +233,14 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
             ProblemType::InvalidBody,
             format!(
                 "the filter document does not compile: {}",
+                report.current_context()
+            ),
+        ),
+        ProofError::Convert(report) => Problem::new(
+            StatusCode::BAD_REQUEST,
+            ProblemType::InvalidBody,
+            format!(
+                "a filter parameter does not match its path's type: {}",
                 report.current_context()
             ),
         ),
