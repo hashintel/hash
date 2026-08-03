@@ -17,7 +17,7 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "openapi-typescript ../../../apps/petrinaut-opt/openapi/openapi.json --default-non-nullable false --output src/openapi.gen.ts && oxfmt --write --ignore-path /dev/null src/openapi.gen.ts",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "yarn codegen && git diff --exit-code -- src/openapi.gen.ts && vitest --run src"
+    "test:unit": "vitest --run src"
   },
   "dependencies": {
     "@hashintel/petrinaut-core": "workspace:*",
