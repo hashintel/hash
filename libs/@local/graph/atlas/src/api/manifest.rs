@@ -1,8 +1,8 @@
 //! `POST /v1/atlas/generation/{generation}/manifest`.
 //!
-//! Immutable bootstrap data (configuration and snapshot provenance only), delivered beside a fresh
-//! per-caller authority token in the `Atlas-Authority` response header. An optional body carries
-//! the filter document that binds the view.
+//! Bootstrap data - configuration, snapshot provenance, and the delivery schedule resolved for this
+//! caller - delivered beside a fresh per-caller authority token in the `Atlas-Authority` response
+//! header. An optional body carries the filter document that binds the view.
 
 use alloc::sync::Arc;
 use std::time::SystemTime;
@@ -28,33 +28,70 @@ use super::{
 use crate::{
     integrity::HexBytes,
     serve::{
-        CutOffset, DensityPolicy, FilterDigest, GenerationId, Manifest, ViewOccupancy,
+        Atlas, CutOffset, DensityPolicy, GenerationId, Manifest, ViewOccupancy, VisibilityProof,
         authorization::{Scope, ScopeFilter},
+        cache::FilterDigest,
+        visibility::ProofKind,
     },
 };
 
-/// The delivery-cut offset one mint seals over `occupancy`, the wanted view's own aggregate.
+/// What one mint asks of the delivery-cut policy.
+#[derive(Debug, Copy, Clone)]
+enum Mint {
+    /// A first token for this actor, which resolves the wanted view's own offset.
+    Bootstrap,
+    /// A token for the view its predecessor sealed.
+    ///
+    /// A scoped view keeps the offset it sealed, so the detail a tile carries at a fixed zoom does
+    /// not move across a renewal. Zero is what an operator view seals here as everywhere, which
+    /// normalizes a token minted under an older contract instead of carrying its value forward.
+    Carry(CutOffset),
+    /// A token for another view, which keeps the sealed offset unless that view resolves coarser.
+    Rebind(CutOffset),
+}
+
+/// The occupancy source one mint resolves over, absent under an operator proof.
 ///
-/// [`CutOffset::ZERO`] without a density policy: the schedules no offset deepens serve every scope
-/// at the recorded cut. With one, `carried` is what separates the two mints - [`None`] is a
-/// bootstrap, which resolves the wanted view's own offset, and [`Some`] is a session being re-bound
-/// to a different view, which keeps its offset unless that view resolves coarser.
+/// The corpus schedule an operator view serves has one cut per zoom and takes no offset, leaving
+/// the policy nothing to resolve. For a scoped view the answer is a source rather than an
+/// aggregate: that aggregate costs a pass over the code column, and a mint carrying its offset
+/// forward never needs one.
+fn mint_view<'atlas>(
+    atlas: &'atlas Atlas,
+    proof: &'atlas VisibilityProof,
+) -> Option<impl FnOnce() -> ViewOccupancy + use<'atlas>> {
+    match proof.kind() {
+        ProofKind::Corpus => None,
+        ProofKind::Scope => Some(move || atlas.visible_occupancy(proof)),
+    }
+}
+
+/// The delivery-cut offset one mint seals.
 ///
-/// The arithmetic of both directions lives in [`DensityPolicy`]; this is the branch, so the two
-/// handler paths cannot disagree about which one they are on.
-fn sealed_offset(
+/// [`CutOffset::ZERO`] whenever no offset is servable. A deployment without a density policy serves
+/// every scope at its recorded cut. An operator view serves the corpus schedule, and an absent
+/// `view` is what says that, so no route can serve corpus bytes while its manifest declares a
+/// deeper cut.
+///
+/// With a policy and a scoped view, [`Mint`] states which question this mint asks, and the
+/// arithmetic of every answer lives in [`DensityPolicy`]. Every handler path mints through here, so
+/// no branch can seal an offset by a rule of its own. `Mint::Carry` never calls `view`: a session
+/// keeping its own view keeps the offset it sealed, and the aggregate that resolved it is not read
+/// again.
+fn sealed_offset<V: FnOnce() -> ViewOccupancy>(
     density: Option<DensityPolicy>,
-    carried: Option<CutOffset>,
-    occupancy: &ViewOccupancy,
+    mint: Mint,
+    view: Option<V>,
 ) -> CutOffset {
-    let Some(policy) = density else {
+    let (Some(policy), Some(view)) = (density, view) else {
         return CutOffset::ZERO;
     };
 
-    carried.map_or_else(
-        || policy.resolve(occupancy),
-        |carried| policy.rebind(carried, occupancy),
-    )
+    match mint {
+        Mint::Bootstrap => policy.resolve(&view()),
+        Mint::Carry(carried) => carried,
+        Mint::Rebind(carried) => policy.rebind(carried, &view()),
+    }
 }
 
 /// The operation's description.
@@ -64,15 +101,18 @@ const DESCRIPTION: &str =
 
 The wire version the binary envelopes speak, the served variant names, the bucket schedule the \
      tile grid follows, the serving limits the handlers enforce, and the snapshot's decision-time \
-     point when the source data carried one. The document is immutable per generation, but the \
-     response is not cached: the `Atlas-Authority` header carries a fresh authority token the \
-     data routes require, valid for `authorityHardSeconds`. Re-fetch at the \
-     `authoritySoftSeconds` cadence, presenting the current token - even expired - in the same \
-     header: the sealed delivery depth carries into the fresh mint, so renewing authority does \
-     not change the detail a tile carries. There is no separate renewal mode: every request \
-     states the view it wants, so a caller that wants its filter must send that filter's exact \
-     bytes again. A presented token that is invalid or names another actor answers `401`; a \
-     request without a token bootstraps.";
+     point when the source data carried one. Those blocks hold for the generation's lifetime. One \
+     block does not: `scopeSchedule` states the delivery cut resolved for this caller, so two \
+     callers of one generation can read different documents, and a client reads its own rather \
+     than a shared one. The response is not cached either: the `Atlas-Authority` header carries a \
+     fresh authority token the data routes require, valid for `authorityHardSeconds`. Re-fetch at \
+     the `authoritySoftSeconds` cadence, presenting the current token - even expired - in the \
+     same header: a scoped view's sealed delivery depth carries into the fresh mint, so renewing \
+     authority does not change the detail a tile carries, and a full-visibility view renews at \
+     the corpus cut it serves. There is no separate renewal mode: every request states the view \
+     it wants, so a caller that wants its filter must send that filter's exact bytes again. A \
+     presented token that is invalid or names another actor answers `401`; a request without a \
+     token bootstraps.";
 
 /// What the optional filter document does.
 const FILTER: &str =
@@ -81,7 +121,7 @@ const FILTER: &str =
      unfiltered view. The digest - taken over the bytes exactly as presented - seals into the \
      token, and the visibility proof compiles over the document itself.
 
-A request whose wanted filter is the one its token already seals keeps the session's delivery \
+A request whose wanted filter is the one its token already seals keeps a scoped session's delivery \
      depth, so the detail a tile carries at a fixed zoom does not move; its document is still \
      resolved from the resent bytes, because a filter the server has already purged can be \
      rebuilt only from them. A request wanting a different filter - including no filter at all, \
@@ -101,13 +141,14 @@ pub(super) struct GenerationPath {
 
 /// `POST /v1/atlas/generation/{generation}/manifest`.
 ///
-/// Immutable bootstrap data (configuration and snapshot provenance only).
+/// Bootstrap data for one generation and one caller.
 ///
-/// The document is the same for every caller; the response is not, carrying a freshly minted
-/// authority token in the `Atlas-Authority` header - which is why it sends `no-store` even though
-/// the document itself never changes. Fetching it also resolves the caller's scope. A client
-/// bootstraps here, so the resolution costs the request that expects a wait rather than the first
-/// tile.
+/// Every block but one holds for the generation's lifetime. `scopeSchedule` states the delivery cut
+/// this mint resolved and sealed, so the document a caller reads describes the bytes its own routes
+/// answer with. The response carries a freshly minted authority token in the `Atlas-Authority`
+/// header, which is the second reason it sends `no-store`. Fetching it also resolves the caller's
+/// scope. A client bootstraps here, so the resolution costs the request that expects a wait rather
+/// than the first tile.
 ///
 /// The handler judges the generation first, so a retired generation answers `404` whatever the
 /// caller presented, and a client re-fetching there discovers the re-pin. At the pinned generation
@@ -119,9 +160,10 @@ pub(super) struct GenerationPath {
 /// filter document with its cache entry and a token cannot rebuild it. The token seals the filter's
 /// digest, and a digest names no document.
 ///
-/// The wanted view therefore decides. When it equals the sealed one, the session keeps its delivery
-/// depth `k`, and the handler still resolves a wanted filter from the resent bytes so a purged
-/// document and its proof are rebuilt. When it differs from the sealed one - a changed filter, or
+/// The wanted view therefore decides. When it equals the sealed one, a scoped session keeps its
+/// delivery depth `k` while an operator one renews at the corpus cut, and the handler resolves the
+/// view either way, so the fresh token carries current authorization and a purged filter document
+/// is rebuilt from the resent bytes. When it differs from the sealed one - a changed filter, or
 /// its removal - the handler resolves the wanted view and keeps `k` unless that view resolves
 /// coarser, which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view therefore
 /// seals zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap resolves both
@@ -170,15 +212,22 @@ pub(super) async fn handler(
     });
 
     let scope = match carried {
-        // The wanted view is the sealed one, so the delivery depth carries. A wanted filter is
-        // still resolved from the resent bytes: the server purges a filter document with its
-        // entry and cannot recover bytes a caller omitted.
+        // Resolve again rather than trust what the token seals: the authorization behind the view
+        // may have changed, and a wanted filter is rebuilt from the resent bytes because the server
+        // purges a document with its entry. An unfiltered renewal has no document to rebuild and
+        // resolves the same way.
         Some(scope) if scope.filter.digest() == wanted => {
-            if wanted.is_some() {
-                visibility::resolve(&state, actor, wanted, document).await?;
-            }
+            let visibility = visibility::resolve(&state, actor, wanted, document).await?;
 
-            scope
+            Scope {
+                actor: scope.actor,
+                filter: scope.filter,
+                k: sealed_offset(
+                    state.density,
+                    Mint::Carry(scope.k),
+                    mint_view(&state.atlas, visibility.proof()),
+                ),
+            }
         }
         // A different wanted view, removal included: the handler resolves it, and the session
         // keeps its delivery depth unless the wanted view resolves coarser.
@@ -190,8 +239,8 @@ pub(super) async fn handler(
                 filter: ScopeFilter::from(wanted),
                 k: sealed_offset(
                     state.density,
-                    Some(scope.k),
-                    &state.atlas.visible_occupancy(visibility.proof()),
+                    Mint::Rebind(scope.k),
+                    mint_view(&state.atlas, visibility.proof()),
                 ),
             }
         }
@@ -204,8 +253,8 @@ pub(super) async fn handler(
                 wanted,
                 sealed_offset(
                     state.density,
-                    None,
-                    &state.atlas.visible_occupancy(visibility.proof()),
+                    Mint::Bootstrap,
+                    mint_view(&state.atlas, visibility.proof()),
                 ),
             )
         }
@@ -283,8 +332,8 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "Cache-Control".to_owned(),
                 headers::cache_control(
                     headers::NO_STORE,
-                    "the response carries a per-caller authority token beside the immutable \
-                     document",
+                    "the response carries a per-caller authority token, and its document states \
+                     the delivery schedule resolved for that caller",
                 ),
             );
             response.inner().headers.insert(
@@ -320,11 +369,11 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
 
 #[cfg(test)]
 mod tests {
-    use core::num::NonZero;
+    use core::{cell::Cell, num::NonZero};
 
     use aide::{openapi::Operation, transform::TransformOperation};
 
-    use super::{document, sealed_offset};
+    use super::{Mint, document, sealed_offset};
     use crate::{
         math::Log2,
         morton::{Depth, MortonCell, MortonKey},
@@ -352,6 +401,9 @@ mod tests {
         )
         .expect("the fixture schedule admits an offset")
     }
+
+    /// The absent occupancy source, which is what an operator proof answers.
+    const NO_VIEW: Option<fn() -> ViewOccupancy> = None;
 
     /// The fixture view, hand-derived: four points on one row of the depth-3 grid.
     ///
@@ -382,9 +434,12 @@ mod tests {
     /// A generation whose schedule admits no offset seals zero, whatever a session carried.
     #[test]
     fn no_density_policy_seals_zero() {
-        assert_eq!(sealed_offset(None, None, &view()), CutOffset::ZERO);
         assert_eq!(
-            sealed_offset(None, Some(CutOffset::new(2)), &view()),
+            sealed_offset(None, Mint::Bootstrap, Some(view)),
+            CutOffset::ZERO
+        );
+        assert_eq!(
+            sealed_offset(None, Mint::Rebind(CutOffset::new(2)), Some(view)),
             CutOffset::ZERO
         );
     }
@@ -396,7 +451,7 @@ mod tests {
     #[test]
     fn a_bootstrap_resolves_the_wanted_view() {
         assert_eq!(
-            sealed_offset(Some(policy()), None, &view()),
+            sealed_offset(Some(policy()), Mint::Bootstrap, Some(view)),
             CutOffset::new(1)
         );
     }
@@ -405,7 +460,7 @@ mod tests {
     #[test]
     fn a_carried_coarser_offset_is_kept() {
         assert_eq!(
-            sealed_offset(Some(policy()), Some(CutOffset::ZERO), &view()),
+            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::ZERO), Some(view)),
             CutOffset::ZERO,
             "the wanted view resolves to 1 and a session at 0 must not be deepened into it"
         );
@@ -415,9 +470,74 @@ mod tests {
     #[test]
     fn a_carried_deeper_offset_clamps_to_the_wanted_view() {
         assert_eq!(
-            sealed_offset(Some(policy()), Some(CutOffset::new(2)), &view()),
+            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::new(2)), Some(view)),
             CutOffset::new(1),
             "a session at 2 must clamp to the wanted view's resolution of 1"
+        );
+    }
+
+    /// An operator view seals zero at every mint, over a fixture whose argmin is not zero.
+    ///
+    /// The absent occupancy is what an operator proof answers, and the fixture's own argmin is 1,
+    /// so a mint that consulted the policy anyway would seal 1 here and fail all three
+    /// assertions. The carried case is the one that matters after a change: a token minted
+    /// before this rule seals a nonzero offset, and its renewal has to come back at zero rather
+    /// than carry the bad value forward.
+    #[test]
+    fn an_operator_view_seals_zero_at_every_mint() {
+        assert_eq!(
+            sealed_offset(Some(policy()), Mint::Bootstrap, NO_VIEW),
+            CutOffset::ZERO,
+        );
+        assert_eq!(
+            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), NO_VIEW),
+            CutOffset::ZERO,
+            "a renewal must not carry an offset the corpus schedule cannot serve",
+        );
+        assert_eq!(
+            sealed_offset(Some(policy()), Mint::Rebind(CutOffset::new(2)), NO_VIEW),
+            CutOffset::ZERO,
+        );
+        assert_eq!(
+            policy().resolve(&view()),
+            CutOffset::new(1),
+            "the fixture must resolve nonzero, or the assertions above pass for the wrong reason",
+        );
+    }
+
+    /// A renewal of an unchanged view never reads the occupancy aggregate.
+    ///
+    /// The aggregate costs a pass over the code column and an allocation for the visible keys, and
+    /// a session keeping its own view keeps the offset that aggregate already resolved. The
+    /// source here records its own call, so the case fails if the mint takes it.
+    #[test]
+    fn a_renewal_takes_no_occupancy_pass() {
+        let taken = Cell::new(false);
+        let source = || {
+            taken.set(true);
+            view()
+        };
+
+        assert_eq!(
+            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), Some(source)),
+            CutOffset::new(2),
+        );
+        assert!(
+            !taken.get(),
+            "a carried mint must not aggregate the view it is not resolving",
+        );
+    }
+
+    /// A renewal of an unchanged view keeps the offset its predecessor sealed.
+    ///
+    /// The wanted view's own resolution is 1 and the carried value is 2, so a renewal that
+    /// re-resolved or clamped would read 1 here. The session serves at the depth it
+    /// bootstrapped.
+    #[test]
+    fn a_renewed_view_keeps_its_sealed_offset() {
+        assert_eq!(
+            sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), Some(view)),
+            CutOffset::new(2),
         );
     }
 
@@ -431,7 +551,11 @@ mod tests {
         assert!(empty.is_empty(), "the fixture view is empty");
 
         assert_eq!(
-            sealed_offset(Some(policy()), Some(CutOffset::new(2)), &empty),
+            sealed_offset(
+                Some(policy()),
+                Mint::Rebind(CutOffset::new(2)),
+                Some(|| empty)
+            ),
             CutOffset::ZERO
         );
     }

@@ -444,8 +444,8 @@ async fn an_out_of_domain_cut_refuses_delivery() {
 /// A proof paired with the other contract's schedule refuses at the binding.
 ///
 /// The refusal moved out of assembly when the delivery inputs became one bound value. No endpoint
-/// can receive a mismatched pair. The pair is checked where it is assembled, and [`Atlas::view`]
-/// is the only surface still accepting the four inputs apart.
+/// can receive a mismatched pair. The pair is checked where it is assembled, and [`Atlas::view`] is
+/// the only entry point still accepting the four inputs apart.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
@@ -464,6 +464,34 @@ async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
     assert_eq!(
         scope_for_full.expect_err("an operator proof must not serve a scope cascade"),
         ViewError::Contract,
+    );
+}
+
+/// An operator proof carrying a nonzero offset refuses at the binding.
+///
+/// The corpus schedule has one cut per zoom, so an offset into it names bytes no route produces.
+/// The case that reaches here is a token sealed before the mint fixed operator offsets at zero.
+/// Refusing it keeps the manifest's declared cut and the served bytes one statement. The caller's
+/// recovery is a renewal, whose fresh token seals zero.
+///
+/// The offset zero case runs beside it, so the refusal is about the value rather than about the
+/// pair.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn an_operator_proof_refuses_a_nonzero_offset() {
+    let (_generation, atlas) = publish("operator-offset-refusal").await;
+    let corpus = ViewSchedule::Corpus;
+
+    let refused = atlas.view(&FULL, atlas.census(&FULL), &corpus, CutOffset::new(1));
+    assert_eq!(
+        refused.expect_err("an operator proof must not carry a nonzero offset"),
+        ViewError::Offset(CutOffset::new(1)),
+    );
+
+    let bound = atlas.view(&FULL, atlas.census(&FULL), &corpus, CutOffset::ZERO);
+    assert!(
+        bound.is_ok(),
+        "the operator pair at offset zero must still bind, got {bound:?}",
     );
 }
 

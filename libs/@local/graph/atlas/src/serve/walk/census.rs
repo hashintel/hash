@@ -10,7 +10,7 @@ use crate::{
     identity::{BasePosition, NodeRowId},
     math::{Bounds2, Vec2},
     morton::{Depth, MortonCell, MortonKey},
-    serve::density::ViewOccupancy,
+    serve::{density::ViewOccupancy, visibility::ProofKind},
 };
 
 /// The corpus-wide census of one visible view.
@@ -192,7 +192,7 @@ impl Walk<'_> {
         positions: &IdSlice<BasePosition, Vec2>,
         bounds: Option<Bounds2>,
     ) -> ViewCensus {
-        if self.proof.is_full() {
+        if self.proof.kind() == ProofKind::Corpus {
             return ViewCensus {
                 visible: u64::from(self.morton.fenceposts().segment(cut).end.as_u32()),
                 bounds,

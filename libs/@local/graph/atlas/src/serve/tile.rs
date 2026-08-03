@@ -221,11 +221,11 @@ impl Atlas {
         Walk::of(self, proof).visible_census(self.grid.cut(0), self.positions(), self.bounds)
     }
 
-    /// Aggregates the Morton occupancy of `proof`'s visible view.
+    /// Aggregates the Morton occupancy the delivery-cut policy reads for `proof`.
     ///
-    /// The delivery-cut policy takes this aggregate as its input. Producing it costs one pass over
-    /// the code column, and only a fresh bootstrap that resolves its offset pays that pass. The
-    /// request path never does.
+    /// Producing it costs one pass over the code column and an allocation for the visible keys, so
+    /// a caller takes it only when it resolves an offset from it.
+    /// [`VisibilityProof::kind`] is the cheap question a caller asks first.
     #[must_use]
     pub(crate) fn visible_occupancy(&self, proof: &VisibilityProof) -> ViewOccupancy {
         Walk::of(self, proof).visible_occupancy()

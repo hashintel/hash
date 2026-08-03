@@ -27,13 +27,16 @@ use crate::{
     identity::{BasePosition, ImportanceRank},
     morton::{Depth, MortonCell, MortonKey},
     salt::lod::{cascade, rank::Ranking},
-    serve::{Atlas, VisibilityProof, density::CutOffset},
+    serve::{Atlas, VisibilityProof, density::CutOffset, visibility::ProofKind},
 };
 
 hashql_core::id::newtype! {
     /// A reference to a visible row by its slot in one scope schedule's natural order.
     ///
-    /// Slots are dense and zero-based over one view's visible rows. The order is bucket-major at the natural depth, ascending by `(key, rank)` inside a bucket. A slot is valid only against the schedule that assigned it, because two views, or one view under two proofs, share no slot vocabulary.
+    /// Slots are dense and zero-based over one view's visible rows. The order is bucket-major at
+    /// the natural depth, ascending by `(key, rank)` inside a bucket. A slot is valid only against
+    /// the schedule that assigned it, because two views, or one view under two proofs, share no
+    /// slot vocabulary.
     pub struct ScopeSlot(u32)
 }
 
@@ -93,10 +96,9 @@ impl ViewSchedule {
     /// declaration rather than the visible cardinality.
     #[must_use]
     pub fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
-        if proof.is_full() {
-            Self::Corpus
-        } else {
-            Self::Scope(Arc::new(ScopeSchedule::of(atlas, proof)))
+        match proof.kind() {
+            ProofKind::Corpus => Self::Corpus,
+            ProofKind::Scope => Self::Scope(Arc::new(ScopeSchedule::of(atlas, proof))),
         }
     }
 }

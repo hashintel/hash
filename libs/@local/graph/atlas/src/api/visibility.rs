@@ -38,8 +38,9 @@ use super::{
     problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
-    Atlas, CacheEntry, CacheKey, CutOffset, FilterDigest, PendingCacheEntry, ProofError, View,
-    VisibilityCache, VisibilityLimits, VisibilityProof, visibility_proof,
+    Atlas, CutOffset, View, ViewError, VisibilityLimits, VisibilityProof,
+    cache::{CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache},
+    hydrate::compile::{ProofError, visibility_proof},
 };
 
 /// The header naming the authenticated actor.
@@ -132,11 +133,11 @@ impl Visibility {
     ///
     /// # Errors
     ///
-    /// The internal problem. Both binding failures name a server-side defect, because this process
-    /// produced every input the binding reads.
+    /// The uniform `401` problem when the presented token seals an offset the resolved view cannot
+    /// serve, whose remedy is the fresh manifest request that answer already asks for. Every other
+    /// binding failure answers the internal problem, because this process produced the inputs.
     pub(super) fn view(&self, atlas: &Atlas) -> Result<View<'_>, Problem<'static>> {
-        View::of(atlas, &self.entry, self.k)
-            .map_err(|error| Problem::internal(error, "delivery refused its schedule"))
+        View::of(atlas, &self.entry, self.k).map_err(view_problem)
     }
 }
 
@@ -296,6 +297,32 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
     }
 }
 
+/// The problem one refused binding answers.
+///
+/// A sealed offset the view cannot serve is stale authority rather than a request defect: an
+/// operator view takes no offset, so a token carrying one was minted under a contract this process
+/// no longer serves. That answers the uniform `401`, whose stated remedy is a fresh manifest
+/// request, and the mint that request runs seals the offset the view does serve. The combination
+/// stays a server defect in the log, because no current mint can produce it.
+///
+/// Every other binding failure names an input this process produced and answers the internal
+/// problem.
+fn view_problem(error: ViewError) -> Problem<'static> {
+    match error {
+        ViewError::Offset(_) => {
+            tracing::error!(
+                ?error,
+                "a presented token sealed an offset its view cannot serve"
+            );
+
+            unauthorized()
+        }
+        ViewError::Contract | ViewError::Schedule(_) => {
+            Problem::internal(error, "delivery refused its schedule")
+        }
+    }
+}
+
 /// The authenticated actor one request names, without resolving its scope.
 ///
 /// The manifest's mint and continuity reading need the actor identity alone; [`Visibility`]
@@ -341,8 +368,8 @@ mod tests {
     use error_stack::Report;
     use hash_graph_postgres_store::store::postgres::query::SelectCompilerError;
 
-    use super::proof_problem;
-    use crate::serve::ProofError;
+    use super::{proof_problem, view_problem};
+    use crate::serve::{CutOffset, ScheduleWidthError, ViewError, hydrate::compile::ProofError};
 
     /// One real compiler error, reused so the mapping is visibly a statement about the failing
     /// stage rather than about the error inside it.
@@ -405,5 +432,33 @@ mod tests {
 
         assert_eq!(document["status"], 503);
         assert_eq!(document["type"], "/problems/atlas/visibility-unavailable");
+    }
+
+    /// A sealed offset the view cannot serve answers the uniform refusal, not the internal problem.
+    ///
+    /// The client action for a stale authority is a fresh manifest request, and that mint reseals
+    /// the offset the view does serve. Every other binding failure runs beside it here, so the case
+    /// states which refusals are the caller's to act on and which are this process reporting
+    /// itself.
+    #[test]
+    fn a_refused_offset_answers_the_uniform_refusal() {
+        let refused = serde_json::to_value(view_problem(ViewError::Offset(CutOffset::new(1))))
+            .expect("problem documents serialize");
+
+        assert_eq!(refused["status"], 401);
+        assert_eq!(refused["type"], "/problems/atlas/unauthorized");
+
+        let width = ScheduleWidthError {
+            max_tile_depth: 3,
+            span: 1,
+            k: CutOffset::new(31),
+        };
+        for defect in [ViewError::Contract, ViewError::Schedule(width)] {
+            let document =
+                serde_json::to_value(view_problem(defect)).expect("problem documents serialize");
+
+            assert_eq!(document["status"], 500, "{defect:?} is a server defect");
+            assert_eq!(document["type"], "/problems/atlas/internal");
+        }
     }
 }

@@ -567,6 +567,43 @@ fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
         .collect()
 }
 
+/// Every operator head accounts for exactly the rows its response delivered.
+///
+/// The wire law is `sum(runs) == delivered` in every response. A client paints from `runs`, reading
+/// bucket `b0 + i` at column offset `sum(runs[..i])`, so a head that overcounts moves every later
+/// bucket's points. The producer asserts the identity when it encodes. This reads the same law back
+/// off the bytes, over the corpus schedule rather than a scope cascade.
+///
+/// The scoped side of the sweep lives in `schedule.rs`, and both reach it through [`head_counts`].
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn every_operator_head_accounts_for_its_delivery() {
+    let (generation, atlas) = publish("operator-head").await;
+    let Artifacts { quad, .. } = open_artifacts(&generation);
+
+    let root_cell = MortonCell::new(Depth::MIN, 0, 0).expect("the root cell exists");
+    let mut nodes = Vec::new();
+    walk(&quad, 0, root_cell, &mut nodes);
+    assert!(nodes.len() > 1, "the fixture quadtree subdivides");
+
+    for mode in [Mode::Delta, Mode::Total] {
+        for &(_node, cell) in &nodes {
+            let TileCoordinate { z, x, y } = coordinate_of(cell);
+            let bytes = atlas
+                .tile(
+                    &request(z, x, y, mode),
+                    TileLimits::default(),
+                    &FULL,
+                    CutOffset::ZERO,
+                )
+                .expect("the operator tile serves");
+            let rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
+
+            assert_head_delivers(&bytes, rows.len() as u64);
+        }
+    }
+}
+
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn serves_tiles_from_a_published_generation() {
@@ -598,6 +635,7 @@ async fn serves_tiles_from_a_published_generation() {
         .iter()
         .sum();
     assert!(delivered > 0, "the fixture root delivers points");
+
     let head = usize::try_from(delivered).expect("fixture counts fit usize");
     let positions_section = section(&bytes, POSITIONS).expect("POSITIONS is present");
     let rows_section = section(&bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -2836,7 +2874,10 @@ fn codec_generation() -> GenerationId {
         .expect("the literal is 64 hex digits")
 }
 
-/// Reads the delivered count, the runs, and the backfill count from a tile `HEAD`.
+/// Reads the delivered count and the per-bucket runs from a tile `HEAD`.
+///
+/// Panics on the retired fill key and on a head whose runs do not account for its delivered
+/// count, the two laws the head owns for every caller of this helper.
 fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
     let mut reader = CborReader { bytes: head, at: 0 };
     let entries = reader.head(5);
@@ -2856,7 +2897,23 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
         }
     }
 
+    assert_eq!(
+        runs.iter().sum::<u64>(),
+        delivered,
+        "every delivered row belongs to a bucket the runs count",
+    );
+
     (delivered, runs)
+}
+
+/// Asserts one tile head accounts for `delivered` points.
+///
+/// The runs-against-delivered law lives in [`head_counts`], which every head reader calls. This
+/// adds the caller's own count, so a head agreeing with itself but not with the response still
+/// fails.
+fn assert_head_delivers(bytes: &[u8], delivered: u64) {
+    let (counted, _runs) = head_counts(section(bytes, HEAD).expect("HEAD is present"));
+    assert_eq!(counted, delivered, "the head counts the delivered rows");
 }
 
 /// Reads the occupied-child bitmask from a tile `HEAD`.

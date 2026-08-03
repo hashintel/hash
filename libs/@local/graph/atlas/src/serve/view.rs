@@ -14,16 +14,20 @@
 use core::{error::Error, fmt};
 
 use super::{
-    Atlas, CacheEntry, ViewCensus, VisibilityProof,
+    Atlas, ViewCensus, VisibilityProof,
+    cache::CacheEntry,
     density::CutOffset,
     grid::Grid,
     schedule::{ScheduleCut, ScheduleWidthError, ViewSchedule},
+    visibility::ProofKind,
 };
 
 /// A delivery view that does not bind.
 ///
-/// Both variants name a server-side defect. This process produced every input a binding reads. A
-/// transport answers either variant with its internal problem.
+/// Every variant names an input this process produced rather than a request the caller shaped. A
+/// transport answers [`ViewError::Contract`] and [`ViewError::Schedule`] with its internal problem.
+/// [`ViewError::Offset`] is the one a caller can act on. Its token sealed an offset under a
+/// contract this process no longer serves, and a fresh mint reseals it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ViewError {
     /// The proof and the schedule it travelled with pair the wrong variants.
@@ -37,6 +41,13 @@ pub enum ViewError {
     /// is a defect to surface. Binding refuses it whole rather than clamping it or substituting
     /// another schedule.
     Schedule(ScheduleWidthError),
+    /// An operator proof travelled with a nonzero delivery-cut offset.
+    ///
+    /// The corpus schedule has one cut per zoom and takes no offset, so an operator view serves at
+    /// offset zero. A nonzero value means a mint sealed and declared an offset no route can serve,
+    /// and binding refuses it rather than answering corpus bytes under a declared cut nothing
+    /// produced.
+    Offset(CutOffset),
 }
 
 impl fmt::Display for ViewError {
@@ -47,6 +58,12 @@ impl fmt::Display for ViewError {
                  contract",
             ),
             Self::Schedule(error) => error.fmt(fmt),
+            Self::Offset(offset) => write!(
+                fmt,
+                "the operator proof carries the nonzero delivery-cut offset {}, which the corpus \
+                 schedule cannot serve",
+                offset.get(),
+            ),
         }
     }
 }
@@ -82,7 +99,8 @@ impl<'scope> View<'scope> {
     ///
     /// # Errors
     ///
-    /// Returns [`ViewError::Contract`] when `proof` and `schedule` pair the wrong variants, and
+    /// Returns [`ViewError::Contract`] when `proof` and `schedule` pair the wrong variants,
+    /// [`ViewError::Offset`] when an operator proof carries a nonzero `k`, and
     /// [`ViewError::Schedule`] when `k` resolves past the key width.
     pub(super) fn bind(
         grid: Grid,
@@ -95,12 +113,16 @@ impl<'scope> View<'scope> {
         )]
         k: CutOffset,
     ) -> Result<Self, ViewError> {
-        let cut = match (proof.is_full(), schedule) {
-            (true, ViewSchedule::Corpus) => None,
-            (false, ViewSchedule::Scope(scope)) => {
+        let cut = match (proof.kind(), schedule) {
+            (ProofKind::Corpus, ViewSchedule::Corpus) if k != CutOffset::ZERO => {
+                return Err(ViewError::Offset(k));
+            }
+            (ProofKind::Corpus, ViewSchedule::Corpus) => None,
+            (ProofKind::Scope, ViewSchedule::Scope(scope)) => {
                 Some(scope.cut(grid, k).map_err(ViewError::Schedule)?)
             }
-            (true, ViewSchedule::Scope(_)) | (false, ViewSchedule::Corpus) => {
+            (ProofKind::Corpus, ViewSchedule::Scope(_))
+            | (ProofKind::Scope, ViewSchedule::Corpus) => {
                 return Err(ViewError::Contract);
             }
         };
@@ -115,9 +137,10 @@ impl<'scope> View<'scope> {
     ///
     /// # Errors
     ///
-    /// Returns [`ViewError::Schedule`] when `k` resolves past the key width.
-    /// [`ViewError::Contract`] is unreachable through this constructor, because the entry pairs its
-    /// own proof with the schedule built over that proof.
+    /// Returns [`ViewError::Offset`] when the entry holds an operator proof and `k` is nonzero, and
+    /// [`ViewError::Schedule`] when `k` resolves past the key width. [`ViewError::Contract`] is
+    /// unreachable through this constructor, because the entry pairs its own proof with the
+    /// schedule built over that proof.
     pub(crate) fn of(
         atlas: &Atlas,
         entry: &'scope CacheEntry,
@@ -175,7 +198,8 @@ impl Atlas {
     /// # Errors
     ///
     /// Returns [`ViewError::Contract`] when `proof` and `schedule` name different serving
-    /// contracts, and [`ViewError::Schedule`] when `k` resolves past the key width.
+    /// contracts, [`ViewError::Offset`] when an operator proof carries a nonzero `k`, and
+    /// [`ViewError::Schedule`] when `k` resolves past the key width.
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"

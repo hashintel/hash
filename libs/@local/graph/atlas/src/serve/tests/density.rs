@@ -7,15 +7,19 @@
 //! The fixture's 48 rows share 8 distinct keys, so which rows a mask hides decides whether the
 //! aggregate can move at all - the two cases below are exactly those two regimes.
 
+use core::num::NonZero;
 use std::collections::{HashMap, HashSet};
 
 use hashql_core::id::Id as _;
 
-use super::{FULL, mask_hiding, publish};
+use super::{FIXTURE_LOD, FULL, mask_hiding, publish};
 use crate::{
     identity::{BasePosition, NodeRowId},
     morton::{Depth, MortonKey},
-    serve::{Atlas, ViewOccupancy, walk::Walk},
+    serve::{
+        Atlas, CutOffset, DensityBand, DensityPolicy, ViewOccupancy, visibility::ProofKind,
+        walk::Walk,
+    },
 };
 
 /// The keys of the rows a mask leaves visible, read straight from the code column.
@@ -169,4 +173,56 @@ async fn a_proof_admitting_nothing_occupies_nothing() {
     assert!(occupancy.is_empty());
     assert_eq!(occupancy.distinct_keys(), 0);
     assert_eq!(occupancy.saturation_depth(), Depth::MIN);
+}
+
+/// The delivery-cut policy is offered no operator view to resolve.
+///
+/// An operator proof serves the corpus schedule, whose one cut per zoom takes no offset, so a mint
+/// over one seals zero. The case pins that at the proof-kind check rather than at the mint. The
+/// fixture's own corpus occupancy resolves nonzero under the band below, which the first assertion
+/// states, and the absent aggregate is therefore about the proof's kind. A view that happened to
+/// resolve zero would pass the same check for the wrong reason.
+///
+/// A mask admitting every row of the generation is the other half. It sees exactly what the
+/// operator proof sees and still answers its own aggregate, because it serves its own cascade: a
+/// declared scope stays a scope whatever its masks admit.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn an_operator_proof_offers_the_policy_no_view() {
+    let (_generation, atlas) = publish("operator-offset").await;
+    let policy = DensityPolicy::new(
+        DensityBand::new(
+            NonZero::new(8).expect("the band's lower bound is positive"),
+            NonZero::new(8).expect("the band's upper bound is positive"),
+        )
+        .expect("the band is ordered"),
+        FIXTURE_LOD.span,
+        FIXTURE_LOD.max_tile_depth,
+    )
+    .expect("the fixture schedule admits an offset");
+
+    let corpus = Walk::of(&atlas, &FULL).visible_occupancy();
+    assert_ne!(
+        policy.resolve(&corpus),
+        CutOffset::ZERO,
+        "the fixture must resolve a deeper cut for the corpus view, or this case cannot fail",
+    );
+
+    assert_eq!(
+        FULL.kind(),
+        ProofKind::Corpus,
+        "an operator proof has no view for the policy to resolve",
+    );
+
+    let all_rows = mask_hiding(&atlas, &[]);
+    assert_eq!(
+        all_rows.kind(),
+        ProofKind::Scope,
+        "a scope admitting every row still serves its own cascade",
+    );
+    assert_eq!(
+        atlas.visible_occupancy(&all_rows),
+        corpus,
+        "that scope's aggregate is the corpus one: the two differ by declared contract alone",
+    );
 }

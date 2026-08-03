@@ -240,7 +240,7 @@ impl DeliveredSet<'_> {
     }
 }
 
-/// The tile `HEAD` document, slot 0: keys 0 through 11.
+/// The tile `HEAD` document, slot 0: keys 0 through 10.
 #[derive(Debug)]
 pub(crate) struct TileHead<'doc> {
     /// Key 0: the generation identity, echoing the route.

@@ -75,10 +75,6 @@ pub use self::{
     visibility::{VisibilityProof, VisibleRow},
     walk::ViewCensus,
 };
-pub(crate) use self::{
-    cache::{CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache},
-    hydrate::compile::{ProofError, visibility_proof},
-};
 use crate::{
     dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
@@ -95,14 +91,14 @@ pub use crate::{
     salt::wire::{Mode, tile::TileCoordinate},
 };
 
-mod cache;
+pub(crate) mod cache;
 mod codec;
 mod colour;
 mod density;
 mod edges;
 mod error;
 mod grid;
-mod hydrate;
+pub(crate) mod hydrate;
 mod intern;
 mod locate;
 mod manifest;
@@ -113,7 +109,7 @@ mod secret;
 mod tile;
 mod translate;
 mod view;
-mod visibility;
+pub(crate) mod visibility;
 mod walk;
 
 pub(crate) mod authorization;

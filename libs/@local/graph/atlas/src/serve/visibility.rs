@@ -81,6 +81,24 @@ impl<T: Id> Rows<T> {
     }
 }
 
+/// Which delivery contract a proof serves.
+///
+/// [`VisibilityProof::full_visibility`] holds the corpus outright and answers [`Self::Corpus`].
+/// [`VisibilityProof::from_masks`] declares a scope and answers [`Self::Scope`], whatever its masks
+/// admit. A proof's kind and the `ViewSchedule` variant built over it are one bit spelled twice,
+/// and binding a view refuses a pair that disagrees.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ProofKind {
+    /// The whole corpus is visible, so the generation's corpus schedule serves this proof.
+    ///
+    /// Every zoom keeps its recorded cut, and no delivery-cut offset applies.
+    Corpus,
+    /// The proof declares a scope, so that scope's own cascade serves it.
+    ///
+    /// The cascade takes a delivery-cut offset, which a mint over this proof resolves.
+    Scope,
+}
+
 impl VisibilityProof {
     /// Constructs the proof under which every row of every domain is visible.
     ///
@@ -125,7 +143,7 @@ impl VisibilityProof {
     /// from the same constructor. The node domain absorbs first and the link domain second, with
     /// rows absorbing in ascending order, so the digest is a function of the admitted sets alone.
     /// The full-visibility value and a mask admitting every row of a generation carry different
-    /// digests, matching [`Self::is_full`].
+    /// digests, matching [`Self::kind`].
     ///
     /// This names what a proof admits, never who may hold it: binding the digest to a generation,
     /// an actor, or a permission epoch is its caller's contract.
@@ -154,13 +172,20 @@ impl VisibilityProof {
         hasher.finalize()
     }
 
-    /// Returns whether this is the full-visibility proof, the masked paths' fast-path test.
+    /// Returns which delivery contract this proof serves.
     ///
-    /// This reads which constructor built the value, never how many rows its masks admit: masks
-    /// admitting every row of a generation are still a declared scope, and reading them as the
-    /// operator proof would serve that scope the operator surface.
-    pub(super) const fn is_full(&self) -> bool {
-        self.nodes.is_full() && self.edges.is_full()
+    /// The answer reads which constructor built the value, never how many rows its masks admit.
+    /// Masks admitting every row of a generation are still a declared scope, and reading them as
+    /// the corpus proof would serve that scope the operator's own schedule and cut. Both callers
+    /// are cheap paths that ask before doing work: the masked gathers skip their masking when the
+    /// whole corpus is visible, and a mint resolves an occupancy aggregate only for a scope.
+    #[must_use]
+    pub(crate) const fn kind(&self) -> ProofKind {
+        if self.nodes.is_full() && self.edges.is_full() {
+            ProofKind::Corpus
+        } else {
+            ProofKind::Scope
+        }
     }
 
     /// Returns whether node row `row` is visible.
@@ -200,7 +225,7 @@ impl VisibilityProof {
     /// Proves one edge deliverable, as the sole [`VisibleEdge`] constructor.
     ///
     /// An edge delivers only when the proof admits its link row and both of its endpoints. The link
-    /// row carries the link entity's authorization, which the endpoints do not imply; the endpoints
+    /// row carries the link entity's authorization, which the endpoints do not imply. The endpoints
     /// carry the two entities every edge response names. A hidden link row, a hidden endpoint, and
     /// an edge the generation never held all answer the same [`None`].
     ///
@@ -254,8 +279,8 @@ impl Atlas {
     /// The single join point of the response discipline.
     ///
     /// Decode failure (out-of-universe wire values) and mask misses (rows the proof hides) both
-    /// answer the same [`None`]. Forbidden and nonexistent are therefore indistinguishable to
-    /// everything downstream. The transport renders one problem body for both, and nothing upstream
+    /// answer the same [`None`]. Forbidden and nonexistent are indistinguishable to everything
+    /// downstream. The transport renders one problem body for both, and nothing upstream
     /// of this seam logs or branches on the cause.
     #[must_use]
     pub fn resolve(&self, proof: &VisibilityProof, wire: WireRow<NodeRowId>) -> Option<VisibleRow> {
