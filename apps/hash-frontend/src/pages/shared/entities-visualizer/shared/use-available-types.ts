@@ -38,9 +38,22 @@ export const useAvailableTypes = ({
 }): {
   availableEntityTypes: AvailableType[];
   propertyFilterData: FilterMetadataForProperty[];
+  /**
+   * The available entity types that are link (relationship) types. The graph
+   * view hides these from the filter bar — its nodes are non-link entities and
+   * its edges aren't filterable — while callers keep the full type list so a
+   * link selection made in the table view survives a switch to the graph.
+   */
+  linkEntityTypeIds: Set<VersionedUrl>;
+  /**
+   * Filterable property base URLs found only on link types (never on a non-link
+   * type). Hidden from the graph view's property picker for the same reason.
+   */
+  linkOnlyPropertyBaseUrls: Set<BaseUrl>;
   loading: boolean;
 } => {
-  const { entityTypes, entityTypeParentIds } = useEntityTypesContextRequired();
+  const { entityTypes, entityTypeParentIds, isSpecialEntityTypeLookup } =
+    useEntityTypesContextRequired();
   const { dataTypes } = useDataTypesContext();
   const { propertyTypes } = usePropertyTypes();
 
@@ -94,17 +107,39 @@ export const useAvailableTypes = ({
     },
   });
 
-  const { availableEntityTypes, propertyFilterData } = useMemo<{
+  const { availableEntityTypes, propertyFilterData, linkInfo } = useMemo<{
     availableEntityTypes: AvailableType[];
     propertyFilterData: FilterMetadataForProperty[];
+    linkInfo: {
+      linkEntityTypeIds: Set<VersionedUrl>;
+      linkOnlyPropertyBaseUrls: Set<BaseUrl>;
+    };
   }>(() => {
+    const emptyLinkInfo = {
+      linkEntityTypeIds: new Set<VersionedUrl>(),
+      linkOnlyPropertyBaseUrls: new Set<BaseUrl>(),
+    };
+
     if (shouldFetchAvailableTypes && !data) {
-      return { availableEntityTypes: [], propertyFilterData: [] };
+      return {
+        availableEntityTypes: [],
+        propertyFilterData: [],
+        linkInfo: emptyLinkInfo,
+      };
     }
 
     const typeIds = data?.summarizeEntities.typeIds ?? {};
     const typeTitles = data?.summarizeEntities.typeTitles ?? {};
 
+    // Until the special-type lookup loads, every type reads as non-link, so link
+    // types are classified only transiently before the first resolved render.
+    const isLinkType = (entityTypeId: VersionedUrl): boolean =>
+      isSpecialEntityTypeLookup?.[entityTypeId]?.isLink ?? false;
+
+    // The full type list — link types included. Callers hide link types from the
+    // graph filter bar for display, but the selection state (and the pruning that
+    // keeps it consistent) works against the full list so a link filter set in
+    // the table view is not silently dropped when the graph view is opened.
     const availableTypes = Object.entries(typeIds)
       .map(([entityTypeId, count]) => {
         const versionedUrl = entityTypeId as VersionedUrl;
@@ -116,13 +151,22 @@ export const useAvailableTypes = ({
       })
       .sort((a, b) => a.title.localeCompare(b.title));
 
-    if (!dataTypes || !entityTypes || !entityTypeParentIds || !propertyTypes) {
-      return { availableEntityTypes: availableTypes, propertyFilterData: [] };
-    }
-
     const availableEntityTypeIds = shouldFetchAvailableTypes
       ? (Object.keys(typeIds) as VersionedUrl[])
       : (pinnedEntityTypeIds ?? []);
+
+    const linkEntityTypeIds = new Set(
+      availableEntityTypeIds.filter(isLinkType),
+    );
+
+    if (!dataTypes || !entityTypes || !entityTypeParentIds || !propertyTypes) {
+      return {
+        availableEntityTypes: availableTypes,
+        propertyFilterData: [],
+        linkInfo: { linkEntityTypeIds, linkOnlyPropertyBaseUrls: new Set() },
+      };
+    }
+
     const selectedAvailableEntityTypeIds = shouldFetchAvailableTypes
       ? filterState.type.selectedTypeIds
         ? [...filterState.type.selectedTypeIds].filter((typeId) =>
@@ -143,15 +187,36 @@ export const useAvailableTypes = ({
       propertyTypes,
     });
 
+    // A property is "link-only" when it survives the derivation over all selected
+    // types but not over the non-link ones — i.e. no non-link type carries it.
+    const nonLinkPropertyBaseUrls = new Set(
+      deriveFilterableProperties({
+        dataTypes,
+        entityTypeIds: selectedAvailableEntityTypeIds.filter(
+          (typeId) => !linkEntityTypeIds.has(typeId),
+        ),
+        entityTypeParentIds,
+        entityTypes,
+        propertyTypes,
+      }).map(({ baseUrl }) => baseUrl),
+    );
+    const linkOnlyPropertyBaseUrls = new Set(
+      availableProperties
+        .map(({ baseUrl }) => baseUrl)
+        .filter((baseUrl) => !nonLinkPropertyBaseUrls.has(baseUrl)),
+    );
+
     return {
       availableEntityTypes: availableTypes,
       propertyFilterData: availableProperties,
+      linkInfo: { linkEntityTypeIds, linkOnlyPropertyBaseUrls },
     };
   }, [
     data,
     dataTypes,
     entityTypeParentIds,
     entityTypes,
+    isSpecialEntityTypeLookup,
     pinnedEntityTypeIds,
     filterState.type.selectedTypeIds,
     propertyTypes,
@@ -164,6 +229,8 @@ export const useAvailableTypes = ({
   return {
     availableEntityTypes,
     propertyFilterData,
+    linkEntityTypeIds: linkInfo.linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls: linkInfo.linkOnlyPropertyBaseUrls,
     loading: shouldFetchAvailableTypes
       ? loading || propertyFilterDataLoading
       : propertyFilterDataLoading,

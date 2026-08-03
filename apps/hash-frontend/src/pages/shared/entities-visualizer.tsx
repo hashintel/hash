@@ -61,6 +61,11 @@ import type {
 } from "@local/hash-graph-client";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 
+// Stable empty sets so a non-graph view passes the same "nothing hidden"
+// references every render.
+const EMPTY_TYPE_ID_SET: ReadonlySet<VersionedUrl> = new Set();
+const EMPTY_BASE_URL_SET: ReadonlySet<BaseUrl> = new Set();
+
 /**
  * @todo: avoid having to maintain this list, potentially by
  * adding an `isFile` boolean to the generated ontology IDs file.
@@ -261,22 +266,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     [sort],
   );
 
-  // The network graph reads the same filter the table does, serialized to the exact bytes the atlas
-  // manifest is POSTed — those bytes seal the view into the graph's session (see `NetworkGraphView`).
-  // Stable across renders for an unchanged filter so the session is not needlessly rebound.
-  const graphFilter = useMemo(
-    () =>
-      JSON.stringify(
-        buildEntitiesFilter({
-          filterState,
-          internalWebIds: internalWebs.map(({ webId }) => webId),
-          pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
-          pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-        }),
-      ),
-    [filterState, internalWebs, entityTypeBaseUrl, entityTypeId],
-  );
-
   const entitiesData = useEntitiesVisualizerData({
     conversions: activeConversionsWithoutTitle
       ? typedEntries(activeConversionsWithoutTitle).map(
@@ -377,6 +366,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const {
     availableEntityTypes,
     propertyFilterData,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
     loading: availableTypesLoading,
   } = useAvailableTypes({
     filterState,
@@ -384,6 +375,65 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
   });
+
+  // The graph filters and colours nodes (non-link entities); its edges (links)
+  // aren't filterable. So in the graph view the filter bar hides link types and
+  // link-only properties, and the graph query drops them — but this is display /
+  // query only: `filterState` keeps them, so a link filter set in the table view
+  // is still there when the user switches back.
+  const isGraphView = view === "NetworkGraph";
+  const hiddenTypeIds = isGraphView ? linkEntityTypeIds : EMPTY_TYPE_ID_SET;
+  const hiddenPropertyBaseUrls = isGraphView
+    ? linkOnlyPropertyBaseUrls
+    : EMPTY_BASE_URL_SET;
+
+  // The network graph reads the same filter the table does, serialized to the exact bytes the atlas
+  // manifest is POSTed — those bytes seal the view into the graph's session (see `NetworkGraphView`).
+  // Stable across renders for an unchanged filter so the session is not needlessly rebound. Link-type
+  // selections and link-only property filters are dropped from the graph's query — its nodes are
+  // non-link entities, so a link-type clause matches nothing and a link-only property clause would
+  // empty the graph — while `filterState` keeps them for the table view.
+  const graphFilter = useMemo(() => {
+    const selectedTypeIds = filterState.type.selectedTypeIds
+      ? new Set(
+          [...filterState.type.selectedTypeIds].filter(
+            (typeId) => !linkEntityTypeIds.has(typeId),
+          ),
+        )
+      : null;
+    const propertyFilters = filterState.propertyFilters.filter(
+      (propertyFilter) => !linkOnlyPropertyBaseUrls.has(propertyFilter.baseUrl),
+    );
+    return JSON.stringify(
+      buildEntitiesFilter({
+        filterState: {
+          ...filterState,
+          type: { selectedTypeIds },
+          propertyFilters,
+        },
+        internalWebIds: internalWebs.map(({ webId }) => webId),
+        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+      }),
+    );
+  }, [
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeId,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
+  ]);
+
+  // The graph colours nodes by their (non-link) entity type, so its palette omits
+  // link types.
+  const graphEntityTypes = useMemo(
+    () =>
+      availableEntityTypes.filter(
+        (type) => !linkEntityTypeIds.has(type.entityTypeId),
+      ),
+    [availableEntityTypes, linkEntityTypeIds],
+  );
 
   useEffect(() => {
     if (availableTypesLoading) {
@@ -604,6 +654,8 @@ export const EntitiesVisualizer: FunctionComponent<{
               showTypeColors={view === "NetworkGraph"}
               typeColorOverrides={typeColorOverrides}
               setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
             />
           )
         }
@@ -632,7 +684,7 @@ export const EntitiesVisualizer: FunctionComponent<{
       {view === "NetworkGraph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
           <NetworkGraphView
-            availableEntityTypes={availableEntityTypes}
+            availableEntityTypes={graphEntityTypes}
             typeColorOverrides={typeColorOverrides}
             filter={graphFilter}
             onOpenEntity={handleEntityClick}

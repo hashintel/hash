@@ -27,53 +27,61 @@ type TypeFilterPillProps = {
   showColors: boolean;
   typeColorOverrides: TypeColorOverrides;
   setTypeColor: (entityTypeId: VersionedUrl, color: string) => void;
+  /**
+   * Type ids to hide from the menu (the graph view's link types). They stay part
+   * of the selection universe used by toggle / select-all, so a hidden type that
+   * was selected elsewhere (e.g. the table view) is preserved rather than dropped
+   * — only the row, the count and the label ignore them.
+   */
+  hiddenTypeIds?: ReadonlySet<VersionedUrl>;
 };
 
-const isAllSelected = ({
+/** Whether every id in `availableIds` is selected (a subset check that ignores
+ * any selected id outside that set, e.g. a hidden or unknown type). */
+const allTypesSelected = ({
   selectedTypeIds,
-  allAvailableIds,
+  availableIds,
 }: {
   selectedTypeIds: Set<VersionedUrl> | null;
-  allAvailableIds: VersionedUrl[];
+  availableIds: VersionedUrl[];
 }) => {
   if (selectedTypeIds === null) {
     return true;
   }
-  if (allAvailableIds.length === 0) {
+  if (availableIds.length === 0) {
     return false;
   }
-  if (selectedTypeIds.size !== allAvailableIds.length) {
-    return false;
-  }
-  return allAvailableIds.every((id) => selectedTypeIds.has(id));
+  return availableIds.every((id) => selectedTypeIds.has(id));
 };
 
 const buildLabel = ({
   availableTypes,
   selectedTypeIds,
-  allAvailableIds,
+  availableIds,
 }: {
   availableTypes: AvailableType[];
   selectedTypeIds: Set<VersionedUrl> | null;
-  allAvailableIds: VersionedUrl[];
+  availableIds: VersionedUrl[];
 }): string => {
-  if (isAllSelected({ selectedTypeIds, allAvailableIds })) {
+  if (allTypesSelected({ selectedTypeIds, availableIds })) {
     return "any";
   }
 
-  const count = selectedTypeIds?.size ?? 0;
+  const selectedIds = selectedTypeIds
+    ? availableIds.filter((id) => selectedTypeIds.has(id))
+    : availableIds;
 
-  if (count === 0) {
+  if (selectedIds.length === 0) {
     return "none";
   }
 
-  if (count === 1) {
-    const [only] = selectedTypeIds!;
+  if (selectedIds.length === 1) {
+    const [only] = selectedIds;
     const match = availableTypes.find((type) => type.entityTypeId === only);
     return match?.title ?? "1 type";
   }
 
-  return `one of ${count}`;
+  return `one of ${selectedIds.length}`;
 };
 
 type TypeFilterMenuItemProps = {
@@ -194,6 +202,7 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   showColors,
   typeColorOverrides,
   setTypeColor,
+  hiddenTypeIds,
 }) => {
   const popupState = usePopupState({
     variant: "popover",
@@ -202,22 +211,38 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  // The full selection universe — hidden types included — so toggle / select-all
+  // never drop a hidden-but-selected type from the shared state.
   const allAvailableIds = useMemo(
     () => availableTypes.map((type) => type.entityTypeId),
     [availableTypes],
+  );
+
+  // The types the menu actually shows and the label / count reflect: everything
+  // but the hidden (link) types.
+  const visibleTypes = useMemo(
+    () =>
+      hiddenTypeIds
+        ? availableTypes.filter((type) => !hiddenTypeIds.has(type.entityTypeId))
+        : availableTypes,
+    [availableTypes, hiddenTypeIds],
+  );
+  const visibleAvailableIds = useMemo(
+    () => visibleTypes.map((type) => type.entityTypeId),
+    [visibleTypes],
   );
 
   // Default colour rank by entity count: the most common types get the distinct
   // palette colours (regardless of the list's alphabetical order or any search
   // filter), and the long tail falls through to grey.
   const colorIndexByType = useMemo(
-    () => typeColorRanks(availableTypes),
-    [availableTypes],
+    () => typeColorRanks(visibleTypes),
+    [visibleTypes],
   );
 
-  const allSelected = isAllSelected({
+  const allSelected = allTypesSelected({
     selectedTypeIds: typeState.selectedTypeIds,
-    allAvailableIds,
+    availableIds: visibleAvailableIds,
   });
 
   const isChecked = useCallback(
@@ -267,11 +292,14 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   }, [setTypeState]);
 
   const label = buildLabel({
-    availableTypes,
+    availableTypes: visibleTypes,
     selectedTypeIds: typeState.selectedTypeIds,
-    allAvailableIds,
+    availableIds: visibleAvailableIds,
   });
 
+  // A selected id that isn't in the full universe at all (e.g. a type from a
+  // different web). Hidden types are part of the universe, so they never surface
+  // here — they are omitted from the menu silently.
   const unknownSelectedIds = useMemo<VersionedUrl[]>(() => {
     if (typeState.selectedTypeIds === null) {
       return [];
@@ -285,12 +313,12 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   const filteredTypes = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) {
-      return availableTypes;
+      return visibleTypes;
     }
-    return availableTypes.filter((type) =>
+    return visibleTypes.filter((type) =>
       type.title.toLowerCase().includes(query),
     );
-  }, [availableTypes, searchQuery]);
+  }, [visibleTypes, searchQuery]);
 
   const isActive = !allSelected;
 
@@ -301,12 +329,12 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
     if (showEmpty) {
       return (
         <TypeFilterMessage
-          text={availableTypes.length === 0 ? "No types" : "No matches"}
+          text={visibleTypes.length === 0 ? "No types" : "No matches"}
         />
       );
     }
 
-    const showLoading = loading && availableTypes.length === 0;
+    const showLoading = loading && visibleTypes.length === 0;
 
     if (showLoading) {
       return <TypeFilterMessage text="Loading…" />;
@@ -431,8 +459,8 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
             <Typography
               sx={{ color: ({ palette }) => palette.gray[60], fontSize: 11 }}
             >
-              {availableTypes.length} type
-              {availableTypes.length === 1 ? "" : "s"}
+              {visibleTypes.length} type
+              {visibleTypes.length === 1 ? "" : "s"}
             </Typography>
             <Box
               component="button"
