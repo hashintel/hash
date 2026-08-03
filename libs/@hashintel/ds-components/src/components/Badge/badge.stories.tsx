@@ -1,252 +1,185 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Icon } from "../Icon/icon";
 import { Badge, type BadgeProps } from "./badge";
 
+import type { ChipColor } from "../Chip/chip";
 import type { Story, StoryDefault } from "@ladle/react";
 
+const colors: ChipColor[] = [
+  "grey",
+  "red",
+  "blue",
+  "green",
+  "orange",
+  "yellow",
+  "purple",
+  "pink",
+];
+
+const variants: NonNullable<BadgeProps["variant"]>[] = ["fill", "outline"];
+
+const shapes: NonNullable<BadgeProps["shape"]>[] = ["default", "round"];
+
+const positions: NonNullable<BadgeProps["position"]>[] = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+];
+
+const noop = () => undefined;
+
+const row = css({
+  display: "flex",
+  gap: "[20px]",
+  alignItems: "center",
+  flexWrap: "wrap",
+});
+
+const column = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[20px]",
+});
+
+const rowLabel = css({
+  width: "[90px]",
+  flexShrink: "0",
+  textStyle: "sm",
+  color: "fg.muted",
+});
+
+const bell = css({ color: "fg.muted" });
+
+/** The bell icon the badge attaches to in these examples. */
+const Bell = () => <Icon name="bell" size="lg" className={bell} />;
+
 export default {
-  title: "Legacy/Badge",
+  title: "Components/Badge",
   parameters: {
     layout: "centered",
   },
   argTypes: {
-    colorScheme: {
-      control: { type: "select" },
-      options: [
-        "gray",
-        "brand",
-        "green",
-        "orange",
-        "red",
-        "purple",
-        "pink",
-        "yellow",
-      ],
-      description: "The color scheme of the badge",
-    },
-    size: {
-      control: { type: "select" },
-      options: ["xs", "sm", "md", "lg"],
-      description: "The size of the badge",
-    },
-    isSquare: {
-      control: { type: "boolean" },
-      description: "Whether the badge is square (for numeric badges)",
-    },
-    children: {
-      control: { type: "text" },
-      description: "The content of the badge",
-    },
+    color: { control: { type: "select", options: colors } },
+    variant: { control: { type: "select", options: variants } },
+    shape: { control: { type: "select", options: shapes } },
+    position: { control: { type: "select", options: positions } },
+    content: { control: { type: "text" } },
   },
   args: {
-    children: "Badge",
-    colorScheme: "gray",
-    size: "xs",
-    isSquare: false,
+    content: "9",
+    color: "red",
+    variant: "fill",
+    shape: "round",
+    position: "top-right",
   },
 } satisfies StoryDefault<BadgeProps>;
 
-export const Default: Story<BadgeProps> = (args) => <Badge {...args} />;
-Default.args = {
-  children: "Badge",
-};
-
-export const ColorSchemes: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge {...args} colorScheme="gray">
-      Gray
-    </Badge>
-    <Badge {...args} colorScheme="brand">
-      Brand
-    </Badge>
-    <Badge {...args} colorScheme="green">
-      Green
-    </Badge>
-    <Badge {...args} colorScheme="orange">
-      Orange
-    </Badge>
-    <Badge {...args} colorScheme="red">
-      Red
-    </Badge>
-    <Badge {...args} colorScheme="purple">
-      Purple
-    </Badge>
-    <Badge {...args} colorScheme="pink">
-      Pink
-    </Badge>
-    <Badge {...args} colorScheme="yellow">
-      Yellow
-    </Badge>
-  </div>
-);
-ColorSchemes.parameters = {
-  controls: { exclude: ["children", "colorScheme"] },
-};
-
-export const Sizes: Story<BadgeProps> = () => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      alignItems: "center",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge size="xs">Extra Small</Badge>
-    <Badge size="sm">Small</Badge>
-    <Badge size="md">Medium</Badge>
-    <Badge size="lg">Large</Badge>
-  </div>
-);
-Sizes.parameters = {
-  controls: { exclude: ["children", "size", "isSquare"] },
-};
-
-export const SquareBadges: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      alignItems: "center",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge {...args} isSquare size="xs">
-      2
-    </Badge>
-    <Badge {...args} isSquare size="sm">
-      5
-    </Badge>
-    <Badge {...args} isSquare size="md">
-      9
-    </Badge>
-    <Badge {...args} isSquare size="lg">
-      12
-    </Badge>
-  </div>
-);
-SquareBadges.parameters = {
-  controls: { exclude: ["children", "size", "isSquare"] },
-};
-
-export const WithIcons: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      flexDirection: "column",
-    })}
-  >
-    <div
-      className={css({
-        display: "flex",
-        gap: "[12px]",
-        flexWrap: "wrap",
-      })}
-    >
-      <Badge
-        {...args}
-        iconLeft={
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="6" cy="6" r="4" />
-          </svg>
-        }
-      >
-        With Left Icon
-      </Badge>
-      <Badge
-        {...args}
-        iconRight={
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="6" cy="6" r="4" />
-          </svg>
-        }
-      >
-        With Right Icon
-      </Badge>
-      <Badge
-        {...args}
-        colorScheme="green"
-        iconLeft={
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-            <path d="M6.5 1L8 5h4l-3 3 1 4-3.5-2.5L3 12l1-4-3-3h4l1.5-4z" />
-          </svg>
-        }
-      >
-        Premium
-      </Badge>
-    </div>
-  </div>
-);
-WithIcons.parameters = {
-  controls: { exclude: ["children"] },
-};
-
-export const AllCombinations: Story<BadgeProps> = () => {
-  const colors: Array<BadgeProps["colorScheme"]> = [
-    "gray",
-    "brand",
-    "green",
-    "orange",
-    "red",
-    "purple",
-    "pink",
-    "yellow",
-  ];
-  const sizes: Array<BadgeProps["size"]> = ["xs", "sm", "md", "lg"];
-
-  return (
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[16px]",
-      })}
-    >
-      {colors.map((color) => (
-        <div
-          key={color}
-          className={css({
-            display: "flex",
-            gap: "[12px]",
-            alignItems: "center",
-          })}
-        >
-          <div
-            className={css({
-              width: "[80px]",
-              fontSize: "[14px]",
-              textTransform: "capitalize",
-            })}
+// Every colour, in both variants, attached to a bell.
+export const Default: Story<BadgeProps> = (args) => (
+  <div className={column}>
+    {variants.map((variant) => (
+      <div className={row} key={variant}>
+        <div className={rowLabel}>{variant}</div>
+        {colors.map((color) => (
+          <Badge
+            key={color}
+            content={9}
+            color={color}
+            variant={variant}
+            shape={args.shape}
           >
-            {color}
-          </div>
-          {sizes.map((size) => (
-            <Badge key={size} colorScheme={color} size={size}>
-              {color}
-            </Badge>
-          ))}
-          {sizes.map((size) => (
-            <Badge
-              key={`${size}-square`}
-              colorScheme={color}
-              size={size}
-              isSquare
-            >
-              2
-            </Badge>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-};
-AllCombinations.parameters = {
-  controls: { disabled: true },
-};
+            <Bell />
+          </Badge>
+        ))}
+      </div>
+    ))}
+  </div>
+);
+
+export const Shape: Story<BadgeProps> = (args) => (
+  <div className={row}>
+    {shapes.map((shape) => (
+      <Badge
+        key={shape}
+        content={9}
+        shape={shape}
+        color={args.color}
+        variant={args.variant}
+      >
+        <Bell />
+      </Badge>
+    ))}
+  </div>
+);
+Shape.parameters = { controls: { exclude: ["shape", "content"] } };
+
+// Each corner, so the overhang offsets can be checked.
+export const Position: Story<BadgeProps> = (args) => (
+  <div className={row}>
+    {positions.map((position) => (
+      <Badge
+        key={position}
+        content={9}
+        position={position}
+        color={args.color}
+        variant={args.variant}
+        shape={args.shape}
+      >
+        <Bell />
+      </Badge>
+    ))}
+  </div>
+);
+Position.parameters = { controls: { exclude: ["position", "content"] } };
+
+// `max` caps numeric content (99 → "99", 100/1000 → "99+"). A string is shown
+// verbatim, and omitting `content` renders a plain dot.
+export const Content: Story<BadgeProps> = (args) => (
+  <div className={row}>
+    {[9, 99, 100, 1000].map((count) => (
+      <Badge
+        key={count}
+        content={count}
+        max={99}
+        color={args.color}
+        variant={args.variant}
+        shape={args.shape}
+      >
+        <Bell />
+      </Badge>
+    ))}
+    <Badge content="new" color={args.color} variant={args.variant}>
+      <Bell />
+    </Badge>
+    <Badge color={args.color} variant={args.variant}>
+      <Bell />
+    </Badge>
+  </div>
+);
+Content.parameters = { controls: { exclude: ["content"] } };
+
+// A clickable badge renders as a button with hover and focus-ring states.
+export const Clickable: Story<BadgeProps> = (args) => (
+  <div className={row}>
+    <Badge
+      content={9}
+      onClick={noop}
+      color={args.color}
+      variant={args.variant}
+      shape={args.shape}
+    >
+      <Bell />
+    </Badge>
+    <Badge
+      onClick={noop}
+      color={args.color}
+      variant={args.variant}
+      shape={args.shape}
+    >
+      <Bell />
+    </Badge>
+  </div>
+);
+Clickable.parameters = { controls: { exclude: ["content"] } };
