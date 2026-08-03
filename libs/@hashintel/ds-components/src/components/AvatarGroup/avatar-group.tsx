@@ -10,6 +10,7 @@ import {
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { type AvatarSize, type AvatarTone, Avatar } from "../Avatar/avatar";
+import { avatarSize } from "../Avatar/avatar.recipe";
 import { AvatarGroupContext } from "./avatar-group-context";
 import { styles } from "./avatar-group.recipe";
 
@@ -89,11 +90,11 @@ const AvatarGroupRoot = ({
   // How many people the group stands for, driving the "+N" surplus figure.
   const peopleCount = numericTotal ?? items.length;
 
-  const willOverflow = hasMax
-    ? peopleCount > max || hasOverflow
-    : numericTotal != null
-      ? numericTotal > items.length
-      : hasOverflow;
+  const willOverflow =
+    hasOverflow ||
+    (hasMax
+      ? peopleCount > max
+      : numericTotal != null && numericTotal > items.length);
 
   // When capping, reserve a slot for the badge so the group never exceeds `max`.
   const shownCount = Math.max(
@@ -128,27 +129,15 @@ const AvatarGroupRoot = ({
 
   // Each avatar lifts to the front and cross-fades in over its own opaque clone,
   // so it surfaces with no opacity dip while staying the real (interactive)
-  // element. A per-avatar phase lets an outgoing avatar fade out while an
-  // incoming one fades in, so sweeping across the group stays clean:
-  //   enter  — real avatar jumps to the front at opacity 0 (no transition);
-  //   active — it transitions opacity 0→1 as it and its clone scale up together;
-  //   exit   — it transitions back to opacity 0 and rest scale, then drops out.
-  // While any avatar is mid-animation the whole stack is cloned as an opaque
-  // backdrop, so every fading avatar always has something solid behind it.
+  // element.
   type LiftPhase = "enter" | "active" | "exit";
   const [phases, setPhases] = useState<Record<number, LiftPhase>>({});
-
   // Keyboard focus also lifts an avatar to the front (instantly, no animation).
-  // Track the focused avatar plus whether hover or focus happened most recently,
-  // so that when a hover and a keyboard focus land on different avatars the last
-  // action wins the top spot.
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [lastAction, setLastAction] = useState<"hover" | "focus">("hover");
-
   // The avatar the pointer currently maps to, so redundant moves within the same
   // column don't re-trigger the lift.
   const pointerIndex = useRef<number | null>(null);
-
   const active = Object.keys(phases).length > 0;
 
   const handleEnter = (index: number) => {
@@ -211,8 +200,7 @@ const AvatarGroupRoot = ({
   };
 
   const handleFocus = (index: number, target: EventTarget) => {
-    // Ignore mouse-click focus (the hover lift covers that); only keyboard focus
-    // that shows a ring should lift.
+    // Ignore mouse-click focus (the hover lift covers that)
     if (target instanceof HTMLElement && target.matches(":focus-visible")) {
       setFocusedIndex(index);
       setLastAction("focus");
@@ -246,9 +234,6 @@ const AvatarGroupRoot = ({
     });
   }
 
-  // The hovered avatar (if any). Both hover-active and keyboard focus otherwise
-  // resolve to the same front z-index in the recipe; when they land on different
-  // avatars, boost whichever was actioned last so it floats on top.
   let hoverIndex: number | null = null;
   for (const [key, phase] of Object.entries(phases)) {
     if (phase === "enter" || phase === "active") {
@@ -268,9 +253,7 @@ const AvatarGroupRoot = ({
   // Hover is driven by the pointer's position over the group, split into equal
   // columns — one per avatar — rather than by each avatar's own (overlapping,
   // and once lifted, occluding) box. This gives every avatar an equal, easy hit
-  // target even at tight spacing. A lifted avatar always covers its own column
-  // (column width ≤ avatar width), so the avatar physically under the cursor
-  // stays the lifted one — its tint, tooltip and clicks remain correct.
+  // target even at tight spacing.
   const handlePointer = (event: React.MouseEvent<HTMLDivElement>) => {
     const count = entries.length;
     if (count === 0) {
@@ -293,7 +276,7 @@ const AvatarGroupRoot = ({
   return (
     <AvatarGroupContext.Provider value={contextValue}>
       <div
-        className={cx(classes.root, className)}
+        className={cx(avatarSize({ size }), classes.root, className)}
         onMouseEnter={handlePointer}
         onMouseMove={handlePointer}
         onMouseLeave={handlePointerLeave}
@@ -301,20 +284,17 @@ const AvatarGroupRoot = ({
         {entries.map((entry, index) => (
           <span
             key={entry.key}
-            className={classes.item}
+            className={cx(classes.stackItem, classes.item)}
             data-lift={phases[index]}
             style={
               {
                 "--avatar-group-z": String(zIndexAt(index)),
-                // Inline z wins over the recipe's front z (1001) so the
-                // last-actioned avatar sits above the other.
                 zIndex: index === boostIndex ? 1002 : undefined,
               } as React.CSSProperties
             }
             onFocus={(event) => handleFocus(index, event.target)}
             onBlur={() => handleBlur(index)}
             onTransitionEnd={(event) => {
-              // Drop an avatar back into the stack once its exit fade completes.
               if (event.propertyName === "opacity") {
                 settleExit(index);
               }
@@ -333,7 +313,7 @@ const AvatarGroupRoot = ({
             {entries.map((entry, index) => (
               <span
                 key={`clone:${entry.key}`}
-                className={classes.cloneItem}
+                className={cx(classes.stackItem, classes.cloneItem)}
                 data-lift={phases[index]}
                 style={
                   {

@@ -5,7 +5,7 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { isEmptyString } from "../../util/string";
 import { AvatarGroupContext } from "../AvatarGroup/avatar-group-context";
 import { Icon, type IconName } from "../Icon/icon";
-import { styles } from "./avatar.recipe";
+import { avatarSize, styles } from "./avatar.recipe";
 
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
@@ -133,7 +133,7 @@ export const Avatar = ({
 
   const sharedProps = {
     ...rest,
-    className: cx(classes.root, className),
+    className: cx(avatarSize({ size }), classes.root, className),
     "aria-label": alt,
     "data-loaded": loaded,
   };
