@@ -15,7 +15,10 @@ use super::{
 };
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, card::Card},
-    file::array::{ArrayVariant, FileHeader},
+    file::{
+        array::{ArrayVariant, FileHeader},
+        region::PAGE_BYTES,
+    },
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{BoxedVecN, MatrixN},
@@ -456,7 +459,7 @@ async fn embeds_nothing_for_an_empty_card_list() {
     table
         .write_embeddings_into(&mut bytes)
         .expect("writing into a vector should not fail");
-    assert_eq!(bytes.len(), FileHeader::SIZE);
+    assert_eq!(bytes.len(), PAGE_BYTES);
 }
 
 #[test]
@@ -518,7 +521,7 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
         .write_embeddings_into(&mut bytes)
         .expect("writing into a vector should not fail");
 
-    let header = FileHeader::try_read_from_bytes(&bytes[..FileHeader::SIZE])
+    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::F32);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
@@ -532,7 +535,7 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
     // Row i starts at the header boundary plus i full rows; component 0
     // carries the fixture's per-text value.
     for (row, expected) in [(0_usize, 5.0_f32), (1, 4.0), (2, 5.0)] {
-        let offset = FileHeader::SIZE + row * CANONICAL_DIMENSIONS * size_of::<f32>();
+        let offset = PAGE_BYTES + row * CANONICAL_DIMENSIONS * size_of::<f32>();
         let component = f32::from_le_bytes(
             bytes[offset..offset + size_of::<f32>()]
                 .try_into()
@@ -559,7 +562,7 @@ async fn writes_the_hash_column_as_an_array_file() {
         .write_hashes_into(&mut bytes)
         .expect("writing into a vector should not fail");
 
-    let header = FileHeader::try_read_from_bytes(&bytes[..FileHeader::SIZE])
+    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::U8);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
@@ -567,7 +570,7 @@ async fn writes_the_hash_column_as_an_array_file() {
     assert_eq!(header.expected_file_len(), Some(bytes.len() as u64));
 
     for (row, hash) in table.view().hashes().iter().enumerate() {
-        let offset = FileHeader::SIZE + row * 32;
+        let offset = PAGE_BYTES + row * 32;
         assert_eq!(bytes[offset..offset + 32], hash.to_bytes());
     }
 

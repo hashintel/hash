@@ -24,6 +24,7 @@ use crate::{
         array::{ArrayVariant, FileHeader},
         generation::GenerationRoot,
         identity::read::IdentityFile,
+        region::PAGE_BYTES,
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{AlignedVecN, BoxedVecN, VecN},
@@ -101,7 +102,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     assert_eq!(columns.types.len(), 3);
 
     let bytes = buffer.get_ref();
-    let header = FileHeader::try_read_from_bytes(&bytes[..FileHeader::SIZE])
+    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
         .expect("a finished file should carry a valid header");
     assert_eq!(header.variant(), ArrayVariant::F32);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
@@ -111,7 +112,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     // Row `i` of the matrix is node row `i`'s embedding, bit for bit.
     let row_bytes = PROJECTOR_DIMENSIONS * size_of::<f32>();
     for (row, embedding) in embeddings.iter().enumerate() {
-        let offset = FileHeader::SIZE + row * row_bytes;
+        let offset = PAGE_BYTES + row * row_bytes;
         assert_eq!(
             &bytes[offset..offset + row_bytes],
             embedding.as_array().as_bytes(),
@@ -136,7 +137,7 @@ async fn empty_dataset_seals_an_empty_matrix() {
     assert!(columns.types.is_empty());
 
     let bytes = buffer.get_ref();
-    assert_eq!(bytes.len(), FileHeader::SIZE);
+    assert_eq!(bytes.len(), PAGE_BYTES);
     let header = FileHeader::try_read_from_bytes(bytes.as_slice())
         .expect("a finished file should carry a valid header");
     assert!(header.shape().dims().is_empty());
