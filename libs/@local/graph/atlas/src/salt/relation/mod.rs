@@ -226,9 +226,13 @@ pub(crate) struct BuildMeasurements {
     /// Stream confidence readings clamped into `0.0..=1.0` on the way in, counted per reading.
     ///
     /// The dataset contract declares the range and nothing enforces it, so the drain bounds each
-    /// violating reading and records how many it bounded. Zero is the contract holding; any other
-    /// number is a defect in whatever wrote those rows, and this is where a reader finds it.
-    pub clamped_confidences: u64,
+    /// violating reading and records how many it bounded. A count of zero is the contract holding,
+    /// and any other count is a defect in whatever wrote those rows.
+    ///
+    /// [`None`] records evidence carrying no count at all, and a reader keeps that reading
+    /// distinct from a measured zero: an absent count says nothing about whether the readings
+    /// were in range.
+    pub clamped_confidences: Option<u64>,
 }
 
 impl BuildMeasurements {

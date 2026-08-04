@@ -1,8 +1,11 @@
 //! The SALT generation metadata document.
 //!
 //! The schema is **mutable** and carries no version of its own. It nests inside the document that
-//! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, so change it to fit
-//! what the pipeline needs and increment that version when you do.
+//! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, and it grows at a fixed
+//! repository version. A field added to the schema carries an absence rule of its own. A document
+//! published before that field existed still decodes, and the field's own rule supplies the
+//! reading. A change no absence rule can carry increments that version, such as a removed key or a
+//! key whose meaning changes.
 
 use core::num::NonZero;
 
@@ -410,12 +413,7 @@ struct BuildMeasurementsDef {
     pruned_mass: f64,
     self_references: usize,
     multi_typed_edges: Vec<u64>,
-    // Absent on documents published before the drain clamped stream
-    // confidences. Zero on those documents means the count did not
-    // exist, not that every reading was in range: those fits narrowed
-    // whatever the store handed them without looking.
-    #[serde(default)]
-    clamped_confidences: u64,
+    clamped_confidences: Option<u64>,
 }
 
 /// Serializes a [`Depth`] as its subdivision count.

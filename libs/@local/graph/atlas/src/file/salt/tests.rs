@@ -280,7 +280,7 @@ fn evidence() -> Evidence {
             pruned_mass: 32.0,
             self_references: 1_024,
             multi_typed_edges: vec![8_799_998, 1],
-            clamped_confidences: 3,
+            clamped_confidences: Some(3),
         },
         lod: lod_measurements(),
         quad: QuadMeasurements {
@@ -477,25 +477,28 @@ fn baseline_generation_records_projector_absence_as_explicit_null() {
 }
 
 #[test]
-fn a_document_without_the_clamp_count_decodes_as_zero() {
+fn a_document_without_the_clamp_count_decodes_as_absent() {
     let mut document: serde_json::Value =
         serde_json::to_value(repository()).expect("the repository should serialize");
     let mut expected = repository();
-    expected.metadata.evidence.relations.clamped_confidences = 0;
+    expected.metadata.evidence.relations.clamped_confidences = None;
     let relations = document
         .pointer_mut("/metadata/evidence/relations")
         .and_then(serde_json::Value::as_object_mut)
         .expect("the relation evidence should be an object");
 
-    // The key is physically removed, which is the shape every document
-    // published before the drain counted its clamps actually has.
+    // The key is physically removed, the shape a document carries when
+    // no fit counted its clamps.
     assert!(
         relations.remove("clamped_confidences").is_some(),
         "the published shape should carry the clamp count: {relations:?}",
     );
     let decoded: SaltRepository =
         serde_json::from_value(document.clone()).expect("the older shape should deserialize");
-    assert_eq!(decoded.metadata.evidence.relations.clamped_confidences, 0);
+    assert_eq!(
+        decoded.metadata.evidence.relations.clamped_confidences, None,
+        "an absent key reads as an absent count rather than a measured zero"
+    );
     assert_eq!(decoded, expected);
 
     // The control for the removal itself: a sibling count with no

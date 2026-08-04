@@ -458,10 +458,10 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
         vec![2],
     );
     // The zero control for the confidence clamp: this corpus has no scores, so no reading can
-    // violate the contract and the count published beside the histogram is zero.
+    // violate the contract and the count published beside the histogram is a measured zero.
     assert_eq!(
         repository.metadata.evidence.relations.clamped_confidences,
-        0,
+        Some(0),
     );
 }
 
@@ -2198,7 +2198,7 @@ async fn out_of_range_confidences_are_clamped_and_counted() {
     let repository: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     let relations = &repository.metadata.evidence.relations;
-    assert_eq!(relations.clamped_confidences, 3);
+    assert_eq!(relations.clamped_confidences, Some(3));
     // The same fact stated where a reader will look for it.
     assert!(
         relations.retained_mass.is_finite(),

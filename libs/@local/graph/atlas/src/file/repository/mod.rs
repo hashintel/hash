@@ -13,9 +13,10 @@
 //!
 //! The layout is version 2 and **mutable**, covering the directory structure and naming. Change it
 //! to fit what the pipeline needs and increment [`RepositoryVersion`] when you do. Published files
-//! are immutable while the conventions around them stay mutable until they stabilize. Retired
-//! versions stay retired. Deserialization rejects a repository of an earlier layout whole and never
-//! reinterprets it. Its store requires a fresh generation.
+//! are immutable while the conventions around them stay mutable. The metadata document nested
+//! inside the repository grows at a fixed version, so a field added there arrives without an
+//! increment. Retired versions stay retired. Deserialization rejects a repository of an earlier
+//! layout whole and never reinterprets it. Its store requires a fresh generation.
 
 use alloc::borrow::Cow;
 
