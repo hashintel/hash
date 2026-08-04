@@ -33,8 +33,9 @@ use super::{
 };
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card,
-        memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+        card::Card,
+        memory::{MemoryDataset, MemoryNodeId},
     },
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
@@ -401,7 +402,7 @@ const FIXTURE_CAPACITY: usize = 48 * PROJECTOR_DIMENSIONS;
 /// the angular gap, so equal embedding and map angles make all three spaces order every universe
 /// identically - a perfect map.
 struct ProbeFixture {
-    node_ids: Vec<U64<LE>>,
+    node_ids: Vec<MemoryNodeId>,
     storage: BoxedVecN<FIXTURE_CAPACITY>,
     rows: usize,
     coordinates: Vec<Vec2>,
@@ -431,7 +432,7 @@ impl ProbeFixture {
         }
 
         Self {
-            node_ids: (0..angles.len() as u64).map(U64::new).collect(),
+            node_ids: (0..angles.len() as u64).map(MemoryNodeId::new).collect(),
             storage,
             rows: angles.len(),
             coordinates: map_angles
@@ -457,7 +458,7 @@ impl ProbeFixture {
             .expect("boxed storage is aligned")
     }
 
-    fn corpus(&self) -> ProbeCorpus<'_, U64<LE>> {
+    fn corpus(&self) -> ProbeCorpus<'_, MemoryNodeId> {
         ProbeCorpus::new(
             IdSlice::from_raw(&self.node_ids),
             IdSlice::from_raw(self.representations()),

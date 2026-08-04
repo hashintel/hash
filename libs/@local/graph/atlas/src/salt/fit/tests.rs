@@ -7,7 +7,7 @@ use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
-use zerocopy::{LE, U64};
+use zerocopy::{LE, TryFromBytes as _, U64};
 
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
@@ -19,8 +19,10 @@ use super::{
 };
 use crate::{
     dataset::{
-        ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
-        card::Card, memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+        card::Card,
+        memory::{MemoryDataset, MemoryEdgeId, MemoryNodeId, MemoryOntologyId},
+        postgres::id::ArchivedOntologyTypeUuid,
     },
     file::{
         array::ArrayFile,
@@ -601,7 +603,7 @@ fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
 ///
 /// Node ids are the fixture's row numbers, edge ids its 100 and 101.
 fn assert_identities_translate(published: &Utf8Path) {
-    let nodes = IdentityTableArchive::<U64<LE>, NodeRowId>::new(
+    let nodes = IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
         IdentityFile::open(published.join("node-identities.idnt"))
             .expect("the node identities should map"),
     )
@@ -610,25 +612,28 @@ fn assert_identities_translate(published: &Utf8Path) {
     for row in 0..NODES as u64 {
         assert_eq!(
             nodes.id(NodeRowId::new(row)),
-            Some(U64::new(row)),
+            Some(MemoryNodeId::new(row)),
             "row {row}"
         );
         assert_eq!(
-            nodes.row_of(U64::new(row)),
+            nodes.row_of(MemoryNodeId::new(row)),
             Some(NodeRowId::new(row)),
             "id {row}"
         );
     }
-    assert!(nodes.row_of(U64::new(NODES as u64 + 7)).is_none());
+    assert!(nodes.row_of(MemoryNodeId::new(NODES as u64 + 7)).is_none());
 
-    let edge_ids = IdentityTableArchive::<U64<LE>, EdgeRowId>::new(
+    let edge_ids = IdentityTableArchive::<MemoryEdgeId, EdgeRowId>::new(
         IdentityFile::open(published.join("edge-identities.idnt"))
             .expect("the edge identities should map"),
     )
     .expect("the edge identities should validate");
     assert_eq!(edge_ids.len(), 2);
-    assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(U64::new(100)));
-    assert_eq!(edge_ids.row_of(U64::new(101)), Some(EdgeRowId::new(1)));
+    assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(MemoryEdgeId::new(100)));
+    assert_eq!(
+        edge_ids.row_of(MemoryEdgeId::new(101)),
+        Some(EdgeRowId::new(1))
+    );
 }
 
 /// Asserts the published postings against the fixture by hand.
@@ -2408,15 +2413,18 @@ async fn edge_artifacts_publish_and_read_back() {
 
     // The ontology identities translate type rows to source ids and
     // back: the fixture's type ids are its row numbers.
-    let ontology_ids = IdentityTableArchive::<U64<LE>, OntologyRowId>::new(
+    let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
         IdentityFile::open(published.path().join("ontology-identities.idnt"))
             .expect("the ontology identities should map"),
     )
     .expect("the ontology identities should validate");
     assert_eq!(ontology_ids.len(), 4);
-    assert_eq!(ontology_ids.id(OntologyRowId::new(2)), Some(U64::new(2)));
     assert_eq!(
-        ontology_ids.row_of(U64::new(3)),
+        ontology_ids.id(OntologyRowId::new(2)),
+        Some(MemoryOntologyId::new(2))
+    );
+    assert_eq!(
+        ontology_ids.row_of(MemoryOntologyId::new(3)),
         Some(OntologyRowId::new(3))
     );
 
@@ -2467,9 +2475,11 @@ where
     }
     let rows = usize::try_from(table.len()).expect("rows fit the address space");
     let file = fs::File::create(path.as_std_path()).expect("the scratch file is writable");
+    let empty = <I::Payload>::try_ref_from_bytes(&[])
+        .expect("every payload type admits the empty byte string");
     table
         .write_into(
-            core::iter::repeat_n::<&[u8]>(&[], rows),
+            core::iter::repeat_n(empty, rows),
             std::io::BufWriter::new(file),
         )
         .expect("the fixture table writes");
@@ -2527,7 +2537,10 @@ fn plain_number_corpus_resolves_the_memory_scheme() {
     // A plain-number column derives ids from the memory scheme alone:
     // the store-identity URL records as unresolved (the control), and
     // the memory URL reaches the row whose id its authority names.
-    let path = write_ontology_identities(&scratch("resolve-width"), (0..4_u64).map(U64::<LE>::new));
+    let path = write_ontology_identities(
+        &scratch("resolve-width"),
+        (0..4_u64).map(MemoryOntologyId::new),
+    );
 
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
@@ -2542,7 +2555,7 @@ fn plain_number_corpus_resolves_the_memory_scheme() {
     let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
         .expect("a contract-conforming document admits");
 
-    let resolution = resolve_supplied::<U64<LE>>(&path, &supplied)
+    let resolution = resolve_supplied::<MemoryOntologyId>(&path, &supplied)
         .expect("a plain-number corpus resolves the memory scheme");
 
     assert_eq!(resolution.resolved.len(), 1);

@@ -12,7 +12,7 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     file::quad::Node,
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},

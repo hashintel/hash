@@ -27,7 +27,7 @@ use super::{
     },
     select::{select_properties, simple_properties},
 };
-use crate::dataset::ArchivedEntityId;
+use crate::dataset::postgres::id::ArchivedEntityId;
 
 /// The base URL of the system `icon` property an entity may carry.
 const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";

@@ -24,7 +24,7 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},

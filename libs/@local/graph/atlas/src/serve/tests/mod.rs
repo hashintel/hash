@@ -364,7 +364,7 @@ fn store_identities(generation: &Generation) {
     use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
 
     use crate::{
-        dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+        dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
         file::identity::read::IdentityFile,
         salt::fit::prepare::identity::IdentityTable,
     };
@@ -417,8 +417,10 @@ fn rewrite_identities<R, I>(
 {
     let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
     let mut file = std::fs::File::create(path).expect("the identity artifact rewrites");
+    let empty = <I::Payload as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
+        .expect("every payload type admits the empty byte string");
     let _digest = table
-        .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), &mut file)
+        .write_into(core::iter::repeat_n(empty, rows), &mut file)
         .expect("the identities should write");
 }
 
@@ -1020,7 +1022,7 @@ fn wire_columns(
 ) -> (
     Vec<WireRow<NodeRowId>>,
     Vec<WireRow<NodeRowId>>,
-    Vec<crate::dataset::ArchivedEntityId>,
+    Vec<crate::dataset::postgres::id::ArchivedEntityId>,
 ) {
     let node_codec = test_codec(atlas);
     assert!(rows.is_sorted(), "the derivation supplies ascending rows");
@@ -1043,7 +1045,7 @@ fn expected_edges_bytes(
     complete: bool,
     sources: &[WireRow<NodeRowId>],
     targets: &[WireRow<NodeRowId>],
-    edge_ids: &[crate::dataset::ArchivedEntityId],
+    edge_ids: &[crate::dataset::postgres::id::ArchivedEntityId],
 ) -> Vec<u8> {
     EdgesResponse {
         generation: generation.id().digest(),
@@ -1265,7 +1267,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
     // two whose worse endpoint ranks best - ties on identity bytes,
     // which for the fixture ascend with the edge row - emitted in
     // ascending identity order.
-    let mut ranked: Vec<(u32, crate::dataset::ArchivedEntityId, u32)> = endpoints
+    let mut ranked: Vec<(u32, crate::dataset::postgres::id::ArchivedEntityId, u32)> = endpoints
         .iter()
         .enumerate()
         .map(|(row, &[source, target])| {
@@ -1868,7 +1870,7 @@ fn colored_masks_resolve_and_expand_descendants() {
 
     use super::colour;
     use crate::{
-        dataset::ArchivedOntologyTypeUuid,
+        dataset::postgres::id::ArchivedOntologyTypeUuid,
         file::{identity::read::IdentityFile, postings::read::PostingsFile},
         salt::{
             fit::prepare::identity::{IdentityTable, IdentityTableArchive},
@@ -1937,8 +1939,11 @@ fn colored_masks_resolve_and_expand_descendants() {
     let identity_path = dir.join("fixture.idnt");
     let mut file = std::fs::File::create(&identity_path).expect("the identity file creates");
     let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
+    let empty =
+        <crate::dataset::auxiliary::Icon as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
+            .expect("every payload type admits the empty byte string");
     let _digest = table
-        .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), &mut file)
+        .write_into(core::iter::repeat_n(empty, rows), &mut file)
         .expect("the identities should write");
     drop(file);
     let table = IdentityTableArchive::<ArchivedOntologyTypeUuid, OntologyRowId>::new(
@@ -2094,8 +2099,8 @@ async fn detailed_tiles_encode_the_hydrated_trailer() {
 }
 
 /// One synthetic entity identity per seed byte, plus its upstream string form.
-fn entity_id_of(seed: u8) -> crate::dataset::ArchivedEntityId {
-    crate::dataset::ArchivedEntityId {
+fn entity_id_of(seed: u8) -> crate::dataset::postgres::id::ArchivedEntityId {
+    crate::dataset::postgres::id::ArchivedEntityId {
         web_id: uuid::Uuid::from_bytes([seed; 16]).into(),
         entity_uuid: uuid::Uuid::from_bytes([seed ^ 0xFF; 16]).into(),
     }
@@ -2125,7 +2130,7 @@ fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
 /// Identity bytes ascend with the edge row, because `entity_id_of` leads with its seed byte.
 /// Ascending internal row order is therefore the wire's ascending-identity delivery order for the
 /// fixture.
-fn edge_identity_of(row: u32) -> crate::dataset::ArchivedEntityId {
+fn edge_identity_of(row: u32) -> crate::dataset::postgres::id::ArchivedEntityId {
     entity_id_of(EDGE_SEED + u8::try_from(row).expect("fixture edge rows fit u8"))
 }
 
@@ -2140,11 +2145,13 @@ fn entity_string_of(seed: u8) -> String {
 /// Writes and reopens one hand-built entity identity table.
 fn entity_identity_table<R: Row>(
     path: &camino::Utf8PathBuf,
-    ids: &[crate::dataset::ArchivedEntityId],
-) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId, R>
-{
+    ids: &[crate::dataset::postgres::id::ArchivedEntityId],
+) -> crate::salt::fit::prepare::identity::IdentityTableArchive<
+    crate::dataset::postgres::id::ArchivedEntityId,
+    R,
+> {
     use crate::{
-        dataset::ArchivedEntityId, file::identity::read::IdentityFile,
+        dataset::postgres::id::ArchivedEntityId, file::identity::read::IdentityFile,
         salt::fit::prepare::identity::IdentityTable,
     };
 
@@ -2153,8 +2160,11 @@ fn entity_identity_table<R: Row>(
         table.push(id);
     }
     let mut file = std::fs::File::create(path).expect("the identity file creates");
+    let empty =
+        <crate::dataset::auxiliary::Label as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
+            .expect("every payload type admits the empty byte string");
     let _digest = table
-        .write_into(core::iter::repeat_n::<&[u8]>(&[], ids.len()), &mut file)
+        .write_into(core::iter::repeat_n(empty, ids.len()), &mut file)
         .expect("the identities should write");
     drop(file);
     crate::salt::fit::prepare::identity::IdentityTableArchive::new(
@@ -2599,7 +2609,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         .iter()
         .map(|&(edge, _)| wire_of(edge.target))
         .collect();
-    let edge_ids: Vec<crate::dataset::ArchivedEntityId> =
+    let edge_ids: Vec<crate::dataset::postgres::id::ArchivedEntityId> =
         subgraph.edges.iter().map(|&(_, id)| id).collect();
     let wire_rows: Vec<WireRow<NodeRowId>> =
         atlas.row_ids().iter().map(|&row| wire_of(row)).collect();

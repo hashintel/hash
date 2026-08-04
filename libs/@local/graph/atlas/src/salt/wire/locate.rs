@@ -29,7 +29,7 @@ use super::{
     tile::{TileCoordinate, encode_details},
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::Vec2,

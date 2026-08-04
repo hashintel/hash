@@ -16,7 +16,7 @@ use super::{
     secret::WireSecret,
 };
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},

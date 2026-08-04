@@ -18,7 +18,7 @@ use super::{
     rewrite_identities, store_identities, test_open_options,
 };
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{
         WriteInto as _,
         array::{ArrayVariant, Dim, SizedArrayWriter},

@@ -19,7 +19,7 @@ use super::{
     visibility::{VisibilityProof, VisibleEdge},
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, EdgeRowId, ImportanceRank, NodeRowId},
     salt::{adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive},
 };

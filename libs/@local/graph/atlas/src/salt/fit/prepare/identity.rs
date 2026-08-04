@@ -15,8 +15,9 @@
 //!
 //! This module owns the table's domain invariants. The index holds exactly one entry per row and
 //! every entry agrees with the id column, which makes the index and the column two views of one
-//! bijection, and every span lies inside the payload region. One `O(N)` pass validates all of
-//! that on open, so every lookup afterwards skips validation.
+//! bijection, every span lies inside the payload region, and every span's bytes cast as the id
+//! type's payload. One `O(N)` pass validates all of that on open, so a lookup afterwards never
+//! reports a malformed file.
 //!
 //! [`Dataset::NodeId`]: crate::dataset::Dataset::NodeId
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
@@ -26,7 +27,7 @@ use std::io;
 
 use fst::Streamer as _;
 use hashql_core::id::{IdSlice, IdVec};
-use zerocopy::{FromBytes as _, Immutable, IntoBytes};
+use zerocopy::{FromBytes as _, TryFromBytes as _};
 
 use crate::{
     file::identity::{
@@ -70,11 +71,9 @@ where
 
     /// Writes the table as one identity file, returning the digest of the written bytes.
     ///
-    /// `payloads` yields each row's display value in row order, a zerocopy value whose bytes
-    /// enter the payload region verbatim, empty for a row that displays nothing. A caller
-    /// with no display column yet supplies [`repeat_n`](core::iter::repeat_n) of empty byte
-    /// slices. Every region streams in file order. Wrap a raw [`File`](std::fs::File) in a
-    /// [`BufWriter`](io::BufWriter).
+    /// `payloads` yields each row's display payload in row order, with each payload's bytes
+    /// entering the payload region verbatim. Every region streams in file order. Wrap a raw
+    /// [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
     ///
     /// # Errors
     ///
@@ -85,13 +84,13 @@ where
     /// This panics when `payloads` does not yield exactly one payload per row, or when two rows
     /// carry one id, which the dataset row contract excludes. The check runs before any byte
     /// reaches the writer.
-    pub(crate) fn write_into<'a, A>(
+    pub(crate) fn write_into<'a>(
         &self,
-        payloads: impl IntoIterator<Item = &'a A>,
+        payloads: impl IntoIterator<Item = &'a K::Payload>,
         write: impl io::Write,
     ) -> io::Result<Sha256Digest>
     where
-        A: IntoBytes + Immutable + ?Sized + 'a,
+        K: Key<Payload: 'a>,
     {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -118,6 +117,8 @@ pub enum InvalidIdentityFile {
     ColumnDisagreement { row: u64 },
     /// A span reaches beyond the payload region.
     SpanOutOfBounds { row: u64 },
+    /// A span's bytes do not cast as the id type's payload.
+    Payload { row: u64 },
 }
 
 impl fmt::Display for InvalidIdentityFile {
@@ -151,6 +152,12 @@ impl fmt::Display for InvalidIdentityFile {
                 write!(
                     fmt,
                     "the span of row {row} reaches beyond the payload region"
+                )
+            }
+            Self::Payload { row } => {
+                write!(
+                    fmt,
+                    "the payload bytes of row {row} do not cast as the id type's payload"
                 )
             }
         }
@@ -229,11 +236,21 @@ where
             }
         }
 
-        let payload_bytes = table.file.payload().len() as u64;
+        let payload = table.file.payload();
         for (row, span) in table.file.spans().iter().enumerate() {
             let end = span.offset().checked_add(span.length());
-            if end.is_none_or(|end| end > payload_bytes) {
+            if end.is_none_or(|end| end > payload.len() as u64) {
                 return Err(InvalidIdentityFile::SpanOutOfBounds { row: row as u64 });
+            }
+
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "the check above bounded the span by the payload region, whose length is \
+                          a `usize`"
+            )]
+            let (offset, length) = (span.offset() as usize, span.length() as usize);
+            if <K::Payload>::try_ref_from_bytes(&payload[offset..offset + length]).is_err() {
+                return Err(InvalidIdentityFile::Payload { row: row as u64 });
             }
         }
 
@@ -275,14 +292,22 @@ where
 
     /// Returns the display payload of `row`, or [`None`] beyond the domain.
     ///
-    /// A row without a display value returns empty bytes.
+    /// A row without a display value returns the empty payload.
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
+    )]
     #[must_use]
-    pub(crate) fn payload_of(&self, row: R) -> Option<&[u8]> {
+    pub(crate) fn payload_of(&self, row: R) -> Option<&K::Payload> {
         let span = self.spans().get(row)?;
-        let offset = usize::try_from(span.offset()).expect("open validated the span");
-        let length = usize::try_from(span.length()).expect("open validated the span");
+        let offset = span.offset() as usize;
+        let length = span.length() as usize;
 
-        Some(&self.file.payload()[offset..offset + length])
+        let bytes = &self.file.payload()[offset..offset + length];
+        // SAFETY: `Self::new` cast every span's bytes as `K::Payload` and rejected the file
+        // otherwise, and the mapped file is immutable under the `crate::file` publish contract,
+        // so the bytes validated there are the bytes sliced here.
+        Some(unsafe { <K::Payload>::try_ref_from_bytes(bytes).unwrap_unchecked() })
     }
 }
 
@@ -292,10 +317,15 @@ mod tests {
     use std::{fs, path::PathBuf};
 
     use fst::MapBuilder;
-    use zerocopy::{IntoBytes as _, LE, U64};
+    use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
     use super::{IdentityTable, IdentityTableArchive, InvalidIdentityFile};
     use crate::{
+        dataset::{
+            auxiliary::{Icon, Label},
+            memory::{MemoryNodeId, MemoryOntologyId},
+            postgres::id::ArchivedOntologyTypeUuid,
+        },
         file::{
             identity::{FileHeader, KeyKind, Kind, PaddedFileHeader, read::IdentityFile},
             region::write_region,
@@ -314,11 +344,20 @@ mod tests {
         dir.join(name)
     }
 
+    /// Borrows `text` as a label.
+    fn label(text: &str) -> &Label {
+        Label::try_ref_from_bytes(text.as_bytes()).expect("UTF-8 text is a valid label")
+    }
+
     // Ids in row order; ascending id-byte order is rows 2, 0, 1.
-    const IDS: [U64<LE>; 3] = [
-        U64::from_bytes([9, 0, 0, 1, 0, 0, 0, 0]),
-        U64::from_bytes([9, 0, 0, 2, 0, 0, 0, 0]),
-        U64::from_bytes([3, 7, 7, 7, 0, 0, 0, 0]),
+    #[expect(
+        clippy::little_endian_bytes,
+        reason = "the fixture pins ids whose little-endian bytes sort unlike their values"
+    )]
+    const IDS: [MemoryNodeId; 3] = [
+        MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 1, 0, 0, 0, 0])),
+        MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 2, 0, 0, 0, 0])),
+        MemoryNodeId::new(u64::from_le_bytes([3, 7, 7, 7, 0, 0, 0, 0])),
     ];
 
     /// Writes a three-row node table, returning the path and the digest `write_into` reported.
@@ -331,7 +370,7 @@ mod tests {
 
         let mut bytes = Vec::new();
         let digest = table
-            .write_into(["beta", "alpha", ""], &mut bytes)
+            .write_into([label("beta"), label("alpha"), label("")], &mut bytes)
             .expect("writing into a vector cannot fail");
 
         let path = scratch(name);
@@ -347,7 +386,7 @@ mod tests {
         let bytes = fs::read(&path).expect("the scratch file reads back");
         assert_eq!(digest, Sha256Digest::of(&bytes));
 
-        let table = IdentityTableArchive::<U64<LE>, NodeRowId>::new(
+        let table = IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
             IdentityFile::open(&path).expect("the written file reopens"),
         )
         .expect("the written table validates");
@@ -361,48 +400,42 @@ mod tests {
             assert_eq!(table.row_of(*id), Some(row));
         }
         assert_eq!(table.id(NodeRowId::new(3)), None);
-        assert_eq!(table.row_of(U64::new(0)), None);
+        assert_eq!(table.row_of(MemoryNodeId::new(0)), None);
 
         // row → payload slices the interned region, empty bytes included.
-        assert_eq!(
-            table.payload_of(NodeRowId::new(0)),
-            Some(b"beta".as_slice())
-        );
-        assert_eq!(
-            table.payload_of(NodeRowId::new(1)),
-            Some(b"alpha".as_slice())
-        );
-        assert_eq!(table.payload_of(NodeRowId::new(2)), Some(b"".as_slice()));
+        assert_eq!(table.payload_of(NodeRowId::new(0)), Some(label("beta")));
+        assert_eq!(table.payload_of(NodeRowId::new(1)), Some(label("alpha")));
+        assert_eq!(table.payload_of(NodeRowId::new(2)), Some(label("")));
         assert_eq!(table.payload_of(NodeRowId::new(3)), None);
     }
 
     #[test]
     fn empty_table_round_trips() {
-        let table = IdentityTable::<OntologyRowId, U64<LE>>::new();
+        let table = IdentityTable::<OntologyRowId, MemoryOntologyId>::new();
         let mut bytes = Vec::new();
         let _digest = table
-            .write_into(core::iter::empty::<&[u8]>(), &mut bytes)
+            .write_into(core::iter::empty::<&Icon>(), &mut bytes)
             .expect("writing into a vector cannot fail");
 
         let path = scratch("empty.idnt");
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
-        let table = IdentityTableArchive::<U64<LE>, OntologyRowId>::new(
+        let table = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
             IdentityFile::open(&path).expect("the empty file reopens"),
         )
         .expect("the empty table validates");
         assert_eq!(table.len(), 0);
-        assert_eq!(table.row_of(U64::new(0)), None);
+        assert_eq!(table.row_of(MemoryOntologyId::new(0)), None);
     }
 
     #[test]
     #[should_panic(expected = "two rows carry one key")]
     fn table_refuses_duplicate_ids_at_write() {
         let mut table = IdentityTable::<NodeRowId, _>::new();
-        table.push(U64::<LE>::new(7));
-        table.push(U64::<LE>::new(7));
+        table.push(MemoryNodeId::new(7));
+        table.push(MemoryNodeId::new(7));
 
-        let _result = table.write_into(core::iter::repeat_n::<&[u8]>(&[], 2), &mut Vec::new());
+        let _result = table.write_into(core::iter::repeat_n(label(""), 2), &mut Vec::new());
     }
 
     #[test]
@@ -411,30 +444,30 @@ mod tests {
         // and the index lookups both face a non-monotone id column.
         let mut table = IdentityTable::<NodeRowId, _>::new();
         for id in 0..600_u64 {
-            table.push(U64::<LE>::new(id));
+            table.push(MemoryNodeId::new(id));
         }
         let mut bytes = Vec::new();
         let _digest = table
-            .write_into(core::iter::repeat_n::<&[u8]>(&[], 600), &mut bytes)
+            .write_into(core::iter::repeat_n(label(""), 600), &mut bytes)
             .expect("writing into a vector cannot fail");
 
         let path = scratch("six-hundred.idnt");
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
-        let table = IdentityTableArchive::<U64<LE>, NodeRowId>::new(
+        let table = IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
             IdentityFile::open(&path).expect("the written file reopens"),
         )
         .expect("the written table validates");
 
         for row in [0_u64, 255, 256, 257, 511, 512, 599] {
             assert_eq!(
-                table.row_of(U64::new(row)),
+                table.row_of(MemoryNodeId::new(row)),
                 Some(NodeRowId::new(row)),
                 "row {row}"
             );
-            assert_eq!(table.id(NodeRowId::new(row)), Some(U64::new(row)));
+            assert_eq!(table.id(NodeRowId::new(row)), Some(MemoryNodeId::new(row)));
         }
-        assert_eq!(table.row_of(U64::new(600)), None);
+        assert_eq!(table.row_of(MemoryNodeId::new(600)), None);
     }
 
     #[test]
@@ -442,7 +475,7 @@ mod tests {
         let (path, _digest) = written_fixture("foreign-domain.idnt");
 
         assert_matches!(
-            IdentityTableArchive::<U64<LE>, OntologyRowId>::new(
+            IdentityTableArchive::<MemoryNodeId, OntologyRowId>::new(
                 IdentityFile::open(&path).expect("the written file reopens"),
             ),
             Err(InvalidIdentityFile::Domain {
@@ -457,11 +490,11 @@ mod tests {
         let (path, _digest) = written_fixture("foreign-id.idnt");
 
         assert_matches!(
-            IdentityTableArchive::<u8, NodeRowId>::new(
+            IdentityTableArchive::<ArchivedOntologyTypeUuid, NodeRowId>::new(
                 IdentityFile::open(&path).expect("the written file reopens"),
             ),
             Err(InvalidIdentityFile::KeyKind {
-                expected: KeyKind::U8Le,
+                expected: KeyKind::OntologyTypeUuid,
                 actual: KeyKind::U64Le,
             }),
         );
@@ -478,7 +511,7 @@ mod tests {
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
         assert_matches!(
-            IdentityTableArchive::<U64<LE>, NodeRowId>::new(
+            IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
                 IdentityFile::open(&path).expect("the patched file still reopens"),
             ),
             Err(InvalidIdentityFile::ColumnDisagreement { row: 0 }),
@@ -496,7 +529,7 @@ mod tests {
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
         assert_matches!(
-            IdentityTableArchive::<U64<LE>, NodeRowId>::new(
+            IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
                 IdentityFile::open(&path).expect("the patched file still reopens"),
             ),
             Err(InvalidIdentityFile::SpanOutOfBounds { row: 0 }),
@@ -504,20 +537,40 @@ mod tests {
     }
 
     #[test]
+    fn archive_refuses_a_payload_that_is_not_utf8() {
+        let (path, _digest) = written_fixture("invalid-payload.idnt");
+
+        // The payload region starts at 0x4000 and row 0's span selects its first four bytes.
+        // 0xFF appears in no UTF-8 sequence, so the typed cast refuses.
+        let mut bytes = fs::read(&path).expect("the scratch file reads back");
+        bytes[0x4000] = 0xFF;
+        fs::write(&path, &bytes).expect("the scratch file is writable");
+
+        assert_matches!(
+            IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
+                IdentityFile::open(&path).expect("the patched file still reopens"),
+            ),
+            Err(InvalidIdentityFile::Payload { row: 0 }),
+        );
+    }
+
+    #[test]
     fn archive_refuses_an_index_missing_a_row() {
         // Hand-crafted geometry the writer refuses to produce: two rows whose index carries one
         // entry. The format accepts it, and the typed open is what refuses.
-        let keys: [u8; 2] = [1, 2];
+        let keys = [U64::<LE>::new(1), U64::<LE>::new(2)];
         let mut builder = MapBuilder::memory();
-        builder.insert([1], 0).expect("one insert cannot collide");
+        builder
+            .insert(keys[0].as_bytes(), 0)
+            .expect("one insert cannot collide");
         let index = builder
             .into_inner()
             .expect("an in-memory index build performs no io");
 
-        let header = FileHeader::new(Kind::Nodes, KeyKind::U8Le, 2, index.len() as u64, 0);
+        let header = FileHeader::new(Kind::Nodes, KeyKind::U64Le, 2, index.len() as u64, 0);
         let mut bytes = Vec::new();
         bytes.extend_from_slice(PaddedFileHeader::new(header).as_bytes());
-        write_region(&mut bytes, &keys).expect("writing into a vector cannot fail");
+        write_region(&mut bytes, keys.as_bytes()).expect("writing into a vector cannot fail");
         write_region(&mut bytes, &index).expect("writing into a vector cannot fail");
         write_region(&mut bytes, [0_u8; 32].as_slice()).expect("writing into a vector cannot fail");
 
@@ -525,7 +578,7 @@ mod tests {
         fs::write(&path, &bytes).expect("the scratch file is writable");
 
         assert_matches!(
-            IdentityTableArchive::<u8, NodeRowId>::new(
+            IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
                 IdentityFile::open(&path).expect("the crafted file reopens"),
             ),
             Err(InvalidIdentityFile::IndexSize {

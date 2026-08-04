@@ -28,7 +28,7 @@ use type_system::knowledge::entity::id::ENTITY_ID_DELIMITER;
 
 use super::{Atlas, WireRow, codec::RowCodec, visibility::VisibilityProof};
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, EdgeRowId, NodeRowId},
     math::Vec2,
     salt::fit::prepare::identity::IdentityTableArchive,

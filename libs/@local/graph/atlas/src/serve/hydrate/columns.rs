@@ -4,7 +4,7 @@
 //! the store rows, assembly documents and encoders read them. An entity the store no longer serves
 //! reads `null` in every column and `false` in every completeness flag.
 
-use crate::dataset::ArchivedEntityId;
+use crate::dataset::postgres::id::ArchivedEntityId;
 
 /// The entity identities behind one delivered set, in delivered order.
 ///

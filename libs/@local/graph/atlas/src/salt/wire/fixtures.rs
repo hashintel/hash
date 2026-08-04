@@ -43,7 +43,7 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},

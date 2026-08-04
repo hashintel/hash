@@ -20,7 +20,7 @@ use super::{
     walk::Walk,
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{EdgeRowId, NodeRowId},
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };

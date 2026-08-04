@@ -13,7 +13,7 @@ use futures::TryStreamExt as _;
 use hashql_core::id::{Id as _, IdVec};
 use smallvec::SmallVec;
 use tracing::Instrument as _;
-use zerocopy::{IntoBytes as _, LE, U64};
+use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{
     FitConfig, Stage,
@@ -32,6 +32,7 @@ use crate::{
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{Generation, ScratchDirectory, StagedGeneration},
+        identity::Key,
         repository::RepositoryFile,
     },
     identity::OntologyRowId,
@@ -218,9 +219,14 @@ where
     let nodes = columns.ids.len();
     let identities = write_staged(staging, Role::NodeIdentities, |writer| {
         let rows = usize::try_from(columns.ids.len()).expect("rows fit the address space");
-        columns
-            .ids
-            .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+        columns.ids.write_into(
+            core::iter::repeat_n(
+                <<D::NodeId as Key>::Payload>::try_ref_from_bytes(&[])
+                    .expect("every payload type admits the empty byte string"),
+                rows,
+            ),
+            writer,
+        )
     })?;
 
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
@@ -390,7 +396,14 @@ where
 
     let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
         let rows = usize::try_from(ids.len()).expect("rows fit the address space");
-        ids.write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+        ids.write_into(
+            core::iter::repeat_n(
+                <<D::EdgeId as Key>::Payload>::try_ref_from_bytes(&[])
+                    .expect("every payload type admits the empty byte string"),
+                rows,
+            ),
+            writer,
+        )
     })?;
     let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
     let instances = spool.finish()?;
@@ -474,7 +487,14 @@ where
     let types = cards.len() as u64;
     let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
         let rows = usize::try_from(ids.len()).expect("rows fit the address space");
-        ids.write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+        ids.write_into(
+            core::iter::repeat_n(
+                <<D::OntologyId as Key>::Payload>::try_ref_from_bytes(&[])
+                    .expect("every payload type admits the empty byte string"),
+                rows,
+            ),
+            writer,
+        )
     })?;
 
     let prior_files = prior

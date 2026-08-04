@@ -1,5 +1,7 @@
 //! An in-memory [`Dataset`] for tests and synthetic corpora.
 
+mod id;
+
 use std::{collections::HashMap, io};
 
 use futures::{Stream, StreamExt as _, stream};
@@ -7,6 +9,7 @@ use hashql_core::id::Id as _;
 use smallvec::SmallVec;
 use zerocopy::{LE, U64};
 
+pub(crate) use self::id::{MemoryEdgeId, MemoryNodeId, MemoryOntologyId};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes, card::Card,
 };
@@ -16,14 +19,15 @@ use crate::math::BoxedVecN;
 ///
 /// The dataset is a fixture. It serves exactly the rows the caller supplies, and [`new`](Self::new)
 /// validates the structural contracts once, so every stream is consistent by construction. Ids in
-/// all three domains are plain little-endian integers chosen by the caller.
+/// all three domains are plain little-endian integers chosen by the caller, and the streams serve
+/// them as the typed memory ids.
 ///
 /// Malformed lookups are programmer errors and panic, so the streams are infallible and
 /// [`Dataset::Error`] is `!`.
 pub(crate) struct MemoryDataset {
-    nodes: Vec<Node<U64<LE>>>,
-    edges: Vec<Edge<U64<LE>>>,
-    ontology: Vec<Ontology<U64<LE>>>,
+    nodes: Vec<Node<MemoryNodeId>>,
+    edges: Vec<Edge<MemoryEdgeId>>,
+    ontology: Vec<Ontology<MemoryOntologyId>>,
     canonical: HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
     cards: HashMap<u64, Card>,
 }
@@ -95,9 +99,35 @@ impl MemoryDataset {
         }
 
         Self {
-            nodes,
-            edges,
-            ontology,
+            nodes: nodes
+                .into_iter()
+                .map(|node| Node {
+                    id: MemoryNodeId::new(node.id.get()),
+                    ontology: node.ontology,
+                    embedding: node.embedding,
+                    confidence: node.confidence,
+                })
+                .collect(),
+            edges: edges
+                .into_iter()
+                .map(|edge| Edge {
+                    id: MemoryEdgeId::new(edge.id.get()),
+                    source: edge.source,
+                    target: edge.target,
+                    ontology: edge.ontology,
+                    embedding: edge.embedding,
+                    confidence: edge.confidence,
+                    source_confidence: edge.source_confidence,
+                    target_confidence: edge.target_confidence,
+                })
+                .collect(),
+            ontology: ontology
+                .into_iter()
+                .map(|entry| Ontology {
+                    id: MemoryOntologyId::new(entry.id.get()),
+                    parents: entry.parents,
+                })
+                .collect(),
             canonical,
             cards,
         }
@@ -105,19 +135,19 @@ impl MemoryDataset {
 }
 
 impl Dataset for MemoryDataset {
-    type EdgeId = U64<LE>;
+    type EdgeId = MemoryEdgeId;
     type Error = !;
-    type NodeId = U64<LE>;
-    type OntologyId = U64<LE>;
+    type NodeId = MemoryNodeId;
+    type OntologyId = MemoryOntologyId;
 
-    type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> =
-        impl Stream<Item = Result<(U64<LE>, BoxedVecN<CANONICAL_DIMENSIONS>), !>> + use<'this, I>;
-    type CardStream<'this> = impl Stream<Item = io::Result<(U64<LE>, Card)>> + 'this;
-    type EdgeStream<'this> = impl Stream<Item = Result<Edge<U64<LE>>, !>> + 'this;
-    type NodeStream<'this> = impl Stream<Item = Result<Node<U64<LE>>, !>> + 'this;
+    type CanonicalNodeEmbeddingsStream<'this, I: Iterator<Item = Self::NodeId>> = impl Stream<Item = Result<(MemoryNodeId, BoxedVecN<CANONICAL_DIMENSIONS>), !>>
+        + use<'this, I>;
+    type CardStream<'this> = impl Stream<Item = io::Result<(MemoryOntologyId, Card)>> + 'this;
+    type EdgeStream<'this> = impl Stream<Item = Result<Edge<MemoryEdgeId>, !>> + 'this;
+    type NodeStream<'this> = impl Stream<Item = Result<Node<MemoryNodeId>, !>> + 'this;
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>> =
-        impl Stream<Item = Result<(U64<LE>, SmallVec<OntologyRowId, 2>), !>> + use<'this, I>;
-    type OntologyStream<'this> = impl Stream<Item = Result<Ontology<U64<LE>>, !>> + 'this;
+        impl Stream<Item = Result<(MemoryNodeId, SmallVec<OntologyRowId, 2>), !>> + use<'this, I>;
+    type OntologyStream<'this> = impl Stream<Item = Result<Ontology<MemoryOntologyId>, !>> + 'this;
 
     fn axes(&self) -> Option<TemporalAxes> {
         None
@@ -140,7 +170,7 @@ impl Dataset for MemoryDataset {
     /// # Panics
     ///
     /// The stream panics when a requested node has no canonical embedding in the fixture.
-    fn canonical_node_embeddings<I: Iterator<Item = U64<LE>>>(
+    fn canonical_node_embeddings<I: Iterator<Item = MemoryNodeId>>(
         &self,
         nodes: I,
     ) -> Self::CanonicalNodeEmbeddingsStream<'_, I> {
@@ -159,7 +189,10 @@ impl Dataset for MemoryDataset {
     /// # Panics
     ///
     /// The stream panics when a requested node is not in the fixture.
-    fn node_types<I: Iterator<Item = U64<LE>>>(&self, nodes: I) -> Self::NodeTypesStream<'_, I> {
+    fn node_types<I: Iterator<Item = MemoryNodeId>>(
+        &self,
+        nodes: I,
+    ) -> Self::NodeTypesStream<'_, I> {
         stream::iter(nodes).map(|id| {
             let node = self
                 .nodes

@@ -21,7 +21,7 @@ use zerocopy::{LE, U32};
 
 use super::Atlas;
 use crate::{
-    dataset::ArchivedOntologyTypeUuid,
+    dataset::postgres::id::ArchivedOntologyTypeUuid,
     identity::OntologyRowId,
     salt::{
         fit::prepare::identity::IdentityTableArchive,

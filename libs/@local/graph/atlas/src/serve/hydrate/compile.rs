@@ -53,7 +53,7 @@ use uuid::Uuid;
 
 use crate::{
     bitset::CompressedBitSet,
-    dataset::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
     serve::{Atlas, VisibilityProof},
 };
 

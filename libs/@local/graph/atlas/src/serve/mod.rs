@@ -71,7 +71,7 @@ pub(crate) use self::{
     walk::ViewCensus,
 };
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::{generation::Generation, morton::read::MortonFile, quad::read::QuadFile},
     identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, Log2, Vec2},

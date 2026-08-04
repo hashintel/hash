@@ -47,30 +47,25 @@
 //! [`render_cards`]: Dataset::render_cards
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use core::ops::Deref;
 use std::io;
 
 use futures::Stream;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use smallvec::SmallVec;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    ontology::id::{OntologyTypeUuid, VersionedUrl},
-    principal::actor_group::WebId,
-};
-use zerocopy::{LE, U64};
 
 use self::card::Card;
+pub(crate) use self::ontology::OntologyIdentity;
 use crate::{
     file::identity::Key,
     identity::{NodeRowId, OntologyRowId},
     math::BoxedVecN,
 };
 
+pub(crate) mod auxiliary;
 pub(crate) mod card;
 pub(crate) mod memory;
+mod ontology;
 pub(crate) mod postgres;
-
 #[cfg(test)]
 mod tests;
 
@@ -104,211 +99,6 @@ impl TemporalAxes {
             decision_time: Timestamp::now(),
         }
     }
-}
-
-/// The byte-level form of an [`EntityUuid`].
-///
-/// The derived order is uuid-byte order.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialOrd,
-    Ord,
-    zerocopy::ByteEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::FromBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-)]
-#[repr(transparent)]
-pub(crate) struct ArchivedEntityUuid([u8; 16]);
-
-impl ArchivedEntityUuid {
-    /// Wraps raw uuid bytes.
-    pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
-        Self(bytes)
-    }
-}
-
-impl From<uuid::Uuid> for ArchivedEntityUuid {
-    #[inline]
-    fn from(id: uuid::Uuid) -> Self {
-        Self(id.into_bytes())
-    }
-}
-
-impl Deref for ArchivedEntityUuid {
-    type Target = EntityUuid;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        const {
-            assert!(size_of::<Self>() == size_of::<EntityUuid>());
-            assert!(align_of::<Self>() == align_of::<EntityUuid>());
-        }
-
-        let ptr = &raw const *self;
-        // SAFETY: `Self` is `repr(transparent)` over `[u8; 16]`, and the target chain
-        // `EntityUuid(Uuid)`, `Uuid([u8; 16])`, is `repr(transparent)` at every link.
-        unsafe { &*ptr.cast::<EntityUuid>() }
-    }
-}
-
-/// The byte-level form of a [`WebId`].
-///
-/// The derived order is uuid-byte order.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialOrd,
-    Ord,
-    zerocopy::ByteEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::FromBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-)]
-#[repr(transparent)]
-pub(crate) struct ArchivedWebId([u8; 16]);
-
-impl ArchivedWebId {
-    /// Wraps raw uuid bytes.
-    pub(crate) const fn from_bytes(bytes: [u8; 16]) -> Self {
-        Self(bytes)
-    }
-}
-
-impl From<uuid::Uuid> for ArchivedWebId {
-    #[inline]
-    fn from(id: uuid::Uuid) -> Self {
-        Self(id.into_bytes())
-    }
-}
-
-impl Deref for ArchivedWebId {
-    type Target = WebId;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        const {
-            assert!(size_of::<Self>() == size_of::<WebId>());
-            assert!(align_of::<Self>() == align_of::<WebId>());
-        }
-
-        let ptr = &raw const *self;
-        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `WebId(ActorGroupEntityUuid)`,
-        // `ActorGroupEntityUuid(EntityUuid)`, `EntityUuid(Uuid)`, `Uuid([u8; 16])`, transparent at
-        // every link.
-        unsafe { &*ptr.cast::<WebId>() }
-    }
-}
-
-/// The byte-level form of an [`OntologyTypeUuid`].
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    zerocopy::ByteEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::FromBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-)]
-#[repr(transparent)]
-pub(crate) struct ArchivedOntologyTypeUuid([u8; 16]);
-
-impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
-    #[inline]
-    fn from(id: uuid::Uuid) -> Self {
-        Self(id.into_bytes())
-    }
-}
-
-impl Deref for ArchivedOntologyTypeUuid {
-    type Target = OntologyTypeUuid;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        const {
-            assert!(size_of::<Self>() == size_of::<OntologyTypeUuid>());
-            assert!(align_of::<Self>() == align_of::<OntologyTypeUuid>());
-        }
-
-        let ptr = &raw const *self;
-        // SAFETY: as for `ArchivedEntityUuid`; the chain here is `OntologyTypeUuid(Uuid)`,
-        // `Uuid([u8; 16])`, transparent at every link.
-        unsafe { &*ptr.cast::<OntologyTypeUuid>() }
-    }
-}
-
-/// The identity-derivation contract of an ontology id type.
-///
-/// Supplied inputs name types by canonical identity - reviewed verdicts carry versioned URLs -
-/// while each corpus keys its type table in its own id space. An id type derives the id naming a
-/// given identity in that space, or answers [`None`] for a URL form outside that space. Each id
-/// space owns its URL forms: the store derives the `UUIDv5` it mints from any versioned URL, and
-/// the plain-number space derives its ids from `memory://<id>/` base URLs alone.
-pub(crate) trait OntologyIdentity: Sized {
-    /// Derives the id naming `url` in this id space.
-    fn from_versioned_url(url: &VersionedUrl) -> Option<Self>;
-}
-
-// The store mints an ontology id as the UUIDv5 of its versioned URL;
-// deriving here reproduces that minting rule.
-impl OntologyIdentity for ArchivedOntologyTypeUuid {
-    #[inline]
-    fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
-        Some(Self::from(OntologyTypeUuid::from_url(url).into_uuid()))
-    }
-}
-
-// A plain-number id space keys rows by whatever `u64` values its constructor received, and the
-// `memory` scheme names them: `memory://<id>/` derives the id from the URL's authority. The
-// canonical form is exact - a subpath is a different URL and derives nothing - and the version
-// component selects nothing, because a plain number has no versions.
-impl OntologyIdentity for U64<LE> {
-    fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
-        let url = url.base_url.to_url();
-        if url.scheme() != "memory" || url.path() != "/" {
-            return None;
-        }
-        url.host_str()?.parse().ok().map(Self::new)
-    }
-}
-
-/// The byte-level form of a non-draft entity identity.
-///
-/// Drafts never enter a dataset's scope, so the identity is the web and entity components alone.
-///
-/// The derived order is identity-byte order: web id bytes, then entity uuid bytes.
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialOrd,
-    Ord,
-    zerocopy::ByteEq,
-    zerocopy::ByteHash,
-    zerocopy::IntoBytes,
-    zerocopy::FromBytes,
-    zerocopy::Immutable,
-    zerocopy::Unaligned,
-    zerocopy::KnownLayout,
-)]
-#[repr(C)]
-pub(crate) struct ArchivedEntityId {
-    /// The web the entity belongs to.
-    pub web_id: ArchivedWebId,
-    /// The entity's identity within its web.
-    pub entity_uuid: ArchivedEntityUuid,
 }
 
 /// One type in the generation's type table.

@@ -36,9 +36,9 @@ impl<A: IntoBytes + Immutable + ?Sized> Hash for ByteKeyed<'_, A> {
 /// Streams the four identity regions as an identity file.
 ///
 /// `keys` is the key column in row order and `auxiliary` yields each row's display payload in
-/// the same order, a zerocopy value whose bytes enter the payload region verbatim. Node and
-/// edge files carry label bytes (`str`), ontology files carry icon bytes, and a row without a
-/// display value carries empty bytes. The index derives from the key column, and the
+/// the same order, with the payload's bytes entering the region verbatim. Node and edge files
+/// carry label bytes, ontology files carry icon bytes, and a row
+/// without a display value carries empty bytes. The index derives from the key column, and the
 /// span table from the payloads, with equal payloads sharing one span. Every region streams in
 /// file order behind the header, so wrap a raw [`File`](std::fs::File) in a
 /// [`BufWriter`](io::BufWriter).
@@ -58,16 +58,15 @@ impl<A: IntoBytes + Immutable + ?Sized> Hash for ByteKeyed<'_, A> {
     reason = "the Result carries write failures; disagreeing columns and duplicate keys are a \
               caller contract violation, documented under Panics"
 )]
-pub(crate) fn write_regions<'a, I, K, A>(
+pub(crate) fn write_regions<'a, I, K>(
     kind: Kind,
     keys: &IdSlice<I, K>,
-    auxiliary: impl IntoIterator<Item = &'a A>,
+    auxiliary: impl IntoIterator<Item = &'a K::Payload>,
     mut write: impl io::Write,
 ) -> io::Result<()>
 where
     I: Id,
-    K: Key,
-    A: IntoBytes + Immutable + ?Sized + 'a,
+    K: Key<Payload: 'a>,
 {
     const {
         assert!(
@@ -95,7 +94,7 @@ where
     // Equal payloads intern to one span, so the payload region carries each distinct value once,
     // in first-appearance order. The map stores the yielded references keyed by their byte view,
     // so interning copies nothing beyond the payload region it builds.
-    let mut interner = FastHashMap::<ByteKeyed<A>, PayloadSpan>::default();
+    let mut interner = FastHashMap::<ByteKeyed<K::Payload>, PayloadSpan>::default();
     let mut payload = Vec::new();
     let mut spans = Vec::with_capacity(keys.len());
     for value in auxiliary {

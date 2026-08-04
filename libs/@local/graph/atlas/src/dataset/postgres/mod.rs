@@ -67,9 +67,10 @@ use tokio_postgres::{
 use uuid::Uuid;
 
 pub(crate) use self::card::CardParameters;
+use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
 use super::{
-    ArchivedEntityId, ArchivedOntologyTypeUuid, CANONICAL_DIMENSIONS, Dataset, Edge, Node,
-    NodeRowId, Ontology, OntologyRowId, PROJECTOR_DIMENSIONS, TemporalAxes,
+    CANONICAL_DIMENSIONS, Dataset, Edge, Node, NodeRowId, Ontology, OntologyRowId,
+    PROJECTOR_DIMENSIONS, TemporalAxes,
     card::{
         Card, CardContext, Cl100kTokenizer, UnicodeSegmenter, build_card, hash::build_contents,
     },
@@ -77,6 +78,7 @@ use super::{
 use crate::math::BoxedVecN;
 
 mod card;
+pub(crate) mod id;
 
 /// The node universe shared by every corpus query.
 ///
@@ -709,8 +711,8 @@ impl Dataset for PostgresDataset<'_> {
             .into_iter()
             .map(|id| {
                 (
-                    Uuid::from_bytes(id.entity_uuid.0),
-                    Uuid::from_bytes(id.web_id.0),
+                    Uuid::from_bytes(id.entity_uuid.to_bytes()),
+                    Uuid::from_bytes(id.web_id.to_bytes()),
                 )
             })
             .collect();
@@ -753,8 +755,8 @@ impl Dataset for PostgresDataset<'_> {
             .into_iter()
             .map(|id| {
                 (
-                    Uuid::from_bytes(id.entity_uuid.0),
-                    Uuid::from_bytes(id.web_id.0),
+                    Uuid::from_bytes(id.entity_uuid.to_bytes()),
+                    Uuid::from_bytes(id.web_id.to_bytes()),
                 )
             })
             .collect();

@@ -6,7 +6,7 @@ use core::assert_matches;
 use std::{fs, path::PathBuf};
 
 use hashql_core::id::IdSlice;
-use zerocopy::{IntoBytes as _, LE, U64};
+use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
     FileHeader, Key as _, KeyKind, Kind, PaddedFileHeader, PayloadSpan,
@@ -14,6 +14,10 @@ use super::{
     write::write_regions,
 };
 use crate::{
+    dataset::{
+        auxiliary::{Icon, Label},
+        memory::{MemoryNodeId, MemoryOntologyId},
+    },
     file::region::header::HeaderError,
     identity::{NodeRowId, OntologyRowId},
 };
@@ -71,7 +75,7 @@ fn key_kinds_declare_their_types_width() {
     assert_eq!(KeyKind::U8Le.width(), 1);
     assert_eq!(KeyKind::U16Le.width(), 2);
     assert_eq!(KeyKind::U64Le.width(), 8);
-    assert_eq!(U64::<LE>::KIND, KeyKind::U64Le);
+    assert_eq!(MemoryNodeId::KIND, KeyKind::U64Le);
 }
 
 /// A per-test scratch file path under the system temp directory.
@@ -85,21 +89,26 @@ fn scratch(name: &str) -> PathBuf {
 }
 
 // Eight-byte keys in row order; ascending key-byte order is rows 2, 0, 1.
-const KEYS: [U64<LE>; 3] = [
-    U64::from_bytes([9, 0, 0, 1, 0, 0, 0, 0]),
-    U64::from_bytes([9, 0, 0, 2, 0, 0, 0, 0]),
-    U64::from_bytes([3, 7, 7, 7, 0, 0, 0, 0]),
+const KEYS: [MemoryNodeId; 3] = [
+    MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 1, 0, 0, 0, 0])),
+    MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 2, 0, 0, 0, 0])),
+    MemoryNodeId::new(u64::from_le_bytes([3, 7, 7, 7, 0, 0, 0, 0])),
 ];
 
 // Rows 0 and 2 carry equal payload bytes, so interning gives them one span.
 const PAYLOADS: [&str; 3] = ["beta", "alpha", "beta"];
+
+/// Borrows `text` as a label.
+fn label(text: &str) -> &Label {
+    Label::try_ref_from_bytes(text.as_bytes()).expect("UTF-8 text is a valid label")
+}
 
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&KEYS),
-        PAYLOADS,
+        PAYLOADS.map(label),
         &mut bytes,
     )
     .expect("writing into a vector cannot fail");
@@ -145,8 +154,8 @@ fn written_regions_reopen_verbatim() {
 fn empty_table_reopens() {
     // A zero count is valid geometry: the regions are empty apart from the index, which parses
     // with zero keys in it.
-    let keys: [U64<LE>; 0] = [];
-    let payloads: [&str; 0] = [];
+    let keys: [MemoryOntologyId; 0] = [];
+    let payloads: [&Icon; 0] = [];
     let mut bytes = Vec::new();
     write_regions(
         Kind::Ontology,
@@ -244,7 +253,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 #[test]
 #[should_panic(expected = "one payload per key")]
 fn writer_rejects_disagreeing_columns() {
-    let payloads: [&str; 2] = ["a", "b"];
+    let payloads = ["a", "b"].map(label);
     let mut bytes = Vec::new();
     let _result = write_regions(
         Kind::Nodes,
@@ -258,7 +267,7 @@ fn writer_rejects_disagreeing_columns() {
 #[should_panic(expected = "two rows carry one key")]
 fn writer_rejects_duplicate_keys() {
     let keys = [KEYS[0], KEYS[0]];
-    let payloads: [&str; 2] = ["a", "b"];
+    let payloads = ["a", "b"].map(label);
     let mut bytes = Vec::new();
     let _result = write_regions(
         Kind::Nodes,

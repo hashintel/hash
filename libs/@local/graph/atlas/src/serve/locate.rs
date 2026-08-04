@@ -22,7 +22,7 @@ use super::{
     visibility::VisibleRow,
 };
 use crate::{
-    dataset::ArchivedEntityId,
+    dataset::postgres::id::ArchivedEntityId,
     identity::{BasePosition, EdgeRowId, NodeRowId},
     morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},

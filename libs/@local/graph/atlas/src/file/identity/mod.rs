@@ -59,7 +59,7 @@ use zerocopy::{LE, U16, U64, Unalign};
 
 use super::region::header::header;
 use crate::{
-    dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
+    dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::region::{ByteStable, PAGE, padded_size},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
 };
@@ -188,9 +188,9 @@ impl fmt::Display for Kind {
 )]
 #[repr(u16)]
 pub enum KeyKind {
-    /// An [`ArchivedOntologyTypeUuid`].
+    /// An [`ArchivedOntologyTypeUuid`](crate::dataset::postgres::id::ArchivedOntologyTypeUuid).
     OntologyTypeUuid = 0x00_00,
-    /// An [`ArchivedEntityId`].
+    /// An [`ArchivedEntityId`](crate::dataset::postgres::id::ArchivedEntityId).
     EntityId = 0x00_01,
     /// A `u8`.
     U8Le = 0x01_00,
@@ -207,8 +207,8 @@ impl KeyKind {
             Self::OntologyTypeUuid => size_of::<ArchivedOntologyTypeUuid>(),
             Self::EntityId => size_of::<ArchivedEntityId>(),
             Self::U8Le => size_of::<u8>(),
-            Self::U16Le => size_of::<u16>(),
-            Self::U64Le => size_of::<u64>(),
+            Self::U16Le => size_of::<U16<LE>>(),
+            Self::U64Le => size_of::<U64<LE>>(),
         }
     }
 }
@@ -232,26 +232,20 @@ impl fmt::Display for KeyKind {
 pub(crate) trait Key: ByteStable {
     /// The persisted key kind.
     const KIND: KeyKind;
-}
 
-impl Key for ArchivedOntologyTypeUuid {
-    const KIND: KeyKind = KeyKind::OntologyTypeUuid;
-}
-
-impl Key for ArchivedEntityId {
-    const KIND: KeyKind = KeyKind::EntityId;
-}
-
-impl Key for u8 {
-    const KIND: KeyKind = KeyKind::U8Le;
-}
-
-impl Key for U16<LE> {
-    const KIND: KeyKind = KeyKind::U16Le;
-}
-
-impl Key for U64<LE> {
-    const KIND: KeyKind = KeyKind::U64Le;
+    /// The typed view of this key's display payload.
+    ///
+    /// A row's payload enters the file as the value's raw bytes. Opening a typed table casts
+    /// every span once, validating on the way, and readback trusts that validation. Every
+    /// payload type admits the empty byte string, which is what a row without a display value
+    /// carries. The header pins [`KIND`](Self::KIND) but not the payload type, so two `Key`
+    /// impls sharing a kind may cast one file's payloads differently. The open-time casts
+    /// validate per impl, so a mismatched open fails loudly instead of misreading bytes.
+    type Payload: zerocopy::IntoBytes
+        + zerocopy::Immutable
+        + zerocopy::KnownLayout
+        + zerocopy::TryFromBytes
+        + ?Sized;
 }
 
 /// A row identity type an identity file's rows belong to.

@@ -12,8 +12,10 @@ use uuid::Uuid;
 use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
-    ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId, CANONICAL_DIMENSIONS,
-    Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, card::Card, memory::MemoryDataset,
+    CANONICAL_DIMENSIONS, Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+    card::Card,
+    memory::{MemoryDataset, MemoryNodeId, MemoryOntologyId},
+    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
 };
 use crate::{
     identity::{NodeRowId, OntologyRowId},
@@ -182,7 +184,7 @@ async fn memory_dataset_serves_canonical_embeddings() {
     let dataset = fixture();
 
     let embeddings: Vec<_> = dataset
-        .canonical_node_embeddings(core::iter::once(U64::new(10)))
+        .canonical_node_embeddings(core::iter::once(MemoryNodeId::new(10)))
         .try_collect()
         .await
         .unwrap_or_else(|never| never);
@@ -209,8 +211,14 @@ async fn memory_dataset_renders_cards() {
     assert_eq!(
         cards,
         [
-            (U64::new(30), Card::verbatim("Root type card".to_owned())),
-            (U64::new(31), Card::verbatim("Link type card".to_owned())),
+            (
+                MemoryOntologyId::new(30),
+                Card::verbatim("Root type card".to_owned())
+            ),
+            (
+                MemoryOntologyId::new(31),
+                Card::verbatim("Link type card".to_owned())
+            ),
         ]
     );
 }
