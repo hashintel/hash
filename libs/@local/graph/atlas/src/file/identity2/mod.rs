@@ -54,12 +54,14 @@
 
 use core::fmt;
 
+use hashql_core::id::Id;
 use zerocopy::{LE, U16, U64, Unalign};
 
 use super::region::header::header;
 use crate::{
     dataset::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     file::region::{ByteStable, PAGE, padded_size},
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
 };
 
 pub(crate) mod read;
@@ -157,6 +159,16 @@ pub(crate) enum Kind {
     Edges = 2,
 }
 
+impl fmt::Display for Kind {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::Ontology => "ontology",
+            Self::Nodes => "nodes",
+            Self::Edges => "edges",
+        })
+    }
+}
+
 /// The type and width of an identity file's keys.
 ///
 /// A key is opaque at this layer. The kind pins its width and the [`Key`] type it reads back as,
@@ -201,6 +213,18 @@ impl KeyKind {
     }
 }
 
+impl fmt::Display for KeyKind {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str(match self {
+            Self::OntologyTypeUuid => "ontology-type-uuid",
+            Self::EntityId => "entity-id",
+            Self::U8Le => "u8",
+            Self::U16Le => "u16-le",
+            Self::U64Le => "u64-le",
+        })
+    }
+}
+
 /// A type an identity file's keys read back as.
 ///
 /// The implementation pins the [`KeyKind`] the header persists. The kind's declared width equals
@@ -228,6 +252,27 @@ impl Key for U16<LE> {
 
 impl Key for U64<LE> {
     const KIND: KeyKind = KeyKind::U64Le;
+}
+
+/// A row identity type an identity file's rows belong to.
+///
+/// The implementation pins the [`Kind`] the header persists, so a file reopens only under the
+/// row type that wrote it.
+pub(crate) trait Row: Id {
+    /// The persisted row domain.
+    const KIND: Kind;
+}
+
+impl Row for OntologyRowId {
+    const KIND: Kind = Kind::Ontology;
+}
+
+impl Row for NodeRowId {
+    const KIND: Kind = Kind::Nodes;
+}
+
+impl Row for EdgeRowId {
+    const KIND: Kind = Kind::Edges;
 }
 
 /// One row's slice of the payload region.
@@ -260,6 +305,20 @@ impl PayloadSpan {
             offset: U64::new(offset),
             length: U64::new(length),
         }
+    }
+
+    /// Returns the payload-relative byte offset.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn offset(&self) -> u64 {
+        self.offset.get()
+    }
+
+    /// Returns the byte length.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn length(&self) -> u64 {
+        self.length.get()
     }
 }
 

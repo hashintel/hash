@@ -99,7 +99,7 @@ fn fixture_bytes() -> Vec<u8> {
     write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&KEYS),
-        IdSlice::from_raw(&PAYLOADS),
+        PAYLOADS,
         &mut bytes,
     )
     .expect("writing into a vector cannot fail");
@@ -151,7 +151,7 @@ fn empty_table_reopens() {
     write_regions(
         Kind::Ontology,
         IdSlice::<OntologyRowId, _>::from_raw(&keys),
-        IdSlice::from_raw(&payloads),
+        payloads,
         &mut bytes,
     )
     .expect("writing into a vector cannot fail");
@@ -249,7 +249,7 @@ fn writer_rejects_disagreeing_columns() {
     let _result = write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&KEYS),
-        IdSlice::from_raw(&payloads),
+        payloads,
         &mut bytes,
     );
 }
@@ -263,7 +263,7 @@ fn writer_rejects_duplicate_keys() {
     let _result = write_regions(
         Kind::Nodes,
         IdSlice::<NodeRowId, _>::from_raw(&keys),
-        IdSlice::from_raw(&payloads),
+        payloads,
         &mut bytes,
     );
 }

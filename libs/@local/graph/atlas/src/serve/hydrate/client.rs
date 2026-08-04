@@ -354,8 +354,8 @@ impl GraphDatabaseClient {
     /// Hydrates the locate response's node columns, aligned to the delivered order.
     ///
     /// Every delivered node hydrates labels and direct-type URLs. The source, the first delivered
-    /// entity, also hydrates its capped simple-valued properties and their completeness.
-    /// Entities the store no longer serves read `null` columns and `false` flags.
+    /// entity, also hydrates its capped simple-valued properties and their completeness. Entities
+    /// the store no longer serves read `null` columns and `false` flags.
     ///
     /// # Errors
     ///

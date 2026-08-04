@@ -157,6 +157,7 @@ expect-test                        = { version = "1.5.1", default-features = fal
 foldhash                           = { version = "0.2.0", default-features = false }
 frunk                              = { version = "0.4.4", default-features = false }
 frunk_core                         = { version = "0.4.4", default-features = false }
+fst                                = { version = "0.4.7" }
 futures                            = { version = "0.3.31", default-features = false }
 futures-channel                    = { version = "0.3.31", default-features = false }
 futures-core                       = { version = "0.3.31", default-features = false }

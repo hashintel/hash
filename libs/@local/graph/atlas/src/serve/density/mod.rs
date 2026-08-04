@@ -300,8 +300,8 @@ impl DensityPolicy {
     ///
     /// An empty view resolves to [`CutOffset::ZERO`] through this same argmin rather than through a
     /// case of its own. It occupies no cell at any depth, so every candidate sits the same
-    /// shortfall from the band and the tie-break keeps the coarsest. No hidden or corpus
-    /// quantity stands in for the occupancy it lacks.
+    /// shortfall from the band and the tie-break keeps the coarsest. No hidden or corpus quantity
+    /// stands in for the occupancy it lacks.
     ///
     /// The result may lie outside the band. Counts step by whole subdivisions, so a coarse step can
     /// jump the band and a small, co-located, or saturation-capped view can stay below it.

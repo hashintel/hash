@@ -24,6 +24,7 @@ use crate::{
 };
 
 pub(crate) mod identity;
+pub(crate) mod identity2;
 pub(crate) mod instance;
 pub(crate) mod norm;
 
