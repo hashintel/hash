@@ -21,12 +21,27 @@ const column = css({
   maxWidth: "[100%]",
 });
 
-const grid = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+// One row of per-variant columns that wrap to the next line when the viewport
+// can't fit them side by side.
+const variantColumns = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  gap: "[24px]",
+});
+
+const variantColumn = css({
+  display: "flex",
+  flexDirection: "column",
   gap: "[16px]",
-  width: "[1160px]",
-  maxWidth: "[100%]",
+  flex: "[1 1 360px]",
+  minWidth: "0",
+});
+
+const variantHeading = css({
+  textStyle: "sm",
+  fontWeight: "semibold",
+  color: "fg.body",
 });
 
 const label = css({
@@ -94,30 +109,38 @@ export default {
   title: "Components/Banner",
 } satisfies StoryDefault;
 
-/** A kitchen-sink banner for every tone × variant combination. */
+/**
+ * Every tone × variant, grouped into one column per variant. The columns
+ * flex-wrap onto the next line when the viewport is too narrow to fit them.
+ */
 export const Default: Story = () => (
-  <div className={grid}>
-    {bannerTones.flatMap((tone) =>
-      bannerVariants.map((variant) => (
-        <Example key={`${tone}-${variant}`} name={`${tone} · ${variant}`}>
-          <KitchenSinkBanner tone={tone} variant={variant} />
-        </Example>
-      )),
-    )}
+  <div className={variantColumns}>
+    {Array.from(bannerVariants)
+      .reverse()
+      .map((variant) => (
+        <div key={variant} className={variantColumn}>
+          <div className={variantHeading}>{variant}</div>
+          {bannerTones.map((tone) => (
+            <Example key={tone} name={tone}>
+              <KitchenSinkBanner tone={tone} variant={variant} />
+            </Example>
+          ))}
+        </div>
+      ))}
   </div>
 );
 
-/** The range of content a banner can hold — all in the brand fill variant. */
+/** The range of content a banner can hold — all in the brand fillLight variant. */
 export const Content: Story = () => (
   <div className={column}>
     <Example name="Title only">
-      <Banner tone="brand" variant="fill" icon={false}>
+      <Banner tone="brand" variant="fillLight" icon={false}>
         <Banner.Title>Summarise what happened</Banner.Title>
       </Banner>
     </Example>
 
     <Example name="Description only">
-      <Banner tone="brand" variant="fill" icon={false}>
+      <Banner tone="brand" variant="fillLight" icon={false}>
         <Banner.Description>
           Describe what can be done about it here.
         </Banner.Description>
@@ -125,7 +148,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Actions only">
-      <Banner tone="brand" variant="fill" icon={false}>
+      <Banner tone="brand" variant="fillLight" icon={false}>
         <Banner.Actions>
           <ActionButton>Accept</ActionButton>
           <ActionButton>Decline</ActionButton>
@@ -134,7 +157,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Title + icon + actions">
-      <Banner tone="brand" variant="fill" icon>
+      <Banner tone="brand" variant="fillLight" icon>
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
           <ActionButton>Open</ActionButton>
@@ -144,7 +167,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Description + icon">
-      <Banner tone="brand" variant="fill" icon>
+      <Banner tone="brand" variant="fillLight" icon>
         <Banner.Description>
           Describe what can be done about it here.
         </Banner.Description>
@@ -152,13 +175,13 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Kitchen sink">
-      <KitchenSinkBanner tone="brand" variant="fill" />
+      <KitchenSinkBanner tone="brand" variant="fillLight" />
     </Example>
 
     <Example name="Custom children">
       <Banner
         tone="brand"
-        variant="fill"
+        variant="fillLight"
         icon={false}
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -184,7 +207,17 @@ export const Content: Story = () => (
     <Example name="Custom icon (Avatar)">
       <Banner
         tone="brand"
-        variant="fill"
+        variant="fillLight"
+        icon={{ custom: <Avatar size="32" fallback="AL" /> }}
+      >
+        <Banner.Title>Alex shared a document with you</Banner.Title>
+      </Banner>
+    </Example>
+
+    <Example name="Custom icon (Avatar) + content">
+      <Banner
+        tone="brand"
+        variant="fillLight"
         icon={{ custom: <Avatar size="32" fallback="AL" /> }}
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -201,7 +234,7 @@ export const Content: Story = () => (
     <Example name="Title + 4 actions">
       <Banner
         tone="brand"
-        variant="fill"
+        variant="fillLight"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -218,7 +251,7 @@ export const Content: Story = () => (
     <Example name="Extra long content">
       <Banner
         tone="brand"
-        variant="fill"
+        variant="fillLight"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -238,7 +271,7 @@ export const Content: Story = () => (
     <Example name="Max width 400px">
       <Banner
         tone="brand"
-        variant="fill"
+        variant="fillLight"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
         className={css({ maxWidth: "[400px]" })}

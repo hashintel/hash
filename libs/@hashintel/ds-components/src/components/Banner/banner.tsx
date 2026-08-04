@@ -8,7 +8,7 @@ import { styles } from "./banner.recipe";
 
 import type { Tone } from "../../util/form-shared";
 
-type BannerVariant = "fill" | "outline";
+type BannerVariant = "fill" | "fillLight" | "outline";
 
 /** The default leading icon shown when `icon` is `true`, keyed by tone. */
 const defaultToneIcon: Record<Tone, IconName> = {
@@ -28,7 +28,10 @@ export type BannerRootProps = {
    * named design-system icon, or arbitrary custom content.
    */
   icon: boolean | { iconName: IconName } | { custom: React.ReactNode };
-  /** `fill` tints the surface; `outline` sits on an opaque surface. */
+  /**
+   * `fill` is a solid tone fill with white text; `fillLight` tints the surface;
+   * `outline` sits on an opaque surface.
+   */
   variant?: BannerVariant;
   /** When present and enabled, renders a trailing dismiss button. */
   dismissible?: {
@@ -98,7 +101,13 @@ export const BannerActions = ({
   children: React.ReactNode;
 }) => {
   const { actions } = styles();
-  return <div className={cx(actions, className)}>{children}</div>;
+  // `data-banner-actions` lets the root recipe reach these buttons per variant
+  // (the solid `fill` restyles them), since this sub-component has no variant.
+  return (
+    <div data-banner-actions className={cx(actions, className)}>
+      {children}
+    </div>
+  );
 };
 
 export const BannerRoot = ({
@@ -106,7 +115,7 @@ export const BannerRoot = ({
   children,
   tone,
   icon,
-  variant = "fill",
+  variant = "fillLight",
   dismissible,
   ...ariaAttributes
 }: BannerRootProps) => {
