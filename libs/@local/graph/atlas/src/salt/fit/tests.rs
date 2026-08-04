@@ -23,18 +23,16 @@ use crate::{
         card::Card, memory::MemoryDataset,
     },
     file::{
-        WriteInto as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
         generation::GenerationRoot,
-        identity::read::IdentityFile,
+        identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,
         morton::read::MortonFile,
         policy::read::PolicyFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
-        region::ByteStable,
         salt::{
             SaltRepository,
             metadata::{ClassifierEvidence, FrozenRadiusEvidence, Placement, RankingOrigin},
@@ -2459,17 +2457,21 @@ async fn edge_artifacts_publish_and_read_back() {
 /// Writes an ontology identity column of `I` ids into `dir`.
 fn write_ontology_identities<I>(dir: &Utf8Path, ids: impl IntoIterator<Item = I>) -> Utf8PathBuf
 where
-    I: ByteStable,
+    I: Key,
 {
     fs::create_dir_all(dir).expect("the scratch directory is writable");
     let path = dir.join("ontology-identities.idnt");
-    let mut table = IdentityTable::<I>::new();
+    let mut table = IdentityTable::<OntologyRowId, I>::new();
     for id in ids {
         table.push(id);
     }
+    let rows = usize::try_from(table.len()).expect("rows fit the address space");
     let file = fs::File::create(path.as_std_path()).expect("the scratch file is writable");
     table
-        .write_into(std::io::BufWriter::new(file))
+        .write_into(
+            core::iter::repeat_n::<&[u8]>(&[], rows),
+            std::io::BufWriter::new(file),
+        )
         .expect("the fixture table writes");
     path
 }

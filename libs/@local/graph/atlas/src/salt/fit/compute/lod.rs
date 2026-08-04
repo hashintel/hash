@@ -15,8 +15,7 @@ use super::{
 use crate::{
     file::{
         array::{ArrayFile, ArrayVariant, Dim},
-        identity::read::IdentityFile,
-        region::ByteStable,
+        identity::{Key, read::IdentityFile},
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
@@ -89,7 +88,7 @@ impl Context<'_> {
         parents: &[SmallVec<OntologyRowId, 2>],
     ) -> Result<LodOutputs, StageError>
     where
-        I: ByteStable,
+        I: Key,
     {
         let _span = tracing::info_span!("lod").entered();
 

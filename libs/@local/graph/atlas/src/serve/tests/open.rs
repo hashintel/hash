@@ -22,11 +22,11 @@ use crate::{
     file::{
         WriteInto as _,
         array::{ArrayVariant, Dim, SizedArrayWriter},
-        identity::read::IdentityFile,
+        identity::{Row, read::IdentityFile},
         postings::{read::PostingsFile, write::Regions},
         quad::{Node, TypeSets, read::QuadFile},
     },
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     salt::{adjacency::Adjacency, fit::prepare::identity::IdentityTable},
 };
 
@@ -48,8 +48,8 @@ impl Saved {
 }
 
 /// Rewrites an entity identity artifact with `rows` sequential fixture ids from `seed`.
-fn shorten_entities(path: &Utf8PathBuf, rows: u64, seed: u8) {
-    let mut table = IdentityTable::<ArchivedEntityId>::new();
+fn shorten_entities<R: Row>(path: &Utf8PathBuf, rows: u64, seed: u8) {
+    let mut table = IdentityTable::<R, ArchivedEntityId>::new();
     for row in 0..rows {
         let row = u8::try_from(row).expect("fixture row counts fit u8");
         table.push(entity_id_of(seed + row));
@@ -59,7 +59,7 @@ fn shorten_entities(path: &Utf8PathBuf, rows: u64, seed: u8) {
 
 /// Rewrites the ontology identity artifact with `rows` fixture type uuids.
 fn shorten_ontology(path: &Utf8PathBuf, rows: u64) {
-    let mut table = IdentityTable::<ArchivedOntologyTypeUuid>::new();
+    let mut table = IdentityTable::<OntologyRowId, ArchivedOntologyTypeUuid>::new();
     for row in 0..rows {
         let url: VersionedUrl = fixture_type_url(row)
             .parse()
@@ -249,7 +249,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
 
     // The node identity table against the code column.
     let node_identities = Saved::of(generation.path_of(&files.node_identities.name));
-    shorten_entities(&node_identities.path, nodes - 1, 0);
+    shorten_entities::<NodeRowId>(&node_identities.path, nodes - 1, 0);
     assert_matches!(
         open().expect_err("a short node identity table is refused"),
         OpenAtlasError::Identities { identities, codes }
@@ -260,7 +260,7 @@ async fn every_cross_artifact_disagreement_names_its_own_variant() {
 
     // The edge identity table against the adjacency's edge domain.
     let edge_identities = Saved::of(generation.path_of(&files.edge_identities.name));
-    shorten_entities(&edge_identities.path, edges - 1, EDGE_SEED);
+    shorten_entities::<EdgeRowId>(&edge_identities.path, edges - 1, EDGE_SEED);
     assert_matches!(
         open().expect_err("a short edge identity table is refused"),
         OpenAtlasError::EdgeIdentities { identities, edges: spanned }

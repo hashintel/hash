@@ -20,11 +20,10 @@ use crate::{
     file::{
         array::ArrayFile,
         generation::{Generation, GenerationId, GenerationRoot, OpenError},
-        identity::read::IdentityFile,
+        identity::{Key, Row, read::IdentityFile},
         morton::read::MortonFile,
         postings::read::PostingsFile,
         quad::read::QuadFile,
-        region::ByteStable,
         repository::RepositoryFile,
         sprs::read::SprsFile,
     },
@@ -344,15 +343,15 @@ fn open_column<I: Id, T: Element>(
 
 /// Opens and validates one identity artifact, binding its failures to the domain it serves.
 ///
-/// Every failure is loud - a key width other than the store's included.
+/// Every failure is loud - a key kind other than the store's included.
 fn open_identities<I, R>(
     generation: &Generation,
     file: &RepositoryFile,
     domain: IdentityDomain,
 ) -> Result<IdentityTableArchive<I, R>, OpenAtlasError>
 where
-    I: ByteStable,
-    R: Id,
+    I: Key,
+    R: Row,
 {
     let identities = IdentityFile::open(generation.path_of(&file.name))
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;

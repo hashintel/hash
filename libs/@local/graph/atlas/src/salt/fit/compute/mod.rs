@@ -28,7 +28,7 @@ use crate::{
     file::{
         array::ArrayFile,
         generation::{Generation, PublishedGeneration, ScratchDirectory, StagedGeneration},
-        region::ByteStable,
+        identity::Key,
         repository::{RepositoryFile, RepositoryVersion},
         salt::{
             SaltFiles, SaltRepository,
@@ -130,8 +130,8 @@ pub(super) fn run<I, O, P>(
     progress: &P,
 ) -> Result<PublishedGeneration, StageError>
 where
-    I: ByteStable,
-    O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
+    I: Key,
+    O: Key + OntologyIdentity + Eq + core::hash::Hash,
     P: Progress + Sync,
 {
     let context = Context {

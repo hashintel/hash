@@ -20,11 +20,10 @@ use zerocopy::IntoBytes as _;
 use crate::{
     dataset::{Dataset, PROJECTOR_DIMENSIONS},
     file::array::{ArrayVariant, ArrayWriter, Dim},
-    identity::OntologyRowId,
+    identity::{NodeRowId, OntologyRowId},
 };
 
 pub(crate) mod identity;
-pub(crate) mod identity2;
 pub(crate) mod instance;
 pub(crate) mod norm;
 
@@ -61,7 +60,7 @@ impl<E: Error + 'static> Error for PrepareError<E> {
 /// The node stream's collected columns, row-aligned with the matrix.
 pub(crate) struct NodeColumns<I> {
     /// Entry `i` is node row `i`'s source id.
-    pub ids: identity::IdentityTable<I>,
+    pub ids: identity::IdentityTable<NodeRowId, I>,
     /// Entry `i` is node row `i`'s direct types.
     ///
     /// Ascending and deduplicated as the dataset streams them.
@@ -73,7 +72,7 @@ pub(crate) struct NodeColumns<I> {
 /// Collects the node ids and direct types in the same pass.
 ///
 /// Row `i` of the written matrix is the embedding of node row `i`, so the matrix is row-aligned
-/// with every artifact keyed by [`NodeRowId`](crate::identity::NodeRowId), and entry `i` of the
+/// with every artifact keyed by [`NodeRowId`], and entry `i` of the
 /// returned columns is that row's source id and type set. The publish step computes the finished
 /// file's repository digest.
 ///

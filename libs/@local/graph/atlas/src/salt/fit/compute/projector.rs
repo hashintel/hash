@@ -36,8 +36,7 @@ use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
-        identity::read::IdentityFile,
-        region::ByteStable,
+        identity::{Key, read::IdentityFile},
         repository::RepositoryFile,
         salt::metadata::{
             FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
@@ -525,7 +524,7 @@ impl Context<'_> {
         verdicts: Option<&SuppliedVerdicts>,
     ) -> Result<VerdictResolution, StageError>
     where
-        O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
+        O: Key + OntologyIdentity + Eq + core::hash::Hash,
     {
         let Some(supplied) = verdicts else {
             return Ok(VerdictResolution::default());
@@ -550,7 +549,7 @@ pub(in crate::salt::fit) fn resolve_supplied<O>(
     supplied: &SuppliedVerdicts,
 ) -> Result<VerdictResolution, StageError>
 where
-    O: ByteStable + OntologyIdentity + Eq + core::hash::Hash,
+    O: Key + OntologyIdentity + Eq + core::hash::Hash,
 {
     let table =
         IdentityTableArchive::<O, OntologyRowId>::new(IdentityFile::open(path.as_std_path())?)?;

@@ -1,9 +1,5 @@
-#![expect(
-    clippy::big_endian_bytes,
-    reason = "big-endian id fixtures sort byte-wise like their numeric values"
-)]
 use core::assert_matches;
-use std::{collections::HashMap, fs, io::Cursor, path::PathBuf};
+use std::{collections::HashMap, fs, io::Cursor};
 
 use hashql_core::id::Id as _;
 use rand::SeedableRng as _;
@@ -12,7 +8,6 @@ use smallvec::smallvec;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
 use super::{
-    identity::{IdentityTable, IdentityTableArchive, InvalidIdentityFile},
     instance::{InstanceRecord, InstanceSpoolWriter},
     norm::{self, RepresentationDefect, SpotCheckError, SpotCheckOptions},
     write_node_representations,
@@ -20,10 +15,8 @@ use super::{
 use crate::{
     dataset::{Node, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
     file::{
-        WriteInto as _,
         array::{ArrayVariant, PaddedFileHeader},
         generation::GenerationRoot,
-        identity::read::IdentityFile,
         region::PAGE_BYTES,
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
@@ -269,163 +262,6 @@ fn spot_check_rejects_degenerate_inputs() {
         Err(SpotCheckError::SampleBudget {
             defect_rate: 0.0,
             confidence: 0.999,
-        }),
-    );
-}
-
-/// A per-test scratch file path under the system temp directory.
-fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "hash-graph-atlas-prepare-identity-{}",
-        std::process::id(),
-    ));
-    fs::create_dir_all(&dir).expect("the temp directory is writable");
-    dir.join(name)
-}
-
-/// Writes a three-row fixture table and returns its file bytes.
-///
-/// Ids arrive out of byte order on purpose: little-endian bytes of values below 256 sort like the
-/// values, so the sorted pair order is rows 1 (id 10), 2 (id 20), 0 (id 30).
-fn fixture_table_bytes() -> Vec<u8> {
-    let mut table = IdentityTable::new();
-    for id in [30_u64, 10, 20] {
-        table.push(U64::<LE>::new(id));
-    }
-
-    let mut bytes = Vec::new();
-    table
-        .write_into(&mut bytes)
-        .expect("writing into a vector cannot fail");
-    bytes
-}
-
-fn mapped_fixture(
-    name: &str,
-    bytes: &[u8],
-) -> Result<IdentityTableArchive<U64<LE>, NodeRowId>, InvalidIdentityFile> {
-    let path = scratch(name);
-    fs::write(&path, bytes).expect("the scratch file is writable");
-    IdentityTableArchive::new(IdentityFile::open(&path).expect("the fixture file reopens"))
-}
-
-#[test]
-fn identity_table_translates_rows_both_ways() {
-    let table =
-        mapped_fixture("roundtrip.idnt", &fixture_table_bytes()).expect("the table validates");
-
-    assert_eq!(table.len(), 3);
-
-    // Row to id is the push order.
-    assert_eq!(table.id(NodeRowId::new(0)), Some(U64::new(30)));
-    assert_eq!(table.id(NodeRowId::new(1)), Some(U64::new(10)));
-    assert_eq!(table.id(NodeRowId::new(2)), Some(U64::new(20)));
-    assert_eq!(table.id(NodeRowId::new(3)), None);
-
-    // Id to row inverts it. Absent ids resolve to nothing.
-    assert_eq!(table.row_of(U64::new(30)), Some(NodeRowId::new(0)));
-    assert_eq!(table.row_of(U64::new(10)), Some(NodeRowId::new(1)));
-    assert_eq!(table.row_of(U64::new(20)), Some(NodeRowId::new(2)));
-    assert_eq!(table.row_of(U64::new(15)), None);
-    assert_eq!(table.row_of(U64::new(5)), None, "below every pair");
-    assert_eq!(table.row_of(U64::new(40)), None, "above every pair");
-}
-
-#[test]
-fn identity_lookup_crosses_stride_boundaries() {
-    // 600 eight-byte ids stride at 256 pairs: three index keys, so lookups exercise block selection
-    // beyond the first stride. Big-endian bytes sort like the values themselves.
-    let mut table = IdentityTable::new();
-    for id in 0..600_u64 {
-        table.push(id.to_be_bytes());
-    }
-    let mut bytes = Vec::new();
-    table
-        .write_into(&mut bytes)
-        .expect("writing into a vector cannot fail");
-
-    let path = scratch("strided.idnt");
-    fs::write(&path, bytes).expect("the scratch file is writable");
-    let mapped = IdentityTableArchive::<[u8; 8], NodeRowId>::new(
-        IdentityFile::open(&path).expect("the fixture file reopens"),
-    )
-    .expect("the table validates");
-
-    for row in [0_u64, 255, 256, 257, 511, 512, 599] {
-        assert_eq!(
-            mapped.row_of(row.to_be_bytes()),
-            Some(NodeRowId::new(row)),
-            "row {row}"
-        );
-    }
-    assert_eq!(mapped.row_of(600_u64.to_be_bytes()), None);
-}
-
-#[test]
-#[should_panic(expected = "two rows carry one id")]
-fn identity_table_rejects_duplicate_ids() {
-    let mut table = IdentityTable::new();
-    table.push(U64::<LE>::new(7));
-    table.push(U64::<LE>::new(7));
-
-    let mut bytes = Vec::new();
-    let _result = table.write_into(&mut bytes);
-}
-
-// Region offsets of the three-row fixture, with the 24-byte id column at 4096, one index key at
-// 8192, and 16-byte pairs from 12288. Each region pads to the next 4096-byte boundary.
-const IDS_OFFSET: usize = 4096;
-const INDEX_OFFSET: usize = 8192;
-const PAIRS_OFFSET: usize = 12288;
-
-#[test]
-fn validation_rejects_tampered_tables() {
-    // Duplicating a pair over its successor breaks the strictly
-    // ascending order.
-    let mut unsorted = fixture_table_bytes();
-    unsorted.copy_within(PAIRS_OFFSET..PAIRS_OFFSET + 16, PAIRS_OFFSET + 16);
-    assert_matches!(
-        mapped_fixture("unsorted.idnt", &unsorted),
-        Err(InvalidIdentityFile::UnsortedPairs { position: 1 }),
-    );
-
-    // A pair pointing past the domain names no row.
-    let mut out_of_domain = fixture_table_bytes();
-    out_of_domain[PAIRS_OFFSET + 8] = 9;
-    assert_matches!(
-        mapped_fixture("out-of-domain.idnt", &out_of_domain),
-        Err(InvalidIdentityFile::RowOutOfDomain {
-            position: 0,
-            row: 9,
-        }),
-    );
-
-    // A tampered id column disagrees with the pair that references it.
-    let mut disagreeing = fixture_table_bytes();
-    disagreeing[IDS_OFFSET] = 31;
-    assert_matches!(
-        mapped_fixture("disagreeing.idnt", &disagreeing),
-        Err(InvalidIdentityFile::ColumnDisagreement { row: 0 }),
-    );
-
-    // A tampered index key disagrees with the first pair of its stride.
-    let mut index_tampered = fixture_table_bytes();
-    index_tampered[INDEX_OFFSET] = 11;
-    assert_matches!(
-        mapped_fixture("index-tampered.idnt", &index_tampered),
-        Err(InvalidIdentityFile::IndexDisagreement { key: 0 }),
-    );
-
-    // The id type's width is part of the contract.
-    let path = scratch("narrow.idnt");
-    fs::write(&path, fixture_table_bytes()).expect("the scratch file is writable");
-    assert_matches!(
-        IdentityTableArchive::<[u8; 4], NodeRowId>::new(
-            IdentityFile::open(&path).expect("the fixture file reopens"),
-        ),
-        Err(InvalidIdentityFile::KeyWidth {
-            expected: 4,
-            actual: 8,
         }),
     );
 }

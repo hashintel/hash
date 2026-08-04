@@ -20,9 +20,8 @@ use crate::{
     file::{
         array::{ArrayVariant, Dim, SizedArrayWriter},
         generation::Generation,
-        identity::read::IdentityFile,
+        identity::{Key, read::IdentityFile},
         landmark::read::LandmarkFile,
-        region::ByteStable,
         repository::RepositoryFile,
         salt::metadata::LandmarkEvidence,
     },
@@ -53,7 +52,7 @@ impl Context<'_> {
         prior: &Generation,
     ) -> Result<DenseBitSet<NodeRowId>, StageError>
     where
-        I: ByteStable,
+        I: Key,
     {
         let _span = tracing::info_span!("prior-marks").entered();
 

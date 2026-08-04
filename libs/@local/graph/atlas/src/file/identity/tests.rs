@@ -2,74 +2,76 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-#![expect(
-    clippy::big_endian_bytes,
-    reason = "big-endian id fixtures sort byte-wise like their numeric values"
-)]
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use zerocopy::IntoBytes as _;
+use hashql_core::id::IdSlice;
+use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
-    FileHeader, PaddedFileHeader,
+    FileHeader, Key as _, KeyKind, Kind, PaddedFileHeader, PayloadSpan,
     read::{IdentityFile, OpenIdentityError},
-    write::{stride_for, write_regions},
+    write::write_regions,
 };
-use crate::file::region::header::HeaderError;
+use crate::{
+    file::region::header::HeaderError,
+    identity::{NodeRowId, OntologyRowId},
+};
 
 #[test]
 fn header_wire_layout() {
-    let header = PaddedFileHeader::new(FileHeader::new(4, 7, 512));
+    let header = PaddedFileHeader::new(FileHeader::new(Kind::Nodes, KeyKind::U64Le, 7, 100, 50));
     let bytes = header.as_bytes();
 
     // The literal length pins the layout and bounds the region slices.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTIDNT");
-    assert_eq!(&bytes[8..12], &0_u32.to_le_bytes(), "version 0");
-    assert_eq!(&bytes[12..16], &4_u32.to_le_bytes(), "key width");
+    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
+    assert_eq!(&bytes[12..14], &1_u16.to_le_bytes(), "kind: nodes");
+    assert_eq!(
+        &bytes[14..16],
+        &0x0102_u16.to_le_bytes(),
+        "key kind: u64 LE",
+    );
     assert_eq!(&bytes[16..24], &7_u64.to_le_bytes(), "row count");
-    assert_eq!(&bytes[24..28], &512_u32.to_le_bytes(), "index stride");
+    assert_eq!(&bytes[24..32], &100_u64.to_le_bytes(), "index size");
+    assert_eq!(&bytes[32..40], &50_u64.to_le_bytes(), "payload size");
     assert!(
-        bytes[28..].iter().all(|&byte| byte == 0),
+        bytes[40..].iter().all(|&byte| byte == 0),
         "writers emit zero padding",
     );
 }
 
 #[test]
 fn geometry_pads_every_region_to_page_boundaries() {
-    // 7 four-byte ids are 28 bytes, padded to one 4096-byte unit; one
-    // index key (stride 512 covers all 7 pairs) is 4 bytes, padded
-    // likewise. The trailing 7 pairs of 12 bytes end the file unpadded.
-    let header = FileHeader::new(4, 7, 512);
-    assert_eq!(header.index_keys(), Some(1));
-    assert_eq!(header.index_offset(), Some(8192));
-    assert_eq!(header.pairs_offset(), Some(12288));
-    assert_eq!(header.expected_file_len(), Some(12288 + 7 * 12));
+    // 7 eight-byte keys are 56 bytes, padded to one 4096-byte unit; 100 index bytes and 7
+    // sixteen-byte spans pad likewise. The trailing 50 payload bytes end the file unpadded.
+    let header = FileHeader::new(Kind::Nodes, KeyKind::U64Le, 7, 100, 50);
+    assert_eq!(header.index_offset(), Some(2 * 4096));
+    assert_eq!(header.spans_offset(), Some(3 * 4096));
+    assert_eq!(header.payload_offset(), Some(4 * 4096));
+    assert_eq!(header.expected_file_len(), Some(4 * 4096 + 50));
 
-    // 1024 four-byte ids fill exactly one region unit: no padding. The
-    // stride of 512 needs two index keys.
-    let exact = FileHeader::new(4, 1024, 512);
-    assert_eq!(exact.index_keys(), Some(2));
-    assert_eq!(exact.index_offset(), Some(4096 + 4096));
+    // 512 eight-byte keys and 4096 index bytes each fill exactly one region unit: no padding.
+    let exact = FileHeader::new(Kind::Nodes, KeyKind::U64Le, 512, 4096, 0);
+    assert_eq!(exact.index_offset(), Some(2 * 4096));
+    assert_eq!(exact.spans_offset(), Some(3 * 4096));
+    assert_eq!(exact.payload_offset(), Some(5 * 4096));
+    assert_eq!(exact.expected_file_len(), Some(5 * 4096));
 
-    // Degenerate parameters match no real file.
-    assert_eq!(FileHeader::new(0, 7, 512).expected_file_len(), None);
-    assert_eq!(FileHeader::new(4, 7, 0).expected_file_len(), None);
-    assert_eq!(
-        FileHeader::new(u32::MAX, u64::MAX, 1).expected_file_len(),
-        None,
-    );
+    // Overflowing geometry matches no real file.
+    let overflow = FileHeader::new(Kind::Nodes, KeyKind::U64Le, u64::MAX, 1, 1);
+    assert_eq!(overflow.expected_file_len(), None);
 }
 
 #[test]
-fn stride_fills_one_page_of_pairs() {
-    // 8-byte ids make 16-byte pairs: 256 per 4096-byte page.
-    assert_eq!(stride_for(8), 256);
-    // 32-byte ids make 40-byte pairs: 102 per page, floor division.
-    assert_eq!(stride_for(32), 102);
-    // Ids wider than a page still index every pair.
-    assert_eq!(stride_for(8192), 1);
+fn key_kinds_declare_their_types_width() {
+    assert_eq!(KeyKind::OntologyTypeUuid.width(), 16);
+    assert_eq!(KeyKind::EntityId.width(), 32);
+    assert_eq!(KeyKind::U8Le.width(), 1);
+    assert_eq!(KeyKind::U16Le.width(), 2);
+    assert_eq!(KeyKind::U64Le.width(), 8);
+    assert_eq!(U64::<LE>::KIND, KeyKind::U64Le);
 }
 
 /// A per-test scratch file path under the system temp directory.
@@ -82,14 +84,25 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-// Four-byte ids in row order; ascending id-byte order is rows 2, 0, 1.
-const IDS: [[u8; 4]; 3] = [[9, 0, 0, 1], [9, 0, 0, 2], [3, 7, 7, 7]];
-const ORDER: [u64; 3] = [2, 0, 1];
+// Eight-byte keys in row order; ascending key-byte order is rows 2, 0, 1.
+const KEYS: [U64<LE>; 3] = [
+    U64::from_bytes([9, 0, 0, 1, 0, 0, 0, 0]),
+    U64::from_bytes([9, 0, 0, 2, 0, 0, 0, 0]),
+    U64::from_bytes([3, 7, 7, 7, 0, 0, 0, 0]),
+];
+
+// Rows 0 and 2 carry equal payload bytes, so interning gives them one span.
+const PAYLOADS: [&str; 3] = ["beta", "alpha", "beta"];
 
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
-    write_regions(4, IDS.as_flattened(), &ORDER, &mut bytes)
-        .expect("writing into a vector cannot fail");
+    write_regions(
+        Kind::Nodes,
+        IdSlice::<NodeRowId, _>::from_raw(&KEYS),
+        PAYLOADS,
+        &mut bytes,
+    )
+    .expect("writing into a vector cannot fail");
     bytes
 }
 
@@ -100,73 +113,59 @@ fn written_regions_reopen_verbatim() {
 
     let file = IdentityFile::open(&path).expect("the written file reopens");
 
-    assert_eq!(file.key_width(), 4);
+    assert_eq!(file.kind(), Kind::Nodes);
+    assert_eq!(file.key_kind(), KeyKind::U64Le);
     assert_eq!(file.rows(), 3);
-    assert_eq!(file.stride(), stride_for(4));
 
-    // The id column is the input verbatim, in row order.
-    assert_eq!(file.ids(), IDS.as_flattened());
+    // The key column is the input verbatim, in row order.
+    assert_eq!(file.keys(), KEYS.as_bytes());
 
-    // One stride covers all three pairs, so the index holds the
-    // smallest id.
-    assert_eq!(file.index_keys(), [3, 7, 7, 7]);
+    // The index resolves each key to its row and nothing else.
+    let index = file.index();
+    assert_eq!(index.len(), 3);
+    for (row, key) in KEYS.iter().enumerate() {
+        assert_eq!(index.get(key.as_bytes()), Some(row as u64));
+    }
+    assert_eq!(index.get([0; 8]), None);
 
-    // Pairs are (id, row LE), ascending by id bytes.
+    // Interning writes each distinct payload once, in first-appearance order, and rows carrying
+    // equal bytes share one span.
+    assert_eq!(file.payload(), b"betaalpha".as_slice());
     assert_eq!(
-        file.pairs(),
+        file.spans(),
         [
-            [3, 7, 7, 7].as_slice(),
-            &2_u64.to_le_bytes(),
-            &[9, 0, 0, 1],
-            &0_u64.to_le_bytes(),
-            &[9, 0, 0, 2],
-            &1_u64.to_le_bytes(),
-        ]
-        .concat(),
+            PayloadSpan::new(0, 4),
+            PayloadSpan::new(4, 5),
+            PayloadSpan::new(0, 4),
+        ],
     );
 }
 
 #[test]
 fn empty_table_reopens() {
-    // A zero count is valid geometry: three empty regions.
-    let path = scratch("empty.idnt");
+    // A zero count is valid geometry: the regions are empty apart from the index, which parses
+    // with zero keys in it.
+    let keys: [U64<LE>; 0] = [];
+    let payloads: [&str; 0] = [];
     let mut bytes = Vec::new();
-    write_regions(4, &[], &[], &mut bytes).expect("writing into a vector cannot fail");
+    write_regions(
+        Kind::Ontology,
+        IdSlice::<OntologyRowId, _>::from_raw(&keys),
+        payloads,
+        &mut bytes,
+    )
+    .expect("writing into a vector cannot fail");
+
+    let path = scratch("empty.idnt");
     fs::write(&path, bytes).expect("the scratch file is writable");
 
     let file = IdentityFile::open(&path).expect("the empty file reopens");
+    assert_eq!(file.kind(), Kind::Ontology);
     assert_eq!(file.rows(), 0);
-    assert!(file.ids().is_empty());
-    assert!(file.index_keys().is_empty());
-    assert!(file.pairs().is_empty());
-}
-
-#[test]
-fn index_keys_delimit_strides_across_pages() {
-    // 8-byte ids stride at 256 pairs: 600 rows need 3 index keys, and
-    // key `i` is the id of pair `i · 256`. Big-endian bytes sort like
-    // the numbers themselves, so the identity permutation is the
-    // ascending order.
-    let ids: Vec<[u8; 8]> = (0..600_u64).map(u64::to_be_bytes).collect();
-    let order: Vec<u64> = (0..600).collect();
-
-    let path = scratch("strided.idnt");
-    let mut bytes = Vec::new();
-    write_regions(8, ids.as_flattened(), &order, &mut bytes)
-        .expect("writing into a vector cannot fail");
-    fs::write(&path, bytes).expect("the scratch file is writable");
-
-    let file = IdentityFile::open(&path).expect("the written file reopens");
-    assert_eq!(file.stride(), 256);
-    assert_eq!(
-        file.index_keys(),
-        [
-            0_u64.to_be_bytes().as_slice(),
-            &256_u64.to_be_bytes(),
-            &512_u64.to_be_bytes(),
-        ]
-        .concat(),
-    );
+    assert!(file.keys().is_empty());
+    assert_eq!(file.index().len(), 0);
+    assert!(file.spans().is_empty());
+    assert!(file.payload().is_empty());
 }
 
 #[test]
@@ -189,12 +188,31 @@ fn open_rejects_foreign_and_torn_bytes() {
         Err(OpenIdentityError::Header(_)),
     );
 
-    let future = scratch("future-version.idnt");
+    // Layout version 0 is the predecessor format's, and this parse speaks only version 1.
+    let old_version = scratch("old-version.idnt");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
-    fs::write(&future, &bytes).expect("the scratch file is writable");
+    bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
+    fs::write(&old_version, &bytes).expect("the scratch file is writable");
     assert_matches!(
-        IdentityFile::open(&future),
+        IdentityFile::open(&old_version),
+        Err(OpenIdentityError::Header(_)),
+    );
+
+    let alien_kind = scratch("alien-kind.idnt");
+    let mut bytes = fixture_bytes();
+    bytes[12..14].copy_from_slice(&3_u16.to_le_bytes());
+    fs::write(&alien_kind, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        IdentityFile::open(&alien_kind),
+        Err(OpenIdentityError::Header(_)),
+    );
+
+    let alien_key_kind = scratch("alien-key-kind.idnt");
+    let mut bytes = fixture_bytes();
+    bytes[14..16].copy_from_slice(&0x0200_u16.to_le_bytes());
+    fs::write(&alien_key_kind, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        IdentityFile::open(&alien_key_kind),
         Err(OpenIdentityError::Header(_)),
     );
 
@@ -207,30 +225,45 @@ fn open_rejects_foreign_and_torn_bytes() {
         Err(OpenIdentityError::Length { .. }),
     );
 
-    // A zero width or stride in an otherwise intact header matches no
-    // real file length.
-    let zero_width = scratch("zero-width.idnt");
+    // Zeroing the index region leaves the geometry intact and the fst parse is what refuses.
+    // Three eight-byte keys pad to one region unit, so the index starts at 8192; its exact size
+    // sits at header bytes 24..32.
+    let mangled_index = scratch("mangled-index.idnt");
     let mut bytes = fixture_bytes();
-    bytes[12..16].copy_from_slice(&0_u32.to_le_bytes());
-    fs::write(&zero_width, &bytes).expect("the scratch file is writable");
+    let index_bytes = u64::from_le_bytes(bytes[24..32].try_into().expect("eight bytes"));
+    let start = 8192_usize;
+    let end = start + usize::try_from(index_bytes).expect("the index fits the address space");
+    bytes[start..end].fill(0);
+    fs::write(&mangled_index, &bytes).expect("the scratch file is writable");
     assert_matches!(
-        IdentityFile::open(&zero_width),
-        Err(OpenIdentityError::Length { expected: None, .. }),
-    );
-
-    let zero_stride = scratch("zero-stride.idnt");
-    let mut bytes = fixture_bytes();
-    bytes[24..28].copy_from_slice(&0_u32.to_le_bytes());
-    fs::write(&zero_stride, &bytes).expect("the scratch file is writable");
-    assert_matches!(
-        IdentityFile::open(&zero_stride),
-        Err(OpenIdentityError::Length { expected: None, .. }),
+        IdentityFile::open(&mangled_index),
+        Err(OpenIdentityError::Index(_)),
     );
 }
 
 #[test]
-#[should_panic(expected = "one order entry per whole id")]
-fn writer_rejects_disagreeing_regions() {
+#[should_panic(expected = "one payload per key")]
+fn writer_rejects_disagreeing_columns() {
+    let payloads: [&str; 2] = ["a", "b"];
     let mut bytes = Vec::new();
-    let _result = write_regions(4, IDS.as_flattened(), &[0, 1], &mut bytes);
+    let _result = write_regions(
+        Kind::Nodes,
+        IdSlice::<NodeRowId, _>::from_raw(&KEYS),
+        payloads,
+        &mut bytes,
+    );
+}
+
+#[test]
+#[should_panic(expected = "two rows carry one key")]
+fn writer_rejects_duplicate_keys() {
+    let keys = [KEYS[0], KEYS[0]];
+    let payloads: [&str; 2] = ["a", "b"];
+    let mut bytes = Vec::new();
+    let _result = write_regions(
+        Kind::Nodes,
+        IdSlice::<NodeRowId, _>::from_raw(&keys),
+        payloads,
+        &mut bytes,
+    );
 }

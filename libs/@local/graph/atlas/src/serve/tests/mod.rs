@@ -28,7 +28,7 @@ use super::{
 };
 use crate::{
     bitset::CompressedBitSet,
-    identity::{BasePosition, CardRow, NodeRowId, OntologyRowId},
+    identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         landmark::select::SelectionOptions,
@@ -55,8 +55,12 @@ use crate::{
         memory::MemoryDataset,
     },
     file::{
-        WriteInto as _, array::ArrayFile, generation::Generation, morton::read::MortonFile,
-        quad::read::QuadFile, region::ByteStable,
+        WriteInto as _,
+        array::ArrayFile,
+        generation::Generation,
+        identity::{Key, Row},
+        morton::read::MortonFile,
+        quad::read::QuadFile,
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, BoxedVecN, Log2, VecN},
@@ -365,6 +369,15 @@ fn store_identities(generation: &Generation) {
         salt::fit::prepare::identity::IdentityTable,
     };
 
+    fn entity_table<R: Row>(rows: u64, seed: u8) -> IdentityTable<R, ArchivedEntityId> {
+        let mut table = IdentityTable::new();
+        for row in 0..rows {
+            let row = u8::try_from(row).expect("fixture row counts fit u8");
+            table.push(entity_id_of(seed + row));
+        }
+        table
+    }
+
     let files = &generation.repository().files;
     let rows_of = |name: &crate::file::repository::FileName| {
         IdentityFile::open(generation.path_of(name))
@@ -373,7 +386,7 @@ fn store_identities(generation: &Generation) {
     };
 
     let ontology_rows = rows_of(&files.ontology_identities.name);
-    let mut ontology = IdentityTable::<ArchivedOntologyTypeUuid>::new();
+    let mut ontology = IdentityTable::<OntologyRowId, ArchivedOntologyTypeUuid>::new();
     for row in 0..ontology_rows {
         let url: VersionedUrl = fixture_type_url(row)
             .parse()
@@ -383,16 +396,8 @@ fn store_identities(generation: &Generation) {
         ));
     }
 
-    let entity_table = |rows: u64, seed: u8| {
-        let mut table = IdentityTable::<ArchivedEntityId>::new();
-        for row in 0..rows {
-            let row = u8::try_from(row).expect("fixture row counts fit u8");
-            table.push(entity_id_of(seed + row));
-        }
-        table
-    };
-    let nodes = entity_table(rows_of(&files.node_identities.name), 0);
-    let edges = entity_table(rows_of(&files.edge_identities.name), EDGE_SEED);
+    let nodes = entity_table::<NodeRowId>(rows_of(&files.node_identities.name), 0);
+    let edges = entity_table::<EdgeRowId>(rows_of(&files.edge_identities.name), EDGE_SEED);
 
     rewrite_identities(
         generation.path_of(&files.ontology_identities.name),
@@ -403,15 +408,17 @@ fn store_identities(generation: &Generation) {
 }
 
 /// Overwrites one identity artifact with a hand-built table.
-fn rewrite_identities<I>(
+fn rewrite_identities<R, I>(
     path: camino::Utf8PathBuf,
-    table: &crate::salt::fit::prepare::identity::IdentityTable<I>,
+    table: &crate::salt::fit::prepare::identity::IdentityTable<R, I>,
 ) where
-    I: ByteStable,
+    R: Row,
+    I: Key,
 {
+    let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
     let mut file = std::fs::File::create(path).expect("the identity artifact rewrites");
     let _digest = table
-        .write_into(&mut file)
+        .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), &mut file)
         .expect("the identities should write");
 }
 
@@ -1827,24 +1834,24 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
     );
 }
 
-/// A generation carrying the memory dataset's 8-byte positional ids does not serve.
+/// A generation carrying the memory dataset's positional ids does not serve.
 ///
-/// The open fails on the key width.
+/// The open fails on the key kind.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn foreign_key_widths_fail_the_open() {
+async fn foreign_key_kinds_fail_the_open() {
     use super::error::{IdentityDomain, OpenAtlasError};
     use crate::salt::fit::prepare::identity::InvalidIdentityFile;
 
-    let (root, generation) = fit_fixture("foreign-width-fails").await;
+    let (root, generation) = fit_fixture("foreign-kind-fails").await;
     let error = Atlas::open(&root, generation.id(), test_open_options())
-        .expect_err("a foreign key width must fail the open");
+        .expect_err("a foreign key kind must fail the open");
     assert!(
         matches!(
             error,
             OpenAtlasError::Identity {
                 domain: IdentityDomain::Ontology,
-                error: InvalidIdentityFile::KeyWidth { .. },
+                error: InvalidIdentityFile::KeyKind { .. },
             },
         ),
         "the open names the first identity table it rejects: {error}",
@@ -1920,7 +1927,7 @@ fn colored_masks_resolve_and_expand_descendants() {
     let urls: Vec<String> = (0..4)
         .map(|row| format!("https://example.com/types/fixture-{row}/v/1"))
         .collect();
-    let mut table = IdentityTable::<ArchivedOntologyTypeUuid>::new();
+    let mut table = IdentityTable::<OntologyRowId, ArchivedOntologyTypeUuid>::new();
     for url in &urls {
         let parsed: VersionedUrl = url.parse().expect("the fixture URL parses");
         table.push(ArchivedOntologyTypeUuid::from(
@@ -1929,8 +1936,9 @@ fn colored_masks_resolve_and_expand_descendants() {
     }
     let identity_path = dir.join("fixture.idnt");
     let mut file = std::fs::File::create(&identity_path).expect("the identity file creates");
+    let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
     let _digest = table
-        .write_into(&mut file)
+        .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), &mut file)
         .expect("the identities should write");
     drop(file);
     let table = IdentityTableArchive::<ArchivedOntologyTypeUuid, OntologyRowId>::new(
@@ -2130,7 +2138,7 @@ fn entity_string_of(seed: u8) -> String {
 }
 
 /// Writes and reopens one hand-built entity identity table.
-fn entity_identity_table<R: Id>(
+fn entity_identity_table<R: Row>(
     path: &camino::Utf8PathBuf,
     ids: &[crate::dataset::ArchivedEntityId],
 ) -> crate::salt::fit::prepare::identity::IdentityTableArchive<crate::dataset::ArchivedEntityId, R>
@@ -2140,13 +2148,13 @@ fn entity_identity_table<R: Id>(
         salt::fit::prepare::identity::IdentityTable,
     };
 
-    let mut table = IdentityTable::<ArchivedEntityId>::new();
+    let mut table = IdentityTable::<R, ArchivedEntityId>::new();
     for &id in ids {
         table.push(id);
     }
     let mut file = std::fs::File::create(path).expect("the identity file creates");
     let _digest = table
-        .write_into(&mut file)
+        .write_into(core::iter::repeat_n::<&[u8]>(&[], ids.len()), &mut file)
         .expect("the identities should write");
     drop(file);
     crate::salt::fit::prepare::identity::IdentityTableArchive::new(

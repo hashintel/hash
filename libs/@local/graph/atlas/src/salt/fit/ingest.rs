@@ -24,7 +24,7 @@ use super::{
         instance::{InstanceRecord, InstanceSpool, InstanceSpoolWriter},
         norm,
     },
-    role::{Role, digest_file, stage, write_staged},
+    role::{Role, digest_file, write_staged},
     stage_rng,
 };
 use crate::{
@@ -34,7 +34,7 @@ use crate::{
         generation::{Generation, ScratchDirectory, StagedGeneration},
         repository::RepositoryFile,
     },
-    identity::{EdgeRowId, OntologyRowId},
+    identity::OntologyRowId,
     math::AlignedVecN,
     progress::Progress,
     salt::{
@@ -216,7 +216,12 @@ where
     writer.flush()?;
 
     let nodes = columns.ids.len();
-    let identities = stage(staging, Role::NodeIdentities, &columns.ids)?;
+    let identities = write_staged(staging, Role::NodeIdentities, |writer| {
+        let rows = usize::try_from(columns.ids.len()).expect("rows fit the address space");
+        columns
+            .ids
+            .write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+    })?;
 
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
 
@@ -337,8 +342,7 @@ where
 
     let mut stream = pin!(dataset.edges());
     while let Some(edge) = stream.try_next().await.map_err(FitError::Dataset)? {
-        let row = EdgeRowId::new(ids.len());
-        ids.push(edge.id);
+        let row = ids.push(edge.id);
         endpoints.write_row(
             [
                 U64::<LE>::new(edge.source.as_u64()),
@@ -384,7 +388,10 @@ where
     endpoints.finish()?;
     writer.flush()?;
 
-    let identities = stage(staging, Role::EdgeIdentities, &ids)?;
+    let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
+        let rows = usize::try_from(ids.len()).expect("rows fit the address space");
+        ids.write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+    })?;
     let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
     let instances = spool.finish()?;
 
@@ -454,7 +461,7 @@ where
     let (cards, ids) = async {
         let mut stream = pin!(dataset.render_cards());
         let mut cards = IdVec::new();
-        let mut ids = IdentityTable::new();
+        let mut ids = IdentityTable::<OntologyRowId, _>::new();
         while let Some((id, card)) = stream.try_next().await.map_err(FitError::Cards)? {
             ids.push(id);
             cards.push(card);
@@ -465,7 +472,10 @@ where
     .await?;
 
     let types = cards.len() as u64;
-    let identities = stage(staging, Role::OntologyIdentities, &ids)?;
+    let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
+        let rows = usize::try_from(ids.len()).expect("rows fit the address space");
+        ids.write_into(core::iter::repeat_n::<&[u8]>(&[], rows), writer)
+    })?;
 
     let prior_files = prior
         .map(|generation| -> Result<_, PriorError> {

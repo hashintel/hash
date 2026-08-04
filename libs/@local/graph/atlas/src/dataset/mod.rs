@@ -62,7 +62,7 @@ use zerocopy::{LE, U64};
 
 use self::card::Card;
 use crate::{
-    file::region::ByteStable,
+    file::identity::Key,
     identity::{NodeRowId, OntologyRowId},
     math::BoxedVecN,
 };
@@ -409,23 +409,25 @@ pub(crate) struct Edge<E> {
 pub(crate) trait Dataset {
     /// The source identifier of a node.
     ///
-    /// Byte-level stable so identity columns persist as raw bytes; opaque to the pipeline
-    /// otherwise. `Send + Sync + 'static` because id columns cross onto compute-pool workers that
-    /// read them concurrently (the fit offloads its stage tail to rayon; the ranking tiebreak
-    /// hashes id columns in parallel), which every plain-bytes id satisfies.
-    type NodeId: ByteStable + Send + 'static;
+    /// A [`Key`], so the identity file persists the id column as raw bytes under the id's
+    /// declared key kind and reopens only under the id type that wrote it. Opaque to the
+    /// pipeline otherwise. `Send + Sync + 'static` because id columns cross onto compute-pool
+    /// workers that read them concurrently (the fit offloads its stage tail to rayon; the ranking
+    /// tiebreak hashes id columns in parallel), which every plain-bytes id satisfies.
+    type NodeId: Key + Send + 'static;
 
     /// The source identifier of an edge.
     ///
-    /// Byte-level stable so identity columns persist as raw bytes; opaque to the pipeline
+    /// A [`Key`], persisted as raw bytes under its declared key kind. Opaque to the pipeline
     /// otherwise.
-    type EdgeId: ByteStable;
+    type EdgeId: Key;
 
     /// The source identifier of an ontology type.
     ///
-    /// Byte-level stable so the type table persists as raw bytes; opaque to the pipeline otherwise,
-    /// except for the declared [`OntologyIdentity`] capability verdict resolution consumes.
-    type OntologyId: ByteStable + OntologyIdentity + Eq + core::hash::Hash;
+    /// A [`Key`], persisted as raw bytes under its declared key kind. Opaque to the pipeline
+    /// otherwise, except for the declared [`OntologyIdentity`] capability verdict resolution
+    /// consumes.
+    type OntologyId: Key + OntologyIdentity + Eq + core::hash::Hash;
 
     /// The failure produced when the underlying source cannot deliver.
     type Error: core::error::Error + Send + Sync + 'static;
