@@ -52,13 +52,6 @@ const column = css({
   gap: "[20px]",
 });
 
-const rowLabel = css({
-  width: "[90px]",
-  flexShrink: "0",
-  textStyle: "sm",
-  color: "fg.muted",
-});
-
 const sectionTitle = css({
   textStyle: "sm",
   fontWeight: "semibold",
@@ -91,6 +84,7 @@ const largeText = css({
   textStyle: "2xl",
   fontWeight: "semibold",
   color: "fg.heading",
+  lineHeight: "[1]",
 });
 
 // A stand-in app tile / thumbnail — the kind of square that carries a count.
@@ -142,7 +136,7 @@ const Anchors = ({
         position={position}
         alignTo="circle"
       >
-        <Avatar fallback="AL" size="40" />
+        <Avatar placeholder={{ initials: "AL" }} alt="AL" />
       </Badge>
     </AnchorCell>
     <AnchorCell label="small text">
@@ -245,7 +239,6 @@ Default.parameters = {
 export const Position: Story<BadgeProps> = (args) => (
   <div className={column}>
     <div className={wideRow}>
-      <div className={rowLabel}>short</div>
       {positions.map((position) => (
         <Badge
           key={position}

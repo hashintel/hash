@@ -21,7 +21,7 @@ type AvatarProps = {
     | { initials: string }
     | { icon: IconName }
     | { custom: React.ReactNode };
-  shape: "circle" | "square";
+  shape?: "circle" | "square";
   tone?: Extract<Tone, "neutral" | "brand">;
 } & ExclusifyUnion<
   | { onClick?: React.ButtonHTMLAttributes<Element>["onClick"] }
@@ -40,7 +40,7 @@ const placeholderIconSize: Record<FormInputSize, FormInputSize> = {
 
 export const Avatar = ({
   className,
-  shape,
+  shape = "circle",
   src,
   alt,
   size = "md",
