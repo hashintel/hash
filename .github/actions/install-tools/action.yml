@@ -6,8 +6,14 @@ inputs:
     description: GitHub token for authentication
     required: true
   vault_address:
-    description: The URL of the Vault server. If empty, sccache installation is skipped.
-    required: true
+    description: The URL of the Vault server holding the sccache credentials.
+    default: ""
+  cf_access_client_id:
+    description: Cloudflare Access service-token client ID for that Vault.
+    default: ""
+  cf_access_client_secret:
+    description: Cloudflare Access service-token client secret for that Vault. Empty on fork pull requests, which is what skips sccache there.
+    default: ""
   rust:
     description: Should Rust be installed? Can either be `"true"` or `true`
     default: "true"
@@ -49,7 +55,9 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.vault_address != '' }}
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.cf_access_client_secret != '' }}
       uses: ./.github/actions/install-sccache
       with:
         vault_address: ${{ inputs.vault_address }}
+        cf_access_client_id: ${{ inputs.cf_access_client_id }}
+        cf_access_client_secret: ${{ inputs.cf_access_client_secret }}

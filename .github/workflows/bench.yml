@@ -49,7 +49,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
           rust: false
 
       - name: Determine changed packages
@@ -93,7 +95,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -132,7 +136,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -209,7 +215,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -307,7 +315,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
           sccache: false # sccache is already running in the background
 
       - name: Prune repository
