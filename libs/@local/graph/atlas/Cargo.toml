@@ -35,7 +35,7 @@ aide                      = { workspace = true, features = ["axum", "axum-json",
 burn                      = { workspace = true, features = ["autodiff", "ndarray"] }
 chacha20poly1305          = { workspace = true }
 clap                      = { workspace = true, features = ["derive", "env"] }
-fst                       = { workspace = true }
+fst                       = { workspace = true, public = true }
 futures                   = { workspace = true }
 hannoy                    = { workspace = true }
 hash-graph-authorization  = { workspace = true }

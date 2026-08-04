@@ -7,13 +7,13 @@ use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
-    AppState,
-    extract::{Body, Coordinates, Generation},
+    AppState, clause,
+    extract::{Body, Coordinates, Generation, VariantPath},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
     visibility::Visibility,
 };
-use crate::serve::{GenerationId, TileCoordinate, TileError, TileQuery, TileRequest};
+use crate::serve::{TileCoordinate, TileError, TileQuery, TileRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -36,20 +36,6 @@ The JSON body is optional; an absent body reads as the all-defaults query. `mode
 
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.";
-
-/// The generation/variant pair addressing one fitted layout.
-///
-/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
-/// problem before the handler runs.
-#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub(super) struct VariantPath {
-    /// The sha256 generation id, as returned by `current`.
-    generation: GenerationId,
-    /// The fitted variant name.
-    ///
-    /// The manifest lists what this generation serves.
-    variant: String,
-}
 
 /// The `z/x/y` grid cell.
 ///
@@ -163,21 +149,10 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .id("tile")
         .summary("One tile as SALTILET envelope bytes")
         .description(DESCRIPTION)
-        .with(|mut operation| {
-            // `Option<Json<...>>` documents as a required body; the
-            // tile body is not.
-            if let Some(body) = operation
-                .inner_mut()
-                .request_body
-                .as_mut()
-                .and_then(|body| body.as_item_mut())
-            {
-                body.required = false;
-                body.description =
-                    Some("the query context; absent reads as the all-defaults query".to_owned());
-            }
-            operation
-        })
+        .with(clause::optional_body)
+        .with(clause::describe_body(
+            "the query context; absent reads as the all-defaults query",
+        ))
         .response_with::<200, Saltile, _>(|response| {
             response.description("a `SALTILET` envelope: the tile's delivered geometry")
         })
@@ -189,22 +164,12 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                  or `invalid-body` (a body that is not this operation's JSON shape)",
             )
         })
-        .response_with::<401, Problem<'static>, _>(|response| {
-            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
-        })
+        .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
-        .response_with::<501, Problem<'static>, _>(|response| {
-            response.description(
-                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
-                 server does not yet serve",
-            )
-        })
-        .default_response_with::<Problem<'static>, _>(|response| {
-            response
-                .description("any other problem document; `internal` marks a server-side failure")
-        })
+        .with(clause::reserved_filter)
+        .with(clause::any_problem)
 }

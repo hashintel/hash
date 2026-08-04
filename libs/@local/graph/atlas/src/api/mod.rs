@@ -5,12 +5,14 @@
 //! `SALTILE` envelopes, and the JSON translate endpoint. The server pins the generation at startup
 //! and serves it until restart.
 //!
-//! Each route lives in its own module (handler, path parameters, and OpenAPI documentation
+//! Each route lives in its own module (handler, its own path parameters, and OpenAPI documentation
 //! together), so a new endpoint is a new module plus one line in [`router`]'s table. The shared
 //! pieces are [`problem`] (the RFC 9457 error surface), [`extract`] (request extraction whose
-//! rejections are problem documents), [`saltile`] (binary envelope responses and their assembly
-//! worker), [`headers`] (the Cache-Control postures, sent and documented from one constant), and
-//! [`mod@reference`] (the OpenAPI document and its reference page).
+//! rejections are problem documents, and the generation/variant path shape four routes address a
+//! layout by), [`clause`] (the OpenAPI responses more than one route states identically),
+//! [`saltile`] (binary envelope responses and their assembly worker), [`headers`] (the
+//! Cache-Control postures, sent and documented from one constant), and [`mod@reference`] (the
+//! OpenAPI document and its reference page).
 //!
 //! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
 //! `catch_unwind` and never inline on the async runtime. Every error a route answers is an RFC 9457
@@ -39,6 +41,7 @@ use crate::serve::{
 };
 
 mod authorization;
+mod clause;
 mod current;
 mod edges;
 mod extract;

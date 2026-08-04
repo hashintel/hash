@@ -9,13 +9,13 @@ use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
-    AppState,
-    extract::{Body, Generation},
+    AppState, clause,
+    extract::{Body, Generation, VariantPath},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
     visibility::Visibility,
 };
-use crate::serve::{EdgesError, EdgesRequest, GenerationId};
+use crate::serve::{EdgesError, EdgesRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -45,20 +45,6 @@ When the server's edge cap truncates the set, the response keeps the edges whose
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.
 ";
-
-/// The generation/variant pair addressing one fitted layout.
-///
-/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
-/// problem before the handler runs.
-#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub(super) struct VariantPath {
-    /// The sha256 generation id, as returned by `current`.
-    generation: GenerationId,
-    /// The fitted variant name.
-    ///
-    /// The manifest lists what this generation serves.
-    variant: String,
-}
 
 /// `POST /v1/atlas/edges/{generation}/{variant}`.
 ///
@@ -151,18 +137,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .id("edges")
         .summary("The edges among the listed tiles' delivered rows, as SALTILEE envelope bytes")
         .description(DESCRIPTION)
-        .with(|mut operation| {
-            if let Some(body) = operation
-                .inner_mut()
-                .request_body
-                .as_mut()
-                .and_then(|body| body.as_item_mut())
-            {
-                body.description =
-                    Some("the edges request; the `tiles` list is the request's subject".to_owned());
-            }
-            operation
-        })
+        .with(clause::describe_body(
+            "the edges request; the `tiles` list is the request's subject",
+        ))
         .response_with::<200, Saltile, _>(|response| {
             response.description(
                 "a `SALTILEE` envelope: the qualifying edges, ascending by link-entity identity",
@@ -174,22 +151,12 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                  `invalid-coordinate`",
             )
         })
-        .response_with::<401, Problem<'static>, _>(|response| {
-            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
-        })
+        .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation` or `unknown-variant`: re-read `current` and retry",
             )
         })
-        .response_with::<501, Problem<'static>, _>(|response| {
-            response.description(
-                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
-                 server does not yet serve",
-            )
-        })
-        .default_response_with::<Problem<'static>, _>(|response| {
-            response
-                .description("any other problem document; `internal` marks a server-side failure")
-        })
+        .with(clause::reserved_filter)
+        .with(clause::any_problem)
 }

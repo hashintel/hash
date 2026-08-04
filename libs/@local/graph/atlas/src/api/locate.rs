@@ -9,13 +9,13 @@ use axum::{extract::State, http::StatusCode};
 use tracing::Instrument as _;
 
 use super::{
-    AppState,
-    extract::{Body, Generation},
+    AppState, clause,
+    extract::{Body, Generation, VariantPath},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
     visibility::Visibility,
 };
-use crate::serve::{GenerationId, LocateError, LocateRequest};
+use crate::serve::{LocateError, LocateRequest};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -53,20 +53,6 @@ A source that does not name a visible node answers `unknown-entity`: nonexistent
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.
 ";
-
-/// The generation/variant pair addressing one fitted layout.
-///
-/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
-/// problem before the handler runs.
-#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub(super) struct VariantPath {
-    /// The sha256 generation id, as returned by `current`.
-    generation: GenerationId,
-    /// The fitted variant name.
-    ///
-    /// The manifest lists what this generation serves.
-    variant: String,
-}
 
 /// `POST /v1/atlas/locate/{generation}/{variant}`.
 ///
@@ -167,21 +153,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .id("locate")
         .summary("The source entity's ego-graph, as SALTILEL envelope bytes")
         .description(DESCRIPTION)
-        .with(|mut operation| {
-            if let Some(body) = operation
-                .inner_mut()
-                .request_body
-                .as_mut()
-                .and_then(|body| body.as_item_mut())
-            {
-                body.description = Some(
-                    "the locate request; exactly one of `entityId` and `row` names the subject"
-                        .to_owned(),
-                );
-            }
-
-            operation
-        })
+        .with(clause::describe_body(
+            "the locate request; exactly one of `entityId` and `row` names the subject",
+        ))
         .response_with::<200, Saltile, _>(|response| {
             response.description(
                 "a `SALTILEL` envelope: the source first, its linked partners, and the edges \
@@ -194,23 +168,13 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                  `invalid-body` (a body that is not this operation's JSON shape)",
             )
         })
-        .response_with::<401, Problem<'static>, _>(|response| {
-            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
-        })
+        .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation`, `unknown-variant`, or `unknown-entity` (identical for \
                  nonexistent, inaccessible, unparsable, and out-of-range sources)",
             )
         })
-        .response_with::<501, Problem<'static>, _>(|response| {
-            response.description(
-                "`unsupported-feature`: the request carries a reserved field (`filter`) this \
-                 server does not yet serve",
-            )
-        })
-        .default_response_with::<Problem<'static>, _>(|response| {
-            response
-                .description("any other problem document; `internal` marks a server-side failure")
-        })
+        .with(clause::reserved_filter)
+        .with(clause::any_problem)
 }

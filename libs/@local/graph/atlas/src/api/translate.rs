@@ -12,14 +12,14 @@ use axum::{
 };
 
 use super::{
-    AppState,
-    extract::{Body, Generation},
+    AppState, clause,
+    extract::{Body, Generation, VariantPath},
     headers,
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::spawn,
     visibility::Visibility,
 };
-use crate::serve::{GenerationId, TranslateError, TranslateRequest, TranslateResponse};
+use crate::serve::{TranslateError, TranslateRequest, TranslateResponse};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -45,20 +45,6 @@ The `edges` map answers a link id when the caller may see the link row and both 
 
 The JSON body is required; the manifest's `limits.translateEntityIds` caps the id list. Duplicates \
      are legal and collapse.";
-
-/// The generation/variant pair addressing one fitted layout.
-///
-/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
-/// problem before the handler runs.
-#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
-pub(super) struct VariantPath {
-    /// The sha256 generation id, as returned by `current`.
-    generation: GenerationId,
-    /// The fitted variant name.
-    ///
-    /// The manifest lists what this generation serves.
-    variant: String,
-}
 
 /// `POST /v1/atlas/translate/{generation}/{variant}`: upstream entity ids to atlas identity.
 ///
@@ -93,20 +79,9 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
         .id("translate")
         .summary("Upstream entity ids to atlas row ids and positions")
         .description(DESCRIPTION)
-        .with(|mut operation| {
-            if let Some(body) = operation
-                .inner_mut()
-                .request_body
-                .as_mut()
-                .and_then(|body| body.as_item_mut())
-            {
-                body.description = Some(
-                    "the translate request; the `entityIds` list is the request's subject"
-                        .to_owned(),
-                );
-            }
-            operation
-        })
+        .with(clause::describe_body(
+            "the translate request; the `entityIds` list is the request's subject",
+        ))
         .response_with::<200, Json<TranslateResponse>, _>(|mut response| {
             response.inner().headers.insert(
                 "Cache-Control".to_owned(),
@@ -126,9 +101,7 @@ pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<
                 "`too-many-entity-ids`, `invalid-generation`, `missing-body`, or `invalid-body`",
             )
         })
-        .response_with::<401, Problem<'static>, _>(|response| {
-            response.description("`unauthorized`: no valid authority token; re-fetch the manifest")
-        })
+        .with(clause::unauthorized)
         .response_with::<404, Problem<'static>, _>(|response| {
             response.description(
                 "`unknown-generation` or `unknown-variant`: re-bootstrap through `current`",

@@ -7,6 +7,9 @@
 //! answers `invalid-coordinate`, and [`Generation`] wraps the generation-bearing segments so a
 //! malformed generation id answers `invalid-generation`. All three delegate their OpenAPI schemas
 //! to the extractor they wrap, so the documented contract stays unchanged.
+//!
+//! [`VariantPath`] lives here beside them: the generation/variant pair addressing a fitted layout,
+//! defined once so the routes that take it document one shape.
 
 #![expect(
     clippy::field_scoped_visibility_modifiers,
@@ -26,6 +29,21 @@ use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 
 use super::problem::{Problem, ProblemType};
+use crate::serve::GenerationId;
+
+/// The generation/variant pair addressing one fitted layout.
+///
+/// Extracted through [`Generation`]: a malformed generation id answers the `invalid-generation`
+/// problem before the handler runs.
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub(super) struct VariantPath {
+    /// The sha256 generation id, as returned by `current`.
+    pub(super) generation: GenerationId,
+    /// The fitted variant name.
+    ///
+    /// The manifest lists what this generation serves.
+    pub(super) variant: String,
+}
 
 /// A JSON request body whose rejections are problem documents.
 ///

@@ -7,7 +7,7 @@
 use alloc::sync::Arc;
 use std::time::SystemTime;
 
-use aide::{axum::IntoApiResponse, openapi, transform::TransformOperation};
+use aide::{axum::IntoApiResponse, transform::TransformOperation};
 use axum::{
     Json,
     body::Bytes,
@@ -20,6 +20,7 @@ use type_system::{knowledge::Entity, principal::actor::ActorEntityUuid};
 use super::{
     AppState,
     authorization::Presented,
+    clause,
     extract::Generation,
     headers,
     problem::{Problem, ProblemType, reject_generation, unauthorized},
@@ -314,19 +315,14 @@ impl schemars::JsonSchema for FilterDocument {
 /// and owes the same declaration; without it the document would promise four statuses for an
 /// operation that has five.
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
-    let mut operation = operation
+    // A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
+    // filter), so the declared body is optional. The input declaration marks it required.
+    operation
         .id("manifest")
         .summary("The generation's bootstrap manifest")
         .description(&format!("{DESCRIPTION}\n\n{FILTER}"))
-        .input::<Json<FilterDocument>>();
-
-    // A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
-    // filter), so the declared body is optional. The input declaration marks it required.
-    if let Some(openapi::ReferenceOr::Item(body)) = operation.inner_mut().request_body.as_mut() {
-        body.required = false;
-    }
-
-    operation
+        .input::<Json<FilterDocument>>()
+        .with(clause::optional_body)
         .response_with::<200, Json<Manifest>, _>(|mut response| {
             response.inner().headers.insert(
                 "Cache-Control".to_owned(),
