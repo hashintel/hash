@@ -12,8 +12,8 @@
 //! [`std::io::Write`], [`tokio::io::AsyncWrite`], and [`Sink`](futures_sink::Sink), so the writer
 //! digests a stream during a copy without buffering it in memory:
 //!
-//! ```rust
-//! use hash_graph_atlas::integrity::{Sha256, Update as _};
+//! ```ignore
+//! use crate::integrity::{Sha256, Update as _};
 //!
 //! let mut hasher = Sha256::new();
 //! hasher.update(b"abc");
@@ -29,6 +29,9 @@
 //! [`Sha256Digest`] displays, parses, and serializes as canonical lowercase hexadecimal. Parsing
 //! rejects uppercase digits and noncanonical lengths, so values that round-trip through text or
 //! JSON are byte-identical.
+//!
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it, and the module's tests assert every property the examples show.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 mod hash;

@@ -38,6 +38,18 @@ fn inserted_rows_are_contained_and_iterated_in_order() {
     assert!(!set.contains(NodeRowId::new(0x1_0041)));
 }
 
+/// A one-pass build admits every row of its iterator and reads back in ascending order.
+#[test]
+fn from_rows_admits_every_row_and_iterates_in_order() {
+    let links = CompressedBitSet::from_rows([4, 1, 2].map(EdgeRowId::new));
+
+    assert_eq!(links.count(), 3);
+    assert_eq!(
+        links.iter().collect::<Vec<_>>(),
+        [1, 2, 4].map(EdgeRowId::new)
+    );
+}
+
 #[test]
 fn removal_reports_whether_the_set_changed() {
     let mut set = CompressedBitSet::from_rows([1, 2].map(EdgeRowId::new));

@@ -101,8 +101,8 @@ impl FromStr for Sha256Digest {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use hash_graph_atlas::integrity::{Sha256, Update as _};
+/// ```ignore
+/// use crate::integrity::{Sha256, Update as _};
 ///
 /// let mut hasher = Sha256::new();
 /// hasher.update(b"abc");

@@ -24,45 +24,12 @@
 //!   drive.
 //! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
-//! # Examples
+//! # Using the crate
 //!
-//! Opens the active generation and answers one tile request.
-//!
-//! ```no_run
-//! use std::sync::Arc;
-//!
-//! use hash_graph_atlas::serve::{
-//!     Atlas, CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
-//!     TileRequest, VisibilityProof, WireSecret,
-//! };
-//!
-//! # fn main() -> Result<(), Box<dyn core::error::Error>> {
-//! let root = GenerationRoot::new("/var/atlas/generations")?;
-//! let id = root.current()?.expect("a generation is active");
-//! let secret =
-//!     WireSecret::from_hex("6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55")?;
-//! let atlas = Arc::new(Atlas::open(
-//!     &root,
-//!     id,
-//!     OpenOptions {
-//!         wire_secret: secret,
-//!     },
-//! )?);
-//!
-//! let proof = VisibilityProof::full_visibility();
-//! let bytes = atlas.tile(
-//!     &TileRequest {
-//!         coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
-//!         query: TileQuery::default(),
-//!     },
-//!     TileLimits::default(),
-//!     &proof,
-//!     CutOffset::ZERO,
-//! )?;
-//! # let _ = bytes;
-//! # Ok(())
-//! # }
-//! ```
+//! A caller outside this crate reaches a published generation over HTTP. [`cli`] carries the
+//! operator commands that fit a generation over the live store and serve the active one through the
+//! [`api`] router the graph binary hosts. The Rust items behind that router are crate-internal by
+//! design. [`serve::Atlas`] carries the worked example for the read path.
 //!
 //! # Crate features
 //!

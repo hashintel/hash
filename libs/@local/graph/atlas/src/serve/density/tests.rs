@@ -111,6 +111,16 @@ fn band_includes_its_bounds() {
     assert_eq!(band.distance(4_001), 1);
 }
 
+/// Distance measures the shortfall below the band and the excess above it.
+#[test]
+fn band_distance_grows_with_the_gap_to_its_bounds() {
+    let band = band(2_000, 4_000);
+
+    assert_eq!(band.distance(3_000), 0);
+    assert_eq!(band.distance(1_500), 500);
+    assert_eq!(band.distance(4_500), 500);
+}
+
 /// The key width caps a resolution that would otherwise keep going deeper.
 ///
 /// A span-6 schedule serving 18 zooms leaves room for 8. The deepest bucket `18 + 6 + 8` is exactly

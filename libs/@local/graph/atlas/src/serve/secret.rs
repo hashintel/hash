@@ -9,6 +9,9 @@
 //! the crate's canonical hexadecimal form. Rejecting every other shape keeps the key space honest,
 //! because a memorable passphrase fails to parse rather than passing as low-entropy key material.
 //! Generate one with `openssl rand -hex 32`.
+//!
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it.
 
 use core::{error::Error, fmt};
 
@@ -80,12 +83,9 @@ impl WireSecret {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::serve::WireSecret;
-    ///
+    /// ```ignore
     /// let secret =
     ///     WireSecret::from_hex("6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55")?;
-    /// # Ok::<(), hash_graph_atlas::serve::WireSecretError>(())
     /// ```
     pub fn from_hex(text: &str) -> Result<Self, WireSecretError> {
         let bytes = text.parse().map_err(|error| match error {

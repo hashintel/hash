@@ -47,6 +47,9 @@
 //! The stored form is the count profile alone. A row count is not an input any policy reads, so the
 //! aggregate does not carry one. Views whose profiles agree are one value, and a resolution returns
 //! the same offset for both.
+//!
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it, and the module's tests assert every property the examples show.
 #![expect(
     clippy::empty_enums,
     reason = "zerocopy's FromBytes derive expands to an empty enum for its validation machinery"
@@ -81,10 +84,8 @@ impl DensityBand {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// use core::num::NonZero;
-    ///
-    /// use hash_graph_atlas::serve::DensityBand;
     ///
     /// let band = DensityBand::new(
     ///     NonZero::new(2_000).expect("2,000 is positive"),
@@ -242,17 +243,13 @@ impl DensityPolicy {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::{
-    ///     math::Log2,
-    ///     serve::{DensityBand, DensityPolicy},
-    /// };
+    /// ```ignore
+    /// use crate::math::Log2;
     ///
     /// let span = Log2::new(6).expect("6 lies below the shift width");
     /// let policy = DensityPolicy::new(DensityBand::default(), span, 18)?;
     ///
     /// assert_eq!(policy.band(), DensityBand::default());
-    /// # Ok::<(), hash_graph_atlas::serve::DensityPolicyError>(())
     /// ```
     pub(crate) fn new(
         band: DensityBand,

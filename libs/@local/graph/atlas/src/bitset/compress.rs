@@ -20,8 +20,8 @@ use roaring::RoaringBitmap;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::{bitset::CompressedBitSet, identity::NodeRowId};
+/// ```ignore
+/// use crate::identity::NodeRowId;
 ///
 /// let mut visible = CompressedBitSet::new();
 /// visible.insert(NodeRowId::new(3));
@@ -34,8 +34,8 @@ use roaring::RoaringBitmap;
 ///
 /// A set built in one pass collects from an iterator, and iterates back in ascending row order:
 ///
-/// ```
-/// use hash_graph_atlas::{bitset::CompressedBitSet, identity::EdgeRowId};
+/// ```ignore
+/// use crate::identity::EdgeRowId;
 ///
 /// let links = CompressedBitSet::from_rows([4, 1, 2].map(EdgeRowId::new));
 ///

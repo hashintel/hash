@@ -6,8 +6,8 @@
 //! reproduce exactly:
 //!
 //! - [`uniform_below`] draws one unbiased integer below a bound.
-//! - [`sample_indices`] draws distinct indices without replacement, in memory proportional to the
-//!   sample rather than the population.
+//! - [`sample_indices_vec`] draws distinct indices without replacement, in memory proportional to
+//!   the sample rather than the population.
 //! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, the seam for
 //!   deterministic parallel draws.
 //! - [`acceptance_sample_size`] reports how many uniformly sampled items must all pass to certify a
@@ -16,6 +16,9 @@
 //!   at a confidence level for a given per-item deviation.
 //! - [`normal_quantile`] inverts the standard normal distribution and supplies the `z` factor that
 //!   [`mean_sample_size`] uses.
+//!
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it, and the module's tests assert every property the examples show.
 
 use core::num::NonZero;
 
@@ -39,10 +42,9 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use core::num::NonZero;
 ///
-/// use hash_graph_atlas::random::uniform_below;
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
@@ -59,11 +61,9 @@ pub(crate) fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
 
 /// Samples `count` distinct indices from `[0, population)` uniformly at random.
 ///
-/// Without replacement, for sample sizes chosen at runtime.
-///
-/// Every `count`-element subset of the population is equally likely, and the returned order is
-/// itself uniformly random. Memory scales with the sample size. Prefer [`sample_indices`] when the
-/// sample size is a compile-time constant, because that form makes no heap allocation.
+/// The sample draws without replacement, so every `count`-element subset of the population is
+/// equally likely, and the returned order is itself uniformly random. Memory scales with the sample
+/// size rather than the population.
 ///
 /// # Panics
 ///
@@ -72,8 +72,7 @@ pub(crate) fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::random::sample_indices_vec;
+/// ```ignore
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
@@ -107,8 +106,7 @@ const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::random::keyed_rng;
+/// ```ignore
 /// use rand::RngExt as _;
 ///
 /// let mut draws = keyed_rng(42, 7, 0);
@@ -147,9 +145,7 @@ pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::random::acceptance_sample_size;
-///
+/// ```ignore
 /// // Verifying 688 uniformly sampled embeddings out of one million (for
 /// // example, that each is L2-normalized) and finding all of them valid
 /// // gives 99.9% confidence that fewer than 1% of the full set fails
@@ -206,9 +202,7 @@ pub(crate) fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Optio
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::random::mean_sample_size;
-///
+/// ```ignore
 /// // Estimating a mean within one percentage point at 99% one-sided
 /// // confidence, with a measured per-item deviation of 0.32.
 /// assert_eq!(mean_sample_size(0.32, 0.01, 0.99), Some(5542));
@@ -252,9 +246,7 @@ pub(crate) fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> 
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::random::normal_quantile;
-///
+/// ```ignore
 /// let median = normal_quantile(0.5).expect("the median is in domain");
 /// assert!(median.abs() < 1e-9);
 ///

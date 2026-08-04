@@ -157,15 +157,16 @@ pub struct Filter(serde_json::Value);
 ///
 /// # Examples
 ///
-/// ```no_run
+/// The request types are crate-internal, so the example below stands in for a compiled one.
+///
+/// ```ignore
 /// use std::sync::Arc;
 ///
-/// use hash_graph_atlas::serve::{
-///     Atlas, CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
-///     TileRequest, VisibilityProof, WireSecret,
+/// use crate::serve::{
+///     CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery, TileRequest,
+///     VisibilityProof, WireSecret,
 /// };
 ///
-/// # fn main() -> Result<(), Box<dyn core::error::Error>> {
 /// let root = GenerationRoot::new("/var/atlas/generations")?;
 /// let id = root.current()?.expect("a generation is active");
 /// let secret =
@@ -189,8 +190,6 @@ pub struct Filter(serde_json::Value);
 ///     &proof,
 ///     CutOffset::ZERO,
 /// )?;
-/// # Ok(())
-/// # }
 /// ```
 #[derive(Debug)]
 pub struct Atlas {

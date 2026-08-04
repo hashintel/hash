@@ -1,10 +1,14 @@
+use alloc::collections::BTreeSet;
 use core::num::NonZero;
 
 use proptest::{arbitrary::any, prop_assert, property_test};
-use rand::SeedableRng as _;
+use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use super::{acceptance_sample_size, mean_sample_size, normal_quantile, uniform_below};
+use super::{
+    acceptance_sample_size, keyed_rng, mean_sample_size, normal_quantile, sample_indices_vec,
+    uniform_below,
+};
 
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
@@ -205,6 +209,7 @@ fn normal_quantile_rejects_out_of_domain_probabilities() {
 fn mean_sample_size_follows_the_closed_form() {
     // ceil((2.326348 · 0.32 / 0.012)^2) = ceil(3848.4) hand-checked.
     assert_eq!(mean_sample_size(0.32, 0.012, 0.99), Some(3849));
+    assert_eq!(mean_sample_size(0.32, 0.01, 0.99), Some(5542));
     // A deviation of zero needs no sample.
     assert_eq!(mean_sample_size(0.0, 0.01, 0.99), Some(0));
 
@@ -219,6 +224,63 @@ fn mean_sample_size_follows_the_closed_form() {
     // Halving the margin exactly quadruples the requirement before
     // rounding, so allow one count of ceiling slack.
     assert!(tighter_margin >= base * 4 - 4 && tighter_margin <= base * 4 + 4);
+}
+
+/// A sample carries the requested count of distinct indices, every one inside the population.
+#[test]
+fn sample_indices_vec_draws_the_requested_count_without_replacement() {
+    let population = 1_000_000;
+    let count = 688;
+
+    let picked = sample_indices_vec(rng(42), population, count);
+
+    assert_eq!(picked.len(), count);
+
+    // Distinctness is the without-replacement contract, so the set size must
+    // equal the sample length rather than merely bound it.
+    let distinct: BTreeSet<usize> = picked.iter().collect();
+    assert_eq!(distinct.len(), count);
+    assert!(distinct.iter().all(|&index| index < population));
+}
+
+/// One key replays its own stream exactly.
+#[test]
+fn keyed_rng_replays_the_stream_for_a_repeated_key() {
+    let mut first = keyed_rng(42, 7, 0);
+    let mut second = keyed_rng(42, 7, 0);
+
+    let draws: Vec<u64> = core::iter::repeat_with(|| first.random::<u64>())
+        .take(32)
+        .collect();
+    let replay: Vec<u64> = core::iter::repeat_with(|| second.random::<u64>())
+        .take(32)
+        .collect();
+
+    assert_eq!(draws, replay);
+    // A constant stream would satisfy the equality above without replaying
+    // anything, so the draws must actually vary.
+    assert!(
+        draws
+            .array_windows::<2>()
+            .any(|[left, right]| left != right)
+    );
+}
+
+/// Each coordinate of `(seed, key, stream)` selects its own stream.
+#[test]
+fn keyed_rng_separates_streams_across_every_coordinate() {
+    fn stream(seed: u64, key: u64, index: u64) -> Vec<u64> {
+        let mut rng = keyed_rng(seed, key, index);
+        core::iter::repeat_with(|| rng.random::<u64>())
+            .take(32)
+            .collect()
+    }
+
+    let base = stream(42, 7, 0);
+
+    assert_ne!(base, stream(43, 7, 0));
+    assert_ne!(base, stream(42, 8, 0));
+    assert_ne!(base, stream(42, 7, 1));
 }
 
 /// Degenerate margins, confidences, and deviations have no sample size.

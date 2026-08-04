@@ -33,9 +33,9 @@ pin_project! {
     ///
     /// Digesting a file during a copy:
     ///
-    /// ```rust,no_run
+    /// ```ignore
     /// # fn main() -> Result<(), Box<dyn core::error::Error>> {
-    /// use hash_graph_atlas::integrity::{Sha256, Writer};
+    /// use crate::integrity::{Sha256, Writer};
     ///
     /// let mut file = std::fs::File::open("layout-a100.f32")?;
     /// let mut writer = Writer {
