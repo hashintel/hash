@@ -852,6 +852,64 @@ describe("the atlas authority token", () => {
     ]);
   });
 
+  it("warns when a minting response carries no authority header, naming the CORS cause", async () => {
+    const generation = genHex(0x13);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // The same manifest document with its header stripped: this is what a cross-origin read looks
+    // like when hash-api stops naming the header in `Access-Control-Expose-Headers`, and the read
+    // returns `null` with no error raised anywhere.
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        new Response(JSON.stringify(manifestBody(generation, 16, 0)), {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "cache-control": "private, no-store",
+          },
+        }),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x13, 1, 1, 0)),
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    // The defect it exists for: the data route presents nothing, which the server answers with the
+    // same `401` a genuine expiry earns, so nothing downstream can tell the two apart.
+    expect(dataRoutes(seen).map((request) => request.authority)).toEqual([
+      null,
+    ]);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const [message] = warn.mock.calls[0]!;
+    expect(message).toContain("manifest-bootstrap");
+    expect(message).toContain(ATLAS_AUTHORITY_HEADER);
+    expect(message).toContain("Access-Control-Expose-Headers");
+    warn.mockRestore();
+  });
+
+  it("stays silent when a data route carries no authority header, which is every data route", async () => {
+    const generation = genHex(0x14);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // The negative control that makes the warning worth having: only the manifest mints, so an absent
+    // header on the four data routes is the contract rather than a fault. A warning on every read
+    // would fire once per tile and mean nothing.
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x14, 1, 1, 0)),
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    expect(dataRoutes(seen).map((request) => request.authority)).toEqual([
+      TOKEN_A,
+    ]);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("presents a token of any width verbatim", async () => {
     const generation = genHex(0x12);
     // Opacity is permanent by the serving side's commitment: the envelope may grow, and a client

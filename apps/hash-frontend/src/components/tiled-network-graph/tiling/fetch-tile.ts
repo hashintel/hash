@@ -473,14 +473,35 @@ const authorityFor = (url: string): AtlasAuthority | undefined => {
  * {@link authorityIncarnation}). A token minted for a population that has since been dropped is
  * discarded, not written: the entry now at this origin belongs to whoever replaced it, and may
  * answer to a different principal entirely.
+ *
+ * `role` is here for one reason: an absent header is correct on the four data routes and a defect on
+ * the two that mint, and only the request knows which it was. See the warning below.
  */
 const retainAtlasAuthority = (
   url: string,
   response: Response,
   incarnation: number,
+  role: AtlasRequest["role"],
 ): void => {
   const minted = response.headers.get(ATLAS_AUTHORITY_HEADER);
   if (minted === null) {
+    // Absent is the normal case on a data route, which never mints. On a minting role it is a defect
+    // that presents as authority working correctly: the entry keeps the token it had, or stays
+    // tokenless from the bootstrap, and every data route then takes a uniform `401`. The usual cause
+    // is not the server at all but the header not being readable from this origin — hash-api must
+    // name it in `Access-Control-Expose-Headers` (see {@link ATLAS_AUTHORITY_HEADER}), and a
+    // cross-origin read of an unexposed header returns `null` with no error anywhere. So the read
+    // says so at the one place that can tell, rather than leaving a silent `return` and a wall of
+    // indistinguishable refusals downstream.
+    if (role === "manifest-bootstrap" || role === "manifest-renewal") {
+      // eslint-disable-next-line no-console -- the alternative is a 401 that looks like success
+      console.warn(
+        `Atlas ${role} response from ${url} carried no \`${ATLAS_AUTHORITY_HEADER}\` header, so no` +
+          ` token was retained and every data route will refuse with a 401 that looks like authority` +
+          ` working. Check that hash-api names \`${ATLAS_AUTHORITY_HEADER}\` in` +
+          ` \`Access-Control-Expose-Headers\` for this origin.`,
+      );
+    }
     return;
   }
   if (incarnation !== authorityIncarnation) {
@@ -581,7 +602,7 @@ const requestAtlasOnce = async (
       { status: response.status, problem },
     );
   }
-  retainAtlasAuthority(url, response, incarnation);
+  retainAtlasAuthority(url, response, incarnation, request.role);
   return response;
 };
 
