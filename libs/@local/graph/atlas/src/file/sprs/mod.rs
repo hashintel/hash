@@ -1,9 +1,8 @@
 //! The sparse matrix file, one mappable compressed-sparse-row matrix.
 //!
 //! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode. No migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! This is a combined file: a compressed sparse matrix is three columns (pointers, indices, values)
 //! derived together, meaningless apart, and always read together, so all three live in one file and
@@ -69,11 +68,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -156,6 +151,7 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(u8)]
 pub enum IndexVariant {
@@ -200,6 +196,7 @@ impl IndexVariant {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(u8)]
 pub enum ValueTag {
@@ -386,6 +383,7 @@ tag_mirrors_variant! {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(u8)]
 pub(crate) enum StorageVariant {
@@ -405,7 +403,7 @@ impl From<CompressedStorage> for StorageVariant {
     }
 }
 
-/// The 4096-byte header of a sparse matrix file.
+/// The header of a sparse matrix file.
 #[derive(
     Copy,
     Clone,
@@ -413,9 +411,10 @@ impl From<CompressedStorage> for StorageVariant {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
-pub struct FileHeader {
+pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     value: ValueTag,
@@ -425,14 +424,11 @@ pub struct FileHeader {
     value_width: U64<LE>,
     shape: ArrayShape,
     nnz: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4000;
-    /// Size of the header, and the offset of the pointer region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a matrix header from its full geometry.
     ///
     /// An `nnz`-entry matrix shaped `[rows, columns]`, with the given element types and compressed
@@ -457,7 +453,6 @@ impl FileHeader {
             value_width: U64::new(value_width),
             shape,
             nnz: U64::new(nnz),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -578,5 +573,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

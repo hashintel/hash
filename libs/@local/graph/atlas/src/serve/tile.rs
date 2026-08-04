@@ -217,7 +217,7 @@ impl Atlas {
     /// that other scope's extent. Pinning a proof to its own generation carries the same contract
     /// for the same reason.
     #[must_use]
-    pub fn census(&self, proof: &VisibilityProof) -> ViewCensus {
+    pub(crate) fn census(&self, proof: &VisibilityProof) -> ViewCensus {
         Walk::of(self, proof).visible_census(self.grid.cut(0), self.positions(), self.bounds)
     }
 

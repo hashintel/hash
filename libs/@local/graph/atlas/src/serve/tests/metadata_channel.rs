@@ -108,7 +108,7 @@ fn read(keys: &[MortonKey], visible: &[u32], subject: u32) -> Reading {
 /// Scope: the witness establishes the property of the derivation the root response publishes. The
 /// delivered row identities and their order are the selector's own arm of the comparison.
 #[test]
-fn a_hidden_row_changes_the_authorized_root_metadata() {
+fn hidden_row_changes_the_authorized_root_metadata() {
     let subject = MortonKey::new(0, 0);
     let claims_depth_one = MortonKey::new(0x8000_0000, 0);
     let shares_depth_one = MortonKey::new(0x4000_0000, 0);

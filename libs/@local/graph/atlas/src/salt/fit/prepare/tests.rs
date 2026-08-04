@@ -21,7 +21,7 @@ use crate::{
     dataset::{Node, PROJECTOR_DIMENSIONS, memory::MemoryDataset},
     file::{
         WriteInto as _,
-        array::{ArrayVariant, FileHeader},
+        array::{ArrayVariant, PaddedFileHeader},
         generation::GenerationRoot,
         identity::read::IdentityFile,
         region::PAGE_BYTES,
@@ -102,7 +102,7 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
     assert_eq!(columns.types.len(), 3);
 
     let bytes = buffer.get_ref();
-    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
+    let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("a finished file should carry a valid header");
     assert_eq!(header.variant(), ArrayVariant::F32);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
@@ -138,7 +138,7 @@ async fn empty_dataset_seals_an_empty_matrix() {
 
     let bytes = buffer.get_ref();
     assert_eq!(bytes.len(), PAGE_BYTES);
-    let header = FileHeader::try_read_from_bytes(bytes.as_slice())
+    let header = PaddedFileHeader::try_ref_from_bytes(bytes.as_slice())
         .expect("a finished file should carry a valid header");
     assert!(header.shape().dims().is_empty());
 }

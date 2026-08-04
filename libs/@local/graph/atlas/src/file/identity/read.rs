@@ -1,25 +1,19 @@
 //! Opened identity files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
-
-use zerocopy::{
-    TryFromBytes as _,
-    error::{ConvertError, ValidityError},
-};
+use std::path::Path;
 
 use super::FileHeader;
-use crate::file::region::PageMap;
+use crate::file::region::{
+    PAGE,
+    header::{HeaderError, HeaderMap},
+};
 
 /// Opening an identity file failed.
 #[derive(Debug)]
 pub enum OpenIdentityError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -34,16 +28,7 @@ pub enum OpenIdentityError {
 impl fmt::Display for OpenIdentityError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the identity file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header(error) => write!(
-                fmt,
-                "the leading bytes are not an identity file header: {error}",
-            ),
+            Self::Header(error) => write!(fmt, "the identity file's header page: {error}"),
             Self::Length {
                 expected: Some(expected),
                 actual,
@@ -65,9 +50,8 @@ impl fmt::Display for OpenIdentityError {
 impl Error for OpenIdentityError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
             Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Length { .. } => None,
         }
     }
 }
@@ -81,7 +65,7 @@ impl Error for OpenIdentityError {
 /// `salt::fit::prepare::identity`'s contract.
 #[derive(Debug)]
 pub(crate) struct IdentityFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl IdentityFile {
@@ -89,28 +73,13 @@ impl IdentityFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenIdentityError::Io`] when opening or mapping the file fails,
-    /// [`OpenIdentityError::Undersized`] when the file ends before one full header,
-    /// [`OpenIdentityError::Header`] when its leading bytes are not a header this module speaks,
-    /// and [`OpenIdentityError::Length`] when the file length contradicts the header's geometry.
+    /// Returns [`OpenIdentityError::Header`] when the header page cannot be read, and
+    /// [`OpenIdentityError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenIdentityError> {
-        let map = PageMap::open(path).map_err(OpenIdentityError::Io)?;
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenIdentityError::Header)?;
 
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenIdentityError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenIdentityError::Header(error.map_src(|_| ())));
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
-
-        let expected = header.expected_file_len();
+        let expected = map.header().expected_file_len();
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenIdentityError::Length { expected, actual });
@@ -123,12 +92,7 @@ impl IdentityFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse as
-        // one, so the deref target is a valid `FileHeader`.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Returns the id width `K`, in bytes.
@@ -158,10 +122,9 @@ impl IdentityFile {
         // The offsets and products in the region reads repeat checked
         // computations open already accepted, so none of them can
         // overflow here.
-        self.map.region(
-            FileHeader::SIZE as u64,
-            self.rows() * u64::from(self.key_width()),
-        )
+        self.map
+            .map()
+            .region(PAGE, self.rows() * u64::from(self.key_width()))
     }
 
     /// Views the index keys: one `K`-byte id per stride of pairs.
@@ -171,7 +134,7 @@ impl IdentityFile {
             .header()
             .index_keys()
             .expect("open validated the stride");
-        self.map.region(
+        self.map.map().region(
             self.header()
                 .index_offset()
                 .expect("open validated the geometry"),
@@ -182,7 +145,7 @@ impl IdentityFile {
     /// Views the lookup pairs: `N` entries of `K + 8` bytes, ascending by id bytes.
     #[must_use]
     pub(crate) fn pairs(&self) -> &[u8] {
-        self.map.region(
+        self.map.map().region(
             self.header()
                 .pairs_offset()
                 .expect("open validated the geometry"),

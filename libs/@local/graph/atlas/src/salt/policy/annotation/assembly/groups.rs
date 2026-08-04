@@ -150,7 +150,8 @@ fn partition(
 /// Cuts a component's near-duplicate edges farthest-first.
 ///
 /// The kept cut is the largest distance under which every resulting part fits the budget, or the
-/// empty cut when none does.
+/// empty cut when none does. An empty cut that severs pairs counts itself in the evidence, because
+/// the scattered rows were near-duplicates a train/validation split may now separate.
 #[expect(
     clippy::cast_precision_loss,
     reason = "group sizes are far below f64's 2^53 exact-integer range"
@@ -160,6 +161,7 @@ fn farthest_first_cut(
     axes: &[RowAxes],
     pairs: &[(u32, u32, f64)],
     budget: f64,
+    evidence: &mut AssemblyEvidence,
 ) -> Vec<Vec<u32>> {
     // Candidate cuts are the distinct pair distances inside the component in ascending order. A cut
     // keeps every pair at or under it.
@@ -201,6 +203,10 @@ fn farthest_first_cut(
         } else {
             exceeded = middle;
         }
+    }
+
+    if fitting.is_none() && !distances.is_empty() {
+        evidence.empty_cut_components = Some(evidence.empty_cut_components.unwrap_or(0) + 1);
     }
 
     // The empty cut keeps identity edges alone; the caller records
@@ -266,7 +272,7 @@ fn subdivide(
             Relaxation::NearDuplicate,
         ),
         Relaxation::NearDuplicate => {
-            let parts = farthest_first_cut(component, axes, pairs, budget);
+            let parts = farthest_first_cut(component, axes, pairs, budget, evidence);
             evidence.oversized_accepted += parts
                 .iter()
                 .filter(|part| (part.len() as f64) > budget)
@@ -476,8 +482,10 @@ pub(super) fn validation_groups(
     }
     evidence.fold_groups = groups.len();
 
-    // Trained rows ascend by card identity (the corpus order), so each
-    // group's members are already in ascending byte order.
+    // Trained rows keep the corpus's ascending identity order, so a
+    // group hashes its members in one fixed order under any traversal.
+    // The hashed bytes are each identity's canonical re-serialization,
+    // which the wire order does not pin byte-for-byte.
     let mut assigned: Vec<Option<Sha256Digest>> = vec![None; rows];
     for group in groups {
         let mut hasher = Sha256::new();

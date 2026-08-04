@@ -390,7 +390,7 @@ mod tests {
 
     /// The caller's own filter failing to compile is the caller's to repair: `400 invalid-body`.
     #[test]
-    fn a_caller_filter_that_does_not_compile_answers_invalid_body() {
+    fn caller_filter_that_does_not_compile_answers_invalid_body() {
         let document = document(&ProofError::Filter(compiler_error()));
 
         assert_eq!(document["status"], 400);
@@ -407,7 +407,7 @@ mod tests {
     /// This deployment's policy filter failing to compile answers the internal problem, and the
     /// compiler's message stays in the log.
     #[test]
-    fn the_policy_filter_answers_the_internal_problem_without_its_message() {
+    fn policy_filter_answers_the_internal_problem_without_its_message() {
         let document = document(&ProofError::PolicyFilter(compiler_error()));
 
         assert_eq!(document["status"], 500);
@@ -428,7 +428,7 @@ mod tests {
     /// the bucket honest is not this test but the mapping's exhaustive match - a new failing stage
     /// does not compile until it has chosen a status.
     #[test]
-    fn a_store_stage_answers_the_visibility_problem() {
+    fn store_stage_answers_the_visibility_problem() {
         let parse = serde_json::from_str::<u32>("not a number").expect_err("the parse fails");
         let document = document(&ProofError::Document(parse));
 
@@ -443,7 +443,7 @@ mod tests {
     /// states which refusals are the caller's to act on and which are this process reporting
     /// itself.
     #[test]
-    fn a_refused_offset_answers_the_uniform_refusal() {
+    fn refused_offset_answers_the_uniform_refusal() {
         let refused = serde_json::to_value(view_problem(ViewError::Offset(CutOffset::new(1))))
             .expect("problem documents serialize");
 

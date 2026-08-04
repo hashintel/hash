@@ -2,8 +2,8 @@
 //!
 //! The envelope layout is a pinned public contract; the checked-in fixtures under `fixtures/wire/`
 //! are the cross-language proof the TypeScript decoder builds against. One envelope carries every
-//! binary response kind (tile, edges, and, with the locate endpoint, locate) as a 16-byte prefix, a
-//! fixed offset directory, 8-aligned payload sections, and an optional CBOR trailer tail.
+//! binary response kind - tile, edges and locate - as a 16-byte prefix, a fixed offset directory,
+//! 8-aligned payload sections, and an optional CBOR trailer tail.
 //! Structured payloads are CBOR under the deterministic profile in [`cbor`]; columns are raw
 //! little-endian arrays a decoder views without parsing.
 //!
@@ -14,8 +14,8 @@
 //! responses, which is the property the client's application-layer cache keys on. Encoding is also
 //! synchronous: the endpoint schedules it on a rayon worker, never on an async runtime thread.
 //!
-//! [`tile::TileResponse`] and [`edges::EdgesResponse`] are the two v1 documents; the locate
-//! document lands with its endpoint.
+//! [`tile::TileResponse`], [`edges::EdgesResponse`] and [`locate::LocateResponse`] are the v1
+//! documents.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the kind discriminants read the eight magic bytes little-endian so the envelope's \

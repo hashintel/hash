@@ -3,7 +3,7 @@ use core::{
     future::{Future, ready},
     sync::atomic::{AtomicU64, Ordering},
 };
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use hashql_core::id::{Id as _, IdSlice};
 use serde_json::{Value, json};
@@ -70,7 +70,8 @@ impl ProgrammedEmbedder {
     /// pair decades below every other distance. Beta and delta lie `0.006` radians apart (`≈
     /// 1.8e-5`), a farther member of the same duplicate cluster. The next distance up in any corpus
     /// here is `≥ 1.0e-2`, so the boundary derivation finds the void between the cluster and the
-    /// bulk.
+    /// bulk. Twins share one angle exactly, so every twin pair sits at distance zero: the
+    /// coincident clique the empty-cut witness scatters.
     fn angle(title: &str) -> f32 {
         match title {
             "part of" => 0.0,
@@ -79,6 +80,7 @@ impl ProgrammedEmbedder {
             "beta" => 1.005,
             "delta" => 1.011,
             "gamma" => 1.15,
+            "twin" => 1.5,
             "Employed By" => 2.0,
             "holdout" => 2.5,
             "sigma" => 2.9,
@@ -695,6 +697,8 @@ async fn subdivision_cuts_near_duplicates_farthest_first() {
     assert_eq!(evidence.fold_groups, 5);
     assert_eq!(evidence.subdivided_groups, 1);
     assert_eq!(evidence.oversized_accepted, 0);
+    // A fitting cut exists, so the empty-cut counter stays untouched.
+    assert_eq!(evidence.empty_cut_components, Some(0));
     assert_eq!(
         evidence.deepest_relaxation,
         super::Relaxation::NearDuplicate
@@ -747,6 +751,7 @@ async fn identity_web_is_accepted_over_budget() {
     assert_eq!(evidence.fold_groups, 1);
     assert_eq!(evidence.subdivided_groups, 0);
     assert_eq!(evidence.oversized_accepted, 1);
+    assert_eq!(evidence.empty_cut_components, Some(0));
     assert_eq!(
         evidence.deepest_relaxation,
         super::Relaxation::NearDuplicate
@@ -760,6 +765,40 @@ async fn identity_web_is_accepted_over_budget() {
     for row in assembled.rows() {
         assert_eq!(row.group, group);
     }
+}
+
+#[tokio::test]
+async fn empty_cut_scatters_the_coincident_clique_and_counts_itself() {
+    let cards: Vec<Value> = [
+        ("http://www.wikidata.org/entity/P95a", "twin", "f-1"),
+        ("http://www.wikidata.org/entity/P95b", "twin", "f-2"),
+        ("http://www.wikidata.org/entity/P95c", "twin", "f-3"),
+        ("http://www.wikidata.org/entity/P95d", "twin", "f-4"),
+        ("http://www.wikidata.org/entity/P95e", "twin", "f-5"),
+        ("http://www.wikidata.org/entity/P95f", "part of", "f-6"),
+        ("http://www.wikidata.org/entity/P95g", "Employed By", "f-7"),
+        ("http://www.wikidata.org/entity/P95h", "sigma", "f-8"),
+    ]
+    .map(|(identity, title, family)| wikidata_card(identity, title, family, &[vote("overlay")]))
+    .into();
+
+    let assembled = assemble_under(&cards, 0.3).await;
+
+    let evidence = assembled.evidence();
+    assert_eq!(evidence.near_duplicate_pairs, 10);
+    assert_eq!(evidence.subdivided_groups, 1);
+    assert_eq!(evidence.oversized_accepted, 0);
+    assert_eq!(evidence.empty_cut_components, Some(1));
+    assert_eq!(evidence.fold_groups, 8);
+    assert_eq!(
+        evidence.deepest_relaxation,
+        super::Relaxation::NearDuplicate
+    );
+
+    let twin_groups: HashSet<_> = (0..5)
+        .map(|row| assembled.rows()[CardRow::from_u32(row)].group)
+        .collect();
+    assert_eq!(twin_groups.len(), 5);
 }
 
 #[tokio::test]

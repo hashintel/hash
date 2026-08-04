@@ -1,9 +1,8 @@
 //! The classifier file format for the fitted relation-policy model.
 //!
 //! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! One fit produces the coefficient rows, the applicability moments, and the training distances
 //! together. They have no meaning apart and every read takes them together, so the whole model
@@ -58,11 +57,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 /// Geometry classes per model: pinned by the layout version.
 pub(crate) const CLASSES: usize = 3;
@@ -130,7 +125,7 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
-/// The 4096-byte header of a classifier file.
+/// The header of a classifier file.
 #[derive(
     Copy,
     Clone,
@@ -138,6 +133,7 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
 pub(crate) struct FileHeader {
@@ -149,14 +145,11 @@ pub(crate) struct FileHeader {
     distances: U64<LE>,
     temperature: F64<LE>,
     intercepts: [F64<LE>; CLASSES],
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4032;
-    /// Size of the header, and the offset of the coefficients region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for a `D = dimension` model whose applicability evidence holds `distances`
     /// training distances, with the scalar parameters verbatim.
     #[must_use]
@@ -178,7 +171,6 @@ impl FileHeader {
                 F64::new(intercepts[1]),
                 F64::new(intercepts[2]),
             ],
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -276,5 +268,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

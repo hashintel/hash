@@ -196,6 +196,7 @@ fn classifier_evidence() -> ClassifierEvidence {
             near_duplicate_ceiling: 6.25e-2,
             subdivided_groups: 1,
             oversized_accepted: 0,
+            empty_cut_components: Some(0),
             deepest_relaxation: Relaxation::Family,
         }),
         fit: ClassifierFitSummary {
@@ -511,6 +512,30 @@ fn a_document_without_the_clamp_count_decodes_as_zero() {
         .expect_err("a missing undefaulted field should refuse");
     assert!(
         error.to_string().contains("self_references"),
+        "the refusal should name the missing field: {error}",
+    );
+}
+
+#[test]
+fn a_document_without_the_multi_typed_edge_histogram_refuses() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let relations = document
+        .pointer_mut("/metadata/evidence/relations")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the relation evidence should be an object");
+
+    // Every published document carries the histogram, since the writer
+    // derives it from the mixture and emits it unconditionally, so a
+    // document without the key is a document this pipeline never wrote.
+    relations
+        .remove("multi_typed_edges")
+        .expect("the published shape should carry the multi-typed edge histogram");
+
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted field should refuse");
+    assert!(
+        error.to_string().contains("multi_typed_edges"),
         "the refusal should name the missing field: {error}",
     );
 }

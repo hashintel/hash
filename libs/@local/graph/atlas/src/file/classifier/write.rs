@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::IntoBytes as _;
 
-use super::{CLASSES, FileHeader};
+use super::{CLASSES, FileHeader, PaddedFileHeader};
 use crate::file::region::{write_padding, write_region};
 
 /// Streams the model regions as a classifier file.
@@ -56,7 +56,7 @@ pub(crate) fn write_regions(
 
     let vector_bytes = size_of_val(mean) as u64;
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     for row in coefficients {
         write.write_all(row.as_bytes())?;
     }

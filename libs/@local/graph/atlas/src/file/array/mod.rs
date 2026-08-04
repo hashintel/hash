@@ -1,9 +1,8 @@
 //! Raw scalar array files.
 //!
 //! Layout version 0 is mutable, so change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode. The format carries no migration or compatibility machinery by design until it
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! An array file is a 4096-byte [`FileHeader`] followed by the array's elements, packed in
 //! row-major order with nothing between them:

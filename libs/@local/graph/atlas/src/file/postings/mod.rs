@@ -3,9 +3,8 @@
 //! Per-type membership over the base delivery order, and the type graph's direct parent edges.
 //!
 //! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode. No migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! For every ontology row the file stores which base delivery positions carry that type directly.
 //! Each type stores that membership either as a sorted position list or as a dense bitmap over all
@@ -70,11 +69,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -139,7 +134,7 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
-/// The 4096-byte header of a postings file.
+/// The header of a postings file.
 #[derive(
     Copy,
     Clone,
@@ -147,23 +142,21 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
-pub struct FileHeader {
+pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     types: U64<LE>,
     points: U64<LE>,
     entries: U64<LE>,
     parent_edges: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4052;
-    /// Size of the header, and the offset of the flags region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `types` ontology rows over `points` base positions, with `entries`
     /// membership entries and `parent_edges` parent ids.
     #[must_use]
@@ -175,7 +168,6 @@ impl FileHeader {
             points: U64::new(points),
             entries: U64::new(entries),
             parent_edges: U64::new(parent_edges),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -299,5 +291,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

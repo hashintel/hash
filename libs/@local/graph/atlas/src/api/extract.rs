@@ -204,7 +204,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_valid_body_extracts() {
+    async fn valid_body_extracts() {
         let Body(subject) = Body::<Subject>::from_request(json_request(r#"{"name": "n"}"#), &())
             .await
             .expect("a well-formed body extracts");
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_absent_body_answers_the_missing_body_problem() {
+    async fn absent_body_answers_the_missing_body_problem() {
         let problem = Body::<Subject>::from_request(bare_request(), &())
             .await
             .expect_err("a required body must arrive");
@@ -224,7 +224,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_malformed_body_answers_the_invalid_body_problem() {
+    async fn malformed_body_answers_the_invalid_body_problem() {
         let problem = Body::<Subject>::from_request(json_request("{ not json"), &())
             .await
             .expect_err("a malformed body must refuse");
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_mistyped_body_answers_the_invalid_body_problem() {
+    async fn mistyped_body_answers_the_invalid_body_problem() {
         // Well-formed JSON of the wrong shape reads as a data error (422) rather than a syntax
         // error (400).
         let problem = Body::<Subject>::from_request(json_request(r#"{"name": 7}"#), &())
@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_optional_body_reads_absent_as_none_and_refuses_malformed() {
+    async fn optional_body_reads_absent_as_none_and_refuses_malformed() {
         use axum::extract::OptionalFromRequest;
 
         let absent = <Body<Subject> as OptionalFromRequest<()>>::from_request(bare_request(), &())
@@ -352,7 +352,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_well_formed_generation_id_extracts() {
+    async fn well_formed_generation_id_extracts() {
         let id = "a".repeat(64);
         let (status, body) = get_layout(&format!("/{id}")).await;
 
@@ -361,7 +361,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_malformed_generation_id_answers_the_invalid_generation_problem() {
+    async fn malformed_generation_id_answers_the_invalid_generation_problem() {
         let (status, document) = get_layout("/not-a-generation").await;
 
         assert_eq!(status, StatusCode::BAD_REQUEST);
@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_wrong_content_type_answers_the_invalid_body_problem() {
+    async fn wrong_content_type_answers_the_invalid_body_problem() {
         // The handler is irrelevant because the extractor refuses first.
         let router: Router = Router::new().route(
             "/subject",

@@ -29,7 +29,6 @@ use super::{Atlas, WireRow};
 use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
-    integrity::{Sha256, Sha256Digest, Update as _},
 };
 
 /// One domain's visible row set, either everything or exactly the mask.

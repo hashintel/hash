@@ -8,10 +8,11 @@ use std::{fs, path::PathBuf};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    FileHeader,
+    FileHeader, PaddedFileHeader,
     read::{OpenPostingsError, PostingsFile},
     write::{Regions, write_regions},
 };
+use crate::file::region::{PAGE_BYTES, header::HeaderError};
 
 /// A per-test scratch file path under the system temp directory.
 fn scratch(name: &str) -> PathBuf {
@@ -59,7 +60,7 @@ fn fixture_bytes() -> Vec<u8> {
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(3, 10, 4, 2);
+    let header = PaddedFileHeader::new(FileHeader::new(3, 10, 4, 2));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTPOST");
@@ -124,9 +125,14 @@ fn region_wire_layout() {
 
 #[test]
 fn header_parse_pins_identity() {
-    let mut bytes = [0_u8; FileHeader::SIZE];
-    bytes.copy_from_slice(FileHeader::new(3, 10, 4, 2).as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
+    let page = PaddedFileHeader::new(FileHeader::new(3, 10, 4, 2));
+    let bytes: [u8; PAGE_BYTES] = page
+        .as_bytes()
+        .try_into()
+        .expect("a padded header is exactly one page");
+
+    let parsed =
+        PaddedFileHeader::try_ref_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.types(), 3);
     assert_eq!(parsed.points(), 10);
     assert_eq!(parsed.entries(), 4);
@@ -134,11 +140,11 @@ fn header_parse_pins_identity() {
 
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
+    PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     let mut wrong_version = bytes;
     wrong_version[8] = 9;
-    FileHeader::try_read_from_bytes(&wrong_version)
+    PaddedFileHeader::try_ref_from_bytes(&wrong_version)
         .expect_err("an unsupported version should not parse");
 }
 
@@ -210,7 +216,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         PostingsFile::open(&undersized),
-        Err(OpenPostingsError::Undersized { actual: 16 }),
+        Err(OpenPostingsError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.post");

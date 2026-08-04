@@ -176,7 +176,7 @@ impl CutOffset {
 
 /// A generation whose recorded schedule leaves no delivery-cut offset to resolve.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DensityPolicyError {
+pub(crate) enum DensityPolicyError {
     /// The recorded schedule already exceeds the key width, so no scope cascade deepens it.
     Schedule {
         /// The schedule's span exponent.
@@ -283,7 +283,7 @@ impl DensityPolicy {
     /// Returns the policy's band.
     #[must_use]
     #[cfg(test)]
-    pub const fn band(self) -> DensityBand {
+    pub(crate) const fn band(self) -> DensityBand {
         self.band
     }
 
@@ -301,8 +301,8 @@ impl DensityPolicy {
     /// the coarser cut. It stays because it makes "no resolution cuts deeper than saturation" true
     /// by construction rather than by that argument.
     ///
-    /// An empty view - [`ViewOccupancy::is_empty`] - resolves to [`CutOffset::ZERO`] through this
-    /// same argmin rather than through a case of its own: it occupies no cell at any depth, so
+    /// An empty view resolves to [`CutOffset::ZERO`] through this same argmin rather than through a
+    /// case of its own: it occupies no cell at any depth, so
     /// every candidate sits the same shortfall from the band and the tie-break keeps the coarsest.
     /// No hidden or corpus quantity stands in for the occupancy it lacks.
     ///
@@ -413,7 +413,7 @@ impl ViewOccupancy {
     /// Returns whether the view occupies nothing.
     #[must_use]
     #[cfg(test)]
-    pub const fn is_empty(&self) -> bool {
+    pub(crate) const fn is_empty(&self) -> bool {
         self.occupied[Depth::MIN.get() as usize] == 0
     }
 

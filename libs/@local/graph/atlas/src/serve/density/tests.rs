@@ -85,7 +85,7 @@ fn plateau_view() -> ViewOccupancy {
 /// 2_000]` would report a positive distance for every count, including counts a correct
 /// configuration calls perfect.
 #[test]
-fn a_band_refuses_an_inverted_configuration() {
+fn inverted_band_refuses_construction() {
     let lower = NonZero::new(2_000).expect("2,000 is positive");
     let upper = NonZero::new(4_000).expect("4,000 is positive");
 
@@ -102,7 +102,7 @@ fn a_band_refuses_an_inverted_configuration() {
 /// A half-open reading of the band would make the lower bound a shortfall of zero-plus-one and put
 /// the selector one subdivision deeper than the policy asks for.
 #[test]
-fn the_bands_bounds_are_inside_it() {
+fn band_includes_its_bounds() {
     let band = band(2_000, 4_000);
 
     assert_eq!(band.distance(2_000), 0);
@@ -118,7 +118,7 @@ fn the_bands_bounds_are_inside_it() {
 /// deep view saturates at depth 24, so `k_sat = 18` and an unreachable band pulls the argmin toward
 /// every deeper cut the search offers it. The ceiling alone stops it at 8.
 #[test]
-fn the_ceiling_caps_a_resolution_at_the_key_width() {
+fn key_width_caps_a_resolution_that_would_otherwise_deepen() {
     let policy = DensityPolicy::new(band(100, 200), span(6), 18)
         .expect("a span-6 schedule serving 18 zooms is admissible");
     let view = deep_view();
@@ -181,7 +181,7 @@ fn occupancy_counts_cells_not_rows() {
 /// The aggregate's counts start at one for a non-empty view, so an empty view that shared that
 /// floor would manufacture an occupied cell out of nothing.
 #[test]
-fn an_empty_view_occupies_no_cell() {
+fn empty_view_occupies_no_cell() {
     let view = occupancy(&[]);
 
     assert!(view.is_empty());
@@ -213,7 +213,7 @@ fn occupancy_saturates_at_the_separating_depth() {
 /// The same argmin produces this resolution as every other one. An empty view has nothing to aim
 /// with, and falling back on a corpus quantity is the channel this policy exists to close.
 #[test]
-fn an_empty_view_resolves_to_the_base_offset() {
+fn empty_view_resolves_to_the_base_offset() {
     assert_eq!(policy(band(2, 4)).resolve(&occupancy(&[])), CutOffset::ZERO);
 }
 
@@ -222,7 +222,7 @@ fn an_empty_view_resolves_to_the_base_offset() {
 /// Its saturation depth is the whole domain, so every deeper cut leaves the search space: no cut
 /// separates keys that share one complete key.
 #[test]
-fn a_co_located_view_resolves_to_the_base_offset() {
+fn co_located_view_resolves_to_the_base_offset() {
     let anchor = key(3, 2, 1);
 
     assert_eq!(
@@ -236,7 +236,7 @@ fn a_co_located_view_resolves_to_the_base_offset() {
 /// Under the plateau view, offset 0 counts 2 and offset 2 counts 4; a band holding both must keep
 /// the coarser cut, since a deeper one costs response bytes for no policy gain.
 #[test]
-fn the_coarsest_in_band_offset_wins() {
+fn coarsest_in_band_offset_wins() {
     assert_eq!(policy(band(2, 4)).resolve(&plateau_view()).get(), 0);
 }
 
@@ -246,7 +246,7 @@ fn the_coarsest_in_band_offset_wins() {
 /// first offset failing to improve would resolve 0 and miss the only in-band cut - the reason the
 /// argmin runs over the whole candidate range rather than the least positive offset.
 #[test]
-fn a_plateau_does_not_stop_the_search() {
+fn plateau_does_not_stop_the_search() {
     assert_eq!(policy(band(3, 4)).resolve(&plateau_view()).get(), 2);
 }
 
@@ -255,7 +255,7 @@ fn a_plateau_does_not_stop_the_search() {
 /// Band `[3, 3]` puts offset 0 one below and offset 2 one above. The ordered pair's second
 /// component decides it, and it decides for the coarser cut.
 #[test]
-fn an_equal_distance_keeps_the_coarser_offset() {
+fn equal_distance_keeps_the_coarser_offset() {
     assert_eq!(policy(band(3, 3)).resolve(&plateau_view()).get(), 0);
 }
 
@@ -264,7 +264,7 @@ fn an_equal_distance_keeps_the_coarser_offset() {
 /// Every reachable cut of the plateau view stays under a `[10, 20]` band, so the nearest is the
 /// deepest reachable - the case where the band is unreachable and the policy still resolves.
 #[test]
-fn a_view_below_the_band_takes_the_closest_reachable_count() {
+fn view_below_the_band_takes_the_closest_reachable_count() {
     assert_eq!(policy(band(10, 20)).resolve(&plateau_view()).get(), 2);
 }
 
@@ -273,7 +273,7 @@ fn a_view_below_the_band_takes_the_closest_reachable_count() {
 /// Occupancy never falls with depth, so no deeper cut can come back toward the band: the coarsest
 /// cut is the closest one, and the tie-break holds it.
 #[test]
-fn a_view_above_the_band_keeps_the_base_offset() {
+fn view_already_above_the_band_keeps_the_base_offset() {
     assert_eq!(policy(band(1, 1)).resolve(&plateau_view()).get(), 0);
 }
 
@@ -292,7 +292,7 @@ fn a_view_above_the_band_keeps_the_base_offset() {
 /// rather than for a behaviour a test could lose. The single-fault witness for the other cap is
 /// [`the_ceiling_caps_a_resolution_at_the_key_width`].
 #[test]
-fn a_resolution_never_runs_deeper_than_saturation() {
+fn resolution_never_runs_deeper_than_saturation() {
     let view = plateau_view();
 
     assert_eq!(view.saturation_depth(), depth(3));
@@ -404,7 +404,7 @@ fn resolution_is_a_function_of_the_count_profile(
 /// (`C(19, V) = 20`), so re-optimizing would deepen the session by sixteen subdivisions and change
 /// the detail every tile carries at a fixed zoom. The re-bind keeps 2.
 #[test]
-fn a_rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
+fn rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
     let policy = policy(band(20, 20));
     let carried = policy.resolve(&plateau_view());
     assert_eq!(
@@ -427,7 +427,7 @@ fn a_rebind_keeps_the_carried_cut_when_the_new_view_resolves_deeper() {
 /// to the plateau view would carry that cut into a view whose band asks for 2. Carrying it would
 /// deliver a depth-19 cut over four cells, so the coarser resolution wins.
 #[test]
-fn a_rebind_clamps_down_when_the_new_view_resolves_coarser() {
+fn rebind_clamps_down_when_the_new_view_resolves_coarser() {
     let policy = policy(band(20, 20));
     let carried = policy.resolve(&deep_view());
 
@@ -443,7 +443,7 @@ fn a_rebind_clamps_down_when_the_new_view_resolves_coarser() {
 /// An empty view resolves [`CutOffset::ZERO`], so the clamp takes it whatever the session held: a
 /// view with no occupancy is never served at a depth an earlier view paid for.
 #[test]
-fn a_rebind_to_an_empty_view_clamps_to_the_base_offset() {
+fn rebind_to_an_empty_view_clamps_to_the_base_offset() {
     let policy = policy(band(20, 20));
 
     assert_eq!(

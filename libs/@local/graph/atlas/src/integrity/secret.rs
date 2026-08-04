@@ -24,9 +24,8 @@ impl SecretString {
     ///
     /// Custody transfers rather than lapsing: the returned guard owns the same allocation and
     /// zeroizes it when dropped. Nothing copies in the transfer. A consumer whose API takes a bare
-    /// owned [`String`]
-    /// takes [`into_unguarded`](Self::into_unguarded) instead, because moving the value out of the
-    /// guard would otherwise force a copy the guard cannot follow.
+    /// owned [`String`] takes [`into_unguarded`](Self::into_unguarded) instead, because moving the
+    /// value out of the guard would otherwise force a copy the guard cannot follow.
     #[must_use]
     pub(crate) fn expose(mut self) -> Zeroizing<String> {
         Zeroizing::new(core::mem::take(&mut self.0))
@@ -34,8 +33,8 @@ impl SecretString {
 
     /// Consumes the secret, moving the held value out of zeroizing custody.
     ///
-    /// The returned [`String`] is the same allocation with no guard left on it: whoever consumes
-    /// it determines its end of life, and nothing zeroizes it.
+    /// The returned [`String`] is the same allocation with no guard left on it: whoever consumes it
+    /// determines its end of life, and nothing zeroizes it.
     #[must_use]
     pub(crate) fn into_unguarded(mut self) -> String {
         core::mem::take(&mut self.0)

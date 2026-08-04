@@ -221,7 +221,7 @@ mod tests {
 
     /// An absent header reads as a fresh bootstrap, never as a refusal.
     #[test]
-    fn an_absent_token_reads_as_a_fresh_bootstrap() {
+    fn absent_token_reads_as_a_fresh_bootstrap() {
         assert_matches!(read(None, &authority(), presenter(11)), Presented::Absent);
     }
 
@@ -230,7 +230,7 @@ mod tests {
     /// The manifest's case split depends on this distinction: a client that presented something
     /// receives a refusal, so a corrupted retention never becomes another view without notice.
     #[test]
-    fn a_garbage_header_reads_as_refused() {
+    fn garbage_header_reads_as_refused() {
         let tokens = authority();
 
         for garbage in ["", "zz", &"ab".repeat(TOKEN_BYTES)] {
@@ -252,7 +252,7 @@ mod tests {
     /// answer with a refusal rather than mint the new actor a fresh view under a `200` the client
     /// reads as continuity.
     #[test]
-    fn a_foreign_actors_token_reads_as_refused() {
+    fn foreign_actors_token_reads_as_refused() {
         let tokens = authority();
         let header = minted(&tokens, 11);
 
@@ -264,7 +264,7 @@ mod tests {
 
     /// An expired token still reads as carried, and its sealed scope is intact.
     #[test]
-    fn an_expired_token_reads_as_carried() {
+    fn expired_token_reads_as_carried() {
         let tokens = authority();
         let header = minted(&tokens, 11);
 
@@ -285,7 +285,7 @@ mod tests {
     /// leaves the bootstrap reachable. Asserted on the serialized parameter rather than on the
     /// builder call, because that is what a generator reads.
     #[test]
-    fn the_presented_token_is_documented_by_reading() {
+    fn presented_token_is_documented_by_reading() {
         let manifest = emitted_input::<Presented>();
         let data_route = emitted_input::<Visibility>();
 
@@ -326,7 +326,7 @@ mod tests {
     /// The same presentation diverges at the two readings: past the enforced window a data request
     /// refuses while the manifest still carries the sealed view into a fresh mint.
     #[test]
-    fn an_expired_token_refuses_at_admission_yet_reads_as_carried() {
+    fn expired_token_refuses_at_admission_yet_reads_as_carried() {
         let tokens = authority();
         let header = minted(&tokens, 11);
         let expired = issued_at() + Duration::from_mins(11);

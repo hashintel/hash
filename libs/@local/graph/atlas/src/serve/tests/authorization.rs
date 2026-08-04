@@ -152,7 +152,7 @@ fn plaintext(actor: u128, k: u8, filter: Option<&[u8]>) -> [u8; PLAINTEXT_BYTES]
     if let Some(canonical) = filter {
         bytes[ACTOR_BYTES] = 1;
         bytes[ACTOR_BYTES + PRESENCE_BYTES..PLAINTEXT_BYTES - OFFSET_BYTES]
-            .copy_from_slice(&FilterDigest::of(canonical).as_bytes());
+            .copy_from_slice(FilterDigest::of(canonical).as_bytes());
     }
     bytes[PLAINTEXT_BYTES - OFFSET_BYTES] = k;
 
@@ -194,7 +194,7 @@ fn seal_raw(
 /// a filter. An absent filter leaves the digest field zero rather than dropping it, so a filter's
 /// presence never shows in the length.
 #[test]
-fn a_minted_token_matches_an_independent_envelope() {
+fn minted_token_matches_an_independent_envelope() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
@@ -239,7 +239,7 @@ fn a_minted_token_matches_an_independent_envelope() {
 /// independently derived key and compares it with the hand-assembled plaintext, which pins the
 /// sealed bytes from both sides of the AEAD.
 #[test]
-fn an_independent_open_recovers_the_scope() {
+fn independent_open_recovers_the_scope() {
     let canonical = b"{\"kind\":\"all\"}".as_slice();
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
@@ -270,7 +270,7 @@ fn an_independent_open_recovers_the_scope() {
 /// the mint-side byte comparison this closes the loop in both directions, so the round trip through
 /// the production pair alone needs no case of its own.
 #[test]
-fn a_hand_assembled_envelope_opens() {
+fn hand_assembled_envelope_opens() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
@@ -292,7 +292,7 @@ fn a_hand_assembled_envelope_opens() {
 /// the tag. `open` judges the tag first, which is why the cause is authentication rather than
 /// staleness whichever direction the edit moves the clock.
 #[test]
-fn a_rewritten_issue_time_refuses() {
+fn rewritten_issue_time_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let mut minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -308,9 +308,9 @@ fn a_rewritten_issue_time_refuses() {
     );
 }
 
-/// A token older than the hard window refuses, and so does a future-dated one.
+/// A token at or past the hard window refuses, and so does a future-dated one.
 #[test]
-fn a_token_outside_the_window_refuses() {
+fn token_outside_the_window_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -341,7 +341,7 @@ fn a_token_outside_the_window_refuses() {
 /// The generation salts the key, so this refusal happens at the tag rather than at a field
 /// comparison, and it holds for a token whose plaintext is otherwise identical.
 #[test]
-fn a_foreign_generation_refuses() {
+fn foreign_generation_refuses() {
     let minting = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = minting
         .mint(scope(11, 5, None), issued_at())
@@ -365,7 +365,7 @@ fn a_foreign_generation_refuses() {
 
 /// A token opened under another secret refuses at the tag.
 #[test]
-fn a_foreign_secret_refuses() {
+fn foreign_secret_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -390,7 +390,7 @@ fn a_foreign_secret_refuses() {
 /// regions. The nonce is in the clear header, so its edit fails through the associated data, while
 /// the other two fail as ciphertext.
 #[test]
-fn a_tampered_byte_refuses() {
+fn tampered_byte_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -416,7 +416,7 @@ fn a_tampered_byte_refuses() {
 /// The tag proves the server minted the token, not that the presenter is its subject: without this
 /// refusal a leaked token would grant any authenticated actor the subject's scope.
 #[test]
-fn a_foreign_actor_refuses() {
+fn foreign_actor_refuses() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -436,7 +436,7 @@ fn a_foreign_actor_refuses() {
 /// `carried` still reads the sealed state - and a token re-minted from that state opens, sealing
 /// the same view.
 #[test]
-fn an_expired_token_still_carries_its_scope() {
+fn expired_token_still_carries_its_scope() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())
@@ -468,7 +468,7 @@ fn an_expired_token_still_carries_its_scope() {
 
 /// The carried read forgives staleness alone: the tag and the actor still refuse.
 #[test]
-fn a_carried_read_still_enforces_tag_and_actor() {
+fn carried_read_still_enforces_tag_and_actor() {
     let authority = TokenAuthority::new(generation(), &secret(), Duration::from_mins(10), rng());
     let minted = authority
         .mint(scope(11, 5, None), issued_at())

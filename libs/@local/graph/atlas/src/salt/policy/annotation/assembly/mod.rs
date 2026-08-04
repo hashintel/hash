@@ -53,11 +53,13 @@
 //! pairwise distances within `(0, median · NEAR_DUPLICATE_CEILING_FRACTION]`, with the trailing
 //! void ending at the ceiling included and the leading gap from zero excluded. A duplicate cluster
 //! sits decades below the corpus bulk, and the void between them is the boundary's evidence. A
-//! corpus without such structure over-joins only its few closest pairs, and subdivision cuts far
-//! near-duplicate edges first, so the failure direction is toward more conservative validation. The
-//! evidence records the derived boundary with its void and its ceiling. The group label is the
-//! SHA-256 over the component's member identity URLs in ascending byte order, so it is stable under
-//! any traversal order.
+//! corpus without such structure takes the trailing void and joins the bulk's whole low tail: every
+//! pair below the boundary, whose count the corpus decides and the ceiling alone bounds.
+//! Subdivision cuts far near-duplicate edges first, so the failure direction stays toward more
+//! conservative validation. The evidence records the derived boundary with its void and its
+//! ceiling. The group label is the SHA-256 over the component's member identity URLs in trained-row
+//! order, which is the corpus's ascending identity order, so it is stable under any traversal
+//! order.
 //!
 //! A component larger than [`AssemblyConfig::maximum_group_fraction`] of the trained rows is too
 //! large for grouped validation, so subdivision relaxes its axes in information order, and the axis
@@ -226,6 +228,14 @@ pub(crate) struct AssemblyEvidence {
     /// Groups accepted over budget because identity edges alone hold them together.
     #[serde(default)]
     pub oversized_accepted: usize,
+    /// Components whose subdivision found no fitting near-duplicate cut and severed every
+    /// near-duplicate edge under the empty cut.
+    ///
+    /// Each counted component scattered rows the boundary judged interchangeable across smaller
+    /// groups, so a train/validation split may separate near-duplicates. `None` when the document
+    /// predates the counter: the event was possible and uncounted, which is not a zero.
+    #[serde(default)]
+    pub empty_cut_components: Option<usize>,
     /// The weakest axis rank subdivision engaged.
     #[serde(default)]
     pub deepest_relaxation: Relaxation,
@@ -353,6 +363,7 @@ where
         near_duplicate_ceiling: 0.0,
         subdivided_groups: 0,
         oversized_accepted: 0,
+        empty_cut_components: Some(0),
         deepest_relaxation: Relaxation::None,
     };
 

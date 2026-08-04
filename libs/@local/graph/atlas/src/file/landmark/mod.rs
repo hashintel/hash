@@ -1,9 +1,8 @@
 //! A landmark file stores the selected rows, the assignment, and the coordinates.
 //!
 //! Layout version 0 is mutable: change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! The assignment and the coordinates are both keyed by the selection's ordinal order and mean
 //! nothing without it. All three regions live in one file and therefore cannot fall out of sync.
@@ -53,11 +52,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -122,7 +117,7 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
-/// The 4096-byte header of a landmark file.
+/// The header of a landmark file.
 #[derive(
     Copy,
     Clone,
@@ -130,6 +125,7 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
 pub(crate) struct FileHeader {
@@ -139,14 +135,11 @@ pub(crate) struct FileHeader {
     reserved: U32<LE>,
     landmarks: U64<LE>,
     rows: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4064;
-    /// Size of the header, and the offset of the rows region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `landmarks` selected out of `rows`.
     #[must_use]
     pub(crate) const fn new(landmarks: u64, rows: u64) -> Self {
@@ -156,7 +149,6 @@ impl FileHeader {
             reserved: U32::new(0),
             landmarks: U64::new(landmarks),
             rows: U64::new(rows),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -219,5 +211,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

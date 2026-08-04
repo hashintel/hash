@@ -6,7 +6,7 @@ use std::io;
 use sprs::CsMatBase;
 use zerocopy::IntoBytes as _;
 
-use super::{ArrayShape, Dim, FileHeader, SprsIndex, SprsValue};
+use super::{ArrayShape, Dim, FileHeader, PaddedFileHeader, SprsIndex, SprsValue};
 use crate::file::region::write_region;
 
 /// Writing a matrix as a sparse matrix file failed.
@@ -97,7 +97,7 @@ where
         matrix.nnz() as u64,
     );
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     write_region(&mut write, indptr.as_bytes())?;
     write_region(&mut write, matrix.indices().as_bytes())?;
     write.write_all(matrix.data().as_bytes())?;

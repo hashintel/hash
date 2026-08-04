@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
-use super::FileHeader;
+use super::{FileHeader, PaddedFileHeader};
 use crate::{file::region::write_region, math::Vec2};
 
 /// Streams the three skeleton regions as a landmark file.
@@ -36,7 +36,7 @@ pub(crate) fn write_regions(
     assert_eq!(coordinates.len(), rows.len(), "one coordinate per landmark");
     let header = FileHeader::new(rows.len() as u64, assignment.len() as u64);
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     write_region(&mut write, rows.as_bytes())?;
     write_region(&mut write, assignment.as_bytes())?;
     write.write_all(coordinates.as_bytes())?;

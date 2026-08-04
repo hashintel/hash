@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
-use super::{FileHeader, Node, TypeSets};
+use super::{FileHeader, Node, PaddedFileHeader, TypeSets};
 use crate::file::region::{write_padding, write_region};
 
 /// Streams the node table, the type-set fenceposts, and the type ids as a quad file.
@@ -59,7 +59,7 @@ pub(crate) fn write_regions(
     let header = FileHeader::new(nodes.len() as u64, sets.ids().len() as u64);
     let posts_bytes = (nodes.len() as u64 + 1) * size_of::<u64>() as u64;
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     write_region(&mut write, nodes.as_bytes())?;
     for &post in sets.posts() {
         write.write_all(U64::<LE>::new(post).as_bytes())?;

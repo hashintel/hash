@@ -6,10 +6,10 @@
 //! entities missing from the result. Each query borrows a connection for its own duration and
 //! returns it, so a request's hydration waits only on the store's own work.
 //!
-//! Every read of an entity's properties object passes through [`MASKED_PROPERTIES`], so a protected
-//! property reaches no properties column of any trailer. A label is a materialized property value
-//! and stands outside that rule, as it does on the graph's own read path: see the trailer contract
-//! in [the module above](super).
+//! Every read of an entity's properties object passes through the masking subtraction
+//! `edition.properties - $3::text[]`, so a protected property reaches no properties column of any
+//! trailer. A label is a materialized property value and stands outside that rule, as it does on
+//! the graph's own read path: see the trailer contract in [the module above](super).
 
 use alloc::sync::Arc;
 
@@ -97,7 +97,7 @@ const DETAIL_QUERY: &str = "
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
 /// nested values never cross the connection - while `total` counts the whole masked object, the
-/// completeness flag's ground truth. Both read [`MASKED_PROPERTIES`], so a protected property is
+/// completeness flag's ground truth. Both read the masked object, so a protected property is
 /// absent from the map and absent from the count: completeness attests the deliverable set, and
 /// `total` against the delivered map is no signal that a withheld property exists.
 ///
@@ -155,7 +155,7 @@ const LOCATE_DETAIL_QUERY: &str = "
 ///
 /// The locate node query's columns for every delivered link entity, ungated: every edge in a locate
 /// response carries its label, direct-type URLs, capped properties, and completeness flags.
-/// Properties and their count read [`MASKED_PROPERTIES`], as in the node query.
+/// Properties and their count read the masked object, as in the node query.
 const LOCATE_LINK_QUERY: &str = "
     SELECT
         ids.index,
@@ -271,7 +271,7 @@ impl core::error::Error for DetailError {
 #[derive(Debug)]
 pub struct GraphDatabaseClient {
     pool: Arc<PostgresStorePool>,
-    /// The base URLs [`MASKED_PROPERTIES`] removes, bytewise-sorted.
+    /// The base URLs the masking subtraction removes, bytewise-sorted.
     ///
     /// Sorted so that one deployment binds one parameter value across restarts: the configuration
     /// holds the set in a hash map, whose order is per-process.
@@ -634,7 +634,7 @@ mod tests {
     /// The mask contains a parameter index, so every query has to pass its protected set at that
     /// same index - and the icon's own parameter sits after it.
     #[test]
-    fn the_masked_parameter_index_is_uniform() {
+    fn masked_parameter_index_is_uniform() {
         for (name, query, reads_properties) in QUERIES {
             assert_eq!(
                 query.contains("$3"),
@@ -662,7 +662,7 @@ mod tests {
     /// Nothing else would mask a fifth query or witness it, and the source is the only place that
     /// knows how many there are.
     #[test]
-    fn the_census_covers_every_query() {
+    fn census_covers_every_query() {
         let mut declared: Vec<&str> = include_str!("client.rs")
             .lines()
             .filter_map(|line| line.strip_prefix("const "))

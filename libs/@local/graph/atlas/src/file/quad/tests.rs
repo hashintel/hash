@@ -10,11 +10,14 @@ use proptest::{arbitrary::any, prop_assert_eq, property_test};
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    FileHeader, Node, TypeSets,
+    FileHeader, Node, PaddedFileHeader, TypeSets,
     read::{OpenQuadError, QuadFile},
     write::write_regions,
 };
-use crate::morton::{Depth, MortonCell};
+use crate::{
+    file::region::{PAGE_BYTES, header::HeaderError},
+    morton::{Depth, MortonCell},
+};
 
 fn depth(value: u8) -> Depth {
     Depth::new(value).expect("test depths lie within the documented domain")
@@ -65,7 +68,7 @@ fn fixture_bytes() -> Vec<u8> {
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(4, 10);
+    let header = PaddedFileHeader::new(FileHeader::new(4, 10));
     let bytes = header.as_bytes();
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[0..8], b"SALTQUAD");
@@ -77,20 +80,25 @@ fn header_wire_layout() {
 
 #[test]
 fn header_parse_pins_identity() {
-    let mut bytes = [0_u8; FileHeader::SIZE];
-    bytes.copy_from_slice(FileHeader::new(4, 10).as_bytes());
-    let parsed = FileHeader::try_read_from_bytes(&bytes).expect("valid header bytes should parse");
+    let page = PaddedFileHeader::new(FileHeader::new(4, 10));
+    let bytes: [u8; PAGE_BYTES] = page
+        .as_bytes()
+        .try_into()
+        .expect("a padded header is exactly one page");
+
+    let parsed =
+        PaddedFileHeader::try_ref_from_bytes(&bytes).expect("valid header bytes should parse");
     assert_eq!(parsed.nodes(), 4);
     assert_eq!(parsed.type_ids(), 10);
 
     let mut wrong_magic = bytes;
     wrong_magic[0] = b'W';
-    FileHeader::try_read_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
+    PaddedFileHeader::try_ref_from_bytes(&wrong_magic).expect_err("a wrong magic should not parse");
 
     // Version 0 is the retired layout. Its bytes must not parse as V1.
     let mut wrong_version = bytes;
     wrong_version[8] = 0;
-    FileHeader::try_read_from_bytes(&wrong_version)
+    PaddedFileHeader::try_ref_from_bytes(&wrong_version)
         .expect_err("an unsupported version should not parse");
 }
 
@@ -227,27 +235,35 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         QuadFile::open(&undersized),
-        Err(OpenQuadError::Undersized { actual: 16 }),
+        Err(OpenQuadError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.quad");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert_matches!(QuadFile::open(&foreign), Err(OpenQuadError::Header));
+    assert_matches!(
+        QuadFile::open(&foreign),
+        Err(OpenQuadError::Header(HeaderError::Invalid)),
+    );
 
     let retired = scratch("retired-version.quad");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&0_u32.to_le_bytes());
     fs::write(&retired, &bytes).expect("the scratch file is writable");
-    assert_matches!(QuadFile::open(&retired), Err(OpenQuadError::Header));
+    assert_matches!(
+        QuadFile::open(&retired),
+        Err(OpenQuadError::Header(HeaderError::Invalid)),
+    );
 
     // Open rejects a node count colliding with the sentinel before the length equation could demand
     // a table that size.
     let saturated = scratch("saturated.quad");
     fs::write(
         &saturated,
-        FileHeader::new(u64::from(u32::MAX), 0).as_bytes(),
+        PaddedFileHeader::new(FileHeader::new(u64::from(u32::MAX), 0)).as_bytes(),
     )
     .expect("the scratch file is writable");
     assert_matches!(QuadFile::open(&saturated), Err(OpenQuadError::Nodes { .. }));

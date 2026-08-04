@@ -167,7 +167,7 @@ impl<'scope> View<'scope> {
 
     /// Returns the corpus-wide census of what the proof admits.
     #[must_use]
-    pub const fn census(&self) -> ViewCensus {
+    pub(crate) const fn census(&self) -> ViewCensus {
         self.census
     }
 
@@ -204,7 +204,7 @@ impl Atlas {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub fn view<'scope>(
+    pub(crate) fn view<'scope>(
         &self,
         proof: &'scope VisibilityProof,
         census: ViewCensus,

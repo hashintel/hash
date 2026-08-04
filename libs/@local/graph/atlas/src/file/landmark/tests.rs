@@ -9,15 +9,15 @@ use std::{fs, path::PathBuf};
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
 use super::{
-    FileHeader,
+    FileHeader, PaddedFileHeader,
     read::{LandmarkFile, OpenLandmarkError},
     write::write_regions,
 };
-use crate::math::Vec2;
+use crate::{file::region::header::HeaderError, math::Vec2};
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(3, 7);
+    let header = PaddedFileHeader::new(FileHeader::new(3, 7));
     let bytes = header.as_bytes();
 
     // The literal length pins the layout and bounds the region slices.
@@ -132,20 +132,28 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         LandmarkFile::open(&undersized),
-        Err(OpenLandmarkError::Undersized { actual: 16 }),
+        Err(OpenLandmarkError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.lndm");
     let mut bytes = fixture_bytes();
     bytes[..8].copy_from_slice(b"SALTELSE");
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
-    assert_matches!(LandmarkFile::open(&foreign), Err(OpenLandmarkError::Header));
+    assert_matches!(
+        LandmarkFile::open(&foreign),
+        Err(OpenLandmarkError::Header(HeaderError::Invalid)),
+    );
 
     let future = scratch("future-version.lndm");
     let mut bytes = fixture_bytes();
     bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
-    assert_matches!(LandmarkFile::open(&future), Err(OpenLandmarkError::Header));
+    assert_matches!(
+        LandmarkFile::open(&future),
+        Err(OpenLandmarkError::Header(HeaderError::Invalid)),
+    );
 
     let torn = scratch("torn.lndm");
     let mut bytes = fixture_bytes();

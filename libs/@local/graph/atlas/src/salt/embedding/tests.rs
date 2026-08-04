@@ -16,7 +16,7 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, card::Card},
     file::{
-        array::{ArrayVariant, FileHeader},
+        array::{ArrayVariant, PaddedFileHeader},
         region::PAGE_BYTES,
     },
     identity::OntologyRowId,
@@ -521,7 +521,7 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
         .write_embeddings_into(&mut bytes)
         .expect("writing into a vector should not fail");
 
-    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
+    let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::F32);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();
@@ -562,7 +562,7 @@ async fn writes_the_hash_column_as_an_array_file() {
         .write_hashes_into(&mut bytes)
         .expect("writing into a vector should not fail");
 
-    let header = FileHeader::try_read_from_bytes(&bytes[..PAGE_BYTES])
+    let header = PaddedFileHeader::try_ref_from_bytes(&bytes[..PAGE_BYTES])
         .expect("the written header should parse");
     assert_eq!(header.variant(), ArrayVariant::U8);
     let extents: Vec<u64> = header.shape().dims().iter().map(|dim| dim.get()).collect();

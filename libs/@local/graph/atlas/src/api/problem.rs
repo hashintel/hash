@@ -258,7 +258,7 @@ mod tests {
     use super::{Problem, ProblemType};
 
     #[test]
-    fn the_type_member_is_a_root_relative_uri() {
+    fn type_member_is_a_root_relative_uri() {
         let problem = Problem::new(
             StatusCode::NOT_FOUND,
             ProblemType::UnknownGeneration,

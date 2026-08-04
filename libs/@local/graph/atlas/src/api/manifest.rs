@@ -163,11 +163,11 @@ pub(super) struct GenerationPath {
 /// The wanted view therefore decides. When it equals the sealed one, a scoped session keeps its
 /// delivery depth `k` while an operator one renews at the corpus cut, and the handler resolves the
 /// view either way, so the fresh token carries current authorization and a purged filter document
-/// is rebuilt from the resent bytes. When it differs from the sealed one - a changed filter, or
-/// its removal - the handler resolves the wanted view and keeps `k` unless that view resolves
-/// coarser, which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view therefore
-/// seals zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap resolves both
-/// the wanted view and its depth.
+/// is rebuilt from the resent bytes. When it differs from the sealed one - a changed filter, or its
+/// removal - the handler resolves the wanted view and keeps `k` unless that view resolves coarser,
+/// which clamps it down through [`DensityPolicy::rebind`]; an empty wanted view therefore seals
+/// zero. Without a density policy the seal is [`CutOffset::ZERO`]. A bootstrap resolves both the
+/// wanted view and its depth.
 ///
 /// [`DensityPolicy::rebind`]: crate::serve::DensityPolicy::rebind
 pub(super) async fn handler(
@@ -449,7 +449,7 @@ mod tests {
     /// The fixture's argmin is 1, which is neither `CutOffset::ZERO` nor either carried value the
     /// tests below use, so this fails if the branch resolves nothing or clamps something.
     #[test]
-    fn a_bootstrap_resolves_the_wanted_view() {
+    fn bootstrap_resolves_the_wanted_views_own_offset() {
         assert_eq!(
             sealed_offset(Some(policy()), Mint::Bootstrap, Some(view)),
             CutOffset::new(1)
@@ -458,7 +458,7 @@ mod tests {
 
     /// The rebind keeps a carried offset coarser than the wanted view's resolution.
     #[test]
-    fn a_carried_coarser_offset_is_kept() {
+    fn rebind_keeps_a_carried_offset_coarser_than_the_views_resolution() {
         assert_eq!(
             sealed_offset(Some(policy()), Mint::Rebind(CutOffset::ZERO), Some(view)),
             CutOffset::ZERO,
@@ -468,7 +468,7 @@ mod tests {
 
     /// A carried offset deeper than the wanted view's resolution clamps down to it.
     #[test]
-    fn a_carried_deeper_offset_clamps_to_the_wanted_view() {
+    fn rebind_clamps_a_carried_offset_deeper_than_the_views_resolution() {
         assert_eq!(
             sealed_offset(Some(policy()), Mint::Rebind(CutOffset::new(2)), Some(view)),
             CutOffset::new(1),
@@ -479,12 +479,12 @@ mod tests {
     /// An operator view seals zero at every mint, over a fixture whose argmin is not zero.
     ///
     /// The absent occupancy is what an operator proof answers, and the fixture's own argmin is 1,
-    /// so a mint that consulted the policy anyway would seal 1 here and fail all three
-    /// assertions. The carried case is the one that matters after a change: a token minted
-    /// before this rule seals a nonzero offset, and its renewal has to come back at zero rather
-    /// than carry the bad value forward.
+    /// so a mint that consulted the policy anyway would seal 1 here and fail all three assertions.
+    /// The carried case is the one that matters after a change: a token minted before this rule
+    /// seals a nonzero offset, and its renewal has to come back at zero rather than carry the bad
+    /// value forward.
     #[test]
-    fn an_operator_view_seals_zero_at_every_mint() {
+    fn operator_view_seals_zero_at_every_mint() {
         assert_eq!(
             sealed_offset(Some(policy()), Mint::Bootstrap, NO_VIEW),
             CutOffset::ZERO,
@@ -508,10 +508,10 @@ mod tests {
     /// A renewal of an unchanged view never reads the occupancy aggregate.
     ///
     /// The aggregate costs a pass over the code column and an allocation for the visible keys, and
-    /// a session keeping its own view keeps the offset that aggregate already resolved. The
-    /// source here records its own call, so the case fails if the mint takes it.
+    /// a session keeping its own view keeps the offset that aggregate already resolved. The source
+    /// here records its own call, so the case fails if the mint takes it.
     #[test]
-    fn a_renewal_takes_no_occupancy_pass() {
+    fn renewal_takes_no_occupancy_pass() {
         let taken = Cell::new(false);
         let source = || {
             taken.set(true);
@@ -531,10 +531,9 @@ mod tests {
     /// A renewal of an unchanged view keeps the offset its predecessor sealed.
     ///
     /// The wanted view's own resolution is 1 and the carried value is 2, so a renewal that
-    /// re-resolved or clamped would read 1 here. The session serves at the depth it
-    /// bootstrapped.
+    /// re-resolved or clamped would read 1 here. The session serves at the depth it bootstrapped.
     #[test]
-    fn a_renewed_view_keeps_its_sealed_offset() {
+    fn renewed_view_keeps_its_sealed_offset() {
         assert_eq!(
             sealed_offset(Some(policy()), Mint::Carry(CutOffset::new(2)), Some(view)),
             CutOffset::new(2),
@@ -546,7 +545,7 @@ mod tests {
     /// The empty view resolves to zero through the same argmin, and the clamp is a minimum, so the
     /// session's depth collapses however deep it was.
     #[test]
-    fn a_carried_offset_over_an_empty_view_reaches_zero() {
+    fn carried_offset_over_an_empty_view_reaches_zero() {
         let empty = ViewOccupancy::of(&mut []);
         assert!(empty.is_empty(), "the fixture view is empty");
 
@@ -576,7 +575,7 @@ mod tests {
     /// A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
     /// filter), so a body marked required would document a refusal this operation does not make.
     #[test]
-    fn the_filter_document_is_declared_and_optional() {
+    fn operation_declares_the_filter_document_as_optional() {
         let emitted = emitted();
         let body = &emitted["requestBody"];
 
@@ -593,7 +592,7 @@ mod tests {
 
     /// The `200` declares both headers it carries.
     #[test]
-    fn the_response_declares_the_minted_authority_header() {
+    fn response_declares_both_headers_it_carries() {
         let headers = &emitted()["responses"]["200"]["headers"];
 
         assert!(
@@ -612,7 +611,7 @@ mod tests {
     /// and `internal` beside the four statuses it declares by name. Without the default response
     /// the document would omit both.
     #[test]
-    fn the_operation_declares_the_catch_all_response() {
+    fn operation_declares_the_catch_all_response() {
         let responses = &emitted()["responses"];
 
         assert!(
@@ -623,7 +622,7 @@ mod tests {
 
     /// The `400` names the body problem the filter document can answer with.
     #[test]
-    fn the_bad_request_response_names_the_body_problem() {
+    fn bad_request_response_names_the_body_problem() {
         let description = emitted()["responses"]["400"]["description"]
             .as_str()
             .expect("the 400 response carries a description")

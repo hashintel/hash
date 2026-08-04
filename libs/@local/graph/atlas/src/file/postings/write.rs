@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U32, U64};
 
-use super::FileHeader;
+use super::{FileHeader, PaddedFileHeader};
 use crate::file::region::write_padding;
 
 /// The regions of one postings file, borrowed from a finished build.
@@ -94,7 +94,7 @@ pub(crate) fn write_regions(
     let posts_bytes = membership_posts.len() as u64 * size_of::<U64<LE>>() as u64;
     let parent_id_bytes = parent_ids.len() as u64 * size_of::<u64>() as u64;
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
 
     write_words(&mut write, flags)?;
     write_padding(&mut write, flag_bytes)?;

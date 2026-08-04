@@ -3,9 +3,8 @@
 //! Bucket fenceposts and a page index in front of the delivery-ordered morton codes.
 //!
 //! Layout version 1 is **mutable**. Change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! The codes are in the base delivery order: bucket-major, ascending within each bucket segment.
 //! Nothing about that column is interpretable on its own. A binary search is valid only inside one

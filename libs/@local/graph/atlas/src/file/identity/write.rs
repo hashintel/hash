@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::{IntoBytes as _, LE, U64};
 
-use super::FileHeader;
+use super::{FileHeader, PaddedFileHeader};
 use crate::file::region::{PAGE, write_padding, write_region};
 
 /// Returns the index stride for `key_width`-byte ids.
@@ -85,7 +85,7 @@ pub(crate) fn write_regions(
         &ids[start..start + width]
     };
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     write_region(&mut write, ids)?;
     for &row in order.iter().step_by(stride as usize) {
         write.write_all(id_of(row))?;

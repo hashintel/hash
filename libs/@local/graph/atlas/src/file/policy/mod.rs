@@ -1,9 +1,8 @@
 //! The resolved geometry policy table.
 //!
 //! Layout version 0 is **mutable**: change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! One region of fixed-width records behind the pinned header:
 //!

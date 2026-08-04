@@ -50,8 +50,8 @@
 //! matches no real file.
 //!
 //! Every format here is **mutable**. Change any layout to fit what the pipeline needs and increment
-//! its version when you do. Pinned parses rejecting other versions is the intended failure mode. No
-//! migration or compatibility machinery exists on purpose until a format stabilizes.
+//! its version when you do. Pinned parses rejecting other versions is the intended failure mode. A
+//! fresh generation replaces the files a layout change strands.
 //!
 //! Each binary header states its own layout version, 0 today. The published JSON states one more
 //! number. [`RepositoryVersion`](repository::RepositoryVersion) leads the serialized document and

@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::IntoBytes as _;
 
-use super::{EdgeRecord, FileHeader, GroupRecord};
+use super::{EdgeRecord, FileHeader, GroupRecord, PaddedFileHeader};
 use crate::file::region::write_padding;
 
 /// Streams the group and edge regions as an attraction file.
@@ -38,7 +38,7 @@ pub(crate) fn write_records(
 
     let group_bytes = header.groups() * size_of::<GroupRecord>() as u64;
 
-    write.write_all(header.as_bytes())?;
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
     let mut written = 0_u64;
     for group in groups {
         write.write_all(group.as_bytes())?;

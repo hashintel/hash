@@ -2,8 +2,7 @@
 //!
 //! The schema is **mutable** and carries no version of its own. It nests inside the document that
 //! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, so change it to fit
-//! what the pipeline needs and increment that version when you do. No migration or compatibility
-//! machinery exists on purpose until the schema stabilizes.
+//! what the pipeline needs and increment that version when you do.
 
 use core::num::NonZero;
 
@@ -410,9 +409,6 @@ struct BuildMeasurementsDef {
     retained_mass: f64,
     pruned_mass: f64,
     self_references: usize,
-    // Absent on documents published before the multiplicity mixture. No multi-typed edge existed
-    // in those stores, so the empty histogram records them accurately.
-    #[serde(default)]
     multi_typed_edges: Vec<u64>,
     // Absent on documents published before the drain clamped stream
     // confidences. Zero on those documents means the count did not

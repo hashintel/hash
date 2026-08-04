@@ -1,27 +1,23 @@
 //! Opened sparse matrix files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
+use std::path::Path;
 
 use sprs::{CsMatViewI, errors::StructureError};
-use zerocopy::{
-    FromBytes as _, TryFromBytes as _,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::FromBytes as _;
 
 use super::{FileHeader, IndexVariant, SprsIndex, SprsValue, StorageVariant, ValueTag};
-use crate::file::region::PageMap;
+use crate::file::region::{
+    PAGE,
+    header::{HeaderError, HeaderMap},
+};
 
 /// Opening a sparse matrix file failed.
 // pub: rides `OpenAtlasError`'s public adjacency variant.
 #[derive(Debug)]
 pub enum OpenSprsError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -36,16 +32,7 @@ pub enum OpenSprsError {
 impl fmt::Display for OpenSprsError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the sparse matrix file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header(error) => write!(
-                fmt,
-                "the leading bytes are not a sparse matrix file header: {error}",
-            ),
+            Self::Header(error) => write!(fmt, "the sparse matrix file's header page: {error}"),
             Self::Length {
                 expected: Some(expected),
                 actual,
@@ -67,9 +54,8 @@ impl fmt::Display for OpenSprsError {
 impl Error for OpenSprsError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
             Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Length { .. } => None,
         }
     }
 }
@@ -133,7 +119,7 @@ impl Error for SprsMatrixError {
 /// start on a 4096-byte boundary, an alignment that suits every scalar and SIMD width.
 #[derive(Debug)]
 pub(crate) struct SprsFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl SprsFile {
@@ -141,27 +127,12 @@ impl SprsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenSprsError::Io`] when opening or mapping the file fails,
-    /// [`OpenSprsError::Undersized`] when the file ends before one full header,
-    /// [`OpenSprsError::Header`] when its leading bytes are not a header this module speaks, and
+    /// Returns [`OpenSprsError::Header`] when the header page cannot be read, and
     /// [`OpenSprsError::Length`] when the file length contradicts the header's geometry.
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenSprsError> {
-        let map = PageMap::open(path).map_err(OpenSprsError::Io)?;
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenSprsError::Header)?;
 
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenSprsError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenSprsError::Header(error.map_src(|_| ())));
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
-
-        let expected = header.expected_file_len();
+        let expected = map.header().expected_file_len();
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenSprsError::Length { expected, actual });
@@ -174,12 +145,7 @@ impl SprsFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse as
-        // one, so the deref target is a valid `FileHeader`.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Returns the value type tag.
@@ -281,10 +247,10 @@ impl SprsFile {
 
         // The offsets and products below repeat checked computations
         // open already accepted, so none of them can overflow here.
-        let region = |offset: u64, len: u64| self.map.region(offset, len);
+        let region = |offset: u64, len: u64| self.map.map().region(offset, len);
         let entries = header.nnz();
         let outer = header.outer_count().expect("open validated the geometry");
-        let indptr = region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
+        let indptr = region(PAGE, (outer + 1) * Iptr::VARIANT.width());
         let indices = region(
             header
                 .indices_offset()
@@ -337,7 +303,8 @@ impl SprsFile {
         let outer = header.outer_count().expect("open validated the geometry");
         let bytes = self
             .map
-            .region(FileHeader::SIZE as u64, (outer + 1) * Iptr::VARIANT.width());
+            .map()
+            .region(PAGE, (outer + 1) * Iptr::VARIANT.width());
         Ok(<[Iptr]>::ref_from_bytes(bytes)
             .expect("open validated the region sizes and the mapping their alignment"))
     }
@@ -362,7 +329,7 @@ impl SprsFile {
             return Err(self.elements());
         }
 
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             header
                 .indices_offset()
                 .expect("open validated the geometry"),

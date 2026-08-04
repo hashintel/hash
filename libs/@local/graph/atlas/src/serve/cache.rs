@@ -489,9 +489,10 @@ impl VisibilityCache {
     /// had.
     ///
     /// An entry past the hard window answers nothing. The cache drops it and resolves again, so the
-    /// answer is a resolution no older than `now`. The cache judges the window on the caller's
-    /// `now`, the clock `resolved_at` came from, and measures it from the resolution the entry
-    /// carries, so a slow resolution shortens the entry's reuse rather than extending its window.
+    /// answer is a resolution no older than `now`. The cache judges both windows on the `now` this
+    /// call supplies, the monotonic clock `resolved_at` came from, and measures them from the
+    /// resolution the entry carries, so a slow resolution shortens the entry's reuse rather than
+    /// extending its window.
     ///
     /// A refresh publishes only over the entry it refreshed, and only while that entry is the
     /// newest held. A refresh completing after a newer resolution, or after the entry it refreshed
@@ -528,8 +529,8 @@ impl VisibilityCache {
         // no later path in the same call can resolve again. Reading the slot first is what makes
         // that visible to the compiler as well as true.
         //
-        // The windows are judged on the caller's clock, the one `resolved_at` came from, rather
-        // than on moka's, whose expiry starts when the resolution finishes.
+        // The windows are judged on the `now` this call is given, the one `resolved_at` came from,
+        // rather than on moka's, whose expiry starts when the resolution finishes.
         let Some(entry) = self.entries.get(&key).await else {
             return self.resolved_inline(key, now, resolver).await;
         };
@@ -670,7 +671,7 @@ mod tests {
 
     /// An entry inside the soft window answers without resolving again.
     #[tokio::test]
-    async fn a_held_entry_is_served_without_resolving() {
+    async fn held_entry_answers_without_resolving_again() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -717,7 +718,7 @@ mod tests {
     /// refresh runs as a task, so the loop below drives the runtime until the refresh publishes
     /// rather than waiting on a clock.
     #[tokio::test]
-    async fn a_stale_entry_answers_while_it_refreshes() {
+    async fn stale_entry_answers_while_it_refreshes() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -765,7 +766,7 @@ mod tests {
 
     /// A filter's identity separates entries for one actor.
     #[tokio::test]
-    async fn a_filtered_request_holds_its_own_entry() {
+    async fn filter_identity_separates_entries_for_one_actor() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -794,7 +795,7 @@ mod tests {
     /// budget bites on a third scope, by eviction or by refused admission, since the count is what
     /// this fixture pins.
     #[tokio::test]
-    async fn the_capacity_bound_counts_entries() {
+    async fn capacity_bound_counts_entries() {
         let cache = VisibilityCache::new(VisibilityLimits {
             entries: 2,
             ..LIMITS
@@ -836,7 +837,7 @@ mod tests {
     /// not the cache's own. An entry whose age reaches `hard` resolves again inline, and the answer
     /// carries the new proof rather than the held one.
     #[tokio::test]
-    async fn an_expired_entry_resolves_again() {
+    async fn expired_entry_resolves_again() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -871,7 +872,7 @@ mod tests {
     /// order. A paused resolver holds the refresh in flight until a newer inline resolution has
     /// published, and only then does the refresh complete.
     #[tokio::test]
-    async fn a_refresh_does_not_overwrite_a_newer_entry() {
+    async fn refresh_landing_after_a_newer_resolution_publishes_nothing() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -1017,7 +1018,7 @@ mod tests {
     /// would give a proof resolved before that removal a fresh window to live in, with no request
     /// having asked for it. A refresh replaces the entry it refreshed and creates none.
     #[tokio::test]
-    async fn a_refresh_does_not_resurrect_a_removed_entry() {
+    async fn refresh_of_a_removed_entry_publishes_nothing() {
         let cache = VisibilityCache::new(LIMITS);
         let calls = Arc::new(AtomicUsize::new(0));
         let now = Instant::now();
@@ -1064,7 +1065,7 @@ mod tests {
 
     /// A failed resolution holds no entry.
     #[tokio::test]
-    async fn a_failed_resolution_publishes_no_entry() {
+    async fn failed_resolution_holds_no_entry() {
         let cache = VisibilityCache::new(LIMITS);
         let now = Instant::now();
 

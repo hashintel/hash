@@ -1,25 +1,21 @@
 //! Opened postings files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
+use std::path::Path;
 
-use zerocopy::{
-    FromBytes as _, LE, TryFromBytes as _, U32, U64,
-    error::{ConvertError, ValidityError},
-};
+use zerocopy::{FromBytes as _, LE, U32, U64};
 
 use super::FileHeader;
-use crate::file::region::PageMap;
+use crate::file::region::{
+    PAGE,
+    header::{HeaderError, HeaderMap},
+};
 
 /// Opening a postings file failed.
 #[derive(Debug)]
 pub enum OpenPostingsError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header(ValidityError<(), FileHeader>),
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The file length contradicts the header's geometry.
     Length {
         /// The length the header describes.
@@ -34,16 +30,7 @@ pub enum OpenPostingsError {
 impl fmt::Display for OpenPostingsError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the postings file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header(error) => write!(
-                fmt,
-                "the leading bytes are not a postings file header: {error}",
-            ),
+            Self::Header(error) => write!(fmt, "the postings file's header page: {error}"),
             Self::Length {
                 expected: Some(expected),
                 actual,
@@ -65,9 +52,8 @@ impl fmt::Display for OpenPostingsError {
 impl Error for OpenPostingsError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
             Self::Header(error) => Some(error),
-            Self::Undersized { .. } | Self::Length { .. } => None,
+            Self::Length { .. } => None,
         }
     }
 }
@@ -81,7 +67,7 @@ impl Error for OpenPostingsError {
 /// `salt::postings`'s artifact contract.
 #[derive(Debug)]
 pub(crate) struct PostingsFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl PostingsFile {
@@ -89,29 +75,13 @@ impl PostingsFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenPostingsError::Io`] when opening or mapping the file fails,
-    /// [`OpenPostingsError::Undersized`] when the file ends before one full header,
-    /// [`OpenPostingsError::Header`] when its leading bytes are not a header this module speaks,
-    /// and [`OpenPostingsError::Length`] when the file length contradicts the header's geometry.
+    /// Returns [`OpenPostingsError::Header`] when the header page cannot be read, and
+    /// [`OpenPostingsError::Length`] when the file length contradicts the header's geometry.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenPostingsError> {
-        let map = PageMap::open(path).map_err(OpenPostingsError::Io)?;
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenPostingsError::Header)?;
 
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenPostingsError::Undersized { actual: map.len() });
-        };
-
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(error)) => {
-                return Err(OpenPostingsError::Header(error.map_src(|_| ())));
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
-
-        let expected = header.expected_file_len();
+        let expected = map.header().expected_file_len();
         let actual = map.len();
         if expected != Some(actual) {
             return Err(OpenPostingsError::Length { expected, actual });
@@ -124,12 +94,7 @@ impl PostingsFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse as
-        // one, so the deref target is a valid `FileHeader`.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Returns the type count `T`.
@@ -154,10 +119,10 @@ impl PostingsFile {
         // The offsets and products in the region reads repeat checked
         // computations open already accepted, so none of them can
         // overflow here.
-        let bytes = self.map.region(
-            FileHeader::SIZE as u64,
-            self.header().flags_words() * size_of::<u64>() as u64,
-        );
+        let bytes = self
+            .map
+            .map()
+            .region(PAGE, self.header().flags_words() * size_of::<u64>() as u64);
 
         <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
     }
@@ -165,7 +130,7 @@ impl PostingsFile {
     /// Views the `T + 1` membership fenceposts, in entry counts.
     #[must_use]
     pub(crate) fn membership_posts(&self) -> &[U64<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .membership_posts_offset()
                 .expect("open validated the geometry"),
@@ -178,7 +143,7 @@ impl PostingsFile {
     /// Views the `T + 1` parent fenceposts, in id counts.
     #[must_use]
     pub(crate) fn parent_posts(&self) -> &[U64<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .parent_posts_offset()
                 .expect("open validated the geometry"),
@@ -191,7 +156,7 @@ impl PostingsFile {
     /// Views the `P` parent ids, type-major.
     #[must_use]
     pub(crate) fn parent_ids(&self) -> &[U64<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .parent_ids_offset()
                 .expect("open validated the geometry"),
@@ -204,7 +169,7 @@ impl PostingsFile {
     /// Views the `M` membership entries, type-major.
     #[must_use]
     pub(crate) fn entries(&self) -> &[U32<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .entries_offset()
                 .expect("open validated the geometry"),

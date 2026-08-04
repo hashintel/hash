@@ -146,7 +146,7 @@ const VISIBLE: [Vec2; 3] = [
 /// reads 2 and then 1. `C(d, V)` is the cut policy's input, so the corpus bounding box is an input
 /// to a scope-local delivery decision.
 #[test]
-fn a_hidden_row_outside_the_visible_frame_changes_the_visible_key_assignment() {
+fn hidden_row_outside_the_visible_frame_changes_the_visible_key_assignment() {
     let (sparse_frame, sparse) = read(&VISIBLE, VISIBLE.len());
     assert_eq!(
         sparse_frame,
@@ -202,7 +202,7 @@ fn a_hidden_row_outside_the_visible_frame_changes_the_visible_key_assignment() {
 /// it outranks a visible row for a contested cell, which is [`super::metadata_channel`]'s witness;
 /// asserting bucket equality here would generalize one lucky instance into a false rule.
 #[test]
-fn an_interior_hidden_row_leaves_the_visible_key_assignment_fixed() {
+fn interior_hidden_row_leaves_the_visible_key_assignment_fixed() {
     let (sparse_frame, sparse) = read(&VISIBLE, VISIBLE.len());
 
     let mut interior_points = VISIBLE.to_vec();

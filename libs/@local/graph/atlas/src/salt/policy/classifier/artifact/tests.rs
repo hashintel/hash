@@ -11,6 +11,7 @@ use crate::{
     file::{
         WriteInto as _,
         classifier::{FileHeader, read::ClassifierFile, write::write_regions},
+        region::PAGE_BYTES,
     },
     math::{BoxedDVecN, BoxedVecN},
     salt::policy::{
@@ -179,7 +180,7 @@ fn rejects_tampered_vectors() {
     let nan = f64::NAN.to_le_bytes();
 
     // Component 7 of the class-1 coefficient row.
-    let offset = FileHeader::SIZE + (CANONICAL_DIMENSIONS + 7) * size_of::<f64>();
+    let offset = PAGE_BYTES + (CANONICAL_DIMENSIONS + 7) * size_of::<f64>();
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 8].copy_from_slice(&nan);
     assert_eq!(

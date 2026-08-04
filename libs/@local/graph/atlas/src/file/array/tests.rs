@@ -286,7 +286,9 @@ fn open_rejects_what_the_header_contradicts() {
 
     // A truncated data region violates the length rule.
     let mut truncated = Vec::new();
-    truncated.extend_from_slice(FileHeader::new(ArrayVariant::F32, shape(&[2, 4])).as_bytes());
+    truncated.extend_from_slice(
+        PaddedFileHeader::new(FileHeader::new(ArrayVariant::F32, shape(&[2, 4]))).as_bytes(),
+    );
     truncated.extend_from_slice([1.0_f32; 4].as_bytes());
     let file = TempFile::create(&truncated);
     assert_matches!(
@@ -310,7 +312,9 @@ fn open_rejects_what_the_header_contradicts() {
 fn vectors_exists_exactly_for_f32_matrices() {
     // A u8 file never views as vectors.
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(FileHeader::new(ArrayVariant::U8, shape(&[3, 32])).as_bytes());
+    bytes.extend_from_slice(
+        PaddedFileHeader::new(FileHeader::new(ArrayVariant::U8, shape(&[3, 32]))).as_bytes(),
+    );
     bytes.extend_from_slice(&[7; 96]);
     let file = TempFile::create(&bytes);
     let opened = ArrayFile::open(&file.path).expect("a u8 array should open");
@@ -318,7 +322,9 @@ fn vectors_exists_exactly_for_f32_matrices() {
 
     // A rank-1 f32 array is not a matrix.
     let mut bytes = Vec::new();
-    bytes.extend_from_slice(FileHeader::new(ArrayVariant::F32, shape(&[8])).as_bytes());
+    bytes.extend_from_slice(
+        PaddedFileHeader::new(FileHeader::new(ArrayVariant::F32, shape(&[8]))).as_bytes(),
+    );
     bytes.extend_from_slice([1.0_f32; 8].as_bytes());
     let file = TempFile::create(&bytes);
     let opened = ArrayFile::open(&file.path).expect("a rank-1 array should open");

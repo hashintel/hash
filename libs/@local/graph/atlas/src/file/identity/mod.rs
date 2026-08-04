@@ -1,9 +1,8 @@
 //! An identity file stores a row-ordered id column and its sorted lookup pairs.
 //!
 //! Layout version 0 is mutable: change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! One file binds a row domain (nodes, edges, or ontology types) to its source identifiers, in both
 //! directions: `row → id` is indexing into the id column, and `id → row` is binary search over the
@@ -58,11 +57,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -127,7 +122,7 @@ pub(crate) enum Version {
     V0 = 0,
 }
 
-/// The 4096-byte header of an identity file.
+/// The header of an identity file.
 #[derive(
     Copy,
     Clone,
@@ -135,22 +130,20 @@ pub(crate) enum Version {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
-pub struct FileHeader {
+pub(crate) struct FileHeader {
     magic: Unalign<FileHeaderMagic>,
     version: Unalign<Version>,
     key_width: U32<LE>,
     rows: U64<LE>,
     stride: U32<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4068;
-    /// Size of the header, and the offset of the ids region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `rows` ids of `key_width` bytes, indexed every `stride` pairs.
     #[must_use]
     pub(crate) const fn new(key_width: u32, rows: u64, stride: u32) -> Self {
@@ -160,7 +153,6 @@ impl FileHeader {
             key_width: U32::new(key_width),
             rows: U64::new(rows),
             stride: U32::new(stride),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -255,5 +247,3 @@ impl fmt::Debug for FileHeader {
             .finish_non_exhaustive()
     }
 }
-
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);

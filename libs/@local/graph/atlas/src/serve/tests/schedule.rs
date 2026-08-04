@@ -425,7 +425,7 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
 /// A resolved cut past the key width refuses the whole tile.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_out_of_domain_cut_refuses_delivery() {
+async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
     let (_generation, atlas) = publish("cut-refusal").await;
     let proof = mask_hiding(&atlas, &[0]);
 
@@ -448,7 +448,7 @@ async fn an_out_of_domain_cut_refuses_delivery() {
 /// the only entry point still accepting the four inputs apart.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
+async fn mismatched_proof_and_schedule_refuse_the_contract() {
     let (_generation, atlas) = publish("contract-refusal").await;
     let masked = mask_hiding(&atlas, &[0]);
     let scope = ViewSchedule::of(&atlas, &masked);
@@ -478,7 +478,7 @@ async fn a_mismatched_proof_and_schedule_refuse_the_contract() {
 /// pair.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn an_operator_proof_refuses_a_nonzero_offset() {
+async fn operator_proof_refuses_a_nonzero_offset() {
     let (_generation, atlas) = publish("operator-offset-refusal").await;
     let corpus = ViewSchedule::Corpus;
 
@@ -619,7 +619,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
 /// shared between them. The sweep then counts where the scope answer parts from the corpus one.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn a_scoped_locate_flies_to_the_view_cut_zoom() {
+async fn scoped_locate_flies_to_the_view_cut_zoom() {
     let (_generation, atlas) = publish("scope-locate").await;
     let row_ids = atlas.row_ids();
 
@@ -692,7 +692,7 @@ async fn a_scoped_locate_flies_to_the_view_cut_zoom() {
 /// and b never claims a cell; c claims depth 1 - its first depth apart from a - and d claims depth
 /// 2 under `k = 0`'s catch-all... at which the law stops distinguishing it from b.
 #[test]
-fn a_hand_cascade_pins_the_first_occupant_law() {
+fn hand_cascade_pins_the_first_occupant_law() {
     // On the unit grid, a and b share the north-west cell, c takes the north-east, and d shares a's
     // depth-1 cell while occupying its own depth-2 cell, because a's x top bits read 00 and d's
     // read 01.
@@ -788,7 +788,7 @@ fn a_hand_cascade_pins_the_first_occupant_law() {
 
 /// An empty view builds an empty schedule: nothing delivers, nothing descends.
 #[test]
-fn an_empty_view_delivers_nothing() {
+fn empty_view_delivers_nothing() {
     let schedule = ScopeSchedule::over(Vec::new());
     let grid = crate::serve::grid::Grid::new(crate::salt::lod::stage::LodConfig {
         span: crate::math::Log2::new(1).expect("1 lies below the shift width"),

@@ -30,7 +30,7 @@ impl<'doc> Table<'doc> {
     /// # Panics
     ///
     /// This panics for a string the table does not intern, which construction over the whole
-    /// reference set rules out.
+    /// reference set rules out, and for a table above `u32::MAX` entries.
     pub(super) fn index_of(&self, reference: &str) -> u32 {
         let index = self
             .entries

@@ -1,9 +1,8 @@
 //! The quad file stores quadtree topology over the base delivery order.
 //!
 //! Layout version 1 is **mutable**: change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! Each node is one tile of the bucket-cut schedule: the node at depth `z` stores the `(start,
 //! length)` run of its own-bucket points (bucket `z + span_log2` inside the node's cell, buckets
@@ -82,11 +81,7 @@ pub(crate) mod write;
 #[cfg(test)]
 mod tests;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -347,7 +342,7 @@ impl TypeSets {
     }
 }
 
-/// The 4096-byte header of a quad file.
+/// The header of a quad file.
 #[derive(
     Copy,
     Clone,
@@ -355,6 +350,7 @@ impl TypeSets {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
 pub(crate) struct FileHeader {
@@ -362,14 +358,11 @@ pub(crate) struct FileHeader {
     version: Unalign<Version>,
     nodes: U64<LE>,
     type_ids: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4068;
-    /// Size of the header, and the offset of the node table.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `nodes` records over `type_ids` type-id entries.
     #[must_use]
     pub(crate) const fn new(nodes: u64, type_ids: u64) -> Self {
@@ -378,7 +371,6 @@ impl FileHeader {
             version: Unalign::new(Version::V1),
             nodes: U64::new(nodes),
             type_ids: U64::new(type_ids),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -442,7 +434,4 @@ impl fmt::Debug for FileHeader {
     }
 }
 
-const _: () = {
-    assert!(size_of::<FileHeader>() == FileHeader::SIZE);
-    assert!(size_of::<Node>() == 32);
-};
+const _: () = assert!(size_of::<Node>() == 32);

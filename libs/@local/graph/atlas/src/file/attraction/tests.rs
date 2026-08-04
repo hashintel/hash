@@ -8,7 +8,7 @@ use std::{fs, path::PathBuf};
 use zerocopy::{F32, IntoBytes as _, U32, U64};
 
 use super::{EdgeRecord, FileHeader, GroupRecord, read::AttractionFile, write::write_records};
-use crate::file::attraction::read::OpenAttractionError;
+use crate::file::{attraction::read::OpenAttractionError, region::header::HeaderError};
 
 #[test]
 fn header_bytes_lead_with_magic_and_version() {
@@ -154,7 +154,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         AttractionFile::open(&undersized),
-        Err(OpenAttractionError::Undersized { actual: 16 }),
+        Err(OpenAttractionError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.atrc");

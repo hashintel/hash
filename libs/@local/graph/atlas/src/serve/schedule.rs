@@ -81,7 +81,7 @@ impl BucketPost {
 /// Caller requirement: as with the census, a schedule travels with the proof it derives from.
 /// Assembly refuses a proof paired with the other variant's schedule.
 #[derive(Debug, Clone)]
-pub enum ViewSchedule {
+pub(crate) enum ViewSchedule {
     /// The generation's corpus schedule, where every zoom keeps its recorded cut.
     Corpus,
     /// The view's own cascade, shared by every request of its scope.
@@ -95,7 +95,7 @@ impl ViewSchedule {
     /// included - gets its own cascade, because the serving contract follows the scope
     /// declaration rather than the visible cardinality.
     #[must_use]
-    pub fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
+    pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {
         match proof.kind() {
             ProofKind::Corpus => Self::Corpus,
             ProofKind::Scope => Self::Scope(Arc::new(ScopeSchedule::of(atlas, proof))),
@@ -187,7 +187,7 @@ impl core::error::Error for ScheduleWidthError {}
 /// view's own cascade without re-deriving it, so a schedule paired with a foreign proof serves the
 /// wrong view's rows.
 #[derive(Debug)]
-pub struct ScopeSchedule {
+pub(crate) struct ScopeSchedule {
     /// Every visible row in natural order.
     slots: Box<IdSlice<ScopeSlot, SlottedRow>>,
     /// Each fencepost's slot: bucket `b` spans its opening post's slot to its closing post's.

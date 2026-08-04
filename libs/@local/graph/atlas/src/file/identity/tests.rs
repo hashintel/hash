@@ -12,14 +12,15 @@ use std::{fs, path::PathBuf};
 use zerocopy::IntoBytes as _;
 
 use super::{
-    FileHeader,
+    FileHeader, PaddedFileHeader,
     read::{IdentityFile, OpenIdentityError},
     write::{stride_for, write_regions},
 };
+use crate::file::region::header::HeaderError;
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(4, 7, 512);
+    let header = PaddedFileHeader::new(FileHeader::new(4, 7, 512));
     let bytes = header.as_bytes();
 
     // The literal length pins the layout and bounds the region slices.
@@ -174,7 +175,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         IdentityFile::open(&undersized),
-        Err(OpenIdentityError::Undersized { actual: 16 }),
+        Err(OpenIdentityError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.idnt");

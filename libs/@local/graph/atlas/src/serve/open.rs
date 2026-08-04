@@ -231,13 +231,28 @@ impl Atlas {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root, a
-    /// per-artifact variant when the metadata document or an artifact fails its format's
-    /// validation, [`OpenAtlasError::Schedule`] when the recorded schedule exceeds the key width,
-    /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape,
-    /// [`OpenAtlasError::Universe`] when the row count exceeds the wire's `u32` id domain, and
-    /// [`OpenAtlasError::Columns`] or [`OpenAtlasError::Subtree`] when the artifacts disagree on
-    /// the point count.
+    /// Returns [`OpenAtlasError::Unpublished`] when the generation is not published in this root,
+    /// and [`OpenAtlasError::Open`] when its identity or metadata document fails to read.
+    ///
+    /// Mapping the artifacts returns the open variant of the artifact that failed
+    /// ([`OpenAtlasError::OpenQuad`], [`OpenAtlasError::OpenMorton`],
+    /// [`OpenAtlasError::OpenArray`], [`OpenAtlasError::OpenAdjacency`],
+    /// [`OpenAtlasError::OpenPostings`], [`OpenAtlasError::OpenIdentity`]), the contract variant
+    /// when a mapped artifact violates its own format contract ([`OpenAtlasError::Adjacency`],
+    /// [`OpenAtlasError::Postings`], [`OpenAtlasError::Closure`], [`OpenAtlasError::Identity`]),
+    /// and [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape.
+    ///
+    /// [`OpenAtlasError::Schedule`] follows when the recorded schedule exceeds the Morton key
+    /// width, which leaves no tile grid to serve.
+    ///
+    /// The agreement proof over the mapped artifacts returns [`OpenAtlasError::Columns`],
+    /// [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`], [`OpenAtlasError::Subtree`],
+    /// [`OpenAtlasError::Points`], [`OpenAtlasError::Types`], [`OpenAtlasError::Identities`] or
+    /// [`OpenAtlasError::EdgeIdentities`] when two artifacts disagree on a count they share, and
+    /// [`OpenAtlasError::EdgeUniverse`] when the edge rows exceed the `u32` edge-row domain.
+    ///
+    /// Deriving the wire codec returns [`OpenAtlasError::Universe`] when the row count exceeds the
+    /// wire's `u32` id domain.
     #[tracing::instrument(skip_all)]
     pub fn open(
         root: &GenerationRoot,

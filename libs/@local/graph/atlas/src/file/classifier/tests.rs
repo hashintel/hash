@@ -12,14 +12,15 @@ use std::{fs, path::PathBuf};
 use zerocopy::IntoBytes as _;
 
 use super::{
-    FileHeader,
+    FileHeader, PaddedFileHeader,
     read::{ClassifierFile, OpenClassifierError},
     write::write_regions,
 };
+use crate::file::region::header::HeaderError;
 
 #[test]
 fn header_wire_layout() {
-    let header = FileHeader::new(4, 6, 1.5, [0.25, -0.5, 2.0]);
+    let header = PaddedFileHeader::new(FileHeader::new(4, 6, 1.5, [0.25, -0.5, 2.0]));
     let bytes = header.as_bytes();
 
     // The literal length pins the layout and bounds the region slices.
@@ -126,7 +127,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&undersized, [0_u8; 16]).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&undersized),
-        Err(OpenClassifierError::Undersized { actual: 16 }),
+        Err(OpenClassifierError::Header(HeaderError::Undersized {
+            actual: 16
+        })),
     );
 
     let foreign = scratch("foreign.clsf");
@@ -135,7 +138,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&foreign, &bytes).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&foreign),
-        Err(OpenClassifierError::Header),
+        Err(OpenClassifierError::Header(HeaderError::Invalid)),
     );
 
     let future = scratch("future-version.clsf");
@@ -144,7 +147,7 @@ fn open_rejects_foreign_and_torn_bytes() {
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         ClassifierFile::open(&future),
-        Err(OpenClassifierError::Header),
+        Err(OpenClassifierError::Header(HeaderError::Invalid)),
     );
 
     let torn = scratch("torn.clsf");

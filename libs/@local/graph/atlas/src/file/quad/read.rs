@@ -1,22 +1,24 @@
 //! Opened quad files.
 
 use core::{error::Error, fmt};
-use std::{io, path::Path};
+use std::path::Path;
 
-use zerocopy::{FromBytes as _, LE, TryFromBytes as _, U32, U64, error::ConvertError};
+use zerocopy::{FromBytes as _, LE, U32, U64};
 
 use super::{FileHeader, Node};
-use crate::{file::region::PageMap, morton::MortonCell};
+use crate::{
+    file::region::{
+        PAGE,
+        header::{HeaderError, HeaderMap},
+    },
+    morton::MortonCell,
+};
 
 /// Opening a quad file failed.
 #[derive(Debug)]
 pub enum OpenQuadError {
-    /// Opening or mapping the file failed.
-    Io(io::Error),
-    /// The file ends before one full header.
-    Undersized { actual: u64 },
-    /// The leading bytes are not a header this module speaks.
-    Header,
+    /// Reading the header page failed.
+    Header(HeaderError),
     /// The node count leaves no room for the absent-child sentinel.
     Nodes { nodes: u64 },
     /// The file length contradicts the header's geometry.
@@ -39,19 +41,7 @@ pub enum OpenQuadError {
 impl fmt::Display for OpenQuadError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Io(error) => write!(fmt, "the quad file could not be read: {error}"),
-            Self::Undersized { actual } => write!(
-                fmt,
-                "the file holds {actual} bytes, fewer than the {}-byte header",
-                FileHeader::SIZE,
-            ),
-            Self::Header => {
-                write!(
-                    fmt,
-                    "the leading bytes are not a quad-file header: The conversion failed because \
-                     the source bytes are not a valid value of the destination type."
-                )
-            }
+            Self::Header(error) => write!(fmt, "the quad file's header page: {error}"),
             Self::Nodes { nodes } => write!(
                 fmt,
                 "{nodes} nodes leave no room for the u32 absent-child sentinel",
@@ -85,13 +75,10 @@ impl fmt::Display for OpenQuadError {
 impl Error for OpenQuadError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(error) => Some(error),
-            Self::Header
-            | Self::Undersized { .. }
-            | Self::Nodes { .. }
-            | Self::Length { .. }
-            | Self::Posts { .. }
-            | Self::Child { .. } => None,
+            Self::Header(error) => Some(error),
+            Self::Nodes { .. } | Self::Length { .. } | Self::Posts { .. } | Self::Child { .. } => {
+                None
+            }
         }
     }
 }
@@ -108,7 +95,7 @@ impl Error for OpenQuadError {
 /// the two-bit digits of the cell's key prefix from the root.
 #[derive(Debug)]
 pub(crate) struct QuadFile {
-    map: PageMap,
+    map: HeaderMap<FileHeader>,
 }
 
 impl QuadFile {
@@ -116,29 +103,15 @@ impl QuadFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenQuadError::Io`] when opening or mapping the file fails,
-    /// [`OpenQuadError::Undersized`] when the file ends before one full header,
-    /// [`OpenQuadError::Header`] when its leading bytes are not a header this module speaks,
+    /// Returns [`OpenQuadError::Header`] when the header page cannot be read,
     /// [`OpenQuadError::Nodes`] when the node count collides with the child sentinel,
     /// [`OpenQuadError::Length`] when the file length contradicts the header's geometry,
     /// [`OpenQuadError::Posts`] when a type-set fencepost breaks a structural rule, and
     /// [`OpenQuadError::Child`] when a child index escapes the table or fails to point deeper.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenQuadError> {
-        let map = PageMap::open(path).map_err(OpenQuadError::Io)?;
-
-        let Some(bytes) = map.header_page() else {
-            return Err(OpenQuadError::Undersized { actual: map.len() });
-        };
-        let header = match FileHeader::try_read_from_bytes(bytes) {
-            Ok(header) => header,
-            Err(ConvertError::Validity(_)) => {
-                return Err(OpenQuadError::Header);
-            }
-            Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one header long")
-            }
-        };
+        let map = HeaderMap::<FileHeader>::open(path).map_err(OpenQuadError::Header)?;
+        let header = map.header();
 
         if header.nodes() >= u64::from(Node::NO_CHILD) {
             return Err(OpenQuadError::Nodes {
@@ -190,12 +163,7 @@ impl QuadFile {
     #[inline]
     #[must_use]
     fn header(&self) -> &FileHeader {
-        let ptr = self.map.bytes().as_ptr().cast::<FileHeader>();
-
-        // SAFETY: The map is valid for the lifetime of the file, immutable, and the constructor
-        // validated that the map is large enough to contain the header and that its bytes parse as
-        // one, so the deref target is a valid `FileHeader`.
-        unsafe { &*ptr }
+        self.map.header()
     }
 
     /// Views the node table with the root at index 0.
@@ -204,10 +172,10 @@ impl QuadFile {
         // The offsets and products in the region reads repeat checked
         // computations open already accepted, so none of them can
         // overflow here.
-        let bytes = self.map.region(
-            FileHeader::SIZE as u64,
-            self.header().nodes() * size_of::<Node>() as u64,
-        );
+        let bytes = self
+            .map
+            .map()
+            .region(PAGE, self.header().nodes() * size_of::<Node>() as u64);
         <[Node]>::ref_from_bytes(bytes).expect("node records tolerate any alignment")
     }
 
@@ -218,7 +186,7 @@ impl QuadFile {
     /// validated type that would double the region's memory.
     #[must_use]
     fn posts(&self) -> &[U64<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .posts_offset()
                 .expect("open validated the geometry"),
@@ -230,7 +198,7 @@ impl QuadFile {
     /// Views the shared type-id array.
     #[must_use]
     fn ids(&self) -> &[U32<LE>] {
-        let bytes = self.map.region(
+        let bytes = self.map.map().region(
             self.header()
                 .ids_offset()
                 .expect("open validated the geometry"),

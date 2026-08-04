@@ -332,7 +332,7 @@ mod tests {
     /// generation: an operator asking for a narrowed view would receive every row instead, which is
     /// a wrong answer rather than a leak.
     #[test]
-    fn a_caller_filter_keeps_the_query() {
+    fn caller_filter_keeps_the_query() {
         let optimization = OptimizationData::default();
         let unconstrained =
             Filter::<Entity>::for_policies([(Effect::Permit, None)], None, &optimization);

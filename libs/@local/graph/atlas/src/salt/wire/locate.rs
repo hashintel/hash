@@ -59,10 +59,11 @@ pub(crate) struct LocateResponse<'doc> {
     pub entity_id: ArchivedEntityId,
     /// `HEAD` key 8: whether the request's `coloredTypeIds` cover the source's direct types.
     ///
-    /// `true` iff every direct type of the source lies in the requested set - the signal that the
-    /// client's palette can name everything the source is. `false` on an empty request set and for
-    /// a source the store no longer serves: the server cannot attest coverage of a type list it
-    /// cannot read.
+    /// `true` when the source records at least one direct type and every one of them names an
+    /// entry in the requested set - the signal that the client's palette can name everything the
+    /// source is. Every other case reads `false`. A source the store no longer serves and a source
+    /// with no recorded types both leave a type list the server cannot attest, and a request set
+    /// that resolves no entry covers nothing.
     pub type_ids_complete: bool,
     /// `HEAD` key 9: whether the trailer's source property map is the entity's whole deliverable
     /// set.

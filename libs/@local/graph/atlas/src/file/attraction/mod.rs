@@ -1,9 +1,8 @@
 //! The attraction file format for relation groups over a flat edge array.
 //!
 //! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
-//! [`Version`] when you do. The pinned parse rejects bytes of other versions, which is the intended
-//! failure mode; no migration or compatibility machinery exists on purpose until the format
-//! stabilizes.
+//! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
+//! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
 //! The group records delimit ranges of the edge array and have no meaning without it, so one
 //! combined file holds both regions and they cannot fall out of sync. The regions:
@@ -51,11 +50,7 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-use crate::file::region::{PAGE, padded_size};
-
-// The shared page is the header's size; the offset chain and the
-// write path both count regions from one header page.
-const _: () = assert!(FileHeader::SIZE as u64 == PAGE);
+use crate::file::region::{PAGE, header::header, padded_size};
 
 // The single variant makes the derive validate the discriminant, so parsing admits exactly the
 // pinned magic value.
@@ -183,7 +178,7 @@ pub(crate) struct EdgeRecord {
     pub reserved: U32<LE>,
 }
 
-/// The 4096-byte header of an attraction file.
+/// The header of an attraction file.
 #[derive(
     Copy,
     Clone,
@@ -191,6 +186,7 @@ pub(crate) struct EdgeRecord {
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    zerocopy::Unaligned,
 )]
 #[repr(C)]
 pub(crate) struct FileHeader {
@@ -201,14 +197,11 @@ pub(crate) struct FileHeader {
     groups: U64<LE>,
     edges: U64<LE>,
     rows: U64<LE>,
-    padding: [u8; Self::PADDING],
 }
 
-impl FileHeader {
-    const PADDING: usize = 4056;
-    /// Size of the header, and the offset of the groups region.
-    pub(crate) const SIZE: usize = 4096;
+header!(FileHeader);
 
+impl FileHeader {
     /// Creates a header for `groups` relation groups over `edges` edge records spanning `rows`
     /// corpus rows.
     #[must_use]
@@ -220,7 +213,6 @@ impl FileHeader {
             groups: U64::new(groups),
             edges: U64::new(edges),
             rows: U64::new(rows),
-            padding: [0; Self::PADDING],
         }
     }
 
@@ -282,6 +274,5 @@ impl fmt::Debug for FileHeader {
     }
 }
 
-const _: () = assert!(size_of::<FileHeader>() == FileHeader::SIZE);
 const _: () = assert!(size_of::<GroupRecord>() == 32);
 const _: () = assert!(size_of::<EdgeRecord>() == 40);

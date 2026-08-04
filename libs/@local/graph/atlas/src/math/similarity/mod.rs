@@ -136,10 +136,9 @@ impl Similarity {
     /// This reads in application order. The scales multiply, the rotations compose via
     /// [`Rotation::then`], and `next` transforms `self`'s translation.
     ///
-    /// Returns [`None`] when the product of the scales leaves the range [`new`](Self::new)
-    /// accepts. Two accepted f32 scales can overflow to infinity or underflow past the normal
-    /// range, so composition is not closed and the revalidation is what upholds the type's
-    /// invariant.
+    /// Returns [`None`] when the product of the scales leaves the range [`new`](Self::new) accepts.
+    /// Two accepted f32 scales can overflow to infinity or underflow past the normal range, so
+    /// composition is not closed and the revalidation is what upholds the type's invariant.
     #[inline]
     #[must_use]
     pub const fn then(self, next: Self) -> Option<Self> {
