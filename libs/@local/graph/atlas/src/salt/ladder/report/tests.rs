@@ -41,7 +41,7 @@ fn contraction_weighs_the_trainer_mass() {
     let reading = contract(
         IdSlice::from_raw(&baseline),
         IdSlice::from_raw(&frame),
-        &terms,
+        terms,
     );
 
     assert_eq!(reading.edge_count, 2);
@@ -176,5 +176,5 @@ fn certificate_refuses_at_the_bound() {
     let rebuilt = [Vec2::new(0.0, 0.0)];
     let published = [Vec2::new(2.0e-3, 0.0)];
 
-    drop(certify(&rebuilt, &published));
+    let _certificate = certify(&rebuilt, &published);
 }
