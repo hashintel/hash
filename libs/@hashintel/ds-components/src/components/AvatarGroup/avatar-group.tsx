@@ -144,11 +144,18 @@ const AvatarGroupRoot = ({
     setLastAction("hover");
     setPhases((prev) => {
       const next: Record<number, LiftPhase> = {};
-      // Any avatar currently coming in yields to the newly hovered one; anything
-      // already exiting keeps exiting.
       for (const [key, phase] of Object.entries(prev)) {
-        next[Number(key)] =
-          phase === "exit" || Number(key) === index ? phase : "exit";
+        const i = Number(key);
+        if (i === index) {
+          // Re-entering this avatar; its phase is reset to "enter" below.
+          continue;
+        }
+        // A visible neighbour (active) fades out and one already leaving keeps
+        // exiting; an avatar still fading in (enter) is dropped, not exited —
+        // see handleLeave for why.
+        if (phase !== "enter") {
+          next[i] = "exit";
+        }
       }
       next[index] = "enter";
       return next;
@@ -158,8 +165,16 @@ const AvatarGroupRoot = ({
   const handleLeave = () => {
     setPhases((prev) => {
       const next: Record<number, LiftPhase> = {};
-      for (const key of Object.keys(prev)) {
-        next[Number(key)] = "exit";
+      for (const [key, phase] of Object.entries(prev)) {
+        // Only a visible avatar animates out. One still fading in (enter,
+        // opacity 0) was never seen, so drop it rather than routing it to
+        // "exit": exit leaves opacity at 0 and transform at scale(1) unchanged,
+        // so no transition runs, transitionend never fires, and settleExit
+        // never clears the phase — stranding an invisible z-index:1000 wrapper
+        // that steals clicks from neighbours and pins the clone layer mounted.
+        if (phase !== "enter") {
+          next[Number(key)] = "exit";
+        }
       }
       return next;
     });
