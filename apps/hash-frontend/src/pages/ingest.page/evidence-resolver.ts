@@ -1,18 +1,35 @@
 /**
  * Evidence resolver: selection → highlighted block IDs + target page.
  *
- * Pure function. No I/O, no React.
+ * Pure functions. No I/O, no React.
  */
-import type { Block, ExtractedClaim, RosterEntry } from "./types";
+import type {
+  AssertionWindow,
+  Block,
+  ExtractedClaim,
+  MentionContextPlan,
+} from "./types";
+
+// ---------------------------------------------------------------------------
+// Selection types
+// ---------------------------------------------------------------------------
 
 export type Selection =
-  | { kind: "roster"; entry: RosterEntry }
   | { kind: "claim"; claim: ExtractedClaim }
+  | { kind: "assertion"; window: AssertionWindow }
   | null;
+
+// ---------------------------------------------------------------------------
+// Evidence resolution
+// ---------------------------------------------------------------------------
 
 export interface EvidenceResult {
   blockIds: string[];
   targetPage: number | null;
+}
+
+export function getAssertionWindowKey(win: AssertionWindow): string {
+  return `${win.blockId}:${win.windowStart}:${win.windowEnd}:${win.mentionStart}:${win.mentionEnd}`;
 }
 
 export function resolveEvidence(
@@ -24,13 +41,13 @@ export function resolveEvidence(
   }
 
   const blockIds =
-    selection.kind === "roster"
-      ? [...new Set(selection.entry.mentions.map((mention) => mention.blockId))]
-      : [
+    selection.kind === "claim"
+      ? [
           ...new Set(
             selection.claim.evidenceRefs.flatMap((ref) => ref.blockIds),
           ),
-        ];
+        ]
+      : [selection.window.blockId];
 
   let targetPage: number | null = null;
   for (const block of blocks) {
@@ -48,4 +65,40 @@ export function resolveEvidence(
   }
 
   return { blockIds, targetPage };
+}
+
+// ---------------------------------------------------------------------------
+// Assertion window collection per entity
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-compute a map of rosterEntryId → AssertionWindow[] for all entities.
+ */
+export function buildEntityAssertionMap(
+  mentionContexts: MentionContextPlan[],
+): Map<string, AssertionWindow[]> {
+  const map = new Map<string, Map<string, AssertionWindow>>();
+
+  for (const context of mentionContexts) {
+    if (context.mode !== "assertion_windows") {
+      continue;
+    }
+    for (const win of context.assertionWindows) {
+      const windowKey = getAssertionWindowKey(win);
+      for (const participant of win.participants) {
+        const existing =
+          map.get(participant.rosterEntryId) ??
+          new Map<string, AssertionWindow>();
+        existing.set(windowKey, win);
+        map.set(participant.rosterEntryId, existing);
+      }
+    }
+  }
+
+  return new Map(
+    [...map.entries()].map(([rosterEntryId, windows]) => [
+      rosterEntryId,
+      [...windows.values()],
+    ]),
+  );
 }

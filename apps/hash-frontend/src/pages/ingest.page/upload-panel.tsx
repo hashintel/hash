@@ -8,8 +8,9 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 import { Button } from "../../shared/ui/button";
-import type { RunStatus } from "./types";
-import type { IngestRunState } from "./use-ingest-run";
+import { getCountsSummary, getProgressLabel } from "./progress-labels";
+import type { ActiveRunStatus } from "./types";
+import type { DoneIngestRunState, IngestRunState } from "./use-ingest-run";
 
 // ---------------------------------------------------------------------------
 // Sub-components (defined first to satisfy no-use-before-define)
@@ -32,49 +33,34 @@ const StatusCard: FunctionComponent<{ children: React.ReactNode }> = ({
   </Box>
 );
 
-const RunCounts: FunctionComponent<{ status: RunStatus }> = ({ status }) => {
-  if (!status.counts) {
-    return null;
-  }
-  const { pages, chunks, mentions, claims } = status.counts;
-  const items = [
-    pages && `${pages} pages`,
-    chunks && `${chunks} chunks`,
-    mentions && `${mentions} mentions`,
-    claims && `${claims} claims`,
-  ].filter(Boolean);
-  if (items.length === 0) {
-    return null;
-  }
+const RunProgress: FunctionComponent<{ status: ActiveRunStatus }> = ({
+  status,
+}) => {
+  const label = getProgressLabel(status);
+  const counts = getCountsSummary(status.counts);
+
   return (
-    <Typography variant="smallTextLabels" sx={{ color: "gray.60", mt: 0.5 }}>
-      {items.join(" · ")}
-    </Typography>
+    <Box>
+      <Typography fontWeight={600} sx={{ mb: 0.25 }}>
+        {label}
+      </Typography>
+      {counts && (
+        <Typography
+          variant="smallTextLabels"
+          sx={{ color: "gray.60", mt: 0.5 }}
+        >
+          {counts}
+        </Typography>
+      )}
+      <Typography variant="microText" sx={{ color: "gray.50", mt: 1 }}>
+        Run: {status.runId.slice(0, 8)}…
+      </Typography>
+    </Box>
   );
 };
 
-const RunProgress: FunctionComponent<{ status: RunStatus }> = ({ status }) => (
-  <Box>
-    <Typography fontWeight={600} sx={{ mb: 0.25 }}>
-      {status.phase && (
-        <span style={{ textTransform: "capitalize" }}>{status.phase}</span>
-      )}
-      {status.step && (
-        <Typography
-          component="span"
-          variant="smallTextLabels"
-          sx={{ color: "gray.60", ml: 0.5 }}
-        >
-          → {status.step}
-        </Typography>
-      )}
-    </Typography>
-    <RunCounts status={status} />
-    <Typography variant="microText" sx={{ color: "gray.50", mt: 1 }}>
-      Run: {status.runId.slice(0, 8)}…
-    </Typography>
-  </Box>
-);
+const getFailedRunError = (state: DoneIngestRunState): string | undefined =>
+  state.runStatus.status === "failed" ? state.runStatus.error : undefined;
 
 const DropZone: FunctionComponent<{ onUpload: (file: File) => void }> = ({
   onUpload,
@@ -154,15 +140,22 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
   }
 
   if (state.phase === "done") {
-    const succeeded = state.runStatus.status === "succeeded";
+    const countsSummary = getCountsSummary(state.runStatus.counts);
     return (
       <StatusCard>
-        {succeeded ? (
+        {state.runStatus.status === "succeeded" ? (
           <>
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline complete!
             </Typography>
-            <RunCounts status={state.runStatus} />
+            {countsSummary && (
+              <Typography
+                variant="smallTextLabels"
+                sx={{ color: "gray.60", mt: 0.5 }}
+              >
+                {countsSummary}
+              </Typography>
+            )}
             <Typography
               variant="smallTextLabels"
               sx={{ color: "gray.60", mt: 2 }}
@@ -175,9 +168,9 @@ export const UploadPanel: FunctionComponent<UploadPanelProps> = ({
             <Typography fontWeight={600} sx={{ mb: 0.5 }}>
               Pipeline failed
             </Typography>
-            {state.runStatus.error && (
+            {getFailedRunError(state) && (
               <Typography variant="smallTextLabels" sx={{ color: "red.70" }}>
-                {state.runStatus.error}
+                {getFailedRunError(state)}
               </Typography>
             )}
             <Button

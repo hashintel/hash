@@ -199,10 +199,9 @@ services:
         [
           "CMD",
           "temporal",
-          "workflow",
-          "list",
-          "--namespace",
-          "HASH",
+          "operator",
+          "cluster",
+          "health",
           "--address",
           "temporal:7233",
         ]
