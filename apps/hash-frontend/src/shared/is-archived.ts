@@ -4,11 +4,34 @@ import { isEntityPageEntity, isType } from "./is-of-type";
 
 import type {
   DataTypeWithMetadata,
-  Entity,
+  EntityId,
   EntityTypeWithMetadata,
+  PropertyObject,
   PropertyTypeWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+
+/**
+ * The slice of an entity that archival state and the archive actions read.
+ * Full entities satisfy it structurally, as do lighter objects assembled from
+ * table rows.
+ *
+ * Deliberately not a `Pick` of `Entity`: a Pick would drag in the full entity
+ * metadata (provenance, temporal versioning) that row-assembled objects lack,
+ * and `entityTypeIds` weakens the metadata's non-empty tuple to a plain array
+ * so those objects qualify. `archived` stays optional because the ontology
+ * type union members in {@link isItemArchived} carry no such field, which is
+ * also why callers probe it with an `in` check.
+ */
+export type ArchivableEntity = {
+  metadata: {
+    recordId: { entityId: EntityId };
+    entityTypeIds: VersionedUrl[];
+    archived?: boolean;
+  };
+  properties: PropertyObject;
+};
 
 export const isTypeArchived = (
   type:
@@ -17,7 +40,7 @@ export const isTypeArchived = (
     | DataTypeWithMetadata,
 ) => type.metadata.temporalVersioning.transactionTime.end.kind === "exclusive";
 
-export const isPageArchived = (pageEntity: Entity) => {
+export const isPageArchived = (pageEntity: ArchivableEntity) => {
   if (!isEntityPageEntity(pageEntity)) {
     throw new Error("Not a page entity");
   }
@@ -31,7 +54,7 @@ export const isPageArchived = (pageEntity: Entity) => {
 
 export const isItemArchived = (
   item:
-    | Entity
+    | ArchivableEntity
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,

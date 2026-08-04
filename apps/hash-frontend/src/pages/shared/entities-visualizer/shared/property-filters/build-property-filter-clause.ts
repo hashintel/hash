@@ -1,6 +1,7 @@
 import type { PropertyFilter } from "./property-filter";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
+import type { EntityTablePropertyFilter } from "@local/hash-graph-sdk/entity";
 
 const propertyPath = (baseUrl: BaseUrl) => ["properties", baseUrl];
 
@@ -87,20 +88,107 @@ export const buildPropertyFilterClause = (
       return { equal: [{ path }, { parameter }] };
     case "notEquals":
       return { notEqual: [{ path }, { parameter }] };
+    // The ordering comparators take numbers and the text operators take
+    // strings, mirroring the gates in {@link buildEndpointPropertyFilter} —
+    // the two builders must agree on which filters are inert, since
+    // {@link isPropertyFilterActive} answers for both.
     case "greaterThan":
-      return { greater: [{ path }, { parameter }] };
+      return typeof parameter === "number"
+        ? { greater: [{ path }, { parameter }] }
+        : null;
     case "greaterThanOrEqual":
-      return { greaterOrEqual: [{ path }, { parameter }] };
+      return typeof parameter === "number"
+        ? { greaterOrEqual: [{ path }, { parameter }] }
+        : null;
     case "lessThan":
-      return { less: [{ path }, { parameter }] };
+      return typeof parameter === "number"
+        ? { less: [{ path }, { parameter }] }
+        : null;
     case "lessThanOrEqual":
-      return { lessOrEqual: [{ path }, { parameter }] };
+      return typeof parameter === "number"
+        ? { lessOrEqual: [{ path }, { parameter }] }
+        : null;
     case "contains":
-      return { containsSegment: [{ path }, { parameter }] };
+      return typeof parameter === "string"
+        ? { containsSegment: [{ path }, { parameter }] }
+        : null;
     case "startsWith":
-      return { startsWith: [{ path }, { parameter }] };
+      return typeof parameter === "string"
+        ? { startsWith: [{ path }, { parameter }] }
+        : null;
     case "endsWith":
-      return { endsWith: [{ path }, { parameter }] };
+      return typeof parameter === "string"
+        ? { endsWith: [{ path }, { parameter }] }
+        : null;
+  }
+};
+
+/**
+ * Translates a single property filter into the table endpoint's property
+ * filter, or returns `null` when the filter contributes no constraint (it is
+ * incomplete or its value is invalid for its kind) — the endpoint counterpart
+ * of {@link buildPropertyFilterClause}.
+ */
+export const buildEndpointPropertyFilter = (
+  filter: PropertyFilter,
+): EntityTablePropertyFilter | null => {
+  const property = filter.baseUrl;
+
+  switch (filter.operator) {
+    case "hasAnyValue":
+      return { type: "hasAnyValue", property };
+    case "isEmpty":
+      return { type: "isEmpty", property };
+    case "isTrue":
+      return { type: "isTrue", property };
+    case "isFalse":
+      return { type: "isFalse", property };
+    default:
+      break;
+  }
+
+  const parameter = coerceValueParameter(filter);
+
+  if (parameter === null) {
+    return null;
+  }
+
+  switch (filter.operator) {
+    case "equals":
+      return { type: "equals", property, value: parameter };
+    case "notEquals":
+      return { type: "notEquals", property, value: parameter };
+    // The ordering comparators take numbers and the text operators take
+    // strings. Which operators a filter's kind offers is UI convention, so a
+    // mismatched value renders the filter inert rather than a rejected query.
+    case "greaterThan":
+      return typeof parameter === "number"
+        ? { type: "greaterThan", property, value: parameter }
+        : null;
+    case "greaterThanOrEqual":
+      return typeof parameter === "number"
+        ? { type: "greaterThanOrEqual", property, value: parameter }
+        : null;
+    case "lessThan":
+      return typeof parameter === "number"
+        ? { type: "lessThan", property, value: parameter }
+        : null;
+    case "lessThanOrEqual":
+      return typeof parameter === "number"
+        ? { type: "lessThanOrEqual", property, value: parameter }
+        : null;
+    case "contains":
+      return typeof parameter === "string"
+        ? { type: "containsSegment", property, value: parameter }
+        : null;
+    case "startsWith":
+      return typeof parameter === "string"
+        ? { type: "startsWith", property, value: parameter }
+        : null;
+    case "endsWith":
+      return typeof parameter === "string"
+        ? { type: "endsWith", property, value: parameter }
+        : null;
   }
 };
 
