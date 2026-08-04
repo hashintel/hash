@@ -33,6 +33,7 @@ use alloc::borrow::Cow;
 use crate::math::{Similarity, Vec2};
 
 mod error;
+pub(crate) mod report;
 #[cfg(test)]
 mod tests;
 

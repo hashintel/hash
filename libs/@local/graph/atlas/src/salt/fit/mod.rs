@@ -43,6 +43,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use self::prepare::norm;
 pub(crate) use self::{
     annotations::SuppliedAnnotations,
+    compute::{PlacementInner, placement_device},
     echo::FitConfigDef,
     error::{FitError, StageError},
     verdicts::SuppliedVerdicts,

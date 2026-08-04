@@ -226,7 +226,8 @@ pub(crate) struct LadderEvidence {
     pub canonical_index: usize,
     /// The relation loss re-measured over the persisted aligned column.
     ///
-    /// Guards the alignment application and the narrowing to `f32`.
+    /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
+    /// total over every attraction instance, with no per-type cap.
     pub persisted_relation_loss: f64,
 }
 
@@ -236,6 +237,8 @@ pub(crate) struct RungEvidence {
     /// The rung's condition value.
     pub condition: f32,
     /// The field's frozen relation loss at projection time.
+    ///
+    /// The corpus total over every attraction instance, with no per-type cap.
     pub relation_loss: f64,
     /// The similarity aligning the rung's field onto the baseline field.
     ///

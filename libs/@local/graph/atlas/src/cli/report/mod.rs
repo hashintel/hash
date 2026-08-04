@@ -14,6 +14,7 @@ use self::{
     classifier::{ClassifierArgs, ClassifierVerdict},
     clumps::ClumpArgs,
     knn::{BackendArgs, DescentArgs},
+    ladder::{LadderArgs, LadderVerdict},
     probe::ProbeArgs,
     quality::{QualityArgs, QualityVerdict},
 };
@@ -34,6 +35,7 @@ use crate::{
 mod classifier;
 mod clumps;
 mod knn;
+mod ladder;
 mod probe;
 mod quality;
 
@@ -48,6 +50,8 @@ pub(crate) enum ReportVerdict {
     KnnBackend(backend::Sweep),
     /// The NN-Descent constructions' readings.
     KnnDescent(descent::Audit),
+    /// The condition ladder's relation-effect reading.
+    Ladder(LadderVerdict),
     /// One live quality assessment.
     Quality(QualityVerdict),
 }
@@ -59,6 +63,7 @@ impl Display for ReportVerdict {
             Self::Clumps(calibration) => Display::fmt(calibration, fmt),
             Self::KnnBackend(sweep) => Display::fmt(sweep, fmt),
             Self::KnnDescent(audit) => Display::fmt(audit, fmt),
+            Self::Ladder(verdict) => Display::fmt(verdict, fmt),
             Self::Quality(verdict) => Display::fmt(verdict, fmt),
         }
     }
@@ -125,6 +130,11 @@ pub(crate) enum ReportCommand {
     /// Audits NN-Descent neighbour constructions over the active generation.
     KnnDescent(DescentArgs),
 
+    /// Reads the relation effect of the condition ladder in world units over a published
+    /// generation - endpoint-distance contraction of the engaged pairs against the zero-condition
+    /// rung - and writes the report bundle.
+    Ladder(LadderArgs),
+
     /// Solves one fold subset from a frozen classifier corpus - a published generation's or
     /// supplied artifacts' - and dumps every receipt; a budget-refused solve additionally traces
     /// its stalling inner recurrence.
@@ -161,6 +171,7 @@ impl ReportCommand {
                 .map(ReportVerdict::KnnDescent)
                 .map(Some)
                 .map_err(ReportError::KnnDescent),
+            Self::Ladder(args) => args.run().map(ReportVerdict::Ladder).map(Some),
             Self::Probe(args) => {
                 args.run().await;
                 Ok(None)

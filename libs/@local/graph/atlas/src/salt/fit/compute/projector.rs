@@ -78,23 +78,23 @@ use crate::{
 /// out of bounds on this workload's dynamic relation-batch shapes, killing the device service
 /// thread.
 #[cfg(feature = "gpu")]
-pub(in crate::salt::fit) type TrainerInner =
+pub(crate) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
 #[cfg(not(feature = "gpu"))]
-pub(in crate::salt::fit) type TrainerInner = burn::backend::NdArray;
+pub(crate) type TrainerInner = burn::backend::NdArray;
 
 /// The training and inference backend of the placement stage.
 type TrainerBackend = Autodiff<TrainerInner>;
 
 /// Returns the placement backend's device.
 #[cfg(feature = "gpu")]
-pub(in crate::salt::fit) fn device() -> burn::backend::wgpu::WgpuDevice {
+pub(crate) fn device() -> burn::backend::wgpu::WgpuDevice {
     burn::backend::wgpu::WgpuDevice::default()
 }
 
 /// Returns the placement backend's device.
 #[cfg(not(feature = "gpu"))]
-pub(in crate::salt::fit) fn device() -> burn::backend::ndarray::NdArrayDevice {
+pub(crate) fn device() -> burn::backend::ndarray::NdArrayDevice {
     burn::backend::ndarray::NdArrayDevice::default()
 }
 

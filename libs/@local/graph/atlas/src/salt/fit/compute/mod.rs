@@ -8,9 +8,8 @@
 use hashql_core::id::IdSlice;
 
 #[cfg(test)]
-pub(super) use self::projector::{
-    TrainerInner as PlacementInner, device as placement_device, resolve_supplied,
-};
+pub(super) use self::projector::resolve_supplied;
+pub(crate) use self::projector::{TrainerInner as PlacementInner, device as placement_device};
 use self::{
     lod::LodOutputs,
     policy::{ClassifierArtifacts, PolicyArtifacts},
