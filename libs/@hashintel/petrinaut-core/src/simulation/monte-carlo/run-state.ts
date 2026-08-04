@@ -81,7 +81,11 @@ export function createRunState(
   runConfig: MonteCarloRunConfig | undefined,
   index: number,
 ): MonteCarloRunState {
-  const seed = runConfig?.seed ?? deriveRunSeed(config.seed ?? 1, index);
+  // Seeds derive from the run's *global* index so that sharding an experiment
+  // across workers reassigns runs without changing which seeds run.
+  const seed =
+    runConfig?.seed ??
+    deriveRunSeed(config.seed ?? 1, (config.runIndexOffset ?? 0) + index);
   const initialMarking = runConfig?.initialMarking ?? config.initialMarking;
   const inputParameterValues = {
     ...config.parameterValues,

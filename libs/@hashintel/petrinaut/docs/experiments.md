@@ -32,20 +32,31 @@ Experiments progress through five status labels:
 
 | Status           | Meaning                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------- |
-| **Initializing** | The experiment has been created and the worker is starting up.                                    |
+| **Initializing** | The experiment has been created and its workers are starting up.                                  |
 | **Running**      | Runs are in progress.                                                                             |
 | **Complete**     | All runs finished without error.                                                                  |
 | **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. |
-| **Cancelled**    | You clicked **Cancel**, or the worker was cancelled.                                              |
+| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                          |
 
-Each experiment runs in its own background Web Worker, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
+Experiments run in background Web Workers, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
+
+### Parallel runs
+
+Because every run is independent, an experiment splits its runs across several workers and runs them at the same time -- by default one worker per processor core, leaving one core free so the editor stays responsive. A 1000-run experiment on an 8-core machine runs roughly 4x faster than it would on a single worker.
+
+This never changes an experiment's results. Each run's seed is derived from its position in the experiment rather than from which worker happens to execute it, and the per-frame statistics from each worker are combined into the same distributions you would get from running everything sequentially. Re-running an experiment with the same configuration and seed gives the same numbers regardless of how many cores the machine has.
+
+Two consequences worth knowing:
+
+- Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
+- Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
 
 ### Actions
 
 In the experiment's view drawer (open it by clicking a row in the list, or any experiment in the top-bar **Active experiments** popover):
 
 - **Cancel** -- stops the experiment. Only available while it is initializing or running.
-- **Remove** -- deletes the record and disposes the worker. Available after completion, cancellation, or error.
+- **Remove** -- deletes the record and disposes the experiment's workers. Available after completion, cancellation, or error.
 - **Close** -- closes the drawer without affecting the experiment.
 
 There is no built-in restart action -- to re-run with the same configuration, **Create** a new experiment with the same settings.
