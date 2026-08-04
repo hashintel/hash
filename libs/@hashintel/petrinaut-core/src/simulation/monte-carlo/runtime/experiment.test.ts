@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { compileHirArtifacts } from "../../../hir/compile";
 import { createMonteCarloExperiment } from "./experiment";
 
+import type { WorkerLike } from "../../../environment";
 import type { HirMetricArtifact } from "../../../hir/instantiate";
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";
@@ -70,6 +71,15 @@ function makeMetricFrame(
     timeValue: null,
     runSampleCount: 1,
     timeSampleCount: frameNumber + 1,
+    runAggregate: {
+      count: 1,
+      sum: frameNumber,
+      min: frameNumber,
+      max: frameNumber,
+      last: frameNumber,
+    },
+    aggregateRuns: "mean",
+    aggregateTime: "none",
   };
 }
 
@@ -118,6 +128,262 @@ function createExperimentWithMockTransport(mock: {
     runCount: 1,
   });
 }
+
+/**
+ * Drives a sharded experiment through fake workers, one mock transport per
+ * shard, so shard fan-out and metric merging can be exercised without threads.
+ */
+function createShardedExperiment(options: {
+  runCount: number;
+  shardCount: number;
+}) {
+  const mocks: ReturnType<typeof makeMockTransport>[] = [];
+
+  const promise = createMonteCarloExperiment({
+    createWorker: () => {
+      const mock = makeMockTransport();
+      mocks.push(mock);
+      // The real factory returns a Worker; the transport only needs the
+      // message plumbing, which the mock transport provides directly.
+      const worker: WorkerLike = {
+        postMessage: (message) => {
+          mock.transport.send(message);
+        },
+        addEventListener: (_type, listener) => {
+          mock.transport.onMessage((message) => {
+            listener({ data: message });
+          });
+        },
+        terminate: () => {
+          mock.transport.terminate();
+        },
+      };
+      return worker;
+    },
+    sdcpn: empty(),
+    initialMarking: {},
+    parameterValues: {},
+    seed: 1,
+    dt: 1,
+    maxTime: 10,
+    runCount: options.runCount,
+    shardCount: options.shardCount,
+  });
+
+  return { promise, mocks };
+}
+
+/** Awaits the worker-transport factory's internal promise resolution. */
+const flushMicrotasks = async () => {
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
+describe("createMonteCarloExperiment sharding", () => {
+  it("splits runs across shards with global run index offsets", async () => {
+    const { mocks } = createShardedExperiment({ runCount: 10, shardCount: 4 });
+    await flushMicrotasks();
+
+    expect(mocks).toHaveLength(4);
+    expect(
+      mocks.map((mock) => {
+        const init = mock.sent.find((message) => message.type === "init");
+        return init?.type === "init"
+          ? { runIndexOffset: init.runIndexOffset, runCount: init.runCount }
+          : null;
+      }),
+    ).toStrictEqual([
+      { runIndexOffset: 0, runCount: 3 },
+      { runIndexOffset: 3, runCount: 3 },
+      { runIndexOffset: 6, runCount: 2 },
+      { runIndexOffset: 8, runCount: 2 },
+    ]);
+  });
+
+  it("never creates more shards than runs", async () => {
+    const { mocks } = createShardedExperiment({ runCount: 2, shardCount: 8 });
+    await flushMicrotasks();
+
+    expect(mocks).toHaveLength(2);
+  });
+
+  it("resolves only once every shard is ready", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+
+    let resolved = false;
+    void promise.then(() => {
+      resolved = true;
+    });
+
+    mocks[0]!.simulate({ type: "ready" });
+    await flushMicrotasks();
+    expect(resolved).toBe(false);
+
+    mocks[1]!.simulate({ type: "ready" });
+    const experiment = await promise;
+
+    expect(experiment.status.get()).toBe("Ready");
+    experiment.dispose();
+  });
+
+  it("merges metric frames across shards before publishing them", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+
+    // One shard alone cannot finalise a frame — the other might still report it.
+    mocks[0]!.simulate({ type: "metricFrames", frames: [makeMetricFrame(0)] });
+    expect(experiment.metrics.get().frames).toHaveLength(0);
+
+    mocks[1]!.simulate({ type: "metricFrames", frames: [makeMetricFrame(0)] });
+
+    const frames = experiment.metrics.get().frames;
+    expect(frames).toHaveLength(1);
+    // Both shards contributed one run each at the same value.
+    expect(frames[0]!.runSampleCount).toBe(2);
+
+    experiment.dispose();
+  });
+
+  it("completes only after every shard completes", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+    const events = vi.fn();
+    experiment.events.subscribe(events);
+
+    mocks[0]!.simulate({
+      type: "complete",
+      progress: makeProgress({ allFinished: true, completedRuns: 2 }),
+    });
+    expect(experiment.status.get()).not.toBe("Complete");
+    expect(events).not.toHaveBeenCalled();
+
+    mocks[1]!.simulate({
+      type: "complete",
+      progress: makeProgress({ allFinished: true, completedRuns: 2 }),
+    });
+
+    expect(experiment.status.get()).toBe("Complete");
+    expect(events).toHaveBeenCalledTimes(1);
+    // Run tallies sum across shards.
+    expect(experiment.progress.get()?.completedRuns).toBe(4);
+    expect(experiment.progress.get()?.allFinished).toBe(true);
+
+    experiment.dispose();
+  });
+
+  it("reports the slowest shard's position while any shard still runs", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+
+    mocks[0]!.simulate({
+      type: "progress",
+      progress: makeProgress({ frameNumber: 9, time: 9 }),
+    });
+    mocks[1]!.simulate({
+      type: "progress",
+      progress: makeProgress({ frameNumber: 3, time: 3 }),
+    });
+
+    // Merged metrics only extend as far as the slowest shard, so progress must
+    // not run ahead of the data behind it.
+    expect(experiment.progress.get()?.frameNumber).toBe(3);
+
+    experiment.dispose();
+  });
+
+  it("cancels every shard when one reports cancellation", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 3,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+
+    mocks[0]!.simulate({ type: "cancelled", progress: makeProgress() });
+
+    expect(experiment.status.get()).toBe("Cancelled");
+    for (const mock of mocks.slice(1)) {
+      expect(mock.sent.some((message) => message.type === "cancel")).toBe(true);
+    }
+    // Cancelled runs were abandoned, not finished.
+    expect(experiment.progress.get()?.allFinished).toBe(false);
+
+    experiment.dispose();
+  });
+
+  it("tears down surviving shards when one errors after start", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+    const events = vi.fn();
+    experiment.events.subscribe(events);
+
+    mocks[1]!.simulate({ type: "error", message: "boom", itemId: null });
+
+    expect(experiment.status.get()).toBe("Error");
+    expect(events).toHaveBeenCalledWith({
+      type: "error",
+      message: "boom",
+      itemId: null,
+    });
+    expect(mocks[0]!.isTerminated()).toBe(true);
+  });
+
+  it("forwards start to every shard", async () => {
+    const { promise, mocks } = createShardedExperiment({
+      runCount: 4,
+      shardCount: 2,
+    });
+    await flushMicrotasks();
+    for (const mock of mocks) {
+      mock.simulate({ type: "ready" });
+    }
+    const experiment = await promise;
+
+    experiment.start();
+
+    for (const mock of mocks) {
+      expect(mock.sent.some((message) => message.type === "start")).toBe(true);
+    }
+    expect(experiment.status.get()).toBe("Running");
+
+    experiment.dispose();
+  });
+});
 
 describe("createMonteCarloExperiment", () => {
   it("sends init and resolves when the worker reports ready", async () => {
