@@ -1,12 +1,22 @@
 import { decodePetrinautOptimizerStream } from "./decode-optimization-stream.js";
-import { petrinautOptimizerHttpErrorFromResponse } from "./optimizer-http.js";
+import {
+  petrinautOptimizerHttpErrorFromResponse,
+  petrinautOptimizerUrl,
+} from "./optimizer-http.js";
 
-import type { PetrinautOptimizationStreamHandle } from "./open-optimization-stream.js";
 import type { PetrinautOptimizerFetch } from "./optimizer-http.js";
 import type {
   AbortSignalLike,
-  PetrinautOptimizationInput,
+  PetrinautOptimizationEvent,
 } from "@hashintel/petrinaut-core";
+
+/** One opened optimization event stream plus its upstream correlation id. */
+export type PetrinautOptimizationStreamHandle = {
+  /** Canonical optimization events decoded from the upstream stream. */
+  events: AsyncIterable<PetrinautOptimizationEvent>;
+  /** The optimizer's `X-Optimization-Run-ID` header, when provided. */
+  optimizationRunId: string | null;
+};
 
 /** Configuration for attaching to one detached Petrinaut Optimizer run. */
 export type AttachPetrinautOptimizationRunStreamOptions = {
@@ -19,17 +29,6 @@ export type AttachPetrinautOptimizationRunStreamOptions = {
    * live-tailing. Omitted or `0` requests a full replay.
    */
   cursor?: number;
-  /**
-   * Whether lower or higher objective values are considered better.
-   *
-   * Deliberately optional: an attachment that resumes past a cursor never
-   * observes the whole study, so a best-so-far computed here would silently
-   * disagree with the true running best. When omitted (the recommended
-   * attachment configuration), the decoder skips best-so-far aggregation and
-   * every trial and complete event carries `best: null` — the consumer keeps
-   * its own running best across reconnections instead.
-   */
-  direction?: PetrinautOptimizationInput["objective"]["direction"];
   /** Fetch implementation supplied by the current runtime or a test. */
   fetchImpl?: PetrinautOptimizerFetch;
   /** Optional maximum UTF-8 size of one upstream SSE event. */
@@ -50,16 +49,15 @@ export type AttachPetrinautOptimizationRunStreamOptions = {
  *
  * Buffered frames with seq > cursor are replayed, then new frames are
  * live-tailed; each adapted event carries the frame's sequence number as
- * `seq` so the consumer can re-attach from where it stopped. Unlike the
- * legacy study stream, no synthetic `started` event is emitted: the study
- * started when the run was created, not when this consumer attached.
- * Disconnecting never affects the run itself.
+ * `seq` so the consumer can re-attach from where it stopped. No synthetic
+ * `started` event is emitted: the study started when the run was created,
+ * not when this consumer attached. Disconnecting never affects the run
+ * itself.
  */
 export const attachPetrinautOptimizationRunStream = async ({
   endpoint,
   runId,
   cursor,
-  direction,
   fetchImpl = fetch,
   headers,
   maxEventBytes,
@@ -67,9 +65,9 @@ export const attachPetrinautOptimizationRunStream = async ({
   requestId,
   signal,
 }: AttachPetrinautOptimizationRunStreamOptions): Promise<PetrinautOptimizationStreamHandle> => {
-  const url = new URL(
-    `/optimize/runs/${encodeURIComponent(runId)}/events`,
+  const url = petrinautOptimizerUrl(
     endpoint,
+    `optimize/runs/${encodeURIComponent(runId)}/events`,
   );
   if (cursor !== undefined) {
     url.searchParams.set("cursor", String(cursor));
@@ -104,9 +102,7 @@ export const attachPetrinautOptimizationRunStream = async ({
 
   return {
     events: decodePetrinautOptimizerStream(response.body, {
-      emitSyntheticStarted: false,
       requestedTrials,
-      ...(direction === undefined ? {} : { direction }),
       ...(maxEventBytes === undefined ? {} : { maxEventBytes }),
       ...(onActivity ? { onActivity } : {}),
     }),

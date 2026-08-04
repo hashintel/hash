@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { petrinautOptimizationManifestSchema } from "./optimization";
+import {
+  petrinautOptimizationEventSchema,
+  petrinautOptimizationManifestSchema,
+} from "./optimization";
 
 const scenario = {
   id: "baseline",
@@ -359,5 +362,60 @@ describe("petrinautOptimizationManifestSchema", () => {
     expect(invalidSeed.success).toBe(false);
     expect(tooManySteps.success).toBe(false);
     expect(tooMuchTotalWork.success).toBe(false);
+  });
+});
+
+describe("petrinautOptimizationEventSchema", () => {
+  const events = [
+    { type: "started", requestedTrials: 2 },
+    {
+      type: "trial",
+      trial: 0,
+      parameters: { rate: 0.5 },
+      objective: 1,
+      state: "complete",
+      best: { trial: 0, parameters: { rate: 0.5 }, objective: 1 },
+    },
+    {
+      type: "complete",
+      requestedTrials: 2,
+      completedTrials: 2,
+      prunedTrials: 0,
+      failedTrials: 0,
+      best: null,
+    },
+    { type: "error", code: "failed", message: "nope", retryable: false },
+  ];
+
+  it("accepts events with and without a sequence number on every variant", () => {
+    for (const [index, event] of events.entries()) {
+      const withoutSeq = petrinautOptimizationEventSchema.safeParse(event);
+      const withSeq = petrinautOptimizationEventSchema.safeParse({
+        ...event,
+        seq: index + 1,
+      });
+
+      expect(withoutSeq.success).toBe(true);
+      expect(withSeq.success).toBe(true);
+      if (withSeq.success) {
+        expect(withSeq.data.seq).toBe(index + 1);
+      }
+    }
+  });
+
+  it("rejects negative or fractional sequence numbers", () => {
+    const negative = petrinautOptimizationEventSchema.safeParse({
+      type: "started",
+      requestedTrials: 2,
+      seq: -1,
+    });
+    const fractional = petrinautOptimizationEventSchema.safeParse({
+      type: "started",
+      requestedTrials: 2,
+      seq: 1.5,
+    });
+
+    expect(negative.success).toBe(false);
+    expect(fractional.success).toBe(false);
   });
 });

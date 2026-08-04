@@ -491,11 +491,20 @@ const optimizationBestSchema = z
   })
   .meta({ description: "The best completed trial so far." });
 
+/**
+ * Server-authoritative, strictly increasing sequence number attached to each
+ * event of a detached optimization run. A client resuming a run asks for the
+ * events with `seq` greater than the last one it applied, and skips any
+ * replayed event at or below that cursor. Optional so streams from hosts that
+ * predate detached runs keep validating.
+ */
+const optimizationEventSeqSchema = z.number().int().nonnegative().optional();
+
 export const petrinautOptimizationStartedEventSchema = z
   .strictObject({
     type: z.literal("started"),
     requestedTrials: z.number().int().positive(),
-    seq: z.number().int().nonnegative().optional(),
+    seq: optimizationEventSeqSchema,
   })
   .meta({ description: "The optimizer accepted and started the study." });
 
@@ -507,7 +516,7 @@ export const petrinautOptimizationTrialEventSchema = z
     objective: z.number().nullable(),
     state: z.enum(["complete", "pruned", "failed"]),
     best: optimizationBestSchema.nullable(),
-    seq: z.number().int().nonnegative().optional(),
+    seq: optimizationEventSeqSchema,
   })
   .meta({ description: "One completed Optuna trial and the running best." });
 
@@ -519,9 +528,20 @@ export const petrinautOptimizationCompleteEventSchema = z
     prunedTrials: z.number().int().nonnegative(),
     failedTrials: z.number().int().nonnegative(),
     best: optimizationBestSchema.nullable(),
-    seq: z.number().int().nonnegative().optional(),
+    seq: optimizationEventSeqSchema,
   })
   .meta({ description: "The final optimization summary." });
+
+/**
+ * The `code` of the terminal error event that reports a cancellation rather
+ * than a failure. A detached run is cancelled out-of-band — an explicit
+ * `DELETE`, orphan reaping, or optimizer shutdown — and the stream has no
+ * event type of its own for that, so it arrives as a non-retryable error.
+ * Consumers presenting run outcomes should treat this code as "cancelled",
+ * not "failed".
+ */
+export const PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE =
+  "optimization_cancelled";
 
 export const petrinautOptimizationErrorEventSchema = z
   .strictObject({
@@ -529,7 +549,7 @@ export const petrinautOptimizationErrorEventSchema = z
     code: z.string(),
     message: z.string(),
     retryable: z.boolean(),
-    seq: z.number().int().nonnegative().optional(),
+    seq: optimizationEventSeqSchema,
   })
   .meta({ description: "A terminal optimizer error." });
 
@@ -577,10 +597,35 @@ export type PetrinautOptimizationTrialEvent = z.infer<
   typeof petrinautOptimizationTrialEventSchema
 >;
 
-/** Host-provided optimization capability for Petrinaut. */
+/**
+ * Host-provided optimization capability for Petrinaut.
+ *
+ * A run is detached from any one connection: it is created by id, its event
+ * stream can be (re-)attached with a `seq` cursor, and it is cancelled
+ * explicitly — which lets the UI survive connection drops and page reloads.
+ */
 export type PetrinautOptimization = {
-  optimize(
+  /** Start a detached run and resolve its server-issued run id. */
+  createOptimizationRun(
     input: PetrinautOptimizationInput,
     options?: { signal?: AbortSignalLike },
+  ): Promise<{ runId: string }>;
+  /**
+   * Stream a detached run's events, replaying those with `seq` greater than
+   * `cursor` (0 replays everything) before tailing live events. The stream
+   * ends after a terminal `complete`/`error` event. `onAttached` fires once
+   * the attachment is accepted (the response headers arrived OK), which may
+   * be long before the first event on a quiet run — UIs use it to report an
+   * honest connection state while reconnecting.
+   */
+  attachOptimizationRun(
+    runId: string,
+    options?: {
+      cursor?: number;
+      signal?: AbortSignalLike;
+      onAttached?: () => void;
+    },
   ): AsyncIterable<PetrinautOptimizationEvent>;
+  /** Idempotently stop a detached run server-side. */
+  cancelOptimizationRun(runId: string): Promise<void>;
 };
