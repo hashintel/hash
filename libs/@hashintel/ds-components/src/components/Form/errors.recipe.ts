@@ -34,7 +34,7 @@ export const styles = sva({
     disabled: {
       true: {
         error: {
-          color: "[color-mix(in srgb, {colors.red.s110}, white 40%)]",
+          color: "[color-mix(in oklab, {colors.red.s110}, white 40%)]",
         },
       },
     },
