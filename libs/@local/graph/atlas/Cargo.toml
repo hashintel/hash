@@ -8,7 +8,7 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hashql-core = { workspace = true, features = ["rayon"], public = true }
+hashql-core = { workspace = true, features = ["rayon", "zerocopy"], public = true }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies

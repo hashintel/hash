@@ -1,112 +1,98 @@
-use std::{
-    collections::HashMap,
-    io::{self, Write as _},
-};
+//! Streaming identity-file writer.
+
+use std::{collections::HashMap, io};
 
 use fst::MapBuilder;
 use hashql_core::id::{Id, IdSlice};
-use zerocopy::IntoBytes;
+use zerocopy::IntoBytes as _;
 
-use super::{KeyKind, Kind};
-use crate::file::{
-    identity2::{FileHeader, PaddedFileHeader},
-    region::{ByteStable, PAGE, write_padding, write_region},
-};
+use super::{FileHeader, Key, Kind, PaddedFileHeader, PayloadSpan};
+use crate::file::region::write_region;
 
-unsafe trait Key: ByteStable {
-    type Id: Id;
-    type Auxiliary: zerocopy::IntoBytes + zerocopy::Immutable;
-    const KIND: KeyKind;
-}
-
-struct PositionalWriter<W> {
-    writer: W,
-    offset: u64,
-}
-
-impl<W> PositionalWriter<W> {
-    const fn new(writer: W) -> Self {
-        Self { writer, offset: 0 }
-    }
-}
-
-impl<W> io::Write for PositionalWriter<W>
-where
-    W: io::Write,
-{
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let len = buf.len();
-        self.writer.write(buf)?;
-        self.offset += len as u64;
-        Ok(len)
-    }
-
-    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
-        let len = buf.len();
-        self.writer.write_all(buf)?;
-        self.offset += len as u64;
-        Ok(())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.writer.flush()
-    }
-}
-
-pub(crate) fn write_regions<K>(
+/// Streams the four identity regions as an identity file.
+///
+/// `keys` is the key column in row order and `auxiliary` the display payload of each row: label
+/// bytes for node and edge files, icon bytes for ontology files. A row without a display value
+/// carries empty bytes. The index derives from the key column, and the span table from the
+/// payloads, with equal payloads sharing one span. Every region streams in file order
+/// behind the header, so wrap a raw [`File`](std::fs::File) in a [`BufWriter`](io::BufWriter).
+///
+/// # Errors
+///
+/// Returns an error when the underlying writer fails.
+///
+/// # Panics
+///
+/// This panics when `auxiliary` is not one payload per key or when two rows carry one key.
+/// Neither has a representation: the span table holds exactly one span per row, and the index
+/// maps each key to exactly one row.
+#[expect(
+    clippy::panic_in_result_fn,
+    reason = "the Result carries write failures; disagreeing columns and duplicate keys are a \
+              caller contract violation, documented under Panics"
+)]
+pub(crate) fn write_regions<I, K, A>(
     kind: Kind,
-    keys: &IdSlice<K::Id, K>,
-    auxiliary: &IdSlice<K::Id, K::Auxiliary>,
-    write: impl io::Write,
+    keys: &IdSlice<I, K>,
+    auxiliary: &IdSlice<I, A>,
+    mut write: impl io::Write,
 ) -> io::Result<()>
 where
+    I: Id,
     K: Key,
+    A: AsRef<[u8]>,
 {
-    let mut write = PositionalWriter::new(write);
-    debug_assert_eq!(keys.len(), auxiliary.len());
-
-    // We do progressive caching/interning
-    let mut interner = HashMap::<&[u8], (u64, u64)>::new();
-    let mut scratch = Vec::new(); // TODO: I feel like there's a way we can get rid of this?
-
-    let header = FileHeader::new(kind, keys.len() as u64, K::KIND);
-
-    write_region(&mut write, PaddedFileHeader::new(header).as_bytes())?;
-    write_region(&mut write, keys.as_bytes())?;
-
-    let initial_offset = write.offset;
-    let mut builder = MapBuilder::new(&mut write).unwrap();
-    for (id, aux) in auxiliary.iter_enumerated() {
-        builder.insert(aux.as_bytes(), id.as_u64()).unwrap();
+    const {
+        assert!(
+            K::KIND.width() == size_of::<K>(),
+            "the key kind's declared width is the key type's size",
+        );
     }
-    builder.finish().unwrap();
 
-    let map_length = write.offset - initial_offset;
-    write_padding(&mut write, map_length)?;
+    let keys = keys.as_raw();
+    let auxiliary = auxiliary.as_raw();
+    assert_eq!(keys.len(), auxiliary.len(), "one payload per key");
 
-    let file_offset = write.offset;
-    let expected_length = size_of::<[u64; 2]>() as u64 * auxiliary.len() as u64;
-    let next_boundary = expected_length.next_multiple_of(PAGE);
+    // The index inserts in ascending key-byte order, which is the only order keys carry.
+    let mut order: Vec<usize> = (0..keys.len()).collect();
+    order.sort_unstable_by(|&left, &right| keys[left].as_bytes().cmp(keys[right].as_bytes()));
 
-    let mut bytes_written = 0_u64;
-    for aux in auxiliary {
-        let &mut (offset, len) = interner.entry(aux.as_bytes()).or_insert_with(|| {
-            let offset = scratch.len();
-            let len = aux.as_bytes().len();
-            scratch.extend(aux.as_bytes());
+    let mut builder = MapBuilder::memory();
+    for &row in &order {
+        builder
+            .insert(keys[row].as_bytes(), row as u64)
+            .expect("two rows carry one key");
+    }
+    let index = builder
+        .into_inner()
+        .expect("an in-memory index build performs no io");
 
-            (offset as u64, len as u64)
+    // Equal payloads intern to one span, so the payload region carries each distinct value once,
+    // in first-appearance order.
+    let mut interner = HashMap::<&[u8], PayloadSpan>::new();
+    let mut payload = Vec::new();
+    let mut spans = Vec::with_capacity(auxiliary.len());
+    for value in auxiliary {
+        let bytes = value.as_ref();
+        let span = *interner.entry(bytes).or_insert_with(|| {
+            let offset = payload.len() as u64;
+            payload.extend_from_slice(bytes);
+            PayloadSpan::new(offset, bytes.len() as u64)
         });
-
-        let entry = [file_offset + next_boundary + offset, len];
-        write.write_all(entry.as_bytes())?;
-        bytes_written += entry.as_bytes().len() as u64;
+        spans.push(span);
     }
 
-    debug_assert_eq!(bytes_written, expected_length);
-    write_padding(&mut write, bytes_written)?;
+    let header = FileHeader::new(
+        kind,
+        K::KIND,
+        keys.len() as u64,
+        index.len() as u64,
+        payload.len() as u64,
+    );
 
-    write_region(&mut write, &scratch)?;
-
-    Ok(())
+    write.write_all(PaddedFileHeader::new(header).as_bytes())?;
+    write_region(&mut write, keys.as_bytes())?;
+    write_region(&mut write, &index)?;
+    write_region(&mut write, spans.as_bytes())?;
+    write.write_all(&payload)
 }
