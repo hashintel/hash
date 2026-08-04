@@ -241,6 +241,10 @@ jobs:
     # isn't reachable from forks.
     if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
+    # The environment lands in the OIDC token as a claim the Vault role binds,
+    # and `main` only accepts the main branch. Picking the role in this
+    # expression is therefore no longer self-asserted.
+    environment: ${{ github.event_name == 'push' && 'main' || 'pull-request' }}
     permissions:
       id-token: write
       contents: read
@@ -249,13 +253,18 @@ jobs:
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         env:
-          VAULT_ROLE: ${{ github.event_name == 'push' && 'prod' || 'dev' }}
+          # Must stay in sync with the job's `environment:` above — the Vault
+          # role binds that value as a claim.
+          VAULT_TIER: ${{ github.event_name == 'push' && 'main' || 'pull-request' }}
         with:
-          url: ${{ secrets.VAULT_ADDR }}
+          url: ${{ vars.VAULT_STAGE_ADDR }}
           method: jwt
-          role: ${{ env.VAULT_ROLE }}
+          role: ci-hash-sentry-${{ env.VAULT_TIER }}
+          extraHeaders: |
+            CF-Access-Client-Id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
           secrets: |
-            automation/data/pipelines/hash/${{ env.VAULT_ROLE }} sentry_auth_token | SENTRY_AUTH_TOKEN
+            ci/data/sentry/${{ env.VAULT_TIER }} auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
