@@ -73,7 +73,7 @@ fn contraction_ties_do_not_count() {
     let reading = contract(
         IdSlice::from_raw(&baseline),
         IdSlice::from_raw(&frame),
-        &terms,
+        terms,
     );
 
     assert_eq!(reading.edge_count, 1);
