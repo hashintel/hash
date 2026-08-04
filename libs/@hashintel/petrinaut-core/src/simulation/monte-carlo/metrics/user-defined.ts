@@ -163,9 +163,13 @@ export function createMonteCarloUserDefinedMetric(
         runOutput.aggregateRuns ?? config.aggregateRuns ?? "mean";
       const runAccumulator =
         createMonteCarloMetricNumericAccumulator(aggregateRuns);
-      const frameValue = runAccumulator.read(
-        addAllMonteCarloMetricValues(runAccumulator, runValues),
+      // Kept on the frame so a sharded experiment can merge across shards
+      // before reducing — see `metrics/merge.ts`.
+      const runAggregate = addAllMonteCarloMetricValues(
+        runAccumulator,
+        runValues,
       );
+      const frameValue = runAccumulator.read(runAggregate);
       if (frameValue !== null) {
         scalarFrameCountState = frameCountAccumulator.add(
           scalarFrameCountState,
@@ -195,6 +199,9 @@ export function createMonteCarloUserDefinedMetric(
         timeValue,
         runSampleCount: runValues.length,
         timeSampleCount: scalarFrameCountState.count,
+        runAggregate,
+        aggregateRuns,
+        aggregateTime,
       });
     },
   };

@@ -1,5 +1,6 @@
 import type { HirMetricArtifact } from "../../../hir-runtime";
 import type { SimulationFrameReader } from "../../api";
+import type { MonteCarloMetricNumericAccumulatorState } from "./accumulators";
 
 export type MonteCarloMetricRunStatus =
   | "ready"
@@ -192,6 +193,18 @@ export type MonteCarloUserDefinedScalarMetricFrame =
     frameValue: number | null;
     timeValue: number | null;
     timeSampleCount: number;
+    /**
+     * Mergeable across-runs accumulator state behind `frameValue`.
+     *
+     * `frameValue` is already reduced and cannot be combined across a sharded
+     * experiment (a mean of means is not a mean). This state can, via the
+     * numeric accumulator monoid — see `metrics/merge.ts`.
+     */
+    runAggregate: MonteCarloMetricNumericAccumulatorState;
+    /** How `runAggregate` reduces to `frameValue`; needed to merge shards. */
+    aggregateRuns: MonteCarloUserDefinedMetricAggregation;
+    /** How frame values reduce over time; re-applied after shards merge. */
+    aggregateTime: MonteCarloUserDefinedMetricTimeAggregation;
   };
 
 export type MonteCarloUserDefinedDistributionMetricFrame =
