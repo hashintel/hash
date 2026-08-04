@@ -69,17 +69,16 @@ where
             }
             Self::UnbaselinedRadius => fmt.write_str(
                 "the boundary sits at step zero, so the Proximal radius would be measured on an \
-                 untrained map; give the opening segment steps or supply the configured radius \
-                 assertion",
+                 untrained map; give the opening segment steps",
             ),
             Self::MissingProximalReviews => fmt.write_str(
                 "the attraction index carries Proximal force but no reviewed-Proximal verdict \
-                 covers any of it; confirm Proximal types in review or supply the configured \
-                 radius assertion",
+                 covers any of it; confirm Proximal types in review",
             ),
             Self::CoincidentWithoutProximal => fmt.write_str(
                 "the attraction index carries Coincident force but no Proximal force, so no \
-                 measurement can set the Proximal radius; supply the configured radius assertion",
+                 reviewed-Proximal measurement can set the radius the relation energy composes \
+                 with; train with the relation evidence withheld",
             ),
             Self::DegenerateRadius { radius, coincident } => write!(
                 fmt,

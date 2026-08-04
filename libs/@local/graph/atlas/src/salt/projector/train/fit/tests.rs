@@ -9,7 +9,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "structurally-zero displacements and asserted radii are bit-exact contracts"
+    reason = "structurally-zero displacements and frozen radii are bit-exact contracts"
 )]
 
 use core::num::NonZero;
@@ -31,8 +31,8 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, finite, non_negative,
-        positive, unit_fraction,
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
+        unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -301,7 +301,7 @@ fn schedule(steps: usize, boundary: usize, refresh_interval: usize) -> TrainingS
     .expect("the fixture schedule is valid")
 }
 
-fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOptions {
+fn options(schedule: TrainingSchedule) -> TrainOptions {
     TrainOptions {
         schedule,
         plan: BatchPlan {
@@ -335,9 +335,7 @@ fn options(schedule: TrainingSchedule, asserted_radius: Option<f32>) -> TrainOpt
             CoincidentEnergy::new(0.0, 1.0).expect("the fixture coincident energy is valid"),
             positive!(0.25),
             positive!(0.5),
-            asserted_radius,
-        )
-        .expect("the fixture lens is valid"),
+        ),
         forward_rows: nonzero(3),
     }
 }
@@ -390,7 +388,7 @@ where
 fn training_separates_the_semantic_clusters() {
     let corpus = semantic_corpus();
     // Boundary at the end: a pure semantic run records no boundary.
-    let options = options(schedule(25, 25, 10), None);
+    let options = options(schedule(25, 25, 10));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -424,7 +422,7 @@ fn training_separates_the_semantic_clusters() {
 #[test]
 fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
-    let mut options = options(schedule(25, 25, 10), None);
+    let mut options = options(schedule(25, 25, 10));
     // A dominant landmark coefficient pins the anchored rows.
     options.coefficients = Coefficients::new(
         Positive::ONE,
@@ -465,7 +463,7 @@ fn landmark_support_keeps_the_frame() {
 fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, 0.0);
-    let mut options = options(schedule(10, 10, 2), None);
+    let mut options = options(schedule(10, 10, 2));
     // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
     // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
     // the mechanism the certificate names. Rows in one cluster share almost the same input
@@ -514,7 +512,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, 0.0);
-    let mut options = options(schedule(10, 10, 2), None);
+    let mut options = options(schedule(10, 10, 2));
     // A dominant landmark coefficient pins the anchored rows. Neither repulsion term aims at a
     // fixed target point, so zeroing them keeps their sampling noise from swinging the one row this
     // certificate reads. The relation term has no evidence in this corpus and goes to zero with
@@ -561,7 +559,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
 #[test]
 fn equal_seeds_train_equal_frames() {
     let corpus = semantic_corpus();
-    let options = options(schedule(24, 24, 8), None);
+    let options = options(schedule(24, 24, 8));
     let one = fit(
         model(),
         &corpus.inputs(),
@@ -592,7 +590,7 @@ fn equal_seeds_train_equal_frames() {
 #[test]
 fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -610,7 +608,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         .expect("the boundary ran within the schedule");
     assert_eq!(boundary.step, 6);
     let FrozenRadius::Measured { radius } = boundary.radius else {
-        panic!("an unasserted boundary measures its radius");
+        panic!("the boundary freezes a measured radius");
     };
     assert!(radius.get() > 0.0);
     assert_eq!(boundary.calibration.radius, Some(radius.get()));
@@ -644,9 +642,9 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
 }
 
 #[test]
-fn missing_reviewed_radius_names_both_fixes() {
+fn missing_reviewed_radius_names_the_fix() {
     let corpus = proximal_corpus(Vec::new());
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
     let error = fit(
         model(),
         &corpus.inputs(),
@@ -660,44 +658,12 @@ fn missing_reviewed_radius_names_both_fixes() {
     assert_eq!(error, TrainError::MissingProximalReviews);
     let message = error.to_string();
     assert!(message.contains("confirm Proximal types"));
-    assert!(message.contains("assertion"));
-}
-
-#[test]
-fn asserted_radius_supersedes_the_measurement() {
-    let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(8, 4, 4), Some(1.5));
-    let fitted = fit(
-        model(),
-        &corpus.inputs(),
-        &options,
-        &mut rng(17),
-        &device(),
-        &NoProgress,
-    )
-    .expect("the asserted fixture trains");
-
-    let boundary = fitted
-        .evidence
-        .boundary
-        .as_ref()
-        .expect("the boundary ran within the schedule");
-    assert_eq!(
-        boundary.radius,
-        FrozenRadius::Asserted {
-            radius: finite!(1.5)
-        }
-    );
-    assert!(
-        boundary.calibration.radius.is_some(),
-        "the measured quantiles still land in evidence for judging the assertion"
-    );
 }
 
 #[test]
 fn forceless_corpus_trains_vacuously() {
     let corpus = semantic_corpus();
-    let options = options(schedule(9, 3, 4), None);
+    let options = options(schedule(9, 3, 4));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -732,7 +698,7 @@ fn vacuous_run_trains_a_flat_ladder() {
     // The ladder opens at step 3, but a forceless corpus pins the
     // zero rung through it: the condition weights never receive
     // gradient, so every rung projects the identical map.
-    let options = options(schedule(9, 3, 4), None);
+    let options = options(schedule(9, 3, 4));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -771,7 +737,7 @@ fn measured_radius_requires_an_opening_segment() {
     let error = fit(
         model(),
         &corpus.inputs(),
-        &options(schedule(8, 0, 4), None),
+        &options(schedule(8, 0, 4)),
         &mut rng(23),
         &device(),
         &NoProgress,
@@ -781,34 +747,7 @@ fn measured_radius_requires_an_opening_segment() {
 }
 
 #[test]
-fn asserted_radius_permits_a_zero_boundary() {
-    let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let fitted = fit(
-        model(),
-        &corpus.inputs(),
-        &options(schedule(8, 0, 4), Some(1.5)),
-        &mut rng(23),
-        &device(),
-        &NoProgress,
-    )
-    .expect("an asserted radius makes a zero boundary trainable");
-
-    let boundary = fitted
-        .evidence
-        .boundary
-        .as_ref()
-        .expect("the boundary ran at step zero");
-    assert_eq!(boundary.step, 0);
-    assert_eq!(
-        boundary.radius,
-        FrozenRadius::Asserted {
-            radius: finite!(1.5)
-        }
-    );
-}
-
-#[test]
-fn coincident_only_force_requires_an_assertion() {
+fn coincident_without_proximal_force_refuses() {
     let coincident_policy = RelationPolicy {
         relation: OntologyRowId::new(RELATION),
         attraction: ClassProbabilities {
@@ -822,48 +761,22 @@ fn coincident_only_force_requires_an_assertion() {
         applicability: 1.0,
         strength: 1.0,
     };
-    let build = || {
-        corpus_with(
-            &[coincident_policy],
-            vec![instance(0, RELATION, 0, 4), instance(1, RELATION, 1, 5)],
-            Vec::new(),
-            AttractionOptions::new(2.0, 0.0).expect("the fixture options are valid"),
-        )
-    };
-
-    let corpus = build();
+    let corpus = corpus_with(
+        &[coincident_policy],
+        vec![instance(0, RELATION, 0, 4), instance(1, RELATION, 1, 5)],
+        Vec::new(),
+        AttractionOptions::new(2.0, 0.0).expect("the fixture options are valid"),
+    );
     let error = fit(
         model(),
         &corpus.inputs(),
-        &options(schedule(8, 4, 4), None),
+        &options(schedule(8, 4, 4)),
         &mut rng(23),
         &device(),
         &NoProgress,
     )
     .expect_err("coincident force alone cannot set the Proximal radius");
     assert_eq!(error, TrainError::CoincidentWithoutProximal);
-
-    let corpus = build();
-    let fitted = fit(
-        model(),
-        &corpus.inputs(),
-        &options(schedule(8, 4, 4), Some(1.0)),
-        &mut rng(23),
-        &device(),
-        &NoProgress,
-    )
-    .expect("an asserted radius composes the energy");
-    let boundary = fitted
-        .evidence
-        .boundary
-        .as_ref()
-        .expect("the boundary ran within the schedule");
-    assert_eq!(
-        boundary.radius,
-        FrozenRadius::Asserted {
-            radius: finite!(1.0)
-        }
-    );
 }
 
 #[test]
@@ -874,7 +787,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
     // produce bit-identical frames: the measured displacement is
     // exactly zero, not approximately.
     let corpus = semantic_corpus();
-    let options = options(schedule(4, 4, 2), None);
+    let options = options(schedule(4, 4, 2));
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -901,7 +814,7 @@ fn phase_a_ticks_measure_a_frozen_lens() {
 fn non_finite_representation_fails_the_first_tick() {
     let mut corpus = semantic_corpus();
     corpus.storage.as_array_mut()[3 * PROJECTOR_DIMENSIONS + 9] = f32::INFINITY;
-    let options = options(schedule(4, 4, 2), None);
+    let options = options(schedule(4, 4, 2));
     let error = fit(
         model(),
         &corpus.inputs(),
@@ -993,25 +906,9 @@ fn schedule_validates_its_domain() {
 }
 
 #[test]
-fn lens_validates_its_domain() {
-    // Non-positive temperatures and scale guards are unconstructible as `Positive`s; the
-    // residual domain here is the radius ordering.
-    let coincident = CoincidentEnergy::new(0.25, 1.0).expect("the fixture energy is valid");
-    assert!(RelationLens::new(coincident, positive!(0.25), positive!(0.5), None).is_some());
-    assert!(
-        RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(0.25)).is_none(),
-        "an asserted radius must exceed the Coincident radius"
-    );
-    assert!(RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(0.5)).is_some());
-    assert!(
-        RelationLens::new(coincident, positive!(0.25), positive!(0.5), Some(f32::NAN)).is_none()
-    );
-}
-
-#[test]
 fn checkpointed_resume_matches_the_straight_run() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
 
     let straight = fit(
         model(),
@@ -1073,7 +970,7 @@ fn checkpointed_resume_matches_the_straight_run() {
 #[test]
 fn forked_ladders_share_the_frozen_radius() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let opening = options(schedule(12, 6, 4), None);
+    let opening = options(schedule(12, 6, 4));
 
     let mut stream = rng(17);
     let state = fit_to_boundary(
@@ -1129,7 +1026,7 @@ fn forked_ladders_share_the_frozen_radius() {
 #[test]
 fn resumed_ladder_rejects_a_changed_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let opening = options(schedule(12, 6, 4), None);
+    let opening = options(schedule(12, 6, 4));
     let state = fit_to_boundary(
         model(),
         &corpus.inputs(),
@@ -1140,7 +1037,7 @@ fn resumed_ladder_rejects_a_changed_schedule() {
     )
     .expect("the opening segment trains");
 
-    let changed = options(schedule(16, 6, 4), None);
+    let changed = options(schedule(16, 6, 4));
     let error = fit_from_boundary(
         state,
         &corpus.inputs(),
@@ -1221,7 +1118,7 @@ impl Progress for RecordingProgress {
 #[test]
 fn every_training_step_reports_the_loss_it_records() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
     let progress = RecordingProgress::default();
 
     let fitted = fit(
@@ -1255,7 +1152,7 @@ fn every_training_step_reports_the_loss_it_records() {
 #[test]
 fn phases_report_against_the_whole_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
 
     let forked = RecordingProgress::default();
     let mut stream = rng(17);
@@ -1294,7 +1191,7 @@ fn phases_report_against_the_whole_schedule() {
 #[test]
 fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
-    let options = options(schedule(12, 6, 4), None);
+    let options = options(schedule(12, 6, 4));
 
     let observer = RecordingProgress::watching(4);
     let watched = fit(

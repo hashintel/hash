@@ -253,8 +253,9 @@ impl Deref for ArchivedOntologyTypeUuid {
 ///
 /// Supplied inputs name types by canonical identity - reviewed verdicts carry versioned URLs -
 /// while each corpus keys its type table in its own id space. An id type derives the id naming a
-/// given identity in that space, or answers [`None`] for an identity form its provider does not
-/// mint ids from. Positional id spaces mint ids from no identity.
+/// given identity in that space, or answers [`None`] for a URL form outside that space. Each id
+/// space owns its URL forms: the store derives the `UUIDv5` it mints from any versioned URL, and
+/// the plain-number space derives its ids from `memory://<id>/` base URLs alone.
 pub(crate) trait OntologyIdentity: Sized {
     /// Derives the id naming `url` in this id space.
     fn from_versioned_url(url: &VersionedUrl) -> Option<Self>;
@@ -269,11 +270,17 @@ impl OntologyIdentity for ArchivedOntologyTypeUuid {
     }
 }
 
-// Construction order assigns positional ids, and no identity names one.
+// A plain-number id space keys rows by whatever `u64` values its constructor received, and the
+// `memory` scheme names them: `memory://<id>/` derives the id from the URL's authority. The
+// canonical form is exact - a subpath is a different URL and derives nothing - and the version
+// component selects nothing, because a plain number has no versions.
 impl OntologyIdentity for U64<LE> {
-    #[inline]
-    fn from_versioned_url(_url: &VersionedUrl) -> Option<Self> {
-        None
+    fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
+        let url = url.base_url.to_url();
+        if url.scheme() != "memory" || url.path() != "/" {
+            return None;
+        }
+        url.host_str()?.parse().ok().map(Self::new)
     }
 }
 

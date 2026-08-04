@@ -146,44 +146,29 @@ impl TrainingSchedule {
 ///
 /// The Coincident energy arrives fully configured - its radius is a configuration value until a
 /// reviewed-Coincident calibration exists. The boundary measures only the Proximal radius, while
-/// `temperature` and the scale guard `epsilon` complete the composed energy. An asserted radius,
-/// when supplied, supersedes the measurement in the composed energy while the evidence still
-/// records the measured quantiles.
+/// `temperature` and the scale guard `epsilon` complete the composed energy.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationLens {
     coincident: CoincidentEnergy,
     temperature: Positive,
     epsilon: Positive,
-    asserted_radius: Option<f32>,
 }
 
 impl RelationLens {
-    /// Validates the lens constants.
+    /// Composes the lens constants.
     ///
-    /// Returns [`None`] unless the asserted radius - when supplied - is finite and strictly above
-    /// the Coincident radius, the ordering the composed energy requires; the temperature and the
-    /// scale guard arrive valid by type.
+    /// Every field arrives valid by type, so the composition is plain wiring.
     #[must_use]
     pub(crate) const fn new(
         coincident: CoincidentEnergy,
         temperature: Positive,
         epsilon: Positive,
-        asserted_radius: Option<f32>,
-    ) -> Option<Self> {
-        let assertion = match asserted_radius {
-            Some(radius) => radius.is_finite() && radius > coincident.radius(),
-            None => true,
-        };
-
-        if !assertion {
-            return None;
-        }
-        Some(Self {
+    ) -> Self {
+        Self {
             coincident,
             temperature,
             epsilon,
-            asserted_radius,
-        })
+        }
     }
 
     /// Returns the configured Coincident energy.
@@ -205,14 +190,6 @@ impl RelationLens {
     #[must_use]
     pub(crate) const fn epsilon(self) -> Positive {
         self.epsilon
-    }
-
-    /// Returns the configured radius superseding the boundary measurement, when the configuration
-    /// asserts one.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn asserted_radius(self) -> Option<f32> {
-        self.asserted_radius
     }
 }
 
@@ -274,8 +251,6 @@ pub(crate) struct TrainerInputs<'run, N, E> {
 pub(crate) enum FrozenRadius {
     /// Measured from the reviewed-Proximal pairs.
     Measured { radius: Finite },
-    /// Asserted by configuration, superseding the measurement.
-    Asserted { radius: Finite },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
 }

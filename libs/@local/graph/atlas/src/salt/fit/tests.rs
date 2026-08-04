@@ -45,7 +45,7 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
-        d_non_negative, d_positive, finite, greater_than_one, open_unit_fraction,
+        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
     },
     progress::NoProgress,
     salt::{
@@ -327,7 +327,7 @@ fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
     struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
 
     let config = FitConfig {
-        placement: PlacementOptions::Projector(projector_options(Some(1.0))),
+        placement: PlacementOptions::Projector(projector_options()),
         ..config()
     };
     let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
@@ -1376,9 +1376,8 @@ async fn defective_corpus_publishes_nothing() {
 
 /// A one-step schedule with the boundary at step zero.
 ///
-/// For orchestration certificates whose asserted behaviour does not depend on trained movement: the
-/// run still reaches the boundary and (when force is present and the options assert a radius) opens
-/// the ladder, at the minimum cost a valid schedule allows.
+/// For orchestration certificates whose asserted behaviour does not depend on trained movement: a
+/// vacuous or forceless run still reaches the boundary at the minimum cost a valid schedule allows.
 fn minimal_schedule() -> TrainingSchedule {
     TrainingSchedule::new(
         NonZero::new(1).expect("the fixture step count is nonzero"),
@@ -1393,7 +1392,7 @@ fn minimal_schedule() -> TrainingSchedule {
 /// The projector fixture's training run.
 ///
 /// Short enough for a test, long enough that the boundary and every rung run.
-fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
+fn projector_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.schedule = TrainingSchedule::new(
         NonZero::new(12).expect("the fixture step count is nonzero"),
@@ -1416,11 +1415,24 @@ fn projector_options(asserted_radius: Option<f32>) -> ProjectorOptions {
         CoincidentEnergy::new(0.5, 0.5).expect("the fixture energy is valid"),
         Positive::new(0.25).expect("the fixture temperature is positive"),
         Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
-        asserted_radius,
-    )
-    .expect("the fixture lens is valid");
+    );
     options.forward_rows = NonZero::new(16).expect("the fixture slice is nonzero");
     options
+}
+
+/// A reviewed-Proximal verdict covering the fixture link row.
+///
+/// The versioned URL names ontology id 2 in the memory corpus's own id space (`memory://2/`), so
+/// the resolution reaches the link row carrying the Proximal force and the boundary measures its
+/// radius from reviewed pairs.
+fn proximal_link_verdicts() -> SuppliedVerdicts {
+    let document = concat!(
+        r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
+        r#""type_verdicts":[{"class":"proximal","relation":"memory:employment-link","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"memory://2/v/1"}]}"#,
+        "\n",
+    );
+    SuppliedVerdicts::from_bytes(document.as_bytes()).expect("the fixture document admits")
 }
 
 /// Reproduces one corpus forward of a published generation's model.
@@ -1494,7 +1506,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
     // The zero force makes the run vacuous by construction (`admit` sees no force at all), so the
     // schedule carries no trained behaviour and one step certifies the same orchestration a longer
     // run would.
-    let mut options = projector_options(None);
+    let mut options = projector_options();
     options.schedule = minimal_schedule();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options.clone()),
@@ -1575,9 +1587,11 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
     let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
     let dataset = dataset();
 
-    // A Proximal override gives the link type full force. The memory dataset's ids carry no store
-    // identity, so the caller must assert the radius for the boundary to freeze.
-    let options = projector_options(Some(1.0));
+    // A Proximal override gives the link type full force, and the reviewed verdict names the
+    // link row in the corpus's own id space, so the boundary measures its radius from the
+    // reviewed pairs.
+    let options = projector_options();
+    let verdicts = proximal_link_verdicts();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options.clone()),
         policy: PolicyOptions {
@@ -1598,6 +1612,7 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         &config,
         Supplies {
             classifier: &fixture_input(),
+            verdicts: Some(&verdicts),
             ..
         },
         &root,
@@ -1618,12 +1633,12 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         .projector
         .as_ref()
         .expect("a trained placement records projector evidence");
-    assert_eq!(
-        evidence.boundary,
-        Some(FrozenRadiusEvidence::Asserted {
-            radius: finite!(1.0)
-        }),
-        "the configured radius supersedes the empty review set"
+    assert!(
+        matches!(
+            evidence.boundary,
+            Some(FrozenRadiusEvidence::Measured { .. })
+        ),
+        "the boundary freezes the radius measured from the reviewed pairs"
     );
 
     let ladder = evidence
@@ -1806,10 +1821,20 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     let dataset = duplicate_dataset();
 
     // The Proximal override gives the link type full force and the
-    // asserted radius freezes the boundary: the whole trained path
-    // runs over the quotient's distinct domain.
+    // reviewed verdict freezes a measured boundary radius: the whole
+    // trained path runs over the quotient's distinct domain. The
+    // byte-identical reviewed pairs measure a small Proximal quantile,
+    // so this corpus wants a Coincident radius below that measurement,
+    // the same ordering the composed energy demands of production.
+    let verdicts = proximal_link_verdicts();
+    let mut options = projector_options();
+    options.lens = RelationLens::new(
+        CoincidentEnergy::new(0.01, 0.5).expect("the fixture energy is valid"),
+        Positive::new(0.25).expect("the fixture temperature is positive"),
+        Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
+    );
     let config = FitConfig {
-        placement: PlacementOptions::Projector(projector_options(Some(1.0))),
+        placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
@@ -1828,6 +1853,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
         &config,
         Supplies {
             classifier: &fixture_input(),
+            verdicts: Some(&verdicts),
             ..
         },
         &root,
@@ -1899,9 +1925,9 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
 
 /// The vacuous placement unblocks a Proximal corpus lacking reviewed coverage.
 ///
-/// A corpus whose relations carry Proximal force refuses to train without reviewed coverage or an
-/// assertion - and the vacuous placement is exactly what unblocks it: the same configuration trains
-/// and publishes with the relation evidence withheld.
+/// A corpus whose relations carry Proximal force refuses to train without reviewed coverage - and
+/// the vacuous placement is exactly what unblocks it: the same configuration trains and publishes
+/// with the relation evidence withheld.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn vacuous_placement_trains_without_reviews() {
@@ -1920,7 +1946,7 @@ async fn vacuous_placement_trains_without_reviews() {
 
     let refused = GenerationRoot::new(scratch("vacuous-refused")).expect("the root should open");
     let refused_config = FitConfig {
-        placement: PlacementOptions::Projector(projector_options(None)),
+        placement: PlacementOptions::Projector(projector_options()),
         policy: policy.clone(),
         ..config()
     };
@@ -1943,11 +1969,11 @@ async fn vacuous_placement_trains_without_reviews() {
                 PlacementError::Train(TrainError::MissingProximalReviews)
             ))),
         ),
-        "proximal force without reviews or an assertion should refuse",
+        "proximal force without reviews should refuse",
     );
 
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
-    let mut options = projector_options(None);
+    let mut options = projector_options();
     options.vacuous = true;
     // The vacuous flag empties the attraction index before admission, so
     // the run is vacuous by construction regardless of the schedule: one
@@ -2026,15 +2052,24 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
 
-    // 0.3 names no rung of the measured schedule: the configuration
+    // 0.3 names no rung of the measured schedule, so the configuration
     // contradicts itself and the fit must refuse to publish. The
-    // asserted radius opens the ladder without a reviewed baseline
-    // segment, and the rejection is a fixed condition-schedule mismatch,
-    // not a function of how long the lens trained: one step certifies
-    // the same refusal a longer run would.
-    let mut options = projector_options(Some(1.0));
+    // reviewed verdict gives the boundary a measured radius. The
+    // rejection is a fixed condition-schedule mismatch that holds at
+    // any training length, so the shortest schedule whose boundary
+    // follows an opening step certifies the refusal a longer run
+    // would hit.
+    let mut options = projector_options();
     options.ladder.canonical = 0.3;
-    options.schedule = minimal_schedule();
+    options.schedule = TrainingSchedule::new(
+        NonZero::new(2).expect("the fixture step count is nonzero"),
+        1,
+        NonZero::new(1).expect("the fixture cadence is nonzero"),
+        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
+        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
+    )
+    .expect("the fixture schedule is valid");
+    let verdicts = proximal_link_verdicts();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {
@@ -2055,6 +2090,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
         &config,
         Supplies {
             classifier: &fixture_input(),
+            verdicts: Some(&verdicts),
             ..
         },
         &root,
@@ -2485,24 +2521,30 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
 }
 
 #[test]
-fn non_identity_corpus_resolves_no_verdict() {
-    // A memory-corpus column keys rows by position, not store
-    // identity: its id type offers no identity a verdict could name,
-    // so every verdict records as unresolved by construction.
+fn plain_number_corpus_resolves_the_memory_scheme() {
+    // A plain-number column derives ids from the memory scheme alone:
+    // the store-identity URL records as unresolved (the control), and
+    // the memory URL reaches the row whose id its authority names.
     let path = write_ontology_identities(&scratch("resolve-width"), (0..4_u64).map(U64::<LE>::new));
 
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
-        r#""type_verdicts":[{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}"#,
+        r#""type_verdicts":["#,
+        r#"{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"},"#,
+        r#"{"class":"proximal","relation":"memory:employment-link","#,
+        r#""reviewer":"Bilal Mahmoud","versioned_url":"memory://2/v/1"}"#,
+        r#"]}"#,
         "\n",
     );
     let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
         .expect("a contract-conforming document admits");
 
     let resolution = resolve_supplied::<U64<LE>>(&path, &supplied)
-        .expect("a positional corpus resolves nothing without failing the stage");
+        .expect("a plain-number corpus resolves the memory scheme");
 
-    assert!(resolution.resolved.is_empty());
+    assert_eq!(resolution.resolved.len(), 1);
+    assert_eq!(resolution.resolved[0].relation, OntologyRowId::new(2));
+    assert_eq!(resolution.resolved[0].placement, PlacementClass::Proximal);
     assert_eq!(resolution.unresolved, 1);
 }

@@ -576,7 +576,7 @@ where
 /// Returns [`None`] for a vacuous boundary: no force means no relation loss to measure.
 fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<RelationEnergy> {
     let radius = match radius {
-        FrozenRadius::Measured { radius } | FrozenRadius::Asserted { radius } => radius,
+        FrozenRadius::Measured { radius } => radius,
         FrozenRadius::Vacuous => return None,
     };
     let proximal = ProximalEnergy::new(radius.get(), options.lens.temperature().get())

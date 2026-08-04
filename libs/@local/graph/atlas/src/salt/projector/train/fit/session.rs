@@ -380,21 +380,18 @@ where
     }
 
     let force = ForceClasses::measure(inputs.attraction);
-    if options.lens.asserted_radius.is_none() {
-        // A measured radius needs the semantic-only baseline in front
-        // of the boundary; measuring on the untrained init map would
-        // freeze a meaningless radius.
-        if force.proximal && options.schedule.boundary == 0 {
-            return Err(TrainError::UnbaselinedRadius);
-        }
+    // A measured radius needs the semantic-only baseline in front of the boundary; measuring on the
+    // untrained init map would freeze a meaningless radius.
+    if force.proximal && options.schedule.boundary == 0 {
+        return Err(TrainError::UnbaselinedRadius);
+    }
 
-        if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
-            return Err(TrainError::MissingProximalReviews);
-        }
+    if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
+        return Err(TrainError::MissingProximalReviews);
+    }
 
-        if force.coincident && !force.proximal {
-            return Err(TrainError::CoincidentWithoutProximal);
-        }
+    if force.coincident && !force.proximal {
+        return Err(TrainError::CoincidentWithoutProximal);
     }
 
     Ok(!force.proximal && !force.coincident)
@@ -405,8 +402,8 @@ where
 /// Measures the reviewed-Proximal `z` population against the boundary's own coordinates, freezes
 /// the Proximal radius, and composes the relation energy.
 ///
-/// On a vacuous run - no attraction force at all - nothing exists to measure or compose, a
-/// configured assertion included. The evidence records the fact and the relation term stays absent.
+/// On a vacuous run - no attraction force at all - nothing exists to measure or compose. The
+/// evidence records the fact and the relation term stays absent.
 fn freeze_radius<N, E, B: AutodiffBackend<FloatElem = f32>>(
     model: &Projector<B>,
     inputs: &TrainerInputs<'_, N, E>,
@@ -450,22 +447,16 @@ where
             .expect("a validated lens epsilon satisfies the calibration domain"),
     );
 
-    let (frozen, radius) = match (calibration.radius, options.lens.asserted_radius) {
-        // `RelationLens::new` refuses a non-finite assertion, so the lens carries a finite value.
-        (_, Some(radius)) => {
-            let radius = Finite::new(radius).expect("a validated lens asserts a finite radius");
-            (radius, FrozenRadius::Asserted { radius })
-        }
+    let (frozen, radius) = match calibration.radius {
         // The quantile is drawn from the locally normalized `z` population, whose values are
         // finite.
-        (Some(radius), None) => {
+        Some(radius) => {
             let radius = Finite::new(radius).expect("a quantile of finite z values is finite");
             (radius, FrozenRadius::Measured { radius })
         }
-        // The entry check admits this run only with reviewed coverage or an assertion. Reaching
-        // here means the two mass walks disagree, so this returns an error rather than composing
-        // from nothing.
-        (None, None) => return Err(TrainError::MissingProximalReviews),
+        // The entry check admits this run only with reviewed coverage. Reaching here means the
+        // two mass walks disagree, so this returns an error rather than composing from nothing.
+        None => return Err(TrainError::MissingProximalReviews),
     };
 
     let proximal = ProximalEnergy::new(frozen.get(), options.lens.temperature.get())

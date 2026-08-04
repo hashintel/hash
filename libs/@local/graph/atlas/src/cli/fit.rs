@@ -102,21 +102,11 @@ pub struct FitArgs {
     #[arg(long)]
     baseline: bool,
 
-    /// Assert the Proximal radius instead of measuring it at the phase boundary.
-    ///
-    /// Finite, above the Coincident radius `0.05`. Contradicts --baseline.
-    #[arg(long, conflicts_with = "baseline")]
-    assert_proximal_radius: Option<f32>,
-
     /// Train the full placement with the relation evidence withheld.
     ///
     /// No reviewed verdicts or radius needed, every other objective term trains. The unblocking
     /// flag for corpora without reviewed-Proximal coverage.
-    #[arg(
-        long,
-        conflicts_with = "baseline",
-        conflicts_with = "assert_proximal_radius"
-    )]
+    #[arg(long, conflicts_with = "baseline")]
     vacuous_placement: bool,
 
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
@@ -386,7 +376,6 @@ impl FitCommand<NoProgress> {
         } else {
             Placement::Projector {
                 steps: args.projector_steps,
-                asserted_radius: args.assert_proximal_radius,
                 vacuous: args.vacuous_placement,
             }
         };

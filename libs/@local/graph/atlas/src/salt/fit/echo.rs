@@ -395,7 +395,6 @@ mod placement {
         coincident_threshold: f32,
         temperature: f32,
         epsilon: f32,
-        asserted_radius: Option<f32>,
     }
 
     /// The protection thresholds' wire form; each channel is `[floor, threshold]`.
@@ -470,7 +469,6 @@ mod placement {
                     coincident_threshold: options.lens.coincident().threshold(),
                     temperature: options.lens.temperature().get(),
                     epsilon: options.lens.epsilon().get(),
-                    asserted_radius: options.lens.asserted_radius(),
                 },
                 protection: ProtectionRecord {
                     hard: [
@@ -648,13 +646,11 @@ mod placement {
                     ))
                 })
             };
-            RelationLens::new(
+            Ok(RelationLens::new(
                 coincident,
                 constant(self.temperature, "temperature")?,
                 constant(self.epsilon, "scale guard")?,
-                self.asserted_radius,
-            )
-            .ok_or_else(|| E::custom("the lens fields do not form a relation lens"))
+            ))
         }
     }
 

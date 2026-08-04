@@ -199,8 +199,6 @@ pub(crate) struct ProjectorEvidence {
 pub(crate) enum FrozenRadiusEvidence {
     /// Measured from the reviewed-Proximal pairs.
     Measured { radius: Finite },
-    /// Asserted by configuration, superseding the measurement.
-    Asserted { radius: Finite },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
 }
@@ -209,7 +207,6 @@ impl From<FrozenRadius> for FrozenRadiusEvidence {
     fn from(radius: FrozenRadius) -> Self {
         match radius {
             FrozenRadius::Measured { radius } => Self::Measured { radius },
-            FrozenRadius::Asserted { radius } => Self::Asserted { radius },
             FrozenRadius::Vacuous => Self::Vacuous,
         }
     }

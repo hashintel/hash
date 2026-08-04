@@ -42,7 +42,7 @@ use crate::{
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
-        projector::train::{RelationLens, TrainingSchedule},
+        projector::train::TrainingSchedule,
         quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
     },
 };
@@ -77,7 +77,7 @@ pub enum ClassifierSource {
 /// How one run places rows on the map.
 ///
 /// Each variant carries exactly the controls its placer consumes.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Placement {
     /// Place at the landmark baseline: the fallback placer, without a training stage.
     Baseline,
@@ -88,11 +88,6 @@ pub enum Placement {
         /// Keeps the ratified options and the midpoint boundary. Absent, the configuration
         /// default trains.
         steps: Option<NonZero<usize>>,
-        /// Assert the Proximal radius instead of measuring it.
-        ///
-        /// The trainer freezes this value where a calibration pass would have measured one.
-        /// Finite, above the Coincident radius.
-        asserted_radius: Option<f32>,
         /// Withhold the relation evidence from the trained placement.
         ///
         /// Every other objective term trains, and the run needs no reviewed verdicts. For corpora
@@ -117,8 +112,7 @@ pub struct Options<P> {
     /// Path of a reviewed-verdicts document to supply to the run.
     ///
     /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
-    /// so a corpus whose relations carry Proximal force needs one (or an asserted radius) to
-    /// train.
+    /// so a corpus whose relations carry Proximal force needs one to train.
     pub verdicts: Option<Utf8PathBuf> = None,
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
@@ -133,7 +127,6 @@ pub struct Options<P> {
     /// How the run places rows on the map.
     pub placement: Placement = Placement::Projector {
         steps: None,
-        asserted_radius: None,
         vacuous: false,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
@@ -217,10 +210,6 @@ pub enum RunError {
     Annotations(AnnotationSupplyError),
     /// The run refused the supplied classifier artifact.
     Classifier(ClassifierSupplyError),
-    /// The run refused the asserted Proximal radius.
-    ///
-    /// The radius must be finite and strictly above the Coincident radius.
-    ProximalRadius(f32),
     /// The run could not reach a verdict.
     Run(RunnerError<PostgresDatasetError, ExternalEmbeddingError>),
 }
@@ -237,11 +226,6 @@ impl core::fmt::Display for RunError {
                 fmt.write_str("the supplied annotation-corpus document was refused")
             }
             Self::Classifier(_) => fmt.write_str("the supplied classifier artifact was refused"),
-            Self::ProximalRadius(radius) => write!(
-                fmt,
-                "the asserted Proximal radius {radius} lies outside its domain: finite and \
-                 strictly above the Coincident radius",
-            ),
             Self::Run(_) => fmt.write_str("the run could not reach a verdict"),
         }
     }
@@ -256,7 +240,6 @@ impl core::error::Error for RunError {
             Self::Annotations(error) => Some(error),
             Self::Classifier(error) => Some(error),
             Self::Run(error) => Some(error),
-            Self::ProximalRadius(_) => None,
         }
     }
 }
@@ -318,21 +301,9 @@ fn quality_thresholds(
 ///
 /// A step-count override rebuilds the ratified options around the shortened schedule; otherwise
 /// the projector controls apply to the configuration default's options.
-///
-/// # Errors
-///
-/// Returns [`RunError::ProximalRadius`] when the asserted radius lies outside the lens domain.
-fn placement_options(
-    placement: Placement,
-    initial: PlacementOptions,
-) -> Result<PlacementOptions, RunError> {
-    let Placement::Projector {
-        steps,
-        asserted_radius,
-        vacuous,
-    } = placement
-    else {
-        return Ok(PlacementOptions::LandmarkBaseline);
+fn placement_options(placement: Placement, initial: PlacementOptions) -> PlacementOptions {
+    let Placement::Projector { steps, vacuous } = placement else {
+        return PlacementOptions::LandmarkBaseline;
     };
 
     let mut projector = match (steps, initial) {
@@ -345,18 +316,9 @@ fn placement_options(
         (None, PlacementOptions::LandmarkBaseline) => ProjectorOptions::ratified(),
     };
 
-    if let Some(radius) = asserted_radius {
-        projector.lens = RelationLens::new(
-            projector.lens.coincident(),
-            projector.lens.temperature(),
-            projector.lens.epsilon(),
-            Some(radius),
-        )
-        .ok_or(RunError::ProximalRadius(radius))?;
-    }
     projector.vacuous = vacuous;
 
-    Ok(PlacementOptions::Projector(projector))
+    PlacementOptions::Projector(projector)
 }
 
 /// Runs one production generation over the store's snapshot at `axes`.
@@ -368,8 +330,8 @@ fn placement_options(
 /// # Errors
 ///
 /// Returns a [`RunError`] naming the step that failed: opening the snapshot transaction, admitting
-/// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents,
-/// validating the asserted Proximal radius, or the run itself.
+/// the supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents, or the
+/// run itself.
 pub(crate) async fn live<P: Progress + Sync>(
     client: &mut Client,
     root: GenerationRoot,
@@ -413,7 +375,7 @@ pub(crate) async fn live<P: Progress + Sync>(
     }
 
     runner_options.fit.placement =
-        placement_options(options.placement, runner_options.fit.placement)?;
+        placement_options(options.placement, runner_options.fit.placement);
 
     let verdicts = options
         .verdicts

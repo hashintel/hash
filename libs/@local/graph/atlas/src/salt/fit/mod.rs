@@ -288,9 +288,7 @@ impl ProjectorOptions {
                 CoincidentEnergy::new(0.05, 1.0).expect("the ratified energy is valid"),
                 const { Positive::new(0.25).expect("the ratified temperature is positive") },
                 const { Positive::new(1.0e-3).expect("the ratified scale guard is positive") },
-                None,
-            )
-            .expect("the ratified lens is valid"),
+            ),
             protection: ProtectionConfig::default(),
             landmark_support: LandmarkSupport { .. },
             forward_rows: NonZero::new(1 << 16).expect("the ratified slice is nonzero"),
