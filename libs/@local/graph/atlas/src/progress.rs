@@ -127,8 +127,8 @@ pub struct DescentIteration {
 ///
 /// Every method is an observation the pipeline reports as it happens; none returns anything the run
 /// acts on, with one deliberate exception: [`projector_sample_size`](Self::projector_sample_size)
-/// is a capability probe whose value is the observer's own appetite, not a lever over the run's
-/// result. The placement the run publishes is identical under every observer.
+/// is a capability probe whose value is the observer's own appetite. The placement the run
+/// publishes is identical under every observer.
 #[expect(
     unused_variables,
     reason = "the default bodies observe nothing; the parameter names document each observation \

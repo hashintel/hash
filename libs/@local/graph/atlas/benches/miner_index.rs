@@ -1,8 +1,8 @@
 //! Wall-time benchmarks for the hard-negative miner's 2D spatial index.
 //!
-//! Mining queries every projected point's k nearest neighbours in the bounded 2D frame, at both
-//! relation-lens extremes, at a configured cadence: one tick is two index builds plus two full
-//! query sweeps, and each build starts from scratch because every point moves between ticks. The
+//! Mining queries every projected point's k nearest neighbours in the bounded 2D frame at both
+//! relation-lens extremes, on a configured cadence. One tick is two index builds plus two full
+//! query sweeps. Each build starts from scratch because every point moves between ticks. The
 //! suite pits `kiddo` against `grid`:
 //!
 //! - `kiddo`: `ImmutableKdTree`, the miner's index. A balanced kd-tree adapts its partition depth

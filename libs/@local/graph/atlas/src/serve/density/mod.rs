@@ -129,7 +129,7 @@ const impl Default for DensityBand {
     }
 }
 
-/// One delivery-cut offset: the depth every zoom's cut gains for one scope.
+/// One delivery-cut offset, the depth every zoom's cut gains for one scope.
 ///
 /// A density policy resolves the offset at a session's bootstrap and a sealed authority token
 /// carries it, so a session serves at one delivery depth for as long as its client holds a token. A
@@ -296,15 +296,15 @@ impl DensityPolicy {
     /// ceiling caps it where the key width runs out, and it is the binding cap exactly when a view
     /// clusters densely enough to saturate below it.
     ///
-    /// Over a contiguous candidate set the saturation cap no longer decides a result on its own:
-    /// counts are constant past `d_sat`, so a deeper offset ties and the tie-break already holds
+    /// Over a contiguous candidate set the saturation cap no longer decides a result on its own.
+    /// Counts are constant past `d_sat`, so a deeper offset ties and the tie-break already holds
     /// the coarser cut. It stays because it makes "no resolution cuts deeper than saturation" true
     /// by construction rather than by that argument.
     ///
     /// An empty view resolves to [`CutOffset::ZERO`] through this same argmin rather than through a
-    /// case of its own: it occupies no cell at any depth, so
-    /// every candidate sits the same shortfall from the band and the tie-break keeps the coarsest.
-    /// No hidden or corpus quantity stands in for the occupancy it lacks.
+    /// case of its own. It occupies no cell at any depth, so every candidate sits the same
+    /// shortfall from the band and the tie-break keeps the coarsest. No hidden or corpus
+    /// quantity stands in for the occupancy it lacks.
     ///
     /// The result may lie outside the band. Counts step by whole subdivisions, so a coarse step can
     /// jump the band and a small, co-located, or saturation-capped view can stay below it.

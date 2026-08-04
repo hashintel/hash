@@ -5,8 +5,8 @@
 //! emitted-assembly inspection alone.
 //!
 //! The measurement defaults to retired instructions, and `MATH_BENCH_EVENT`, a comma-separated
-//! list, selects it: every listed measurement runs the whole suite once, in list order, with the
-//! event suffixed into the benchmark ids (`kernel@cycles/exp_f32x8`), so each event keeps its own
+//! list, selects it: every listed measurement runs the whole suite once in list order. The event
+//! is suffixed into the benchmark ids (`kernel@cycles/exp_f32x8`), so each event keeps its own
 //! statistics lineage and run-over-run change reports compare like with like. The events:
 //! `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls` (cycles
 //! the scheduler issued nothing because execution was waiting, the direct view of dependency-chain

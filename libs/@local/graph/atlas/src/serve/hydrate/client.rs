@@ -97,9 +97,9 @@ const DETAIL_QUERY: &str = "
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
 /// nested values never cross the connection - while `total` counts the whole masked object, the
-/// completeness flag's ground truth. Both read the masked object, so a protected property is
-/// absent from the map and absent from the count: completeness attests the deliverable set, and
-/// `total` against the delivered map is no signal that a withheld property exists.
+/// completeness flag's ground truth. Both read the masked object, so a protected property is absent
+/// from the map and absent from the count. Completeness attests the deliverable set, and `total`
+/// against the delivered map is no signal that a withheld property exists.
 ///
 /// The `label_property` lateral mirrors the `entity_edition_cache` label derivation (migration
 /// V51). The path behind `labels[1]` is the first `allOf` `labelProperty` path that resolves
@@ -353,8 +353,8 @@ impl GraphDatabaseClient {
 
     /// Hydrates the locate response's node columns, aligned to the delivered order.
     ///
-    /// Labels and direct-type URLs for every delivered node; the source - the first delivered
-    /// entity - additionally hydrates its capped simple-valued properties and their completeness.
+    /// Every delivered node hydrates labels and direct-type URLs. The source, the first delivered
+    /// entity, also hydrates its capped simple-valued properties and their completeness.
     /// Entities the store no longer serves read `null` columns and `false` flags.
     ///
     /// # Errors
