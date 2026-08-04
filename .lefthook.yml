@@ -34,7 +34,7 @@ pre-commit:
     python:
       tags: [backend, style]
       glob: "*.py"
-      run: uv run --frozen ruff check --fix {staged_files} && uv run --frozen ruff format {staged_files} || true
+      run: uv run --frozen ruff check --force-exclude --fix {staged_files} && uv run --frozen ruff format --force-exclude {staged_files} || true
       stage_fixed: true
     toml:
       tags: [backend, style]

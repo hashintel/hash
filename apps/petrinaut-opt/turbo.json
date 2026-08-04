@@ -5,6 +5,11 @@
       "inputs": ["pyproject.toml", "scripts/generate_openapi.py", "src/**"],
       "outputs": ["openapi/openapi.json"],
       "passThroughEnv": ["UV_CACHE_DIR"]
+    },
+    "test:unit": {
+      // skips codegen, as that would invalidate the openapi.json validation task
+      "dependsOn": ["^build"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

@@ -4,8 +4,11 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
+
+from repo_chores import sync
 from repo_chores.sync import PYTEST_SCRIPT, assemble_package_json, synchronize
-from repo_chores.workspace import Member
+from repo_chores.workspace import Finding, Member, WorkspaceError
 
 # Check mode
 
@@ -88,7 +91,9 @@ def test_fixes_are_applied_and_idempotent(fixture_repo: Path) -> None:
     assert root_manifest["tool"]["uv"]["workspace"]["members"] == expected_members
     assert root_manifest["tool"]["ruff"]["src"] == expected_members
     assert root_manifest["tool"]["tach"]["source_roots"] == expected_members
-    assert root_manifest["tool"]["pytest"]["ini_options"]["testpaths"] == ["packages/alpha/tests"]
+    test_options = root_manifest["tool"]["pytest"]["ini_options"]
+    assert test_options["testpaths"] == ["packages/alpha/tests"]
+    assert test_options["pythonpath"] == ["packages/alpha"]
 
     root_package_json = json.loads((fixture_repo / "package.json").read_text())
     assert "outside/lib" in root_package_json["workspaces"]["packages"]
@@ -146,6 +151,106 @@ def test_fix_removes_stale_and_duplicate_member_entries(fixture_repo: Path) -> N
         "packages/alpha",
         "packages/beta",
     ]
+
+
+def test_fix_sorts_a_reordered_member_list(fixture_repo: Path) -> None:
+    # A member list holding the right entries in the wrong order used to be a
+    # deviation apply mode could not clear: it reported a fix, wrote nothing,
+    # and left `--check` red on every following run.
+    synchronize(fixture_repo, apply=True)
+    manifest_path = fixture_repo / "pyproject.toml"
+    sorted_members = (
+        'members = [\n    "outside/lib",\n    "packages/alpha",\n    "packages/beta",\n]'
+    )
+    reordered = 'members = [\n    "packages/beta",\n    "outside/lib",\n    "packages/alpha",\n]'
+    manifest_path.write_text(manifest_path.read_text().replace(sorted_members, reordered))
+
+    findings = synchronize(fixture_repo, apply=True)
+
+    assert any("workspace members must list every member, sorted" in f.message for f in findings)
+    root_manifest = tomllib.loads(manifest_path.read_text())
+    assert root_manifest["tool"]["uv"]["workspace"]["members"] == [
+        "outside/lib",
+        "packages/alpha",
+        "packages/beta",
+    ]
+    # The deviation is gone for good: check mode sees only the unfixable one.
+    assert [finding.fixable for finding in synchronize(fixture_repo, apply=False)] == [False]
+
+
+def test_a_comment_line_follows_the_member_it_documents(fixture_repo: Path) -> None:
+    manifest_path = fixture_repo / "pyproject.toml"
+    annotated = 'members = [\n    # the flagship package\n    "packages/alpha",\n]'
+    manifest_path.write_text(
+        manifest_path.read_text().replace('members = [\n    "packages/alpha",\n]', annotated)
+    )
+
+    synchronize(fixture_repo, apply=True)
+
+    # Two members sort ahead of it, so the comment has to move with its own line.
+    assert (
+        "members = [\n"
+        '    "outside/lib",\n'
+        "    # the flagship package\n"
+        '    "packages/alpha",\n'
+        '    "packages/beta",\n'
+        "]"
+    ) in manifest_path.read_text()
+    assert [finding.fixable for finding in synchronize(fixture_repo, apply=False)] == [False]
+
+
+def test_write_refuses_to_claim_a_fix_that_changed_nothing(tmp_path: Path) -> None:
+    path = tmp_path / "pyproject.toml"
+    path.write_text("unchanged")
+
+    with pytest.raises(WorkspaceError, match="changed nothing"):
+        sync._write(
+            path=path,
+            original="unchanged",
+            content="unchanged",
+            findings=[Finding(path="pyproject.toml", message="a deviation")],
+            apply=True,
+        )
+
+
+def test_unfixable_findings_alone_do_not_trip_the_write_check(tmp_path: Path) -> None:
+    path = tmp_path / "pyproject.toml"
+    path.write_text("unchanged")
+
+    sync._write(
+        path=path,
+        original="unchanged",
+        content="unchanged",
+        findings=[Finding(path="pyproject.toml", message="a deviation", fixable=False)],
+        apply=True,
+    )
+
+    assert path.read_text() == "unchanged"
+
+
+def test_workspaces_declared_as_a_bare_list_is_covered(fixture_repo: Path) -> None:
+    package_json_path = fixture_repo / "package.json"
+    data = json.loads(package_json_path.read_text())
+    data["workspaces"] = ["!**/node_modules", "packages/**"]
+    package_json_path.write_text(json.dumps(data, indent=2) + "\n")
+
+    synchronize(fixture_repo, apply=True)
+
+    assert json.loads(package_json_path.read_text())["workspaces"] == [
+        "!**/node_modules",
+        "outside/lib",
+        "packages/**",
+    ]
+
+
+def test_a_root_manifest_without_workspaces_is_a_loud_error(fixture_repo: Path) -> None:
+    package_json_path = fixture_repo / "package.json"
+    data = json.loads(package_json_path.read_text())
+    del data["workspaces"]
+    package_json_path.write_text(json.dumps(data, indent=2) + "\n")
+
+    with pytest.raises(WorkspaceError, match="declares no yarn workspaces list"):
+        synchronize(fixture_repo, apply=False)
 
 
 def test_non_string_member_entries_are_reported_not_clobbered(fixture_repo: Path) -> None:
@@ -224,6 +329,34 @@ def test_assemble_manages_identity_scripts_and_dependencies() -> None:
     assert assembled["dependencies"] == {"@python/alpha-core": "workspace:*"}
 
 
+def test_assemble_keeps_dependencies_outside_the_python_scope() -> None:
+    # A Python package's image can bake in a built JavaScript package; the turbo
+    # edge that rebuilds the image when that package changes is the dependency
+    # declared here, and only the `@python` scope is the sync tool's to own.
+    member = _make_member(workspace_dependencies=("alpha-core",))
+    existing = {
+        "dependencies": {
+            "@hashintel/some-cli": "workspace:*",
+            "@python/withdrawn": "workspace:*",
+        }
+    }
+
+    assembled = assemble_package_json(member, existing)
+
+    assert assembled["dependencies"] == {
+        "@hashintel/some-cli": "workspace:*",
+        "@python/alpha-core": "workspace:*",
+    }
+
+
+def test_assemble_keeps_a_foreign_dependency_when_no_python_source_remains() -> None:
+    existing = {"dependencies": {"@hashintel/some-cli": "workspace:*"}}
+
+    assembled = assemble_package_json(_make_member(), existing)
+
+    assert assembled["dependencies"] == {"@hashintel/some-cli": "workspace:*"}
+
+
 def test_assemble_removes_managed_pytest_script_when_tests_are_gone() -> None:
     existing = {"scripts": {"test:unit": PYTEST_SCRIPT, "custom:thing": "echo hi"}}
 
@@ -241,7 +374,11 @@ def test_assemble_preserves_hand_written_test_script_without_tests_directory() -
     assert _scripts_of(assembled)["test:unit"] == "vitest run"
 
 
-def test_assemble_omits_empty_dependencies() -> None:
-    assembled = assemble_package_json(_make_member(), {"dependencies": {"x": "1"}})
+def test_assemble_omits_dependencies_left_with_nothing_to_declare() -> None:
+    # The last managed edge going takes the key with it, rather than leaving an
+    # empty object behind; an unmanaged edge would keep the key (above).
+    existing = {"dependencies": {"@python/withdrawn": "workspace:*"}}
+
+    assembled = assemble_package_json(_make_member(), existing)
 
     assert "dependencies" not in assembled

@@ -134,9 +134,7 @@ directly, so it returns a single economic objective for each run.
 
 ```python
 with PetrinautClient(
-    model=Path(
-        "libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json"
-    )
+    model=Path("libs/@hashintel/petrinaut-cli/examples/supply-chain-profit-model.json")
 ) as client:
     result = client.run(
         parameters={

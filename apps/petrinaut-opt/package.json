@@ -5,6 +5,7 @@
   "description": "Scenario-parameter optimization for Petrinaut using Optuna",
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
+    "build:docker": "docker buildx build --tag petrinaut-opt --file docker/Dockerfile ../../ --load",
     "codegen": "uv run python -m scripts.generate_openapi",
     "fix:ruff": "uv run --frozen ruff check --fix . && uv run --frozen ruff format .",
     "install:deps": "uv sync",
@@ -12,5 +13,8 @@
     "start": "uv run uvicorn src.optimization_api:app",
     "start:dev": "uv run uvicorn src.optimization_api:app --reload",
     "test:unit": "uv run --frozen pytest tests"
+  },
+  "dependencies": {
+    "@hashintel/petrinaut-cli": "workspace:*"
   }
 }

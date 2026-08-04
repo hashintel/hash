@@ -1,6 +1,6 @@
 """Lint the workspace's dependency requirements.
 
-Two rules, both judged with :mod:`packaging` semantics and reported as
+Three rules, all judged with :mod:`packaging` semantics and reported as
 findings (lint never edits):
 
 - every version range carries a lower and an upper bound (cargo-style, e.g.
@@ -11,20 +11,27 @@ findings (lint never edits):
   errors, so the list shrinks when exemptions expire.
 - URL requirements are rejected: workspace members are wired through
   `[tool.uv.sources]`, and everything else resolves from the registry.
+- a bounded range's floor names the release series the lockfile resolves. A
+  floor below it advertises support for versions nothing in the repository has
+  ever installed, and it is not what `uv add` writes: under `[tool.uv]
+  add-bounds` uv pins the floor to the version it resolved, so a looser floor
+  is something a hand edit introduced.
 
 The entry point is :func:`lint`.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from packaging.requirements import InvalidRequirement, Requirement
 from packaging.utils import canonicalize_name
+from packaging.version import InvalidVersion, Version
 
 from repo_chores.workspace import (
     INSECURE_BOUNDS_ALLOWLIST_KEY,
     Finding,
     Workspace,
+    load_lockfile_versions,
     load_workspace,
 )
 
@@ -54,12 +61,62 @@ def _missing_bounds(requirement: Requirement, /) -> str | None:
             return "has no version bounds at all"
 
 
+def _floor(requirement: Requirement, /) -> Version | None:
+    """Return the oldest version a requirement admits, where one is stated.
+
+    A wildcard release (`==1.2.*`) is read as its series, and a version this
+    module cannot parse returns None rather than a guess.
+    """
+    floors: list[Version] = []
+    for specifier in requirement.specifier:
+        if specifier.operator not in LOWER_BOUND_OPERATORS:
+            continue
+
+        try:
+            floors.append(Version(specifier.version.removesuffix(".*")))
+        except InvalidVersion:
+            return None
+
+    return max(floors, default=None)
+
+
+def _loose_floor_finding(
+    *, path: str, text: str, requirement: Requirement, resolved: str | None
+) -> Finding | None:
+    """Judge a bounded requirement's floor against the version uv resolved.
+
+    Nothing is reported for a distribution absent from the lockfile: that
+    disagreement between manifest and lockfile is what `uv sync --locked`
+    reports, and inventing a second voice for it here would report it twice.
+    """
+    floor = _floor(requirement)
+    if floor is None or resolved is None:
+        return None
+
+    try:
+        installed = Version(resolved)
+    except InvalidVersion:
+        return None
+
+    if (floor.major, floor.minor) == (installed.major, installed.minor):
+        return None
+
+    return Finding(
+        path=path,
+        message=f"`{text}` admits {floor}, older than the resolved {installed};"
+        f" a floor names the series in the lockfile, so raise it to {installed.major}."
+        f"{installed.minor}",
+        fixable=False,
+    )
+
+
 def _lint_requirements(
     *,
     path: str,
     requirements: Iterable[str],
     allowlist: frozenset[str],
     workspace_members: frozenset[str],
+    resolved: Mapping[str, str],
 ) -> tuple[list[Finding], frozenset[str]]:
     """Judge one manifest's requirement strings.
 
@@ -97,6 +154,12 @@ def _lint_requirements(
 
         problem = _missing_bounds(requirement)
         if problem is None:
+            loose_floor = _loose_floor_finding(
+                path=path, text=text, requirement=requirement, resolved=resolved.get(name)
+            )
+            if loose_floor is not None:
+                findings.append(loose_floor)
+
             continue
 
         if name in allowlist:
@@ -137,6 +200,7 @@ def _lint_manifest(
     requirements: tuple[str, ...],
     allowlist: tuple[str, ...],
     workspace_members: frozenset[str],
+    resolved: Mapping[str, str],
 ) -> list[Finding]:
     canonical_allowlist = frozenset(canonicalize_name(name) for name in allowlist)
     findings, used = _lint_requirements(
@@ -144,13 +208,18 @@ def _lint_manifest(
         requirements=requirements,
         allowlist=canonical_allowlist,
         workspace_members=workspace_members,
+        resolved=resolved,
     )
     findings.extend(_stale_exemption_findings(path=path, allowlist=allowlist, used=used))
     return findings
 
 
-def lint_workspace(workspace: Workspace, /) -> list[Finding]:
-    """Judge every manifest's requirements against the dependency rules."""
+def lint_workspace(workspace: Workspace, /, *, resolved: Mapping[str, str]) -> list[Finding]:
+    """Judge every manifest's requirements against the dependency rules.
+
+    `resolved` maps a canonical distribution name to the version the lockfile
+    resolved for it; :func:`lint` reads it from the lockfile.
+    """
     members = frozenset(
         canonicalize_name(member.name) for member in workspace.members if member.name is not None
     )
@@ -160,6 +229,7 @@ def lint_workspace(workspace: Workspace, /) -> list[Finding]:
         requirements=workspace.dev_dependencies,
         allowlist=workspace.insecure_bounds_allowlist,
         workspace_members=members,
+        resolved=resolved,
     )
     for member in workspace.members:
         findings.extend(
@@ -168,6 +238,7 @@ def lint_workspace(workspace: Workspace, /) -> list[Finding]:
                 requirements=member.dependencies + member.dev_dependencies,
                 allowlist=member.insecure_bounds_allowlist,
                 workspace_members=members,
+                resolved=resolved,
             )
         )
 
@@ -176,4 +247,8 @@ def lint_workspace(workspace: Workspace, /) -> list[Finding]:
 
 def lint(root: Path, /) -> list[Finding]:
     """Load the workspace at `root` and judge its dependency requirements."""
-    return lint_workspace(load_workspace(root))
+    resolved = {
+        str(canonicalize_name(name)): version
+        for name, version in load_lockfile_versions(root).items()
+    }
+    return lint_workspace(load_workspace(root), resolved=resolved)

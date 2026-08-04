@@ -8,4 +8,4 @@ mise exec uv -- uv run repo-chores sync
 # Membership or dependency fixes change the workspace graph; refresh the lock
 # and environment again so the result is immediately usable.
 mise exec uv -- uv lock
-mise exec uv -- uv sync
+mise exec uv -- uv sync --all-packages

@@ -8,8 +8,12 @@ are written back to disk:
 - every member declares the workspace's exact requires-python bound,
 - every member's dev group carries the shared ruff (and, with tests, pytest) pins,
 - every member has a package.json wiring it into turbo (`@python/<name>`),
-- the root manifest's ruff `src`, pytest `testpaths`, and tach `source_roots`
-  cover every member.
+- the root manifest's ruff `src`, pytest `testpaths` and `pythonpath`, and
+  tach `source_roots` cover every member.
+
+Every managed array is held in sorted order, which is what makes a deviation
+fixable: a check that accepted any order would report an array as wrong and
+leave apply mode nothing to change.
 
 Manifest edits are made in place; comments, ordering, and formatting survive
 every fix. The entry point is :func:`synchronize`.
@@ -18,7 +22,7 @@ every fix. The entry point is :func:`synchronize`.
 import json
 import shutil
 import subprocess
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path, PurePosixPath
@@ -67,8 +71,28 @@ class ManifestExpectation:
         object.__setattr__(self, "expected", tuple(sorted(set(self.expected))))
 
 
-def _write(*, path: Path, content: str, apply: bool) -> None:
-    """Write `content` to `path` in apply mode; check mode leaves disk untouched."""
+def _write(
+    *, path: Path, original: str | None, content: str, findings: Sequence[Finding], apply: bool
+) -> None:
+    """Write `content` to `path` in apply mode, checking that a claimed fix landed.
+
+    Check mode leaves disk untouched. Either way a fixable finding has to have
+    changed the content: a deviation whose repair the reconciliation cannot
+    express would otherwise be reported as fixed on every run while `--check`
+    stayed red forever, sending the operator back to the command that just did
+    nothing.
+
+    Raises :exc:`WorkspaceError` when a fixable finding produced no change.
+    """
+    if content == original:
+        if any(finding.fixable for finding in findings):
+            raise WorkspaceError(
+                f"{path}: reported a fixable deviation that changed nothing,"
+                " so `--check` cannot clear; this is a defect in `repo-chores sync`"
+            )
+
+        return
+
     if apply:
         path.write_text(content, encoding="utf-8")
 
@@ -151,13 +175,14 @@ def _sync_root_manifest(workspace: Workspace, /, *, apply: bool) -> list[Finding
     """Reconcile the managed arrays of the root manifest.
 
     Managed arrays are the uv workspace members, the ruff src roots, the
-    pytest testpaths, and the tach source roots; each must list exactly the
-    discovered members (or, for testpaths, the members with a tests
-    directory). Arrays containing non-string entries are reported as
-    unfixable and left untouched.
+    pytest testpaths and import roots, and the tach source roots; each must
+    list exactly the discovered members, in sorted order (or, for the pytest
+    arrays, the members with a tests directory). An array whose contents
+    cannot be rewritten safely is reported as unfixable and left untouched.
     """
     manifest_path = workspace.root / "pyproject.toml"
-    document = tomlkit.parse(manifest_path.read_text(encoding="utf-8"))
+    original = manifest_path.read_text(encoding="utf-8")
+    document = tomlkit.parse(original)
     findings: list[Finding] = []
 
     member_directories = tuple(member.directory for member in _named_members(workspace))
@@ -184,6 +209,17 @@ def _sync_root_manifest(workspace: Workspace, /, *, apply: bool) -> list[Finding
             expected=tuple(test_directories),
             description="pytest testpaths",
         ),
+        # A member's tests import its modules by the names its own directory
+        # exposes, so collecting them from the root needs that directory on
+        # sys.path; without it the testpaths above fail collection.
+        ManifestExpectation(
+            table_path=("tool", "pytest", "ini_options"),
+            key="pythonpath",
+            expected=tuple(
+                member.directory for member in _named_members(workspace) if member.has_tests
+            ),
+            description="pytest import roots",
+        ),
         ManifestExpectation(
             table_path=("tool", "tach"),
             key="source_roots",
@@ -197,6 +233,9 @@ def _sync_root_manifest(workspace: Workspace, /, *, apply: bool) -> list[Finding
         current = navigate_to_array(table, path=(expectation.key,))
         current_items = list(array_to_str(current))
 
+        if tuple(current_items) == expectation.expected:
+            continue
+
         if any(item is None for item in current_items):
             findings.append(
                 Finding(
@@ -207,22 +246,67 @@ def _sync_root_manifest(workspace: Workspace, /, *, apply: bool) -> list[Finding
             )
             continue
 
-        if tuple(current_items) == expectation.expected:
-            continue
-
         findings.append(
             Finding(
                 path="pyproject.toml",
-                message=f"{expectation.description} must list every member:"
+                message=f"{expectation.description} must list every member, sorted:"
                 f" {', '.join(expectation.expected)}",
             )
         )
         reconcile_string_array(current, expected=expectation.expected)
 
-    if findings:
-        _write(path=manifest_path, content=tomlkit.dumps(document), apply=apply)
+    _write(
+        path=manifest_path,
+        original=original,
+        content=tomlkit.dumps(document),
+        findings=findings,
+        apply=apply,
+    )
 
     return findings
+
+
+def _yarn_workspace_globs(data: Mapping[str, object], /, *, path: Path) -> tuple[object, ...]:
+    """Return the yarn workspace globs declared by a root package.json, in order.
+
+    yarn reads both `"workspaces": ["packages/*"]` and
+    `"workspaces": {"packages": ["packages/*"]}`, so both are accepted here and
+    :func:`_with_yarn_workspace_globs` writes back into whichever one the
+    manifest uses.
+
+    Raises :exc:`WorkspaceError` when neither shape is present: a root manifest
+    with no workspace globs is not the root this tool was pointed at, and
+    creating the key would be a decision about the repository's shape rather
+    than a fix.
+    """
+    match data.get("workspaces"):
+        case list() as globs:
+            return tuple(globs)
+        case {"packages": list() as globs}:
+            return tuple(globs)
+        case _:
+            raise WorkspaceError(
+                f"{path} declares no yarn workspaces list; turbo discovers packages"
+                " through workspaces (or workspaces.packages)"
+            )
+
+
+def _with_yarn_workspace_globs(
+    data: Mapping[str, object], /, *, globs: Iterable[str]
+) -> dict[str, object]:
+    """Return the manifest with `globs` in place of its declared workspace globs.
+
+    The declaration shape and every sibling key survive; only the glob list
+    itself is replaced, and the manifest is rebuilt rather than mutated so the
+    caller's `data` stays the state it read.
+    """
+    match data.get("workspaces"):
+        case list():
+            return {**data, "workspaces": list(globs)}
+        case Mapping() as workspaces:
+            return {**data, "workspaces": {**workspaces, "packages": list(globs)}}
+        case _:  # pragma: no cover - _yarn_workspace_globs rejects every other shape
+            raise WorkspaceError("the manifest declares no yarn workspaces list")
 
 
 def _sync_root_package_json(workspace: Workspace, /, *, apply: bool) -> list[Finding]:
@@ -233,22 +317,37 @@ def _sync_root_package_json(workspace: Workspace, /, *, apply: bool) -> list[Fin
     path-aware glob semantics (`*` stays within one segment, `**` recurses),
     matching how yarn reads the patterns. Missing members are added as
     explicit entries and the list is kept sorted.
+
+    Raises :exc:`WorkspaceError` when the manifest is not a JSON object or
+    declares no workspace globs.
     """
     package_json_path = workspace.root / "package.json"
-    data = json.loads(package_json_path.read_text(encoding="utf-8"))
+    original = package_json_path.read_text(encoding="utf-8")
+    data: Mapping[str, object] = json.loads(original)
+    if not isinstance(data, Mapping):
+        raise WorkspaceError(f"{package_json_path} is not a JSON object")
 
-    patterns = [
-        pattern
-        for pattern in data.get("workspaces", {}).get("packages", [])
-        if isinstance(pattern, str) and not pattern.startswith("!")
-    ]
+    globs = _yarn_workspace_globs(data, path=package_json_path)
+    patterns = [glob for glob in globs if isinstance(glob, str)]
+    if len(patterns) != len(globs):
+        return [
+            Finding(
+                path="package.json",
+                message="workspaces globs must only contain strings",
+                fixable=False,
+            )
+        ]
+
+    inclusions = [pattern for pattern in patterns if not pattern.startswith("!")]
 
     findings: list[Finding] = []
+    uncovered: list[str] = []
     for member in _named_members(workspace):
         directory = PurePosixPath(member.directory)
-        if any(directory.full_match(pattern) for pattern in patterns):
+        if any(directory.full_match(pattern) for pattern in inclusions):
             continue
 
+        uncovered.append(member.directory)
         findings.append(
             Finding(
                 path="package.json",
@@ -258,11 +357,15 @@ def _sync_root_package_json(workspace: Workspace, /, *, apply: bool) -> list[Fin
             )
         )
 
-        data["workspaces"]["packages"] = sorted({*data["workspaces"]["packages"], member.directory})
-
-    if findings:
-        content = _format_package_json(json.dumps(data), root=workspace.root)
-        _write(path=package_json_path, content=content, apply=apply)
+    if uncovered:
+        updated = _with_yarn_workspace_globs(data, globs=sorted({*patterns, *uncovered}))
+        _write(
+            path=package_json_path,
+            original=original,
+            content=_format_package_json(json.dumps(updated), root=workspace.root),
+            findings=findings,
+            apply=apply,
+        )
 
     return findings
 
@@ -353,7 +456,8 @@ def _sync_member_dev_group(
 def _sync_member_manifest(workspace: Workspace, member: Member, /, *, apply: bool) -> list[Finding]:
     """Align a member manifest with the workspace: requires-python and tool pins."""
     manifest_path = workspace.root / member.directory / "pyproject.toml"
-    document = tomlkit.parse(manifest_path.read_text(encoding="utf-8"))
+    original = manifest_path.read_text(encoding="utf-8")
+    document = tomlkit.parse(original)
     findings: list[Finding] = []
 
     if member.requires_python != workspace.requires_python:
@@ -370,8 +474,13 @@ def _sync_member_manifest(workspace: Workspace, member: Member, /, *, apply: boo
 
     findings.extend(_sync_member_dev_group(workspace, member, document=document))
 
-    if findings:
-        _write(path=manifest_path, content=tomlkit.dumps(document), apply=apply)
+    _write(
+        path=manifest_path,
+        original=original,
+        content=tomlkit.dumps(document),
+        findings=findings,
+        apply=apply,
+    )
 
     return findings
 
@@ -381,15 +490,19 @@ def assemble_package_json(
 ) -> dict[str, object]:
     """Assemble the package.json contents wiring a member into turbo.
 
-    Managed keys (name, version, private, the ruff and pytest scripts, and
-    the dependencies mirroring the member's workspace dependencies) are
-    overwritten; everything else in `existing`, including hand-written
-    scripts, is preserved. Key and script ordering is left to the repository
-    formatter, which owns the canonical package.json layout.
+    Managed keys are name, version, private, the ruff and pytest scripts, and
+    the `@python`-scoped dependencies mirroring the member's uv workspace
+    dependencies; each is overwritten. Everything else in `existing` is
+    preserved: hand-written scripts, and dependencies outside the `@python`
+    scope, which is how a Python package declares an edge to a JavaScript
+    workspace package its image or tests build. Key and script ordering is left
+    to the repository formatter, which owns the canonical package.json layout.
     """
     data: dict[str, object] = dict(existing or {})
     scripts = data.get("scripts")
     scripts = dict(scripts) if isinstance(scripts, dict) else {}
+    declared = data.get("dependencies")
+    declared = dict(declared) if isinstance(declared, dict) else {}
 
     scripts["fix:ruff"] = RUFF_FIX_SCRIPT
     scripts["lint:ruff"] = RUFF_LINT_SCRIPT
@@ -406,8 +519,10 @@ def assemble_package_json(
     data["scripts"] = scripts
 
     dependencies = {
-        f"{NPM_SCOPE}/{dependency}": "workspace:*" for dependency in member.workspace_dependencies
-    }
+        name: specifier
+        for name, specifier in declared.items()
+        if not (isinstance(name, str) and name.startswith(f"{NPM_SCOPE}/"))
+    } | {f"{NPM_SCOPE}/{dependency}": "workspace:*" for dependency in member.workspace_dependencies}
     if dependencies:
         data["dependencies"] = dependencies
     else:
@@ -431,14 +546,22 @@ def _sync_member_package_json(
     if original == expected:
         return []
 
-    _write(path=package_json_path, content=expected, apply=apply)
-    return [
+    findings = [
         Finding(
             path=f"{member.directory}/package.json",
             message="turbo wiring is missing or out of date"
             f" (managed by `repo-chores sync`, name {NPM_SCOPE}/{member.name})",
         )
     ]
+    _write(
+        path=package_json_path,
+        original=original,
+        content=expected,
+        findings=findings,
+        apply=apply,
+    )
+
+    return findings
 
 
 def synchronize(root: Path, /, *, apply: bool) -> list[Finding]:

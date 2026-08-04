@@ -140,6 +140,37 @@ def _insecure_bounds_allowlist(manifest: Mapping[str, object], /) -> tuple[str, 
     return _str_entries(_table_at(manifest, "tool", "hash"), INSECURE_BOUNDS_ALLOWLIST_KEY)
 
 
+def load_lockfile_versions(root: Path, /) -> Mapping[str, str]:
+    """Read the version uv resolved for every distribution in the lockfile.
+
+    Names come back as the lockfile spells them; a caller comparing against
+    requirement names canonicalizes both sides.
+
+    Raises :exc:`WorkspaceError` when the lockfile is missing or holds no
+    package list. Resolved versions are what a dependency range is judged
+    against, so an absent lockfile has to fail rather than pass everything.
+    """
+    lockfile_path = root / "uv.lock"
+    if not lockfile_path.is_file():
+        raise WorkspaceError(f"{lockfile_path} does not exist; run `uv lock`")
+
+    packages = _load_toml(lockfile_path).get("package")
+    if not isinstance(packages, list):
+        raise WorkspaceError(f"{lockfile_path} declares no [[package]] entries")
+
+    versions: dict[str, str] = {}
+    for package in packages:
+        if not _is_table(package):
+            continue
+
+        name = _str_at(package, "name")
+        version = _str_at(package, "version")
+        if name is not None and version is not None:
+            versions[name] = version
+
+    return versions
+
+
 def find_workspace_root(start: Path, /) -> Path:
     """Walk upwards from `start` to the manifest declaring the uv workspace.
 

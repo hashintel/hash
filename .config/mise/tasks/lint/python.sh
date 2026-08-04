@@ -11,7 +11,7 @@ run() {
 
 # `--locked` doubles as the uv.lock stability check: it fails if the lockfile
 # is out of sync with the workspace manifests.
-run uv sync --locked
+run uv sync --locked --all-packages
 # Boundaries: explicit workspace membership, uniform requires-python, shared
 # tool pins, and generated package.json turbo wiring.
 run uv run --frozen repo-chores sync --check

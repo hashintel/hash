@@ -123,6 +123,7 @@
     ".github/actions/**",
     ".github/scripts/**",
     ".github/workflows/**",
+    "libs/@local/repo-chores/python/repo_chores/prune.py",
     // Dot-files
     ".*",
     ".cargo/**",

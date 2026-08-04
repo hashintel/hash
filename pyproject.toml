@@ -42,6 +42,13 @@ testpaths = [
     "apps/petrinaut-opt/tests",
     "libs/@local/repo-chores/python/tests",
 ]
+# Managed by `mise run sync:python`. A member's tests import its modules by the
+# names its own directory exposes, the way its own pytest configuration does, so
+# collecting the testpaths above from the root needs each member directory here.
+pythonpath = [
+    "apps/petrinaut-opt",
+    "libs/@local/repo-chores/python",
+]
 
 [tool.ruff]
 # Linter: strictest rule set, exceptions curated below. Formatter: next style epoch.

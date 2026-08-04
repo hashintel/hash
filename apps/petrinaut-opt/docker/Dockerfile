@@ -4,9 +4,9 @@
 # docker build -f apps/petrinaut-opt/docker/Dockerfile .
 
 ARG NODE_VERSION=22
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION=3.14
 ARG TURBO_VERSION=2.6.3
-ARG UV_VERSION=0.11.18
+ARG UV_VERSION=0.11.28
 
 
 FROM node:${NODE_VERSION}-bookworm-slim AS cli-pruner
@@ -79,10 +79,14 @@ WORKDIR /app
 COPY --from=uv /uv /usr/local/bin/uv
 
 # Install locked Python dependencies independently from the application source
-# for better layer caching. The project itself is imported directly from /app.
-COPY apps/petrinaut-opt/pyproject.toml apps/petrinaut-opt/uv.lock ./
+# for better layer caching. One lockfile covers the whole Python workspace, so
+# resolution reads the workspace root manifest next to this member's own, and
+# `--package` narrows the install to this service's runtime dependencies. The
+# service itself is imported directly from /app.
+COPY pyproject.toml uv.lock ./
+COPY apps/petrinaut-opt/pyproject.toml apps/petrinaut-opt/pyproject.toml
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --frozen --no-dev --no-install-workspace --package petrinaut-optimization
 
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runner

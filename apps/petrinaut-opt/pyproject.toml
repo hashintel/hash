@@ -5,15 +5,16 @@ description = "Scenario-parameter optimization for Petrinaut using Optuna"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "fastapi>=0.128.8",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
-    "opentelemetry-instrumentation-fastapi>=0.65b0",
-    "opentelemetry-sdk>=1.44.0",
-    "optuna>=3.6",
+    "fastapi>=0.139.0,<0.140.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0,<2.0.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0,<2.0.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66.0",
+    "opentelemetry-sdk>=1.44.0,<2.0.0",
+    "optuna>=4.9.0,<5.0.0",
     "pydantic>=2.13.4,<3.0.0",
-    "python-dotenv>=1.0.0",
-    "uvicorn[standard]>=0.39.0",
+    "python-dotenv>=1.2.0,<2.0.0",
+    "starlette>=1.3.1,<2.0.0",
+    "uvicorn[standard]>=0.51.0,<0.52.0",
 ]
 
 [dependency-groups]

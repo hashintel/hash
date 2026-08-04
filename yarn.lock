@@ -6923,7 +6923,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli":
+"@hashintel/petrinaut-cli@workspace:*, @hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-cli@workspace:libs/@hashintel/petrinaut-cli"
   dependencies:
@@ -11178,6 +11178,8 @@ __metadata:
 "@python/petrinaut-optimization@workspace:*, @python/petrinaut-optimization@workspace:apps/petrinaut-opt":
   version: 0.0.0-use.local
   resolution: "@python/petrinaut-optimization@workspace:apps/petrinaut-opt"
+  dependencies:
+    "@hashintel/petrinaut-cli": "workspace:*"
   languageName: unknown
   linkType: soft
 
