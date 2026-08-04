@@ -1,5 +1,33 @@
 # @hashintel/ds-components
 
+## 0.3.0
+
+### Minor Changes
+
+- [#9123](https://github.com/hashintel/hash/pull/9123) [`46ddd67`](https://github.com/hashintel/hash/commit/46ddd67ee03bb30a64fab6de4bdcd26221be7752) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Refactors avatar component to new api + UI
+
+- [#8912](https://github.com/hashintel/hash/pull/8912) [`4681616`](https://github.com/hashintel/hash/commit/468161636972a3352890445568c0ac062469631d) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - New UI and api for Checkbox component (breaking change)
+
+### Patch Changes
+
+- [#9019](https://github.com/hashintel/hash/pull/9019) [`7931c7a`](https://github.com/hashintel/hash/commit/7931c7a9fe52c37d0be47bec1f9c3e391c55bdc0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Popover component
+
+- [#8995](https://github.com/hashintel/hash/pull/8995) [`5db8b5d`](https://github.com/hashintel/hash/commit/5db8b5d53b45bb08e5a6717a6a1cc2770f2bcadf) Thanks [@claude](https://github.com/apps/claude)! - Added `useScrollLock` hook (moved from hash-frontend), sharing scrollbar-size measurement with `useAvoidScrollWidthChange` via a new internal `scrollbar-size` util
+
+- [#9026](https://github.com/hashintel/hash/pull/9026) [`0cb749d`](https://github.com/hashintel/hash/commit/0cb749d4f8e257328c81ce2d722b6a2e203818bf) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Added gripVertical icon
+
+- [#8865](https://github.com/hashintel/hash/pull/8865) [`8494d8a`](https://github.com/hashintel/hash/commit/8494d8a91782a68d5855f88aeaf1a975e0f3a2e4) Thanks [@CiaranMn](https://github.com/CiaranMn)! - New icons: trend arrows, file lines, grid, print, puzzle piece, truck
+
+- [#8833](https://github.com/hashintel/hash/pull/8833) [`d0af60d`](https://github.com/hashintel/hash/commit/d0af60dfdb56a8052dbf2230d8e2a0a7584e56a8) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Menu component to ds
+
+- [#8842](https://github.com/hashintel/hash/pull/8842) [`0aadff3`](https://github.com/hashintel/hash/commit/0aadff3546ac85767911589ac2fe6544e8a78ae5) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Added Select component
+
+- [#8923](https://github.com/hashintel/hash/pull/8923) [`aaaddd6`](https://github.com/hashintel/hash/commit/aaaddd62ebce44795b16ffc172cd9a9c9a57ae7b) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Added CheckboxGroup and RadioGroup components
+
+- [#8871](https://github.com/hashintel/hash/pull/8871) [`343cc4a`](https://github.com/hashintel/hash/commit/343cc4aa57eac8e1bb44db1f165365d1d0cf23a2) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add Toggle component
+
+- [#9130](https://github.com/hashintel/hash/pull/9130) [`3e52d9a`](https://github.com/hashintel/hash/commit/3e52d9a23ab99522555d5bcf35fed536ee20b077) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add chip component
+
 ## 0.2.2
 
 ### Patch Changes
