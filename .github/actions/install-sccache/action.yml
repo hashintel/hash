@@ -12,7 +12,6 @@ runs:
       id: secrets
       uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
       with:
-        exportToken: true
         url: ${{ inputs.vault_address }}
         method: jwt
         role: dev

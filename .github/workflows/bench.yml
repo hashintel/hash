@@ -163,7 +163,6 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
           role: dev
@@ -380,7 +379,6 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          exportToken: true
           url: ${{ env.VAULT_ADDR }}
           method: jwt
           role: dev
