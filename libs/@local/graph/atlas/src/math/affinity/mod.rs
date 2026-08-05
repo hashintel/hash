@@ -39,7 +39,8 @@ use super::{
 };
 
 mod fit;
-pub use self::fit::AffinityFitConfig;
+#[cfg(test)]
+pub(crate) use self::fit::AffinityFitConfig;
 
 #[cfg(test)]
 mod tests;
@@ -52,9 +53,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{AffinityCurve, Vec2};
-///
+/// ```ignore
 /// let curve = AffinityCurve::new(1.577, 0.895).expect("parameters are positive and finite");
 ///
 /// // Affinity is 1 at zero distance and falls off monotonically.
@@ -67,7 +66,7 @@ mod tests;
 /// assert_eq!(gradient.y(), 0.0);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct AffinityCurve {
+pub(crate) struct AffinityCurve {
     a: f32,
     b: f32,
 }
@@ -79,7 +78,7 @@ impl AffinityCurve {
     /// sampled pair can cause, before the learning rate scales it. A displacement bound takes its
     /// scale from the frame it moves in: the clip and the caller's layout extent fix one ratio, so
     /// a caller sizing its initial frame sizes it against this constant.
-    pub const GRADIENT_CLIP: f32 = 4.0;
+    pub(crate) const GRADIENT_CLIP: f32 = 4.0;
     /// Additive guard in the repulsion denominator.
     ///
     /// Keeps the coefficient finite as the squared distance approaches zero, bounding the repulsion
@@ -92,21 +91,21 @@ impl AffinityCurve {
     /// expressions divide by `a`-scaled powers and multiply by `b`, so zero, negative, or
     /// non-finite parameters produce meaningless layouts.
     #[must_use]
-    pub fn new(a: f32, b: f32) -> Option<Self> {
+    pub(crate) fn new(a: f32, b: f32) -> Option<Self> {
         (a.is_finite() && a > 0.0 && b.is_finite() && b > 0.0).then_some(Self { a, b })
     }
 
     /// Returns the `a` parameter.
     #[inline]
     #[must_use]
-    pub const fn a(self) -> f32 {
+    pub(crate) const fn a(self) -> f32 {
         self.a
     }
 
     /// Returns the `b` parameter.
     #[inline]
     #[must_use]
-    pub const fn b(self) -> f32 {
+    pub(crate) const fn b(self) -> f32 {
         self.b
     }
 
@@ -115,7 +114,7 @@ impl AffinityCurve {
     /// The affinity is `1` at distance zero and falls monotonically toward zero; it is the
     /// low-dimensional edge probability the layout optimizes toward.
     #[must_use]
-    pub fn affinity(self, distance_squared: f32) -> f32 {
+    pub(crate) fn affinity(self, distance_squared: f32) -> f32 {
         if distance_squared <= 0.0 {
             return 1.0;
         }
@@ -131,7 +130,7 @@ impl AffinityCurve {
     ///
     /// Coincident pairs receive a zero gradient.
     #[must_use]
-    pub fn attraction_x4(self, from: Vec2x4T, to: Vec2x4T) -> Vec2x4T {
+    pub(crate) fn attraction_x4(self, from: Vec2x4T, to: Vec2x4T) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
 
         // Shared power: d^(2b - 2), with d^(2b) recovered by one multiply.
@@ -159,7 +158,12 @@ impl AffinityCurve {
     ///
     /// Coincident pairs receive a zero gradient.
     #[must_use]
-    pub fn repulsion_x4(self, from: Vec2x4T, to: Vec2x4T, repulsion_strength: f32) -> Vec2x4T {
+    pub(crate) fn repulsion_x4(
+        self,
+        from: Vec2x4T,
+        to: Vec2x4T,
+        repulsion_strength: f32,
+    ) -> Vec2x4T {
         let distance_squared = from.distance_squared(to);
 
         let power = pow_f32x4(distance_squared, Simd::splat(self.b));
@@ -180,7 +184,7 @@ impl AffinityCurve {
     /// Scalar twin of [`attraction_x4`](Self::attraction_x4) for loop remainders; the semantics are
     /// identical.
     #[must_use]
-    pub fn attraction(self, from: Vec2, to: Vec2) -> Vec2 {
+    pub(crate) fn attraction(self, from: Vec2, to: Vec2) -> Vec2 {
         let distance_squared = from.distance_squared(to);
         if distance_squared <= 0.0 {
             return Vec2::ZERO;
@@ -198,7 +202,7 @@ impl AffinityCurve {
     /// Scalar twin of [`repulsion_x4`](Self::repulsion_x4) for loop remainders; the semantics are
     /// identical.
     #[must_use]
-    pub fn repulsion(self, from: Vec2, to: Vec2, repulsion_strength: f32) -> Vec2 {
+    pub(crate) fn repulsion(self, from: Vec2, to: Vec2, repulsion_strength: f32) -> Vec2 {
         let distance_squared = from.distance_squared(to);
         if distance_squared <= 0.0 {
             return Vec2::ZERO;

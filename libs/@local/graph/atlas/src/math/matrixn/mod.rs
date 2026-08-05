@@ -28,9 +28,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::MatrixN;
-///
+/// ```ignore
 /// let mut matrix = MatrixN::<32>::zeroed(2);
 /// matrix.rows_mut()[1].as_array_mut()[0] = 1.0;
 ///
@@ -38,7 +36,7 @@ mod tests;
 /// assert_eq!(matrix.rows()[0].as_array()[0], 0.0);
 /// assert_eq!(matrix.rows()[1].as_array()[0], 1.0);
 /// ```
-pub struct MatrixN<const N: usize, A: Allocator = Global> {
+pub(crate) struct MatrixN<const N: usize, A: Allocator = Global> {
     ptr: NonNull<f32>,
     rows: usize,
     alloc: A,
@@ -51,7 +49,7 @@ impl<const N: usize> MatrixN<N> {
     /// [`rows_mut`](Self::rows_mut).
     #[inline]
     #[must_use]
-    pub fn zeroed(rows: usize) -> Self {
+    pub(crate) fn zeroed(rows: usize) -> Self {
         Self::zeroed_in(rows, Global)
     }
 }
@@ -89,7 +87,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
-    pub fn zeroed_in(rows: usize, alloc: A) -> Self {
+    pub(crate) fn zeroed_in(rows: usize, alloc: A) -> Self {
         let layout = Self::layout(rows);
         let Ok(allocation) = alloc.allocate_zeroed(layout) else {
             alloc::alloc::handle_alloc_error(layout)
@@ -106,14 +104,14 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Returns the number of rows.
     #[inline]
     #[must_use]
-    pub const fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.rows
     }
 
     /// Returns whether the matrix has no rows.
     #[inline]
     #[must_use]
-    pub const fn is_empty(&self) -> bool {
+    pub(crate) const fn is_empty(&self) -> bool {
         self.rows == 0
     }
 
@@ -122,7 +120,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Row `i` occupies components `N · i` through `N · i + N - 1`.
     #[inline]
     #[must_use]
-    pub const fn as_components(&self) -> &[f32] {
+    pub(crate) const fn as_components(&self) -> &[f32] {
         // SAFETY: `ptr` owns an initialized buffer of `rows · N` components for as long as `self`
         // lives.
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.rows * N) }
@@ -131,7 +129,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Returns the components as one mutable row-major slice.
     #[inline]
     #[must_use]
-    pub const fn as_components_mut(&mut self) -> &mut [f32] {
+    pub(crate) const fn as_components_mut(&mut self) -> &mut [f32] {
         // SAFETY: `ptr` owns an initialized buffer of `rows · N` components for as long as `self`
         // lives. The exclusive borrow of `self` guards the exclusive reference.
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.rows * N) }
@@ -140,12 +138,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Views the matrix as its aligned rows.
     #[inline]
     #[must_use]
-    #[expect(
-        clippy::missing_panics_doc,
-        reason = "construction establishes the alignment and whole-row invariants the expect \
-                  re-checks"
-    )]
-    pub fn rows(&self) -> &[AlignedVecN<N>] {
+    pub(crate) fn rows(&self) -> &[AlignedVecN<N>] {
         AlignedVecN::from_slice(self.as_components())
             .expect("the allocation is SIMD-aligned and holds whole rows by construction")
     }
@@ -153,12 +146,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// Views the matrix as its aligned rows, mutably.
     #[inline]
     #[must_use]
-    #[expect(
-        clippy::missing_panics_doc,
-        reason = "construction establishes the alignment and whole-row invariants the expect \
-                  re-checks"
-    )]
-    pub fn rows_mut(&mut self) -> &mut [AlignedVecN<N>] {
+    pub(crate) fn rows_mut(&mut self) -> &mut [AlignedVecN<N>] {
         AlignedVecN::from_slice_mut(self.as_components_mut())
             .expect("the allocation is SIMD-aligned and holds whole rows by construction")
     }
@@ -171,7 +159,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// width is a multiple of the lane width by construction.
     #[inline]
     #[must_use]
-    pub fn lanes(&self) -> &[f32x8] {
+    pub(crate) fn lanes(&self) -> &[f32x8] {
         let (prefix, lanes, suffix) = self.as_components().as_simd();
         debug_assert!(
             prefix.is_empty() && suffix.is_empty(),
@@ -187,7 +175,7 @@ impl<const N: usize, A: Allocator> MatrixN<N, A> {
     /// in place.
     #[inline]
     #[must_use]
-    pub fn lanes_mut(&mut self) -> &mut [f32x8] {
+    pub(crate) fn lanes_mut(&mut self) -> &mut [f32x8] {
         let (prefix, lanes, suffix) = self.as_components_mut().as_simd_mut();
         debug_assert!(
             prefix.is_empty() && suffix.is_empty(),

@@ -51,9 +51,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Rotation, Similarity, Vec2};
-///
+/// ```ignore
 /// // Double the size, quarter-turn counterclockwise, then move right.
 /// let similarity = Similarity::new(2.0, Rotation::from_cos_sin(0.0, 1.0), Vec2::new(10.0, 0.0))
 ///     .expect("scale is normal and positive");
@@ -76,7 +74,7 @@ mod tests;
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
-pub struct Similarity {
+pub(crate) struct Similarity {
     scale: f32,
     rotation: Rotation,
     translation: Vec2,
@@ -84,7 +82,7 @@ pub struct Similarity {
 
 impl Similarity {
     /// The similarity that maps every vector to itself.
-    pub const IDENTITY: Self = Self {
+    pub(crate) const IDENTITY: Self = Self {
         scale: 1.0,
         rotation: Rotation::IDENTITY,
         translation: Vec2::ZERO,
@@ -98,7 +96,7 @@ impl Similarity {
     /// reciprocals of accepted scales are themselves accepted.
     #[inline]
     #[must_use]
-    pub const fn new(scale: f32, rotation: Rotation, translation: Vec2) -> Option<Self> {
+    pub(crate) const fn new(scale: f32, rotation: Rotation, translation: Vec2) -> Option<Self> {
         if !scale.is_normal() || scale <= 0.0 || !(1.0 / scale).is_normal() {
             return None;
         }
@@ -113,21 +111,21 @@ impl Similarity {
     /// Returns the uniform scale factor.
     #[inline]
     #[must_use]
-    pub const fn scale(self) -> f32 {
+    pub(crate) const fn scale(self) -> f32 {
         self.scale
     }
 
     /// Returns the rotation about the origin.
     #[inline]
     #[must_use]
-    pub const fn rotation(self) -> Rotation {
+    pub(crate) const fn rotation(self) -> Rotation {
         self.rotation
     }
 
     /// Returns the translation applied after scale and rotation.
     #[inline]
     #[must_use]
-    pub const fn translation(self) -> Vec2 {
+    pub(crate) const fn translation(self) -> Vec2 {
         self.translation
     }
 
@@ -141,7 +139,7 @@ impl Similarity {
     /// composition is not closed and the revalidation is what upholds the type's invariant.
     #[inline]
     #[must_use]
-    pub const fn then(self, next: Self) -> Option<Self> {
+    pub(crate) const fn then(self, next: Self) -> Option<Self> {
         let moved = next.rotation.apply(self.translation);
 
         Self::new(
@@ -161,7 +159,7 @@ impl Similarity {
     /// its inverse reproduces the input up to floating-point rounding.
     #[inline]
     #[must_use]
-    pub const fn inverse(self) -> Self {
+    pub(crate) const fn inverse(self) -> Self {
         let inverse_scale = 1.0 / self.scale;
         let rotation = self.rotation.inverse();
         let moved = rotation.apply(self.translation);
@@ -179,7 +177,7 @@ impl Similarity {
     /// translation.
     #[inline]
     #[must_use]
-    pub const fn apply(self, vec: Vec2) -> Vec2 {
+    pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
         let rotated = self.rotation.apply(vec);
 
         Vec2::new(
@@ -197,7 +195,7 @@ impl Similarity {
     /// many units in the last place of the result itself where the terms cancel.
     #[inline]
     #[must_use]
-    pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
+    pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
         let scaled_cos = self.scale * self.rotation.cos();
         let scaled_sin = self.scale * self.rotation.sin();
         let (xs, ys) = batch.into_lanes();
@@ -231,7 +229,7 @@ impl Similarity {
     /// [`from_array`](Self::from_array) bit for bit.
     #[inline]
     #[must_use]
-    pub const fn to_array(self) -> [f32; 5] {
+    pub(crate) const fn to_array(self) -> [f32; 5] {
         [
             self.scale,
             self.rotation.cos(),
@@ -250,7 +248,7 @@ impl Similarity {
     /// Returns [`None`] unless the scale lies in the range [`new`](Self::new) accepts.
     #[inline]
     #[must_use]
-    pub const fn from_array(
+    pub(crate) const fn from_array(
         [scale, cos, sin, translation_x, translation_y]: [f32; 5],
     ) -> Option<Self> {
         Self::new(

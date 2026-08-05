@@ -29,9 +29,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Rotation, Vec2};
-///
+/// ```ignore
 /// let eighth = Rotation::from_radians(core::f32::consts::FRAC_PI_4);
 /// let quarter = eighth.then(eighth);
 ///
@@ -51,11 +49,11 @@ mod tests;
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct Rotation(Vec2);
+pub(crate) struct Rotation(Vec2);
 
 impl Rotation {
     /// The rotation by zero radians.
-    pub const IDENTITY: Self = Self(Vec2::new(1.0, 0.0));
+    pub(crate) const IDENTITY: Self = Self(Vec2::new(1.0, 0.0));
 
     /// Creates a rotation from an angle in radians.
     ///
@@ -63,7 +61,7 @@ impl Rotation {
     /// resulting cosine and sine.
     #[inline]
     #[must_use]
-    pub fn from_radians(radians: f32) -> Self {
+    pub(crate) fn from_radians(radians: f32) -> Self {
         let (sin, cos) = radians.sin_cos();
 
         Self(Vec2::new(cos, sin))
@@ -76,28 +74,28 @@ impl Rotation {
     /// and avoids round-tripping through an angle.
     #[inline]
     #[must_use]
-    pub const fn from_cos_sin(cos: f32, sin: f32) -> Self {
+    pub(crate) const fn from_cos_sin(cos: f32, sin: f32) -> Self {
         Self(Vec2::new(cos, sin))
     }
 
     /// Returns the cosine of the rotation angle.
     #[inline]
     #[must_use]
-    pub const fn cos(self) -> f32 {
+    pub(crate) const fn cos(self) -> f32 {
         self.0.x()
     }
 
     /// Returns the sine of the rotation angle.
     #[inline]
     #[must_use]
-    pub const fn sin(self) -> f32 {
+    pub(crate) const fn sin(self) -> f32 {
         self.0.y()
     }
 
     /// Returns the rotation angle in radians, in `(-pi, pi]`.
     #[inline]
     #[must_use]
-    pub fn radians(self) -> f32 {
+    pub(crate) fn radians(self) -> f32 {
         self.sin().atan2(self.cos())
     }
 
@@ -108,7 +106,7 @@ impl Rotation {
     /// calls occur.
     #[inline]
     #[must_use]
-    pub const fn then(self, next: Self) -> Self {
+    pub(crate) const fn then(self, next: Self) -> Self {
         Self(Vec2::new(
             self.cos() * next.cos() - self.sin() * next.sin(),
             self.sin() * next.cos() + self.cos() * next.sin(),
@@ -124,7 +122,7 @@ impl Rotation {
     /// hundred compositions keeps the error invisible in `f32`.
     #[inline]
     #[must_use]
-    pub fn renormalize(self) -> Self {
+    pub(crate) fn renormalize(self) -> Self {
         let scale = self
             .sin()
             .mul_add(self.sin(), self.cos() * self.cos())
@@ -141,14 +139,14 @@ impl Rotation {
     /// inversion itself.
     #[inline]
     #[must_use]
-    pub const fn inverse(self) -> Self {
+    pub(crate) const fn inverse(self) -> Self {
         Self(Vec2::new(self.cos(), -self.sin()))
     }
 
     /// Rotates a single vector about the origin.
     #[inline]
     #[must_use]
-    pub const fn apply(self, vec: Vec2) -> Vec2 {
+    pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
         Vec2::new(
             self.cos() * vec.x() - self.sin() * vec.y(),
             self.sin() * vec.x() + self.cos() * vec.y(),
@@ -163,7 +161,7 @@ impl Rotation {
     /// spans many units in the last place of the small result.
     #[inline]
     #[must_use]
-    pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
+    pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
         let (xs, ys) = batch.into_lanes();
 
         Vec2x4T::from_lanes(

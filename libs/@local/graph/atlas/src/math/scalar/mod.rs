@@ -11,7 +11,7 @@
 #[cfg(test)]
 mod tests;
 mod unit;
-pub use unit::{NotInOpenUnitInterval, NotInUnitInterval, OpenUnitFraction, UnitFraction};
+pub(crate) use unit::{OpenUnitFraction, UnitFraction};
 
 /// Validates a positive literal at compile time.
 ///
@@ -145,26 +145,24 @@ pub(crate) use unit_fraction;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::Positive;
-///
+/// ```ignore
 /// assert_eq!(Positive::new(2.5).expect("2.5 is positive").get(), 2.5);
 /// assert_eq!(Positive::new(0.0), None);
 /// assert_eq!(Positive::new(f32::NAN), None);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct Positive(f32);
+pub(crate) struct Positive(f32);
 
 impl Positive {
     /// The value one.
-    pub const ONE: Self = Self(1.0);
+    pub(crate) const ONE: Self = Self(1.0);
 
     /// Validates a strictly positive finite value.
     ///
     /// Returns [`None`] unless the value is finite and greater than zero.
     #[inline]
     #[must_use]
-    pub const fn new(value: f32) -> Option<Self> {
+    pub(crate) const fn new(value: f32) -> Option<Self> {
         if !(value.is_finite() && value > 0.0) {
             return None;
         }
@@ -175,7 +173,7 @@ impl Positive {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f32 {
+    pub(crate) const fn get(self) -> f32 {
         self.0
     }
 }
@@ -187,9 +185,7 @@ impl Positive {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::NonNegative;
-///
+/// ```ignore
 /// assert_eq!(NonNegative::new(0.0).expect("zero is admitted").get(), 0.0);
 /// assert_eq!(NonNegative::new(-0.5), None);
 /// assert_eq!(NonNegative::new(f32::INFINITY), None);
@@ -205,20 +201,20 @@ impl Positive {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct NonNegative(f32);
+pub(crate) struct NonNegative(f32);
 
 impl NonNegative {
     /// The value one.
-    pub const ONE: Self = Self(1.0);
+    pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
-    pub const ZERO: Self = Self(0.0);
+    pub(crate) const ZERO: Self = Self(0.0);
 
     /// Validates a non-negative finite value.
     ///
     /// Returns [`None`] unless the value is finite and at least zero.
     #[inline]
     #[must_use]
-    pub const fn new(value: f32) -> Option<Self> {
+    pub(crate) const fn new(value: f32) -> Option<Self> {
         if !(value.is_finite() && value >= 0.0) {
             return None;
         }
@@ -229,7 +225,7 @@ impl NonNegative {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f32 {
+    pub(crate) const fn get(self) -> f32 {
         self.0
     }
 }
@@ -276,9 +272,7 @@ impl<'de> serde::Deserialize<'de> for NonNegative {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::Finite;
-///
+/// ```ignore
 /// assert_eq!(Finite::new(-2.5).expect("-2.5 is finite").get(), -2.5);
 /// assert_eq!(
 ///     Finite::new(f32::MIN).expect("the minimum is finite").get(),
@@ -290,13 +284,13 @@ impl<'de> serde::Deserialize<'de> for NonNegative {
 /// assert_eq!(Finite::new(f32::NEG_INFINITY), None);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct Finite(f32);
+pub(crate) struct Finite(f32);
 
 impl Finite {
     /// The value one.
-    pub const ONE: Self = Self(1.0);
+    pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
-    pub const ZERO: Self = Self(0.0);
+    pub(crate) const ZERO: Self = Self(0.0);
 
     /// Validates a finite value.
     ///
@@ -304,7 +298,7 @@ impl Finite {
     /// including both zeros and either extreme.
     #[inline]
     #[must_use]
-    pub const fn new(value: f32) -> Option<Self> {
+    pub(crate) const fn new(value: f32) -> Option<Self> {
         if !value.is_finite() {
             return None;
         }
@@ -315,7 +309,7 @@ impl Finite {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f32 {
+    pub(crate) const fn get(self) -> f32 {
         self.0
     }
 }
@@ -364,9 +358,7 @@ impl<'de> serde::Deserialize<'de> for Finite {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::DPositive;
-///
+/// ```ignore
 /// assert_eq!(
 ///     DPositive::new(1.0e-8)
 ///         .expect("the radius floor is positive")
@@ -411,9 +403,7 @@ impl DPositive {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::DNonNegative;
-///
+/// ```ignore
 /// assert_eq!(
 ///     DNonNegative::new(0.0)
 ///         .expect("zero disables the floor")
@@ -424,18 +414,18 @@ impl DPositive {
 /// assert_eq!(DNonNegative::new(f64::NAN), None);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct DNonNegative(f64);
+pub(crate) struct DNonNegative(f64);
 
 impl DNonNegative {
     /// The value zero.
-    pub const ZERO: Self = Self(0.0);
+    pub(crate) const ZERO: Self = Self(0.0);
 
     /// Validates a non-negative finite value.
     ///
     /// Returns [`None`] unless the value is finite and at least zero.
     #[inline]
     #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
+    pub(crate) const fn new(value: f64) -> Option<Self> {
         if !(value.is_finite() && value >= 0.0) {
             return None;
         }
@@ -446,7 +436,7 @@ impl DNonNegative {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f64 {
+    pub(crate) const fn get(self) -> f64 {
         self.0
     }
 }
@@ -471,9 +461,7 @@ impl From<DPositive> for DNonNegative {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::DFinite;
-///
+/// ```ignore
 /// assert_eq!(
 ///     DFinite::new(-1.0e-300)
 ///         .expect("a tiny negative is finite")
@@ -486,13 +474,13 @@ impl From<DPositive> for DNonNegative {
 /// assert_eq!(DFinite::new(f64::NEG_INFINITY), None);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct DFinite(f64);
+pub(crate) struct DFinite(f64);
 
 impl DFinite {
     /// The value one.
-    pub const ONE: Self = Self(1.0);
+    pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
-    pub const ZERO: Self = Self(0.0);
+    pub(crate) const ZERO: Self = Self(0.0);
 
     /// Validates a finite value.
     ///
@@ -500,7 +488,7 @@ impl DFinite {
     /// including both zeros and either extreme.
     #[inline]
     #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
+    pub(crate) const fn new(value: f64) -> Option<Self> {
         if !value.is_finite() {
             return None;
         }
@@ -511,7 +499,7 @@ impl DFinite {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f64 {
+    pub(crate) const fn get(self) -> f64 {
         self.0
     }
 }
@@ -556,9 +544,7 @@ impl<'de> serde::Deserialize<'de> for DFinite {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::GreaterThanOne;
-///
+/// ```ignore
 /// assert_eq!(
 ///     GreaterThanOne::new(2.0).expect("doubling expands").get(),
 ///     2.0
@@ -567,7 +553,7 @@ impl<'de> serde::Deserialize<'de> for DFinite {
 /// assert_eq!(GreaterThanOne::new(f64::INFINITY), None);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
-pub struct GreaterThanOne(f64);
+pub(crate) struct GreaterThanOne(f64);
 
 impl GreaterThanOne {
     /// Validates a finite value strictly greater than one.
@@ -575,7 +561,7 @@ impl GreaterThanOne {
     /// Returns [`None`] unless the value is finite and greater than one.
     #[inline]
     #[must_use]
-    pub const fn new(value: f64) -> Option<Self> {
+    pub(crate) const fn new(value: f64) -> Option<Self> {
         if !(value.is_finite() && value > 1.0) {
             return None;
         }
@@ -586,7 +572,7 @@ impl GreaterThanOne {
     /// Returns the value.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> f64 {
+    pub(crate) const fn get(self) -> f64 {
         self.0
     }
 }
@@ -599,9 +585,7 @@ impl GreaterThanOne {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::Log2;
-///
+/// ```ignore
 /// let span = Log2::new(6).expect("6 lies below the shift width");
 /// assert_eq!(span.get(), 6);
 /// assert_eq!(1_u64 << span.get(), 64);
@@ -644,9 +628,7 @@ impl Log2 {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::softplus;
-///
+/// ```ignore
 /// // A naive `exp(50.0)` loses the asymptote. The stable form is exact.
 /// assert_eq!(softplus(50.0), 50.0);
 /// assert!(softplus(-50.0) < 1e-20);
@@ -654,7 +636,7 @@ impl Log2 {
 /// ```
 #[inline]
 #[must_use]
-pub fn softplus(value: f32) -> f32 {
+pub(crate) fn softplus(value: f32) -> f32 {
     value.max(0.0) + (-value.abs()).exp().ln_1p()
 }
 
@@ -667,9 +649,7 @@ pub fn softplus(value: f32) -> f32 {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::sigmoid;
-///
+/// ```ignore
 /// assert_eq!(sigmoid(0.0), 0.5);
 /// // A naive `exp(200.0)` overflows. The stable form saturates.
 /// assert_eq!(sigmoid(200.0), 1.0);
@@ -677,7 +657,7 @@ pub fn softplus(value: f32) -> f32 {
 /// ```
 #[inline]
 #[must_use]
-pub fn sigmoid(value: f32) -> f32 {
+pub(crate) fn sigmoid(value: f32) -> f32 {
     let bounded = (-value.abs()).exp();
     if value >= 0.0 {
         (1.0 + bounded).recip()
@@ -698,9 +678,7 @@ pub fn sigmoid(value: f32) -> f32 {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::huber;
-///
+/// ```ignore
 /// // Quadratic regime: 0.5 · 0.5 · 0.5.
 /// assert_eq!(huber(0.5, 1.0), 0.125);
 /// // Linear regime: 1.0 · (3.0 - 0.5).
@@ -708,7 +686,7 @@ pub fn sigmoid(value: f32) -> f32 {
 /// ```
 #[inline]
 #[must_use]
-pub fn huber(value: f32, threshold: f32) -> f32 {
+pub(crate) fn huber(value: f32, threshold: f32) -> f32 {
     if value <= threshold {
         0.5 * value * value
     } else {
@@ -726,9 +704,7 @@ pub fn huber(value: f32, threshold: f32) -> f32 {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::narrow_f32;
-///
+/// ```ignore
 /// // Rounds to the nearest `f32`.
 /// assert_eq!(narrow_f32(0.1), Some(0.1_f32));
 /// // Beyond the `f32` range.
@@ -737,7 +713,7 @@ pub fn huber(value: f32, threshold: f32) -> f32 {
 /// ```
 #[inline]
 #[must_use]
-pub const fn narrow_f32(value: f64) -> Option<f32> {
+pub(crate) const fn narrow_f32(value: f64) -> Option<f32> {
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the truncating cast is the operation itself; the result is checked for \
@@ -763,16 +739,14 @@ pub const fn narrow_f32(value: f64) -> Option<f32> {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::narrow_f32_exact;
-///
+/// ```ignore
 /// assert_eq!(narrow_f32_exact(0.25), Some(0.25_f32));
 /// // 0.1 has no exact `f32` representation.
 /// assert_eq!(narrow_f32_exact(0.1), None);
 /// ```
 #[inline]
 #[must_use]
-pub const fn narrow_f32_exact(value: f64) -> Option<f32> {
+pub(crate) const fn narrow_f32_exact(value: f64) -> Option<f32> {
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the truncating cast is the operation itself; the result is checked for \

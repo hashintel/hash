@@ -1,5 +1,8 @@
 //! Z-order keys: two 32-bit axes interleaved into one sortable `u64`.
 //!
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it.
+//!
 //! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair, `x` into the even bits and `y` into
 //! the odd bits, so that comparing keys compares positions along the Z-order curve. Every
 //! axis-aligned power-of-two cell of the grid is one contiguous key range, so a sorted key array
@@ -19,13 +22,13 @@ mod tests;
 /// the whole domain; [`Depth::MAX`] fixes all 32 bits of both axes, so a cell at it holds exactly
 /// one key.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Depth(u8);
+pub(crate) struct Depth(u8);
 
 impl Depth {
     /// Both axes fully specified: one key per cell.
-    pub const MAX: Self = Self(32);
+    pub(crate) const MAX: Self = Self(32);
     /// One cell covering the whole domain.
-    pub const MIN: Self = Self(0);
+    pub(crate) const MIN: Self = Self(0);
 
     /// Wraps a subdivision count.
     ///
@@ -33,15 +36,13 @@ impl Depth {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::morton::Depth;
-    ///
+    /// ```ignore
     /// assert!(Depth::new(16).is_some());
     /// assert_eq!(Depth::new(33), None);
     /// ```
     #[inline]
     #[must_use]
-    pub const fn new(depth: u8) -> Option<Self> {
+    pub(crate) const fn new(depth: u8) -> Option<Self> {
         if depth > Self::MAX.0 {
             return None;
         }
@@ -52,13 +53,13 @@ impl Depth {
     /// Returns the subdivision count.
     #[inline]
     #[must_use]
-    pub const fn get(self) -> u8 {
+    pub(crate) const fn get(self) -> u8 {
         self.0
     }
 
     /// Iterates every depth, [`Depth::MIN`] through [`Depth::MAX`].
     #[inline]
-    pub fn all() -> impl DoubleEndedIterator<Item = Self> {
+    pub(crate) fn all() -> impl DoubleEndedIterator<Item = Self> {
         (Self::MIN.0..=Self::MAX.0).map(Self)
     }
 }
@@ -71,43 +72,41 @@ impl Depth {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::morton::MortonKey;
-///
+/// ```ignore
 /// assert_eq!(MortonKey::new(1, 0).to_bits(), 0b01);
 /// assert_eq!(MortonKey::new(0, 1).to_bits(), 0b10);
 /// assert_eq!(MortonKey::new(3, 5).coordinates(), [3, 5]);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct MortonKey(u64);
+pub(crate) struct MortonKey(u64);
 
 impl MortonKey {
     /// Interleaves the bits of the two axes.
     #[inline]
     #[must_use]
-    pub const fn new(x: u32, y: u32) -> Self {
+    pub(crate) const fn new(x: u32, y: u32) -> Self {
         Self(spread_bits(x) | (spread_bits(y) << 1))
     }
 
     /// Restores a key from its interleaved bits.
     #[inline]
     #[must_use]
-    pub const fn from_bits(bits: u64) -> Self {
+    pub(crate) const fn from_bits(bits: u64) -> Self {
         Self(bits)
     }
 
     /// Returns the interleaved bits.
     #[inline]
     #[must_use]
-    pub const fn to_bits(self) -> u64 {
+    pub(crate) const fn to_bits(self) -> u64 {
         self.0
     }
 
     /// Deinterleaves the axes as `[x, y]`.
     #[inline]
     #[must_use]
-    pub const fn coordinates(self) -> [u32; 2] {
+    pub(crate) const fn coordinates(self) -> [u32; 2] {
         [compact_bits(self.0), compact_bits(self.0 >> 1)]
     }
 
@@ -118,15 +117,13 @@ impl MortonKey {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::morton::{Depth, MortonKey};
-    ///
+    /// ```ignore
     /// let key = MortonKey::new(0b10 << 30, 0b11 << 30);
     /// assert_eq!(key.prefix(Depth::new(2).unwrap()), 0b1110);
     /// ```
     #[inline]
     #[must_use]
-    pub const fn prefix(self, depth: Depth) -> u64 {
+    pub(crate) const fn prefix(self, depth: Depth) -> u64 {
         match depth.get() {
             0 => 0,
             depth => self.0 >> (64 - 2 * (depth as u32)),
@@ -136,7 +133,7 @@ impl MortonKey {
     /// Returns the cell containing this key at `depth`.
     #[inline]
     #[must_use]
-    pub const fn cell(self, depth: Depth) -> MortonCell {
+    pub(crate) const fn cell(self, depth: Depth) -> MortonCell {
         MortonCell {
             min: self.0 & !low_mask(depth),
             depth,
@@ -149,7 +146,7 @@ impl MortonKey {
 /// The contiguous key range from [`min_key`](Self::min_key) to [`max_key`](Self::max_key), both
 /// inclusive.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct MortonCell {
+pub(crate) struct MortonCell {
     /// The smallest key in the cell.
     ///
     /// The bits below the prefix are zero.
@@ -165,15 +162,13 @@ impl MortonCell {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::morton::{Depth, MortonCell};
-    ///
+    /// ```ignore
     /// let depth = Depth::new(3).unwrap();
     /// assert!(MortonCell::new(depth, 7, 0).is_some());
     /// assert_eq!(MortonCell::new(depth, 8, 0), None);
     /// ```
     #[must_use]
-    pub const fn new(depth: Depth, x: u32, y: u32) -> Option<Self> {
+    pub(crate) const fn new(depth: Depth, x: u32, y: u32) -> Option<Self> {
         let cells = 1_u64 << depth.get();
         if x as u64 >= cells || y as u64 >= cells {
             return None;
@@ -193,28 +188,28 @@ impl MortonCell {
     /// Returns the cell's depth.
     #[inline]
     #[must_use]
-    pub const fn depth(self) -> Depth {
+    pub(crate) const fn depth(self) -> Depth {
         self.depth
     }
 
     /// Returns the smallest key in the cell.
     #[inline]
     #[must_use]
-    pub const fn min_key(self) -> MortonKey {
+    pub(crate) const fn min_key(self) -> MortonKey {
         MortonKey(self.min)
     }
 
     /// Returns the largest key in the cell.
     #[inline]
     #[must_use]
-    pub const fn max_key(self) -> MortonKey {
+    pub(crate) const fn max_key(self) -> MortonKey {
         MortonKey(self.min | low_mask(self.depth))
     }
 
     /// Returns whether `key` lies in the cell.
     #[inline]
     #[must_use]
-    pub const fn contains(self, key: MortonKey) -> bool {
+    pub(crate) const fn contains(self, key: MortonKey) -> bool {
         (key.0 & !low_mask(self.depth)) == self.min
     }
 
@@ -223,7 +218,7 @@ impl MortonCell {
     /// Child `i` holds the keys whose next axis bits are `x = i & 1` and `y = i >> 1`; the
     /// children's ranges partition the parent's in that order. Returns [`None`] at [`Depth::MAX`].
     #[must_use]
-    pub const fn children(self) -> Option<[Self; 4]> {
+    pub(crate) const fn children(self) -> Option<[Self; 4]> {
         let depth = Depth::new(self.depth.get() + 1)?;
 
         let step = 1_u64 << (64 - 2 * (depth.get() as u32));

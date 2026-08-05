@@ -18,6 +18,7 @@
 //! one synthesized mining sweep ([`JudgeProbes`]).
 
 use hashql_core::id::Id;
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 pub use self::{
     fixture::{Corpus, Profile},
@@ -28,6 +29,7 @@ use super::{
     attraction::AttractionOptions,
     build::{self, EMISSION_CHUNK, ProtectionRecord},
 };
+use crate::identity::{EdgeRowId, NodeRowId};
 
 mod fixture;
 mod judge;
@@ -39,6 +41,20 @@ mod tests;
 #[must_use]
 pub const fn production_chunk() -> usize {
     EMISSION_CHUNK
+}
+
+/// Synthesizes a corpus at the production row-id instantiation, under the fixture generator.
+///
+/// The benchmark targets measure the build over exactly the id types production indexes, and this
+/// constructor is what fixes them, so a target never names an id type itself. Equal arguments
+/// synthesize equal corpora ([`Corpus::synthesize`]).
+#[must_use]
+pub fn production_corpus(
+    profile: Profile,
+    links: usize,
+    seed: u64,
+) -> Corpus<NodeRowId, EdgeRowId> {
+    Corpus::synthesize::<Xoshiro256PlusPlus>(profile, links, seed)
 }
 
 /// Plain-number summary of one full build.

@@ -551,10 +551,9 @@ const impl<const N: usize> PartialEq for AlignedVecN<N> {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # #![feature(portable_simd)]
 /// # use std::simd::num::SimdFloat as _;
-/// use hash_graph_atlas::math::{BoxedVecN, VecN};
 ///
 /// let embedding = BoxedVecN::new(&VecN::new([0.5_f32; 32]));
 ///
@@ -564,7 +563,7 @@ const impl<const N: usize> PartialEq for AlignedVecN<N> {
 /// let total: f32 = lanes.iter().map(|lane| lane.reduce_sum()).sum();
 /// assert_eq!(total, 16.0);
 /// ```
-pub struct BoxedVecN<const N: usize, A: Allocator = Global> {
+pub(crate) struct BoxedVecN<const N: usize, A: Allocator = Global> {
     ptr: NonNull<f32>,
     alloc: A,
 }
@@ -573,7 +572,7 @@ impl<const N: usize> BoxedVecN<N> {
     /// Copies the vector into a new aligned allocation in the global allocator.
     #[inline]
     #[must_use]
-    pub fn new(value: &VecN<N>) -> Self {
+    pub(crate) fn new(value: &VecN<N>) -> Self {
         Self::new_in(value, Global)
     }
 
@@ -583,7 +582,7 @@ impl<const N: usize> BoxedVecN<N> {
     /// [`as_array_mut`](AlignedVecN::as_array_mut).
     #[inline]
     #[must_use]
-    pub fn zero() -> Self {
+    pub(crate) fn zero() -> Self {
         Self::zero_in(Global)
     }
 }
@@ -605,7 +604,7 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
     /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
-    pub fn zero_in(alloc: A) -> Self {
+    pub(crate) fn zero_in(alloc: A) -> Self {
         let layout = Self::layout();
         let Ok(allocation) = alloc.allocate_zeroed(layout) else {
             alloc::alloc::handle_alloc_error(layout)
@@ -624,7 +623,7 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
     /// the allocator cannot provide the buffer.
     #[inline]
     #[must_use]
-    pub fn new_in(value: &VecN<N>, alloc: A) -> Self {
+    pub(crate) fn new_in(value: &VecN<N>, alloc: A) -> Self {
         let Ok(this) = Self::try_new_in(value, alloc) else {
             alloc::alloc::handle_alloc_error(Self::layout())
         };
@@ -639,7 +638,7 @@ impl<const N: usize, A: Allocator> BoxedVecN<N, A> {
     /// Returns [`AllocError`] when the allocator cannot provide the buffer. The failing call leaks
     /// no memory.
     #[inline]
-    pub fn try_new_in(value: &VecN<N>, alloc: A) -> Result<Self, AllocError> {
+    pub(crate) fn try_new_in(value: &VecN<N>, alloc: A) -> Result<Self, AllocError> {
         let layout = Self::layout();
         let allocation = alloc.allocate(layout)?;
         let ptr = allocation.cast::<f32>();

@@ -37,10 +37,7 @@
 use core::{hint::black_box, time::Duration};
 
 use codspeed_criterion_compat::{Criterion, Throughput, measurement::Measurement};
-use hash_graph_atlas::{
-    bench::kernel,
-    math::{AffinityCurve, Bounds2, DVecN, Similarity, Transform, Vec2, Vec2x4T, VecN},
-};
+use hash_graph_atlas::bench::{kernel, math};
 
 const EMBEDDING_DIMENSIONS: usize = 512;
 
@@ -53,74 +50,47 @@ fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     })
 }
 
-/// Deterministic 2D points spread over a non-degenerate box.
-fn scattered_points(count: usize) -> Vec<Vec2> {
-    (0..count)
-        .map(|index| {
-            let value = f32::from(u16::try_from(index % 40_000).expect("bounded by modulus"));
-
-            Vec2::new((value - 17_000.0) * 0.25, (19_000.0 - value) * 0.5)
-        })
-        .collect()
-}
-
 fn bench_vecn<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
-    let left = VecN::new(scattered::<EMBEDDING_DIMENSIONS>(0.5));
-    let right = VecN::new(scattered::<EMBEDDING_DIMENSIONS>(-1.25));
+    let pair = math::vecn_pair(
+        scattered::<EMBEDDING_DIMENSIONS>(0.5),
+        scattered::<EMBEDDING_DIMENSIONS>(-1.25),
+    );
 
     let mut group = criterion.benchmark_group(format!("vecn@{event}"));
     group.throughput(Throughput::Elements(EMBEDDING_DIMENSIONS as u64));
 
     group.bench_function("dot_512", |bencher| {
-        bencher.iter(|| black_box(&left).dot(black_box(&right)));
+        bencher.iter(|| math::vecn_dot(&pair));
     });
     group.bench_function("dot_512_scalar_reference", |bencher| {
-        bencher.iter(|| {
-            black_box(&left)
-                .as_array()
-                .iter()
-                .zip(black_box(&right).as_array())
-                .map(|(&l_value, &r_value)| f64::from(l_value) * f64::from(r_value))
-                .sum::<f64>()
-        });
+        bencher.iter(|| math::vecn_dot_scalar_reference(&pair));
     });
     group.bench_function("cosine_distance_512", |bencher| {
-        bencher.iter(|| black_box(&left).cosine_distance(black_box(&right)));
+        bencher.iter(|| math::vecn_cosine_distance(&pair));
     });
 
     group.finish();
 }
 
 fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &str) {
-    let curve = AffinityCurve::new(1.577, 0.895).expect("parameters are positive and finite");
-    let from = Vec2x4T::from([
-        Vec2::new(1.0, 5.0),
-        Vec2::new(2.0, 6.0),
-        Vec2::new(3.0, 7.0),
-        Vec2::new(4.0, 8.0),
-    ]);
-    let to = Vec2x4T::from([
-        Vec2::new(0.5, -1.0),
-        Vec2::new(2.5, 3.0),
-        Vec2::new(-4.0, 0.25),
-        Vec2::new(8.0, -2.0),
-    ]);
+    let state = math::affinity_state(
+        1.577,
+        0.895,
+        [[1.0, 5.0], [2.0, 6.0], [3.0, 7.0], [4.0, 8.0]],
+        [[0.5, -1.0], [2.5, 3.0], [-4.0, 0.25], [8.0, -2.0]],
+    );
 
     let mut group = criterion.benchmark_group(format!("affinity@{event}"));
     group.throughput(Throughput::Elements(4));
 
     group.bench_function("attraction_x4", |bencher| {
-        bencher.iter(|| black_box(curve).attraction_x4(black_box(from), black_box(to)));
+        bencher.iter(|| math::affinity_attraction_x4(&state));
     });
     group.bench_function("attraction_x4_scalar_reference", |bencher| {
-        bencher.iter(|| {
-            core::array::from_fn::<_, 4, _>(|index| {
-                black_box(curve).attraction(black_box(from).get(index), black_box(to).get(index))
-            })
-        });
+        bencher.iter(|| math::affinity_attraction_scalar_reference(&state));
     });
     group.bench_function("repulsion_x4", |bencher| {
-        bencher.iter(|| black_box(curve).repulsion_x4(black_box(from), black_box(to), 1.0));
+        bencher.iter(|| math::affinity_repulsion_x4(&state, 1.0));
     });
 
     group.finish();
@@ -128,7 +98,7 @@ fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>, event:
     criterion.bench_function(
         &format!("affinity@{event}/fit_reference_point"),
         |bencher| {
-            bencher.iter(|| AffinityCurve::fit(black_box(1.0), black_box(0.1)));
+            bencher.iter(|| math::affinity_fit(1.0, 0.1));
         },
     );
 }
@@ -232,87 +202,73 @@ fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
 }
 
 fn bench_transforms<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
-    let transform = Transform::from_scale(Vec2::new(2.0, 3.0))
-        .then(Transform::from_translation(Vec2::new(0.5, -1.0)));
-    let batch = Vec2x4T::from([
-        Vec2::new(1.0, 5.0),
-        Vec2::new(2.0, 6.0),
-        Vec2::new(3.0, 7.0),
-        Vec2::new(4.0, 8.0),
-    ]);
+    let state = math::transform_batch(
+        [2.0, 3.0],
+        [0.5, -1.0],
+        [[1.0, 5.0], [2.0, 6.0], [3.0, 7.0], [4.0, 8.0]],
+    );
 
     let mut group = criterion.benchmark_group(format!("transform@{event}"));
     group.throughput(Throughput::Elements(4));
 
     group.bench_function("apply_x4", |bencher| {
-        bencher.iter(|| black_box(transform).apply_x4(black_box(batch)));
+        bencher.iter(|| math::transform_apply_x4(&state));
     });
     group.bench_function("apply_x4_scalar_reference", |bencher| {
-        bencher.iter(|| {
-            core::array::from_fn::<_, 4, _>(|index| {
-                black_box(transform).apply(black_box(batch).get(index))
-            })
-        });
+        bencher.iter(|| math::transform_apply_scalar_reference(&state));
     });
 
     group.finish();
 }
 
 fn bench_bounds<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
-    let small = scattered_points(100_000);
-    let large = scattered_points(1_000_000);
+    let small = math::scattered_points(100_000);
+    let large = math::scattered_points(1_000_000);
 
     let mut group = criterion.benchmark_group(format!("bounds@{event}"));
 
     group.throughput(Throughput::Elements(small.len() as u64));
     group.bench_function("from_slice_100k", |bencher| {
-        bencher.iter(|| Bounds2::from_slice(black_box(&small)));
+        bencher.iter(|| math::bounds_from_slice(&small));
     });
     group.bench_function("from_points_100k_scalar_reference", |bencher| {
-        bencher.iter(|| Bounds2::from_points(black_box(&small).iter().copied()));
+        bencher.iter(|| math::bounds_from_points_scalar_reference(&small));
     });
 
     group.throughput(Throughput::Elements(large.len() as u64));
     group.bench_function("from_slice_1m", |bencher| {
-        bencher.iter(|| Bounds2::from_slice(black_box(&large)));
+        bencher.iter(|| math::bounds_from_slice(&large));
     });
     group.bench_function("from_slice_par_1m", |bencher| {
-        bencher.iter(|| Bounds2::from_slice_par(black_box(&large)));
+        bencher.iter(|| math::bounds_from_slice_par(&large));
     });
 
     group.finish();
 }
 
 fn bench_similarity_fit<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
-    let source = scattered_points(100_000);
-    let reference =
-        Similarity::from_array([2.0, 0.8, 0.6, 10.0, -4.0]).expect("scale is normal and positive");
-    let target: Vec<Vec2> = source.iter().map(|&point| reference.apply(point)).collect();
-    let weights = vec![1.0_f32; source.len()];
+    let fixture = math::similarity_fixture(100_000, [2.0, 0.8, 0.6, 10.0, -4.0]);
 
     let mut group = criterion.benchmark_group(format!("similarity@{event}"));
-    group.throughput(Throughput::Elements(source.len() as u64));
+    group.throughput(Throughput::Elements(fixture.len() as u64));
 
     group.bench_function("fit_100k", |bencher| {
-        bencher
-            .iter(|| Similarity::fit(black_box(&source), black_box(&target), black_box(&weights)));
+        bencher.iter(|| math::similarity_fit(&fixture));
     });
     group.bench_function("fit_par_100k", |bencher| {
-        bencher.iter(|| {
-            Similarity::fit_par(black_box(&source), black_box(&target), black_box(&weights))
-        });
+        bencher.iter(|| math::similarity_fit_par(&fixture));
     });
 
     group.finish();
 }
 
 fn bench_dvecn<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &str) {
-    let logits = DVecN::new(core::array::from_fn::<f64, 64, _>(|index| {
+    let logits = math::logits(core::array::from_fn::<f64, 64, _>(|index| {
         f64::from(u8::try_from(index).expect("bounded dimension")).mul_add(0.05, -1.6)
     }));
 
     criterion.bench_function(&format!("dvecn@{event}/softmax_64"), |bencher| {
-        bencher.iter(|| black_box(logits).softmax());
+        bencher.iter(|| math::dvecn_softmax(&logits));
     });
 }
 

@@ -29,9 +29,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Transform, Vec2};
-///
+/// ```ignore
 /// // Scale by 2 around the origin, then move 10 to the right.
 /// let transform = Transform::from_scale(Vec2::new(2.0, 2.0))
 ///     .then(Transform::from_translation(Vec2::new(10.0, 0.0)));
@@ -41,9 +39,7 @@ mod tests;
 ///
 /// Rotations are exact only where sine and cosine are, so compare with a tolerance:
 ///
-/// ```
-/// use hash_graph_atlas::math::{Rotation, Transform, Vec2};
-///
+/// ```ignore
 /// let quarter_turn =
 ///     Transform::from_rotation(Rotation::from_radians(core::f32::consts::FRAC_PI_2));
 /// let rotated = quarter_turn.apply(Vec2::new(1.0, 0.0));
@@ -62,7 +58,7 @@ mod tests;
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
-pub struct Transform {
+pub(crate) struct Transform {
     x_axis: Vec2,
     y_axis: Vec2,
     translation: Vec2,
@@ -70,7 +66,7 @@ pub struct Transform {
 
 impl Transform {
     /// The transform that maps every vector to itself.
-    pub const IDENTITY: Self = Self::from_cols(
+    pub(crate) const IDENTITY: Self = Self::from_cols(
         Vec2::new(1.0, 0.0),
         Vec2::new(0.0, 1.0),
         Vec2::new(0.0, 0.0),
@@ -81,7 +77,7 @@ impl Transform {
     /// The resulting transform maps `p` to `x_axis · p.x + y_axis · p.y + translation`.
     #[inline]
     #[must_use]
-    pub const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
+    pub(crate) const fn from_cols(x_axis: Vec2, y_axis: Vec2, translation: Vec2) -> Self {
         Self {
             x_axis,
             y_axis,
@@ -92,7 +88,7 @@ impl Transform {
     /// Creates a transform that scales each axis independently around the origin.
     #[inline]
     #[must_use]
-    pub const fn from_scale(scale: Vec2) -> Self {
+    pub(crate) const fn from_scale(scale: Vec2) -> Self {
         Self::from_cols(
             Vec2::new(scale.x(), 0.0),
             Vec2::new(0.0, scale.y()),
@@ -103,7 +99,7 @@ impl Transform {
     /// Creates a transform that rotates around the origin.
     #[inline]
     #[must_use]
-    pub const fn from_rotation(rotation: Rotation) -> Self {
+    pub(crate) const fn from_rotation(rotation: Rotation) -> Self {
         Self::from_cols(
             Vec2::new(rotation.cos(), rotation.sin()),
             Vec2::new(-rotation.sin(), rotation.cos()),
@@ -114,7 +110,7 @@ impl Transform {
     /// Creates a transform that moves every vector by `translation`.
     #[inline]
     #[must_use]
-    pub const fn from_translation(translation: Vec2) -> Self {
+    pub(crate) const fn from_translation(translation: Vec2) -> Self {
         Self::from_cols(Vec2::new(1.0, 0.0), Vec2::new(0.0, 1.0), translation)
     }
 
@@ -128,9 +124,7 @@ impl Transform {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Rotation, Transform, Translation, Vec2};
-    ///
+    /// ```ignore
     /// let transform = Transform::from_scale(Vec2::new(2.0, 2.0))
     ///     .then(Translation::new(10.0, 0.0))
     ///     .then(Rotation::from_radians(core::f32::consts::PI));
@@ -141,7 +135,7 @@ impl Transform {
     /// ```
     #[inline]
     #[must_use]
-    pub const fn then(self, next: impl [const] Into<Self>) -> Self {
+    pub(crate) const fn then(self, next: impl [const] Into<Self>) -> Self {
         let next = next.into();
 
         Self::from_cols(
@@ -154,7 +148,7 @@ impl Transform {
     /// Transforms a single vector.
     #[inline]
     #[must_use]
-    pub const fn apply(self, vec: Vec2) -> Vec2 {
+    pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
         let linear = self.apply_linear(vec);
 
         Vec2::new(
@@ -176,9 +170,7 @@ impl Transform {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Transform, Vec2, Vec2x4T};
-    ///
+    /// ```ignore
     /// let batch = Vec2x4T::from([
     ///     Vec2::new(1.0, 1.0),
     ///     Vec2::new(2.0, 1.0),
@@ -194,7 +186,7 @@ impl Transform {
     /// assert_eq!(transformed.get(3), Vec2::new(8.5, 3.0));
     /// ```
     #[must_use]
-    pub fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
+    pub(crate) fn apply_x4(self, batch: Vec2x4T) -> Vec2x4T {
         let (xs, ys) = batch.into_lanes();
 
         Vec2x4T::from_lanes(
@@ -232,9 +224,7 @@ impl Transform {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Transform, Vec2};
-    ///
+    /// ```ignore
     /// let transform = Transform::from_scale(Vec2::new(2.0, 4.0))
     ///     .then(Transform::from_translation(Vec2::new(10.0, -2.0)));
     /// let inverse = transform.inverse().expect("scale is non-zero");
@@ -250,7 +240,7 @@ impl Transform {
     /// );
     /// ```
     #[must_use]
-    pub fn inverse(self) -> Option<Self> {
+    pub(crate) fn inverse(self) -> Option<Self> {
         let determinant = self
             .y_axis
             .x()

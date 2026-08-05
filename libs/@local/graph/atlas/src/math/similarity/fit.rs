@@ -26,7 +26,7 @@ impl Similarity {
     ///
     /// 4096 pairs read 80 KiB across the three input slices, small enough to stay cache-warm while
     /// large enough that per-task overhead disappears against the fold.
-    pub const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
+    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
 
     /// Fits the weighted orientation-preserving Procrustes alignment of paired points.
     ///
@@ -41,9 +41,7 @@ impl Similarity {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Rotation, Similarity, Vec2};
-    ///
+    /// ```ignore
     /// let expected = Similarity::new(2.0, Rotation::from_cos_sin(0.0, 1.0), Vec2::new(1.0, -2.0))
     ///     .expect("scale 2.0 is normal and positive");
     /// let source = [
@@ -57,7 +55,7 @@ impl Similarity {
     /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
     /// ```
     #[must_use]
-    pub fn fit(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Option<Self> {
+    pub(crate) fn fit(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Option<Self> {
         if source.len() != target.len() || source.len() != weights.len() {
             return None;
         }
@@ -83,7 +81,7 @@ impl Similarity {
     /// [`fit_par_with`](Self::fit_par_with) to choose the pairs per chunk.
     #[inline]
     #[must_use]
-    pub fn fit_par(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Option<Self> {
+    pub(crate) fn fit_par(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Option<Self> {
         Self::fit_par_with(source, target, weights, Self::PARALLEL_CHUNK)
     }
 
@@ -94,7 +92,7 @@ impl Similarity {
     /// chunks amortize task overhead. [`fit_par`](Self::fit_par) uses
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
-    pub fn fit_par_with(
+    pub(crate) fn fit_par_with(
         source: &[Vec2],
         target: &[Vec2],
         weights: &[f32],
@@ -131,9 +129,7 @@ impl Similarity {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Rotation, Similarity, Vec2};
-    ///
+    /// ```ignore
     /// let expected = Similarity::new(0.5, Rotation::from_cos_sin(1.0, 0.0), Vec2::new(3.0, 1.0))
     ///     .expect("scale 0.5 is normal and positive");
     /// let source = [
@@ -147,7 +143,7 @@ impl Similarity {
     /// assert!((fitted.scale() - expected.scale()).abs() < 1e-5);
     /// ```
     #[must_use]
-    pub fn fit_uniform(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+    pub(crate) fn fit_uniform(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
         if source.len() != target.len() || source.len() < 2 {
             return None;
         }
@@ -163,7 +159,7 @@ impl Similarity {
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[inline]
     #[must_use]
-    pub fn fit_uniform_par(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
+    pub(crate) fn fit_uniform_par(source: &[Vec2], target: &[Vec2]) -> Option<Self> {
         if source.len() != target.len() || source.len() < 2 {
             return None;
         }

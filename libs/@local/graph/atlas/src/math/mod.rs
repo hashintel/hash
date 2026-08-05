@@ -5,9 +5,10 @@
 //! that map. The types are `f32` throughout, batch four-wide where hot loops iterate, and every
 //! performance claim in their docs traces to emitted assembly or a hardware-counter measurement.
 //!
-//! ```
-//! use hash_graph_atlas::math::{Bounds2, Vec2};
+//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
+//! caller writes it.
 //!
+//! ```ignore
 //! // Fit a layout's extent and map it onto a viewport in one transform.
 //! let points = [
 //!     Vec2::new(-2.0, 0.0),
@@ -67,6 +68,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 mod affinity;
+#[cfg(feature = "bench")]
+pub mod bench;
 mod bounds;
 mod dsquare;
 mod dvec2;
@@ -89,22 +92,23 @@ pub(crate) use self::scalar::{
     d_finite, d_non_negative, d_positive, finite, greater_than_one, non_negative,
     open_unit_fraction, positive, unit_fraction,
 };
-pub use self::{
-    affinity::{AffinityCurve, AffinityFitConfig},
+#[cfg(feature = "bench")]
+pub(crate) use self::transform::Transform;
+pub(crate) use self::{
+    affinity::AffinityCurve,
     bounds::Bounds2,
-    dsquare::{DCholeskyError, DCholeskyFactor, DSquareMatrix},
-    dvec2::{DVec2, DVec2x4T},
+    dsquare::{DCholeskyError, DSquareMatrix},
+    dvec2::DVec2,
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
-        NotInOpenUnitInterval, NotInUnitInterval, OpenUnitFraction, Positive, UnitFraction, huber,
-        narrow_f32, narrow_f32_exact, sigmoid, softplus,
+        DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative, OpenUnitFraction,
+        Positive, UnitFraction, huber, narrow_f32, sigmoid, softplus,
     },
     similarity::Similarity,
-    transform::Transform,
-    translation::Translation,
-    vec2::{Vec2, Vec2x4, Vec2x4T},
+    vec2::{Vec2, Vec2x4T},
     vecn::{AlignedVecN, BoxedVecN, VecN},
 };
+#[cfg(test)]
+pub(crate) use self::{dvec2::DVec2x4T, scalar::DFinite, translation::Translation, vec2::Vec2x4};

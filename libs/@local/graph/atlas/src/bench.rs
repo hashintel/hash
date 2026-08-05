@@ -7,6 +7,6 @@
 //! `[[bench]]` targets and is off by default.
 
 pub use crate::{
-    math::kernel::bench as kernel,
+    math::{bench as math, kernel::bench as kernel},
     salt::{lod::bench as lod, projector::bench as projector, relation::bench as relation},
 };

@@ -15,9 +15,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Translation, Vec2};
-///
+/// ```ignore
 /// let right = Translation::new(10.0, 0.0);
 /// let up = Translation::new(0.0, 2.0);
 ///

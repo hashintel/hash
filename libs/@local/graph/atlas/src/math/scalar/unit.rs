@@ -75,9 +75,7 @@ impl Error for NotInOpenUnitInterval {}
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::UnitFraction;
-///
+/// ```ignore
 /// let quarter = UnitFraction::new(0.25).expect("0.25 lies inside [0, 1]");
 /// assert_eq!(quarter.get(), 0.25);
 ///
@@ -130,9 +128,7 @@ impl UnitFraction {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::UnitFraction;
-    ///
+    /// ```ignore
     /// let low = UnitFraction::HALF;
     /// let high = UnitFraction::new(0.75).expect("0.75 lies inside [0, 1]");
     /// // A midpoint of two fractions cannot leave [0, 1]: the sum rounds within
@@ -168,9 +164,7 @@ impl UnitFraction {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::UnitFraction;
-    ///
+    /// ```ignore
     /// // Rounding drift saturates instead of failing.
     /// let similarity = UnitFraction::new_clamped(1.0 + f64::EPSILON).expect("only NaN is refused");
     /// assert_eq!(similarity, UnitFraction::ONE);
@@ -204,9 +198,7 @@ impl UnitFraction {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::UnitFraction;
-    ///
+    /// ```ignore
     /// let admitted = UnitFraction::ratio(34_317, 34_400).expect("the part is within its total");
     /// assert!(admitted > 0.99);
     ///
@@ -399,9 +391,7 @@ impl<'de> serde::Deserialize<'de> for UnitFraction {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::OpenUnitFraction;
-///
+/// ```ignore
 /// let shrink = OpenUnitFraction::new(0.25).expect("a quarter contracts");
 /// assert_eq!(shrink.get(), 0.25);
 ///
@@ -460,9 +450,7 @@ impl OpenUnitFraction {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{OpenUnitFraction, UnitFraction};
-    ///
+    /// ```ignore
     /// let kept = OpenUnitFraction::new(0.75).expect("0.75 lies inside (0, 1)");
     /// assert_eq!(
     ///     kept.complement(),

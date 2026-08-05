@@ -1789,7 +1789,8 @@ impl WalkBench {
     ///
     /// This panics when the coordinate lies off the grid or beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn occupied_cells(&self, z: u8, x: u32, y: u32, depth: Depth) -> HashSet<u64> {
+    pub fn occupied_cells(&self, z: u8, x: u32, y: u32, depth: u8) -> HashSet<u64> {
+        let depth = Depth::new(depth).expect("the depth lies within the key width");
         let cell = cell_of(z, x, y);
         let mut cells = HashSet::new();
         for (position, code) in self.codes.iter().enumerate() {
@@ -1946,7 +1947,7 @@ impl WalkBench {
         // The audit reports the tile's covered count under every rule; the coverage rules need it
         // for the target itself.
         let covered = if inside.is_some() {
-            pyramid.count(cell_of(z, x, y), cut)
+            pyramid.count_cell(cell_of(z, x, y), cut)
         } else {
             covered_of(rule, cell_of(z, x, y), cut, pyramid)
         };
@@ -2061,7 +2062,7 @@ impl WalkBench {
                 tail: 0,
                 scanned: scanned + step.scanned,
             },
-            covered: column.coverage(cell, self.cut_of(z)),
+            covered: column.coverage_cell(cell, self.cut_of(z)),
             inherited,
             spent: false,
             refined: step.refined,
@@ -2337,7 +2338,7 @@ impl WalkBench {
         z: u8,
         x: u32,
         y: u32,
-        depth: Depth,
+        depth: u8,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
         assert!(
@@ -2345,6 +2346,7 @@ impl WalkBench {
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
+        let depth = Depth::new(depth).expect("the depth lies within the key width");
         let cell = cell_of(z, x, y);
         assert!(
             cell.depth().get() <= depth.get(),
@@ -2372,18 +2374,15 @@ impl WalkBench {
     ///
     /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> Depth {
+    pub fn uniform_grid_depth(&self, z: u8, additional_depth: u8) -> u8 {
         assert!(
             z <= self.max_zoom,
             "the schedule serves zooms up to {}",
             self.max_zoom,
         );
-        Depth::new(
-            z.saturating_add(self.span)
-                .saturating_add(additional_depth)
-                .min(Depth::MAX.get()),
-        )
-        .expect("the clamped public grid lies within the key width")
+        z.saturating_add(self.span)
+            .saturating_add(additional_depth)
+            .min(Depth::MAX.get())
     }
 
     // Reads either one delta or the cumulative prefix directly in scope-bucket order.
@@ -2405,12 +2404,9 @@ impl WalkBench {
         let first = if cumulative || z == 0 {
             0
         } else {
-            usize::from(
-                self.uniform_grid_depth(z - 1, previous_additional_depth)
-                    .get(),
-            ) + 1
+            usize::from(self.uniform_grid_depth(z - 1, previous_additional_depth)) + 1
         };
-        let last = usize::from(depth.get());
+        let last = usize::from(depth);
         if first > last {
             return Vec::new();
         }
@@ -2492,7 +2488,7 @@ impl WalkBench {
     ///
     /// This panics when `z` lies beyond the schedule's deepest zoom.
     #[must_use]
-    pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> Depth {
+    pub fn uniform_step_grid_depth(&self, refine_from_zoom: u8, z: u8) -> u8 {
         let additional_depth = if z == self.max_zoom {
             Depth::MAX.get().saturating_sub(z.saturating_add(self.span))
         } else {
@@ -2521,12 +2517,11 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let additional_depth =
-            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
+        let additional_depth = self.uniform_step_grid_depth(refine_from_zoom, z) - z - self.span;
         let previous_additional_depth = if z == 0 {
             0
         } else {
-            self.uniform_step_grid_depth(refine_from_zoom, z - 1).get() - (z - 1) - self.span
+            self.uniform_step_grid_depth(refine_from_zoom, z - 1) - (z - 1) - self.span
         };
         self.uniform_positions(
             (z, x, y),
@@ -2553,8 +2548,7 @@ impl WalkBench {
         y: u32,
         generation: &ServedGeneration,
     ) -> Vec<u32> {
-        let additional_depth =
-            self.uniform_step_grid_depth(refine_from_zoom, z).get() - z - self.span;
+        let additional_depth = self.uniform_step_grid_depth(refine_from_zoom, z) - z - self.span;
         self.uniform_positions(
             (z, x, y),
             (additional_depth, additional_depth),
@@ -3151,13 +3145,27 @@ impl WalkBench {
 }
 
 impl VisibleCellPyramid {
+    /// Counts the depth's cells inside the `(z, x, y)` tile cell holding a visible point.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the coordinate lies off its zoom's grid, or when `depth` lies outside the
+    /// pyramid's levels or above the tile's own zoom.
+    #[must_use]
+    pub fn count(&self, z: u8, x: u32, y: u32, depth: u8) -> usize {
+        self.count_cell(
+            cell_of(z, x, y),
+            Depth::new(depth).expect("the depth lies within the key width"),
+        )
+    }
+
     /// Counts the depth's cells inside `cell` holding a visible point.
     ///
     /// # Panics
     ///
     /// This panics when `depth` lies outside the pyramid's levels or above `cell`'s own depth.
     #[must_use]
-    pub fn count(&self, cell: MortonCell, depth: Depth) -> usize {
+    pub(crate) fn count_cell(&self, cell: MortonCell, depth: Depth) -> usize {
         assert!(
             cell.depth().get() <= depth.get(),
             "a cell at depth {} holds no depth-{} cells",
@@ -3177,8 +3185,9 @@ impl VisibleCellPyramid {
     ///
     /// This panics when `depth` lies outside the pyramid's levels.
     #[must_use]
-    pub fn occupied(&self, depth: Depth) -> usize {
-        self.level(depth).len()
+    pub fn occupied(&self, depth: u8) -> usize {
+        self.level(Depth::new(depth).expect("the depth lies within the key width"))
+            .len()
     }
 
     /// Returns the pyramid's depths, shallowest first.
@@ -3187,11 +3196,13 @@ impl VisibleCellPyramid {
     ///
     /// This panics when a level's depth lies beyond the key width.
     #[must_use]
-    pub fn depths(&self) -> impl IntoIterator<Item = Depth> {
+    pub fn depths(&self) -> impl IntoIterator<Item = u8> {
         let shallowest = self.shallowest;
         (0..self.levels.len()).map(move |offset| {
             let offset = u8::try_from(offset).expect("the levels span at most the key width");
-            Depth::new(shallowest + offset).expect("every level's depth lies within the key width")
+            Depth::new(shallowest + offset)
+                .expect("every level's depth lies within the key width")
+                .get()
         })
     }
 
@@ -3233,13 +3244,27 @@ impl VisibleColumn {
         self.points.len() * size_of::<VisiblePoint>()
     }
 
+    /// Counts the depth's cells inside the `(z, x, y)` tile cell holding a visible point.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the coordinate lies off its zoom's grid or `depth` lies above the tile's
+    /// own zoom.
+    #[must_use]
+    pub fn coverage(&self, z: u8, x: u32, y: u32, depth: u8) -> usize {
+        self.coverage_cell(
+            cell_of(z, x, y),
+            Depth::new(depth).expect("the depth lies within the key width"),
+        )
+    }
+
     /// Counts the depth's cells inside `cell` holding a visible point.
     ///
     /// # Panics
     ///
     /// This panics when `depth` lies above `cell`'s own depth.
     #[must_use]
-    pub fn coverage(&self, cell: MortonCell, depth: Depth) -> usize {
+    pub(crate) fn coverage_cell(&self, cell: MortonCell, depth: Depth) -> usize {
         assert!(
             cell.depth().get() <= depth.get(),
             "a cell at depth {} holds no depth-{} cells",
@@ -3258,10 +3283,14 @@ impl VisibleColumn {
         count
     }
 
-    /// Counts the visible points inside `cell`.
+    /// Counts the visible points inside the `(z, x, y)` tile cell.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the coordinate lies off its zoom's grid.
     #[must_use]
-    pub fn population(&self, cell: MortonCell) -> usize {
-        self.range(cell).len()
+    pub fn population(&self, z: u8, x: u32, y: u32) -> usize {
+        self.range(cell_of(z, x, y)).len()
     }
 
     /// Returns the column's slice inside `cell`.
@@ -4052,7 +4081,7 @@ const fn rank_plan(rule: FillRule) -> Option<RankPlan> {
 /// Returns the cells the extent covers at `cut`, for the rules deriving a target from them.
 fn covered_of(rule: FillRule, cell: MortonCell, cut: Depth, pyramid: &VisibleCellPyramid) -> usize {
     match rule {
-        FillRule::Coverage | FillRule::CoverageCells => pyramid.count(cell, cut),
+        FillRule::Coverage | FillRule::CoverageCells => pyramid.count_cell(cell, cut),
         FillRule::Unmasked | FillRule::Visible | FillRule::CoverageRank | FillRule::Refined(_) => 0,
     }
 }
@@ -4082,6 +4111,31 @@ fn target_of(
             panic!("the rank-representative rules never reach the bucket walk")
         }
     }
+}
+
+/// Returns `code`'s cell index at `depth`: the key's leading `2 · depth` bits.
+///
+/// The benchmark target's audits bucket delivered keys by grid cell. This is the conversion they
+/// run over the plain `u64` key bits a delivery reports.
+///
+/// # Panics
+///
+/// This panics when `depth` lies beyond the key width.
+#[must_use]
+pub const fn key_prefix(code: u64, depth: u8) -> u64 {
+    MortonKey::from_bits(code)
+        .prefix(Depth::new(depth).expect("the depth lies within the key width"))
+}
+
+/// Returns the cell index of the `(x, y)` grid coordinate at `depth`: its interleaved key's
+/// leading `2 · depth` bits.
+///
+/// # Panics
+///
+/// This panics when `depth` lies beyond the key width.
+#[must_use]
+pub const fn grid_prefix(x: u32, y: u32, depth: u8) -> u64 {
+    MortonKey::new(x, y).prefix(Depth::new(depth).expect("the depth lies within the key width"))
 }
 
 /// Returns the cell at `(z, x, y)`.
@@ -4136,7 +4190,7 @@ mod tests {
 
     use super::{
         ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement,
-        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench, cell_of,
+        ServedGeneration, VisibleRankOrder, VisibleView, WalkBench, cell_of, key_prefix,
     };
     use crate::morton::{Depth, MortonKey};
 
@@ -4224,11 +4278,9 @@ mod tests {
             FillRule::Refined(Refinement {
                 budget: DotBudget::Scheduled,
                 ..
-            }) => bench.scheduled(z, x, y).max(
-                bench
-                    .occupied_cells(z, x, y, Depth::new(z + bench.span()).expect("a valid cut"))
-                    .len(),
-            ),
+            }) => bench
+                .scheduled(z, x, y)
+                .max(bench.occupied_cells(z, x, y, z + bench.span()).len()),
             FillRule::Refined(Refinement {
                 budget: DotBudget::Constant(budget),
                 ..
@@ -4425,34 +4477,29 @@ mod tests {
                 let (codes, _, _) = bench.columns();
 
                 for (z, x, y) in tiles(&bench) {
-                    let cut = Depth::new(z + bench.span()).expect("a valid cut");
-                    for depth in [cut, Depth::new(cut.get() + 2).expect("a valid grid")] {
+                    let cut = z + bench.span();
+                    for depth in [cut, cut + 2] {
                         let served = bench.served_representatives(z, x, y, depth, &generation);
                         let cells: HashSet<u64> = served
                             .iter()
-                            .map(|&position| {
-                                MortonKey::from_bits(codes[position as usize]).prefix(depth)
-                            })
+                            .map(|&position| key_prefix(codes[position as usize], depth))
                             .collect();
 
                         assert_eq!(
                             cells,
                             bench.occupied_cells(z, x, y, depth),
-                            "the prefix read misses a depth-{} cell at tile {z}/{x}/{y}",
-                            depth.get(),
+                            "the prefix read misses a depth-{depth} cell at tile {z}/{x}/{y}",
                         );
                         assert_eq!(
                             served.len(),
                             cells.len(),
-                            "the prefix read repeats a depth-{} cell at tile {z}/{x}/{y}",
-                            depth.get(),
+                            "the prefix read repeats a depth-{depth} cell at tile {z}/{x}/{y}",
                         );
                         assert_eq!(
                             served.len(),
-                            column.coverage(cell_of(z, x, y), depth),
-                            "the prefix read and the column disagree on the depth-{} cells at \
-                             tile {z}/{x}/{y}",
-                            depth.get(),
+                            column.coverage(z, x, y, depth),
+                            "the prefix read and the column disagree on the depth-{depth} cells \
+                             at tile {z}/{x}/{y}",
                         );
                     }
                 }
@@ -4598,7 +4645,10 @@ mod tests {
 
                     for (z, x, y) in tiles(&bench) {
                         let depth = bench.uniform_grid_depth(z, additional_depth);
-                        assert!(depth < Depth::MAX, "the fixture stays before the catch-all");
+                        assert!(
+                            depth < Depth::MAX.get(),
+                            "the fixture stays before the catch-all"
+                        );
                         let delivered = bench.uniform_cumulative_delivery(
                             additional_depth,
                             z,
@@ -4608,24 +4658,19 @@ mod tests {
                         );
                         let shown: HashSet<u64> = delivered
                             .iter()
-                            .map(|&position| {
-                                MortonKey::from_bits(codes[position as usize]).prefix(depth)
-                            })
+                            .map(|&position| key_prefix(codes[position as usize], depth))
                             .collect();
                         let occupied = bench.occupied_cells(z, x, y, depth);
 
                         assert_eq!(
-                            shown,
-                            occupied,
-                            "the public grid misses a depth-{} cell at tile {z}/{x}/{y}, \
+                            shown, occupied,
+                            "the public grid misses a depth-{depth} cell at tile {z}/{x}/{y}, \
                              clustered {clustered}, visible {visible}",
-                            depth.get(),
                         );
                         assert_eq!(
                             delivered.len(),
                             shown.len(),
-                            "the public grid repeats a depth-{} cell at tile {z}/{x}/{y}",
-                            depth.get(),
+                            "the public grid repeats a depth-{depth} cell at tile {z}/{x}/{y}",
                         );
                         assert!(
                             delivered.windows(2).all(|pair| {
@@ -4740,7 +4785,7 @@ mod tests {
                 let depth = bench.uniform_step_grid_depth(refine_from_zoom, z);
                 let shown: HashSet<u64> = cumulative
                     .iter()
-                    .map(|&position| MortonKey::from_bits(codes[position as usize]).prefix(depth))
+                    .map(|&position| key_prefix(codes[position as usize], depth))
                     .collect();
                 assert_eq!(shown, bench.occupied_cells(z, x, y, depth));
                 assert_eq!(shown.len(), cumulative.len());
@@ -4875,9 +4920,9 @@ mod tests {
                     }
                     counts
                 };
-                let occupied = |depth: Depth| {
+                let occupied = |depth: u8| {
                     let mut counts = vec![0_usize; windows];
-                    let shift = 2 * u32::from(depth.get() - window_depth.get());
+                    let shift = 2 * u32::from(depth - window_depth.get());
                     for cell in bench.occupied_cells(0, 0, 0, depth) {
                         let window =
                             usize::try_from(cell >> shift).expect("the audit grid fits usize");
@@ -4977,14 +5022,17 @@ mod tests {
                                 .collect();
                             assert_eq!(
                                 shown,
-                                bench.occupied_cells(z, x, y, depth),
+                                bench.occupied_cells(z, x, y, depth.get()),
                                 "{rule:?} serves a depth-{} cell empty over visible content at \
                                  tile {z}/{x}/{y}, clustered {clustered}, visible {visible}",
                                 depth.get(),
                             );
                         }
 
-                        assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
+                        assert_eq!(
+                            audit.covered,
+                            bench.occupied_cells(z, x, y, cut.get()).len()
+                        );
                         assert!(
                             audit.delivered <= bound(&bench, rule, z, x, y).max(audit.covered),
                             "{rule:?} served {} past both the budget and its own cut grid at tile \
@@ -5077,12 +5125,12 @@ mod tests {
                 for (z, x, y) in bench.descent() {
                     let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
                     assert_eq!(
-                        pyramid.count(cell_of(z, x, y), cut),
+                        pyramid.count_cell(cell_of(z, x, y), cut),
                         cascade.covered(z, x, y),
                         "the pyramid and the visible cascade differ at zoom {z}",
                     );
                     assert_eq!(
-                        column.coverage(cell_of(z, x, y), cut),
+                        column.coverage_cell(cell_of(z, x, y), cut),
                         cascade.covered(z, x, y),
                         "the column and the visible cascade differ at zoom {z}",
                     );
@@ -5222,14 +5270,17 @@ mod tests {
                                 .collect();
                             assert_eq!(
                                 shown,
-                                bench.occupied_cells(z, x, y, depth),
+                                bench.occupied_cells(z, x, y, depth.get()),
                                 "{rule:?} leaves a depth-{} cell empty over visible content at \
                                  tile {z}/{x}/{y}, clustered {clustered}, visible {visible}",
                                 depth.get(),
                             );
                         }
 
-                        assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
+                        assert_eq!(
+                            audit.covered,
+                            bench.occupied_cells(z, x, y, cut.get()).len()
+                        );
                         assert!(
                             audit.delivered <= bound(&bench, rule, z, x, y),
                             "{rule:?} delivered {} past the budget at tile {z}/{x}/{y}",
@@ -5266,7 +5317,7 @@ mod tests {
                 .map(|&position| MortonKey::from_bits(codes[position as usize]).prefix(cut))
                 .collect();
 
-            assert_eq!(shown, bench.occupied_cells(z, x, y, cut));
+            assert_eq!(shown, bench.occupied_cells(z, x, y, cut.get()));
             assert!(
                 audit.delivered <= SMALL.max(audit.covered),
                 "the delivery at tile {z}/{x}/{y} passed both the budget and its own cut grid",
@@ -5329,11 +5380,11 @@ mod tests {
     fn the_pyramid_holds_every_cut_depth() {
         let bench = WalkBench::build(POINTS, SEED);
         let pyramid = bench.pyramid();
-        let depths: Vec<Depth> = pyramid.depths().into_iter().collect();
+        let depths: Vec<u8> = pyramid.depths().into_iter().collect();
 
-        assert_eq!(depths.first().map(|&depth| depth.get()), Some(bench.span()));
+        assert_eq!(depths.first().copied(), Some(bench.span()));
         assert_eq!(
-            depths.last().map(|&depth| depth.get()),
+            depths.last().copied(),
             Some(bench.max_zoom() + bench.span()),
         );
         assert_eq!(
@@ -5344,9 +5395,8 @@ mod tests {
                 .sum::<usize>(),
         );
 
-        let root = cell_of(0, 0, 0);
         for &depth in &depths {
-            assert_eq!(pyramid.count(root, depth), pyramid.occupied(depth));
+            assert_eq!(pyramid.count(0, 0, 0, depth), pyramid.occupied(depth));
         }
     }
 }

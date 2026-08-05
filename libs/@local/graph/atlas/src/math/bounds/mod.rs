@@ -34,9 +34,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Bounds2, Vec2};
-///
+/// ```ignore
 /// let bounds = Bounds2::from_points([
 ///     Vec2::new(2.0, -1.0),
 ///     Vec2::new(6.0, 3.0),
@@ -63,7 +61,7 @@ mod tests;
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
-pub struct Bounds2 {
+pub(crate) struct Bounds2 {
     min: Vec2,
     max: Vec2,
 }
@@ -73,7 +71,7 @@ impl Bounds2 {
     ///
     /// 4096 points are 32 KiB, comfortably inside L1 while large enough that per-task overhead
     /// disappears against the fold.
-    pub const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
+    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
 
     /// Creates a bounding box from its corners.
     ///
@@ -81,7 +79,7 @@ impl Bounds2 {
     /// constructor accepts a degenerate box with `min == max` on an axis. Widen it with
     /// [`with_minimum_extent`](Self::with_minimum_extent) when an axis needs a positive extent.
     #[must_use]
-    pub const fn new(min: Vec2, max: Vec2) -> Option<Self> {
+    pub(crate) const fn new(min: Vec2, max: Vec2) -> Option<Self> {
         if !min.is_finite() || !max.is_finite() || min.x() > max.x() || min.y() > max.y() {
             return None;
         }
@@ -97,7 +95,7 @@ impl Bounds2 {
     /// This is the flexible, scalar entry point. When the points are already in a slice, prefer
     /// [`from_slice`](Self::from_slice), which folds four points per step.
     #[must_use]
-    pub fn from_points(points: impl IntoIterator<Item = Vec2>) -> Option<Self> {
+    pub(crate) fn from_points(points: impl IntoIterator<Item = Vec2>) -> Option<Self> {
         let mut points = points.into_iter();
         let first = points.next()?;
 
@@ -117,7 +115,7 @@ impl Bounds2 {
     /// or any non-finite coordinate. The batch-aligned middle of the slice folds four points per
     /// step. The unaligned edges fold scalar.
     #[must_use]
-    pub fn from_slice(points: &[Vec2]) -> Option<Self> {
+    pub(crate) fn from_slice(points: &[Vec2]) -> Option<Self> {
         if points.is_empty() {
             return None;
         }
@@ -162,7 +160,7 @@ impl Bounds2 {
     /// [`from_slice_par_with`](Self::from_slice_par_with) to choose a different chunk size.
     #[inline]
     #[must_use]
-    pub fn from_slice_par(points: &[Vec2]) -> Option<Self> {
+    pub(crate) fn from_slice_par(points: &[Vec2]) -> Option<Self> {
         Self::from_slice_par_with(points, Self::PARALLEL_CHUNK)
     }
 
@@ -173,7 +171,7 @@ impl Bounds2 {
     /// amortize task overhead. [`from_slice_par`](Self::from_slice_par) uses
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
-    pub fn from_slice_par_with(points: &[Vec2], chunk: NonZero<usize>) -> Option<Self> {
+    pub(crate) fn from_slice_par_with(points: &[Vec2], chunk: NonZero<usize>) -> Option<Self> {
         points
             .par_chunks(chunk.get())
             .map(Self::from_slice)
@@ -184,14 +182,14 @@ impl Bounds2 {
     /// Returns the minimum corner.
     #[inline]
     #[must_use]
-    pub const fn min(self) -> Vec2 {
+    pub(crate) const fn min(self) -> Vec2 {
         self.min
     }
 
     /// Returns the maximum corner.
     #[inline]
     #[must_use]
-    pub const fn max(self) -> Vec2 {
+    pub(crate) const fn max(self) -> Vec2 {
         self.max
     }
 
@@ -200,14 +198,14 @@ impl Bounds2 {
     /// Both components are non-negative by the type's invariant.
     #[inline]
     #[must_use]
-    pub const fn size(self) -> Vec2 {
+    pub(crate) const fn size(self) -> Vec2 {
         self.max - self.min
     }
 
     /// Returns the centre of the box.
     #[inline]
     #[must_use]
-    pub const fn centre(self) -> Vec2 {
+    pub(crate) const fn centre(self) -> Vec2 {
         (self.min + self.max) * 0.5
     }
 
@@ -216,7 +214,7 @@ impl Bounds2 {
     /// NaN coordinates are never contained.
     #[inline]
     #[must_use]
-    pub const fn contains(self, point: Vec2) -> bool {
+    pub(crate) const fn contains(self, point: Vec2) -> bool {
         self.min.x() <= point.x()
             && point.x() <= self.max.x()
             && self.min.y() <= point.y()
@@ -226,7 +224,7 @@ impl Bounds2 {
     /// Returns the smallest box covering both operands.
     #[inline]
     #[must_use]
-    pub const fn union(self, other: Self) -> Self {
+    pub(crate) const fn union(self, other: Self) -> Self {
         Self {
             min: self.min.min(other.min),
             max: self.max.max(other.max),
@@ -241,7 +239,7 @@ impl Bounds2 {
     /// that divide by the extent, such as [`fit`](Self::fit) or density rasterization.
     #[inline]
     #[must_use]
-    pub fn with_minimum_extent(self, minimum: f32) -> Self {
+    pub(crate) fn with_minimum_extent(self, minimum: f32) -> Self {
         let size = self.size();
         let centre = self.centre();
 
@@ -270,9 +268,7 @@ impl Bounds2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Bounds2, Positive, Vec2};
-    ///
+    /// ```ignore
     /// let bounds = Bounds2::new(Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0))
     ///     .expect("corners are finite and ordered");
     /// let ratio = Positive::new(4.0).expect("4 is positive");
@@ -284,7 +280,7 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub fn with_aspect_ratio(self, ratio: Positive) -> Self {
+    pub(crate) fn with_aspect_ratio(self, ratio: Positive) -> Self {
         let size = self.size();
         let centre = self.centre();
 
@@ -309,9 +305,7 @@ impl Bounds2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Bounds2, Positive, Vec2};
-    ///
+    /// ```ignore
     /// let bounds =
     ///     Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("corners are finite and ordered");
     /// let margin = Positive::new(1.5).expect("1.5 is positive");
@@ -322,7 +316,7 @@ impl Bounds2 {
     /// ```
     #[inline]
     #[must_use]
-    pub fn scaled_about_centre(self, factor: Positive) -> Self {
+    pub(crate) fn scaled_about_centre(self, factor: Positive) -> Self {
         let centre = self.centre();
         let half = self.size() * (factor.get() * 0.5);
 
@@ -346,9 +340,7 @@ impl Bounds2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Bounds2, Vec2};
-    ///
+    /// ```ignore
     /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
     ///     .expect("corners are finite and ordered");
     /// let viewport =
@@ -360,7 +352,7 @@ impl Bounds2 {
     /// assert_eq!(transform.apply(Vec2::new(2.0, 2.0)), Vec2::new(5.0, 5.0));
     /// ```
     #[must_use]
-    pub fn fit(self, target: Self) -> Option<Transform> {
+    pub(crate) fn fit(self, target: Self) -> Option<Transform> {
         let size = self.size();
 
         if !size.x().is_normal() || !size.y().is_normal() {
@@ -391,9 +383,7 @@ impl Bounds2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Bounds2, Vec2};
-    ///
+    /// ```ignore
     /// let layout = Bounds2::new(Vec2::new(-2.0, 0.0), Vec2::new(6.0, 4.0))
     ///     .expect("corners are finite and ordered");
     /// let frame = Bounds2::new(Vec2::splat(-1.0), Vec2::splat(1.0)).expect("the frame is valid");
@@ -402,7 +392,7 @@ impl Bounds2 {
     /// assert_eq!(mapped, [Vec2::new(-1.0, -1.0), Vec2::new(0.0, 0.0)]);
     /// ```
     #[must_use]
-    pub fn normalize_into(self, target: Self, points: &[Vec2]) -> Vec<Vec2> {
+    pub(crate) fn normalize_into(self, target: Self, points: &[Vec2]) -> Vec<Vec2> {
         let x = AxisMap::new(self.min.x(), self.max.x(), target.min.x(), target.max.x());
         let y = AxisMap::new(self.min.y(), self.max.y(), target.min.y(), target.max.y());
 
@@ -439,15 +429,13 @@ impl Bounds2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Bounds2, Vec2};
-    ///
+    /// ```ignore
     /// let bounds = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 1.0)).expect("the bounds are ordered");
     /// assert_eq!(bounds.quantize(Vec2::ZERO), [0, 0]);
     /// assert_eq!(bounds.quantize(Vec2::new(1.0, 0.5)), [u32::MAX, 1 << 31]);
     /// ```
     #[must_use]
-    pub fn quantize(self, point: Vec2) -> [u32; 2] {
+    pub(crate) fn quantize(self, point: Vec2) -> [u32; 2] {
         let size = self.size();
         [
             quantize_axis(point.x(), self.min.x(), size.x()),

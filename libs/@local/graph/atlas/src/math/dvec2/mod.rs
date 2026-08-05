@@ -27,9 +27,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{DVec2, Vec2};
-///
+/// ```ignore
 /// // Accumulate a weighted centroid in double precision.
 /// let points = [Vec2::new(1.0, 2.0), Vec2::new(3.0, -2.0)];
 /// let mut sum = DVec2::ZERO;
@@ -195,10 +193,9 @@ const impl Div<f64> for DVec2 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # #![feature(portable_simd)]
 /// # use core::simd::Simd;
-/// use hash_graph_atlas::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
 ///
 /// let batch = DVec2x4T::from(Vec2x4T::from([
 ///     Vec2::new(1.0, 5.0),

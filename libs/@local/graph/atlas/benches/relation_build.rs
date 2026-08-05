@@ -37,11 +37,7 @@ use core::{hint::black_box, time::Duration};
 use codspeed_criterion_compat::{
     BatchSize, Criterion, Throughput, criterion_group, criterion_main,
 };
-use hash_graph_atlas::{
-    bench::relation::{Corpus, Profile, production_chunk},
-    identity::{EdgeRowId, NodeRowId},
-};
-use rand_xoshiro::Xoshiro256PlusPlus;
+use hash_graph_atlas::bench::relation::{Profile, production_chunk, production_corpus};
 use rayon::ThreadPoolBuilder;
 
 /// One eighth of the measured live link volume.
@@ -57,17 +53,13 @@ fn links() -> usize {
     })
 }
 
-fn corpus(profile: Profile) -> Corpus<NodeRowId, EdgeRowId> {
-    Corpus::synthesize::<Xoshiro256PlusPlus>(profile, links(), SEED)
-}
-
 /// Full-build wall time across volume-concentration profiles.
 fn bench_build_profiles(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("relation_build/build");
     group.sample_size(10);
 
     for profile in [Profile::Live, Profile::Uniform, Profile::Mega] {
-        let corpus = corpus(profile);
+        let corpus = production_corpus(profile, links(), SEED);
         group.throughput(Throughput::Elements(corpus.instance_count() as u64));
         group.bench_function(profile.label(), |bencher| {
             bencher.iter_batched_ref(
@@ -83,7 +75,7 @@ fn bench_build_profiles(criterion: &mut Criterion) {
 
 /// The build's stages in isolation, each from its own input state.
 fn bench_stages(criterion: &mut Criterion) {
-    let corpus = corpus(Profile::Live);
+    let corpus = production_corpus(Profile::Live, links(), SEED);
     let chunk = production_chunk();
 
     let mut group = criterion.benchmark_group("relation_build/stages");
@@ -121,7 +113,7 @@ fn bench_stages(criterion: &mut Criterion) {
 
 /// Full-build scaling across worker-pool sizes.
 fn bench_thread_scaling(criterion: &mut Criterion) {
-    let corpus = corpus(Profile::Live);
+    let corpus = production_corpus(Profile::Live, links(), SEED);
 
     let mut group = criterion.benchmark_group("relation_build/threads");
     group.sample_size(10);
@@ -153,7 +145,7 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
 /// The mega profile gives group-level parallelism nothing to hide behind, so the emission pass
 /// rides on chunking alone - the sharpest view of the flat-response claim.
 fn bench_chunk_sensitivity(criterion: &mut Criterion) {
-    let corpus = corpus(Profile::Mega);
+    let corpus = production_corpus(Profile::Mega, links(), SEED);
     let production = production_chunk();
 
     let mut group = criterion.benchmark_group("relation_build/chunk");
@@ -176,7 +168,7 @@ fn bench_chunk_sensitivity(criterion: &mut Criterion) {
 
 /// Prints the pruning-threshold sweep the timings do not capture.
 fn report_pruning_sweep() {
-    let corpus = corpus(Profile::Live);
+    let corpus = production_corpus(Profile::Live, links(), SEED);
     eprintln!(
         "pruning sweep: live profile, {} instances over {} rows",
         corpus.instance_count(),

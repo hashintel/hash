@@ -16,9 +16,7 @@ use crate::math::scalar::narrow_f32;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{AffinityCurve, AffinityFitConfig};
-///
+/// ```ignore
 /// let default = AffinityCurve::fit(1.0, 0.1).expect("reference inputs are well-conditioned");
 /// let fine = AffinityCurve::fit_with(
 ///     1.0,
@@ -35,7 +33,7 @@ use crate::math::scalar::narrow_f32;
 /// assert!((default.a() - fine.a()).abs() < 0.01);
 /// ```
 #[derive(Debug, Copy, Clone, Default)]
-pub struct AffinityFitConfig {
+pub(crate) struct AffinityFitConfig {
     /// Number of evenly spaced sample distances for the least-squares target.
     ///
     /// More samples resolve the target falloff more finely, in particular around the
@@ -57,7 +55,7 @@ impl AffinityFitConfig {
     /// flat membership plateau inside `minimum_distance` and the exponential tail beyond it) with a
     /// handful of points each. Below eight samples the grid underdetermines the fit against the
     /// target the curve traces.
-    pub const MIN_SAMPLES: u16 = 8;
+    pub(crate) const MIN_SAMPLES: u16 = 8;
 }
 
 impl AffinityCurve {
@@ -76,9 +74,7 @@ impl AffinityCurve {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::AffinityCurve;
-    ///
+    /// ```ignore
     /// // The reference inputs: spread 1.0, minimum distance 0.1.
     /// let curve = AffinityCurve::fit(1.0, 0.1).expect("reference inputs are well-conditioned");
     ///
@@ -86,7 +82,7 @@ impl AffinityCurve {
     /// assert!((curve.b() - 0.895).abs() < 0.01);
     /// ```
     #[must_use]
-    pub fn fit(spread: f32, minimum_distance: f32) -> Option<Self> {
+    pub(crate) fn fit(spread: f32, minimum_distance: f32) -> Option<Self> {
         Self::fit_with(spread, minimum_distance, AffinityFitConfig::default())
     }
 
@@ -105,7 +101,11 @@ impl AffinityCurve {
     /// strictly positive, or when the least-squares fit fails to converge to parameters that
     /// [`new`](Self::new) accepts.
     #[must_use]
-    pub fn fit_with(spread: f32, minimum_distance: f32, config: AffinityFitConfig) -> Option<Self> {
+    pub(crate) fn fit_with(
+        spread: f32,
+        minimum_distance: f32,
+        config: AffinityFitConfig,
+    ) -> Option<Self> {
         if !spread.is_finite() || spread <= 0.0 {
             return None;
         }

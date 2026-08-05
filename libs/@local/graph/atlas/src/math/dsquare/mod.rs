@@ -176,7 +176,7 @@ impl DSquareRowBlock {
 /// the factor's diagonal component `L[i][i]`. The factorization stops at the first bad pivot and
 /// attempts no perturbation or recovery.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum DCholeskyError {
+pub(crate) enum DCholeskyError {
     /// The pivot is NaN or infinite: the fate of any non-finite component in the lower triangle's
     /// rows up to and including `index`.
     NonFinitePivot {
@@ -226,9 +226,7 @@ const fn block_rows_for(stride: usize) -> usize {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::DSquareMatrix;
-///
+/// ```ignore
 /// // A = [[4, 2], [2, 5]], written as its lower triangle.
 /// let mut matrix = DSquareMatrix::zeroed(2);
 /// matrix.row_mut(0)[0] = 4.0;
@@ -241,7 +239,7 @@ const fn block_rows_for(stride: usize) -> usize {
 /// factor.solve_in_place(&mut solution);
 /// assert_eq!(solution, [1.5, 1.0]);
 /// ```
-pub struct DSquareMatrix<A: Allocator = Global> {
+pub(crate) struct DSquareMatrix<A: Allocator = Global> {
     ptr: NonNull<f64>,
     order: usize,
     alloc: A,
@@ -256,7 +254,7 @@ impl DSquareMatrix {
     /// This panics when the padded component count overflows the address space.
     #[inline]
     #[must_use]
-    pub fn zeroed(order: usize) -> Self {
+    pub(crate) fn zeroed(order: usize) -> Self {
         Self::zeroed_in(order, Global)
     }
 }
@@ -291,7 +289,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// This panics when the padded component count overflows the address space.
     #[inline]
     #[must_use]
-    pub fn zeroed_in(order: usize, alloc: A) -> Self {
+    pub(crate) fn zeroed_in(order: usize, alloc: A) -> Self {
         let layout = Self::layout_for(order);
         let Ok(allocation) = alloc.allocate_zeroed(layout) else {
             alloc::alloc::handle_alloc_error(layout)
@@ -308,7 +306,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// Returns the order: the number of rows and columns.
     #[inline]
     #[must_use]
-    pub const fn order(&self) -> usize {
+    pub(crate) const fn order(&self) -> usize {
         self.order
     }
 
@@ -338,7 +336,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// This panics when `index` is not below the order.
     #[inline]
     #[must_use]
-    pub fn row(&self, index: usize) -> &[f64] {
+    pub(crate) fn row(&self, index: usize) -> &[f64] {
         assert!(
             index < self.order,
             "row index {index} is out of bounds for order {order}",
@@ -355,7 +353,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// This panics when `index` is not below the order.
     #[inline]
     #[must_use]
-    pub fn row_mut(&mut self, index: usize) -> &mut [f64] {
+    pub(crate) fn row_mut(&mut self, index: usize) -> &mut [f64] {
         assert!(
             index < self.order,
             "row index {index} is out of bounds for order {order}",
@@ -380,7 +378,7 @@ impl<A: Allocator> DSquareMatrix<A> {
     /// pivot is zero or negative, meaning the lower triangle is not positive-definite. The
     /// factorization stops at the first bad pivot.
     #[inline]
-    pub fn cholesky(mut self) -> Result<DCholeskyFactor<A>, DCholeskyError> {
+    pub(crate) fn cholesky(mut self) -> Result<DCholeskyFactor<A>, DCholeskyError> {
         self.factorize()?;
 
         // The factor takes over the allocation; skipping the matrix's drop keeps ownership
@@ -503,7 +501,7 @@ unsafe impl<A: Allocator + Sync> Sync for DSquareMatrix<A> {}
 /// The factor owns the allocation of the matrix that produced it: row `i` holds `L[i][0..=i]`
 /// followed by zeros, and `L·Lᵀ` recovers the factored matrix's lower triangle.
 /// [`solve_in_place`](Self::solve_in_place) answers `A·x = b` for the factored `A`.
-pub struct DCholeskyFactor<A: Allocator = Global> {
+pub(crate) struct DCholeskyFactor<A: Allocator = Global> {
     ptr: NonNull<f64>,
     order: usize,
     alloc: A,
@@ -513,7 +511,7 @@ impl<A: Allocator> DCholeskyFactor<A> {
     /// Returns the order: the number of rows and columns.
     #[inline]
     #[must_use]
-    pub const fn order(&self) -> usize {
+    pub(crate) const fn order(&self) -> usize {
         self.order
     }
 
@@ -548,7 +546,7 @@ impl<A: Allocator> DCholeskyFactor<A> {
     ///
     /// This panics when the length of `vector` differs from the order.
     #[inline]
-    pub fn solve_in_place(&self, vector: &mut [f64]) {
+    pub(crate) fn solve_in_place(&self, vector: &mut [f64]) {
         assert_eq!(
             vector.len(),
             self.order,

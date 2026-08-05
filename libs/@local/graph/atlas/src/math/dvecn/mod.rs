@@ -34,9 +34,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::DVecN;
-///
+/// ```ignore
 /// let logits = DVecN::new([2.0, 1.0, -1.0]);
 ///
 /// let probabilities = logits.softmax();
@@ -138,9 +136,7 @@ impl<const N: usize> DVecN<N> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::DVecN;
-    ///
+    /// ```ignore
     /// // A naive `exp(1000.0)` overflows. The shifted form stays finite.
     /// let probabilities = DVecN::new([1_000.0, 999.0, -1_000.0]).softmax();
     ///
@@ -166,9 +162,7 @@ impl<const N: usize> DVecN<N> {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::DVecN;
-    ///
+    /// ```ignore
     /// // A naive `exp(1000.0)` overflows. The shifted form stays finite.
     /// let result = DVecN::new([1_000.0, 1_000.0]).log_sum_exp();
     /// assert!((result - (1_000.0 + 2.0_f64.ln())).abs() < 1e-9);
@@ -952,7 +946,7 @@ impl<const N: usize> DivAssign<f64> for AlignedDVecN<N> {
 /// The buffer is allocated with `align_of::<f64x8>()` alignment regardless of `N`, so dereferencing
 /// always yields an [`AlignedDVecN`]. This is the storage for double-precision optimizer state -
 /// parameter and gradient vectors whose dimension is far too large for the stack.
-pub struct BoxedDVecN<const N: usize, A: Allocator = Global> {
+pub(crate) struct BoxedDVecN<const N: usize, A: Allocator = Global> {
     ptr: NonNull<f64>,
     alloc: A,
 }
@@ -961,7 +955,7 @@ impl<const N: usize> BoxedDVecN<N> {
     /// Copies the vector into a new aligned allocation in the global allocator.
     #[inline]
     #[must_use]
-    pub fn new(value: &DVecN<N>) -> Self {
+    pub(crate) fn new(value: &DVecN<N>) -> Self {
         Self::new_in(value, Global)
     }
 
@@ -971,7 +965,7 @@ impl<const N: usize> BoxedDVecN<N> {
     /// [`as_array_mut`](AlignedDVecN::as_array_mut).
     #[inline]
     #[must_use]
-    pub fn zero() -> Self {
+    pub(crate) fn zero() -> Self {
         Self::zero_in(Global)
     }
 }
@@ -993,7 +987,7 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
     /// allocator cannot provide the buffer.
     #[inline]
     #[must_use]
-    pub fn zero_in(alloc: A) -> Self {
+    pub(crate) fn zero_in(alloc: A) -> Self {
         let layout = Self::layout();
         let Ok(allocation) = alloc.allocate_zeroed(layout) else {
             alloc::alloc::handle_alloc_error(layout)
@@ -1012,7 +1006,7 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
     /// allocator cannot provide the buffer.
     #[inline]
     #[must_use]
-    pub fn new_in(value: &DVecN<N>, alloc: A) -> Self {
+    pub(crate) fn new_in(value: &DVecN<N>, alloc: A) -> Self {
         let Ok(this) = Self::try_new_in(value, alloc) else {
             alloc::alloc::handle_alloc_error(Self::layout())
         };
@@ -1027,7 +1021,7 @@ impl<const N: usize, A: Allocator> BoxedDVecN<N, A> {
     /// Returns [`AllocError`] when the allocator cannot provide the buffer. The error path leaks
     /// no memory.
     #[inline]
-    pub fn try_new_in(value: &DVecN<N>, alloc: A) -> Result<Self, AllocError> {
+    pub(crate) fn try_new_in(value: &DVecN<N>, alloc: A) -> Result<Self, AllocError> {
         let layout = Self::layout();
         let allocation = alloc.allocate(layout)?;
         let ptr = allocation.cast::<f64>();

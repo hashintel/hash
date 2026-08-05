@@ -17,10 +17,16 @@
 //! Row ids persist: the in-memory form is the little-endian byte form, so a column of these ids
 //! writes to and reads back from artifact files without conversion.
 
-pub(crate) use self::column::{Column, Element};
-pub use self::{
-    card::CardRow, edge::EdgeRowId, key::KeyOrdinal, node::NodeRowId, ontology::OntologyRowId,
-    position::BasePosition, rank::ImportanceRank,
+#[cfg(feature = "bench")]
+pub(crate) use self::key::KeyOrdinal;
+pub(crate) use self::{
+    card::CardRow,
+    column::{Column, Element},
+    edge::EdgeRowId,
+    node::NodeRowId,
+    ontology::OntologyRowId,
+    position::BasePosition,
+    rank::ImportanceRank,
 };
 
 mod card;

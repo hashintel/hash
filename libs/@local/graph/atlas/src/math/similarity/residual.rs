@@ -33,9 +33,7 @@ impl Similarity {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Similarity, Vec2};
-    ///
+    /// ```ignore
     /// let source = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     /// // Identity residual against offset targets: both points miss by
     /// // (0.0, 3.0), so the RMS is exactly 3.0.
@@ -47,7 +45,7 @@ impl Similarity {
     /// assert!((residual - 3.0).abs() < 1e-12);
     /// ```
     #[must_use]
-    pub fn rms_residual(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
+    pub(crate) fn rms_residual(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
         if source.len() != target.len() || source.is_empty() {
             return None;
         }
@@ -62,7 +60,7 @@ impl Similarity {
     /// near a hundred thousand pairs. Work splits into chunks of
     /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
     #[must_use]
-    pub fn rms_residual_par(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
+    pub(crate) fn rms_residual_par(self, source: &[Vec2], target: &[Vec2]) -> Option<f64> {
         if source.len() != target.len() || source.is_empty() {
             return None;
         }

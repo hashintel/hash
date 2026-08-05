@@ -43,9 +43,7 @@ mod tests;
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::Vec2;
-///
+/// ```ignore
 /// let vec = Vec2::new(1.0, 2.0);
 /// assert_eq!(vec.x(), 1.0);
 /// assert_eq!(vec.y(), 2.0);
@@ -93,9 +91,7 @@ impl Vec2 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::Vec2;
-    ///
+    /// ```ignore
     /// let components = [1.0, 2.0, 3.0, 4.0];
     /// let points = Vec2::from_slice(&components).expect("two whole vectors");
     /// assert_eq!(points, [Vec2::new(1.0, 2.0), Vec2::new(3.0, 4.0)]);
@@ -376,9 +372,8 @@ const impl Index<usize> for Vec2 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// # #![feature(portable_simd)]
-/// use hash_graph_atlas::math::{Vec2, Vec2x4T};
 ///
 /// let batch = Vec2x4T::from([
 ///     Vec2::new(1.0, 5.0),
@@ -648,9 +643,7 @@ const impl From<Vec2x4T> for Simd<f32, 8> {
 ///
 /// # Examples
 ///
-/// ```
-/// use hash_graph_atlas::math::{Vec2, Vec2x4};
-///
+/// ```ignore
 /// let batch = Vec2x4::from([
 ///     Vec2::new(1.0, 5.0),
 ///     Vec2::new(2.0, 6.0),
@@ -694,9 +687,7 @@ impl Vec2x4 {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use hash_graph_atlas::math::{Vec2, Vec2x4};
-    ///
+    /// ```ignore
     /// let points: Vec<Vec2> = (0..11_u8).map(|i| Vec2::splat(f32::from(i))).collect();
     /// let (prefix, batches, suffix) = Vec2x4::from_slice(&points);
     ///

@@ -30,12 +30,9 @@ use core::hint::black_box;
 use std::{collections::HashSet, time::Instant};
 
 use codspeed_criterion_compat::{Criterion, criterion_group, criterion_main};
-use hash_graph_atlas::{
-    bench::lod::{
-        ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement,
-        VisibleRankOrder, VisibleView, WalkBench,
-    },
-    morton::{Depth, MortonCell, MortonKey},
+use hash_graph_atlas::bench::lod::{
+    ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement, VisibleRankOrder,
+    VisibleView, WalkBench, grid_prefix, key_prefix,
 };
 
 /// The corpus scale a default sweep runs at.
@@ -345,16 +342,6 @@ const RULES: [FillRule; 4] = [
     FillRule::CoverageCells,
 ];
 
-/// Returns the cell at one tile coordinate.
-const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
-    MortonCell::new(
-        Depth::new(z).expect("tile zooms lie within the key width"),
-        x,
-        y,
-    )
-    .expect("the coordinate lies on the zoom's grid")
-}
-
 /// Prints the density delta: the three fill targets and what each one delivers.
 fn density(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!(
@@ -638,9 +625,9 @@ fn pyramid_profile(bench: &mut WalkBench) {
         usize::from(bench.max_zoom()) + 1,
     );
     print!("{:<10} {:>7} {:>9}", "mask", "visible", "vis rows");
-    let depths: Vec<Depth> = bench.pyramid().depths().into_iter().collect();
+    let depths: Vec<u8> = bench.pyramid().depths().into_iter().collect();
     for depth in &depths {
-        print!(" {:>7}", format!("d{}", depth.get()));
+        print!(" {:>7}", format!("d{depth}"));
     }
     println!(" {:>10}", "bytes");
 
@@ -697,10 +684,8 @@ fn pyramid_cost(scales: &[usize]) {
                 let cascade_micros = median_micros(|| {
                     black_box(bench.visible_cascade(VisibleRankOrder::Base));
                 });
-                let shallowest =
-                    Depth::new(bench.span()).expect("the span lies within the key width");
-                let middle = Depth::new(bench.span() + bench.max_zoom() / 2)
-                    .expect("cut depths lie within the key width");
+                let shallowest = bench.span();
+                let middle = bench.span() + bench.max_zoom() / 2;
 
                 println!(
                     "{:>10} {:<10} {:>7} {:>10} {:>12.1} {:>12} {:>10} {:>10.2} {:>10} {:>10} \
@@ -744,12 +729,15 @@ fn query_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
                 if !z.is_multiple_of(6) {
                     continue;
                 }
-                let cell = cell_of(z, x, y);
-                let cut =
-                    Depth::new(z + bench.span()).expect("cut depths lie within the key width");
+                let cut = z + bench.span();
                 let batch_micros = median_micros(|| {
                     for _ in 0..BATCH {
-                        black_box(pyramid.count(black_box(cell), black_box(cut)));
+                        black_box(pyramid.count(
+                            black_box(z),
+                            black_box(x),
+                            black_box(y),
+                            black_box(cut),
+                        ));
                     }
                 });
 
@@ -758,7 +746,7 @@ fn query_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
                     shape_name(clustered),
                     format!("{:.0}%", visible * 100.0),
                     z,
-                    pyramid.count(cell, cut),
+                    pyramid.count(z, x, y, cut),
                     batch_micros * 1000.0 / BATCH as f64,
                     batch_micros * 1000.0 / BATCH as f64 * f64::from(z + 1),
                 );
@@ -1047,7 +1035,7 @@ fn granularity(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
                         over += usize::from(audit.delivered > budget);
                         // The sweep counts a tile delivering every visible point it holds as
                         // resolved, not starved: no budget buys it another dot.
-                        if audit.cumulative >= column.population(cell_of(z, x, y)) {
+                        if audit.cumulative >= column.population(z, x, y) {
                             continue;
                         }
                         open += 1;
@@ -1310,7 +1298,7 @@ fn served_density(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fill
                         continue;
                     }
 
-                    let cut = Depth::new(z + bench.span()).expect("a valid cut");
+                    let cut = z + bench.span();
                     let shown: HashSet<u64> = bench
                         .served_cumulative_delivery(rule, z, x, y, &generation)
                         .iter()
@@ -1320,7 +1308,7 @@ fn served_density(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fill
                                 .copied()
                                 .expect("a delivered position indexes the corpus column");
 
-                            MortonKey::from_bits(key).prefix(cut)
+                            key_prefix(key, cut)
                         })
                         .collect();
                     gaps += usize::from(shown != bench.occupied_cells(z, x, y, cut));
@@ -1522,7 +1510,7 @@ fn served_breakdown(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
                 if !z.is_multiple_of(6) {
                     continue;
                 }
-                let cut = Depth::new(z + bench.span()).expect("a valid cut");
+                let cut = z + bench.span();
                 let cells = bench
                     .served_representatives(z, x, y, cut, &generation)
                     .len();
@@ -2253,13 +2241,13 @@ fn world_delivery(
 }
 
 /// Counts delivered positions in equal-area windows.
-fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: Depth) -> Vec<usize> {
-    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(depth.get()))];
+fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: u8) -> Vec<usize> {
+    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(depth))];
     for &position in positions {
         let code = *codes
             .get(position as usize)
             .expect("delivered positions lie in the code column");
-        let window = MortonKey::from_bits(code).prefix(depth);
+        let window = key_prefix(code, depth);
         *counts
             .get_mut(usize::try_from(window).expect("the audit grid fits usize"))
             .expect("the prefix lies in the audit grid") += 1;
@@ -2268,14 +2256,10 @@ fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: Depth) -> Ve
 }
 
 /// Counts occupied cells of one truth grid in equal-area windows.
-fn occupied_window_counts(
-    bench: &WalkBench,
-    occupied_depth: Depth,
-    window_depth: Depth,
-) -> Vec<usize> {
+fn occupied_window_counts(bench: &WalkBench, occupied_depth: u8, window_depth: u8) -> Vec<usize> {
     assert!(window_depth <= occupied_depth);
-    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(window_depth.get()))];
-    let shift = 2 * u32::from(occupied_depth.get() - window_depth.get());
+    let mut counts = vec![0_usize; 1_usize << (2 * u32::from(window_depth))];
+    let shift = 2 * u32::from(occupied_depth - window_depth);
     for cell in bench.occupied_cells(0, 0, 0, occupied_depth) {
         let window = cell >> shift;
         *counts
@@ -2286,10 +2270,9 @@ fn occupied_window_counts(
 }
 
 /// Returns one window's Morton index.
-fn window_index(depth: Depth, x: u32, y: u32) -> usize {
-    let shift = 32 - u32::from(depth.get());
-    usize::try_from(MortonKey::new(x << shift, y << shift).prefix(depth))
-        .expect("the audit grid fits usize")
+fn window_index(depth: u8, x: u32, y: u32) -> usize {
+    let shift = 32 - u32::from(depth);
+    usize::try_from(grid_prefix(x << shift, y << shift, depth)).expect("the audit grid fits usize")
 }
 
 /// One rule's scale-free fit to one public occupancy grid.
@@ -2314,7 +2297,7 @@ fn density_fit(
     shown: &[usize],
     occupied: &[usize],
     render_zoom: u8,
-    window_depth: Depth,
+    window_depth: u8,
     additional_depth: u8,
 ) -> DensityFit {
     assert_eq!(shown.len(), occupied.len());
@@ -2345,8 +2328,8 @@ fn density_fit(
         sampling_maximum = sampling_maximum.max(sampling);
     }
 
-    let side = 1_u32 << window_depth.get();
-    let windows_per_tile_side = 1_u32 << (window_depth.get() - render_zoom);
+    let side = 1_u32 << window_depth;
+    let windows_per_tile_side = 1_u32 << (window_depth - render_zoom);
     let mut seams = Vec::new();
     let mut observe = |left: usize, right: usize| {
         let left_cells = *occupied
@@ -2402,7 +2385,7 @@ fn best_density_fit(
     bench: &WalkBench,
     shown: &[usize],
     render_zoom: u8,
-    window_depth: Depth,
+    window_depth: u8,
 ) -> DensityFit {
     let mut best = None;
     for additional_depth in 0..=6_u8 {
@@ -2526,7 +2509,7 @@ fn rule_density_audit(
         if z == 3 {
             dots_at_three = delivered.len();
         }
-        let window_depth = Depth::new(z + 2).expect("the audit windows fit the key");
+        let window_depth = z + 2;
         let shown = delivered_window_counts(codes, &delivered, window_depth);
         let fit = best_density_fit(bench, &shown, z, window_depth);
 
