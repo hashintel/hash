@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
+use tokio::sync::oneshot;
 use tracing::Instrument as _;
 
 use super::{
@@ -15,7 +16,13 @@ use super::{
     saltile::{Saltile, spawn},
     visibility::Visibility,
 };
-use crate::serve::{LocateError, LocateRequest};
+use crate::{
+    dataset::postgres::id::ArchivedEntityId,
+    serve::{
+        LocateError, LocateRequest,
+        hydrate::{DetailError, LocateHydration, LocateOrder, LocateStore},
+    },
+};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -70,28 +77,30 @@ pub(super) async fn handler(
     reject_generation(&state, generation)?;
     reject_variant(&variant)?;
 
-    // Assembly and encoding are CPU-bound and ride rayon; hydration
-    // awaits the store between them - the trailer is the envelope's
-    // last section by design, so the columns never wait on Postgres.
+    // The whole pipeline is one synchronous call on a rayon worker; only the store order and its
+    // answer cross back here, where the connections live and the two queries run concurrently.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits;
-    let assembled = spawn(move || {
-        let view = visibility.view(&atlas)?;
+    let (order_sender, order_receiver) = oneshot::channel();
+    let (answer_sender, answer_receiver) = oneshot::channel();
+    let store = ChannelLocateStore {
+        order: order_sender,
+        answer: answer_receiver,
+    };
 
-        Ok(atlas
-            .assemble_locate(&request, limits, &view)
-            .map(|document| {
-                let entities = (
-                    atlas.locate_node_entities(&document),
-                    atlas.locate_link_entities(&document),
-                );
-                (document, entities)
-            }))
-    })
-    .await??;
+    let (result, ()) = tokio::join!(
+        spawn(move || atlas.locate(&request, limits, visibility.proof(), visibility.k, store)),
+        async {
+            // An order never arrives when the pipeline rejects the request or panics first.
+            let Ok(order) = order_receiver.await else {
+                return;
+            };
+            let _: Result<(), _> = answer_sender.send(hydrate(&state, order).await);
+        },
+    );
 
-    let (document, entities) = match assembled {
-        Ok(assembled) => assembled,
+    let bytes = match result? {
+        Ok(bytes) => bytes,
         Err(error @ LocateError::UnknownEntity) => {
             return Err(Problem::new(
                 StatusCode::NOT_FOUND,
@@ -120,31 +129,77 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
+        // A refused binding names an input this process produced, so it answers the internal
+        // problem, as on the tile and edges routes.
+        Err(error @ LocateError::View(_)) => {
+            return Err(Problem::internal(
+                error,
+                "locate delivery refused its schedule",
+            ));
+        }
+        Err(error @ LocateError::Details(_)) => {
+            return Err(Problem::internal(error, "the detail hydration failed"));
+        }
     };
 
-    let (nodes, links) = entities;
-    let internal =
-        |error: crate::serve::DetailError| Problem::internal(error, "the detail hydration failed");
-    let node_details = state
-        .remote
-        .locate_details(&nodes, state.limits.locate.properties)
-        .in_current_span()
-        .await
-        .map_err(internal)?;
-    let link_details = state
-        .remote
-        .locate_link_details(
-            &links,
-            state.limits.locate.link_type_ids,
-            state.limits.locate.link_properties,
-        )
-        .in_current_span()
-        .await
-        .map_err(internal)?;
-
-    let atlas = Arc::clone(&state.atlas);
-    let bytes = spawn(move || atlas.encode_locate(&document, &node_details, &link_details)).await?;
     Ok(Saltile::new(bytes))
+}
+
+/// One locate hydration order, owned for the trip between the pipeline and the store side.
+struct LocateOrderMessage {
+    /// The delivered node identities, source first.
+    nodes: Vec<ArchivedEntityId>,
+    /// The delivered link-entity identities, ascending identity bytes.
+    links: Vec<ArchivedEntityId>,
+    /// Most properties the source's map delivers.
+    properties: u32,
+    /// Most direct-type URLs each link delivers.
+    link_type_ids: u32,
+    /// Most properties each link's map delivers.
+    link_properties: u32,
+}
+
+/// The transport's locate store, carrying one order out to the handler and one answer back in.
+struct ChannelLocateStore {
+    order: oneshot::Sender<LocateOrderMessage>,
+    answer: oneshot::Receiver<Result<LocateHydration, DetailError>>,
+}
+
+impl LocateStore for ChannelLocateStore {
+    fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
+        self.order
+            .send(LocateOrderMessage {
+                nodes: order.nodes.to_vec(),
+                links: order.links.to_vec(),
+                properties: order.properties,
+                link_type_ids: order.link_type_ids,
+                link_properties: order.link_properties,
+            })
+            .map_err(|_order| DetailError::Disconnected)?;
+
+        self.answer
+            .blocking_recv()
+            .map_err(|_closed| DetailError::Disconnected)?
+    }
+}
+
+/// Answers one order against the serving store, both halves concurrently.
+async fn hydrate(
+    state: &AppState,
+    order: LocateOrderMessage,
+) -> Result<LocateHydration, DetailError> {
+    let (nodes, links) = tokio::try_join!(
+        state
+            .remote
+            .locate_node_hydration(&order.nodes, order.properties)
+            .in_current_span(),
+        state
+            .remote
+            .locate_link_hydration(&order.links, order.link_type_ids, order.link_properties)
+            .in_current_span(),
+    )?;
+
+    Ok(LocateHydration { nodes, links })
 }
 
 /// Documents the operation.

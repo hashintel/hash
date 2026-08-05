@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
+use tokio::sync::oneshot;
 use tracing::Instrument as _;
 
 use super::{
@@ -15,7 +16,13 @@ use super::{
     saltile::{Saltile, spawn},
     visibility::Visibility,
 };
-use crate::serve::{EdgesError, EdgesRequest};
+use crate::{
+    dataset::postgres::id::ArchivedEntityId,
+    serve::{
+        EdgesError, EdgesRequest,
+        hydrate::{DetailError, EdgesStore},
+    },
+};
 
 /// The operation's description.
 const DESCRIPTION: &str =
@@ -62,27 +69,37 @@ pub(super) async fn handler(
     reject_generation(&state, generation)?;
     reject_variant(&variant)?;
 
-    let detailed = request.include_detailed_data;
-
-    // Assembly and encoding are CPU-bound and ride rayon; hydration
-    // awaits the store between them - the trailer is the envelope's
-    // last section by design, so the columns never wait on Postgres.
+    // The whole pipeline is one synchronous call on a rayon worker; only the store order and its
+    // answer cross back here, where the connections live.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.edges;
-    let assembled = spawn(move || {
-        let view = visibility.view(&atlas)?;
+    let (order_sender, order_receiver) = oneshot::channel();
+    let (answer_sender, answer_receiver) = oneshot::channel();
+    let store = ChannelEdgesStore {
+        order: order_sender,
+        answer: answer_receiver,
+    };
 
-        Ok(atlas
-            .assemble_edges(&request, limits, &view)
-            .map(|document| {
-                let entities = detailed.then(|| atlas.delivered_edge_entities(&document));
-                (document, entities)
-            }))
-    })
-    .await??;
+    let (result, ()) = tokio::join!(
+        spawn(move || atlas.edges(&request, limits, visibility.proof(), visibility.k, store)),
+        async {
+            // An order never arrives when the request skips the trailer, rejects, or panics first.
+            let Ok(links) = order_receiver.await else {
+                return;
+            };
 
-    let (document, entities) = match assembled {
-        Ok(assembled) => assembled,
+            let answer = state
+                .remote
+                .edges_link_hydration(&links)
+                .in_current_span()
+                .await;
+
+            let _: Result<(), _> = answer_sender.send(answer);
+        },
+    );
+
+    let bytes = match result? {
+        Ok(bytes) => bytes,
         Err(error @ EdgesError::Tiles { .. }) => {
             return Err(Problem::new(
                 StatusCode::BAD_REQUEST,
@@ -104,31 +121,38 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        // Only the self-binding convenience path answers this; the handler binds through
-        // `Visibility::view`, which reports a refused cut as the internal problem itself.
+        // A refused binding names an input this process produced, so it answers the internal
+        // problem, as on the tile and locate routes.
         Err(error @ EdgesError::View(_)) => {
             return Err(Problem::internal(
                 error,
                 "edges delivery refused its schedule",
             ));
         }
+        Err(error @ EdgesError::Details(_)) => {
+            return Err(Problem::internal(error, "the detail hydration failed"));
+        }
     };
 
-    let details = match entities {
-        Some(entities) => Some(
-            state
-                .remote
-                .link_details(&entities)
-                .in_current_span()
-                .await
-                .map_err(|error| Problem::internal(error, "the detail hydration failed"))?,
-        ),
-        None => None,
-    };
-
-    let atlas = Arc::clone(&state.atlas);
-    let bytes = spawn(move || atlas.encode_edges(&document, details.as_ref())).await?;
     Ok(Saltile::new(bytes))
+}
+
+/// The transport's edges store, carrying one order out to the handler and one answer back in.
+struct ChannelEdgesStore {
+    order: oneshot::Sender<Vec<ArchivedEntityId>>,
+    answer: oneshot::Receiver<Result<Vec<Option<String>>, DetailError>>,
+}
+
+impl EdgesStore for ChannelEdgesStore {
+    fn hydrate(self, links: &[ArchivedEntityId]) -> Result<Vec<Option<String>>, DetailError> {
+        self.order
+            .send(links.to_vec())
+            .map_err(|_links| DetailError::Disconnected)?;
+
+        self.answer
+            .blocking_recv()
+            .map_err(|_closed| DetailError::Disconnected)?
+    }
 }
 
 /// Documents the operation.

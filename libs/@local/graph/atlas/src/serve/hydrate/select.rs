@@ -14,7 +14,7 @@ use super::columns::SimpleValue;
 ///
 /// This panics when the text is not a JSON object of [`SimpleValue`] renderings. The store's query
 /// filters those values, so any other shape is a query bug.
-pub(in crate::serve) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
+pub(crate) fn simple_properties(json: &str) -> Vec<(String, SimpleValue)> {
     let object: serde_json::Map<String, serde_json::Value> =
         serde_json::from_str(json).expect("the store renders a JSON object");
 
@@ -43,7 +43,7 @@ pub(in crate::serve) fn simple_properties(json: &str) -> Vec<(String, SimpleValu
 ///
 /// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops last,
 /// and survivors sort ascending by name, which is the wire's map-key order.
-pub(in crate::serve) fn select_properties(
+pub(crate) fn select_properties(
     mut entries: Vec<(String, SimpleValue)>,
     label_property: Option<&str>,
     cap: usize,

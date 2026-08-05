@@ -11,8 +11,8 @@ use super::{
     Atlas, Filter, TileCoordinate, WireRow,
     density::CutOffset,
     grid,
-    hydrate::{DeliveredEntities, EdgeLinkDetails},
-    intern::{self, Table},
+    hydrate::{DeliveredEntities, DetailError, EdgeLinkDetails, EdgesStore},
+    intern::Table,
     neighbourhood::Neighbourhood,
     schedule::{ScheduleCut, ViewSchedule},
     view::{View, ViewError},
@@ -25,12 +25,12 @@ use crate::{
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };
 
-/// A named rejection of one edges request.
+/// An edges request the atlas rejects, by name.
 ///
 /// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
 /// vocabulary.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum EdgesError {
+#[derive(Debug)]
+pub(crate) enum EdgesError {
     /// The request lists more tiles than the cap admits.
     Tiles {
         /// The listed tile count.
@@ -63,6 +63,11 @@ pub enum EdgesError {
     /// Only [`Atlas::edges`] answers this, because that path binds the view itself.
     /// [`Atlas::assemble_edges`] takes a bound view, so its rejections are all request-shaped.
     View(ViewError),
+    /// The store half of the detail trailer failed.
+    ///
+    /// Only [`Atlas::edges`] answers this, because that path places the hydration order itself,
+    /// and only a request asking for the detail trailer places one.
+    Details(DetailError),
 }
 
 impl fmt::Display for EdgesError {
@@ -84,16 +89,25 @@ impl fmt::Display for EdgesError {
                 write!(fmt, "this build does not serve {feature} requests")
             }
             Self::View(error) => error.fmt(fmt),
+            Self::Details(error) => error.fmt(fmt),
         }
     }
 }
 
 impl Error for EdgesError {}
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum EdgesDetail {
+    #[default]
+    Minimal,
+    Auxiliary,
+}
+
 /// The POST body of one edges read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EdgesRequest {
+pub(crate) struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
     pub tiles: Vec<TileCoordinate>,
     /// The visibility filter, a reserved field: the endpoint rejects any request that carries one.
@@ -101,7 +115,7 @@ pub struct EdgesRequest {
     pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
-    pub include_detailed_data: bool,
+    pub detail: EdgesDetail,
 }
 
 /// The edges endpoint's request and response limits.
@@ -144,7 +158,7 @@ pub struct EdgesDocument {
     /// The internal edge rows behind `edge_ids`, delivered order.
     ///
     /// The hydration key the identity table speaks.
-    internal_rows: Vec<EdgeRowId>,
+    rows: Vec<EdgeRowId>,
 }
 
 impl Atlas {
@@ -153,40 +167,55 @@ impl Atlas {
     /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// The endpoint rejects a request that sets `includeDetailedData` by name. This path serves
-    /// deployments without a store connection. A transport with one assembles, hydrates, and
-    /// encodes through [`Atlas::assemble_edges`], [`Atlas::delivered_edge_entities`], and
-    /// [`Atlas::encode_edges`].
-    ///
     /// This path resolves everything a view needs on its own, once per call, exactly as
-    /// [`Atlas::tile`] does and for the same reason.
+    /// [`Atlas::tile`] does and for the same reason. A request asking for the detail trailer
+    /// resolves labels in process from the generation's own payloads, and `store` answers the one
+    /// hydration order such a request places. A minimal request drops the capability unused.
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_edges`], plus [`EdgesError::Unsupported`] when the request sets
-    /// `includeDetailedData` and [`EdgesError::View`] when `k` resolves past the key width.
+    /// As [`Atlas::assemble_edges`], plus [`EdgesError::View`] when `k` resolves past the key
+    /// width and [`EdgesError::Details`] when the store half of the detail trailer fails.
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub fn edges(
+    pub(crate) fn edges(
         &self,
         request: &EdgesRequest,
         limits: EdgesLimits,
         proof: &VisibilityProof,
         k: CutOffset,
+        store: impl EdgesStore,
     ) -> Result<Vec<u8>, EdgesError> {
-        if request.include_detailed_data {
-            return Err(EdgesError::Unsupported("includeDetailedData"));
-        }
-
         let schedule = ViewSchedule::of(self, proof);
         let view = self
             .view(proof, self.census(proof), &schedule, k)
             .map_err(EdgesError::View)?;
 
         let document = self.assemble_edges(request, limits, &view)?;
-        Ok(self.encode_edges(&document, None))
+
+        let details = match request.detail {
+            EdgesDetail::Minimal => None,
+            EdgesDetail::Auxiliary => {
+                let labels = document
+                    .rows
+                    .iter()
+                    .map(|&edge| {
+                        self.edge_ids.payload_of(edge).expect(
+                            "open validated the identity rows against the adjacency's edges",
+                        )
+                    })
+                    .collect();
+                let first_type_urls = store
+                    .hydrate(&document.edge_ids)
+                    .map_err(EdgesError::Details)?;
+
+                Some(EdgeLinkDetails::new(labels, first_type_urls))
+            }
+        };
+
+        Ok(self.encode_edges(&document, details.as_ref()))
     }
 
     /// Assembles one edges request into its owned document.
@@ -221,7 +250,7 @@ impl Atlas {
     /// [`EdgesError::Grid`] when a listed coordinate lies outside its zoom's grid, and
     /// [`EdgesError::Unsupported`] when the request names a version-0 deferral. The delivery
     /// contract is `view`'s, checked when it bound, so no rejection here is about it.
-    pub fn assemble_edges(
+    fn assemble_edges(
         &self,
         request: &EdgesRequest,
         limits: EdgesLimits,
@@ -230,6 +259,7 @@ impl Atlas {
         if request.filter.is_some() {
             return Err(EdgesError::Unsupported("filter"));
         }
+
         if request.tiles.len() > limits.tiles as usize {
             return Err(EdgesError::Tiles {
                 count: request.tiles.len(),
@@ -272,7 +302,7 @@ impl Atlas {
             sources,
             targets,
             edge_ids,
-            internal_rows,
+            rows: internal_rows,
         })
     }
 
@@ -285,9 +315,12 @@ impl Atlas {
     /// This panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
     #[must_use]
-    pub fn delivered_edge_entities(&self, document: &EdgesDocument) -> DeliveredEntities {
+    pub fn delivered_edge_entities<'rows>(
+        &self,
+        document: &'rows EdgesDocument,
+    ) -> DeliveredEntities<'rows, EdgeRowId> {
         let ids = document
-            .internal_rows
+            .rows
             .iter()
             .map(|&row| {
                 self.edge_ids
@@ -296,7 +329,7 @@ impl Atlas {
             })
             .collect();
 
-        DeliveredEntities::new(ids)
+        DeliveredEntities::new(ids, &document.rows)
     }
 
     /// Encodes an assembled document.
@@ -315,7 +348,7 @@ impl Atlas {
     pub fn encode_edges(
         &self,
         document: &EdgesDocument,
-        details: Option<&EdgeLinkDetails>,
+        details: Option<&EdgeLinkDetails<'_>>,
     ) -> Vec<u8> {
         let columns = details.map(|details| {
             let table = Table::new(
@@ -330,8 +363,10 @@ impl Atlas {
                 .iter()
                 .map(|url| url.as_deref().map(|url| table.index_of(url)))
                 .collect();
-            (intern::borrowed(details.labels()), table, link_type_ids)
+
+            (details.labels(), table, link_type_ids)
         });
+
         let trailer = columns
             .as_ref()
             .map(|(labels, table, link_type_ids)| EdgesTrailer {

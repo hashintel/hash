@@ -679,8 +679,8 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.trailer = Some(TileTrailer {
-            labels: &[Some("a"), None],
-            icons: &[None, Some("\u{fc}")],
+            labels: &const { [Label::new("a"), Label::empty()] },
+            icons: &const { [Icon::empty(), Icon::new("\u{fc}")] },
         });
         let bytes = response.encode();
 
@@ -754,15 +754,15 @@ mod tile {
 
         let mut response = minimal(&positions, &rows, &ranges);
         response.trailer = Some(TileTrailer {
-            labels: &[Some("a")],
-            icons: &[None, None],
+            labels: &const { [Label::new("a")] },
+            icons: &const { [Icon::empty(); 2] },
         });
         let _bytes = response.encode();
     }
 }
 
 mod edges {
-    use super::{EdgesResponse, EdgesTrailer, Sha256Digest, WireRow, identity_of, section};
+    use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, WireRow, identity_of, section};
 
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
@@ -816,7 +816,7 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: &["s", "t"],
-            link_labels: &[Some("a"), None, None],
+            link_labels: &const { [Label::new("a"), Label::empty(), Label::empty()] },
             link_type_ids: &[Some(1), Some(0), None],
         });
         let bytes = response.encode();
@@ -872,7 +872,7 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: &[],
-            link_labels: &[None, None, None],
+            link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[None],
         });
         let _bytes = response.encode();
@@ -884,7 +884,7 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: &["t", "s"],
-            link_labels: &[None, None, None],
+            link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[None, None, None],
         });
         let _bytes = response.encode();
@@ -896,7 +896,7 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: &["s"],
-            link_labels: &[None, None, None],
+            link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[Some(1), None, None],
         });
         let _bytes = response.encode();
@@ -963,10 +963,10 @@ mod locate {
             trailer: LocateTrailer {
                 type_table: &[],
                 property_table: &[],
-                labels: &[None, None, None],
+                labels: &const { [Label::empty(); 3] },
                 type_ids: &[None, None, None],
                 properties: None,
-                link_labels: &[None, None],
+                link_labels: &const { [Label::empty(); 2] },
                 link_type_ids: &NO_TYPES,
                 link_type_ids_complete: &[false, false],
                 link_properties: &[None, None],
@@ -1068,13 +1068,13 @@ mod locate {
         response.trailer = LocateTrailer {
             type_table: &["s", "t"],
             property_table: &["a", "b"],
-            labels: &[Some("n"), None, None],
+            labels: &const { [Label::new("n"), Label::empty(), Label::empty()] },
             type_ids: &[Some(1), None, Some(0)],
             properties: Some(&[
                 (0, PropertyValue::Text("x")),
                 (1, PropertyValue::Integer(-2)),
             ]),
-            link_labels: &[Some("l"), None],
+            link_labels: &const { [Label::new("l"), Label::empty()] },
             link_type_ids: &lists,
             link_type_ids_complete: &[true, false],
             link_properties: &[
@@ -1108,7 +1108,7 @@ mod locate {
         response.sources = &[];
         response.targets = &[];
         response.edge_ids = &[];
-        response.trailer.labels = &[None];
+        response.trailer.labels = &const { [Label::empty()] };
         response.trailer.type_ids = &[None];
         response.trailer.link_labels = &[];
         response.trailer.link_type_ids = &[];
@@ -1147,7 +1147,7 @@ mod locate {
     fn short_trailers_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.labels = &[None];
+        response.trailer.labels = &const { [Label::empty()] };
         let _bytes = response.encode();
     }
 

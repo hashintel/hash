@@ -39,6 +39,18 @@ impl Label {
         // borrow is `text`'s.
         unsafe { &*ptr }
     }
+
+    pub(crate) const fn empty() -> &'static Self {
+        const EMPTY: &Label = Label::new("");
+
+        EMPTY
+    }
+}
+
+impl AsRef<str> for Label {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
 
 impl ToOwned for Label {
@@ -113,6 +125,18 @@ impl Icon {
         // provenance of `text`. The target is therefore a live, validly initialized `Icon` whose
         // borrow is `text`'s.
         unsafe { &*ptr }
+    }
+
+    pub(crate) const fn empty() -> &'static Self {
+        const EMPTY: &Icon = Icon::new("");
+
+        EMPTY
+    }
+}
+
+impl AsRef<str> for Icon {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }
 

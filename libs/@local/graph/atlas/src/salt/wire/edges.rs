@@ -20,7 +20,9 @@
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
-    dataset::postgres::id::ArchivedEntityId, identity::NodeRowId, integrity::Sha256Digest,
+    dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
+    identity::NodeRowId,
+    integrity::Sha256Digest,
     serve::WireRow,
 };
 
@@ -119,17 +121,17 @@ impl EdgesResponse<'_> {
 /// edge whose store entry did not resolve. The bulk surface stays lean, with one label and one
 /// first-type reference per edge, and locate is the detail view.
 #[derive(Debug)]
-pub(crate) struct EdgesTrailer<'doc> {
+pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'doc [&'doc str],
+    pub type_table: &'trailer [&'trailer str],
     /// Trailer key 1: link labels, edge order.
-    pub link_labels: &'doc [Option<&'doc str>],
+    pub link_labels: &'trailer [&'trailer Label],
     /// Trailer key 2.
     ///
     /// Each edge's first direct type as a type-table index, edge order. `null` marks a link the
     /// store no longer serves or whose types the store does not record.
-    pub link_type_ids: &'doc [Option<u32>],
+    pub link_type_ids: &'trailer [Option<u32>],
 }
 
 impl EdgesTrailer<'_> {
@@ -171,7 +173,7 @@ impl EdgesTrailer<'_> {
         }
 
         cbor.uint(1);
-        encode_details(&mut cbor, self.link_labels);
+        encode_details(&mut cbor, self.link_labels.iter());
 
         cbor.uint(2);
         cbor.array(self.link_type_ids.len() as u64);

@@ -59,18 +59,25 @@
 //! unresolvable type ids.
 //!
 //! The module splits by altitude: [`columns`] is the hydrated data model the documents and encoders
-//! read, [`client`] is the store boundary - the queries and the one async seam - and [`select`] is
-//! the pure property-selection policy.
+//! read, [`client`] is the store boundary - the queries and the one async connection - [`order`] is
+//! the sync-facing capability one locate response hydrates through, and [`select`] is the pure
+//! property-selection policy.
 
 mod client;
 mod columns;
 pub(crate) mod compile;
-pub(super) mod select;
+mod order;
+pub(crate) mod select;
 
+// The hydration column constructors are test vocabulary: a fixture store builds its
+// all-unresolved answer from them, and no production caller constructs a hydration by hand.
+#[cfg(test)]
+pub(crate) use self::order::{LocateLinkHydration, LocateNodeHydration};
 pub(crate) use self::{
     client::{DetailError, GraphDatabaseClient},
     columns::{
         DeliveredEntities, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails, NodeDetails,
         SimpleValue,
     },
+    order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
 };

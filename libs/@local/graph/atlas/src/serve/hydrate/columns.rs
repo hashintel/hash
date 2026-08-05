@@ -4,23 +4,27 @@
 //! the store rows, assembly documents and encoders read them. An entity the store no longer serves
 //! reads `null` in every column and `false` in every completeness flag.
 
-use crate::dataset::postgres::id::ArchivedEntityId;
+use crate::dataset::{
+    auxiliary::{Icon, Label},
+    postgres::id::ArchivedEntityId,
+};
 
 /// The entity identities behind one delivered set, in delivered order.
 ///
 /// The hydration request's subject.
 #[derive(Debug)]
-pub struct DeliveredEntities {
+pub struct DeliveredEntities<'rows, I> {
     /// One entry per delivered point.
     ids: Vec<ArchivedEntityId>,
+    rows: &'rows [I],
 }
 
-impl DeliveredEntities {
+impl<'rows, I> DeliveredEntities<'rows, I> {
     /// Takes one delivered set's identities in delivered order.
     ///
     /// The order is the hydration key: every detail column the store answers aligns to it.
-    pub(in crate::serve) const fn new(ids: Vec<ArchivedEntityId>) -> Self {
-        Self { ids }
+    pub(crate) const fn new(ids: Vec<ArchivedEntityId>, rows: &'rows [I]) -> Self {
+        Self { ids, rows }
     }
 
     /// Returns the delivered count the details must cover.
@@ -31,44 +35,49 @@ impl DeliveredEntities {
     }
 
     /// Views the delivered identities, in delivered order.
-    pub(super) const fn ids(&self) -> &[ArchivedEntityId] {
+    pub(crate) const fn ids(&self) -> &[ArchivedEntityId] {
         self.ids.as_slice()
+    }
+
+    /// Views the delivered rows, in delivered order.
+    pub(crate) const fn rows(&self) -> &[I] {
+        self.rows
     }
 }
 
 /// Hydrated per-point tile details, aligned to the delivered order.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NodeDetails {
+pub(crate) struct NodeDetails<'details> {
     /// The display label per delivered point.
-    labels: Vec<Option<String>>,
+    labels: Vec<&'details Label>,
     /// The icon per delivered point.
-    icons: Vec<Option<String>>,
+    icons: Vec<&'details Icon>,
 }
 
-impl NodeDetails {
+impl<'details> NodeDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
-    pub(super) const fn new(labels: Vec<Option<String>>, icons: Vec<Option<String>>) -> Self {
+    pub(crate) const fn new(labels: Vec<&'details Label>, icons: Vec<&'details Icon>) -> Self {
         Self { labels, icons }
     }
 
     /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
-    pub(in crate::serve) fn empty(count: usize) -> Self {
+    pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![None; count],
-            icons: vec![None; count],
+            labels: vec![Label::empty(); count],
+            icons: vec![Icon::empty(); count],
         }
     }
 
     /// Views the label column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn labels(&self) -> &[Option<String>] {
+    pub(crate) const fn labels(&self) -> &[&'details Label] {
         &self.labels
     }
 
     /// Views the icon column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn icons(&self) -> &[Option<String>] {
+    pub(crate) const fn icons(&self) -> &[&'details Icon] {
         &self.icons
     }
 }
@@ -98,9 +107,9 @@ pub(crate) enum SimpleValue {
 /// Labels and direct types for every delivered node; properties and their completeness for the
 /// source alone - neighbour detail is one locate away.
 #[derive(Debug, Clone, PartialEq)]
-pub struct LocateNodeDetails {
+pub(crate) struct LocateNodeDetails<'details> {
     /// The display label per delivered point.
-    labels: Vec<Option<String>>,
+    labels: Vec<&'details Label>,
     /// The direct-type versioned URLs per delivered point, canonical order.
     ///
     /// Empty when the store no longer serves the entity or records no types for it.
@@ -117,10 +126,10 @@ pub struct LocateNodeDetails {
     source_properties_complete: bool,
 }
 
-impl LocateNodeDetails {
+impl<'details> LocateNodeDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
-    pub(super) const fn new(
-        labels: Vec<Option<String>>,
+    pub(crate) const fn new(
+        labels: Vec<&'details Label>,
         type_urls: Vec<Vec<String>>,
         source_properties: Option<Vec<(String, SimpleValue)>>,
         source_properties_complete: bool,
@@ -135,9 +144,9 @@ impl LocateNodeDetails {
 
     /// All-`null` details covering `count` points, the result when no id can resolve.
     #[must_use]
-    pub(in crate::serve) fn empty(count: usize) -> Self {
+    pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![None; count],
+            labels: vec![Label::empty(); count],
             type_urls: vec![Vec::new(); count],
             source_properties: None,
             source_properties_complete: false,
@@ -146,13 +155,13 @@ impl LocateNodeDetails {
 
     /// Views the label column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn labels(&self) -> &[Option<String>] {
+    pub(crate) const fn labels(&self) -> &[&'details Label] {
         &self.labels
     }
 
     /// Views the direct-type URL column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn type_urls(&self) -> &[Vec<String>] {
+    pub(crate) const fn type_urls(&self) -> &[Vec<String>] {
         &self.type_urls
     }
 
@@ -160,13 +169,13 @@ impl LocateNodeDetails {
     ///
     /// `None` marks a store-absent source.
     #[inline]
-    pub(in crate::serve) const fn source_properties(&self) -> Option<&Vec<(String, SimpleValue)>> {
+    pub(crate) const fn source_properties(&self) -> Option<&Vec<(String, SimpleValue)>> {
         self.source_properties.as_ref()
     }
 
     /// Returns whether the source's surviving properties are the entity's whole deliverable set.
     #[inline]
-    pub(in crate::serve) const fn source_properties_complete(&self) -> bool {
+    pub(crate) const fn source_properties_complete(&self) -> bool {
         self.source_properties_complete
     }
 }
@@ -176,9 +185,9 @@ impl LocateNodeDetails {
 /// Every edge carries a label, direct types under a cap, properties under a cap, and both
 /// completeness flags.
 #[derive(Debug, Clone, PartialEq)]
-pub struct LocateLinkDetails {
+pub(crate) struct LocateLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
-    labels: Vec<Option<String>>,
+    labels: Vec<&'details Label>,
     /// The link's direct-type versioned URLs per delivered edge, canonical order, capped.
     ///
     /// Empty when the store no longer serves the link or records no types for it.
@@ -195,10 +204,10 @@ pub struct LocateLinkDetails {
     properties_complete: Vec<bool>,
 }
 
-impl LocateLinkDetails {
+impl<'details> LocateLinkDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
-    pub(super) const fn new(
-        labels: Vec<Option<String>>,
+    pub(crate) const fn new(
+        labels: Vec<&'details Label>,
         type_urls: Vec<Vec<String>>,
         type_urls_complete: Vec<bool>,
         properties: Vec<Option<Vec<(String, SimpleValue)>>>,
@@ -215,9 +224,9 @@ impl LocateLinkDetails {
 
     /// All-`null` details covering `count` edges, the result when no id can resolve.
     #[must_use]
-    pub(in crate::serve) fn empty(count: usize) -> Self {
+    pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![None; count],
+            labels: vec![Label::empty(); count],
             type_urls: vec![Vec::new(); count],
             type_urls_complete: vec![false; count],
             properties: vec![None; count],
@@ -227,31 +236,31 @@ impl LocateLinkDetails {
 
     /// Views the link label column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn labels(&self) -> &[Option<String>] {
+    pub(crate) const fn labels(&self) -> &[&'details Label] {
         &self.labels
     }
 
     /// Views the capped direct-type URL column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn type_urls(&self) -> &[Vec<String>] {
+    pub(crate) const fn type_urls(&self) -> &[Vec<String>] {
         &self.type_urls
     }
 
     /// Views the per-edge type completeness flags, delivered order.
     #[inline]
-    pub(in crate::serve) const fn type_urls_complete(&self) -> &[bool] {
+    pub(crate) const fn type_urls_complete(&self) -> &[bool] {
         &self.type_urls_complete
     }
 
     /// Views the per-edge property column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn properties(&self) -> &[Option<Vec<(String, SimpleValue)>>] {
+    pub(crate) const fn properties(&self) -> &[Option<Vec<(String, SimpleValue)>>] {
         &self.properties
     }
 
     /// Views the per-edge property completeness flags, delivered order.
     #[inline]
-    pub(in crate::serve) const fn properties_complete(&self) -> &[bool] {
+    pub(crate) const fn properties_complete(&self) -> &[bool] {
         &self.properties_complete
     }
 }
@@ -260,17 +269,17 @@ impl LocateLinkDetails {
 ///
 /// One label and one first-type reference per edge.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EdgeLinkDetails {
+pub struct EdgeLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
-    labels: Vec<Option<String>>,
+    labels: Vec<&'details Label>,
     /// The link's first direct type's versioned URL per delivered edge.
     first_type_urls: Vec<Option<String>>,
 }
 
-impl EdgeLinkDetails {
+impl<'details> EdgeLinkDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
-    pub(super) const fn new(
-        labels: Vec<Option<String>>,
+    pub(crate) const fn new(
+        labels: Vec<&'details Label>,
         first_type_urls: Vec<Option<String>>,
     ) -> Self {
         Self {
@@ -281,22 +290,22 @@ impl EdgeLinkDetails {
 
     /// All-`null` details covering `count` edges, the result when no id can resolve.
     #[must_use]
-    pub(in crate::serve) fn empty(count: usize) -> Self {
+    pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![None; count],
+            labels: vec![Label::empty(); count],
             first_type_urls: vec![None; count],
         }
     }
 
     /// Views the link label column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn labels(&self) -> &[Option<String>] {
+    pub(crate) const fn labels(&self) -> &[&'details Label] {
         &self.labels
     }
 
     /// Views the first direct-type URL column, delivered order.
     #[inline]
-    pub(in crate::serve) const fn first_type_urls(&self) -> &[Option<String>] {
+    pub(crate) const fn first_type_urls(&self) -> &[Option<String>] {
         &self.first_type_urls
     }
 }

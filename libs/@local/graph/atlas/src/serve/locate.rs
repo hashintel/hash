@@ -11,18 +11,21 @@
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, Filter, TileCoordinate, WireRow,
+    Atlas, CutOffset, Filter, ServeLimits, TileCoordinate, VisibilityProof, WireRow,
     colour::Palette,
     grid,
-    hydrate::{DeliveredEntities, LocateLinkDetails, LocateNodeDetails, SimpleValue},
-    intern::{self, Table},
+    hydrate::{
+        DeliveredEntities, DetailError, LocateLinkDetails, LocateNodeDetails, LocateOrder,
+        LocateStore, SimpleValue,
+    },
+    intern::Table,
     neighbourhood::{DeliveredEdge, Neighbourhood},
-    schedule::ScheduleCut,
-    view::View,
+    schedule::{ScheduleCut, ViewSchedule},
+    view::{View, ViewError},
     visibility::VisibleRow,
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
+    dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::{BasePosition, EdgeRowId, NodeRowId},
     morton::MortonKey,
     salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
@@ -62,7 +65,7 @@ const impl Default for LocateLimits {
 
 /// The subject's identity in every domain a locate response speaks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct SourcePoint {
+pub(crate) struct SourcePoint {
     /// The node row id.
     pub row: VisibleRow,
     /// The base position behind the row.
@@ -81,7 +84,7 @@ impl Atlas {
     /// [`None`] for everything that does not name a visible node - unparsable, draft-suffixed,
     /// unknown, hidden by the proof, or an edge id - the transport's `unknown-entity` problem,
     /// identical for missing and denied.
-    pub(super) fn resolve_source(&self, view: &View<'_>, entity_id: &str) -> Option<SourcePoint> {
+    pub(crate) fn resolve_source(&self, view: &View<'_>, entity_id: &str) -> Option<SourcePoint> {
         let id = super::translate::parse(entity_id)?;
         let row = self.node_ids.row_of(id)?;
         let row = view.proof().verify(row)?;
@@ -96,7 +99,7 @@ impl Atlas {
     /// Ingress goes through [`Atlas::resolve`], the same keyed codec as egress, so the lookup is
     /// pure arithmetic that resolves in process. [`None`] for out-of-universe values and for rows
     /// the proof hides, collapsed at the seam before any caller observes the cause.
-    pub(super) fn resolve_wire_source(
+    pub(crate) fn resolve_wire_source(
         &self,
         view: &View<'_>,
         wire: WireRow<NodeRowId>,
@@ -157,7 +160,7 @@ impl Atlas {
     /// ascending by wire row id. Partners derive from the post-cap edge set - a partner whose
     /// every edge truncated is not delivered. Edges ride ascending by link-entity identity bytes
     /// after the cap - the order is client-verifiable from the `EDGE_IDS` column alone.
-    pub(super) fn locate_subgraph(
+    pub(crate) fn locate_subgraph(
         &self,
         source: SourcePoint,
         limits: LocateLimits,
@@ -294,7 +297,7 @@ struct NearestKey {
 /// The delivered nodes (source first, then partners ascending wire row id) and the capped edge
 /// set among them.
 #[derive(Debug, PartialEq, Eq)]
-pub(super) struct LocateSubgraph {
+pub(crate) struct LocateSubgraph {
     /// The delivered node rows, in delivered order.
     pub rows: Vec<NodeRowId>,
     /// The delivered base positions, parallel to `rows`.
@@ -313,7 +316,7 @@ pub(super) struct LocateSubgraph {
 /// neither by name.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LocateRequest {
+pub(crate) struct LocateRequest {
     /// The source entity id, in the node identity domain.
     ///
     /// Exactly one of this and `row` names the source.
@@ -342,8 +345,8 @@ pub struct LocateRequest {
 ///
 /// Every variant is a named, data-carrying rejection for the transport layer to map onto its error
 /// vocabulary.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LocateError {
+#[derive(Debug)]
+pub(crate) enum LocateError {
     /// The source id does not name a visible node - nonexistent.
     ///
     /// Denied and unparsable are identical by doctrine (missing equals denied, and an id that
@@ -369,6 +372,15 @@ pub enum LocateError {
     ///
     /// The carried name is the request field.
     Unsupported(&'static str),
+    /// The delivery view did not bind.
+    ///
+    /// Only [`Atlas::locate`] answers this, because that path binds the view itself.
+    /// [`Atlas::assemble_locate`] takes a bound view, so its rejections are all request-shaped.
+    View(ViewError),
+    /// The store half of the response failed.
+    ///
+    /// Only [`Atlas::locate`] answers this, because that path places the hydration order itself.
+    Details(DetailError),
 }
 
 impl core::fmt::Display for LocateError {
@@ -391,6 +403,8 @@ impl core::fmt::Display for LocateError {
             Self::Unsupported(feature) => {
                 write!(fmt, "this build does not serve {feature} requests")
             }
+            Self::View(error) => error.fmt(fmt),
+            Self::Details(error) => error.fmt(fmt),
         }
     }
 }
@@ -409,12 +423,14 @@ pub struct LocateDocument {
     rows: Vec<NodeRowId>,
     sources: Vec<WireRow<NodeRowId>>,
     targets: Vec<WireRow<NodeRowId>>,
+
     /// The delivered edges' link-entity identities, delivered order.
     edge_ids: Vec<ArchivedEntityId>,
     /// The internal edge rows behind `edge_ids`, delivered order.
     ///
     /// The hydration key the identity table speaks.
-    internal_rows: Vec<EdgeRowId>,
+    edge_rows: Vec<EdgeRowId>,
+
     complete: bool,
     mask_set: Option<super::colour::MaskSet>,
     /// The request's parsed palette, the `typeIdsComplete` reference set.
@@ -422,6 +438,104 @@ pub struct LocateDocument {
 }
 
 impl Atlas {
+    /// Answers one locate request.
+    ///
+    /// `SALTILEL` envelope bytes carrying the source's ego-graph, ready to send under
+    /// `application/vnd.hash.saltile-v1`.
+    ///
+    /// This path resolves everything a view needs on its own, once per call, exactly as
+    /// [`Atlas::tile`] does and for the same reason. Locate is the detail view, so the trailer
+    /// always accompanies the response: `store` answers the one hydration order this call places,
+    /// and every label resolves in process from the generation's own payloads, keyed on the
+    /// answer's resolution columns.
+    ///
+    /// # Errors
+    ///
+    /// As [`Atlas::assemble_locate`], plus [`LocateError::View`] when `k` resolves past the key
+    /// width and [`LocateError::Details`] when the store half of the response fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when an identity table contradicts the row columns behind the delivered set,
+    /// which open's cross-artifact validation rules out.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "`k` is the delivery-cut offset's name throughout the density contract"
+    )]
+    pub(crate) fn locate(
+        &self,
+        request: &LocateRequest,
+        limits: ServeLimits,
+        proof: &VisibilityProof,
+        k: CutOffset,
+        store: impl LocateStore,
+    ) -> Result<Vec<u8>, LocateError> {
+        let schedule = ViewSchedule::of(self, proof);
+        let view = self
+            .view(proof, self.census(proof), &schedule, k)
+            .map_err(LocateError::View)?;
+
+        let document = self.assemble_locate(request, limits, &view)?;
+
+        let nodes = self.locate_node_entities(&document);
+        let links = self.locate_link_entities(&document);
+
+        let hydration = store
+            .hydrate(LocateOrder {
+                nodes: nodes.ids(),
+                links: links.ids(),
+                properties: limits.locate.properties,
+                link_type_ids: limits.locate.link_type_ids,
+                link_properties: limits.locate.link_properties,
+            })
+            .map_err(LocateError::Details)?;
+
+        let node_labels = nodes
+            .rows()
+            .iter()
+            .zip(&hydration.nodes.resolved)
+            .map(|(&row, &resolved)| {
+                if resolved {
+                    self.node_ids
+                        .payload_of(row)
+                        .expect("open validated the identity rows against the code column")
+                } else {
+                    Label::empty()
+                }
+            })
+            .collect();
+        let node_details = LocateNodeDetails::new(
+            node_labels,
+            hydration.nodes.type_urls,
+            hydration.nodes.source_properties,
+            hydration.nodes.source_properties_complete,
+        );
+
+        let link_labels = links
+            .rows()
+            .iter()
+            .zip(&hydration.links.properties)
+            .map(|(&row, properties)| {
+                if properties.is_some() {
+                    self.edge_ids
+                        .payload_of(row)
+                        .expect("open validated the identity rows against the adjacency's edges")
+                } else {
+                    Label::empty()
+                }
+            })
+            .collect();
+        let link_details = LocateLinkDetails::new(
+            link_labels,
+            hydration.links.type_urls,
+            hydration.links.type_urls_complete,
+            hydration.links.properties,
+            hydration.links.properties_complete,
+        );
+
+        Ok(self.encode_locate(&document, &node_details, &link_details))
+    }
+
     /// Assembles one locate request into its owned document.
     ///
     /// Every rejection happens here, so encoding cannot fail.
@@ -440,10 +554,10 @@ impl Atlas {
     /// `limits.tile.colored_type_ids`, and [`LocateError::Unsupported`] when the request names a
     /// version-0 deferral. The delivery contract is `view`'s, checked when it bound, so no
     /// rejection here is about it.
-    pub fn assemble_locate(
+    fn assemble_locate(
         &self,
         request: &LocateRequest,
-        limits: super::ServeLimits,
+        limits: ServeLimits,
         view: &View<'_>,
     ) -> Result<LocateDocument, LocateError> {
         if request.filter.is_some() {
@@ -497,7 +611,7 @@ impl Atlas {
             sources,
             targets,
             edge_ids,
-            internal_rows,
+            edge_rows: internal_rows,
             complete,
             mask_set,
             palette,
@@ -513,7 +627,10 @@ impl Atlas {
     /// This panics when the identity table contradicts the row column, which open's cross-artifact
     /// validation rules out.
     #[must_use]
-    pub fn locate_node_entities(&self, document: &LocateDocument) -> DeliveredEntities {
+    pub fn locate_node_entities<'rows>(
+        &self,
+        document: &'rows LocateDocument,
+    ) -> DeliveredEntities<'rows, NodeRowId> {
         let ids = document
             .rows
             .iter()
@@ -524,7 +641,7 @@ impl Atlas {
             })
             .collect();
 
-        DeliveredEntities::new(ids)
+        DeliveredEntities::new(ids, &document.rows)
     }
 
     /// Gathers the link-entity identities behind the document's delivered edges, in edge order.
@@ -536,9 +653,12 @@ impl Atlas {
     /// This panics when the identity table contradicts the adjacency's edge domain, which open's
     /// cross-artifact validation rules out.
     #[must_use]
-    pub fn locate_link_entities(&self, document: &LocateDocument) -> DeliveredEntities {
+    pub fn locate_link_entities<'rows>(
+        &self,
+        document: &'rows LocateDocument,
+    ) -> DeliveredEntities<'rows, EdgeRowId> {
         let ids = document
-            .internal_rows
+            .edge_rows
             .iter()
             .map(|&row| {
                 self.edge_ids
@@ -547,7 +667,7 @@ impl Atlas {
             })
             .collect();
 
-        DeliveredEntities::new(ids)
+        DeliveredEntities::new(ids, &document.edge_rows)
     }
 
     /// Encodes an assembled document with its hydrated details.
@@ -568,7 +688,7 @@ impl Atlas {
     /// This panics when supplied details do not cover the document's delivered nodes and edges,
     /// which is a transport bug rather than request data.
     #[must_use]
-    pub fn encode_locate(
+    fn encode_locate(
         &self,
         document: &LocateDocument,
         nodes: &LocateNodeDetails,
@@ -623,10 +743,10 @@ impl Atlas {
             trailer: LocateTrailer {
                 type_table: type_table.entries(),
                 property_table: property_table.entries(),
-                labels: &intern::borrowed(nodes.labels()),
+                labels: nodes.labels(),
                 type_ids: &type_ids,
                 properties: source_properties.as_deref(),
-                link_labels: &intern::borrowed(links.labels()),
+                link_labels: links.labels(),
                 link_type_ids: &link_type_ids,
                 link_type_ids_complete: links.type_urls_complete(),
                 link_properties: &link_properties,
@@ -650,7 +770,7 @@ type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 /// applies. `false` when the store no longer serves the source (`present` reads false) or records
 /// no types for it, since coverage of an unreadable set carries no attestation. `false` too on a
 /// palette with no resolvable entry, which covers nothing.
-pub(super) fn covers_source_types(present: bool, types: &[String], palette: &Palette) -> bool {
+pub(crate) fn covers_source_types(present: bool, types: &[String], palette: &Palette) -> bool {
     present && !types.is_empty() && types.iter().all(|url| palette.covers(url))
 }
 
@@ -659,7 +779,7 @@ pub(super) fn covers_source_types(present: bool, types: &[String], palette: &Pal
 /// The table is the bytewise-sorted, deduplicated union of each node's first direct type and
 /// each link's capped type list. Node references are the first-type indexes (`None` for a node
 /// without a recorded type). Link references keep the hydration layer's canonical type order.
-pub(super) fn intern_types<'doc>(
+pub(crate) fn intern_types<'doc>(
     nodes: &'doc [Vec<String>],
     links: &'doc [Vec<String>],
 ) -> (Table<'doc>, Vec<Option<u32>>, Vec<Vec<u32>>) {
@@ -688,7 +808,7 @@ pub(super) fn intern_types<'doc>(
 /// The table is the bytewise-sorted, deduplicated union of the source's and every link's
 /// surviving names; the returned maps lead with the source's, then the links' in edge order. Each
 /// map keeps the hydration layer's ascending-name order, which maps to ascending indexes.
-pub(super) fn intern_properties<'doc>(
+pub(crate) fn intern_properties<'doc>(
     source: Option<&'doc Vec<(String, SimpleValue)>>,
     links: &'doc [Option<Vec<(String, SimpleValue)>>],
 ) -> (Table<'doc>, Vec<PropertyMapView<'doc>>) {

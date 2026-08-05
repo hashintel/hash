@@ -1,15 +1,18 @@
 //! The visibility masking battery, covering every read path computed over the masked view.
 
+use core::assert_matches;
+
 use rand::{RngExt as _, SeedableRng as _};
 
 use super::{
     Artifacts, Atlas, BasePosition, Bound, CutOffset, Depth, EDGE_SEED, EdgesLimits, FIXTURE_EDGES,
     FIXTURE_LOD, FULL, Generation, HEAD, HashMap, HashSet, Id as _, IdSlice, Mode, MortonCell,
     NodeRowId, POSITIONS, ROW_IDS, ServeLimits, TileHead, TileLimits, TileQuery, TileRequest,
-    TileResponse, VisibilityProof, Xoshiro256PlusPlus, codec, coordinate_of, decode_rows,
-    domain_mask, edges_request, entity_string_of, expected_edges_bytes, fixture_row_ids, full_grid,
-    head_global, locate_request, mask_hiding, mask_hiding_rows, narrow_usize, open_artifacts,
-    publish, qualifying_columns, request, section, test_codec, viewing, walk, wire_columns,
+    TileResponse, UntouchedStore, VisibilityProof, Xoshiro256PlusPlus, codec, coordinate_of,
+    decode_rows, domain_mask, edges_request, entity_string_of, expected_edges_bytes,
+    fixture_row_ids, full_grid, head_global, locate_request, mask_hiding, mask_hiding_rows,
+    narrow_usize, open_artifacts, publish, qualifying_columns, request, section, test_codec,
+    viewing, walk, wire_columns,
 };
 use crate::{
     math::{Bounds2, Vec2},
@@ -260,6 +263,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
                 EdgesLimits::default(),
                 &proof,
                 CutOffset::ZERO,
+                UntouchedStore,
             )
             .expect("the masked grid serves"),
         expected_edges_bytes(&generation, true, &sources, &targets, &rows),
@@ -357,14 +361,16 @@ async fn locate_filters_partners_under_the_mask() {
 
     // A hidden source is a missing source, in both ingress domains.
     let hidden_source = mask_hiding(&atlas, &[0]);
-    let hidden_bound = Bound::of(&atlas, &hidden_source);
-    let hidden_view = hidden_bound.view(&atlas);
-    assert_eq!(
-        atlas
-            .assemble_locate(&locate_request(entity_string_of(0)), limits, &hidden_view)
-            .map(|_| ())
-            .expect_err("the hidden source rejects"),
-        crate::serve::LocateError::UnknownEntity,
+    assert_matches!(
+        atlas.locate(
+            &locate_request(entity_string_of(0)),
+            limits,
+            &hidden_source,
+            CutOffset::ZERO,
+            UntouchedStore,
+        ),
+        Err(crate::serve::LocateError::UnknownEntity),
+        "the hidden source rejects",
     );
     let node_codec = test_codec(&atlas);
     let by_row = crate::serve::LocateRequest {
@@ -373,12 +379,16 @@ async fn locate_filters_partners_under_the_mask() {
         colored_type_ids: Vec::new(),
         filter: None,
     };
-    assert_eq!(
-        atlas
-            .assemble_locate(&by_row, limits, &hidden_view)
-            .map(|_| ())
-            .expect_err("the hidden source rejects by row too"),
-        crate::serve::LocateError::UnknownEntity,
+    assert_matches!(
+        atlas.locate(
+            &by_row,
+            limits,
+            &hidden_source,
+            CutOffset::ZERO,
+            UntouchedStore,
+        ),
+        Err(crate::serve::LocateError::UnknownEntity),
+        "the hidden source rejects by row too",
     );
 }
 
@@ -434,6 +444,7 @@ async fn hidden_link_row_is_withheld_from_the_edges_grid() {
                 EdgesLimits::default(),
                 &proof,
                 CutOffset::ZERO,
+                UntouchedStore,
             )
             .expect("the masked grid serves"),
         expected_edges_bytes(&generation, true, &sources, &targets, &rows),
@@ -721,6 +732,7 @@ fn assert_edges_mask_by_intersection(
                 EdgesLimits::default(),
                 proof,
                 CutOffset::ZERO,
+                UntouchedStore,
             )
             .expect("the masked grid serves"),
         expected_edges_bytes(generation, true, &sources, &targets, &rows),
@@ -923,18 +935,31 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
         let hidden: Vec<u32> = (0..universe).filter(|_| rng.random_ratio(1, 4)).collect();
         assert!(!hidden.is_empty(), "the seeded masks hide at least one row");
         let proof = mask_hiding(&atlas, &hidden);
-        let bound = Bound::of(&atlas, &proof);
-        let view = bound.view(&atlas);
 
-        // The nonexistent baselines, once per proof.
-        let missing_entity = atlas
-            .assemble_locate(&locate_request(ghost_id.clone()), limits, &view)
-            .map(|_| ())
-            .expect_err("an unknown entity rejects");
-        let missing_row = atlas
-            .assemble_locate(&by_row(ghost_wire), limits, &view)
-            .map(|_| ())
-            .expect_err("an out-of-image wire value rejects");
+        // The nonexistent baselines, once per proof: both ingress
+        // domains answer unknown-entity for ids that never existed.
+        assert_matches!(
+            atlas.locate(
+                &locate_request(ghost_id.clone()),
+                limits,
+                &proof,
+                CutOffset::ZERO,
+                UntouchedStore,
+            ),
+            Err(crate::serve::LocateError::UnknownEntity),
+            "an unknown entity rejects",
+        );
+        assert_matches!(
+            atlas.locate(
+                &by_row(ghost_wire),
+                limits,
+                &proof,
+                CutOffset::ZERO,
+                UntouchedStore,
+            ),
+            Err(crate::serve::LocateError::UnknownEntity),
+            "an out-of-image wire value rejects",
+        );
         let missing_translated = atlas
             .translate(
                 TranslateRequest {
@@ -948,24 +973,30 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
         for &row in &hidden {
             let id = entity_string_of(u8::try_from(row).expect("fixture rows fit u8"));
 
-            let denied = atlas
-                .assemble_locate(&locate_request(id.clone()), limits, &view)
-                .map(|_| ())
-                .expect_err("a hidden source rejects");
-            assert_eq!(denied, missing_entity, "denied and missing are one error");
-            assert_eq!(denied, crate::serve::LocateError::UnknownEntity);
-
-            let denied = atlas
-                .assemble_locate(
+            // Denied and missing are one error: a hidden source
+            // answers exactly the variant the ghost baselines did,
+            // in both ingress domains.
+            assert_matches!(
+                atlas.locate(
+                    &locate_request(id.clone()),
+                    limits,
+                    &proof,
+                    CutOffset::ZERO,
+                    UntouchedStore,
+                ),
+                Err(crate::serve::LocateError::UnknownEntity),
+                "a hidden source rejects",
+            );
+            assert_matches!(
+                atlas.locate(
                     &by_row(node_codec.encode(NodeRowId::from_u32(row)).get()),
                     limits,
-                    &view,
-                )
-                .map(|_| ())
-                .expect_err("a hidden row's wire id rejects");
-            assert_eq!(
-                denied, missing_row,
-                "the row ingress collapses the same way"
+                    &proof,
+                    CutOffset::ZERO,
+                    UntouchedStore,
+                ),
+                Err(crate::serve::LocateError::UnknownEntity),
+                "the row ingress collapses the same way",
             );
 
             let denied = atlas

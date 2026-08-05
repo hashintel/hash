@@ -24,7 +24,14 @@ use super::{
     Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot,
     Mode, OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
     View, ViewCensus, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
-    error::OpenAtlasError, locate::LocateDocument, schedule::ViewSchedule,
+    edges::EdgesDetail,
+    error::OpenAtlasError,
+    hydrate::{
+        DetailError, EdgesStore, LocateHydration, LocateLinkHydration, LocateNodeHydration,
+        LocateOrder, LocateStore,
+    },
+    schedule::ViewSchedule,
+    tile::TileDetail,
 };
 use crate::{
     bitset::CompressedBitSet,
@@ -48,11 +55,11 @@ mod schedule;
 /// The tests' default authority.
 ///
 /// The operator proof is byte-identical to the pre-visibility serve.
-static FULL: VisibilityProof = VisibilityProof::full_visibility();
+pub(crate) static FULL: VisibilityProof = VisibilityProof::full_visibility();
 use crate::{
     dataset::{
-        CANONICAL_DIMENSIONS, Edge, Node as CorpusNode, Ontology, PROJECTOR_DIMENSIONS, card::Card,
-        memory::MemoryDataset,
+        CANONICAL_DIMENSIONS, Edge, Node as CorpusNode, Ontology, PROJECTOR_DIMENSIONS,
+        auxiliary::Label, card::Card, memory::MemoryDataset,
     },
     file::{
         WriteInto as _,
@@ -83,7 +90,7 @@ const NODES: usize = 48;
 /// The fixture schedule.
 ///
 /// `span = 1`, so the cut rule reads `bucket = z + 1` and the root spans buckets `0..=1`.
-const FIXTURE_LOD: LodConfig = LodConfig {
+pub(crate) const FIXTURE_LOD: LodConfig = LodConfig {
     span: Log2::new(1).expect("1 lies below the shift width"),
     max_tile_depth: 3,
 };
@@ -497,7 +504,7 @@ fn test_open_options() -> OpenOptions {
 }
 
 /// Publishes one fixture generation with store-width identities and opens its serving surface.
-async fn publish(name: &str) -> (Generation, Atlas) {
+pub(crate) async fn publish(name: &str) -> (Generation, Atlas) {
     publish_dataset(name, &fixture_dataset()).await
 }
 
@@ -556,13 +563,17 @@ impl<'proof> Bound<'proof> {
 }
 
 /// Binds `proof`'s delivery view at the zero offset and reads it once.
-fn viewing<T>(atlas: &Atlas, proof: &VisibilityProof, body: impl FnOnce(&View<'_>) -> T) -> T {
+pub(crate) fn viewing<T>(
+    atlas: &Atlas,
+    proof: &VisibilityProof,
+    body: impl FnOnce(&View<'_>) -> T,
+) -> T {
     let bound = Bound::of(atlas, proof);
 
     body(&bound.view(atlas))
 }
 
-fn request(z: u8, x: u32, y: u32, mode: Mode) -> TileRequest {
+pub(crate) fn request(z: u8, x: u32, y: u32, mode: Mode) -> TileRequest {
     TileRequest {
         coordinate: TileCoordinate { z, x, y },
         query: TileQuery {
@@ -620,14 +631,14 @@ fn decode_rows(bytes: &[u8]) -> Vec<u32> {
 }
 
 /// The independently opened serving artifacts of one generation.
-struct Artifacts {
-    morton: MortonFile,
-    quad: QuadFile,
-    coordinates: ArrayFile,
-    rows: ArrayFile,
+pub(crate) struct Artifacts {
+    pub morton: MortonFile,
+    pub quad: QuadFile,
+    pub coordinates: ArrayFile,
+    pub rows: ArrayFile,
 }
 
-fn open_artifacts(generation: &Generation) -> Artifacts {
+pub(crate) fn open_artifacts(generation: &Generation) -> Artifacts {
     let files = &generation.repository().files;
     Artifacts {
         morton: MortonFile::open(generation.path_of(&files.morton.name))
@@ -642,7 +653,7 @@ fn open_artifacts(generation: &Generation) -> Artifacts {
 }
 
 /// Reads the gather column narrowed to the fixture tests' `u32` row vocabulary.
-fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
+pub(crate) fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
     rows.u64_le_elements()
         .expect("the row column is little-endian u64 rows")
         .iter()
@@ -943,13 +954,6 @@ async fn rejects_and_reports_the_contract() {
         Err(TileError::Unsupported("filter"))
     );
 
-    let mut detailed = request(0, 0, 0, Mode::Delta);
-    detailed.query.include_detailed_data = true;
-    assert_eq!(
-        atlas.tile(&detailed, TileLimits::default(), &FULL, CutOffset::ZERO),
-        Err(TileError::Unsupported("includeDetailedData")),
-    );
-
     let manifest = serde_json::to_value(atlas.manifest(
         ServeLimits::default().manifest_limits(VisibilityLimits::default()),
         CutOffset::ZERO,
@@ -975,21 +979,21 @@ fn tile_query_defaults_to_the_delta_contract() {
     assert_eq!(query.mode, Mode::Delta);
     assert!(query.colored_type_ids.is_empty());
     assert!(query.filter.is_none());
-    assert!(!query.include_detailed_data);
+    assert_eq!(query.detail, TileDetail::Minimal);
 
     let query: TileQuery = serde_json::from_str(
         r#"{
             "mode": "total",
             "coloredTypeIds": ["https://example.com/types/thing/v/1"],
             "filter": { "any": [] },
-            "includeDetailedData": true
+            "detail": "auxiliary"
         }"#,
     )
     .expect("the full body parses");
     assert_eq!(query.mode, Mode::Total);
     assert_eq!(query.colored_type_ids.len(), 1);
     assert!(query.filter.is_some());
-    assert!(query.include_detailed_data);
+    assert_eq!(query.detail, TileDetail::Auxiliary);
 }
 
 #[test]
@@ -1049,7 +1053,60 @@ fn edges_request(tiles: Vec<TileCoordinate>) -> EdgesRequest {
     EdgesRequest {
         tiles,
         filter: None,
-        include_detailed_data: false,
+        detail: EdgesDetail::Minimal,
+    }
+}
+
+/// A store capability the request under test must drop unused.
+///
+/// A rejection never reaches hydration and a minimal request orders none. Dropping the capability
+/// is therefore part of the contract under test, and consuming it panics.
+struct UntouchedStore;
+
+impl LocateStore for UntouchedStore {
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "consuming the capability is the failure under test, and the panic is its witness"
+    )]
+    fn hydrate(self, _: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
+        panic!("the request under test must not hydrate")
+    }
+}
+
+impl EdgesStore for UntouchedStore {
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "consuming the capability is the failure under test, and the panic is its witness"
+    )]
+    fn hydrate(
+        self,
+        _: &[crate::dataset::postgres::id::ArchivedEntityId],
+    ) -> Result<Vec<Option<String>>, DetailError> {
+        panic!("the request under test must not hydrate")
+    }
+}
+
+/// A store answering that nothing resolves.
+///
+/// Every store-derived column reads empty and every completeness flag `false`, so an expectation
+/// built over it pins the envelope and the in-process columns without store-derived content.
+struct UnresolvedStore;
+
+impl LocateStore for UnresolvedStore {
+    fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
+        Ok(LocateHydration {
+            nodes: LocateNodeHydration::empty(order.nodes.len()),
+            links: LocateLinkHydration::empty(order.links.len()),
+        })
+    }
+}
+
+impl EdgesStore for UnresolvedStore {
+    fn hydrate(
+        self,
+        links: &[crate::dataset::postgres::id::ArchivedEntityId],
+    ) -> Result<Vec<Option<String>>, DetailError> {
+        Ok(vec![None; links.len()])
     }
 }
 
@@ -1150,7 +1207,13 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
 
     let request = edges_request(full_grid());
     let bytes = atlas
-        .edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO)
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+            UntouchedStore,
+        )
         .expect("the full grid should serve");
     assert_eq!(&bytes[..8], b"SALTILEE");
 
@@ -1171,7 +1234,13 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
     // Identical requests yield identical bytes.
     assert_eq!(
         atlas
-            .edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO)
+            .edges(
+                &request,
+                EdgesLimits::default(),
+                &FULL,
+                CutOffset::ZERO,
+                UntouchedStore,
+            )
             .expect("the repeat should serve"),
         bytes,
     );
@@ -1210,6 +1279,7 @@ async fn edges_serve_the_root_visible_subgraph() {
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         )
         .expect("the root should serve");
     assert_eq!(
@@ -1225,6 +1295,7 @@ async fn edges_serve_the_root_visible_subgraph() {
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         )
         .expect("the doubled root should serve");
     assert_eq!(doubled, bytes);
@@ -1277,6 +1348,7 @@ async fn edges_exclude_partially_delivered_pairs() {
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         )
         .expect("the source tile should serve");
 
@@ -1365,7 +1437,13 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         ..EdgesLimits::default()
     };
     let bytes = atlas
-        .edges(&edges_request(full_grid()), capped, &FULL, CutOffset::ZERO)
+        .edges(
+            &edges_request(full_grid()),
+            capped,
+            &FULL,
+            CutOffset::ZERO,
+            UntouchedStore,
+        )
         .expect("the capped request should serve");
     assert_eq!(
         bytes,
@@ -1382,6 +1460,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
             },
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         )
         .expect("the zero cap should serve");
     assert_eq!(
@@ -1401,19 +1480,18 @@ async fn edges_reject_and_report_the_contract() {
         serde_json::from_value::<Filter>(serde_json::json!({ "any": [] }))
             .expect("a filter document deserializes opaquely"),
     );
-    assert_eq!(
-        atlas.edges(&filtered, EdgesLimits::default(), &FULL, CutOffset::ZERO),
+    assert_matches!(
+        atlas.edges(
+            &filtered,
+            EdgesLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+            UntouchedStore,
+        ),
         Err(EdgesError::Unsupported("filter")),
     );
 
-    let mut detailed = edges_request(vec![root]);
-    detailed.include_detailed_data = true;
-    assert_eq!(
-        atlas.edges(&detailed, EdgesLimits::default(), &FULL, CutOffset::ZERO),
-        Err(EdgesError::Unsupported("includeDetailedData")),
-    );
-
-    assert_eq!(
+    assert_matches!(
         atlas.edges(
             &edges_request(vec![root, root]),
             EdgesLimits {
@@ -1422,27 +1500,30 @@ async fn edges_reject_and_report_the_contract() {
             },
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         ),
         Err(EdgesError::Tiles {
             count: 2,
             maximum: 1,
         }),
     );
-    assert_eq!(
+    assert_matches!(
         atlas.edges(
             &edges_request(vec![TileCoordinate { z: 4, x: 0, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         ),
         Err(EdgesError::Depth { z: 4, maximum: 3 }),
     );
-    assert_eq!(
+    assert_matches!(
         atlas.edges(
             &edges_request(vec![TileCoordinate { z: 2, x: 4, y: 0 }]),
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         ),
         Err(EdgesError::Grid { z: 2, x: 4, y: 0 }),
     );
@@ -1455,6 +1536,7 @@ async fn edges_reject_and_report_the_contract() {
             EdgesLimits::default(),
             &FULL,
             CutOffset::ZERO,
+            UntouchedStore,
         )
         .expect("the empty request should serve");
     assert_eq!(
@@ -1468,15 +1550,15 @@ async fn edges_reject_and_report_the_contract() {
     );
 }
 
-/// The edges convenience path rejects the trailer by name.
+/// A detail request hydrates through its store capability and encodes the interned trailer.
 ///
-/// The transport path assembles and encodes byte-exactly against the directly built wire document
-/// with the interned trailer. Hydration is the transport's store round trip, so the test supplies
-/// all-`null` details directly (G6 pins the non-null trailer bytes).
+/// The one-call path answers byte-exactly against the directly built wire document. Labels
+/// resolve in process from the generation's payloads - empty under the fixture, whose identity
+/// rewrite persists empty payloads - and the store capability answers the type column, all-`null`
+/// here (G6 pins the non-null trailer bytes).
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_edges_encode_the_hydrated_trailer() {
-    use super::hydrate::EdgeLinkDetails;
     use crate::salt::wire::edges::EdgesTrailer;
 
     let (generation, atlas) = publish("detailed-edges").await;
@@ -1495,21 +1577,17 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
 
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let mut request = edges_request(vec![root]);
-    request.include_detailed_data = true;
+    request.detail = EdgesDetail::Auxiliary;
 
-    // The convenience path serves storeless deployments: it still
-    // rejects the trailer by name.
-    assert_eq!(
-        atlas.edges(&request, EdgesLimits::default(), &FULL, CutOffset::ZERO),
-        Err(EdgesError::Unsupported("includeDetailedData")),
-    );
-
-    // The transport path assembles, gathers, hydrates, encodes.
-    let document = viewing(&atlas, &FULL, |view| {
-        atlas
-            .assemble_edges(&request, EdgesLimits::default(), view)
-            .expect("assembly ignores the trailer flag")
-    });
+    let bytes = atlas
+        .edges(
+            &request,
+            EdgesLimits::default(),
+            &FULL,
+            CutOffset::ZERO,
+            UnresolvedStore,
+        )
+        .expect("the detail request should serve");
 
     let head: u64 = artifacts.morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
         .iter()
@@ -1519,13 +1597,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let (sources, targets, internal_edges) = qualifying_columns(endpoints, &delivered);
     let (sources, targets, edge_ids) = wire_columns(&atlas, &sources, &targets, &internal_edges);
 
-    let entities = atlas.delivered_edge_entities(&document);
-    assert_eq!(entities.count(), edge_ids.len());
-
-    let details = EdgeLinkDetails::empty(entities.count());
-    let bytes = atlas.encode_edges(&document, Some(&details));
-
-    let no_labels: Vec<Option<&str>> = vec![None; edge_ids.len()];
+    let no_labels: Vec<&Label> = vec![Label::empty(); edge_ids.len()];
     let no_types: Vec<Option<u32>> = vec![None; edge_ids.len()];
     let expected = EdgesResponse {
         generation: generation.id().digest(),
@@ -1850,19 +1922,19 @@ fn edges_request_parses_the_body_contract() {
             .expect("the minimal body parses");
     assert_eq!(request.tiles, vec![TileCoordinate { z: 1, x: 0, y: 1 }]);
     assert!(request.filter.is_none());
-    assert!(!request.include_detailed_data);
+    assert_eq!(request.detail, EdgesDetail::Minimal);
 
     let request: EdgesRequest = serde_json::from_str(
         r#"{
             "tiles": [],
             "filter": { "any": [] },
-            "includeDetailedData": true
+            "detail": "auxiliary"
         }"#,
     )
     .expect("the full body parses");
     assert!(request.tiles.is_empty());
     assert!(request.filter.is_some());
-    assert!(request.include_detailed_data);
+    assert_eq!(request.detail, EdgesDetail::Auxiliary);
 }
 
 /// A colored request mixing resolvable and unresolvable ids over the published fixture.
@@ -1941,16 +2013,9 @@ fn colored_masks_resolve_and_expand_descendants() {
         file::{identity::read::IdentityFile, postings::read::PostingsFile},
         salt::{
             fit::prepare::identity::{IdentityTable, IdentityTableArchive},
-            postings::{
-                artifact::PostingsArchive,
-                build::{Postings, PostingsConfig},
-                closure::ClosureMap,
-            },
+            postings::{artifact::PostingsArchive, build::Postings, closure::ClosureMap},
         },
     };
-
-    /// The fixture's [`PostingsConfig::dense_threshold`].
-    const FIXTURE_DENSE_THRESHOLD: Log2 = Log2::new(2).expect("2 lies below the shift width");
 
     let dir = scratch("colored-masks");
     std::fs::create_dir_all(&dir).expect("the scratch directory creates");
@@ -1971,15 +2036,8 @@ fn colored_masks_resolve_and_expand_descendants() {
     let row_of_position: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
     let row_of_position = row_of_position.map(NodeRowId::from_u32);
 
-    let postings = Postings::build(
-        &types,
-        IdSlice::from_raw(&row_of_position),
-        &parents,
-        PostingsConfig {
-            dense_threshold: FIXTURE_DENSE_THRESHOLD,
-        },
-    )
-    .expect("the fixture stays in domain");
+    let postings = Postings::build(&types, IdSlice::from_raw(&row_of_position), &parents)
+        .expect("the fixture stays in domain");
     let postings_path = dir.join("fixture.post");
     let mut file = std::fs::File::create(&postings_path).expect("the postings file creates");
     postings
@@ -2023,6 +2081,7 @@ fn colored_masks_resolve_and_expand_descendants() {
             .iter()
             .map(|id| id.parse().expect("test urls parse"))
             .collect();
+
         let set = colour::resolve_masks(&postings, &closure, &table, &colour::Palette::of(&urls));
         set.memberships(&postings)
             .iter()
@@ -2051,120 +2110,6 @@ fn colored_masks_resolve_and_expand_descendants() {
     );
 }
 
-/// The detailed-tile path.
-///
-/// Assembly, entity gathering, and encoding with a hydrated trailer, spliced where the transport
-/// awaits the store.
-///
-/// The gathered entities carry the fixture's rewritten store-width ids; hydration itself is the
-/// transport's store round trip, so the test supplies all-`null` details directly. The encoded
-/// bytes must equal the wire document built directly with the trailer.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-#[expect(
-    clippy::single_range_in_vec_init,
-    reason = "an array of one range is what a root delta delivery IS"
-)]
-async fn detailed_tiles_encode_the_hydrated_trailer() {
-    use super::hydrate::NodeDetails;
-    use crate::{
-        math::{Bounds2, Vec2},
-        salt::wire::tile::{GlobalHead, TileTrailer},
-    };
-
-    let (generation, atlas) = publish("detailed-trailer").await;
-    let Artifacts {
-        quad,
-        morton,
-        coordinates,
-        rows,
-    } = open_artifacts(&generation);
-    let points = coordinates.points().expect("wire coordinates are points");
-    let row_ids = fixture_row_ids(&rows);
-
-    // The convenience path serves storeless deployments: it still
-    // rejects the trailer by name.
-    let mut detailed = request(0, 0, 0, Mode::Delta);
-    detailed.query.include_detailed_data = true;
-    assert_eq!(
-        atlas.tile(&detailed, TileLimits::default(), &FULL, CutOffset::ZERO),
-        Err(TileError::Unsupported("includeDetailedData")),
-    );
-
-    // The transport path assembles, gathers, hydrates, encodes.
-    let document = viewing(&atlas, &FULL, |view| {
-        atlas
-            .assemble_tile(&detailed, TileLimits::default(), view)
-            .expect("assembly ignores the trailer flag")
-    });
-    let entities = atlas.delivered_entities(&document);
-
-    let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
-        .iter()
-        .sum();
-    let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
-    assert_eq!(entities.count(), delivered);
-
-    // Hydration is the transport's store round trip; the encode path
-    // under test takes its details directly, all-null here, and the
-    // encoded envelope equals the directly built wire document.
-    let details = NodeDetails::empty(entities.count());
-    let bytes = atlas.encode_tile(&document, Some(&details));
-
-    let nothing: Vec<Option<&str>> = vec![None; delivered];
-    let end = u32::try_from(delivered).expect("fixture counts fit u32");
-    let expected = TileResponse {
-        head: TileHead {
-            generation: atlas.generation().digest(),
-            variant: 0,
-            coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
-            mode: Mode::Delta,
-            visible: morton.count(),
-            first_bucket: 0,
-            runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
-                .iter()
-                .map(|&length| u32::try_from(length).expect("fixture counts fit u32"))
-                .collect::<Vec<_>>(),
-            global: Some(GlobalHead {
-                visible: delivered as u64,
-                // The fixture's random points span both axes, so the
-                // frame extent anchors at the full wire square.
-                bounds: Some(
-                    Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
-                        .expect("the wire square is a valid extent"),
-                ),
-                min_resolution: morton
-                    .fenceposts()
-                    .lengths()
-                    .iter()
-                    .rposition(|&length| length > 0)
-                    .map_or(0, |bucket| bucket as u64),
-            }),
-            children: (0..4).fold(0_u8, |bits, quadrant| {
-                bits | (u8::from(quad.nodes()[0].child(quadrant).is_some()) << quadrant)
-            }),
-        },
-        delivered: crate::salt::wire::tile::DeliveredSet::Ranges(&[
-            BasePosition::from_u32(0)..BasePosition::from_u32(end)
-        ]),
-        positions: IdSlice::from_raw(points),
-        rows: IdSlice::from_raw(&{
-            let node_codec = test_codec(&atlas);
-            row_ids
-                .iter()
-                .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
-                .collect::<Vec<_>>()
-        }),
-        masks: None,
-        trailer: Some(TileTrailer {
-            labels: &nothing,
-            icons: &nothing,
-        }),
-    }
-    .encode();
-    assert_eq!(bytes, expected, "the trailer path is byte-exact");
-}
-
 /// One synthetic entity identity per seed byte, plus its upstream string form.
 fn entity_id_of(seed: u8) -> crate::dataset::postgres::id::ArchivedEntityId {
     crate::dataset::postgres::id::ArchivedEntityId {
@@ -2183,7 +2128,7 @@ fn narrow_usize(value: usize) -> u32 {
 /// Derives the node wire codec of an atlas opened with the suite's secret.
 ///
 /// The independent derivation the assembly's egress must agree with.
-fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
+pub(crate) fn test_codec(atlas: &Atlas) -> codec::RowCodec<NodeRowId> {
     codec::RowCodec::derive(
         &WireSecret::new(TEST_WIRE_SECRET),
         atlas.generation(),
@@ -2543,31 +2488,17 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
     }
 }
 
-/// Encodes one assembled locate document with all-`null` details.
-///
-/// Hydration is the transport's store round trip; empty details stand in for it everywhere the
-/// test subject is the assembly and envelope, not the hydrated content.
-fn encode_unhydrated(atlas: &Atlas, document: &LocateDocument) -> Vec<u8> {
-    let nodes = atlas.locate_node_entities(document);
-    let links = atlas.locate_link_entities(document);
-    let node_details = super::hydrate::LocateNodeDetails::empty(nodes.count());
-    let link_details = super::hydrate::LocateLinkDetails::empty(links.count());
-    atlas.encode_locate(document, &node_details, &link_details)
-}
-
 /// A locate source names one subject in one of two identity domains.
 ///
 /// A by-`row` request resolves through the wire codec's ingress, pure arithmetic with no store, and
 /// answers the same response bytes as the by-`entityId` request for that node. A wire value outside
-/// the encoded image collapses into `unknown-entity`, and `assemble_locate` rejects a body carrying
+/// the encoded image collapses into `unknown-entity`, and assembly rejects a body carrying
 /// both or neither source field by name with its count.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_by_wire_row_matches_by_entity() {
     let (_generation, atlas) = publish("locate-by-row").await;
     let limits = ServeLimits::default();
-    let bound = Bound::of(&atlas, &FULL);
-    let view = bound.view(&atlas);
 
     // Row 7's wire id round-trips by construction (the codec is a
     // bijection); the equivalence under test is the two request
@@ -2580,15 +2511,14 @@ async fn locate_by_wire_row_matches_by_entity() {
             .expect("a by-row body deserializes");
     assert_eq!(by_row.row, Some(wire));
     assert_eq!(by_row.entity_id, None);
-    let entity_document = atlas
-        .assemble_locate(&by_entity, limits, &view)
+    let by_entity_bytes = atlas
+        .locate(&by_entity, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
         .expect("the entity resolves");
-    let row_document = atlas
-        .assemble_locate(&by_row, limits, &view)
+    let by_row_bytes = atlas
+        .locate(&by_row, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
         .expect("the wire row resolves");
     assert_eq!(
-        encode_unhydrated(&atlas, &entity_document),
-        encode_unhydrated(&atlas, &row_document),
+        by_entity_bytes, by_row_bytes,
         "one node, two source domains, identical bytes",
     );
 
@@ -2605,11 +2535,9 @@ async fn locate_by_wire_row_matches_by_entity() {
     );
     for garbage in [48, u32::MAX] {
         by_row.row = Some(codec::WireRow::pinned(garbage));
-        assert_eq!(
-            atlas
-                .assemble_locate(&by_row, limits, &view)
-                .expect_err("the value is outside the universe"),
-            super::LocateError::UnknownEntity,
+        assert_matches!(
+            atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+            Err(super::LocateError::UnknownEntity),
             "{garbage}",
         );
     }
@@ -2617,27 +2545,23 @@ async fn locate_by_wire_row_matches_by_entity() {
     // Both sources or none: rejected by name, with the count.
     by_row.row = Some(wire);
     by_row.entity_id = Some(entity_string_of(7));
-    assert_eq!(
-        atlas
-            .assemble_locate(&by_row, limits, &view)
-            .expect_err("two sources are ambiguous"),
-        super::LocateError::Source { carried: 2 },
+    assert_matches!(
+        atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        Err(super::LocateError::Source { carried: 2 }),
     );
     by_row.row = None;
     by_row.entity_id = None;
-    assert_eq!(
-        atlas
-            .assemble_locate(&by_row, limits, &view)
-            .expect_err("no source names no subject"),
-        super::LocateError::Source { carried: 0 },
+    assert_matches!(
+        atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        Err(super::LocateError::Source { carried: 0 }),
     );
 }
 
-/// The locate transport path encodes byte-exactly against the derived wire document.
+/// The locate one-call path encodes byte-exactly against the derived wire document.
 ///
-/// Assembly and encoding against the groundwork layers' own outputs, all-`null` details standing
-/// in for hydration: the mandatory trailer rides empty tables and null columns, and both source
-/// completeness flags read `false` - an unhydrated source can attest nothing.
+/// Assembly and encoding against the groundwork layers' own outputs, with a store answering that
+/// nothing resolves: the mandatory trailer rides empty tables and null columns, and both source
+/// completeness flags read `false` - an unresolved source can attest nothing.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_end_to_end_encodes_the_pinned_envelope() {
@@ -2652,10 +2576,9 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let view = bound.view(&atlas);
 
     let mut request = locate_request(entity_string_of(0));
-    let document = atlas
-        .assemble_locate(&request, limits, &view)
+    let bytes = atlas
+        .locate(&request, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
         .expect("the request is well-formed");
-    let bytes = encode_unhydrated(&atlas, &document);
     assert_eq!(bytes[0..8], *b"SALTILEL");
 
     // The groundwork layers derive the expectation independently;
@@ -2682,9 +2605,9 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
         atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let nodes = subgraph.rows.len();
     let edges = subgraph.edges.len();
-    let no_labels: Vec<Option<&str>> = vec![None; nodes];
+    let no_labels: Vec<&Label> = vec![Label::empty(); nodes];
     let no_types: Vec<Option<u32>> = vec![None; nodes];
-    let no_link_labels: Vec<Option<&str>> = vec![None; edges];
+    let no_link_labels: Vec<&Label> = vec![Label::empty(); edges];
     let no_lists: Vec<Vec<u32>> = vec![Vec::new(); edges];
     let no_flags: Vec<bool> = vec![false; edges];
     let no_maps: Vec<Option<&[(u32, crate::salt::wire::locate::PropertyValue<'_>)]>> =
@@ -2729,13 +2652,10 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             .parse()
             .expect("the literal is a versioned url"),
     ];
-    let colored_document = atlas
-        .assemble_locate(&request, limits, &view)
+    let colored_bytes = atlas
+        .locate(&request, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
         .expect("unresolvable colored ids are legal");
-    assert_eq!(
-        encode_unhydrated(&atlas, &colored_document),
-        response(Some(&[Membership::List(&[])]))
-    );
+    assert_eq!(colored_bytes, response(Some(&[Membership::List(&[])])));
 }
 
 /// Every locate rejection carries its name.
@@ -2746,8 +2666,6 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 async fn locate_rejections_carry_their_names() {
     let (_generation, atlas) = publish("locate-rejects").await;
     let limits = ServeLimits::default();
-    let bound = Bound::of(&atlas, &FULL);
-    let view = bound.view(&atlas);
 
     // Unparsable, unknown, and an EDGE id (wrong identity domain)
     // are one rejection: an id that cannot name a visible node.
@@ -2756,11 +2674,15 @@ async fn locate_rejections_carry_their_names() {
         entity_string_of(50),
         entity_string_of(EDGE_SEED),
     ] {
-        assert_eq!(
-            atlas
-                .assemble_locate(&locate_request(id.clone()), limits, &view)
-                .expect_err("the id names no visible node"),
-            super::LocateError::UnknownEntity,
+        assert_matches!(
+            atlas.locate(
+                &locate_request(id.clone()),
+                limits,
+                &FULL,
+                CutOffset::ZERO,
+                UntouchedStore,
+            ),
+            Err(super::LocateError::UnknownEntity),
             "{id}",
         );
     }
@@ -2773,14 +2695,11 @@ async fn locate_rejections_carry_their_names() {
             .expect("the literal is a versioned url");
         limits.tile.colored_type_ids as usize + 1
     ];
-    assert_eq!(
-        atlas
-            .assemble_locate(&colored, limits, &view)
-            .expect_err("the list is over the cap"),
-        super::LocateError::Types {
-            count: limits.tile.colored_type_ids as usize + 1,
-            maximum: limits.tile.colored_type_ids,
-        },
+    assert_matches!(
+        atlas.locate(&colored, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        Err(super::LocateError::Types { count, maximum })
+            if count == limits.tile.colored_type_ids as usize + 1
+                && maximum == limits.tile.colored_type_ids,
     );
 
     // Version 0 rejects filter by name.
@@ -2789,11 +2708,9 @@ async fn locate_rejections_carry_their_names() {
         "filter": {},
     }))
     .expect("a filter body deserializes");
-    assert_eq!(
-        atlas
-            .assemble_locate(&filtered, limits, &view)
-            .expect_err("filter is a version-0 deferral"),
-        super::LocateError::Unsupported("filter"),
+    assert_matches!(
+        atlas.locate(&filtered, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        Err(super::LocateError::Unsupported("filter")),
     );
 }
 

@@ -79,7 +79,7 @@ impl Error for ViewError {}
 /// The value borrows the resolution it binds, which a scope holds for its reuse window, so
 /// construction costs only per-request arithmetic and repeats no per-scope work.
 #[derive(Debug, Copy, Clone)]
-pub struct View<'scope> {
+pub(crate) struct View<'scope> {
     /// The rows the scope may see.
     proof: &'scope VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
@@ -161,7 +161,7 @@ impl<'scope> View<'scope> {
 
     /// Returns the rows the view may see.
     #[must_use]
-    pub const fn proof(&self) -> &'scope VisibilityProof {
+    pub(crate) const fn proof(&self) -> &'scope VisibilityProof {
         self.proof
     }
 
@@ -180,7 +180,7 @@ impl<'scope> View<'scope> {
     ///
     /// True exactly for an operator proof, which is what binding proved when it accepted the pair.
     #[must_use]
-    pub const fn is_full(&self) -> bool {
+    pub(crate) const fn is_full(&self) -> bool {
         self.cut.is_none()
     }
 }

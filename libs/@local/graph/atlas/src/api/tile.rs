@@ -4,7 +4,6 @@ use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
-use tracing::Instrument as _;
 
 use super::{
     AppState, clause,
@@ -72,28 +71,17 @@ pub(super) async fn handler(
         query: query.map_or_else(TileQuery::default, |Body(query)| query),
     };
 
-    let detailed = request.query.include_detailed_data;
-
     // Assembly and encoding are CPU-bound and ride rayon; hydration
     // awaits the store between them - the trailer is the envelope's
     // last section by design, so geometry never waits on Postgres.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.tile;
 
-    let assembled = spawn(move || {
-        let view = visibility.view(&atlas)?;
+    let result =
+        spawn(move || atlas.tile(&request, limits, visibility.proof(), visibility.k)).await?;
 
-        Ok(atlas
-            .assemble_tile(&request, limits, &view)
-            .map(|document| {
-                let entities = detailed.then(|| atlas.delivered_entities(&document));
-                (document, entities)
-            }))
-    })
-    .await??;
-
-    let (document, entities) = match assembled {
-        Ok(assembled) => assembled,
+    let bytes = match result {
+        Ok(bytes) => bytes,
         Err(error @ TileError::Types { .. }) => {
             return Err(Problem::new(
                 StatusCode::BAD_REQUEST,
@@ -124,21 +112,6 @@ pub(super) async fn handler(
             ));
         }
     };
-
-    let details = match entities {
-        Some(entities) => Some(
-            state
-                .remote
-                .labels_and_icons(&entities)
-                .in_current_span()
-                .await
-                .map_err(|error| Problem::internal(error, "the detail hydration failed"))?,
-        ),
-        None => None,
-    };
-
-    let atlas = Arc::clone(&state.atlas);
-    let bytes = spawn(move || atlas.encode_tile(&document, details.as_ref())).await?;
 
     Ok(Saltile::new(bytes))
 }

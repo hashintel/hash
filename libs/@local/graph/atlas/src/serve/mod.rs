@@ -59,7 +59,7 @@ pub(crate) use self::{
     density::{CutOffset, DensityBand, DensityPolicy, ViewOccupancy},
     edges::{EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
-    hydrate::{DetailError, GraphDatabaseClient},
+    hydrate::GraphDatabaseClient,
     locate::{LocateError, LocateRequest},
     manifest::Manifest,
     open::OpenOptions,

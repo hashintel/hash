@@ -228,7 +228,7 @@ impl VisibleRow {
 /// value consumes the check rather than consulting it. The value is the internal row id for
 /// in-process gathers, and it never crosses the wire.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct VisibleEdge(EdgeRowId);
+pub(crate) struct VisibleEdge(EdgeRowId);
 
 impl VisibleEdge {
     /// Returns the proven row id.

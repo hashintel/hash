@@ -18,7 +18,10 @@ use super::{
     visibility::VisibilityProof,
     walk::{DeliveredPoints, ViewCensus, Walk, full::occupied_children},
 };
-use crate::salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer};
+use crate::{
+    identity::NodeRowId,
+    salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
+};
 
 /// The tile endpoint's request limits.
 ///
@@ -107,6 +110,20 @@ impl fmt::Display for TileError {
 
 impl Error for TileError {}
 
+impl From<ViewError> for TileError {
+    fn from(value: ViewError) -> Self {
+        Self::View(value)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum TileDetail {
+    #[default]
+    Minimal,
+    Auxiliary,
+}
+
 /// The query context of one tile request: the ratified POST body, every field optional.
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -128,7 +145,7 @@ pub struct TileQuery {
     pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
-    pub include_detailed_data: bool,
+    pub detail: TileDetail,
 }
 
 /// One tile read.
@@ -150,7 +167,7 @@ pub struct TileRequest {
 /// and encoding. The envelope orders hydration last, and the split mirrors that order: assembly and
 /// encoding are CPU-bound, hydration awaits the store between them.
 #[derive(Debug)]
-pub struct TileDocument {
+struct TileDocument {
     coordinate: TileCoordinate,
     mode: Mode,
     visible: u64,
@@ -192,17 +209,33 @@ impl Atlas {
         proof: &VisibilityProof,
         k: CutOffset,
     ) -> Result<Vec<u8>, TileError> {
-        if request.query.include_detailed_data {
-            return Err(TileError::Unsupported("includeDetailedData"));
-        }
-
         let schedule = ViewSchedule::of(self, proof);
-        let view = self
-            .view(proof, self.census(proof), &schedule, k)
-            .map_err(TileError::View)?;
+        let view = self.view(proof, self.census(proof), &schedule, k)?;
 
         let document = self.assemble_tile(request, limits, &view)?;
-        Ok(self.encode_tile(&document, None))
+
+        let details = match request.query.detail {
+            TileDetail::Minimal => None,
+            TileDetail::Auxiliary => {
+                let mut labels = Vec::with_capacity(document.delivered.count());
+                let mut icons = Vec::with_capacity(document.delivered.count());
+
+                for position in document.delivered.iter() {
+                    let id = self.rows.view()[position];
+                    let label = self
+                        .node_ids
+                        .payload_of(id)
+                        .expect("node id should be present");
+
+                    labels.push(label);
+                    todo!()
+                }
+
+                Some(NodeDetails::new(labels, icons))
+            }
+        };
+
+        Ok(self.encode_tile(&document, details.as_ref()))
     }
 
     /// Censuses the visible view `proof` admits over this generation.
@@ -258,7 +291,7 @@ impl Atlas {
     /// deepest served tile, [`TileError::Grid`] when the coordinate lies outside the zoom's
     /// grid, and [`TileError::Unsupported`] when the query names a version-0 deferral. The
     /// delivery contract is `view`'s, checked when it bound, so no rejection here is about it.
-    pub fn assemble_tile(
+    fn assemble_tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,
@@ -298,6 +331,7 @@ impl Atlas {
 
         let walk = Walk::of(self, proof);
         let node = walk.node_of(cell);
+
         #[expect(
             clippy::option_if_let_else,
             reason = "both arms borrow `walk` and `node`, which `map_or_else` closures cannot \
@@ -383,7 +417,7 @@ impl Atlas {
     /// This panics when the identity table contradicts the row column, which open's cross-artifact
     /// validation rules out.
     #[must_use]
-    pub fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities {
+    fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities<'_, NodeRowId> {
         let row_ids = self.row_ids();
         let ids = document
             .delivered
@@ -396,7 +430,7 @@ impl Atlas {
             })
             .collect();
 
-        DeliveredEntities::new(ids)
+        DeliveredEntities::new(ids, row_ids.as_raw())
     }
 
     /// Encodes an assembled document.
@@ -409,19 +443,16 @@ impl Atlas {
     /// This panics when supplied details do not cover the document's delivered points, a transport
     /// bug rather than request data.
     #[must_use]
-    pub fn encode_tile(&self, document: &TileDocument, details: Option<&NodeDetails>) -> Vec<u8> {
+    fn encode_tile(&self, document: &TileDocument, details: Option<&NodeDetails>) -> Vec<u8> {
         let masks = document
             .mask_set
             .as_ref()
             .map(|set| set.memberships(&self.postings));
-        let labels: Option<Vec<Option<&str>>> =
-            details.map(|details| details.labels().iter().map(Option::as_deref).collect());
-        let icons: Option<Vec<Option<&str>>> =
-            details.map(|details| details.icons().iter().map(Option::as_deref).collect());
-        let trailer = labels
-            .as_ref()
-            .zip(icons.as_ref())
-            .map(|(labels, icons)| TileTrailer { labels, icons });
+
+        let trailer = details.map(|details| TileTrailer {
+            labels: details.labels(),
+            icons: details.icons(),
+        });
 
         let response = TileResponse {
             head: TileHead {
@@ -443,5 +474,129 @@ impl Atlas {
         };
 
         response.encode()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hashql_core::id::{Id as _, IdSlice};
+
+    use super::{Mode, TileCoordinate, TileDetail, TileLimits};
+    use crate::{
+        dataset::auxiliary::{Icon, Label},
+        identity::{BasePosition, NodeRowId},
+        math::{Bounds2, Vec2},
+        salt::wire::tile::{DeliveredSet, GlobalHead, TileHead, TileResponse, TileTrailer},
+        serve::{
+            hydrate::NodeDetails,
+            tests::{
+                Artifacts, FIXTURE_LOD, FULL, fixture_row_ids, open_artifacts, publish, request,
+                test_codec, viewing,
+            },
+        },
+    };
+
+    /// The detailed-tile path.
+    ///
+    /// Assembly, entity gathering, and encoding with a hydrated trailer, spliced where the
+    /// transport awaits the store.
+    ///
+    /// The gathered entities carry the fixture's rewritten store-width ids, whose payloads are
+    /// empty, so all-empty details stand in for the hydrated columns. The encoded bytes must equal
+    /// the wire document built directly with the trailer.
+    #[tokio::test]
+    #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+    #[expect(
+        clippy::single_range_in_vec_init,
+        reason = "an array of one range is what a root delta delivery IS"
+    )]
+    async fn detailed_tiles_encode_the_hydrated_trailer() {
+        let (generation, atlas) = publish("detailed-trailer").await;
+        let Artifacts {
+            quad,
+            morton,
+            coordinates,
+            rows,
+        } = open_artifacts(&generation);
+        let points = coordinates.points().expect("wire coordinates are points");
+        let row_ids = fixture_row_ids(&rows);
+
+        // The transport path assembles, gathers, hydrates, encodes.
+        let mut detailed = request(0, 0, 0, Mode::Delta);
+        detailed.query.detail = TileDetail::Auxiliary;
+        let document = viewing(&atlas, &FULL, |view| {
+            atlas
+                .assemble_tile(&detailed, TileLimits::default(), view)
+                .expect("assembly serves every detail mode")
+        });
+        let entities = atlas.delivered_entities(&document);
+
+        let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
+            .iter()
+            .sum();
+        let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
+        assert_eq!(entities.count(), delivered);
+
+        // Hydration is the transport's store round trip; the encode
+        // path under test takes its details directly, all-empty here,
+        // and the encoded envelope equals the directly built wire
+        // document.
+        let details = NodeDetails::empty(entities.count());
+        let bytes = atlas.encode_tile(&document, Some(&details));
+
+        let no_labels: Vec<&Label> = vec![Label::empty(); delivered];
+        let no_icons: Vec<&Icon> = vec![Icon::empty(); delivered];
+        let end = u32::try_from(delivered).expect("fixture counts fit u32");
+        let expected = TileResponse {
+            head: TileHead {
+                generation: atlas.generation().digest(),
+                variant: 0,
+                coordinate: TileCoordinate { z: 0, x: 0, y: 0 },
+                mode: Mode::Delta,
+                visible: morton.count(),
+                first_bucket: 0,
+                runs: &morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
+                    .iter()
+                    .map(|&length| u32::try_from(length).expect("fixture counts fit u32"))
+                    .collect::<Vec<_>>(),
+                global: Some(GlobalHead {
+                    visible: delivered as u64,
+                    // The fixture's random points span both axes, so
+                    // the frame extent anchors at the full wire
+                    // square.
+                    bounds: Some(
+                        Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))
+                            .expect("the wire square is a valid extent"),
+                    ),
+                    min_resolution: morton
+                        .fenceposts()
+                        .lengths()
+                        .iter()
+                        .rposition(|&length| length > 0)
+                        .map_or(0, |bucket| bucket as u64),
+                }),
+                children: (0..4).fold(0_u8, |bits, quadrant| {
+                    bits | (u8::from(quad.nodes()[0].child(quadrant).is_some()) << quadrant)
+                }),
+            },
+            delivered: DeliveredSet::Ranges(&[
+                BasePosition::from_u32(0)..BasePosition::from_u32(end)
+            ]),
+            positions: IdSlice::from_raw(points),
+            rows: IdSlice::from_raw(&{
+                let node_codec = test_codec(&atlas);
+                row_ids
+                    .iter()
+                    .map(|&row| node_codec.encode(NodeRowId::from_u32(row)))
+                    .collect::<Vec<_>>()
+            }),
+            masks: None,
+            trailer: Some(TileTrailer {
+                labels: &no_labels,
+                icons: &no_icons,
+            }),
+        }
+        .encode();
+        assert_eq!(bytes, expected, "the trailer path is byte-exact");
     }
 }

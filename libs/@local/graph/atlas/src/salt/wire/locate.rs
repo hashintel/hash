@@ -29,7 +29,7 @@ use super::{
     tile::{TileCoordinate, encode_details},
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
+    dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::Vec2,
@@ -218,51 +218,51 @@ impl LocateResponse<'_> {
 /// The intern tables come first, then node detail in delivered order and link detail in edge order,
 /// every type and property reference a uint index into its table.
 #[derive(Debug)]
-pub(crate) struct LocateTrailer<'doc> {
+pub(crate) struct LocateTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'doc [&'doc str],
+    pub type_table: &'trailer [&'trailer str],
     /// Trailer key 1: the property intern table - every surviving property base URL once,
     /// bytewise-sorted.
-    pub property_table: &'doc [&'doc str],
+    pub property_table: &'trailer [&'trailer str],
     /// Trailer key 2: labels, delivered order.
-    pub labels: &'doc [Option<&'doc str>],
+    pub labels: &'trailer [&'trailer Label],
     /// Trailer key 3.
     ///
     /// Each delivered node's first direct type as a type-table index, delivered order. `null`
     /// marks a node the store no longer serves or whose types the store does not record.
-    pub type_ids: &'doc [Option<u32>],
+    pub type_ids: &'trailer [Option<u32>],
     /// Trailer key 4.
     ///
     /// The source's property map, keyed by uint index into the property table, keys ascending.
     /// `null` marks a source the store no longer serves. Neighbour nodes carry no properties, and
     /// their detail is one locate away.
-    pub properties: Option<&'doc [(u32, PropertyValue<'doc>)]>,
+    pub properties: Option<&'trailer [(u32, PropertyValue<'trailer>)]>,
     /// Trailer key 5: link labels, edge order.
-    pub link_labels: &'doc [Option<&'doc str>],
+    pub link_labels: &'trailer [&'trailer Label],
     /// Trailer key 6.
     ///
     /// Each delivered edge's direct types as type-table indexes, edge order, canonical type order
     /// preserved, capped by the published `locateLinkTypeIds` limit. Empty for a link the store no
     /// longer serves.
-    pub link_type_ids: &'doc [Vec<u32>],
+    pub link_type_ids: &'trailer [Vec<u32>],
     /// Trailer key 7: per-edge type completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s type list is the link's whole
     /// direct set - unset means the cap truncated it or the store no longer serves the link.
-    pub link_type_ids_complete: &'doc [bool],
+    pub link_type_ids_complete: &'trailer [bool],
     /// Trailer key 8.
     ///
     /// Per-edge property maps, edge order, keyed by uint index into the property table, keys
     /// ascending, capped by the published `locateLinkProperties` limit. `null` marks a link the
     /// store no longer serves.
-    pub link_properties: &'doc [Option<&'doc [(u32, PropertyValue<'doc>)]>],
+    pub link_properties: &'trailer [Option<&'trailer [(u32, PropertyValue<'trailer>)]>],
     /// Trailer key 9: per-edge property completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s property map is the link
     /// entity's whole deliverable set - unset means the simple-value filter or the cap dropped
     /// something, or the store no longer serves the link.
-    pub link_properties_complete: &'doc [bool],
+    pub link_properties_complete: &'trailer [bool],
 }
 
 impl LocateTrailer<'_> {
@@ -346,13 +346,16 @@ impl LocateTrailer<'_> {
         for &url in self.type_table {
             cbor.text(url);
         }
+
         cbor.uint(1);
         cbor.array(self.property_table.len() as u64);
         for &url in self.property_table {
             cbor.text(url);
         }
+
         cbor.uint(2);
-        encode_details(&mut cbor, self.labels);
+        encode_details(&mut cbor, self.labels.iter());
+
         cbor.uint(3);
         cbor.array(self.type_ids.len() as u64);
         for entry in self.type_ids {
@@ -363,8 +366,10 @@ impl LocateTrailer<'_> {
         }
         cbor.uint(4);
         encode_property_map(&mut cbor, self.properties);
+
         cbor.uint(5);
-        encode_details(&mut cbor, self.link_labels);
+        encode_details(&mut cbor, self.link_labels.iter());
+
         cbor.uint(6);
         cbor.array(self.link_type_ids.len() as u64);
         for indexes in self.link_type_ids {
@@ -373,13 +378,16 @@ impl LocateTrailer<'_> {
                 cbor.uint(u64::from(index));
             }
         }
+
         cbor.uint(7);
         bitmask(&mut cbor, self.link_type_ids_complete);
+
         cbor.uint(8);
         cbor.array(self.link_properties.len() as u64);
         for entries in self.link_properties {
             encode_property_map(&mut cbor, *entries);
         }
+
         cbor.uint(9);
         bitmask(&mut cbor, self.link_properties_complete);
     }

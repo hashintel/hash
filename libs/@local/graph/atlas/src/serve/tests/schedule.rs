@@ -20,7 +20,7 @@ use hashql_core::id::Id as _;
 
 use super::{
     Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileError,
-    TileLimits, children_of, codec, decode_rows, edges_request, entity_string_of,
+    TileLimits, UntouchedStore, children_of, codec, decode_rows, edges_request, entity_string_of,
     expected_edges_bytes, head_counts, head_global, mask_hiding, open_edge_artifacts, publish,
     qualifying_columns, request, section, test_codec, wire_columns,
 };
@@ -586,6 +586,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                         EdgesLimits::default(),
                         &proof,
                         CutOffset::new(k),
+                        UntouchedStore,
                     )
                     .expect("the scoped edges request serves");
 

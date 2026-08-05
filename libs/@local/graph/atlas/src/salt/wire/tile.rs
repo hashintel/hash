@@ -24,6 +24,7 @@ use hashql_core::id::{Id as _, IdSlice};
 
 use super::{Kind, Mode, cbor::CborWriter, envelope::EnvelopeWriter};
 use crate::{
+    dataset::auxiliary::{Icon, Label},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
@@ -364,11 +365,11 @@ impl GlobalHead {
 ///
 /// Hydrated labels and icons, delivered order, `null` marking a row whose entry did not resolve.
 #[derive(Debug)]
-pub(crate) struct TileTrailer<'doc> {
+pub(crate) struct TileTrailer<'trailer> {
     /// Trailer key 0.
-    pub labels: &'doc [Option<&'doc str>],
+    pub labels: &'trailer [&'trailer Label],
     /// Trailer key 1.
-    pub icons: &'doc [Option<&'doc str>],
+    pub icons: &'trailer [&'trailer Icon],
 }
 
 impl TileTrailer<'_> {
@@ -378,19 +379,26 @@ impl TileTrailer<'_> {
         cbor.map(2);
 
         cbor.uint(0);
-        encode_details(&mut cbor, self.labels);
+        encode_details(&mut cbor, self.labels.iter());
+
         cbor.uint(1);
-        encode_details(&mut cbor, self.icons);
+        encode_details(&mut cbor, self.icons.iter());
     }
 }
 
 /// Emits one detail array: text entries with `null` for unresolved.
-pub(super) fn encode_details(cbor: &mut CborWriter<'_>, entries: &[Option<&str>]) {
+pub(super) fn encode_details(
+    cbor: &mut CborWriter<'_>,
+    entries: impl ExactSizeIterator<Item: AsRef<str>>,
+) {
     cbor.array(entries.len() as u64);
     for entry in entries {
-        match entry {
-            Some(text) => cbor.text(text),
-            None => cbor.null(),
+        let entry = entry.as_ref();
+
+        if entry.is_empty() {
+            cbor.null();
+        } else {
+            cbor.text(entry);
         }
     }
 }

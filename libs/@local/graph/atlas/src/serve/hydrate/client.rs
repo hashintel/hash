@@ -21,79 +21,18 @@ use type_system::ontology::id::BaseUrl;
 use zerocopy::IntoBytes as _;
 
 use super::{
-    columns::{
-        DeliveredEntities, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails, NodeDetails,
-        SimpleValue,
-    },
+    columns::SimpleValue,
+    order::{LocateLinkHydration, LocateNodeHydration},
     select::{select_properties, simple_properties},
 };
 use crate::dataset::postgres::id::ArchivedEntityId;
 
-/// The base URL of the system `icon` property an entity may carry.
-const ICON_PROPERTY: &str = "https://hash.ai/@h/types/property-type/icon/";
-
-/// The tile hydration query.
-///
-/// One batched lookup, input order preserved through the ordinality column, absent entities missing
-/// from the result. `$3` carries the protected properties and `$4` the icon's base URL.
-///
-/// The type icon resolves set-wise rather than per row. An icon belongs to an entity's types, and a
-/// deployment holds far fewer entity types than a tile holds points, so the query builds the map
-/// from versioned URL to icon once and joins it. Resolving it inside a per-row lateral instead
-/// costs sequential `ontology_ids` scans, one for every delivered point. The join key there is
-/// `base_url || 'v/' || version`, an expression no index answers, so the planner rebuilds the same
-/// small map once per point. That shape dominated tile hydration until this one replaced it.
-///
-/// `DISTINCT ON` keeps the lateral's selection rule. Among the icon-bearing entries of an entity's
-/// direct types, the shallowest wins and the type's position breaks the tie, and an entity whose
-/// types carry no icon keeps its row with a null.
-const DETAIL_QUERY: &str = "
-    WITH type_icons AS MATERIALIZED (
-        SELECT
-            ontology_ids.base_url || 'v/' || ontology_ids.version AS url,
-            display.value ->> 'icon' AS icon,
-            (display.value ->> 'depth')::int AS depth
-        FROM entity_types
-        JOIN ontology_ids
-          ON ontology_ids.ontology_id = entity_types.ontology_id
-        CROSS JOIN LATERAL jsonb_array_elements(
-            entity_types.closed_schema -> 'allOf'
-        ) AS display (value)
-        WHERE display.value ->> 'icon' IS NOT NULL
-    )
-    SELECT DISTINCT ON (ids.index)
-        ids.index,
-        cache.labels[1] AS label,
-        CASE
-            WHEN jsonb_typeof((edition.properties - $3::text[]) -> $4::text) = 'string'
-                THEN (edition.properties - $3::text[]) ->> $4::text
-        END AS own_icon,
-        type_icon.icon AS type_icon
-    FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS ids (web_id, entity_uuid, index)
-    JOIN entity_temporal_metadata AS meta
-      ON meta.web_id = ids.web_id
-     AND meta.entity_uuid = ids.entity_uuid
-     AND meta.draft_id IS NULL
-     AND meta.transaction_time @> now()
-     AND meta.decision_time @> now()
-    JOIN entity_editions AS edition
-      ON edition.entity_edition_id = meta.entity_edition_id
-     AND NOT edition.archived
-    LEFT JOIN entity_edition_cache AS cache
-      ON cache.entity_edition_id = meta.entity_edition_id
-    LEFT JOIN LATERAL unnest(cache.versioned_urls[1:cache.direct_types])
-        WITH ORDINALITY AS direct (url, position) ON TRUE
-    LEFT JOIN type_icons AS type_icon
-      ON type_icon.url = direct.url
-    ORDER BY ids.index, type_icon.depth NULLS LAST, direct.position
-";
-
 /// The locate node hydration query.
 ///
-/// Labels and direct-type URLs for every delivered node, plus - gated to the first input, the
-/// source - the simple-valued properties, the whole-set property count, and the base URL providing
-/// the display label. Input order preserved through the ordinality column, absent entities missing
-/// from the result.
+/// Direct-type URLs for every delivered node, plus - gated to the first input, the source - the
+/// simple-valued properties, the whole-set property count, and the base URL providing the display
+/// label. Input order preserved through the ordinality column, absent entities missing from the
+/// result.
 ///
 /// The `simple` column aggregates only simple-typed values - the filter runs in the store, so
 /// nested values never cross the connection - while `total` counts the whole masked object, the
@@ -109,7 +48,6 @@ const DETAIL_QUERY: &str = "
 const LOCATE_DETAIL_QUERY: &str = "
     SELECT
         ids.index,
-        cache.labels[1] AS label,
         cache.versioned_urls[1:cache.direct_types] AS type_urls,
         props.simple::text AS simple,
         props.total AS total,
@@ -153,13 +91,13 @@ const LOCATE_DETAIL_QUERY: &str = "
 
 /// The locate link hydration query.
 ///
-/// The locate node query's columns for every delivered link entity, ungated: every edge in a locate
-/// response carries its label, direct-type URLs, capped properties, and completeness flags.
-/// Properties and their count read the masked object, as in the node query.
+/// The locate node query's columns for every delivered link entity, ungated. Every edge in a
+/// locate response carries its direct-type URLs and capped properties, and a completeness flag
+/// accompanies each cap. Properties and their count read the masked object exactly as the node
+/// query reads them.
 const LOCATE_LINK_QUERY: &str = "
     SELECT
         ids.index,
-        cache.labels[1] AS label,
         cache.versioned_urls[1:cache.direct_types] AS type_urls,
         props.simple::text AS simple,
         props.total AS total,
@@ -203,16 +141,13 @@ const LOCATE_LINK_QUERY: &str = "
 
 /// The edges link hydration query.
 ///
-/// The link's label and its first direct type URL, input order preserved through the ordinality
+/// Each link's first direct-type versioned URL, input order preserved through the ordinality
 /// column, absent entities missing from the result.
 ///
-/// Both columns read the edition cache alone, so this query takes no protected-property parameter.
-/// The label carries whatever the cache materialized, under the label rule every surface here
-/// shares.
+/// The column reads the edition cache alone, so this query takes no protected-property parameter.
 const EDGES_LINK_QUERY: &str = "
     SELECT
         ids.index,
-        cache.labels[1] AS label,
         cache.versioned_urls[1] AS first_type_url
     FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS ids (web_id, entity_uuid, index)
     JOIN entity_temporal_metadata AS meta
@@ -235,6 +170,11 @@ pub(crate) enum DetailError {
     Connect(Report<StoreError>),
     /// The store rejected the query.
     Query(tokio_postgres::Error),
+    /// The channel carrying the answer closed before it arrived.
+    ///
+    /// The party holding the store side of the order is gone, which happens when its request ends
+    /// early, so no answer can reach the response either way.
+    Disconnected,
 }
 
 impl core::fmt::Display for DetailError {
@@ -247,6 +187,9 @@ impl core::fmt::Display for DetailError {
                 )
             }
             Self::Query(error) => write!(fmt, "the detail hydration failed: {error}"),
+            Self::Disconnected => {
+                fmt.write_str("the hydration channel closed before an answer arrived")
+            }
         }
     }
 }
@@ -255,8 +198,8 @@ impl core::error::Error for DetailError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
         match self {
             // A report does not implement `Error`, and its own display carries the chain.
-            Self::Connect(_) => None,
             Self::Query(error) => Some(error),
+            Self::Connect(_) | Self::Disconnected => None,
         }
     }
 }
@@ -304,58 +247,11 @@ impl GraphDatabaseClient {
             .map_err(|report| DetailError::Connect(report.change_context(StoreError)))
     }
 
-    /// Hydrates labels and icons for the delivered entities, aligned to the delivered order.
+    /// Answers the node half of one locate order.
     ///
-    /// Entities the store no longer serves read `null`.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DetailError`] when the store rejects the query.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the store answers rows outside the request domain or with the wrong column
-    /// types, which is a query bug rather than data.
-    #[tracing::instrument(skip_all, fields(points = entities.count()))]
-    pub(crate) async fn labels_and_icons(
-        &self,
-        entities: &DeliveredEntities,
-    ) -> Result<NodeDetails, DetailError> {
-        if entities.ids().is_empty() {
-            return Ok(NodeDetails::empty(0));
-        }
-
-        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
-        let rows = self
-            .connection()
-            .await?
-            .as_client()
-            .query(
-                DETAIL_QUERY,
-                &[&web_ids, &entity_uuids, &self.protected, &ICON_PROPERTY],
-            )
-            .await
-            .map_err(DetailError::Query)?;
-
-        let mut labels = vec![None; entities.count()];
-        let mut icons = vec![None; entities.count()];
-        for row in rows {
-            let index = domain_index(&row);
-            let own_icon: Option<String> = row.get(2);
-            let type_icon: Option<String> = row.get(3);
-
-            labels[index] = row.get(1);
-            icons[index] = own_icon.or(type_icon);
-        }
-
-        Ok(NodeDetails::new(labels, icons))
-    }
-
-    /// Hydrates the locate response's node columns, aligned to the delivered order.
-    ///
-    /// Every delivered node hydrates labels and direct-type URLs. The source, the first delivered
-    /// entity, also hydrates its capped simple-valued properties and their completeness. Entities
-    /// the store no longer serves read `null` columns and `false` flags.
+    /// Every resolved node reads its resolution flag and direct-type URLs. The source, the first
+    /// delivered identity, also reads its capped simple-valued properties and their completeness.
+    /// Entities the store no longer serves read `false` flags and empty columns.
     ///
     /// # Errors
     ///
@@ -365,17 +261,17 @@ impl GraphDatabaseClient {
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
-    #[tracing::instrument(skip_all, fields(points = entities.count()))]
-    pub(crate) async fn locate_details(
+    #[tracing::instrument(skip_all, fields(points = ids.len()))]
+    pub(crate) async fn locate_node_hydration(
         &self,
-        entities: &DeliveredEntities,
+        ids: &[ArchivedEntityId],
         properties: u32,
-    ) -> Result<LocateNodeDetails, DetailError> {
-        if entities.ids().is_empty() {
-            return Ok(LocateNodeDetails::empty(0));
+    ) -> Result<LocateNodeHydration, DetailError> {
+        if ids.is_empty() {
+            return Ok(LocateNodeHydration::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
+        let (web_ids, entity_uuids) = uuid_arrays(ids);
         let rows = self
             .connection()
             .await?
@@ -387,14 +283,19 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut labels = vec![None; entities.count()];
-        let mut type_url_columns = vec![Vec::new(); entities.count()];
+        let mut resolved = vec![false; ids.len()];
+        let mut type_url_columns = vec![Vec::new(); ids.len()];
         let mut source_properties = None;
         let mut source_properties_complete = false;
         for row in rows {
-            let index = domain_index(&row);
-            labels[index] = row.get(1);
-            let type_urls: Option<Vec<String>> = row.get(2);
+            let index = {
+                let index: i64 = row.get(0);
+                usize::try_from(index - 1).expect("ordinality covers the request domain")
+            };
+
+            resolved[index] = true;
+
+            let type_urls: Option<Vec<String>> = row.get(1);
             type_url_columns[index] = type_urls.unwrap_or_default();
 
             if index == 0 {
@@ -404,19 +305,19 @@ impl GraphDatabaseClient {
             }
         }
 
-        Ok(LocateNodeDetails::new(
-            labels,
-            type_url_columns,
+        Ok(LocateNodeHydration {
+            resolved,
+            type_urls: type_url_columns,
             source_properties,
             source_properties_complete,
-        ))
+        })
     }
 
-    /// Hydrates the locate response's link columns in the delivered edge order.
+    /// Answers the link half of one locate order.
     ///
-    /// Every delivered edge hydrates a label together with capped direct-type URLs and capped
-    /// simple-valued properties, and a completeness flag accompanies each cap. Links the store no
-    /// longer serves read `null` columns and `false` flags.
+    /// Every resolved edge reads capped direct-type URLs and capped simple-valued properties, and
+    /// a completeness flag accompanies each cap. Links the store no longer serves read `None`
+    /// properties, empty types, and `false` flags.
     ///
     /// # Errors
     ///
@@ -426,18 +327,18 @@ impl GraphDatabaseClient {
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
-    #[tracing::instrument(skip_all, fields(edges = entities.count()))]
-    pub(crate) async fn locate_link_details(
+    #[tracing::instrument(skip_all, fields(edges = ids.len()))]
+    pub(crate) async fn locate_link_hydration(
         &self,
-        entities: &DeliveredEntities,
+        ids: &[ArchivedEntityId],
         type_ids: u32,
         properties: u32,
-    ) -> Result<LocateLinkDetails, DetailError> {
-        if entities.ids().is_empty() {
-            return Ok(LocateLinkDetails::empty(0));
+    ) -> Result<LocateLinkHydration, DetailError> {
+        if ids.is_empty() {
+            return Ok(LocateLinkHydration::empty(0));
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
+        let (web_ids, entity_uuids) = uuid_arrays(ids);
         let rows = self
             .connection()
             .await?
@@ -449,16 +350,17 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut labels = vec![None; entities.count()];
-        let mut type_url_columns = vec![Vec::new(); entities.count()];
-        let mut type_urls_complete = vec![false; entities.count()];
-        let mut properties_columns = vec![None; entities.count()];
-        let mut properties_complete = vec![false; entities.count()];
+        let mut type_url_columns = vec![Vec::new(); ids.len()];
+        let mut type_urls_complete = vec![false; ids.len()];
+        let mut properties_columns = vec![None; ids.len()];
+        let mut properties_complete = vec![false; ids.len()];
         for row in rows {
-            let index = domain_index(&row);
-            labels[index] = row.get(1);
+            let index = {
+                let index: i64 = row.get(0);
+                usize::try_from(index - 1).expect("ordinality covers the request domain")
+            };
 
-            let type_urls: Option<Vec<String>> = row.get(2);
+            let type_urls: Option<Vec<String>> = row.get(1);
             let mut type_urls = type_urls.unwrap_or_default();
             type_urls_complete[index] = type_urls.len() <= type_ids as usize;
             type_urls.truncate(type_ids as usize);
@@ -469,18 +371,18 @@ impl GraphDatabaseClient {
             properties_complete[index] = complete;
         }
 
-        Ok(LocateLinkDetails::new(
-            labels,
-            type_url_columns,
+        Ok(LocateLinkHydration {
+            type_urls: type_url_columns,
             type_urls_complete,
-            properties_columns,
+            properties: properties_columns,
             properties_complete,
-        ))
+        })
     }
 
-    /// Hydrates the edges response's link columns, aligned to the delivered edge order.
+    /// Answers the link half of one edges order.
     ///
-    /// Labels and first direct-type URLs. Links the store no longer serves read `null`.
+    /// Each delivered link reads its first direct-type versioned URL. Links the store no longer
+    /// serves or records no types for read `None`.
     ///
     /// # Errors
     ///
@@ -490,16 +392,16 @@ impl GraphDatabaseClient {
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
     /// types, which is a query bug rather than data.
-    #[tracing::instrument(skip_all, fields(edges = entities.count()))]
-    pub(crate) async fn link_details(
+    #[tracing::instrument(skip_all, fields(edges = ids.len()))]
+    pub(crate) async fn edges_link_hydration(
         &self,
-        entities: &DeliveredEntities,
-    ) -> Result<EdgeLinkDetails, DetailError> {
-        if entities.ids().is_empty() {
-            return Ok(EdgeLinkDetails::empty(0));
+        ids: &[ArchivedEntityId],
+    ) -> Result<Vec<Option<String>>, DetailError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
         }
 
-        let (web_ids, entity_uuids) = uuid_arrays(entities.ids());
+        let (web_ids, entity_uuids) = uuid_arrays(ids);
         let rows = self
             .connection()
             .await?
@@ -508,30 +410,32 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut labels = vec![None; entities.count()];
-        let mut first_type_urls = vec![None; entities.count()];
+        let mut first_type_urls = vec![None; ids.len()];
         for row in rows {
-            let index = domain_index(&row);
-            labels[index] = row.get(1);
-            first_type_urls[index] = row.get(2);
+            let index = {
+                let index: i64 = row.get(0);
+                usize::try_from(index - 1).expect("ordinality covers the request domain")
+            };
+
+            first_type_urls[index] = row.get(1);
         }
 
-        Ok(EdgeLinkDetails::new(labels, first_type_urls))
+        Ok(first_type_urls)
     }
 }
 
 /// Reads one resolved row's capped properties and their completeness flag.
 ///
-/// The row carries the property columns at fixed positions: `simple` (3), `total` (4), and
-/// `label_property` (5). Both columns read the masked object, so completeness attests the
+/// The row carries the property columns at fixed positions: `simple` (2), `total` (3), and
+/// `label_property` (4). Both columns read the masked object, so completeness attests the
 /// **deliverable** set: the survivors are that whole set iff the filter dropped nothing as
 /// non-simple and nothing exceeds the cap. A protected property is in neither column and moves the
 /// flag not at all - a count taken before masking would have made `total` against the delivered map
 /// into the enumeration signal the protection exists to close.
 fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(String, SimpleValue)>, bool) {
-    let simple: Option<String> = row.get(3);
-    let total: Option<i32> = row.get(4);
-    let label_property: Option<String> = row.get(5);
+    let simple: Option<String> = row.get(2);
+    let total: Option<i32> = row.get(3);
+    let label_property: Option<String> = row.get(4);
 
     let entries = simple.map_or_else(Vec::new, |json| simple_properties(&json));
     let total = usize::try_from(total.expect("a resolved row aggregates its property count"))
@@ -558,19 +462,9 @@ fn uuid_arrays(ids: &[ArchivedEntityId]) -> (Vec<uuid::Uuid>, Vec<uuid::Uuid>) {
     (web_ids, entity_uuids)
 }
 
-/// Reads a result row's request-domain index off the ordinality column.
-fn domain_index(row: &tokio_postgres::Row) -> usize {
-    let index: i64 = row.get(0);
-    // Ordinality is 1-based; an index outside the request domain
-    // cannot arrive from the unnest.
-    usize::try_from(index - 1).expect("ordinality covers the request domain")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        DETAIL_QUERY, EDGES_LINK_QUERY, ICON_PROPERTY, LOCATE_DETAIL_QUERY, LOCATE_LINK_QUERY,
-    };
+    use super::{EDGES_LINK_QUERY, LOCATE_DETAIL_QUERY, LOCATE_LINK_QUERY};
 
     /// The function whose call is the one read of the unmasked object.
     ///
@@ -581,8 +475,7 @@ mod tests {
     const MASKED_PROPERTIES: &str = "(edition.properties - $3::text[])";
 
     /// Every hydration query, with whether it reads the entity's properties object.
-    const QUERIES: [(&str, &str, bool); 4] = [
-        ("DETAIL_QUERY", DETAIL_QUERY, true),
+    const QUERIES: [(&str, &str, bool); 3] = [
         ("LOCATE_DETAIL_QUERY", LOCATE_DETAIL_QUERY, true),
         ("LOCATE_LINK_QUERY", LOCATE_LINK_QUERY, true),
         ("EDGES_LINK_QUERY", EDGES_LINK_QUERY, false),
@@ -632,7 +525,7 @@ mod tests {
     /// A query that masks binds the protected array at `$3`, and one that does not binds no `$3`.
     ///
     /// The mask contains a parameter index, so every query has to pass its protected set at that
-    /// same index - and the icon's own parameter sits after it.
+    /// same index.
     #[test]
     fn masked_parameter_index_is_uniform() {
         for (name, query, reads_properties) in QUERIES {
@@ -644,16 +537,8 @@ mod tests {
         }
 
         assert!(
-            DETAIL_QUERY.contains("$4::text"),
-            "the icon's base URL binds after the protected array"
-        );
-        assert!(
             !LOCATE_DETAIL_QUERY.contains("$4") && !LOCATE_LINK_QUERY.contains("$4"),
             "the locate queries bind nothing past the protected array"
-        );
-        assert!(
-            ICON_PROPERTY.ends_with("/icon/"),
-            "the icon parameter names the icon property"
         );
     }
 

@@ -264,11 +264,15 @@ fn directory_sidecar(bytes: &[u8]) -> Value {
 }
 
 /// Renders a detail array: strings and nulls.
-fn details_sidecar(entries: &[Option<&str>]) -> Value {
+fn details_sidecar<T: AsRef<str> + ?Sized>(entries: &[&T]) -> Value {
     Value::Array(
         entries
             .iter()
-            .map(|entry| entry.map_or(Value::Null, |text| json!(text)))
+            .map(|entry| {
+                Option::Some(entry.as_ref())
+                    .filter(|entry| !entry.is_empty())
+                    .map_or(Value::Null, |text| json!(text))
+            })
             .collect(),
     )
 }
@@ -565,12 +569,17 @@ fn g5_trailer_tile() -> Fixture {
         .map(|range| BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end));
 
     let labels = [
-        Some("Z\u{fc}rich"),
-        None,
-        Some("e\u{301}"),
-        Some("\u{1f980}"),
+        Label::new("Z\u{fc}rich"),
+        Label::empty(),
+        Label::new("e\u{301}"),
+        Label::new("\u{1f980}"),
     ];
-    let icons = [None, Some("\u{6c34}\u{6238}"), Some("\u{2192}"), None];
+    let icons = [
+        Icon::empty(),
+        Icon::new("\u{6c34}\u{6238}"),
+        Icon::new("\u{2192}"),
+        Icon::empty(),
+    ];
 
     let response = TileResponse {
         head: TileHead {
@@ -618,7 +627,11 @@ fn g5_trailer_tile() -> Fixture {
 /// alone. The interned detail trailer holds the type table plus labels with nulls and first-type
 /// references including a store-absent `null`.
 fn g6_edges() -> Fixture {
-    let link_labels = [Some("\u{153}uvre"), Some("created by"), None];
+    let link_labels = [
+        Label::new("\u{153}uvre"),
+        Label::new("created by"),
+        Label::empty(),
+    ];
     let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"];
     let link_type_ids = [Some(1_u32), Some(0), None];
     let edge_ids = [
@@ -682,12 +695,13 @@ struct G7Trailer {
     /// One edge's property map, covering a positive integer, an explicit `null`, and a negative
     /// double.
     link_map: [(u32, PropertyValue<'static>); 3],
-    /// Node labels: non-ASCII, a `null`, an astral plane character, a combining mark.
-    labels: [Option<&'static str>; 4],
+    /// Node labels: non-ASCII, an empty label (a wire `null`), an astral plane character, a
+    /// combining mark.
+    labels: [&'static Label; 4],
     /// Each node's first direct type as a type-table index, one store-absent `null` among them.
     type_ids: [Option<u32>; 4],
-    /// Link labels: non-ASCII, a `null`, ASCII.
-    link_labels: [Option<&'static str>; 3],
+    /// Link labels: non-ASCII, an empty label (a wire `null`), ASCII.
+    link_labels: [&'static Label; 3],
     /// Each edge's direct types as type-table indexes, one list empty.
     ///
     /// Canonical direct-type order is the store's, never sorted: the first list pins a descending
@@ -724,9 +738,18 @@ fn g7_trailer() -> G7Trailer {
             (1, PropertyValue::Null),
             (3, PropertyValue::Float(-2.5)),
         ],
-        labels: [Some("Caf\u{e9}"), None, Some("\u{1d50a}"), Some("e\u{301}")],
+        labels: [
+            Label::new("Caf\u{e9}"),
+            Label::empty(),
+            Label::new("\u{1d50a}"),
+            Label::new("e\u{301}"),
+        ],
         type_ids: [Some(1_u32), None, Some(2), Some(0)],
-        link_labels: [Some("\u{153}uvre"), None, Some("cites")],
+        link_labels: [
+            Label::new("\u{153}uvre"),
+            Label::empty(),
+            Label::new("cites"),
+        ],
         link_type_ids: [vec![1_u32, 0], vec![0], Vec::new()],
         link_type_ids_complete: [true, false, false],
         link_properties_complete: [true, false, true],

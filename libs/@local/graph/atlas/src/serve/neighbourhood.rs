@@ -26,7 +26,7 @@ use crate::{
 
 /// The wire columns' row ids for one qualifying edge during assembly.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct DeliveredEdge {
+pub(crate) struct DeliveredEdge {
     /// The edge row id, proven deliverable under the proof that collected this value.
     pub row: VisibleEdge,
     /// The source node row id.
