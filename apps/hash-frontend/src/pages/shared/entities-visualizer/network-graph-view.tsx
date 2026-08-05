@@ -746,6 +746,11 @@ export const NetworkGraphView = ({
   // Whether the hovered node's ego-graph prefetch is in flight — drives a small
   // spinner in the label box, from hover start until the locate settles.
   const [hoverLocateLoading, setHoverLocateLoading] = useState(false);
+  // Whether the hovered node's located ego-graph came back truncated (the edge
+  // cap dropped edges and their neighbours — `entity.complete === false`). Drives
+  // a "not all connections shown" note under the label box. Reset on every hover
+  // change, set only once the locate lands.
+  const [hoverIncomplete, setHoverIncomplete] = useState(false);
 
   // What's highlighted (a clicked or searched node's located neighbourhood, or a
   // clicked edge), the selection's live on-screen anchor (re-reported on
@@ -1130,6 +1135,7 @@ export const NetworkGraphView = ({
     setHoveredByExternal(null);
     setHoveredLabel(null);
     setHoverLocateLoading(false);
+    setHoverIncomplete(false);
     // The extent is re-frozen off the successor's first load by the derivation
     // above, which fires again once `bounds` is null and points arrive. The ref
     // mirror is cleared in the same breath because the debounced viewport
@@ -1255,6 +1261,7 @@ export const NetworkGraphView = ({
         hoverLocateTimerRef.current = undefined;
       }
       setHoveredByExternal(null);
+      setHoverIncomplete(false);
       const { point } = interaction;
       const label = point?.label ?? null;
       setHoveredLabel(label);
@@ -1288,6 +1295,9 @@ export const NetworkGraphView = ({
             }
             setHoverLocateLoading(false);
             setHoveredByExternal(locatedNodeSelection(entity));
+            // `complete` is false when the edge cap truncated the ego-graph, so
+            // the drawn neighbourhood isn't the node's full set.
+            setHoverIncomplete(!entity.complete);
           })
           .catch(() => {
             if (seq === hoverLocateSeqRef.current) {
@@ -1533,10 +1543,12 @@ export const NetworkGraphView = ({
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
-                  // Match the collapsed search button's height (top-left).
-                  height: 30,
+                  // Match the collapsed search button's height (top-left), growing
+                  // taller when the truncation note is shown beneath the label.
+                  minHeight: 30,
                   maxWidth: 320,
                   px: 1.25,
+                  py: 0.5,
                   borderRadius: 1.5,
                   border: "1px solid rgba(14, 17, 20, 0.12)",
                   backgroundColor: "rgba(14, 17, 20, 0.53)",
@@ -1548,19 +1560,36 @@ export const NetworkGraphView = ({
                 {hoverLocateLoading ? (
                   <LoadingSpinner size={14} thickness={5} color="white" />
                 ) : null}
-                <Typography
-                  variant="smallTextParagraphs"
-                  sx={{
-                    color: "white",
-                    fontWeight: 500,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {hoveredLabel}
-                </Typography>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="smallTextParagraphs"
+                    sx={{
+                      color: "white",
+                      fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {hoveredLabel}
+                  </Typography>
+                  {hoverIncomplete ? (
+                    <Typography
+                      variant="smallTextParagraphs"
+                      sx={{
+                        color: "rgba(255, 255, 255, 0.65)",
+                        fontSize: 11,
+                        lineHeight: 1.3,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        pl: 1,
+                      }}
+                    >
+                      Not all connections shown
+                    </Typography>
+                  ) : null}
+                </Box>
               </Box>
             ) : null}
             <Stack
