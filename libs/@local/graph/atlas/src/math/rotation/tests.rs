@@ -23,6 +23,19 @@ fn rotation_composition_adds_angles() {
 }
 
 #[test]
+fn rotation_apply_turns_a_positive_angle_counterclockwise() {
+    let quarter_turn = Rotation::from_radians(core::f32::consts::FRAC_PI_2);
+
+    // Every other test in this file passes under a global sign flip of `apply`; these hand
+    // values are the direction witness.
+    assert_vec2_close(quarter_turn.apply(Vec2::new(1.0, 0.0)), Vec2::new(0.0, 1.0));
+    assert_vec2_close(
+        quarter_turn.apply(Vec2::new(0.0, 1.0)),
+        Vec2::new(-1.0, 0.0),
+    );
+}
+
+#[test]
 fn rotation_inverse_is_exact_negation() {
     let rotation = Rotation::from_radians(0.7);
     let inverse = rotation.inverse();

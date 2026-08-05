@@ -140,6 +140,23 @@ fn scaling_about_the_centre_moves_both_corners() {
     assert_eq!(narrowed.centre(), bounds.centre());
 }
 
+#[test]
+fn quantize_maps_onto_the_axis_grid_and_clamps_outside_points() {
+    let bounds = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 1.0)).expect("the corners are ordered");
+
+    // The minimum corner takes cell zero; the maximum edge takes the last cell; the midpoint
+    // lands exactly on the middle cell because every `f32` coordinate quantizes exactly.
+    assert_eq!(bounds.quantize(Vec2::ZERO), [0, 0]);
+    assert_eq!(bounds.quantize(Vec2::new(1.0, 0.5)), [u32::MAX, 1 << 31]);
+
+    // Coordinates outside the bounds clamp onto the boundary cells.
+    assert_eq!(bounds.quantize(Vec2::new(-3.0, 2.0)), [0, u32::MAX]);
+
+    // A zero-extent axis maps to cell zero wherever the coordinate sits.
+    let flat = Bounds2::new(Vec2::ZERO, Vec2::new(1.0, 0.0)).expect("a flat box is ordered");
+    assert_eq!(flat.quantize(Vec2::new(0.5, 7.0)), [1 << 31, 0]);
+}
+
 /// Deterministic, sign-varying, finite test points.
 fn scattered_points(count: usize) -> Vec<Vec2> {
     (0..count)

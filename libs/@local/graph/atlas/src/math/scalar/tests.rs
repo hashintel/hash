@@ -53,6 +53,25 @@ fn unit_fraction_constructors_canonicalize_negative_zero() {
     assert_eq!(UnitFraction::new_unchecked(-0.0).get().to_bits(), plus_zero);
 }
 
+/// `new_unchecked` passes an in-domain value through unchanged.
+#[test]
+fn unit_fraction_new_unchecked_passes_the_promised_value_through() {
+    assert_eq!(UnitFraction::new_unchecked(0.625).get(), 0.625);
+    assert_eq!(UnitFraction::new_unchecked(0.0), UnitFraction::ZERO);
+    assert_eq!(UnitFraction::new_unchecked(1.0), UnitFraction::ONE);
+}
+
+/// Counts that divide exactly yield the exact quotient, not an approximation.
+#[test]
+fn unit_fraction_ratio_divides_small_counts_exactly() {
+    assert_eq!(UnitFraction::ratio(3, 4).map(UnitFraction::get), Some(0.75));
+    assert_eq!(
+        UnitFraction::ratio(1, 8).map(UnitFraction::get),
+        Some(0.125)
+    );
+    assert_eq!(UnitFraction::ratio(1, 1), Some(UnitFraction::ONE));
+}
+
 /// Clamping saturates at the nearer endpoint and refuses only NaN.
 #[test]
 fn unit_fraction_clamp_saturates_and_refuses_only_nan() {
@@ -437,6 +456,45 @@ fn log2_admits_exactly_the_shift_domain() {
     for value in 64_u8..=u8::MAX {
         assert_eq!(Log2::new(value), None);
     }
+}
+
+/// The positive domain is exactly the finite `f32` values strictly above zero.
+#[test]
+fn positive_admits_exactly_the_positive_finite_domain() {
+    assert_eq!(
+        Positive::new(f32::MIN_POSITIVE)
+            .expect("a tiny positive constructs")
+            .get(),
+        f32::MIN_POSITIVE,
+    );
+    assert_eq!(
+        Positive::new(f32::MAX)
+            .expect("the maximum is finite")
+            .get(),
+        f32::MAX
+    );
+
+    assert_eq!(Positive::new(0.0), None);
+    assert_eq!(Positive::new(-0.0), None);
+    assert_eq!(Positive::new(-1.0), None);
+    assert_eq!(Positive::new(f32::INFINITY), None);
+    assert_eq!(Positive::new(f32::NAN), None);
+}
+
+/// The non-negative domain admits zero and rejects every sign and escape.
+#[test]
+fn non_negative_admits_exactly_the_non_negative_finite_domain() {
+    assert_eq!(NonNegative::new(0.0).expect("zero is admitted").get(), 0.0);
+    assert_eq!(
+        NonNegative::new(1.0e-10)
+            .expect("a tolerance constructs")
+            .get(),
+        1.0e-10,
+    );
+
+    assert_eq!(NonNegative::new(-1.0e-10), None);
+    assert_eq!(NonNegative::new(f32::INFINITY), None);
+    assert_eq!(NonNegative::new(f32::NAN), None);
 }
 
 /// The double-precision positive domain is exactly the finite values strictly above zero.
