@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 import { config } from "../architecture.config";
 import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
-import { renderD2 } from "./emit/d2";
+import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 import type { Diagnostic } from "./extract";
 
@@ -113,7 +113,20 @@ const main = async (): Promise<number> => {
     return 2;
   }
 
-  const bundle = await buildBundle({ repoRoot });
+  // Probed before building so pages only reference diagrams that will exist.
+  // `check` never writes, so it does not care either way.
+  const diagramsAvailable = command === "check" || canRenderDiagrams(repoRoot);
+
+  if (command === "build" && !diagramsAvailable) {
+    process.stderr.write(
+      `${yellow("warning")} d2 is unavailable, so the bundle is being written without rendered diagrams.\n  Install it with \`mise install\` to include them.\n`,
+    );
+  }
+
+  const bundle = await buildBundle({
+    repoRoot,
+    includeDiagrams: diagramsAvailable,
+  });
   const { errors } = reportDiagnostics(bundle.diagnostics);
   summarise(bundle);
 

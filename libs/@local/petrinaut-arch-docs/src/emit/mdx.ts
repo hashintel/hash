@@ -349,7 +349,7 @@ const buildLayerPage = (
 
 const buildOverviewPage = (
   model: ArchitectureModel,
-  overviewDiagram: string,
+  overviewDiagram: string | null,
 ): GeneratedPage => {
   const slug = "architecture";
   const roots = model.layers.filter((layer) => layer.parent === null);
@@ -359,13 +359,15 @@ const buildOverviewPage = (
     "",
   ];
 
-  body.push(
-    `![Top-level layers and the dependencies between them](${assetPathFrom(
-      slug,
-      `diagrams/${overviewDiagram}.svg`,
-    )})`,
-    "",
-  );
+  if (overviewDiagram !== null) {
+    body.push(
+      `![Top-level layers and the dependencies between them](${assetPathFrom(
+        slug,
+        `diagrams/${overviewDiagram}.svg`,
+      )})`,
+      "",
+    );
+  }
 
   body.push(
     "## Top-level layers",
@@ -453,7 +455,7 @@ export const buildPages = (
   model: ArchitectureModel,
   options: {
     sourceUrlPrefix: string;
-    overviewDiagram: string;
+    overviewDiagram: string | null;
     /** Layer ids that have a diagram of their own sub-tree. */
     layerDiagrams: Set<string>;
   },

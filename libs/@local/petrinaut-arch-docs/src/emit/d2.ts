@@ -270,6 +270,21 @@ export const buildOverviewDiagram = (
 };
 
 /**
+ * Whether the `d2` renderer is available.
+ *
+ * Checked before pages are emitted so the bundle never references an SVG it
+ * did not produce. `d2` is a declared repo tool, but environments that install
+ * tools individually (Vercel) can legitimately lack it.
+ */
+export const canRenderDiagrams = (repoRoot: string): boolean => {
+  const result = spawnSync(
+    "mise",
+    ["exec", "--env", "dev", "--", "d2", "--version"],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  return !result.error && result.status === 0;
+};
+/**
  * Renders a `.d2` file to SVG.
  *
  * `d2` is provided by mise, matching how the previous script invoked it. When it

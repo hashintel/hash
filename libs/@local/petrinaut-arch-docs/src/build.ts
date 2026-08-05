@@ -58,6 +58,12 @@ const FULL_GRAPH_DIAGRAM = "layers";
 export const buildBundle = async (options: {
   repoRoot: string;
   overrides?: Partial<ArchitectureConfig>;
+  /**
+   * Whether rendered SVGs will exist. When false, pages omit diagram images
+   * rather than pointing at files that were never written — a bundle that
+   * references a missing image fails the consuming site's build.
+   */
+  includeDiagrams?: boolean;
 }): Promise<BuiltBundle> => {
   const settings: ArchitectureConfig = { ...config, ...options.overrides };
   const { repoRoot } = options;
@@ -143,10 +149,14 @@ export const buildBundle = async (options: {
     svg: `diagrams/${name}.svg`,
   }));
 
+  const includeDiagrams = options.includeDiagrams ?? true;
+
   const generated = buildPages(model, {
     sourceUrlPrefix: settings.sourceUrlPrefix,
-    overviewDiagram: OVERVIEW_DIAGRAM,
-    layerDiagrams: new Set(parentLayerIds),
+    overviewDiagram: includeDiagrams ? OVERVIEW_DIAGRAM : null,
+    layerDiagrams: includeDiagrams
+      ? new Set(parentLayerIds)
+      : new Set<string>(),
   });
 
   const authoredResult = await collectAuthoredContent({
