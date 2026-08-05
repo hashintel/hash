@@ -199,7 +199,15 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="fillLight"
-        icon={{ custom: <Avatar size="32" fallback="AL" /> }}
+        icon={{
+          custom: (
+            <Avatar
+              placeholder={{ initials: "AL" }}
+              shape="circle"
+              alt="Alex"
+            />
+          ),
+        }}
       >
         <Banner.Title>Alex shared a document with you</Banner.Title>
       </Banner>
@@ -209,7 +217,15 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="fillLight"
-        icon={{ custom: <Avatar size="32" fallback="AL" /> }}
+        icon={{
+          custom: (
+            <Avatar
+              placeholder={{ initials: "AL" }}
+              shape="circle"
+              alt="Alex"
+            />
+          ),
+        }}
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
         <Banner.Title>Alex shared a document with you</Banner.Title>

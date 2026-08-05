@@ -149,8 +149,6 @@ export const BannerRoot = ({
   const iconNode = renderIcon(icon, tone, classes);
   const showDismiss = !!dismissible?.dismissible;
 
-  // BannerActions render in the trailing region; everything else (title,
-  // description, custom content) stacks in the content column.
   const items = Children.toArray(children);
   const actions = items.filter(
     (child) => isValidElement(child) && child.type === BannerActions,
@@ -158,35 +156,30 @@ export const BannerRoot = ({
   const body = items.filter(
     (child) => !(isValidElement(child) && child.type === BannerActions),
   );
-  const hasTrailing = actions.length > 0 || showDismiss;
 
   return (
     <div className={cx(classes.root, className)} {...ariaAttributes}>
-      {iconNode ? (
+      {iconNode && (
         <span className={classes.iconWrap} aria-hidden="true">
           {iconNode}
         </span>
-      ) : null}
-      <div className={classes.rest}>
+      )}
+      <div className={classes.content}>
         <div className={classes.message}>{body}</div>
-        {hasTrailing ? (
-          <div className={classes.trailing}>
-            {actions}
-            {showDismiss ? (
-              <span className={classes.dismiss}>
-                <Button
-                  variant="linkSubtle"
-                  tone="neutral"
-                  size="md"
-                  iconName="close"
-                  aria-label="Dismiss"
-                  onClick={dismissible.onDismiss}
-                />
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+        {actions.length > 0 && actions}
       </div>
+      {showDismiss && (
+        <span className={classes.dismiss}>
+          <Button
+            variant="linkSubtle"
+            tone="neutral"
+            size="md"
+            iconName="close"
+            aria-label="Dismiss"
+            onClick={dismissible.onDismiss}
+          />
+        </span>
+      )}
     </div>
   );
 };
