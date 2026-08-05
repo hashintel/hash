@@ -128,8 +128,10 @@ import {
   fetchTile,
   type FetchedTile,
   getAtlasSessionRevision,
+  getAtlasTileMaxZoom,
   setAtlasViewFilter,
   subscribeToAtlasSessionRevision,
+  subscribeToAtlasTileMaxZoom,
   type TileNode,
 } from "./fetch-tile";
 import {
@@ -1345,6 +1347,14 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
    * and generations" note.
    */
   readonly sessionRevision: number;
+  /**
+   * The deepest quadtree depth the active generation tiles, from its manifest's
+   * `bucketSchedule.maxZoom` (the transport's {@link getAtlasTileMaxZoom}).
+   * `null` until the first session bootstraps. A consumer driving the tiling
+   * camera clamps its requested tile depth to this rather than assuming the wire
+   * ceiling — a given generation may tile shallower.
+   */
+  readonly tileMaxZoom: number | null;
   /** Tiles resident in the cache after the latest load. */
   readonly tileCount: number;
   /** Prefetch effectiveness accumulated over the session. */
@@ -1429,6 +1439,16 @@ export const useGetViewportNodes = (
     getAtlasSessionRevision,
   );
 
+  // The deepest depth this generation's manifest tiles (its
+  // `bucketSchedule.maxZoom`), so a consumer can clamp its requested tile depth
+  // to what the server serves rather than the wire ceiling. `null` until the
+  // first bootstrap resolves it.
+  const tileMaxZoom = useSyncExternalStore(
+    subscribeToAtlasTileMaxZoom,
+    getAtlasTileMaxZoom,
+    getAtlasTileMaxZoom,
+  );
+
   const cache = useMemo(
     () =>
       new TileCache({
@@ -1494,6 +1514,7 @@ export const useGetViewportNodes = (
     isSuccess: query.isSuccess,
     refetch: query.refetch,
     sessionRevision,
+    tileMaxZoom,
     tileCount: query.data?.tileCount ?? 0,
     prefetchStats: cache.prefetchStats,
   };

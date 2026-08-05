@@ -89,8 +89,12 @@ import type {
 
 /** Aim for roughly this many tiles across the viewport when choosing a depth. */
 const TARGET_TILES_ACROSS = 2;
-/** Deepest tile zoom requested: the deepest depth the Atlas quadtree addresses. */
-const MAX_DEPTH = 16;
+/**
+ * Fallback deepest tile zoom, used only until the session manifest reports its
+ * own `bucketSchedule.maxZoom` (see {@link useGetViewportNodes}'s `tileMaxZoom`).
+ * The wire ceiling the quadtree can address; a given generation may tile shallower.
+ */
+const DEFAULT_TILE_MAX_ZOOM = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
@@ -162,6 +166,7 @@ const deriveViewport = (
   camera: Camera,
   size: Size,
   graphBounds: Bounds | null,
+  maxDepth: number,
 ): Viewport | null => {
   if (camera.zoom === null || camera.center === null || size.width === 0) {
     return null;
@@ -181,7 +186,7 @@ const deriveViewport = (
 
   const graphWorldWidth = GRAPH_WORLD.maxX - GRAPH_WORLD.minX;
   const depth = Math.log2((TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1));
-  return { x1, x2, y1, y2, zoom: Math.min(depth, MAX_DEPTH) };
+  return { x1, x2, y1, y2, zoom: Math.min(depth, maxDepth) };
 };
 
 /**
@@ -722,6 +727,9 @@ export const NetworkGraphView = ({
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
+  // The deepest tile depth to request, mirrored from the manifest so the
+  // debounced `deriveViewport` can read it without `schedule` depending on it.
+  const maxDepthRef = useRef(DEFAULT_TILE_MAX_ZOOM);
   const timerRef = useRef<number | undefined>(undefined);
   // The pending hover→locate delay timer, and a sequence bumped on every node
   // hover so a stale locate can't clear the spinner for a newer (or ended) hover.
@@ -808,9 +816,8 @@ export const NetworkGraphView = ({
     [],
   );
 
-  const { data, isError, error, sessionRevision } = useGetViewportNodes(
-    viewport,
-    {
+  const { data, isError, error, sessionRevision, tileMaxZoom } =
+    useGetViewportNodes(viewport, {
       baseUrl: ATLAS_API_BASE_URL,
       // Always fetch labelled (and icon-ed) tile data, so every visible node is
       // labelled regardless of zoom rather than only in the detailed view.
@@ -819,8 +826,7 @@ export const NetworkGraphView = ({
       // Binds the atlas session to the header's filter (see `filter` prop). A
       // change refetches the graph under the new view via `sessionRevision`.
       filter,
-    },
-  );
+    });
 
   // The session revision the painted state below was resolved under. A mismatch
   // with the live revision triggers the synchronous reset further down, so the
@@ -889,10 +895,24 @@ export const NetworkGraphView = ({
     }
     timerRef.current = window.setTimeout(() => {
       setViewport(
-        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
+        deriveViewport(
+          cameraRef.current,
+          sizeRef.current,
+          boundsRef.current,
+          maxDepthRef.current,
+        ),
       );
     }, DEBOUNCE_MS);
   }, []);
+
+  // Mirror the manifest's tile max-zoom into the ref the debounced derivation
+  // reads, and re-derive once it lands so a generation that tiles shallower than
+  // the fallback caps the requested depth. Until it resolves the fallback holds;
+  // the initial overview sits well below any cap, so it never over-requests.
+  useEffect(() => {
+    maxDepthRef.current = tileMaxZoom ?? DEFAULT_TILE_MAX_ZOOM;
+    schedule();
+  }, [tileMaxZoom, schedule]);
 
   const handleZoom = useCallback(
     (zoom: number, framingBaseZoom: number) => {

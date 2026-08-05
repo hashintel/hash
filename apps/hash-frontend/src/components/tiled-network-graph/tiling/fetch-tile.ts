@@ -789,6 +789,48 @@ export interface SaltileSession {
 const manifestUrl = (baseUrl: string, generation: string): string =>
   `${baseUrl}/generation/${generation}/manifest`;
 
+/**
+ * The deepest quadtree depth the active generation actually tiles, from its
+ * manifest's `bucketSchedule.maxZoom`; `null` until the first session
+ * bootstraps. Distinct from the wire ceiling {@link ATLAS_TILE_MAX_ZOOM} (the
+ * furthest any generation *could* tile) — a given generation may tile shallower.
+ */
+let atlasTileMaxZoom: number | null = null;
+const tileMaxZoomListeners = new Set<() => void>();
+
+/**
+ * The active generation's tile max-zoom, or `null` before the first session
+ * bootstraps. Paired with {@link subscribeToAtlasTileMaxZoom} it is a
+ * `useSyncExternalStore` source, so a view can clamp its requested tile depth to
+ * what the server tiles rather than the wire ceiling {@link ATLAS_TILE_MAX_ZOOM}.
+ */
+export const getAtlasTileMaxZoom = (): number | null => atlasTileMaxZoom;
+
+/**
+ * Subscribes `listener` to changes of {@link getAtlasTileMaxZoom}, returning its
+ * unsubscribe. Listeners are called synchronously, after the value updates.
+ */
+export const subscribeToAtlasTileMaxZoom = (
+  listener: () => void,
+): (() => void) => {
+  tileMaxZoomListeners.add(listener);
+  return () => {
+    tileMaxZoomListeners.delete(listener);
+  };
+};
+
+/** Records a freshly bootstrapped session's tile max-zoom, notifying on a change. */
+const publishAtlasTileMaxZoom = (maxZoom: number): void => {
+  if (atlasTileMaxZoom === maxZoom) {
+    return;
+  }
+  atlasTileMaxZoom = maxZoom;
+  // Copied: a listener may unsubscribe (or subscribe) while being notified.
+  for (const listener of [...tileMaxZoomListeners]) {
+    listener();
+  }
+};
+
 const fetchSaltileSession = async (
   baseUrl: string,
 ): Promise<SaltileSession> => {
@@ -847,6 +889,12 @@ const fetchSaltileSession = async (
   if (variant === undefined) {
     throw new FetchTileError("manifest carries no variants");
   }
+
+  // Publish the manifest's tile max-zoom so a view driving the camera can clamp
+  // its requested tile depth to what this generation actually tiles, rather than
+  // the wire ceiling (see {@link getAtlasTileMaxZoom}). Immutable per generation,
+  // so a renewal never moves it; only a re-pin (a fresh bootstrap) can.
+  publishAtlasTileMaxZoom(manifest.bucketSchedule.maxZoom);
 
   return {
     generation: current.generation,
