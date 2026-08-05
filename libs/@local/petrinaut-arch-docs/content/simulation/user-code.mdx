@@ -1,0 +1,81 @@
+---
+title: Compiling user code
+description: How authored TypeScript becomes buffer programs, and what the sandbox does and does not protect.
+sidebar_order: 12
+---
+
+Dynamics, lambdas, kernels and metrics all compile through the HIR: user
+TypeScript is lowered to a source-spanned IR, checked against the net, and
+emitted as buffer-native JavaScript with offsets and strides baked in. Scenario
+code takes a separate, simpler path.
+
+```text
+user source  →  lower to HIR  →  check + analyse  →  emit artifact  →  instantiate
+```
+
+The editor's type checking is the same pipeline seen from the other end: the LSP
+generates the `Color_*`, `Parameters`, `Dynamics` and kernel declarations Monaco
+checks against, so editor diagnostics and runtime artifacts come from the same
+HIR checks and emitters.
+
+## What compiles where
+
+| Surface           | Authored as                                  | Executed in                                        |
+| ----------------- | -------------------------------------------- | -------------------------------------------------- |
+| Transition lambda | module, `Lambda(fn)`                         | Worker, per enablement check                       |
+| Transition kernel | module, `TransitionKernel(fn)`               | Worker, per firing                                 |
+| Dynamics          | module, `Dynamics(fn)`                       | Worker, per step per place                         |
+| Metric            | plain function body                          | Main thread (timeline) and MC worker (experiments) |
+| Scenario          | per-place expressions, or one code-mode body | Main thread, before the run starts                 |
+| Place visualizer  | module, `Visualization(fn)` returning JSX    | Main thread, at render                             |
+
+The visualizer is the one inherently React-based surface — it authors JSX — which
+is why it compiles in the UI package rather than in the headless core.
+
+Metrics must return a finite number; NaN and infinity throw rather than
+propagating into a chart.
+
+## Scenarios produce a marking, not a run
+
+Scenario compilation is separate from the HIR pipeline and produces an initial
+marking (plus parameter overrides) before the simulation is created.
+
+Two modes, with one asymmetry worth remembering: **per-place mode is keyed by
+place ID, code mode is keyed by place name.** In code mode, unknown names are
+silently dropped.
+
+In per-place mode an uncoloured place takes an expression evaluated with
+parameters in scope, rounded and clamped at zero; a coloured place takes row
+arrays in colour-element order, each coerced with typed defaults for missing
+columns, and extra columns throw.
+
+## What the sandbox is for
+
+Scenario expressions run with a list of globals shadowed — `window`, `document`,
+`globalThis`, `fetch`, `importScripts`, `Function`, timers and similar — so those
+name lookups resolve to `undefined`. Because shadowing only stops identifier
+lookup, the sandbox additionally blocks the constructor-chain escape
+(`({}).constructor.constructor` reaching `Function`) for the duration of the
+call, by swapping the `.constructor` descriptors on the built-in prototypes and
+restoring them afterwards.
+
+**Treat this as robustness hardening, not isolation.** User code executes with
+`new Function` in the same realm as the host. It protects against typos and
+accidental API use, not against an attacker.
+
+## Distributions are sampled once
+
+Kernels can construct distribution values rather than numbers. They defer
+sampling through the ABI sink, and the engine samples each value once per token
+with the seeded RNG. That is what lets chained `.map(fn)` transforms share a
+single draw and keeps runs reproducible.
+
+When stochasticity is disabled the runtime is not injected at all, and plain
+values are required.
+
+## Compatibility
+
+HIR artifacts carry a version and a fingerprint of their sanitized compilation
+input. Any schema, code, or extension change requires recompilation before the
+engine will run them — a stale artifact is refused rather than silently
+mismatched against a changed net.

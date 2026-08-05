@@ -72,10 +72,38 @@ const buildSidebar = () => {
 
   const root = generated.find((page) => page.slug === "architecture");
 
+  // Authored pages nest by slug directory too, so a set of deep-dives under
+  // `simulation/` becomes one collapsible group rather than a flat run of links
+  // ahead of the generated section.
+  const authoredTop = authored.filter((page) => !page.slug.includes("/"));
+  const authoredGroups = new Map();
+  for (const page of authored) {
+    if (!page.slug.includes("/")) {
+      continue;
+    }
+    const group = page.slug.slice(0, page.slug.indexOf("/"));
+    authoredGroups.set(group, [...(authoredGroups.get(group) ?? []), page]);
+  }
+
+  /** @param {string} slug */
+  const groupLabel = (slug) =>
+    slug
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
   return [
-    ...authored.map((page) => ({
+    ...authoredTop.map((page) => ({
       label: page.title,
       link: page.slug === "index" ? "/" : `/${page.slug}`,
+    })),
+    ...[...authoredGroups.entries()].map(([group, pages]) => ({
+      label: groupLabel(group),
+      collapsed: false,
+      items: pages.map((page) => ({
+        label: page.title,
+        link: `/${page.slug}`,
+      })),
     })),
     ...(root
       ? [
@@ -118,9 +146,17 @@ export default defineConfig({
 
   integrations: [
     starlight({
-      title: "Petrinaut architecture",
+      title: "Architecture Docs",
       description:
         "How the Petrinaut packages fit together — generated from annotations in the source.",
+      // The helmet carries the Petrinaut identity, so the title beside it names
+      // only what this site is. `replacesTitle: false` keeps both.
+      logo: {
+        src: "./src/assets/petrinaut-helmet.png",
+        alt: "Petrinaut",
+        replacesTitle: false,
+      },
+      favicon: "/favicon.ico",
       social: [
         {
           icon: "github",

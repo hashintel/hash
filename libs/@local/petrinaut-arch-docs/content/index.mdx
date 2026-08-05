@@ -28,6 +28,22 @@ they avoid restating facts the generated pages already own.
 - [Working on the architecture](working-on-the-architecture) — how to declare a
   layer, and what CI will hold you to.
 
+## Simulation internals
+
+Detail that the generated pages do not carry — binary formats, message
+protocols, and the costs behind each design choice.
+
+- [Memory model](simulation/memory-model) — which buffer lives on which thread,
+  and the frame format.
+- [How a step is computed](simulation/stepping) — the fixed stage order, and
+  determinism.
+- [Compiling user code](simulation/user-code) — the HIR pipeline, scenarios, and
+  what the sandbox does not protect against.
+- [Worker protocol and backpressure](simulation/worker-protocol) — messages, and
+  the ack contract.
+- [Monte Carlo experiments](simulation/monte-carlo) — bounded memory, and why
+  only aggregates reach the UI.
+
 ## The packages at a glance
 
 `@hashintel/petrinaut-core` is the headless half: the document model, the HIR

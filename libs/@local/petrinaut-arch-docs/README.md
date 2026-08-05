@@ -22,8 +22,10 @@ specific failures motivated this package:
   anything renamed. It also hard-coded seven of `petrinaut-core`'s ten entry
   points, so imports through `./ai`, `./optimization` and `./compiled-model`
   were missing from the diagram entirely.
-- `petrinaut-core/docs/architecture/*.html` is 3,100 lines of hand-written HTML
-  that nothing verifies against the code.
+- `petrinaut-core/docs/architecture/*.html` was 3,100 lines of hand-written HTML
+  that nothing verified against the code. Its content has been migrated into
+  authored MDX under `content/simulation/`, where it sits beside the generated
+  pages; migrating it surfaced claims that had already gone stale.
 
 Here the architecture is declared next to the code it describes, and CI fails
 when a declaration stops matching reality.

@@ -12,10 +12,10 @@ invariants:
 
 Headless SDCPN simulation runtime.
 
-> Illustrated architecture documentation (memory layouts, sequence diagrams,
-> protocols) lives in
-> [`../../docs/architecture/index.html`](../../docs/architecture/index.html) —
-> self-contained HTML, open it in a browser.
+> Deep-dive documentation (memory layouts, the frame format, worker protocol,
+> Monte Carlo) lives in the architecture docs. Browse them with
+> `yarn workspace @apps/petrinaut-docs dev`, or read the sources in
+> [`libs/@local/petrinaut-arch-docs/content/simulation/`](../../../../@local/petrinaut-arch-docs/content/simulation).
 
 ## Overview
 

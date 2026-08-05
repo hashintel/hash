@@ -2,9 +2,9 @@
 
 How `@hashintel/petrinaut`'s React layer consumes the headless simulation
 runtime from `@hashintel/petrinaut-core`. The core's architecture (engine,
-frame format, worker protocol, Monte Carlo) is documented in
-[`petrinaut-core/docs/architecture/`](../petrinaut-core/docs/architecture/index.html)
-— this page covers only the React side of the boundary.
+frame format, worker protocol, Monte Carlo) is documented in the architecture
+docs — browse with `yarn workspace @apps/petrinaut-docs dev` — and this page
+covers only the React side of the boundary.
 
 > This file is internal engineering documentation. It deliberately does NOT
 > live in `docs/` — that folder is the end-user guide, consumed at runtime by

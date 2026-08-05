@@ -1,0 +1,107 @@
+---
+title: Worker protocol and backpressure
+description: The messages between host and simulation worker, and the ack contract that bounds memory.
+sidebar_order: 13
+---
+
+Both simulation workers speak a small typed message protocol over `postMessage`,
+wrapped in a transport that queues messages until the worker boots. This page
+covers the quick-simulation worker; the experiment worker is on
+[Monte Carlo](monte-carlo).
+
+## Messages
+
+**Host → worker**
+
+| Type              | Payload                                                                | Effect                                                                                        |
+| ----------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `init`            | net, marking, parameters, seed, `dt`, `maxTime`, backpressure settings | Builds the simulation, packs frame 0, replies `frame(0)` then `ready`. Resets the ack cursor. |
+| `start`           | —                                                                      | Starts the compute loop. No-op if running; refused after completion or error.                 |
+| `pause`           | —                                                                      | Stops the loop, keeps all state, replies `paused`.                                            |
+| `stop`            | —                                                                      | Discards the simulation entirely.                                                             |
+| `setBackpressure` | `maxFramesAhead`, `batchSize`                                          | Live-updates loop tuning.                                                                     |
+| `ack`             | `frameNumber`                                                          | Raises the ack cursor, unblocking computation.                                                |
+
+**Worker → host**
+
+| Type               | Payload                                   | Effect                                                           |
+| ------------------ | ----------------------------------------- | ---------------------------------------------------------------- |
+| `ready`            | initial frame count                       | Resolves the creation promise; status becomes Ready.             |
+| `frame` / `frames` | `{ time, frame }`, single or batch        | Appended to the frame store, which republishes count and latest. |
+| `paused`           | frame number                              | Status becomes Paused.                                           |
+| `complete`         | `"deadlock"` or `"maxTime"`, frame number | Status becomes Complete, emitted on the event stream.            |
+| `error`            | message, offending item id if known       | Status becomes Error; rejects creation if still initialising.    |
+
+Errors carry the SDCPN item id where known, which is what lets the editor
+highlight the transition whose lambda threw rather than showing a bare message.
+
+## The ack contract
+
+**Nothing is computed until the consumer asks for it.** The worker's loop blocks
+while the ack cursor is behind, so the consumer's pace bounds the worker's memory
+and CPU:
+
+```js
+while (isRunning) {
+  if (lastAckedFrame < 0 || currentFrame - lastAckedFrame >= maxFramesAhead) {
+    await delay(10); // wait for the consumer
+    continue;
+  }
+  // compute up to batchSize frames, stopping on complete or error
+  post("frames", batch);
+  await delay(0); // let pause / stop / ack messages in
+}
+```
+
+Note the first condition: after `init`, the cursor starts below zero, so a fresh
+worker computes **nothing** until the first ack. Starting a run is therefore two
+steps — `start`, then acks — and a host that starts but never acks looks hung
+while behaving exactly as designed.
+
+The per-mode profiles the core exposes:
+
+| Play mode       | `maxFramesAhead` | `batchSize` | Behaviour                                                                                 |
+| --------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------- |
+| view only       | —                | —           | No profile: the React layer pauses the worker and never acks, so nothing new is computed. |
+| compute buffer  | 40               | 10          | Acks when playback is within ~0.5 s of the last computed frame.                           |
+| compute max     | 10000            | 500         | Acks on every arrival — compute as fast as possible.                                      |
+| worker defaults | 1000             | 1000        | Used when `init` omits the settings.                                                      |
+
+## Lifecycle
+
+```text
+Initializing ──ready──▶ Ready ──run()──▶ Running ──pause()──▶ Paused
+                                    │                    │
+                                    └──── run() ◀────────┘
+                          Running ──deadlock | maxTime──▶ Complete
+                          any     ──error msg───────────▶ Error
+```
+
+That is the **main-thread** state. The worker mirrors a smaller internal status,
+in which complete and error are terminal.
+
+A sharp edge: `reset()` returns the main-thread status to Ready, but the worker
+has discarded its simulation, so a subsequent `run()` sends `start` to a worker
+with nothing to run. What actually happens in the UI flow is a full re-init.
+Treat reset as "throw this away", not "rewind".
+
+## Main-thread responsibilities
+
+The host-side runtime does four things worth knowing about:
+
+- **Snapshot preparation** — sanitizes the net for enabled extensions and
+  flattens component instances, so the main-thread layout matches what the worker
+  produces. A place-count mismatch throws on read rather than decoding garbage.
+- **Transport** — queues outbound messages until the worker resolves; tests can
+  inject a pre-built transport instead of a real worker.
+- **Retention** — the in-memory store keeps every frame so playback can scrub.
+  Alternative stores (latest-only, sliding window, persisted) can be swapped in
+  without changing consumers.
+- **Publication** — status and frames as readable stores, plus an event stream.
+
+## Known costs
+
+The 10 ms poll while waiting for acks is a busy-wait; a promise per ack would be
+exact. And frames could be posted with a transfer list to halve copying, but only
+once stepping no longer re-reads the latest stored frame — see
+[Memory model](memory-model).
