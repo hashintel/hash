@@ -18,12 +18,13 @@ jobs:
     steps:
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@6784697ebabfa119d36ab0a335cfdad3555d9e4f # unmerged — re-pin to main
+        uses: hashintel/.github/.github/actions/github-app-token@6235da521f7054945cf1ff9967708d40c745c6b4 # unmerged — re-pin to main
         with:
           vault-address: ${{ vars.VAULT_ADDR }}
           vault-role: ci-hash-release
           app-id: "4497272"
           transit-key: github-app-hash-release
+          repository: ${{ github.repository }}
           cf-access-client-id: ${{ vars.CF_ACCESS_CLIENT_ID }}
           cf-access-client-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
 
