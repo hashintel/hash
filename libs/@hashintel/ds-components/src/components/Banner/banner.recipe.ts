@@ -124,9 +124,10 @@ export const styles = sva({
         root: { colorPalette: "red" },
         // The diamond glyph reads smaller than the other tone icons, so enlarge
         // it to 18px.
-        iconWrap: { "& > svg": { width: "[18px]", height: "[18px]" } },
         defaultIcon: {
           color: "colorPalette.fg.body",
+          width: "[18px !important]",
+          height: "[18px !important]",
         },
       },
       caution: {
