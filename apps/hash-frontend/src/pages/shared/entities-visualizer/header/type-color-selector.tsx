@@ -15,8 +15,39 @@ export const triggerSwatchSize = 16;
 /** The larger swatches shown in the palette dropdown. */
 const optionSwatchSize = 22;
 
-// The palette colours plus a trailing "no colour" option (which maps to grey).
-const swatchOptions = [...typeColorPalette, noColor];
+/**
+ * Hue angle (0–360°) of a `#RRGGBB` colour, for laying the palette out as a
+ * spectrum. `colorjs.io` (which `brandmarkScale` uses) is dev-only, so the hue
+ * is derived here with the standard HSL formula.
+ */
+const hueOf = (hex: string): number => {
+  const int = parseInt(hex.slice(1), 16);
+  const red = ((int >> 16) & 0xff) / 255;
+  const green = ((int >> 8) & 0xff) / 255;
+  const blue = (int & 0xff) / 255;
+  const max = Math.max(red, green, blue);
+  const delta = max - Math.min(red, green, blue);
+  if (delta === 0) {
+    return 0;
+  }
+  const hue =
+    max === red
+      ? ((green - blue) / delta) % 6
+      : max === green
+        ? (blue - red) / delta + 2
+        : (red - green) / delta + 4;
+  return (hue * 60 + 360) % 360;
+};
+
+// The palette colours sorted into spectrum order for the picker (the unsorted
+// `typeColorPalette` order still drives the default per-type assignment), plus a
+// trailing "no colour" option (which maps to grey).
+const swatchOptions = [
+  ...[...typeColorPalette].sort(
+    (first, second) => hueOf(first) - hueOf(second),
+  ),
+  noColor,
+];
 
 type TypeColorSelectorProps = {
   entityTypeId: VersionedUrl;
