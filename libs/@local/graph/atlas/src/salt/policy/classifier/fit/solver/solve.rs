@@ -5,15 +5,10 @@
 //! the resulting candidate against the predicted model reduction and accepts or rejects it by
 //! ratio. The accepted point moves only on acceptance; rejection shrinks the trust radius toward
 //! its minimum and an expanded radius requires a validated boundary step. Success is [`Converged`]
-//! (a fresh reserved joint evaluation re-proving the certificate) and every other terminal is a
+//! (a fresh final joint evaluation re-proving the certificate) and every other terminal is a
 //! typed [`SolverFailure`] in the normative precedence order: validation, accepted-gradient
 //! success, outer budget, inner Newton, invalid predicted reduction, resolution construction,
-//! resolution stall, candidate preflight in objective/gradient/row order, candidate numerical
-//! failure, ratio classification, then radius underflow.
-//!
-//! One joint traversal stays reserved for the final certificate, and every availability check
-//! excludes it until the success path consumes it, so a solve can always afford to prove the answer
-//! it publishes.
+//! resolution stall, candidate numerical failure, ratio classification, then radius underflow.
 
 use super::{
     SOLVER_DIMENSIONS,
@@ -57,8 +52,6 @@ pub(crate) struct SolverControl {
     pub outer_iterations_started: u64,
     /// The work counters of the whole fit, preparation included.
     pub counters: WorkCounters,
-    /// Whether the final joint certificate traversal is still reserved.
-    pub final_reserve: bool,
 }
 
 impl SolverControl {
@@ -69,37 +62,7 @@ impl SolverControl {
             consecutive_rejections: 0,
             outer_iterations_started: 0,
             counters,
-            final_reserve: true,
         }
-    }
-
-    /// Objective requests still available net of the final reserve.
-    pub(super) const fn free_objective_requests(&self, config: &SolverConfig) -> u64 {
-        config
-            .maximum_objective_requests
-            .saturating_sub(self.counters.objective_requests)
-            .saturating_sub(self.reserved())
-    }
-
-    /// Gradient requests still available net of the final reserve.
-    pub(super) const fn free_gradient_requests(&self, config: &SolverConfig) -> u64 {
-        config
-            .maximum_gradient_requests
-            .saturating_sub(self.counters.gradient_requests)
-            .saturating_sub(self.reserved())
-    }
-
-    /// Row traversals still available net of the final reserve.
-    pub(super) const fn free_row_traversals(&self, config: &SolverConfig) -> u64 {
-        config
-            .maximum_row_traversals
-            .saturating_sub(self.counters.started_row_traversals)
-            .saturating_sub(self.reserved())
-    }
-
-    /// One reserved unit per budget while the final certificate is outstanding.
-    const fn reserved(&self) -> u64 {
-        if self.final_reserve { 1 } else { 0 }
     }
 }
 
@@ -112,7 +75,7 @@ pub(crate) struct CertificateEvidence {
     pub gradient_threshold: f64,
 }
 
-/// A certified solution, with its accepted point re-proven by the reserved final evaluation.
+/// A certified solution, with its accepted point re-proven by the final joint evaluation.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Converged {
     /// The accepted point carrying the fresh final objective and gradient.
@@ -233,8 +196,6 @@ fn run(
         if predicted <= resolution {
             return Err(SolverFailure::ResolutionStall);
         }
-
-        reserve_candidate_requests(control, config)?;
 
         let trial_zeta = flat::advance(&accepted.zeta, 1.0, inner.step());
         let trial_point = problem.point(&trial_zeta);
@@ -362,32 +323,6 @@ fn start_receipt<'receipts>(
     receipts.last_mut().map(|receipt| &mut receipt.outcome)
 }
 
-/// Reserves the requests one candidate evaluation spends.
-///
-/// A candidate costs one objective-only traversal, one possible accepted-candidate gradient
-/// traversal, and preservation of the final reserve.
-///
-/// # Errors
-///
-/// Returns [`SolverFailure::ObjectiveRequestBudget`], [`SolverFailure::GradientRequestBudget`] or
-/// [`SolverFailure::RowPassBudget`] when the corresponding budget cannot cover the candidate.
-const fn reserve_candidate_requests(
-    control: &SolverControl,
-    config: &SolverConfig,
-) -> Result<(), SolverFailure> {
-    if control.free_objective_requests(config) < 1 {
-        return Err(SolverFailure::ObjectiveRequestBudget);
-    }
-    if control.free_gradient_requests(config) < 1 {
-        return Err(SolverFailure::GradientRequestBudget);
-    }
-    if control.free_row_traversals(config) < 2 {
-        return Err(SolverFailure::RowPassBudget);
-    }
-
-    Ok(())
-}
-
 /// Derives the certificate evidence from the initial scaled-gradient norm.
 ///
 /// # Errors
@@ -469,14 +404,13 @@ pub(super) fn rejected(
     Ok(())
 }
 
-/// Consumes the final reserve and re-proves the certificate at the accepted point.
+/// Re-proves the certificate at the accepted point with a fresh joint evaluation.
 pub(super) fn certify(
     problem: &ScaledProblem<'_>,
     accepted: &AcceptedPoint,
     control: &mut SolverControl,
     threshold: f64,
 ) -> Result<Converged, SolverFailure> {
-    control.final_reserve = false;
     let point = problem.point(&accepted.zeta);
     let Some((objective, gradient)) = problem.joint(&point, &mut control.counters) else {
         return Err(SolverFailure::FinalCertificationNonFinite);

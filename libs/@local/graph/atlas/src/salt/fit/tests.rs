@@ -253,10 +253,6 @@ fn classifier_fit_echo_round_trips_every_knob() {
             objective_resolution_ulps: NonZero::new(5).expect("five is nonzero"),
             curvature_guard_ulps: NonZero::new(17).expect("seventeen is nonzero"),
             maximum_outer_iterations: NonZero::new(501).expect("the budget is nonzero"),
-            maximum_hvp_requests: NonZero::new(50_001).expect("the budget is nonzero"),
-            maximum_objective_requests: 2_001,
-            maximum_gradient_requests: 2_002,
-            maximum_row_traversals: 500_001,
         },
         folds: 3,
         seed: 11,
@@ -272,11 +268,13 @@ fn classifier_fit_echo_round_trips_every_knob() {
 
 /// An echo carrying the retired solver knob names decodes.
 ///
-/// The fixture inserts `relative_cg_residual_tolerance`, `maximum_cg_iterations` and
-/// `maximum_consecutive_rejections` verbatim into an otherwise-default solver echo, so the decode
-/// pins unknown-field tolerance for the current record shape. The decoder ignores an unknown solver
-/// field instead of rejecting the record. The first two retired with the inner CG recurrence, the
-/// third with the rejection budget radius underflow always preceded.
+/// The fixture inserts `relative_cg_residual_tolerance`, `maximum_cg_iterations`,
+/// `maximum_consecutive_rejections`, `maximum_hvp_requests`, `maximum_objective_requests`,
+/// `maximum_gradient_requests` and `maximum_row_traversals` verbatim into an otherwise-default
+/// solver echo, so the decode pins unknown-field tolerance for the current record shape. The
+/// decoder ignores an unknown solver field instead of rejecting the record. The first two retired
+/// with the inner CG recurrence, the third with the rejection budget radius underflow always
+/// preceded, and the last four with the work budgets the iteration structure already bounds.
 #[test]
 fn config_echo_decodes_the_retired_solver_knobs() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -295,6 +293,19 @@ fn config_echo_decodes_the_retired_solver_knobs() {
     solver.insert(
         "maximum_consecutive_rejections".to_owned(),
         serde_json::json!(30),
+    );
+    solver.insert("maximum_hvp_requests".to_owned(), serde_json::json!(50_000));
+    solver.insert(
+        "maximum_objective_requests".to_owned(),
+        serde_json::json!(2_000),
+    );
+    solver.insert(
+        "maximum_gradient_requests".to_owned(),
+        serde_json::json!(2_000),
+    );
+    solver.insert(
+        "maximum_row_traversals".to_owned(),
+        serde_json::json!(500_000),
     );
 
     let echoed: Echo =

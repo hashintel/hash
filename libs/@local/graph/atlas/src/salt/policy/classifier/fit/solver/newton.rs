@@ -27,9 +27,7 @@
 //! boundary crossing, and every crossing constructs through the validated
 //! [`boundary`](super::boundary) machinery.
 //!
-//! The solve bounds its work before doing it. All three assembly traversals preflight the row
-//! budget and every oracle product preflights the Hessian-vector and row budgets, all net of the
-//! final reserve. Every arithmetic escape is a typed [`SolverFailure`] naming its [`NewtonStage`].
+//! Every arithmetic escape is a typed [`SolverFailure`] naming its [`NewtonStage`].
 //! The factored blocks define the model the step solves, and the recorded residual measures the
 //! rounding drift between that model and the oracle.
 
@@ -158,17 +156,14 @@ fn column_dot(left: RowFactor, k: usize, right: RowFactor, l: usize) -> f64 {
 ///
 /// `point` is the physical image `θ(ζ)` of the accepted iterate and `gradient` its scaled gradient.
 /// The Newton point prices one oracle Hessian-vector product; a boundary outer prices one for the
-/// Cauchy curvature first and the dogleg segment prices the Newton product as well. The solve tests
-/// every budget before the work it fences, taking the row budget before every assembly traversal
-/// and the Hessian-vector and row budgets before every oracle product.
+/// Cauchy curvature first and the dogleg segment prices the Newton product as well.
 ///
 /// # Errors
 ///
-/// Returns [`SolverFailure::HvpBudget`] or [`SolverFailure::RowPassBudget`] when another unit of
-/// work would exceed its budget, [`SolverFailure::NonFiniteNewton`] naming the stage where a value
-/// left the finite domain, [`SolverFailure::SingularInterceptCurvature`] when no row offers the
-/// intercepts curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when the boundary construction
-/// yields no validated crossing.
+/// Returns [`SolverFailure::NonFiniteNewton`] naming the stage where a value left the finite
+/// domain, [`SolverFailure::SingularInterceptCurvature`] when no row offers the intercepts
+/// curvature, and [`SolverFailure::NoFiniteBoundaryStep`] when the boundary construction yields no
+/// validated crossing.
 #[expect(
     clippy::too_many_lines,
     reason = "the assembly, factorization, back-substitution, and dogleg fallback are one solve; \
@@ -205,11 +200,6 @@ pub(super) fn newton_step(
         return Err(non_finite(NewtonStage::Weights));
     }
     let physical_gradient = ContrastVector::from_flat(&physical_flat);
-
-    // Each solve makes three assembly traversals: curvature, projection down, lift back up.
-    if control.free_row_traversals(config) < 3 {
-        return Err(SolverFailure::RowPassBudget);
-    }
 
     let evaluation = prepared
         .curvature_pass(point, &mut control.counters)
@@ -490,7 +480,7 @@ fn solve_intercepts([s11, s21, s22]: [f64; 3], rhs: [f64; 2]) -> Option<[f64; 2]
     Some([s0, s1])
 }
 
-/// One oracle Hessian-vector product behind its budget preflights.
+/// One oracle Hessian-vector product, counted and checked finite.
 fn priced_product(
     problem: &ScaledProblem<'_>,
     point: &ContrastVector,
@@ -498,13 +488,6 @@ fn priced_product(
     control: &mut SolverControl,
     stage: NewtonStage,
 ) -> Result<BoxedDVecN<SOLVER_DIMENSIONS>, SolverFailure> {
-    if control.counters.hvp_requests == problem.config.maximum_hvp_requests.get() {
-        return Err(SolverFailure::HvpBudget);
-    }
-    if control.free_row_traversals(&problem.config) < 1 {
-        return Err(SolverFailure::RowPassBudget);
-    }
-
     // A rejected request and a non-finite product share the typed stage failure.
     problem
         .hessian_vector(point, direction, &mut control.counters)

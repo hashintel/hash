@@ -893,10 +893,6 @@ mod classifier_fit_config {
         objective_resolution_ulps: u32,
         curvature_guard_ulps: u32,
         maximum_outer_iterations: u64,
-        maximum_hvp_requests: u64,
-        maximum_objective_requests: u64,
-        maximum_gradient_requests: u64,
-        maximum_row_traversals: u64,
     }
 
     /// The fit settings' wire form.
@@ -931,10 +927,6 @@ mod classifier_fit_config {
                 objective_resolution_ulps: solver.objective_resolution_ulps.get(),
                 curvature_guard_ulps: solver.curvature_guard_ulps.get(),
                 maximum_outer_iterations: solver.maximum_outer_iterations.get(),
-                maximum_hvp_requests: solver.maximum_hvp_requests.get(),
-                maximum_objective_requests: solver.maximum_objective_requests,
-                maximum_gradient_requests: solver.maximum_gradient_requests,
-                maximum_row_traversals: solver.maximum_row_traversals,
             },
             folds: config.folds,
             seed: config.seed,
@@ -1048,10 +1040,6 @@ mod classifier_fit_config {
                     "outer iteration budget",
                     solver.maximum_outer_iterations,
                 )?,
-                maximum_hvp_requests: non_zero_u64("HVP budget", solver.maximum_hvp_requests)?,
-                maximum_objective_requests: solver.maximum_objective_requests,
-                maximum_gradient_requests: solver.maximum_gradient_requests,
-                maximum_row_traversals: solver.maximum_row_traversals,
             },
             folds: record.folds,
             seed: record.seed,

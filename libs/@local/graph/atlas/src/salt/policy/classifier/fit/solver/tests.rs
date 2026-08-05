@@ -1030,17 +1030,13 @@ fn solver_config() -> SolverConfig {
         objective_resolution_ulps: NonZeroU32::new(4).expect("four is nonzero"),
         curvature_guard_ulps: NonZeroU32::new(16).expect("sixteen is nonzero"),
         maximum_outer_iterations: NonZeroU64::new(100).expect("one hundred is nonzero"),
-        maximum_hvp_requests: NonZeroU64::new(5_000).expect("five thousand is nonzero"),
-        maximum_objective_requests: 200,
-        maximum_gradient_requests: 200,
-        maximum_row_traversals: 10_000,
     }
 }
 
 /// The in-domain fixture and the cross-field boundaries validate.
 ///
-/// Per-field domains hold by construction. Only the cross-field orderings and the budget floors
-/// remain for `validate` to accept.
+/// Per-field domains hold by construction. Only the cross-field orderings remain for `validate`
+/// to accept.
 #[test]
 fn config_accepts_the_domain_boundaries() {
     solver_config()
@@ -1056,16 +1052,6 @@ fn config_accepts_the_domain_boundaries() {
     }
     .validate()
     .expect("a degenerate radius chain is in-domain");
-
-    // Budget floors admit equality.
-    SolverConfig {
-        maximum_objective_requests: 2,
-        maximum_gradient_requests: 2,
-        maximum_row_traversals: 3,
-        ..solver_config()
-    }
-    .validate()
-    .expect("the budget floors are inclusive");
 }
 
 /// Validation rejects every violated cross-field ordering by name.
@@ -1099,37 +1085,6 @@ fn config_rejects_misordered_fields() {
             Err(SolverConfigError::AcceptanceThresholds { .. }),
         );
     }
-}
-
-/// Every floored work budget rejects below its floor, by name.
-#[test]
-fn config_rejects_budgets_below_their_floors() {
-    let base = solver_config();
-
-    assert_eq!(
-        SolverConfig {
-            maximum_objective_requests: 1,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::ObjectiveBudget { value: 1 }),
-    );
-    assert_eq!(
-        SolverConfig {
-            maximum_gradient_requests: 1,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::GradientBudget { value: 1 }),
-    );
-    assert_eq!(
-        SolverConfig {
-            maximum_row_traversals: 2,
-            ..base
-        }
-        .validate(),
-        Err(SolverConfigError::TraversalBudget { value: 2 }),
-    );
 }
 
 /// The gradient threshold is the stated maximum, zero is valid, and only a non-finite norm maps
@@ -1596,10 +1551,9 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     assert!((converged.point.objective - 3.0_f64.ln()).abs() < 1.0e-12);
 
     // No outer iteration started, so the receipt list stays empty and the inner counters stay at
-    // zero. The final certificate alone consumed the reserve.
+    // zero.
     assert_eq!(run.control.outer_iterations_started, 0);
     assert!(run.receipts.is_empty());
-    assert!(!run.control.final_reserve);
     let counters = run.control.counters;
     assert_eq!(counters.hvp_requests, 0);
     assert_eq!(counters.factorizations, 0);
@@ -1714,7 +1668,6 @@ fn solve_converges_on_the_fixture_corpus() {
     );
     assert_eq!(counters.gram_assemblies, 1);
     assert!(counters.candidate_acceptances >= 1);
-    assert!(!run.control.final_reserve);
 
     // Every receipt completed its inner solve; classified candidates carry their scalar facts,
     // and every priced Newton point carries its oracle residual.
@@ -1789,123 +1742,6 @@ fn solve_fails_the_outer_iteration_budget() {
     assert_matches!(run.outcome, Err(SolverFailure::OuterIterationBudget));
     assert_eq!(run.control.outer_iterations_started, 1);
     assert_eq!(run.receipts.len(), 1);
-    assert!(run.control.final_reserve);
-}
-
-/// The inner Newton budgets fail where their work would exceed them, receipts already stored.
-#[test]
-fn solve_orders_the_inner_newton_budgets() {
-    let corpus = valid_corpus();
-    let strict = SolverConfig {
-        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
-        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-        ..solver_config()
-    };
-
-    // One priced product per interior outer: the second outer's pricing preflight finds the
-    // budget consumed. The dying outer never finished its inner solve: no tag.
-    let hvp_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_hvp_requests: NonZeroU64::new(1).expect("one is nonzero"),
-            ..strict
-        },
-    );
-    assert_matches!(hvp_starved.outcome, Err(SolverFailure::HvpBudget));
-    assert_eq!(hvp_starved.control.counters.hvp_requests, 1);
-    assert_eq!(hvp_starved.receipts.len(), 2);
-    assert!(hvp_starved.receipts[0].outcome.tag.is_some());
-    assert_eq!(hvp_starved.receipts[1].outcome.tag, None);
-
-    // At the row floor of three, preparation plus initialization plus the reserve leave
-    // nothing for the three assembly traversals: the inner solve refuses before any assembly.
-    let row_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_row_traversals: 3,
-            ..strict
-        },
-    );
-    assert_matches!(row_starved.outcome, Err(SolverFailure::RowPassBudget));
-    assert_eq!(row_starved.control.counters.hvp_requests, 0);
-    assert_eq!(row_starved.control.counters.completed_newton_traversals, 0);
-    assert_eq!(row_starved.control.counters.started_row_traversals, 2);
-
-    // Enough rows for the assembly, none left for the pricing product: the preflight before
-    // the oracle request refuses with the assembly already charged.
-    let pricing_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_row_traversals: 6,
-            ..strict
-        },
-    );
-    assert_matches!(pricing_starved.outcome, Err(SolverFailure::RowPassBudget));
-    assert_eq!(pricing_starved.control.counters.hvp_requests, 0);
-    assert_eq!(
-        pricing_starved.control.counters.completed_newton_traversals,
-        3
-    );
-    assert_eq!(pricing_starved.control.counters.started_row_traversals, 5);
-}
-
-/// Candidate preflight prices the objective, then the gradient, then the rows - reserve intact.
-#[test]
-fn solve_preflight_prices_objective_then_gradient_then_rows() {
-    let corpus = valid_corpus();
-    let strict = SolverConfig {
-        absolute_scaled_gradient_tolerance: DNonNegative::ZERO,
-        relative_scaled_gradient_tolerance: open_unit_fraction!(1.0e-12),
-        ..solver_config()
-    };
-
-    let objective_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_objective_requests: 2,
-            ..strict
-        },
-    );
-    assert_matches!(
-        objective_starved.outcome,
-        Err(SolverFailure::ObjectiveRequestBudget),
-    );
-    // Only the initialized joint evaluation ran: the final reserve stayed untouched.
-    assert_eq!(objective_starved.control.counters.objective_requests, 1);
-    assert!(objective_starved.control.final_reserve);
-
-    let gradient_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_objective_requests: 3,
-            maximum_gradient_requests: 2,
-            ..strict
-        },
-    );
-    assert_matches!(
-        gradient_starved.outcome,
-        Err(SolverFailure::GradientRequestBudget),
-    );
-    assert_eq!(gradient_starved.control.counters.objective_requests, 1);
-
-    // The inner solve finishes on three assembly traversals and one priced product, and the
-    // candidate preflight then finds a single unreserved traversal where the candidate needs
-    // two.
-    let row_starved = run_solver(
-        &corpus,
-        SolverConfig {
-            maximum_row_traversals: 8,
-            ..strict
-        },
-    );
-    assert_matches!(row_starved.outcome, Err(SolverFailure::RowPassBudget));
-    assert_eq!(row_starved.control.counters.hvp_requests, 1);
-    // The preflight death happened after the inner solve, so the receipt records the tag and the
-    // predicted reduction, and no candidate was ever classified.
-    let last = row_starved.receipts.last().expect("one receipt exists");
-    assert!(last.outcome.tag.is_some());
-    assert!(last.outcome.predicted_reduction.is_some());
-    assert_eq!(last.outcome.candidate, None);
 }
 
 /// A rejection at the minimum trust radius underflows.
@@ -2075,7 +1911,6 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     assert!(evidence.initial_gradient_norm <= evidence.gradient_threshold);
     assert_eq!(run.control.outer_iterations_started, 0);
     assert!(run.receipts.is_empty());
-    assert!(!run.control.final_reserve);
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 
@@ -2178,13 +2013,11 @@ fn certify_reproves_the_certificate_freshly() {
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
     assert_matches!(
         certify(&problem, &accepted, &mut control, norm / 2.0),
         Err(SolverFailure::FinalCertificateMismatch),
     );
-    assert!(!control.final_reserve);
 
     // A threshold at the true norm certifies, and the fresh evaluation reproduces the bytes.
     let mut passing = SolverControl {
@@ -2192,7 +2025,6 @@ fn certify_reproves_the_certificate_freshly() {
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
     let converged = certify(&problem, &accepted, &mut passing, norm)
         .expect("the threshold at the norm certifies");
@@ -2210,7 +2042,6 @@ fn certify_reproves_the_certificate_freshly() {
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
     assert_matches!(
         certify(&problem, &runaway, &mut non_finite, norm),
@@ -2231,7 +2062,6 @@ fn rejected_clips_to_the_minimum_then_underflows_with_one_clipped_attempt() {
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters: WorkCounters::default(),
-        final_reserve: true,
     };
 
     // First rejection clips the shrink to the minimum and permits one later attempt there.
@@ -2387,7 +2217,6 @@ fn newton_at_origin(
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
     let outcome = newton_step(&problem, &point, &gradient, &mut control);
     (outcome, baseline, control.counters)
@@ -2600,7 +2429,6 @@ fn newton_step_survives_saturated_rows() {
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
     let outcome = newton_step(&problem, &point, &gradient, &mut control)
         .expect("rank-dropped rows leave the capacitance solvable");
@@ -2655,39 +2483,6 @@ fn flat_operations_keep_the_declared_shapes() {
     assert!(base.is_finite());
     assert!(!flat(&[(3, f64::NAN)]).is_finite());
     assert!(!flat(&[(3, f64::INFINITY)]).is_finite());
-}
-
-/// The free budgets net out the outstanding final reserve and saturate at zero.
-#[test]
-fn free_budgets_net_the_final_reserve() {
-    let config = SolverConfig {
-        maximum_objective_requests: 5,
-        maximum_gradient_requests: 4,
-        maximum_row_traversals: 7,
-        ..solver_config()
-    };
-    let counters = WorkCounters {
-        objective_requests: 3,
-        gradient_requests: 3,
-        started_row_traversals: 7,
-        ..WorkCounters::default()
-    };
-
-    let mut control = SolverControl {
-        radius: 1.0,
-        consecutive_rejections: 0,
-        outer_iterations_started: 0,
-        counters,
-        final_reserve: true,
-    };
-    assert_eq!(control.free_objective_requests(&config), 1);
-    assert_eq!(control.free_gradient_requests(&config), 0);
-    assert_eq!(control.free_row_traversals(&config), 0);
-
-    control.final_reserve = false;
-    assert_eq!(control.free_objective_requests(&config), 2);
-    assert_eq!(control.free_gradient_requests(&config), 1);
-    assert_eq!(control.free_row_traversals(&config), 0);
 }
 
 /// The scaled Hessian-vector product is the sandwich `D⁻¹·Hθ[D⁻¹v]` in that order.

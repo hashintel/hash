@@ -264,7 +264,6 @@ fn replay_to_outer(
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
-        final_reserve: true,
     };
 
     let origin = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();

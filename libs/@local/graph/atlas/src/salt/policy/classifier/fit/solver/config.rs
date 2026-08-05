@@ -2,17 +2,17 @@
 //!
 //! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius domain,
 //! shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp counts, and the
-//! inclusive work budgets. Per-field domains travel in the field types - the validated scalars of
-//! [`math`](crate::math) and the non-zero integers of [`core::num`] - so a configuration value that
-//! exists is in domain. [`validate`](SolverConfig::validate) checks only what no field type can
-//! carry alone: the radius ordering, the acceptance-threshold ordering, and the reserved-work
-//! floors, in declared order, reporting the first violation. The preparation-side knobs ride along
-//! as [`PreparationSettings`], so one validated configuration covers the whole fit.
+//! inclusive outer-iteration budget. Per-field domains travel in the field types - the validated
+//! scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a configuration
+//! value that exists is in domain. [`validate`](SolverConfig::validate) checks only what no field
+//! type can carry alone: the radius ordering and the acceptance-threshold ordering, in declared
+//! order, reporting the first violation. The preparation-side knobs ride along as
+//! [`PreparationSettings`], so one validated configuration covers the whole fit.
 //!
-//! Work budgets are inclusive maxima: equality with a budget is allowed and a request fails only
-//! when it would exceed its maximum. The objective, gradient, and row-traversal budgets have floors
-//! of two, two, and three - one initialized joint evaluation, one reserved final certificate, and
-//! the preparation traversal are the least work any valid fit performs.
+//! The outer-iteration budget is an inclusive maximum: equality is allowed and starting one more
+//! iteration fails the solve. It is the loop's only work limit; per-request work is bounded by the
+//! iteration structure itself, at a small fixed number of evaluations and traversals per outer
+//! iteration.
 
 use core::num::NonZero;
 
@@ -33,20 +33,14 @@ pub enum SolverConfigError {
         accept: OpenUnitFraction,
         expand: OpenUnitFraction,
     },
-    /// The objective-request budget is below its floor of two.
-    ObjectiveBudget { value: u64 },
-    /// The gradient-request budget is below its floor of two.
-    GradientBudget { value: u64 },
-    /// The row-traversal budget is below its floor of three.
-    TraversalBudget { value: u64 },
 }
 
 /// Trust-region exact-Newton loop configuration.
 ///
 /// Every field carries a default; `SolverConfig { .. }` is the deployment configuration and
-/// satisfies [`validate`](Self::validate). The budget defaults sit an order beyond the predicted
-/// need at annotation-corpus scale, so termination is by tolerance and a budget terminal reports as
-/// a failure.
+/// satisfies [`validate`](Self::validate). The outer-iteration cap sits well beyond the measured
+/// demand at annotation-corpus scale, so termination is by tolerance and the budget terminal
+/// reports as a failure.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SolverConfig {
     /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
@@ -97,16 +91,6 @@ pub(crate) struct SolverConfig {
     pub maximum_outer_iterations: NonZero<u64> = const {
         NonZero::<u64>::new(500).expect("five hundred is nonzero")
     },
-    /// Inclusive maximum of Hessian-vector-product requests.
-    pub maximum_hvp_requests: NonZero<u64> = const {
-        NonZero::<u64>::new(50_000).expect("fifty thousand is nonzero")
-    },
-    /// Inclusive maximum of objective requests; at least two.
-    pub maximum_objective_requests: u64 = 2_000,
-    /// Inclusive maximum of gradient requests; at least two.
-    pub maximum_gradient_requests: u64 = 2_000,
-    /// Inclusive maximum of started row traversals; at least three.
-    pub maximum_row_traversals: u64 = 500_000,
 }
 
 impl SolverConfig {
@@ -114,8 +98,7 @@ impl SolverConfig {
     ///
     /// # Errors
     ///
-    /// Returns the [`SolverConfigError`] of the first violated ordering or floor, in declared field
-    /// order.
+    /// Returns the [`SolverConfigError`] of the first violated ordering, in declared field order.
     #[expect(clippy::missing_const_for_fn, reason = "false positive")]
     pub(crate) fn validate(&self) -> Result<(), SolverConfigError> {
         let radius_ordered = self.radius_minimum <= self.radius_initial
@@ -133,24 +116,6 @@ impl SolverConfig {
             return Err(SolverConfigError::AcceptanceThresholds {
                 accept: self.eta_accept,
                 expand: self.eta_expand,
-            });
-        }
-
-        if self.maximum_objective_requests < 2 {
-            return Err(SolverConfigError::ObjectiveBudget {
-                value: self.maximum_objective_requests,
-            });
-        }
-
-        if self.maximum_gradient_requests < 2 {
-            return Err(SolverConfigError::GradientBudget {
-                value: self.maximum_gradient_requests,
-            });
-        }
-
-        if self.maximum_row_traversals < 3 {
-            return Err(SolverConfigError::TraversalBudget {
-                value: self.maximum_row_traversals,
             });
         }
 

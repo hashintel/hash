@@ -1,7 +1,7 @@
 //! Typed terminal failures of the bounded solve.
 //!
 //! Every way a solve ends short of a certified minimizer is a named [`SolverFailure`]. The named
-//! ways are an exhausted resource budget, a reduction indistinguishable from rounding noise, and
+//! ways are an exhausted iteration budget, a reduction indistinguishable from rounding noise, and
 //! arithmetic that left the finite domain. Each failure carries the structure a match arm needs,
 //! and a non-finite Newton value names its [`NewtonStage`]. None of them publishes a model.
 //! Validation failures before the solve live with their owners,
@@ -32,14 +32,6 @@ pub enum NewtonStage {
 pub enum SolverFailure {
     /// Starting another outer iteration would exceed its budget.
     OuterIterationBudget,
-    /// Another Hessian-vector product would exceed its budget.
-    HvpBudget,
-    /// Another objective request would exceed its budget net of the final reserve.
-    ObjectiveRequestBudget,
-    /// Another gradient request would exceed its budget net of the final reserve.
-    GradientRequestBudget,
-    /// Another row traversal would exceed its budget net of the final reserve.
-    RowPassBudget,
     /// The predicted reduction is within the accepted objective's resolution.
     ResolutionStall,
     /// The accepted objective admits no valid resolution.
@@ -60,9 +52,9 @@ pub enum SolverFailure {
     NoFiniteBoundaryStep,
     /// A ratio-accepted candidate's fresh gradient is not finite.
     NonFiniteAcceptedCandidateGradient,
-    /// The reserved final evaluation produced a non-finite objective, gradient, or norm.
+    /// The final certificate evaluation produced a non-finite objective, gradient, or norm.
     FinalCertificationNonFinite,
-    /// The reserved final evaluation no longer satisfies the gradient certificate.
+    /// The final certificate evaluation no longer satisfies the gradient certificate.
     FinalCertificateMismatch,
     /// No valid gradient-certificate threshold derives from the initial norm, which happens for a
     /// non-finite norm alone. A solve gates its accepted norm as finite first and reports

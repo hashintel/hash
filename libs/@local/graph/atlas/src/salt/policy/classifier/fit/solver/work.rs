@@ -3,16 +3,15 @@
 //! [`WorkCounters`] separates logical work from physical work. Logical work covers the objective,
 //! gradient, and Hessian-vector-product requests a fit makes, together with the pass shape that
 //! served each one. Physical work covers the row traversals a fit started and the individual rows
-//! it visited, and preparation charges its own counters as well as the global ones. Budget
-//! enforcement compares these counters against configured maxima, so every increment happens at the
-//! moment the work becomes real. A request counts when the fit makes it, a traversal when it
-//! accesses its first row, a visit per row it examines, and a completion once it has seen every
-//! row.
+//! it visited, and preparation charges its own counters as well as the global ones. Every
+//! increment happens when the work does. A request counts when the fit makes it, a traversal when
+//! it accesses its first row, a visit per row it examines, and a completion once it has seen
+//! every row.
 //!
 //! The increment rules live here as methods rather than at call sites, so a joint pass can never
 //! forget that it serves one objective request and one gradient request with a single traversal,
-//! and a preparation row visit can never reach the preparation counters without also consuming the
-//! global row-visit budget.
+//! and a preparation row visit can never reach the preparation counters without also charging the
+//! global row-visit count.
 
 /// Logical and physical work counters of one fit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
