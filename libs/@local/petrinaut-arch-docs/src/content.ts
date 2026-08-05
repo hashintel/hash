@@ -40,12 +40,26 @@ export interface AuthoredPage {
   sourceFile: string;
 }
 
+/** A diagram component shipped in the bundle for authored pages to import. */
+export interface AuthoredComponent {
+  /** Path within the bundle, e.g. `components/lanes.tsx`. */
+  path: string;
+  /** Import name authors use, e.g. `lanes` for `@diagrams/lanes`. */
+  name: string;
+  contents: string;
+}
+
 export interface AuthoredContentResult {
   pages: AuthoredPage[];
+  components: AuthoredComponent[];
   errors: { file: string; message: string }[];
 }
 
 const authoredExtensions = new Set([".md", ".mdx"]);
+const componentExtensions = new Set([".tsx", ".ts", ".css"]);
+
+/** Directory under `content/` holding importable diagram components. */
+const componentDirectory = "components";
 
 const toPosix = (path: string): string => path.split(sep).join(posix.sep);
 
@@ -118,6 +132,7 @@ export const collectAuthoredContent = async (options: {
 }): Promise<AuthoredContentResult> => {
   const root = join(options.repoRoot, options.contentDirectory);
   const pages: AuthoredPage[] = [];
+  const components: AuthoredComponent[] = [];
   const errors: { file: string; message: string }[] = [];
 
   let entries: Dirent<string>[];
@@ -125,11 +140,32 @@ export const collectAuthoredContent = async (options: {
     entries = await readdir(root, { withFileTypes: true, recursive: true });
   } catch {
     // No content directory yet is a normal state, not an error.
-    return { pages, errors };
+    return { pages, components, errors };
   }
 
   for (const entry of entries) {
-    if (!entry.isFile() || !authoredExtensions.has(extensionOf(entry.name))) {
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    const componentPath = toPosix(
+      relative(root, join(entry.parentPath, entry.name)),
+    );
+
+    if (componentPath.startsWith(`${componentDirectory}/`)) {
+      if (componentExtensions.has(extensionOf(entry.name))) {
+        components.push({
+          path: componentPath,
+          name: componentPath
+            .slice(componentDirectory.length + 1)
+            .replace(/\.[^.]+$/u, ""),
+          contents: await readFile(join(entry.parentPath, entry.name), "utf8"),
+        });
+      }
+      continue;
+    }
+
+    if (!authoredExtensions.has(extensionOf(entry.name))) {
       continue;
     }
 
@@ -176,6 +212,9 @@ export const collectAuthoredContent = async (options: {
 
   return {
     pages: pages.sort((left, right) => left.slug.localeCompare(right.slug)),
+    components: components.sort((left, right) =>
+      left.path.localeCompare(right.path),
+    ),
     errors,
   };
 };

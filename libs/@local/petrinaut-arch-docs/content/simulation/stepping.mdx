@@ -5,6 +5,8 @@ sidebar_order: 10
 attachTo: core.simulation.engine
 ---
 
+import { Pipeline } from "@diagrams/pipeline";
+
 `buildSimulation(input)` turns an SDCPN into a runnable instance;
 `computeNextFrame(simulation)` advances it by one immutable frame. Both are pure
 return values — the worker is what turns them into protocol messages.
@@ -18,19 +20,29 @@ least one real element.
 
 The order is fixed, and several surprising behaviours follow from it.
 
-1. **Max time.** If `maxTime` is set and current time has reached it, return
-   immediately without computing.
-2. **Dynamics.** For each place with a differential equation: slice its token
-   region, decode tokens, call the user function, apply Euler `x += dx·dt` to
-   real slots. Discrete derivatives are forced to zero.
-3. **Transitions.** For each transition: enablement (arc weights, inhibitor and
-   read arcs), token-combination enumeration, the lambda (predicate, or
-   stochastic rate against the seeded RNG), then the kernel for coloured
-   outputs. Removals compact the buffer; additions append.
-4. **Timers.** If nothing fired, advance every transition's time-since-last-firing
-   by `dt`.
-5. **Completion.** Either `maxTime` was reached, or deadlock — nothing fired and
-   no transition is enabled.
+<Pipeline
+  numbered
+  title="One step, in order"
+  steps={[
+    { label: "Max time", note: "Reached? Return without computing." },
+    {
+      label: "Dynamics",
+      note: "Decode tokens, call the user function, apply Euler `x += dx·dt` to real slots.",
+    },
+    {
+      label: "Transitions",
+      note: "Enablement, token-combination enumeration, lambda, then kernel for coloured outputs.",
+    },
+    {
+      label: "Timers",
+      note: "If nothing fired, advance every transition's idle time by dt.",
+    },
+    { label: "Complete?", note: "Max time reached, or deadlock." },
+  ]}
+/>
+
+Discrete derivatives are forced to zero in step 2; removals compact the buffer
+and additions append in step 3.
 
 Dynamics run before transitions, so a transition sees token values already
 advanced by this step's integration. Timers only advance on a step where nothing

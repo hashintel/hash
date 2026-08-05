@@ -11,7 +11,11 @@ import { join } from "node:path";
 
 import { config, type ArchitectureConfig } from "../architecture.config";
 import { runChecks } from "./check";
-import { collectAuthoredContent, type AuthoredPage } from "./content";
+import {
+  collectAuthoredContent,
+  type AuthoredComponent,
+  type AuthoredPage,
+} from "./content";
 import {
   buildLlmsTxt,
   buildManifest,
@@ -27,6 +31,7 @@ import {
 import {
   buildPages,
   resolveAuthoredLinks,
+  resolveComponentImports,
   slugForLayer,
   type GeneratedPage,
 } from "./emit/mdx";
@@ -47,6 +52,8 @@ export interface BuiltBundle {
   authored: AuthoredPage[];
   /** Diagram name → D2 source. */
   diagramSources: Map<string, string>;
+  /** Importable diagram components shipped with the bundle. */
+  components: AuthoredComponent[];
   llmsTxt: string;
   singleFile: string;
   diagnostics: Diagnostic[];
@@ -222,14 +229,26 @@ export const buildBundle = async (options: {
     ]);
   }
 
-  // Authored pages address their targets by name (`layer:`, `doc:`) rather than
-  // by path, because a page's depth is only known once `attachTo` is resolved.
+  const componentNames = new Set(
+    authoredResult.components.map((component) => component.name),
+  );
+
+  // Authored pages address their targets by name (`layer:`, `doc:`, `@diagrams/`)
+  // rather than by path, because a page's depth is only known once `attachTo` is
+  // resolved.
   const authored = authoredResult.pages.map((page) => {
     const slug = authoredSlugs.get(page.slug) ?? page.slug;
-    const { contents, unresolved } = resolveAuthoredLinks(page.contents, slug, {
+    const linked = resolveAuthoredLinks(page.contents, slug, {
       layerSlugs: layerSlugsById,
       docSlugs: authoredSlugs,
     });
+    const imported = resolveComponentImports(
+      linked.contents,
+      slug,
+      componentNames,
+    );
+    const contents = imported.contents;
+    const unresolved = [...linked.unresolved, ...imported.unresolved];
 
     for (const target of unresolved) {
       diagnostics.push({
@@ -285,6 +304,7 @@ export const buildBundle = async (options: {
       authored,
     }),
     singleFile: buildSingleFileArchitecture(model),
+    components: authoredResult.components,
     diagnostics,
   };
 };
@@ -312,6 +332,13 @@ export const bundleTextFiles = (bundle: BuiltBundle): Map<string, string> => {
 
   for (const page of bundle.authored) {
     files.set(page.path, page.contents);
+  }
+
+  for (const component of bundle.components) {
+    files.set(
+      `components/${component.path.replace(/^components\//u, "")}`,
+      component.contents,
+    );
   }
 
   return files;

@@ -5,6 +5,8 @@ sidebar_order: 10
 attachTo: core.simulation.worker
 ---
 
+import { Sequence } from "@diagrams/sequence";
+
 Both simulation workers speak a small typed message protocol over `postMessage`,
 wrapped in a transport that queues messages until the worker boots. This page
 covers the quick-simulation worker; the experiment worker is on
@@ -35,6 +37,54 @@ covers the quick-simulation worker; the experiment worker is on
 
 Errors carry the SDCPN item id where known, which is what lets the editor
 highlight the transition whose lambda threw rather than showing a bare message.
+
+## One run, end to end
+
+<Sequence
+  title="Host and worker, in order"
+  actors={["Host", "Simulation worker"]}
+  rows={[
+    {
+      direction: "right",
+      label: "`init`",
+      note: "Builds the simulation, compiles user code, packs frame 0",
+    },
+    {
+      direction: "left",
+      label: "`frame(0)`",
+      note: "The initial marking, already packed",
+    },
+    {
+      direction: "left",
+      label: "`ready`",
+      note: "Creation promise resolves; status becomes Ready",
+    },
+    {
+      direction: "right",
+      label: "`start`",
+      note: "Starts the loop — but nothing computes yet",
+    },
+    {
+      phase:
+        "Loop blocked — the ack cursor is below zero, so no frame is computed until the first ack.",
+    },
+    {
+      direction: "right",
+      label: "`ack(n)`",
+      note: "The play mode decides when",
+    },
+    {
+      direction: "left",
+      label: "`frames[…]`",
+      note: "Up to `batchSize`, while `n − acked < maxFramesAhead`",
+    },
+    {
+      direction: "left",
+      label: "`complete`",
+      note: "Deadlock or max time reached",
+    },
+  ]}
+/>
 
 ## The ack contract
 

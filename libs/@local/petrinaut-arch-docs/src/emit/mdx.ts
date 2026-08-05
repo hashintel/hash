@@ -175,6 +175,37 @@ export const resolveAuthoredLinks = (
 /** The slug a layer's generated page occupies. */
 export const slugForLayer = (id: string): string => layerSlug(id);
 
+/**
+ * Rewrites `@diagrams/x` import specifiers to a path relative to the page.
+ *
+ * Same problem as `layer:`/`doc:` links: a page's depth depends on its
+ * `attachTo`, so it cannot write a correct relative import by hand. Authors use
+ * a stable alias and the real path is computed at emit time.
+ */
+export const resolveComponentImports = (
+  contents: string,
+  fromSlug: string,
+  available: Set<string>,
+): { contents: string; unresolved: string[] } => {
+  const unresolved: string[] = [];
+  const fromDirectory = posix.dirname(`pages/${fromSlug}`);
+
+  const resolved = contents.replace(
+    /(["'])@diagrams\/([^"']+)\1/gu,
+    (match, quote: string, name: string) => {
+      if (!available.has(name)) {
+        unresolved.push(`@diagrams/${name}`);
+        return match;
+      }
+
+      const target = posix.relative(fromDirectory, `components/${name}`);
+      return `${quote}${target.startsWith(".") ? target : `./${target}`}${quote}`;
+    },
+  );
+
+  return { contents: resolved, unresolved };
+};
+
 const describeBoundaries = (
   layer: Layer,
   sourceUrlPrefix: string,

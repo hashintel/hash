@@ -36,7 +36,7 @@ if (generated.status !== 0) {
   process.exit(generated.status ?? 1);
 }
 
-for (const directory of ["docs", "diagrams"]) {
+for (const directory of ["docs", "diagrams", "components"]) {
   await rm(new URL(directory, `file://${contentRoot}`), {
     recursive: true,
     force: true,
@@ -50,5 +50,19 @@ await cp(`${bundleRoot}pages`, `${contentRoot}docs`, { recursive: true });
 await cp(`${bundleRoot}diagrams`, `${contentRoot}diagrams`, {
   recursive: true,
 });
+
+// Diagram components imported by authored pages. Copied as siblings of `docs/`
+// because that is the layout the bundle's own relative imports assume.
+await cp(`${bundleRoot}components`, `${contentRoot}components`, {
+  recursive: true,
+});
+
+// The bundle's machine-readable artefacts are served as-is, so an agent reading
+// this site gets byte-identical content to one reading the bundle directly.
+const publicRoot = fileURLToPath(new URL("../public/", import.meta.url));
+await mkdir(publicRoot, { recursive: true });
+for (const file of ["architecture.md", "architecture.json"]) {
+  await cp(`${bundleRoot}${file}`, `${publicRoot}${file}`);
+}
 
 process.stdout.write("Synced architecture bundle into src/content\n");

@@ -3,6 +3,9 @@
 # build input derived from it.
 src/content/docs/
 src/content/diagrams/
+src/content/components/
+public/architecture.md
+public/architecture.json
 
 dist/
 .astro/

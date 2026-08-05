@@ -6,20 +6,27 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "build": "yarn sync:bundle && astro build",
+    "build": "astro build",
     "dev": "yarn sync:bundle && astro dev",
+    "lint:tsc": "astro check --minimumSeverity error",
     "preview": "astro preview",
     "sync:bundle": "node scripts/sync-bundle.mjs"
   },
   "dependencies": {
+    "@astrojs/react": "6.0.2",
     "@astrojs/starlight": "0.41.5",
     "astro": "7.1.6",
-    "sharp": "0.35.3",
-    "starlight-llms-txt": "0.11.0"
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sharp": "0.35.3"
   },
   "devDependencies": {
+    "@astrojs/check": "0.9.10",
     "@local/petrinaut-arch-docs": "workspace:*",
-    "@types/node": "22.18.13"
+    "@types/node": "22.18.13",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
   },
   "installConfig": {
     "hoistingLimits": "dependencies"

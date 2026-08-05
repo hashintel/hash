@@ -18,6 +18,9 @@ const enforcedDevDependencies = {
 const allowedUnscriptedDevDependencies = {
   // Bundled into the LSP worker, not required by published package consumers.
   "@hashintel/petrinaut-core": new Set(["typescript"]),
+  // `astro check` type-checks the diagram components, and needs TypeScript
+  // even though no script invokes `tsc` directly.
+  "@apps/petrinaut-docs": new Set(["typescript"]),
 };
 
 const ignoredDependencies = [

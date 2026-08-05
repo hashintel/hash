@@ -5,6 +5,9 @@ sidebar_order: 10
 attachTo: core.simulation
 ---
 
+import { ByteMap } from "@diagrams/byte-map";
+import { Lanes } from "@diagrams/lanes";
+
 Everything the simulation computes is stored in raw `ArrayBuffer`s read through
 typed-array views. There is no object graph of tokens: tokens are packed structs,
 decoded to JavaScript objects only at the read boundary.
@@ -13,6 +16,60 @@ Knowing which buffer lives on which thread is the thing that makes the rest of
 the simulation layers make sense.
 
 ## Where each piece lives
+
+<Lanes
+  title="Who owns which buffer"
+  lanes={[
+    {
+      title: "Main thread — host",
+      accent: "ui",
+      boxes: [
+        {
+          label: "Run configuration",
+          note: "Marking, parameters, seed, `dt`, `maxTime`",
+        },
+        {
+          label: "Frame store",
+          note: "Retains every payload so playback can scrub",
+        },
+        {
+          label: "Frame readers",
+          note: "Zero-copy views over a stored buffer",
+        },
+      ],
+    },
+    {
+      title: "Simulation worker",
+      accent: "core",
+      boxes: [
+        {
+          label: "Engine instance",
+          note: "Frame history — the compute source of truth",
+        },
+        { label: "EngineFrame", note: "One immutable ArrayBuffer per step" },
+      ],
+    },
+    {
+      title: "Monte Carlo worker",
+      accent: "worker",
+      boxes: [
+        {
+          label: "2 buffers per run",
+          note: "Current and next, swapped each step",
+        },
+        {
+          label: "Metric aggregates",
+          note: "The only thing that crosses back",
+        },
+      ],
+    },
+  ]}
+  legend={[
+    { label: "Host", accent: "ui" },
+    { label: "Simulation worker", accent: "core" },
+    { label: "Monte Carlo worker", accent: "worker" },
+  ]}
+/>
 
 | Memory              | Structure                                                            | Thread        | Lifetime                                                                                   |
 | ------------------- | -------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
@@ -37,24 +94,63 @@ alongside as payload metadata.
 `createEngineFrame()` computes every offset and is the only frame constructor;
 `readEngineFrame()` recreates the same views for reading.
 
-```text
-byte  section                        view
-────  ─────────────────────────────  ──────────────────────────────
-   0  header (64 B fixed)            DataView, little-endian
-      magic "PFRM" · version · P · T
-      section offsets · byteLength
-  64  place token counts   u32 × P   Uint32Array(buf, 64, P)
-  72  place value offsets  u32 × P   Uint32Array(buf, 72, P)
-  80  transition elapsed   f64 × T   Float64Array(buf, 80, T)
-  96  transition firings   u32 × T   Uint32Array(buf, 96, T)
- 104  fired flags          u8  × T   Uint8Array(buf, 104, T)
- 106  padding                        alignTo(8) keeps f64 views aligned
- 112  packed token structs           place-major, then token-major
-```
-
-Offsets above are for a two-place, two-transition example. Sections and strides
-are padded to 8-byte boundaries, so every `f64` field stays 8-aligned and hot
-paths use plain typed-array views rather than `DataView`.
+<ByteMap
+  title="One frame — worked example, 2 places and 2 transitions"
+  segments={[
+    {
+      offset: 0,
+      name: "header",
+      type: "64 B fixed",
+      view: "DataView, little-endian",
+      accent: "core",
+    },
+    {
+      offset: 64,
+      name: "place token counts",
+      type: "u32 × P",
+      view: "Uint32Array(buf, 64, P)",
+    },
+    {
+      offset: 72,
+      name: "place value offsets",
+      type: "u32 × P",
+      view: "Uint32Array(buf, 72, P)",
+    },
+    {
+      offset: 80,
+      name: "transition elapsed",
+      type: "f64 × T",
+      view: "Float64Array(buf, 80, T)",
+    },
+    {
+      offset: 96,
+      name: "transition firings",
+      type: "u32 × T",
+      view: "Uint32Array(buf, 96, T)",
+    },
+    {
+      offset: 104,
+      name: "fired flags",
+      type: "u8 × T",
+      view: "Uint8Array(buf, 104, T)",
+    },
+    {
+      offset: 106,
+      name: "padding",
+      type: "6 B",
+      view: "alignTo(8) keeps f64 views aligned",
+    },
+    {
+      offset: 112,
+      name: "packed token structs",
+      type: "place-major, then token-major",
+      view: "tokenBytes / tokenF64",
+      accent: "worker",
+    },
+  ]}
+  byteLength={176}
+  caption="The header records the section offsets and the total length, both checked on read. Sections and strides are padded to 8-byte boundaries, so every f64 field stays 8-aligned and hot paths use plain typed-array views rather than DataView."
+/>
 
 Header fields worth knowing: `magic` (`0x5046524d`, a corrupt-frame guard),
 `version` (currently `2`, asserted on decode), `placeCount`/`transitionCount`

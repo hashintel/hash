@@ -2,9 +2,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import starlightLlmsTxt from "starlight-llms-txt";
 
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
@@ -27,6 +27,12 @@ const manifestPath = fileURLToPath(
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 /**
+ * @typedef {{ label: string, link: string }} SidebarLink
+ * @typedef {{ label: string, collapsed?: boolean, items: SidebarItem[] }} SidebarGroup
+ * @typedef {SidebarLink | SidebarGroup} SidebarItem
+ */
+
+/**
  * Builds Starlight's nested sidebar from the manifest.
  *
  * Nesting follows the *slug*, not whether a page was generated. An authored
@@ -41,6 +47,10 @@ const buildSidebar = () => {
       left.order - right.order || left.slug.localeCompare(right.slug),
   );
 
+  /**
+   * @param {string} slug
+   * @returns {string}
+   */
   const parentOf = (slug) =>
     slug.includes("/") ? slug.slice(0, slug.lastIndexOf("/")) : "";
 
@@ -48,7 +58,13 @@ const buildSidebar = () => {
     pages.map((page) => parentOf(page.slug)).filter((slug) => slug !== ""),
   );
 
-  /** @param {string} parentSlug */
+  /**
+   * Recursive, so the return type is annotated explicitly — TypeScript cannot
+   * infer it from a function that references itself.
+   *
+   * @param {string} parentSlug
+   * @returns {SidebarItem[]}
+   */
   const itemsUnder = (parentSlug) =>
     pages
       .filter((page) => parentOf(page.slug) === parentSlug)
@@ -115,6 +131,9 @@ export default defineConfig({
   build: { format: "file" },
 
   integrations: [
+    // Authored pages may import diagram components from the bundle; generated
+    // pages stay plain Markdown and never need this.
+    react(),
     starlight({
       title: "Architecture Docs",
       description:
@@ -135,9 +154,11 @@ export default defineConfig({
         },
       ],
       sidebar: buildSidebar(),
-      // Serves /llms.txt and /llms-full.txt so an agent can read the whole site
-      // in one request instead of crawling it.
-      plugins: [starlightLlmsTxt()],
+      // No llms.txt plugin: the bundle emits its own `architecture.md` and
+      // `architecture.json`, which `scripts/sync-bundle.mjs` copies into
+      // `public/`. Serving those keeps the site's machine-readable surface
+      // identical to what any other host of the bundle would serve, rather than
+      // a second, site-shaped copy that could disagree with it.
       pagination: false,
     }),
   ],

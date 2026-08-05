@@ -5,6 +5,8 @@ sidebar_order: 10
 attachTo: core.simulation.monte-carlo
 ---
 
+import { Lanes } from "@diagrams/lanes";
+
 An experiment runs many independent simulations of the same net with bounded
 memory, aggregates metrics inside the worker, and ships only small JSON metric
 frames to the host. **Frame buffers never cross the thread boundary.**
@@ -44,11 +46,33 @@ expected.
 
 ## Two buffers, swapped every step
 
-```text
-step k:      current (read)  ─── dynamics + transitions ──▶  next (write)
-after step:  swap pointers — no allocation, no history
-             metrics observe the new frame, then it may be overwritten
-```
+<Lanes
+  title="Two buffers per run"
+  lanes={[
+    {
+      title: "During step k",
+      accent: "core",
+      boxes: [
+        { label: "current — read", note: "State at frame k" },
+        {
+          label: "next — write",
+          note: "Dynamics and transitions write frame k+1 here",
+        },
+      ],
+    },
+    {
+      title: "After the step",
+      accent: "worker",
+      boxes: [
+        { label: "Swap pointers", note: "No allocation, no history" },
+        {
+          label: "Metrics observe frame k+1",
+          note: "Then the data may be overwritten",
+        },
+      ],
+    },
+  ]}
+/>
 
 The consequence to internalise: **frame readers handed to metric code are only
 valid during observation.** They are views over a buffer that the next step will

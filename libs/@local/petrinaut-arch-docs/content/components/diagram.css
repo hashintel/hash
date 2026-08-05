@@ -1,0 +1,233 @@
+/*
+ * Shared styling for the architecture diagram components.
+ *
+ * Deliberately self-contained: plain CSS with no preprocessor, no design-system
+ * import, and no framework assumptions, so the same file works in the Starlight
+ * site and in any host that renders the bundle. Colours derive from the host's
+ * text colour where possible, and everything falls back sensibly if the host
+ * defines none of the custom properties.
+ */
+
+.pnd {
+  --pnd-line: color-mix(in srgb, currentColor 25%, transparent);
+  --pnd-muted: color-mix(in srgb, currentColor 65%, transparent);
+  --pnd-surface: color-mix(in srgb, currentColor 5%, transparent);
+
+  --pnd-core: #3676b8;
+  --pnd-react: #7051b5;
+  --pnd-ui: #3d8055;
+  --pnd-worker: #b5762f;
+
+  margin: 1.5rem 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.pnd-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pnd-muted);
+}
+
+.pnd-lanes {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(var(--pnd-columns, 1), minmax(0, 1fr));
+}
+
+.pnd-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.5rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-lane-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pnd-muted);
+}
+
+.pnd-box {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--pnd-line);
+  border-left: 3px solid var(--pnd-accent, var(--pnd-line));
+  border-radius: 0.35rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-box-label {
+  font-weight: 600;
+}
+
+.pnd-box-note {
+  margin-top: 0.15rem;
+  color: var(--pnd-muted);
+}
+
+.pnd-box code,
+.pnd-lane code,
+.pnd-step code {
+  font-size: 0.9em;
+}
+
+/* Pipeline ------------------------------------------------------------- */
+
+.pnd-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.pnd-step {
+  flex: 1 1 8rem;
+  min-width: 8rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.35rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-step-index {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--pnd-muted);
+}
+
+.pnd-arrow {
+  align-self: center;
+  color: var(--pnd-muted);
+}
+
+/* Byte map ------------------------------------------------------------- */
+
+.pnd-bytes {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.pnd-offset {
+  padding-top: 0.45rem;
+  text-align: right;
+  color: var(--pnd-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.pnd-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.6rem;
+  align-items: baseline;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid var(--pnd-line);
+  border-left: 3px solid var(--pnd-accent, var(--pnd-line));
+  border-radius: 0.3rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-seg-name {
+  font-weight: 600;
+}
+
+.pnd-seg-type,
+.pnd-seg-view {
+  color: var(--pnd-muted);
+  font-size: 0.78rem;
+}
+
+.pnd-seg-view {
+  margin-left: auto;
+}
+
+/* Sequence ------------------------------------------------------------- */
+
+.pnd-sequence {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pnd-msg {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pnd-msg-label {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.3rem;
+  background: var(--pnd-surface);
+}
+
+.pnd-msg-dir {
+  color: var(--pnd-muted);
+  font-size: 1rem;
+}
+
+.pnd-msg-note {
+  color: var(--pnd-muted);
+}
+
+.pnd-msg-spacer {
+  min-width: 0;
+}
+
+.pnd-actors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--pnd-muted);
+}
+
+.pnd-actors span:last-child {
+  text-align: right;
+}
+
+/* Legend --------------------------------------------------------------- */
+
+.pnd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--pnd-muted);
+}
+
+.pnd-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.3rem;
+  border-radius: 0.15rem;
+  background: var(--pnd-accent, currentColor);
+}
+
+@media (max-width: 640px) {
+  .pnd-lanes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pnd-msg,
+  .pnd-actors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

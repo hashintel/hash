@@ -5,14 +5,38 @@ sidebar_order: 10
 attachTo: core.simulation.authoring
 ---
 
+import { Pipeline } from "@diagrams/pipeline";
+
 Dynamics, lambdas, kernels and metrics all compile through the HIR: user
 TypeScript is lowered to a source-spanned IR, checked against the net, and
 emitted as buffer-native JavaScript with offsets and strides baked in. Scenario
 code takes a separate, simpler path.
 
-```text
-user source  →  lower to HIR  →  check + analyse  →  emit artifact  →  instantiate
-```
+<Pipeline
+  title="The HIR pipeline"
+  steps={[
+    {
+      label: "User source",
+      note: "TypeScript, e.g. `export default Lambda(fn)`",
+    },
+    {
+      label: "Lower to HIR",
+      note: "Parse the supported subset, keeping exact source spans",
+    },
+    {
+      label: "Check + analyse",
+      note: "Validate against places, token layouts, parameters, output shapes",
+    },
+    {
+      label: "Emit artifact",
+      note: "Buffer-native JS with offsets and strides baked in",
+    },
+    {
+      label: "Instantiate",
+      note: "Verify the fingerprint, then bind parameters, pool and ABI views",
+    },
+  ]}
+/>
 
 The editor's type checking is the same pipeline seen from the other end: the LSP
 generates the `Color_*`, `Parameters`, `Dynamics` and kernel declarations Monaco

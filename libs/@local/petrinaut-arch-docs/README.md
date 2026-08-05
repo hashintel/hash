@@ -106,12 +106,16 @@ The bundle is framework-neutral by design — the Starlight site in
 | `llms.txt`          | [llmstxt.org](https://llmstxt.org) index of the bundle           |
 | `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
 | `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
+| `components/*.tsx`  | React diagram components imported by authored pages              |
 | `diagrams/*.d2`     | Diagram sources (diffable)                                       |
 | `diagrams/*.svg`    | Rendered diagrams                                                |
 
-Generated MDX is **YAML frontmatter plus plain CommonMark** — no JSX, no
-imports, no framework components. That is the constraint that lets one bundle
-render in Astro, in hash.dev's Next.js MDX pipeline, and as plain text.
+**Generated** MDX is YAML frontmatter plus plain CommonMark — no JSX, no
+imports, no framework components — which is what lets it render in Astro, in
+hash.dev's Next.js MDX pipeline, and as plain text.
+
+**Authored** pages may additionally import the diagram components below. That is
+the one thing the bundle asks of a host: a React-capable MDX pipeline.
 
 ### Embedding the bundle elsewhere
 
@@ -162,6 +166,35 @@ package, and CI fails if that layer does not exist. Declaring layers from
 Generated pages occupy `sidebar_order` 1000 and above, so within a layer the
 attached guides (low numbers) sort ahead of its sub-layers.
 
+### Diagram components
+
+`content/components/` holds React components that authored pages import:
+
+```mdx
+import { ByteMap } from "@diagrams/byte-map";
+
+<ByteMap segments={[{ offset: 0, name: "header", type: "64 B fixed" }]} />
+```
+
+The `@diagrams/` alias is rewritten to a real relative path at emit time, for
+the same reason as `layer:` and `doc:` — a page's depth depends on `attachTo`.
+The components ship _inside_ the bundle (`components/`), so a host renders them
+from the artefact rather than needing its own copy.
+
+Two rules keep them portable, and both are load-bearing:
+
+- **Plain React, no dependencies.** No design system, no Astro, no `next/*`.
+  Styling lives in `components/diagram.css`, which derives its colours from the
+  host's `currentColor` so it works on light and dark themes it has never seen.
+- **String props, never JSX.** JSX written inside MDX is compiled by the _host's_
+  MDX renderer, and passing that to a React component fails at render. Props are
+  strings, and `` `backticks` `` render as `<code>`.
+
+This is the one place the bundle asks something of its host: rendering these
+pages needs a React-capable MDX pipeline. Generated pages remain plain
+CommonMark and need nothing, and `architecture.md` — the single-file artefact
+for agents — contains no components at all.
+
 ### Linking between pages
 
 Because `attachTo` decides where a page ends up, an authored page cannot know its
@@ -194,6 +227,7 @@ layer declarations belong in the packages.
 - a dependency violating a rule in `architecture.config.ts`
 - an `attachTo` naming a layer that does not exist
 - a `layer:` or `doc:` link target that does not resolve
+- an `@diagrams/` import naming a component that does not exist
 
 Warnings (reported, non-fatal): a layer with no files and no sub-layers, an
 `exports` subpath with no resolvable source entry.
