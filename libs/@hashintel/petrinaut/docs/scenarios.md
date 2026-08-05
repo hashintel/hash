@@ -82,7 +82,7 @@ For each returned key:
 > Place keys are **names** in code mode, but **IDs** in per-place mode. This asymmetry is by design.
 > Unknown place names in code mode are **silently ignored** -- there is no warning if you typo a name.
 
-The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save. Leaving the code editor empty is not an error: empty code simply defines no initial state (every place starts without tokens), matching how empty per-place expressions behave.
+The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save. Leaving the code editor empty is not an error: empty code defines no scenario-specific initial state, so every place keeps the initial marking entered manually on the canvas. Note that this differs from per-place mode, where clearing a place's expression sets that place to **zero** tokens rather than leaving it alone.
 
 ## Parameter bindings
 
