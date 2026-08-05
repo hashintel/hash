@@ -35,6 +35,21 @@ describe("range", () => {
     expect(range(2.5)).toEqual([0, 1, 2]);
   });
 
+  it("stays end-exclusive when a fractional step divides imprecisely", () => {
+    // `0.28 / 0.01` is `28.000000000000004`, so deriving the element count
+    // from the quotient alone used to round up and emit the endpoint.
+    const values = range(0, 0.28, 0.01);
+    expect(values).toHaveLength(28);
+    expect(values.at(-1)).toBeCloseTo(0.27);
+    expect(values.every((value) => value < 0.28)).toBe(true);
+  });
+
+  it("stays end-exclusive for imprecise negative fractional steps", () => {
+    const values = range(0, -0.28, -0.01);
+    expect(values).toHaveLength(28);
+    expect(values.every((value) => value > -0.28)).toBe(true);
+  });
+
   it("throws on a zero step", () => {
     expect(() => range(0, 5, 0)).toThrow("step must not be zero");
   });

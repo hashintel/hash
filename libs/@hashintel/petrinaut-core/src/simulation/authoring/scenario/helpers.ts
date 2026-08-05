@@ -47,16 +47,26 @@ export function range(start: number, end?: number, step?: number): number[] {
     throw new Error("range() step must not be zero.");
   }
 
-  const length = Math.max(0, Math.ceil((to - from) / by));
-  if (length > MAX_RANGE_LENGTH) {
+  // Upper bound on the element count, used to reject oversized ranges before
+  // allocating anything. Floating-point division can round this *up* by one
+  // (`0.28 / 0.01` is `28.000000000000004`), so it is only a ceiling — the
+  // loop below decides where the range actually stops.
+  const maximumLength = Math.max(0, Math.ceil((to - from) / by));
+  if (maximumLength > MAX_RANGE_LENGTH) {
     throw new Error(
-      `range() would produce ${length} elements, exceeding the limit of ${MAX_RANGE_LENGTH}.`,
+      `range() would produce ${maximumLength} elements, exceeding the limit of ${MAX_RANGE_LENGTH}.`,
     );
   }
 
   const values: number[] = [];
-  for (let i = 0; i < length; i++) {
-    values.push(from + i * by);
+  for (let i = 0; i < maximumLength; i++) {
+    // Compare each value against `to` rather than trusting the quotient, so a
+    // fractional step can never emit the excluded endpoint.
+    const value = from + i * by;
+    if (by > 0 ? value >= to : value <= to) {
+      break;
+    }
+    values.push(value);
   }
   return values;
 }
