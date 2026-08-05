@@ -33,7 +33,6 @@ use crate::{
             CoincidentAdmission, PolicyOverride, annotation::assembly::AssemblyConfig,
             classifier::FitConfig as ClassifierFitConfig,
         },
-        postings::build::PostingsConfig,
         relation::attraction::AttractionOptions,
         semantic::SmoothingOptions,
     },
@@ -767,16 +766,6 @@ struct LodConfigDef {
     max_tile_depth: u8,
 }
 
-/// serde shadow of [`PostingsConfig`].
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(remote = "PostingsConfig")]
-struct PostingsConfigDef {
-    // Published manifests carry the suffixed key, and the rename pins the wire name independent of
-    // the field name.
-    #[serde(with = "log2", rename = "dense_threshold_log2")]
-    dense_threshold: Log2,
-}
-
 /// serde shadow of [`RankingConfig`].
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "RankingConfig")]
@@ -1084,6 +1073,4 @@ pub(crate) struct FitConfigDef {
     ranking: RankingConfig,
     #[serde(with = "LodConfigDef")]
     lod: LodConfig,
-    #[serde(with = "PostingsConfigDef")]
-    postings: PostingsConfig,
 }

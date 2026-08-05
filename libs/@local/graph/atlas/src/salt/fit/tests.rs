@@ -736,8 +736,12 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
     let evidence = &repository.metadata.evidence.postings;
     assert_eq!(evidence.types, 3);
     assert_eq!(evidence.dense_types, 2);
-    assert_eq!(evidence.membership_entries, 4);
+    assert_eq!(evidence.list_entries, 0, "both node types went dense");
     assert_eq!(evidence.parent_edges, 1);
+    assert_eq!(
+        evidence.direct_entries, NODES as u64,
+        "each row carries one direct type"
+    );
 }
 
 #[tokio::test]

@@ -6,34 +6,14 @@ use hashql_core::id::{Id as _, IdSlice, IdVec};
 use smallvec::SmallVec;
 
 use crate::{
+    bitset::{DenseBitSlice, DenseBitSliceArray},
     file::{
         WriteInto,
         postings::write::{Regions, write_regions},
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
-    math::Log2,
 };
-
-/// The default [`PostingsConfig::dense_threshold`].
-const DEFAULT_DENSE_THRESHOLD: Log2 = Log2::new(5).expect("5 lies below the shift width");
-
-/// Configuration of the postings representation split.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct PostingsConfig {
-    /// A type's membership goes dense when its member count exceeds `N >> dense_threshold`.
-    ///
-    /// The default 5 (one in 32) is the size-equality point - one list entry costs 32 bitmap bits -
-    /// so a dense run is never larger than the list it replaces; the word-parallel OR already wins
-    /// work at half that density. At exact equality the list wins: it reads without bit decoding.
-    pub dense_threshold: Log2 = DEFAULT_DENSE_THRESHOLD,
-}
-
-const impl Default for PostingsConfig {
-    fn default() -> Self {
-        Self { .. }
-    }
-}
 
 /// Building the postings failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -41,7 +21,10 @@ pub enum PostingsError {
     /// A node row's direct types name an ontology row outside the type domain.
     NodeType { row: u32, id: u64 },
     /// A type's direct parents name an ontology row outside the type domain.
-    Parent { type_row: u32, id: u64 },
+    Parent {
+        type_row: OntologyRowId,
+        id: OntologyRowId,
+    },
 }
 
 impl core::fmt::Display for PostingsError {
@@ -63,36 +46,47 @@ impl core::error::Error for PostingsError {}
 
 /// The type postings of one generation, in writable form.
 ///
-/// Construction picks each type's representation and lays every region out exactly as the file
-/// stores it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The direct map is the one stored relation - the row-order type column gathered into position
+/// order - and the membership regions are its inversion, so the two directions agree by
+/// construction. Construction picks each type's representation and lays every region out exactly
+/// as the file stores it. A type goes dense exactly when its dense set costs fewer bytes than its
+/// list - [`DenseBitSlice::total_byte_len`] of the point domain against four bytes per member -
+/// so the choice follows from the sizes alone and carries no tuning knob. At equal cost the list
+/// wins because it reads without bit decoding.
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Postings {
     /// The base-position domain `N`.
     points: u64,
-    /// One bit per type, set when the type's run is a dense bitmap.
-    flags: Vec<u64>,
-    /// `T + 1` membership fenceposts over [`Self::entries`].
-    membership_posts: Vec<u64>,
-    /// The membership entries, type-major.
-    ///
-    /// Sorted positions for list types, `ceil(N/32)` bitmap words for dense types.
-    entries: Vec<u32>,
+    /// The types whose membership is a dense set.
+    flags: Box<DenseBitSlice<OntologyRowId>>,
+    /// `T + 1` list fenceposts over [`Self::list_entries`]. A dense type's run is empty.
+    list_posts: Vec<u64>,
+    /// The list membership entries, type-major, ascending per type.
+    list_entries: Vec<BasePosition>,
+    /// The dense membership sets, one frame per dense type in ascending type order, each over
+    /// the point domain.
+    dense_sets: Box<DenseBitSliceArray<BasePosition>>,
+    /// `N + 1` direct fenceposts over [`Self::direct_ids`].
+    direct_posts: Vec<u64>,
+    /// Each position's direct type rows, position-major, ascending per position.
+    direct_ids: Vec<OntologyRowId>,
     /// `T + 1` parent fenceposts over [`Self::parent_ids`].
     parent_posts: Vec<u64>,
     /// The direct parent rows, type-major, ascending per type.
-    parent_ids: Vec<u64>,
+    parent_ids: Vec<OntologyRowId>,
 }
 
 impl Postings {
     /// Builds the postings over the finished lod permutation.
     ///
     /// `types` holds each node row's direct types in **row** order, exactly as the dataset streams
-    /// them (ascending, deduplicated); `row_of_position` is the lod's gather order, so membership
-    /// lands in base delivery order. `parents` holds each ontology row's direct parents in
-    /// ontology-row order - the [`Ontology::parents`](crate::dataset::Ontology::parents) contract,
-    /// restated in file shape -
-    /// and its length is the type domain `T`. Walking positions ascending makes every list run
-    /// sorted by construction: no sort pass exists.
+    /// them (ascending, deduplicated); `row_of_position` is the lod's gather order, so the direct
+    /// map and the membership follow base delivery order. `parents` holds each ontology row's
+    /// direct parents in ontology-row order - the
+    /// [`Ontology::parents`](crate::dataset::Ontology::parents) contract, restated in file shape -
+    /// and its length is the type domain `T`. The build gathers the direct map first and derives
+    /// the membership regions from it by [`invert`], so every check of one direction binds the
+    /// other.
     ///
     /// # Errors
     ///
@@ -112,7 +106,6 @@ impl Postings {
         types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
         row_of_position: &IdSlice<BasePosition, NodeRowId>,
         parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
-        config: PostingsConfig,
     ) -> Result<Self, PostingsError> {
         assert_eq!(
             types.len(),
@@ -123,70 +116,45 @@ impl Postings {
         let points = types.len() as u64;
         let domain = parents.len();
 
-        // Member counts first: they pick each type's representation and become the fenceposts, so
-        // the fill pass below writes each entry at its final slot.
-        let mut counts = IdVec::from_elem(0, domain);
-        for (row, list) in types.iter_enumerated() {
-            for &id in list {
-                let count = counts.get_mut(id).ok_or_else(|| PostingsError::NodeType {
-                    row: u32::try_from(row.as_u64()).expect("the lod columns index rows by u32"),
-                    id: id.as_u64(),
-                })?;
-                *count += 1;
-            }
-        }
-
-        let dense_words = points.div_ceil(u64::from(u32::BITS));
-        let threshold = points >> config.dense_threshold.get();
-
-        let mut flags = vec![0_u64; domain.div_ceil(u64::BITS as usize)];
-        let mut membership_posts = Vec::with_capacity(domain + 1);
-        membership_posts.push(0);
-        let mut total = 0_u64;
-        for (type_row, &count) in counts.iter_enumerated() {
-            if count > threshold && dense_words < count {
-                let ordinal = type_row.as_usize();
-                flags[ordinal >> 6] |= 1 << (ordinal & 63);
-                total += dense_words;
-            } else {
-                total += count;
-            }
-
-            membership_posts.push(total);
-        }
-
-        // Fill in position order: each list run's cursor starts at its
-        // fencepost and ascending positions land ascending in place;
-        // dense runs set their position bit in place.
-        let mut entries =
-            vec![0_u32; usize::try_from(total).expect("resident entries fit the address space")];
-        let mut cursors: Vec<u64> = membership_posts[..domain].to_vec();
-        for (position, &row) in row_of_position.iter_enumerated() {
+        // The direct map is the gather itself: each position's run restates its row's type list
+        // verbatim, so the runs inherit the column's ascent and deduplication. The domain check
+        // rides the gather. Every pass below trusts it.
+        let mut direct_posts = Vec::with_capacity(row_of_position.len() + 1);
+        direct_posts.push(0);
+        let mut direct_ids = Vec::new();
+        for (_position, &row) in row_of_position.iter_enumerated() {
             for &id in &types[row] {
-                let type_row =
-                    usize::try_from(id.as_u64()).expect("the counting pass validated the domain");
-
-                if flags[type_row >> 6] & (1 << (type_row & 63)) != 0 {
-                    let base = usize::try_from(membership_posts[type_row])
-                        .expect("resident entries fit the address space");
-                    let bit = position.as_usize();
-                    entries[base + (bit >> 5)] |= 1 << (bit & 31);
-                } else {
-                    let slot = usize::try_from(cursors[type_row])
-                        .expect("resident entries fit the address space");
-                    entries[slot] = position.as_u32();
-                    cursors[type_row] += 1;
+                if id.index_below(domain).is_none() {
+                    return Err(PostingsError::NodeType {
+                        row: u32::try_from(row.as_u64())
+                            .expect("the lod columns index rows by u32"),
+                        id: id.as_u64(),
+                    });
                 }
+
+                direct_ids.push(id);
             }
+
+            direct_posts.push(direct_ids.len() as u64);
         }
+
+        let Inverse {
+            flags,
+            list_posts,
+            list_entries,
+            dense_sets,
+        } = invert(&direct_posts, &direct_ids, domain);
 
         let (parent_posts, parent_ids) = parent_regions(parents)?;
 
         Ok(Self {
             points,
             flags,
-            membership_posts,
-            entries,
+            list_posts,
+            list_entries,
+            dense_sets,
+            direct_posts,
+            direct_ids,
             parent_posts,
             parent_ids,
         })
@@ -194,20 +162,113 @@ impl Postings {
 
     /// Measures the finished regions for the generation metadata.
     ///
-    /// The measurements the manifest records so the threshold knob follows data rather than taste:
-    /// how many types the split sent dense, and the region populations behind the artifact's size.
+    /// The measurements the manifest records so the representation split follows data rather than
+    /// taste: how many types went dense, and the region populations behind the artifact's size.
     #[must_use]
     pub(crate) fn measurements(&self) -> PostingsMeasurements {
         PostingsMeasurements {
-            types: self.membership_posts.len() as u64 - 1,
-            dense_types: self
-                .flags
-                .iter()
-                .map(|&word| u64::from(word.count_ones()))
-                .sum(),
-            membership_entries: self.entries.len() as u64,
+            types: self.list_posts.len() as u64 - 1,
+            dense_types: self.dense_sets.len() as u64,
+            list_entries: self.list_entries.len() as u64,
             parent_edges: self.parent_ids.len() as u64,
+            direct_entries: self.direct_ids.len() as u64,
         }
+    }
+}
+
+/// The membership regions [`invert`] derives from the direct map.
+struct Inverse {
+    /// The types whose membership is a dense set.
+    flags: Box<DenseBitSlice<OntologyRowId>>,
+    /// `T + 1` list fenceposts. A dense type's run is empty.
+    list_posts: Vec<u64>,
+    /// The list membership entries, type-major, ascending per type.
+    list_entries: Vec<BasePosition>,
+    /// The dense membership sets, one frame per dense type in ascending type order.
+    dense_sets: Box<DenseBitSliceArray<BasePosition>>,
+}
+
+/// Inverts the position-major direct map into the per-type membership regions.
+///
+/// This is the transpose: a type's membership holds exactly the positions whose direct runs name
+/// the type, so the two directions carry one relation. Walking positions ascending makes every
+/// list run sorted by construction: no sort pass exists.
+///
+/// Every direct id lies below `domain`. [`Postings::build`] validated that while gathering.
+fn invert(direct_posts: &[u64], direct_ids: &[OntologyRowId], domain: usize) -> Inverse {
+    let points = direct_posts.len() - 1;
+
+    // Member counts first: they pick each type's representation and become the fenceposts, so
+    // the fill pass below writes each entry at its final slot.
+    let mut counts = IdVec::from_elem(0_u64, domain);
+    for &id in direct_ids {
+        counts[id] += 1;
+    }
+
+    // The representation choice is the size comparison, in bytes on both sides: a dense set
+    // costs the whole frame regardless of population while a list costs four bytes per member.
+    // The strict inequality sends the equal-cost case to the list, which reads without decoding.
+    let dense_bytes = DenseBitSlice::<BasePosition>::total_byte_len(points as u64);
+    let is_dense = |count: u64| dense_bytes < count * size_of::<u32>() as u64;
+
+    // The dense count is known before the region exists, so the sets live in one allocation
+    // laid out exactly as the file stores them.
+    let dense_count = counts.iter().filter(|&&count| is_dense(count)).count();
+    let mut dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(points, dense_count);
+
+    let mut flags = DenseBitSlice::<OntologyRowId>::new_empty(domain);
+    let mut ranks = IdVec::from_elem(0_u32, domain);
+    let mut list_posts = Vec::with_capacity(domain + 1);
+    list_posts.push(0);
+
+    let mut next_rank = 0_usize;
+    let mut total = 0_u64;
+    for (type_row, &count) in counts.iter_enumerated() {
+        if is_dense(count) {
+            flags.insert(type_row);
+            ranks[type_row] = u32::try_from(next_rank).expect("dense types fit the type domain");
+            next_rank += 1;
+        } else {
+            total += count;
+        }
+
+        list_posts.push(total);
+    }
+
+    // Fill in position order: each list run's cursor starts at its fencepost and ascending
+    // positions land ascending in place. Dense members insert into their type's set.
+    let mut list_entries = vec![
+        BasePosition::from_u32(0);
+        usize::try_from(total)
+            .expect("resident entries fit the address space")
+    ];
+    let mut cursors: Vec<u64> = list_posts[..domain].to_vec();
+
+    for position in 0..points {
+        let start = usize::try_from(direct_posts[position])
+            .expect("resident entries fit the address space");
+        let end = usize::try_from(direct_posts[position + 1])
+            .expect("resident entries fit the address space");
+
+        for &id in &direct_ids[start..end] {
+            if flags.contains(id) {
+                dense_sets[ranks[id] as usize].insert(BasePosition::from_usize(position));
+            } else {
+                let type_row =
+                    usize::try_from(id.as_u64()).expect("the gather validated the domain");
+                let slot = usize::try_from(cursors[type_row])
+                    .expect("resident entries fit the address space");
+                list_entries[slot] = BasePosition::from_usize(position);
+                cursors[type_row] += 1;
+            }
+        }
+    }
+
+    Inverse {
+        flags,
+        list_posts,
+        list_entries,
+        dense_sets,
     }
 }
 
@@ -232,10 +293,13 @@ impl WriteInto for Postings {
             Regions {
                 points: self.points,
                 flags: &self.flags,
-                membership_posts: &self.membership_posts,
-                entries: &self.entries,
+                list_posts: &self.list_posts,
+                list_entries: &self.list_entries,
+                dense_sets: &self.dense_sets,
                 parent_posts: &self.parent_posts,
                 parent_ids: &self.parent_ids,
+                direct_posts: &self.direct_posts,
+                direct_ids: &self.direct_ids,
             },
             &mut writer,
         )?;
@@ -246,42 +310,45 @@ impl WriteInto for Postings {
 
 /// The measurements of one postings build.
 ///
-/// What the manifest records so the configuration follows data rather than taste. Not evidence: the
-/// metadata's `Evidence` section holds admission checks, while these are build census numbers.
+/// What the manifest records so the representation split follows data rather than taste. Not
+/// evidence: the metadata's `Evidence` section holds admission checks, while these are build
+/// census numbers.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct PostingsMeasurements {
     /// Types in the domain.
     pub types: u64,
-    /// Types whose membership went dense under the threshold.
+    /// Types whose membership went dense under the size comparison.
     pub dense_types: u64,
-    /// Entries in the membership region: list positions plus dense bitmap words.
-    pub membership_entries: u64,
+    /// Entries in the list region: every list type's positions.
+    pub list_entries: u64,
     /// Direct parent edges in the type graph.
     pub parent_edges: u64,
+    /// Entries in the direct map: one per position-type pair.
+    pub direct_entries: u64,
 }
 
 /// Lays the parent regions out in file shape.
 ///
-/// The regions restate the dataset's stream; the domain check is the one condition the stream
+/// The regions restate the dataset's stream. The domain check is the one condition the stream
 /// cannot carry itself (parents may point forward).
 fn parent_regions(
     parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
-) -> Result<(Vec<u64>, Vec<u64>), PostingsError> {
+) -> Result<(Vec<u64>, Vec<OntologyRowId>), PostingsError> {
     let domain = parents.len();
 
     let mut posts = Vec::with_capacity(domain + 1);
     posts.push(0);
+
     let mut ids = Vec::new();
-    for (type_row, list) in parents.iter().enumerate() {
+    for (type_row, list) in parents.iter_enumerated() {
         for &id in list {
             if id.index_below(domain).is_none() {
-                return Err(PostingsError::Parent {
-                    type_row: u32::try_from(type_row).expect("type domains stay far below u32"),
-                    id: id.as_u64(),
-                });
+                return Err(PostingsError::Parent { type_row, id });
             }
-            ids.push(id.as_u64());
+
+            ids.push(id);
         }
+
         posts.push(ids.len() as u64);
     }
 

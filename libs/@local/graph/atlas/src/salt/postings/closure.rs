@@ -15,7 +15,7 @@ use crate::{identity::OntologyRowId, salt::postings::artifact::PostingsArchive};
 
 /// The parent graph holds a cycle, so no descendant order exists.
 ///
-/// Type inheritance is acyclic at the source; a cycle in published bytes means the generation's
+/// Type inheritance is acyclic at the source, so a cycle in published bytes means the generation's
 /// ontology stream was defective.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ParentCycle {

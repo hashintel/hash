@@ -71,7 +71,6 @@ use crate::{
                 Classifier, FitConfig as ClassifierFitConfig, artifact::InvalidClassifierFile,
             },
         },
-        postings::build::PostingsConfig,
         projector::{
             budget::Budget,
             loss::{CoincidentEnergy, SupportOptions},
@@ -380,8 +379,6 @@ pub(crate) struct FitConfig {
     pub ranking: RankingConfig = RankingConfig::default(),
     /// The level-of-detail schedule.
     pub lod: LodConfig = LodConfig::default(),
-    /// The postings representation split.
-    pub postings: PostingsConfig = PostingsConfig::default(),
 }
 
 /// The randomized stages, each naming its seed derivation.

@@ -292,8 +292,9 @@ fn evidence() -> Evidence {
         postings: PostingsMeasurements {
             types: 49,
             dense_types: 3,
-            membership_entries: 1_100_000,
+            list_entries: 1_100_000,
             parent_edges: 48,
+            direct_entries: 1_400_000,
         },
         projector: Some(ProjectorEvidence {
             steps: 12,

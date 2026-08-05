@@ -198,8 +198,9 @@ fn evidence() -> Evidence {
         postings: PostingsMeasurements {
             types: 3,
             dense_types: 1,
-            membership_entries: 4,
+            list_entries: 4,
             parent_edges: 2,
+            direct_entries: 6,
         },
         projector: None,
     }

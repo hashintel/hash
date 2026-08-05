@@ -136,42 +136,78 @@ fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
 
 /// Rewrites the postings artifact with its point domain set to `points`.
 ///
-/// Every other region is the published one. Only the membership lists read the header's point
-/// domain back. Widening it loosens the bound every list position must clear, and the dense-run
-/// rules key off the domain's word count, which one extra point moves only across a multiple of 32.
-/// The postings contract would refuse a fixture that widened across that boundary under its own
-/// name, which the caller's variant assertion reports rather than absorbs.
+/// Every other region restates the published one. The dense sets rebuild over the new domain,
+/// because every frame's own domain count restates the header's and open checks the agreement,
+/// and the direct fenceposts resize to cover it - truncating drops the stranded runs' ids,
+/// growing appends empty runs. Only the header's point count and the bound every list position
+/// must clear actually move.
 fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
-    // The mapping ends before the rewrite: the file backs the slices read here. The writer
-    // speaks native build words, so the copies decode the mapped little-endian regions.
-    let (flags, membership_posts, entries, parent_posts, parent_ids) = {
+    // The mapping ends before the rewrite: the file backs the slices read here, so every region
+    // is copied into build vocabulary first.
+    let (
+        flags,
+        list_posts,
+        list_entries,
+        dense_sets,
+        parent_posts,
+        parent_ids,
+        direct_posts,
+        direct_ids,
+    ) = {
         let postings = PostingsFile::open(path).expect("the published postings artifact opens");
+
+        let published = postings.flags();
+        let mut flags = crate::bitset::DenseBitSlice::new_empty(
+            usize::try_from(postings.types()).expect("fixture type domains fit usize"),
+        );
+        let mut dense_sets = crate::bitset::DenseBitSliceArray::new_empty(
+            usize::try_from(points).expect("fixture point domains fit usize"),
+            usize::try_from(published.count()).expect("fixture dense counts fit usize"),
+        );
+        for (rank, type_row) in published.iter().enumerate() {
+            flags.insert(type_row);
+            for member in postings.dense_sets()[rank].iter() {
+                dense_sets[rank].insert(member);
+            }
+        }
+
+        let posts_len = usize::try_from(points).expect("fixture point domains fit usize") + 1;
+        let mut direct_posts = postings
+            .direct_posts()
+            .iter()
+            .map(|post| post.get())
+            .collect::<Vec<_>>();
+        let mut direct_ids = postings.direct_ids().to_vec();
+        if direct_posts.len() > posts_len {
+            direct_posts.truncate(posts_len);
+            let close = *direct_posts
+                .last()
+                .expect("the fencepost region anchors at zero");
+            direct_ids.truncate(usize::try_from(close).expect("fixture entries fit usize"));
+        } else {
+            let close = *direct_posts
+                .last()
+                .expect("the fencepost region anchors at zero");
+            direct_posts.resize(posts_len, close);
+        }
+
         (
+            flags,
             postings
-                .flags()
-                .iter()
-                .map(|word| word.get())
-                .collect::<Vec<_>>(),
-            postings
-                .membership_posts()
+                .list_posts()
                 .iter()
                 .map(|post| post.get())
                 .collect::<Vec<_>>(),
-            postings
-                .entries()
-                .iter()
-                .map(|entry| entry.get())
-                .collect::<Vec<_>>(),
+            postings.list_entries().to_vec(),
+            dense_sets,
             postings
                 .parent_posts()
                 .iter()
                 .map(|post| post.get())
                 .collect::<Vec<_>>(),
-            postings
-                .parent_ids()
-                .iter()
-                .map(|id| id.get())
-                .collect::<Vec<_>>(),
+            postings.parent_ids().to_vec(),
+            direct_posts,
+            direct_ids,
         )
     };
 
@@ -181,10 +217,13 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
         Regions {
             points,
             flags: &flags,
-            membership_posts: &membership_posts,
-            entries: &entries,
+            list_posts: &list_posts,
+            list_entries: &list_entries,
+            dense_sets: &dense_sets,
             parent_posts: &parent_posts,
             parent_ids: &parent_ids,
+            direct_posts: &direct_posts,
+            direct_ids: &direct_ids,
         },
         &mut file,
     )

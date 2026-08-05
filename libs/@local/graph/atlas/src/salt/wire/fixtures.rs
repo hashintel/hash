@@ -32,7 +32,6 @@ use std::fs;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id as _, IdSlice};
 use serde_json::{Value, json};
-use zerocopy::{LE, U32};
 
 use super::{
     Kind, Mode,
@@ -43,7 +42,11 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
+    bitset::DenseBitSlice,
+    dataset::{
+        auxiliary::{Icon, Label},
+        postgres::id::ArchivedEntityId,
+    },
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
@@ -295,7 +298,7 @@ fn g1_minimal_tile() -> Fixture {
     // Type 2 delivers position 9, which makes point 9 the multi-bit point (types 0 and 2). Point 10
     // matches nothing.
     let t0 = [3_u32, 8, 9, 11].map(BasePosition::from_u32);
-    let t1_dense = [1_u32 << 2].map(U32::<LE>::new);
+    let t1_dense = dense_set(12, &[2]);
     let t2 = [9_u32].map(BasePosition::from_u32);
     let masks = [
         Membership::List(&t0),
@@ -432,7 +435,7 @@ fn g3_total_tile() -> Fixture {
 
     // Stride 2 over nine types, with type 8's bit in the second byte.
     let t0 = [0_u32, 5, 9].map(BasePosition::from_u32);
-    let t1_dense = [(1_u32 << 5) | (1 << 3)].map(U32::<LE>::new);
+    let t1_dense = dense_set(10, &[3, 5]);
     let t3 = [4_u32].map(BasePosition::from_u32);
     let t7 = [6_u32, 8].map(BasePosition::from_u32);
     let t8 = [9_u32].map(BasePosition::from_u32);
@@ -760,10 +763,10 @@ fn g7_locate() -> Fixture {
     let delivered = [6_u32, 1, 2, 4].map(BasePosition::from_u32);
 
     // type 0: list members at 1 and 6; type 1: dense bit at 4 over
-    // N = 8 (one word). Delivered order 6, 1, 2, 4:
+    // N = 8. Delivered order 6, 1, 2, 4:
     // t0 | t0 | none | t1.
     let t0 = [1_u32, 6].map(BasePosition::from_u32);
-    let t1_dense = [1_u32 << 4].map(U32::<LE>::new);
+    let t1_dense = dense_set(8, &[4]);
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
     let trailer = g7_trailer();
@@ -913,6 +916,15 @@ fn locate_sidecar(
             "linkPropertiesComplete": trailer.link_properties_complete,
         },
     })
+}
+
+/// Builds the dense membership set over `domain` positions admitting exactly `members`.
+fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
+    let mut set = DenseBitSlice::new_empty(domain);
+    for &member in members {
+        set.insert(BasePosition::from_u32(member));
+    }
+    set
 }
 
 /// Builds one hand-pinned identity: sixteen web bytes then sixteen entity bytes.

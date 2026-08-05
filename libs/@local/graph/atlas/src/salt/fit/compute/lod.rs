@@ -226,7 +226,7 @@ impl Context<'_> {
     ) -> Result<Staged<(), PostingsMeasurements>, StageError> {
         let _span = tracing::info_span!("postings").entered();
 
-        let postings = Postings::build(types, row_of_position, parents, self.config.postings)?;
+        let postings = Postings::build(types, row_of_position, parents)?;
         let file = stage(self.staging, Role::Postings, &postings)?;
 
         Ok(Staged {

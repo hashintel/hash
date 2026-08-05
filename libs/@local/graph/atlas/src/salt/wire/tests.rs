@@ -13,6 +13,7 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
+use hashql_core::id::Id as _;
 use proptest::{arbitrary::any, prop_assert, prop_assert_eq, property_test};
 
 use super::{
@@ -24,13 +25,26 @@ use super::{
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
-    dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    bitset::DenseBitSlice,
+    dataset::{
+        auxiliary::{Icon, Label},
+        postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    },
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
     serve::WireRow,
 };
+
+/// Builds the dense membership set over `domain` positions admitting exactly `members`.
+fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
+    let mut set = DenseBitSlice::new_empty(domain);
+    for &member in members {
+        set.insert(BasePosition::from_u32(member));
+    }
+    set
+}
 
 /// Builds one uniform-byte identity record: `byte` in both uuid halves.
 const fn identity_of(byte: u8) -> ArchivedEntityId {
@@ -339,11 +353,11 @@ fn envelope_directory_laws(
 
 mod tile {
     use hashql_core::id::{Id as _, IdSlice};
-    use zerocopy::{LE, U32};
 
     use super::{
-        BasePosition, Bounds2, DeliveredSet, GlobalHead, Membership, Mode, NodeRowId, Sha256Digest,
-        TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow, section,
+        BasePosition, Bounds2, DeliveredSet, GlobalHead, Icon, Label, Membership, Mode, NodeRowId,
+        Sha256Digest, TileCoordinate, TileHead, TileResponse, TileTrailer, Vec2, WireRow,
+        dense_set, section,
     };
 
     /// Builds a consistent tile of two points from one delta run.
@@ -487,8 +501,8 @@ mod tile {
         // type 0: list members at 5 and 20 (33 lies outside the base
         // domain of any range and is never consulted).
         let list = [5_u32, 20, 33].map(BasePosition::from_u32);
-        // type 1: dense bits at 4 and 21 over N = 22 (one word).
-        let dense = [(1_u32 << 4) | (1 << 21)].map(U32::<LE>::new);
+        // type 1: dense bits at 4 and 21 over N = 22.
+        let dense = dense_set(22, &[4, 21]);
         // type 2: no members.
         let empty: [BasePosition; 0] = [];
         let masks = [
@@ -554,7 +568,7 @@ mod tile {
         let delivered = [4_u32, 5, 6, 20, 21].map(BasePosition::from_u32);
 
         let list = [5_u32, 20, 33].map(BasePosition::from_u32);
-        let dense = [(1_u32 << 4) | (1 << 21)].map(U32::<LE>::new);
+        let dense = dense_set(22, &[4, 21]);
         let empty: [BasePosition; 0] = [];
         let masks = [
             Membership::List(&list),
@@ -597,8 +611,8 @@ mod tile {
 
         // type 0: 5 and 20 (33 lies outside the base domain and is never consulted).
         let list = [5_u32, 20, 33].map(BasePosition::from_u32);
-        // type 1: dense bits at 4, 20 and 21 over N = 22 (one word).
-        let dense = [(1_u32 << 4) | (1 << 20) | (1 << 21)].map(U32::<LE>::new);
+        // type 1: dense bits at 4, 20 and 21 over N = 22.
+        let dense = dense_set(22, &[4, 20, 21]);
         // type 2: 6 and 21.
         let third = [6_u32, 21].map(BasePosition::from_u32);
         let masks = [
@@ -891,11 +905,10 @@ mod edges {
 
 mod locate {
     use hashql_core::id::{Id as _, IdSlice};
-    use zerocopy::{LE, U32};
 
     use super::{
-        BasePosition, LocateResponse, LocateTrailer, Membership, PropertyValue, Sha256Digest,
-        TileCoordinate, Vec2, WireRow, identity_of, section,
+        BasePosition, Label, LocateResponse, LocateTrailer, Membership, PropertyValue,
+        Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of, section,
     };
 
     /// The four-point base-order coordinate column behind the tests.
@@ -1030,9 +1043,9 @@ mod locate {
     fn masks_probe_the_delivered_list() {
         let positions = points();
         // type 0: list members at base positions 0 and 2; type 1:
-        // dense bit at 3 over N = 4 (one word).
+        // dense bit at 3 over N = 4.
         let list = [0_u32, 2].map(BasePosition::from_u32);
-        let dense = [1_u32 << 3].map(U32::<LE>::new);
+        let dense = dense_set(4, &[3]);
         let masks = [Membership::List(&list), Membership::Dense(&dense)];
 
         let mut response = minimal(&positions);

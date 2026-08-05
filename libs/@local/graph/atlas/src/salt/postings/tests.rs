@@ -4,16 +4,16 @@ use std::fs;
 
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id, IdSlice, IdVec};
-use proptest::{prop_assert_eq, property_test};
+use proptest::{prop_assert, prop_assert_eq, property_test};
 use smallvec::{SmallVec, smallvec};
-use zerocopy::{LE, U32};
 
 use super::{
     artifact::{InvalidPostingsFile, Membership, PostingsArchive},
-    build::{Postings, PostingsConfig, PostingsError},
+    build::{Postings, PostingsError},
     closure::ClosureMap,
 };
 use crate::{
+    bitset::{DenseBitSlice, DenseBitSliceArray},
     file::{
         WriteInto as _,
         postings::{
@@ -22,7 +22,6 @@ use crate::{
         },
     },
     identity::{BasePosition, NodeRowId, OntologyRowId},
-    math::Log2,
 };
 
 fn scratch(name: &str) -> Utf8PathBuf {
@@ -48,30 +47,34 @@ fn types<R: Id>(lists: &[&[u64]]) -> IdVec<R, SmallVec<OntologyRowId, 2>> {
         .collect()
 }
 
+/// Builds the dense set over `domain` positions admitting exactly `members`.
+fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
+    let mut set = DenseBitSlice::new_empty(domain);
+    for &member in members {
+        set.insert(BasePosition::from_u32(member));
+    }
+    set
+}
+
 /// The hand fixture has eight rows over four types, gathered through a permutation.
 ///
-/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{} 7:{0}`; `row_of_position =
-/// [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0 `[1, 2, 3, 6]`, type
-/// 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`, `2 <- 0`, `3 <- {1, 2}`.
+/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{0} 7:{0}`;
+/// `row_of_position = [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0
+/// `[1, 2, 3, 4, 6]`, type 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`,
+/// `2 <- 0`, `3 <- {1, 2}`.
+///
+/// The split follows the size comparison alone: over eight points a dense set costs 16 bytes, so
+/// five members (20 list bytes) go dense and three (12) stay a list. Type 0 is the fixture's dense
+/// type. Every other type stays a list.
 const ROW_OF_POSITION: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
 
 fn fixture_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
-    types(&[&[0], &[0, 2], &[1], &[2], &[0], &[1, 2], &[], &[0]])
+    types(&[&[0], &[0, 2], &[1], &[2], &[0], &[1, 2], &[0], &[0]])
 }
 
 fn fixture_parents() -> IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
-
-/// The fixture's [`PostingsConfig::dense_threshold`].
-const FIXTURE_DENSE_THRESHOLD: Log2 = Log2::new(2).expect("2 lies below the shift width");
-
-/// The fixture's split at `dense_threshold = 2` (threshold 2).
-///
-/// Types 0 (count 4) and 2 (count 3) go dense, types 1 and 3 stay lists.
-const FIXTURE_CONFIG: PostingsConfig = PostingsConfig {
-    dense_threshold: FIXTURE_DENSE_THRESHOLD,
-};
 
 fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive {
     let path = dir.join(name);
@@ -100,7 +103,6 @@ fn build_matches_the_hand_computed_runs() {
         &fixture_types(),
         IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
-        FIXTURE_CONFIG,
     )
     .expect("the fixture stays in domain");
     let mapped = mapped(&dir, "fixture.post", &postings);
@@ -108,20 +110,23 @@ fn build_matches_the_hand_computed_runs() {
     assert_eq!(mapped.types(), 4);
     assert_eq!(mapped.points(), 8);
 
-    // Type 0 went dense: bits {1, 2, 3, 6} in one word.
+    // Type 0 went dense: five members over eight points.
     let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
-    assert_matches!(type0, Membership::Dense(words) if *words == [0b0100_1110_u32].map(U32::<LE>::new));
-    assert_eq!(type0.count(), 4);
-    assert_eq!(collect(&type0, 0..8), [1, 2, 3, 6]);
+    assert_matches!(type0, Membership::Dense(set) if *set == *dense_set(8, &[1, 2, 3, 4, 6]));
+    assert_eq!(type0.count(), 5);
+    assert_eq!(collect(&type0, 0..8), [1, 2, 3, 4, 6]);
 
     // Type 1 stayed a list.
     let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
     assert_matches!(type1, Membership::List(list) if *list == [5, 7].map(BasePosition::from_u32));
     assert_eq!(type1.count(), 2);
 
-    // Type 2 went dense: bits {0, 1, 7}.
+    // Type 2 stayed a list: three members cost fewer bytes than the dense set.
     let type2 = mapped.membership(id(2)).expect("type 2 is in domain");
-    assert_matches!(type2, Membership::Dense(words) if *words == [0b1000_0011_u32].map(U32::<LE>::new));
+    assert_matches!(
+        type2,
+        Membership::List(list) if *list == [0, 1, 7].map(BasePosition::from_u32)
+    );
     assert_eq!(collect(&type2, 0..8), [0, 1, 7]);
 
     // Type 3 is the empty list.
@@ -137,6 +142,25 @@ fn build_matches_the_hand_computed_runs() {
     assert_eq!(mapped.parents(id(1)), Some([id(0)].as_slice()));
     assert_eq!(mapped.parents(id(3)), Some([id(1), id(2)].as_slice()));
     assert!(mapped.parents(id(4)).is_none());
+
+    // The direct map is the gathered type column: each position's run restates its row's types.
+    let direct = |position: u32| mapped.direct_types(BasePosition::from_u32(position));
+    assert_eq!(direct(0), Some([id(2)].as_slice()), "position 0 is row 3");
+    assert_eq!(
+        direct(1),
+        Some([id(0), id(2)].as_slice()),
+        "position 1 is row 1"
+    );
+    assert_eq!(direct(4), Some([id(0)].as_slice()), "position 4 is row 6");
+    assert_eq!(
+        direct(7),
+        Some([id(1), id(2)].as_slice()),
+        "position 7 is row 5"
+    );
+    assert!(
+        direct(8).is_none(),
+        "beyond the point domain there is no run"
+    );
 }
 
 #[test]
@@ -146,7 +170,6 @@ fn membership_lookups_agree_across_representations() {
         &fixture_types(),
         IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
-        FIXTURE_CONFIG,
     )
     .expect("the fixture stays in domain");
     let mapped = mapped(&dir, "fixture.post", &postings);
@@ -167,23 +190,44 @@ fn membership_lookups_agree_across_representations() {
 
     // Sub-range slicing at both representations: half-open ends and
     // empty ranges.
-    assert_eq!(collect(&type0, 2..6), [2, 3]);
-    assert_eq!(collect(&type0, 3..7), [3, 6]);
+    assert_eq!(collect(&type0, 2..6), [2, 3, 4]);
+    assert_eq!(collect(&type0, 3..7), [3, 4, 6]);
     assert_eq!(collect(&type0, 4..4), [] as [u32; 0]);
     assert_eq!(collect(&type1, 6..8), [7]);
     assert_eq!(collect(&type1, 0..5), [] as [u32; 0]);
 }
 
-/// The membership contract demands ascending ranges from every caller, so an inverted range panics.
+/// The membership contract demands ascending ranges from every caller, so an inverted range
+/// panics at the list representation.
 #[test]
 #[should_panic(expected = "an inverted position range matches no delivered run")]
-fn inverted_ranges_are_a_caller_bug() {
-    let dir = scratch("inverted");
+fn inverted_list_ranges_are_a_caller_bug() {
+    let dir = scratch("inverted-list");
     let postings = Postings::build(
         &fixture_types(),
         IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
-        FIXTURE_CONFIG,
+    )
+    .expect("the fixture stays in domain");
+    let mapped = mapped(&dir, "fixture.post", &postings);
+
+    let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
+    #[expect(
+        clippy::reversed_empty_ranges,
+        reason = "the inverted range IS the case under test"
+    )]
+    let _positions = collect(&type1, 6..2);
+}
+
+/// The dense representation delegates the same contract to the set's own cursor.
+#[test]
+#[should_panic(expected = "an inverted row range admits no iteration order")]
+fn inverted_dense_ranges_are_a_caller_bug() {
+    let dir = scratch("inverted-dense");
+    let postings = Postings::build(
+        &fixture_types(),
+        IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
+        &fixture_parents(),
     )
     .expect("the fixture stays in domain");
     let mapped = mapped(&dir, "fixture.post", &postings);
@@ -198,15 +242,15 @@ fn inverted_ranges_are_a_caller_bug() {
 
 #[test]
 fn dense_iteration_crosses_word_boundaries() {
-    // Members {0, 31, 32, 39} over forty positions in two words.
-    let words = [0x8000_0001_u32, 0b1000_0001].map(U32::<LE>::new);
-    let membership = Membership::Dense(&words);
+    // Members {0, 63, 64, 79} over eighty positions in two words.
+    let set = dense_set(80, &[0, 63, 64, 79]);
+    let membership = Membership::Dense(&set);
 
-    assert_eq!(collect(&membership, 0..40), [0, 31, 32, 39]);
-    assert_eq!(collect(&membership, 1..39), [31, 32]);
-    assert_eq!(collect(&membership, 31..33), [31, 32]);
-    assert_eq!(collect(&membership, 32..32), [] as [u32; 0]);
-    assert_eq!(collect(&membership, 33..40), [39]);
+    assert_eq!(collect(&membership, 0..80), [0, 63, 64, 79]);
+    assert_eq!(collect(&membership, 1..79), [63, 64]);
+    assert_eq!(collect(&membership, 63..65), [63, 64]);
+    assert_eq!(collect(&membership, 64..64), [] as [u32; 0]);
+    assert_eq!(collect(&membership, 65..80), [79]);
 }
 
 #[test]
@@ -215,16 +259,18 @@ fn evidence_counts_the_split() {
         &fixture_types(),
         IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
-        FIXTURE_CONFIG,
     )
     .expect("the fixture stays in domain");
 
     let evidence = postings.measurements();
     assert_eq!(evidence.types, 4);
-    assert_eq!(evidence.dense_types, 2, "types 0 and 2 went dense");
-    // Both dense words plus the two list entries of type 1.
-    assert_eq!(evidence.membership_entries, 4);
+    assert_eq!(evidence.dense_types, 1, "type 0 went dense");
+    // Type 1's two list entries plus type 2's three.
+    assert_eq!(evidence.list_entries, 5);
     assert_eq!(evidence.parent_edges, 4);
+    // The direct total is one entry per position-type pair: the five list entries plus type 0's
+    // five dense members.
+    assert_eq!(evidence.direct_entries, 10);
 }
 
 #[test]
@@ -235,7 +281,6 @@ fn build_rejects_out_of_domain_rows() {
             &types(&[&[4]]),
             IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
             &fixture_parents(),
-            PostingsConfig::default(),
         ),
         Err(PostingsError::NodeType { row: 0, id: 4 }),
     );
@@ -246,9 +291,11 @@ fn build_rejects_out_of_domain_rows() {
             &types(&[&[0]]),
             IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
             &types(&[&[7]]),
-            PostingsConfig::default(),
         ),
-        Err(PostingsError::Parent { type_row: 0, id: 7 }),
+        Err(PostingsError::Parent {
+            type_row: id(0),
+            id: id(7),
+        }),
     );
 }
 
@@ -261,7 +308,6 @@ fn empty_domains_roundtrip() {
         &types::<NodeRowId>(&[]),
         IdSlice::from_raw(&[]),
         &types::<OntologyRowId>(&[]),
-        PostingsConfig::default(),
     )
     .expect("the empty build stays in domain");
     let empty = mapped(&dir, "empty.post", &postings);
@@ -274,7 +320,6 @@ fn empty_domains_roundtrip() {
         &types(&[&[], &[]]),
         IdSlice::from_raw(&[1, 0].map(NodeRowId::from_u32)),
         &types(&[&[]]),
-        PostingsConfig::default(),
     )
     .expect("the hollow build stays in domain");
     let hollow = mapped(&dir, "hollow.post", &postings);
@@ -297,66 +342,106 @@ fn open_invalid(path: impl AsRef<camino::Utf8Path>, regions: Regions<'_>) -> Inv
 #[test]
 fn open_rejects_membership_violations() {
     let dir = scratch("membership-rejections");
-    let open = |name: &str, points: u64, flags: &[u64], posts: &[u64], entries: &[u32]| {
-        open_invalid(
-            dir.join(name),
-            Regions {
-                points,
-                flags,
-                membership_posts: posts,
-                entries,
-                parent_posts: &[0, 0],
-                parent_ids: &[],
-            },
-        )
+    let positions = |values: &[u32]| -> Vec<BasePosition> {
+        values.iter().copied().map(BasePosition::from_u32).collect()
     };
 
-    // A flags bit beyond the single type.
+    // List posts not anchored at zero, then non-monotone.
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("flags-tail.post", 4, &[0b10], &[0, 0], &[]),
-        InvalidPostingsFile::FlagsTail,
+        open_invalid(
+            dir.join("posts-start.post"),
+            Regions {
+                points: 4,
+                flags: &flags,
+                list_posts: &[1, 1],
+                list_entries: &positions(&[0]),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+                direct_posts: &[0; 5],
+                direct_ids: &[],
+            },
+        ),
+        InvalidPostingsFile::ListPosts { position: 0 },
     );
 
-    // Membership posts not anchored at zero, then non-monotone.
-    assert_eq!(
-        open("posts-start.post", 4, &[0], &[1, 1], &[0]),
-        InvalidPostingsFile::MembershipPosts { position: 0 },
-    );
+    let flags = DenseBitSlice::new_empty(2);
     assert_eq!(
         open_invalid(
             dir.join("posts-order.post"),
             Regions {
                 points: 4,
-                flags: &[0],
-                membership_posts: &[0, 2, 1],
-                entries: &[0],
+                flags: &flags,
+                list_posts: &[0, 2, 1],
+                list_entries: &positions(&[0]),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
                 parent_posts: &[0, 0, 0],
                 parent_ids: &[],
+                direct_posts: &[0; 5],
+                direct_ids: &[],
             },
         ),
-        InvalidPostingsFile::MembershipPosts { position: 2 },
+        InvalidPostingsFile::ListPosts { position: 2 },
     );
 
-    // A dense run must hold exactly the bitmap word count: at 64
-    // points that is two words, not one.
+    // A dense type carrying a non-empty list run.
+    let mut flags = DenseBitSlice::new_empty(1);
+    flags.insert(OntologyRowId::new(0));
+    let dense_sets = DenseBitSliceArray::<BasePosition>::new_empty(4, 1);
     assert_eq!(
-        open("dense-length.post", 64, &[1], &[0, 1], &[0]),
-        InvalidPostingsFile::DenseLength { type_row: 0 },
-    );
-
-    // A dense bit at or beyond the five points.
-    assert_eq!(
-        open("dense-tail.post", 5, &[1], &[0, 1], &[0b10_0000]),
-        InvalidPostingsFile::DenseTail { type_row: 0 },
+        open_invalid(
+            dir.join("dense-list-run.post"),
+            Regions {
+                points: 4,
+                flags: &flags,
+                list_posts: &[0, 1],
+                list_entries: &positions(&[0]),
+                dense_sets: &dense_sets,
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+                direct_posts: &[0; 5],
+                direct_ids: &[],
+            },
+        ),
+        InvalidPostingsFile::DenseListRun { type_row: 0 },
     );
 
     // A list run out of order, then out of the position domain.
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("list-order.post", 10, &[0], &[0, 2], &[3, 3]),
+        open_invalid(
+            dir.join("list-order.post"),
+            Regions {
+                points: 10,
+                flags: &flags,
+                list_posts: &[0, 2],
+                list_entries: &positions(&[3, 3]),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(10, 0)),
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+                direct_posts: &[0; 11],
+                direct_ids: &[],
+            },
+        ),
         InvalidPostingsFile::ListOrder { type_row: 0 },
     );
+    let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
-        open("list-domain.post", 10, &[0], &[0, 1], &[10]),
+        open_invalid(
+            dir.join("list-domain.post"),
+            Regions {
+                points: 10,
+                flags: &flags,
+                list_posts: &[0, 1],
+                list_entries: &positions(&[10]),
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(10, 0)),
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+                direct_posts: &[0; 11],
+                direct_ids: &[],
+            },
+        ),
         InvalidPostingsFile::ListDomain { type_row: 0 },
     );
 }
@@ -364,31 +449,89 @@ fn open_rejects_membership_violations() {
 #[test]
 fn open_rejects_parent_violations() {
     let dir = scratch("parent-rejections");
-    let open = |name: &str, parent_posts: &[u64], parent_ids: &[u64]| {
+    let parents = |values: &[u64]| -> Vec<OntologyRowId> {
+        values.iter().copied().map(OntologyRowId::new).collect()
+    };
+    let open = |name: &str, parent_posts: &[u64], parent_ids: &[OntologyRowId]| {
+        let flags = DenseBitSlice::new_empty(parent_posts.len() - 1);
+        let list_posts = vec![0_u64; parent_posts.len()];
         open_invalid(
             dir.join(name),
             Regions {
                 points: 4,
-                flags: &[0],
-                membership_posts: &[0, 0, 0],
-                entries: &[],
+                flags: &flags,
+                list_posts: &list_posts,
+                list_entries: &[],
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(4, 0)),
                 parent_posts,
                 parent_ids,
+                direct_posts: &[0; 5],
+                direct_ids: &[],
             },
         )
     };
 
     assert_eq!(
-        open("parent-posts.post", &[0, 2, 1], &[0]),
+        open("parent-posts.post", &[0, 2, 1], &parents(&[0])),
         InvalidPostingsFile::ParentPosts { position: 2 },
     );
     assert_eq!(
-        open("parent-order.post", &[0, 2, 2], &[1, 1]),
+        open("parent-order.post", &[0, 2, 2], &parents(&[1, 1])),
         InvalidPostingsFile::ParentOrder { type_row: 0 },
     );
     assert_eq!(
-        open("parent-domain.post", &[0, 1, 1], &[5]),
+        open("parent-domain.post", &[0, 1, 1], &parents(&[5])),
         InvalidPostingsFile::ParentDomain { type_row: 0 },
+    );
+}
+
+#[test]
+fn open_rejects_direct_violations() {
+    let dir = scratch("direct-rejections");
+    let ids = |values: &[u64]| -> Vec<OntologyRowId> {
+        values.iter().copied().map(OntologyRowId::new).collect()
+    };
+    let open = |name: &str, points: u64, direct_posts: &[u64], direct_ids: &[OntologyRowId]| {
+        let flags = DenseBitSlice::new_empty(1);
+        open_invalid(
+            dir.join(name),
+            Regions {
+                points,
+                flags: &flags,
+                list_posts: &[0, 0],
+                list_entries: &[],
+                dense_sets: Box::leak(DenseBitSliceArray::new_empty(
+                    usize::try_from(points).expect("fixture point domains fit usize"),
+                    0,
+                )),
+                parent_posts: &[0, 0],
+                parent_ids: &[],
+                direct_posts,
+                direct_ids,
+            },
+        )
+    };
+
+    // Direct posts out of order, then a run out of order, out of the type domain, and a direct
+    // map whose entry count contradicts the membership total.
+    assert_eq!(
+        open("direct-posts.post", 2, &[0, 2, 1], &ids(&[0])),
+        InvalidPostingsFile::DirectPosts { position: 2 },
+    );
+    assert_eq!(
+        open("direct-order.post", 1, &[0, 2], &ids(&[0, 0])),
+        InvalidPostingsFile::DirectOrder { position: 0 },
+    );
+    assert_eq!(
+        open("direct-domain.post", 1, &[0, 1], &ids(&[5])),
+        InvalidPostingsFile::DirectDomain { position: 0 },
+    );
+    assert_eq!(
+        open("pair-count.post", 1, &[0, 1], &ids(&[0])),
+        InvalidPostingsFile::PairCount {
+            direct: 1,
+            membership: 0,
+        },
     );
 }
 
@@ -399,7 +542,6 @@ fn closure_expands_the_fixture_graph() {
         &fixture_types(),
         IdSlice::from_raw(&ROW_OF_POSITION.map(NodeRowId::from_u32)),
         &fixture_parents(),
-        FIXTURE_CONFIG,
     )
     .expect("the fixture stays in domain");
     let mapped = mapped(&dir, "fixture.post", &postings);
@@ -433,13 +575,12 @@ fn closure_expands_the_fixture_graph() {
 fn closure_rejects_parent_cycles() {
     let dir = scratch("cycle");
 
-    // Types 0 and 1 parent each other; type 2 stands free and
+    // Types 0 and 1 parent each other. Type 2 stands free and
     // settles, so exactly two types stay entangled.
     let postings = Postings::build(
         &types(&[&[0]]),
         IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
         &types(&[&[1], &[0], &[]]),
-        PostingsConfig::default(),
     )
     .expect("the cyclic graph is still in domain");
     let mapped = mapped(&dir, "cycle.post", &postings);
@@ -462,13 +603,12 @@ fn reference_contains(
 
 /// Built postings roundtrip through the file and agree with the row-order reference.
 ///
-/// Agreement holds at every (type, position) pair, at every representation split the threshold knob
-/// can pick.
+/// Agreement holds at every (type, position) pair. The size comparison picks each type's
+/// representation from the drawn counts, so both representations recur across cases.
 #[property_test]
 fn built_postings_uphold_the_membership_contract(
     #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40)]
     seeds: Vec<BTreeSet<u64>>,
-    #[strategy = 0_u8..8] threshold_log2: u8,
 ) {
     let domain = 5_usize;
     let rows: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> = seeds
@@ -498,16 +638,8 @@ fn built_postings_uphold_the_membership_contract(
         .copied()
         .map(NodeRowId::from_u32)
         .collect();
-    let postings = Postings::build(
-        &rows,
-        IdSlice::from_raw(&typed_row_of_position),
-        &parents,
-        PostingsConfig {
-            dense_threshold: Log2::new(threshold_log2)
-                .expect("the strategy draws below the shift width"),
-        },
-    )
-    .expect("generated rows stay in domain");
+    let postings = Postings::build(&rows, IdSlice::from_raw(&typed_row_of_position), &parents)
+        .expect("generated rows stay in domain");
 
     let dir = scratch(&format!("prop-{}", uuid::Uuid::now_v7()));
     let path = dir.join("prop.post");
@@ -524,6 +656,30 @@ fn built_postings_uphold_the_membership_contract(
     fs::remove_dir_all(&dir).expect("the scratch directory is removable");
 
     prop_assert_eq!(mapped.points(), rows.len() as u64);
+
+    // The direct map restates each position's row types verbatim: the forward direction of the
+    // one relation the membership inverts, so agreement with the same reference pins both.
+    for position in 0..points {
+        let expected: Vec<OntologyRowId> = rows.as_raw()
+            [row_of_position[position as usize] as usize]
+            .iter()
+            .copied()
+            .collect();
+        prop_assert_eq!(
+            mapped
+                .direct_types(BasePosition::from_u32(position))
+                .expect("the loop iterates the point domain"),
+            expected.as_slice(),
+            "position {}'s direct run",
+            position,
+        );
+    }
+    prop_assert!(
+        mapped
+            .direct_types(BasePosition::from_u32(points))
+            .is_none()
+    );
+
     for type_row in 0..domain as u64 {
         let membership = mapped
             .membership(OntologyRowId::new(type_row))

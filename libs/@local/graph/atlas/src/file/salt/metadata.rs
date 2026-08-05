@@ -466,8 +466,9 @@ struct QuadMeasurementsDef {
 struct PostingsMeasurementsDef {
     types: u64,
     dense_types: u64,
-    membership_entries: u64,
+    list_entries: u64,
     parent_edges: u64,
+    direct_entries: u64,
 }
 
 /// Scale record of the landmark stage.

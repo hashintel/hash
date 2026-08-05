@@ -15,14 +15,14 @@
 //! ontology newer than the snapshot, or a corpus whose ontology ids are not store identities) reads
 //! as zero bits in every point's mask and never as an error.
 
-use hashql_core::id::{Id as _, bit_vec::RowRef};
+use hashql_core::id::bit_vec::{BitRelations as _, RowRef};
 use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
-use zerocopy::{LE, U32};
 
 use super::Atlas;
 use crate::{
+    bitset::DenseBitSlice,
     dataset::postgres::id::ArchivedOntologyTypeUuid,
-    identity::OntologyRowId,
+    identity::{BasePosition, OntologyRowId},
     salt::{
         fit::prepare::identity::IdentityTableArchive,
         postings::{artifact::PostingsArchive, closure::ClosureMap},
@@ -84,9 +84,9 @@ enum MaskSource {
     Stored(OntologyRowId),
     /// The id resolved to a type with proper descendants.
     ///
-    /// The dense union of the closure row's memberships, in the postings' little-endian word
-    /// vocabulary.
-    Union(Vec<U32<LE>>),
+    /// The dense union of the closure row's memberships, as one bit set frame - the postings' own
+    /// dense vocabulary, so stored and materialized masks serve through one view.
+    Union(Box<DenseBitSlice<BasePosition>>),
     /// The id resolved to no type in this generation: zero bits.
     Unresolved,
 }
@@ -119,22 +119,37 @@ impl Atlas {
     }
 }
 
-/// Resolves a palette against one generation's postings.
+/// Materializes the dense union of every set type's membership.
 ///
-/// Closure map, and ontology identities, in slot order.
-pub(super) fn resolve_masks(
+/// One bit set frame over base positions: the postings' own dense vocabulary, so stored and
+/// materialized masks serve through one view.
+fn union_membership(
     postings: &PostingsArchive,
-    closure: &ClosureMap,
-    table: &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
-    palette: &Palette,
-) -> MaskSet {
-    MaskSet {
-        sources: palette
-            .entries
-            .iter()
-            .map(|&key| resolve_mask(postings, closure, table, key))
-            .collect(),
+    descendants: RowRef<'_, OntologyRowId>,
+) -> Box<DenseBitSlice<BasePosition>> {
+    use crate::salt::postings::artifact::Membership;
+
+    let points = usize::try_from(postings.points()).expect("point domains fit usize");
+    let mut bitmap = DenseBitSlice::new_empty(points);
+
+    for type_row in &descendants {
+        let membership = postings
+            .membership(type_row)
+            .expect("closure rows lie inside the postings' type domain");
+
+        match membership {
+            Membership::Dense(set) => {
+                bitmap.union(set);
+            }
+            Membership::List(positions) => {
+                for &position in positions {
+                    bitmap.insert(position);
+                }
+            }
+        }
     }
+
+    bitmap
 }
 
 /// Resolves one palette identity: ontology row to the closure row's membership union.
@@ -162,38 +177,20 @@ fn resolve_mask(
     MaskSource::Union(union_membership(postings, descendants))
 }
 
-/// Materializes the dense union of every set type's membership.
+/// Resolves a palette against one generation's postings.
 ///
-/// `ceil(N/32)` little-endian words, LSB-first over base positions: the postings' own dense
-/// vocabulary, so stored and materialized masks serve through one view.
-fn union_membership(
+/// Closure map, and ontology identities, in slot order.
+pub(super) fn resolve_masks(
     postings: &PostingsArchive,
-    descendants: RowRef<'_, OntologyRowId>,
-) -> Vec<U32<LE>> {
-    use crate::salt::postings::artifact::Membership;
-
-    let points = usize::try_from(postings.points()).expect("point domains fit usize");
-    let mut bitmap = vec![U32::ZERO; points.div_ceil(u32::BITS as usize)];
-
-    for type_row in &descendants {
-        let membership = postings
-            .membership(type_row)
-            .expect("closure rows lie inside the postings' type domain");
-        match membership {
-            Membership::Dense(words) => {
-                for (union, &dense) in bitmap.iter_mut().zip(words) {
-                    *union = U32::new(union.get() | dense.get());
-                }
-            }
-            Membership::List(positions) => {
-                for &position in positions {
-                    let position = position.as_u32();
-                    let word = &mut bitmap[position as usize >> 5];
-                    *word = U32::new(word.get() | (1 << (position & 31)));
-                }
-            }
-        }
+    closure: &ClosureMap,
+    table: &IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
+    palette: &Palette,
+) -> MaskSet {
+    MaskSet {
+        sources: palette
+            .entries
+            .iter()
+            .map(|&key| resolve_mask(postings, closure, table, key))
+            .collect(),
     }
-
-    bitmap
 }
