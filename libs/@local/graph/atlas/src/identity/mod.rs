@@ -17,8 +17,6 @@
 //! Row ids persist: the in-memory form is the little-endian byte form, so a column of these ids
 //! writes to and reads back from artifact files without conversion.
 
-#[cfg(feature = "bench")]
-pub(crate) use self::key::KeyOrdinal;
 pub(crate) use self::{
     card::CardRow,
     column::{Column, Element},
@@ -29,6 +27,11 @@ pub(crate) use self::{
     rank::ImportanceRank,
 };
 
+/// Bench-only exports: the key-ordinal domain crosses typed into lod's bench module.
+#[cfg(feature = "bench")]
+pub(crate) mod bench {
+    pub(crate) use super::key::KeyOrdinal;
+}
 mod card;
 mod column;
 mod edge;

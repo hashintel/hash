@@ -7,8 +7,9 @@ use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
-    Rotation, Transform, Vec2, Vec2x4T,
+    Rotation, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
+    transform::Transform,
 };
 
 /// A similarity mixing all three components with inexact rotation angles.

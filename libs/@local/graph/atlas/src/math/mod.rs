@@ -92,8 +92,6 @@ pub(crate) use self::scalar::{
     d_finite, d_non_negative, d_positive, finite, greater_than_one, non_negative,
     open_unit_fraction, positive, unit_fraction,
 };
-#[cfg(feature = "bench")]
-pub(crate) use self::transform::Transform;
 pub(crate) use self::{
     affinity::AffinityCurve,
     bounds::Bounds2,

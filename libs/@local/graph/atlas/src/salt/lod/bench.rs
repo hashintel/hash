@@ -53,7 +53,7 @@ use super::{
 };
 use crate::{
     file::morton::{Fenceposts, SEGMENTS},
-    identity::{BasePosition, ImportanceRank, KeyOrdinal, NodeRowId},
+    identity::{BasePosition, ImportanceRank, NodeRowId, bench::KeyOrdinal},
     math::Vec2,
     morton::{Depth, MortonCell, MortonKey},
     random::{keyed_rng, uniform_below},

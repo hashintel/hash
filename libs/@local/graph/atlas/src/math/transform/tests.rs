@@ -1,7 +1,8 @@
 use proptest::{property_test, strategy::Strategy};
 
+use super::Transform;
 use crate::math::{
-    Rotation, Transform, Translation, Vec2, Vec2x4T,
+    Rotation, Translation, Vec2, Vec2x4T,
     tests::{POINTS, assert_vec2_close},
 };
 
