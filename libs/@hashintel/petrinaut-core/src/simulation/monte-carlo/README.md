@@ -1,3 +1,17 @@
+---
+layer: core.simulation.monte-carlo
+name: Monte Carlo runtime
+role: Runs many independent simulations with bounded frame memory, reporting metric aggregates
+seams:
+  - "@hashintel/petrinaut-core/workers/monte-carlo"
+boundaries:
+  - kind: worker
+    note: Frame buffers stay inside the worker; only metric aggregates are posted to the host
+invariants:
+  - Frame memory is bounded regardless of run length — no frame history is retained
+  - Uses the same extension-aware SDCPN sanitization as the interactive simulator, so disabled surfaces are not compiled here either
+---
+
 # Monte Carlo Simulator
 
 ## Goal

@@ -1,3 +1,11 @@
+---
+layer: core.validation
+name: Validation
+role: Structural integrity validators for SDCPN entities, enforcing naming conventions
+invariants:
+  - Pure-function wrappers over Zod schemas, so validators are callable from any layer without side effects
+---
+
 # validation/
 
 Structural integrity validators for SDCPN entities. These enforce naming

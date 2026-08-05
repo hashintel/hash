@@ -1,3 +1,10 @@
+/**
+ * @layerRoot react.hooks
+ * @layerName Shared hooks
+ * @role Cross-cutting hooks over the providers — documents, parameters, window lifecycle
+ * @invariant Each hook reads from an existing context; none creates state of its own, so hook order never affects ownership
+ */
+
 // Public hook surface for `@hashintel/petrinaut/react`.
 //
 // Each hook reads from an existing React context (SDCPN, Simulation, Playback,
