@@ -37,6 +37,7 @@ use crate::{
 };
 
 mod authorization;
+mod comparator;
 mod density;
 mod frame_channel;
 mod masking;
@@ -126,10 +127,28 @@ fn scratch(name: &str) -> Utf8PathBuf {
 /// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
 /// node type alternating between two ontology rows, and one link type.
 fn fixture_dataset() -> MemoryDataset {
+    fixture_dataset_extended(&[])
+}
+
+/// The fixture corpus with one appended node per entry of `duplicated`, joined in a ring.
+///
+/// Each entry names a corpus row whose embedding the appended node repeats exactly. A repeat is
+/// the one addition that cannot move the layout. Landmark placement gives every row its assigned
+/// landmark's coordinate, and a repeated embedding resolves to the landmark its original resolved
+/// to. The appended rows therefore sit co-located with their originals, where they compete for the
+/// same cells of the corpus schedule and perturb nothing else. Rows `0..NODES` keep their
+/// embeddings, their row order and their identities, which is what lets a caller pair the two
+/// corpora row by row.
+///
+/// The appended edges close a ring over the appended nodes alone. Delivery ranks by incident
+/// degree, so a ring member outranks every corpus row the fixture leaves unlinked and claims its
+/// shared cell first. Touching a corpus row with one of these edges would move that row's degree
+/// and with it its rank, which is why the ring stays closed.
+fn fixture_dataset_extended(duplicated: &[u64]) -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x5E4E);
     let mut canonical = HashMap::new();
 
-    let nodes = (0..NODES)
+    let mut nodes: Vec<_> = (0..NODES)
         .map(|row| {
             let mut components = [0.0_f32; PROJECTOR_DIMENSIONS];
             for component in &mut components {
@@ -162,8 +181,31 @@ fn fixture_dataset() -> MemoryDataset {
         })
         .collect();
 
+    for (offset, &source) in duplicated.iter().enumerate() {
+        let row = NODES as u64 + offset as u64;
+        let original = &nodes[usize::try_from(source).expect("fixture rows fit usize")];
+        canonical.insert(row, canonical[&source].clone());
+        nodes.push(CorpusNode {
+            id: U64::<LE>::new(row),
+            ontology: original.ontology.clone(),
+            embedding: original.embedding.clone(),
+            confidence: None,
+        });
+    }
+
+    let appended = duplicated.len() as u64;
+    let closed_ring = (0..appended).map(|offset| {
+        let next = if offset + 1 == appended {
+            0
+        } else {
+            offset + 1
+        };
+        (200 + offset, NODES as u64 + offset, NODES as u64 + next)
+    });
+
     let edges = FIXTURE_EDGES
         .into_iter()
+        .chain(closed_ring)
         .map(|(id, source, target)| Edge {
             id: U64::<LE>::new(id),
             source: NodeRowId::new(source),
@@ -315,9 +357,14 @@ fn fixture_config() -> FitConfig {
 /// Identity artifacts carry the memory dataset's 8-byte positional ids, which the serving open
 /// rejects.
 async fn fit_fixture(name: &str) -> (GenerationRoot, Generation) {
+    fit_dataset(name, &fixture_dataset()).await
+}
+
+/// Fits and publishes `dataset` as one fixture generation.
+async fn fit_dataset(name: &str, dataset: &MemoryDataset) -> (GenerationRoot, Generation) {
     let root = GenerationRoot::new(scratch(name)).expect("the root should open");
     let published = fit(
-        &fixture_dataset(),
+        dataset,
         &HashEmbedder,
         &fixture_config(),
         Supplies {
@@ -436,7 +483,12 @@ fn test_open_options() -> OpenOptions {
 
 /// Publishes one fixture generation with store-width identities and opens its serving surface.
 async fn publish(name: &str) -> (Generation, Atlas) {
-    let (root, generation) = fit_fixture(name).await;
+    publish_dataset(name, &fixture_dataset()).await
+}
+
+/// Publishes `dataset` with store-width identities and opens its serving surface.
+async fn publish_dataset(name: &str, dataset: &MemoryDataset) -> (Generation, Atlas) {
+    let (root, generation) = fit_dataset(name, dataset).await;
     store_identities(&generation);
     let atlas =
         Atlas::open(&root, generation.id(), test_open_options()).expect("the atlas should open");

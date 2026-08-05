@@ -807,3 +807,351 @@ fn empty_view_delivers_nothing() {
     assert_eq!(cut.min_resolution(), 0);
     assert_eq!(cut.children(0, root), 0);
 }
+
+/// A scope admitting every corpus row still receives the restricted contract.
+///
+/// The saturated mask is the shape a normalization would be tempted by. Its visible set is the
+/// whole corpus. A delivery path that recognized saturation could therefore answer from the corpus
+/// schedule without anyone seeing a wrong row.
+///
+/// What such a path would lose is the declaration. This caller declared a scope and its manifest
+/// sealed a scope's `k`. An offset is a value the corpus contract has no bytes for.
+///
+/// The sweep therefore serves the whole grid at three offsets against the cascade reference. It
+/// pins beside that the operator contract's refusal of the offset this caller is served at.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn an_all_row_scope_serves_the_restricted_contract() {
+    let (_generation, atlas) = publish("scope-all-rows").await;
+    let all_rows = mask_hiding(&atlas, &[]);
+
+    assert_eq!(
+        all_rows.kind(),
+        crate::serve::visibility::ProofKind::Scope,
+        "a mask admitting every row is still a scope declaration",
+    );
+    let rows = reference::rows(&atlas, &all_rows);
+    assert_eq!(
+        rows.len(),
+        atlas.row_ids().len(),
+        "the case needs `V` equal to the corpus, or it is an ordinary scope",
+    );
+
+    for k in 0..=2_u8 {
+        let schedule = reference::Schedule::new(
+            rows.clone(),
+            FIXTURE_LOD.span.get(),
+            FIXTURE_LOD.max_tile_depth,
+            k,
+        );
+        let offset = CutOffset::new(k);
+        assert_saturated_scope_grid(&atlas, &all_rows, &schedule, k);
+
+        // The offset this caller is served at is one the corpus contract has no bytes for.
+        if k > 0 {
+            assert_eq!(
+                atlas
+                    .view(&FULL, atlas.census(&FULL), &ViewSchedule::Corpus, offset)
+                    .expect_err("the operator contract admits no offset"),
+                ViewError::Offset(offset),
+            );
+        }
+    }
+}
+
+/// Sweeps the whole fixture grid at one offset for
+/// [`an_all_row_scope_serves_the_restricted_contract`].
+fn assert_saturated_scope_grid(
+    atlas: &Atlas,
+    all_rows: &VisibilityProof,
+    schedule: &reference::Schedule,
+    k: u8,
+) {
+    let offset = CutOffset::new(k);
+    let node_codec = test_codec(atlas);
+    let position_of: HashMap<NodeRowId, u32> = atlas
+        .row_ids()
+        .iter()
+        .enumerate()
+        .map(|(position, &row)| (row, u32::try_from(position).expect("positions fit u32")))
+        .collect();
+
+    {
+        for z in 0..=FIXTURE_LOD.max_tile_depth {
+            let cells = 1_u32 << z;
+            for (x, y) in (0..cells).flat_map(|x| (0..cells).map(move |y| (x, y))) {
+                let cell = MortonCell::new(Depth::new(z).expect("zooms are depths"), x, y)
+                    .expect("the sweep stays on each zoom's grid");
+
+                for mode in [Mode::Delta, Mode::Total] {
+                    let at = format!("all-rows k={k} {mode:?} {z}/{x}/{y}");
+                    let bytes = atlas
+                        .tile(
+                            &request(z, x, y, mode),
+                            TileLimits::default(),
+                            all_rows,
+                            offset,
+                        )
+                        .expect("the saturated scope serves");
+                    let head = section(&bytes, HEAD).expect("HEAD is present");
+                    let (delivered, runs) = head_counts(head);
+                    let positions: Vec<u32> =
+                        decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"))
+                            .iter()
+                            .map(|&wire| {
+                                position_of[&node_codec
+                                    .decode(codec::WireRow::pinned(wire))
+                                    .expect("delivered wire ids decode")]
+                            })
+                            .collect();
+
+                    let expected = schedule.delivery(z, cell, mode);
+                    assert_eq!(
+                        positions, expected.positions,
+                        "{at} delivers the law's rows"
+                    );
+                    assert_eq!(runs, expected.runs, "{at} recounts the law's runs");
+                    assert_eq!(
+                        delivered,
+                        expected.positions.len() as u64,
+                        "{at} counts its rows",
+                    );
+
+                    // At the offset both contracts can serve, they serve the same bytes. That
+                    // coincidence is the reason a byte comparison cannot police this case: a
+                    // normalization into the operator variant would be invisible here. It is
+                    // pinned rather than avoided, so that the day the two responses part, someone
+                    // has to decide which of them moved.
+                    if k == 0 {
+                        let operator = atlas
+                            .tile(
+                                &request(z, x, y, mode),
+                                TileLimits::default(),
+                                &FULL,
+                                CutOffset::ZERO,
+                            )
+                            .expect("the operator contract serves");
+                        assert_eq!(
+                            operator, bytes,
+                            "{at} parts from the corpus contract's bytes"
+                        );
+                    }
+                }
+            }
+        }
+
+        // The offset this caller is served at is one the corpus contract has no bytes for.
+        if k > 0 {
+            assert_eq!(
+                atlas
+                    .view(&FULL, atlas.census(&FULL), &ViewSchedule::Corpus, offset)
+                    .expect_err("the operator contract admits no offset"),
+                ViewError::Offset(offset),
+            );
+        }
+    }
+}
+
+/// Under a scope, the locate cap selects among authorized partners by the view's own zoom.
+///
+/// The cap's tie-break reads each partner's first visible zoom. Under a scope it must read the
+/// zoom the caller's own cascade delivers that partner at.
+///
+/// Reading the corpus bucket instead would hand rows the caller cannot see the choice of which
+/// authorized partner survives a binding cap. The source would be the same and its authorized
+/// neighbours would be the same. The survivors would not.
+///
+/// The expectation derives the survivor set from the reference cascade's zoom. The reference finds
+/// that zoom by search where the implementation subtracts.
+///
+/// What this corpus witnesses is bounded. The cap binds in thirty cases. The survivors are exactly
+/// the independent derivation's in all of them. In eight of those cases the two laws deliver some
+/// authorized partner at different zooms. The scope-derived input is therefore read rather than
+/// assumed. No binding cap turns on it. The fixture's squared distances separate every pair before
+/// the zoom is consulted. A case that turns on it needs two authorized partners equidistant from
+/// one source and delivered at different cascade zooms. This corpus holds no such pair. The
+/// counters assert that state rather than describe it. A corpus that gains such a pair therefore
+/// fails here and earns the stronger assertion it then deserves.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn a_scoped_locate_cap_selects_among_authorised_partners() {
+    let (_generation, atlas) = publish("scope-locate-cap").await;
+    let row_ids = atlas.row_ids();
+
+    let mut counts = CapCounts::default();
+    for (name, proof) in scope_battery(&atlas) {
+        let rows = reference::rows(&atlas, &proof);
+        let visible: HashSet<u32> = rows
+            .iter()
+            .map(|row| row_ids[BasePosition::from_u32(row.position)].as_u32())
+            .collect();
+
+        for k in 0..=2_u8 {
+            let schedule = reference::Schedule::new(
+                rows.clone(),
+                FIXTURE_LOD.span.get(),
+                FIXTURE_LOD.max_tile_depth,
+                k,
+            );
+            let bound = Bound::new(&atlas, &proof, CutOffset::new(k));
+            let view = bound.view(&atlas);
+
+            for source_row in [0_u32, 1, 2, 3, 5, 7, 40] {
+                if visible.contains(&source_row) {
+                    counts.add(assert_scoped_caps(
+                        &atlas,
+                        &view,
+                        &schedule,
+                        source_row,
+                        &format!("{name} k={k}"),
+                    ));
+                }
+            }
+        }
+    }
+
+    let CapCounts {
+        bound_caps,
+        parted_inputs,
+        discriminated,
+    } = counts;
+    assert!(bound_caps > 0, "no cap in the sweep binds at all");
+    assert!(
+        parted_inputs > 0,
+        "no binding cap in the sweep reaches a partner the two laws deliver at different zooms, \
+         so the tie-break's scope-derived input is never exercised ({bound_caps} binding caps)",
+    );
+    assert_eq!(
+        discriminated, 0,
+        "a binding cap now turns on the zoom the tie-break reads, which is stronger evidence than \
+         this case claims: assert the surviving partner directly instead of counting agreement",
+    );
+}
+
+/// What one sweep of [`a_scoped_locate_cap_selects_among_authorised_partners`] observed.
+#[derive(Debug, Default, Copy, Clone)]
+struct CapCounts {
+    /// Caps that truncated the ego graph.
+    bound_caps: usize,
+    /// Caps whose tie-break read a partner zoom the two laws disagree on.
+    parted_inputs: usize,
+    /// Caps where that disagreement changed which partners survived.
+    discriminated: usize,
+}
+
+impl CapCounts {
+    fn add(&mut self, other: Self) {
+        self.bound_caps += other.bound_caps;
+        self.parted_inputs += other.parted_inputs;
+        self.discriminated += other.discriminated;
+    }
+}
+
+/// Asserts every binding cap of one scoped source, and counts what the sweep saw.
+fn assert_scoped_caps(
+    atlas: &Atlas,
+    view: &crate::serve::View<'_>,
+    schedule: &reference::Schedule,
+    source_row: u32,
+    at: &str,
+) -> CapCounts {
+    use crate::serve::locate::LocateLimits;
+
+    let position_of = |row: u32| atlas.positions_of_row()[NodeRowId::from_u32(row)];
+    let distance_of = |from: u32, to: u32| {
+        let positions = atlas.positions();
+        let origin = positions[position_of(from)];
+        let point = positions[position_of(to)];
+        let (dx, dy) = (point.x() - origin.x(), point.y() - origin.y());
+        // The derivation must mirror the selection key bit for bit: a fused mul_add rounds
+        // differently and reorders near-ties.
+        #[expect(
+            clippy::suboptimal_flops,
+            reason = "unfused arithmetic mirrors the selection key exactly"
+        )]
+        (dx * dx + dy * dy).to_bits()
+    };
+    let corpus_zoom = |row: u32| {
+        atlas
+            .morton
+            .bucket_of(position_of(row))
+            .get()
+            .saturating_sub(FIXTURE_LOD.span.get())
+    };
+    let scope_zoom = |row: u32| {
+        schedule
+            .first_zoom(position_of(row).as_u32())
+            .expect("an authorized partner is in the view")
+    };
+    let partner_of = |edge: &crate::serve::neighbourhood::DeliveredEdge| {
+        if edge.source.as_u32() == source_row {
+            edge.target.as_u32()
+        } else {
+            edge.source.as_u32()
+        }
+    };
+
+    let source = atlas
+        .resolve_source(
+            view,
+            &entity_string_of(u8::try_from(source_row).expect("fixture rows fit u8")),
+        )
+        .expect("a visible source resolves");
+    let full = atlas.locate_subgraph(source, LocateLimits::default(), view);
+
+    let mut counts = CapCounts::default();
+    for cap in 0..full.edges.len() {
+        let at = format!("{at} ego({source_row}) cap {cap}");
+        counts.bound_caps += 1;
+
+        let survivors = |zoom: &dyn Fn(u32) -> u8| {
+            let mut ordered = full.edges.clone();
+            ordered.sort_unstable_by_key(|&(edge, id)| {
+                let partner = partner_of(&edge);
+                (distance_of(source_row, partner), zoom(partner), id)
+            });
+            ordered.truncate(cap);
+            ordered.sort_unstable_by_key(|&(_, id)| id);
+            ordered
+        };
+
+        let subgraph = atlas.locate_subgraph(
+            source,
+            LocateLimits {
+                edges: u32::try_from(cap).expect("fixture edge counts are small"),
+                ..LocateLimits::default()
+            },
+            view,
+        );
+        assert!(
+            !subgraph.complete,
+            "{at} does not bind, so it selects nothing",
+        );
+
+        let expected = survivors(&scope_zoom);
+        assert_eq!(subgraph.edges, expected, "{at} keeps other partners");
+
+        // The delivered nodes are exactly the survivors' partners beside the source.
+        let mut expected_rows: Vec<u32> = vec![source_row];
+        let mut partners: Vec<u32> = expected
+            .iter()
+            .map(|&(edge, _)| partner_of(&edge))
+            .filter(|&row| row != source_row)
+            .collect();
+        partners.sort_unstable();
+        partners.dedup();
+        expected_rows.extend(partners);
+        let mut delivered: Vec<u32> = subgraph.rows.iter().map(|row| row.as_u32()).collect();
+        delivered.sort_unstable();
+        expected_rows.sort_unstable();
+        assert_eq!(delivered, expected_rows, "{at} delivers other partners");
+
+        counts.discriminated += usize::from(survivors(&corpus_zoom) != expected);
+        counts.parted_inputs += usize::from(full.edges.iter().any(|&(edge, _)| {
+            let partner = partner_of(&edge);
+            scope_zoom(partner) != corpus_zoom(partner)
+        }));
+    }
+
+    counts
+}
