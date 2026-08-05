@@ -31,14 +31,11 @@ export const ButtonGroup = ({
   alignedTo = "left",
   noWrap = false,
 }: ButtonGroupProps) => {
-  // Reversing the DOM (rather than using `flex-direction: row-reverse`) keeps
-  // focus/tab order matching the visual order and leaves `alignedTo` mapping to
-  // physical left/right regardless of `reverse`.
+  // Reversing the DOM  keeps focus/tab order matching
   const content = reverse ? Children.toArray(children).reverse() : children;
 
-  // In a wrapped `segmented` group, `:first-child`/`:last-child` only round the
-  // very first/last button; this re-applies the outer radii per visual row by
-  // tagging each row's edge buttons with `data-row-start`/`data-row-end`.
+  // In a `segmented` group that wraps onto multiple lines,
+  // we apply the outer radii per visual row with `data-row-start`/`data-row-end`.
   const ref = useRef<HTMLDivElement>(null);
   const decoratedContent = useSegmentedRows(ref, content, variant, noWrap);
 
