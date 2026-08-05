@@ -1,0 +1,52 @@
+---
+title: Two execution paths
+description: Why Quick Simulation and Experiments share an engine but not a memory model.
+sidebar_order: 1
+---
+
+There are two independent ways to execute a net, and almost every surprising
+thing about the simulation layers follows from the difference between them.
+
+**Quick Simulation** runs one interactive simulation and keeps _every frame_, so
+the user can scrub backwards and forwards through the run. Frames accumulate in
+a store on the main thread.
+
+**Experiments** run many Monte Carlo simulations with _bounded memory_ — two
+reusable buffers per run — and ship only metric aggregates back to the host.
+Frame buffers never leave the worker.
+
+## Why not one path
+
+The obvious simplification is to make experiments reuse the interactive
+simulator and throw away frames afterwards. It does not work: an experiment is
+hundreds or thousands of runs, and retaining frames even transiently makes peak
+memory scale with run length times concurrency. Bounding memory is not an
+optimisation on the experiment path, it is the reason that path exists.
+
+The consequence to keep in mind: **anything you add to the frame format costs
+memory on the interactive path and nothing on the experiment path, while
+anything you add to metric aggregation costs on both.** A per-frame field is
+cheap to add and expensive to keep; an aggregate is the reverse.
+
+## What this means when changing code
+
+The engine is shared, so a change to stepping or to the frame layout affects both
+paths. The _controllers_ are not shared — the interactive path goes through the
+simulation controller with its frame store, the experiment path through the Monte
+Carlo runtime — so a change to run lifecycle usually needs doing twice, and
+forgetting one is the classic bug here.
+
+If you are touching either, read the generated pages for
+[the engine](architecture/core/simulation/engine),
+[the simulation controller](architecture/core/simulation/runtime) and
+[the Monte Carlo runtime](architecture/core/simulation/monte-carlo) — their
+declared invariants say which properties you must not break.
+
+## Actual mode is a third source, but not a third path
+
+Actual mode renders an execution that came from somewhere else entirely — a live
+external system rather than a simulation. It does not run the engine at all. It
+reaches the same canvas and timeline because both read frames through the
+[execution-frame interface](architecture/react/execution-frame), which abstracts
+over "where frames come from". That seam is why adding Actual mode did not require
+touching the canvas.

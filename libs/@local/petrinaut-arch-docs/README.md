@@ -1,0 +1,154 @@
+# `@local/petrinaut-arch-docs`
+
+Generates the Petrinaut architecture documentation from annotations in the
+source, and bundles it with hand-written MDX into one portable artefact.
+
+```sh
+# Regenerate the bundle after changing annotations or code
+yarn workspace @local/petrinaut-arch-docs doc:architecture
+
+# Fail if the committed bundle no longer matches the source (what CI runs)
+yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+```
+
+## Why this exists
+
+Architecture docs rot because nothing fails when they stop being true. Two
+specific failures motivated this package:
+
+- `petrinaut-core/scripts/generate-dependency-diagrams.mjs` held the architecture
+  as ~180 lines of `if (path.startsWith("simulation/monte-carlo/"))` mappings,
+  far from the code they described, with a fallback that silently mis-bucketed
+  anything renamed. It also hard-coded seven of `petrinaut-core`'s ten entry
+  points, so imports through `./ai`, `./optimization` and `./compiled-model`
+  were missing from the diagram entirely.
+- `petrinaut-core/docs/architecture/*.html` is 3,100 lines of hand-written HTML
+  that nothing verifies against the code.
+
+Here the architecture is declared next to the code it describes, and CI fails
+when a declaration stops matching reality.
+
+## The two inputs
+
+### Folder `README.md` frontmatter — _declares_ a layer
+
+The recommended home. The frontmatter declares the layer; the prose below it
+becomes the layer's page body, so a folder README that already explains itself
+becomes an architecture page for free.
+
+```yaml
+---
+layer: core.simulation.monte-carlo # dotted id; every ancestor must also be declared
+name: Monte Carlo runtime # display name (defaults to the last id segment)
+role: Runs many simulations with bounded frame memory # one line; required
+seams: # public import specifiers reaching this layer
+  - "@hashintel/petrinaut-core/workers/monte-carlo"
+boundaries:
+  - kind: worker
+    note: Frame buffers stay inside the worker
+invariants:
+  - Frame memory is bounded regardless of run length
+owner: simulation # optional
+---
+```
+
+A README with no `layer` key is left alone as an ordinary document, and is linked
+from its layer page under "Further reading".
+
+### Doc-comment tags — _refine_ with facts that belong to code
+
+```ts
+/**
+ * @layerRoot core.simulation.monte-carlo   declares the layer from an entry file
+ * @layerName Monte Carlo runtime           display name
+ * @role Runs many bounded-memory simulations
+ * @layer core.simulation.engine            assigns THIS FILE only, overriding inheritance
+ * @seam @hashintel/petrinaut-core/workers/monte-carlo
+ * @boundary worker — frame buffers never cross to the main thread
+ * @invariant Two reusable frame buffers per run; no per-frame allocation
+ * @owner simulation
+ */
+```
+
+- `@layerRoot` is the alternative to a README declaration, for folders with a
+  barrel entry file and no README. Use one or the other, never both.
+- `@layer` is the escape hatch for a single misplaced file. Reach for it rarely —
+  a file that needs it is usually a file in the wrong folder.
+- `@boundary` accepts `thread`, `worker`, `process`, `network`, `package` or
+  `sandbox`, then `—`, `-` or `:`, then a note saying what may not cross.
+- Tags are read from any block comment in the file, and a tag's text continues
+  across wrapped lines until the next tag or a blank line.
+- Tags are only recognised at the start of a line inside a block comment, so
+  mentioning `@layerRoot` in prose does not accidentally declare anything.
+
+### Inheritance is what keeps this small
+
+A file with no tags belongs to the nearest ancestor folder that declares a layer.
+That is why ~40 declarations cover 412 files: you declare a layer where the
+architecture actually changes, not on every file.
+
+## The output: a portable bundle
+
+Written to `bundle/`, committed, and framework-neutral by design — the Starlight
+site in `apps/petrinaut-docs` and hash.dev are both just consumers.
+
+| File                | What it is                                                       |
+| ------------------- | ---------------------------------------------------------------- |
+| `architecture.json` | The model: layers, edges, boundaries, invariants, enforced rules |
+| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI |
+| `llms.txt`          | [llmstxt.org](https://llmstxt.org) index of the bundle           |
+| `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
+| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
+| `diagrams/*.d2`     | Diagram sources (diffable)                                       |
+| `diagrams/*.svg`    | Rendered diagrams                                                |
+
+Generated MDX is **YAML frontmatter plus plain CommonMark** — no JSX, no
+imports, no framework components. That is the constraint that lets one bundle
+render in Astro, in hash.dev's Next.js MDX pipeline, and as plain text.
+
+### Embedding the bundle elsewhere
+
+A host reads `manifest.json`, maps each page's `slug` onto its own URL space, and
+renders `pages/<path>`.
+
+One contract to honour: **links between generated pages are relative and assume
+slugs map to URLs without a trailing slash.** A host that serves
+`/architecture/core/simulation/` rather than `/architecture/core/simulation`
+must rewrite them; `manifest.json` gives you every slug to do so. The Starlight
+consumer sets `trailingSlash: "never"` for this reason.
+
+## Hand-written pages
+
+Anything in `content/` is copied into the bundle and merged into the same
+manifest as the generated pages. Slugs mirror the directory layout; `title`,
+`description` and `sidebar_order` come from frontmatter.
+
+Generated pages occupy `sidebar_order` 1000 and above, so authored pages sort
+first by default (they are the narrative entry; generated pages are reference).
+An authored page can deliberately sort after the reference section by choosing a
+higher order.
+
+Authored pages carry the reasoning — why a boundary is where it is, what was
+tried before — which no import graph can supply. They may not declare a layer;
+layer declarations belong in the packages.
+
+## What CI enforces
+
+`lint:arch-docs` fails on:
+
+- a source file that no declaration covers
+- a layer whose dotted id implies an undeclared ancestor
+- a duplicate layer id, or two declarations on one folder
+- an unknown `@boundary` kind, a boundary with no note, a duplicated singular tag
+- a `@seam` that is not an export of any covered package
+- a dependency violating a rule in `architecture.config.ts`
+- a committed bundle that no longer matches the source
+
+Warnings (reported, non-fatal): a layer with no files and no sub-layers, an
+`exports` subpath with no resolvable source entry.
+
+## Adding a package
+
+Add it to `packages` in `architecture.config.ts`, declare a root layer in its
+source, and run a build. `sourceDirectory` defaults to `src`, so build
+configuration outside it is deliberately not part of any layer.
