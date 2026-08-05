@@ -552,14 +552,22 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
           content: `const distanceToCenter =
   parameters.planet_radius + scenario.initial_altitude;
 
+// Speed of a circular orbit at this radius. The orbit dynamics divide by
+// velocity, so a satellite must start moving — a stationary token would make
+// the direction derivative 0/0 on the very first step.
+const orbitalSpeed = Math.sqrt(
+  parameters.gravitational_constant / distanceToCenter,
+);
+
 return {
   Space: range(scenario.number_of_satellites).map((i) => {
     const angle = Math.PI * 2 * (i / scenario.number_of_satellites);
     return {
       x: Math.cos(angle) * distanceToCenter,
       y: Math.sin(angle) * distanceToCenter,
-      direction: angle,
-      velocity: 0,
+      // Tangential heading: a quarter turn ahead of the outward radius.
+      direction: angle + Math.PI / 2,
+      velocity: orbitalSpeed,
     };
   }),
 };`,

@@ -116,6 +116,6 @@ Several of the built-in examples ship with scenarios so you can see realistic co
 
 - **SIR Epidemic Model** -- "Seasonal Flu" and "High Virulence Outbreak", driven by `population` and `infected_ratio` scenario parameters plus parameter overrides for infection and recovery rates.
 - **Production Machines** -- "Default Production", driven by `raw_material`, `machines_count`, and `initial_machine_damage`.
-- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar), plus "Pre-deployed Constellation", which authors its initial state in code mode: `range(scenario.number_of_satellites).map(...)` builds a ring of satellites at a configurable altitude.
+- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar), plus "Pre-deployed Constellation", which authors its initial state in code mode: `range(scenario.number_of_satellites).map(...)` builds a ring of satellites at a configurable altitude, each already travelling at circular-orbit speed so the ring holds its orbit as soon as you press play.
 
 Loading any of these examples is the fastest way to see a working scenario authored in both modes.
