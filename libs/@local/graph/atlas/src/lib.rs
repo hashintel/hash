@@ -98,6 +98,7 @@
     nonpoison_mutex,
     pointer_is_aligned_to,
     portable_simd,
+    ptr_metadata,
     step_trait,
     sync_nonpoison,
     time_saturating_systemtime,

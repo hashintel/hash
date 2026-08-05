@@ -78,7 +78,7 @@ const CHUNK_BITS: usize = CHUNK_WORDS * WORD_BITS; // 2048 bits
 type ChunkSize = u16;
 const _: () = assert!(CHUNK_BITS <= ChunkSize::MAX as usize);
 
-pub const trait BitRelations<Rhs> {
+pub const trait BitRelations<Rhs: ?Sized> {
     fn union(&mut self, other: &Rhs) -> bool;
     fn subtract(&mut self, other: &Rhs) -> bool;
     fn intersect(&mut self, other: &Rhs) -> bool;
@@ -112,6 +112,16 @@ impl<T> DenseBitSet<T> {
     #[must_use]
     pub const fn domain_size(&self) -> usize {
         self.domain_size
+    }
+
+    /// The backing words, 64 bits per word in ascending domain order.
+    ///
+    /// Bit `i` of word `i / 64` marks element `i`, and every bit at a position greater than or
+    /// equal to the domain size is zero, so word-level readers need no masking.
+    #[inline]
+    #[must_use]
+    pub fn words(&self) -> &[u64] {
+        &self.words
     }
 }
 

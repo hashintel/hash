@@ -22,7 +22,7 @@ sprs           = { workspace = true, public = true }
 tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
 tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
 uuid           = { workspace = true, public = true, features = ["std", "v7"] }
-zerocopy       = { workspace = true, features = ["derive"], public = true }
+zerocopy       = { workspace = true, features = ["alloc", "derive"], public = true }
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
