@@ -36,6 +36,12 @@ export const useSegmentedRows = (
 ): React.ReactNode => {
   const shouldMeasure = variant === "segmented" && !noWrap;
 
+  const items = Children.toArray(content);
+  // Only element children map 1:1 (and in order) to the DOM element nodes the
+  // effect measures; text/whitespace children render to skipped text nodes.
+  const elements = items.filter(isValidElement);
+  const elementCount = elements.length;
+
   // Indices (> 0) that begin a new visual row; empty means a single row.
   const [rowBreaks, setRowBreaks] = useState<number[]>([]);
 
@@ -52,11 +58,36 @@ export const useSegmentedRows = (
 
     const getChildren = () => Array.from(container.children) as HTMLElement[];
 
+    let hasWarnedMismatch = false;
+
     const measure = () => {
-      const items = getChildren();
+      const measured = getChildren();
+
+      // Row roles are applied per element child at render but measured per DOM
+      // element node here; they only align when each child renders exactly one
+      // element. A child that renders `null`, a fragment, or several elements
+      // breaks that and rounds the wrong buttons. Warn (dev only, once).
+      // `process` may be undefined under some bundlers — treat that as non-prod.
+      const isProduction =
+        typeof process !== "undefined" &&
+        // eslint-disable-next-line dot-notation -- bracket required by noPropertyAccessFromIndexSignature
+        process.env["NODE_ENV"] === "production";
+      if (
+        !isProduction &&
+        !hasWarnedMismatch &&
+        measured.length !== elementCount
+      ) {
+        hasWarnedMismatch = true;
+        // eslint-disable-next-line no-console
+        console.warn(
+          `ButtonGroup (segmented): measured ${measured.length} DOM children but received ${elementCount} element children. ` +
+            "Each child should render exactly one element; per-row corner rounding may be misaligned.",
+        );
+      }
+
       const next: number[] = [];
-      for (const [index, item] of items.entries()) {
-        const previous = items[index - 1];
+      for (const [index, item] of measured.entries()) {
+        const previous = measured[index - 1];
         if (previous && item.offsetTop !== previous.offsetTop) {
           next.push(index);
         }
@@ -86,24 +117,37 @@ export const useSegmentedRows = (
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, [ref, shouldMeasure]);
+  }, [ref, shouldMeasure, elementCount]);
 
   if (variant !== "segmented") {
     return content;
   }
 
-  const items = Children.toArray(content);
-  const lastIndex = items.length - 1;
+  // `rowBreaks` are indexed by DOM element (what the effect measures), so index
+  // by element position too — counting text/whitespace children here would
+  // shift every button's row role.
+  const lastElementIndex = elementCount - 1;
+  const rowAttrsByElement = new Map<
+    React.ReactNode,
+    { start: boolean; end: boolean }
+  >();
+  for (const [elementIndex, element] of elements.entries()) {
+    rowAttrsByElement.set(element, {
+      start: elementIndex === 0 || rowBreaks.includes(elementIndex),
+      end:
+        elementIndex === lastElementIndex ||
+        rowBreaks.includes(elementIndex + 1),
+    });
+  }
 
-  return items.map((child, index) => {
-    if (!isValidElement(child)) {
+  return items.map((child) => {
+    const rowAttrs = rowAttrsByElement.get(child);
+    if (!rowAttrs) {
       return child;
     }
-    const isRowStart = index === 0 || rowBreaks.includes(index);
-    const isRowEnd = index === lastIndex || rowBreaks.includes(index + 1);
     return cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-      "data-row-start": isRowStart ? "" : undefined,
-      "data-row-end": isRowEnd ? "" : undefined,
+      "data-row-start": rowAttrs.start ? "" : undefined,
+      "data-row-end": rowAttrs.end ? "" : undefined,
     });
   });
 };
