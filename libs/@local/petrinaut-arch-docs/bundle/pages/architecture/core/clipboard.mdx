@@ -1,0 +1,49 @@
+---
+title: "Clipboard"
+description: "Serialises a selection and pastes it back, resolving name collisions"
+sidebar_order: 1003
+---
+
+> Serialises a selection and pastes it back, resolving name collisions
+
+**Package** `@hashintel/petrinaut-core` · **Layer id** `core.clipboard` · **Files** 4 · **Lines** 353
+
+Declared in [`libs/@hashintel/petrinaut-core/src/clipboard/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/clipboard/README.md).
+
+## Invariants
+
+- Pasted elements are renamed rather than overwriting an existing element of the same name — [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/clipboard/README.md)
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Document types](types) | 3 | — |
+| [Headless core](.) | 2 | — |
+| [Schemas](schemas) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Headless core](.) | 6 | — |
+
+## Notes
+
+# Clipboard
+
+Copy and paste for a subgraph. `serialize.ts` turns a selection into a portable
+payload; `paste.ts` reinserts one, and `deduplicate-name.ts` gives colliding
+elements fresh names so pasting into a net that already uses those names cannot
+silently merge two distinct elements.
+
+Kept in the core rather than in the editor so paste semantics are identical for
+any host, and testable without a canvas.
+
+## Source
+
+4 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut-core/src/clipboard`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/clipboard) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

@@ -1,0 +1,54 @@
+---
+title: "Canvas"
+description: "Renders the net as an interactive graph, with node and arc interaction"
+sidebar_order: 1036
+---
+
+> Renders the net as an interactive graph, with node and arc interaction
+
+**Package** `@hashintel/petrinaut` · **Layer id** `ui.views.canvas` · **Files** 22 · **Lines** 3,270
+
+Declared in [`libs/@hashintel/petrinaut/src/ui/views/SDCPN/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/ui/views/SDCPN/README.md).
+
+## Invariants
+
+- Reads frame state through the execution-frame interface, so the same canvas renders live runs and recordings — [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/ui/views/SDCPN/README.md)
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor state](../../react/state) | 27 | — |
+| [Editor UI](..) | 13 | — |
+| [Headless core](../../core) | 5 | crossed |
+| [Execution frame source](../../react/execution-frame) | 3 | — |
+| [Simulation provider](../../react/simulation) | 3 | — |
+| [Shared hooks](../../react/hooks) | 2 | — |
+| [React bindings](../../react) | 1 | — |
+| [Views](.) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](editor) | 2 | — |
+| [Editor UI](..) | 1 | — |
+
+## Notes
+
+# Canvas
+
+The React Flow-based rendering of a net: places, transitions, arcs, selection,
+dragging, and per-frame visual state during a run.
+
+Frame state arrives through the execution-frame abstraction rather than from the
+simulation provider directly. That is what lets the canvas render an Actual-mode
+recording without knowing it is not a live simulation.
+
+## Source
+
+22 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/ui/views/SDCPN`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/ui/views/SDCPN) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

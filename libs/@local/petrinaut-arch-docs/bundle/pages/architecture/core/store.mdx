@@ -1,0 +1,33 @@
+---
+title: "Readable store"
+description: "Minimal subscribable store primitive the core exposes instead of a framework dependency"
+sidebar_order: 1020
+---
+
+> Minimal subscribable store primitive the core exposes instead of a framework dependency
+
+**Package** `@hashintel/petrinaut-core` · **Layer id** `core.store` · **Files** 2 · **Lines** 43
+
+Declared in [`libs/@hashintel/petrinaut-core/src/store/index.ts`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/store/index.ts).
+
+## Invariants
+
+- Framework-agnostic — consumers adapt it (for example via `useStore`) rather than the core importing React — [index.ts](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/store/index.ts#L5)
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Headless core](.) | 2 | — |
+| [Document handle](handle) | 2 | — |
+| [LSP client](lsp) | 1 | — |
+| [Playback](playback) | 1 | — |
+| [Simulation](simulation) | 1 | — |
+| [Monte Carlo runtime](simulation/monte-carlo) | 1 | — |
+| [Simulation controller](simulation/runtime) | 1 | — |
+
+## Source
+
+2 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut-core/src/store`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/store) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

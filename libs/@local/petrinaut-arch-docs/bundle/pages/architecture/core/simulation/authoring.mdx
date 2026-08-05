@@ -1,0 +1,59 @@
+---
+title: "User-code authoring"
+description: "Compiles and sandboxes the code users write inside a net"
+sidebar_order: 1014
+---
+
+> Compiles and sandboxes the code users write inside a net
+
+**Package** `@hashintel/petrinaut-core` · **Layer id** `core.simulation.authoring` · **Files** 3 · **Lines** 576
+
+Declared in [`libs/@hashintel/petrinaut-core/src/simulation/authoring/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/simulation/authoring/README.md).
+
+## Boundaries
+
+Crossing one of these is never a plain function call.
+
+| Kind | What may not cross | Declared in |
+| --- | --- | --- |
+| `sandbox` | User code is evaluated with restricted globals; it never receives the host scope | [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/simulation/authoring/README.md) |
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Simulation engine](engine) | 2 | — |
+| [Headless core](..) | 1 | — |
+| [Simulation](.) | 1 | — |
+| [Document types](../types) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Simulation engine](engine) | 2 | — |
+| [Headless core](..) | 1 | — |
+| [HIR compiler](../hir) | 1 | — |
+
+## Notes
+
+# User-code authoring
+
+Everything between "the user typed some TypeScript into a transition" and "the
+engine has a callable function".
+
+- `sandbox.ts` — the restricted evaluation context user code runs in.
+- `user-code/` — compiling lambdas, kernels, dynamics and metrics.
+- `scenario/` — compiling a scenario's parameter overrides and initial state.
+
+The engine depends on this layer but not the reverse: compilation happens once
+when a run is built, and the engine then holds only the resulting functions. That
+ordering is what keeps per-step execution free of compiler work.
+
+## Source
+
+3 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut-core/src/simulation/authoring`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/simulation/authoring) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

@@ -1,0 +1,69 @@
+---
+title: "Worker entry points"
+description: "The module entry points hosts instantiate as Web Workers"
+sidebar_order: 1023
+---
+
+> The module entry points hosts instantiate as Web Workers
+
+**Package** `@hashintel/petrinaut-core` · **Layer id** `core.workers` · **Files** 3 · **Lines** 41
+
+Declared in [`libs/@hashintel/petrinaut-core/src/workers/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/workers/README.md).
+
+## Public seams
+
+Import specifiers through which this layer is reachable from outside its package.
+
+- `@hashintel/petrinaut-core/workers/lsp`
+- `@hashintel/petrinaut-core/workers/monte-carlo`
+- `@hashintel/petrinaut-core/workers/simulation`
+
+## Boundaries
+
+Crossing one of these is never a plain function call.
+
+| Kind | What may not cross | Declared in |
+| --- | --- | --- |
+| `worker` | Each file here is the top of a separate thread; only structured-cloneable messages cross | [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/workers/README.md) |
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [LSP worker](lsp/worker) | 2 | — |
+| [Monte Carlo runtime](simulation/monte-carlo) | 2 | — |
+| [Simulation worker](simulation/worker) | 2 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [LSP provider](../react/lsp) | 2 | crossed |
+| [Experiments provider](../react/experiments) | 1 | crossed |
+| [Simulation provider](../react/simulation) | 1 | crossed |
+
+## Notes
+
+# Worker entry points
+
+One file per worker the host can spawn. Each is a thin entry point: it wires the
+worker's message port to the runtime that does the work and holds no logic of its
+own, so the runtimes stay testable on the main thread.
+
+| Entry point      | Runtime it hosts                    |
+| ---------------- | ----------------------------------- |
+| `lsp.ts`         | the language server                 |
+| `simulation.ts`  | frame computation for a single run  |
+| `monte-carlo.ts` | batched runs reporting only metrics |
+
+These are separate export subpaths rather than one worker because a host should
+pay for only the threads it uses — an editor with no experiments open never loads
+the Monte Carlo runtime.
+
+## Source
+
+3 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut-core/src/workers`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/workers) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

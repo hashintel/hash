@@ -1,0 +1,47 @@
+---
+title: "Shared hooks"
+description: "Cross-cutting hooks over the providers — documents, parameters, window lifecycle"
+sidebar_order: 1028
+---
+
+> Cross-cutting hooks over the providers — documents, parameters, window lifecycle
+
+**Package** `@hashintel/petrinaut` · **Layer id** `react.hooks` · **Files** 12 · **Lines** 723
+
+Declared in [`libs/@hashintel/petrinaut/src/react/hooks/index.ts`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/hooks/index.ts).
+
+## Invariants
+
+- Each hook reads from an existing context; none creates state of its own, so hook order never affects ownership — [index.ts](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/hooks/index.ts#L5)
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor state](state) | 10 | — |
+| [Headless core](../core) | 8 | crossed |
+| [React bindings](.) | 6 | — |
+| [LSP provider](lsp) | 1 | — |
+| [Playback provider](playback) | 1 | — |
+| [Simulation provider](simulation) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](../ui/views/editor) | 9 | — |
+| [Experiments provider](experiments) | 3 | — |
+| [Simulation provider](simulation) | 3 | — |
+| [React bindings](.) | 2 | — |
+| [Playback provider](playback) | 2 | — |
+| [Canvas](../ui/views/canvas) | 2 | — |
+| [Editor UI](../ui) | 1 | — |
+| [Views](../ui/views) | 1 | — |
+
+## Source
+
+12 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/react/hooks`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/hooks) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

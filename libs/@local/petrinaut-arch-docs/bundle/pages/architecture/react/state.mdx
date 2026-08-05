@@ -1,0 +1,59 @@
+---
+title: "Editor state"
+description: "Contexts owning editor-session state — active net, selection, settings, undo/redo, read-only mode"
+sidebar_order: 1032
+---
+
+> Contexts owning editor-session state — active net, selection, settings, undo/redo, read-only mode
+
+**Package** `@hashintel/petrinaut` · **Layer id** `react.state` · **Files** 15 · **Lines** 1,212
+
+Declared in [`libs/@hashintel/petrinaut/src/react/state/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/state/README.md).
+
+## Invariants
+
+- Read-only mode is derived here and consumed everywhere, so no component decides for itself whether editing is allowed — [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/state/README.md)
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Headless core](../core) | 7 | crossed |
+| [React bindings](.) | 1 | — |
+| [Simulation provider](simulation) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](../ui/views/editor) | 107 | — |
+| [Canvas](../ui/views/canvas) | 27 | — |
+| [Shared hooks](hooks) | 10 | — |
+| [React bindings](.) | 6 | — |
+| [Execution frame source](execution-frame) | 2 | — |
+| [Editor UI](../ui) | 2 | — |
+| [Experiments provider](experiments) | 1 | — |
+| [LSP provider](lsp) | 1 | — |
+| [Simulation provider](simulation) | 1 | — |
+
+## Notes
+
+# Editor state
+
+The contexts holding state that belongs to an editing session rather than to a
+document or a run: which net is active, what is selected, user settings, the
+undo/redo stack, and whether the editor is currently read-only.
+
+Read-only is the load-bearing piece. Simulate mode locks editing except for an
+allow-list (`simulate-mode-allowed-mutation-names.ts`), and
+`use-is-read-only` / `use-read-only-reason` are the single source of that answer.
+Components ask; they never work it out from mode flags themselves, because a
+component that guesses will eventually guess differently from its neighbour.
+
+## Source
+
+15 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/react/state`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/state) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

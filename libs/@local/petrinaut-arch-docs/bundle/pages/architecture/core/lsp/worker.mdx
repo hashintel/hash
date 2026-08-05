@@ -1,0 +1,63 @@
+---
+title: "LSP worker"
+description: "Hosts the TypeScript language server off the main thread"
+sidebar_order: 1010
+---
+
+> Hosts the TypeScript language server off the main thread
+
+**Package** `@hashintel/petrinaut-core` · **Layer id** `core.lsp.worker` · **Files** 3 · **Lines** 664
+
+Declared in [`libs/@hashintel/petrinaut-core/src/lsp/worker/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/lsp/worker/README.md).
+
+## Public seams
+
+Import specifiers through which this layer is reachable from outside its package.
+
+- `@hashintel/petrinaut-core/workers/lsp`
+
+## Boundaries
+
+Crossing one of these is never a plain function call.
+
+| Kind | What may not cross | Declared in |
+| --- | --- | --- |
+| `worker` | The language server runs in its own thread; the client reaches it only over the documented protocol | [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/lsp/worker/README.md) |
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [LSP client](.) | 7 | — |
+| [Headless core](..) | 6 | — |
+| [Document types](../types) | 2 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [LSP client](.) | 2 | — |
+| [Worker entry points](../workers) | 2 | — |
+
+## Notes
+
+# LSP worker
+
+The language server that backs editing user code inside a net, and the protocol
+the client speaks to it.
+
+- `language-server.worker.ts` — the worker entry point.
+- `create-language-server-worker.ts` — constructs it and wires the port.
+- `protocol.ts` — the request and notification shapes crossing the boundary.
+
+Running the server on its own thread is load-bearing rather than incidental:
+typechecking a net's user code is unbounded work, and on the main thread it would
+compete with the render loop for exactly the frames a user is editing.
+
+## Source
+
+3 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut-core/src/lsp/worker`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/src/lsp/worker) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

@@ -1,0 +1,125 @@
+---
+title: "Playback provider"
+description: "Drives the viewed frame with a requestAnimationFrame loop and applies the per-mode ack policy"
+sidebar_order: 1030
+---
+
+> Drives the viewed frame with a requestAnimationFrame loop and applies the per-mode ack policy
+
+**Package** `@hashintel/petrinaut` · **Layer id** `react.playback` · **Files** 2 · **Lines** 440
+
+Declared in [`libs/@hashintel/petrinaut/src/react/playback/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/playback/README.md).
+
+## Invariants
+
+- Owns the ack/backpressure decision for the whole app — view-only never acks, so nothing is computed while merely scrubbing — [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/playback/README.md)
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Headless core](../core) | 2 | crossed |
+| [Shared hooks](hooks) | 2 | — |
+| [Simulation provider](simulation) | 2 | — |
+| [React bindings](.) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](../ui/views/editor) | 4 | — |
+| [React bindings](.) | 1 | — |
+| [Execution frame source](execution-frame) | 1 | — |
+| [Shared hooks](hooks) | 1 | — |
+
+## Notes
+
+# Playback Module
+
+React context for viewing simulation frames at controlled speeds.
+
+## Overview
+
+PlaybackProvider reads frame readers from SimulationContext and advances them
+using `requestAnimationFrame`. It controls both visualization playback and
+simulation computation via backpressure.
+
+## Play Mode
+
+Determines how simulation computation is handled during playback.
+
+| Mode            | Description                  | maxFramesAhead | batchSize | Ack Behavior                    |
+| --------------- | ---------------------------- | -------------- | --------- | ------------------------------- |
+| `viewOnly`      | Only plays existing frames   | 0              | 0         | Never acks (no computation)     |
+| `computeBuffer` | Computes minimally ahead     | 40             | 10        | Acks when near end of frames    |
+| `computeMax`    | Computes as fast as possible | 10000          | 500       | Acks on every new frame arrival |
+
+- `viewOnly`: Available when simulation is Complete or Error
+- `computeBuffer`/`computeMax`: Available when simulation can still compute
+
+## Playback Speed
+
+```typescript
+const PLAYBACK_SPEEDS = [1, 2, 5, 10, 30, 60, 120, Infinity] as const;
+```
+
+- Finite speeds: Frame advancement based on elapsed time × speed multiplier
+- `Infinity` ("Max"): Jumps directly to latest available frame each tick
+
+## Lifecycle
+
+```text
+                    ┌─────────────┐
+         stop() ───►│   Stopped   │◄─── initial
+                    └──────┬──────┘
+                           │ play()
+                           ▼
+                    ┌─────────────┐
+             ┌─────►│   Playing   │◄─────┐
+             │      └──────┬──────┘      │
+             │             │ pause()     │ play()
+             │             ▼             │
+             │      ┌─────────────┐      │
+             └──────│   Paused    │──────┘
+              stop()└─────────────┘
+```
+
+Playback auto-pauses when reaching the end of available frames (if simulation is complete or in viewOnly mode).
+
+## Integration with SimulationContext
+
+**Reading:**
+
+- `getFrame()`: Access a `SimulationFrameReader` for the current index
+- `dt`: Calculate real-time playback timing
+- `totalFrames`: Know when new frames are available
+- `state`: Determine available play modes
+
+**Writing:**
+
+- `ack(frameNumber)`: Control worker backpressure based on play mode
+- `run()` / `pause()`: Control simulation generation in compute modes
+- `setBackpressure()`: Update worker configuration when play mode changes
+
+## Usage
+
+```tsx
+<SimulationProvider>
+  <PlaybackProvider>
+    <App />
+  </PlaybackProvider>
+</SimulationProvider>;
+
+// In component:
+const playback = use(PlaybackContext);
+playback.play();
+playback.setPlaybackSpeed(10);
+```
+
+## Source
+
+2 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/react/playback`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/playback) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

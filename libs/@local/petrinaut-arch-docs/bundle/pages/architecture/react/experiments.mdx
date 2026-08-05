@@ -1,0 +1,58 @@
+---
+title: "Experiments provider"
+description: "Tracks Monte Carlo experiment handles and their streamed metric results"
+sidebar_order: 1027
+---
+
+> Tracks Monte Carlo experiment handles and their streamed metric results
+
+**Package** `@hashintel/petrinaut` · **Layer id** `react.experiments` · **Files** 2 · **Lines** 535
+
+Declared in [`libs/@hashintel/petrinaut/src/react/experiments/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/experiments/README.md).
+
+## Boundaries
+
+Crossing one of these is never a plain function call.
+
+| Kind | What may not cross | Declared in |
+| --- | --- | --- |
+| `worker` | Only metric aggregates arrive from the experiment worker; frame buffers never reach this layer | [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/experiments/README.md) |
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Shared hooks](hooks) | 3 | — |
+| [Headless core](../core) | 2 | crossed |
+| [Worker entry points](../core/workers) | 1 | crossed |
+| [React bindings](.) | 1 | — |
+| [LSP provider](lsp) | 1 | — |
+| [Editor state](state) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](../ui/views/editor) | 8 | — |
+| [React bindings](.) | 3 | — |
+
+## Notes
+
+# Experiments provider
+
+One `MonteCarloExperiment` handle per running experiment, with its stores
+subscribed into React.
+
+Unlike the simulation provider, this layer never sees frames. The Monte Carlo
+runtime keeps frame buffers inside its worker and posts only aggregates, so what
+arrives here is already reduced — medians, means, percentiles per metric. That is
+why many experiments can run concurrently without memory scaling in the number of
+runs.
+
+## Source
+
+2 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/react/experiments`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/experiments) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.

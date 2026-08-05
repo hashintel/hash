@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["@local/petrinaut-arch-docs#doc:architecture"],
+      "outputs": ["dist/**"]
+    }
+  }
+}

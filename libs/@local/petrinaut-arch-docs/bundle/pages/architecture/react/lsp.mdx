@@ -1,0 +1,59 @@
+---
+title: "LSP provider"
+description: "Exposes the core language client to the editor as React context"
+sidebar_order: 1029
+---
+
+> Exposes the core language client to the editor as React context
+
+**Package** `@hashintel/petrinaut` · **Layer id** `react.lsp` · **Files** 2 · **Lines** 200
+
+Declared in [`libs/@hashintel/petrinaut/src/react/lsp/README.md`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/lsp/README.md).
+
+## Boundaries
+
+Crossing one of these is never a plain function call.
+
+| Kind | What may not cross | Declared in |
+| --- | --- | --- |
+| `thread` | Every completion, hover and diagnostic is an async round trip to the language-server worker | [README.md](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/lsp/README.md) |
+
+## Depends on
+
+Aggregated from real TypeScript imports.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Headless core](../core) | 2 | crossed |
+| [Worker entry points](../core/workers) | 2 | crossed |
+| [React bindings](.) | 2 | — |
+| [Editor state](state) | 1 | — |
+
+## Depended on by
+
+Who reaches into this layer.
+
+| Layer | Imports | Package boundary |
+| --- | --- | --- |
+| [Editor shell](../ui/views/editor) | 14 | — |
+| [Monaco integration](../ui/monaco) | 4 | — |
+| [React bindings](.) | 1 | — |
+| [Experiments provider](experiments) | 1 | — |
+| [Shared hooks](hooks) | 1 | — |
+| [Simulation provider](simulation) | 1 | — |
+
+## Notes
+
+# LSP provider
+
+Wraps the core's language client in a context so Monaco-backed editors can
+request completions, hovers, signature help and diagnostics.
+
+Everything here is asynchronous by necessity — the language server runs on its
+own thread — so the provider models request state rather than returning answers
+directly. Components render the pending state instead of blocking, which is what
+keeps typing responsive while the server catches up.
+
+## Source
+
+2 files resolve to this layer, rooted at [`libs/@hashintel/petrinaut/src/react/lsp`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut/src/react/lsp) — files under a sub-layer's folder belong to that sub-layer instead. The full list is in `architecture.json`.
