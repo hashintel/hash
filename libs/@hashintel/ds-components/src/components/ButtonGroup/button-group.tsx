@@ -1,8 +1,11 @@
-import { Children } from "react";
+"use client";
+
+import { Children, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { styles } from "./button-group.recipe";
+import { useSegmentedRows } from "./use-segmented-rows";
 
 export type ButtonGroupProps = {
   className?: string;
@@ -30,8 +33,17 @@ export const ButtonGroup = ({
   // physical left/right regardless of `reverse`.
   const content = reverse ? Children.toArray(children).reverse() : children;
 
+  // In a wrapped `segmented` group, `:first-child`/`:last-child` only round the
+  // very first/last button; this re-applies the outer radii per visual row.
+  const ref = useRef<HTMLDivElement>(null);
+  useSegmentedRows(ref, variant === "segmented");
+
   return (
-    <div role="group" className={cx(styles({ variant, alignedTo }), className)}>
+    <div
+      ref={ref}
+      role="group"
+      className={cx(styles({ variant, alignedTo }), className)}
+    >
       {content}
     </div>
   );

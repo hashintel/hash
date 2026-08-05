@@ -17,22 +17,30 @@ export const styles = cva({
         gap: "2",
       },
       segmented: {
-        gap: "0",
-        "& > *:not(:last-child)": {
+        columnGap: "0",
+        rowGap: "2",
+        // Square only the sides that abut a sibling on the same row. The
+        // `:first-child`/`:last-child` checks are the pre-JS baseline for the
+        // common single-row case; `data-row-start`/`data-row-end` are set by
+        // `useSegmentedRows` on the first/last button of each wrapped row so
+        // the outer corners stay rounded there too.
+        "& > *:not(:last-child):not([data-row-end])": {
           marginRight: "[-1px]",
           borderTopRightRadius: "[0]",
           borderBottomRightRadius: "[0]",
         },
-        "& > *:not(:first-child)": {
+        "& > *:not(:first-child):not([data-row-start])": {
           borderTopLeftRadius: "[0]",
           borderBottomLeftRadius: "[0]",
         },
         // Solid buttons share an opaque fill, so an overlapping border is
         // invisible between two of them — swap the -1px overlap for a thin gap
-        // so adjacent solids stay visually distinct.
-        "& > [data-variant='solid']:has(+ [data-variant='solid'])": {
-          marginRight: "[2px]",
-        },
+        // so adjacent solids on the same row stay visually distinct. Skipped at
+        // a row end, where the next solid sits on the following line.
+        "& > [data-variant='solid']:not([data-row-end]):has(+ [data-variant='solid'])":
+          {
+            marginRight: "[2px]",
+          },
         // Raise the hovered/focused button so its full border and focus ring
         // draw over the neighbour whose border it overlaps.
         "& > *:hover, & > *:focus-visible": {
