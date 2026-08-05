@@ -11,8 +11,9 @@ export const bannerTones = [
 export const bannerVariants = ["fill", "fillLight", "outline"] as const;
 
 /**
- * A horizontal inline notice laid out as a flex row of three items: a leading
- * icon, a content column (title / description / custom children, stacked), and a
+ * A horizontal inline notice laid out as two nested flex rows: the outer row is
+ * the leading icon plus a `rest` layer, and that `rest` layer is itself a row of
+ * a content column (title / description / custom children, stacked) and a
  * trailing actions region. The icon and actions align to the top; the content
  * column centres (which, being the tallest item, usually just fills the row).
  * Column gaps come from the icon's right and the actions' left margins, so an
@@ -40,6 +41,7 @@ export const styles = sva({
     "root",
     "iconWrap",
     "defaultIcon",
+    "rest",
     "message",
     "title",
     "description",
@@ -70,6 +72,14 @@ export const styles = sva({
     // Hook applied by the component to the tone's default icon only (not named
     // or custom icons); tone variants add per-tone tweaks to it.
     defaultIcon: {},
+    // Inner flex layer beside the icon: content column + trailing region. Fills
+    // the width left of the icon; `minWidth: 0` lets its content shrink/truncate.
+    rest: {
+      display: "flex",
+      alignItems: "center",
+      flex: "1",
+      minWidth: "0",
+    },
     message: {
       flex: "1",
       minWidth: "0",
@@ -124,6 +134,9 @@ export const styles = sva({
             "[var(--banner-dismiss-hover-color, color-mix(in oklab, var(--banner-dismiss-color, var(--banner-text-color)) 70%, black))]",
           boxShadow:
             "[inset 0 0 0 100px var(--banner-dismiss-hover-bg, transparent)]",
+        },
+        "&:focus-visible": {
+          outlineOffset: "[-2px]",
         },
       },
     },
@@ -187,7 +200,8 @@ export const styles = sva({
           // light variants' darken-toward-black (which would dim it on the fill).
           "--banner-dismiss-hover-color": "var(--colors-fg-on-solid)",
           "--banner-dismiss-hover-bg": "var(--colors-white-a20)",
-          // The trailing action buttons render as light `subtle` Buttons meant
+          // Default `Banner.ActionButton`s (tagged `banner-action-button`; an
+          // explicit `variant` opts out) render as light `subtle` Buttons meant
           // for a white page — invisible on a saturated fill. Restyle them (from
           // the root, which carries the variant) as a crisp surface pill with the
           // tone's solid colour as the label, so the label inherits the same
@@ -196,15 +210,16 @@ export const styles = sva({
           // label in light, dark pill + light label in dark — staying legible in
           // both. Hover shifts the pill a step; the focus ring is the banner text
           // colour, offset onto the fill so it stands off the pill.
-          "& [data-banner-actions] button": {
+          "& [data-banner-actions] .banner-action-button": {
             backgroundColor: "neutral.s00",
             borderColor: "[transparent]",
             color: "var(--banner-solid)",
-            // A white pill can't lighten, so hover deepens the label toward
-            // black (and nudges the pill a hair) — raising contrast on
-            // interaction rather than dipping the lowest-headroom tones below AA.
+            // A white pill can't lighten, so hover shifts it a touch darker and
+            // deepens the label toward black — raising contrast on interaction
+            // rather than dipping the lowest-headroom tones below AA. (Caution
+            // keeps its own lighter hover, set in its compound below.)
             "&:not([aria-disabled=true]):hover": {
-              backgroundColor: "neutral.s20",
+              backgroundColor: "neutral.s30",
               color: "[color-mix(in srgb, var(--banner-solid) 80%, black)]",
               borderColor: "[transparent]",
             },
@@ -214,11 +229,22 @@ export const styles = sva({
             },
           },
         },
+        // The dismiss × sits on the fill, so recolour its focus ring to the
+        // banner text colour (white on the dark fills, black on caution's
+        // yellow); the Button's near-black default is invisible on the fill. The
+        // ring is inset (negative offset) so it sits inside the round button
+        // rather than bleeding outward onto the fill.
+        dismiss: {
+          "& button:focus-visible": {
+            outlineColor: "var(--banner-text-color)",
+          },
+        },
       },
       fillLight: {
         root: {
           backgroundColor: "colorPalette.bgSolid.surface.active",
           borderColor: "colorPalette.bd.subtle",
+          "--banner-dismiss-hover-bg": "var(--colors-neutral-a30)",
         },
       },
       outline: {
@@ -293,7 +319,7 @@ export const styles = sva({
           "--banner-text-color": "var(--colors-black)",
           "--banner-dismiss-hover-color": "var(--colors-black)",
           "--banner-dismiss-hover-bg": "var(--colors-black-a10)",
-          "& [data-banner-actions] button": {
+          "& [data-banner-actions] .banner-action-button": {
             backgroundColor: "white",
             color: "var(--banner-text-color)",
             "&:not([aria-disabled=true]):hover": {

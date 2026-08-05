@@ -1,7 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Avatar } from "../Avatar/avatar";
-import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Banner } from "./banner";
 import { bannerTones, bannerVariants } from "./banner.recipe";
@@ -52,14 +51,6 @@ const label = css({
   textTransform: "capitalize",
 });
 
-// The trailing action button matches the design's neutral secondary treatment,
-// regardless of banner tone.
-const ActionButton = ({ children }: { children: string }) => (
-  <Button size="xs" variant="subtle" tone="neutral">
-    {children}
-  </Button>
-);
-
 /**
  * The full banner: tone icon, title, description, two actions, and a dismiss
  * button. Used both in the tone/variant matrix and as one of the content
@@ -83,8 +74,8 @@ const KitchenSinkBanner = ({
       Describe what can be done about it here.
     </Banner.Description>
     <Banner.Actions>
-      <ActionButton>Approve</ActionButton>
-      <ActionButton>Dismiss</ActionButton>
+      <Banner.ActionButton>Approve</Banner.ActionButton>
+      <Banner.ActionButton>Dismiss</Banner.ActionButton>
     </Banner.Actions>
   </Banner>
 );
@@ -150,8 +141,8 @@ export const Content: Story = () => (
     <Example name="Actions only">
       <Banner tone="brand" variant="fillLight" icon={false}>
         <Banner.Actions>
-          <ActionButton>Accept</ActionButton>
-          <ActionButton>Decline</ActionButton>
+          <Banner.ActionButton>Accept</Banner.ActionButton>
+          <Banner.ActionButton>Decline</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -160,8 +151,8 @@ export const Content: Story = () => (
       <Banner tone="brand" variant="fillLight" icon>
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
-          <ActionButton>Open</ActionButton>
-          <ActionButton>Go</ActionButton>
+          <Banner.ActionButton>Open</Banner.ActionButton>
+          <Banner.ActionButton>Go</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -198,8 +189,8 @@ export const Content: Story = () => (
           Banner.Description, Banner.Actions, etc.
         </div>
         <Banner.Actions>
-          <ActionButton>Open</ActionButton>
-          <ActionButton>Go</ActionButton>
+          <Banner.ActionButton>Open</Banner.ActionButton>
+          <Banner.ActionButton>Go</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -226,7 +217,7 @@ export const Content: Story = () => (
           Any node — here an Avatar — can be passed as a custom leading icon.
         </Banner.Description>
         <Banner.Actions>
-          <ActionButton>Open</ActionButton>
+          <Banner.ActionButton>Open</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -240,10 +231,10 @@ export const Content: Story = () => (
       >
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
-          <ActionButton>Approve</ActionButton>
-          <ActionButton>Decline</ActionButton>
-          <ActionButton>Snooze</ActionButton>
-          <ActionButton>Details</ActionButton>
+          <Banner.ActionButton>Approve</Banner.ActionButton>
+          <Banner.ActionButton>Decline</Banner.ActionButton>
+          <Banner.ActionButton>Snooze</Banner.ActionButton>
+          <Banner.ActionButton>Details</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -260,10 +251,8 @@ export const Content: Story = () => (
         </Banner.Title>
         <Banner.Description>{longText}</Banner.Description>
         <Banner.Actions>
-          <ActionButton>Approve</ActionButton>
-          <ActionButton>Decline</ActionButton>
-          <ActionButton>Snooze</ActionButton>
-          <ActionButton>Details</ActionButton>
+          <Banner.ActionButton>Approve</Banner.ActionButton>
+          <Banner.ActionButton>Decline</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>
@@ -281,7 +270,7 @@ export const Content: Story = () => (
           Describe what can be done about it here.
         </Banner.Description>
         <Banner.Actions>
-          <ActionButton>Open</ActionButton>
+          <Banner.ActionButton>Open</Banner.ActionButton>
         </Banner.Actions>
       </Banner>
     </Example>

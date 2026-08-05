@@ -2,7 +2,7 @@ import { Children, isValidElement } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { Button } from "../Button/button";
+import { Button, type ButtonProps } from "../Button/button";
 import { Icon, type IconName } from "../Icon/icon";
 import { styles } from "./banner.recipe";
 
@@ -101,14 +101,39 @@ export const BannerActions = ({
   children: React.ReactNode;
 }) => {
   const { actions } = styles();
-  // `data-banner-actions` lets the root recipe reach these buttons per variant
-  // (the solid `fill` restyles them), since this sub-component has no variant.
+  // `data-banner-actions` scopes the region so the root recipe can reach the
+  // default action buttons within it per variant (the solid `fill` restyles the
+  // `banner-action-button`-tagged ones), since this sub-component has no variant.
   return (
     <div data-banner-actions className={cx(actions, className)}>
       {children}
     </div>
   );
 };
+
+/**
+ * A trailing action button for a Banner. Takes the same props as `Button`, but
+ * defaults to the banner's compact secondary treatment (`size="xs"`,
+ * `variant="subtle"`, neutral tone). When the consumer leaves `variant` unset,
+ * the button is tagged with the `banner-action-button` class so the solid `fill`
+ * variant can restyle it to read on the fill; passing an explicit `variant` opts
+ * out of that override and renders a plain Button with that variant.
+ */
+export const BannerActionButton = ({
+  variant,
+  className,
+  ...props
+}: ButtonProps) => (
+  <Button
+    size="xs"
+    {...(props as ButtonProps)}
+    variant={variant ?? "subtle"}
+    className={cx(
+      variant === undefined ? "banner-action-button" : undefined,
+      className,
+    )}
+  />
+);
 
 export const BannerRoot = ({
   className,
@@ -142,24 +167,26 @@ export const BannerRoot = ({
           {iconNode}
         </span>
       ) : null}
-      <div className={classes.message}>{body}</div>
-      {hasTrailing ? (
-        <div className={classes.trailing}>
-          {actions}
-          {showDismiss ? (
-            <span className={classes.dismiss}>
-              <Button
-                variant="linkSubtle"
-                tone="neutral"
-                size="md"
-                iconName="close"
-                aria-label="Dismiss"
-                onClick={dismissible.onDismiss}
-              />
-            </span>
-          ) : null}
-        </div>
-      ) : null}
+      <div className={classes.rest}>
+        <div className={classes.message}>{body}</div>
+        {hasTrailing ? (
+          <div className={classes.trailing}>
+            {actions}
+            {showDismiss ? (
+              <span className={classes.dismiss}>
+                <Button
+                  variant="linkSubtle"
+                  tone="neutral"
+                  size="md"
+                  iconName="close"
+                  aria-label="Dismiss"
+                  onClick={dismissible.onDismiss}
+                />
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -168,4 +195,5 @@ export const Banner = Object.assign(BannerRoot, {
   Title: BannerTitle,
   Description: BannerDescription,
   Actions: BannerActions,
+  ActionButton: BannerActionButton,
 });
