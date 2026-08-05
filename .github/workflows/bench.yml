@@ -10,8 +10,10 @@ env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
-
-  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+  # The legacy Vault, still holding `aws/creds/dev-deploy`. Inline rather than a
+  # variable because it goes away once those credentials move; `vars.VAULT_ADDR`
+  # is the per-environment one and would resolve to the wrong instance here.
+  VAULT_ADDR: https://vault.blockprotocol.org
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -50,8 +52,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       - name: Determine changed packages
@@ -96,8 +98,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -137,8 +139,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -216,8 +218,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -316,8 +318,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           sccache: false # sccache is already running in the background
 
       - name: Prune repository

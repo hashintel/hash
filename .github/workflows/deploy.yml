@@ -56,8 +56,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       # Service catalog: the single source of truth for build/manifest/deploy.
@@ -242,9 +242,13 @@ jobs:
     if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     # The environment lands in the OIDC token as a claim the Vault role binds,
-    # and `main` only accepts the main branch. Picking the role in this
-    # expression is therefore no longer self-asserted.
-    environment: ${{ github.event_name == 'push' && 'main' || 'pull-request' }}
+    # and `main` only accepts the main branch. Picking the tier here is
+    # therefore not self-asserted.
+    #
+    # Keyed on the ref rather than the event, so a workflow_dispatch on main —
+    # which this workflow treats as a publishing run elsewhere — gets the same
+    # tier as a push, and a dispatch on any other branch does not.
+    environment: ${{ github.ref == 'refs/heads/main' && 'main' || 'pull-request' }}
     permissions:
       id-token: write
       contents: read
@@ -252,19 +256,19 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        env:
-          # Must stay in sync with the job's `environment:` above — the Vault
-          # role binds that value as a claim.
-          VAULT_TIER: ${{ github.event_name == 'push' && 'main' || 'pull-request' }}
         with:
-          url: ${{ vars.VAULT_STAGE_ADDR }}
+          # Address and Access credentials come from the job's environment:
+          # `pull-request` resolves to the staging Vault, `main` to production.
+          # Each instance holds only its own tier's token, so the role name and
+          # the path carry no tier — the instance is the tier.
+          url: ${{ vars.VAULT_ADDR }}
           method: jwt
-          role: ci-hash-sentry-${{ env.VAULT_TIER }}
+          role: ci-hash-sentry
           extraHeaders: |
-            CF-Access-Client-Id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-            CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+            CF-Access-Client-Id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           secrets: |
-            ci/data/sentry/${{ env.VAULT_TIER }} auth_token | SENTRY_AUTH_TOKEN
+            ci/data/sentry/sourcemaps auth_token | SENTRY_AUTH_TOKEN
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -274,8 +278,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_CI_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_CI_CLIENT_SECRET }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
