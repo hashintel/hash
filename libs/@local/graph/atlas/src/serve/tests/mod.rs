@@ -447,28 +447,44 @@ fn store_identities(generation: &Generation) {
     let edges = entity_table::<EdgeRowId>(rows_of(&files.edge_identities.name), EDGE_SEED);
 
     rewrite_identities(
-        generation.path_of(&files.ontology_identities.name),
+        &generation.path_of(&files.ontology_identities.name),
         &ontology,
     );
-    rewrite_identities(generation.path_of(&files.node_identities.name), &nodes);
-    rewrite_identities(generation.path_of(&files.edge_identities.name), &edges);
+    rewrite_identities(&generation.path_of(&files.node_identities.name), &nodes);
+    rewrite_identities(&generation.path_of(&files.edge_identities.name), &edges);
 }
 
 /// Overwrites one identity artifact with a hand-built table.
 fn rewrite_identities<R, I>(
-    path: camino::Utf8PathBuf,
+    path: &camino::Utf8Path,
     table: &crate::salt::fit::prepare::identity::IdentityTable<R, I>,
 ) where
     R: Row,
     I: Key,
 {
     let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
-    let mut file = std::fs::File::create(path).expect("the identity artifact rewrites");
+    let mut file = recreate_writable(path);
     let empty = <I::Payload as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
         .expect("every payload type admits the empty byte string");
     let _digest = table
         .write_into(core::iter::repeat_n(empty, rows), &mut file)
         .expect("the identities should write");
+}
+
+/// Reopens a published artifact for rewriting.
+///
+/// Sealing dropped the write permission, so a tamper lifts it before truncating the file.
+fn recreate_writable(path: &camino::Utf8Path) -> std::fs::File {
+    let mut permissions = std::fs::metadata(path)
+        .expect("the published artifact should stat")
+        .permissions();
+    #[expect(
+        clippy::permissions_set_readonly_false,
+        reason = "tests rewrite their own scratch files"
+    )]
+    permissions.set_readonly(false);
+    std::fs::set_permissions(path, permissions).expect("the permissions should set");
+    std::fs::File::create(path).expect("the published artifact rewrites")
 }
 
 /// The suite's wire secret, exactly the codec's key width, with an arbitrary value.

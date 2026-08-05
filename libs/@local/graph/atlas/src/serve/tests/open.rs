@@ -15,7 +15,7 @@ use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
     Atlas, EDGE_SEED, OpenAtlasError, entity_id_of, fit_fixture, fixture_type_url,
-    rewrite_identities, store_identities, test_open_options,
+    recreate_writable, rewrite_identities, store_identities, test_open_options,
 };
 use crate::{
     dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -43,7 +43,8 @@ impl Saved {
     }
 
     fn restore(&self) {
-        std::fs::write(&self.path, &self.bytes).expect("the artifact restores");
+        let mut file = recreate_writable(&self.path);
+        file.write_all(&self.bytes).expect("the artifact restores");
     }
 }
 
@@ -54,7 +55,7 @@ fn shorten_entities<R: Row>(path: &Utf8PathBuf, rows: u64, seed: u8) {
         let row = u8::try_from(row).expect("fixture row counts fit u8");
         table.push(entity_id_of(seed + row));
     }
-    rewrite_identities(path.clone(), &table);
+    rewrite_identities(path, &table);
 }
 
 /// Rewrites the ontology identity artifact with `rows` fixture type uuids.
@@ -68,12 +69,12 @@ fn shorten_ontology(path: &Utf8PathBuf, rows: u64) {
             OntologyTypeUuid::from_url(&url).into_uuid(),
         ));
     }
-    rewrite_identities(path.clone(), &table);
+    rewrite_identities(path, &table);
 }
 
 /// Rewrites the endpoint column with `pairs`, dropping whatever the fixture published beyond it.
 fn shorten_endpoints(path: &Utf8PathBuf, pairs: &[[NodeRowId; 2]]) {
-    let file = std::fs::File::create(path).expect("the endpoint artifact rewrites");
+    let file = recreate_writable(path);
     let mut writer = SizedArrayWriter::new(
         file,
         ArrayVariant::U64Le,
@@ -96,7 +97,7 @@ fn shorten_endpoints(path: &Utf8PathBuf, pairs: &[[NodeRowId; 2]]) {
 /// checks - paired runs, the domain-bound column dimension, one slot per edge per direction - and
 /// disagrees with the columns on the node domain alone.
 fn respan_adjacency(path: &Utf8PathBuf, rows: usize, endpoints: &[[NodeRowId; 2]]) {
-    let file = std::fs::File::create(path).expect("the adjacency artifact rewrites");
+    let file = recreate_writable(path);
     let _digest = Adjacency::build(rows, endpoints)
         .write_into(file)
         .expect("the adjacency should write");
@@ -126,7 +127,7 @@ fn retarget_quad_root(path: &Utf8PathBuf, points: u32) {
     let length = u32::try_from(run.end - run.start).expect("fixture runs fit u32");
     nodes[0] = Node::new(root.children(), run.start, length, points);
 
-    let file = std::fs::File::create(path).expect("the quad artifact rewrites");
+    let file = recreate_writable(path);
     let mut file = std::io::BufWriter::new(file);
     crate::file::quad::write::write_regions(&nodes, &sets, &mut file)
         .expect("the quad regions write");
@@ -174,7 +175,7 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
         )
     };
 
-    let file = std::fs::File::create(path).expect("the postings artifact rewrites");
+    let file = recreate_writable(path);
     let mut file = std::io::BufWriter::new(file);
     crate::file::postings::write::write_regions(
         Regions {
@@ -196,7 +197,7 @@ fn retarget_postings_points(path: &Utf8PathBuf, points: u64) {
 /// The values do not matter to the check under test - `open` compares lengths - and ascending keeps
 /// the file a plausible permutation prefix rather than a shape no producer would write.
 fn shorten_u32_column(path: &Utf8PathBuf, rows: u64) {
-    let file = std::fs::File::create(path).expect("the column artifact rewrites");
+    let file = recreate_writable(path);
     let mut writer = SizedArrayWriter::new(file, ArrayVariant::U32Le, &[Dim::new(rows)])
         .expect("the header writes");
     for row in 0..rows {

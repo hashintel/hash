@@ -39,8 +39,9 @@ use super::{
     wire_columns,
 };
 use crate::{
+    dataset::postgres::id::ArchivedEntityId,
     file::generation::Generation,
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId},
     morton::{Depth, MortonCell, MortonKey},
     salt::wire::Mode,
     serve::{
@@ -263,6 +264,14 @@ async fn two_worlds_share_every_visible_row_layout() {
         ordered_endpoints(visible, visible_links),
         ordered_endpoints(superset, visible_links),
         "the visible link rows keep their recorded endpoint order",
+    );
+
+    // A row number is each world's own numbering, so the endpoints are compared again as the node
+    // identities they name: the two worlds must draw each link between the same two entities.
+    assert_eq!(
+        endpoint_identities(visible, visible_links),
+        endpoint_identities(superset, visible_links),
+        "the visible link rows join different entities across the two worlds",
     );
 
     // An appended row sitting at an unoccupied coordinate would perturb a cell no visible row
@@ -575,6 +584,84 @@ async fn the_two_worlds_deliver_the_same_ego_graphs() {
                 "{at} resolves a different fly-to or ego graph",
             );
         }
+    }
+}
+
+/// The endpoints of link rows `0..links`, in row order, as the node identities they name.
+fn endpoint_identities(atlas: &Atlas, links: usize) -> Vec<[ArchivedEntityId; 2]> {
+    atlas
+        .endpoints
+        .view()
+        .iter()
+        .take(links)
+        .map(|pair| {
+            pair.map(|row| {
+                atlas
+                    .node_ids
+                    .id(row)
+                    .expect("a visible endpoint carries a published identity")
+            })
+        })
+        .collect()
+}
+
+/// One link identity resolves to one link row in both worlds, and a withheld link to neither.
+///
+/// The link half of the pairing every comparison above rests on. Link rows are compared by index,
+/// which is the caller's own picture only if index and identity agree across the two worlds, and
+/// two assembled worlds number their rows independently. The published identity table is what
+/// joins them, and this reads it in both directions. Each row yields its identity, and that
+/// identity resolves back to a row through the lookup a translate request runs. The withheld rows
+/// are the other half, and their identities reach no row of the visible world at all. The shared
+/// prefix therefore agrees on identities rather than on a count of rows that happen to line up.
+///
+/// What this case cannot do is establish the pairing from nothing. The fixture's identity rewrite
+/// keys row `r` of each world to the same derived identity, so identity follows the row number
+/// here and the two agree because both datasets stream the same shared prefix in the same order.
+/// What the case does catch is that prefix moving. A link row that shifts in the superset world
+/// leaves each surviving row naming different endpoints, which the endpoint identities in
+/// [`two_worlds_share_every_visible_row_layout`] read directly. The stronger statement needs a
+/// fixture whose identities arrive with the dataset rather than after the publish.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn one_link_identity_resolves_to_one_link_row_in_both_worlds() {
+    let worlds = Worlds::publish("comparator-link-identities").await;
+    let links_of = |atlas: &Atlas| {
+        u32::try_from(atlas.endpoints.view().len()).expect("fixture link counts fit u32")
+    };
+    let visible_links = links_of(&worlds.visible);
+
+    for row in 0..visible_links {
+        let link = EdgeRowId::from_u32(row);
+        let identity = worlds
+            .visible
+            .edge_ids
+            .id(link)
+            .expect("a visible link row carries a published identity");
+        assert_eq!(
+            worlds.superset.edge_ids.id(link),
+            Some(identity),
+            "link row {row} carries a different identity across the two worlds",
+        );
+        for atlas in [&worlds.visible, &worlds.superset] {
+            assert_eq!(
+                atlas.edge_ids.row_of(identity).map(Id::as_u32),
+                Some(row),
+                "the identity of link row {row} resolves elsewhere in one of the two worlds",
+            );
+        }
+    }
+
+    for row in visible_links..links_of(&worlds.superset) {
+        let identity = worlds
+            .superset
+            .edge_ids
+            .id(EdgeRowId::from_u32(row))
+            .expect("an appended link row carries a published identity");
+        assert!(
+            worlds.visible.edge_ids.row_of(identity).is_none(),
+            "appended link row {row} resolves to a row of the visible world",
+        );
     }
 }
 
