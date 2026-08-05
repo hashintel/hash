@@ -8,7 +8,7 @@ export const bannerTones = [
   "success",
 ] as const;
 
-export const bannerVariants = ["fill", "fillLight", "outline"] as const;
+export const bannerVariants = ["solid", "soft", "outline"] as const;
 
 export const styles = sva({
   slots: [
@@ -141,7 +141,7 @@ export const styles = sva({
       },
     },
     variant: {
-      fill: {
+      solid: {
         root: {
           backgroundColor: "var(--banner-solid)",
           borderColor: "var(--banner-solid)",
@@ -169,7 +169,7 @@ export const styles = sva({
           },
         },
       },
-      fillLight: {
+      soft: {
         root: {
           backgroundColor: "colorPalette.bgSolid.surface.active",
           borderColor: "colorPalette.bd.subtle",
@@ -194,7 +194,7 @@ export const styles = sva({
   compoundVariants: [
     {
       tone: "neutral",
-      variant: "fill",
+      variant: "solid",
       css: {
         root: {
           "--banner-solid": "var(--colors-neutral-s120)",
@@ -204,12 +204,12 @@ export const styles = sva({
     },
     {
       tone: "brand",
-      variant: "fill",
+      variant: "solid",
       css: { root: { "--banner-solid": "var(--colors-blue-s110)" } },
     },
     {
       tone: "error",
-      variant: "fill",
+      variant: "solid",
       css: {
         root: { "--banner-solid": "var(--colors-red-s110)" },
         defaultIcon: { color: "var(--banner-text-color)" },
@@ -217,12 +217,12 @@ export const styles = sva({
     },
     {
       tone: "success",
-      variant: "fill",
+      variant: "solid",
       css: { root: { "--banner-solid": "var(--colors-green-s110)" } },
     },
     {
       tone: "caution",
-      variant: "fill",
+      variant: "solid",
       css: {
         root: {
           "--banner-solid": "var(--colors-yellow-s100)",
@@ -242,14 +242,14 @@ export const styles = sva({
     },
     {
       tone: "neutral",
-      variant: "fillLight",
+      variant: "soft",
       css: {
         root: { "--banner-dismiss-hover-color": "var(--colors-fg-max)" },
       },
     },
     {
       tone: ["error", "success", "brand"],
-      variant: "fillLight",
+      variant: "soft",
       css: {
         root: {
           "--banner-dismiss-color": "var(--colors-color-palette-fg-body)",
@@ -259,6 +259,6 @@ export const styles = sva({
   ],
   defaultVariants: {
     tone: "neutral",
-    variant: "fillLight",
+    variant: "soft",
   },
 });

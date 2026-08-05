@@ -8,7 +8,7 @@ import { styles } from "./banner.recipe";
 
 import type { Tone } from "../../util/form-shared";
 
-type BannerVariant = "fill" | "fillLight" | "outline";
+type BannerVariant = "solid" | "soft" | "outline";
 
 /** The default leading icon shown when `icon` is `true`, keyed by tone. */
 const defaultToneIcon: Record<Tone, IconName> = {
@@ -29,7 +29,7 @@ export type BannerRootProps = {
    */
   icon: boolean | { iconName: IconName } | { custom: React.ReactNode };
   /**
-   * `fill` is a solid tone fill with white text; `fillLight` tints the surface;
+   * `solid` is a saturated tone fill with white text; `soft` tints the surface;
    * `outline` sits on an opaque surface.
    */
   variant?: BannerVariant;
@@ -140,7 +140,7 @@ export const BannerRoot = ({
   children,
   tone,
   icon,
-  variant = "fillLight",
+  variant = "soft",
   dismissible,
   ...ariaAttributes
 }: BannerRootProps) => {

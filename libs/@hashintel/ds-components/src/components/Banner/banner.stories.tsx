@@ -121,17 +121,17 @@ export const Default: Story = () => (
   </div>
 );
 
-/** The range of content a banner can hold — all in the brand fillLight variant. */
+/** The range of content a banner can hold — all in the brand soft variant. */
 export const Content: Story = () => (
   <div className={column}>
     <Example name="Title only">
-      <Banner tone="brand" variant="fillLight" icon={false}>
+      <Banner tone="brand" variant="soft" icon={false}>
         <Banner.Title>Summarise what happened</Banner.Title>
       </Banner>
     </Example>
 
     <Example name="Description only">
-      <Banner tone="brand" variant="fillLight" icon={false}>
+      <Banner tone="brand" variant="soft" icon={false}>
         <Banner.Description>
           Describe what can be done about it here.
         </Banner.Description>
@@ -139,7 +139,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Actions only">
-      <Banner tone="brand" variant="fillLight" icon={false}>
+      <Banner tone="brand" variant="soft" icon={false}>
         <Banner.Actions>
           <Banner.ActionButton>Accept</Banner.ActionButton>
           <Banner.ActionButton>Decline</Banner.ActionButton>
@@ -148,7 +148,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Title + icon + actions">
-      <Banner tone="brand" variant="fillLight" icon>
+      <Banner tone="brand" variant="soft" icon>
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
           <Banner.ActionButton>Open</Banner.ActionButton>
@@ -158,7 +158,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Description + icon">
-      <Banner tone="brand" variant="fillLight" icon>
+      <Banner tone="brand" variant="soft" icon>
         <Banner.Description>
           Describe what can be done about it here.
         </Banner.Description>
@@ -166,13 +166,13 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Kitchen sink">
-      <KitchenSinkBanner tone="brand" variant="fillLight" />
+      <KitchenSinkBanner tone="brand" variant="soft" />
     </Example>
 
     <Example name="Custom children">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon={false}
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -198,7 +198,7 @@ export const Content: Story = () => (
     <Example name="Custom icon (Avatar)">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon={{
           custom: (
             <Avatar
@@ -216,7 +216,7 @@ export const Content: Story = () => (
     <Example name="Custom icon (Avatar) + content">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon={{
           custom: (
             <Avatar
@@ -241,7 +241,7 @@ export const Content: Story = () => (
     <Example name="Title + 4 actions">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -258,7 +258,7 @@ export const Content: Story = () => (
     <Example name="Extra long content">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
@@ -276,7 +276,7 @@ export const Content: Story = () => (
     <Example name="Max width 400px">
       <Banner
         tone="brand"
-        variant="fillLight"
+        variant="soft"
         icon
         dismissible={{ dismissible: true, onDismiss: noop }}
         className={css({ maxWidth: "[400px]" })}
