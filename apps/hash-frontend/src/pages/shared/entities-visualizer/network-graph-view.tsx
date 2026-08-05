@@ -73,9 +73,9 @@ import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 import {
+  noColor,
   resolveTypeColor,
   typeColorRanks,
-  unassignedTypeColor,
 } from "./shared/type-colors";
 
 import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
@@ -331,7 +331,7 @@ const hashSeed = (seed: number | string): number => {
  * Picks which of a node's matched queried types drives its colour. Rather than
  * always taking the first (most-common) match, it samples one at random —
  * deterministically seeded by the node id via {@link hashSeed} so the choice is
- * stable per node. Types that resolve to grey ({@link unassignedTypeColor}) are
+ * stable per node. Types that resolve to grey ({@link noColor}) are
  * de-prioritised: a grey type is only ever chosen when the node has no
  * coloured match. Returns the index into `colors` (aligned to `coloredTypeIds`),
  * or `undefined` when the node matches none of the queried types.
@@ -345,7 +345,7 @@ const pickTypeIndex = (
     return undefined;
   }
   const coloured = typeIndices.filter(
-    (index) => (colors[index] ?? unassignedTypeColor) !== unassignedTypeColor,
+    (index) => (colors[index] ?? noColor) !== noColor,
   );
   const pool = coloured.length > 0 ? coloured : typeIndices;
   return pool[hashSeed(seed) % pool.length];
@@ -507,7 +507,7 @@ export const NetworkGraphView = ({
         index: ranks.get(type.entityTypeId) ?? Infinity,
         overrides: typeColorOverrides,
       });
-      if (color !== unassignedTypeColor) {
+      if (color !== noColor) {
         result.push({ entityTypeId: type.entityTypeId, color });
       }
     }
@@ -545,9 +545,9 @@ export const NetworkGraphView = ({
     ): string => {
       const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
-        return unassignedTypeColor;
+        return noColor;
       }
-      return coloredTypeColors[index] ?? unassignedTypeColor;
+      return coloredTypeColors[index] ?? noColor;
     },
     [coloredTypeColors],
   );
@@ -635,14 +635,11 @@ export const NetworkGraphView = ({
       for (const index of typeIndices ?? []) {
         const entityTypeId = coloredTypeIds[index];
         if (entityTypeId !== undefined) {
-          addChip(
-            entityTypeId,
-            coloredTypeColors[index] ?? unassignedTypeColor,
-          );
+          addChip(entityTypeId, coloredTypeColors[index] ?? noColor);
         }
       }
       if (typeId !== undefined) {
-        addChip(typeId, unassignedTypeColor);
+        addChip(typeId, noColor);
       }
       return chips;
     },
@@ -1424,7 +1421,7 @@ export const NetworkGraphView = ({
           const icon = typeIconFor(typeId);
           return {
             label: resolveTypeMeta(typeId)?.title ?? typeId,
-            color: unassignedTypeColor,
+            color: noColor,
             ...(icon !== undefined ? { icon } : {}),
           };
         });

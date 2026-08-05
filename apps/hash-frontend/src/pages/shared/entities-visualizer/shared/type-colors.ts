@@ -10,13 +10,18 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
  */
 
 /** The most distinct colours offered, and the number auto-assigned by default. */
-export const MAX_TYPE_COLORS = 20;
+export const MAX_TYPE_COLORS = 17;
 
 /** The selectable palette — the first {@link MAX_TYPE_COLORS} Brandmark colours. */
 export const typeColorPalette = brandmarkScale(MAX_TYPE_COLORS);
 
-/** Shown for any type without a colour of its own (design-system `gray[40]`). */
-export const unassignedTypeColor = "#C1CFDE";
+/**
+ * The "no colour" value. A type with no colour of its own maps to this, which
+ * still renders as light grey (design-system `gray[30]`) on nodes and in the
+ * filter dropdown's swatch; the colour picker offers it as the standard "no
+ * colour" symbol rather than a grey swatch.
+ */
+export const noColor = "#DDE7F0";
 
 export type TypeColorOverrides = Map<VersionedUrl, string>;
 
@@ -60,6 +65,4 @@ export const resolveTypeColor = ({
   overrides: TypeColorOverrides;
 }): string =>
   overrides.get(entityTypeId) ??
-  (index < MAX_TYPE_COLORS
-    ? (typeColorPalette[index] ?? unassignedTypeColor)
-    : unassignedTypeColor);
+  (index < MAX_TYPE_COLORS ? (typeColorPalette[index] ?? noColor) : noColor);
