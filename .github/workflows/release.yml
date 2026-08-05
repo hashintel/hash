@@ -11,30 +11,21 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.repository == 'hashintel/hash'
+    environment: main
     permissions:
       id-token: write
 
     steps:
-      - name: Authenticate Vault
-        id: secrets
-        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-        with:
-          # The legacy Vault, still holding the GitHub App credentials. Inline
-          # for the same reason as in bench.yml — this job has no environment,
-          # so `vars.VAULT_ADDR` would not resolve to a tier.
-          url: https://vault.blockprotocol.org
-          method: jwt
-          role: dev
-          secrets: |
-            automation/data/pipelines/hash/dev github_worker_app_id | GITHUB_WORKER_APP_ID ;
-            automation/data/pipelines/hash/dev github_worker_app_private_key | GITHUB_WORKER_APP_PRIVATE_KEY ;
-
       - name: Get token
         id: app-token
-        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        uses: hashintel/.github/.github/actions/github-app-token@6784697ebabfa119d36ab0a335cfdad3555d9e4f # unmerged — re-pin to main
         with:
-          app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
-          private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}
+          vault-address: ${{ vars.VAULT_ADDR }}
+          vault-role: ci-hash-release
+          app-id: "4497272"
+          transit-key: github-app-hash-release
+          cf-access-client-id: ${{ vars.CF_ACCESS_CLIENT_ID }}
+          cf-access-client-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
