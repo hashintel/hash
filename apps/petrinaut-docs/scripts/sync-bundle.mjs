@@ -1,25 +1,40 @@
 /**
- * Copies the architecture bundle into this app's content tree.
+ * Regenerates the architecture bundle and copies it into this app's content tree.
+ *
+ * The bundle is build output and is not committed, so this generates it rather
+ * than assuming it is on disk — one code path for both `dev` and `build`, and no
+ * way to render a stale copy.
  *
  * Reading the bundle in place via a `glob` loader with an out-of-root `base`
  * works for `astro build` but not for `astro dev`: Astro resolves an MDX page's
  * relative image paths against the project root in dev, so `../diagrams/core.svg`
- * cannot be found. Copying sidesteps that entirely, and is what a host embedding
- * the bundle (hash.dev) does anyway — so this stays an honest test of whether the
+ * cannot be found. Copying sidesteps that, and is what a host embedding the
+ * bundle (hash.dev) does anyway — so this stays an honest test of whether the
  * bundle is portable.
- *
- * `pages/` and `diagrams/` are copied as siblings under `src/content/`, which is
- * the layout the bundle's own relative paths assume. The destination is
- * gitignored: the bundle is the committed artefact, this is a build input.
  */
 
+import { spawnSync } from "node:child_process";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const bundleRoot = fileURLToPath(
-  new URL("../../../libs/@local/petrinaut-arch-docs/bundle/", import.meta.url),
+const generatorRoot = fileURLToPath(
+  new URL("../../../libs/@local/petrinaut-arch-docs/", import.meta.url),
 );
+const bundleRoot = `${generatorRoot}bundle/`;
 const contentRoot = fileURLToPath(new URL("../src/content/", import.meta.url));
+
+const generated = spawnSync("yarn", ["doc:architecture"], {
+  cwd: generatorRoot,
+  encoding: "utf8",
+  stdio: "inherit",
+});
+
+if (generated.status !== 0) {
+  process.stderr.write(
+    "Failed to generate the architecture bundle; see the output above.\n",
+  );
+  process.exit(generated.status ?? 1);
+}
 
 for (const directory of ["docs", "diagrams"]) {
   await rm(new URL(directory, `file://${contentRoot}`), {

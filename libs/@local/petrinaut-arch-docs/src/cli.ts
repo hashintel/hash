@@ -7,17 +7,12 @@
  * quietly stopped being true.
  */
 
-import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { config } from "../architecture.config";
-import {
-  buildBundle,
-  bundleTextFiles,
-  GENERATOR_NAME,
-  type BuiltBundle,
-} from "./build";
+import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
 import { renderD2 } from "./emit/d2";
 
 import type { Diagnostic } from "./extract";
@@ -108,44 +103,6 @@ const writeBundle = async (bundle: BuiltBundle): Promise<void> => {
   }
 };
 
-const checkBundle = async (bundle: BuiltBundle): Promise<number> => {
-  const expected = bundleTextFiles(bundle);
-  const stale: string[] = [];
-
-  for (const [path, contents] of expected) {
-    let actual: string;
-    try {
-      actual = await readFile(join(bundleRoot, path), "utf8");
-    } catch {
-      stale.push(`${path} (missing)`);
-      continue;
-    }
-
-    if (actual !== contents) {
-      stale.push(`${path} (out of date)`);
-    }
-  }
-
-  if (stale.length === 0) {
-    return 0;
-  }
-
-  process.stderr.write(
-    `${red("error")} the committed architecture bundle does not match the source:\n`,
-  );
-  for (const path of stale.slice(0, 20)) {
-    process.stderr.write(`  ${relative(repoRoot, join(bundleRoot, path))}\n`);
-  }
-  if (stale.length > 20) {
-    process.stderr.write(`  …and ${stale.length - 20} more\n`);
-  }
-  process.stderr.write(
-    `\nRegenerate with:\n  yarn workspace ${GENERATOR_NAME} doc:architecture\n`,
-  );
-
-  return 1;
-};
-
 const main = async (): Promise<number> => {
   const command = process.argv[2] ?? "build";
 
@@ -161,10 +118,11 @@ const main = async (): Promise<number> => {
   summarise(bundle);
 
   if (command === "check") {
-    // Report annotation errors and staleness together: fixing one and
-    // rediscovering the other on the next run wastes a CI cycle.
-    const staleExit = await checkBundle(bundle);
-    return errors > 0 || staleExit !== 0 ? 1 : 0;
+    // `check` builds the whole bundle and discards the files. The build is
+    // what surfaces the diagnostics — an unannotated file, a dead seam, a
+    // violated rule — and because the bundle is never stored, there is no
+    // committed copy that could be out of date with the source.
+    return errors > 0 ? 1 : 0;
   }
 
   if (errors > 0) {

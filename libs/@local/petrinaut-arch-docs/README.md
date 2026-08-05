@@ -7,7 +7,7 @@ source, and bundles it with hand-written MDX into one portable artefact.
 # Regenerate the bundle after changing annotations or code
 yarn workspace @local/petrinaut-arch-docs doc:architecture
 
-# Fail if the committed bundle no longer matches the source (what CI runs)
+# Check the annotations without writing anything (what CI runs)
 yarn workspace @local/petrinaut-arch-docs lint:arch-docs
 ```
 
@@ -89,8 +89,13 @@ architecture actually changes, not on every file.
 
 ## The output: a portable bundle
 
-Written to `bundle/`, committed, and framework-neutral by design — the Starlight
-site in `apps/petrinaut-docs` and hash.dev are both just consumers.
+Written to `bundle/`, which is **git-ignored build output** — it is derived
+entirely from the annotations and from `content/`, so committing it would mean
+reviewing the same change twice and resolving conflicts in generated files.
+Regenerate it whenever you need it; nothing depends on a stored copy.
+
+The bundle is framework-neutral by design — the Starlight site in
+`apps/petrinaut-docs` and hash.dev are both just consumers.
 
 | File                | What it is                                                       |
 | ------------------- | ---------------------------------------------------------------- |
@@ -117,7 +122,13 @@ slugs map to URLs without a trailing slash.** A host that serves
 must rewrite them; `manifest.json` gives you every slug to do so. The Starlight
 consumer sets `trailingSlash: "never"` for this reason.
 
-## Hand-written pages
+## Hand-written pages (optional)
+
+`content/` is entirely optional. With no `content/` directory at all, the
+generator emits a bundle of generated pages only, and the docs site renders it —
+`/` redirects to the generated overview instead of an authored home page. Add
+pages when you have something to say that an import graph cannot express; delete
+them freely.
 
 Anything in `content/` is copied into the bundle and merged into the same
 manifest as the generated pages. Slugs mirror the directory layout; `title`,
@@ -142,7 +153,6 @@ layer declarations belong in the packages.
 - an unknown `@boundary` kind, a boundary with no note, a duplicated singular tag
 - a `@seam` that is not an export of any covered package
 - a dependency violating a rule in `architecture.config.ts`
-- a committed bundle that no longer matches the source
 
 Warnings (reported, non-fatal): a layer with no files and no sub-layers, an
 `exports` subpath with no resolvable source entry.

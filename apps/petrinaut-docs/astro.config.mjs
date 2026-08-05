@@ -92,8 +92,21 @@ const buildSidebar = () => {
   ];
 };
 
+/**
+ * Authored pages are optional, so the site must have a root page without them.
+ *
+ * An authored `index` page becomes `/`. With no authored content at all, `/`
+ * redirects to the generated overview instead, which keeps `content/` a genuine
+ * opt-in rather than something the site quietly depends on.
+ */
+const hasAuthoredIndex = manifest.pages.some(
+  (page) => page.kind === "authored" && page.slug === "index",
+);
+
 export default defineConfig({
   site: "https://petrinaut-docs.hash.dev",
+
+  ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
 
   // The bundle's inter-page links are relative and assume slugs map to URLs
   // without a trailing slash. `format: "file"` writes `views.html` rather than
