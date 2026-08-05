@@ -42,7 +42,7 @@ on:
 
 permissions:
   actions: read
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
@@ -68,4 +68,3 @@ jobs:
       logLevel: ${{ inputs.logLevel || 'info' }}
       overrideSchedule: ${{ inputs.overrideSchedule || false }}
       dryRun: ${{ inputs.dryRun || 'disabled' }}
-    secrets: inherit
