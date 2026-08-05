@@ -188,9 +188,9 @@ impl fmt::Display for Kind {
 )]
 #[repr(u16)]
 pub enum KeyKind {
-    /// An [`ArchivedOntologyTypeUuid`](crate::dataset::postgres::id::ArchivedOntologyTypeUuid).
+    /// An [`ArchivedOntologyTypeUuid`].
     OntologyTypeUuid = 0x00_00,
-    /// An [`ArchivedEntityId`](crate::dataset::postgres::id::ArchivedEntityId).
+    /// An [`ArchivedEntityId`].
     EntityId = 0x00_01,
     /// A `u8`.
     U8Le = 0x01_00,
@@ -245,6 +245,7 @@ pub(crate) trait Key: ByteStable {
         + zerocopy::Immutable
         + zerocopy::KnownLayout
         + zerocopy::TryFromBytes
+        + ToOwned
         + ?Sized;
 }
 

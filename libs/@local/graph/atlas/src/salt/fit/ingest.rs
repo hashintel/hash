@@ -1,19 +1,20 @@
 //! The ingest side of one fit: everything that reads the dataset.
 //!
-//! [`run`] drains the dataset streams - nodes, edges, ontology, cards - into their staged artifacts
+//! [`run`] drains the dataset streams - nodes, edges, ontology, cards, and the display streams
+//! beside them - into their staged artifacts
 //! and resident columns and certifies the representation contract, so everything the compute side
 //! needs afterwards lives in staged files and the returned [`Ingested`] value. The dataset and the
 //! embedding provider are never touched again after this module returns.
 
 use alloc::collections::BTreeSet;
-use core::pin::pin;
+use core::{borrow::Borrow, pin::pin};
 use std::io::{BufWriter, Write as _};
 
 use futures::TryStreamExt as _;
 use hashql_core::id::{Id as _, IdVec};
 use smallvec::SmallVec;
 use tracing::Instrument as _;
-use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
+use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
     FitConfig, Stage,
@@ -32,7 +33,6 @@ use crate::{
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
         generation::{Generation, ScratchDirectory, StagedGeneration},
-        identity::Key,
         repository::RepositoryFile,
     },
     identity::OntologyRowId,
@@ -217,16 +217,16 @@ where
     writer.flush()?;
 
     let nodes = columns.ids.len();
+    let auxiliary: Vec<_> = dataset
+        .node_auxiliary_payload()
+        .try_collect()
+        .instrument(tracing::info_span!("labels"))
+        .await
+        .map_err(FitError::Dataset)?;
     let identities = write_staged(staging, Role::NodeIdentities, |writer| {
-        let rows = usize::try_from(columns.ids.len()).expect("rows fit the address space");
-        columns.ids.write_into(
-            core::iter::repeat_n(
-                <<D::NodeId as Key>::Payload>::try_ref_from_bytes(&[])
-                    .expect("every payload type admits the empty byte string"),
-                rows,
-            ),
-            writer,
-        )
+        columns
+            .ids
+            .write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
 
     let digest = digest_file(staging.path_of(&Role::Representations.file_name()))?;
@@ -394,16 +394,14 @@ where
     endpoints.finish()?;
     writer.flush()?;
 
+    let auxiliary: Vec<_> = dataset
+        .edge_auxiliary_payload()
+        .try_collect()
+        .instrument(tracing::info_span!("labels"))
+        .await
+        .map_err(FitError::Dataset)?;
     let identities = write_staged(staging, Role::EdgeIdentities, |writer| {
-        let rows = usize::try_from(ids.len()).expect("rows fit the address space");
-        ids.write_into(
-            core::iter::repeat_n(
-                <<D::EdgeId as Key>::Payload>::try_ref_from_bytes(&[])
-                    .expect("every payload type admits the empty byte string"),
-                rows,
-            ),
-            writer,
-        )
+        ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
     let digest = digest_file(staging.path_of(&Role::EdgeEndpoints.file_name()))?;
     let instances = spool.finish()?;
@@ -485,16 +483,14 @@ where
     .await?;
 
     let types = cards.len() as u64;
+    let auxiliary: Vec<_> = dataset
+        .ontology_auxiliary_payload()
+        .try_collect()
+        .instrument(tracing::info_span!("icons"))
+        .await
+        .map_err(FitError::Dataset)?;
     let identities = write_staged(staging, Role::OntologyIdentities, |writer| {
-        let rows = usize::try_from(ids.len()).expect("rows fit the address space");
-        ids.write_into(
-            core::iter::repeat_n(
-                <<D::OntologyId as Key>::Payload>::try_ref_from_bytes(&[])
-                    .expect("every payload type admits the empty byte string"),
-                rows,
-            ),
-            writer,
-        )
+        ids.write_into(auxiliary.iter().map(Borrow::borrow), writer)
     })?;
 
     let prior_files = prior

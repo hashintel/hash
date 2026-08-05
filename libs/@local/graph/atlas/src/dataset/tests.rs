@@ -13,6 +13,7 @@ use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
     CANONICAL_DIMENSIONS, Dataset as _, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+    auxiliary::{OwnedIcon, OwnedLabel},
     card::Card,
     memory::{MemoryDataset, MemoryNodeId, MemoryOntologyId},
     postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
@@ -221,6 +222,63 @@ async fn memory_dataset_renders_cards() {
             ),
         ]
     );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn memory_dataset_streams_display_columns() {
+    let mut dataset = fixture();
+
+    // A fresh fixture streams one empty display value per row.
+    let labels: Vec<_> = dataset
+        .node_auxiliary_payload()
+        .try_collect()
+        .await
+        .unwrap_or_else(|never| never);
+    assert_eq!(labels, vec![OwnedLabel::default(); 2]);
+
+    dataset.node_labels = vec![OwnedLabel::from("alpha"), OwnedLabel::from("beta")];
+    dataset.edge_labels = vec![OwnedLabel::from("alpha employs beta")];
+    dataset.ontology_icons = vec![OwnedIcon::from("person"), OwnedIcon::from("\u{3bb}")];
+
+    let labels: Vec<_> = dataset
+        .node_auxiliary_payload()
+        .try_collect()
+        .await
+        .unwrap_or_else(|never| never);
+    assert_eq!(
+        labels,
+        [OwnedLabel::from("alpha"), OwnedLabel::from("beta")]
+    );
+
+    let labels: Vec<_> = dataset
+        .edge_auxiliary_payload()
+        .try_collect()
+        .await
+        .unwrap_or_else(|never| never);
+    assert_eq!(labels, [OwnedLabel::from("alpha employs beta")]);
+
+    let icons: Vec<_> = dataset
+        .ontology_auxiliary_payload()
+        .try_collect()
+        .await
+        .unwrap_or_else(|never| never);
+    assert_eq!(
+        icons,
+        [OwnedIcon::from("person"), OwnedIcon::from("\u{3bb}")]
+    );
+}
+
+#[test]
+#[should_panic(expected = "one label per node row")]
+fn memory_dataset_rejects_a_short_label_column() {
+    let mut dataset = fixture();
+    dataset.node_labels.pop();
+
+    let _stream = dataset.node_auxiliary_payload();
 }
 
 #[test]

@@ -118,8 +118,8 @@ where
     ///
     /// Returns an error when the corpus cannot train (no semantic edge weight) or the boundary is
     /// structurally inadmissible (a measured radius with no opening segment in front of the
-    /// boundary, Proximal force without reviewed coverage or a configured assertion, or Coincident
-    /// force without any Proximal force).
+    /// boundary, Proximal force without reviewed coverage, or Coincident force without any Proximal
+    /// force).
     pub(super) fn new(
         inputs: &'run TrainerInputs<'run, N, E>,
         options: &'run TrainOptions,

@@ -1,8 +1,7 @@
 //! Typed source identifiers of the in-memory dataset.
 //!
 //! All three id domains are plain little-endian integers under a newtype each, so every domain
-//! declares its own [`Key::Payload`] even though all three persist under one
-//! [`KeyKind`](crate::file::identity::KeyKind).
+//! declares its own [`Key::Payload`] even though all three persist under one [`KeyKind`].
 
 use type_system::ontology::VersionedUrl;
 use zerocopy::{LE, U64};

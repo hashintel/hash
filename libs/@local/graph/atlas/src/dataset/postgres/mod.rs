@@ -71,6 +71,7 @@ use self::id::{ArchivedEntityId, ArchivedOntologyTypeUuid};
 use super::{
     CANONICAL_DIMENSIONS, Dataset, Edge, Node, NodeRowId, Ontology, OntologyRowId,
     PROJECTOR_DIMENSIONS, TemporalAxes,
+    auxiliary::{OwnedIcon, OwnedLabel},
     card::{
         Card, CardContext, Cl100kTokenizer, UnicodeSegmenter, build_card, hash::build_contents,
     },
@@ -322,6 +323,13 @@ fn ontology_rows(ordinals: Vec<i64>) -> Result<SmallVec<OntologyRowId, 2>, Postg
         .collect()
 }
 
+/// Decodes one display-label row into its owned label.
+fn decode_label(row: &Row) -> Result<OwnedLabel, PostgresDatasetError> {
+    let label: String = row.try_get(0)?;
+
+    Ok(OwnedLabel::from(label))
+}
+
 fn decode_node(row: &Row) -> Result<Node<ArchivedEntityId>, PostgresDatasetError> {
     let web_id: Uuid = row.try_get(0)?;
     let entity_uuid: Uuid = row.try_get(1)?;
@@ -516,6 +524,38 @@ impl<'client> PostgresDataset<'client> {
             .map(Vec::as_slice)
     }
 
+    /// Issues `sql` with the dataset's temporal axes as `$1`/`$2`.
+    ///
+    /// Adapts the row stream through `decode`. Queries whose CTEs need the axes alone go here,
+    /// because the store refuses a bind carrying parameters the statement never reads.
+    fn stream_axes_query<'this, T>(
+        &'this self,
+        sql: String,
+        decode: fn(&Row) -> Result<T, PostgresDatasetError>,
+    ) -> impl Stream<Item = Result<T, PostgresDatasetError>> + 'this
+    where
+        T: 'this,
+    {
+        // The `async move` matters here: `sql` must live long enough for the stream to exist, and
+        // moving it in releases the borrow.
+        async move {
+            self.transaction
+                .query_raw(
+                    &sql,
+                    [
+                        &self.axes.transaction_time as &(dyn ToSql + Sync),
+                        &self.axes.decision_time as &(dyn ToSql + Sync),
+                    ],
+                )
+                .await
+                .map(|rows| rows.map_err(PostgresDatasetError::from))
+                .map_err(PostgresDatasetError::from)
+        }
+        .into_stream()
+        .try_flatten()
+        .and_then(move |row| core::future::ready(decode(&row)))
+    }
+
     /// Issues `sql` with the dataset's temporal axes as `$1`/`$2` and the type table as `$3`.
     ///
     /// Adapts the row stream through `decode`.
@@ -570,8 +610,16 @@ impl Dataset for PostgresDataset<'_> {
         = impl Stream<Item = io::Result<(ArchivedOntologyTypeUuid, Card)>> + 'this
     where
         Self: 'this;
+    type EdgeAuxiliaryPayloadStream<'this>
+        = impl Stream<Item = Result<OwnedLabel, PostgresDatasetError>> + 'this
+    where
+        Self: 'this;
     type EdgeStream<'this>
         = impl Stream<Item = Result<Edge<ArchivedEntityId>, PostgresDatasetError>> + 'this
+    where
+        Self: 'this;
+    type NodeAuxiliaryPayloadStream<'this>
+        = impl Stream<Item = Result<OwnedLabel, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type NodeStream<'this>
@@ -581,6 +629,10 @@ impl Dataset for PostgresDataset<'_> {
     type NodeTypesStream<'this, I: Iterator<Item = Self::NodeId>>
         = impl Stream<Item = Result<(ArchivedEntityId, SmallVec<OntologyRowId, 2>), PostgresDatasetError>>
         + use<'this, I>
+    where
+        Self: 'this;
+    type OntologyAuxiliaryPayloadStream<'this>
+        = impl Stream<Item = Result<OwnedIcon, PostgresDatasetError>> + 'this
     where
         Self: 'this;
     type OntologyStream<'this>
@@ -841,6 +893,91 @@ impl Dataset for PostgresDataset<'_> {
                     .zip(facts)
                     .map(|(id, facts)| render_card(*id, &facts, self.cards)),
             ))
+        }
+        .into_stream()
+        .try_flatten()
+    }
+
+    /// Opens the stream of node display labels, in row order.
+    ///
+    /// Each label reads `entity_edition_cache.labels[1]`, the value the store derives through
+    /// the type's `labelProperty` path, and a row without one delivers the empty label. The
+    /// query interpolates [`SCOPE`] and orders by `scope.row`, so positions agree with
+    /// [`nodes`](Dataset::nodes) under the frozen snapshot.
+    fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_> {
+        let sql = format!(
+            "WITH {SCOPE}
+            SELECT COALESCE(cache.labels[1], '')
+            FROM scope
+            LEFT JOIN entity_edition_cache AS cache
+              ON cache.entity_edition_id = scope.entity_edition_id
+            ORDER BY scope.row"
+        );
+
+        self.stream_axes_query(sql, decode_label)
+    }
+
+    /// Opens the stream of edge display labels, in row order.
+    ///
+    /// Each label reads `entity_edition_cache.labels[1]` for the link entity's edition, and a
+    /// link without one delivers the empty label. The query interpolates [`SCOPE`] and [`LINKS`]
+    /// and orders by link identity, the same total order as [`edges`](Dataset::edges), so
+    /// positions agree under the frozen snapshot.
+    fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
+        let sql = format!(
+            "WITH {SCOPE}, {LINKS}
+            SELECT COALESCE(cache.labels[1], '')
+            FROM links
+            LEFT JOIN entity_edition_cache AS cache
+              ON cache.entity_edition_id = links.entity_edition_id
+            ORDER BY links.web_id, links.entity_uuid, links.source_row, links.target_row"
+        );
+
+        self.stream_axes_query(sql, decode_label)
+    }
+
+    /// Opens the stream of ontology-type display icons, in row order.
+    ///
+    /// A type's icon is the first icon among its closed schema's `allOf` entries ordered by
+    /// inheritance depth, with the array position breaking depth ties, so a type without an own
+    /// icon inherits its nearest ancestor's and the selection is deterministic. A type whose
+    /// chain carries no icon delivers the empty icon. The rows follow the type table's ordinal
+    /// order, so positions agree with [`ontology`](Dataset::ontology).
+    fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_> {
+        async move {
+            let types = self.type_table().await?;
+
+            // The selection rule mirrors the serving side's type-icon resolution in
+            // `serve::hydrate`'s tile hydration query, and a change to either belongs in both.
+            //
+            // LEFT joins keep every ordinal at exactly one output row: an inner join miss
+            // would shift every later position instead of delivering an empty icon.
+            let rows = self
+                .transaction
+                .query(
+                    "SELECT COALESCE(icon.value, '')
+                     FROM unnest($1::uuid[]) WITH ORDINALITY AS mapping (ontology_id, ordinality)
+                     LEFT JOIN entity_types
+                       ON entity_types.ontology_id = mapping.ontology_id
+                     LEFT JOIN LATERAL (
+                         SELECT display.value ->> 'icon' AS value
+                         FROM jsonb_array_elements(entity_types.closed_schema -> 'allOf')
+                             WITH ORDINALITY AS display (value, position)
+                         WHERE display.value ->> 'icon' IS NOT NULL
+                         ORDER BY (display.value ->> 'depth')::int, display.position
+                         LIMIT 1
+                     ) AS icon ON TRUE
+                     ORDER BY mapping.ordinality",
+                    &[&types],
+                )
+                .await
+                .map_err(PostgresDatasetError::from)?;
+
+            Ok::<_, PostgresDatasetError>(stream::iter(rows.into_iter().map(|row| {
+                let icon: String = row.try_get(0)?;
+
+                Ok(OwnedIcon::from(icon))
+            })))
         }
         .into_stream()
         .try_flatten()

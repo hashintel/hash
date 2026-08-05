@@ -13,11 +13,10 @@
 //! through the budget surrogate. A seed fixes every batch draw, so draws are deterministic. The
 //! backend's gradient accumulation need not be deterministic.
 //!
-//! The frozen radius follows the policy pattern. Measurement from reviewed evidence is the default,
-//! a configured assertion supersedes it, and the report always carries the measured quantiles
-//! beside it so a reader can judge the assertion against data. A corpus whose attraction index
-//! carries no force at all trains vacuously: the relation term stays absent and the run records
-//! why.
+//! The boundary measures the frozen radius from reviewed evidence, and the report carries the
+//! measured quantiles so a reader can judge the freeze against data. A corpus whose attraction
+//! index carries no force at all trains vacuously: the relation term stays absent and the run
+//! records why.
 
 mod error;
 mod session;
@@ -401,7 +400,7 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
 ///
 /// Returns an error when the corpus cannot train (no semantic edge weight), when the boundary
 /// cannot freeze a Proximal radius (a measured radius with no opening segment in front of the
-/// boundary, Proximal force without reviewed coverage or a configured assertion, Coincident force
+/// boundary, Proximal force without reviewed coverage, Coincident force
 /// without any Proximal force, or a radius ordering the energy rejects), or when training diverges
 /// in a step or a tick.
 ///

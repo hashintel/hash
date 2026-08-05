@@ -20,6 +20,7 @@ use super::{
 use crate::{
     dataset::{
         CANONICAL_DIMENSIONS, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+        auxiliary::{OwnedIcon, OwnedLabel},
         card::Card,
         memory::{MemoryDataset, MemoryEdgeId, MemoryNodeId, MemoryOntologyId},
         postgres::id::ArchivedOntologyTypeUuid,
@@ -123,6 +124,7 @@ fn dataset() -> MemoryDataset {
 ///
 /// [`dataset`] is the unscored form the other fit tests share. The readings are a parameter so a
 /// corpus that violates the confidence contract differs from the clean one in nothing else.
+/// Every row carries display text, so the staged identity artifacts persist real payloads.
 fn dataset_with_edge_confidences(
     readings: [(Option<f64>, Option<f64>, Option<f64>); 2],
 ) -> MemoryDataset {
@@ -173,7 +175,20 @@ fn dataset_with_edge_confidences(
         (2, Card::verbatim("Employment link card".to_owned())),
     ]);
 
-    MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
+    let mut dataset = MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards);
+    dataset.node_labels = (0..NODES)
+        .map(|row| OwnedLabel::from(format!("node {row}")))
+        .collect();
+    dataset.edge_labels = vec![
+        OwnedLabel::from("employs 100"),
+        OwnedLabel::from("employs 101"),
+    ];
+    dataset.ontology_icons = vec![
+        OwnedIcon::from("person"),
+        OwnedIcon::from("company"),
+        OwnedIcon::from("\u{3bb}"),
+    ];
+    dataset
 }
 
 /// A deterministic provider deriving each embedding from its text hash.
@@ -601,7 +616,8 @@ fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
 
 /// Asserts the identity artifacts translate rows to source ids and back.
 ///
-/// Node ids are the fixture's row numbers, edge ids its 100 and 101.
+/// Node ids are the fixture's row numbers and edge ids its 100 and 101. Every row's display
+/// payload reads back as the fixture's text.
 fn assert_identities_translate(published: &Utf8Path) {
     let nodes = IdentityTableArchive::<MemoryNodeId, NodeRowId>::new(
         IdentityFile::open(published.join("node-identities.idnt"))
@@ -620,6 +636,12 @@ fn assert_identities_translate(published: &Utf8Path) {
             Some(NodeRowId::new(row)),
             "id {row}"
         );
+        let label = OwnedLabel::from(format!("node {row}"));
+        assert_eq!(
+            nodes.payload_of(NodeRowId::new(row)),
+            Some(&*label),
+            "payload of row {row}"
+        );
     }
     assert!(nodes.row_of(MemoryNodeId::new(NODES as u64 + 7)).is_none());
 
@@ -634,6 +656,25 @@ fn assert_identities_translate(published: &Utf8Path) {
         edge_ids.row_of(MemoryEdgeId::new(101)),
         Some(EdgeRowId::new(1))
     );
+    let employs_100 = OwnedLabel::from("employs 100");
+    assert_eq!(edge_ids.payload_of(EdgeRowId::new(0)), Some(&*employs_100));
+    let employs_101 = OwnedLabel::from("employs 101");
+    assert_eq!(edge_ids.payload_of(EdgeRowId::new(1)), Some(&*employs_101));
+
+    let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
+        IdentityFile::open(published.join("ontology-identities.idnt"))
+            .expect("the ontology identities should map"),
+    )
+    .expect("the ontology identities should validate");
+    assert_eq!(ontology_ids.len(), 3);
+    for (row, icon) in ["person", "company", "\u{3bb}"].into_iter().enumerate() {
+        let expected = OwnedIcon::from(icon);
+        assert_eq!(
+            ontology_ids.payload_of(OntologyRowId::new(row as u64)),
+            Some(&*expected),
+            "ontology row {row}"
+        );
+    }
 }
 
 /// Asserts the published postings against the fixture by hand.

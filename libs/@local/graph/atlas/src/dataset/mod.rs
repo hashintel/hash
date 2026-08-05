@@ -1,10 +1,12 @@
 //! Fit inputs behind one trait.
 //!
-//! A [`Dataset`] is the pipeline's only window onto the graph it maps. It exposes four row-ordered
-//! streams - [`nodes`], [`edges`], [`ontology`], and [`render_cards`] - plus a probe fetch for
-//! canonical embeddings. Everything the fit learns about the graph arrives through these five
-//! methods; where the data physically lives (a live Postgres store, a synthetic fixture) is an
-//! implementation concern the pipeline cannot observe.
+//! A [`Dataset`] is the pipeline's only window onto the graph it maps. It exposes row-ordered
+//! streams - [`nodes`], [`edges`], [`ontology`], and [`render_cards`], plus the auxiliary
+//! payload streams [`node_auxiliary_payload`], [`edge_auxiliary_payload`], and
+//! [`ontology_auxiliary_payload`] - and a probe fetch for canonical
+//! embeddings. Everything the fit learns about the graph arrives through these methods. Where the
+//! data physically lives (a live Postgres store, a synthetic fixture) is an implementation concern
+//! the pipeline cannot observe.
 //!
 //! # Rows and identity
 //!
@@ -22,6 +24,17 @@
 //! row but never both. An implementation that draws both streams' source identifiers from one id
 //! space therefore yields disjoint identifier sets, so an identifier resolves to at most one row
 //! domain.
+//!
+//! # Auxiliary payloads
+//!
+//! Every row carries one auxiliary payload beside its id, typed per id type through
+//! [`Key::Payload`] and persisted in the identity file's
+//! payload region. The auxiliary streams deliver those values in owned form
+//! ([`ToOwned::Owned`] of the payload) in row order, the empty value standing for a row that
+//! carries none. What a payload means is the id type's contract. The datasets in this module
+//! declare [`Label`] for node and edge rows and [`Icon`] for ontology-type rows, each resolved
+//! by its source at the same frozen view as every other stream, so the identity artifacts
+//! persist the display the graph showed at fit time.
 //!
 //! # Snapshot semantics
 //!
@@ -45,6 +58,11 @@
 //! [`edges`]: Dataset::edges
 //! [`ontology`]: Dataset::ontology
 //! [`render_cards`]: Dataset::render_cards
+//! [`node_auxiliary_payload`]: Dataset::node_auxiliary_payload
+//! [`edge_auxiliary_payload`]: Dataset::edge_auxiliary_payload
+//! [`ontology_auxiliary_payload`]: Dataset::ontology_auxiliary_payload
+//! [`Label`]: auxiliary::Label
+//! [`Icon`]: auxiliary::Icon
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use std::io;
@@ -256,6 +274,27 @@ pub(crate) trait Dataset {
     where
         Self: 'this;
 
+    /// The stream of node auxiliary payloads, in row order.
+    type NodeAuxiliaryPayloadStream<'this>: Stream<
+        Item = Result<<<Self::NodeId as Key>::Payload as ToOwned>::Owned, Self::Error>,
+    >
+    where
+        Self: 'this;
+
+    /// The stream of edge auxiliary payloads, in row order.
+    type EdgeAuxiliaryPayloadStream<'this>: Stream<
+        Item = Result<<<Self::EdgeId as Key>::Payload as ToOwned>::Owned, Self::Error>,
+    >
+    where
+        Self: 'this;
+
+    /// The stream of ontology-type auxiliary payloads, in row order.
+    type OntologyAuxiliaryPayloadStream<'this>: Stream<
+        Item = Result<<<Self::OntologyId as Key>::Payload as ToOwned>::Owned, Self::Error>,
+    >
+    where
+        Self: 'this;
+
     /// Returns the bitemporal point this dataset observes, when its source has temporal axes.
     ///
     /// A generation's metadata records the value as part of its input snapshot. Sources without
@@ -324,4 +363,28 @@ pub(crate) trait Dataset {
     /// [`io::ErrorKind::InvalidData`].
     #[must_use]
     fn render_cards(&self) -> Self::CardStream<'_>;
+
+    /// Opens the node auxiliary-payload stream.
+    ///
+    /// The `n`-th item is node row `n`'s payload in owned form, the empty value standing for a
+    /// row that carries none. The stream covers exactly the rows [`nodes`](Self::nodes) yields,
+    /// in the same order, observing the same frozen view.
+    #[must_use]
+    fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_>;
+
+    /// Opens the edge auxiliary-payload stream.
+    ///
+    /// The `n`-th item is edge row `n`'s payload in owned form, the empty value standing for a
+    /// row that carries none. The stream covers exactly the rows [`edges`](Self::edges) yields,
+    /// in the same order, observing the same frozen view.
+    #[must_use]
+    fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_>;
+
+    /// Opens the ontology-type auxiliary-payload stream.
+    ///
+    /// The `n`-th item is ontology row `n`'s payload in owned form, the empty value standing
+    /// for a type that carries none. The stream covers exactly the rows
+    /// [`ontology`](Self::ontology) yields, in the same order, observing the same frozen view.
+    #[must_use]
+    fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_>;
 }
