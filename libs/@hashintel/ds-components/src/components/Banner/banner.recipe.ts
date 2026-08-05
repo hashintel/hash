@@ -4,7 +4,7 @@ export const bannerTones = [
   "neutral",
   "brand",
   "error",
-  "caution",
+  "warning",
   "success",
 ] as const;
 
@@ -130,7 +130,7 @@ export const styles = sva({
           height: "[18px !important]",
         },
       },
-      caution: {
+      warning: {
         root: {
           colorPalette: "orange",
           "--banner-text-color": "var(--colors-color-palette-fg-body)",
@@ -222,7 +222,7 @@ export const styles = sva({
       css: { root: { "--banner-solid": "var(--colors-green-s110)" } },
     },
     {
-      tone: "caution",
+      tone: "warning",
       variant: "solid",
       css: {
         root: {

@@ -9,7 +9,7 @@ import type { SharedInputProps, Tone } from "../../util/form-shared";
 
 export type ToggleProps = {
   /** The tone applied when the toggle is on (checked) */
-  tone?: Exclude<Tone, "error" | "caution">;
+  tone?: Exclude<Tone, "error" | "warning">;
   /** The tone applied when the toggle is off (unchecked) */
   offTone?: Extract<Tone, "neutral" | "error">;
   labelOnText?: string;

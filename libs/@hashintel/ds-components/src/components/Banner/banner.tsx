@@ -14,7 +14,7 @@ type BannerVariant = "solid" | "soft" | "outline";
 const defaultToneIcon: Record<Tone, IconName> = {
   neutral: "info",
   brand: "info",
-  caution: "warning",
+  warning: "warning",
   error: "diamondExclamation",
   success: "circleCheck",
 };
