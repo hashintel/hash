@@ -10,6 +10,10 @@
  *   user code cannot attach state that leaks across evaluations. Walking
  *   `helper.constructor` inside the sandbox yields `undefined`, so passing
  *   them in does not reopen the Function-constructor escape.
+ * - Declare helpers as arrow functions. `Object.freeze` is shallow, so a
+ *   `function` declaration would keep a writable `helper.prototype` object —
+ *   a module singleton that user code could hang state on to smuggle values
+ *   from one evaluation into the next. Arrow functions have no `prototype`.
  * - Keep `SCENARIO_HELPER_TYPE_DECLARATIONS` below in sync so the code
  *   editors type-check and autocomplete every helper.
  */
@@ -32,7 +36,7 @@ export const MAX_RANGE_LENGTH = 1_000_000;
  * An empty array is returned when the direction of `step` never reaches
  * `end` (e.g. `range(5, 0)`), matching Python.
  */
-export function range(start: number, end?: number, step?: number): number[] {
+export const range = (start: number, end?: number, step?: number): number[] => {
   for (const argument of [start, end, step]) {
     if (argument !== undefined && !Number.isFinite(argument)) {
       throw new Error("range() arguments must be finite numbers.");
@@ -69,7 +73,7 @@ export function range(start: number, end?: number, step?: number): number[] {
     values.push(value);
   }
   return values;
-}
+};
 
 /**
  * Helpers passed as extra arguments to every user-code evaluation, keyed by
