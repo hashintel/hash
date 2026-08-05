@@ -37,7 +37,6 @@ use crate::{
 };
 
 mod authorization;
-mod comparator;
 mod density;
 mod frame_channel;
 mod masking;
