@@ -90,7 +90,7 @@ impl FilterDigest {
 
 /// Names one write into one slot, ordered against every other write this cache makes.
 ///
-/// Minted when a write publishes, so every publication is unique and names exactly the entry that
+/// Drawn when a write publishes, so every publication is unique and names exactly the entry that
 /// write produced. A refresh reads an entry before it publishes over that entry, and the slot
 /// stands open to a stranger in between. The refresh recognises such a stranger by its publication
 /// and leaves it in place.
@@ -404,11 +404,6 @@ impl VisibilityCache {
         self.entries.get(key).await
     }
 
-    /// Returns the publication of the next write into a slot.
-    fn mint(&self) -> Publication {
-        self.publications.draw()
-    }
-
     /// Resolves `key` again in place of the expired entry held for it.
     ///
     /// The replacement takes the slot under moka's key lock, so a burst of requests past the hard
@@ -472,9 +467,9 @@ impl VisibilityCache {
             .try_get_with(key, async {
                 // Called during the generation, not before, as the function indicates a write, not
                 // an intention to write.
-                resolver()
-                    .await
-                    .map(|resolution| Arc::new(CacheEntry::new(resolution, now, self.mint())))
+                resolver().await.map(|resolution| {
+                    Arc::new(CacheEntry::new(resolution, now, self.publications.draw()))
+                })
             })
             .await
     }
