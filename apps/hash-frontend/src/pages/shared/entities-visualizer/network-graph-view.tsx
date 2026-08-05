@@ -1517,6 +1517,7 @@ export const NetworkGraphView = ({
             ) : null}
             <NetworkGraphSearch
               elevated={searchOnTop}
+              filter={filter}
               onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
               onHover={handleSearchHover}
