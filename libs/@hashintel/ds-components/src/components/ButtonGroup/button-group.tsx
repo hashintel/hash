@@ -19,6 +19,8 @@ export type ButtonGroupProps = {
   reverse?: boolean;
   /** Which edge of the available width the buttons align to. Defaults to `left`. */
   alignedTo?: "left" | "right";
+  /** Keep the buttons on a single line (overflowing) instead of wrapping. */
+  noWrap?: boolean;
 };
 
 export const ButtonGroup = ({
@@ -27,6 +29,7 @@ export const ButtonGroup = ({
   variant = "spaced",
   reverse = false,
   alignedTo = "left",
+  noWrap = false,
 }: ButtonGroupProps) => {
   // Reversing the DOM (rather than using `flex-direction: row-reverse`) keeps
   // focus/tab order matching the visual order and leaves `alignedTo` mapping to
@@ -34,17 +37,18 @@ export const ButtonGroup = ({
   const content = reverse ? Children.toArray(children).reverse() : children;
 
   // In a wrapped `segmented` group, `:first-child`/`:last-child` only round the
-  // very first/last button; this re-applies the outer radii per visual row.
+  // very first/last button; this re-applies the outer radii per visual row by
+  // tagging each row's edge buttons with `data-row-start`/`data-row-end`.
   const ref = useRef<HTMLDivElement>(null);
-  useSegmentedRows(ref, variant === "segmented");
+  const decoratedContent = useSegmentedRows(ref, content, variant, noWrap);
 
   return (
     <div
       ref={ref}
       role="group"
-      className={cx(styles({ variant, alignedTo }), className)}
+      className={cx(styles({ variant, alignedTo, noWrap }), className)}
     >
-      {content}
+      {decoratedContent}
     </div>
   );
 };

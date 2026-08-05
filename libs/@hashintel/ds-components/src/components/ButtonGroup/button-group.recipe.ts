@@ -7,7 +7,6 @@ import { cva } from "@hashintel/ds-helpers/css";
 export const styles = cva({
   base: {
     display: "flex",
-    flexWrap: "wrap",
     alignItems: "center",
     width: "full",
   },
@@ -52,9 +51,16 @@ export const styles = cva({
       left: { justifyContent: "flex-start" },
       right: { justifyContent: "flex-end" },
     },
+    // `flexWrap` lives here (not in `base`) so exactly one value is emitted per
+    // instance, avoiding a base-vs-variant conflict on the same property.
+    noWrap: {
+      true: { flexWrap: "nowrap" },
+      false: { flexWrap: "wrap" },
+    },
   },
   defaultVariants: {
     variant: "spaced",
     alignedTo: "left",
+    noWrap: false,
   },
 });
