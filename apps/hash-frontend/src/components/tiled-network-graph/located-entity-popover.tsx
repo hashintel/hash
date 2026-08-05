@@ -18,7 +18,7 @@
  * inside that scope, or the card's token-based colours won't resolve.
  */
 
-import { Button, Icon, type IconName, Popover } from "@hashintel/ds-components";
+import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 /**
@@ -73,14 +73,14 @@ export interface LocatedEntityTypeChip {
 }
 
 /**
- * A type icon the card renders: an emoji glyph drawn as text, or a
- * design-system {@link IconName} drawn as an SVG (the shape an SVG type icon
- * resolves to via `iconNameFromEntityIcon`, which text surfaces can't draw
- * directly). At most one is set; `emoji` wins when both are.
+ * A type icon the card renders: an emoji glyph drawn as text, or an SVG type
+ * icon (given by URL) drawn as a tintable mask — the served `/icons/types/*.svg`
+ * icons the rest of the app shows, which text surfaces can't draw directly. At
+ * most one is set; `emoji` wins when both are.
  */
 export interface LocatedEntityIcon {
   readonly emoji?: string;
-  readonly name?: IconName;
+  readonly svgUrl?: string;
 }
 
 /**
@@ -508,17 +508,42 @@ const gapsFor = (
       }
     : { x: 10, y: 12 };
 
+/**
+ * Renders an SVG entity/type icon as a tintable mask: a `size`×`size` px box
+ * filled with `currentColor` and clipped to the SVG shape (`center / contain`),
+ * matching how `EntityOrTypeIcon` draws the served type icons elsewhere. The
+ * colour is inherited from the surrounding icon style so a monochrome glyph reads
+ * as cohesive with the label.
+ */
+const svgMaskStyle = (svgUrl: string, size: number): React.CSSProperties => ({
+  width: size,
+  height: size,
+  backgroundColor: "currentColor",
+  WebkitMaskImage: `url("${svgUrl}")`,
+  maskImage: `url("${svgUrl}")`,
+  WebkitMaskRepeat: "no-repeat",
+  maskRepeat: "no-repeat",
+  WebkitMaskPosition: "center",
+  maskPosition: "center",
+  WebkitMaskSize: "contain",
+  maskSize: "contain",
+});
+
 // The type lozenge: the type's icon at the left, its label, and a dot in the
 // type's colour at the right. Shared by node and link types.
 const TypeChip = ({ chip }: { chip: LocatedEntityTypeChip }) => {
   const hasIcon =
-    chip.icon?.emoji !== undefined || chip.icon?.name !== undefined;
+    chip.icon?.emoji !== undefined || chip.icon?.svgUrl !== undefined;
   return (
     <span className={typeChipRecipe({ hasIcon })}>
       {chip.icon?.emoji !== undefined ? (
         <span className={chipIconStyles}>{chip.icon.emoji}</span>
-      ) : chip.icon?.name !== undefined ? (
-        <Icon name={chip.icon.name} size="xs" className={chipIconStyles} />
+      ) : chip.icon?.svgUrl !== undefined ? (
+        <span
+          aria-hidden="true"
+          className={chipIconStyles}
+          style={svgMaskStyle(chip.icon.svgUrl, 12)}
+        />
       ) : null}
       <span className={chipLabelStyles}>{chip.label}</span>
       <span className={typeDotStyles} style={{ backgroundColor: chip.color }} />
@@ -535,11 +560,11 @@ const Endpoint = ({ endpoint }: { endpoint: LocatedEntityEndpoint }) => (
   <div className={endpointStyles}>
     {endpoint.icon?.emoji !== undefined ? (
       <span className={endpointIconStyles}>{endpoint.icon.emoji}</span>
-    ) : endpoint.icon?.name !== undefined ? (
-      <Icon
-        name={endpoint.icon.name}
-        size="xs"
+    ) : endpoint.icon?.svgUrl !== undefined ? (
+      <span
+        aria-hidden="true"
         className={endpointIconStyles}
+        style={svgMaskStyle(endpoint.icon.svgUrl, 12)}
       />
     ) : null}
     {endpoint.onClick ? (

@@ -8,6 +8,26 @@ import type { IconName } from "../../Icon/icon";
 /** A node or edge id. */
 export type NetworkGraphId = string | number;
 
+/**
+ * An external SVG icon referenced by URL, drawn inside a detail node as a
+ * tintable alpha mask — the alternative to a design-system {@link IconName}. Lets
+ * a consumer draw icons from its own set (e.g. HASH's served entity-type icons at
+ * `/icons/types/<name>.svg`) without needing a ds-registry counterpart. The URL
+ * is loaded into a canvas atlas, so it must be same-origin or CORS-enabled and
+ * point at an SVG.
+ */
+export interface NetworkGraphSvgIcon {
+  svgUrl: string;
+}
+
+/**
+ * The icon drawn inside a node in the zoomed-in detail variation: either a
+ * design-system {@link IconName} (rasterised from the ds icon registry) or an
+ * external SVG given by URL (see {@link NetworkGraphSvgIcon}). Both rasterise to
+ * an alpha mask, tinted at draw time with a colour that contrasts the node fill.
+ */
+export type NetworkGraphIcon = IconName | NetworkGraphSvgIcon;
+
 export interface NetworkGraphPoint {
   id: NetworkGraphId;
   x: number;
@@ -16,7 +36,7 @@ export interface NetworkGraphPoint {
   color: string;
   label?: string;
   /** Icon rendered inside the node in the zoomed-in detail variation. */
-  icon?: IconName;
+  icon?: NetworkGraphIcon;
 }
 
 export interface NetworkGraphEdge {
@@ -143,6 +163,23 @@ export const iconTextureUrl = (name: IconName): string => {
   iconTextureCache.set(name, url);
   return url;
 };
+
+/**
+ * A stable atlas key for an icon — used both to dedupe the atlas and to look a
+ * node's icon up in it ({@link https://deck.gl `IconLayer.getIcon`}). A ds icon
+ * keys by its registry name, an SVG icon by its URL.
+ */
+export const iconAtlasKey = (icon: NetworkGraphIcon): string =>
+  typeof icon === "string" ? icon : icon.svgUrl;
+
+/**
+ * The rasterisable image source for an icon when building the atlas: a ds icon
+ * rasterises to the mask data-URL from {@link iconTextureUrl}; an SVG icon is
+ * loaded straight from its URL. Browser-only for the ds branch (see
+ * {@link iconTextureUrl}).
+ */
+export const iconAtlasSource = (icon: NetworkGraphIcon): string =>
+  typeof icon === "string" ? iconTextureUrl(icon) : icon.svgUrl;
 
 export interface DetailIconAtlas {
   /** Data-URL of the rasterised atlas, passed straight to `IconLayer.iconAtlas`. */

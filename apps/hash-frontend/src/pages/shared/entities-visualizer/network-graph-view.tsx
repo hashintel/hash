@@ -24,10 +24,10 @@ import {
 import {
   NetworkGraph,
   PortalContainerContext,
-  type IconName,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphIcon,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
@@ -39,7 +39,6 @@ import {
 } from "@local/hash-isomorphic-utils/data-types";
 
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
-import { iconNameFromEntityIcon } from "../../../components/tiled-network-graph/entity-icon-name";
 import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
@@ -208,33 +207,68 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
+/**
+ * The SVG URL for a HASH entity/type icon value (the form the graph and popover
+ * draw directly, as a tintable mask — the same served type icons `EntityOrTypeIcon`
+ * shows elsewhere), or `undefined` for an emoji or other non-SVG value. A `/path`
+ * is returned as-is: it's fed to an `<img>`/`IconLayer`/CSS `mask`, which resolves
+ * it against the document, so no `window` access (SSR-safe).
+ */
+const svgIconUrl = (icon: string | undefined): string | undefined => {
+  if (
+    icon === undefined ||
+    !(
+      icon.startsWith("/") ||
+      icon.startsWith("http://") ||
+      icon.startsWith("https://")
+    )
+  ) {
+    return undefined;
+  }
+  return icon.toLowerCase().split(/[?#]/u)[0]!.endsWith(".svg")
+    ? icon
+    : undefined;
+};
+
+/**
+ * A node's icon for the graph — the {@link NetworkGraphIcon} SVG form — resolved
+ * from a raw HASH icon value, or undefined for an emoji/other non-SVG value.
+ */
+const svgIconFromEntityIcon = (
+  icon: string | undefined,
+): NetworkGraphIcon | undefined => {
+  const url = svgIconUrl(icon);
+  return url !== undefined ? { svgUrl: url } : undefined;
+};
+
 const toPoint = (
   node: ViewportNode,
   color: string,
-  iconName?: IconName,
+  icon?: NetworkGraphIcon,
 ): NetworkGraphPoint => {
   // `label`/`icon` arrive only for tiles fetched with detailed data (the
   // detailed view). The graph draws the label in a pill beneath the node and the
   // icon inside it. Located nodes carry no icon of their own, so the caller
-  // resolves one from the node's type and passes it as `iconName`; tile nodes
-  // fall back to their own icon value resolved to a ds icon name. `color` comes
-  // from the type filter's per-type palette, keyed by the node's type.
-  const icon = iconName ?? iconNameFromEntityIcon(node.icon);
+  // resolves one from the node's type and passes it as `icon`; tile nodes fall
+  // back to their own icon value resolved to a drawable SVG (emojis are ignored).
+  // `color` comes from the type filter's per-type palette, keyed by the node's
+  // type.
+  const resolvedIcon = icon ?? svgIconFromEntityIcon(node.icon);
   return {
     id: node.id,
     x: node.x,
     y: node.y,
     color,
     ...(node.label !== undefined ? { label: node.label } : {}),
-    ...(icon !== undefined ? { icon } : {}),
+    ...(resolvedIcon !== undefined ? { icon: resolvedIcon } : {}),
   };
 };
 
 /**
  * An entity/type icon value the popover and edge-label pill render as text: the
  * value as-is when it is an emoji, or `undefined` when it is a `/path`/`https`
- * URL to an SVG (which those text surfaces can't draw — nodes resolve those to a
- * ds icon via {@link iconNameFromEntityIcon} instead).
+ * URL to an SVG (which those text surfaces can't draw — nodes and the popover
+ * chips draw those SVGs directly via {@link svgIconUrl} instead).
  */
 const emojiFromEntityIcon = (icon: string | undefined): string | undefined =>
   icon !== undefined &&
@@ -531,12 +565,13 @@ export const NetworkGraphView = ({
     [coloredTypeIds, coloredTypeColors],
   );
 
-  // The ds icon for a node, resolved from its type's icon in memory (the wire no
-  // longer ships a per-node icon). Drawn inside the node in the detailed view;
-  // only SVG-path type icons map to a ds glyph.
-  const nodeIconFor = useCallback(
-    (typeId: VersionedUrl | undefined): IconName | undefined =>
-      iconNameFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+  // The SVG icon drawn inside a node in the detailed view, resolved from its
+  // type's icon in memory (the wire no longer ships a per-node icon). Every
+  // served type icon is kept; emojis and other non-SVG values are ignored (drawn
+  // nowhere in the graph).
+  const nodeSvgIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): NetworkGraphIcon | undefined =>
+      svgIconFromEntityIcon(resolveTypeMeta(typeId)?.icon),
     [resolveTypeMeta],
   );
 
@@ -547,21 +582,21 @@ export const NetworkGraphView = ({
     [resolveTypeMeta],
   );
 
-  // A type's popover chip icon: its emoji, or the ds glyph its SVG icon resolves
-  // to (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
+  // A type's popover chip icon: its emoji, or the SVG its icon resolves to
+  // (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
   const typeIconFor = useCallback(
     (typeId: VersionedUrl | undefined): LocatedEntityIcon | undefined => {
       const emoji = emojiIconFor(typeId);
-      const name = nodeIconFor(typeId);
-      if (emoji === undefined && name === undefined) {
+      const svgUrl = svgIconUrl(resolveTypeMeta(typeId)?.icon);
+      if (emoji === undefined && svgUrl === undefined) {
         return undefined;
       }
       return {
         ...(emoji !== undefined ? { emoji } : {}),
-        ...(name !== undefined ? { name } : {}),
+        ...(svgUrl !== undefined ? { svgUrl } : {}),
       };
     },
-    [emojiIconFor, nodeIconFor],
+    [emojiIconFor, resolveTypeMeta],
   );
 
   // Every popover type chip for a node: one per coloured queried type it matches
@@ -677,9 +712,9 @@ export const NetworkGraphView = ({
       toPoint(
         node,
         color,
-        nodeIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
+        nodeSvgIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
       ),
-    [nodeIconFor, primaryTypeId],
+    [nodeSvgIconFor, primaryTypeId],
   );
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -999,7 +1034,7 @@ export const NetworkGraphView = ({
 
   // A located endpoint node → the edge popover's from/to entry: the entity's
   // label plus its primary type's icon (the same type its node colour and icon
-  // are sampled from) as an emoji or a ds glyph, and an `onClick` that selects
+  // are sampled from) as an emoji or an SVG, and an `onClick` that selects
   // (and reveals) the endpoint's node so the popover label jumps to it. Falls
   // back to a label keyed by the endpoint's row id when the node isn't in the
   // subgraph — still selectable, since that row id is itself a locate source.
@@ -1020,18 +1055,18 @@ export const NetworkGraphView = ({
       }
       const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
       const emoji = emojiIconFor(typeId);
-      const name = nodeIconFor(typeId);
+      const svgUrl = svgIconUrl(resolveTypeMeta(typeId)?.icon);
       const icon = {
         ...(emoji !== undefined ? { emoji } : {}),
-        ...(name !== undefined ? { name } : {}),
+        ...(svgUrl !== undefined ? { svgUrl } : {}),
       };
       return {
         label: node.label ?? `Node ${node.id}`,
-        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
+        ...(emoji !== undefined || svgUrl !== undefined ? { icon } : {}),
         ...(onClick !== undefined ? { onClick } : {}),
       };
     },
-    [selectNode, primaryTypeId, emojiIconFor, nodeIconFor],
+    [selectNode, primaryTypeId, emojiIconFor, resolveTypeMeta],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity

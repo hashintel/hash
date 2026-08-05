@@ -9,12 +9,14 @@ export {
   type NetworkGraphEdgeInteraction,
   type NetworkGraphEdgeNeighbourhood,
   type NetworkGraphHandle,
+  type NetworkGraphIcon,
   type NetworkGraphId,
   type NetworkGraphInteraction,
   type NetworkGraphNeighbourhood,
   type NetworkGraphPoint,
   type NetworkGraphProps,
   type NetworkGraphSelection,
+  type NetworkGraphSvgIcon,
 } from "./components/Chart/NetworkGraph/network-graph";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
