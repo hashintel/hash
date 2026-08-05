@@ -73,10 +73,11 @@
 //! # Whole-file mappings
 //!
 //! Every mapping covers a whole file and slices at the header size. An array header is exactly 4096
-//! bytes, a multiple of every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon, 64
-//! KiB on `aarch64` distributions), so the data behind it lands aligned for every scalar and SIMD
-//! width. Mapping from zero is what makes that provable. The kernel accepts only page-size-multiple
-//! mmap offsets, and 4096 is not one on 16 KiB pages.
+//! bytes, and every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon, 64 KiB on
+//! `aarch64` distributions) is a multiple of that, so a page-aligned mapping base leaves the data
+//! behind the header aligned for every scalar and SIMD width. Mapping from zero is what makes that
+//! provable. The kernel accepts only page-size-multiple mmap offsets, and 4096 is not one on 16 KiB
+//! pages.
 //!
 //! # Format palette
 //!

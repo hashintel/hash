@@ -176,7 +176,11 @@ impl QuadFile {
             .map
             .map()
             .region(PAGE, self.header().nodes() * size_of::<Node>() as u64);
-        <[Node]>::ref_from_bytes(bytes).expect("node records tolerate any alignment")
+        <[Node]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of node records, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the type-set fenceposts, one entry count per node plus the closing count.
@@ -192,7 +196,11 @@ impl QuadFile {
                 .expect("open validated the geometry"),
             (self.header().nodes() + 1) * size_of::<u64>() as u64,
         );
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the shared type-id array.
@@ -204,7 +212,11 @@ impl QuadFile {
                 .expect("open validated the geometry"),
             self.header().type_ids() * size_of::<u32>() as u64,
         );
-        <[U32<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U32<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views one node's direct-type set, ascending.

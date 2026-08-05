@@ -53,7 +53,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
-    reason = "the magic is pinned to the same canonical little-endian bytes on every platform"
+    reason = "the fields are little endian, while the magic discriminant stores native endian, so \
+              a cross-endian reader fails loudly at the magic instead of misreading fields"
 )]
 
 use core::fmt;
@@ -275,14 +276,12 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
 /// header records `I::VARIANT`. Every implementor is an [`SpIndex`], so a mapped region drives
 /// sparse algorithms directly.
 ///
-/// # Safety
-///
 /// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry and byte reinterpretation both
-/// derive from the variant's width, so a lying implementation reads regions at the wrong
-/// boundaries.
-pub(crate) unsafe trait SprsIndex:
-    SpIndex + FromBytes + IntoBytes + Immutable
-{
+/// derive from the variant's width.
+// The trait is safe because the width contract is correctness rather than memory safety: every
+// region carve re-validates its bytes through a checked cast, so a lying `VARIANT` cannot
+// invalidate one.
+pub(crate) trait SprsIndex: SpIndex + FromBytes + IntoBytes + Immutable {
     /// The wire identity of `Self`.
     const VARIANT: IndexVariant;
 }
@@ -310,8 +309,7 @@ macro_rules! sprs_index {
             const _: () =
                 assert!(IndexVariant::$variant.width() == size_of::<$element>() as u64);
 
-            // SAFETY: the const assert above checks the width equality at compile time.
-            unsafe impl SprsIndex for $element {
+            impl SprsIndex for $element {
                 const VARIANT: IndexVariant = IndexVariant::$variant;
             }
         )*

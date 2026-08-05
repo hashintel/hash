@@ -275,7 +275,7 @@ pub(super) async fn handler(
             (
                 HeaderName::from_static(headers::AUTHORITY),
                 HeaderValue::try_from(HexBytes::new(token).to_string())
-                    .expect("hexadecimal is a valid header value"),
+                    .unwrap_or_else(|_| unreachable!("hexadecimal is a valid header value")),
             ),
         ],
         Json(

@@ -204,7 +204,7 @@ impl<H: Header> HeaderMap<H> {
                 unreachable!("a header page is `Unaligned`")
             }
             Err(ConvertError::Size(_)) => {
-                unreachable!("the slice is exactly one page long")
+                unreachable!("the slice and `H::Padded` are each exactly one page")
             }
         }
 
@@ -220,9 +220,9 @@ impl<H: Header> HeaderMap<H> {
 
         // SAFETY: the dereference needs a live, aligned, validly initialized target that is not
         // mutably aliased, for no longer than the borrow.
-        // - `Self::new` parsed the leading page as `H::Padded` and rejected the file otherwise, and
-        //   `H::Padded` occupies exactly the page that parse accepted, so the target holds an
-        //   initialized value.
+        // - `Self::new` parsed the leading page as `H::Padded` and rejected the file otherwise. The
+        //   page it validated is `header_page()`, the mapping's prefix, so it starts at the base
+        //   address `bytes()` names here and the target holds an initialized value.
         // - `H::Padded` is `Unaligned`, so it imposes no alignment on the address.
         // - This reads `&self.map` here rather than a stored pointer, so the address belongs to a
         //   mapping that is alive at this moment.

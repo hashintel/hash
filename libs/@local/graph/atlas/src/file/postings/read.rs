@@ -124,7 +124,11 @@ impl PostingsFile {
             .map()
             .region(PAGE, self.header().flags_words() * size_of::<u64>() as u64);
 
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the `T + 1` membership fenceposts, in entry counts.
@@ -137,7 +141,11 @@ impl PostingsFile {
             self.posts_bytes(),
         );
 
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the `T + 1` parent fenceposts, in id counts.
@@ -150,7 +158,11 @@ impl PostingsFile {
             self.posts_bytes(),
         );
 
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the `P` parent ids, type-major.
@@ -163,7 +175,11 @@ impl PostingsFile {
             self.header().parent_edges() * size_of::<u64>() as u64,
         );
 
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the `M` membership entries, type-major.
@@ -176,7 +192,11 @@ impl PostingsFile {
             self.header().entries() * size_of::<u32>() as u64,
         );
 
-        <[U32<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U32<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Returns the byte size of one fencepost region.

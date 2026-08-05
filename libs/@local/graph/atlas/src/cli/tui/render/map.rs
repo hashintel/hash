@@ -29,7 +29,7 @@ pub(super) const SKELETON: Color = Color::Magenta;
 ///
 /// The map carries no axis labels, so widening states nothing untrue - it only keeps the outermost
 /// rows a dot inside the frame rather than against its wall.
-const MAP_MARGIN: Positive = Positive::new(1.04).expect("1.04 is positive");
+const MAP_MARGIN: Positive = Positive::new(1.04).unwrap();
 
 /// The viewport, in data units, that the map gives a placement with no extent of its own.
 ///

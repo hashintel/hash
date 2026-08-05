@@ -57,7 +57,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 #![expect(
     clippy::little_endian_bytes,
-    reason = "the magic is pinned to the same canonical little-endian bytes on every platform"
+    reason = "the fields are little endian, while the magic discriminant stores native endian, so \
+              a cross-endian reader fails loudly at the magic instead of misreading fields"
 )]
 
 use core::fmt;

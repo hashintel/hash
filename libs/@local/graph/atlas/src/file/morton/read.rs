@@ -173,7 +173,11 @@ impl MortonFile {
         // computations open already accepted, so none of them can
         // overflow here.
         let bytes = self.map.map().region(PAGE, keys * size_of::<u64>() as u64);
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Views the code column in base delivery order.
@@ -193,7 +197,11 @@ impl MortonFile {
                 .expect("open validated the geometry"),
             self.count() * size_of::<u64>() as u64,
         );
-        <[U64<LE>]>::ref_from_bytes(bytes).expect("byte-order integers tolerate any alignment")
+        <[U64<LE>]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
+            unreachable!(
+                "the region is a whole number of byte-order integers, which tolerate any alignment"
+            )
+        })
     }
 
     /// Returns the positions of `bucket`'s codes inside `cell`.
