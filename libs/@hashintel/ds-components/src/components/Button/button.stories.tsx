@@ -92,14 +92,21 @@ export const Default: Story<ButtonElementProps> = (args) => {
           key={tone}
           className={css({
             display: "flex",
-            gap: "[16px]",
+            gap: "[32px]",
             alignItems: "flex-end",
             flexWrap: "wrap",
             marginBottom: "4",
           })}
         >
           {variants.map((variant) => (
-            <Fragment key={variant}>
+            <div
+              key={variant}
+              className={css({
+                display: "flex",
+                gap: "[8px]",
+                alignItems: "flex-end",
+              })}
+            >
               <Button
                 {...args}
                 variant={variant}
@@ -121,7 +128,7 @@ export const Default: Story<ButtonElementProps> = (args) => {
               <Button {...args} variant={variant} tone={tone} pressed>
                 pressed
               </Button>
-            </Fragment>
+            </div>
           ))}
         </div>
       ))}
