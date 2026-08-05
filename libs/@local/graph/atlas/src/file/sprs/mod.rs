@@ -278,9 +278,9 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
 ///
 /// `VARIANT.width()` must equal `size_of::<Self>()`: region geometry and byte reinterpretation both
 /// derive from the variant's width.
-// The trait is safe because the width contract is correctness rather than memory safety: every
-// region carve re-validates its bytes through a checked cast, so a lying `VARIANT` cannot
-// invalidate one.
+// The trait is safe to implement because the width contract guards correctness rather than
+// memory soundness: every region carve re-validates its bytes through a checked cast, so a
+// lying `VARIANT` cannot invalidate one.
 pub(crate) trait SprsIndex: SpIndex + FromBytes + IntoBytes + Immutable {
     /// The wire identity of `Self`.
     const VARIANT: IndexVariant;

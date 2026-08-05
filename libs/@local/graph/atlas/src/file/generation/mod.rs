@@ -396,6 +396,16 @@ impl Drop for ScratchDirectory {
     }
 }
 
+/// Drops the write permission on a file about to publish.
+///
+/// A published file is immutable, so rewriting one becomes an OS error, while removal keeps
+/// working through the containing directory's permissions.
+fn make_readonly(file: &File) -> io::Result<()> {
+    let mut permissions = file.metadata()?.permissions();
+    permissions.set_readonly(true);
+    file.set_permissions(permissions)
+}
+
 /// A generation under assembly in a staging directory.
 ///
 /// Stages write their artifacts directly into the staging directory through
@@ -427,7 +437,9 @@ impl StagedGeneration {
     /// Seals the staging into a published generation.
     ///
     /// The staged file set must match the manifest exactly. Sealing writes the metadata document
-    /// beside the staged files and syncs every file and the directory. It then renames the
+    /// beside the staged files and syncs every file and the directory. Every file drops its write
+    /// permission before the rename, so rewriting a published path fails with an OS error while
+    /// removal keeps working through the directory's own permissions. It then renames the
     /// directory into place under the document's SHA-256 and syncs the root directory after the
     /// rename. The returned generation is therefore visible and durable, and a failure leaves the
     /// staging as it was.
@@ -437,7 +449,7 @@ impl StagedGeneration {
     /// Returns an error when the manifest repeats a name or claims the metadata document's name. It
     /// also returns an error when the manifest disagrees with the staged file set or names a
     /// generation that is already published. Serializing the metadata document returns an error
-    /// when it fails. A write, sync, or rename failure returns an error as well.
+    /// when it fails. A write, sync, permission, or rename failure returns an error as well.
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,
@@ -508,9 +520,12 @@ impl StagedGeneration {
         let mut file = File::create(self.path.join(METADATA_FILE))?;
         file.write_all(document)?;
         file.sync_all()?;
+        make_readonly(&file)?;
 
         for name in staged {
-            File::open(self.path.join(name.as_str()))?.sync_all()?;
+            let file = File::open(self.path.join(name.as_str()))?;
+            file.sync_all()?;
+            make_readonly(&file)?;
         }
         File::open(&self.path)?.sync_all()?;
 

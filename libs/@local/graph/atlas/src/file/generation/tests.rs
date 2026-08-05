@@ -205,6 +205,19 @@ fn evidence() -> Evidence {
     }
 }
 
+/// Restores the write permission a seal dropped, so a test can tamper with published bytes.
+fn make_writable(path: &camino::Utf8Path) {
+    let mut permissions = fs::metadata(path)
+        .expect("a published file should stat")
+        .permissions();
+    #[expect(
+        clippy::permissions_set_readonly_false,
+        reason = "the test tampers with its own scratch files"
+    )]
+    permissions.set_readonly(false);
+    fs::set_permissions(path, permissions).expect("the permissions should set");
+}
+
 fn stage_all(staging: &StagedGeneration, repository: &SaltRepository) {
     for entry in repository.files.files() {
         let mut file = staging
@@ -246,6 +259,40 @@ fn sealed_generation_is_complete_and_verifiable() {
     let decoded: SaltRepository =
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_eq!(decoded, repository);
+}
+
+#[test]
+fn sealed_files_refuse_rewriting() {
+    let root = GenerationRoot::new(scratch("readonly")).expect("the root should open");
+    let repository = repository();
+
+    let staging = root.stage().expect("the staging should create");
+    stage_all(&staging, &repository);
+    let published = staging.seal(&repository).expect("the staging should seal");
+
+    // Every published file, the metadata document included, is read-only and
+    // refuses a write handle: the permission drop turns a rewriting accident
+    // into an OS error.
+    let mut names: Vec<&str> = repository
+        .files
+        .files()
+        .map(|entry| entry.name.as_str())
+        .collect();
+    names.push(METADATA_FILE);
+    for name in names {
+        let path = published.path().join(name);
+        assert!(
+            fs::metadata(&path)
+                .expect("a published file should stat")
+                .permissions()
+                .readonly(),
+            "{name} should be read-only"
+        );
+        assert!(
+            fs::OpenOptions::new().write(true).open(&path).is_err(),
+            "{name} should refuse a write handle"
+        );
+    }
 }
 
 #[test]
@@ -423,6 +470,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
     let document_path = published.path().join(METADATA_FILE);
     let mut document = fs::read(&document_path).expect("the document should read");
     document.push(b'\n');
+    make_writable(&document_path);
     fs::write(&document_path, &document).expect("the document should write");
 
     assert_matches!(
