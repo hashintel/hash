@@ -142,7 +142,7 @@ const TransitionFiringTimeContent: React.FC = () => {
 
       <div className={infoBoxStyle}>
         {lambdaType === "predicate"
-          ? "Define a boolean guard condition. The transition fires when this function returns true, enabling discrete control flow based on token data."
+          ? "Define a boolean guard condition. The transition fires immediately — without stochastic delay — once this function returns true and input tokens are available."
           : "Return a numeric rate representing the average number of firings per second. The transition fires stochastically according to this rate."}
       </div>
 
