@@ -71,14 +71,22 @@ describe("scenario session initial-state-as-code diagnostics", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  it("generates no virtual file (and thus no diagnostics) for empty code", () => {
+  it("reports no diagnostics for empty code", () => {
     // Regression: an empty "Define as code" editor used to produce
     // TS2355 ("A function whose declared type is neither 'undefined',
     // 'void', nor 'any' must return a value.") because the empty body was
-    // wrapped in `function __check(): InitialState {}`. The runtime
-    // compiler ignores empty code, so the LSP must too. Like empty
-    // parameter-override expressions, the virtual file is not generated at
-    // all — the diagnostics publisher only visits files that exist.
+    // wrapped in `function __check(): InitialState {}`. The runtime compiler
+    // treats empty code as "no initial state", so the LSP must not complain.
+    for (const emptyCode of ["", "   \n  "]) {
+      expect(getInitialStateDiagnostics(emptyCode)).toEqual([]);
+    }
+  });
+
+  it("keeps the virtual file for empty code so completions still resolve", () => {
+    // The file must exist even when empty: this editor is where users press
+    // Ctrl+Space to discover the injected helpers, and TypeScript throws
+    // ("Could not find source file") when asked to complete against a path
+    // with no source file behind it.
     for (const emptyCode of ["", "   \n  "]) {
       const server = new SDCPNLanguageServer();
       server.syncFiles(SDCPN);
@@ -89,10 +97,21 @@ describe("scenario session initial-state-as-code diagnostics", () => {
       const filePath = getItemFilePath("scenario-initial-state-full-code", {
         sessionId: SESSION_DEFAULTS.sessionId,
       });
-      expect(server.getFileContent(filePath)).toBeUndefined();
-      expect(
-        server.getScenarioFileNames(SESSION_DEFAULTS.sessionId),
-      ).not.toContain(filePath);
+
+      expect(server.getFileContent(filePath)).toBeDefined();
+      expect(server.getScenarioFileNames(SESSION_DEFAULTS.sessionId)).toContain(
+        filePath,
+      );
+
+      const completions = server.getCompletionsAtPosition(
+        filePath,
+        emptyCode.length,
+        undefined,
+      );
+      const names = (completions?.entries ?? []).map((entry) => entry.name);
+      expect(names).toContain("range");
+      expect(names).toContain("scenario");
+      expect(names).toContain("parameters");
     }
   });
 
