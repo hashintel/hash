@@ -96,6 +96,28 @@ yarn workspace @local/petrinaut-arch-docs doc:architecture
 
 and commit the result alongside your change.
 
+## Adding a hand-written guide
+
+Authored pages live in `libs/@local/petrinaut-arch-docs/content/` and are
+optional. To have one sit _inside_ the architecture tree rather than beside it,
+name the layer it explains:
+
+```yaml
+---
+title: Memory model
+attachTo: core.simulation
+sidebar_order: 10
+---
+```
+
+The page then appears beneath that layer, and the layer's page links to it under
+"Guides".
+
+Because `attachTo` decides where the page ends up, link to other pages by name
+rather than by path — `[text](layer:core.simulation.engine)` for a generated
+page, `[text](doc:simulation/memory-model)` for another authored one. A target
+that does not resolve fails the check.
+
 ## Declaring a rule
 
 Rules live in `architecture.config.ts` and are checked against the real import

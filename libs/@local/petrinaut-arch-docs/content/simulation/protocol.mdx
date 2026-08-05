@@ -1,13 +1,14 @@
 ---
 title: Worker protocol and backpressure
 description: The messages between host and simulation worker, and the ack contract that bounds memory.
-sidebar_order: 13
+sidebar_order: 10
+attachTo: core.simulation.worker
 ---
 
 Both simulation workers speak a small typed message protocol over `postMessage`,
 wrapped in a transport that queues messages until the worker boots. This page
 covers the quick-simulation worker; the experiment worker is on
-[Monte Carlo](monte-carlo).
+[Monte Carlo](doc:simulation/experiments).
 
 ## Messages
 
@@ -104,4 +105,4 @@ The host-side runtime does four things worth knowing about:
 The 10 ms poll while waiting for acks is a busy-wait; a promise per ack would be
 exact. And frames could be posted with a transfer list to halve copying, but only
 once stepping no longer re-reads the latest stored frame — see
-[Memory model](memory-model).
+[Memory model](doc:simulation/memory-model).

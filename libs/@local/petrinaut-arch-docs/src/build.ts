@@ -24,7 +24,12 @@ import {
   buildOverviewDiagram,
   buildSubtreeDiagram,
 } from "./emit/d2";
-import { buildPages, type GeneratedPage } from "./emit/mdx";
+import {
+  buildPages,
+  resolveAuthoredLinks,
+  slugForLayer,
+  type GeneratedPage,
+} from "./emit/mdx";
 import { extract, type Diagnostic } from "./extract";
 import { buildGraph } from "./graph";
 import {
@@ -149,16 +154,6 @@ export const buildBundle = async (options: {
     svg: `diagrams/${name}.svg`,
   }));
 
-  const includeDiagrams = options.includeDiagrams ?? true;
-
-  const generated = buildPages(model, {
-    sourceUrlPrefix: settings.sourceUrlPrefix,
-    overviewDiagram: includeDiagrams ? OVERVIEW_DIAGRAM : null,
-    layerDiagrams: includeDiagrams
-      ? new Set(parentLayerIds)
-      : new Set<string>(),
-  });
-
   const authoredResult = await collectAuthoredContent({
     repoRoot,
     contentDirectory: settings.contentDirectory,
@@ -173,8 +168,94 @@ export const buildBundle = async (options: {
     });
   }
 
-  const generatedSlugs = new Set(generated.map((page) => page.slug));
+  const declaredLayerIds = new Set(model.layers.map((layer) => layer.id));
+
+  /**
+   * Final slug for each authored page.
+   *
+   * An attached page moves beneath its layer's page so the guide and the
+   * generated reference for the same code sit together. Its file name becomes
+   * the last segment, which is why two guides attached to one layer must not
+   * share a file name.
+   */
+  const authoredSlugs = new Map<string, string>();
   for (const page of authoredResult.pages) {
+    if (page.attachTo === null) {
+      authoredSlugs.set(page.slug, page.slug);
+      continue;
+    }
+
+    if (!declaredLayerIds.has(page.attachTo)) {
+      diagnostics.push({
+        file: page.sourceFile,
+        line: null,
+        severity: "error",
+        message: `attachTo \`${page.attachTo}\` is not a declared layer`,
+      });
+      authoredSlugs.set(page.slug, page.slug);
+      continue;
+    }
+
+    const leaf = page.slug.slice(page.slug.lastIndexOf("/") + 1);
+    authoredSlugs.set(page.slug, `${slugForLayer(page.attachTo)}/${leaf}`);
+  }
+
+  const layerSlugsById = new Map(
+    model.layers.map((layer) => [layer.id, slugForLayer(layer.id)]),
+  );
+
+  const guidesByLayer = new Map<
+    string,
+    { slug: string; title: string; description: string }[]
+  >();
+  for (const page of authoredResult.pages) {
+    if (page.attachTo === null || !declaredLayerIds.has(page.attachTo)) {
+      continue;
+    }
+    guidesByLayer.set(page.attachTo, [
+      ...(guidesByLayer.get(page.attachTo) ?? []),
+      {
+        slug: authoredSlugs.get(page.slug) ?? page.slug,
+        title: page.title,
+        description: page.description,
+      },
+    ]);
+  }
+
+  // Authored pages address their targets by name (`layer:`, `doc:`) rather than
+  // by path, because a page's depth is only known once `attachTo` is resolved.
+  const authored = authoredResult.pages.map((page) => {
+    const slug = authoredSlugs.get(page.slug) ?? page.slug;
+    const { contents, unresolved } = resolveAuthoredLinks(page.contents, slug, {
+      layerSlugs: layerSlugsById,
+      docSlugs: authoredSlugs,
+    });
+
+    for (const target of unresolved) {
+      diagnostics.push({
+        file: page.sourceFile,
+        line: null,
+        severity: "error",
+        message: `link target \`${target}\` does not resolve`,
+      });
+    }
+
+    return { ...page, slug, path: `pages/${slug}.mdx`, contents };
+  });
+
+  const includeDiagrams = options.includeDiagrams ?? true;
+
+  const generated = buildPages(model, {
+    sourceUrlPrefix: settings.sourceUrlPrefix,
+    overviewDiagram: includeDiagrams ? OVERVIEW_DIAGRAM : null,
+    layerDiagrams: includeDiagrams
+      ? new Set(parentLayerIds)
+      : new Set<string>(),
+    guidesByLayer,
+  });
+
+  const generatedSlugs = new Set(generated.map((page) => page.slug));
+  for (const page of authored) {
     if (generatedSlugs.has(page.slug)) {
       diagnostics.push({
         file: page.sourceFile,
@@ -188,7 +269,7 @@ export const buildBundle = async (options: {
   const manifest = buildManifest({
     generator: GENERATOR_NAME,
     generated,
-    authored: authoredResult.pages,
+    authored,
     diagrams,
   });
 
@@ -196,12 +277,12 @@ export const buildBundle = async (options: {
     model,
     manifest,
     generated,
-    authored: authoredResult.pages,
+    authored,
     diagramSources,
     llmsTxt: buildLlmsTxt({
       model,
       generated,
-      authored: authoredResult.pages,
+      authored,
     }),
     singleFile: buildSingleFileArchitecture(model),
     diagnostics,

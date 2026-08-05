@@ -131,6 +131,8 @@ Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs wit
 
 Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Add a page there for reasoning an import graph cannot express; the system works with that directory absent.
 
+Give such a page `attachTo: <layer id>` in its frontmatter and it nests inside the generated tree beneath that layer, rather than sitting in a separate section — that is how the simulation deep-dives are wired. Link between pages with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+
 ## Contextual Rules
 
 CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:

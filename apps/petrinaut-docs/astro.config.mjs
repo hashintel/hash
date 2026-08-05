@@ -26,13 +26,14 @@ const manifestPath = fileURLToPath(
 /** @type {import("@local/petrinaut-arch-docs").BundleManifest} */
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
-/** Generated pages start at this order; see the generator's README. */
-const generatedOrderBase = 1000;
-
 /**
- * Turns the manifest's flat, slug-ordered page list into Starlight's nested
- * sidebar shape. Slugs already encode the hierarchy (`architecture/core/hir`),
- * so a group is created for any page that has descendants.
+ * Builds Starlight's nested sidebar from the manifest.
+ *
+ * Nesting follows the *slug*, not whether a page was generated. An authored
+ * guide that attached itself to a layer has a slug beneath that layer, so it
+ * nests with the generated reference for the same code — which is the whole
+ * point of attaching it. Ordering within a level uses the manifest's `order`,
+ * so guides (low numbers) sort ahead of sub-layers (1000+).
  */
 const buildSidebar = () => {
   const pages = [...manifest.pages].sort(
@@ -40,23 +41,17 @@ const buildSidebar = () => {
       left.order - right.order || left.slug.localeCompare(right.slug),
   );
 
-  const authored = pages.filter((page) => page.order < generatedOrderBase);
-  const generated = pages.filter((page) => page.order >= generatedOrderBase);
+  const parentOf = (slug) =>
+    slug.includes("/") ? slug.slice(0, slug.lastIndexOf("/")) : "";
 
   const hasChildren = new Set(
-    generated.flatMap((page) => {
-      const parent = page.slug.slice(0, page.slug.lastIndexOf("/"));
-      return parent === "" ? [] : [parent];
-    }),
+    pages.map((page) => parentOf(page.slug)).filter((slug) => slug !== ""),
   );
 
   /** @param {string} parentSlug */
   const itemsUnder = (parentSlug) =>
-    generated
-      .filter((page) => {
-        const parent = page.slug.slice(0, page.slug.lastIndexOf("/"));
-        return parent === parentSlug;
-      })
+    pages
+      .filter((page) => parentOf(page.slug) === parentSlug)
       .map((page) =>
         hasChildren.has(page.slug)
           ? {
@@ -70,49 +65,24 @@ const buildSidebar = () => {
           : { label: page.title, link: `/${page.slug}` },
       );
 
-  const root = generated.find((page) => page.slug === "architecture");
-
-  // Authored pages nest by slug directory too, so a set of deep-dives under
-  // `simulation/` becomes one collapsible group rather than a flat run of links
-  // ahead of the generated section.
-  const authoredTop = authored.filter((page) => !page.slug.includes("/"));
-  const authoredGroups = new Map();
-  for (const page of authored) {
-    if (!page.slug.includes("/")) {
-      continue;
-    }
-    const group = page.slug.slice(0, page.slug.indexOf("/"));
-    authoredGroups.set(group, [...(authoredGroups.get(group) ?? []), page]);
-  }
-
-  /** @param {string} slug */
-  const groupLabel = (slug) =>
-    slug
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+  const architectureRoot = pages.find((page) => page.slug === "architecture");
+  const narrative = pages.filter(
+    (page) => !page.slug.startsWith("architecture") && !page.slug.includes("/"),
+  );
 
   return [
-    ...authoredTop.map((page) => ({
+    ...narrative.map((page) => ({
       label: page.title,
       link: page.slug === "index" ? "/" : `/${page.slug}`,
     })),
-    ...[...authoredGroups.entries()].map(([group, pages]) => ({
-      label: groupLabel(group),
-      collapsed: false,
-      items: pages.map((page) => ({
-        label: page.title,
-        link: `/${page.slug}`,
-      })),
-    })),
-    ...(root
+    ...(architectureRoot
       ? [
           {
-            label: "Architecture (generated)",
+            label: "Architecture",
             collapsed: false,
             items: [
-              { label: "Overview", link: `/${root.slug}` },
-              ...itemsUnder(root.slug),
+              { label: "Overview", link: `/${architectureRoot.slug}` },
+              ...itemsUnder(architectureRoot.slug),
             ],
           },
         ]

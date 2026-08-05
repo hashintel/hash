@@ -25,6 +25,17 @@ export interface AuthoredPage {
   description: string;
   contents: string;
   order: number;
+  /**
+   * Layer id this page explains, from the `attachTo` frontmatter key.
+   *
+   * When set, the page is placed beneath that layer's page rather than at the
+   * top level, so a hand-written guide sits with the generated reference for the
+   * same code instead of in a separate section. Null means a standalone page.
+   *
+   * Note this is *not* a layer declaration — it attaches to a layer declared in
+   * the source. Declaring layers from `content/` stays forbidden.
+   */
+  attachTo: string | null;
   /** Repo-relative source file, for error messages. */
   sourceFile: string;
 }
@@ -49,11 +60,16 @@ const extensionOf = (name: string): string => {
  */
 const readPageMeta = (
   markdown: string,
-): { title: string | null; description: string; order: number } => {
+): {
+  title: string | null;
+  description: string;
+  order: number;
+  attachTo: string | null;
+} => {
   const match = /^---\r?\n([\s\S]*?)\r?\n---/u.exec(markdown);
 
   if (!match) {
-    return { title: null, description: "", order: 100 };
+    return { title: null, description: "", order: 100, attachTo: null };
   }
 
   const fields = match[1] ?? "";
@@ -72,6 +88,7 @@ const readPageMeta = (
     title: read("title"),
     description: read("description") ?? "",
     order: Number.isFinite(parsedOrder) ? parsedOrder : 100,
+    attachTo: read("attachTo"),
   };
 };
 
@@ -152,6 +169,7 @@ export const collectAuthoredContent = async (options: {
       description: meta.description,
       contents,
       order: meta.order,
+      attachTo: meta.attachTo,
       sourceFile: toPosix(relative(options.repoRoot, absolutePath)),
     });
   }

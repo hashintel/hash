@@ -37,9 +37,9 @@ Carlo runtime — so a change to run lifecycle usually needs doing twice, and
 forgetting one is the classic bug here.
 
 If you are touching either, read the generated pages for
-[the engine](architecture/core/simulation/engine),
-[the simulation controller](architecture/core/simulation/runtime) and
-[the Monte Carlo runtime](architecture/core/simulation/monte-carlo) — their
+[the engine](layer:core.simulation.engine),
+[the simulation controller](layer:core.simulation.runtime) and
+[the Monte Carlo runtime](layer:core.simulation.monte-carlo) — their
 declared invariants say which properties you must not break.
 
 ## Actual mode is a third source, but not a third path
@@ -47,6 +47,6 @@ declared invariants say which properties you must not break.
 Actual mode renders an execution that came from somewhere else entirely — a live
 external system rather than a simulation. It does not run the engine at all. It
 reaches the same canvas and timeline because both read frames through the
-[execution-frame interface](architecture/react/execution-frame), which abstracts
+[execution-frame interface](layer:react.execution-frame), which abstracts
 over "where frames come from". That seam is why adding Actual mode did not require
 touching the canvas.

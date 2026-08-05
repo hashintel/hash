@@ -122,6 +122,59 @@ const relativeTo = (fromSlug: string, toSlug: string): string => {
 const assetPathFrom = (slug: string, assetPath: string): string =>
   posix.relative(posix.dirname(`pages/${slug}`), assetPath);
 
+/**
+ * Resolves `doc:` and `layer:` link targets in authored pages.
+ *
+ * An authored page's final slug depends on its `attachTo`, so it cannot know
+ * its own depth and therefore cannot write a correct relative link by hand.
+ * These two schemes let a page name its target and have the path computed:
+ *
+ * - `[text](layer:core.simulation.engine)` → that layer's generated page
+ * - `[text](doc:two-execution-paths)` → another authored page, by its file slug
+ *
+ * Unresolvable targets are reported rather than silently emitted, because a
+ * broken link here is invisible until someone clicks it.
+ */
+export const resolveAuthoredLinks = (
+  contents: string,
+  fromSlug: string,
+  options: {
+    layerSlugs: Map<string, string>;
+    docSlugs: Map<string, string>;
+  },
+): { contents: string; unresolved: string[] } => {
+  const unresolved: string[] = [];
+
+  const resolved = contents.replace(
+    /(\]\()(layer|doc):([^)\s#]+)(#[^)\s]*)?(\))/gu,
+    (
+      match,
+      open: string,
+      scheme: string,
+      target: string,
+      fragment: string | undefined,
+      close: string,
+    ) => {
+      const slug =
+        scheme === "layer"
+          ? options.layerSlugs.get(target)
+          : options.docSlugs.get(target);
+
+      if (slug === undefined) {
+        unresolved.push(`${scheme}:${target}`);
+        return match;
+      }
+
+      return `${open}${relativeTo(fromSlug, slug)}${fragment ?? ""}${close}`;
+    },
+  );
+
+  return { contents: resolved, unresolved };
+};
+
+/** The slug a layer's generated page occupies. */
+export const slugForLayer = (id: string): string => layerSlug(id);
+
 const describeBoundaries = (
   layer: Layer,
   sourceUrlPrefix: string,
@@ -236,6 +289,7 @@ const buildLayerPage = (
   sourceUrlPrefix: string,
   order: number,
   diagramName: string | null,
+  attachedGuides: { slug: string; title: string; description: string }[],
 ): GeneratedPage => {
   const slug = layerSlug(layer.id);
   const children = model.layers.filter((other) => other.parent === layer.id);
@@ -291,6 +345,20 @@ const buildLayerPage = (
       ...children.map(
         (child) =>
           `- [${child.name}](${relativeTo(slug, layerSlug(child.id))}) — ${child.role}`,
+      ),
+      "",
+    );
+  }
+
+  if (attachedGuides.length > 0) {
+    body.push(
+      "## Guides",
+      "",
+      "Hand-written explanations of this layer. Unlike the rest of this page, they are not generated and not checked against the code.",
+      "",
+      ...attachedGuides.map(
+        (guide) =>
+          `- [${guide.title}](${relativeTo(slug, guide.slug)})${guide.description === "" ? "" : ` — ${guide.description}`}`,
       ),
       "",
     );
@@ -458,6 +526,11 @@ export const buildPages = (
     overviewDiagram: string | null;
     /** Layer ids that have a diagram of their own sub-tree. */
     layerDiagrams: Set<string>;
+    /** Authored guides attached to each layer id. */
+    guidesByLayer?: Map<
+      string,
+      { slug: string; title: string; description: string }[]
+    >;
   },
 ): GeneratedPage[] => {
   const layersById = new Map(model.layers.map((layer) => [layer.id, layer]));
@@ -473,6 +546,7 @@ export const buildPages = (
         options.sourceUrlPrefix,
         GENERATED_ORDER_BASE + index + 1,
         options.layerDiagrams.has(layer.id) ? layer.id : null,
+        options.guidesByLayer?.get(layer.id) ?? [],
       ),
     );
   });

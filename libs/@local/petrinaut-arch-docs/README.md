@@ -136,10 +136,47 @@ Anything in `content/` is copied into the bundle and merged into the same
 manifest as the generated pages. Slugs mirror the directory layout; `title`,
 `description` and `sidebar_order` come from frontmatter.
 
-Generated pages occupy `sidebar_order` 1000 and above, so authored pages sort
-first by default (they are the narrative entry; generated pages are reference).
-An authored page can deliberately sort after the reference section by choosing a
-higher order.
+### Attaching a page to a layer
+
+By default an authored page sits at the top level, as a standalone narrative
+entry. Add `attachTo` and it moves _inside_ the generated tree instead, beneath
+the page for the layer it explains:
+
+```yaml
+---
+title: Memory model
+description: Where simulation state actually lives.
+attachTo: core.simulation # a layer declared in the source
+sidebar_order: 10
+---
+```
+
+The page's slug becomes `architecture/core/simulation/memory-model`, the layer's
+page gains a **Guides** section linking to it, and any host that nests by slug
+shows the guide beside the generated reference for the same code.
+
+`attachTo` is not a layer declaration — it references a layer declared in a
+package, and CI fails if that layer does not exist. Declaring layers from
+`content/` remains forbidden.
+
+Generated pages occupy `sidebar_order` 1000 and above, so within a layer the
+attached guides (low numbers) sort ahead of its sub-layers.
+
+### Linking between pages
+
+Because `attachTo` decides where a page ends up, an authored page cannot know its
+own depth and so cannot write a correct relative link by hand. Name the target
+instead, and the generator computes the path:
+
+| Syntax                                 | Resolves to                                         |
+| -------------------------------------- | --------------------------------------------------- |
+| `[text](layer:core.simulation.engine)` | that layer's generated page                         |
+| `[text](doc:simulation/memory-model)`  | another authored page, by its path under `content/` |
+
+Fragments are preserved (`layer:core.hir#invariants`). A target that does not
+resolve is a build error rather than a broken link nobody notices. Ordinary
+relative and absolute links are left untouched, so a top-level page that will
+never move can still use them.
 
 Authored pages carry the reasoning — why a boundary is where it is, what was
 tried before — which no import graph can supply. They may not declare a layer;
@@ -155,6 +192,8 @@ layer declarations belong in the packages.
 - an unknown `@boundary` kind, a boundary with no note, a duplicated singular tag
 - a `@seam` that is not an export of any covered package
 - a dependency violating a rule in `architecture.config.ts`
+- an `attachTo` naming a layer that does not exist
+- a `layer:` or `doc:` link target that does not resolve
 
 Warnings (reported, non-fatal): a layer with no files and no sub-layers, an
 `exports` subpath with no resolvable source entry.

@@ -2,6 +2,7 @@
 title: Memory model
 description: Where simulation state actually lives, and the binary frame format it lives in.
 sidebar_order: 10
+attachTo: core.simulation
 ---
 
 Everything the simulation computes is stored in raw `ArrayBuffer`s read through
@@ -24,7 +25,7 @@ the simulation layers make sense.
 | Compiled user code  | Versioned HIR buffer programs                                        | Workers       | Produced once at init.                                                                     |
 
 The asymmetry between rows 4 and 6 is the whole difference between the two
-execution paths — see [Two execution paths](../two-execution-paths).
+execution paths — see [Two execution paths](doc:two-execution-paths).
 
 ## The frame format
 
