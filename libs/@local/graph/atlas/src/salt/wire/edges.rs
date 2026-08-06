@@ -44,7 +44,7 @@ pub(crate) struct EdgesResponse<'doc> {
     /// The web uuid then the entity uuid, sixteen raw bytes each, generation-frozen. Delivery
     /// order ascends by these bytes.
     pub edge_ids: &'doc [ArchivedEntityId],
-    /// The hydrated detail trailer, `Some` iff the request set `includeDetailedData`.
+    /// The hydrated detail trailer, `Some` iff the request set `detail: "auxiliary"`.
     pub trailer: Option<EdgesTrailer<'doc>>,
 }
 

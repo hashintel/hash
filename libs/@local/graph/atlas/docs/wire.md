@@ -124,7 +124,7 @@ HEAD keys:
 | 7   | `runs`        | `[uint...]` | per-bucket delivered counts, buckets b0.. (note below)                                                                |
 | 8   | `global`      | `map`       | post-intersection set metadata (note below)                                                                           |
 | 9   | `children`    | `uint`      | occupied-child bitmask, bit i = Morton child i holds an undelivered visible point below this zoom's cut; 0 = complete |
-| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes includeDetailedData)                                              |
+| 10  | `trailer`     | `bool`      | a CBOR trailer tail follows the last column (echoes a `detail: "auxiliary"` request)                                  |
 
 The v1 grammar retires key 11 to a reserved slot: no response emits it, and `sum(runs) = delivered` holds in every response.
 
@@ -147,7 +147,7 @@ Restricted views deliver from their own schedule. The server builds a first-occu
 - Truncation is detectable from the directory alone: the response must extend to `align8(end)` of the last present slot, plus a complete CBOR item when HEAD declares the trailer - a stream ending early is an error even without Content-Length.
 - `visible` and every `global` aggregate are post-intersection quantities (authorization and filter).
 
-Tile TRAILER, present iff the request set `includeDetailedData`:
+Tile TRAILER, present iff the request set `detail: "auxiliary"`:
 
 | Key | Name     | Type                 | Meaning         |
 | --- | -------- | -------------------- | --------------- |
@@ -166,11 +166,11 @@ HEAD keys:
 | 1   | `variant`    | `uint`     | the route's variant as its index in the manifest `variants` list                                            |
 | 2   | `count`      | `uint`     | edge count in this response                                                                                 |
 | 3   | `complete`   | `bool`     | false = the rank-ordered cap truncated the set (auth-invisible edges are NOT truncation - missing = denied) |
-| 4   | `trailer`    | `bool`     | a CBOR trailer tail follows the last column (echoes includeDetailedData)                                    |
+| 4   | `trailer`    | `bool`     | a CBOR trailer tail follows the last column (echoes a `detail: "auxiliary"` request)                        |
 
 The request's `tiles` list is not echoed. It rides the POST body, responses are `private, no-store`, and the generation echo pins identity. Column extents are `4 x count` for the endpoint columns and `32 x count` for `EDGE_IDS`. Delivery order is ascending `EDGE_IDS` bytes, independent of the tiles listed and of truncation, so identical requests yield identical column bytes under section 2's identity state. A detail trailer reflects live store state at hydration and is exempt from that identity (section 2). Every delivered edge has both endpoints in the listed tiles' delivered row sets. Sources and targets reference node row ids the client already holds for those tiles. "Delivered row set" means what the tile route delivers to THIS view: the corpus schedule's cumulative prefix through `z + span` for an operator view, and the view's own cascade through `z + span + k` for a restricted one. A restricted view's edges are therefore drawn among exactly the dots its own tiles rendered.
 
-Edges TRAILER, present iff `includeDetailedData` (edge order):
+Edges TRAILER, present iff the request set `detail: "auxiliary"` (edge order):
 
 | Key | Name          | Type                 | Meaning                                                                                                                   |
 | --- | ------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |

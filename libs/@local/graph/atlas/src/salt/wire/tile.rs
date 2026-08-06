@@ -50,7 +50,7 @@ pub(crate) struct TileResponse<'doc> {
     pub masks: Option<&'doc [Membership<'doc>]>,
     /// The hydrated detail trailer.
     ///
-    /// `Some` iff the request set `includeDetailedData`.
+    /// `Some` iff the request set `detail: "auxiliary"`.
     pub trailer: Option<TileTrailer<'doc>>,
 }
 
@@ -205,7 +205,7 @@ pub(crate) enum DeliveredSet<'doc> {
     /// Gathered base positions in delivery order: the masked gather, visibility already applied.
     ///
     /// Delivery order is the producer's and carries no relation to base order. Today's masked walk
-    /// gathers by ascending corpus bucket and so happens to ascend; the encoder does not depend on
+    /// gathers by ascending corpus bucket and so happens to ascend. The encoder does not depend on
     /// it.
     Positions(&'doc [BasePosition]),
 }

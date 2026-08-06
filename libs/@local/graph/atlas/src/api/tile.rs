@@ -29,9 +29,9 @@ The JSON body is optional; an absent body reads as the all-defaults query. `mode
      An id that matches no type in this generation is legal and reads 0 in every mask. The \
      manifest's `limits.coloredTypeIds` caps the list.
 
-`includeDetailedData` adds the detail trailer - per-point labels and icons, read from the store at \
-     request time. Geometry sections are immutable per generation; the trailer is not, so cache \
-     geometry and refetch detail.
+`detail: \"auxiliary\"` adds the detail trailer - per-point labels and icons, read from the store \
+     at request time. `\"minimal\"`, the default, sends geometry alone. Geometry sections are \
+     immutable per generation; the trailer is not, so cache geometry and refetch detail.
 
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.";

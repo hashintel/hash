@@ -19,7 +19,7 @@ fn from_parts_accepts_a_valid_structure() {
     assert_eq!(runs.run(node(2)), [20, 21, 22]);
     assert_eq!(runs.span(node(2)), 2..5);
     assert_eq!(
-        runs.iter().map(|(key, value)| value).collect::<Vec<_>>(),
+        runs.iter().map(|(_, value)| value).collect::<Vec<_>>(),
         [&[10_u32, 11] as &[_], &[], &[20, 21, 22]]
     );
 }

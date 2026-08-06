@@ -45,9 +45,9 @@ The response's three columns - sources, targets, and `EDGE_IDS` (each edge's 32-
 When the server's edge cap truncates the set, the response keeps the edges whose worse endpoint \
      ranks best, and the HEAD's `complete` key reads `false`.
 
-`includeDetailedData` adds the detail trailer, read from the store at request time: a sorted \
-     type-URL table and, per edge, a label and a first direct type as an integer index into the \
-     table.
+`detail: \"auxiliary\"` adds the detail trailer, read from the store at request time \
+     (`\"minimal\"`, the default, sends the columns alone): a sorted type-URL table and, per \
+     edge, a label and a first direct type as an integer index into the table.
 
 The `filter` field is reserved: a request that carries one is rejected with `unsupported-feature` \
      rather than answered with bytes that silently ignore it.
