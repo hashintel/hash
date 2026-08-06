@@ -25,8 +25,8 @@ jobs:
           app-id: "4497272"
           transit-key: github-app-hash-release
           repository: ${{ github.repository }}
-          cf-access-client-id: ${{ vars.CF_ACCESS_CLIENT_ID }}
-          cf-access-client-secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
+          cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
