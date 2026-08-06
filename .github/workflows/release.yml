@@ -20,7 +20,7 @@ jobs:
         id: app-token
         uses: hashintel/.github/.github/actions/github-app-token@89ff06bc761f0c0491d87a766eccce5aae6190ea # main
         with:
-          vault-address: ${{ vars.VAULT_ADDR }}
+          vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
           app-id: "4497272"
           transit-key: github-app-hash-release
