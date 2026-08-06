@@ -16,6 +16,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { useScope } from "./scope-context";
 import {
@@ -201,6 +202,17 @@ export const StatusDialog = ({
   const editorRef = useRef<StatusEditorHandle>(null);
   const portalRef = usePortalContainerRef();
   const scope = useScope();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
   const { authenticatedUser } = useAuthInfo();
   const members = useMemo(() => {
     if (!authenticatedUser) {
@@ -210,12 +222,14 @@ export const StatusDialog = ({
     const activeOrg = authenticatedUser.memberOf.find(
       ({ org }) => org.webId === scope,
     )?.org;
-    const users =
+    const scopeUsers =
       activeOrg?.memberships.map(({ user }) => user) ??
       (authenticatedUser.accountId === scope ? [authenticatedUser] : []);
 
-    return users.flatMap((user) =>
-      user.displayName && user.shortname
+    return scopeUsers.flatMap((user) =>
+      user.accountId !== authenticatedUser.accountId &&
+      user.displayName &&
+      user.shortname
         ? [
             {
               displayName: user.displayName,
@@ -338,7 +352,10 @@ export const StatusDialog = ({
                       </div>
                       <p className={historyComment}>
                         {entry.tokens.length ? (
-                          <StatusBody tokens={entry.tokens} />
+                          <StatusBody
+                            mentionedUsersByEntityId={statusUsersByEntityId}
+                            tokens={entry.tokens}
+                          />
                         ) : (
                           entry.text.trim() || "(no comment)"
                         )}

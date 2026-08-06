@@ -349,11 +349,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
           <Button
             variant="tertiary"
             size="xs"
-            onClick={() =>
-              markNotificationAsRead({
-                notificationEntityId: notification.entity.entityId,
-              })
-            }
+            onClick={handleNotificationClick}
           >
             Mark as read
           </Button>

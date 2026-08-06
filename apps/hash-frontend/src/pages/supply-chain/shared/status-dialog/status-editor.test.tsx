@@ -15,9 +15,18 @@ import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 const mentionedUserEntityId =
   "00000000-0000-0000-0000-000000000001~00000000-0000-0000-0000-000000000002" as EntityId;
+const scrollIntoView = vi.fn();
 
 afterEach(cleanup);
 beforeAll(() => {
+  globalThis.ResizeObserver = class ResizeObserver {
+    disconnect() {}
+
+    observe() {}
+
+    unobserve() {}
+  } as unknown as typeof ResizeObserver;
+  HTMLElement.prototype.scrollIntoView = scrollIntoView;
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () =>
     ({
@@ -109,10 +118,10 @@ describe("StatusEditor", () => {
     window.getSelection()?.addRange(range);
     fireEvent.input(textbox, { data: "@a", inputType: "insertText" });
 
-    const suggestion = await screen.findByRole("button", {
+    const suggestion = await screen.findByRole("option", {
       name: /Alex Rivera/,
     });
-    fireEvent.mouseDown(suggestion);
+    fireEvent.click(suggestion);
 
     await waitFor(() =>
       expect(onChange).toHaveBeenLastCalledWith([
@@ -126,5 +135,61 @@ describe("StatusEditor", () => {
     );
     expect(document.activeElement).toBe(textbox);
     expect(textbox.textContent.endsWith(" ")).toBe(true);
+  });
+
+  it("selects the active mention suggestion with Tab", async () => {
+    const onChange = vi.fn<(tokens: TextToken[]) => void>();
+    render(
+      <StatusEditor
+        members={[
+          {
+            displayName: "Alex Rivera",
+            entityId: mentionedUserEntityId,
+            shortname: "arivera",
+          },
+        ]}
+        onChange={onChange}
+        placeholder="Add an update"
+        value={[]}
+      />,
+    );
+
+    const textbox = await screen.findByRole("textbox", {
+      name: "Status comment",
+    });
+    textbox.focus();
+    textbox.textContent = "@a";
+    const range = document.createRange();
+    range.selectNodeContents(textbox);
+    range.collapse(false);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent.input(textbox, { data: "@a", inputType: "insertText" });
+
+    const suggestion = await screen.findByRole("option", {
+      name: /Alex Rivera/,
+    });
+    expect(textbox.getAttribute("aria-autocomplete")).toBe("list");
+    expect(textbox.getAttribute("aria-expanded")).toBe("true");
+    expect(textbox.getAttribute("aria-controls")).toBe(
+      suggestion.parentElement?.parentElement?.id,
+    );
+    expect(textbox.getAttribute("aria-activedescendant")).toBe(suggestion.id);
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: "nearest",
+    });
+    fireEvent.keyDown(textbox, { key: "Tab" });
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith([
+        expect.objectContaining({
+          tokenType: "mention",
+          mentionType: "user",
+          entityId: mentionedUserEntityId,
+        }),
+        { tokenType: "text", text: " " },
+      ]),
+    );
+    expect(document.activeElement).toBe(textbox);
   });
 });

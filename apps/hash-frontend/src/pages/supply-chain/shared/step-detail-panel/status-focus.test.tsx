@@ -28,7 +28,7 @@ describe("status update focus", () => {
     );
   });
 
-  it("scrolls to and briefly highlights a URL-focused update", async () => {
+  it("scrolls to the focused update and briefly highlights it", async () => {
     vi.useFakeTimers();
     const scrollIntoView = vi.fn();
     const { result, rerender } = renderHook(

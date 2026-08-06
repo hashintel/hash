@@ -11,6 +11,8 @@ import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
+import { useNotificationCount } from "../../../shared/notification-count-context";
 import { Link } from "../../../shared/ui/link";
 import {
   BriefLink,
@@ -182,6 +184,12 @@ const statusSection = css({
   p: "6",
   display: "flex",
   flexDirection: "column",
+  gap: "3",
+});
+const statusSectionHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
   gap: "3",
 });
 const statusSectionTitle = css({
@@ -408,6 +416,17 @@ export const StepDetailPanel = ({
   statusDialog,
 }: StepDetailPanelProps) => {
   const { timeRange, setTimeRange } = useTimeRange();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
   const [step, setStep] = useState<StepDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -728,8 +747,51 @@ export const StepDetailPanel = ({
     () => deriveStatusActionState(statusEntries),
     [statusEntries],
   );
-  const { focusedStatusUpdateRef, highlightedStatusUpdateUuid } =
-    useStatusUpdateFocus({ focusedStatusUpdateUuid, statusEntries });
+  const {
+    focusedStatusUpdateRef,
+    highlightedStatusUpdateUuid,
+    statusSectionRef,
+  } = useStatusUpdateFocus({
+    focusedStatusUpdateUuid,
+    statusSectionReady: !loading && Boolean(step),
+    statusEntries,
+  });
+  const { markNotificationsAsReadForEntity } = useNotificationCount();
+  const notificationsMarkedReadRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (
+      !focusedStatusUpdateUuid ||
+      loading ||
+      !step ||
+      notificationsMarkedReadRef.current.has(focusedStatusUpdateUuid)
+    ) {
+      return;
+    }
+
+    const focusedStatusEntry = statusEntries.find(
+      (statusEntry) =>
+        extractEntityUuidFromEntityId(statusEntry.entityId) ===
+        focusedStatusUpdateUuid,
+    );
+
+    if (!focusedStatusEntry) {
+      return;
+    }
+
+    notificationsMarkedReadRef.current.add(focusedStatusUpdateUuid);
+    void markNotificationsAsReadForEntity({
+      targetEntityId: focusedStatusEntry.entityId,
+    }).catch(() => {
+      notificationsMarkedReadRef.current.delete(focusedStatusUpdateUuid);
+    });
+  }, [
+    focusedStatusUpdateUuid,
+    loading,
+    markNotificationsAsReadForEntity,
+    step,
+    statusEntries,
+  ]);
 
   return (
     <SlideOver onClose={onClose} label={step?.label ?? "Step detail"}>
@@ -1108,8 +1170,15 @@ export const StepDetailPanel = ({
 
       {/* Status updates received for this step (newest first) */}
       {!loading && step && (
-        <div className={statusSection}>
-          <h3 className={statusSectionTitle}>Status</h3>
+        <div className={statusSection} ref={statusSectionRef}>
+          <div className={statusSectionHeader}>
+            <h3 className={statusSectionTitle}>Status</h3>
+            {onStatus && (
+              <Button size="sm" variant="subtle" onClick={onStatus}>
+                Post update
+              </Button>
+            )}
+          </div>
           {statusEntries.length === 0 ? (
             <p className={statusEmpty}>
               No status updates yet. Use the Status button above to add the
@@ -1144,7 +1213,10 @@ export const StepDetailPanel = ({
                     </div>
                     <p className={statusBody}>
                       {entry.tokens.length > 0 ? (
-                        <StatusBody tokens={entry.tokens} />
+                        <StatusBody
+                          mentionedUsersByEntityId={statusUsersByEntityId}
+                          tokens={entry.tokens}
+                        />
                       ) : (
                         statusEntryText(entry)
                       )}

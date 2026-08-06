@@ -1,8 +1,4 @@
-import { useMemo } from "react";
-
 import { css } from "@hashintel/ds-helpers/css";
-
-import { useUsers } from "../../../components/hooks/use-users";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
@@ -14,31 +10,16 @@ const mentionStyle = css({
   _hover: { textDecoration: "underline" },
 });
 
-export const StatusBody = ({ tokens }: { tokens: readonly TextToken[] }) => {
-  const mentionedEntityIds = useMemo(
-    () =>
-      new Set(
-        tokens.flatMap((token) =>
-          token.tokenType === "mention" && token.mentionType === "user"
-            ? [token.entityId]
-            : [],
-        ),
-      ),
-    [tokens],
-  );
-  const { users } = useUsers();
-  const mentionedUsersByEntityId = useMemo(
-    () =>
-      new Map(
-        (users ?? [])
-          .filter((user) =>
-            mentionedEntityIds.has(user.entity.metadata.recordId.entityId),
-          )
-          .map((user) => [user.entity.metadata.recordId.entityId, user]),
-      ),
-    [mentionedEntityIds, users],
-  );
-
+export const StatusBody = ({
+  mentionedUsersByEntityId,
+  tokens,
+}: {
+  mentionedUsersByEntityId: ReadonlyMap<
+    EntityId,
+    { displayName?: string; shortname?: string }
+  >;
+  tokens: readonly TextToken[];
+}) => {
   let tokenPosition = 0;
   return tokens.map((token) => {
     const tokenKey = `${tokenPosition}-${token.tokenType}`;
@@ -54,7 +35,7 @@ export const StatusBody = ({ tokens }: { tokens: readonly TextToken[] }) => {
     const user = mentionedUsersByEntityId.get(token.entityId);
     const label = user?.shortname
       ? `@${user.shortname}`
-      : (user?.displayName ?? "@Unknown user");
+      : (user?.displayName ?? `@${token.entityId}`);
 
     return user?.shortname ? (
       <a

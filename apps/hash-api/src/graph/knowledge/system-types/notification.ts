@@ -2,7 +2,10 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
@@ -24,6 +27,7 @@ import { createEntity, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
 import type {
+  ImpureGraphContext,
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
@@ -32,7 +36,11 @@ import type { Comment } from "./comment";
 import type { Page } from "./page";
 import type { Text } from "./text";
 import type { User } from "./user";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  PropertyPatchOperation,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type {
   CreateEntityParameters,
   HashEntity,
@@ -42,23 +50,101 @@ import type {
   CommentNotification as CommentNotificationEntity,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { MentionNotification as MentionNotificationEntity } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
-import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
+import type {
+  Notification as NotificationEntity,
+  ReadAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/notification";
 
-type Notification = {
+export type Notification = {
   archived?: boolean;
+  readAt?: string;
   entity: HashEntity<NotificationEntity>;
 };
 
+const notificationEntityTypeBaseUrls = new Set([
+  systemEntityTypes.notification.entityTypeBaseUrl,
+  systemEntityTypes.commentNotification.entityTypeBaseUrl,
+  systemEntityTypes.graphChangeNotification.entityTypeBaseUrl,
+  systemEntityTypes.mentionNotification.entityTypeBaseUrl,
+]);
+
+export const isEntityNotificationEntity = (entity: HashEntity): boolean =>
+  entity.metadata.entityTypeIds.some((entityTypeId) =>
+    notificationEntityTypeBaseUrls.has(extractBaseUrl(entityTypeId)),
+  );
+
+export const getNotificationFromEntity: PureGraphFunction<
+  { entity: HashEntity },
+  Notification
+> = ({ entity }) => {
+  if (!isEntityNotificationEntity(entity)) {
+    throw new EntityTypeMismatchError(
+      entity.metadata.recordId.entityId,
+      systemEntityTypes.notification.entityTypeId,
+      entity.metadata.entityTypeIds,
+    );
+  }
+
+  const { archived, readAt } = simplifyProperties(
+    entity.properties as NotificationEntity["properties"],
+  );
+
+  return {
+    entity: entity as HashEntity<NotificationEntity>,
+    archived,
+    readAt,
+  };
+};
+
+type AnyNotification = Notification | MentionNotification | CommentNotification;
+
+const updateNotificationAsWebMachine: ImpureGraphFunction<
+  {
+    notification: AnyNotification;
+    propertyPatches: PropertyPatchOperation[];
+  },
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, { notification, propertyPatches }) => {
+  const webId = extractWebIdFromEntityId(
+    notification.entity.metadata.recordId.entityId,
+  );
+  if (webId !== authentication.actorId) {
+    throw new Error(
+      "Notification updates must be requested by the user who owns the notification web.",
+    );
+  }
+
+  const webMachineActorId = await getWebMachineId(context, authentication, {
+    webId,
+  }).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(`Failed to get web machine for web ID: ${webId}`);
+    }
+    return maybeMachineId;
+  });
+
+  await updateEntity<
+    MentionNotificationEntity | CommentNotificationEntity | NotificationEntity
+  >(
+    context,
+    { actorId: webMachineActorId },
+    {
+      entity: notification.entity,
+      propertyPatches,
+    },
+  );
+};
+
 export const archiveNotification: ImpureGraphFunction<
-  { notification: Notification | MentionNotification | CommentNotification },
+  { notification: AnyNotification },
   Promise<void>,
   false,
   true
 > = async (context, authentication, params) => {
-  await updateEntity<
-    MentionNotificationEntity | CommentNotificationEntity | NotificationEntity
-  >(context, authentication, {
-    entity: params.notification.entity,
+  await updateNotificationAsWebMachine(context, authentication, {
+    notification: params.notification,
     propertyPatches: [
       {
         op: "add",
@@ -70,6 +156,33 @@ export const archiveNotification: ImpureGraphFunction<
               "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
           },
         } satisfies ArchivedPropertyValueWithMetadata,
+      },
+    ],
+  });
+};
+
+export const markNotificationAsRead: ImpureGraphFunction<
+  { notification: AnyNotification; readAt: string },
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, { notification, readAt }) => {
+  if (notification.readAt) {
+    return;
+  }
+
+  await updateNotificationAsWebMachine(context, authentication, {
+    notification,
+    propertyPatches: [
+      {
+        op: "add",
+        path: [systemPropertyTypes.readAt.propertyTypeBaseUrl],
+        property: {
+          value: readAt,
+          metadata: {
+            dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
+          },
+        } satisfies ReadAtPropertyValueWithMetadata,
       },
     ],
   });
@@ -100,9 +213,9 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
     );
   }
 
-  const { archived } = simplifyProperties(entity.properties);
+  const { archived, readAt } = simplifyProperties(entity.properties);
 
-  return { entity, archived };
+  return { entity, archived, readAt };
 };
 
 export const createMentionNotification: ImpureGraphFunction<
@@ -183,26 +296,60 @@ export const createMentionNotification: ImpureGraphFunction<
     });
   }
 
-  await Promise.all(
-    linksToCreate.map(({ rightEntityId, linkEntityTypeId }) =>
-      /**
-       * We do this separately with the user's authority because we need to use the user's authority to create the links
-       * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
-       * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
-       *
-       * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
-       */
-      createLinkEntity(context, userAuthentication, {
-        webId,
-        properties: { value: {} },
-        linkData: {
-          leftEntityId: entity.metadata.recordId.entityId,
-          rightEntityId,
+  try {
+    await Promise.all(
+      linksToCreate.map(({ rightEntityId, linkEntityTypeId }) =>
+        /**
+         * We do this separately with the user's authority because we need to use the user's authority to create the links
+         * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
+         * might be in different webs, e.g. if the page is in an organization's web, which the bot can't read.
+         *
+         * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+         */
+        createLinkEntity(context, userAuthentication, {
+          webId,
+          properties: { value: {} },
+          linkData: {
+            leftEntityId: entity.metadata.recordId.entityId,
+            rightEntityId,
+          },
+          entityTypeIds: [linkEntityTypeId],
+        }),
+      ),
+    );
+  } catch (error) {
+    try {
+      await updateEntity<MentionNotificationEntity>(
+        context as ImpureGraphContext<false, true>,
+        botAuthentication,
+        {
+          entity,
+          propertyPatches: [
+            {
+              op: "add",
+              path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
+              property: {
+                value: true,
+                metadata: {
+                  dataTypeId:
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                },
+              } satisfies ArchivedPropertyValueWithMetadata,
+            },
+          ],
         },
-        entityTypeIds: [linkEntityTypeId],
-      }),
-    ),
-  );
+      );
+    } catch (cleanupError) {
+      context.logger?.error(
+        "Failed to archive a partially-created mention notification",
+        {
+          cleanupError,
+          notificationEntityId: entity.metadata.recordId.entityId,
+        },
+      );
+    }
+    throw error;
+  }
 
   return getMentionNotificationFromEntity({ entity });
 };
@@ -371,9 +518,9 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
     );
   }
 
-  const { archived } = simplifyProperties(entity.properties);
+  const { archived, readAt } = simplifyProperties(entity.properties);
 
-  return { entity, archived };
+  return { entity, archived, readAt };
 };
 
 export const createCommentNotification: ImpureGraphFunction<

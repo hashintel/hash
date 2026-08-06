@@ -9,11 +9,14 @@ export const statusUpdateDomId = (entry: StatusEntry): string =>
 
 export const useStatusUpdateFocus = ({
   focusedStatusUpdateUuid,
+  statusSectionReady = true,
   statusEntries,
 }: {
   focusedStatusUpdateUuid?: string | null;
+  statusSectionReady?: boolean;
   statusEntries: readonly StatusEntry[];
 }) => {
+  const statusSectionRef = useRef<HTMLDivElement>(null);
   const focusedStatusUpdateRef = useRef<HTMLDivElement>(null);
   const [highlightedStatusUpdateUuid, setHighlightedStatusUpdateUuid] =
     useState<string | null>(null);
@@ -22,15 +25,17 @@ export const useStatusUpdateFocus = ({
     .join(",");
 
   useEffect(() => {
-    if (!focusedStatusUpdateUuid) {
+    if (!focusedStatusUpdateUuid || !statusSectionReady) {
       setHighlightedStatusUpdateUuid(null);
       return;
     }
 
     setHighlightedStatusUpdateUuid(focusedStatusUpdateUuid);
-    focusedStatusUpdateRef.current?.scrollIntoView({
+    (
+      focusedStatusUpdateRef.current ?? statusSectionRef.current
+    )?.scrollIntoView({
       behavior: "smooth",
-      block: "center",
+      block: focusedStatusUpdateRef.current ? "center" : "start",
     });
     const timeout = window.setTimeout(
       () => setHighlightedStatusUpdateUuid(null),
@@ -38,10 +43,11 @@ export const useStatusUpdateFocus = ({
     );
 
     return () => window.clearTimeout(timeout);
-  }, [focusedStatusUpdateUuid, statusEntryIds]);
+  }, [focusedStatusUpdateUuid, statusEntryIds, statusSectionReady]);
 
   return {
     focusedStatusUpdateRef,
     highlightedStatusUpdateUuid,
+    statusSectionRef,
   };
 };

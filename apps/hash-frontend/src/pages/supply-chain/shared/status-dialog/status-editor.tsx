@@ -4,6 +4,7 @@ import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useId,
   useImperativeHandle,
@@ -12,6 +13,7 @@ import {
   useState,
 } from "react";
 
+import { Popover } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createSchema,
@@ -38,8 +40,8 @@ interface MentionTrigger {
 }
 
 interface MentionAnchor {
-  left: number;
-  top: number;
+  x: number;
+  y: number;
 }
 
 const findMentionTrigger = (state: EditorState): MentionTrigger | null => {
@@ -130,6 +132,7 @@ export const StatusEditor = forwardRef<
     ref,
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const editorElementRef = useRef<HTMLElement>(null);
     const viewRef = useRef<EditorView>(null);
     const membersRef = useRef(members);
     const onChangeRef = useRef(onChange);
@@ -144,8 +147,10 @@ export const StatusEditor = forwardRef<
     const initialValueRef = useRef(value);
     const initialAttributesRef = useRef({
       "aria-describedby": ariaDescribedBy ?? "",
+      "aria-autocomplete": "list",
       "aria-controls": suggesterId,
       "aria-expanded": "false",
+      "aria-haspopup": "listbox",
       "aria-invalid": ariaInvalid ? "true" : "false",
       "aria-label": "Status comment",
       "aria-multiline": "true",
@@ -170,6 +175,30 @@ export const StatusEditor = forwardRef<
     matchingMembersRef.current = matchingMembers;
 
     const selectMemberRef = useRef<(user: StatusMentionUser) => void>(() => {});
+    const updateMentionAnchor = useCallback(
+      (currentTrigger: MentionTrigger) => {
+        const container = containerRef.current;
+        const view = viewRef.current;
+        if (!container || !view) {
+          return;
+        }
+
+        const editorRect = container.getBoundingClientRect();
+        try {
+          const cursorCoordinates = view.coordsAtPos(currentTrigger.to);
+          setMentionAnchor({
+            x: cursorCoordinates.left - editorRect.left,
+            y: cursorCoordinates.bottom - editorRect.top,
+          });
+        } catch {
+          setMentionAnchor({
+            x: 0,
+            y: editorRect.height,
+          });
+        }
+      },
+      [],
+    );
 
     useImperativeHandle(ref, () => ({
       focus: () => viewRef.current?.focus(),
@@ -207,32 +236,7 @@ export const StatusEditor = forwardRef<
           triggerRef.current = nextTrigger;
           setTrigger(nextTrigger);
           if (nextTrigger) {
-            const editorRect = container.getBoundingClientRect();
-            try {
-              const cursorCoordinates = view.coordsAtPos(nextTrigger.to);
-              const dropdownWidth = Math.min(224, window.innerWidth - 8);
-              const dropdownHeight = 160;
-              const top =
-                cursorCoordinates.bottom + 4 + dropdownHeight <=
-                window.innerHeight
-                  ? cursorCoordinates.bottom + 4
-                  : Math.max(4, cursorCoordinates.top - dropdownHeight - 4);
-              setMentionAnchor({
-                left: Math.max(
-                  4,
-                  Math.min(
-                    cursorCoordinates.left,
-                    window.innerWidth - dropdownWidth - 4,
-                  ),
-                ),
-                top,
-              });
-            } catch {
-              setMentionAnchor({
-                left: editorRect.left,
-                top: Math.min(editorRect.bottom + 4, window.innerHeight - 164),
-              });
-            }
+            updateMentionAnchor(nextTrigger);
           } else {
             setMentionAnchor(null);
           }
@@ -256,7 +260,16 @@ export const StatusEditor = forwardRef<
               return true;
             }
             const activeMember = matches[activeIndexRef.current];
-            if (event.key === "Enter" && activeMember) {
+            if (event.key === "Tab" && (event.shiftKey || !activeMember)) {
+              triggerRef.current = null;
+              setTrigger(null);
+              return false;
+            }
+            if (
+              (event.key === "Enter" ||
+                (event.key === "Tab" && !event.shiftKey)) &&
+              activeMember
+            ) {
               selectMemberRef.current(activeMember);
               return true;
             }
@@ -292,11 +305,27 @@ export const StatusEditor = forwardRef<
       });
 
       viewRef.current = view;
+      editorElementRef.current = view.dom;
       return () => {
         view.destroy();
         viewRef.current = null;
+        editorElementRef.current = null;
       };
-    }, []);
+    }, [updateMentionAnchor]);
+
+    useEffect(() => {
+      if (!trigger) {
+        return undefined;
+      }
+
+      const updatePosition = () => updateMentionAnchor(trigger);
+      window.addEventListener("resize", updatePosition);
+      window.addEventListener("scroll", updatePosition, true);
+      return () => {
+        window.removeEventListener("resize", updatePosition);
+        window.removeEventListener("scroll", updatePosition, true);
+      };
+    }, [trigger, updateMentionAnchor]);
 
     useEffect(() => {
       viewRef.current?.setProps({
@@ -305,7 +334,9 @@ export const StatusEditor = forwardRef<
             trigger && matchingMembers[activeIndex]
               ? `${suggesterId}-option-${activeIndex}`
               : "",
+          "aria-autocomplete": "list",
           "aria-controls": suggesterId,
+          "aria-haspopup": "listbox",
           "aria-describedby": ariaDescribedBy ?? "",
           "aria-expanded": trigger ? "true" : "false",
           "aria-invalid": ariaInvalid ? "true" : "false",
@@ -362,17 +393,27 @@ export const StatusEditor = forwardRef<
       <div>
         <div ref={containerRef} />
         {trigger && mentionAnchor && (
-          <StatusUserSuggester
-            activeIndex={activeIndex}
-            id={suggesterId}
-            anchor={mentionAnchor}
-            onSelect={selectMemberRef.current}
-            portalContainer={
-              containerRef.current?.closest(".hash-ds-root") ?? document.body
-            }
-            search={trigger.search}
-            users={members}
-          />
+          <Popover
+            closeOnInteractOutside
+            gapY={4}
+            initialFocusRef={editorElementRef}
+            onClose={() => {
+              triggerRef.current = null;
+              setTrigger(null);
+            }}
+            position="bottom-start"
+            positionFromPoint={mentionAnchor}
+            returnFocusRef={editorElementRef}
+            triggerRef={containerRef}
+          >
+            <StatusUserSuggester
+              activeIndex={activeIndex}
+              id={suggesterId}
+              onSelect={selectMemberRef.current}
+              search={trigger.search}
+              users={members}
+            />
+          </Popover>
         )}
       </div>
     );

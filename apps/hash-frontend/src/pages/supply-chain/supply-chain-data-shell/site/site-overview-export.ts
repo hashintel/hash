@@ -166,7 +166,7 @@ const formatComments = (
         ? statusTokensToPlainText(
             entry.tokens,
             (entityId) =>
-              `@${mentionShortnamesByEntityId.get(entityId) ?? "user"}`,
+              `@${mentionShortnamesByEntityId.get(entityId) ?? entityId}`,
           )
         : entry.text;
       return `${entry.at} | ${entry.user} | ${entry.category} | ${

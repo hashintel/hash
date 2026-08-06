@@ -27,7 +27,7 @@ describe("getOpportunityStatusMentionHref", () => {
     );
 
     expect(href).toBe(
-      "/supply-chain/site/Site%20A?opportunity=site%2Fa%3A%3Aplanning%3A%3Astep%2F1&statusUpdate=00000000-0000-0000-0000-000000000002",
+      "/supply-chain/site/Site%20A?opportunity=site%2Fa%3A%3Aplanning%3A%3Astep%2F1&statusUpdate=00000000-0000-0000-0000-000000000002&webId=00000000-0000-0000-0000-000000000001",
     );
   });
 

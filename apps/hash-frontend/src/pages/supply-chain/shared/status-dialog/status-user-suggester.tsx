@@ -1,4 +1,4 @@
-import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -36,18 +36,12 @@ export const nextStatusMentionIndex = (
     : currentIndex;
 
 const list = css({
-  position: "fixed",
   maxH: "40",
   overflowY: "auto",
   m: "0",
   p: "0.5",
   listStyle: "none",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  borderRadius: "md",
-  bg: "bgSolid.min",
-  boxShadow: "lg",
+  w: "[min(14rem,calc(100vw-0.5rem))]",
 });
 const option = css({
   display: "flex",
@@ -56,6 +50,8 @@ const option = css({
   px: "2",
   py: "1",
   borderRadius: "sm",
+  border: "none",
+  bg: "[transparent]",
   textAlign: "left",
   cursor: "pointer",
   _hover: { bg: "bg.subtle" },
@@ -76,50 +72,45 @@ const empty = css({ px: "2", py: "1", fontSize: "xs", color: "fg.subtle" });
 
 export const StatusUserSuggester = ({
   activeIndex,
-  anchor,
   id,
   onSelect,
-  portalContainer,
   search,
   users,
 }: {
   activeIndex: number;
-  anchor: { left: number; top: number } | null;
   id: string;
   onSelect: (user: StatusMentionUser) => void;
-  portalContainer: Element;
   search: string;
   users: readonly StatusMentionUser[];
 }) => {
   const matches = filterStatusMentionUsers(users, search);
+  const activeOptionRef = useRef<HTMLButtonElement>(null);
 
-  return createPortal(
+  useEffect(() => {
+    activeOptionRef.current?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  return (
     <ul
       aria-label="Mention a supply chain member"
       className={list}
       id={id}
       role="listbox"
-      style={{
-        left: anchor?.left ?? 4,
-        top: anchor?.top ?? 4,
-        width: "min(14rem, calc(100vw - 0.5rem))",
-        zIndex: "var(--z-index-tooltip)",
-      }}
     >
       {matches.length ? (
         matches.map((user, index) => (
-          <li
-            aria-selected={index === activeIndex}
-            id={`${id}-option-${index}`}
-            key={user.entityId}
-            role="option"
-          >
+          <li key={user.entityId} role="presentation">
             <button
+              aria-selected={index === activeIndex}
               className={cx(option, index === activeIndex && selectedOption)}
+              id={`${id}-option-${index}`}
+              onClick={() => onSelect(user)}
               onMouseDown={(event) => {
                 event.preventDefault();
-                onSelect(user);
               }}
+              ref={index === activeIndex ? activeOptionRef : undefined}
+              role="option"
+              tabIndex={-1}
               type="button"
             >
               <span className={displayName}>{user.displayName}</span>
@@ -130,7 +121,6 @@ export const StatusUserSuggester = ({
       ) : (
         <li className={empty}>No matching members</li>
       )}
-    </ul>,
-    portalContainer,
+    </ul>
   );
 };

@@ -7,6 +7,27 @@ import { StatusDialog } from "./status-dialog";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
 
+const authMocks = vi.hoisted(() => ({
+  authenticatedUser: undefined as
+    | {
+        accountId: string;
+        memberOf: Array<{
+          org: {
+            memberships: Array<{
+              user: {
+                accountId: string;
+                displayName: string;
+                entity: { metadata: { recordId: { entityId: EntityId } } };
+                shortname: string;
+              };
+            }>;
+            webId: string;
+          };
+        }>;
+      }
+    | undefined,
+}));
+
 vi.mock("@hashintel/ds-components", () => ({
   Button: ({
     "aria-label": ariaLabel,
@@ -61,7 +82,7 @@ vi.mock("./telemetry", () => ({
 }));
 
 vi.mock("../../shared/auth-info-context", () => ({
-  useAuthInfo: () => ({ authenticatedUser: undefined }),
+  useAuthInfo: () => ({ authenticatedUser: authMocks.authenticatedUser }),
 }));
 
 vi.mock("../../../components/hooks/use-users", () => ({
@@ -70,21 +91,31 @@ vi.mock("../../../components/hooks/use-users", () => ({
 
 vi.mock("./status-dialog/status-editor", () => ({
   StatusEditor: ({
+    members,
     onChange,
   }: {
+    members: Array<{ displayName: string }>;
     onChange: (tokens: Array<{ tokenType: "text"; text: string }>) => void;
   }) => (
-    <textarea
-      aria-label="Status comment"
-      onChange={(event) =>
-        onChange([{ tokenType: "text", text: event.target.value }])
-      }
-    />
+    <>
+      <textarea
+        aria-label="Status comment"
+        onChange={(event) =>
+          onChange([{ tokenType: "text", text: event.target.value }])
+        }
+      />
+      {members.map((member) => (
+        <span key={member.displayName}>{member.displayName}</span>
+      ))}
+    </>
   ),
 }));
 
 describe("StatusDialog", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    authMocks.authenticatedUser = undefined;
+  });
 
   it("shows previous updates in chronological order", () => {
     render(
@@ -153,5 +184,56 @@ describe("StatusDialog", () => {
       text: "Issue resolved",
       tokens: [{ tokenType: "text", text: "Issue resolved" }],
     });
+  });
+
+  it("does not offer the authenticated user as a mention option", () => {
+    authMocks.authenticatedUser = {
+      accountId: "current-user",
+      memberOf: [
+        {
+          org: {
+            memberships: [
+              {
+                user: {
+                  accountId: "current-user",
+                  displayName: "Current User",
+                  entity: {
+                    metadata: {
+                      recordId: { entityId: "web~current" as EntityId },
+                    },
+                  },
+                  shortname: "current",
+                },
+              },
+              {
+                user: {
+                  accountId: "other-user",
+                  displayName: "Other User",
+                  entity: {
+                    metadata: {
+                      recordId: { entityId: "web~other" as EntityId },
+                    },
+                  },
+                  shortname: "other",
+                },
+              },
+            ],
+            webId: "local",
+          },
+        },
+      ],
+    };
+
+    render(
+      <StatusDialog
+        title="QA hold"
+        inline
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("Current User")).toBeNull();
+    expect(screen.getByText("Other User")).toBeTruthy();
   });
 });

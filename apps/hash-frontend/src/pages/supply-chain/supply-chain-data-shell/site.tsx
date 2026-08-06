@@ -218,7 +218,7 @@ export const SiteOverview = ({
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
-  const { users } = useUsers();
+  const { loading: usersLoading, users } = useUsers();
   const mentionShortnamesByEntityId = useMemo(
     () =>
       new Map(
@@ -662,7 +662,12 @@ export const SiteOverview = ({
               />
             </div>
             <div className={searchControls}>
-              <Button variant="subtle" size="sm" onClick={handleExport}>
+              <Button
+                disabled={usersLoading}
+                onClick={handleExport}
+                size="sm"
+                variant="subtle"
+              >
                 <span className={css({ textStyle: "xs", color: "fg.subtle" })}>
                   Export
                 </span>

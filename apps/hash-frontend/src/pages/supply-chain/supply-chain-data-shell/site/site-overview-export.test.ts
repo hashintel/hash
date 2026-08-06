@@ -189,6 +189,12 @@ describe("site overview export", () => {
     expect(csv).not.toContain("P95 current samples");
     expect(csv).toContain('"Product, One"');
     expect(csv).toContain("Later, with comma @alex");
+    expect(
+      buildSiteOverviewCsv({
+        ...input,
+        mentionShortnamesByEntityId: new Map(),
+      }),
+    ).toContain("Later, with comma @web~alex");
   });
 
   it("orders and trims columns for spreadsheet review", () => {

@@ -10,6 +10,7 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { getOpportunityStatusUpdateHref } from "@local/hash-isomorphic-utils/supply-chain-paths";
 
 import { getWebShortname } from "../../../../ontology/primitive/util";
 import {
@@ -86,15 +87,11 @@ const mentionTargetUrl = async ({
       targetEntity.properties as OpportunityStatusUpdate["properties"],
     );
     if (typeof scopeKey === "string" && typeof siteCode === "string") {
-      const query = new URLSearchParams({
-        opportunity: scopeKey,
-        statusUpdate: extractEntityUuidFromEntityId(
-          targetEntity.metadata.recordId.entityId,
-        ),
-      });
-      return `${frontendUrl}/supply-chain/site/${encodeURIComponent(
+      return `${frontendUrl}${getOpportunityStatusUpdateHref({
+        scopeKey,
         siteCode,
-      )}?${query.toString()}`;
+        statusUpdateEntityId: targetEntity.metadata.recordId.entityId,
+      })}`;
     }
   }
 
