@@ -228,6 +228,10 @@ export const E2EWhatIf = ({
             summaries={graph.pipeline_summary}
             simulatedStagesMean={simulation.simulatedStagesMean}
             simulatedStagesMedian={simulation.simulatedStagesMedian}
+            baselineTotalMean={simulation.baselineMean}
+            baselineTotalMedian={simulation.baselineMedian}
+            simulatedTotalMean={simulation.simulatedMean}
+            simulatedTotalMedian={simulation.simulatedMedian}
             expanded
             activeRoute={activeRoute}
             activeSegments={activeSegments}

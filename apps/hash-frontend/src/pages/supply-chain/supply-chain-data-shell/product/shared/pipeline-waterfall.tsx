@@ -216,6 +216,12 @@ interface PipelineWaterfallProps {
   simulatedStagesMean?: PipelineStage[];
   /** Re-segmented stages for the dashed median bar. */
   simulatedStagesMedian?: PipelineStage[];
+  /** Complete-duration totals for the simulator's baseline population. */
+  baselineTotalMean?: number | null;
+  baselineTotalMedian?: number | null;
+  /** Complete-duration totals after applying the simulation. */
+  simulatedTotalMean?: number | null;
+  simulatedTotalMedian?: number | null;
   /** When true, render at the larger size suited to the expanded panel. */
   expanded?: boolean;
   /** Render P75 and P95 rows when stages carry percentile values. */
@@ -401,6 +407,10 @@ export const PipelineWaterfall = ({
   activeRoute,
   simulatedStagesMean,
   simulatedStagesMedian,
+  baselineTotalMean,
+  baselineTotalMedian,
+  simulatedTotalMean,
+  simulatedTotalMedian,
   expanded = false,
   showPercentileRows = false,
   totalOnly = false,
@@ -420,10 +430,12 @@ export const PipelineWaterfall = ({
   const allSegmentsActive = stages.length === allStages.length;
   const summedStageMean = stages.reduce((acc, step) => acc + step.mean, 0);
   const summedStageMedian = stages.reduce((acc, step) => acc + step.median, 0);
-  const totalMean = allSegmentsActive ? summary.total_mean : summedStageMean;
-  const totalMedian = allSegmentsActive
-    ? summary.total_median
-    : summedStageMedian;
+  const totalMean =
+    baselineTotalMean ??
+    (allSegmentsActive ? summary.total_mean : summedStageMean);
+  const totalMedian =
+    baselineTotalMedian ??
+    (allSegmentsActive ? summary.total_median : summedStageMedian);
   const summedStageP75 = stages.reduce(
     (total, stage) => total + (stage.p75 ?? 0),
     0,
@@ -451,12 +463,16 @@ export const PipelineWaterfall = ({
   const simStagesMedian = simulatedStagesMedian?.filter((step) =>
     isSegmentActive(step.type),
   );
-  const simMeanTotal = simStagesMean
-    ? simStagesMean.reduce((acc, step) => acc + step.mean, 0)
-    : 0;
-  const simMedianTotal = simStagesMedian
-    ? simStagesMedian.reduce((acc, step) => acc + step.median, 0)
-    : 0;
+  const simMeanTotal =
+    simulatedTotalMean ??
+    (simStagesMean
+      ? simStagesMean.reduce((acc, step) => acc + step.mean, 0)
+      : 0);
+  const simMedianTotal =
+    simulatedTotalMedian ??
+    (simStagesMedian
+      ? simStagesMedian.reduce((acc, step) => acc + step.median, 0)
+      : 0);
   const hasSimulated =
     (simStagesMean && simMeanTotal > 0) ||
     (simStagesMedian && simMedianTotal > 0);

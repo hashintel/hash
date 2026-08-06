@@ -142,6 +142,16 @@ describe("computeOrderArrivalMarkers", () => {
 
     expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(20);
     expect(result.hub).toBeUndefined();
+
+    const shortWindowResult = computeOrderArrivalMarkers(
+      [directOrder],
+      [sharedBatch],
+      { direct: summary, hub: { ...summary, label: "Hub" } },
+      false,
+      undefined,
+      "3m",
+    );
+    expect(shortWindowResult.direct).toBeUndefined();
   });
 
   it("keeps the population fixed when collapsing hidden segments", () => {

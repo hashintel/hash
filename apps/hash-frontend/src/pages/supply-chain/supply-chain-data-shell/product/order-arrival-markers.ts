@@ -1,5 +1,7 @@
 import { computeIqrFences } from "../../shared/outlier-selection/iqr";
+import { cutoffForRange } from "../../shared/time-range";
 
+import type { TimeRange } from "../../shared/time-range";
 import type {
   BatchRow,
   OrderLineRow,
@@ -151,11 +153,13 @@ export const computeOrderArrivalMarkers = (
   summaries: Record<string, PipelineSummary>,
   excludeOutliers = false,
   activeSegmentTypes?: ReadonlySet<string>,
+  timeRange?: TimeRange,
 ): Record<string, PipelineOrderMarkers> => {
   const batchById = new Map(
     batches.map((batch) => [batch.batch.toUpperCase(), batch]),
   );
   const observationsByRoute = new Map<string, MarkerObservation[]>();
+  const routeEndpointCutoff = timeRange ? cutoffForRange(timeRange) : null;
 
   const contributingLines = new Set<OrderLineRow>();
 
@@ -164,6 +168,12 @@ export const computeOrderArrivalMarkers = (
       const route = line.route;
       const endpointDate = line.route_endpoint_date;
       if (!route || !endpointDate || !summaries[route]) {
+        continue;
+      }
+      if (
+        routeEndpointCutoff &&
+        endpointDate.slice(0, 7) < routeEndpointCutoff
+      ) {
         continue;
       }
       const daysBeforeRouteEndpoint = Math.round(

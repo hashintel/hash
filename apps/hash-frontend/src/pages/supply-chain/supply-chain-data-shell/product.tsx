@@ -579,6 +579,7 @@ export const Overview = ({
         filteredGraph.pipeline_summary,
         excludeOutliers,
         activeSegments,
+        timeRange,
       ),
     [
       graph.order_timelines?.lines,
@@ -586,6 +587,7 @@ export const Overview = ({
       filteredGraph.pipeline_summary,
       excludeOutliers,
       activeSegments,
+      timeRange,
     ],
   );
 
