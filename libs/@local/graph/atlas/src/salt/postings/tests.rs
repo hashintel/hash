@@ -253,6 +253,36 @@ fn dense_iteration_crosses_word_boundaries() {
     assert_eq!(collect(&membership, 65..80), [79]);
 }
 
+/// A membership whose list costs exactly the dense frame stays a list.
+///
+/// Over five points a dense frame costs 16 bytes and so do four list members, so type 0 sits
+/// exactly on the boundary the size comparison draws. The ruled tie keeps it a list, which reads
+/// without bit decoding, while type 1's five members cost 20 list bytes and tip dense. A drift
+/// from strict to inclusive comparison flips type 0 dense and fails both assertions.
+#[test]
+fn equal_cost_membership_stays_a_list() {
+    let dir = scratch("tie");
+    let postings = Postings::build(
+        &types(&[&[0, 1], &[0, 1], &[0, 1], &[0, 1], &[1]]),
+        IdSlice::from_raw(&[0, 1, 2, 3, 4].map(NodeRowId::from_u32)),
+        &types(&[&[], &[]]),
+    )
+    .expect("the fixture stays in domain");
+
+    assert_eq!(
+        postings.measurements().dense_types,
+        1,
+        "only the five-member type tips dense"
+    );
+
+    let mapped = mapped(&dir, "tie.post", &postings);
+    let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
+    assert_matches!(
+        type0,
+        Membership::List(list) if *list == [0, 1, 2, 3].map(BasePosition::from_u32)
+    );
+}
+
 #[test]
 fn evidence_counts_the_split() {
     let postings = Postings::build(
@@ -271,6 +301,68 @@ fn evidence_counts_the_split() {
     // The direct total is one entry per position-type pair: the five list entries plus type 0's
     // five dense members.
     assert_eq!(evidence.direct_entries, 10);
+}
+
+/// An eighty-point corpus drives a dense frame across the word boundary through the whole file.
+///
+/// Type 0's eight members straddle position 64, so its frame holds two words and the path from
+/// build through write to open exercises the multi-word header geometry, stride arithmetic, and
+/// tail policing that the single-word fixtures never reach. Type 1 stays a two-member list whose
+/// entries cross the same boundary.
+#[test]
+fn multi_word_dense_sets_roundtrip_through_the_file() {
+    const MEMBERS: [u32; 8] = [0, 1, 62, 63, 64, 65, 78, 79];
+
+    let dir = scratch("multi-word");
+    let rows: IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> = (0..80_u32)
+        .map(|row| {
+            let position = 79 - row;
+            let mut list = SmallVec::new();
+            if MEMBERS.contains(&position) {
+                list.push(OntologyRowId::new(0));
+            }
+            if position == 5 || position == 70 {
+                list.push(OntologyRowId::new(1));
+            }
+            list
+        })
+        .collect();
+    let row_of_position: Vec<NodeRowId> = (0..80_u32).rev().map(NodeRowId::from_u32).collect();
+
+    let postings = Postings::build(
+        &rows,
+        IdSlice::from_raw(&row_of_position),
+        &types(&[&[], &[]]),
+    )
+    .expect("the fixture stays in domain");
+    assert_eq!(
+        postings.measurements().dense_types,
+        1,
+        "eight members over eighty points tip dense"
+    );
+
+    let mapped = mapped(&dir, "multi-word.post", &postings);
+    assert_eq!(mapped.points(), 80);
+
+    let type0 = mapped.membership(id(0)).expect("type 0 is in domain");
+    assert_matches!(type0, Membership::Dense(set) if *set == *dense_set(80, &MEMBERS));
+    assert_eq!(collect(&type0, 0..80), MEMBERS);
+    assert_eq!(collect(&type0, 63..65), [63, 64]);
+    assert_eq!(collect(&type0, 2..79), [62, 63, 64, 65, 78]);
+    assert!(type0.contains(BasePosition::from_u32(64)));
+    assert!(!type0.contains(BasePosition::from_u32(66)));
+
+    let type1 = mapped.membership(id(1)).expect("type 1 is in domain");
+    assert_matches!(
+        type1,
+        Membership::List(list) if *list == [5, 70].map(BasePosition::from_u32)
+    );
+
+    // The direct map crosses the boundary with the membership.
+    let direct = |position: u32| mapped.direct_types(BasePosition::from_u32(position));
+    assert_eq!(direct(64), Some([id(0)].as_slice()));
+    assert_eq!(direct(70), Some([id(1)].as_slice()));
+    assert_eq!(direct(2), Some([].as_slice()), "position 2 carries no type");
 }
 
 #[test]
@@ -604,10 +696,11 @@ fn reference_contains(
 /// Built postings roundtrip through the file and agree with the row-order reference.
 ///
 /// Agreement holds at every (type, position) pair. The size comparison picks each type's
-/// representation from the drawn counts, so both representations recur across cases.
+/// representation from the drawn counts, so both representations recur across cases. Corpora
+/// reach past one word of positions, so multi-word dense frames recur too.
 #[property_test]
 fn built_postings_uphold_the_membership_contract(
-    #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..40)]
+    #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..100)]
     seeds: Vec<BTreeSet<u64>>,
 ) {
     let domain = 5_usize;
