@@ -195,6 +195,13 @@ const EntitiesPage: NextPageWithLayout = () => {
     return {};
   }, [router]);
 
+  // A stable identity — the column list feeds the table query hook's
+  // processing effect, which a fresh array on every render would re-run.
+  const hideColumns = useMemo(
+    () => (entityTypeId ? ["entityTypes" as const] : []),
+    [entityTypeId],
+  );
+
   const { latestEntityTypes } = useLatestEntityTypesOptional({
     includeArchived: true,
   });
@@ -345,7 +352,7 @@ const EntitiesPage: NextPageWithLayout = () => {
         <EntitiesVisualizer
           entityTypeBaseUrl={entityTypeBaseUrl}
           entityTypeId={entityTypeId}
-          hideColumns={entityTypeId ? ["entityTypes"] : []}
+          hideColumns={hideColumns}
         />
       </Container>
     </>

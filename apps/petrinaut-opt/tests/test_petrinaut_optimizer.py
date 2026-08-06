@@ -42,12 +42,6 @@ class FakeModel:
         self.close_calls.append(graceful)
 
 
-class SlowModel(FakeModel):
-    def objective(self, parameter_values: dict[str, Any]) -> float:
-        time.sleep(0.04)
-        return super().objective(parameter_values)
-
-
 class FailingModel(FakeModel):
     def __init__(self, description: dict[str, Any], error: Exception) -> None:
         super().__init__(description)
@@ -68,30 +62,6 @@ class StubbornModel(FakeModel):
         self.entered.set()
         self.release.wait()
         raise PetrinautClientError("CLI closed")
-
-
-class ConnectedRequest:
-    def __init__(self) -> None:
-        self.app = FastAPI()
-        self.app.state.statuses = StatusStore()
-        self.headers: dict[str, str] = {}
-
-    async def is_disconnected(self) -> bool:
-        return False
-
-
-class DisconnectedAfterWorkerStarts(ConnectedRequest):
-    def __init__(self, model: StubbornModel) -> None:
-        super().__init__()
-        self.model = model
-
-    async def is_disconnected(self) -> bool:
-        await asyncio.to_thread(self.model.entered.wait, 1)
-        return True
-
-
-def _run_id(request: ConnectedRequest) -> str:
-    return request.app.state.statuses.create().run_id
 
 
 def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
@@ -232,217 +202,6 @@ def test_rejects_invalid_cli_descriptions(
         )
 
 
-def test_stream_all_logs_the_study_lifecycle_with_correlation(
-    optimization_description: dict,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    model = FakeModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = ConnectedRequest()
-    request.headers = {"x-hash-request-id": "request-s1"}  # type: ignore[attr-defined]
-    run_id = _run_id(request)
-
-    async def consume() -> None:
-        async for _frame in optimizer.stream_all(
-            request,
-            run_id,
-            optimizer.n_trials,  # type: ignore[arg-type]
-        ):
-            pass
-
-    with caplog.at_level(logging.INFO, logger="pn_optimize"):
-        asyncio.run(consume())
-
-    events = {
-        getattr(record, "event", None): record
-        for record in caplog.records
-        if record.name == "pn_optimize"
-    }
-    for expected in ("study_started", "study_completed"):
-        record = events[expected]
-        assert record.run_id == run_id
-        assert record.request_id == "request-s1"
-        assert record.trials == optimizer.n_trials
-
-
-def test_disconnect_is_logged_with_the_run_id(
-    optimization_description: dict,
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    optimization_description["study"]["trials"] = 1
-    monkeypatch.setattr(petrinaut_optimizer, "_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 0.01)
-    model = StubbornModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = DisconnectedAfterWorkerStarts(model)
-    run_id = _run_id(request)
-
-    async def consume() -> None:
-        async for _frame in optimizer.stream_all(
-            request,
-            run_id,
-            optimizer.n_trials,  # type: ignore[arg-type]
-        ):
-            pass
-        model.release.set()
-        await asyncio.sleep(0.05)
-
-    with caplog.at_level(logging.INFO, logger="pn_optimize"):
-        asyncio.run(consume())
-
-    disconnected = next(
-        record
-        for record in caplog.records
-        if getattr(record, "event", None) == "client_disconnected"
-    )
-    assert disconnected.run_id == run_id
-
-
-def test_stream_all_preserves_the_existing_sse_frame_shape(
-    optimization_description: dict,
-) -> None:
-    model = FakeModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = ConnectedRequest()
-
-    async def collect() -> list[str]:
-        return [
-            frame
-            async for frame in optimizer.stream_all(
-                request,
-                _run_id(request),
-                optimizer.n_trials,  # type: ignore[arg-type]
-            )
-        ]
-
-    frames = asyncio.run(collect())
-    data = [
-        json.loads(frame.removeprefix("data: "))
-        for frame in frames
-        if frame.startswith("data: ")
-    ]
-
-    assert frames[-1] == "event: done\ndata: {}\n\n"
-    assert len(data) == 3
-    assert all(
-        set(payload) == {"step", "params", "init_state", "metric", "state"}
-        for payload in data
-    )
-    assert all(payload["init_state"] == {} for payload in data)
-    assert all(
-        set(payload["params"]) == {"rate", "count", "enabled"} for payload in data
-    )
-    assert model.closed is True
-    assert model.close_calls == [True]
-
-
-def test_stream_best_preserves_the_existing_sse_frame_shape(
-    optimization_description: dict,
-) -> None:
-    model = FakeModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = ConnectedRequest()
-
-    async def collect() -> list[str]:
-        return [
-            frame
-            async for frame in optimizer.stream_best(
-                request,
-                _run_id(request),
-                optimizer.n_trials,  # type: ignore[arg-type]
-            )
-        ]
-
-    frames = asyncio.run(collect())
-    data = [
-        json.loads(frame.removeprefix("data: "))
-        for frame in frames
-        if frame.startswith("data: ")
-    ]
-
-    assert frames[-1] == "event: done\ndata: {}\n\n"
-    assert len(data) == 3
-    assert all(payload["state"] == "COMPLETE" for payload in data)
-    assert all(payload["init_state"] == {} for payload in data)
-    assert model.closed is True
-    assert model.close_calls == [True]
-
-
-def test_stream_sends_comment_heartbeats_while_a_trial_is_running(
-    optimization_description: dict,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    optimization_description["study"]["trials"] = 1
-    monkeypatch.setattr(petrinaut_optimizer, "SSE_HEARTBEAT_SECONDS", 0.01)
-    model = SlowModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = ConnectedRequest()
-
-    async def collect() -> list[str]:
-        return [
-            frame
-            async for frame in optimizer.stream_all(
-                request,
-                _run_id(request),
-                optimizer.n_trials,  # type: ignore[arg-type]
-            )
-        ]
-
-    frames = asyncio.run(collect())
-
-    assert ": heartbeat\n\n" in frames
-    assert frames[-1] == "event: done\ndata: {}\n\n"
-
-
-@pytest.mark.parametrize("stream_name", ["stream_all", "stream_best"])
-def test_stream_error_is_terminal_and_is_not_followed_by_done(
-    optimization_description: dict,
-    stream_name: str,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    model = FailingModel(
-        optimization_description, PetrinautClientError("transport failed")
-    )
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = ConnectedRequest()
-    run_id = _run_id(request)
-
-    async def collect() -> list[str]:
-        stream = getattr(optimizer, stream_name)
-        return [
-            frame
-            async for frame in stream(
-                request,
-                run_id,
-                optimizer.n_trials,  # type: ignore[arg-type]
-            )
-        ]
-
-    with caplog.at_level(logging.WARNING, logger="pn_optimize"):
-        frames = asyncio.run(collect())
-    status = request.app.state.statuses.get(run_id)
-
-    assert any(
-        json.loads(frame.removeprefix("data: "))
-        == {"state": "ERROR", "message": "transport failed"}
-        for frame in frames
-        if frame.startswith("data: ")
-    )
-    assert "event: done\ndata: {}\n\n" not in frames
-    assert status is not None
-    assert status.phase is Phase.error
-    assert model.closed is True
-    assert model.close_calls == [False]
-    failure = next(
-        record
-        for record in caplog.records
-        if getattr(record, "event", None) == "study_failed"
-    )
-    assert failure.run_id == run_id
-    assert "transport failed" not in failure.getMessage()
-    assert not hasattr(failure, "detail")
-
-
 def _status_app_with_run() -> tuple[FastAPI, str]:
     app = FastAPI()
     app.state.statuses = StatusStore()
@@ -484,6 +243,39 @@ def test_pump_events_appends_frames_and_completes(
     status = app.state.statuses.get(run_id)
     assert status is not None
     assert status.phase is Phase.done
+
+
+def test_pump_events_logs_the_study_lifecycle_with_correlation(
+    optimization_description: dict,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    model = FakeModel(optimization_description)
+    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
+    app, run_id = _status_app_with_run()
+
+    async def drive() -> str:
+        return await optimizer.pump_events(
+            app,
+            run_id,
+            optimizer.n_trials,
+            on_event=lambda _frame: None,
+            cancel_event=asyncio.Event(),
+            correlation={"request_id": "request-s1"},
+        )
+
+    with caplog.at_level(logging.INFO, logger="pn_optimize"):
+        asyncio.run(drive())
+
+    events = {
+        getattr(record, "event", None): record
+        for record in caplog.records
+        if record.name == "pn_optimize"
+    }
+    for expected in ("study_started", "study_completed"):
+        record = events[expected]
+        assert record.run_id == run_id
+        assert record.request_id == "request-s1"
+        assert record.trials == optimizer.n_trials
 
 
 def test_pump_events_reports_a_study_failure_without_done(
@@ -732,39 +524,3 @@ def test_pump_events_drains_a_queued_completion_after_the_deadline(
     assert all('"state": "ERROR"' not in frame for frame in frames)
     assert status is not None
     assert status.phase is Phase.done
-
-
-def test_disconnect_closes_cli_before_a_bounded_worker_join(
-    optimization_description: dict,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    optimization_description["study"]["trials"] = 1
-    monkeypatch.setattr(petrinaut_optimizer, "_WORKER_SHUTDOWN_TIMEOUT_SECONDS", 0.01)
-    model = StubbornModel(optimization_description)
-    optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
-    request = DisconnectedAfterWorkerStarts(model)
-    run_id = _run_id(request)
-
-    async def collect() -> list[str]:
-        started_at = time.monotonic()
-        frames = [
-            frame
-            async for frame in optimizer.stream_all(
-                request,
-                run_id,
-                optimizer.n_trials,  # type: ignore[arg-type]
-            )
-        ]
-        assert time.monotonic() - started_at < 0.5
-        model.release.set()
-        await asyncio.sleep(0.05)
-        return frames
-
-    frames = asyncio.run(collect())
-    status = request.app.state.statuses.get(run_id)
-
-    assert frames == []
-    assert model.closed is True
-    assert model.close_calls == [False]
-    assert status is not None
-    assert status.phase is Phase.idle

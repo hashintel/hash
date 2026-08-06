@@ -2,6 +2,9 @@ import { getMiddleCenterBias, GridCellKind } from "@glideapps/glide-data-grid";
 
 import type { CustomCell, DrawArgs, Theme } from "@glideapps/glide-data-grid";
 
+/** The font a grid draws its column headers in. */
+export const gridHeaderBaseFont = "600 14px Inter";
+
 /**
  * @returns vertical center of a grid cell, relative to the visible grid area
  */

@@ -855,9 +855,6 @@ const main = async () => {
     });
   }
 
-  // TODO(SRE-884): Remove once internal-infra probes `/health`.
-  app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
-
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {
       if (!req.user?.isAccountSignupComplete) {

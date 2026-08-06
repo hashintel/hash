@@ -18,6 +18,7 @@ import type {
 import type { EntitiesFilterState } from "./filter-state";
 import type { FilterMetadataForProperty } from "./property-filters/property-filter";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { EntityTableSummary } from "@local/hash-graph-sdk/entity";
 
 export type AvailableType = {
   entityTypeId: VersionedUrl;
@@ -25,18 +26,44 @@ export type AvailableType = {
   count: number;
 };
 
+/**
+ * Where the type summary the available types derive from comes from: fetched
+ * by the hook itself, or provided by the caller — the table endpoint's first
+ * page carries one.
+ */
+export type SummarySource =
+  | { mode: "fetch" }
+  | {
+      mode: "external";
+      /** The provided summary, or `null` while the caller still loads it. */
+      summary: EntityTableSummary | null;
+      /**
+       * Set when the caller's summary failed to load, so a `null`
+       * {@link summary} reads as an error instead of loading forever.
+       */
+      error?: Error;
+    };
+
 export const useAvailableTypes = ({
   filterState,
   internalWebs,
   entityTypeBaseUrl,
   entityTypeIds,
+  summarySource,
 }: {
   filterState: EntitiesFilterState;
   internalWebs: { webId: WebId }[];
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
+  summarySource: SummarySource;
 }): {
   availableEntityTypes: AvailableType[];
+  /**
+   * The pinned types, with a base-URL pin resolved to all its versions.
+   * `null` when no type is pinned, or while a base-URL pin still awaits the
+   * loaded entity types.
+   */
+  pinnedEntityTypeIds: VersionedUrl[] | null;
   propertyFilterData: FilterMetadataForProperty[];
   loading: boolean;
   /**
@@ -60,7 +87,8 @@ export const useAvailableTypes = ({
   const { propertyTypes } = usePropertyTypes();
 
   const isTypePinned = !!entityTypeBaseUrl || !!entityTypeIds?.length;
-  const shouldFetchAvailableTypes = !isTypePinned;
+  const shouldFetchAvailableTypes =
+    !isTypePinned && summarySource.mode === "fetch";
 
   const pinnedEntityTypeIds = useMemo<VersionedUrl[] | null>(() => {
     if (entityTypeIds?.length) {
@@ -111,16 +139,41 @@ export const useAvailableTypes = ({
     },
   });
 
+  /**
+   * The summary the available types derive from, wherever it came from.
+   * `null` while none has arrived.
+   */
+  const summaryTypeData = useMemo<{
+    typeIds: Record<VersionedUrl, number>;
+    typeTitles: Record<VersionedUrl, string>;
+  } | null>(() => {
+    if (summarySource.mode === "external") {
+      return summarySource.summary
+        ? {
+            typeIds: summarySource.summary.entityTypeIds,
+            typeTitles: summarySource.summary.entityTypeTitles,
+          }
+        : null;
+    }
+
+    return data
+      ? {
+          typeIds: data.summarizeEntities.typeIds ?? {},
+          typeTitles: data.summarizeEntities.typeTitles ?? {},
+        }
+      : null;
+  }, [summarySource, data]);
+
   const { availableEntityTypes, propertyFilterData } = useMemo<{
     availableEntityTypes: AvailableType[];
     propertyFilterData: FilterMetadataForProperty[];
   }>(() => {
-    if (shouldFetchAvailableTypes && !data) {
+    if (!isTypePinned && !summaryTypeData) {
       return { availableEntityTypes: [], propertyFilterData: [] };
     }
 
-    const typeIds = data?.summarizeEntities.typeIds ?? {};
-    const typeTitles = data?.summarizeEntities.typeTitles ?? {};
+    const typeIds = summaryTypeData?.typeIds ?? {};
+    const typeTitles = summaryTypeData?.typeTitles ?? {};
 
     const availableTypes = Object.entries(typeIds)
       .map(([entityTypeId, count]) => {
@@ -137,10 +190,10 @@ export const useAvailableTypes = ({
       return { availableEntityTypes: availableTypes, propertyFilterData: [] };
     }
 
-    const availableEntityTypeIds = shouldFetchAvailableTypes
+    const availableEntityTypeIds = !isTypePinned
       ? (Object.keys(typeIds) as VersionedUrl[])
       : (pinnedEntityTypeIds ?? []);
-    const selectedAvailableEntityTypeIds = shouldFetchAvailableTypes
+    const selectedAvailableEntityTypeIds = !isTypePinned
       ? filterState.type.selectedTypeIds
         ? [...filterState.type.selectedTypeIds].filter((typeId) =>
             availableEntityTypeIds.includes(typeId),
@@ -165,14 +218,14 @@ export const useAvailableTypes = ({
       propertyFilterData: availableProperties,
     };
   }, [
-    data,
+    summaryTypeData,
     dataTypes,
     entityTypeParentIds,
     entityTypes,
+    isTypePinned,
     pinnedEntityTypeIds,
     filterState.type.selectedTypeIds,
     propertyTypes,
-    shouldFetchAvailableTypes,
   ]);
 
   const propertyFilterDataLoading =
@@ -184,17 +237,27 @@ export const useAvailableTypes = ({
   // silently render the whole workspace as "0 entities", so it surfaces as an
   // error instead.
   const typeUniverse = useMemo<VersionedUrl[] | null>(() => {
+    if (summarySource.mode === "external") {
+      return summarySource.summary
+        ? (Object.keys(summarySource.summary.entityTypeIds) as VersionedUrl[])
+        : null;
+    }
+
     if (!data?.summarizeEntities.typeIds) {
       return null;
     }
 
     return Object.keys(data.summarizeEntities.typeIds) as VersionedUrl[];
-  }, [data]);
+  }, [summarySource, data]);
 
   // Only fatal when it leaves us without a universe — a failed background
   // refresh with a cached universe still renders (slightly stale) results,
-  // which beats flipping a working page into an error state.
+  // which beats flipping a working page into an error state. An external
+  // summary reports its failures through its own path.
   const typeUniverseError = useMemo<Error | undefined>(() => {
+    if (summarySource.mode === "external") {
+      return typeUniverse === null ? summarySource.error : undefined;
+    }
     if (typeUniverse !== null) {
       return undefined;
     }
@@ -210,14 +273,19 @@ export const useAvailableTypes = ({
     }
 
     return undefined;
-  }, [data, error, typeUniverse]);
+  }, [summarySource, data, error, typeUniverse]);
 
   return {
     availableEntityTypes,
+    pinnedEntityTypeIds,
     propertyFilterData,
-    loading: shouldFetchAvailableTypes
-      ? loading || propertyFilterDataLoading
-      : propertyFilterDataLoading,
+    loading:
+      summarySource.mode === "external"
+        ? (summarySource.summary === null && !summarySource.error) ||
+          propertyFilterDataLoading
+        : shouldFetchAvailableTypes
+          ? loading || propertyFilterDataLoading
+          : propertyFilterDataLoading,
     typeUniverse,
     typeUniverseError,
     refetchTypeUniverse: refetch,

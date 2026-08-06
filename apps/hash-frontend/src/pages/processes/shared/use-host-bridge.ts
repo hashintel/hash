@@ -31,11 +31,17 @@ type HostBridgeHandlers = {
   onAiChatAbort?: (
     payload: Extract<IframeToHostMessage, { kind: "aiChatAbort" }>,
   ) => void;
-  onOptimizationRequest?: (
-    payload: Extract<IframeToHostMessage, { kind: "optimizationRequest" }>,
+  onOptimizationCreate?: (
+    payload: Extract<IframeToHostMessage, { kind: "optimizationCreate" }>,
+  ) => void;
+  onOptimizationAttach?: (
+    payload: Extract<IframeToHostMessage, { kind: "optimizationAttach" }>,
   ) => void;
   onOptimizationAbort?: (
     payload: Extract<IframeToHostMessage, { kind: "optimizationAbort" }>,
+  ) => void;
+  onOptimizationCancel?: (
+    payload: Extract<IframeToHostMessage, { kind: "optimizationCancel" }>,
   ) => void;
   onAiMessagesChanged?: (
     payload: Extract<IframeToHostMessage, { kind: "aiMessagesChanged" }>,
@@ -121,11 +127,17 @@ export const useHostBridge = ({
         case "aiChatAbort":
           current.onAiChatAbort?.(data);
           break;
-        case "optimizationRequest":
-          current.onOptimizationRequest?.(data);
+        case "optimizationCreate":
+          current.onOptimizationCreate?.(data);
+          break;
+        case "optimizationAttach":
+          current.onOptimizationAttach?.(data);
           break;
         case "optimizationAbort":
           current.onOptimizationAbort?.(data);
+          break;
+        case "optimizationCancel":
+          current.onOptimizationCancel?.(data);
           break;
         case "aiMessagesChanged":
           current.onAiMessagesChanged?.(data);

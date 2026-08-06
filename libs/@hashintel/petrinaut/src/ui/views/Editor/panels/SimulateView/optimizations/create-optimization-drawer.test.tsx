@@ -209,6 +209,7 @@ const TestProviders = ({
     createOptimization,
     cancelOptimization: () => {},
     removeOptimization: () => {},
+    retryOptimization: () => Promise.resolve(null),
   };
   const drawer = (
     <OptimizationsContext value={optimizations}>

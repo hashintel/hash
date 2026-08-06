@@ -16,7 +16,6 @@ import {
 import { apolloClient } from "../../../lib/apollo-client";
 import { buildEntitiesFilter } from "./shared/build-filter";
 import { traversalPathsForView } from "./shared/traversal-paths";
-import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -25,13 +24,7 @@ import type {
   SummarizeEntitiesQueryVariables,
 } from "../../../graphql/api-types.gen";
 import type { VisualizerView } from "../visualizer-views";
-import type {
-  EntitiesTableData,
-  EntitiesTableRow,
-  UpdateTableDataFn,
-} from "./entities-table-data";
 import type { EntitiesFilterState } from "./shared/filter-state";
-import type { ApolloQueryResult } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
@@ -42,47 +35,49 @@ import type {
 export type EntitiesVisualizerData = Partial<
   Pick<
     QueryEntitySubgraphQuery["queryEntitySubgraph"],
-    "closedMultiEntityTypes" | "definitions" | "cursor"
+    "closedMultiEntityTypes" | "definitions"
   >
 > & {
+  cursor?: EntityQueryCursor | null;
   entities?: HashEntity[];
+  /** Set when the page query failed. */
+  error?: Error;
   hadCachedContent: boolean;
   loading: boolean;
   /**
-   * Whether or not a network request is in process.
-   * Note that if is hasCachedContent is true, data for the given query is available before loading is complete.
-   * The cached content will be replaced automatically and the value updated when the network request completes.
+   * Refetches the page query. Resolves to `undefined` without querying while
+   * the type universe is still awaited.
    */
+  refetch: () => Promise<unknown>;
   /**
-   * Refetches the subgraph query only — the type universe keeps its last
-   * snapshot, so entities of types that appeared after it loaded stay hidden
-   * until the universe query itself refetches. Resolves to `undefined` without
-   * querying while the type universe is still awaited.
+   * Whether the queries here are standing by instead of reporting a result. A
+   * skipped query reports no data and no loading, which is otherwise
+   * indistinguishable from an empty result.
    */
-  refetch: () => Promise<
-    ApolloQueryResult<QueryEntitySubgraphQuery> | undefined
-  >;
+  skipped: boolean;
   subgraph?: Subgraph<EntityRootType<HashEntity>>;
-  tableData: EntitiesTableData | null;
   totalResultCount: number | null;
-  updateTableData: UpdateTableDataFn;
 };
 
+/**
+ * Reads the Grid and Graph views' data through `queryEntitySubgraph`. The
+ * Table view reads through `useEntitiesTableQuery` instead, which skips the
+ * queries here.
+ */
 export const useEntitiesVisualizerData = (params: {
   conversions?: ConversionRequest[];
   cursor?: EntityQueryCursor;
   entityTypeBaseUrl?: BaseUrl;
   entityTypeIds?: VersionedUrl[];
   filterState: EntitiesFilterState;
-  hideColumns?: (keyof EntitiesTableRow)[];
   internalWebs: { webId: WebId }[];
-  limit?: number;
+  limit: number;
   sort?: EntityQuerySortingRecord;
   /**
    * The type universe from `useAvailableTypes` — `null` while the summary is in
    * flight, and permanently for pinned types, which never fetch it. The default
    * (no type selection) view sends it as an include-type clause and holds its
-   * queries back until it arrives — see {@link buildEntitiesFilter}.
+   * queries back until it is available — see {@link buildEntitiesFilter}.
    */
   typeUniverse: VersionedUrl[] | null;
   /**
@@ -99,7 +94,6 @@ export const useEntitiesVisualizerData = (params: {
     entityTypeBaseUrl,
     entityTypeIds,
     filterState,
-    hideColumns,
     internalWebs,
     limit,
     sort,
@@ -107,11 +101,6 @@ export const useEntitiesVisualizerData = (params: {
     typeUniverseError,
     view,
   } = params;
-
-  const { tableData, updateTableData } = useEntitiesTableData({
-    hideColumns,
-    hideArchivedColumn: !filterState.includeArchived,
-  });
 
   const internalWebIds = useMemo(
     () => internalWebs.map(({ webId }) => webId),
@@ -142,6 +131,8 @@ export const useEntitiesVisualizerData = (params: {
     !entityTypeIds?.length &&
     filterState.type.selectedTypeIds === null;
 
+  const skip = view === "Table" || awaitingTypeUniverse;
+
   const variables = useMemo<QueryEntitySubgraphQueryVariables>(
     () => ({
       request: {
@@ -168,7 +159,7 @@ export const useEntitiesVisualizerData = (params: {
     SummarizeEntitiesQuery,
     SummarizeEntitiesQueryVariables
   >(summarizeEntitiesQuery, {
-    skip: awaitingTypeUniverse,
+    skip,
     variables: {
       request: {
         filter,
@@ -179,32 +170,12 @@ export const useEntitiesVisualizerData = (params: {
     },
   });
 
-  const { data, loading, refetch } = useQuery<
+  const { data, error, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
-    skip: awaitingTypeUniverse,
-    onCompleted: (completedData) => {
-      if (view === "Graph") {
-        return;
-      }
-
-      const newSubgraph = deserializeQueryEntitySubgraphResponse(
-        completedData.queryEntitySubgraph,
-      ).subgraph;
-
-      const newEntities = getRoots(newSubgraph);
-
-      updateTableData({
-        appendRows: !!cursor,
-        closedMultiEntityTypesRootMap:
-          completedData.queryEntitySubgraph.closedMultiEntityTypes ?? {},
-        definitions: completedData.queryEntitySubgraph.definitions,
-        entities: newEntities,
-        subgraph: newSubgraph,
-      });
-    },
+    skip,
     variables,
   });
 
@@ -212,16 +183,19 @@ export const useEntitiesVisualizerData = (params: {
   // filter has no type clause at all — exactly the unestimable shape the gate
   // exists to prevent. Drop the call instead.
   const guardedRefetch = useCallback(async () => {
-    if (awaitingTypeUniverse) {
+    if (skip) {
       return undefined;
     }
 
     return refetch();
-  }, [awaitingTypeUniverse, refetch]);
+  }, [skip, refetch]);
 
   const hadCachedContent = useMemo(
     () =>
-      !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
+      !!apolloClient.readQuery({
+        query: queryEntitySubgraphQuery,
+        variables,
+      }),
     [variables],
   );
 
@@ -248,26 +222,26 @@ export const useEntitiesVisualizerData = (params: {
     () => ({
       ...data?.queryEntitySubgraph,
       entities,
+      error,
       hadCachedContent,
       loading: loading || (awaitingTypeUniverse && !typeUniverseError),
       refetch: guardedRefetch,
+      skipped: skip,
       subgraph,
-      tableData,
       totalResultCount: summaryData?.summarizeEntities.count ?? null,
-      updateTableData,
     }),
     [
       data?.queryEntitySubgraph,
       summaryData?.summarizeEntities,
       entities,
+      error,
       hadCachedContent,
       loading,
       awaitingTypeUniverse,
       typeUniverseError,
       guardedRefetch,
+      skip,
       subgraph,
-      tableData,
-      updateTableData,
     ],
   );
 };
