@@ -45,7 +45,7 @@ use roaring::RoaringBitmap;
 /// );
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompressedBitSet<T> {
+pub(crate) struct CompressedBitSet<T> {
     rows: RoaringBitmap,
     marker: PhantomData<T>,
 }
@@ -59,7 +59,7 @@ impl<T> Default for CompressedBitSet<T> {
 impl<T> CompressedBitSet<T> {
     /// Creates a set admitting no rows.
     #[must_use]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             rows: RoaringBitmap::new(),
             marker: PhantomData,
@@ -68,13 +68,13 @@ impl<T> CompressedBitSet<T> {
 
     /// Returns the number of rows the set admits.
     #[must_use]
-    pub fn count(&self) -> u64 {
+    pub(crate) fn count(&self) -> u64 {
         self.rows.len()
     }
 
     /// Returns whether the set admits no rows.
     #[must_use]
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 }
@@ -88,7 +88,7 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// This panics when a row lies above the representable domain.
     #[must_use]
-    pub fn from_rows(rows: impl IntoIterator<Item = T>) -> Self {
+    pub(crate) fn from_rows(rows: impl IntoIterator<Item = T>) -> Self {
         let mut set = Self::new();
         for row in rows {
             set.insert(row);
@@ -102,13 +102,13 @@ impl<T: Id> CompressedBitSet<T> {
     /// # Panics
     ///
     /// This panics when `row` lies above the representable domain.
-    pub fn insert(&mut self, row: T) -> bool {
+    pub(crate) fn insert(&mut self, row: T) -> bool {
         let row = u32::try_from(row.as_u64()).expect("the row lies in the representable domain");
         self.rows.insert(row)
     }
 
     /// Removes `row`, returning whether the set changed.
-    pub fn remove(&mut self, row: T) -> bool {
+    pub(crate) fn remove(&mut self, row: T) -> bool {
         u32::try_from(row.as_u64()).is_ok_and(|row| self.rows.remove(row))
     }
 
@@ -116,12 +116,12 @@ impl<T: Id> CompressedBitSet<T> {
     ///
     /// A row above the representable domain is not admitted.
     #[must_use]
-    pub fn contains(&self, row: T) -> bool {
+    pub(crate) fn contains(&self, row: T) -> bool {
         u32::try_from(row.as_u64()).is_ok_and(|row| self.rows.contains(row))
     }
 
     /// Iterates the rows the set admits, in ascending order.
-    pub fn iter(&self) -> impl Iterator<Item = T> + '_ {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = T> + '_ {
         self.rows.iter().map(T::from_u32)
     }
 }

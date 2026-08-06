@@ -18,6 +18,7 @@ use crate::{
 };
 
 /// Opening a postings file failed.
+// pub: rides `OpenAtlasError`'s public adjacency variant.
 #[derive(Debug)]
 pub enum OpenPostingsError {
     /// Reading the header page failed.

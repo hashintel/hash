@@ -126,7 +126,7 @@ impl VisibilityProof {
     /// verified sealed blob), never client-supplied values - the constructor accepts any masks and
     /// verifies no origin. A row either mask does not admit stays hidden.
     #[must_use]
-    pub const fn from_masks(
+    pub(crate) const fn from_masks(
         nodes: CompressedBitSet<NodeRowId>,
         edges: CompressedBitSet<EdgeRowId>,
     ) -> Self {

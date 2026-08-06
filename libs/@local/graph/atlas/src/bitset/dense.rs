@@ -42,6 +42,7 @@ const fn word_index_and_mask(row: u64) -> (usize, u64) {
 }
 
 /// A byte frame [`DenseBitSlice::try_from_prefix`] refused.
+// pub: rides `OpenPostingsError`'s public adjacency variants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParseDenseBitSliceError {
     /// The bytes end before the 8-byte domain header.
@@ -668,6 +669,7 @@ unsafe impl<T> zerocopy::TryFromBytes for DenseBitSlice<T> {
 }
 
 /// A byte region [`DenseBitSliceArray::try_from_bytes`] refused.
+// pub: rides `OpenPostingsError`'s public adjacency variants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParseDenseBitSliceArrayError {
     /// The region's byte length is not what its domain header and frame count occupy.
