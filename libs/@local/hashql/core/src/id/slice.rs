@@ -385,6 +385,23 @@ where
         self.raw.array_windows()
     }
 
+    /// Returns an iterator over ID-window pairs for windows of size `N`.
+    ///
+    /// Each window carries the ID of its first element, so a window at `(id, [a, b])` spans
+    /// `id` and `id.plus(1)`. See [`slice::array_windows`] for the window semantics.
+    #[inline]
+    pub fn array_windows_enumerated<const N: usize>(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = (I, &[T; N])> + ExactSizeIterator + Clone {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(N));
+
+        self.raw
+            .array_windows()
+            .enumerate()
+            .map(|(index, window)| (I::from_usize(index), window))
+    }
+
     /// Sorts the slice in place using the given key function, in unstable order.
     ///
     /// See [`slice::sort_unstable_by_key`](prim@slice#method.sort_unstable_by_key) for details.
@@ -740,6 +757,34 @@ mod tests {
         let slice = IdSlice::<TestId, _>::from_raw(&data);
 
         assert!(slice.is_empty());
+    }
+
+    #[test]
+    fn array_windows_enumerated_pairs_each_window_with_its_first_id() {
+        let data = [10, 20, 30, 40];
+        let slice = IdSlice::<TestId, _>::from_raw(&data);
+
+        let windows: alloc::vec::Vec<_> = slice.array_windows_enumerated::<2>().collect();
+        assert_eq!(
+            windows,
+            [
+                (TestId::from_usize(0), &[10, 20]),
+                (TestId::from_usize(1), &[20, 30]),
+                (TestId::from_usize(2), &[30, 40]),
+            ]
+        );
+
+        let mut reversed = slice.array_windows_enumerated::<2>().rev();
+        assert_eq!(reversed.next(), Some((TestId::from_usize(2), &[30, 40])));
+    }
+
+    #[test]
+    fn array_windows_enumerated_is_empty_on_a_short_slice() {
+        let data = [10];
+        let slice = IdSlice::<TestId, _>::from_raw(&data);
+
+        assert_eq!(slice.array_windows_enumerated::<2>().len(), 0);
+        assert_eq!(slice.array_windows_enumerated::<2>().next(), None);
     }
 
     #[test]
