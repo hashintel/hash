@@ -30,6 +30,7 @@ const SitePage: NextPageWithLayout = () => {
         const nextSearchParams = new URLSearchParams(previousSearchParams);
         nextSearchParams.delete("opportunity");
         nextSearchParams.delete("statusUpdate");
+        nextSearchParams.delete("webId");
         return nextSearchParams;
       },
       { replace: true },

@@ -116,6 +116,7 @@ const mentionTargetUrl = async ({
 const sendMentionEmail = async ({
   authentication,
   context,
+  deliveryKind,
   plainText,
   recipient,
   target,
@@ -123,6 +124,7 @@ const sendMentionEmail = async ({
 }: {
   authentication: AuthenticationContext;
   context: ImpureGraphContext;
+  deliveryKind: "mention" | "participation";
   plainText: string;
   recipient: User;
   target: MentionDeliveryTarget;
@@ -156,18 +158,27 @@ const sendMentionEmail = async ({
     allowedAttributes: {},
     allowedTags: [],
   });
+  const isParticipationUpdate = deliveryKind === "participation";
+  const subject = isParticipationUpdate
+    ? "New update to an opportunity you're involved in"
+    : `You were mentioned in ${targetDescription}`;
+  const introduction = isParticipationUpdate
+    ? `<p><strong>${triggeredByName}</strong> added an update to an opportunity you're involved in.</p>`
+    : `<p><strong>${triggeredByName}</strong> mentioned you in ${targetDescription}.</p>`;
 
   await backOff(
     () =>
       emailTransporter.sendMail({
         to: recipientEmail,
-        subject: `You were mentioned in ${targetDescription}`,
+        subject,
         html: [
-          `<p><strong>${triggeredByName}</strong> mentioned you in ${targetDescription}.</p>`,
+          introduction,
           safeText
             ? `<blockquote>${safeText.replaceAll("\n", "<br>")}</blockquote>`
             : "",
-          `<p><a href="${url}">View mention</a></p>`,
+          `<p><a href="${url}">${
+            isParticipationUpdate ? "View update" : "View mention"
+          }</a></p>`,
         ].join(""),
       }),
     {
@@ -179,33 +190,37 @@ const sendMentionEmail = async ({
   );
 };
 
-export const deliverMentionNotifications = async ({
+const deliverNotifications = async ({
   authentication,
   context,
-  mentionedUsers,
+  deliveryKind,
+  recipients,
   target,
   textualContent,
   triggeredByUser,
+  usersForPlainText,
 }: {
   authentication: AuthenticationContext;
   context: ImpureGraphContext;
-  mentionedUsers: User[];
+  deliveryKind: "mention" | "participation";
+  recipients: User[];
   target: MentionDeliveryTarget;
   textualContent: TextToken[];
   triggeredByUser: User;
+  usersForPlainText: User[];
 }): Promise<void> => {
-  const plainText = textualContentToPlainText(textualContent, mentionedUsers);
-  const uniqueMentionedUsers = [
+  const plainText = textualContentToPlainText(
+    textualContent,
+    usersForPlainText,
+  );
+  const uniqueRecipients = [
     ...new Map(
-      mentionedUsers.map((user) => [
-        user.entity.metadata.recordId.entityId,
-        user,
-      ]),
+      recipients.map((user) => [user.entity.metadata.recordId.entityId, user]),
     ).values(),
   ].filter((user) => user.accountId !== triggeredByUser.accountId);
 
   const results = await Promise.allSettled(
-    uniqueMentionedUsers.map(async (recipient) => {
+    uniqueRecipients.map(async (recipient) => {
       const { view } = await checkPermissionsOnEntity(
         context,
         { actorId: recipient.accountId },
@@ -240,6 +255,7 @@ export const deliverMentionNotifications = async ({
       await sendMentionEmail({
         authentication,
         context,
+        deliveryKind,
         plainText,
         recipient,
         target,
@@ -251,12 +267,67 @@ export const deliverMentionNotifications = async ({
   for (const [index, result] of results.entries()) {
     if (result.status === "rejected") {
       context.logger?.error("Failed to deliver mention notification", {
+        deliveryKind,
         error: result.reason,
         recipientEntityId:
-          uniqueMentionedUsers[index]?.entity.metadata.recordId.entityId,
+          uniqueRecipients[index]?.entity.metadata.recordId.entityId,
         targetEntityId:
           target.occurredInEntity.entity.metadata.recordId.entityId,
       });
     }
   }
 };
+
+export const deliverMentionNotifications = async ({
+  authentication,
+  context,
+  mentionedUsers,
+  target,
+  textualContent,
+  triggeredByUser,
+}: {
+  authentication: AuthenticationContext;
+  context: ImpureGraphContext;
+  mentionedUsers: User[];
+  target: MentionDeliveryTarget;
+  textualContent: TextToken[];
+  triggeredByUser: User;
+}): Promise<void> =>
+  deliverNotifications({
+    authentication,
+    context,
+    deliveryKind: "mention",
+    recipients: mentionedUsers,
+    target,
+    textualContent,
+    triggeredByUser,
+    usersForPlainText: mentionedUsers,
+  });
+
+export const deliverStatusParticipationNotifications = async ({
+  authentication,
+  context,
+  mentionedUsers,
+  participants,
+  target,
+  textualContent,
+  triggeredByUser,
+}: {
+  authentication: AuthenticationContext;
+  context: ImpureGraphContext;
+  mentionedUsers: User[];
+  participants: User[];
+  target: MentionDeliveryTarget;
+  textualContent: TextToken[];
+  triggeredByUser: User;
+}): Promise<void> =>
+  deliverNotifications({
+    authentication,
+    context,
+    deliveryKind: "participation",
+    recipients: participants,
+    target,
+    textualContent,
+    triggeredByUser,
+    usersForPlainText: mentionedUsers,
+  });

@@ -5,7 +5,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { deliverMentionNotifications } from "./mention-delivery";
+import {
+  deliverMentionNotifications,
+  deliverStatusParticipationNotifications,
+} from "./mention-delivery";
 
 import type { ImpureGraphContext } from "../../../../context-types";
 import type { User } from "../../../system-types/user";
@@ -214,5 +217,38 @@ describe("deliverMentionNotifications", () => {
       }),
     ).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalledOnce();
+  });
+
+  it("uses participation wording for previous status authors", async () => {
+    const sendMail = vi.fn().mockResolvedValue(undefined);
+    const participant = user({
+      accountId: "participant-account",
+      entityId: mentionEntityId,
+    });
+
+    await deliverStatusParticipationNotifications({
+      authentication,
+      context: {
+        emailTransporter: { sendMail },
+      } as unknown as ImpureGraphContext,
+      mentionedUsers: [],
+      participants: [participant],
+      target: { occurredInEntity: { entity: targetEntity } },
+      textualContent: [{ tokenType: "text", text: "A new update" }],
+      triggeredByUser: user({
+        accountId: "author-account",
+        entityId:
+          "01234567-89ab-cdef-0123-456789abcdef~bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" as EntityId,
+      }),
+    });
+
+    expect(sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: "New update to an opportunity you're involved in",
+        html: expect.stringContaining(
+          "added an update to an opportunity you're involved in",
+        ),
+      }),
+    );
   });
 });

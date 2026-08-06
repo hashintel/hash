@@ -44,6 +44,7 @@ const logger = new Logger({
 
 describe("Opportunity status mention notification", () => {
   let author: User;
+  let participant: User;
   let recipient: User;
   let org: Org;
 
@@ -56,6 +57,11 @@ describe("Opportunity status mention notification", () => {
     });
     author = await createTestUser(graphContext, "statusauthor", logger);
     recipient = await createTestUser(graphContext, "statusrecipient", logger);
+    participant = await createTestUser(
+      graphContext,
+      "statusparticipant",
+      logger,
+    );
     org = await createTestOrg(
       {
         ...graphContext,
@@ -72,10 +78,21 @@ describe("Opportunity status mention notification", () => {
         userEntityId: recipient.entity.metadata.recordId.entityId,
       },
     );
+    await joinOrg(
+      graphContext,
+      { actorId: author.accountId },
+      {
+        orgEntityId: org.entity.metadata.recordId.entityId,
+        userEntityId: participant.entity.metadata.recordId.entityId,
+      },
+    );
   });
 
   afterAll(async () => {
     await deleteKratosIdentity({ kratosIdentityId: author.kratosIdentityId });
+    await deleteKratosIdentity({
+      kratosIdentityId: participant.kratosIdentityId,
+    });
     await deleteKratosIdentity({
       kratosIdentityId: recipient.kratosIdentityId,
     });
@@ -96,30 +113,44 @@ describe("Opportunity status mention notification", () => {
       metadata: { dataTypeId: blockProtocolDataTypes.text.dataTypeId },
       value,
     });
+    const statusProperties = (
+      tokens: TextToken[],
+    ): PropertyObjectWithMetadata => ({
+      value: {
+        [systemPropertyTypes.scopeKey.propertyTypeBaseUrl]: text(
+          "site-1::planning::node-1",
+        ),
+        [systemPropertyTypes.siteCode.propertyTypeBaseUrl]: text("site-1"),
+        [systemPropertyTypes.opportunityStatus.propertyTypeBaseUrl]: {
+          metadata: {
+            dataTypeId: systemDataTypes.opportunityStatusCategory.dataTypeId,
+          },
+          value: "Investigation started",
+        },
+        [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
+          value: tokens.map((token) => ({
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.object.dataTypeId,
+            },
+            value: token,
+          })),
+        },
+      },
+    });
+    await createEntity(
+      graphContext,
+      { actorId: participant.accountId },
+      {
+        entityTypeIds: [systemEntityTypes.opportunityStatusUpdate.entityTypeId],
+        properties: statusProperties([
+          { tokenType: "text", text: "Previous update" },
+        ]),
+        webId: org.webId,
+      },
+    );
     const status = await createEntity(graphContext, authentication, {
       entityTypeIds: [systemEntityTypes.opportunityStatusUpdate.entityTypeId],
-      properties: {
-        value: {
-          [systemPropertyTypes.scopeKey.propertyTypeBaseUrl]: text(
-            "site-1::planning::node-1",
-          ),
-          [systemPropertyTypes.siteCode.propertyTypeBaseUrl]: text("site-1"),
-          [systemPropertyTypes.opportunityStatus.propertyTypeBaseUrl]: {
-            metadata: {
-              dataTypeId: systemDataTypes.opportunityStatusCategory.dataTypeId,
-            },
-            value: "Investigation started",
-          },
-          [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
-            value: textualContent.map((token) => ({
-              metadata: {
-                dataTypeId: blockProtocolDataTypes.object.dataTypeId,
-              },
-              value: token,
-            })),
-          },
-        },
-      } satisfies PropertyObjectWithMetadata,
+      properties: statusProperties(textualContent),
       webId: org.webId,
     });
 
@@ -138,6 +169,21 @@ describe("Opportunity status mention notification", () => {
     await expect.poll(getNotification, { timeout: 15_000 }).not.toBeNull();
     const notification = await getNotification();
     expect(notification).not.toBeNull();
+    const getParticipantNotification = () =>
+      getMentionNotification(
+        graphContext,
+        { actorId: participant.accountId },
+        {
+          occurredInEntity: { entity: status },
+          recipient: participant,
+          triggeredByUser: author,
+        },
+      );
+    await expect
+      .poll(getParticipantNotification, { timeout: 15_000 })
+      .not.toBeNull();
+    const participantNotification = await getParticipantNotification();
+    expect(participantNotification).not.toBeNull();
 
     const outgoingLinks = await getEntityOutgoingLinks(
       graphContext,
@@ -179,6 +225,11 @@ describe("Opportunity status mention notification", () => {
       graphContext,
       { actorId: recipient.accountId },
       { notification: notification! },
+    );
+    await archiveNotification(
+      graphContext,
+      { actorId: participant.accountId },
+      { notification: participantNotification! },
     );
     await expect(
       getMentionNotification(

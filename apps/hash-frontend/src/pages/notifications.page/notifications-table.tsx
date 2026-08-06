@@ -174,19 +174,30 @@ const EntityMentionNotificationContent = ({
   notification: EntityMentionNotification;
   handleNotificationClick: () => void;
   targetHref?: string;
-}) => (
-  <>
-    <Link noLinkStyle href={`/@${notification.triggeredByUser.shortname}`}>
-      {notification.triggeredByUser.displayName}
-    </Link>{" "}
-    mentioned you in{" "}
-    <Link noLinkStyle href={targetHref ?? ""} onClick={handleNotificationClick}>
-      {notification.kind === "opportunity-status-mention"
-        ? "a supply-chain status update"
-        : notification.occurredInEntityLabel}
-    </Link>
-  </>
-);
+}) => {
+  const isParticipationUpdate =
+    notification.kind === "opportunity-status-participation";
+
+  return (
+    <>
+      <Link noLinkStyle href={`/@${notification.triggeredByUser.shortname}`}>
+        {notification.triggeredByUser.displayName}
+      </Link>{" "}
+      {isParticipationUpdate ? "added an update to " : "mentioned you in "}
+      <Link
+        noLinkStyle
+        href={targetHref ?? ""}
+        onClick={handleNotificationClick}
+      >
+        {isParticipationUpdate
+          ? "an opportunity you're involved in"
+          : notification.kind === "opportunity-status-mention"
+            ? "an opportunity status update"
+            : notification.occurredInEntityLabel}
+      </Link>
+    </>
+  );
+};
 
 const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   notification,
@@ -214,7 +225,10 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   });
 
   const targetHref = useMemo(() => {
-    if (notification.kind === "opportunity-status-mention") {
+    if (
+      notification.kind === "opportunity-status-mention" ||
+      notification.kind === "opportunity-status-participation"
+    ) {
       return getOpportunityStatusMentionHref(notification.occurredInEntity);
     }
 
@@ -318,7 +332,8 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
             targetHref={targetHref}
           />
         ) : notification.kind === "entity-mention" ||
-          notification.kind === "opportunity-status-mention" ? (
+          notification.kind === "opportunity-status-mention" ||
+          notification.kind === "opportunity-status-participation" ? (
           <EntityMentionNotificationContent
             handleNotificationClick={handleNotificationClick}
             notification={notification}

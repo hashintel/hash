@@ -50,7 +50,9 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
 import type { GraphChangeNotification as GraphChangeNotificationProperties } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { MentionNotification as MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { OpportunityStatusUpdate } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
 import type { User as UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type PageMentionNotification = {
@@ -87,7 +89,11 @@ export type EntityMentionNotification = {
   occurredInEntityLabel: string;
   triggeredByUser: MinimalUser;
 } & SimpleProperties<MentionNotificationProperties["properties"]> &
-  ({ kind: "entity-mention" } | { kind: "opportunity-status-mention" });
+  (
+    | { kind: "entity-mention" }
+    | { kind: "opportunity-status-mention" }
+    | { kind: "opportunity-status-participation" }
+  );
 
 export type PageRelatedNotification =
   | PageMentionNotification
@@ -157,11 +163,33 @@ const entityMentionTargetHandlers: {
   },
 ];
 
-const getEntityMentionKind = (
+export const getEntityMentionKind = (
   occurredInEntity: HashEntity,
-): EntityMentionNotification["kind"] =>
-  entityMentionTargetHandlers.find(({ matches }) => matches(occurredInEntity))
-    ?.kind ?? "entity-mention";
+  recipientEntityId: string,
+): EntityMentionNotification["kind"] => {
+  const targetKind = entityMentionTargetHandlers.find(({ matches }) =>
+    matches(occurredInEntity),
+  )?.kind;
+  if (targetKind !== "opportunity-status-mention") {
+    return "entity-mention";
+  }
+
+  const { textualContent } = simplifyProperties(
+    occurredInEntity.properties as OpportunityStatusUpdate["properties"],
+  );
+  const recipientWasMentioned =
+    Array.isArray(textualContent) &&
+    (textualContent as unknown as TextToken[]).some(
+      (token) =>
+        token.tokenType === "mention" &&
+        token.mentionType === "user" &&
+        token.entityId === recipientEntityId,
+    );
+
+  return recipientWasMentioned
+    ? "opportunity-status-mention"
+    : "opportunity-status-participation";
+};
 
 export const useNotificationsWithLinksContextValue =
   (): NotificationsWithLinksContextValue => {
@@ -316,7 +344,10 @@ export const useNotificationsWithLinksContextValue =
               )
             ) {
               return {
-                kind: getEntityMentionKind(occurredInEntity),
+                kind: getEntityMentionKind(
+                  occurredInEntity,
+                  authenticatedUser?.entity.metadata.recordId.entityId ?? "",
+                ),
                 readAt,
                 entity:
                   entity as unknown as HashEntity<MentionNotificationProperties>,
@@ -611,7 +642,10 @@ export const useNotificationsWithLinksContextValue =
       previouslyFetchedNotificationsRef.current = derivedNotifications;
 
       return derivedNotifications;
-    }, [notificationsSubgraph]);
+    }, [
+      authenticatedUser?.entity.metadata.recordId.entityId,
+      notificationsSubgraph,
+    ]);
 
     return { notifications, refetch };
   };
