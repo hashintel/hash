@@ -309,6 +309,14 @@ where
         // so the bytes validated there are the bytes sliced here.
         Some(unsafe { <K::Payload>::try_ref_from_bytes(bytes).unwrap_unchecked() })
     }
+
+    /// Iterates the rows carrying a non-empty display payload, in row order.
+    pub(crate) fn displayed_rows(&self) -> impl Iterator<Item = R> {
+        self.spans()
+            .iter_enumerated()
+            .filter(|&(_, span)| span.length() > 0)
+            .map(|(row, _)| row)
+    }
 }
 
 #[cfg(test)]

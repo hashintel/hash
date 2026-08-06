@@ -10,7 +10,7 @@ use smallvec::{SmallVec, smallvec};
 use super::{
     artifact::{InvalidPostingsFile, Membership, PostingsArchive},
     build::{Postings, PostingsError},
-    closure::ClosureMap,
+    closure::{ClosureMap, IconSource},
 };
 use crate::{
     bitset::{DenseBitSlice, DenseBitSliceArray},
@@ -664,7 +664,7 @@ fn closure_expands_the_fixture_graph() {
     .expect("the fixture stays in domain");
     let mapped = mapped(&dir, "fixture.post", &postings);
 
-    let closure = ClosureMap::new(&mapped).expect("the fixture graph is acyclic");
+    let closure = ClosureMap::new(&mapped, []).expect("the fixture graph is acyclic");
     assert_eq!(closure.types(), 4);
 
     // Descendant rows, hand-derived: 0 is everyone's ancestor, 3 is
@@ -703,8 +703,163 @@ fn closure_rejects_parent_cycles() {
     .expect("the cyclic graph is still in domain");
     let mapped = mapped(&dir, "cycle.post", &postings);
 
-    let error = ClosureMap::new(&mapped).expect_err("the parent cycle must surface");
+    let error = ClosureMap::new(&mapped, []).expect_err("the parent cycle must surface");
     assert_eq!(error.entangled, 2);
+}
+
+/// The icon memo resolves the nearest icon-bearing ancestor, exactly where a request-time cache
+/// went wrong.
+///
+/// The graph is the counterexample that killed the cross-position icon cache: parents `1 <- 3`,
+/// `3 <- {4, 5}`, `{2, 5} <- 0`, icons on 0 and 4. A walk from direct types `{1, 2}` finds 0's
+/// icon after visiting 3, so a cache keyed by visited types would poison 3 with 0's icon - yet
+/// 3's own nearest icon is 4's at depth one. The memo resolves each type over the whole graph,
+/// so 3 reads 4.
+#[test]
+fn icon_memo_resolves_the_nearest_ancestor_icon() {
+    let dir = scratch("icon-memo");
+
+    // Types 6 and 7 chain icon-free, so their cones record no source.
+    let postings = Postings::build(
+        &types(&[&[1, 2], &[3]]),
+        IdSlice::from_raw(&[0, 1].map(NodeRowId::from_u32)),
+        &types(&[&[], &[3], &[0], &[4, 5], &[], &[0], &[], &[6]]),
+    )
+    .expect("the fixture stays in domain");
+    let mapped = mapped(&dir, "icon-memo.post", &postings);
+
+    let closure = ClosureMap::new(&mapped, [id(0), id(4)]).expect("the fixture graph is acyclic");
+
+    let source = |source, depth| Some(IconSource { source, depth });
+    assert_eq!(closure.icon_source(id(0)), source(id(0), 0));
+    assert_eq!(closure.icon_source(id(1)), source(id(4), 2));
+    assert_eq!(closure.icon_source(id(2)), source(id(0), 1));
+    // The cell the request-time cache poisoned: 3's nearest icon is 4's, not 0's.
+    assert_eq!(closure.icon_source(id(3)), source(id(4), 1));
+    assert_eq!(closure.icon_source(id(4)), source(id(4), 0));
+    assert_eq!(closure.icon_source(id(5)), source(id(0), 1));
+
+    // An icon-free cone records no source, at any height.
+    assert_eq!(closure.icon_source(id(6)), None);
+    assert_eq!(closure.icon_source(id(7)), None);
+}
+
+/// Depth beats run order, and run order breaks equal-depth ties.
+///
+/// Type 3's earlier parent resolves deeper (0 through 1, depth two) than its later parent (2's
+/// own icon, depth one), so the shallower source wins over the run order. Type 4's parents both
+/// resolve at depth one, so the earlier parent in the run - ascending rows, the artifact
+/// contract - decides.
+#[test]
+fn icon_memo_ties_resolve_by_depth_then_run_order() {
+    let dir = scratch("icon-ties");
+    let postings = Postings::build(
+        &types(&[&[3, 4]]),
+        IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
+        &types(&[&[], &[0], &[], &[1, 2], &[0, 2]]),
+    )
+    .expect("the fixture stays in domain");
+    let mapped = mapped(&dir, "icon-ties.post", &postings);
+
+    let closure = ClosureMap::new(&mapped, [id(0), id(2)]).expect("the fixture graph is acyclic");
+
+    // Via 1 the source is 0 at depth two, via 2 it is 2 at depth one, and the shallower
+    // resolution wins.
+    assert_eq!(
+        closure.icon_source(id(3)),
+        Some(IconSource {
+            source: id(2),
+            depth: 1,
+        }),
+    );
+    // Via 0 and via 2 both resolve at depth one. The earlier parent in the run wins.
+    assert_eq!(
+        closure.icon_source(id(4)),
+        Some(IconSource {
+            source: id(0),
+            depth: 1,
+        }),
+    );
+}
+
+/// Reference resolution: recurse over the raw parent lists with the memo's tie rule.
+fn reference_icon_source(
+    parents: &IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>>,
+    icons: &BTreeSet<u64>,
+    type_row: OntologyRowId,
+) -> Option<IconSource> {
+    if icons.contains(&type_row.as_u64()) {
+        return Some(IconSource {
+            source: type_row,
+            depth: 0,
+        });
+    }
+
+    let mut best: Option<IconSource> = None;
+    for &parent in &parents[type_row] {
+        let Some(IconSource { source, depth }) = reference_icon_source(parents, icons, parent)
+        else {
+            continue;
+        };
+        let depth = depth + 1;
+        if best.is_none_or(|held| depth < held.depth) {
+            best = Some(IconSource { source, depth });
+        }
+    }
+
+    best
+}
+
+/// The icon memo agrees with direct recursive resolution over random downward graphs.
+///
+/// Each type's parents draw from strictly smaller rows, so every graph is acyclic and every
+/// parent run ascends by construction. The reference resolves each type recursively over the raw
+/// lists with the same tie rule, so agreement pins the memo's topological pass and its archive
+/// plumbing against an order-free restatement.
+#[property_test]
+fn icon_memo_matches_recursive_resolution(
+    #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..12, 0..4), 1..12)]
+    parent_seeds: Vec<BTreeSet<u64>>,
+    #[strategy = proptest::collection::btree_set(0_u64..12, 0..5)] icon_seeds: BTreeSet<u64>,
+) {
+    let parents: IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> = parent_seeds
+        .iter()
+        .enumerate()
+        .map(|(row, seed)| {
+            seed.iter()
+                .copied()
+                .filter(|&parent| parent < row as u64)
+                .map(OntologyRowId::new)
+                .collect()
+        })
+        .collect();
+    let domain = parents.len() as u64;
+    let icons: BTreeSet<u64> = icon_seeds.into_iter().filter(|&row| row < domain).collect();
+
+    let postings = Postings::build(
+        &types::<NodeRowId>(&[&[]]),
+        IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
+        &parents,
+    )
+    .expect("downward parents stay in domain");
+
+    let dir = scratch(&format!("icon-prop-{}", uuid::Uuid::now_v7()));
+    let mapped = mapped(&dir, "icon-prop.post", &postings);
+    // The mapping keeps the unlinked file's bytes alive, so failing
+    // assertions cannot strand scratch files.
+    fs::remove_dir_all(&dir).expect("the scratch directory is removable");
+
+    let closure = ClosureMap::new(&mapped, icons.iter().copied().map(OntologyRowId::new))
+        .expect("downward parents are acyclic");
+
+    for type_row in 0..domain {
+        prop_assert_eq!(
+            closure.icon_source(OntologyRowId::new(type_row)),
+            reference_icon_source(&parents, &icons, OntologyRowId::new(type_row)),
+            "type {}'s memo entry",
+            type_row,
+        );
+    }
 }
 
 /// Reference membership: does `position`'s row carry `type_row` directly?
@@ -829,7 +984,7 @@ fn built_postings_uphold_the_membership_contract(
 
     // The closure agrees with reachability over the downward
     // parent chains: odd types descend from their even parent.
-    let closure = ClosureMap::new(&mapped).expect("downward parents are acyclic");
+    let closure = ClosureMap::new(&mapped, []).expect("downward parents are acyclic");
     for ancestor in 0..domain as u64 {
         for descendant in 0..domain as u64 {
             let expected =

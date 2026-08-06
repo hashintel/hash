@@ -5,6 +5,10 @@
 //! testing a type against a request is one bit read. The map derives at open from the published
 //! parent edges, the one authority for inheritance, and lives on the heap: `T^2` bits stay in the
 //! low megabytes while `T` stays in the low thousands.
+//!
+//! The same derivation resolves the icon memo: each type's nearest icon-bearing ancestor, settled
+//! once at open, so a tile read costs one memo lookup per direct type. The memo records row
+//! identities, and payload bytes resolve at read time against the table that owns them.
 
 use hashql_core::id::{
     Id as _, IdVec,
@@ -35,6 +39,17 @@ impl core::fmt::Display for ParentCycle {
 
 impl core::error::Error for ParentCycle {}
 
+/// One type's nearest icon-bearing ancestor.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct IconSource {
+    /// The icon-bearing type row.
+    pub source: OntologyRowId,
+    /// Parent edges walked from the resolving type to [`Self::source`].
+    ///
+    /// A type carrying its own icon resolves to itself at depth zero.
+    pub depth: u32,
+}
+
 /// Descendant bitsets over the type domain, one row per type.
 ///
 /// Row `t` marks every type whose instances a filter or coloring request naming `t` matches: `t`
@@ -43,6 +58,10 @@ impl core::error::Error for ParentCycle {}
 #[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
     bits: BitMatrix<OntologyRowId, OntologyRowId>,
+    /// The icon memo, one [`IconSource`] per type.
+    ///
+    /// [`None`] records an icon-free ancestor cone.
+    icon_sources: IdVec<OntologyRowId, Option<IconSource>>,
 }
 
 impl ClosureMap {
@@ -52,12 +71,25 @@ impl ClosureMap {
     /// settled descendant row ORs into each of its parents' rows, so every row settles in one pass
     /// over the edges.
     ///
+    /// `icons` names the type rows carrying their own icon, and a second pass unwinds the recorded
+    /// settle order, so every type follows its whole ancestor cone, resolving each type's
+    /// [`IconSource`]. An icon row resolves to itself at depth zero. Every other type takes the
+    /// shallowest parent resolution one edge deeper, and equal depths resolve to the earlier parent
+    /// in the run.
+    ///
     /// # Errors
     ///
     /// Returns [`ParentCycle`] when the parent graph holds a cycle, in which case the generation's
     /// ontology stream was defective.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `icons` names a row outside the postings' type domain.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn new(postings: &PostingsArchive) -> Result<Self, ParentCycle> {
+    pub(crate) fn new(
+        postings: &PostingsArchive,
+        icons: impl IntoIterator<Item = OntologyRowId>,
+    ) -> Result<Self, ParentCycle> {
         let types = usize::try_from(postings.types()).expect("resident type domains fit usize");
         let bound = OntologyRowId::from_usize(types);
         let mut bits = BitMatrix::new(types, types);
@@ -84,15 +116,16 @@ impl ClosureMap {
             .filter(|&(_, &children)| children == 0)
             .map(|(row, _)| row)
             .collect();
-        let mut settled = 0_u64;
-        while let Some(type_row) = ready.pop() {
-            settled += 1;
+
+        let mut settled: Vec<OntologyRowId> = Vec::with_capacity(types);
+        while let Some(r#type) = ready.pop() {
+            settled.push(r#type);
 
             let parents = postings
-                .parents(type_row)
+                .parents(r#type)
                 .expect("the loop iterates the postings' own domain");
             for &parent in parents {
-                bits.union_rows(type_row, parent);
+                bits.union_rows(r#type, parent);
 
                 pending[parent] -= 1;
                 if pending[parent] == 0 {
@@ -101,13 +134,49 @@ impl ClosureMap {
             }
         }
 
-        if settled != types as u64 {
+        if settled.len() != types {
             return Err(ParentCycle {
-                entangled: types as u64 - settled,
+                entangled: types as u64 - settled.len() as u64,
             });
         }
 
-        Ok(Self { bits })
+        // An icon row is its own source at depth zero, and the resolution pass below leaves
+        // these seeded entries standing.
+        let mut icon_sources: IdVec<OntologyRowId, Option<IconSource>> =
+            IdVec::from_elem(None, types);
+        for source in icons {
+            icon_sources[source] = Some(IconSource { source, depth: 0 });
+        }
+
+        // The walk settled children before parents, so unwinding it hands every type its
+        // ancestors first: each type resolves against parents that already have.
+        while let Some(r#type) = settled.pop() {
+            if icon_sources[r#type].is_some() {
+                continue;
+            }
+
+            let parents = postings
+                .parents(r#type)
+                .expect("the settle order names the postings' own domain");
+
+            let mut best: Option<IconSource> = None;
+            for &parent in parents {
+                let Some(IconSource { source, depth }) = icon_sources[parent] else {
+                    continue;
+                };
+                let depth = depth + 1;
+
+                // Strictly-shallower replaces, so an equal-depth tie keeps the earlier parent
+                // in the run: ascending rows, the artifact contract.
+                if best.is_none_or(|held| depth < held.depth) {
+                    best = Some(IconSource { source, depth });
+                }
+            }
+
+            icon_sources[r#type] = best;
+        }
+
+        Ok(Self { bits, icon_sources })
     }
 
     /// Returns the type domain `T`.
@@ -121,6 +190,19 @@ impl ClosureMap {
     #[must_use]
     pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<RowRef<'_, OntologyRowId>> {
         (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
+    }
+
+    /// Returns the [`IconSource`] `type_row` resolves to, or [`None`] for an icon-free cone.
+    ///
+    /// Equal-depth candidates resolve to the earlier parent in the run, so resolution is
+    /// deterministic under the artifact's ascending-row parent order.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `type_row` is outside the type domain, which [`Self::types`] reports.
+    #[must_use]
+    pub(crate) const fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
+        self.icon_sources[type_row]
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).

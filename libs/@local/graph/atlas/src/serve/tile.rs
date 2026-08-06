@@ -19,8 +19,12 @@ use super::{
     walk::{DeliveredPoints, ViewCensus, Walk, full::occupied_children},
 };
 use crate::{
+    dataset::auxiliary::{Icon, Label},
     identity::NodeRowId,
-    salt::wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
+    salt::{
+        postings::closure::IconSource,
+        wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
+    },
 };
 
 /// The tile endpoint's request limits.
@@ -222,13 +226,28 @@ impl Atlas {
 
                 for position in document.delivered.iter() {
                     let id = self.rows.view()[position];
-                    let label = self
-                        .node_ids
-                        .payload_of(id)
-                        .expect("node id should be present");
+                    let label = self.node_ids.payload_of(id).unwrap_or(Label::empty());
 
                     labels.push(label);
-                    todo!()
+
+                    if let Some(types) = self.postings.direct_types(position)
+                        && let Some((_, icon, _)) = types
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(index, &r#type)| {
+                                let IconSource { source, depth } =
+                                    self.closure.icon_source(r#type)?;
+
+                                self.ontology_ids
+                                    .payload_of(source)
+                                    .map(|icon| (index, icon, depth))
+                            })
+                            .min_by_key(|&(index, _, depth)| (depth, index))
+                    {
+                        icons.push(icon);
+                    } else {
+                        icons.push(Icon::empty());
+                    }
                 }
 
                 Some(NodeDetails::new(labels, icons))

@@ -2047,7 +2047,7 @@ fn colored_masks_resolve_and_expand_descendants() {
     let postings =
         PostingsArchive::new(PostingsFile::open(&postings_path).expect("the postings file opens"))
             .expect("the postings validate");
-    let closure = ClosureMap::new(&postings).expect("the parent graph is acyclic");
+    let closure = ClosureMap::new(&postings, []).expect("the parent graph is acyclic");
 
     // One versioned URL per type row; the table keys each row by the
     // uuid its URL derives, exactly as the store's identities would.

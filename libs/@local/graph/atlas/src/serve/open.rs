@@ -79,7 +79,6 @@ struct Artifacts {
     /// The position permutation in row order.
     positions_of_row: Column<NodeRowId, BasePosition>,
     postings: PostingsArchive,
-    closure: ClosureMap,
     /// The ontology identity table, joining type uuids to ontology rows.
     ontology_ids: IdentityTableArchive<ArchivedOntologyTypeUuid, OntologyRowId>,
     /// The node identity table, joining node rows to entity identities.
@@ -115,7 +114,6 @@ impl Artifacts {
         let postings = PostingsArchive::new(PostingsFile::open(
             generation.path_of(&files.postings.name),
         )?)?;
-        let closure = ClosureMap::new(&postings)?;
         let ontology_ids = open_identities(
             generation,
             &files.ontology_identities,
@@ -134,7 +132,6 @@ impl Artifacts {
             ranks,
             positions_of_row,
             postings,
-            closure,
             ontology_ids,
             node_ids,
             edge_ids,
@@ -238,8 +235,8 @@ impl Atlas {
     /// [`OpenAtlasError::OpenArray`], [`OpenAtlasError::OpenAdjacency`],
     /// [`OpenAtlasError::OpenPostings`], [`OpenAtlasError::OpenIdentity`]), the contract variant
     /// when a mapped artifact violates its own format contract ([`OpenAtlasError::Adjacency`],
-    /// [`OpenAtlasError::Postings`], [`OpenAtlasError::Closure`], [`OpenAtlasError::Identity`]),
-    /// and [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape.
+    /// [`OpenAtlasError::Postings`], [`OpenAtlasError::Identity`]), and
+    /// [`OpenAtlasError::Shape`] when an artifact holds the wrong element type or shape.
     ///
     /// [`OpenAtlasError::Schedule`] follows when the recorded schedule exceeds the Morton key
     /// width, which leaves no tile grid to serve.
@@ -249,6 +246,9 @@ impl Atlas {
     /// [`OpenAtlasError::Points`], [`OpenAtlasError::Types`], [`OpenAtlasError::Identities`] or
     /// [`OpenAtlasError::EdgeIdentities`] when two artifacts disagree on a count they share, and
     /// [`OpenAtlasError::EdgeUniverse`] when the edge rows exceed the `u32` edge-row domain.
+    ///
+    /// Deriving the type closure over the agreed artifacts returns [`OpenAtlasError::Closure`]
+    /// when the parent graph holds a cycle.
     ///
     /// Deriving the wire codec returns [`OpenAtlasError::Universe`] when the row count exceeds the
     /// wire's `u32` id domain.
@@ -279,11 +279,14 @@ impl Atlas {
             ranks,
             positions_of_row,
             postings,
-            closure,
             ontology_ids,
             node_ids,
             edge_ids,
         } = artifacts;
+
+        // The agreement proof matched the identity rows to the postings' type domain, so every
+        // displayed row seeds the icon memo in domain.
+        let closure = ClosureMap::new(&postings, ontology_ids.displayed_rows())?;
 
         // The row column is the node universe's permutation, so its validated length is the
         // codec's `N`. Edges cross the wire as link-entity identities and need no codec.
