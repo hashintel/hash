@@ -129,12 +129,12 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 - **`Distribution.map()` for coordinate conversion** -- a uniform launch angle is sampled once, then `.map()` derives both `x` (cosine) and `y` (sine) from the same underlying sample for a coherent polar-to-cartesian position.
 - **Predicate transitions based on geometry** -- "Collision" checks the distance between two satellites and "Crash" checks distance from the planet's surface, routing tokens to the Debris place.
 - **Arc weight 2** on the "Collision" transition -- it consumes two satellites from the Space place at once to evaluate pairwise proximity.
-- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters.
+- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters. _Pre-deployed Constellation_ defines its initial state [as code](scenarios.md#code-mode-define-as-code), building a ring of satellites with `range(...).map(...)` from two scenario parameters (`number_of_satellites`, `initial_altitude`). Each satellite starts tangentially at circular-orbit speed, so the whole ring stays in orbit from the first frame.
 - **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed.
 
 **Suggested initial state:** no initial tokens needed -- pick a scenario (e.g. _Earth Orbit_) and press Play. The "LaunchSatellite" source transition creates satellites with randomized orbital positions and velocities. Select the Space place and open the visualizer preview to watch the orbits fill up. The velocity for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`.
 
-**Bundled extras:** four scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** -- that tune the physical constants for very different orbital regimes. Switch between them in Simulation Settings to compare.
+**Bundled extras:** five scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** tune the physical constants for very different orbital regimes, and **Pre-deployed Constellation** starts with a configurable ring of satellites already in orbit (its initial state is authored in code mode). Switch between them in Simulation Settings to compare.
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 
