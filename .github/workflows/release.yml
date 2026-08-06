@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@6235da521f7054945cf1ff9967708d40c745c6b4 # unmerged — re-pin to the merged SHA, not @main
+        uses: hashintel/.github/.github/actions/github-app-token@89ff06bc761f0c0491d87a766eccce5aae6190ea # main
         with:
           vault-address: ${{ vars.VAULT_ADDR }}
           vault-role: ci-hash-release
