@@ -53,6 +53,12 @@ function step(overrides: Partial<StepDetail>): StepDetail {
 }
 
 describe("opportunity brief helpers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("adds trigger, confidence, and recommended actions to dwell briefs", () => {
     const brief = buildDwellOpportunityBrief(
       step({ type: "qa_hold" }),
@@ -207,9 +213,7 @@ describe("opportunity brief helpers", () => {
       step({
         excluded_pct: 35,
         stats: { ...baseStats, n: 60 },
-        observations: [
-          { date: new Date().toISOString().slice(0, 10), value: 9 },
-        ],
+        observations: [{ date: "2026-06-15", value: 9 }],
       }),
       step({ observations: [] }),
       "12m",

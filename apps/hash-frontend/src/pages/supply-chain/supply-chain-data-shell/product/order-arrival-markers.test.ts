@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { computeOrderArrivalMarkers } from "./order-arrival-markers";
 
@@ -93,6 +93,12 @@ const summary: PipelineSummary = {
 };
 
 describe("computeOrderArrivalMarkers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("positions an order in its visible segment", () => {
     const result = computeOrderArrivalMarkers(
       [order],

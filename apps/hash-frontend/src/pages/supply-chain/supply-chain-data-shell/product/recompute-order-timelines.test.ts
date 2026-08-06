@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   filterOrderLines,
@@ -33,6 +33,12 @@ const line = (
 });
 
 describe("customer-order recomputation", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("filters on goods-issue month", () => {
     const recent = line("2026-06-01", "from_stock");
     const old = line("2024-01-01", "from_stock");
