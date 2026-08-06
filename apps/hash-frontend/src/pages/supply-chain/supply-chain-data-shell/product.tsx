@@ -985,7 +985,11 @@ export const Overview = ({
                   batchTimelines={graph.batch_timelines}
                   timeRange={timeRange}
                   excludeOutliers={excludeOutliers}
-                  activeRoute={resolvedRoute || undefined}
+                  activeRoute={
+                    Object.keys(filteredGraph.pipeline_summary).length > 1
+                      ? resolvedRoute || undefined
+                      : undefined
+                  }
                   pipelineSummaries={filteredGraph.pipeline_summary}
                   onExpandedChange={setCustomerOrdersExpanded}
                 />

@@ -212,6 +212,10 @@ interface PipelineWaterfallProps {
    * the active route is always controlled by the parent.
    */
   activeRoute: string;
+  /** Baseline mean stages for the simulator-eligible population. */
+  baselineStagesMean?: PipelineStage[];
+  /** Baseline median stages for the simulator-eligible population. */
+  baselineStagesMedian?: PipelineStage[];
   /** Re-segmented stages for the dashed mean bar. */
   simulatedStagesMean?: PipelineStage[];
   /** Re-segmented stages for the dashed median bar. */
@@ -270,7 +274,7 @@ const PipelineBar = ({
   marker?: PipelineOrderMarker;
   showSegmentTooltips?: boolean;
 }) => {
-  if (total <= 0) {
+  if (total < 0) {
     return null;
   }
 
@@ -405,6 +409,8 @@ const PipelineBar = ({
 export const PipelineWaterfall = ({
   summaries,
   activeRoute,
+  baselineStagesMean,
+  baselineStagesMedian,
   simulatedStagesMean,
   simulatedStagesMedian,
   baselineTotalMean,
@@ -427,9 +433,21 @@ export const PipelineWaterfall = ({
   const isSegmentActive = (type: string) =>
     !activeSegments || activeSegments.has(type as SegmentId);
   const stages = allStages.filter((step) => isSegmentActive(step.type));
+  const meanStages = (baselineStagesMean ?? allStages).filter((step) =>
+    isSegmentActive(step.type),
+  );
+  const medianStages = (baselineStagesMedian ?? allStages).filter((step) =>
+    isSegmentActive(step.type),
+  );
   const allSegmentsActive = stages.length === allStages.length;
-  const summedStageMean = stages.reduce((acc, step) => acc + step.mean, 0);
-  const summedStageMedian = stages.reduce((acc, step) => acc + step.median, 0);
+  const summedStageMean = meanStages.reduce(
+    (total, stage) => total + stage.mean,
+    0,
+  );
+  const summedStageMedian = medianStages.reduce(
+    (total, stage) => total + stage.median,
+    0,
+  );
   const totalMean =
     baselineTotalMean ??
     (allSegmentsActive ? summary.total_mean : summedStageMean);
@@ -476,7 +494,7 @@ export const PipelineWaterfall = ({
   const hasSimulated =
     (simStagesMean && simMeanTotal > 0) ||
     (simStagesMedian && simMedianTotal > 0);
-  const hasAnyActive = stages.length > 0 && (totalMean > 0 || totalMedian > 0);
+  const hasAnyActive = stages.length > 0;
   return (
     <div className={wrap}>
       {/* Bars */}
@@ -495,7 +513,7 @@ export const PipelineWaterfall = ({
             <>
               <PipelineBar
                 label="MEAN"
-                stages={stages}
+                stages={meanStages}
                 total={totalMean}
                 metric="mean"
                 tall={expanded}
@@ -504,7 +522,7 @@ export const PipelineWaterfall = ({
 
               <PipelineBar
                 label="MEDIAN"
-                stages={stages}
+                stages={medianStages}
                 total={totalMedian}
                 metric="median"
                 tall={expanded}

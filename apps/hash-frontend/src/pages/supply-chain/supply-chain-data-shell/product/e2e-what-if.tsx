@@ -226,6 +226,16 @@ export const E2EWhatIf = ({
         <div className={leftCol}>
           <PipelineWaterfall
             summaries={graph.pipeline_summary}
+            baselineStagesMean={
+              simulation.baselineMean != null
+                ? simulation.baselineStagesMean
+                : undefined
+            }
+            baselineStagesMedian={
+              simulation.baselineMedian != null
+                ? simulation.baselineStagesMedian
+                : undefined
+            }
             simulatedStagesMean={simulation.simulatedStagesMean}
             simulatedStagesMedian={simulation.simulatedStagesMedian}
             baselineTotalMean={simulation.baselineMean}
