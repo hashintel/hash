@@ -8,15 +8,16 @@
 //! trailer always accompanies the response, so serving locate requires a store connection for
 //! hydration.
 
-use type_system::ontology::id::VersionedUrl;
+use hashql_core::id::IdSlice;
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
     Atlas, CutOffset, ServeLimits, TileCoordinate, VisibilityProof, WireRow,
     colour::Palette,
     grid,
     hydrate::{
-        DeliveredEntities, DetailError, LocateLinkDetails, LocateNodeDetails, LocateOrder,
-        LocateStore, SimpleValue,
+        DeliveredNodes, DetailError, EdgeSlot, LocateLinkDetails, LocateNodeDetails, LocateOrder,
+        LocateStore, NodeSlot, SimpleValue,
     },
     intern::Table,
     neighbourhood::{DeliveredEdge, Neighbourhood},
@@ -414,7 +415,7 @@ impl core::error::Error for LocateError {}
 /// encoding. The envelope places hydration last, and the split mirrors it. Assembly and encoding
 /// are CPU-bound, and hydration awaits the store between them.
 #[derive(Debug)]
-pub struct LocateDocument {
+pub(crate) struct LocateDocument {
     source: SourcePoint,
     delivered: Vec<BasePosition>,
     rows: Vec<NodeRowId>,
@@ -475,12 +476,11 @@ impl Atlas {
         let document = self.assemble_locate(request, limits, &view)?;
 
         let nodes = self.locate_node_entities(&document);
-        let links = self.locate_link_entities(&document);
 
         let hydration = store
             .hydrate(LocateOrder {
-                nodes: nodes.ids(),
-                links: links.ids(),
+                nodes,
+                links: IdSlice::from_raw(&document.edge_ids),
                 properties: limits.locate.properties,
                 link_type_ids: limits.locate.link_type_ids,
                 link_properties: limits.locate.link_properties,
@@ -489,10 +489,9 @@ impl Atlas {
 
         let node_labels = nodes
             .rows()
-            .iter()
-            .zip(&hydration.nodes.resolved)
-            .map(|(&row, &resolved)| {
-                if resolved {
+            .iter_enumerated()
+            .map(|(slot, &row)| {
+                if hydration.nodes.resolved.contains(slot) {
                     self.node_ids
                         .payload_of(row)
                         .expect("open validated the identity rows against the code column")
@@ -508,8 +507,8 @@ impl Atlas {
             hydration.nodes.source_properties_complete,
         );
 
-        let link_labels = links
-            .rows()
+        let link_labels = document
+            .edge_rows
             .iter()
             .zip(&hydration.links.properties)
             .map(|(&row, properties)| {
@@ -612,56 +611,16 @@ impl Atlas {
         })
     }
 
-    /// Gathers the entity identities behind the document's delivered nodes, in delivered order.
+    /// Views the entity identities behind the document's delivered nodes, in slot order.
     ///
-    /// The node hydration request's subject.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the identity table contradicts the row column, which open's cross-artifact
-    /// validation rules out.
+    /// The node hydration request's subject. The link subject needs no counterpart: assembly
+    /// already materializes the delivered link identities as the document's `EDGE_IDS` column.
     #[must_use]
-    pub fn locate_node_entities<'rows>(
-        &self,
-        document: &'rows LocateDocument,
-    ) -> DeliveredEntities<'rows, NodeRowId> {
-        let ids = document
-            .rows
-            .iter()
-            .map(|&row| {
-                self.node_ids
-                    .id(row)
-                    .expect("open validated the identity rows against the code column")
-            })
-            .collect();
-
-        DeliveredEntities::new(ids, &document.rows)
-    }
-
-    /// Gathers the link-entity identities behind the document's delivered edges, in edge order.
-    ///
-    /// The link hydration request's subject.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the identity table contradicts the adjacency's edge domain, which open's
-    /// cross-artifact validation rules out.
-    #[must_use]
-    pub fn locate_link_entities<'rows>(
-        &self,
-        document: &'rows LocateDocument,
-    ) -> DeliveredEntities<'rows, EdgeRowId> {
-        let ids = document
-            .edge_rows
-            .iter()
-            .map(|&row| {
-                self.edge_ids
-                    .id(row)
-                    .expect("open validated the identity rows against the adjacency's edges")
-            })
-            .collect();
-
-        DeliveredEntities::new(ids, &document.edge_rows)
+    pub(crate) fn locate_node_entities<'doc>(
+        &'doc self,
+        document: &'doc LocateDocument,
+    ) -> DeliveredNodes<'doc> {
+        DeliveredNodes::new(self.node_ids.ids(), IdSlice::from_raw(&document.rows))
     }
 
     /// Encodes an assembled document with its hydrated details.
@@ -703,7 +662,7 @@ impl Atlas {
 
         let type_ids_complete = covers_source_types(
             nodes.source_properties().is_some(),
-            &nodes.type_urls()[0],
+            &nodes.type_urls()[NodeSlot::new(0)],
             &document.palette,
         );
 
@@ -737,10 +696,10 @@ impl Atlas {
             trailer: LocateTrailer {
                 type_table: type_table.entries(),
                 property_table: property_table.entries(),
-                labels: nodes.labels(),
+                labels: nodes.labels().as_raw(),
                 type_ids: &type_ids,
                 properties: source_properties.as_deref(),
-                link_labels: links.labels(),
+                link_labels: links.labels().as_raw(),
                 link_type_ids: &link_type_ids,
                 link_type_ids_complete: links.type_urls_complete(),
                 link_properties: &link_properties,
@@ -760,29 +719,32 @@ type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
 /// Returns whether a request's palette covers the source's direct types.
 ///
 /// The `typeIdsComplete` predicate holds when every direct type of the source names a palette
-/// entry. Coverage compares parsed ontology identities, the same parse the `TYPE_MASK` resolution
-/// applies. `false` when the store no longer serves the source (`present` reads false) or records
+/// entry. Coverage compares ontology identities, the same identity the `TYPE_MASK` resolution
+/// derives. `false` when the store no longer serves the source (`present` reads false) or records
 /// no types for it, since coverage of an unreadable set carries no attestation. `false` too on a
 /// palette with no resolvable entry, which covers nothing.
-pub(crate) fn covers_source_types(present: bool, types: &[String], palette: &Palette) -> bool {
+pub(crate) fn covers_source_types(
+    present: bool,
+    types: &[VersionedUrl],
+    palette: &Palette,
+) -> bool {
     present && !types.is_empty() && types.iter().all(|url| palette.covers(url))
 }
 
 /// Builds the type intern table and every type reference into it.
 ///
-/// The table is the bytewise-sorted, deduplicated union of each node's first direct type and
+/// The table is the bytewise-sorted, deduplicated rendering of each node's first direct type and
 /// each link's capped type list. Node references are the first-type indexes (`None` for a node
 /// without a recorded type). Link references keep the hydration layer's canonical type order.
 pub(crate) fn intern_types<'doc>(
-    nodes: &'doc [Vec<String>],
-    links: &'doc [Vec<String>],
-) -> (Table<'doc>, Vec<Option<u32>>, Vec<Vec<u32>>) {
+    nodes: &'doc IdSlice<NodeSlot, Vec<VersionedUrl>>,
+    links: &'doc IdSlice<EdgeSlot, Vec<VersionedUrl>>,
+) -> (Table<'doc, VersionedUrl>, Vec<Option<u32>>, Vec<Vec<u32>>) {
     let table = Table::new(
         nodes
             .iter()
             .filter_map(|urls| urls.first())
-            .chain(links.iter().flatten())
-            .map(String::as_str),
+            .chain(links.iter().flatten()),
     );
 
     let type_ids = nodes
@@ -803,17 +765,17 @@ pub(crate) fn intern_types<'doc>(
 /// surviving names; the returned maps lead with the source's, then the links' in edge order. Each
 /// map keeps the hydration layer's ascending-name order, which maps to ascending indexes.
 pub(crate) fn intern_properties<'doc>(
-    source: Option<&'doc Vec<(String, SimpleValue)>>,
-    links: &'doc [Option<Vec<(String, SimpleValue)>>],
-) -> (Table<'doc>, Vec<PropertyMapView<'doc>>) {
-    let sets: Vec<Option<&[(String, SimpleValue)]>> = core::iter::once(source.map(Vec::as_slice))
+    source: Option<&'doc Vec<(BaseUrl, SimpleValue)>>,
+    links: &'doc IdSlice<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+) -> (Table<'doc, BaseUrl>, Vec<PropertyMapView<'doc>>) {
+    let sets: Vec<Option<&[(BaseUrl, SimpleValue)]>> = core::iter::once(source.map(Vec::as_slice))
         .chain(links.iter().map(|entry| entry.as_deref()))
         .collect();
 
     let table = Table::new(
         sets.iter()
             .flatten()
-            .flat_map(|entries| entries.iter().map(|(name, _)| name.as_str())),
+            .flat_map(|entries| entries.iter().map(|(name, _)| name)),
     );
 
     let maps = sets

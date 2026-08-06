@@ -18,6 +18,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use zerocopy::{LE, U64};
 
 use super::{
@@ -27,14 +28,14 @@ use super::{
     edges::EdgesDetail,
     error::OpenAtlasError,
     hydrate::{
-        DetailError, EdgesStore, LocateHydration, LocateLinkHydration, LocateNodeHydration,
-        LocateOrder, LocateStore,
+        DetailError, EdgeSlot, EdgesStore, LocateHydration, LocateLinkHydration,
+        LocateNodeHydration, LocateOrder, LocateStore,
     },
     schedule::ViewSchedule,
     tile::TileDetail,
 };
 use crate::{
-    bitset::CompressedBitSet,
+    bitset::{CompressedBitSet, DenseBitSlice},
     identity::{BasePosition, CardRow, EdgeRowId, NodeRowId, OntologyRowId},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -414,7 +415,7 @@ const EDGE_SEED: u8 = 64;
 /// trusts the metadata document's hash, not per-file digests (tooling verifies those), so the
 /// rewritten artifacts serve.
 fn store_identities(generation: &Generation) {
-    use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+    use type_system::ontology::id::VersionedUrl;
 
     use crate::{
         dataset::postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
@@ -444,9 +445,7 @@ fn store_identities(generation: &Generation) {
         let url: VersionedUrl = fixture_type_url(row)
             .parse()
             .expect("the fixture URL parses");
-        ontology.push(ArchivedOntologyTypeUuid::from(
-            OntologyTypeUuid::from_url(&url).into_uuid(),
-        ));
+        ontology.push(ArchivedOntologyTypeUuid::from_url(&url));
     }
 
     let nodes = entity_table::<NodeRowId>(rows_of(&files.node_identities.name), 0);
@@ -1066,8 +1065,8 @@ impl EdgesStore for UntouchedStore {
     )]
     fn hydrate(
         self,
-        _: &[crate::dataset::postgres::id::ArchivedEntityId],
-    ) -> Result<Vec<Option<String>>, DetailError> {
+        _: &IdSlice<EdgeSlot, crate::dataset::postgres::id::ArchivedEntityId>,
+    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
         panic!("the request under test must not hydrate")
     }
 }
@@ -1081,7 +1080,7 @@ struct UnresolvedStore;
 impl LocateStore for UnresolvedStore {
     fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
         Ok(LocateHydration {
-            nodes: LocateNodeHydration::empty(order.nodes.len()),
+            nodes: LocateNodeHydration::empty(order.nodes.count()),
             links: LocateLinkHydration::empty(order.links.len()),
         })
     }
@@ -1090,9 +1089,9 @@ impl LocateStore for UnresolvedStore {
 impl EdgesStore for UnresolvedStore {
     fn hydrate(
         self,
-        links: &[crate::dataset::postgres::id::ArchivedEntityId],
-    ) -> Result<Vec<Option<String>>, DetailError> {
-        Ok(vec![None; links.len()])
+        links: &IdSlice<EdgeSlot, crate::dataset::postgres::id::ArchivedEntityId>,
+    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
+        Ok(IdVec::from_elem(None, links.len()))
     }
 }
 
@@ -1972,7 +1971,7 @@ async fn foreign_key_kinds_fail_the_open() {
 /// split.
 #[test]
 fn colored_masks_resolve_and_expand_descendants() {
-    use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+    use type_system::ontology::id::VersionedUrl;
 
     use super::colour;
     use crate::{
@@ -2024,9 +2023,7 @@ fn colored_masks_resolve_and_expand_descendants() {
     let mut table = IdentityTable::<OntologyRowId, ArchivedOntologyTypeUuid>::new();
     for url in &urls {
         let parsed: VersionedUrl = url.parse().expect("the fixture URL parses");
-        table.push(ArchivedOntologyTypeUuid::from(
-            OntologyTypeUuid::from_url(&parsed).into_uuid(),
-        ));
+        table.push(ArchivedOntologyTypeUuid::from_url(&parsed));
     }
     let identity_path = dir.join("fixture.idnt");
     let mut file = std::fs::File::create(&identity_path).expect("the identity file creates");
@@ -2340,8 +2337,11 @@ async fn translate_resolves_store_identities_end_to_end() {
 }
 
 /// Shorthand for a null-valued property entry.
-fn property(name: &str) -> (String, super::hydrate::SimpleValue) {
-    (name.to_owned(), super::hydrate::SimpleValue::Null)
+fn property(name: &str) -> (BaseUrl, super::hydrate::SimpleValue) {
+    (
+        BaseUrl::new(name.to_owned()).expect("fixture keys are base URLs"),
+        super::hydrate::SimpleValue::Null,
+    )
 }
 
 #[test]
@@ -2351,7 +2351,7 @@ fn simple_properties_parse_every_simple_shape() {
     // The store renders 2.5 and 1.0 with their points, so both read
     // as doubles; a number beyond i64 falls back to f64 (the wire's
     // integer is i64 - the simple-value shapes carry no wider integral form).
-    let mut entries = super::hydrate::select::simple_properties(
+    let object = serde_json::from_str(
         r#"{
             "https://x.test/f/": 2.5,
             "https://x.test/g/": 1.0,
@@ -2362,7 +2362,9 @@ fn simple_properties_parse_every_simple_shape() {
             "https://x.test/u/": 18446744073709551615,
             "https://x.test/y/": true
         }"#,
-    );
+    )
+    .expect("the fixture is JSON");
+    let mut entries = super::hydrate::select::simple_properties(object);
     entries.sort_by(|left, right| left.0.cmp(&right.0));
 
     let expected = [
@@ -2384,63 +2386,80 @@ fn simple_properties_parse_every_simple_shape() {
         entries,
         expected
             .into_iter()
-            .map(|(name, value)| (name.to_owned(), value))
+            .map(|(name, value)| {
+                (
+                    BaseUrl::new(name.to_owned()).expect("fixture keys are base URLs"),
+                    value,
+                )
+            })
             .collect::<Vec<_>>(),
     );
 }
 
 #[test]
-#[should_panic(expected = "the store renders a JSON object")]
+#[should_panic(expected = "the store aggregates a JSON object")]
 fn simple_properties_reject_non_objects() {
-    let _entries = super::hydrate::select::simple_properties("[1, 2]");
+    let _entries = super::hydrate::select::simple_properties(serde_json::json!([1, 2]));
+}
+
+#[test]
+#[should_panic(expected = "the store keys properties by base URL")]
+fn simple_properties_reject_non_url_keys() {
+    let _entries =
+        super::hydrate::select::simple_properties(serde_json::json!({"not a url": null}));
 }
 
 #[test]
 fn select_properties_drop_reverse_lexicographically() {
     let entries = vec![
-        property("b/"),
-        property("d/"),
-        property("a/"),
-        property("c/"),
+        property("https://x.test/b/"),
+        property("https://x.test/d/"),
+        property("https://x.test/a/"),
+        property("https://x.test/c/"),
     ];
 
     // Under the cap: nothing drops, output ascends by name.
     assert_eq!(
         super::hydrate::select::select_properties(entries.clone(), None, 4),
         vec![
-            property("a/"),
-            property("b/"),
-            property("c/"),
-            property("d/")
+            property("https://x.test/a/"),
+            property("https://x.test/b/"),
+            property("https://x.test/c/"),
+            property("https://x.test/d/")
         ],
     );
 
-    // Over the cap: d/ drops first, then c/ - the largest names go.
+    // Over the cap: d drops first, then c - the largest names go.
     assert_eq!(
         super::hydrate::select::select_properties(entries, None, 2),
-        vec![property("a/"), property("b/")],
+        vec![property("https://x.test/a/"), property("https://x.test/b/")],
     );
 }
 
 #[test]
 fn select_properties_protect_the_label_to_the_end() {
-    let entries = vec![property("a/"), property("b/"), property("z/")];
+    let entries = vec![
+        property("https://x.test/a/"),
+        property("https://x.test/b/"),
+        property("https://x.test/z/"),
+    ];
+    let label = BaseUrl::new("https://x.test/z/".to_owned()).expect("fixture keys are base URLs");
 
-    // z/ is reverse-lexicographically first to drop, but it is the
+    // z is reverse-lexicographically first to drop, but it is the
     // label property: it survives every cap that admits at least
     // one property, and the survivors still emit ascending.
     assert_eq!(
-        super::hydrate::select::select_properties(entries.clone(), Some("z/"), 2),
-        vec![property("a/"), property("z/")],
+        super::hydrate::select::select_properties(entries.clone(), Some(&label), 2),
+        vec![property("https://x.test/a/"), property("https://x.test/z/")],
     );
     assert_eq!(
-        super::hydrate::select::select_properties(entries.clone(), Some("z/"), 1),
-        vec![property("z/")],
+        super::hydrate::select::select_properties(entries.clone(), Some(&label), 1),
+        vec![property("https://x.test/z/")],
     );
 
     // A cap of zero admits nothing - even the label drops.
     assert_eq!(
-        super::hydrate::select::select_properties(entries, Some("z/"), 0),
+        super::hydrate::select::select_properties(entries, Some(&label), 0),
         vec![],
     );
 }
@@ -2575,7 +2594,7 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let no_types: Vec<Option<u32>> = vec![None; nodes];
     let no_link_labels: Vec<&Label> = vec![Label::empty(); edges];
     let no_lists: Vec<Vec<u32>> = vec![Vec::new(); edges];
-    let no_flags: Vec<bool> = vec![false; edges];
+    let no_flags: Box<DenseBitSlice<EdgeSlot>> = DenseBitSlice::new_empty(edges);
     let no_maps: Vec<Option<&[(u32, crate::salt::wire::locate::PropertyValue<'_>)]>> =
         vec![None; edges];
     let response = |masks: Option<&[Membership<'_>]>| {
@@ -2667,17 +2686,6 @@ async fn locate_rejections_carry_their_names() {
             if count == limits.tile.colored_type_ids as usize + 1
                 && maximum == limits.tile.colored_type_ids,
     );
-
-    // Version 0 rejects filter by name.
-    let filtered: super::LocateRequest = serde_json::from_value(serde_json::json!({
-        "entityId": entity_string_of(0),
-        "filter": {},
-    }))
-    .expect("a filter body deserializes");
-    assert_matches!(
-        atlas.locate(&filtered, limits, &FULL, CutOffset::ZERO, UntouchedStore),
-        Err(super::LocateError::Unsupported("filter")),
-    );
 }
 
 /// The intern tables are the sorted, deduplicated unions of every reference.
@@ -2694,7 +2702,12 @@ fn intern_tables_build_the_references() {
     };
     use crate::salt::wire::locate::PropertyValue;
 
-    let owned = |name: &str, value: SimpleValue| (format!("https://x.test/{name}/"), value);
+    let owned = |name: &str, value: SimpleValue| {
+        (
+            BaseUrl::new(format!("https://x.test/{name}/")).expect("fixture keys are base URLs"),
+            value,
+        )
+    };
     let source = vec![
         owned("b", SimpleValue::Text("t".to_owned())),
         owned("d", SimpleValue::Integer(7)),
@@ -2708,7 +2721,7 @@ fn intern_tables_build_the_references() {
         Some(vec![]),
     ];
 
-    let (names, maps) = intern_properties(Some(&source), &links);
+    let (names, maps) = intern_properties(Some(&source), IdSlice::from_raw(&links));
     assert_eq!(
         names.entries(),
         [
@@ -2734,7 +2747,7 @@ fn intern_tables_build_the_references() {
     );
 
     // An absent source stays the leading entry.
-    let (names, maps) = intern_properties(None, &links[..2]);
+    let (names, maps) = intern_properties(None, IdSlice::from_raw(&links[..2]));
     assert_eq!(names.entries(), ["https://x.test/a/", "https://x.test/b/"]);
     assert_eq!(
         maps,
@@ -2750,10 +2763,15 @@ fn intern_tables_build_the_references() {
 
     // Types: nodes contribute their FIRST direct type, links their
     // whole capped lists in canonical (unsorted) order.
-    let url = |name: &str| format!("https://t.test/{name}/v/1");
+    let url = |name: &str| -> VersionedUrl {
+        format!("https://t.test/{name}/v/1")
+            .parse()
+            .expect("test urls parse")
+    };
     let nodes = vec![vec![url("m"), url("z")], Vec::new(), vec![url("a")]];
     let link_types = vec![vec![url("z"), url("a")], Vec::new()];
-    let (table, type_ids, link_type_ids) = intern_types(&nodes, &link_types);
+    let (table, type_ids, link_type_ids) =
+        intern_types(IdSlice::from_raw(&nodes), IdSlice::from_raw(&link_types));
     // The node-only type "m" interns; the node-second "z" also
     // interns through the link list.
     assert_eq!(
@@ -2776,9 +2794,12 @@ fn intern_tables_build_the_references() {
 fn source_type_coverage_follows_the_subset_rule() {
     use super::{colour::Palette, locate::covers_source_types};
 
-    let url = |name: &str| format!("https://t.test/{name}/v/1");
-    let parsed = |name: &str| url(name).parse().expect("test urls parse");
-    let colored = Palette::of(&[parsed("a"), parsed("b")]);
+    let url = |name: &str| -> VersionedUrl {
+        format!("https://t.test/{name}/v/1")
+            .parse()
+            .expect("test urls parse")
+    };
+    let colored = Palette::of(&[url("a"), url("b")]);
 
     // In the ratified example the source carries {a, c} and the
     // request colours {a, b}, so coverage fails because c is outside
@@ -2787,25 +2808,13 @@ fn source_type_coverage_follows_the_subset_rule() {
     assert!(covers_source_types(true, &[url("a")], &colored));
     assert!(covers_source_types(true, &[url("b"), url("a")], &colored));
 
-    // Coverage compares parsed identities: a non-canonical spelling
-    // of a palette type still covers.
-    assert!(covers_source_types(
-        true,
-        &["https://t.test/a/v/01".to_owned()],
-        &colored,
-    ));
-
-    // An empty palette covers nothing, an unreadable or unrecorded
-    // type list attests nothing, and nothing covers an unparsable
-    // direct type.
+    // An empty palette covers nothing, and an unreadable or
+    // unrecorded type list attests nothing. An unparsable direct
+    // type cannot reach coverage: the store boundary parses every
+    // URL before a hydration column exists.
     assert!(!covers_source_types(true, &[url("a")], &Palette::of(&[])));
     assert!(!covers_source_types(true, &[], &colored));
     assert!(!covers_source_types(false, &[url("a")], &colored));
-    assert!(!covers_source_types(
-        true,
-        &["not a versioned url".to_owned()],
-        &colored,
-    ));
 }
 
 /// A proof hiding exactly `hidden` among the atlas's node rows, and no link rows.

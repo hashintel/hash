@@ -32,6 +32,10 @@ const cborBstr = (bytes: number[]): number[] => [
   ...bytes,
 ];
 
+/** One completeness bitmask word: the low byte's bits, then seven zero padding bytes. */
+const maskWord = (bits: number): number[] =>
+  cborBstr([bits, 0, 0, 0, 0, 0, 0, 0]);
+
 const cborTstr = (text: string): number[] => {
   const encoded = [...new TextEncoder().encode(text)];
   return [...cborUint(encoded.length, 3), ...encoded];
@@ -170,7 +174,7 @@ const defaultHead = (
 /**
  * Trailer per wire.md section 8: intern tables first, then node arrays
  * (delivered order) and link arrays (edge order). The SOURCE alone
- * carries a property map; bitmasks are LSB-first byte strings.
+ * carries a property map; bitmasks are LSB-first whole 8-byte words.
  */
 const defaultTrailer = (): number[] =>
   cborMap([
@@ -201,9 +205,9 @@ const defaultTrailer = (): number[] =>
     ],
     [5, cborArray([cborTstr("cites")])],
     [6, cborArray([cborArray([cborUint(1), cborUint(0)])])],
-    [7, cborBstr([0b0000_0001])],
+    [7, maskWord(0b0000_0001)],
     [8, cborArray([cborMap([[0, cborUint(7)]])])],
-    [9, cborBstr([0b0000_0000])],
+    [9, maskWord(0b0000_0000)],
   ]);
 
 interface LocateFixture {
@@ -439,9 +443,9 @@ describe("decodeSaltileLocate", () => {
       [4, cborNull()],
       [5, cborArray([cborNull()])],
       [6, cborArray([cborArray([])])],
-      [7, cborBstr([0])],
+      [7, maskWord(0)],
       [8, cborArray([cborNull()])],
-      [9, cborBstr([0])],
+      [9, maskWord(0)],
     ]);
     expect(failure(fixture({ tail: badTrailer }))).toMatch(
       /propertyTable must be bytewise-sorted/u,
@@ -457,9 +461,9 @@ describe("decodeSaltileLocate", () => {
       [4, cborMap([[5, cborTstr("oops")]])],
       [5, cborArray([cborNull()])],
       [6, cborArray([cborArray([])])],
-      [7, cborBstr([0])],
+      [7, maskWord(0)],
       [8, cborArray([cborNull()])],
-      [9, cborBstr([0])],
+      [9, maskWord(0)],
     ]);
     expect(failure(fixture({ tail: badTrailer }))).toMatch(
       /outside the intern table/u,
@@ -477,10 +481,10 @@ describe("decodeSaltileLocate", () => {
       [6, cborArray([cborArray([])])],
       [7, cborBstr([0, 0])],
       [8, cborArray([cborNull()])],
-      [9, cborBstr([0])],
+      [9, maskWord(0)],
     ]);
     expect(failure(fixture({ tail: badTrailer }))).toMatch(
-      /linkTypeIdsComplete is 2 bytes; 1 required/u,
+      /linkTypeIdsComplete is 2 bytes; 8 required/u,
     );
   });
 });

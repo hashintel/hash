@@ -6,6 +6,7 @@ use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
+use hashql_core::id::IdVec;
 use tokio::sync::oneshot;
 use tracing::Instrument as _;
 
@@ -20,7 +21,7 @@ use crate::{
     dataset::postgres::id::ArchivedEntityId,
     serve::{
         LocateError, LocateRequest,
-        hydrate::{DetailError, LocateHydration, LocateOrder, LocateStore},
+        hydrate::{DetailError, EdgeSlot, LocateHydration, LocateOrder, LocateStore, NodeSlot},
     },
 };
 
@@ -148,9 +149,9 @@ pub(super) async fn handler(
 /// One locate hydration order, owned for the trip between the pipeline and the store side.
 struct LocateOrderMessage {
     /// The delivered node identities, source first.
-    nodes: Vec<ArchivedEntityId>,
+    nodes: IdVec<NodeSlot, ArchivedEntityId>,
     /// The delivered link-entity identities, ascending identity bytes.
-    links: Vec<ArchivedEntityId>,
+    links: IdVec<EdgeSlot, ArchivedEntityId>,
     /// Most properties the source's map delivers.
     properties: u32,
     /// Most direct-type URLs each link delivers.
@@ -169,8 +170,10 @@ impl LocateStore for ChannelLocateStore {
     fn hydrate(self, order: LocateOrder<'_>) -> Result<LocateHydration, DetailError> {
         self.order
             .send(LocateOrderMessage {
-                nodes: order.nodes.to_vec(),
-                links: order.links.to_vec(),
+                // The channel is the one boundary that owns the identities, so the views
+                // materialize here and nowhere earlier.
+                nodes: order.nodes.iter().collect(),
+                links: order.links.iter().copied().collect(),
                 properties: order.properties,
                 link_type_ids: order.link_type_ids,
                 link_properties: order.link_properties,

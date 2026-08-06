@@ -16,7 +16,7 @@
 //! as zero bits in every point's mask and never as an error.
 
 use hashql_core::id::bit_vec::{BitRelations as _, RowRef};
-use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+use type_system::ontology::id::VersionedUrl;
 
 use super::Atlas;
 use crate::{
@@ -42,7 +42,7 @@ impl Palette {
     /// Derives the palette of the request's ids, one slot per entry.
     pub(super) fn of(ids: &[VersionedUrl]) -> Self {
         Self {
-            entries: ids.iter().map(identity_of).collect(),
+            entries: ids.iter().map(ArchivedOntologyTypeUuid::from_url).collect(),
         }
     }
 
@@ -53,17 +53,12 @@ impl Palette {
 
     /// Returns whether `url` names a palette entry.
     ///
-    /// Comparison is by parsed ontology identity - any spelling that names the same versioned type
-    /// covers it, matching the mask resolution's own parse. No entry covers an unparsable `url`.
-    pub(super) fn covers(&self, url: &str) -> bool {
-        url.parse::<VersionedUrl>()
-            .is_ok_and(|url| self.entries.contains(&identity_of(&url)))
+    /// Comparison is by ontology identity - any [`VersionedUrl`] naming the same versioned type
+    /// covers it, matching the mask resolution's own derivation.
+    pub(super) fn covers(&self, url: &VersionedUrl) -> bool {
+        self.entries
+            .contains(&ArchivedOntologyTypeUuid::from_url(url))
     }
-}
-
-/// Derives a versioned type URL's ontology identity.
-fn identity_of(url: &VersionedUrl) -> ArchivedOntologyTypeUuid {
-    ArchivedOntologyTypeUuid::from(OntologyTypeUuid::from_url(url).into_uuid())
 }
 
 /// The mask sources of one request's `coloredTypeIds`, in request order.

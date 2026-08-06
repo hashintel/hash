@@ -12,7 +12,7 @@ use super::{
     colour::{MaskSet, Palette},
     density::{CutOffset, ViewOccupancy},
     grid,
-    hydrate::{DeliveredEntities, NodeDetails},
+    hydrate::NodeDetails,
     schedule::ViewSchedule,
     view::{View, ViewError},
     visibility::VisibilityProof,
@@ -20,7 +20,6 @@ use super::{
 };
 use crate::{
     dataset::auxiliary::{Icon, Label},
-    identity::NodeRowId,
     salt::{
         postings::closure::IconSource,
         wire::tile::{GlobalHead, TileHead, TileResponse, TileTrailer},
@@ -185,8 +184,7 @@ impl Atlas {
     ///
     /// This path rejects a request that sets `includeDetailedData` by name, because it serves
     /// deployments without a store connection. A transport with one assembles, hydrates, and
-    /// encodes through [`Atlas::assemble_tile`], [`Atlas::delivered_entities`], and
-    /// [`Atlas::encode_tile`].
+    /// encodes through [`Atlas::assemble_tile`] and [`Atlas::encode_tile`].
     ///
     /// This path resolves everything a view needs on its own, once per call. A transport instead
     /// resolves the census and the schedule with the scope and binds through [`Atlas::view`], so
@@ -418,31 +416,6 @@ impl Atlas {
         })
     }
 
-    /// Gathers the entity identities behind the document's delivered set, in delivered order.
-    ///
-    /// The hydration request's subject.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the identity table contradicts the row column, which open's cross-artifact
-    /// validation rules out.
-    #[must_use]
-    fn delivered_entities(&self, document: &TileDocument) -> DeliveredEntities<'_, NodeRowId> {
-        let row_ids = self.row_ids();
-        let ids = document
-            .delivered
-            .iter()
-            .map(|position| {
-                let row = row_ids[position];
-                self.node_ids
-                    .id(row)
-                    .expect("open validated the identity rows against the code column")
-            })
-            .collect();
-
-        DeliveredEntities::new(ids, row_ids.as_raw())
-    }
-
     /// Encodes an assembled document.
     ///
     /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`, with the
@@ -539,19 +512,18 @@ mod tests {
                 .assemble_tile(&detailed, TileLimits::default(), view)
                 .expect("assembly serves every detail mode")
         });
-        let entities = atlas.delivered_entities(&document);
 
         let delivered: u64 = morton.fenceposts().lengths()[..=usize::from(FIXTURE_LOD.span.get())]
             .iter()
             .sum();
         let delivered = usize::try_from(delivered).expect("fixture counts fit usize");
-        assert_eq!(entities.count(), delivered);
+        assert_eq!(document.delivered.count(), delivered);
 
         // Hydration is the transport's store round trip; the encode
         // path under test takes its details directly, all-empty here,
         // and the encoded envelope equals the directly built wire
         // document.
-        let details = NodeDetails::empty(entities.count());
+        let details = NodeDetails::empty(document.delivered.count());
         let bytes = atlas.encode_tile(&document, Some(&details));
 
         let no_labels: Vec<&Label> = vec![Label::empty(); delivered];

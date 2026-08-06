@@ -27,10 +27,11 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
+use alloc::borrow::Cow;
 use std::fs;
 
 use camino::Utf8PathBuf;
-use hashql_core::id::{Id as _, IdSlice};
+use hashql_core::id::{Id, IdSlice};
 use serde_json::{Value, json};
 
 use super::{
@@ -51,7 +52,7 @@ use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
-    serve::WireRow,
+    serve::{WireRow, hydrate::EdgeSlot},
 };
 
 /// One pinned fixture with its name, response bytes, and sidecar.
@@ -632,7 +633,7 @@ fn g6_edges() -> Fixture {
         Label::new("created by"),
         Label::empty(),
     ];
-    let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"];
+    let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"].map(Cow::Borrowed);
     let link_type_ids = [Some(1_u32), Some(0), None];
     let edge_ids = [
         identity_of(0xA0, 0xA1),
@@ -687,9 +688,9 @@ fn g6_edges() -> Fixture {
 /// G7's detail-trailer pins.
 struct G7Trailer {
     /// The type intern table, bytewise-sorted.
-    type_table: [&'static str; 3],
+    type_table: [Cow<'static, str>; 3],
     /// The property intern table, bytewise-sorted.
-    property_table: [&'static str; 4],
+    property_table: [Cow<'static, str>; 4],
     /// The source's property map, covering text, a negative integer, a double, and a boolean.
     source_map: [(u32, PropertyValue<'static>); 4],
     /// One edge's property map, covering a positive integer, an explicit `null`, and a negative
@@ -707,10 +708,10 @@ struct G7Trailer {
     /// Canonical direct-type order is the store's, never sorted: the first list pins a descending
     /// pair on purpose.
     link_type_ids: [Vec<u32>; 3],
-    /// Per-edge type completeness.
-    link_type_ids_complete: [bool; 3],
-    /// Per-edge property completeness.
-    link_properties_complete: [bool; 3],
+    /// The delivered edges whose type list is complete.
+    link_type_ids_complete: Box<DenseBitSlice<EdgeSlot>>,
+    /// The delivered edges whose property map is complete.
+    link_properties_complete: Box<DenseBitSlice<EdgeSlot>>,
 }
 
 /// Builds G7's detail-trailer pins.
@@ -720,13 +721,15 @@ fn g7_trailer() -> G7Trailer {
             "https://t.test/authored/v/1",
             "https://t.test/person/v/3",
             "https://t.test/work/v/2",
-        ],
+        ]
+        .map(Cow::Borrowed),
         property_table: [
             "https://x.test/age/",
             "https://x.test/name/",
             "https://x.test/ok/",
             "https://x.test/score/",
-        ],
+        ]
+        .map(Cow::Borrowed),
         source_map: [
             (0, PropertyValue::Integer(-3)),
             (1, PropertyValue::Text("Ada")),
@@ -751,8 +754,10 @@ fn g7_trailer() -> G7Trailer {
             Label::new("cites"),
         ],
         link_type_ids: [vec![1_u32, 0], vec![0], Vec::new()],
-        link_type_ids_complete: [true, false, false],
-        link_properties_complete: [true, false, true],
+        // Slot 0's type list is complete, and slots 0 and 2 carry whole property maps, over the
+        // three delivered edges.
+        link_type_ids_complete: dense_set(3, &[0]),
+        link_properties_complete: dense_set(3, &[0, 2]),
     }
 }
 
@@ -934,18 +939,25 @@ fn locate_sidecar(
             "properties": properties,
             "linkLabels": details_sidecar(trailer.link_labels),
             "linkTypeIds": trailer.link_type_ids,
-            "linkTypeIdsComplete": trailer.link_type_ids_complete,
+            "linkTypeIdsComplete": flag_row(trailer.link_type_ids_complete),
             "linkProperties": link_properties,
-            "linkPropertiesComplete": trailer.link_properties_complete,
+            "linkPropertiesComplete": flag_row(trailer.link_properties_complete),
         },
     })
 }
 
-/// Builds the dense membership set over `domain` positions admitting exactly `members`.
-fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
+/// Renders one completeness set as the sidecar's bool row.
+fn flag_row(flags: &DenseBitSlice<EdgeSlot>) -> Vec<bool> {
+    (0..flags.domain_size())
+        .map(|edge| flags.contains(EdgeSlot::from_u64(edge)))
+        .collect()
+}
+
+/// Builds the dense membership set over `domain` rows admitting exactly `members`.
+fn dense_set<T: Id>(domain: usize, members: &[u32]) -> Box<DenseBitSlice<T>> {
     let mut set = DenseBitSlice::new_empty(domain);
     for &member in members {
-        set.insert(BasePosition::from_u32(member));
+        set.insert(T::from_u32(member));
     }
     set
 }

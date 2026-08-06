@@ -213,6 +213,44 @@ fn dense_bit_slice_counts_members_below_a_row() {
     assert_eq!(count_below(4_000), 5);
 }
 
+/// The word view is the LSB-first bitmask: bit `row % 8` of byte `row / 8`, over every 8-byte
+/// word the domain occupies.
+#[test]
+fn dense_bit_slice_packs_rows_lsb_first() {
+    // 11 rows occupy one word, eight bytes. Rows 0 and 3 set bits 0 and 3 of byte 0
+    // (0b0000_1001), rows 8 and 10 set bits 0 and 2 of byte 1 (0b0000_0101), and the six
+    // padding bytes stay zero.
+    let mut set = DenseBitSlice::new_empty(11);
+    for row in [0, 3, 8, 10] {
+        set.insert(NodeRowId::new(row));
+    }
+
+    let mut expected = [0_u8; 8];
+    expected[0] = 0b0000_1001;
+    expected[1] = 0b0000_0101;
+    assert_eq!(set.words().as_bytes(), expected);
+}
+
+#[test]
+fn dense_bit_slice_words_cross_the_word_boundary() {
+    // 70 rows occupy two words, sixteen bytes. Row 64 is bit 0 and row 69 bit 5 of byte 8
+    // (0b0010_0001), and every other byte stays zero.
+    let mut set = DenseBitSlice::new_empty(70);
+    set.insert(NodeRowId::new(64));
+    set.insert(NodeRowId::new(69));
+
+    let mut expected = [0_u8; 16];
+    expected[8] = 0b0010_0001;
+    assert_eq!(set.words().as_bytes(), expected);
+}
+
+#[test]
+fn dense_bit_slice_zero_domain_packs_to_no_words() {
+    let set = DenseBitSlice::<NodeRowId>::new_empty(0);
+
+    assert!(set.words().is_empty());
+}
+
 #[test]
 fn dense_bit_slice_clear_removes_every_row() {
     let mut set = DenseBitSlice::new_empty(130);

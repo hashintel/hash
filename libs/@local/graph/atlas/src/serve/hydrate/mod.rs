@@ -76,8 +76,8 @@ pub(crate) use self::order::{LocateLinkHydration, LocateNodeHydration};
 pub(crate) use self::{
     client::{DetailError, GraphDatabaseClient},
     columns::{
-        DeliveredEntities, EdgeLinkDetails, LocateLinkDetails, LocateNodeDetails, NodeDetails,
-        SimpleValue,
+        DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
+        NodeDetails, NodeSlot, SimpleValue,
     },
     order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
 };

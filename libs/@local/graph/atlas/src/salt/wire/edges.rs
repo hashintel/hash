@@ -18,6 +18,8 @@
     reason = "column integers are pinned little-endian by the wire contract"
 )]
 
+use alloc::borrow::Cow;
+
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
@@ -124,7 +126,7 @@ impl EdgesResponse<'_> {
 pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer [&'trailer str],
+    pub type_table: &'trailer [Cow<'trailer, str>],
     /// Trailer key 1: link labels, edge order.
     pub link_labels: &'trailer [&'trailer Label],
     /// Trailer key 2.
@@ -168,7 +170,7 @@ impl EdgesTrailer<'_> {
 
         cbor.uint(0);
         cbor.array(self.type_table.len() as u64);
-        for &url in self.type_table {
+        for url in self.type_table {
             cbor.text(url);
         }
 

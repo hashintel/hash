@@ -330,6 +330,15 @@ impl<T> DenseBitSlice<T> {
         self.domain_size.get()
     }
 
+    /// Views the member bits as whole storage words, without copying.
+    ///
+    /// One little-endian word per 64 rows of domain, rows LSB-first within the word. The frame
+    /// invariant zeroes every bit at or past the domain, so the padding bits read zero.
+    #[must_use]
+    pub(crate) const fn words(&self) -> &[U64<LE>] {
+        &self.words
+    }
+
     /// Returns the number of rows the set admits.
     #[must_use]
     pub(crate) fn count(&self) -> u64 {

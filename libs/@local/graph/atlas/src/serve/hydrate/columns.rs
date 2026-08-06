@@ -2,46 +2,93 @@
 //!
 //! One column set per read surface, each aligned to its delivered order: hydration writes them off
 //! the store rows, assembly documents and encoders read them. An entity the store no longer serves
-//! reads `null` in every column and `false` in every completeness flag.
+//! reads `null` in every column and stays outside every completeness set.
 
-use crate::dataset::{
-    auxiliary::{Icon, Label},
-    postgres::id::ArchivedEntityId,
+use hashql_core::id::{IdSlice, IdVec};
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
+
+use crate::{
+    bitset::DenseBitSlice,
+    dataset::{
+        auxiliary::{Icon, Label},
+        postgres::id::ArchivedEntityId,
+    },
+    identity::NodeRowId,
 };
 
-/// The entity identities behind one delivered set, in delivered order.
-///
-/// The hydration request's subject.
-#[derive(Debug)]
-pub struct DeliveredEntities<'rows, I> {
-    /// One entry per delivered point.
-    ids: Vec<ArchivedEntityId>,
-    rows: &'rows [I],
+hashql_core::id::newtype! {
+    /// A reference to a delivered node by its slot in one response's delivered order.
+    ///
+    /// Slots are dense and zero-based over one response's delivered nodes. Every node detail
+    /// column aligns to this domain. A slot is valid only against the response that delivered it,
+    /// because two responses share no slot vocabulary.
+    pub(crate) struct NodeSlot(u32)
 }
 
-impl<'rows, I> DeliveredEntities<'rows, I> {
-    /// Takes one delivered set's identities in delivered order.
+hashql_core::id::newtype! {
+    /// A reference to a delivered edge by its slot in one response's edge order.
+    ///
+    /// Slots are dense and zero-based over one response's delivered edges. Every link detail
+    /// column aligns to this domain. A slot is valid only against the response that delivered it,
+    /// because two responses share no slot vocabulary.
+    pub(crate) struct EdgeSlot(u32)
+}
+
+/// The node identities behind one delivered set, viewed in slot order.
+///
+/// The hydration request's node subject. The view joins the generation's identity column over
+/// the delivered rows on demand, so building one allocates nothing. The transport that must own
+/// the identities collects the iterator, which is the one copy the boundary pays.
+#[derive(Debug, Copy, Clone)]
+pub(crate) struct DeliveredNodes<'doc> {
+    /// The generation's identity column, row order.
+    ids: &'doc IdSlice<NodeRowId, ArchivedEntityId>,
+    /// The delivered rows, slot order.
+    rows: &'doc IdSlice<NodeSlot, NodeRowId>,
+}
+
+impl<'doc> DeliveredNodes<'doc> {
+    /// Views one delivered set's identities in slot order.
     ///
     /// The order is the hydration key: every detail column the store answers aligns to it.
-    pub(crate) const fn new(ids: Vec<ArchivedEntityId>, rows: &'rows [I]) -> Self {
+    pub(crate) const fn new(
+        ids: &'doc IdSlice<NodeRowId, ArchivedEntityId>,
+        rows: &'doc IdSlice<NodeSlot, NodeRowId>,
+    ) -> Self {
         Self { ids, rows }
     }
 
     /// Returns the delivered count the details must cover.
     #[inline]
     #[must_use]
-    pub const fn count(&self) -> usize {
-        self.ids.len()
+    pub(crate) const fn count(&self) -> usize {
+        self.rows.len()
     }
 
-    /// Views the delivered identities, in delivered order.
-    pub(crate) const fn ids(&self) -> &[ArchivedEntityId] {
-        self.ids.as_slice()
-    }
-
-    /// Views the delivered rows, in delivered order.
-    pub(crate) const fn rows(&self) -> &[I] {
+    /// Views the delivered rows, in slot order.
+    pub(crate) const fn rows(&self) -> &'doc IdSlice<NodeSlot, NodeRowId> {
         self.rows
+    }
+
+    /// Iterates the delivered identities, in slot order.
+    ///
+    /// # Panics
+    ///
+    /// Iteration panics on a delivered row outside the identity column, which open's
+    /// cross-artifact validation rules out.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = ArchivedEntityId> + 'doc {
+        let ids = self.ids;
+        self.rows.iter().map(move |&row| ids[row])
+    }
+}
+
+impl IntoIterator for &DeliveredNodes<'_> {
+    type Item = ArchivedEntityId;
+
+    type IntoIter = impl Iterator<Item = ArchivedEntityId>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -109,16 +156,16 @@ pub(crate) enum SimpleValue {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LocateNodeDetails<'details> {
     /// The display label per delivered point.
-    labels: Vec<&'details Label>,
+    labels: IdVec<NodeSlot, &'details Label>,
     /// The direct-type versioned URLs per delivered point, canonical order.
     ///
     /// Empty when the store no longer serves the entity or records no types for it.
-    type_urls: Vec<Vec<String>>,
+    type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
     /// The source's surviving properties, ascending by base URL.
     ///
     /// `None` marks a source the store no longer serves; a resolved source without simple
     /// properties reads an empty list.
-    source_properties: Option<Vec<(String, SimpleValue)>>,
+    source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
     /// Whether the source's surviving properties are the entity's whole deliverable set.
     ///
     /// `false` when the simple-value filter or the cap dropped anything, and when the store no
@@ -129,9 +176,9 @@ pub(crate) struct LocateNodeDetails<'details> {
 impl<'details> LocateNodeDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
     pub(crate) const fn new(
-        labels: Vec<&'details Label>,
-        type_urls: Vec<Vec<String>>,
-        source_properties: Option<Vec<(String, SimpleValue)>>,
+        labels: IdVec<NodeSlot, &'details Label>,
+        type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
+        source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
         source_properties_complete: bool,
     ) -> Self {
         Self {
@@ -146,22 +193,22 @@ impl<'details> LocateNodeDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![Label::empty(); count],
-            type_urls: vec![Vec::new(); count],
+            labels: IdVec::from_elem(Label::empty(), count),
+            type_urls: IdVec::from_elem(Vec::new(), count),
             source_properties: None,
             source_properties_complete: false,
         }
     }
 
-    /// Views the label column, delivered order.
+    /// Views the label column, slot order.
     #[inline]
-    pub(crate) const fn labels(&self) -> &[&'details Label] {
+    pub(crate) const fn labels(&self) -> &IdSlice<NodeSlot, &'details Label> {
         &self.labels
     }
 
-    /// Views the direct-type URL column, delivered order.
+    /// Views the direct-type URL column, slot order.
     #[inline]
-    pub(crate) const fn type_urls(&self) -> &[Vec<String>] {
+    pub(crate) const fn type_urls(&self) -> &IdSlice<NodeSlot, Vec<VersionedUrl>> {
         &self.type_urls
     }
 
@@ -169,7 +216,7 @@ impl<'details> LocateNodeDetails<'details> {
     ///
     /// `None` marks a store-absent source.
     #[inline]
-    pub(crate) const fn source_properties(&self) -> Option<&Vec<(String, SimpleValue)>> {
+    pub(crate) const fn source_properties(&self) -> Option<&Vec<(BaseUrl, SimpleValue)>> {
         self.source_properties.as_ref()
     }
 
@@ -184,34 +231,35 @@ impl<'details> LocateNodeDetails<'details> {
 ///
 /// Every edge carries a label, direct types under a cap, properties under a cap, and both
 /// completeness flags.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct LocateLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
-    labels: Vec<&'details Label>,
+    labels: IdVec<EdgeSlot, &'details Label>,
     /// The link's direct-type versioned URLs per delivered edge, canonical order, capped.
     ///
     /// Empty when the store no longer serves the link or records no types for it.
-    type_urls: Vec<Vec<String>>,
-    /// Whether each edge's type list is the link's whole direct set.
+    type_urls: IdVec<EdgeSlot, Vec<VersionedUrl>>,
+    /// The delivered edges whose type list is the link's whole direct set.
     ///
-    /// `false` when the cap truncated it and when the store no longer serves the link.
-    type_urls_complete: Vec<bool>,
+    /// An edge stays out when the cap truncated its list and when the store no longer serves the
+    /// link.
+    type_urls_complete: Box<DenseBitSlice<EdgeSlot>>,
     /// The link's surviving properties per delivered edge, ascending by base URL.
     ///
     /// `None` marks a link the store no longer serves.
-    properties: Vec<Option<Vec<(String, SimpleValue)>>>,
-    /// Whether each edge's surviving properties are the link entity's whole deliverable set.
-    properties_complete: Vec<bool>,
+    properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+    /// The delivered edges whose surviving properties are the link entity's whole deliverable set.
+    properties_complete: Box<DenseBitSlice<EdgeSlot>>,
 }
 
 impl<'details> LocateLinkDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
     pub(crate) const fn new(
-        labels: Vec<&'details Label>,
-        type_urls: Vec<Vec<String>>,
-        type_urls_complete: Vec<bool>,
-        properties: Vec<Option<Vec<(String, SimpleValue)>>>,
-        properties_complete: Vec<bool>,
+        labels: IdVec<EdgeSlot, &'details Label>,
+        type_urls: IdVec<EdgeSlot, Vec<VersionedUrl>>,
+        type_urls_complete: Box<DenseBitSlice<EdgeSlot>>,
+        properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+        properties_complete: Box<DenseBitSlice<EdgeSlot>>,
     ) -> Self {
         Self {
             labels,
@@ -226,41 +274,43 @@ impl<'details> LocateLinkDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![Label::empty(); count],
-            type_urls: vec![Vec::new(); count],
-            type_urls_complete: vec![false; count],
-            properties: vec![None; count],
-            properties_complete: vec![false; count],
+            labels: IdVec::from_elem(Label::empty(), count),
+            type_urls: IdVec::from_elem(Vec::new(), count),
+            type_urls_complete: DenseBitSlice::new_empty(count),
+            properties: IdVec::from_elem(None, count),
+            properties_complete: DenseBitSlice::new_empty(count),
         }
     }
 
-    /// Views the link label column, delivered order.
+    /// Views the link label column, slot order.
     #[inline]
-    pub(crate) const fn labels(&self) -> &[&'details Label] {
+    pub(crate) const fn labels(&self) -> &IdSlice<EdgeSlot, &'details Label> {
         &self.labels
     }
 
-    /// Views the capped direct-type URL column, delivered order.
+    /// Views the capped direct-type URL column, slot order.
     #[inline]
-    pub(crate) const fn type_urls(&self) -> &[Vec<String>] {
+    pub(crate) const fn type_urls(&self) -> &IdSlice<EdgeSlot, Vec<VersionedUrl>> {
         &self.type_urls
     }
 
-    /// Views the per-edge type completeness flags, delivered order.
+    /// Views the per-edge type completeness set, over the delivered edge slots.
     #[inline]
-    pub(crate) const fn type_urls_complete(&self) -> &[bool] {
+    pub(crate) fn type_urls_complete(&self) -> &DenseBitSlice<EdgeSlot> {
         &self.type_urls_complete
     }
 
-    /// Views the per-edge property column, delivered order.
+    /// Views the per-edge property column, slot order.
     #[inline]
-    pub(crate) const fn properties(&self) -> &[Option<Vec<(String, SimpleValue)>>] {
+    pub(crate) const fn properties(
+        &self,
+    ) -> &IdSlice<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>> {
         &self.properties
     }
 
-    /// Views the per-edge property completeness flags, delivered order.
+    /// Views the per-edge property completeness set, over the delivered edge slots.
     #[inline]
-    pub(crate) const fn properties_complete(&self) -> &[bool] {
+    pub(crate) fn properties_complete(&self) -> &DenseBitSlice<EdgeSlot> {
         &self.properties_complete
     }
 }
@@ -271,16 +321,16 @@ impl<'details> LocateLinkDetails<'details> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EdgeLinkDetails<'details> {
     /// The link entity's display label per delivered edge.
-    labels: Vec<&'details Label>,
+    labels: IdVec<EdgeSlot, &'details Label>,
     /// The link's first direct type's versioned URL per delivered edge.
-    first_type_urls: Vec<Option<String>>,
+    first_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
 }
 
 impl<'details> EdgeLinkDetails<'details> {
     /// Assembles the columns, aligned to one delivered order.
     pub(crate) const fn new(
-        labels: Vec<&'details Label>,
-        first_type_urls: Vec<Option<String>>,
+        labels: IdVec<EdgeSlot, &'details Label>,
+        first_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>>,
     ) -> Self {
         Self {
             labels,
@@ -292,20 +342,20 @@ impl<'details> EdgeLinkDetails<'details> {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            labels: vec![Label::empty(); count],
-            first_type_urls: vec![None; count],
+            labels: IdVec::from_elem(Label::empty(), count),
+            first_type_urls: IdVec::from_elem(None, count),
         }
     }
 
-    /// Views the link label column, delivered order.
+    /// Views the link label column, slot order.
     #[inline]
-    pub(crate) const fn labels(&self) -> &[&'details Label] {
+    pub(crate) const fn labels(&self) -> &IdSlice<EdgeSlot, &'details Label> {
         &self.labels
     }
 
-    /// Views the first direct-type URL column, delivered order.
+    /// Views the first direct-type URL column, slot order.
     #[inline]
-    pub(crate) const fn first_type_urls(&self) -> &[Option<String>] {
+    pub(crate) const fn first_type_urls(&self) -> &IdSlice<EdgeSlot, Option<VersionedUrl>> {
         &self.first_type_urls
     }
 }

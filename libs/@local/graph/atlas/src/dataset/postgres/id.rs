@@ -176,6 +176,17 @@ impl Key for ArchivedEntityId {
 #[repr(transparent)]
 pub(crate) struct ArchivedOntologyTypeUuid([u8; 16]);
 
+impl ArchivedOntologyTypeUuid {
+    /// Derives the identity of the versioned type `url` names.
+    ///
+    /// Any [`VersionedUrl`] spelling the same versioned type derives the same identity, so
+    /// equality on the result is equality of the named type.
+    #[inline]
+    pub(crate) fn from_url(url: &VersionedUrl) -> Self {
+        Self::from(OntologyTypeUuid::from_url(url).into_uuid())
+    }
+}
+
 impl From<uuid::Uuid> for ArchivedOntologyTypeUuid {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
@@ -192,7 +203,7 @@ impl Key for ArchivedOntologyTypeUuid {
 impl OntologyIdentity for ArchivedOntologyTypeUuid {
     #[inline]
     fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
-        Some(Self::from(OntologyTypeUuid::from_url(url).into_uuid()))
+        Some(Self::from_url(url))
     }
 }
 

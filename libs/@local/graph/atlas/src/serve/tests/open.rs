@@ -10,7 +10,7 @@ use std::io::Write as _;
 
 use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
-use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+use type_system::ontology::id::VersionedUrl;
 use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{
@@ -65,9 +65,7 @@ fn shorten_ontology(path: &Utf8PathBuf, rows: u64) {
         let url: VersionedUrl = fixture_type_url(row)
             .parse()
             .expect("the fixture URL parses");
-        table.push(ArchivedOntologyTypeUuid::from(
-            OntologyTypeUuid::from_url(&url).into_uuid(),
-        ));
+        table.push(ArchivedOntologyTypeUuid::from_url(&url));
     }
     rewrite_identities(path, &table);
 }

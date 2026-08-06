@@ -13,7 +13,7 @@
     reason = "a delta tile's delivered set really is one contiguous range"
 )]
 
-use hashql_core::id::Id as _;
+use hashql_core::id::Id;
 use proptest::{arbitrary::any, prop_assert, prop_assert_eq, property_test};
 
 use super::{
@@ -37,11 +37,11 @@ use crate::{
     serve::WireRow,
 };
 
-/// Builds the dense membership set over `domain` positions admitting exactly `members`.
-fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
+/// Builds the dense membership set over `domain` rows admitting exactly `members`.
+fn dense_set<T: Id>(domain: usize, members: &[u32]) -> Box<DenseBitSlice<T>> {
     let mut set = DenseBitSlice::new_empty(domain);
     for &member in members {
-        set.insert(BasePosition::from_u32(member));
+        set.insert(T::from_u32(member));
     }
     set
 }
@@ -762,6 +762,8 @@ mod tile {
 }
 
 mod edges {
+    use alloc::borrow::Cow;
+
     use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, WireRow, identity_of, section};
 
     /// A three-edge response without a trailer.
@@ -815,7 +817,7 @@ mod edges {
     fn trailer_carries_the_link_columns() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
-            type_table: &["s", "t"],
+            type_table: &const { [Cow::Borrowed("s"), Cow::Borrowed("t")] },
             link_labels: &const { [Label::new("a"), Label::empty(), Label::empty()] },
             link_type_ids: &[Some(1), Some(0), None],
         });
@@ -883,7 +885,7 @@ mod edges {
     fn unsorted_intern_tables_are_rejected() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
-            type_table: &["t", "s"],
+            type_table: &const { [Cow::Borrowed("t"), Cow::Borrowed("s")] },
             link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[None, None, None],
         });
@@ -895,7 +897,7 @@ mod edges {
     fn out_of_table_type_ids_are_rejected() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
-            type_table: &["s"],
+            type_table: &const { [Cow::Borrowed("s")] },
             link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[Some(1), None, None],
         });
@@ -904,12 +906,17 @@ mod edges {
 }
 
 mod locate {
+    use alloc::borrow::Cow;
+    use std::sync::LazyLock;
+
     use hashql_core::id::{Id as _, IdSlice};
 
     use super::{
-        BasePosition, Label, LocateResponse, LocateTrailer, Membership, PropertyValue,
-        Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of, section,
+        BasePosition, DenseBitSlice, Label, LocateResponse, LocateTrailer, Membership,
+        PropertyValue, Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of,
+        section,
     };
+    use crate::serve::hydrate::EdgeSlot;
 
     /// The four-point base-order coordinate column behind the tests.
     fn points() -> [Vec2; 4] {
@@ -923,6 +930,9 @@ mod locate {
 
     /// The two-edge link-type lists behind the minimal trailer: both empty.
     static NO_TYPES: [Vec<u32>; 2] = [Vec::new(), Vec::new()];
+
+    /// The two-edge completeness set behind the minimal trailer: nothing complete.
+    static NO_FLAGS: LazyLock<Box<DenseBitSlice<EdgeSlot>>> = LazyLock::new(|| dense_set(2, &[]));
 
     /// A three-node, two-edge response with an all-null trailer.
     ///
@@ -968,9 +978,9 @@ mod locate {
                 properties: None,
                 link_labels: &const { [Label::empty(); 2] },
                 link_type_ids: &NO_TYPES,
-                link_type_ids_complete: &[false, false],
+                link_type_ids_complete: &NO_FLAGS,
                 link_properties: &[None, None],
-                link_properties_complete: &[false, false],
+                link_properties_complete: &NO_FLAGS,
             },
         }
     }
@@ -1064,10 +1074,14 @@ mod locate {
     fn trailer_encodes_by_hand() {
         let positions = points();
         let lists = [vec![1_u32, 0], Vec::new()];
+        // Slot 0's type list is complete and slot 1's property map is, over the two delivered
+        // edges.
+        let type_flags = dense_set::<EdgeSlot>(2, &[0]);
+        let property_flags = dense_set::<EdgeSlot>(2, &[1]);
         let mut response = minimal(&positions);
         response.trailer = LocateTrailer {
-            type_table: &["s", "t"],
-            property_table: &["a", "b"],
+            type_table: &const { [Cow::Borrowed("s"), Cow::Borrowed("t")] },
+            property_table: &const { [Cow::Borrowed("a"), Cow::Borrowed("b")] },
             labels: &const { [Label::new("n"), Label::empty(), Label::empty()] },
             type_ids: &[Some(1), None, Some(0)],
             properties: Some(&[
@@ -1076,12 +1090,12 @@ mod locate {
             ]),
             link_labels: &const { [Label::new("l"), Label::empty()] },
             link_type_ids: &lists,
-            link_type_ids_complete: &[true, false],
+            link_type_ids_complete: &type_flags,
             link_properties: &[
                 Some(&[(0, PropertyValue::Boolean(true)), (1, PropertyValue::Null)]),
                 None,
             ],
-            link_properties_complete: &[false, true],
+            link_properties_complete: &property_flags,
         };
         let bytes = response.encode();
 
@@ -1089,13 +1103,14 @@ mod locate {
         let tail = &bytes[last.next_multiple_of(8)..];
         // map(10): 0 ["s", "t"] | 1 ["a", "b"] | 2 ["n", null x2] |
         // 3 [1, null, 0] | 4 {0: "x", 1: -2} | 5 ["l", null] |
-        // 6 [[1, 0], []] | 7 bstr 0b01 | 8 [{0: true, 1: null},
-        // null] | 9 bstr 0b10.
+        // 6 [[1, 0], []] | 7 bstr 0b01 in one 8-byte word |
+        // 8 [{0: true, 1: null}, null] | 9 bstr 0b10 in one 8-byte word.
         let expected = [
             0xAA, 0x00, 0x82, 0x61, 0x73, 0x61, 0x74, 0x01, 0x82, 0x61, 0x61, 0x61, 0x62, 0x02,
             0x83, 0x61, 0x6E, 0xF6, 0xF6, 0x03, 0x83, 0x01, 0xF6, 0x00, 0x04, 0xA2, 0x00, 0x61,
             0x78, 0x01, 0x21, 0x05, 0x82, 0x61, 0x6C, 0xF6, 0x06, 0x82, 0x82, 0x01, 0x00, 0x80,
-            0x07, 0x41, 0x01, 0x08, 0x82, 0xA2, 0x00, 0xF5, 0x01, 0xF6, 0xF6, 0x09, 0x41, 0x02,
+            0x07, 0x48, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x82, 0xA2, 0x00,
+            0xF5, 0x01, 0xF6, 0xF6, 0x09, 0x48, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
         assert_eq!(tail, expected);
     }
@@ -1103,6 +1118,7 @@ mod locate {
     #[test]
     fn source_only_response_is_present_empty_on_edges() {
         let positions = points();
+        let no_edges = dense_set::<EdgeSlot>(0, &[]);
         let mut response = minimal(&positions);
         response.delivered = &const { [BasePosition::from_u32(1)] };
         response.sources = &[];
@@ -1112,9 +1128,9 @@ mod locate {
         response.trailer.type_ids = &[None];
         response.trailer.link_labels = &[];
         response.trailer.link_type_ids = &[];
-        response.trailer.link_type_ids_complete = &[];
+        response.trailer.link_type_ids_complete = &no_edges;
         response.trailer.link_properties = &[];
-        response.trailer.link_properties_complete = &[];
+        response.trailer.link_properties_complete = &no_edges;
         let bytes = response.encode();
 
         for slot in [4_usize, 5, 6] {
@@ -1163,9 +1179,11 @@ mod locate {
     #[test]
     #[should_panic(expected = "type completeness must cover exactly the delivered edges")]
     fn short_bitmask_columns_are_rejected() {
+        // One edge slot where the response delivers two.
         let positions = points();
+        let short = dense_set::<EdgeSlot>(1, &[]);
         let mut response = minimal(&positions);
-        response.trailer.link_type_ids_complete = &[false];
+        response.trailer.link_type_ids_complete = &short;
         let _bytes = response.encode();
     }
 
@@ -1174,7 +1192,7 @@ mod locate {
     fn unsorted_intern_tables_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.property_table = &["b", "a"];
+        response.trailer.property_table = &const { [Cow::Borrowed("b"), Cow::Borrowed("a")] };
         let _bytes = response.encode();
     }
 
@@ -1202,7 +1220,7 @@ mod locate {
     fn out_of_table_property_keys_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.property_table = &["a"];
+        response.trailer.property_table = &const { [Cow::Borrowed("a")] };
         response.trailer.properties = Some(&[(1, PropertyValue::Null)]);
         let _bytes = response.encode();
     }
@@ -1212,7 +1230,7 @@ mod locate {
     fn descending_property_keys_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.property_table = &["a", "b"];
+        response.trailer.property_table = &const { [Cow::Borrowed("a"), Cow::Borrowed("b")] };
         response.trailer.link_properties = &[
             Some(&[(1, PropertyValue::Null), (0, PropertyValue::Null)]),
             None,

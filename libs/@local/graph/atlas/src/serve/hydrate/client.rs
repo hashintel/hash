@@ -16,16 +16,17 @@ use alloc::sync::Arc;
 use error_stack::Report;
 use hash_graph_postgres_store::store::{AsClient, PostgresStorePool, error::StoreError};
 use hash_graph_store::pool::StorePool as _;
+use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
 use tokio_postgres::GenericClient as _;
-use type_system::ontology::id::BaseUrl;
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use zerocopy::IntoBytes as _;
 
 use super::{
-    columns::SimpleValue,
+    columns::{EdgeSlot, NodeSlot, SimpleValue},
     order::{LocateLinkHydration, LocateNodeHydration},
     select::{select_properties, simple_properties},
 };
-use crate::dataset::postgres::id::ArchivedEntityId;
+use crate::{bitset::DenseBitSlice, dataset::postgres::id::ArchivedEntityId};
 
 /// The locate node hydration query.
 ///
@@ -49,7 +50,7 @@ const LOCATE_DETAIL_QUERY: &str = "
     SELECT
         ids.index,
         cache.versioned_urls[1:cache.direct_types] AS type_urls,
-        props.simple::text AS simple,
+        props.simple AS simple,
         props.total AS total,
         label_property.path AS label_property
     FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS ids (web_id, entity_uuid, index)
@@ -99,7 +100,7 @@ const LOCATE_LINK_QUERY: &str = "
     SELECT
         ids.index,
         cache.versioned_urls[1:cache.direct_types] AS type_urls,
-        props.simple::text AS simple,
+        props.simple AS simple,
         props.total AS total,
         label_property.path AS label_property
     FROM unnest($1::uuid[], $2::uuid[]) WITH ORDINALITY AS ids (web_id, entity_uuid, index)
@@ -218,7 +219,7 @@ pub struct GraphDatabaseClient {
     ///
     /// Sorted so that one deployment binds one parameter value across restarts: the configuration
     /// holds the set in a hash map, whose order is per-process.
-    protected: Vec<String>,
+    protected: Vec<BaseUrl>,
 }
 
 impl GraphDatabaseClient {
@@ -227,12 +228,11 @@ impl GraphDatabaseClient {
     /// The pool's settings name the properties every hydrated trailer withholds.
     #[must_use]
     pub fn new(pool: Arc<PostgresStorePool>) -> Self {
-        let mut protected: Vec<String> = pool
+        let mut protected: Vec<BaseUrl> = pool
             .settings
             .filter_protection
             .protected_properties()
-            .map(BaseUrl::as_str)
-            .map(str::to_owned)
+            .cloned()
             .collect();
         protected.sort_unstable();
 
@@ -260,11 +260,12 @@ impl GraphDatabaseClient {
     /// # Panics
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
-    /// types, which is a query bug rather than data.
+    /// types, which is a query bug rather than data, and when a stored URL does not parse as its
+    /// domain type, which is a store-contract violation.
     #[tracing::instrument(skip_all, fields(points = ids.len()))]
     pub(crate) async fn locate_node_hydration(
         &self,
-        ids: &[ArchivedEntityId],
+        ids: &IdSlice<NodeSlot, ArchivedEntityId>,
         properties: u32,
     ) -> Result<LocateNodeHydration, DetailError> {
         if ids.is_empty() {
@@ -283,8 +284,9 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut resolved = vec![false; ids.len()];
-        let mut type_url_columns = vec![Vec::new(); ids.len()];
+        let mut resolved = DenseBitSet::new_empty(ids.len());
+        let mut type_url_columns: IdVec<NodeSlot, Vec<VersionedUrl>> =
+            IdVec::from_elem(Vec::new(), ids.len());
         let mut source_properties = None;
         let mut source_properties_complete = false;
         for row in rows {
@@ -292,11 +294,12 @@ impl GraphDatabaseClient {
                 let index: i64 = row.get(0);
                 usize::try_from(index - 1).expect("ordinality covers the request domain")
             };
+            let slot = NodeSlot::from_usize(index);
 
-            resolved[index] = true;
+            resolved.insert(slot);
 
-            let type_urls: Option<Vec<String>> = row.get(1);
-            type_url_columns[index] = type_urls.unwrap_or_default();
+            let type_urls: Option<Vec<VersionedUrl>> = row.get(1);
+            type_url_columns[slot] = type_urls.unwrap_or_default();
 
             if index == 0 {
                 let (survivors, complete) = capped_properties(&row, properties as usize);
@@ -326,11 +329,12 @@ impl GraphDatabaseClient {
     /// # Panics
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
-    /// types, which is a query bug rather than data.
+    /// types, which is a query bug rather than data, and when a stored URL does not parse as its
+    /// domain type, which is a store-contract violation.
     #[tracing::instrument(skip_all, fields(edges = ids.len()))]
     pub(crate) async fn locate_link_hydration(
         &self,
-        ids: &[ArchivedEntityId],
+        ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
         type_ids: u32,
         properties: u32,
     ) -> Result<LocateLinkHydration, DetailError> {
@@ -350,25 +354,32 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut type_url_columns = vec![Vec::new(); ids.len()];
-        let mut type_urls_complete = vec![false; ids.len()];
-        let mut properties_columns = vec![None; ids.len()];
-        let mut properties_complete = vec![false; ids.len()];
+        let mut type_url_columns: IdVec<EdgeSlot, Vec<VersionedUrl>> =
+            IdVec::from_elem(Vec::new(), ids.len());
+        let mut type_urls_complete = DenseBitSlice::new_empty(ids.len());
+        let mut properties_columns: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>> =
+            IdVec::from_elem(None, ids.len());
+        let mut properties_complete = DenseBitSlice::new_empty(ids.len());
         for row in rows {
             let index = {
                 let index: i64 = row.get(0);
                 usize::try_from(index - 1).expect("ordinality covers the request domain")
             };
+            let slot = EdgeSlot::from_usize(index);
 
-            let type_urls: Option<Vec<String>> = row.get(1);
+            let type_urls: Option<Vec<VersionedUrl>> = row.get(1);
             let mut type_urls = type_urls.unwrap_or_default();
-            type_urls_complete[index] = type_urls.len() <= type_ids as usize;
+            if type_urls.len() <= type_ids as usize {
+                type_urls_complete.insert(slot);
+            }
             type_urls.truncate(type_ids as usize);
-            type_url_columns[index] = type_urls;
+            type_url_columns[slot] = type_urls;
 
             let (survivors, complete) = capped_properties(&row, properties as usize);
-            properties_columns[index] = Some(survivors);
-            properties_complete[index] = complete;
+            properties_columns[slot] = Some(survivors);
+            if complete {
+                properties_complete.insert(slot);
+            }
         }
 
         Ok(LocateLinkHydration {
@@ -391,14 +402,15 @@ impl GraphDatabaseClient {
     /// # Panics
     ///
     /// This panics when the store answers rows outside the request domain or with the wrong column
-    /// types, which is a query bug rather than data.
+    /// types, which is a query bug rather than data, and when a stored URL does not parse as its
+    /// domain type, which is a store-contract violation.
     #[tracing::instrument(skip_all, fields(edges = ids.len()))]
     pub(crate) async fn edges_link_hydration(
         &self,
-        ids: &[ArchivedEntityId],
-    ) -> Result<Vec<Option<String>>, DetailError> {
+        ids: &IdSlice<EdgeSlot, ArchivedEntityId>,
+    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
         if ids.is_empty() {
-            return Ok(Vec::new());
+            return Ok(IdVec::new());
         }
 
         let (web_ids, entity_uuids) = uuid_arrays(ids);
@@ -410,14 +422,16 @@ impl GraphDatabaseClient {
             .await
             .map_err(DetailError::Query)?;
 
-        let mut first_type_urls = vec![None; ids.len()];
+        let mut first_type_urls: IdVec<EdgeSlot, Option<VersionedUrl>> =
+            IdVec::from_elem(None, ids.len());
         for row in rows {
             let index = {
                 let index: i64 = row.get(0);
                 usize::try_from(index - 1).expect("ordinality covers the request domain")
             };
+            let slot = EdgeSlot::from_usize(index);
 
-            first_type_urls[index] = row.get(1);
+            first_type_urls[slot] = row.get(1);
         }
 
         Ok(first_type_urls)
@@ -432,24 +446,24 @@ impl GraphDatabaseClient {
 /// non-simple and nothing exceeds the cap. A protected property is in neither column and moves the
 /// flag not at all - a count taken before masking would have made `total` against the delivered map
 /// into the enumeration signal the protection exists to close.
-fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(String, SimpleValue)>, bool) {
-    let simple: Option<String> = row.get(2);
+fn capped_properties(row: &tokio_postgres::Row, cap: usize) -> (Vec<(BaseUrl, SimpleValue)>, bool) {
+    let simple: Option<serde_json::Value> = row.get(2);
     let total: Option<i32> = row.get(3);
-    let label_property: Option<String> = row.get(4);
+    let label_property: Option<BaseUrl> = row.get(4);
 
-    let entries = simple.map_or_else(Vec::new, |json| simple_properties(&json));
+    let entries = simple.map_or_else(Vec::new, simple_properties);
     let total = usize::try_from(total.expect("a resolved row aggregates its property count"))
         .expect("property counts are non-negative");
     let complete = entries.len() == total && entries.len() <= cap;
 
     (
-        select_properties(entries, label_property.as_deref(), cap),
+        select_properties(entries, label_property.as_ref(), cap),
         complete,
     )
 }
 
 /// Splits archived identities into the query's two uuid arrays.
-fn uuid_arrays(ids: &[ArchivedEntityId]) -> (Vec<uuid::Uuid>, Vec<uuid::Uuid>) {
+fn uuid_arrays<I: Id>(ids: &IdSlice<I, ArchivedEntityId>) -> (Vec<uuid::Uuid>, Vec<uuid::Uuid>) {
     let uuid = |bytes: &[u8]| {
         uuid::Uuid::from_slice(bytes).expect("archived identities are 16-byte uuids")
     };

@@ -6,7 +6,7 @@ use hashql_core::id::{Id as _, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use smallvec::smallvec;
-use type_system::ontology::id::{OntologyTypeUuid, VersionedUrl};
+use type_system::ontology::id::VersionedUrl;
 use zerocopy::{LE, TryFromBytes as _, U64};
 
 use super::{
@@ -2545,7 +2545,7 @@ where
 /// Derives the store identity of one versioned type URL.
 fn store_identity(url: &str) -> ArchivedOntologyTypeUuid {
     let url: VersionedUrl = url.parse().expect("the fixture url parses");
-    ArchivedOntologyTypeUuid::from(OntologyTypeUuid::from_url(&url).into_uuid())
+    ArchivedOntologyTypeUuid::from_url(&url)
 }
 
 #[test]

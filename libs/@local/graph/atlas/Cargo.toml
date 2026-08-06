@@ -20,7 +20,7 @@ rand_core      = { workspace = true, public = true }
 schemars       = { workspace = true, public = true }
 sprs           = { workspace = true, public = true }
 tokio          = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync"], public = true }
-tokio-postgres = { workspace = true, features = ["with-uuid-1"], public = true }
+tokio-postgres = { workspace = true, features = ["with-serde_json-1", "with-uuid-1"], public = true }
 uuid           = { workspace = true, public = true, features = ["std", "v7"] }
 zerocopy       = { workspace = true, features = ["alloc", "derive"], public = true }
 

@@ -6,8 +6,10 @@ use alloc::sync::Arc;
 
 use aide::transform::TransformOperation;
 use axum::{extract::State, http::StatusCode};
+use hashql_core::id::{IdSlice, IdVec};
 use tokio::sync::oneshot;
 use tracing::Instrument as _;
+use type_system::ontology::id::VersionedUrl;
 
 use super::{
     AppState, clause,
@@ -20,7 +22,7 @@ use crate::{
     dataset::postgres::id::ArchivedEntityId,
     serve::{
         EdgesError, EdgesRequest,
-        hydrate::{DetailError, EdgesStore},
+        hydrate::{DetailError, EdgeSlot, EdgesStore},
     },
 };
 
@@ -139,14 +141,19 @@ pub(super) async fn handler(
 
 /// The transport's edges store, carrying one order out to the handler and one answer back in.
 struct ChannelEdgesStore {
-    order: oneshot::Sender<Vec<ArchivedEntityId>>,
-    answer: oneshot::Receiver<Result<Vec<Option<String>>, DetailError>>,
+    order: oneshot::Sender<IdVec<EdgeSlot, ArchivedEntityId>>,
+    answer: oneshot::Receiver<Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError>>,
 }
 
 impl EdgesStore for ChannelEdgesStore {
-    fn hydrate(self, links: &[ArchivedEntityId]) -> Result<Vec<Option<String>>, DetailError> {
+    fn hydrate(
+        self,
+        links: &IdSlice<EdgeSlot, ArchivedEntityId>,
+    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError> {
+        // The channel is the one boundary that owns the identities, so the column materializes
+        // here and nowhere earlier.
         self.order
-            .send(links.to_vec())
+            .send(links.iter().copied().collect())
             .map_err(|_links| DetailError::Disconnected)?;
 
         self.answer

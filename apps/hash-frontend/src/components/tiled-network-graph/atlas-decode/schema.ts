@@ -171,8 +171,8 @@ export const readEntityIdColumn = (
 /**
  * The per-edge booleans of an LSB-first completeness bitmask.
  *
- * The byte string carries one bit per edge and is exactly
- * `ceil(count / 8)` bytes.
+ * The byte string carries one bit per edge in whole 8-byte words:
+ * exactly `ceil(count / 64) * 8` bytes, padding bits zero.
  */
 export const readBitmask = (
   value: CborValue | undefined,
@@ -183,9 +183,10 @@ export const readBitmask = (
   if (!(value instanceof Uint8Array)) {
     return fail(`TRAILER ${name} must be a byte string`, offset);
   }
-  if (value.length !== Math.ceil(count / 8)) {
+  const required = Math.ceil(count / 64) * 8;
+  if (value.length !== required) {
     return fail(
-      `TRAILER ${name} is ${value.length} bytes; ${Math.ceil(count / 8)} required for ${count} edges`,
+      `TRAILER ${name} is ${value.length} bytes; ${required} required for ${count} edges`,
       offset,
     );
   }

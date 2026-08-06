@@ -12,8 +12,11 @@
 //! shape, so a response hydrates at most once, and a rejection that never reaches hydration drops
 //! it unused.
 
-use super::{SimpleValue, client::DetailError};
-use crate::dataset::postgres::id::ArchivedEntityId;
+use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
+
+use super::{DeliveredNodes, EdgeSlot, NodeSlot, SimpleValue, client::DetailError};
+use crate::{bitset::DenseBitSlice, dataset::postgres::id::ArchivedEntityId};
 
 /// One locate response's store order.
 ///
@@ -23,9 +26,9 @@ use crate::dataset::postgres::id::ArchivedEntityId;
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct LocateOrder<'doc> {
     /// The delivered node identities, source first.
-    pub nodes: &'doc [ArchivedEntityId],
+    pub nodes: DeliveredNodes<'doc>,
     /// The delivered link-entity identities, ascending identity bytes.
-    pub links: &'doc [ArchivedEntityId],
+    pub links: &'doc IdSlice<EdgeSlot, ArchivedEntityId>,
     /// Most properties the source's map delivers.
     pub properties: u32,
     /// Most direct-type URLs each link delivers.
@@ -35,7 +38,7 @@ pub(crate) struct LocateOrder<'doc> {
 }
 
 /// The store's answer to one [`LocateOrder`], every column in delivered order.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct LocateHydration {
     /// The node half of the answer.
     pub nodes: LocateNodeHydration,
@@ -44,21 +47,21 @@ pub(crate) struct LocateHydration {
 }
 
 /// The store-answered node columns of one locate hydration.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct LocateNodeHydration {
-    /// Whether the store resolved each delivered node.
+    /// The delivered nodes the store resolved.
     ///
-    /// `false` marks an entity the store no longer serves, whose every other column reads empty
-    /// and whose label stays empty.
-    pub resolved: Vec<bool>,
+    /// An absent slot marks an entity the store no longer serves, whose every other column reads
+    /// empty and whose label stays empty.
+    pub resolved: DenseBitSet<NodeSlot>,
     /// The direct-type versioned URLs per delivered node, canonical order.
     ///
     /// Empty when the store no longer serves the entity or records no types for it.
-    pub type_urls: Vec<Vec<String>>,
+    pub type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
     /// The source's surviving properties, ascending by base URL.
     ///
     /// `None` marks a source the store no longer serves.
-    pub source_properties: Option<Vec<(String, SimpleValue)>>,
+    pub source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
     /// Whether the source's surviving properties are the entity's whole deliverable set.
     pub source_properties_complete: bool,
 }
@@ -68,8 +71,8 @@ impl LocateNodeHydration {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            resolved: vec![false; count],
-            type_urls: vec![Vec::new(); count],
+            resolved: DenseBitSet::new_empty(count),
+            type_urls: IdVec::from_elem(Vec::new(), count),
             source_properties: None,
             source_properties_complete: false,
         }
@@ -79,17 +82,18 @@ impl LocateNodeHydration {
 /// The store-answered link columns of one locate hydration.
 ///
 /// The properties column doubles as the resolution flag. An entry is `Some` exactly when the store
-/// resolved the link, so an unresolved link reads `None` there, empty types, and `false` flags.
-#[derive(Debug, Clone, PartialEq)]
+/// resolved the link, so an unresolved link reads `None` there, empty types, and a slot outside
+/// both completeness sets.
+#[derive(Debug, PartialEq)]
 pub(crate) struct LocateLinkHydration {
     /// The link's direct-type versioned URLs per delivered edge, canonical order, capped.
-    pub type_urls: Vec<Vec<String>>,
-    /// Whether each edge's type list is the link's whole direct set.
-    pub type_urls_complete: Vec<bool>,
+    pub type_urls: IdVec<EdgeSlot, Vec<VersionedUrl>>,
+    /// The delivered edges whose type list is the link's whole direct set.
+    pub type_urls_complete: Box<DenseBitSlice<EdgeSlot>>,
     /// The link's surviving properties per delivered edge, ascending by base URL.
-    pub properties: Vec<Option<Vec<(String, SimpleValue)>>>,
-    /// Whether each edge's surviving properties are the link entity's whole deliverable set.
-    pub properties_complete: Vec<bool>,
+    pub properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+    /// The delivered edges whose surviving properties are the link entity's whole deliverable set.
+    pub properties_complete: Box<DenseBitSlice<EdgeSlot>>,
 }
 
 impl LocateLinkHydration {
@@ -97,10 +101,10 @@ impl LocateLinkHydration {
     #[must_use]
     pub(crate) fn empty(count: usize) -> Self {
         Self {
-            type_urls: vec![Vec::new(); count],
-            type_urls_complete: vec![false; count],
-            properties: vec![None; count],
-            properties_complete: vec![false; count],
+            type_urls: IdVec::from_elem(Vec::new(), count),
+            type_urls_complete: DenseBitSlice::new_empty(count),
+            properties: IdVec::from_elem(None, count),
+            properties_complete: DenseBitSlice::new_empty(count),
         }
     }
 }
@@ -135,5 +139,8 @@ pub(crate) trait EdgesStore {
     ///
     /// Returns [`DetailError`] when the store rejects the query or the answer can no longer reach
     /// the caller.
-    fn hydrate(self, links: &[ArchivedEntityId]) -> Result<Vec<Option<String>>, DetailError>;
+    fn hydrate(
+        self,
+        links: &IdSlice<EdgeSlot, ArchivedEntityId>,
+    ) -> Result<IdVec<EdgeSlot, Option<VersionedUrl>>, DetailError>;
 }

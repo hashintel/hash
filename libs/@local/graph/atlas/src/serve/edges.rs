@@ -5,13 +5,13 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::bit_vec::DenseBitSet;
+use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
 
 use super::{
     Atlas, TileCoordinate, WireRow,
     density::CutOffset,
     grid,
-    hydrate::{DeliveredEntities, DetailError, EdgeLinkDetails, EdgesStore},
+    hydrate::{DetailError, EdgeLinkDetails, EdgesStore},
     intern::Table,
     neighbourhood::Neighbourhood,
     schedule::{ScheduleCut, ViewSchedule},
@@ -205,7 +205,7 @@ impl Atlas {
                     })
                     .collect();
                 let first_type_urls = store
-                    .hydrate(&document.edge_ids)
+                    .hydrate(IdSlice::from_raw(&document.edge_ids))
                     .map_err(EdgesError::Details)?;
 
                 Some(EdgeLinkDetails::new(labels, first_type_urls))
@@ -299,32 +299,6 @@ impl Atlas {
         })
     }
 
-    /// Gathers the link-entity identities behind the document's delivered edges.
-    ///
-    /// In delivered order: the hydration request's subject.
-    ///
-    /// # Panics
-    ///
-    /// This panics when the identity table contradicts the adjacency's edge domain, which open's
-    /// cross-artifact validation rules out.
-    #[must_use]
-    pub fn delivered_edge_entities<'rows>(
-        &self,
-        document: &'rows EdgesDocument,
-    ) -> DeliveredEntities<'rows, EdgeRowId> {
-        let ids = document
-            .rows
-            .iter()
-            .map(|&row| {
-                self.edge_ids
-                    .id(row)
-                    .expect("open validated the identity rows against the adjacency's edges")
-            })
-            .collect();
-
-        DeliveredEntities::new(ids, &document.rows)
-    }
-
     /// Encodes an assembled document.
     ///
     /// `SALTILEE` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. The
@@ -344,17 +318,11 @@ impl Atlas {
         details: Option<&EdgeLinkDetails<'_>>,
     ) -> Vec<u8> {
         let columns = details.map(|details| {
-            let table = Table::new(
-                details
-                    .first_type_urls()
-                    .iter()
-                    .flatten()
-                    .map(String::as_str),
-            );
+            let table = Table::new(details.first_type_urls().iter().flatten());
             let link_type_ids: Vec<Option<u32>> = details
                 .first_type_urls()
                 .iter()
-                .map(|url| url.as_deref().map(|url| table.index_of(url)))
+                .map(|url| url.as_ref().map(|url| table.index_of(url)))
                 .collect();
 
             (details.labels(), table, link_type_ids)
@@ -364,7 +332,7 @@ impl Atlas {
             .as_ref()
             .map(|(labels, table, link_type_ids)| EdgesTrailer {
                 type_table: table.entries(),
-                link_labels: labels,
+                link_labels: labels.as_raw(),
                 link_type_ids,
             });
 

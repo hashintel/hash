@@ -19,6 +19,8 @@
     reason = "column integers are pinned little-endian by the wire contract"
 )]
 
+use alloc::borrow::Cow;
+
 use hashql_core::id::IdSlice;
 
 use super::{
@@ -29,12 +31,13 @@ use super::{
     tile::{TileCoordinate, encode_details},
 };
 use crate::{
+    bitset::DenseBitSlice,
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::{BasePosition, NodeRowId},
     integrity::Sha256Digest,
     math::Vec2,
     salt::postings::artifact::Membership,
-    serve::WireRow,
+    serve::{WireRow, hydrate::EdgeSlot},
 };
 
 /// One locate response in writable form.
@@ -221,10 +224,10 @@ impl LocateResponse<'_> {
 pub(crate) struct LocateTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer [&'trailer str],
+    pub type_table: &'trailer [Cow<'trailer, str>],
     /// Trailer key 1: the property intern table - every surviving property base URL once,
     /// bytewise-sorted.
-    pub property_table: &'trailer [&'trailer str],
+    pub property_table: &'trailer [Cow<'trailer, str>],
     /// Trailer key 2: labels, delivered order.
     pub labels: &'trailer [&'trailer Label],
     /// Trailer key 3.
@@ -248,9 +251,10 @@ pub(crate) struct LocateTrailer<'trailer> {
     pub link_type_ids: &'trailer [Vec<u32>],
     /// Trailer key 7: per-edge type completeness, edge order.
     ///
-    /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s type list is the link's whole
-    /// direct set - unset means the cap truncated it or the store no longer serves the link.
-    pub link_type_ids_complete: &'trailer [bool],
+    /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
+    /// means edge `e`'s type list is the link's whole direct set - unset means the cap truncated
+    /// it or the store no longer serves the link.
+    pub link_type_ids_complete: &'trailer DenseBitSlice<EdgeSlot>,
     /// Trailer key 8.
     ///
     /// Per-edge property maps, edge order, keyed by uint index into the property table, keys
@@ -259,10 +263,10 @@ pub(crate) struct LocateTrailer<'trailer> {
     pub link_properties: &'trailer [Option<&'trailer [(u32, PropertyValue<'trailer>)]>],
     /// Trailer key 9: per-edge property completeness, edge order.
     ///
-    /// Encoded as an LSB-first bitmask; bit `e` set means edge `e`'s property map is the link
-    /// entity's whole deliverable set - unset means the simple-value filter or the cap dropped
-    /// something, or the store no longer serves the link.
-    pub link_properties_complete: &'trailer [bool],
+    /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
+    /// means edge `e`'s property map is the link entity's whole deliverable set - unset means the
+    /// simple-value filter or the cap dropped something, or the store no longer serves the link.
+    pub link_properties_complete: &'trailer DenseBitSlice<EdgeSlot>,
 }
 
 impl LocateTrailer<'_> {
@@ -285,12 +289,25 @@ impl LocateTrailer<'_> {
         for (length, name) in [
             (self.link_labels.len(), "labels"),
             (self.link_type_ids.len(), "type ids"),
-            (self.link_type_ids_complete.len(), "type completeness"),
             (self.link_properties.len(), "properties"),
-            (self.link_properties_complete.len(), "property completeness"),
         ] {
             assert_eq!(
                 length, edges,
+                "the trailer link {name} must cover exactly the delivered edges",
+            );
+        }
+        for (domain, name) in [
+            (
+                self.link_type_ids_complete.domain_size(),
+                "type completeness",
+            ),
+            (
+                self.link_properties_complete.domain_size(),
+                "property completeness",
+            ),
+        ] {
+            assert_eq!(
+                domain, edges as u64,
                 "the trailer link {name} must cover exactly the delivered edges",
             );
         }
@@ -343,13 +360,13 @@ impl LocateTrailer<'_> {
 
         cbor.uint(0);
         cbor.array(self.type_table.len() as u64);
-        for &url in self.type_table {
+        for url in self.type_table {
             cbor.text(url);
         }
 
         cbor.uint(1);
         cbor.array(self.property_table.len() as u64);
-        for &url in self.property_table {
+        for url in self.property_table {
             cbor.text(url);
         }
 
@@ -380,7 +397,9 @@ impl LocateTrailer<'_> {
         }
 
         cbor.uint(7);
-        bitmask(&mut cbor, self.link_type_ids_complete);
+        cbor.bytes(zerocopy::IntoBytes::as_bytes(
+            self.link_type_ids_complete.words(),
+        ));
 
         cbor.uint(8);
         cbor.array(self.link_properties.len() as u64);
@@ -389,7 +408,9 @@ impl LocateTrailer<'_> {
         }
 
         cbor.uint(9);
-        bitmask(&mut cbor, self.link_properties_complete);
+        cbor.bytes(zerocopy::IntoBytes::as_bytes(
+            self.link_properties_complete.words(),
+        ));
     }
 }
 
@@ -404,17 +425,6 @@ fn encode_property_map(cbor: &mut CborWriter<'_>, entries: Option<&[(u32, Proper
             }
         }
         None => cbor.null(),
-    }
-}
-
-/// Emits per-edge flags as an LSB-first bitmask byte string: bit `e` of byte `e / 8` is edge `e`'s
-/// flag, packed in place.
-fn bitmask(cbor: &mut CborWriter<'_>, flags: &[bool]) {
-    let bytes = cbor.bytes_zeroed(flags.len().div_ceil(8));
-    for (edge, &flag) in flags.iter().enumerate() {
-        if flag {
-            bytes[edge >> 3] |= 1 << (edge & 7);
-        }
     }
 }
 
