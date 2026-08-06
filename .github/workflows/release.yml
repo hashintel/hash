@@ -19,7 +19,10 @@ jobs:
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          url: ${{ secrets.VAULT_ADDR }}
+          # The legacy Vault, still holding the GitHub App credentials. Inline
+          # for the same reason as in bench.yml — this job has no environment,
+          # so `vars.VAULT_ADDR` would not resolve to a tier.
+          url: https://vault.blockprotocol.org
           method: jwt
           role: dev
           secrets: |
@@ -41,7 +44,9 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ secrets.VAULT_ADDR }}
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
