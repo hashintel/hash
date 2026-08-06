@@ -7,6 +7,12 @@
  * - Server push: `textDocument/publishDiagnostics`
  *
  * The LanguageService is created once and reused across SDCPN changes.
+ *
+ * @layerRoot core.lsp.worker
+ * @layerName LSP worker
+ * @role Hosts the TypeScript language server off the main thread
+ * @seam @hashintel/petrinaut-core/workers/lsp
+ * @boundary worker — The language server runs in its own thread; the client reaches it only over the documented protocol
  */
 import ts from "typescript";
 import {

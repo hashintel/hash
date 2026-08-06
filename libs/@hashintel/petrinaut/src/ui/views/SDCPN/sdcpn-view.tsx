@@ -1,3 +1,10 @@
+/**
+ * @layerRoot ui.views.canvas
+ * @layerName Canvas
+ * @role Renders the net as an interactive graph, with node and arc interaction
+ * @invariant Reads frame state through the execution-frame interface, so the same canvas renders live runs and recordings
+ */
+
 import "@xyflow/react/dist/style.css";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import {

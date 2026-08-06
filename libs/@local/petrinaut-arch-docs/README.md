@@ -32,11 +32,14 @@ when a declaration stops matching reality.
 
 ## The two inputs
 
-### Folder `README.md` frontmatter — _declares_ a layer
+Either declares a layer. Prefer the doc comment — it needs no new file. Reach
+for a README when the folder has real prose to carry, or when no single file is
+the obvious host.
 
-The recommended home. The frontmatter declares the layer; the prose below it
-becomes the layer's page body, so a folder README that already explains itself
-becomes an architecture page for free.
+### Folder `README.md` frontmatter
+
+The prose below the frontmatter becomes the layer's page body, so a folder
+README that already explains itself becomes an architecture page for free.
 
 ```yaml
 ---
@@ -57,7 +60,7 @@ owner: simulation # optional
 A README with no `layer` key is left alone as an ordinary document, and is linked
 from its layer page under "Further reading".
 
-### Doc-comment tags — _refine_ with facts that belong to code
+### Doc-comment tags
 
 ```ts
 /**
@@ -72,8 +75,9 @@ from its layer page under "Further reading".
  */
 ```
 
-- `@layerRoot` is the alternative to a README declaration, for folders with a
-  barrel entry file and no README. Use one or the other, never both.
+- `@layerRoot` declares the layer from the folder's primary file — a barrel if
+  there is one, otherwise the module the folder is really about. Use it or a
+  README, never both on one folder.
 - `@layer` is the escape hatch for a single misplaced file. Reach for it rarely —
   a file that needs it is usually a file in the wrong folder.
 - `@boundary` accepts `thread`, `worker`, `process`, `network`, `package` or
@@ -103,7 +107,6 @@ The bundle is framework-neutral by design — the Starlight site in
 | ------------------- | ---------------------------------------------------------------- |
 | `architecture.json` | The model: layers, edges, boundaries, invariants, enforced rules |
 | `architecture.md`   | The whole architecture as one file — the cheapest read for an AI |
-| `llms.txt`          | [llmstxt.org](https://llmstxt.org) index of the bundle           |
 | `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
 | `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
 | `components/*.tsx`  | React diagram components imported by authored pages              |

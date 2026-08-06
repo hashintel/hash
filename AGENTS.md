@@ -113,8 +113,8 @@ Distinct from the user guide above: the **architecture** docs describe the shape
 
 The architecture is declared **next to the code it describes** — never in a central mapping file:
 
-- A folder's `README.md` frontmatter (`layer`, `role`, and optionally `name`, `seams`, `boundaries`, `invariants`, `owner`) declares a layer, and the prose below becomes that layer's page.
-- Alternatively, `@layerRoot` / `@layerName` / `@role` in a folder entry file's doc comment.
+- `@layerRoot` / `@layerName` / `@role` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
+- A folder's `README.md` frontmatter (`layer`, `role`, and optionally `name`, `seams`, `boundaries`, `invariants`, `owner`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
 - `@boundary <kind> — <note>`, `@invariant <text>` and `@seam <specifier>` in any file's doc comments attach facts to the specific code that upholds them.
 - Files with no annotation inherit from the nearest declaring ancestor, so only ~40 declarations cover ~400 files. Do not annotate every file.
 

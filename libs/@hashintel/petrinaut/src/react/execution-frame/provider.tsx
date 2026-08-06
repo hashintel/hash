@@ -1,3 +1,10 @@
+/**
+ * @layerRoot react.execution-frame
+ * @layerName Execution frame source
+ * @role Abstracts where frames come from, so canvas and timeline work for live runs and recordings alike
+ * @invariant Consumers depend only on this interface, never on whether the frames are live or replayed
+ */
+
 import { use, useState, type FC, type PropsWithChildren } from "react";
 
 import {

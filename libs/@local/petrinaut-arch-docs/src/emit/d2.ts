@@ -6,9 +6,9 @@
  * with no extra bookkeeping — the taxonomy the annotations declare *is* the
  * diagram's grouping.
  *
- * Two views are emitted: a collapsed one showing top-level layers only, for
- * orientation, and the full nested graph for detail. Both are written as `.d2`
- * (the readable, diffable source) alongside the rendered `.svg`.
+ * A collapsed overview shows the top-level layers; each layer with sub-layers
+ * gets a drill-down of its own. Both `.d2` source and rendered `.svg` are
+ * written.
  */
 
 import { spawnSync } from "node:child_process";
@@ -127,73 +127,6 @@ export const buildSubtreeDiagram = (
   return [
     header(generatedBy),
     `# direct sub-layers of ${parentId}\n`,
-    nodeLines.join("\n"),
-    "\n# dependencies\n",
-    edgeLines.join("\n"),
-    "\n# styling\n",
-    styleClasses,
-    "",
-  ].join("\n");
-};
-
-/**
- * The full graph: every declared layer, nested by its dotted id.
- *
- * Retained because the `.d2` source is a useful diffable record of the whole
- * graph, but not rendered into the pages — see `buildRootDiagram`.
- *
- * Only leaf layers carry a file count — a parent's own count is the sum of its
- * descendants, and showing both reads as double counting.
- */
-export const buildLayerDiagram = (
-  layers: Layer[],
-  edges: Edge[],
-  generatedBy: string,
-): string => {
-  const declared = new Set(layers.map((layer) => layer.id));
-  const hasChildren = new Set(
-    layers.flatMap((layer) =>
-      layer.parent !== null && declared.has(layer.parent) ? [layer.parent] : [],
-    ),
-  );
-
-  const nodeLines = layers.map((layer) => {
-    const attributes = [
-      `class: ${classFor(layer.id)}`,
-      `label: ${quote(layer.name)}`,
-    ];
-
-    if (!hasChildren.has(layer.id)) {
-      attributes.push(
-        `tooltip: ${quote(`${pluralise(layer.fileCount, "source file")} · ${layer.role}`)}`,
-      );
-    } else {
-      attributes.push(`tooltip: ${quote(layer.role)}`);
-    }
-
-    return `${layer.id}: {${attributes.join("; ")}}`;
-  });
-
-  const edgeLines = edges.map((edge) => {
-    const attributes = [
-      `tooltip: ${quote(
-        pluralise(
-          edge.fileDependencies,
-          "file-level dependency",
-          "file-level dependencies",
-        ),
-      )}`,
-    ];
-    if (edge.crossesPackage) {
-      attributes.push(`class: boundary`);
-      attributes.push(`label: "package"`);
-    }
-    return `${edge.from} -> ${edge.to}: {${attributes.join("; ")}}`;
-  });
-
-  return [
-    header(generatedBy),
-    "# layers\n",
     nodeLines.join("\n"),
     "\n# dependencies\n",
     edgeLines.join("\n"),

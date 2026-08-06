@@ -1,3 +1,10 @@
+/**
+ * @layerRoot ui.monaco
+ * @layerName Monaco integration
+ * @role Wires the Monaco editor to the language server for authoring user code
+ * @boundary thread — Each sync component bridges a Monaco provider to an async worker request
+ */
+
 import { CompletionSync } from "./completion-sync";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";

@@ -1,11 +1,9 @@
 /**
- * The bundle's index files: `manifest.json`, `llms.txt` and `architecture.md`.
+ * The bundle's index files: `manifest.json` and `architecture.md`.
  *
  * `manifest.json` is what a host site reads to build navigation without having
- * to crawl the pages directory. `llms.txt` follows the llmstxt.org convention so
- * an agent can discover the bundle. `architecture.md` is the one that actually
- * earns its keep for AI use: the entire architecture as a single file, which is
- * cheaper and more reliable for a model to read than fetching thirty pages.
+ * to crawl the pages directory. `architecture.md` is the whole architecture as a
+ * single file, which is cheaper for a model to read than fetching thirty pages.
  */
 
 import { ARCHITECTURE_MODEL_VERSION, type ArchitectureModel } from "../model";
@@ -82,48 +80,6 @@ export const buildManifest = (options: {
     pages,
     diagrams: options.diagrams,
   };
-};
-
-export const buildLlmsTxt = (options: {
-  model: ArchitectureModel;
-  generated: GeneratedPage[];
-  authored: AuthoredPage[];
-}): string => {
-  const lines: string[] = [
-    "# Petrinaut architecture",
-    "",
-    "> Generated map of the Petrinaut packages — layers, dependencies and boundaries — extracted from annotations in the source. Layers are declared next to the code they describe, so this reflects the tree as it actually is rather than as it was last documented.",
-    "",
-    "Read `architecture.md` for the whole architecture in one file. Read `architecture.json` for the machine-readable model (layers, edges, boundaries, enforced rules).",
-    "",
-    "## Model",
-    "",
-    "- [Full architecture, single file](architecture.md): every layer with its role, boundaries, invariants and dependencies",
-    "- [Machine-readable model](architecture.json): the same data as JSON",
-    "",
-    "## Generated pages",
-    "",
-  ];
-
-  for (const page of options.generated) {
-    lines.push(`- [${page.title}](${page.path}): ${page.description}`);
-  }
-
-  if (options.authored.length > 0) {
-    lines.push("", "## Authored pages", "");
-    for (const page of options.authored) {
-      lines.push(
-        `- [${page.title}](${page.path})${page.description === "" ? "" : `: ${page.description}`}`,
-      );
-    }
-  }
-
-  lines.push("", "## Packages", "");
-  for (const pkg of options.model.packages) {
-    lines.push(`- \`${pkg.name}\` (${pkg.path}): ${pkg.description}`);
-  }
-
-  return `${lines.join("\n")}\n`;
 };
 
 /**

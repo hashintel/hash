@@ -1,3 +1,10 @@
+/**
+ * @layerRoot core.schemas
+ * @layerName Schemas
+ * @role Zod schemas for document entities, metrics and scenarios, and the descriptions the AI tools read
+ * @invariant Every entity schema ends in `satisfies z.ZodType<T>` against the canonical type, so a schema cannot drift from the type it validates
+ */
+
 import { z } from "zod";
 
 import { getParameterValueError } from "../parameter-values";

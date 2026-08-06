@@ -1,3 +1,11 @@
+/**
+ * @layerRoot react.simulation
+ * @layerName Simulation provider
+ * @role Owns the run configuration and mirrors the core simulation handle into React
+ * @boundary thread — Wraps the core's worker transport; every frame the UI reads has crossed a thread boundary
+ * @invariant The initial marking is session state, configuration for the next run, and survives a reset
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 
 import {

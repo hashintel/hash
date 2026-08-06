@@ -2,13 +2,8 @@
  * Lane-and-box diagrams: parallel columns of boxes, one column per thread or
  * mode.
  *
- * Recreates the layout the hand-written HTML architecture pages used for
- * "who owns what, on which thread". Data-driven rather than hand-marked-up, so
- * a page describes the content and the component owns the presentation.
- *
- * Portability: plain React, no dependencies beyond `react`, styles in a sibling
- * stylesheet. Nothing here assumes Astro, Starlight, or any design system, so a
- * host rendering the bundle only needs a React-capable MDX pipeline.
+ * Data-driven rather than hand-marked-up, so a page describes the content and
+ * the component owns the presentation.
  */
 
 import "./diagram.css";

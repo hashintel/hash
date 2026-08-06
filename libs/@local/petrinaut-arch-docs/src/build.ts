@@ -1,10 +1,8 @@
 /**
  * Builds the bundle in memory.
  *
- * Kept separate from the CLI so `build` and `check` run the exact same pipeline:
- * `check` builds and compares against what is committed, which is only a valid
- * drift signal if nothing differs between the two paths. That is also why no
- * output here depends on the clock — same commit, same bytes.
+ * Kept separate from the CLI so `build` and `check` run the same pipeline —
+ * `check` builds and throws the files away, reporting only the diagnostics.
  */
 
 import { join } from "node:path";
@@ -17,17 +15,12 @@ import {
   type AuthoredPage,
 } from "./content";
 import {
-  buildLlmsTxt,
   buildManifest,
   buildSingleFileArchitecture,
   type BundleManifest,
   type DiagramRecord,
 } from "./emit/bundle-outputs";
-import {
-  buildLayerDiagram,
-  buildOverviewDiagram,
-  buildSubtreeDiagram,
-} from "./emit/d2";
+import { buildOverviewDiagram, buildSubtreeDiagram } from "./emit/d2";
 import {
   buildPages,
   resolveAuthoredLinks,
@@ -54,18 +47,12 @@ export interface BuiltBundle {
   diagramSources: Map<string, string>;
   /** Importable diagram components shipped with the bundle. */
   components: AuthoredComponent[];
-  llmsTxt: string;
   singleFile: string;
   diagnostics: Diagnostic[];
 }
 
-/**
- * Diagram embedded on the overview page. Per-root diagrams are added
- * dynamically once the layers are known, and `layers.d2` is emitted as a
- * diffable record of the whole graph without being rendered into a page.
- */
+/** Diagram embedded on the overview page. */
 const OVERVIEW_DIAGRAM = "overview";
-const FULL_GRAPH_DIAGRAM = "layers";
 
 export const buildBundle = async (options: {
   repoRoot: string;
@@ -137,11 +124,6 @@ export const buildBundle = async (options: {
     OVERVIEW_DIAGRAM,
     buildOverviewDiagram(model.layers, model.edges, GENERATOR_NAME),
   );
-  diagramSources.set(
-    FULL_GRAPH_DIAGRAM,
-    buildLayerDiagram(model.layers, model.edges, GENERATOR_NAME),
-  );
-
   // A drill-down diagram for every layer that has sub-layers, embedded on that
   // layer's own page.
   const parentLayerIds = model.layers
@@ -298,11 +280,6 @@ export const buildBundle = async (options: {
     generated,
     authored,
     diagramSources,
-    llmsTxt: buildLlmsTxt({
-      model,
-      generated,
-      authored,
-    }),
     singleFile: buildSingleFileArchitecture(model),
     components: authoredResult.components,
     diagnostics,
@@ -319,7 +296,6 @@ export const bundleTextFiles = (bundle: BuiltBundle): Map<string, string> => {
 
   files.set("architecture.json", `${JSON.stringify(bundle.model, null, 2)}\n`);
   files.set("manifest.json", `${JSON.stringify(bundle.manifest, null, 2)}\n`);
-  files.set("llms.txt", bundle.llmsTxt);
   files.set("architecture.md", bundle.singleFile);
 
   for (const [name, source] of bundle.diagramSources) {

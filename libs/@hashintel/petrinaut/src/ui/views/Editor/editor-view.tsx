@@ -1,3 +1,9 @@
+/**
+ * @layerRoot ui.views.editor
+ * @layerName Editor shell
+ * @role Arranges the panels, toolbars and dialogs around the canvas
+ */
+
 import { use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";

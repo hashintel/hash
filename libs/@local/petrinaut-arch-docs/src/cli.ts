@@ -1,10 +1,9 @@
 /**
- * `arch-docs build` writes the bundle; `arch-docs check` fails if it is stale.
+ * `arch-docs build` writes the bundle; `arch-docs check` reports on it.
  *
- * `check` is what CI runs. It rebuilds from source and compares against the
- * committed bundle, so a change to the code that nobody reflected in the docs
- * shows up as a failing job with a diff rather than as documentation that
- * quietly stopped being true.
+ * `check` is what CI runs: it builds everything, discards the files, and fails
+ * on any annotation error — an unannotated file, a dead `@seam`, a violated
+ * rule — so documentation cannot quietly stop being true.
  */
 
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";

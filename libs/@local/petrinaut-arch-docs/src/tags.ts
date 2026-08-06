@@ -1,22 +1,14 @@
 /**
  * The in-code tag vocabulary, and the scanner that reads it.
  *
- * Two mechanisms feed the model, each in its natural home:
+ * A layer is declared either here, with `@layerRoot` on a folder's primary
+ * file, or in a folder `README.md`'s frontmatter (see `frontmatter.ts`), whose
+ * prose then becomes the layer's page. Other tags refine a layer with facts
+ * belonging to specific code. Files with no tags inherit from the nearest
+ * declaring ancestor.
  *
- * - **Folder `README.md` frontmatter** *declares* a layer (see `frontmatter.ts`).
- *   Prose in the README becomes the layer's page body, so folder docs that
- *   already exist turn into architecture pages for free.
- * - **Doc-comment tags in source files** — this module — *refine* a layer with
- *   facts that belong to specific code: the boundary a file sits on, an
- *   invariant it upholds, the public seam it is reachable through.
- *
- * A file with no tags inherits its layer from the nearest declared ancestor
- * folder, which is what keeps this to a few dozen declarations across ~500
- * files instead of an annotation on every one.
- *
- * Tags are recognised only at the start of a line inside a block comment
- * (after optional leading `*`). That keeps a `@layer` mentioned in prose or in
- * a string literal from being picked up accidentally.
+ * Tags are recognised only at the start of a line inside a block comment, so a
+ * tag named in prose or in a string literal is not picked up.
  */
 
 import { boundaryKindSchema, type BoundaryKind } from "./model";

@@ -1,3 +1,10 @@
+/**
+ * @layerRoot core.types
+ * @layerName Document types
+ * @role The canonical TypeScript types describing an SDCPN document
+ * @invariant Authoritative over the Zod schemas — schemas are checked against these types, never the reverse
+ */
+
 export type ID = string;
 
 export type ColorElementType =

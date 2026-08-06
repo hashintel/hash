@@ -1,13 +1,9 @@
 /**
  * Hand-written MDX that ships in the same bundle as the generated pages.
  *
- * Generated pages answer "what is the shape of this system"; authored pages
- * answer "why is it like that" — the reasoning, the history, the trade-offs
- * nobody can derive from an import graph. Both end up in one manifest so a host
- * site renders them as one coherent set of docs rather than two disjoint ones.
- *
- * Slugs mirror the directory layout under `content/`, so moving a file moves its
- * URL and nothing else needs updating.
+ * Authored pages carry the reasoning an import graph cannot supply. They end up
+ * in the same manifest as the generated pages, so a host renders one coherent
+ * set of docs. Slugs mirror the directory layout under `content/`.
  */
 
 import { readdir, readFile } from "node:fs/promises";
