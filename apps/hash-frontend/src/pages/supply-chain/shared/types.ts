@@ -297,14 +297,17 @@ export interface PipelineSummary {
   stages: PipelineStage[];
   total_mean: number;
   total_median: number;
+  /** Quantiles of complete end-to-end observations, not sums of stage quantiles. */
+  total_p75?: number;
+  total_p95?: number;
 }
 
 /** Aggregate customer-order arrival point over a production pipeline row. */
 export interface PipelineOrderMarker {
   /** Position along the traced production pipeline, clamped to 0..100. */
   positionPct: number;
-  /** Typical order-created to goods-issue lead time for these order lines. */
-  daysBeforeGoodsIssue: number;
+  /** Typical order-created to route-endpoint lead time for these order lines. */
+  daysBeforeRouteEndpoint: number;
   n: number;
   routeLabel: string;
   /** Eligible order lines across all routes under the active window/outliers. */
@@ -426,6 +429,8 @@ export type FulfilmentSource = "from_stock" | "awaited_production" | "unknown";
 export interface OrderLineRow {
   sales_order: string;
   so_item: string;
+  /** Destination route for this delivered portion of the sales-order line. */
+  route?: string | null;
   customer: string | null;
   country: string | null;
   order_created: string;

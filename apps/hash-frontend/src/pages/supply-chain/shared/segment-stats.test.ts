@@ -16,6 +16,16 @@ describe("segmentStats", () => {
     });
   });
 
+  it("uses one-based nearest ranks for even-sized samples", () => {
+    const result = segmentStats([1, 2, 3, 4], false);
+
+    expect(result).toMatchObject({
+      p25: 1,
+      p75: 3,
+      p95: 4,
+    });
+  });
+
   it("excludes Tukey outliers from the mean only", () => {
     const result = segmentStats([1, 1, 2, 2, 100], true);
 

@@ -2,6 +2,19 @@ import { computeIqrFences } from "./outlier-selection/iqr";
 
 import type { BatchTimelineSegment } from "./types";
 
+/** Return the nearest-rank percentile from an ascending sorted series. */
+export const nearestRankPercentile = (
+  sortedValues: readonly number[],
+  percentile: number,
+): number | undefined => {
+  if (sortedValues.length === 0) {
+    return undefined;
+  }
+  const rank = Math.ceil(percentile * sortedValues.length);
+  const index = Math.min(Math.max(rank - 1, 0), sortedValues.length - 1);
+  return sortedValues[index];
+};
+
 /**
  * Shared pipeline-segment statistics: validity filtering, optional Tukey IQR
  * trimming for the mean, and nearest-rank percentiles over the full series.
@@ -39,10 +52,9 @@ export const segmentStats = (
   }
   const lower = values[Math.max(midpoint - 1, 0)] ?? upper;
   const median = values.length % 2 === 0 ? (lower + upper) / 2 : upper;
-  const p25 = values[Math.floor(values.length * 0.25)];
-  const p75 = values[Math.floor(values.length * 0.75)];
-  const p95 =
-    values[Math.min(Math.floor(values.length * 0.95), values.length - 1)];
+  const p25 = nearestRankPercentile(values, 0.25);
+  const p75 = nearestRankPercentile(values, 0.75);
+  const p95 = nearestRankPercentile(values, 0.95);
   if (p25 === undefined || p75 === undefined || p95 === undefined) {
     return null;
   }

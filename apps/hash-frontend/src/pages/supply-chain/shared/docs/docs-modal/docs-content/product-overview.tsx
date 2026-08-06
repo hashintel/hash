@@ -288,6 +288,11 @@ export const productOverviewSection: DocSectionDef = {
             available.
           </Note>
           <P>
+            Diamond markers place the mean and median customer-order creation
+            point on the selected route. Their lead time runs from order
+            creation to the same route endpoint used by the E2E pipeline.
+          </P>
+          <P>
             Shipment step cards can count more than one delivery for the same
             batch. The pipeline keeps one route per batch, so observation counts
             may be higher than the number of batches shown on the direct route.
@@ -321,6 +326,13 @@ export const productOverviewSection: DocSectionDef = {
             dispatched order lines in scope.
           </P>
           <P>
+            P75 and P95 row totals are calculated from complete order durations.
+            Their coloured segment widths show each segment&apos;s corresponding
+            marginal percentile, normalized to fit the row. Segment percentiles
+            are not additive, so their displayed values need not sum to the row
+            total.
+          </P>
+          <P>
             The fulfilment indicators classify dispatched order lines by whether
             all linked batches were already available when the order was
             created, became available afterwards, or could not be traced to a
@@ -330,8 +342,8 @@ export const productOverviewSection: DocSectionDef = {
           <P>
             Selecting an order shows that order&apos;s actual segment durations
             and total rather than an aggregate statistic. The destination filter
-            scopes the pipeline and its statistics to dispatched batches on the
-            selected route.
+            scopes the pipeline and its statistics to deliveries on the selected
+            route.
           </P>
           <Note>
             This pipeline and the End-to-End Pipeline answer different

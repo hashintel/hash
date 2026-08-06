@@ -300,7 +300,15 @@ const tipMuted = css({
   color: "[#8d8d8d]",
   letterSpacing: "[0.12px]",
 });
-const boxPlotTooltipTrigger = css({ display: "block" });
+const boxPlotTooltipTrigger = css({
+  display: "block",
+  borderRadius: "sm",
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "fg.heading",
+    outlineOffset: "[2px]",
+  },
+});
 const boxPlotTooltipPositioner = css({ zIndex: "tooltip !important" });
 
 function hexToRgb(hex: string) {
@@ -390,6 +398,9 @@ const BoxPlotTooltip = ({
         <div
           className={boxPlotTooltipTrigger}
           aria-label="Show distribution statistics"
+          // Tooltip triggers must receive focus to expose their content to keyboard users.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
         >
           {children}
         </div>

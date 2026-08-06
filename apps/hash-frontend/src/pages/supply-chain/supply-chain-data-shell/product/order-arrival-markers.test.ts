@@ -47,6 +47,11 @@ const order: OrderLineRow = {
   total_days: 20,
 };
 
+const daysBefore = (date: string, days: number): string => {
+  const timestamp = Date.parse(date) - days * 86_400_000;
+  return new Date(timestamp).toISOString().slice(0, 10);
+};
+
 const summary: PipelineSummary = {
   label: "Direct",
   total_mean: 35,
@@ -90,7 +95,7 @@ const summary: PipelineSummary = {
 describe("computeOrderArrivalMarkers", () => {
   it("positions an order in its visible segment", () => {
     const result = computeOrderArrivalMarkers(
-      [{ ...order, total_days: 5 }],
+      [order],
       [batch],
       { direct: summary },
       false,
@@ -99,13 +104,26 @@ describe("computeOrderArrivalMarkers", () => {
 
     expect(result.direct?.mean?.positionPct).toBe(50);
     expect(result.direct?.mean?.n).toBe(1);
-    expect(result.direct?.mean?.daysBeforeGoodsIssue).toBe(5);
+    expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(20);
     expect(result.direct?.mean?.totalOrderLines).toBe(1);
     expect(result.direct?.mean?.beforeTrace).toBe(false);
     expect(result.direct?.mean?.afterTrace).toBe(false);
   });
 
-  it("keeps the population fixed and collapses hidden segments", () => {
+  it("uses the route endpoint rather than goods issue as its anchor", () => {
+    const laterArrivalBatch = {
+      ...batch,
+      delivery_date: "2026-02-15",
+    };
+    const result = computeOrderArrivalMarkers([order], [laterArrivalBatch], {
+      direct: summary,
+    });
+
+    expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(30);
+    expect(result.direct?.mean?.positionPct).toBeCloseTo((5 / 35) * 100);
+  });
+
+  it("keeps the population fixed when collapsing hidden segments", () => {
     const result = computeOrderArrivalMarkers(
       [order],
       [batch],
@@ -116,7 +134,7 @@ describe("computeOrderArrivalMarkers", () => {
 
     expect(result.direct?.mean?.positionPct).toBe(0);
     expect(result.direct?.mean?.n).toBe(1);
-    expect(result.direct?.mean?.daysBeforeGoodsIssue).toBe(20);
+    expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(20);
     expect(result.direct?.mean?.beforeVisibleCount).toBe(1);
     expect(result.direct?.mean?.beforeTrace).toBe(true);
     expect(result.direct?.mean?.afterTrace).toBe(false);
@@ -143,7 +161,7 @@ describe("computeOrderArrivalMarkers", () => {
     const rows = durations.map((duration, index) => ({
       ...order,
       sales_order: `${index + 1}`,
-      total_days: duration,
+      order_created: daysBefore(batch.delivery_date ?? "", duration),
       batches: [`B-${index + 1}`],
     }));
     const batches = durations.map((_, index) => ({
@@ -159,83 +177,58 @@ describe("computeOrderArrivalMarkers", () => {
     );
 
     expect(result.direct?.mean).toMatchObject({
-      daysBeforeGoodsIssue: 1.5,
+      daysBeforeRouteEndpoint: 1.5,
       n: 5,
       totalOrderLines: 5,
     });
     expect(result.direct?.median).toMatchObject({
-      daysBeforeGoodsIssue: 2,
+      daysBeforeRouteEndpoint: 2,
       n: 5,
       totalOrderLines: 5,
     });
   });
 
-  it("pins aggregate orders to the boundary when earlier stages are hidden", () => {
-    const longSummary: PipelineSummary = {
+  it("projects through hidden stages using the complete timeline coordinate", () => {
+    const twoStageSummary: PipelineSummary = {
       label: "Direct",
-      total_mean: 258,
-      total_median: 246,
+      total_mean: 20,
+      total_median: 20,
       stages: [
-        {
-          id: "seg_proc_to_prodstart",
-          label: "Procurement",
-          type: "procurement",
-          mean: 99,
-          median: 84,
-          pct_of_total: 0,
-        },
         {
           id: "seg_prodstart_to_prodfinish",
           label: "Production",
           type: "production",
-          mean: 120,
-          median: 130,
-          pct_of_total: 0,
-        },
-        {
-          id: "seg_prodfinish_to_qa",
-          label: "QA",
-          type: "qa_hold",
-          mean: 3,
-          median: 3,
-          pct_of_total: 0,
+          mean: 10,
+          median: 10,
+          pct_of_total: 50,
         },
         {
           id: "seg_qa_to_customer",
           label: "Transit",
           type: "transit",
-          mean: 36,
-          median: 29,
-          pct_of_total: 0,
+          mean: 10,
+          median: 10,
+          pct_of_total: 50,
         },
       ],
     };
-    const rows = [
-      { ...order, sales_order: "1", total_days: 63, batches: ["A"] },
-      { ...order, sales_order: "2", total_days: 200, batches: ["B"] },
-      { ...order, sales_order: "3", total_days: 72, batches: ["C"] },
-    ];
     const result = computeOrderArrivalMarkers(
-      rows,
       [
-        { ...batch, batch: "A" },
-        { ...batch, batch: "B" },
-        { ...batch, batch: "C" },
+        {
+          ...order,
+          order_created: daysBefore(batch.delivery_date ?? "", 10),
+        },
       ],
-      { direct: longSummary },
+      [batch],
+      { direct: twoStageSummary },
       false,
-      new Set(["qa_hold", "transit"]),
+      new Set(["production"]),
     );
 
-    expect(result.direct?.mean?.daysBeforeGoodsIssue).toBeCloseTo(
-      (63 + 200 + 72) / 3,
-    );
-    expect(result.direct?.mean?.positionPct).toBe(0);
-    expect(result.direct?.median?.daysBeforeGoodsIssue).toBe(72);
-    expect(result.direct?.median?.positionPct).toBe(0);
-    expect(result.direct?.mean?.beforeTrace).toBe(true);
-    expect(result.direct?.median?.beforeTrace).toBe(true);
-    expect(result.direct?.mean?.n).toBe(3);
+    expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(10);
+    expect(result.direct?.mean?.positionPct).toBe(100);
+    expect(result.direct?.mean?.beforeTrace).toBe(false);
+    expect(result.direct?.mean?.afterTrace).toBe(false);
   });
 
   it("marks aggregate orders after the visible pipeline end", () => {
@@ -255,7 +248,7 @@ describe("computeOrderArrivalMarkers", () => {
       ],
     };
     const result = computeOrderArrivalMarkers(
-      [{ ...order, total_days: 0 }],
+      [{ ...order, order_created: "2026-02-06" }],
       [batch],
       { direct: shortTransit },
     );
@@ -282,12 +275,17 @@ describe("computeOrderArrivalMarkers", () => {
       ],
     };
     const result = computeOrderArrivalMarkers(
-      [{ ...order, total_days: 63 }],
+      [
+        {
+          ...order,
+          order_created: daysBefore(batch.delivery_date ?? "", 63),
+        },
+      ],
       [batch],
       { direct: shortTransit },
     );
 
-    expect(result.direct?.median?.daysBeforeGoodsIssue).toBe(63);
+    expect(result.direct?.median?.daysBeforeRouteEndpoint).toBe(63);
     expect(result.direct?.median?.beforeTrace).toBe(true);
     expect(result.direct?.median?.afterTrace).toBe(false);
     expect(result.direct?.median?.positionPct).toBe(0);
@@ -318,7 +316,12 @@ describe("computeOrderArrivalMarkers", () => {
       ],
     };
     const result = computeOrderArrivalMarkers(
-      [{ ...order, total_days: 63 }],
+      [
+        {
+          ...order,
+          order_created: daysBefore(batch.delivery_date ?? "", 63),
+        },
+      ],
       [batch],
       { direct: summaryWithMissing },
     );

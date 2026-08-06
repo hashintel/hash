@@ -66,6 +66,35 @@ describe("customer-order recomputation", () => {
     });
   });
 
+  it("computes total percentiles from complete order durations", () => {
+    const result = recomputeOrderTimelines(
+      [
+        {
+          ...line("2026-06-01", "from_stock"),
+          seg_order_to_delivery: 0,
+          seg_delivery_to_dispatch: 100,
+          total_days: 100,
+        },
+        {
+          ...line("2026-06-02", "from_stock"),
+          seg_order_to_delivery: 100,
+          seg_delivery_to_dispatch: 0,
+          total_days: 100,
+        },
+      ],
+      "12m",
+    );
+
+    expect(result.pipeline.orders?.total_p75).toBe(100);
+    expect(result.pipeline.orders?.total_p95).toBe(100);
+    expect(
+      result.pipeline.orders?.stages.reduce(
+        (total, stage) => total + (stage.p75 ?? 0),
+        0,
+      ),
+    ).toBe(200);
+  });
+
   it("aggregates volume across lines before averaging orders", () => {
     const firstLine = {
       ...line("2026-06-01", "from_stock"),
@@ -95,17 +124,33 @@ describe("customer-order recomputation", () => {
   it("scopes delivered lines to the selected route", () => {
     const directLine = {
       ...line("2026-06-01", "from_stock"),
+      route: "direct",
       batches: ["B-1"],
     };
     const hubLine = {
       ...line("2026-06-02", "from_stock"),
       sales_order: "200",
+      route: "hub",
+      batches: ["B-2"],
+    };
+    const mixedDirectPortion = {
+      ...line("2026-06-03", "from_stock"),
+      sales_order: "300",
+      route: "direct",
+      batches: ["B-1"],
+    };
+    const mixedHubPortion = {
+      ...line("2026-06-04", "from_stock"),
+      sales_order: "300",
+      route: "hub",
       batches: ["B-2"],
     };
     const batches: BatchRow[] = [
       {
         batch: "B-1",
-        route: "direct",
+        // A batch-level representative route may differ when the same batch
+        // also supplied a later hub delivery.
+        route: "hub",
         n_traced_materials: 1,
         earliest_po_date: null,
         earliest_gr_date: null,
@@ -142,8 +187,12 @@ describe("customer-order recomputation", () => {
     ];
 
     expect(
-      filterOrderLinesByRoute([directLine, hubLine], "direct", batches),
-    ).toEqual([directLine]);
+      filterOrderLinesByRoute(
+        [directLine, hubLine, mixedDirectPortion, mixedHubPortion],
+        "direct",
+        batches,
+      ),
+    ).toEqual([directLine, mixedDirectPortion]);
     expect(
       recomputeOrderTimelines(
         [directLine, hubLine],
@@ -162,12 +211,19 @@ describe("customer-order recomputation", () => {
     ).toBe(1);
   });
 
-  it("uses route-specific batch availability for wait statistics", () => {
-    const orderLine: OrderLineRow = {
+  it("uses the selected route's batch availability for wait statistics", () => {
+    const directOrderLine: OrderLineRow = {
       ...line("2026-06-01", "awaited_production"),
-      batches: ["B-1", "B-2", "B-3"],
+      route: "direct",
+      batches: ["B-1", "B-3"],
       batch_available: "2026-06-01",
       order_created: "2026-05-01",
+    };
+    const hubOrderLine: OrderLineRow = {
+      ...directOrderLine,
+      sales_order: "200",
+      route: "hub",
+      batches: ["B-2"],
     };
     const batches: BatchRow[] = [
       {
@@ -227,7 +283,7 @@ describe("customer-order recomputation", () => {
     ];
 
     const directStats = recomputeOrderTimelines(
-      [orderLine],
+      [directOrderLine, hubOrderLine],
       "12m",
       false,
       {
@@ -241,7 +297,7 @@ describe("customer-order recomputation", () => {
       "direct",
     ).statistics;
     const hubStats = recomputeOrderTimelines(
-      [orderLine],
+      [directOrderLine, hubOrderLine],
       "12m",
       false,
       {

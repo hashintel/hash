@@ -303,6 +303,8 @@ describe("supply-chain demo data", () => {
           lines: Array<{
             sales_order: string;
             so_item: string;
+            customer: string;
+            country: string;
             order_created: string;
             delivery_created: string;
             dispatch_date: string;
@@ -333,9 +335,30 @@ describe("supply-chain demo data", () => {
         orderTimelines.open_order_created_dates.length,
       );
       const fulfilmentSources = new Set<string>();
+      const orderLevelDetailsBySalesOrder = new Map<
+        string,
+        { customer: string; country: string; orderCreated: string }
+      >();
       let mtoPeggedLines = 0;
 
       for (const line of orderTimelines.lines) {
+        const orderLevelDetails = {
+          customer: line.customer,
+          country: line.country,
+          orderCreated: line.order_created,
+        };
+        const existingOrderLevelDetails = orderLevelDetailsBySalesOrder.get(
+          line.sales_order,
+        );
+        if (existingOrderLevelDetails) {
+          expect(orderLevelDetails).toEqual(existingOrderLevelDetails);
+        } else {
+          orderLevelDetailsBySalesOrder.set(
+            line.sales_order,
+            orderLevelDetails,
+          );
+        }
+
         expect(line.batches.length).toBeGreaterThan(0);
         const linkedBatches = line.batches.map((batchId) => {
           const batch = batchById.get(batchId);

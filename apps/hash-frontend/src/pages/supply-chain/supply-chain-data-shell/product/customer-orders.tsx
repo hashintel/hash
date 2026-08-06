@@ -221,7 +221,7 @@ export const CustomerOrdersPanel = ({
     Object.keys(pipelineSummaries).length > 1;
   const routeScopedHelp =
     hasRouteFilter && routeScopeLabel
-      ? `Scoped to deliveries ${routeScopeLabel} over the last ${rangeLabel.replace(/^last /i, "")}.`
+      ? `Scoped to deliveries ${routeScopeLabel} over the last ${rangeLabel.replace(/^last /i, "")}. If an order line spans multiple routes, each route includes only its own deliveries.`
       : null;
   const helpWithRouteScope = (mainContent: string) =>
     routeScopedHelp ? (

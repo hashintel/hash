@@ -9,7 +9,7 @@ import type {
 } from "../../shared/types";
 
 interface MarkerObservation {
-  daysBeforeGoodsIssue: number;
+  daysBeforeRouteEndpoint: number;
 }
 
 function positionForLeadDays(
@@ -18,36 +18,60 @@ function positionForLeadDays(
   measure: "mean" | "median",
   activeSegmentTypes?: ReadonlySet<string>,
 ): { ratio: number; beforeTrace: boolean; afterTrace: boolean } | null {
-  const visibleStages = summary.stages
-    .filter(
-      (stage) => !activeSegmentTypes || activeSegmentTypes.has(stage.type),
-    )
-    .map((stage) => {
-      const duration: unknown = stage[measure];
-      return typeof duration === "number" && Number.isFinite(duration)
-        ? Math.max(duration, 0)
+  const stages = summary.stages.map((stage) => {
+    const rawDuration: unknown = stage[measure];
+    const duration =
+      typeof rawDuration === "number" && Number.isFinite(rawDuration)
+        ? Math.max(rawDuration, 0)
         : 0;
-    });
-  const visibleTotal = visibleStages.reduce(
-    (sum, duration) => sum + duration,
+    return {
+      duration,
+      visible: !activeSegmentTypes || activeSegmentTypes.has(stage.type),
+    };
+  });
+  const fullTotal = stages.reduce((total, stage) => total + stage.duration, 0);
+  const visibleTotal = stages.reduce(
+    (total, stage) => total + (stage.visible ? stage.duration : 0),
     0,
   );
   if (visibleTotal <= 0) {
     return null;
   }
 
-  // Marker placement describes the pipeline currently on screen. Hidden
-  // segments must not move an order to the opposite edge of that visible bar.
-  if (leadDays >= visibleTotal) {
+  const eventElapsed = fullTotal - leadDays;
+  const firstVisibleStage = stages.findIndex((stage) => stage.visible);
+  const visibleStart = stages
+    .slice(0, firstVisibleStage)
+    .reduce((total, stage) => total + stage.duration, 0);
+  if (eventElapsed < visibleStart) {
     return { ratio: 0, beforeTrace: true, afterTrace: false };
   }
-  if (leadDays <= 0) {
+  if (eventElapsed >= fullTotal) {
     return { ratio: 1, beforeTrace: false, afterTrace: true };
   }
 
-  const eventElapsed = visibleTotal - leadDays;
+  // Locate the event on the complete cumulative timeline, then collapse hidden
+  // stages. An event inside a hidden stage lands on that stage's left boundary;
+  // an event at its end lands on the right boundary.
+  let fullElapsed = 0;
+  let visibleElapsed = 0;
+  for (const stage of stages) {
+    const stageEnd = fullElapsed + stage.duration;
+    if (eventElapsed >= stageEnd) {
+      if (stage.visible) {
+        visibleElapsed += stage.duration;
+      }
+      fullElapsed = stageEnd;
+      continue;
+    }
+    if (eventElapsed > fullElapsed && stage.visible) {
+      visibleElapsed += eventElapsed - fullElapsed;
+    }
+    break;
+  }
+
   return {
-    ratio: eventElapsed / visibleTotal,
+    ratio: visibleElapsed / visibleTotal,
     beforeTrace: false,
     afterTrace: false,
   };
@@ -81,13 +105,13 @@ function aggregateMarker(
     return null;
   }
   const leadDays = observations.map(
-    (observation) => observation.daysBeforeGoodsIssue,
+    (observation) => observation.daysBeforeRouteEndpoint,
   );
-  const daysBeforeGoodsIssue =
+  const daysBeforeRouteEndpoint =
     measure === "mean" ? mean(leadDays, excludeOutliers) : median(leadDays);
   const position = positionForLeadDays(
     summary,
-    daysBeforeGoodsIssue,
+    daysBeforeRouteEndpoint,
     measure,
     activeSegmentTypes,
   );
@@ -96,7 +120,7 @@ function aggregateMarker(
   }
   return {
     positionPct: Math.min(Math.max(position.ratio * 100, 0), 100),
-    daysBeforeGoodsIssue,
+    daysBeforeRouteEndpoint,
     n: observations.length,
     routeLabel: summary.label,
     totalOrderLines,
@@ -104,12 +128,12 @@ function aggregateMarker(
       (observation) =>
         positionForLeadDays(
           summary,
-          observation.daysBeforeGoodsIssue,
+          observation.daysBeforeRouteEndpoint,
           measure,
           activeSegmentTypes,
         )?.beforeTrace,
     ).length,
-    beforeTrace: position.beforeTrace || position.ratio <= 0,
+    beforeTrace: position.beforeTrace,
     afterTrace: position.afterTrace,
   };
 }
@@ -133,32 +157,48 @@ export const computeOrderArrivalMarkers = (
   );
   const observationsByRoute = new Map<string, MarkerObservation[]>();
 
-  const eligibleLines = orderLines.filter(
-    (line): line is OrderLineRow & { total_days: number } =>
-      line.total_days != null && line.total_days >= 0 && line.total_days <= 730,
-  );
-  const totalOrderLines = eligibleLines.length;
+  const contributingLines = new Set<OrderLineRow>();
 
-  for (const line of eligibleLines) {
-    const routes = new Set<string>();
+  for (const line of orderLines) {
+    const batchesByRoute = new Map<string, BatchRow[]>();
     for (const batchId of line.batches) {
       const batch = batchById.get(batchId.toUpperCase());
-      if (!batch?.route) {
+      if (!batch?.route || !batch.delivery_date || !summaries[batch.route]) {
         continue;
       }
-      if (summaries[batch.route]) {
-        routes.add(batch.route);
-      }
+      const routeBatches = batchesByRoute.get(batch.route) ?? [];
+      routeBatches.push(batch);
+      batchesByRoute.set(batch.route, routeBatches);
     }
 
-    for (const route of routes) {
+    for (const [route, routeBatches] of batchesByRoute) {
+      const endpointDate = routeBatches
+        .map((batch) => batch.delivery_date)
+        .filter((date): date is string => date != null)
+        .sort()
+        .at(-1);
+      if (!endpointDate) {
+        continue;
+      }
+      const daysBeforeRouteEndpoint = Math.round(
+        (Date.parse(endpointDate) - Date.parse(line.order_created)) /
+          86_400_000,
+      );
+      if (
+        !Number.isFinite(daysBeforeRouteEndpoint) ||
+        Math.abs(daysBeforeRouteEndpoint) > 730
+      ) {
+        continue;
+      }
       const routeObservations = observationsByRoute.get(route) ?? [];
       routeObservations.push({
-        daysBeforeGoodsIssue: line.total_days,
+        daysBeforeRouteEndpoint,
       });
       observationsByRoute.set(route, routeObservations);
+      contributingLines.add(line);
     }
   }
+  const totalOrderLines = contributingLines.size;
 
   const result: Record<string, PipelineOrderMarkers> = {};
   for (const [route, observations] of observationsByRoute) {

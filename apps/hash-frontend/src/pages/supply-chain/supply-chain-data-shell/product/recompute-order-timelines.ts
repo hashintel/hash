@@ -66,7 +66,7 @@ export const filterOrderLines = (
   return lines.filter((line) => line.dispatch_date.slice(0, 7) >= cutoff);
 };
 
-/** Keep order lines that include at least one batch on the selected route. */
+/** Keep the delivery-specific portions emitted for the selected route. */
 export const filterOrderLinesByRoute = (
   lines: OrderLineRow[],
   route: string,
@@ -75,26 +75,33 @@ export const filterOrderLinesByRoute = (
   const batchById = new Map(
     batches.map((batch) => [batch.batch.toUpperCase(), batch]),
   );
-  return lines.filter((line) =>
-    line.batches.some(
-      (batchId) => batchById.get(batchId.toUpperCase())?.route === route,
-    ),
-  );
+  return lines.filter((line) => {
+    if ("route" in line) {
+      return line.route === route;
+    }
+
+    // Compatibility for datasets generated before order routes were emitted.
+    if (line.batches.length === 0) {
+      return false;
+    }
+    const routes = line.batches.map(
+      (batchId) => batchById.get(batchId.toUpperCase())?.route,
+    );
+    return (
+      routes.every((batchRoute) => batchRoute != null) &&
+      new Set(routes).size === 1 &&
+      routes[0] === route
+    );
+  });
 };
 
 function batchesForLine(
   line: OrderLineRow,
   batchById: Map<string, BatchRow>,
-  activeRoute?: string,
 ): BatchRow[] {
   return line.batches
     .map((batchId) => batchById.get(batchId.toUpperCase()))
-    .filter((batch): batch is BatchRow => {
-      if (!batch) {
-        return false;
-      }
-      return !activeRoute || batch.route === activeRoute;
-    });
+    .filter((batch): batch is BatchRow => batch != null);
 }
 
 function batchAvailability(batch: BatchRow): string | null {
@@ -104,11 +111,10 @@ function batchAvailability(batch: BatchRow): string | null {
 function latestRouteBatchAvailability(
   line: OrderLineRow,
   batchById: Map<string, BatchRow>,
-  activeRoute?: string,
 ): string | null {
-  const routeBatches = batchesForLine(line, batchById, activeRoute);
+  const routeBatches = batchesForLine(line, batchById);
   if (routeBatches.length === 0) {
-    return activeRoute ? null : line.batch_available;
+    return line.batch_available;
   }
 
   const availabilityDates = routeBatches.map(batchAvailability);
@@ -159,7 +165,6 @@ function computeOrderStatistics(
   openOrderCreatedDates: string[],
   observedAsOf?: string | null,
   openOrderCount?: number,
-  activeRoute?: string,
 ): OrderStatistics {
   const percentage = (count: number, denominator: number) =>
     denominator > 0 ? (count / denominator) * 100 : null;
@@ -192,7 +197,7 @@ function computeOrderStatistics(
   const awaitedProductionWaitMedianDays = medianFor(
     awaited.map((line) =>
       daysBetween(
-        latestRouteBatchAvailability(line, batchById, activeRoute),
+        latestRouteBatchAvailability(line, batchById),
         line.order_created,
       ),
     ),
@@ -201,7 +206,7 @@ function computeOrderStatistics(
     fromStock.map((line) =>
       daysBetween(
         line.order_created,
-        latestRouteBatchAvailability(line, batchById, activeRoute),
+        latestRouteBatchAvailability(line, batchById),
       ),
     ),
   );
@@ -209,12 +214,10 @@ function computeOrderStatistics(
   let alreadyRunning = 0;
   let notStarted = 0;
   for (const line of awaited) {
-    const waitedBatches = batchesForLine(line, batchById, activeRoute).filter(
-      (batch) => {
-        const available = batchAvailability(batch);
-        return available != null && available > line.order_created;
-      },
-    );
+    const waitedBatches = batchesForLine(line, batchById).filter((batch) => {
+      const available = batchAvailability(batch);
+      return available != null && available > line.order_created;
+    });
     const hasKnownStarts =
       waitedBatches.length > 0 &&
       waitedBatches.every((batch) => batch.earliest_production_start != null);
@@ -238,7 +241,7 @@ function computeOrderStatistics(
   for (const line of lines) {
     const orderBatchIds =
       batchIdsByOrder.get(line.sales_order) ?? new Set<string>();
-    for (const batch of batchesForLine(line, batchById, activeRoute)) {
+    for (const batch of batchesForLine(line, batchById)) {
       orderBatchIds.add(batch.batch.toUpperCase());
     }
     batchIdsByOrder.set(line.sales_order, orderBatchIds);
@@ -332,7 +335,7 @@ export const recomputeOrderTimelines = (
 ): OrderPipelineResult => {
   let filtered = filterOrderLines(lines, timeRange);
   const batches = batchTimelines?.batches ?? [];
-  if (activeRoute && batches.length > 0) {
+  if (activeRoute) {
     filtered = filterOrderLinesByRoute(filtered, activeRoute, batches);
   }
   const segments: Partial<Record<OrderSegmentKey, BatchTimelineSegment>> = {};
@@ -387,6 +390,8 @@ export const recomputeOrderTimelines = (
             stages,
             total_mean: totalMean,
             total_median: totalMedian,
+            total_p75: segments.total_days?.p75,
+            total_p95: segments.total_days?.p95,
           },
         }
       : {};
@@ -405,7 +410,6 @@ export const recomputeOrderTimelines = (
             openOrderCreatedDates,
             observedAsOf,
             openOrderCount,
-            activeRoute,
           )
         : null,
   };

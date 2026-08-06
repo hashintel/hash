@@ -16598,9 +16598,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-007069"
-        ],
+        "batches": ["BATCH-007069"],
         "batch_available": "2024-12-16",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16611,23 +16609,21 @@
       {
         "sales_order": "DEMO-01-0001",
         "so_item": "20",
-        "customer": "Atlas Grocers",
-        "country": "US",
-        "order_created": "2024-11-20",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2024-12-14",
         "delivery_created": "2025-01-02",
         "dispatch_date": "2025-01-06",
         "n_deliveries": 1,
         "order_qty": 300,
         "delivered_qty": 300,
-        "batches": [
-          "BATCH-007069"
-        ],
+        "batches": ["BATCH-007069"],
         "batch_available": "2024-12-16",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 43,
+        "seg_order_to_delivery": 19,
         "seg_delivery_to_dispatch": 4,
-        "total_days": 47
+        "total_days": 23
       },
       {
         "sales_order": "DEMO-01-0003",
@@ -16640,9 +16636,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-872783"
-        ],
+        "batches": ["BATCH-872783"],
         "batch_available": "2024-12-28",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16661,9 +16655,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-775611"
-        ],
+        "batches": ["BATCH-775611"],
         "batch_available": "2025-01-12",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16682,9 +16674,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-447665"
-        ],
+        "batches": ["BATCH-447665"],
         "batch_available": "2025-01-23",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16703,9 +16693,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-863299"
-        ],
+        "batches": ["BATCH-863299"],
         "batch_available": "2025-02-08",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -16724,9 +16712,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-242499"
-        ],
+        "batches": ["BATCH-242499"],
         "batch_available": "2025-02-12",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16737,23 +16723,21 @@
       {
         "sales_order": "DEMO-01-0011",
         "so_item": "20",
-        "customer": "Bluebird Markets",
-        "country": "FR",
-        "order_created": "2024-09-29",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-01-07",
         "delivery_created": "2025-02-24",
         "dispatch_date": "2025-03-01",
         "n_deliveries": 1,
         "order_qty": 800,
         "delivered_qty": 800,
-        "batches": [
-          "BATCH-242499"
-        ],
+        "batches": ["BATCH-242499"],
         "batch_available": "2025-02-12",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 148,
+        "seg_order_to_delivery": 48,
         "seg_delivery_to_dispatch": 5,
-        "total_days": 153
+        "total_days": 53
       },
       {
         "sales_order": "DEMO-01-0013",
@@ -16766,9 +16750,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-221460"
-        ],
+        "batches": ["BATCH-221460"],
         "batch_available": "2025-02-20",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16787,9 +16769,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-208118"
-        ],
+        "batches": ["BATCH-208118"],
         "batch_available": "2025-03-03",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16808,9 +16788,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-207730"
-        ],
+        "batches": ["BATCH-207730"],
         "batch_available": "2025-03-06",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -16829,9 +16807,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-559161"
-        ],
+        "batches": ["BATCH-559161"],
         "batch_available": "2025-04-03",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16850,9 +16826,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-876661"
-        ],
+        "batches": ["BATCH-876661"],
         "batch_available": "2025-03-26",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16863,23 +16837,21 @@
       {
         "sales_order": "DEMO-01-0021",
         "so_item": "20",
-        "customer": "Sunrise Hotels",
-        "country": "ES",
-        "order_created": "2025-04-06",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2024-11-18",
         "delivery_created": "2025-04-19",
         "dispatch_date": "2025-04-25",
         "n_deliveries": 1,
         "order_qty": 700,
         "delivered_qty": 700,
-        "batches": [
-          "BATCH-876661"
-        ],
+        "batches": ["BATCH-876661"],
         "batch_available": "2025-03-26",
-        "fulfilment": "from_stock",
+        "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 13,
+        "seg_order_to_delivery": 152,
         "seg_delivery_to_dispatch": 6,
-        "total_days": 19
+        "total_days": 158
       },
       {
         "sales_order": "DEMO-01-0023",
@@ -16892,9 +16864,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-198568"
-        ],
+        "batches": ["BATCH-198568"],
         "batch_available": "2025-04-14",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16913,9 +16883,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-947566"
-        ],
+        "batches": ["BATCH-947566"],
         "batch_available": "2025-04-22",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -16934,9 +16902,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-557064"
-        ],
+        "batches": ["BATCH-557064"],
         "batch_available": "2025-05-18",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16955,9 +16921,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-891817"
-        ],
+        "batches": ["BATCH-891817"],
         "batch_available": "2025-05-20",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16976,9 +16940,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-412722"
-        ],
+        "batches": ["BATCH-412722"],
         "batch_available": "2025-06-02",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -16989,23 +16951,21 @@
       {
         "sales_order": "DEMO-01-0031",
         "so_item": "20",
-        "customer": "Atlas Grocers",
-        "country": "US",
-        "order_created": "2025-04-23",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-05-29",
         "delivery_created": "2025-06-11",
         "dispatch_date": "2025-06-18",
         "n_deliveries": 1,
         "order_qty": 600,
         "delivered_qty": 600,
-        "batches": [
-          "BATCH-412722"
-        ],
+        "batches": ["BATCH-412722"],
         "batch_available": "2025-06-02",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 49,
+        "seg_order_to_delivery": 13,
         "seg_delivery_to_dispatch": 7,
-        "total_days": 56
+        "total_days": 20
       },
       {
         "sales_order": "DEMO-01-0033",
@@ -17018,9 +16978,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-851698"
-        ],
+        "batches": ["BATCH-851698"],
         "batch_available": "2025-06-12",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17039,9 +16997,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-546123"
-        ],
+        "batches": ["BATCH-546123"],
         "batch_available": "2025-06-27",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17060,9 +17016,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-386297"
-        ],
+        "batches": ["BATCH-386297"],
         "batch_available": "2025-07-08",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17081,9 +17035,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-627234"
-        ],
+        "batches": ["BATCH-627234"],
         "batch_available": "2025-07-14",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17102,9 +17054,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-404324"
-        ],
+        "batches": ["BATCH-404324"],
         "batch_available": "2025-08-09",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17115,23 +17065,21 @@
       {
         "sales_order": "DEMO-01-0041",
         "so_item": "20",
-        "customer": "Bluebird Markets",
-        "country": "FR",
-        "order_created": "2025-04-06",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-07-06",
         "delivery_created": "2025-08-04",
         "dispatch_date": "2025-08-12",
         "n_deliveries": 1,
         "order_qty": 500,
         "delivered_qty": 500,
-        "batches": [
-          "BATCH-404324"
-        ],
+        "batches": ["BATCH-404324"],
         "batch_available": "2025-08-09",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 120,
+        "seg_order_to_delivery": 29,
         "seg_delivery_to_dispatch": 8,
-        "total_days": 128
+        "total_days": 37
       },
       {
         "sales_order": "DEMO-01-0043",
@@ -17144,9 +17092,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-243511"
-        ],
+        "batches": ["BATCH-243511"],
         "batch_available": "2025-08-04",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17165,9 +17111,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-043032"
-        ],
+        "batches": ["BATCH-043032"],
         "batch_available": "2025-08-17",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17186,9 +17130,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-302264"
-        ],
+        "batches": ["BATCH-302264"],
         "batch_available": "2025-09-05",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17207,9 +17149,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-804779"
-        ],
+        "batches": ["BATCH-804779"],
         "batch_available": "2025-08-24",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17228,9 +17168,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-482639"
-        ],
+        "batches": ["BATCH-482639"],
         "batch_available": "2025-09-05",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17241,23 +17179,21 @@
       {
         "sales_order": "DEMO-01-0051",
         "so_item": "20",
-        "customer": "Sunrise Hotels",
-        "country": "ES",
-        "order_created": "2025-09-16",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-04-08",
         "delivery_created": "2025-09-26",
         "dispatch_date": "2025-10-05",
         "n_deliveries": 1,
         "order_qty": 400,
         "delivered_qty": 400,
-        "batches": [
-          "BATCH-482639"
-        ],
+        "batches": ["BATCH-482639"],
         "batch_available": "2025-09-05",
-        "fulfilment": "from_stock",
+        "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 10,
+        "seg_order_to_delivery": 171,
         "seg_delivery_to_dispatch": 9,
-        "total_days": 19
+        "total_days": 180
       },
       {
         "sales_order": "DEMO-01-0053",
@@ -17270,9 +17206,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-231165"
-        ],
+        "batches": ["BATCH-231165"],
         "batch_available": "2025-10-04",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17291,9 +17225,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-750018"
-        ],
+        "batches": ["BATCH-750018"],
         "batch_available": "2025-10-19",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17312,9 +17244,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-155177"
-        ],
+        "batches": ["BATCH-155177"],
         "batch_available": "2025-10-29",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17333,9 +17263,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-753433"
-        ],
+        "batches": ["BATCH-753433"],
         "batch_available": "2025-11-11",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17354,9 +17282,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-521582"
-        ],
+        "batches": ["BATCH-521582"],
         "batch_available": "2025-09-08",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17367,23 +17293,21 @@
       {
         "sales_order": "DEMO-01-0061",
         "so_item": "20",
-        "customer": "Atlas Grocers",
-        "country": "US",
-        "order_created": "2025-08-01",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2025-10-01",
         "delivery_created": "2025-11-19",
         "dispatch_date": "2025-11-29",
         "n_deliveries": 1,
         "order_qty": 300,
         "delivered_qty": 300,
-        "batches": [
-          "BATCH-521582"
-        ],
+        "batches": ["BATCH-521582"],
         "batch_available": "2025-09-08",
-        "fulfilment": "awaited_production",
+        "fulfilment": "from_stock",
         "mto_pegged": false,
-        "seg_order_to_delivery": 110,
+        "seg_order_to_delivery": 49,
         "seg_delivery_to_dispatch": 10,
-        "total_days": 120
+        "total_days": 59
       },
       {
         "sales_order": "DEMO-01-0063",
@@ -17396,9 +17320,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-276962"
-        ],
+        "batches": ["BATCH-276962"],
         "batch_available": "2025-10-08",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17417,9 +17339,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-679445"
-        ],
+        "batches": ["BATCH-679445"],
         "batch_available": "2025-10-09",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17438,9 +17358,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-320907"
-        ],
+        "batches": ["BATCH-320907"],
         "batch_available": "2025-10-03",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17459,9 +17377,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-119167"
-        ],
+        "batches": ["BATCH-119167"],
         "batch_available": "2025-11-08",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17480,9 +17396,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-315004"
-        ],
+        "batches": ["BATCH-315004"],
         "batch_available": "2025-11-26",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17493,23 +17407,21 @@
       {
         "sales_order": "DEMO-01-0071",
         "so_item": "20",
-        "customer": "Bluebird Markets",
-        "country": "FR",
-        "order_created": "2025-08-06",
+        "customer": "Cedar Hospitality",
+        "country": "DE",
+        "order_created": "2025-10-25",
         "delivery_created": "2026-01-11",
         "dispatch_date": "2026-01-22",
         "n_deliveries": 1,
         "order_qty": 800,
         "delivered_qty": 800,
-        "batches": [
-          "BATCH-315004"
-        ],
+        "batches": ["BATCH-315004"],
         "batch_available": "2025-11-26",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 158,
+        "seg_order_to_delivery": 78,
         "seg_delivery_to_dispatch": 11,
-        "total_days": 169
+        "total_days": 89
       },
       {
         "sales_order": "DEMO-01-0073",
@@ -17522,9 +17434,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-006984"
-        ],
+        "batches": ["BATCH-006984"],
         "batch_available": "2025-11-09",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17543,9 +17453,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-885445"
-        ],
+        "batches": ["BATCH-885445"],
         "batch_available": "2025-11-16",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17564,9 +17472,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-990714"
-        ],
+        "batches": ["BATCH-990714"],
         "batch_available": "2025-11-30",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17585,9 +17491,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-080863"
-        ],
+        "batches": ["BATCH-080863"],
         "batch_available": "2025-12-25",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17606,9 +17510,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-997425"
-        ],
+        "batches": ["BATCH-997425"],
         "batch_available": "2026-01-24",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17619,23 +17521,21 @@
       {
         "sales_order": "DEMO-01-0081",
         "so_item": "20",
-        "customer": "Sunrise Hotels",
-        "country": "ES",
-        "order_created": "2026-02-18",
+        "customer": "Meridian Foods",
+        "country": "NL",
+        "order_created": "2025-09-19",
         "delivery_created": "2026-03-15",
         "dispatch_date": "2026-03-18",
         "n_deliveries": 1,
         "order_qty": 700,
         "delivered_qty": 700,
-        "batches": [
-          "BATCH-997425"
-        ],
+        "batches": ["BATCH-997425"],
         "batch_available": "2026-01-24",
-        "fulfilment": "from_stock",
+        "fulfilment": "awaited_production",
         "mto_pegged": false,
-        "seg_order_to_delivery": 25,
+        "seg_order_to_delivery": 177,
         "seg_delivery_to_dispatch": 3,
-        "total_days": 28
+        "total_days": 180
       },
       {
         "sales_order": "DEMO-01-0083",
@@ -17648,9 +17548,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-029240"
-        ],
+        "batches": ["BATCH-029240"],
         "batch_available": "2026-01-07",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17669,9 +17567,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-563928"
-        ],
+        "batches": ["BATCH-563928"],
         "batch_available": "2026-01-23",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17690,9 +17586,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-786903"
-        ],
+        "batches": ["BATCH-786903"],
         "batch_available": "2026-03-12",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17711,9 +17605,7 @@
         "n_deliveries": 1,
         "order_qty": 450,
         "delivered_qty": 450,
-        "batches": [
-          "BATCH-341567"
-        ],
+        "batches": ["BATCH-341567"],
         "batch_available": "2026-02-13",
         "fulfilment": "awaited_production",
         "mto_pegged": true,
@@ -17732,9 +17624,7 @@
         "n_deliveries": 1,
         "order_qty": 550,
         "delivered_qty": 550,
-        "batches": [
-          "BATCH-322485"
-        ],
+        "batches": ["BATCH-322485"],
         "batch_available": "2026-03-25",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17745,23 +17635,21 @@
       {
         "sales_order": "DEMO-01-0091",
         "so_item": "20",
-        "customer": "Atlas Grocers",
-        "country": "US",
-        "order_created": "2026-02-17",
+        "customer": "Northstar Caf\u00e9s",
+        "country": "GB",
+        "order_created": "2026-04-03",
         "delivery_created": "2026-05-07",
         "dispatch_date": "2026-05-11",
         "n_deliveries": 1,
         "order_qty": 600,
         "delivered_qty": 600,
-        "batches": [
-          "BATCH-322485"
-        ],
+        "batches": ["BATCH-322485"],
         "batch_available": "2026-03-25",
-        "fulfilment": "awaited_production",
+        "fulfilment": "from_stock",
         "mto_pegged": false,
-        "seg_order_to_delivery": 79,
+        "seg_order_to_delivery": 34,
         "seg_delivery_to_dispatch": 4,
-        "total_days": 83
+        "total_days": 38
       },
       {
         "sales_order": "DEMO-01-0093",
@@ -17774,9 +17662,7 @@
         "n_deliveries": 1,
         "order_qty": 650,
         "delivered_qty": 650,
-        "batches": [
-          "BATCH-219665"
-        ],
+        "batches": ["BATCH-219665"],
         "batch_available": "2026-03-30",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17795,9 +17681,7 @@
         "n_deliveries": 1,
         "order_qty": 750,
         "delivered_qty": 750,
-        "batches": [
-          "BATCH-311884"
-        ],
+        "batches": ["BATCH-311884"],
         "batch_available": "2026-03-19",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
@@ -17816,9 +17700,7 @@
         "n_deliveries": 1,
         "order_qty": 250,
         "delivered_qty": 250,
-        "batches": [
-          "BATCH-718060"
-        ],
+        "batches": ["BATCH-718060"],
         "batch_available": "2026-04-12",
         "fulfilment": "from_stock",
         "mto_pegged": false,
@@ -17837,9 +17719,7 @@
         "n_deliveries": 1,
         "order_qty": 350,
         "delivered_qty": 350,
-        "batches": [
-          "BATCH-136204"
-        ],
+        "batches": ["BATCH-136204"],
         "batch_available": "2026-04-15",
         "fulfilment": "awaited_production",
         "mto_pegged": false,
