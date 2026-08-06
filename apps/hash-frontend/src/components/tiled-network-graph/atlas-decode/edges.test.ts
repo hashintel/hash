@@ -163,7 +163,7 @@ const fixture = ({
   const fullRequest: SaltileEdgesRequest = {
     generation: new Uint8Array(generation),
     variant: 2,
-    includeDetailedData: false,
+    detail: "minimal",
     ...request,
   };
   const slots = payloads ?? [
@@ -227,7 +227,7 @@ describe("decodeSaltileEdges", () => {
 
   it("decodes the trailer detail columns and resolves the intern table", () => {
     const { buffer, request } = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
         [
@@ -256,7 +256,7 @@ describe("decodeSaltileEdges", () => {
 
   it("rejects an unsorted intern table", () => {
     const { buffer, request } = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
         [
@@ -274,7 +274,7 @@ describe("decodeSaltileEdges", () => {
 
   it("rejects a type index outside the intern table", () => {
     const { buffer, request } = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
         [0, cborArray([cborTstr("https://t.test/only/v/1")])],
@@ -347,7 +347,7 @@ describe("decodeSaltileEdges", () => {
     expect(
       failure(
         fixture({
-          request: { includeDetailedData: true },
+          request: { detail: "auxiliary" },
           head: defaultHead({ 4: cborBool(true) }),
         }),
       ),
@@ -358,7 +358,7 @@ describe("decodeSaltileEdges", () => {
     );
 
     const shortTrailer = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
         [0, cborArray([cborTstr("https://t.test/only/v/1")])],

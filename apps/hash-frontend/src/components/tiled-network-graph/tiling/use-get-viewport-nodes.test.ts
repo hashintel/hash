@@ -74,7 +74,7 @@ const labellingFetcher = (): TileFetcher & {
 } => {
   const calls: { key: string; detailed: boolean }[] = [];
   const fetcher: TileFetcher = (zoom, tileIndex, controls) => {
-    const detailed = controls?.includeDetailedData ?? false;
+    const detailed = controls?.detail === "auxiliary";
     calls.push({ key: `${zoom}/${tileIndex}`, detailed });
     const base = zoom * 1_000_000 + tileIndex * 10;
     const node = (id: number): TileNode =>
@@ -432,7 +432,7 @@ describe("getViewportNodes detailed data", () => {
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
 
     const { nodes } = await getViewportNodes(null, cache, {
-      includeDetailedData: true,
+      detail: "auxiliary",
     });
 
     expect(nodes.map((node) => node.label)).toEqual(["n0", "n1", "n2"]);
@@ -448,7 +448,7 @@ describe("getViewportNodes detailed data", () => {
     const compactCalls = fetcher.calls.length;
 
     const detailed = await getViewportNodes(null, cache, {
-      includeDetailedData: true,
+      detail: "auxiliary",
     });
     expect(detailed.nodes.every((node) => node.label !== undefined)).toBe(true);
     // The compact-only resident tile could not serve the detailed load, so it
@@ -461,7 +461,7 @@ describe("getViewportNodes detailed data", () => {
     const fetcher = labellingFetcher();
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
 
-    await getViewportNodes(null, cache, { includeDetailedData: true });
+    await getViewportNodes(null, cache, { detail: "auxiliary" });
     const detailedCalls = fetcher.calls.length;
 
     const { nodes } = await getViewportNodes(null, cache);
@@ -503,7 +503,7 @@ describe("TileCache", () => {
     cache.setActiveViewport(
       viewportAt(0, 0, 500, 5),
       5,
-      false,
+      "minimal",
       new Set(["5/0/0"]), // atlasTileKey of { z: 5, x: 0, y: 0 }
     );
 
@@ -570,7 +570,7 @@ describe("TileCache", () => {
       maxBytes: bytesPerTile * 2 + bytesPerSingleEdgeBucket,
     });
 
-    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5, false);
+    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5, "minimal");
     await cache.load(tileA);
     await cache.load(tileB);
     await cache.loadEdges([tileA, tileB]);
@@ -578,7 +578,7 @@ describe("TileCache", () => {
 
     // Move far away (clearing pins), then load a tile near the new viewport: the
     // furthest resident tile (A or B) is evicted, cascading to the pair bucket.
-    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5, false);
+    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5, "minimal");
     await cache.load({ z: 5, x: 29, y: 29 });
 
     expect(cache.edgeBucketCount).toBe(0);

@@ -162,8 +162,8 @@ const tileBytes = (
 
 /**
  * A 3-point delta tile carrying the detail trailer (per-point labels + icons),
- * as the server ships when `includeDetailedData` is set. The last label is null
- * (that point has no label).
+ * as the server ships when the request's `detail` is `"auxiliary"`. The last
+ * label is null (that point has no label).
  */
 const detailedTileBytes = (
   generationByte: number,
@@ -510,7 +510,7 @@ describe("fetchTile", () => {
 
     const { nodes } = await fetchTile(3, 13, {
       baseUrl: BASE,
-      includeDetailedData: true,
+      detail: "auxiliary",
     });
 
     // The trailer's label column rides delivered order; a null entry leaves the
@@ -521,9 +521,7 @@ describe("fetchTile", () => {
       undefined,
     ]);
     // The request body opts into the detail trailer.
-    expect(bodies).toEqual([
-      expect.stringContaining('"includeDetailedData":true'),
-    ]);
+    expect(bodies).toEqual([expect.stringContaining('"detail":"auxiliary"')]);
   });
 
   it("sends coloredTypeIds and decodes the per-point type mask", async () => {

@@ -49,7 +49,11 @@ import {
   decodeSaltileTile,
   type SaltileTileRequest,
 } from "../atlas-decode/tile";
-import { SALTILE_MEDIA_TYPE, SaltileMode } from "../atlas-decode/wire";
+import {
+  SALTILE_MEDIA_TYPE,
+  SaltileDetail,
+  SaltileMode,
+} from "../atlas-decode/wire";
 import {
   ATLAS_TILE_MAX_ZOOM,
   atlasTileKey,
@@ -98,8 +102,8 @@ export interface TileNode {
   readonly y: number;
   /**
    * Human-readable label from the tile's detail trailer. Present only when the
-   * tile was fetched with {@link FetchTileOptions.includeDetailedData}; the base
-   * geometry-only response leaves it `undefined`.
+   * tile was fetched with `detail: "auxiliary"` ({@link FetchTileOptions.detail});
+   * the base geometry-only response leaves it `undefined`.
    */
   readonly label?: string;
   /**
@@ -145,12 +149,13 @@ export interface FetchTileOptions {
    */
   readonly priority?: RequestPriority;
   /**
-   * Requests the detail trailer — per-point labels (and icons) the server
-   * hydrates live from the store — so decoded {@link TileNode}s carry a
-   * `label`. Defaults to `false` (the geometry-only response). The detailed
-   * view turns this on for the tiles it draws.
+   * The request's `detail` mode. `"auxiliary"` requests the detail trailer —
+   * per-point labels (and icons) the server hydrates live from the store — so
+   * decoded {@link TileNode}s carry a `label`. Defaults to `"minimal"` (the
+   * geometry-only response). The detailed view sends `"auxiliary"` for the
+   * tiles it draws.
    */
-  readonly includeDetailedData?: boolean;
+  readonly detail?: SaltileDetail;
   /**
    * Versioned type URLs conditioning the response's `TYPE_MASK` column, in the
    * order their bit index is assigned. When non-empty each decoded
@@ -1361,7 +1366,7 @@ const fetchAndDecodeTile = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-  includeDetailedData: boolean,
+  detail: SaltileDetail,
   coloredTypeIds: readonly string[],
 ): Promise<FetchedTile> => {
   const { z, x, y } = coordinate;
@@ -1377,7 +1382,7 @@ const fetchAndDecodeTile = async (
   // empty query serializes to `{}`, the all-defaults body.
   const body = JSON.stringify({
     ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
-    ...(includeDetailedData ? { includeDetailedData: true } : {}),
+    ...(detail === SaltileDetail.Auxiliary ? { detail } : {}),
   });
   const tileResponse = await requestAtlas(
     tileUrl,
@@ -1405,7 +1410,7 @@ const fetchAndDecodeTile = async (
     mode: SaltileMode.Delta,
     deliverySpanLog2: session.deliverySpanLog2,
     coloredTypeIdCount: coloredTypeIds.length,
-    includeDetailedData,
+    detail,
   };
 
   let tile;
@@ -1489,7 +1494,7 @@ export const fetchTile = async (
     signal,
     retry,
     priority,
-    includeDetailedData = false,
+    detail = SaltileDetail.Minimal,
     coloredTypeIds = [],
   } = options;
 
@@ -1523,7 +1528,7 @@ export const fetchTile = async (
       signal,
       retry,
       priority,
-      includeDetailedData,
+      detail,
       coloredTypeIds,
     ),
   );

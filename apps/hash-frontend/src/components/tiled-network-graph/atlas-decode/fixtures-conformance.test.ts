@@ -136,7 +136,7 @@ const decodeTileFixture = (
     mode: head.mode as SaltileMode,
     deliverySpanLog2: TILE_CUT_ADDEND,
     coloredTypeIdCount: maskBytesPerPoint * 8,
-    includeDetailedData: head.trailer,
+    detail: head.trailer ? "auxiliary" : "minimal",
   });
 
   expect(decoded.delivered).toBe(head.delivered);
@@ -290,7 +290,7 @@ describe("wire fixtures", () => {
     const decoded = decodeSaltileEdges(buffer, {
       generation: bytesFromHex(sidecar.head.generation),
       variant: sidecar.head.variant,
-      includeDetailedData: sidecar.head.trailer,
+      detail: sidecar.head.trailer ? "auxiliary" : "minimal",
     });
 
     expect(decoded.count).toBe(sidecar.head.count);

@@ -818,7 +818,7 @@ export const NetworkGraphView = ({
       baseUrl: ATLAS_API_BASE_URL,
       // Always fetch labelled (and icon-ed) tile data, so every visible node is
       // labelled regardless of zoom rather than only in the detailed view.
-      includeDetailedData: true,
+      detail: "auxiliary",
       coloredTypeIds,
       // Binds the atlas session to the header's filter (see `filter` prop). A
       // change refetches the graph under the new view via `sessionRevision`.

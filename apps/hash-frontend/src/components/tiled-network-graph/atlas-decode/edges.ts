@@ -29,7 +29,7 @@ import {
   requireSlot,
   requireUint,
 } from "./schema";
-import { EdgesSlot, readEnvelope } from "./wire";
+import { EdgesSlot, readEnvelope, SaltileDetail } from "./wire";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
@@ -38,7 +38,8 @@ export interface SaltileEdgesRequest {
   /** Generation identity from the manifest, 32 raw bytes. */
   readonly generation: Uint8Array;
   readonly variant: number;
-  readonly includeDetailedData: boolean;
+  /** The request body's `detail` mode; the HEAD `trailer` bool must echo it. */
+  readonly detail: SaltileDetail;
 }
 
 /**
@@ -204,9 +205,9 @@ export const decodeSaltileEdges = (
     "trailer",
     headOffset,
   );
-  if (trailerDeclared !== request.includeDetailedData) {
+  if (trailerDeclared !== (request.detail === SaltileDetail.Auxiliary)) {
     return fail(
-      `HEAD trailer is ${trailerDeclared}; the request expects ${request.includeDetailedData}`,
+      `HEAD trailer is ${trailerDeclared}; the request's detail is "${request.detail}"`,
       headOffset,
     );
   }

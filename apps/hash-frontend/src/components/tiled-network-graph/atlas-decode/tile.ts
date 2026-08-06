@@ -21,7 +21,7 @@ import {
   requireSlot,
   requireUint,
 } from "./schema";
-import { readEnvelope, SaltileMode, TileSlot } from "./wire";
+import { readEnvelope, SaltileDetail, SaltileMode, TileSlot } from "./wire";
 
 /** The request context a tile response must echo. */
 export interface SaltileTileRequest {
@@ -45,7 +45,8 @@ export interface SaltileTileRequest {
   readonly deliverySpanLog2: number;
   /** Count of colored type ids sent; 0 means TYPE_MASK is absent. */
   readonly coloredTypeIdCount: number;
-  readonly includeDetailedData: boolean;
+  /** The request body's `detail` mode; the HEAD `trailer` bool must echo it. */
+  readonly detail: SaltileDetail;
 }
 
 /**
@@ -308,9 +309,9 @@ export const decodeSaltileTile = (
     "trailer",
     headOffset,
   );
-  if (trailerDeclared !== request.includeDetailedData) {
+  if (trailerDeclared !== (request.detail === SaltileDetail.Auxiliary)) {
     return fail(
-      `HEAD trailer is ${trailerDeclared}; the request expects ${request.includeDetailedData}`,
+      `HEAD trailer is ${trailerDeclared}; the request's detail is "${request.detail}"`,
       headOffset,
     );
   }

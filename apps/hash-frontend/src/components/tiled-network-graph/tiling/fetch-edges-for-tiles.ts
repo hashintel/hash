@@ -14,10 +14,9 @@
  * are node row ids — the same ids {@link fetchTile} attaches to nodes — so an
  * edge references the nodes by their delivered id.
  *
- * `includeDetailedData` (per-edge link labels and icons) rides the trailer when
- * requested, mirroring the tile transport; callers leave it off until the edges
- * route serves it (version 0 rejects it with an `unsupported-feature` problem).
- * `filter` remains unsupported and is never sent.
+ * `detail: "auxiliary"` requests the per-edge detail trailer (link labels and
+ * icons), mirroring the tile transport; the default `"minimal"` sends the
+ * geometry columns alone.
  *
  * Transient failures retry with backoff (see {@link withAtlasRetry}). The two failures that end a
  * session replace it once and retry, as in {@link fetchTile}: a `404`, meaning the pinned generation
@@ -28,7 +27,7 @@
  */
 
 import { decodeSaltileEdges } from "../atlas-decode/edges";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
+import { SALTILE_MEDIA_TYPE, SaltileDetail } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
@@ -87,24 +86,25 @@ export interface FetchEdgesForTilesOptions {
   /** Network priority hint; see {@link FetchTileOptions.priority}. */
   readonly priority?: RequestPriority;
   /**
-   * Requests the per-edge detail trailer (link labels and type references).
-   * Defaults to `false`. See {@link FetchTileOptions.includeDetailedData}.
+   * The request's `detail` mode. `"auxiliary"` requests the per-edge detail
+   * trailer (link labels and type references). Defaults to `"minimal"`. See
+   * {@link FetchTileOptions.detail}.
    */
-  readonly includeDetailedData?: boolean;
+  readonly detail?: SaltileDetail;
 }
 
 /** The edges route for a session; the variant name addresses it, as for tiles. */
 const edgesUrl = (session: SaltileSession, baseUrl: string): string =>
   `${baseUrl}/edges/${session.generation}/${session.variant}`;
 
-/** The JSON body: the tile list, plus the detail flag only when requested. */
+/** The JSON body: the tile list, plus the detail mode only when auxiliary. */
 const edgesBody = (
   tiles: readonly AtlasTileCoordinate[],
-  includeDetailedData: boolean,
+  detail: SaltileDetail,
 ): string =>
   JSON.stringify({
     tiles: tiles.map(({ z, x, y }) => ({ z, x, y })),
-    ...(includeDetailedData ? { includeDetailedData: true } : {}),
+    ...(detail === SaltileDetail.Auxiliary ? { detail } : {}),
   });
 
 const fetchAndDecodeEdges = async (
@@ -114,12 +114,12 @@ const fetchAndDecodeEdges = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-  includeDetailedData: boolean,
+  detail: SaltileDetail,
 ): Promise<FetchedEdges> => {
   const response = await requestAtlas(
     edgesUrl(session, baseUrl),
     SALTILE_MEDIA_TYPE,
-    edgesBody(tiles, includeDetailedData),
+    edgesBody(tiles, detail),
     signal,
     retries,
     priority,
@@ -138,13 +138,13 @@ const fetchAndDecodeEdges = async (
     decoded = decodeSaltileEdges(buffer, {
       generation: session.generationBytes,
       variant: session.variantIndex,
-      includeDetailedData,
+      detail,
     });
   } catch (cause) {
     throw new FetchTileError("failed to decode edges", { cause });
   }
 
-  const { count, sources, targets, edgeIds, detail } = decoded;
+  const { count, sources, targets, edgeIds, detail: trailer } = decoded;
   const edges: TileEdge[] = new Array<TileEdge>(count);
   for (let index = 0; index < count; index += 1) {
     const id = edgeIds[index];
@@ -155,8 +155,8 @@ const fetchAndDecodeEdges = async (
     if (id === undefined || source === undefined || target === undefined) {
       throw new FetchTileError(`edges record ${index} is truncated`);
     }
-    const label = detail?.linkLabels[index] ?? undefined;
-    const typeId = detail?.linkTypeIds[index] ?? undefined;
+    const label = trailer?.linkLabels[index] ?? undefined;
+    const typeId = trailer?.linkTypeIds[index] ?? undefined;
     edges[index] = {
       id,
       source,
@@ -195,7 +195,7 @@ export const fetchEdgesForTiles = async (
     signal,
     retry,
     priority,
-    includeDetailedData = false,
+    detail = SaltileDetail.Minimal,
   } = options;
 
   if (tiles.length === 0) {
@@ -218,7 +218,7 @@ export const fetchEdgesForTiles = async (
       signal,
       retry,
       priority,
-      includeDetailedData,
+      detail,
     );
   });
 };

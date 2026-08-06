@@ -196,7 +196,7 @@ describe("fetchEdgesForTiles", () => {
     expect(edgesRequest?.body).toEqual({ tiles });
   });
 
-  it("sends includeDetailedData and accepts a response with the detail trailer", async () => {
+  it("sends the auxiliary detail mode and accepts a response with the detail trailer", async () => {
     const generation = genHex(0x77);
     const captured = stubTransport({
       "/atlas/current": () => json({ generation }),
@@ -208,7 +208,7 @@ describe("fetchEdgesForTiles", () => {
 
     const { edges } = await fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], {
       baseUrl: BASE,
-      includeDetailedData: true,
+      detail: "auxiliary",
     });
 
     expect(edges).toEqual([
@@ -219,7 +219,7 @@ describe("fetchEdgesForTiles", () => {
     );
     expect(edgesRequest?.body).toEqual({
       tiles: [{ z: 0, x: 0, y: 0 }],
-      includeDetailedData: true,
+      detail: "auxiliary",
     });
   });
 

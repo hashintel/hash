@@ -86,6 +86,18 @@ export const SaltileMode = {
 
 export type SaltileMode = (typeof SaltileMode)[keyof typeof SaltileMode];
 
+/**
+ * The request body's `detail` mode, shared by the tile and edges routes:
+ * `"auxiliary"` asks for the detail trailer tail, `"minimal"` (the server
+ * default) sends geometry alone. The HEAD `trailer` bool echoes the choice.
+ */
+export const SaltileDetail = {
+  Minimal: "minimal",
+  Auxiliary: "auxiliary",
+} as const;
+
+export type SaltileDetail = (typeof SaltileDetail)[keyof typeof SaltileDetail];
+
 /** One present payload extent; `end` is exclusive and unpadded. */
 export interface SaltileSlot {
   readonly start: number;

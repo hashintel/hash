@@ -170,7 +170,7 @@ const fixture = ({
     mode: SaltileMode.Delta,
     deliverySpanLog2: 6,
     coloredTypeIdCount: 0,
-    includeDetailedData: false,
+    detail: "minimal",
     ...request,
   };
   const slots = payloads ?? [
@@ -221,7 +221,7 @@ describe("decodeSaltileTile", () => {
   it("decodes TYPE_MASK and the trailer tail when the request asks", () => {
     const masks = [0b101, 0b000, 0b110];
     const { buffer, request } = fixture({
-      request: { coloredTypeIdCount: 3, includeDetailedData: true },
+      request: { coloredTypeIdCount: 3, detail: "auxiliary" },
       payloads: [
         cborMap(defaultHead({ 10: cborBool(true) })),
         f32le(positions),
@@ -466,16 +466,16 @@ describe("decodeSaltileTile", () => {
     expect(failure(maskMissing)).toMatch(/slot 3 \(TYPE_MASK\) is absent/u);
 
     const trailerMissing = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
       head: defaultHead({ 10: cborBool(true) }),
     });
     expect(failure(trailerMissing)).toMatch(/carries no tail/u);
 
     const trailerDisagrees = fixture({
-      request: { includeDetailedData: true },
+      request: { detail: "auxiliary" },
     });
     expect(failure(trailerDisagrees)).toMatch(
-      /HEAD trailer is false; the request expects true/u,
+      /HEAD trailer is false; the request's detail is "auxiliary"/u,
     );
 
     const undeclaredTail = fixture({ tail: [0xa0] });
