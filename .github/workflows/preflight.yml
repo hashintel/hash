@@ -14,7 +14,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@7968be8f8ddb5c20de24f53a3195ddb24cd7f943 # main
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
     with:
       # GHSA-frvp-7c67-39w9: advisory has a wrong affected-version range; the fix was
       # backported in @hono/node-server. Remove once github/advisory-database#8824 merges.
@@ -37,4 +37,4 @@ jobs:
     name: PR title
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@d76c83934e25cd960dd0b8424f8909ce6b7ad939 # main
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
