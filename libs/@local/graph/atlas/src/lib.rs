@@ -14,6 +14,7 @@
 //!   element-typed artifact column view.
 //! - [`integrity`] - SHA-256 content identity for published artifacts.
 //! - [`morton`] - Z-order keys from interleaved axes, plus grid cells and contiguous key ranges.
+//! - [`runs`] - compressed runs of items over dense key domains stored as two flat columns.
 //! - [`progress`] - observation of a running fit, the seam operator surfaces render from.
 //! - [`file`](mod@file) - the on-disk artifact formats, plain files in a directory described by
 //!   metadata beside them.
@@ -135,5 +136,6 @@ pub(crate) mod math;
 pub(crate) mod morton;
 pub(crate) mod progress;
 pub(crate) mod random;
+pub(crate) mod runs;
 mod salt;
 pub mod serve;
