@@ -6,6 +6,7 @@ import { siteNodeKey } from "../../shared/site-node-key";
 import {
   deriveStatusActionState,
   statusKey,
+  statusTokensToPlainText,
   type StatusEntry,
   type StatusStore,
 } from "../../shared/status";
@@ -14,6 +15,7 @@ import type { ProcurementBasis } from "../../shared/procurement-basis-context";
 import type { TimeRange } from "../../shared/time-range";
 import type { DetailColumn, Product, SiteNode } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
+import type { EntityId } from "@blockprotocol/type-system";
 
 type ExportValue = string | number | null;
 type ExportRecord = Record<string, ExportValue>;
@@ -31,6 +33,7 @@ export interface SiteOverviewExportSettings {
 export interface SiteOverviewExportInput {
   dwellRows: readonly DwellRow[];
   historicalNodes: readonly SiteNode[];
+  mentionShortnamesByEntityId?: ReadonlyMap<EntityId, string>;
   planningRows: readonly PlanningRow[];
   products: readonly Product[];
   settings: SiteOverviewExportSettings;
@@ -152,15 +155,24 @@ const latestEntry = (
         .at(-1) ?? null)
     : null;
 
-const formatComments = (entries: readonly StatusEntry[] | undefined): string =>
+const formatComments = (
+  entries: readonly StatusEntry[] | undefined,
+  mentionShortnamesByEntityId: ReadonlyMap<EntityId, string>,
+): string =>
   [...(entries ?? [])]
     .sort((left, right) => left.at.localeCompare(right.at))
-    .map(
-      (entry) =>
-        `${entry.at} | ${entry.user} | ${entry.category} | ${
-          entry.text || "(no comment)"
-        }`,
-    )
+    .map((entry) => {
+      const text = entry.tokens.length
+        ? statusTokensToPlainText(
+            entry.tokens,
+            (entityId) =>
+              `@${mentionShortnamesByEntityId.get(entityId) ?? "user"}`,
+          )
+        : entry.text;
+      return `${entry.at} | ${entry.user} | ${entry.category} | ${
+        text || "(no comment)"
+      }`;
+    })
     .join("\n");
 
 const planningSourceLabel = (node: SiteNode): string | null => {
@@ -233,6 +245,7 @@ const measureValues = (
 const rowToExportRecord = ({
   category,
   historicalNode,
+  mentionShortnamesByEntityId,
   node,
   materialNamesByNumber,
   settings,
@@ -241,6 +254,7 @@ const rowToExportRecord = ({
 }: {
   category: "Dwell" | "Planning";
   historicalNode: SiteNode;
+  mentionShortnamesByEntityId: ReadonlyMap<EntityId, string>;
   node: DwellRow | PlanningRow;
   materialNamesByNumber: ReadonlyMap<string, string>;
   settings: SiteOverviewExportSettings;
@@ -298,13 +312,14 @@ const rowToExportRecord = ({
     latest_status_category: latest?.category ?? null,
     latest_status_at: latest?.at ?? null,
     latest_status_author: latest?.user ?? null,
-    comments: formatComments(entries),
+    comments: formatComments(entries, mentionShortnamesByEntityId),
   });
 };
 
 export const buildSiteOverviewExportRows = ({
   dwellRows,
   historicalNodes,
+  mentionShortnamesByEntityId = new Map(),
   planningRows,
   products,
   settings,
@@ -327,6 +342,7 @@ export const buildSiteOverviewExportRows = ({
       category,
       historicalNode: historicalNodesByKey.get(siteNodeKey(node)) ?? node,
       materialNamesByNumber,
+      mentionShortnamesByEntityId,
       node,
       settings,
       siteId,

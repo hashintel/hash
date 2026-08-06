@@ -960,6 +960,7 @@ export const Overview = ({
                   opportunityStatusStore.actions.onSaveStatus(
                     statusTarget,
                     entry,
+                    productId,
                   );
                   setStatusTarget(null);
                 }}
@@ -979,7 +980,11 @@ export const Overview = ({
           }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
-            opportunityStatusStore.actions.onSaveStatus(statusTarget, entry);
+            opportunityStatusStore.actions.onSaveStatus(
+              statusTarget,
+              entry,
+              productId,
+            );
             setStatusTarget(null);
           }}
         />

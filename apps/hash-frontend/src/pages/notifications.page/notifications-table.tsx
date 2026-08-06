@@ -31,9 +31,11 @@ import { useUserOrOrgShortnameByWebId } from "../../components/hooks/use-user-or
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, Link } from "../../shared/ui";
+import { getOpportunityStatusMentionHref } from "./notifications-table/opportunity-status-mention";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 import type {
+  EntityMentionNotification,
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
@@ -164,6 +166,28 @@ const PageRelatedNotificationContent = ({
   );
 };
 
+const EntityMentionNotificationContent = ({
+  notification,
+  handleNotificationClick,
+  targetHref,
+}: {
+  notification: EntityMentionNotification;
+  handleNotificationClick: () => void;
+  targetHref?: string;
+}) => (
+  <>
+    <Link noLinkStyle href={`/@${notification.triggeredByUser.shortname}`}>
+      {notification.triggeredByUser.displayName}
+    </Link>{" "}
+    mentioned you in{" "}
+    <Link noLinkStyle href={targetHref ?? ""} onClick={handleNotificationClick}>
+      {notification.kind === "opportunity-status-mention"
+        ? "a supply-chain status update"
+        : notification.occurredInEntityLabel}
+    </Link>
+  </>
+);
+
 const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   notification,
 }) => {
@@ -190,11 +214,18 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   });
 
   const targetHref = useMemo(() => {
+    if (notification.kind === "opportunity-status-mention") {
+      return getOpportunityStatusMentionHref(notification.occurredInEntity);
+    }
+
     if (!entityOwningShortname) {
       return undefined;
     }
 
-    if (notification.kind === "graph-change") {
+    if (
+      notification.kind === "graph-change" ||
+      notification.kind === "entity-mention"
+    ) {
       return generateEntityPath({
         entityId: notification.occurredInEntity.metadata.recordId.entityId,
         includeDraftId: true,
@@ -286,6 +317,13 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
             handleNotificationClick={handleNotificationClick}
             targetHref={targetHref}
           />
+        ) : notification.kind === "entity-mention" ||
+          notification.kind === "opportunity-status-mention" ? (
+          <EntityMentionNotificationContent
+            handleNotificationClick={handleNotificationClick}
+            notification={notification}
+            targetHref={targetHref}
+          />
         ) : (
           <PageRelatedNotificationContent
             handleNotificationClick={handleNotificationClick}
@@ -300,9 +338,12 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
           notification.kind === "comment-reply" ||
           notification.kind === "comment-mention"
             ? "View comment"
-            : notification.kind === "graph-change"
-              ? "View entity"
-              : "View page"}
+            : notification.kind === "opportunity-status-mention"
+              ? "View update"
+              : notification.kind === "graph-change" ||
+                  notification.kind === "entity-mention"
+                ? "View entity"
+                : "View page"}
         </Button>
         {notification.readAt ? null : (
           <Button

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { StatusDialog } from "./status-dialog";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
 
 vi.mock("@hashintel/ds-components", () => ({
@@ -59,6 +60,29 @@ vi.mock("./telemetry", () => ({
   trackSupplyChainInteraction: vi.fn(),
 }));
 
+vi.mock("../../shared/auth-info-context", () => ({
+  useAuthInfo: () => ({ authenticatedUser: undefined }),
+}));
+
+vi.mock("../../../components/hooks/use-users", () => ({
+  useUsers: () => ({ users: [] }),
+}));
+
+vi.mock("./status-dialog/status-editor", () => ({
+  StatusEditor: ({
+    onChange,
+  }: {
+    onChange: (tokens: Array<{ tokenType: "text"; text: string }>) => void;
+  }) => (
+    <textarea
+      aria-label="Status comment"
+      onChange={(event) =>
+        onChange([{ tokenType: "text", text: event.target.value }])
+      }
+    />
+  ),
+}));
+
 describe("StatusDialog", () => {
   afterEach(cleanup);
 
@@ -68,16 +92,20 @@ describe("StatusDialog", () => {
         title="QA hold"
         entries={[
           {
+            entityId: "web~later" as EntityId,
             at: "2026-02-02T12:00:00.000Z",
             user: "Later user",
             category: "Investigation update",
             text: "Later comment",
+            tokens: [{ tokenType: "text", text: "Later comment" }],
           },
           {
+            entityId: "web~earlier" as EntityId,
             at: "2026-01-01T12:00:00.000Z",
             user: "Earlier user",
             category: "Investigation started",
             text: "",
+            tokens: [],
           },
         ]}
         inline
@@ -123,6 +151,7 @@ describe("StatusDialog", () => {
     expect(onSave).toHaveBeenCalledWith({
       category: "Investigation concluded",
       text: "Issue resolved",
+      tokens: [{ tokenType: "text", text: "Issue resolved" }],
     });
   });
 });

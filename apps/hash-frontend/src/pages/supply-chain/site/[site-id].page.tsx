@@ -1,11 +1,12 @@
 import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import { useRegistry } from "../shared/registry-context";
 import { normaliseSiteCode } from "../shared/site-code";
 import { getSupplyChainLayout } from "../shared/supply-chain-layout";
 import { trackSupplyChainViewed } from "../shared/telemetry";
+import { useSearchParams } from "../shared/use-search-params";
 import { SiteOverview } from "../supply-chain-data-shell/site";
 import { useSupplyChainStatusState } from "../supply-chain-data-shell/site/use-supply-chain-status-state";
 
@@ -20,6 +21,20 @@ const SitePage: NextPageWithLayout = () => {
       : (sites[0]?.slug ?? ""),
   );
   const opportunityStatusStore = useSupplyChainStatusState(siteId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const opportunityScopeKey = searchParams.get("opportunity");
+  const focusedStatusUpdateUuid = searchParams.get("statusUpdate");
+  const clearStatusRoute = useCallback(() => {
+    setSearchParams(
+      (previousSearchParams) => {
+        const nextSearchParams = new URLSearchParams(previousSearchParams);
+        nextSearchParams.delete("opportunity");
+        nextSearchParams.delete("statusUpdate");
+        return nextSearchParams;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   const siteName = sites.find(
     (site) => normaliseSiteCode(site.slug) === siteId,
@@ -46,6 +61,9 @@ const SitePage: NextPageWithLayout = () => {
         siteId={siteId}
         opportunityStatusHistory={opportunityStatusStore.statusHistory}
         opportunityStatusActions={opportunityStatusStore.actions}
+        opportunityScopeKey={opportunityScopeKey}
+        focusedStatusUpdateUuid={focusedStatusUpdateUuid}
+        onStatusRouteClear={clearStatusRoute}
       />
     </>
   );

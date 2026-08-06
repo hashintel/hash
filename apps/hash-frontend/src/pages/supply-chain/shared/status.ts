@@ -1,6 +1,8 @@
 import { isDwellType, isProductSpecificType } from "./categories";
 
 import type { SiteNode } from "./types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export const STATUS_OPTIONS = [
   "Investigation started",
@@ -14,11 +16,18 @@ export type StatusOption = (typeof STATUS_OPTIONS)[number];
 
 /** A single status update left against a step/node. */
 export interface StatusEntry {
+  /** Entity backing this status update. */
+  entityId: EntityId;
   /** ISO timestamp the status was first created (original decision time). */
   at: string;
   /** Author display name, resolved from the status entity's original creator. */
   user: string;
+  /** User entity resolved from the status entity's original creator. */
+  userEntityId?: EntityId;
   category: StatusOption;
+  /** Structured body. Legacy plain-text statuses are normalized to one token. */
+  tokens: TextToken[];
+  /** Legacy plain-text body, retained as a fallback for pre-token statuses. */
   text: string;
 }
 
@@ -60,6 +69,56 @@ export function compareStatusLabels(
 export function statusCommentRequired(category: StatusOption): boolean {
   return category !== "Investigation started";
 }
+
+const isTextToken = (value: unknown): value is TextToken => {
+  if (!value || typeof value !== "object" || !("tokenType" in value)) {
+    return false;
+  }
+
+  const token = value as Record<string, unknown>;
+  if (token.tokenType === "hardBreak") {
+    return true;
+  }
+  if (token.tokenType === "text") {
+    return typeof token.text === "string";
+  }
+  return (
+    token.tokenType === "mention" &&
+    token.mentionType === "user" &&
+    typeof token.entityId === "string"
+  );
+};
+
+/** Prefer structured content, falling back to a legacy plain-text body. */
+export const parseStatusTokens = (
+  value: unknown,
+  legacyText: string,
+): TextToken[] =>
+  Array.isArray(value) && value.every(isTextToken)
+    ? value
+    : legacyText
+      ? [{ tokenType: "text", text: legacyText }]
+      : [];
+
+/** Convert structured content to the compatibility/export plain-text form. */
+export const statusTokensToPlainText = (
+  tokens: readonly TextToken[],
+  mentionText: (entityId: EntityId) => string = () => "@user",
+): string =>
+  tokens
+    .map((token) => {
+      switch (token.tokenType) {
+        case "hardBreak":
+          return "\n";
+        case "mention":
+          return mentionText(token.entityId);
+        case "text":
+          return token.text;
+        default:
+          return "";
+      }
+    })
+    .join("");
 
 /**
  * Stable key for status aggregation: site + opportunity type (dwell vs

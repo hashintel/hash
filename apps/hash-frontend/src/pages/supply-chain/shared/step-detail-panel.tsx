@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -43,6 +44,7 @@ import {
 import { useRegistry } from "./registry-context";
 import { SlideOver, SlideOverClose } from "./slide-over";
 import { deriveStatusActionState, type StatusEntry } from "./status";
+import { StatusBody } from "./status-body";
 import { ConsumptionMetricsRow } from "./step-detail-panel/consumption-metrics";
 import {
   DataTableSection,
@@ -55,6 +57,10 @@ import {
 } from "./step-detail-panel/distribution-chart";
 import { MonthlyCostChart } from "./step-detail-panel/monthly-cost-chart";
 import { SavingsCalculator } from "./step-detail-panel/savings-calculator";
+import {
+  statusUpdateDomId,
+  useStatusUpdateFocus,
+} from "./step-detail-panel/status-focus";
 import {
   StatsRow,
   ObservationCount,
@@ -194,6 +200,10 @@ const statusItem = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
+});
+const focusedStatusItem = css({
+  borderColor: "bd.strong",
+  bg: "bg.subtle",
 });
 const statusMeta = css({
   display: "flex",
@@ -354,6 +364,8 @@ interface StepDetailPanelProps {
   measureOverride?: BaseMeasure;
   /** All status updates left against this step/node (any order; rendered newest-first). */
   statusEntries?: StatusEntry[];
+  /** Status update entity UUID to focus after opening from a notification. */
+  focusedStatusUpdateUuid?: string | null;
   /** Opens the shared status dialog for this step. */
   onStatus?: () => void;
   /** Inline modal content opened from inside the slide-over. */
@@ -391,6 +403,7 @@ export const StepDetailPanel = ({
   briefHref,
   measureOverride,
   statusEntries = [],
+  focusedStatusUpdateUuid,
   onStatus,
   statusDialog,
 }: StepDetailPanelProps) => {
@@ -715,6 +728,9 @@ export const StepDetailPanel = ({
     () => deriveStatusActionState(statusEntries),
     [statusEntries],
   );
+  const { focusedStatusUpdateRef, highlightedStatusUpdateUuid } =
+    useStatusUpdateFocus({ focusedStatusUpdateUuid, statusEntries });
+
   return (
     <SlideOver onClose={onClose} label={step?.label ?? "Step detail"}>
       {/* Header */}
@@ -1101,21 +1117,41 @@ export const StepDetailPanel = ({
             </p>
           ) : (
             <div className={statusList}>
-              {[...statusEntries].reverse().map((entry) => (
-                <div
-                  key={`${entry.at}-${entry.user}-${entry.category}-${entry.text}`}
-                  className={statusItem}
-                >
-                  <div className={statusMeta}>
-                    <span className={statusCategory}>{entry.category}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{entry.user}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{formatStatusDate(entry.at)}</span>
+              {[...statusEntries].reverse().map((entry) => {
+                const isFocused =
+                  focusedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+                const isHighlighted =
+                  highlightedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+
+                return (
+                  <div
+                    id={statusUpdateDomId(entry)}
+                    key={entry.entityId}
+                    ref={isFocused ? focusedStatusUpdateRef : undefined}
+                    className={cx(
+                      statusItem,
+                      isHighlighted && focusedStatusItem,
+                    )}
+                  >
+                    <div className={statusMeta}>
+                      <span className={statusCategory}>{entry.category}</span>
+                      <span className={statusDot}>·</span>
+                      <span>{entry.user}</span>
+                      <span className={statusDot}>·</span>
+                      <span>{formatStatusDate(entry.at)}</span>
+                    </div>
+                    <p className={statusBody}>
+                      {entry.tokens.length > 0 ? (
+                        <StatusBody tokens={entry.tokens} />
+                      ) : (
+                        statusEntryText(entry)
+                      )}
+                    </p>
                   </div>
-                  <p className={statusBody}>{statusEntryText(entry)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

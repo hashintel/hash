@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
 import { isDwellType } from "../shared/categories";
 import { formatCost, useCostParams, useOutlierSetting } from "../shared/cost";
 import { downloadCsv } from "../shared/export-utils";
@@ -36,6 +37,7 @@ import { PlanningTable } from "./site/planning-table";
 import { SiteMonthlyCarryCostChart } from "./site/site-monthly-carry-cost-chart";
 import { buildSiteOverviewCsv } from "./site/site-overview-export";
 import { createSiteSearchMatchers } from "./site/site-search";
+import { resolveStatusRoute } from "./site/status-route";
 import { SupplierTable } from "./site/supplier-table";
 import { TabButton } from "./site/tab-button";
 import { TrendTable } from "./site/trend-table";
@@ -157,6 +159,9 @@ interface SiteOverviewProps {
   siteId: string;
   opportunityStatusHistory?: StatusStore;
   opportunityStatusActions?: OpportunityStatusActions;
+  opportunityScopeKey?: string | null;
+  focusedStatusUpdateUuid?: string | null;
+  onStatusRouteClear: () => void;
 }
 
 const emptyOpportunityStatusHistory: StatusStore = {};
@@ -204,12 +209,32 @@ export const SiteOverview = ({
   siteId,
   opportunityStatusHistory = emptyOpportunityStatusHistory,
   opportunityStatusActions = noopOpportunityStatusActions,
+  opportunityScopeKey,
+  focusedStatusUpdateUuid,
+  onStatusRouteClear,
 }: SiteOverviewProps) => {
   const { timeRange } = useTimeRange();
   const { currency, waccRate, storageCost } = useCostParams();
   const { excludeOutliers } = useOutlierSetting();
   const { basis: procurementBasis } = useProcurementBasis();
   const supplierPerformanceEnabled = useSupplierPerformanceEnabled();
+  const { users } = useUsers();
+  const mentionShortnamesByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).flatMap((user) =>
+          user.shortname
+            ? [
+                [
+                  user.entity.metadata.recordId.entityId,
+                  user.shortname,
+                ] as const,
+              ]
+            : [],
+        ),
+      ),
+    [users],
+  );
   const siteSlug = siteId;
   const [tab, setTab] = useState<Tab>("dwell");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -228,6 +253,7 @@ export const SiteOverview = ({
   } | null>(null);
   const [statusTarget, setStatusTarget] = useState<{
     node: SiteNode;
+    productId: string;
     title: string;
   } | null>(null);
 
@@ -240,14 +266,22 @@ export const SiteOverview = ({
   }, [searchInputValue]);
 
   const openStatus = useCallback(
-    (node: SiteNode, title: string) => {
+    (node: SiteNode, title: string, explicitProductId?: string) => {
+      const productId = explicitProductId ?? node.products[0]?.id;
+      if (!productId) {
+        return;
+      }
       trackSupplyChainInteraction({
         interaction: "status_dialog_opened",
         siteId,
         source: "site_overview",
         stepId: node.id,
       });
-      setStatusTarget({ node, title: statusTitleForNode(node, title) });
+      setStatusTarget({
+        node,
+        productId,
+        title: statusTitleForNode(node, title),
+      });
     },
     [siteId],
   );
@@ -348,6 +382,7 @@ export const SiteOverview = ({
     const csv = buildSiteOverviewCsv({
       dwellRows,
       historicalNodes,
+      mentionShortnamesByEntityId,
       planningRows,
       products,
       settings: {
@@ -374,6 +409,7 @@ export const SiteOverview = ({
     excludeLowSamples,
     excludeOutliers,
     historicalNodes,
+    mentionShortnamesByEntityId,
     opportunityStatusHistory,
     planningRows,
     products,
@@ -447,6 +483,9 @@ export const SiteOverview = ({
       if (!firstProduct) {
         return;
       }
+      if (opportunityScopeKey || focusedStatusUpdateUuid) {
+        onStatusRouteClear();
+      }
       trackSupplyChainInteraction({
         interaction: "site_step_selected",
         siteId,
@@ -471,8 +510,69 @@ export const SiteOverview = ({
             : undefined,
       });
     },
-    [buildBriefHref, siteId],
+    [
+      buildBriefHref,
+      focusedStatusUpdateUuid,
+      onStatusRouteClear,
+      opportunityScopeKey,
+      siteId,
+    ],
   );
+
+  useEffect(() => {
+    if (!opportunityScopeKey && !focusedStatusUpdateUuid) {
+      return;
+    }
+    if (!opportunityScopeKey || !focusedStatusUpdateUuid) {
+      setSelectedStep(null);
+      onStatusRouteClear();
+      return;
+    }
+    if (loading) {
+      return;
+    }
+
+    const resolvedRoute = resolveStatusRoute(
+      siteSlug,
+      opportunityScopeKey,
+      historicalNodes,
+    );
+    if (!resolvedRoute) {
+      setSelectedStep(null);
+      onStatusRouteClear();
+      return;
+    }
+
+    const { node, productId } = resolvedRoute;
+    setSelectedStep((currentSelection) => {
+      if (
+        currentSelection?.node === node &&
+        currentSelection.productId === productId
+      ) {
+        return currentSelection;
+      }
+
+      return {
+        productId,
+        stepId: node.id,
+        node,
+        title: node.label,
+        siteContext: { products: node.products },
+        briefHref: buildBriefHref(
+          isDwellType(node.type) ? "dwell" : "planning",
+          node,
+        ),
+      };
+    });
+  }, [
+    buildBriefHref,
+    focusedStatusUpdateUuid,
+    historicalNodes,
+    loading,
+    onStatusRouteClear,
+    opportunityScopeKey,
+    siteSlug,
+  ]);
 
   const revealOverPlanOpportunities = useCallback(() => {
     setOppTypeHidden(new Set());
@@ -490,13 +590,22 @@ export const SiteOverview = ({
       stepId: selectedStep?.stepId ?? "",
     });
     setSelectedStep(null);
-  }, [selectedStep?.stepId, siteId]);
+    if (opportunityScopeKey || focusedStatusUpdateUuid) {
+      onStatusRouteClear();
+    }
+  }, [
+    focusedStatusUpdateUuid,
+    onStatusRouteClear,
+    opportunityScopeKey,
+    selectedStep?.stepId,
+    siteId,
+  ]);
 
   const statusTargetIsSelectedStep =
     selectedStep != null &&
     statusTarget != null &&
     statusTarget.node.id === selectedStep.node.id &&
-    statusTarget.node.products[0]?.id === selectedStep.productId;
+    statusTarget.productId === selectedStep.productId;
 
   const selectedStepStatusTarget = statusTargetIsSelectedStep
     ? statusTarget
@@ -755,6 +864,7 @@ export const SiteOverview = ({
           key={`${selectedStep.productId}-${selectedStep.stepId}`}
           productId={selectedStep.productId}
           stepId={selectedStep.stepId}
+          focusedStatusUpdateUuid={focusedStatusUpdateUuid}
           onClose={handlePanelClose}
           siteContext={selectedStep.siteContext}
           stepMaterial={selectedStep.node.material}
@@ -764,7 +874,13 @@ export const SiteOverview = ({
             opportunityStatusHistory[statusKey(siteSlug, selectedStep.node)] ??
             []
           }
-          onStatus={() => openStatus(selectedStep.node, selectedStep.title)}
+          onStatus={() =>
+            openStatus(
+              selectedStep.node,
+              selectedStep.title,
+              selectedStep.productId,
+            )
+          }
           productName={
             selectedStep.siteContext.products.length === 1
               ? selectedStep.siteContext.products[0]?.name
@@ -788,6 +904,7 @@ export const SiteOverview = ({
                   opportunityStatusActions.onSaveStatus(
                     selectedStepStatusTarget.node,
                     entry,
+                    selectedStepStatusTarget.productId,
                   );
                   setStatusTarget(null);
                 }}
@@ -817,7 +934,11 @@ export const SiteOverview = ({
           }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
-            opportunityStatusActions.onSaveStatus(statusTarget.node, entry);
+            opportunityStatusActions.onSaveStatus(
+              statusTarget.node,
+              entry,
+              statusTarget.productId,
+            );
             setStatusTarget(null);
           }}
         />

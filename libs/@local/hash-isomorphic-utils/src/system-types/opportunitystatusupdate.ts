@@ -7,6 +7,8 @@ import type {
   SiteCodePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  TextualContentPropertyValue,
+  TextualContentPropertyValueWithMetadata,
   ValueDataType,
   ValueDataTypeWithMetadata,
 } from "./shared.js";
@@ -21,6 +23,8 @@ export type {
   SiteCodePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
+  TextualContentPropertyValue,
+  TextualContentPropertyValueWithMetadata,
   ValueDataType,
   ValueDataTypeWithMetadata,
 };
@@ -58,7 +62,7 @@ export type OpportunityStatusPropertyValueWithMetadata =
  */
 export type OpportunityStatusUpdate = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/opportunity-status-update/v/1",
+    "https://hash.ai/@h/types/entity-type/opportunity-status-update/v/2",
   ];
   properties: OpportunityStatusUpdateProperties;
   propertiesWithMetadata: OpportunityStatusUpdatePropertiesWithMetadata;
@@ -76,6 +80,7 @@ export type OpportunityStatusUpdateProperties = {
   "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValue;
   "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValue;
   "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
 };
 
 export type OpportunityStatusUpdatePropertiesWithMetadata = {
@@ -85,6 +90,7 @@ export type OpportunityStatusUpdatePropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/scope-key/": ScopeKeyPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
   };
 };
 

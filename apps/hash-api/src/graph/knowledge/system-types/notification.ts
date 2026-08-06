@@ -2,6 +2,7 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
@@ -39,15 +40,8 @@ import type {
 import type {
   ArchivedPropertyValueWithMetadata,
   CommentNotification as CommentNotificationEntity,
-  OccurredInBlock,
-  OccurredInEntity,
-  TriggeredByUser,
 } from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type {
-  MentionNotification as MentionNotificationEntity,
-  OccurredInComment,
-  OccurredInText,
-} from "@local/hash-isomorphic-utils/system-types/mentionnotification";
+import type { MentionNotification as MentionNotificationEntity } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { Notification as NotificationEntity } from "@local/hash-isomorphic-utils/system-types/notification";
 
 type Notification = {
@@ -88,8 +82,10 @@ export type MentionNotification = {
 export const isEntityMentionNotificationEntity = (
   entity: HashEntity,
 ): entity is HashEntity<MentionNotificationEntity> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.mentionNotification.entityTypeId,
+  entity.metadata.entityTypeIds.some(
+    (entityTypeId) =>
+      extractBaseUrl(entityTypeId) ===
+      systemEntityTypes.mentionNotification.entityTypeBaseUrl,
   );
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
@@ -112,10 +108,10 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
 export const createMentionNotification: ImpureGraphFunction<
   Pick<CreateEntityParameters, "webId"> & {
     triggeredByUser: User;
-    occurredInEntity: Page;
-    occurredInBlock: Block;
+    occurredInEntity: { entity: HashEntity };
+    occurredInBlock?: Block;
     occurredInComment?: Comment;
-    occurredInText: Text;
+    occurredInText?: Text;
   },
   Promise<MentionNotification>
 > = async (context, userAuthentication, params) => {
@@ -151,8 +147,44 @@ export const createMentionNotification: ImpureGraphFunction<
     },
   );
 
+  const linksToCreate: {
+    rightEntityId: EntityId;
+    linkEntityTypeId: VersionedUrl;
+  }[] = [
+    {
+      rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+    },
+    {
+      rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    },
+  ];
+
+  if (occurredInBlock) {
+    linksToCreate.push({
+      rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+    });
+  }
+
+  if (occurredInComment) {
+    linksToCreate.push({
+      rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
+      linkEntityTypeId:
+        systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
+    });
+  }
+
+  if (occurredInText) {
+    linksToCreate.push({
+      rightEntityId: occurredInText.entity.metadata.recordId.entityId,
+      linkEntityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+    });
+  }
+
   await Promise.all(
-    [
+    linksToCreate.map(({ rightEntityId, linkEntityTypeId }) =>
       /**
        * We do this separately with the user's authority because we need to use the user's authority to create the links
        * We cannot use a bot scoped to the user's web, because the thing that we are linking to (comments, pages)
@@ -160,59 +192,16 @@ export const createMentionNotification: ImpureGraphFunction<
        *
        * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
        */
-      createLinkEntity<TriggeredByUser>(context, userAuthentication, {
+      createLinkEntity(context, userAuthentication, {
         webId,
         properties: { value: {} },
         linkData: {
           leftEntityId: entity.metadata.recordId.entityId,
-          rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
+          rightEntityId,
         },
-        entityTypeIds: [systemLinkEntityTypes.triggeredByUser.linkEntityTypeId],
+        entityTypeIds: [linkEntityTypeId],
       }),
-      createLinkEntity<OccurredInEntity>(context, userAuthentication, {
-        webId,
-        properties: { value: {} },
-        linkData: {
-          leftEntityId: entity.metadata.recordId.entityId,
-          rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
-        },
-        entityTypeIds: [
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        ],
-      }),
-      createLinkEntity<OccurredInBlock>(context, userAuthentication, {
-        webId,
-        properties: { value: {} },
-        linkData: {
-          leftEntityId: entity.metadata.recordId.entityId,
-          rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
-        },
-        entityTypeIds: [systemLinkEntityTypes.occurredInBlock.linkEntityTypeId],
-      }),
-      occurredInComment
-        ? createLinkEntity<OccurredInComment>(context, userAuthentication, {
-            webId,
-            properties: { value: {} },
-            linkData: {
-              leftEntityId: entity.metadata.recordId.entityId,
-              rightEntityId:
-                occurredInComment.entity.metadata.recordId.entityId,
-            },
-            entityTypeIds: [
-              systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
-            ],
-          })
-        : [],
-      createLinkEntity<OccurredInText>(context, userAuthentication, {
-        webId,
-        properties: { value: {} },
-        linkData: {
-          leftEntityId: entity.metadata.recordId.entityId,
-          rightEntityId: occurredInText.entity.metadata.recordId.entityId,
-        },
-        entityTypeIds: [systemLinkEntityTypes.occurredInText.linkEntityTypeId],
-      }),
-    ].flat(),
+    ),
   );
 
   return getMentionNotificationFromEntity({ entity });
@@ -222,10 +211,10 @@ export const getMentionNotification: ImpureGraphFunction<
   {
     recipient: User;
     triggeredByUser: User;
-    occurredInEntity: Page;
-    occurredInBlock: Block;
+    occurredInEntity: { entity: HashEntity };
+    occurredInBlock?: Block;
     occurredInComment?: Comment;
-    occurredInText: Text;
+    occurredInText?: Text;
     includeDrafts?: boolean;
   },
   Promise<MentionNotification | null>
@@ -326,12 +315,16 @@ export const getMentionNotification: ImpureGraphFunction<
       occurredInEntityLink &&
       occurredInEntityLink.linkData.rightEntityId ===
         occurredInEntity.entity.metadata.recordId.entityId &&
-      occurredInBlockLink &&
-      occurredInBlockLink.linkData.rightEntityId ===
-        occurredInBlock.entity.metadata.recordId.entityId &&
-      occurredInTextLink &&
-      occurredInTextLink.linkData.rightEntityId ===
-        occurredInText.entity.metadata.recordId.entityId &&
+      (occurredInBlock
+        ? occurredInBlockLink &&
+          occurredInBlockLink.linkData.rightEntityId ===
+            occurredInBlock.entity.metadata.recordId.entityId
+        : true) &&
+      (occurredInText
+        ? occurredInTextLink &&
+          occurredInTextLink.linkData.rightEntityId ===
+            occurredInText.entity.metadata.recordId.entityId
+        : true) &&
       (occurredInComment
         ? occurredInCommentLink &&
           occurredInCommentLink.linkData.rightEntityId ===
@@ -342,7 +335,7 @@ export const getMentionNotification: ImpureGraphFunction<
 
   if (matchingEntities.length > 1) {
     throw new Error(
-      "More than one page mention notification found for a given recipient, trigger user, page, and text.",
+      "More than one mention notification found for the given recipient, triggering user, target entity, and optional context.",
     );
   }
 
