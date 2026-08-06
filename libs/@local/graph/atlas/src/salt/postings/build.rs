@@ -19,7 +19,7 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PostingsError {
     /// A node row's direct types name an ontology row outside the type domain.
-    NodeType { row: u32, id: u64 },
+    NodeType { row: NodeRowId, id: OntologyRowId },
     /// A type's direct parents name an ontology row outside the type domain.
     Parent {
         type_row: OntologyRowId,
@@ -95,12 +95,14 @@ impl Postings {
     ///
     /// # Panics
     ///
-    /// This panics when `types` and `row_of_position` cover different row counts. The lod build
-    /// already rejected mismatched columns, so a disagreement here is a producer bug.
+    /// This panics when `types` and `row_of_position` cover different row counts, and when a
+    /// row's direct types do not ascend strictly. The lod build already rejected mismatched
+    /// columns and the dataset contract promises ascending, deduplicated lists, so either
+    /// disagreement here is a producer bug.
     #[expect(
         clippy::panic_in_result_fn,
-        reason = "the Result carries domain errors; mismatched columns are a caller contract \
-                  violation, documented under Panics"
+        reason = "the Result carries domain errors; mismatched columns and unsorted streams are \
+                  caller contract violations, documented under Panics"
     )]
     pub(crate) fn build(
         types: &IdSlice<NodeRowId, SmallVec<OntologyRowId, 2>>,
@@ -117,19 +119,21 @@ impl Postings {
         let domain = parents.len();
 
         // The direct map is the gather itself: each position's run restates its row's type list
-        // verbatim, so the runs inherit the column's ascent and deduplication. The domain check
-        // rides the gather. Every pass below trusts it.
+        // verbatim, so the runs inherit the column's ascent and deduplication. The domain and
+        // ascent checks ride the gather. Every pass below trusts them.
         let mut direct_posts = Vec::with_capacity(row_of_position.len() + 1);
         direct_posts.push(0);
         let mut direct_ids = Vec::new();
         for (_position, &row) in row_of_position.iter_enumerated() {
-            for &id in &types[row] {
+            let list = &types[row];
+            assert!(
+                list.is_sorted_by(|previous, next| previous < next),
+                "a row's direct types ascend strictly",
+            );
+
+            for &id in list {
                 if id.index_below(domain).is_none() {
-                    return Err(PostingsError::NodeType {
-                        row: u32::try_from(row.as_u64())
-                            .expect("the lod columns index rows by u32"),
-                        id: id.as_u64(),
-                    });
+                    return Err(PostingsError::NodeType { row, id });
                 }
 
                 direct_ids.push(id);
@@ -331,7 +335,20 @@ pub(crate) struct PostingsMeasurements {
 /// Lays the parent regions out in file shape.
 ///
 /// The regions restate the dataset's stream. The domain check is the one condition the stream
-/// cannot carry itself (parents may point forward).
+/// cannot carry itself (parents may point forward). Ascent is the stream's own contract and is
+/// asserted here, so a defective stream fails the build instead of publishing a file the next
+/// open refuses.
+///
+/// # Panics
+///
+/// This panics when a type's direct parents do not ascend strictly. The
+/// [`Ontology::parents`](crate::dataset::Ontology::parents) contract promises ascending,
+/// deduplicated lists, so a violation here is a producer bug.
+#[expect(
+    clippy::panic_in_result_fn,
+    reason = "the Result carries domain errors; an unsorted parent stream is a caller contract \
+              violation, documented under Panics"
+)]
 fn parent_regions(
     parents: &IdSlice<OntologyRowId, SmallVec<OntologyRowId, 2>>,
 ) -> Result<(Vec<u64>, Vec<OntologyRowId>), PostingsError> {
@@ -342,6 +359,11 @@ fn parent_regions(
 
     let mut ids = Vec::new();
     for (type_row, list) in parents.iter_enumerated() {
+        assert!(
+            list.is_sorted_by(|previous, next| previous < next),
+            "a type's direct parents ascend strictly",
+        );
+
         for &id in list {
             if id.index_below(domain).is_none() {
                 return Err(PostingsError::Parent { type_row, id });

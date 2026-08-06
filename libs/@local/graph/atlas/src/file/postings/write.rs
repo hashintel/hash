@@ -57,7 +57,9 @@ pub(crate) struct Regions<'build> {
 /// represents any of them.
 ///
 /// `salt::postings` owns the membership and parent list rules (ascent, domains, empty list runs
-/// for dense types) as its construction contract and asserts them where it builds the lists.
+/// for dense types) as its construction contract. Its build asserts the streams' ascent where it
+/// gathers them and refuses out-of-domain ids as build errors, and the list runs inherit ascent
+/// from position order.
 #[expect(
     clippy::panic_in_result_fn,
     reason = "the Result carries write failures; contradictory regions are a caller contract \

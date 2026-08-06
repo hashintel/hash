@@ -374,7 +374,10 @@ fn build_rejects_out_of_domain_rows() {
             IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
             &fixture_parents(),
         ),
-        Err(PostingsError::NodeType { row: 0, id: 4 }),
+        Err(PostingsError::NodeType {
+            row: NodeRowId::from_u32(0),
+            id: id(4),
+        }),
     );
 
     // A parent naming a type beyond the domain.
@@ -388,6 +391,29 @@ fn build_rejects_out_of_domain_rows() {
             type_row: id(0),
             id: id(7),
         }),
+    );
+}
+
+/// The gather asserts the dataset's ascent contract, so a defective stream fails the build
+/// instead of publishing a file the next open refuses.
+#[test]
+#[should_panic(expected = "a row's direct types ascend strictly")]
+fn unsorted_direct_types_are_a_producer_bug() {
+    let _: Result<Postings, PostingsError> = Postings::build(
+        &types(&[&[1, 0]]),
+        IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
+        &types(&[&[], &[]]),
+    );
+}
+
+/// The parent regions assert the same contract for the type graph's stream.
+#[test]
+#[should_panic(expected = "a type's direct parents ascend strictly")]
+fn unsorted_parents_are_a_producer_bug() {
+    let _: Result<Postings, PostingsError> = Postings::build(
+        &types(&[&[0]]),
+        IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
+        &types(&[&[], &[1, 0]]),
     );
 }
 
