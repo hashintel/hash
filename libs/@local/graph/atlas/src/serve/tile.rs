@@ -338,7 +338,13 @@ impl Atlas {
         let census = view.census();
 
         let walk = Walk::of(self, proof);
-        let node = walk.node_of(cell);
+        // Every consumer of `node` sits on the operator path (`is_full` is `cut.is_none()`), so a
+        // scoped tile skips the quadtree lookup.
+        let node = if scope_cut.is_none() {
+            walk.node_of(cell)
+        } else {
+            None
+        };
 
         #[expect(
             clippy::option_if_let_else,
