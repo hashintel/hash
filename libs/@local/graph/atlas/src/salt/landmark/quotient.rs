@@ -30,8 +30,9 @@ use hashql_core::id::{Id, IdVec};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use super::{assignment::LandmarkAssignment, select::LandmarkOrdinal};
-use crate::salt::semantic::{
-    SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError,
+use crate::{
+    runs::Runs,
+    salt::semantic::{SemanticGraph, SemanticGraphView, SemanticMatrix, SemanticValidationError},
 };
 
 const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
@@ -91,54 +92,6 @@ impl Error for QuotientError {
     }
 }
 
-/// Corpus rows grouped by their assigned landmark, ascending within each group.
-struct GroupedRows<N> {
-    /// Group boundaries: landmark `l` owns `rows[starts[l]..starts[l + 1]]`.
-    starts: IdVec<LandmarkOrdinal, usize>,
-    rows: Vec<N>,
-}
-
-impl<N> GroupedRows<N>
-where
-    N: Id,
-{
-    /// Groups the assignment's rows by counting sort.
-    fn new(assignment: &LandmarkAssignment<N>) -> Self {
-        let ordinals = assignment.as_slice();
-
-        let mut starts = IdVec::from_elem(0_usize, assignment.landmarks() + 1);
-        for ordinal in ordinals {
-            starts[ordinal.plus(1)] += 1;
-        }
-
-        let mut running = 0_usize;
-        for slot in &mut starts {
-            running += *slot;
-            *slot = running;
-        }
-
-        let mut rows = vec![N::MIN; ordinals.len()];
-        let mut cursors = starts.clone();
-        for (row, &ordinal) in ordinals.iter_enumerated() {
-            let cursor = &mut cursors[ordinal];
-            rows[*cursor] = row;
-            *cursor += 1;
-        }
-
-        Self { starts, rows }
-    }
-
-    /// Borrows one landmark's corpus rows, ascending.
-    fn rows_of(&self, landmark: LandmarkOrdinal) -> &[N] {
-        assert!(
-            landmark.as_usize() + 1 < self.starts.len(),
-            "the landmark is in the grouped domain"
-        );
-
-        &self.rows[self.starts[landmark]..self.starts[landmark.plus(1)]]
-    }
-}
-
 /// Accumulates each landmark's directed inflows and keeps its strongest normalized neighbours.
 ///
 /// One task per landmark accumulates into a dense per-thread scratch column - the touched list
@@ -148,7 +101,7 @@ where
 fn strongest_neighbours<N>(
     semantic: &SemanticGraphView<'_, N>,
     assignment: &LandmarkAssignment<N>,
-    grouped: &GroupedRows<N>,
+    grouped: &Runs<LandmarkOrdinal, N>,
     options: QuotientOptions,
 ) -> IdVec<LandmarkOrdinal, Vec<(LandmarkOrdinal, f32)>>
 where
@@ -161,7 +114,7 @@ where
             || (IdVec::from_elem(0.0_f64, landmarks), Vec::new()),
             |(inflow, touched): &mut (IdVec<LandmarkOrdinal, f64>, _), left| {
                 let left = LandmarkOrdinal::from_usize(left);
-                for &row in grouped.rows_of(left) {
+                for &row in grouped.run(left) {
                     for edge in semantic.row(row) {
                         let right = assignment.as_slice()[edge.id];
                         if right != left {
@@ -242,7 +195,15 @@ where
     }
 
     let landmarks = assignment.landmarks();
-    let grouped = GroupedRows::new(assignment);
+    // The enumeration ascends over rows, so each landmark's run ascends and
+    // the per-task accumulation order stays that of a serial pass.
+    let grouped = Runs::from_pairs(
+        landmarks,
+        assignment
+            .as_slice()
+            .iter_enumerated()
+            .map(|(row, &ordinal)| (ordinal, row)),
+    );
     let strongest_by_landmark = strongest_neighbours(semantic, assignment, &grouped, options);
 
     // Mirror every kept directed edge, then combine each (row,
