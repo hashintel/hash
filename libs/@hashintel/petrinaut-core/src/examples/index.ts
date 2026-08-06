@@ -2,7 +2,7 @@
  * @layerRoot core.examples
  * @layerName Example models
  * @role Ready-made SDCPN documents shipped for onboarding and demos
- * @seam @hashintel/petrinaut-core/examples
+ * @entryPoint @hashintel/petrinaut-core/examples
  */
 
 export { productionMachines } from "./production-with-machine-failure";

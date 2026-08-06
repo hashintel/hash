@@ -2,7 +2,7 @@
 layer: core.simulation.worker
 name: Simulation worker
 role: Computes simulation frames off the main thread under host backpressure
-seams:
+entryPoints:
   - "@hashintel/petrinaut-core/workers/simulation"
 boundaries:
   - kind: worker

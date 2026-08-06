@@ -48,5 +48,5 @@ Actual mode renders an execution that came from somewhere else entirely — a li
 external system rather than a simulation. It does not run the engine at all. It
 reaches the same canvas and timeline because both read frames through the
 [execution-frame interface](layer:react.execution-frame), which abstracts
-over "where frames come from". That seam is why adding Actual mode did not require
+over "where frames come from". That indirection is why adding Actual mode did not require
 touching the canvas.

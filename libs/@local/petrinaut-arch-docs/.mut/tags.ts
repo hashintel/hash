@@ -249,6 +249,7 @@ export const scanTags = (sourceText: string): TagScanResult => {
   const lineStarts = lineStartOffsets(sourceText);
 
   for (const match of sourceText.matchAll(blockCommentPattern)) {
+    if (match.index !== 0) { continue; }
     const startLine = lineNumberAt(lineStarts, match.index);
     const rawTags = collectRawTags(commentBodyLines(match[0], startLine));
 

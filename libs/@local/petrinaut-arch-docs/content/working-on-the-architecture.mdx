@@ -85,7 +85,7 @@ Run the check before pushing:
 yarn workspace @local/petrinaut-arch-docs lint:arch-docs
 ```
 
-It fails when a source file no layer covers appears, when a `@seam` stops being a
+It fails when a source file no layer covers appears, when a `@entryPoint` stops being a
 real export, when a dependency violates a declared rule, and when the committed
 bundle no longer matches the source. The last one is the common case: after
 changing annotations or moving code, regenerate with

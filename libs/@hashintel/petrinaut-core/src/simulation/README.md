@@ -2,7 +2,7 @@
 layer: core.simulation
 name: Simulation
 role: Executes SDCPN nets — stepping, frames, workers and batch statistics
-seams:
+entryPoints:
   - "@hashintel/petrinaut-core"
 invariants:
   - No UI-framework dependency, so the runtime is usable from Node and from workers

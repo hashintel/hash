@@ -3,7 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "description": "Renders the Petrinaut architecture bundle as a browsable docs site",
-  "license": "AGPL-3.0",
+  "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
     "build": "astro build",

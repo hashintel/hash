@@ -2,7 +2,7 @@
 layer: core.simulation.monte-carlo
 name: Monte Carlo runtime
 role: Runs many independent simulations with bounded frame memory, reporting metric aggregates
-seams:
+entryPoints:
   - "@hashintel/petrinaut-core/workers/monte-carlo"
 boundaries:
   - kind: worker

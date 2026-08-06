@@ -11,7 +11,7 @@
  * @layerRoot core.lsp.worker
  * @layerName LSP worker
  * @role Hosts the TypeScript language server off the main thread
- * @seam @hashintel/petrinaut-core/workers/lsp
+ * @entryPoint @hashintel/petrinaut-core/workers/lsp
  * @boundary worker — The language server runs in its own thread; the client reaches it only over the documented protocol
  */
 import ts from "typescript";

@@ -114,8 +114,8 @@ Distinct from the user guide above: the **architecture** docs describe the shape
 The architecture is declared **next to the code it describes** — never in a central mapping file:
 
 - `@layerRoot` / `@layerName` / `@role` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
-- A folder's `README.md` frontmatter (`layer`, `role`, and optionally `name`, `seams`, `boundaries`, `invariants`, `owner`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
-- `@boundary <kind> — <note>`, `@invariant <text>` and `@seam <specifier>` in any file's doc comments attach facts to the specific code that upholds them.
+- A folder's `README.md` frontmatter (`layer`, `role`, and optionally `name`, `entryPoints`, `boundaries`, `invariants`, `owner`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
+- `@boundary <kind> — <note>`, `@invariant <text>` and `@entryPoint <specifier>` in any file's doc comments attach facts to the specific code that upholds them.
 - Files with no annotation inherit from the nearest declaring ancestor, so only ~40 declarations cover ~400 files. Do not annotate every file.
 
 The generated docs are **build output and are not committed** — there is nothing to regenerate before pushing. Only the annotations are versioned.
@@ -125,7 +125,7 @@ When you change structure in `libs/@hashintel/petrinaut-core` or `libs/@hashinte
 1. Add a declaration if you introduce a folder that is a genuinely new architectural unit — a new boundary or a distinct responsibility, not merely a new directory.
 2. Update the affected `@boundary`/`@invariant` annotations if you change what they claim. These are claims CI and reviewers rely on; an invariant that is no longer true is worse than none.
 
-Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors, dead `@seam`s and rule violations. To read the docs, `mise run doc:architecture` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored).
+Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors, dead `@entryPoint`s and rule violations. To read the docs, `mise run doc:architecture` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored).
 
 Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `yarn workspace @apps/petrinaut-docs dev`, which regenerates the bundle first. For a quick read of the whole architecture, generate the bundle and open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` — the entire model in one file.
 

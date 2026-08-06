@@ -54,7 +54,7 @@ Every stage that changes state allocates a new buffer: dynamics, token removal,
 and token insertion each rebuild the frame. That makes history trivially correct
 — previous frames are never mutated — at the cost of allocation churn per step.
 
-This is the single clearest optimisation seam in the engine. Monte Carlo already
+This is the single clearest optimisation opportunity in the engine. Monte Carlo already
 demonstrates the alternative: two buffers swapped per step, no history. Bringing
 that to the interactive path means moving history retention wholly onto the main
 thread, which the frame store already isolates.

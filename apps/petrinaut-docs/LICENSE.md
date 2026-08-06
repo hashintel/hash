@@ -1,5 +1,3 @@
 # License
 
-This package is licensed under the GNU Affero General Public License, version 3.
-The full license text is available in
-[`../../.github/licenses/LICENSE-AGPL.md`](../../.github/licenses/LICENSE-AGPL.md).
+Licensed under either of the [Apache License, Version 2.0](LICENSE-APACHE.md) or [MIT license](LICENSE-MIT.md) at your option.

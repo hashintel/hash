@@ -2,7 +2,7 @@
 layer: core.hir
 name: HIR compiler
 role: Lowers user-authored TypeScript to a source-spanned IR, then typechecks, lints and emits it
-seams:
+entryPoints:
   - "@hashintel/petrinaut-core/hir"
   - "@hashintel/petrinaut-core/hir-runtime"
 boundaries:

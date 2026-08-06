@@ -7,7 +7,7 @@
  * @layerRoot react
  * @layerName React bindings
  * @role Contexts, hooks and providers that mirror core state into React
- * @seam @hashintel/petrinaut/react
+ * @entryPoint @hashintel/petrinaut/react
  * @invariant No imports from `ui/` — this layer must be mountable without rendering the editor, which is what makes the providers testable in isolation
  */
 

@@ -9,7 +9,7 @@
  * @layerRoot petrinaut
  * @layerName Package surface
  * @role The host-facing entry point: the contexts and types an embedder wires up
- * @seam @hashintel/petrinaut
+ * @entryPoint @hashintel/petrinaut
  * @boundary package — everything re-exported here is public API covered by semver
  */
 

@@ -7,7 +7,7 @@
  * @layerRoot core
  * @layerName Headless core
  * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
- * @seam @hashintel/petrinaut-core
+ * @entryPoint @hashintel/petrinaut-core
  * @boundary package — everything re-exported here is public API covered by semver
  * @invariant No React, no DOM and no Monaco imports, so the core runs unchanged in Node and in workers
  */

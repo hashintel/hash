@@ -2,7 +2,7 @@
 layer: core.workers
 name: Worker entry points
 role: The module entry points hosts instantiate as Web Workers
-seams:
+entryPoints:
   - "@hashintel/petrinaut-core/workers/lsp"
   - "@hashintel/petrinaut-core/workers/monte-carlo"
   - "@hashintel/petrinaut-core/workers/simulation"

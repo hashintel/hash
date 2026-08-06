@@ -46,7 +46,7 @@ README that already explains itself becomes an architecture page for free.
 layer: core.simulation.monte-carlo # dotted id; every ancestor must also be declared
 name: Monte Carlo runtime # display name (defaults to the last id segment)
 role: Runs many simulations with bounded frame memory # one line; required
-seams: # public import specifiers reaching this layer
+entryPoints: # public import specifiers reaching this layer
   - "@hashintel/petrinaut-core/workers/monte-carlo"
 boundaries:
   - kind: worker
@@ -68,7 +68,7 @@ from its layer page under "Further reading".
  * @layerName Monte Carlo runtime           display name
  * @role Runs many bounded-memory simulations
  * @layer core.simulation.engine            assigns THIS FILE only, overriding inheritance
- * @seam @hashintel/petrinaut-core/workers/monte-carlo
+ * @entryPoint @hashintel/petrinaut-core/workers/monte-carlo
  * @boundary worker — frame buffers never cross to the main thread
  * @invariant Two reusable frame buffers per run; no per-frame allocation
  * @owner simulation
@@ -226,7 +226,7 @@ layer declarations belong in the packages.
 - a layer whose dotted id implies an undeclared ancestor
 - a duplicate layer id, or two declarations on one folder
 - an unknown `@boundary` kind, a boundary with no note, a duplicated singular tag
-- a `@seam` that is not an export of any covered package
+- a `@entryPoint` that is not an export of any covered package
 - a dependency violating a rule in `architecture.config.ts`
 - an `attachTo` naming a layer that does not exist
 - a `layer:` or `doc:` link target that does not resolve

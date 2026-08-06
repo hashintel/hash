@@ -8,7 +8,7 @@
  * @layerRoot ui
  * @layerName Editor UI
  * @role The visual editor: canvas, panels, dialogs and the Monaco integration
- * @seam @hashintel/petrinaut/ui
+ * @entryPoint @hashintel/petrinaut/ui
  * @invariant Consumes the React layer's contexts rather than reaching into the core directly, so state ownership stays in one place
  */
 
