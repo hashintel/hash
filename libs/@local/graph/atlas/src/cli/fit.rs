@@ -298,6 +298,7 @@ where
     /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
     /// [`connect`]: super::connect
     pub async fn run(self, client: &mut Client) -> Result<FitVerdict, FitError> {
+        // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
         tracing::info!(

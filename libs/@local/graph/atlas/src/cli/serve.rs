@@ -212,6 +212,7 @@ impl ServeCommand {
         pool: Arc<PostgresStorePool>,
         visibility: VisibilityLimits,
     ) -> Result<Router, ServeError> {
+        // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
         let generation = self

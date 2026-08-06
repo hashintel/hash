@@ -61,8 +61,6 @@ impl QualityArgs {
     /// Returns a [`ReportError`] when the run cannot dial the store, the assessment fails, or the
     /// run cannot write the record.
     pub(super) async fn run(self) -> Result<QualityVerdict, ReportError> {
-        crate::math::kernel::verify_cpu_baseline();
-
         let mut client = self.store.connect().await.map_err(ReportError::Connect)?;
 
         let assessment = live::assess(

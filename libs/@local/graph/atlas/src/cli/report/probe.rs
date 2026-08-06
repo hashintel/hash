@@ -63,8 +63,6 @@ impl ProbeArgs {
     /// This panics when the probe cannot open the corpus or its artifacts fail reconstruction. The
     /// probed solve itself may fail, and its terminal is the observation.
     pub(super) async fn run(self) {
-        crate::math::kernel::verify_cpu_baseline();
-
         let corpus = match (&self.root, self.generation, &self.inputs) {
             (Some(root), Some(generation), None) => ProbeCorpus::Generation { root, generation },
             (_, None, Some(inputs)) => ProbeCorpus::Supplied { directory: inputs },

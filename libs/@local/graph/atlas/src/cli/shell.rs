@@ -177,6 +177,9 @@ async fn fit_on_dashboard(
 pub async fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
 
+    // Placed after parsing so the help and version flags work on an unsupported CPU.
+    crate::math::kernel::verify_cpu_baseline();
+
     // The dashboard installs its own subscriber, because records written to stderr would print over
     // the screen it draws.
     if !matches!(cli.command, Command::Fit { tui: true, .. }) {

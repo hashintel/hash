@@ -50,8 +50,6 @@ impl BackendArgs {
     /// Returns the sweep's failure when it cannot read the representations, cannot build an index,
     /// or a sampled query fails.
     pub(super) fn run(self) -> Result<backend::Sweep, backend::SweepError> {
-        crate::math::kernel::verify_cpu_baseline();
-
         backend::sweep(
             &self.root.root,
             &backend::Options {
@@ -91,8 +89,6 @@ impl DescentArgs {
     /// Returns the audit's failure when it cannot read the representations, cannot compute the
     /// reference, or a construction fails.
     pub(super) fn run(self) -> Result<descent::Audit, AuditError<NodeRowId, NnDescentError>> {
-        crate::math::kernel::verify_cpu_baseline();
-
         descent::audit(&self.root.root, &self.seeds, &self.candidates)
     }
 }

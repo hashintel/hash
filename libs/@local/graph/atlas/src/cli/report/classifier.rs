@@ -60,8 +60,6 @@ impl ClassifierArgs {
     /// the refit fails, or the recomputed model does not reproduce the staged artifact bytes. A
     /// report run has no recovery path, and the error is the diagnosis.
     pub(super) async fn run(self) -> Result<ClassifierVerdict, ReportError> {
-        crate::math::kernel::verify_cpu_baseline();
-
         let report = ClassifierReport::compile(&self.root.root, self.generation).await;
 
         let bundle =

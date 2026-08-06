@@ -157,8 +157,6 @@ impl LadderArgs {
     /// canonical frame does not reproduce the published coordinate column. A report run has no
     /// recovery path, and the error is the diagnosis.
     pub(super) fn run(self) -> Result<LadderVerdict, ReportError> {
-        crate::math::kernel::verify_cpu_baseline();
-
         let report = LadderReport::compile(&self.root.root, self.generation);
 
         let bundle =
