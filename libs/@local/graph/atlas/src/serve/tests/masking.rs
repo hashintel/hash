@@ -377,8 +377,8 @@ async fn locate_filters_partners_under_the_mask() {
         entity_id: None,
         row: Some(node_codec.encode(NodeRowId::new(0))),
         colored_type_ids: Vec::new(),
-        filter: None,
     };
+
     assert_matches!(
         atlas.locate(
             &by_row,
@@ -927,7 +927,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
         entity_id: None,
         row: Some(codec::WireRow::pinned(wire)),
         colored_type_ids: Vec::new(),
-        filter: None,
     };
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x9A08);
 

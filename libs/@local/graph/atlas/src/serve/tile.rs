@@ -8,7 +8,7 @@ use core::{error::Error, fmt};
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, Filter, Mode, TileCoordinate,
+    Atlas, Mode, TileCoordinate,
     colour::{MaskSet, Palette},
     density::{CutOffset, ViewOccupancy},
     grid,
@@ -121,7 +121,7 @@ impl From<ViewError> for TileError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub enum TileDetail {
     #[default]
     Minimal,
@@ -130,7 +130,7 @@ pub enum TileDetail {
 
 /// The query context of one tile request: the ratified POST body, every field optional.
 #[derive(Debug, Clone, Default, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TileQuery {
     /// The delivery mode, defaulting to delta when the request names none.
     #[serde(default)]
@@ -142,11 +142,6 @@ pub struct TileQuery {
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
     pub colored_type_ids: Vec<VersionedUrl>,
-    /// The visibility filter, a reserved field.
-    ///
-    /// Delivery rejects any request that carries one.
-    #[serde(default)]
-    pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
     pub detail: TileDetail,
@@ -316,10 +311,6 @@ impl Atlas {
         limits: TileLimits,
         view: &View<'_>,
     ) -> Result<TileDocument, TileError> {
-        if request.query.filter.is_some() {
-            return Err(TileError::Unsupported("filter"));
-        }
-
         if request.query.colored_type_ids.len() > limits.colored_type_ids as usize {
             return Err(TileError::Types {
                 count: request.query.colored_type_ids.len(),

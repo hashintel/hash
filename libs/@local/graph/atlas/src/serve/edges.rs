@@ -8,7 +8,7 @@ use core::{error::Error, fmt};
 use hashql_core::id::bit_vec::DenseBitSet;
 
 use super::{
-    Atlas, Filter, TileCoordinate, WireRow,
+    Atlas, TileCoordinate, WireRow,
     density::CutOffset,
     grid,
     hydrate::{DeliveredEntities, DetailError, EdgeLinkDetails, EdgesStore},
@@ -106,13 +106,10 @@ pub(crate) enum EdgesDetail {
 
 /// The POST body of one edges read.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct EdgesRequest {
     /// The tiles whose delivered rows bound the edge set.
     pub tiles: Vec<TileCoordinate>,
-    /// The visibility filter, a reserved field: the endpoint rejects any request that carries one.
-    #[serde(default)]
-    pub filter: Option<Filter>,
     /// Whether the response carries the detail trailer.
     #[serde(default)]
     pub detail: EdgesDetail,
@@ -256,10 +253,6 @@ impl Atlas {
         limits: EdgesLimits,
         view: &View<'_>,
     ) -> Result<EdgesDocument, EdgesError> {
-        if request.filter.is_some() {
-            return Err(EdgesError::Unsupported("filter"));
-        }
-
         if request.tiles.len() > limits.tiles as usize {
             return Err(EdgesError::Tiles {
                 count: request.tiles.len(),

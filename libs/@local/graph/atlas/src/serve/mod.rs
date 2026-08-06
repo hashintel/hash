@@ -143,13 +143,6 @@ const impl Default for ServeLimits {
     }
 }
 
-/// An opaque visibility filter document.
-///
-/// The document's schema belongs to the client codebase; the server never reads it as a typed
-/// structure. Reserved: a request that carries one is rejected with `unsupported-feature`.
-#[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
-pub struct Filter(serde_json::Value);
-
 /// One opened generation, ready to answer reads.
 ///
 /// Opening maps every serving artifact and validates each format plus their cross-artifact

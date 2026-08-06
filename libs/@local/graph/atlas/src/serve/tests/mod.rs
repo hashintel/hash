@@ -21,9 +21,9 @@ use smallvec::smallvec;
 use zerocopy::{LE, U64};
 
 use super::{
-    Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, Filter, GenerationId, GenerationRoot,
-    Mode, OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest,
-    View, ViewCensus, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
+    Atlas, CutOffset, EdgesError, EdgesLimits, EdgesRequest, GenerationId, GenerationRoot, Mode,
+    OpenOptions, ServeLimits, TileCoordinate, TileError, TileLimits, TileQuery, TileRequest, View,
+    ViewCensus, VisibilityLimits, VisibilityProof, WireRow, WireSecret, codec,
     edges::EdgesDetail,
     error::OpenAtlasError,
     hydrate::{
@@ -944,16 +944,6 @@ async fn rejects_and_reports_the_contract() {
         }),
     );
 
-    let mut filtered = request(0, 0, 0, Mode::Delta);
-    filtered.query.filter = Some(
-        serde_json::from_value::<Filter>(serde_json::json!({ "any": [] }))
-            .expect("a filter document deserializes opaquely"),
-    );
-    assert_eq!(
-        atlas.tile(&filtered, TileLimits::default(), &FULL, CutOffset::ZERO),
-        Err(TileError::Unsupported("filter"))
-    );
-
     let manifest = serde_json::to_value(atlas.manifest(
         ServeLimits::default().manifest_limits(VisibilityLimits::default()),
         CutOffset::ZERO,
@@ -978,21 +968,18 @@ fn tile_query_defaults_to_the_delta_contract() {
     let query: TileQuery = serde_json::from_str("{}").expect("the empty body parses");
     assert_eq!(query.mode, Mode::Delta);
     assert!(query.colored_type_ids.is_empty());
-    assert!(query.filter.is_none());
     assert_eq!(query.detail, TileDetail::Minimal);
 
     let query: TileQuery = serde_json::from_str(
         r#"{
             "mode": "total",
             "coloredTypeIds": ["https://example.com/types/thing/v/1"],
-            "filter": { "any": [] },
             "detail": "auxiliary"
         }"#,
     )
     .expect("the full body parses");
     assert_eq!(query.mode, Mode::Total);
     assert_eq!(query.colored_type_ids.len(), 1);
-    assert!(query.filter.is_some());
     assert_eq!(query.detail, TileDetail::Auxiliary);
 }
 
@@ -1052,7 +1039,6 @@ fn full_grid() -> Vec<TileCoordinate> {
 fn edges_request(tiles: Vec<TileCoordinate>) -> EdgesRequest {
     EdgesRequest {
         tiles,
-        filter: None,
         detail: EdgesDetail::Minimal,
     }
 }
@@ -1474,22 +1460,6 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
 async fn edges_reject_and_report_the_contract() {
     let (generation, atlas) = publish("edges-rejects").await;
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
-
-    let mut filtered = edges_request(vec![root]);
-    filtered.filter = Some(
-        serde_json::from_value::<Filter>(serde_json::json!({ "any": [] }))
-            .expect("a filter document deserializes opaquely"),
-    );
-    assert_matches!(
-        atlas.edges(
-            &filtered,
-            EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
-            UntouchedStore,
-        ),
-        Err(EdgesError::Unsupported("filter")),
-    );
 
     assert_matches!(
         atlas.edges(
@@ -1921,19 +1891,16 @@ fn edges_request_parses_the_body_contract() {
         serde_json::from_str(r#"{ "tiles": [{ "z": 1, "x": 0, "y": 1 }] }"#)
             .expect("the minimal body parses");
     assert_eq!(request.tiles, vec![TileCoordinate { z: 1, x: 0, y: 1 }]);
-    assert!(request.filter.is_none());
     assert_eq!(request.detail, EdgesDetail::Minimal);
 
     let request: EdgesRequest = serde_json::from_str(
         r#"{
             "tiles": [],
-            "filter": { "any": [] },
             "detail": "auxiliary"
         }"#,
     )
     .expect("the full body parses");
     assert!(request.tiles.is_empty());
-    assert!(request.filter.is_some());
     assert_eq!(request.detail, EdgesDetail::Auxiliary);
 }
 
@@ -2484,7 +2451,6 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
         entity_id: Some(entity_id),
         row: None,
         colored_type_ids: Vec::new(),
-        filter: None,
     }
 }
 

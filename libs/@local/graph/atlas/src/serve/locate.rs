@@ -11,7 +11,7 @@
 use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, CutOffset, Filter, ServeLimits, TileCoordinate, VisibilityProof, WireRow,
+    Atlas, CutOffset, ServeLimits, TileCoordinate, VisibilityProof, WireRow,
     colour::Palette,
     grid,
     hydrate::{
@@ -315,7 +315,7 @@ pub(crate) struct LocateSubgraph {
 /// The fields are distinct JSON types, so the union is unambiguous, and assembly rejects both or
 /// neither by name.
 #[derive(Debug, Clone, serde::Deserialize, schemars::JsonSchema)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct LocateRequest {
     /// The source entity id, in the node identity domain.
     ///
@@ -336,9 +336,6 @@ pub(crate) struct LocateRequest {
     #[serde(default)]
     #[schemars(with = "Vec<String>")]
     pub colored_type_ids: Vec<VersionedUrl>,
-    /// The visibility filter, a reserved field: assembly rejects a request that carries one.
-    #[serde(default)]
-    pub filter: Option<Filter>,
 }
 
 /// A locate request the atlas rejects, by name.
@@ -560,9 +557,6 @@ impl Atlas {
         limits: ServeLimits,
         view: &View<'_>,
     ) -> Result<LocateDocument, LocateError> {
-        if request.filter.is_some() {
-            return Err(LocateError::Unsupported("filter"));
-        }
         if request.colored_type_ids.len() > limits.tile.colored_type_ids as usize {
             return Err(LocateError::Types {
                 count: request.colored_type_ids.len(),
