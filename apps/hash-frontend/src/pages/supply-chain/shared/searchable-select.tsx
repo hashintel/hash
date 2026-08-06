@@ -19,6 +19,12 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   groups: OptionGroup[];
   className?: string;
+  placeholder?: string;
+  ariaLabel?: string;
+  clearable?: {
+    clearable: boolean;
+    onClear: () => void;
+  };
   /** `sm` is the compact toolbar pill; `lg` renders as a display-sized page title. */
   size?: "sm" | "lg";
 }
@@ -122,12 +128,23 @@ const emptyStyles = css({
   textStyle: "xs",
   color: "fg.subtle",
 });
+const clearButtonStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "fg.subtle",
+  cursor: "pointer",
+  _hover: { color: "fg.muted" },
+});
 
 export const SearchableSelect = ({
   value,
   onChange,
   groups,
   className,
+  placeholder = "Select…",
+  ariaLabel,
+  clearable,
   size = "sm",
 }: SearchableSelectProps) => {
   const allOptions = useMemo(
@@ -170,7 +187,7 @@ export const SearchableSelect = ({
   return (
     <Combobox.Root
       collection={collection}
-      value={[value]}
+      value={value ? [value] : []}
       inputValue={query}
       onValueChange={(details) => {
         const next = details.value[0];
@@ -185,7 +202,7 @@ export const SearchableSelect = ({
         }
       }}
       selectionBehavior="replace"
-      placeholder={selectedLabel}
+      placeholder={selectedLabel || placeholder}
       className={className}
     >
       <Combobox.Control
@@ -193,7 +210,27 @@ export const SearchableSelect = ({
       >
         <Combobox.Input
           className={size === "lg" ? inputLgStyles : inputStyles}
+          aria-label={ariaLabel}
         />
+        {clearable?.clearable && value && (
+          <button
+            type="button"
+            className={clearButtonStyles}
+            aria-label="Clear selection"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              clearable.onClear();
+              setQuery("");
+            }}
+          >
+            <Icon name="close" size="xs" />
+          </button>
+        )}
         <Combobox.Trigger>
           <Icon name="chevronDown" size="sm" />
         </Combobox.Trigger>

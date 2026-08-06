@@ -59,6 +59,7 @@ import type { GraphData, GraphNode, SiteNode } from "../shared/types";
 import type { SiteProductionTimeline } from "@local/hash-isomorphic-utils/site-production-timeline";
 
 type ViewMode = "category" | "canvas" | "timeline";
+type PipelineView = "hidden" | "pipeline" | "simulator";
 
 const DEFAULT_ACTIVE_SEGMENTS = ALL_SEGMENTS.filter(
   (id) => id !== "procurement",
@@ -149,15 +150,24 @@ const paneShow = css({
 });
 const hidden = css({ display: "none" });
 const scheduleLoadState = css({ h: "full", minH: "56", p: "6" });
+const pipelinesSection = css({
+  flexShrink: 1,
+  minH: "0",
+  overflowY: "auto",
+  borderTopWidth: "1px",
+  borderColor: "bd.solid",
+});
+const pipelinesSectionExpanded = css({
+  flex: "1",
+});
 const pipelineWrap = css({
   flexShrink: 0,
-  borderTopWidth: "1px",
-  borderColor: "bd.subtle",
-  overflow: "hidden",
-  transition: "[height 200ms]",
 });
-const pipelineExpandedH = css({ h: "[58vh]" });
-const pipelineAutoH = css({ h: "auto" });
+const customerOrdersWrap = css({
+  flexShrink: 0,
+  borderTopWidth: "1px",
+  borderColor: "bd.solid",
+});
 const emptyPipelineRow = css({
   px: "6",
   py: "3",
@@ -170,7 +180,7 @@ const emptyPipelineTitle = css({
   fontWeight: "medium",
   color: "fg.heading",
 });
-const emptyPipelineNote = css({ textStyle: "sm", color: "fg.subtle" });
+const emptyPipelineNote = css({ textStyle: "xs", color: "fg.subtle" });
 const collapsedPad = css({ px: "6", py: "3" });
 const collapsedStack = css({
   display: "flex",
@@ -338,8 +348,14 @@ export const Overview = ({
   const [occupancyRetry, setOccupancyRetry] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [statusTarget, setStatusTarget] = useState<SiteNode | null>(null);
+  const [customerOrdersExpanded, setCustomerOrdersExpanded] = useState(false);
 
-  const pipelineExpanded = searchParams.get("pipeline") === "expanded";
+  const pipelineView: PipelineView =
+    searchParams.get("pipeline") === "expanded"
+      ? "simulator"
+      : searchParams.get("pipeline") === "hidden"
+        ? "hidden"
+        : "pipeline";
 
   useEffect(() => {
     setAnalysisSettings(graph.analysis_settings);
@@ -396,13 +412,15 @@ export const Overview = ({
     };
   }, [productId, viewMode]);
 
-  const setPipelineExpanded = useCallback(
-    (expanded: boolean) => {
+  const setPipelineView = useCallback(
+    (nextView: PipelineView) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (expanded) {
+          if (nextView === "simulator") {
             next.set("pipeline", "expanded");
+          } else if (nextView === "hidden") {
+            next.set("pipeline", "hidden");
           } else {
             next.delete("pipeline");
           }
@@ -576,6 +594,13 @@ export const Overview = ({
       activeSegments,
     ],
   );
+
+  const resolvedRoute = useMemo(() => {
+    const routeKeys = Object.keys(filteredGraph.pipeline_summary);
+    return activeRouteParam && routeKeys.includes(activeRouteParam)
+      ? activeRouteParam
+      : (routeKeys[0] ?? "");
+  }, [filteredGraph.pipeline_summary, activeRouteParam]);
 
   const summaryStats = useMemo(() => {
     const bt = filteredGraph.batch_timelines;
@@ -828,6 +853,7 @@ export const Overview = ({
         className={cx(
           contentBase,
           viewMode === "category" ? overflowAuto : overflowHidden,
+          customerOrdersExpanded && viewMode !== "timeline" && hidden,
         )}
       >
         <div className={viewMode === "canvas" ? paneShow : hidden}>
@@ -876,88 +902,100 @@ export const Overview = ({
 
       <div
         className={cx(
-          pipelineWrap,
+          pipelinesSection,
+          customerOrdersExpanded && pipelinesSectionExpanded,
           viewMode === "timeline" && hidden,
-          pipelineExpanded ? pipelineExpandedH : pipelineAutoH,
         )}
       >
-        {(() => {
-          if (
-            !Object.values(filteredGraph.pipeline_summary).some(
-              (product) => product.total_mean > 0,
-            )
-          ) {
-            return (
-              <div className={emptyPipelineRow}>
-                <h3 className={emptyPipelineTitle}>End-to-End Pipeline</h3>
-                <span className={emptyPipelineNote}>
-                  — no dispatches for the product over the last {timeRange}.
-                </span>
+        <div className={pipelineWrap}>
+          {(() => {
+            if (
+              !Object.values(filteredGraph.pipeline_summary).some(
+                (product) => product.total_mean > 0,
+              )
+            ) {
+              return (
+                <div className={emptyPipelineRow}>
+                  <h3 className={emptyPipelineTitle}>End-to-End Pipeline</h3>
+                  <span className={emptyPipelineNote}>
+                    no recorded customer arrivals for the product over the last{" "}
+                    {timeRange}.
+                  </span>
+                </div>
+              );
+            }
+
+            // Resolve active route: prefer the URL param when it points at a
+            // route that exists for this product, otherwise fall back to
+            // the first route so the picker has a sensible default.
+            return pipelineView === "simulator" ? (
+              <E2EWhatIf
+                graph={filteredGraph}
+                timeRange={timeRange}
+                excludeOutliers={excludeOutliers}
+                onExitSimulator={() => setPipelineView("pipeline")}
+                onFullyCollapse={() => setPipelineView("hidden")}
+                onStepDrill={onStepSelect}
+                activeSegments={activeSegments}
+                onSegmentToggle={handleSegmentToggle}
+                activeRoute={resolvedRoute}
+                onActiveRouteChange={setActiveRoute}
+                orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
+              />
+            ) : (
+              <div className={collapsedPad}>
+                <div className={collapsedStack}>
+                  <PipelineHeader
+                    summaries={filteredGraph.pipeline_summary}
+                    coverage={filteredGraph.batch_timelines?.coverage}
+                    coverageByRoute={
+                      filteredGraph.batch_timelines?.coverage_by_route
+                    }
+                    rangeLabel={timeRangeLongLabel(timeRange).toLowerCase()}
+                    activeRoute={resolvedRoute}
+                    onActiveRouteChange={setActiveRoute}
+                    barAlignedControls
+                    contentCollapsed={pipelineView === "hidden"}
+                    onContentToggle={() =>
+                      setPipelineView(
+                        pipelineView === "hidden" ? "pipeline" : "hidden",
+                      )
+                    }
+                    onSimulatorToggle={() => setPipelineView("simulator")}
+                  />
+
+                  {pipelineView === "pipeline" && (
+                    <PipelineWaterfall
+                      summaries={filteredGraph.pipeline_summary}
+                      activeSegments={activeSegments}
+                      onSegmentToggle={handleSegmentToggle}
+                      activeRoute={resolvedRoute}
+                      orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
+                    />
+                  )}
+                </div>
               </div>
             );
-          }
-
-          // Resolve active route: prefer the URL param when it points at a
-          // route that exists for this product, otherwise fall back to
-          // the first route so the picker has a sensible default.
-          const routeKeys = Object.keys(filteredGraph.pipeline_summary);
-          const resolvedRoute =
-            activeRouteParam && routeKeys.includes(activeRouteParam)
-              ? activeRouteParam
-              : (routeKeys[0] ?? "");
-          return pipelineExpanded ? (
-            <E2EWhatIf
-              graph={filteredGraph}
-              timeRange={timeRange}
-              excludeOutliers={excludeOutliers}
-              onCollapse={() => setPipelineExpanded(false)}
-              onStepDrill={onStepSelect}
-              activeSegments={activeSegments}
-              onSegmentToggle={handleSegmentToggle}
-              activeRoute={resolvedRoute}
-              onActiveRouteChange={setActiveRoute}
-              orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
-            />
-          ) : (
-            <div className={collapsedPad}>
-              <div className={collapsedStack}>
-                <PipelineHeader
-                  summaries={filteredGraph.pipeline_summary}
-                  coverage={filteredGraph.batch_timelines?.coverage}
-                  coverageByRoute={
-                    filteredGraph.batch_timelines?.coverage_by_route
-                  }
-                  rangeLabel={timeRangeLongLabel(timeRange).toLowerCase()}
-                  activeRoute={resolvedRoute}
-                  onActiveRouteChange={setActiveRoute}
-                  onExpand={() => setPipelineExpanded(true)}
-                />
-
-                <PipelineWaterfall
-                  summaries={filteredGraph.pipeline_summary}
-                  activeSegments={activeSegments}
-                  onSegmentToggle={handleSegmentToggle}
-                  activeRoute={resolvedRoute}
-                  orderArrivalMarkers={orderArrivalMarkers[resolvedRoute]}
-                />
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      {graph.order_timelines && graph.order_timelines.lines.length > 0 && (
-        <div className={cx(pipelineWrap, pipelineAutoH)}>
-          <div className={collapsedPad}>
-            <CustomerOrdersPanel
-              orderTimelines={graph.order_timelines}
-              batchTimelines={graph.batch_timelines}
-              timeRange={timeRange}
-              excludeOutliers={excludeOutliers}
-            />
-          </div>
+          })()}
         </div>
-      )}
+
+        {graph.order_timelines && graph.order_timelines.lines.length > 0 && (
+          <div className={customerOrdersWrap}>
+            <div className={collapsedPad}>
+              <CustomerOrdersPanel
+                orderTimelines={graph.order_timelines}
+                batchTimelines={graph.batch_timelines}
+                timeRange={timeRange}
+                excludeOutliers={excludeOutliers}
+                activeRoute={resolvedRoute || undefined}
+                pipelineSummaries={filteredGraph.pipeline_summary}
+                productNodes={graph.nodes}
+                onExpandedChange={setCustomerOrdersExpanded}
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {selectedStepId && (
         <StepDetailPanel

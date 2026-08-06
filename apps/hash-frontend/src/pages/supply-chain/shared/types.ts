@@ -311,6 +311,10 @@ export interface PipelineOrderMarker {
   totalOrderLines: number;
   /** Observations whose order predates the first currently visible anchor. */
   beforeVisibleCount: number;
+  /** Aggregate marker falls before the first visible pipeline segment. */
+  beforeTrace: boolean;
+  /** Aggregate marker falls at or after the last visible pipeline segment. */
+  afterTrace: boolean;
 }
 
 export interface PipelineOrderMarkers {

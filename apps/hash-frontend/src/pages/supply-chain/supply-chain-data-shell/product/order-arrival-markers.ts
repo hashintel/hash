@@ -17,67 +17,48 @@ function positionForLeadDays(
   leadDays: number,
   measure: "mean" | "median",
   activeSegmentTypes?: ReadonlySet<string>,
-): { ratio: number; beforeTrace: boolean } | null {
-  const stages = summary.stages.map((stage) => ({
-    duration: Math.max(stage[measure], 0),
-    active: !activeSegmentTypes || activeSegmentTypes.has(stage.type),
-  }));
-  const fullTotal = stages.reduce((sum, stage) => sum + stage.duration, 0);
-  const visibleTotal = stages.reduce(
-    (sum, stage) => sum + (stage.active ? stage.duration : 0),
+): { ratio: number; beforeTrace: boolean; afterTrace: boolean } | null {
+  const visibleStages = summary.stages
+    .filter(
+      (stage) => !activeSegmentTypes || activeSegmentTypes.has(stage.type),
+    )
+    .map((stage) => {
+      const duration: unknown = stage[measure];
+      return typeof duration === "number" && Number.isFinite(duration)
+        ? Math.max(duration, 0)
+        : 0;
+    });
+  const visibleTotal = visibleStages.reduce(
+    (sum, duration) => sum + duration,
     0,
   );
-  if (fullTotal <= 0 || visibleTotal <= 0) {
+  if (visibleTotal <= 0) {
     return null;
   }
 
-  const eventElapsed = fullTotal - leadDays;
-  const firstVisibleIndex = stages.findIndex((stage) => stage.active);
-  const firstVisibleStart = stages
-    .slice(0, firstVisibleIndex)
-    .reduce((sum, stage) => sum + stage.duration, 0);
-  if (eventElapsed <= 0) {
-    return { ratio: 0, beforeTrace: true };
+  // Marker placement describes the pipeline currently on screen. Hidden
+  // segments must not move an order to the opposite edge of that visible bar.
+  if (leadDays >= visibleTotal) {
+    return { ratio: 0, beforeTrace: true, afterTrace: false };
+  }
+  if (leadDays <= 0) {
+    return { ratio: 1, beforeTrace: false, afterTrace: true };
   }
 
-  let fullElapsed = 0;
-  let visibleElapsed = 0;
-  for (const stage of stages) {
-    const stageEnd = fullElapsed + stage.duration;
-    if (eventElapsed <= stageEnd) {
-      if (!stage.active) {
-        return {
-          ratio: visibleElapsed / visibleTotal,
-          beforeTrace: eventElapsed < firstVisibleStart,
-        };
-      }
-      const withinStage = Math.min(
-        Math.max(eventElapsed - fullElapsed, 0),
-        stage.duration,
-      );
-      return {
-        ratio: (visibleElapsed + withinStage) / visibleTotal,
-        beforeTrace: eventElapsed < firstVisibleStart,
-      };
-    }
-    if (stage.active) {
-      visibleElapsed += stage.duration;
-    }
-    fullElapsed = stageEnd;
-  }
-  return { ratio: 1, beforeTrace: false };
+  const eventElapsed = visibleTotal - leadDays;
+  return {
+    ratio: eventElapsed / visibleTotal,
+    beforeTrace: false,
+    afterTrace: false,
+  };
 }
 
 function mean(values: number[], excludeOutliers: boolean): number {
   const fences = excludeOutliers ? computeIqrFences(values) : null;
   const meanValues = fences
-    ? values.filter(
-        (value) => value >= fences.lower && value <= fences.upper,
-      )
+    ? values.filter((value) => value >= fences.lower && value <= fences.upper)
     : values;
-  return (
-    meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length
-  );
+  return meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length;
 }
 
 function median(values: number[]): number {
@@ -103,9 +84,7 @@ function aggregateMarker(
     (observation) => observation.daysBeforeGoodsIssue,
   );
   const daysBeforeGoodsIssue =
-    measure === "mean"
-      ? mean(leadDays, excludeOutliers)
-      : median(leadDays);
+    measure === "mean" ? mean(leadDays, excludeOutliers) : median(leadDays);
   const position = positionForLeadDays(
     summary,
     daysBeforeGoodsIssue,
@@ -130,6 +109,8 @@ function aggregateMarker(
           activeSegmentTypes,
         )?.beforeTrace,
     ).length,
+    beforeTrace: position.beforeTrace || position.ratio <= 0,
+    afterTrace: position.afterTrace,
   };
 }
 

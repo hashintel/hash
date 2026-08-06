@@ -1,18 +1,43 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formatNumber } from "../../shared/cost";
+import { shortPlantLabel } from "../../shared/plant-label";
+import { useRegistry } from "../../shared/registry-context";
 import { StatChip } from "../../shared/stat-chip";
 import { timeRangeLongLabel } from "../../shared/time-range";
-import { Tooltip } from "../../shared/tooltip";
-import { BatchLookup } from "./batch-lookup";
+import { OrderLookup } from "./order-lookup";
 import { recomputeOrderTimelines } from "./recompute-order-timelines";
 import { PipelineWaterfall } from "./shared/pipeline-waterfall";
 
 import type { TimeRange } from "../../shared/time-range";
-import type { BatchTimelines, OrderTimelines } from "../../shared/types";
+import type {
+  BatchTimelines,
+  GraphNode,
+  OrderTimelines,
+  PipelineSummary,
+} from "../../shared/types";
+
+function orderQtyUnit(
+  orderTimelines: OrderTimelines,
+  productNodes?: GraphNode[],
+): string | null {
+  const columnUnit = orderTimelines.detail_columns?.find(
+    (column) => column.key === "delivered_qty",
+  )?.unit;
+  if (columnUnit) {
+    return columnUnit;
+  }
+  for (const node of productNodes ?? []) {
+    const unit = node.normalization?.unit;
+    if (unit) {
+      return unit;
+    }
+  }
+  return null;
+}
 
 const stack = css({ display: "flex", flexDirection: "column", gap: "4" });
 const headerRow = css({
@@ -37,22 +62,17 @@ const chipsRow = css({
   display: "flex",
   alignItems: "center",
   flexWrap: "wrap",
-  rowGap: "1",
+  columnGap: "3",
+  rowGap: "2",
 });
-const emptyNote = css({ textStyle: "sm", color: "fg.subtle" });
 const statsSection = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
 });
-const statsHeading = css({
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "fg.muted",
-});
 const statsGrid = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(auto-fit,minmax(145px,1fr))]",
+  display: "flex",
+  flexWrap: "wrap",
   gap: "2",
 });
 const statCard = css({
@@ -60,7 +80,10 @@ const statCard = css({
   flexDirection: "column",
   alignItems: "flex-start",
   gap: "0.5",
-  minW: "0",
+  w: "[fit-content]",
+  minW: "[145px]",
+  maxW: "[240px]",
+  flex: "[0 1 auto]",
   px: "3",
   py: "2",
   bg: "bg.subtle",
@@ -80,6 +103,11 @@ const statCardLabel = css({
   color: "fg.subtle",
   lineHeight: "tight",
 });
+const tooltipContent = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+});
 const lookupDivider = css({
   borderTopWidth: "1px",
   borderColor: "bd.subtle",
@@ -91,6 +119,12 @@ interface CustomerOrdersPanelProps {
   batchTimelines?: BatchTimelines;
   timeRange: TimeRange;
   excludeOutliers: boolean;
+  /** Destination route from the E2E pipeline picker; scopes dispatched lines. */
+  activeRoute?: string;
+  pipelineSummaries?: Record<string, PipelineSummary>;
+  /** Used to resolve quantity units when the order extract omits them. */
+  productNodes?: GraphNode[];
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export const CustomerOrdersPanel = ({
@@ -98,7 +132,12 @@ export const CustomerOrdersPanel = ({
   batchTimelines,
   timeRange,
   excludeOutliers,
+  activeRoute,
+  pipelineSummaries,
+  productNodes,
+  onExpandedChange,
 }: CustomerOrdersPanelProps) => {
+  const { sites } = useRegistry();
   // Customer orders are supporting detail; keep the section compact until a
   // user explicitly opens it.
   const [collapsed, setCollapsed] = useState(true);
@@ -111,106 +150,143 @@ export const CustomerOrdersPanel = ({
         batchTimelines,
         orderTimelines.open_order_created_dates,
         orderTimelines.observed_as_of,
+        activeRoute,
+        orderTimelines.open_lines,
       ),
     [
       orderTimelines.lines,
       orderTimelines.open_order_created_dates,
       orderTimelines.observed_as_of,
+      orderTimelines.open_lines,
       batchTimelines,
       timeRange,
       excludeOutliers,
+      activeRoute,
     ],
   );
 
+  const destinationName = (key: string): string => {
+    const named = sites.find((step) => step.slug === key)?.name;
+    if (named) {
+      return named;
+    }
+    const label = pipelineSummaries?.[key]?.label;
+    if (label && label.toLowerCase() !== key.toLowerCase()) {
+      return shortPlantLabel(key, label);
+    }
+    return key.toUpperCase();
+  };
+  const routeScopeLabel =
+    activeRoute &&
+    pipelineSummaries &&
+    Object.keys(pipelineSummaries).length > 1
+      ? activeRoute === "direct"
+        ? "direct to customer"
+        : `via ${destinationName(activeRoute)}`
+      : null;
+
   const shares = result.shares;
+  const hasDispatchedOrders = shares != null;
   const rangeLabel = timeRangeLongLabel(timeRange).toLowerCase();
-  const openLines = orderTimelines.open_lines ?? 0;
-  const openSuffix =
-    openLines > 0
-      ? ` \u00b7 ${formatNumber(openLines)} open ${
-          openLines === 1 ? "line" : "lines"
-        } excluded (no goods issue yet)`
-      : "";
-  const coverageLabel =
-    (shares
-      ? `${formatNumber(shares.n)} delivered order lines \u00b7 ${rangeLabel}`
-      : `no delivered order lines \u00b7 ${rangeLabel}`) + openSuffix;
+
+  useEffect(() => {
+    if (!hasDispatchedOrders && !collapsed) {
+      setCollapsed(true);
+      onExpandedChange?.(false);
+    }
+  }, [collapsed, hasDispatchedOrders, onExpandedChange]);
+
+  const coverageLabel = shares
+    ? `${formatNumber(shares.n)} dispatched order lines${
+        routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
+      } \u00b7 ${rangeLabel}`
+    : `no dispatched order lines${
+        routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
+      } \u00b7 ${rangeLabel}`;
   const formatPercent = (value: number) =>
     `${formatNumber(value, { maximumFractionDigits: 0 })}%`;
   const formatDays = (value: number) =>
     `${formatNumber(value, { maximumFractionDigits: 0 })}d`;
   const formatDecimal = (value: number) =>
     formatNumber(value, { maximumFractionDigits: 1 });
-  const prototypeStats = result.prototypeStats;
-  const prototypeCards = prototypeStats
+  const qtyUnit = orderQtyUnit(orderTimelines, productNodes);
+  const formatVolume = (value: number) =>
+    qtyUnit
+      ? `${formatDecimal(value)} ${qtyUnit.toLowerCase()}`
+      : formatDecimal(value);
+  const statistics = result.statistics;
+  const hasRouteFilter =
+    activeRoute != null &&
+    pipelineSummaries != null &&
+    Object.keys(pipelineSummaries).length > 1;
+  const routeScopedHelp =
+    hasRouteFilter && routeScopeLabel
+      ? `Scoped to deliveries ${routeScopeLabel} over the last ${rangeLabel.replace(/^last /i, "")}.`
+      : null;
+  const helpWithRouteScope = (mainContent: string) =>
+    routeScopedHelp ? (
+      <span className={tooltipContent}>
+        <span>{mainContent}</span>
+        <span>{routeScopedHelp}</span>
+      </span>
+    ) : (
+      mainContent
+    );
+  const statisticCards = statistics
     ? [
         {
           label: "Median when covered by stock",
-          value: prototypeStats.fromStockMedianDays,
+          value: statistics.fromStockMedianDays,
           format: formatDays,
-          help: "Median order-to-goods-issue time when the delivered batch was already available at order creation.",
+          help: helpWithRouteScope(
+            "Median order-to-goods-issue time for sales-order lines covered by existing stock.",
+          ),
         },
         {
-          label: "Median when waiting for production",
-          value: prototypeStats.awaitedMedianDays,
+          label: "Median wait for stock availability",
+          value: statistics.awaitedProductionWaitMedianDays,
           format: formatDays,
-          help: "Median order-to-goods-issue time when at least one delivered batch became available after the order.",
-        },
-        {
-          label: "Wait for batch availability",
-          value: prototypeStats.awaitedProductionWaitMedianDays,
-          format: formatDays,
-          help: "For orders that waited, median days from order creation until the delivered batch became available.",
+          help: helpWithRouteScope(
+            "For dispatched sales-order lines that awaited production, median time from order creation until all dispatched batches were available.",
+          ),
         },
         {
           label: "Stock age when ordered",
-          value: prototypeStats.stockAgeMedianDays,
+          value: statistics.stockAgeMedianDays,
           format: formatDays,
-          help: "For stock-covered orders, median days the delivered batch had already been available when the order arrived.",
+          help: helpWithRouteScope(
+            "For dispatched sales-order lines covered by existing stock, median age of the latest produced batch when the order was created.",
+          ),
         },
         {
-          label: "Production already running",
-          value: prototypeStats.awaitedAlreadyRunningPct,
-          format: formatPercent,
-          help: "Share of production-waiting lines where all still-needed batches had already started. This suggests MTS backlog, not that the order triggered production.",
-        },
-        {
-          label: "Production not yet started",
-          value: prototypeStats.awaitedNotStartedPct,
-          format: formatPercent,
-          help: "Share of production-waiting lines where at least one still-needed batch started after the order. This is not proof of make-to-order.",
-        },
-        {
-          label: "Batches shared across orders",
-          value: prototypeStats.sharedBatchPct,
-          format: formatPercent,
-          help: "Share of delivered batches used on more than one sales-order line in the active window.",
-        },
-        {
-          label: "Order lines per batch",
-          value: prototypeStats.averageOrderLinesPerBatch,
+          label: "Average batches per order",
+          value: statistics.averageBatchesPerOrder,
           format: formatDecimal,
-          help: "Average number of delivered sales-order lines served by each batch in the active window.",
+          help: helpWithRouteScope(
+            "Average number of distinct dispatched batches on the selected route per sales order, combining its included lines.",
+          ),
+        },
+        {
+          label: "Average order volume",
+          value: statistics.averageOrderVolume,
+          format: formatVolume,
+          help: helpWithRouteScope(
+            `Average total dispatched quantity per sales order, combining all of its lines${qtyUnit ? ` (${qtyUnit.toLowerCase()})` : ""}.`,
+          ),
+        },
+        {
+          label: "Open order lines",
+          value: statistics.openOrderCount,
+          format: (value: number) => formatNumber(value),
+          help: "Sales order lines with no goods issue yet. Dataset-wide and not filtered by destination.",
         },
         {
           label: "Median age of open orders",
-          value: prototypeStats.openMedianAgeDays,
+          value: statistics.openMedianAgeDays,
           format: formatDays,
-          help: `Age of non-rejected lines with no goods issue, measured as of ${
-            prototypeStats.openAsOf ?? "the latest extract date"
-          }. This is dataset-wide.`,
-        },
-        {
-          label: "Distinct customers",
-          value: prototypeStats.distinctCustomers,
-          format: (value: number) => formatNumber(value),
-          help: "Distinct named customers represented by delivered order lines in the active window.",
-        },
-        {
-          label: "Top customer share of volume",
-          value: prototypeStats.topCustomerVolumePct,
-          format: formatPercent,
-          help: "Largest customer's share of delivered quantity among lines with known customer and quantity.",
+          help: `Age of open sales order lines, measured as of ${
+            statistics.observedAsOf ?? "the latest extract date"
+          }. Dataset-wide and not filtered by destination.`,
         },
       ].filter((card) => card.value != null)
     : [];
@@ -219,94 +295,104 @@ export const CustomerOrdersPanel = ({
     <div className={stack}>
       <div className={headerRow}>
         <div className={titleGroup}>
-          <h3 className={title}>Customer Orders</h3>
+          <h3 className={title}>Customer Order Pipeline</h3>
           <span className={coverageText}>{coverageLabel}</span>
         </div>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="xs"
-          iconName={collapsed ? "chevronDown" : "chevronUp"}
-          onClick={() => setCollapsed((current) => !current)}
-          aria-label={
-            collapsed ? "Expand customer orders" : "Collapse customer orders"
-          }
-        />
+        {hasDispatchedOrders && (
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="xs"
+            iconName={collapsed ? "chevronDown" : "chevronUp"}
+            onClick={() =>
+              setCollapsed((currentCollapsed) => {
+                const nextCollapsed = !currentCollapsed;
+                onExpandedChange?.(!nextCollapsed);
+                return nextCollapsed;
+              })
+            }
+            aria-label={
+              collapsed ? "Expand customer orders" : "Collapse customer orders"
+            }
+          />
+        )}
       </div>
 
-      {!collapsed &&
-        (shares == null ? (
-          <span className={emptyNote}>
-            No delivered customer-order lines in this window.
-          </span>
-        ) : (
-          <>
-            <div className={chipsRow}>
+      {!collapsed && shares != null && (
+        <>
+          <div className={chipsRow}>
+            <Tooltip
+              content="Share of dispatched sales-order lines whose linked batches were available when the order was created."
+              openDelay="fast"
+            >
               <StatChip
                 value={formatPercent(shares.fromStockPct)}
                 label="from stock"
               />
+            </Tooltip>
+            <Tooltip
+              content="Share of dispatched sales-order lines for which at least one linked batch became available after the order was created."
+              openDelay="fast"
+            >
               <StatChip
                 value={formatPercent(shares.awaitedProductionPct)}
                 label="awaited production"
                 isHighlight={shares.awaitedProductionPct > 50}
               />
-              {shares.unknownPct > 0 && (
+            </Tooltip>
+            {shares.unknownPct > 0 && (
+              <Tooltip
+                content="Share of dispatched sales-order lines where the extract could not determine whether stock was available when the order was created."
+                openDelay="fast"
+              >
                 <StatChip
                   value={formatPercent(shares.unknownPct)}
                   label="unknown batch origin"
                 />
-              )}
-              <Tooltip
-                content={
-                  shares.mtoPeggedPct === 0
-                    ? "No production orders in this extract are linked to a sales order (SAP make-to-stock)"
-                    : "Share of orders whose production was linked to the sales order in SAP (make-to-order)"
-                }
-              >
-                <StatChip
-                  value={formatPercent(shares.mtoPeggedPct)}
-                  label="MTO-pegged"
-                />
               </Tooltip>
-            </div>
-
-            <PipelineWaterfall
-              summaries={result.pipeline}
-              activeRoute="orders"
-              showPercentileRows
-            />
-
-            {prototypeCards.length > 0 && (
-              <div className={statsSection}>
-                <span className={statsHeading}>
-                  Prototype statistics — hover for definitions
-                </span>
-                <div className={statsGrid}>
-                  {prototypeCards.map((card) => (
-                    <Tooltip
-                      key={card.label}
-                      content={card.help}
-                      wrapperClassName={statCard}
-                    >
-                      <span className={statCardValue}>
-                        {card.format(card.value ?? 0)}
-                      </span>
-                      <span className={statCardLabel}>{card.label}</span>
-                    </Tooltip>
-                  ))}
-                </div>
-              </div>
             )}
-
-            <div className={lookupDivider}>
-              <BatchLookup
-                batchTimelines={batchTimelines}
-                orderLines={orderTimelines.lines}
+            <Tooltip
+              content="Share of dispatched sales-order lines with a formal make-to-order link to a production order."
+              openDelay="fast"
+            >
+              <StatChip
+                value={formatPercent(shares.mtoPeggedPct)}
+                label="MTO"
               />
+            </Tooltip>
+          </div>
+
+          <PipelineWaterfall
+            summaries={result.pipeline}
+            activeRoute="orders"
+            showPercentileRows
+          />
+
+          {statisticCards.length > 0 && (
+            <div className={statsSection}>
+              <div className={statsGrid}>
+                {statisticCards.map((card) => (
+                  <Tooltip
+                    key={card.label}
+                    content={card.help}
+                    className={statCard}
+                    openDelay="fast"
+                  >
+                    <span className={statCardValue}>
+                      {card.format(card.value ?? 0)}
+                    </span>
+                    <span className={statCardLabel}>{card.label}</span>
+                  </Tooltip>
+                ))}
+              </div>
             </div>
-          </>
-        ))}
+          )}
+
+          <div className={lookupDivider}>
+            <OrderLookup orderLines={result.lines} />
+          </div>
+        </>
+      )}
     </div>
   );
 };

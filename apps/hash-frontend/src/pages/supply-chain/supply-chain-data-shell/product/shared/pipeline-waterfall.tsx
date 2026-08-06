@@ -1,7 +1,7 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { formatNumber } from "../../../shared/cost";
-import { Tooltip } from "../../../shared/tooltip";
 
 import type {
   PipelineOrderMarker,
@@ -16,7 +16,6 @@ const wrap = css({
   flexDirection: "column",
   gap: "4",
   minW: "0",
-  overflowX: "hidden",
 });
 const barsStack = css({ display: "flex", flexDirection: "column", gap: "3" });
 const emptyBase = css({
@@ -92,6 +91,7 @@ const barTrack = css({
   gap: "1",
   flex: "1",
   minW: "0",
+  overflow: "visible",
 });
 const barTall = css({ h: "10" });
 const barShort = css({ h: "7" });
@@ -143,15 +143,41 @@ const segWrapDashed = css({
   borderColor: "[rgba(255,255,255,0.7)]",
   opacity: "0.8",
 });
+const segmentTooltipTrigger = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  w: "full",
+  h: "full",
+});
 const segValue = css({
   textStyle: "xs",
   fontWeight: "medium",
   color: "[white]",
   whiteSpace: "nowrap",
 });
-const orderMarker = css({
+const orderMarkerCluster = css({
   position: "absolute",
   top: "[50%]",
+  display: "flex",
+  alignItems: "center",
+  zIndex: "[10]",
+  transform: "translateY(-50%)",
+});
+const orderMarkerClusterBefore = css({
+  left: "3",
+});
+const orderMarkerClusterAfter = css({
+  right: "3",
+});
+const orderMarkerBeforeArrow = css({
+  w: "4.5",
+  h: "2",
+  flexShrink: 0,
+  color: "fg.max",
+});
+const orderMarker = css({
+  position: "relative",
   w: "3",
   h: "3",
   bg: "fg.max",
@@ -159,9 +185,13 @@ const orderMarker = css({
   borderStyle: "solid",
   borderColor: "bgSolid.min",
   boxShadow: "sm",
-  zIndex: "[10]",
   cursor: "help",
-  transform: "translate(-50%, -50%) rotate(45deg)",
+  flexShrink: 0,
+  transform: "rotate(45deg)",
+});
+const orderMarkerTooltipTrigger = css({
+  display: "flex",
+  alignItems: "center",
 });
 const orderLegendSwatch = css({
   w: "2.5",
@@ -189,6 +219,8 @@ interface PipelineWaterfallProps {
   expanded?: boolean;
   /** Render P75 and P95 rows when stages carry percentile values. */
   showPercentileRows?: boolean;
+  /** Render one actual-duration row instead of aggregate statistic rows. */
+  totalOnly?: boolean;
   /** Customer-order creation positions to overlay on mean/median rows. */
   orderArrivalMarkers?: PipelineOrderMarkers;
   /**
@@ -220,6 +252,7 @@ const PipelineBar = ({
   tall = false,
   dashed = false,
   marker,
+  showSegmentTooltips = true,
 }: {
   label: string;
   stages: PipelineStage[];
@@ -228,6 +261,7 @@ const PipelineBar = ({
   tall?: boolean;
   dashed?: boolean;
   marker?: PipelineOrderMarker;
+  showSegmentTooltips?: boolean;
 }) => {
   if (total <= 0) {
     return null;
@@ -264,54 +298,98 @@ const PipelineBar = ({
             </>
           );
           return (
-            <Tooltip
+            <div
               key={stage.id}
-              content={tooltipContent}
-              delayMs={0}
-              wrapperClassName={cx(
-                segWrapBase,
-                dashed ? segWrapDashed : undefined,
-              )}
-              wrapperStyle={{
+              className={cx(segWrapBase, dashed ? segWrapDashed : undefined)}
+              style={{
                 flex: `${pct} 1 0%`,
                 minWidth: "16px",
                 backgroundColor: color,
               }}
             >
-              {pct > 4 && (
-                <span className={segValue}>
-                  {formatNumber(value, { maximumFractionDigits: 0 })}d
-                </span>
-              )}
-            </Tooltip>
+              <Tooltip
+                content={tooltipContent}
+                disableTooltip={!showSegmentTooltips}
+                openDelay="none"
+                closeDelay="none"
+                className={segmentTooltipTrigger}
+              >
+                {pct > 4 && (
+                  <span className={segValue}>
+                    {formatNumber(value, { maximumFractionDigits: 0 })}d
+                  </span>
+                )}
+              </Tooltip>
+            </div>
           );
         })}
         {marker && (
-          <Tooltip
-            content={
-              <>
-                {metric === "mean" ? "Mean" : "Median"} order:{" "}
-                {formatNumber(marker.daysBeforeGoodsIssue, {
-                  maximumFractionDigits: 0,
-                })}
-                d before goods issue · n={formatNumber(marker.n)}{" "}
-                {marker.routeLabel} order lines
-                {marker.totalOrderLines !== marker.n
-                  ? ` · ${formatNumber(marker.totalOrderLines)} across all routes`
-                  : ""}
-                {marker.beforeVisibleCount > 0
-                  ? ` · ${formatNumber(marker.beforeVisibleCount)} before visible trace`
-                  : ""}
-              </>
+          <div
+            className={cx(
+              orderMarkerCluster,
+              marker.beforeTrace
+                ? orderMarkerClusterBefore
+                : marker.afterTrace || marker.positionPct >= 100
+                  ? orderMarkerClusterAfter
+                  : undefined,
+            )}
+            style={
+              marker.beforeTrace ||
+              marker.afterTrace ||
+              marker.positionPct >= 100
+                ? undefined
+                : {
+                    left: `${marker.positionPct}%`,
+                    transform: "translate(-50%, -50%)",
+                  }
             }
-            delayMs={0}
-            wrapperClassName={orderMarker}
-            wrapperStyle={{
-              left: `${Math.min(Math.max(marker.positionPct, 1), 99)}%`,
-            }}
           >
-            <span aria-label="Customer order created" />
-          </Tooltip>
+            <Tooltip
+              content={
+                <>
+                  {metric === "mean" ? "Mean" : "Median"} order:{" "}
+                  {formatNumber(marker.daysBeforeGoodsIssue, {
+                    maximumFractionDigits: 0,
+                  })}
+                  d before goods issue · {formatNumber(marker.n)}{" "}
+                  {marker.routeLabel} order lines
+                  {marker.beforeVisibleCount > 0
+                    ? ` · ${formatNumber(marker.beforeVisibleCount)} before visible trace`
+                    : ""}
+                  {marker.beforeTrace
+                    ? " · date predates visible pipeline start"
+                    : ""}
+                  {marker.afterTrace
+                    ? " · order created after goods issue"
+                    : ""}
+                </>
+              }
+              openDelay="none"
+              closeDelay="none"
+              className={orderMarkerTooltipTrigger}
+            >
+              {marker.beforeTrace && (
+                <svg
+                  className={orderMarkerBeforeArrow}
+                  viewBox="0 0 18 8"
+                  aria-hidden
+                >
+                  <path
+                    d="M0 4 H18 M0 4 L4 1 M0 4 L4 7"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              <span
+                className={orderMarker}
+                aria-label="Customer order created"
+              />
+            </Tooltip>
+          </div>
         )}
       </div>
     </div>
@@ -324,6 +402,7 @@ export const PipelineWaterfall = ({
   simulatedStagesMedian,
   expanded = false,
   showPercentileRows = false,
+  totalOnly = false,
   orderArrivalMarkers,
   activeSegments,
   onSegmentToggle,
@@ -364,62 +443,75 @@ export const PipelineWaterfall = ({
       {/* Bars */}
       {hasAnyActive ? (
         <div className={barsStack}>
-          <PipelineBar
-            label="MEAN"
-            stages={stages}
-            total={totalMean}
-            metric="mean"
-            tall={expanded}
-            marker={orderArrivalMarkers?.mean}
-          />
-
-          <PipelineBar
-            label="MEDIAN"
-            stages={stages}
-            total={totalMedian}
-            metric="median"
-            tall={expanded}
-            marker={orderArrivalMarkers?.median}
-          />
-
-          {showPercentileRows && totalP75 > 0 && (
+          {totalOnly ? (
             <PipelineBar
-              label="P75"
+              label="TOTAL"
               stages={stages}
-              total={totalP75}
-              metric="p75"
-              tall={expanded}
-            />
-          )}
-          {showPercentileRows && totalP95 > 0 && (
-            <PipelineBar
-              label="P95"
-              stages={stages}
-              total={totalP95}
-              metric="p95"
-              tall={expanded}
-            />
-          )}
-
-          {simStagesMean && simMeanTotal > 0 && (
-            <PipelineBar
-              label="SIM. MEAN"
-              stages={simStagesMean}
-              total={simMeanTotal}
+              total={totalMean}
               metric="mean"
               tall={expanded}
-              dashed
+              showSegmentTooltips={false}
             />
-          )}
-          {simStagesMedian && simMedianTotal > 0 && (
-            <PipelineBar
-              label="SIM. MEDIAN"
-              stages={simStagesMedian}
-              total={simMedianTotal}
-              metric="median"
-              tall={expanded}
-              dashed
-            />
+          ) : (
+            <>
+              <PipelineBar
+                label="MEAN"
+                stages={stages}
+                total={totalMean}
+                metric="mean"
+                tall={expanded}
+                marker={orderArrivalMarkers?.mean}
+              />
+
+              <PipelineBar
+                label="MEDIAN"
+                stages={stages}
+                total={totalMedian}
+                metric="median"
+                tall={expanded}
+                marker={orderArrivalMarkers?.median}
+              />
+
+              {showPercentileRows && totalP75 > 0 && (
+                <PipelineBar
+                  label="P75"
+                  stages={stages}
+                  total={totalP75}
+                  metric="p75"
+                  tall={expanded}
+                />
+              )}
+              {showPercentileRows && totalP95 > 0 && (
+                <PipelineBar
+                  label="P95"
+                  stages={stages}
+                  total={totalP95}
+                  metric="p95"
+                  tall={expanded}
+                />
+              )}
+
+              {simStagesMean && simMeanTotal > 0 && (
+                <PipelineBar
+                  label="SIM. MEAN"
+                  stages={simStagesMean}
+                  total={simMeanTotal}
+                  metric="mean"
+                  tall={expanded}
+                  dashed
+                />
+              )}
+              {simStagesMedian && simMedianTotal > 0 && (
+                <PipelineBar
+                  label="SIM. MEDIAN"
+                  stages={simStagesMedian}
+                  total={simMedianTotal}
+                  metric="median"
+                  tall={expanded}
+                  dashed
+                />
+              )}
+            </>
           )}
         </div>
       ) : (

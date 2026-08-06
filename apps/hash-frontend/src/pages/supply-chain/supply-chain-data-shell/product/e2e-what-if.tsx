@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { formatCost, formatNumber, useCostParams } from "../../shared/cost";
 import { BindingLever } from "./e2e-what-if/binding-lever";
@@ -22,7 +22,8 @@ interface E2EWhatIfProps {
   graph: GraphData;
   timeRange: TimeRange;
   excludeOutliers: boolean;
-  onCollapse: () => void;
+  onExitSimulator: () => void;
+  onFullyCollapse: () => void;
   onStepDrill: (stepId: string) => void;
   /** Segments currently included in totals, KPIs and the lever list. */
   activeSegments: Set<SegmentId>;
@@ -38,21 +39,25 @@ interface E2EWhatIfProps {
 const MAX_VISIBLE_LEVERS = 5;
 
 const root = css({
-  h: "full",
   display: "flex",
   flexDirection: "column",
   px: "6",
   py: "3",
-  minH: "0",
-  overflow: "hidden",
 });
 const headerMb = css({ mb: "3" });
 // `gridTemplateColumns` is set inline: Panda's arbitrary-value codegen drops a
 // space-separated track list like `[1fr_360px_280px]` (it only emits function
 // forms such as `repeat(...)`), which silently collapsed this to one column.
-const grid = css({ display: "grid", gap: "4", flex: "1", minH: "0" });
+const grid = css({
+  display: "grid",
+  gap: "4",
+  alignItems: "stretch",
+});
 const gridCols = "1fr 360px 220px";
-const leftCol = css({ minW: "0", overflow: "auto", pr: "2" });
+const leftCol = css({
+  minW: "0",
+  pr: "2",
+});
 const callout = css({
   mt: "4",
   borderRadius: "md",
@@ -72,6 +77,16 @@ const sideCol = css({
   display: "flex",
   flexDirection: "column",
   minH: "0",
+});
+const leverColSlot = css({
+  position: "relative",
+  minW: "0",
+  minH: "0",
+});
+const leverColContent = css({
+  position: "absolute",
+  inset: "0",
+  overflow: "hidden",
 });
 const sideHeaderRow = css({
   display: "flex",
@@ -113,7 +128,8 @@ export const E2EWhatIf = ({
   graph,
   timeRange,
   excludeOutliers,
-  onCollapse,
+  onExitSimulator,
+  onFullyCollapse,
   onStepDrill,
   activeSegments,
   onSegmentToggle,
@@ -199,7 +215,9 @@ export const E2EWhatIf = ({
           activeRoute={activeRoute}
           onActiveRouteChange={setActiveRoute}
           expanded
-          onCollapse={onCollapse}
+          onContentToggle={onFullyCollapse}
+          onSimulatorToggle={onExitSimulator}
+          simulatorActive
         />
       </div>
 
@@ -226,59 +244,61 @@ export const E2EWhatIf = ({
         </div>
 
         {/* Middle: levers */}
-        <div className={sideCol}>
-          <div className={sideHeaderRow}>
-            <h4 className={sectionTitle}>Simulation levers</h4>
-            <Button
-              variant="ghost"
-              tone="neutral"
-              size="xs"
-              iconName="rotateLeft"
-              onClick={handleReset}
-              disabled={!hasActiveLevers}
-            >
-              Reset
-            </Button>
-          </div>
-          <div className={leverList}>
-            {leverDefs.length === 0 && (
-              <div className={leverEmpty}>
-                No ranked step data available for this route. Try regenerating
-                data or selecting a different route.
-              </div>
-            )}
-            {leverDefs.map((lever) => (
-              <BindingLever
-                key={lever.stepId}
-                lever={lever}
-                capDays={capLevers[lever.stepId]}
-                onChange={(value) => handleLeverChange(lever.stepId, value)}
-                onDrill={() => onStepDrill(lever.stepId)}
-                nodes={graph.nodes}
-              />
-            ))}
-            {leverDefs.length >= MAX_VISIBLE_LEVERS && !showAll && (
+        <div className={leverColSlot}>
+          <div className={cx(sideCol, leverColContent)}>
+            <div className={sideHeaderRow}>
+              <h4 className={sectionTitle}>Simulation levers</h4>
               <Button
-                variant="linkSubtle"
+                variant="ghost"
                 tone="neutral"
                 size="xs"
-                onClick={() => setShowAll(true)}
-                className={showToggle}
+                iconName="rotateLeft"
+                onClick={handleReset}
+                disabled={!hasActiveLevers}
               >
-                Show more steps
+                Reset
               </Button>
-            )}
-            {showAll && (
-              <Button
-                variant="linkSubtle"
-                tone="neutral"
-                size="xs"
-                onClick={() => setShowAll(false)}
-                className={showToggle}
-              >
-                Show fewer
-              </Button>
-            )}
+            </div>
+            <div className={leverList}>
+              {leverDefs.length === 0 && (
+                <div className={leverEmpty}>
+                  No ranked step data available for this route. Try regenerating
+                  data or selecting a different route.
+                </div>
+              )}
+              {leverDefs.map((lever) => (
+                <BindingLever
+                  key={lever.stepId}
+                  lever={lever}
+                  capDays={capLevers[lever.stepId]}
+                  onChange={(value) => handleLeverChange(lever.stepId, value)}
+                  onDrill={() => onStepDrill(lever.stepId)}
+                  nodes={graph.nodes}
+                />
+              ))}
+              {leverDefs.length >= MAX_VISIBLE_LEVERS && !showAll && (
+                <Button
+                  variant="linkSubtle"
+                  tone="neutral"
+                  size="xs"
+                  onClick={() => setShowAll(true)}
+                  className={showToggle}
+                >
+                  Show more steps
+                </Button>
+              )}
+              {showAll && (
+                <Button
+                  variant="linkSubtle"
+                  tone="neutral"
+                  size="xs"
+                  onClick={() => setShowAll(false)}
+                  className={showToggle}
+                >
+                  Show fewer
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

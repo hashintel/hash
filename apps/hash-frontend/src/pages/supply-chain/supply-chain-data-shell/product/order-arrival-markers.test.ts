@@ -90,7 +90,7 @@ const summary: PipelineSummary = {
 describe("computeOrderArrivalMarkers", () => {
   it("positions an order in its visible segment", () => {
     const result = computeOrderArrivalMarkers(
-      [order],
+      [{ ...order, total_days: 5 }],
       [batch],
       { direct: summary },
       false,
@@ -99,8 +99,10 @@ describe("computeOrderArrivalMarkers", () => {
 
     expect(result.direct?.mean?.positionPct).toBe(50);
     expect(result.direct?.mean?.n).toBe(1);
-    expect(result.direct?.mean?.daysBeforeGoodsIssue).toBe(20);
+    expect(result.direct?.mean?.daysBeforeGoodsIssue).toBe(5);
     expect(result.direct?.mean?.totalOrderLines).toBe(1);
+    expect(result.direct?.mean?.beforeTrace).toBe(false);
+    expect(result.direct?.mean?.afterTrace).toBe(false);
   });
 
   it("keeps the population fixed and collapses hidden segments", () => {
@@ -116,6 +118,8 @@ describe("computeOrderArrivalMarkers", () => {
     expect(result.direct?.mean?.n).toBe(1);
     expect(result.direct?.mean?.daysBeforeGoodsIssue).toBe(20);
     expect(result.direct?.mean?.beforeVisibleCount).toBe(1);
+    expect(result.direct?.mean?.beforeTrace).toBe(true);
+    expect(result.direct?.mean?.afterTrace).toBe(false);
   });
 
   it("counts a multi-batch order line once per route", () => {
@@ -229,6 +233,97 @@ describe("computeOrderArrivalMarkers", () => {
     expect(result.direct?.mean?.positionPct).toBe(0);
     expect(result.direct?.median?.daysBeforeGoodsIssue).toBe(72);
     expect(result.direct?.median?.positionPct).toBe(0);
+    expect(result.direct?.mean?.beforeTrace).toBe(true);
+    expect(result.direct?.median?.beforeTrace).toBe(true);
     expect(result.direct?.mean?.n).toBe(3);
+  });
+
+  it("marks aggregate orders after the visible pipeline end", () => {
+    const shortTransit: PipelineSummary = {
+      label: "Direct",
+      total_mean: 3,
+      total_median: 3,
+      stages: [
+        {
+          id: "seg_qa_to_customer",
+          label: "Transit",
+          type: "transit",
+          mean: 3,
+          median: 3,
+          pct_of_total: 100,
+        },
+      ],
+    };
+    const result = computeOrderArrivalMarkers(
+      [{ ...order, total_days: 0 }],
+      [batch],
+      { direct: shortTransit },
+    );
+
+    expect(result.direct?.mean?.positionPct).toBe(100);
+    expect(result.direct?.mean?.afterTrace).toBe(true);
+    expect(result.direct?.mean?.beforeTrace).toBe(false);
+  });
+
+  it("pins long-lead orders before a short traced pipeline", () => {
+    const shortTransit: PipelineSummary = {
+      label: "Direct",
+      total_mean: 3,
+      total_median: 3,
+      stages: [
+        {
+          id: "seg_qa_to_customer",
+          label: "Transit",
+          type: "transit",
+          mean: 3,
+          median: 3,
+          pct_of_total: 100,
+        },
+      ],
+    };
+    const result = computeOrderArrivalMarkers(
+      [{ ...order, total_days: 63 }],
+      [batch],
+      { direct: shortTransit },
+    );
+
+    expect(result.direct?.median?.daysBeforeGoodsIssue).toBe(63);
+    expect(result.direct?.median?.beforeTrace).toBe(true);
+    expect(result.direct?.median?.afterTrace).toBe(false);
+    expect(result.direct?.median?.positionPct).toBe(0);
+  });
+
+  it("ignores stages with missing duration values", () => {
+    const summaryWithMissing: PipelineSummary = {
+      label: "Direct",
+      total_mean: 3,
+      total_median: 3,
+      stages: [
+        {
+          id: "seg_proc_to_prodstart",
+          label: "Procurement",
+          type: "procurement",
+          mean: 0,
+          median: undefined as unknown as number,
+          pct_of_total: 0,
+        },
+        {
+          id: "seg_qa_to_customer",
+          label: "Transit",
+          type: "transit",
+          mean: 3,
+          median: 3,
+          pct_of_total: 100,
+        },
+      ],
+    };
+    const result = computeOrderArrivalMarkers(
+      [{ ...order, total_days: 63 }],
+      [batch],
+      { direct: summaryWithMissing },
+    );
+
+    expect(result.direct?.median?.beforeTrace).toBe(true);
+    expect(result.direct?.median?.afterTrace).toBe(false);
   });
 });
