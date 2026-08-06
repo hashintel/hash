@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -133,9 +133,21 @@ export const OrderLookup = ({ orderLines }: OrderLookupProps) => {
     ],
     [orderLinesByOrder],
   );
+  const validSelectedOrder =
+    selectedOrder && orderLinesByOrder.has(selectedOrder)
+      ? selectedOrder
+      : null;
+  useEffect(() => {
+    if (selectedOrder && !orderLinesByOrder.has(selectedOrder)) {
+      setSelectedOrder(null);
+    }
+  }, [orderLinesByOrder, selectedOrder]);
   const selectedLines = useMemo(
-    () => (selectedOrder ? (orderLinesByOrder.get(selectedOrder) ?? []) : []),
-    [orderLinesByOrder, selectedOrder],
+    () =>
+      validSelectedOrder
+        ? (orderLinesByOrder.get(validSelectedOrder) ?? [])
+        : [],
+    [orderLinesByOrder, validSelectedOrder],
   );
   const selectedPipeline = useMemo(
     () => buildOrderPipeline(selectedLines),
@@ -161,11 +173,11 @@ export const OrderLookup = ({ orderLines }: OrderLookupProps) => {
         <SearchableSelect
           className={orderSelect}
           groups={orderGroups}
-          value={selectedOrder ?? ""}
+          value={validSelectedOrder ?? ""}
           onChange={setSelectedOrder}
           placeholder="Select an order…"
           clearable={{
-            clearable: selectedOrder != null,
+            clearable: validSelectedOrder != null,
             onClear: () => setSelectedOrder(null),
           }}
           ariaLabel="Order"

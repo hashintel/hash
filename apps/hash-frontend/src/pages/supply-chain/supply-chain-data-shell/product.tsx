@@ -973,22 +973,24 @@ export const Overview = ({
           })()}
         </div>
 
-        {graph.order_timelines && graph.order_timelines.lines.length > 0 && (
-          <div className={customerOrdersWrap}>
-            <div className={collapsedPad}>
-              <CustomerOrdersPanel
-                orderTimelines={graph.order_timelines}
-                batchTimelines={graph.batch_timelines}
-                timeRange={timeRange}
-                excludeOutliers={excludeOutliers}
-                activeRoute={resolvedRoute || undefined}
-                pipelineSummaries={filteredGraph.pipeline_summary}
-                productNodes={graph.nodes}
-                onExpandedChange={setCustomerOrdersExpanded}
-              />
+        {graph.order_timelines &&
+          (graph.order_timelines.lines.length > 0 ||
+            (graph.order_timelines.open_lines ?? 0) > 0) && (
+            <div className={customerOrdersWrap}>
+              <div className={collapsedPad}>
+                <CustomerOrdersPanel
+                  orderTimelines={graph.order_timelines}
+                  batchTimelines={graph.batch_timelines}
+                  timeRange={timeRange}
+                  excludeOutliers={excludeOutliers}
+                  activeRoute={resolvedRoute || undefined}
+                  pipelineSummaries={filteredGraph.pipeline_summary}
+                  productNodes={graph.nodes}
+                  onExpandedChange={setCustomerOrdersExpanded}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {selectedStepId && (

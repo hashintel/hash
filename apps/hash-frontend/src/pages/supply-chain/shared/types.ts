@@ -431,6 +431,8 @@ export interface OrderLineRow {
   so_item: string;
   /** Destination route for this delivered portion of the sales-order line. */
   route?: string | null;
+  /** Observed endpoint for this delivery route (customer arrival or hub exit). */
+  route_endpoint_date?: string | null;
   customer: string | null;
   country: string | null;
   order_created: string;

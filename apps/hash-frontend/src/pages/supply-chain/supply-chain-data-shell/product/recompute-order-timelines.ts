@@ -356,8 +356,8 @@ export const recomputeOrderTimelines = (
   }
 
   const stages = [];
-  let totalMean = 0;
-  let totalMedian = 0;
+  let summedStageMean = 0;
+  let summedStageMedian = 0;
   for (const [key, label, type] of ORDER_SEG_DEFS) {
     const segment = segments[key];
     if (!segment) {
@@ -374,14 +374,16 @@ export const recomputeOrderTimelines = (
       pct_of_total: 0,
       n: segment.n,
     });
-    totalMean += segment.mean;
-    totalMedian += segment.median;
+    summedStageMean += segment.mean;
+    summedStageMedian += segment.median;
   }
-  if (totalMean > 0) {
+  if (summedStageMean > 0) {
     for (const stage of stages) {
-      stage.pct_of_total = (stage.mean / totalMean) * 100;
+      stage.pct_of_total = (stage.mean / summedStageMean) * 100;
     }
   }
+  const totalMean = segments.total_days?.mean ?? summedStageMean;
+  const totalMedian = segments.total_days?.median ?? summedStageMedian;
   const pipeline: Record<string, PipelineSummary> =
     stages.length > 0
       ? {

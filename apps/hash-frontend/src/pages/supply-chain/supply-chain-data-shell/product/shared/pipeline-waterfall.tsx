@@ -177,6 +177,7 @@ const orderMarkerBeforeArrow = css({
   color: "fg.max",
 });
 const orderMarker = css({
+  display: "block",
   position: "relative",
   w: "3",
   h: "3",
@@ -187,7 +188,7 @@ const orderMarker = css({
   boxShadow: "sm",
   cursor: "help",
   flexShrink: 0,
-  transform: "rotate(45deg)",
+  transform: "[rotate(45deg)]",
 });
 const orderMarkerTooltipTrigger = css({
   display: "flex",
@@ -200,7 +201,7 @@ const orderLegendSwatch = css({
   borderWidth: "1px",
   borderStyle: "solid",
   borderColor: "bgSolid.min",
-  transform: "rotate(45deg)",
+  transform: "[rotate(45deg)]",
 });
 
 interface PipelineWaterfallProps {
@@ -416,8 +417,13 @@ export const PipelineWaterfall = ({
   const isSegmentActive = (type: string) =>
     !activeSegments || activeSegments.has(type as SegmentId);
   const stages = allStages.filter((step) => isSegmentActive(step.type));
-  const totalMean = stages.reduce((acc, step) => acc + step.mean, 0);
-  const totalMedian = stages.reduce((acc, step) => acc + step.median, 0);
+  const allSegmentsActive = stages.length === allStages.length;
+  const summedStageMean = stages.reduce((acc, step) => acc + step.mean, 0);
+  const summedStageMedian = stages.reduce((acc, step) => acc + step.median, 0);
+  const totalMean = allSegmentsActive ? summary.total_mean : summedStageMean;
+  const totalMedian = allSegmentsActive
+    ? summary.total_median
+    : summedStageMedian;
   const summedStageP75 = stages.reduce(
     (total, stage) => total + (stage.p75 ?? 0),
     0,
@@ -429,8 +435,14 @@ export const PipelineWaterfall = ({
   // Complete-order quantiles are not additive. The row label uses the true
   // total distribution while the coloured widths remain normalized marginal
   // segment quantiles.
-  const totalP75 = summary.total_p75 ?? summedStageP75;
-  const totalP95 = summary.total_p95 ?? summedStageP95;
+  const totalP75 =
+    allSegmentsActive && summary.total_p75 != null
+      ? summary.total_p75
+      : summedStageP75;
+  const totalP95 =
+    allSegmentsActive && summary.total_p95 != null
+      ? summary.total_p95
+      : summedStageP95;
   // Filter simulated stages the same way so the dashed overlay matches
   // the visible baseline composition exactly.
   const simStagesMean = simulatedStagesMean?.filter((step) =>

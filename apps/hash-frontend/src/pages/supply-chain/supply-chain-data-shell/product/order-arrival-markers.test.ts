@@ -123,6 +123,27 @@ describe("computeOrderArrivalMarkers", () => {
     expect(result.direct?.mean?.positionPct).toBeCloseTo((5 / 35) * 100);
   });
 
+  it("uses the delivery-specific route and endpoint for shared batches", () => {
+    const sharedBatch = {
+      ...batch,
+      route: "hub",
+      delivery_date: "2026-03-01",
+    };
+    const directOrder = {
+      ...order,
+      route: "direct",
+      route_endpoint_date: "2026-02-05",
+    };
+
+    const result = computeOrderArrivalMarkers([directOrder], [sharedBatch], {
+      direct: summary,
+      hub: { ...summary, label: "Hub" },
+    });
+
+    expect(result.direct?.mean?.daysBeforeRouteEndpoint).toBe(20);
+    expect(result.hub).toBeUndefined();
+  });
+
   it("keeps the population fixed when collapsing hidden segments", () => {
     const result = computeOrderArrivalMarkers(
       [order],

@@ -186,21 +186,24 @@ export const CustomerOrdersPanel = ({
       : null;
 
   const shares = result.shares;
-  const hasDispatchedOrders = shares != null;
+  const statistics = result.statistics;
+  const hasStatistics = statistics != null;
   const rangeLabel = timeRangeLongLabel(timeRange).toLowerCase();
+  const openOrderCount =
+    statistics?.openOrderCount ?? orderTimelines.open_lines ?? 0;
 
   useEffect(() => {
-    if (!hasDispatchedOrders && !collapsed) {
+    if (!hasStatistics && !collapsed) {
       setCollapsed(true);
       onExpandedChange?.(false);
     }
-  }, [collapsed, hasDispatchedOrders, onExpandedChange]);
+  }, [collapsed, hasStatistics, onExpandedChange]);
 
   const coverageLabel = shares
-    ? `${formatNumber(shares.n)} dispatched order lines${
+    ? `${formatNumber(shares.n)} dispatched order lines · ${formatNumber(openOrderCount)} open order lines${
         routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
       } \u00b7 ${rangeLabel}`
-    : `no dispatched order lines${
+    : `no dispatched order lines · ${formatNumber(openOrderCount)} open order lines${
         routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
       } \u00b7 ${rangeLabel}`;
   const formatPercent = (value: number) =>
@@ -214,7 +217,6 @@ export const CustomerOrdersPanel = ({
     qtyUnit
       ? `${formatDecimal(value)} ${qtyUnit.toLowerCase()}`
       : formatDecimal(value);
-  const statistics = result.statistics;
   const hasRouteFilter =
     activeRoute != null &&
     pipelineSummaries != null &&
@@ -298,7 +300,7 @@ export const CustomerOrdersPanel = ({
           <h3 className={title}>Customer Order Pipeline</h3>
           <span className={coverageText}>{coverageLabel}</span>
         </div>
-        {hasDispatchedOrders && (
+        {hasStatistics && (
           <Button
             variant="subtle"
             tone="neutral"
@@ -318,55 +320,59 @@ export const CustomerOrdersPanel = ({
         )}
       </div>
 
-      {!collapsed && shares != null && (
+      {!collapsed && statistics != null && (
         <>
-          <div className={chipsRow}>
-            <Tooltip
-              content="Share of dispatched sales-order lines whose linked batches were available when the order was created."
-              openDelay="fast"
-            >
-              <StatChip
-                value={formatPercent(shares.fromStockPct)}
-                label="from stock"
-              />
-            </Tooltip>
-            <Tooltip
-              content="Share of dispatched sales-order lines for which at least one linked batch became available after the order was created."
-              openDelay="fast"
-            >
-              <StatChip
-                value={formatPercent(shares.awaitedProductionPct)}
-                label="awaited production"
-                isHighlight={shares.awaitedProductionPct > 50}
-              />
-            </Tooltip>
-            {shares.unknownPct > 0 && (
-              <Tooltip
-                content="Share of dispatched sales-order lines where the extract could not determine whether stock was available when the order was created."
-                openDelay="fast"
-              >
-                <StatChip
-                  value={formatPercent(shares.unknownPct)}
-                  label="unknown batch origin"
-                />
-              </Tooltip>
-            )}
-            <Tooltip
-              content="Share of dispatched sales-order lines with a formal make-to-order link to a production order."
-              openDelay="fast"
-            >
-              <StatChip
-                value={formatPercent(shares.mtoPeggedPct)}
-                label="MTO"
-              />
-            </Tooltip>
-          </div>
+          {shares != null && (
+            <>
+              <div className={chipsRow}>
+                <Tooltip
+                  content="Share of dispatched sales-order lines whose linked batches were available when the order was created."
+                  openDelay="fast"
+                >
+                  <StatChip
+                    value={formatPercent(shares.fromStockPct)}
+                    label="from stock"
+                  />
+                </Tooltip>
+                <Tooltip
+                  content="Share of dispatched sales-order lines for which at least one linked batch became available after the order was created."
+                  openDelay="fast"
+                >
+                  <StatChip
+                    value={formatPercent(shares.awaitedProductionPct)}
+                    label="awaited production"
+                    isHighlight={shares.awaitedProductionPct > 50}
+                  />
+                </Tooltip>
+                {shares.unknownPct > 0 && (
+                  <Tooltip
+                    content="Share of dispatched sales-order lines where the extract could not determine whether stock was available when the order was created."
+                    openDelay="fast"
+                  >
+                    <StatChip
+                      value={formatPercent(shares.unknownPct)}
+                      label="unknown batch origin"
+                    />
+                  </Tooltip>
+                )}
+                <Tooltip
+                  content="Share of dispatched sales-order lines with a formal make-to-order link to a production order."
+                  openDelay="fast"
+                >
+                  <StatChip
+                    value={formatPercent(shares.mtoPeggedPct)}
+                    label="MTO"
+                  />
+                </Tooltip>
+              </div>
 
-          <PipelineWaterfall
-            summaries={result.pipeline}
-            activeRoute="orders"
-            showPercentileRows
-          />
+              <PipelineWaterfall
+                summaries={result.pipeline}
+                activeRoute="orders"
+                showPercentileRows
+              />
+            </>
+          )}
 
           {statisticCards.length > 0 && (
             <div className={statsSection}>
@@ -388,9 +394,11 @@ export const CustomerOrdersPanel = ({
             </div>
           )}
 
-          <div className={lookupDivider}>
-            <OrderLookup orderLines={result.lines} />
-          </div>
+          {shares != null && (
+            <div className={lookupDivider}>
+              <OrderLookup orderLines={result.lines} />
+            </div>
+          )}
         </>
       )}
     </div>

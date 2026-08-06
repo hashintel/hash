@@ -160,6 +160,31 @@ export const computeOrderArrivalMarkers = (
   const contributingLines = new Set<OrderLineRow>();
 
   for (const line of orderLines) {
+    if ("route" in line) {
+      const route = line.route;
+      const endpointDate = line.route_endpoint_date;
+      if (!route || !endpointDate || !summaries[route]) {
+        continue;
+      }
+      const daysBeforeRouteEndpoint = Math.round(
+        (Date.parse(endpointDate) - Date.parse(line.order_created)) /
+          86_400_000,
+      );
+      if (
+        !Number.isFinite(daysBeforeRouteEndpoint) ||
+        Math.abs(daysBeforeRouteEndpoint) > 730
+      ) {
+        continue;
+      }
+      const routeObservations = observationsByRoute.get(route) ?? [];
+      routeObservations.push({ daysBeforeRouteEndpoint });
+      observationsByRoute.set(route, routeObservations);
+      contributingLines.add(line);
+      continue;
+    }
+
+    // Compatibility for datasets generated before delivery-specific routes and
+    // route endpoints were emitted.
     const batchesByRoute = new Map<string, BatchRow[]>();
     for (const batchId of line.batches) {
       const batch = batchById.get(batchId.toUpperCase());

@@ -81,12 +81,20 @@ describe("customer-order recomputation", () => {
           seg_delivery_to_dispatch: 0,
           total_days: 100,
         },
+        {
+          ...line("2026-06-03", "from_stock"),
+          seg_order_to_delivery: 100,
+          seg_delivery_to_dispatch: 100,
+          total_days: 100,
+        },
       ],
       "12m",
     );
 
     expect(result.pipeline.orders?.total_p75).toBe(100);
     expect(result.pipeline.orders?.total_p95).toBe(100);
+    expect(result.pipeline.orders?.total_mean).toBe(100);
+    expect(result.pipeline.orders?.total_median).toBe(100);
     expect(
       result.pipeline.orders?.stages.reduce(
         (total, stage) => total + (stage.p75 ?? 0),
@@ -119,6 +127,25 @@ describe("customer-order recomputation", () => {
     );
 
     expect(result.statistics?.averageOrderVolume).toBe(22.5);
+  });
+
+  it("retains open-order statistics without dispatched lines", () => {
+    const result = recomputeOrderTimelines(
+      [],
+      "12m",
+      false,
+      undefined,
+      ["2026-05-01"],
+      "2026-06-01",
+      undefined,
+      1,
+    );
+
+    expect(result.shares).toBeNull();
+    expect(result.statistics).toMatchObject({
+      openOrderCount: 1,
+      openMedianAgeDays: 31,
+    });
   });
 
   it("scopes delivered lines to the selected route", () => {
