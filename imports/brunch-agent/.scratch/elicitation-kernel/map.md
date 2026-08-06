@@ -1,0 +1,58 @@
+# Map: Elicitation Kernel — carve-out spec
+
+Label: wayfinder:map
+Status: open
+Created: 2026-08-06
+
+## Destination
+
+A reviewable **spec** for a standalone architecture (working name **elicitation kernel**) that generalizes brunch's elicitor into agentic interviewing against pluggable elicitation targets, on the Pi-family substrate, deployable local and remote (Flue-shaped). The spec fixes: the shipping shape (kernel library vs. Flue agent); the kernel / host / plugin contract decomposition (leading hypothesis: the four-contract + pack model from the agentic-elicitation-challenges doc, with persistence plugin-owned in accord with deploy target); the questioning-UX contract (successor to brunch's structured exchanges, critiqued not copied); and a first milestone against two live dev targets (elicit-gherkin + elicit-lean/formal, BPMN named third).
+
+## Notes
+
+- Tracker: local markdown (`docs/agents/issue-tracker.md`); this map and `issues/` are canonical. Ticket `Status:` values: `open` / `claimed` / `resolved`.
+- HITL tickets consult `/grilling` + `/domain-modeling`; research tickets resolve via `/research` subagents, AFK.
+- Plan, don't do: tickets resolve decisions. The spec (ticket 08) is the map's only deliverable.
+- Provisional lexicon (until `/domain-modeling` hardens it): **kernel** (generic mechanism + orchestration: IR/claim graph, reconciliation, dialogue policy machinery, questioning UX), **host** (embedding environment: input surfaces/pathways + deploy target — a Flue agent, later Petrinaut/web/brunch), **plugin** (target-defining policy, umbrella term), **pack** (the separately-swappable plugin units: ElicitationPack = concept/observation/completion contracts; ProjectionPack = projection contract), **target** (artifact family being elicited), **issue** (typed backpressure from projection/validation to the elicitation controller).
+- Primary references: [docs/inbox/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md](../../docs/inbox/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md) (turn 1: four contracts, packs, IR) and [docs/inbox/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md](../../docs/inbox/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md) (turn 2: hourglass, proof obligations, invariants, smells, test matrix)
+- Reference codebase (read-only): `../brunch` — esp. `src/agents/runtime/elicitor/`, `src/exchanges/`, `src/agents/skills/`
+- External: [Flue docs](https://flueframework.com/docs/guide/why-flue/), [zil-lean](https://github.com/jagg-ix/zil-lean)
+
+### Charter decisions (pre-map grilling, 2026-08-06)
+
+- Destination artifact = a spec (not a decision-set alone, not a build)
+- Elicitor-first: the elicitor is this map's spine
+- Greenfield reimplementation; brunch is reference architecture, not shared code
+- Fully decoupled from brunch's September MVP
+- Pi-family substrate committed; harness-agnostic core is a named non-goal
+- Brunch's exchange vocabulary is prior art to critique, not an incumbent to preserve
+- Persistence plugin-owned (in accord with deploy target) is a hypothesis to test, not a decision
+- Two live dev targets from day one (forces generalization on both pack axes); BPMN/process-mining named third
+- "brunch-lite" is a temporary label; real name is fog
+- **Principle v2** (ratified 2026-08-06, replaces "behavioral over procedural" after an evidence pass over `~/Clones/mattpocock/skills` and `../brunch/docs/design/BEHAVIORAL_KERNELS.md`): *procedure for mechanism, anchors for judgment, shapes for output*. Short step sequences with checkable completion criteria where order matters; leading words wherever judgment is required; annotated shapes for everything produced; reference disclosed progressively. Design against sprawl, negation-steering, no-ops, judgment-as-procedure — not against procedure itself. `writing-for-agents` is the pack-authoring standard; kernel cards (BEHAVIORAL_KERNELS.md) are the unit of elicitation guidance.
+
+## Decisions so far
+
+<!-- one line per closed ticket: gist + link -->
+
+- [Contract decomposition](issues/04-contract-decomposition.md) — the load-bearing resolution: **agent-forward hybrid** (agent judgment owns the loop; deterministic mechanism as tools; typed-issue backpressure); **no universal IR** — the kernel owns only a domain-free **capture envelope** (evidence spans, epistemic-status enum, absence states, alternatives, one `supersedes` link) around opaque plugin payloads, no kernel edges or graph (conflicts/equivalence are typed issues, resolved only explicitly); operations tiered `project`+`validate` required / `reconcile` optional / `observe` agent-native, all snapshot-in/deltas-out with typed loss reports; **facts computed, weights judged** dialogue policy (no scoring engine); packs = kernel cards + shapes + validators + shallow schemas + completion contract; smallest-honest-plugin test; five proof obligations + ten kernel invariants + gating tests (reprojection, minimal pairs, black-box authoring) adopted as spec acceptance material; multi-plugin composition, removal, replay, capability negotiation, versioning deferred to fog. Full ownership table in the ticket.
+
+- [Flue architecture deep-read](issues/01-flue-architecture-deep-read.md) — embedding is Flue's grain: ship the kernel as a custom hook (`useElicitationKernel(plugin)`) + exportable `defineTool`s over a thin host-authored `'use agent'` module; Pi is exposed only at the provider layer (no path to Pi's loop/extensions — brunch-style Pi assumptions don't transfer); durability contract identical local/remote but storage/ownership differ; **no first-class ask-the-user primitive — the kernel must own its turn-suspension protocol** (`terminate: true` tool + persistent state + data part, answer arrives as fresh dispatch); constraints: Valibot at every schema boundary, stable-tool-set cache economics, subagents conversationally sterile, non-React hosts must build on `@flue/sdk`.
+- [Formal-verification canon survey](issues/09-formal-verification-canon-survey.md) — align the second target to a **GSN skeleton** (Goal/Strategy/Solution/Assumption/Justification; the one canon built for argued claims about a system) with **Dafny nouns** (`requires`/`ensures`/`invariant`/`lemma`/`assume` transfer; `modifies`/ghost don't) and **Lean sorry-taint semantics**; the headline artifact is a `dafny audit`-style **assumption ledger** (per-claim status becomes a derived label); acyclicity kept as a deliberate restriction with `decreases` as future escape hatch; sell the Datalog closure as taint-propagation, never as an assurance verdict; **"proof obligations" is a category error to verification readers — rename the target** (candidates: obligation ledger / claim structure / assurance argument); Geolog is *not* an ARIA artifact (negative result) but coherent-logic saturation is the validator's genuinely canonical lineage; concrete milestone-one contract sketch (one `Statement` record, four edge kinds, five-stratum status rules) is in the ticket.
+- [Dev-target portfolio confirmation](issues/07-dev-target-portfolio.md) — confirmed `elicit-gherkin` + `elicit-proof-obligations` live (BPMN third, full elicit-lean deferred); **hybrid order**: both packs authored before the pack interface freezes, gherkin wires end-to-end first; proof-obligations format = zil-lean's ideas in our own claim-DAG serialization, hewing to existing canon (Dafny leading candidate — grounded by new ticket 09); gherkin milestone-one validation = parse validity + pack-declared step lexicon; surfaced the **behavioral-over-procedural** design principle (routed to Contract decomposition).
+- [Brunch exchange-schema audit](issues/03-brunch-exchange-schema-audit.md) — full catalog + three-way classification: **generic** (the `ask` one-terminal-four-shapes primitive, declared continuations that make offer→answer non-forgeable, answered/cancelled/unavailable property-presence union, self-contained terminals, boundary-teaching schemas, no-storage asking agenda + private scratchpad, hash-pinned prompt directives); **generalize-with-changes** (present-then-ask two-step → one `present(form, payload)` with pluggable validators, parent-link instead of enumerated prev/curr/next unions, opaque target-supplied receipts, rubrics declared by the target); **brunch-specific** (review-set node/edge schema, plane vocabulary, `graph_refs`, `map`/`tutorial` skills). Strain marks confirm the "just a guess" caution: wire vocabulary outlived tool names, a digest-into-review merge was retracted, doc/code drift on edge categories. 15 inherit/avoid lessons feed tickets 04 and 05.
+- [zil-lean survey](issues/02-zil-lean-survey.md) — zil-lean contains **no elicitation** (agent-authored 2-day snapshot; Datalog/Zanzibar-style claim graph in Lean 4 + Clojure) but is a strong existence proof of the kernel's claim-graph layer: evidence-graded assurance lattice with prohibited promotions, full derivation provenance, assumption/lemma/theorem/guarantee vocabulary with derived PROVED/CONDITIONAL/WEAK/BROKEN statuses. **Verdict: full elicit-lean is not dev-sized; the "elicit-proof-obligations" slice is** (claim DAG + criticality + evidence refs, validated by acyclicity + Datalog closure — no Lean statements) and beats BPMN as second target on both pack axes; BPMN stays third.
+
+## Not yet specified
+
+- Spec permanence / sessions-roam-across-specs — shapes what artifacts the elicitor emits and how sessions relate to them; may graduate once the contract decomposition lands
+- Unstructured-ingest crossover at scale — the IR inside the contract-decomposition ticket absorbs the parsing/mapping core; what remains foggy is bulk/brownfield ingest as a first-class mode
+- elicit-to-petri-net as a future plugin — abstract questions (what fits a net; what IR precedes a net) wait until the pack model exists
+- JSONL-vs-YAML portability comparison — graduates only if persistence proves kernel-owned after all
+- The real product name
+- Deferred plugin-ecosystem machinery (from Contract decomposition): simultaneous multi-plugin composition, plugin removal, full replay, capability negotiation, version/migration (spec names the five version axes only)
+
+## Out of scope
+
+- **Executor-standalone** — a different kind of project; the spec only names the elicitor→executor handoff seam
+- **Harness-agnostic core** — every named consumer is Pi-family; revisit only if a non-Pi consumer materializes (would be a fresh effort under a redrawn destination)
