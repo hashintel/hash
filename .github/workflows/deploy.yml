@@ -257,16 +257,18 @@ jobs:
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
-          # Address and Access credentials come from the job's environment:
-          # `pull-request` resolves to the staging Vault, `main` to production.
-          # Each instance holds only its own tier's token, so the role name and
-          # the path carry no tier — the instance is the tier.
-          url: ${{ vars.VAULT_ADDR }}
+          # Named per tier so each value lives once, at the organization. The
+          # condition repeats the one on `environment` above, and a mismatch
+          # cannot reach the wrong tier: the role binds the environment claim,
+          # so credentials for one instance never authenticate against the
+          # other. Each instance holds only its own tier's token, so the role
+          # name and the path carry no tier — the instance is the tier.
+          url: ${{ github.ref == 'refs/heads/main' && vars.VAULT_PROD_ADDR || vars.VAULT_STAGE_ADDR }}
           method: jwt
           role: ci-hash-sentry
           extraHeaders: |
-            CF-Access-Client-Id: ${{ vars.CF_ACCESS_CLIENT_ID }}
-            CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+            CF-Access-Client-Id: ${{ github.ref == 'refs/heads/main' && vars.CF_ACCESS_PROD_CLIENT_ID || vars.CF_ACCESS_STAGE_CLIENT_ID }}
+            CF-Access-Client-Secret: ${{ github.ref == 'refs/heads/main' && secrets.CF_ACCESS_PROD_CLIENT_SECRET || secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           secrets: |
             ci/data/sentry/sourcemaps auth_token | SENTRY_AUTH_TOKEN
 

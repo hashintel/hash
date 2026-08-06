@@ -966,5 +966,188 @@ describe("compileScenario", () => {
         expect(Number(result.result.parameterValues.x)).toBeCloseTo(Math.PI);
       }
     });
+
+    it("allows array methods that read .constructor internally", () => {
+      // Array.prototype.map/filter/slice/concat/flatMap read the array's
+      // `constructor` (ArraySpeciesCreate). The sandbox masks it as
+      // `undefined`, which the spec treats as "use the default Array" — a
+      // throwing getter here would break everyday user code.
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "[1, 2, 3].map((n) => n * 2).filter((n) => n > 2).slice(0).concat([0]).length",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.parameterValues.x).toBe("3");
+      }
+    });
+
+    it("masks .constructor on helpers so they cannot leak Function", () => {
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "range.constructor === undefined ? 1 : 2",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.parameterValues.x).toBe("1");
+      }
+    });
+  });
+
+  describe("initial state as code", () => {
+    const netPlaces = [
+      place("pl1", "Space", "c1"),
+      place("pl2", "Queue", null),
+    ];
+    const netTypes = [color("c1")];
+
+    it("builds colored tokens from Array.from(...).map(...)", () => {
+      // Regression: this exact shape used to fail with "Access to
+      // .constructor is blocked inside user code." because `.map` reads the
+      // array's constructor internally.
+      const result = compileScenario(
+        scenario({
+          scenarioParameters: [
+            { identifier: "number_of_satellites", type: "integer", default: 3 },
+          ],
+          initialState: {
+            type: "code",
+            content: `return {
+              Space: Array.from({ length: scenario.number_of_satellites }).map((_, i) => ({
+                x: 10 * i,
+                y: 10 * i,
+              })),
+            };`,
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.pl1).toEqual([
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+          { x: 20, y: 20 },
+        ]);
+      }
+    });
+
+    it("builds colored tokens from range(...).map(...)", () => {
+      const result = compileScenario(
+        scenario({
+          scenarioParameters: [
+            { identifier: "number_of_satellites", type: "integer", default: 2 },
+          ],
+          initialState: {
+            type: "code",
+            content: `return {
+              Space: range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 0 })),
+              Queue: range(2, 6).length,
+            };`,
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.pl1).toEqual([
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ]);
+        expect(result.result.initialState.pl2).toBe(4);
+      }
+    });
+
+    it("reports code errors with the __code__ item id", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "code",
+            content: "return { Queue: range(0, 5, 0).length };",
+          },
+        }),
+        [],
+        netPlaces,
+        netTypes,
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]?.source).toBe("initialState");
+        expect(result.errors[0]?.itemId).toBe("__code__");
+        expect(result.errors[0]?.message).toContain("step must not be zero");
+      }
+    });
+  });
+
+  describe("range helper", () => {
+    it("is available in parameter override expressions", () => {
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: {
+            p1: "range(3).length + range(2, 6).length",
+          },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.parameterValues.x).toBe("7");
+      }
+    });
+
+    it("is available in per-place initial state expressions", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: { pl2: "range(0, 10, 2).length" },
+          },
+        }),
+        [],
+        [place("pl2", "Queue", null)],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.pl2).toBe(5);
+      }
+    });
+
+    it("reports the length-cap error instead of freezing", () => {
+      const result = compileScenario(
+        scenario({
+          parameterOverrides: { p1: "range(1e12).length" },
+        }),
+        [param("p1", "x", "0")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.errors.some((error) =>
+            error.message.includes("exceeding the limit"),
+          ),
+        ).toBe(true);
+      }
+    });
   });
 });

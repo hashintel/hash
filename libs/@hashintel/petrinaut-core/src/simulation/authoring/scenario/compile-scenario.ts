@@ -2,6 +2,7 @@ import { parseParameterValue } from "../../../parameter-values";
 import { coerceTokenRecord } from "../../engine/token-values";
 import { TYPE_POLICIES } from "../../engine/type-policies";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
+import { SCENARIO_HELPERS } from "./helpers";
 
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type {
@@ -67,15 +68,19 @@ function createSafeObject<T extends NetParameterValues>(obj: T): T {
   return Object.freeze(Object.assign(Object.create(null), obj));
 }
 
+const SCENARIO_HELPER_NAMES = Object.keys(SCENARIO_HELPERS);
+const SCENARIO_HELPER_VALUES = Object.values(SCENARIO_HELPERS);
+
 /**
- * Evaluate a single JavaScript expression with `parameters` and `scenario`
- * in scope. Returns the result or throws with a descriptive message.
+ * Evaluate a single JavaScript expression with `parameters`, `scenario`, and
+ * the scenario helpers (`range`, …) in scope. Returns the result or throws
+ * with a descriptive message.
  *
  * Hardening:
  * - Strict mode (`this === undefined`)
  * - Prototype-less frozen objects (blocks `.constructor` chain walk on args)
  * - Dangerous globals shadowed with `var` declarations
- * - `.constructor` temporarily blocked on built-in prototypes (see
+ * - `.constructor` temporarily masked on built-in prototypes (see
  *   `runSandboxed`) so literal-based constructor walks also fail.
  */
 function evaluateExpression(
@@ -87,10 +92,15 @@ function evaluateExpression(
   const fn = new Function(
     "parameters",
     "scenario",
+    ...SCENARIO_HELPER_NAMES,
     `"use strict"; var ${SHADOWED_GLOBALS}; return (${expression});`,
-  ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
+  ) as (...args: unknown[]) => unknown;
   return runSandboxed(() =>
-    fn(createSafeObject(parameters), createSafeObject(scenario)),
+    fn(
+      createSafeObject(parameters),
+      createSafeObject(scenario),
+      ...SCENARIO_HELPER_VALUES,
+    ),
   );
 }
 
@@ -295,10 +305,15 @@ export function compileScenario(
         const fn = new Function(
           "parameters",
           "scenario",
+          ...SCENARIO_HELPER_NAMES,
           `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
-        ) as (p: NetParameterValues, s: NetParameterValues) => unknown;
+        ) as (...args: unknown[]) => unknown;
         const result = runSandboxed(() =>
-          fn(createSafeObject(parametersObj), createSafeObject(scenarioObj)),
+          fn(
+            createSafeObject(parametersObj),
+            createSafeObject(scenarioObj),
+            ...SCENARIO_HELPER_VALUES,
+          ),
         );
 
         if (typeof result !== "object" || result === null) {

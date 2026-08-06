@@ -50,7 +50,7 @@ You see a row per place. Which places appear depends on the **Show all places** 
 
 What you enter per place depends on whether it has a type:
 
-- **Uncoloured places**: a single-line TypeScript expression that evaluates to the token count. The result is rounded down and clamped to `>= 0`. You can reference `parameters.<variable_name>` and `scenario.<identifier>`. Empty/missing means zero tokens.
+- **Uncoloured places**: a single-line TypeScript expression that evaluates to the token count. The result is rounded down and clamped to `>= 0`. You can reference `parameters.<variable_name>` and `scenario.<identifier>`, plus the `range` helper described under [Code mode](#code-mode-define-as-code). Empty/missing means zero tokens.
 - **Coloured places**: a small spreadsheet, one row per token, one column per element of the place's type. Cell values are literal values matching each column's type — numbers for Real/Integer, true/false for Boolean, free text for String, and identifiers for UUID; expressions are not supported in the spreadsheet. UUID columns accept any text: a UUID string is used as-is, and any other text (e.g. `order-1`) is converted deterministically to a UUID, so the same text always produces the same identifier. If you later edit the type itself, existing rows follow along: added elements get a default column, removed elements' columns are dropped, reordered elements keep their values, and changing an element's type converts each stored value (falling back to the new type's default when a value can't be converted).
 
 ### Code mode (Define as code)
@@ -60,13 +60,21 @@ You write a single function body (no `function` keyword, no `export default`) th
 ```ts
 return {
   RawMaterial: scenario.raw_material,
-  AvailableMachines: Array.from({ length: scenario.machines_count }, () => ({
+  AvailableMachines: range(scenario.machines_count).map(() => ({
     machine_damage_ratio: scenario.initial_machine_damage,
   })),
 };
 ```
 
-`parameters` (net-level) and `scenario` (this scenario's parameters) are in scope. For each returned key:
+`parameters` (net-level) and `scenario` (this scenario's parameters) are in scope, along with the `range` helper:
+
+- `range(end)` -- integers from `0` (inclusive) to `end` (exclusive): `range(3)` is `[0, 1, 2]`.
+- `range(start, end)` -- from `start` (inclusive) to `end` (exclusive).
+- `range(start, end, step)` -- stepping by `step`; a negative step counts down.
+
+`range` mirrors Python's `range` and is handy with `.map` for building token arrays, e.g. `range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 10 * i }))`. Standard JavaScript array methods (`.map`, `.filter`, ...) and `Math` work as usual. A single `range` call is capped at 1,000,000 elements; larger calls fail with an error rather than freezing the editor.
+
+For each returned key:
 
 - An **uncoloured** place takes a number (rounded, clamped to `>= 0`).
 - A **coloured** place takes an array of token objects, with one property per type element.
@@ -74,7 +82,7 @@ return {
 > Place keys are **names** in code mode, but **IDs** in per-place mode. This asymmetry is by design.
 > Unknown place names in code mode are **silently ignored** -- there is no warning if you typo a name.
 
-The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save.
+The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save. Leaving the code editor empty is not an error: empty code defines no scenario-specific initial state, so every place keeps the initial marking entered manually on the canvas. Note that this differs from per-place mode, where clearing a place's expression sets that place to **zero** tokens rather than leaving it alone.
 
 ## Parameter bindings
 
@@ -98,6 +106,8 @@ In **Edit** mode, open **Simulation Settings** (bottom panel). The **Scenario** 
 
 Selecting a different scenario resets the scenario-parameter inputs to that scenario's defaults. The picker is locked while a simulation is running or paused; reset the simulation to switch.
 
+If the selected scenario fails to compile (for example an override expression or the initial-state code throws), a red callout appears below the Scenario dropdown listing each error, and the scenario's overrides and initial state are **not** applied until the errors are fixed.
+
 Quick-action buttons next to the dropdown let you edit the selected scenario, create a new one, or jump to the Scenarios management view.
 
 ## Pre-bundled scenarios in the example nets
@@ -106,6 +116,6 @@ Several of the built-in examples ship with scenarios so you can see realistic co
 
 - **SIR Epidemic Model** -- "Seasonal Flu" and "High Virulence Outbreak", driven by `population` and `infected_ratio` scenario parameters plus parameter overrides for infection and recovery rates.
 - **Production Machines** -- "Default Production", driven by `raw_material`, `machines_count`, and `initial_machine_damage`.
-- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar).
+- **Probabilistic Satellites Launcher** -- four orbit scenarios (Moon, Earth, Mars, Solar), plus "Pre-deployed Constellation", which authors its initial state in code mode: `range(scenario.number_of_satellites).map(...)` builds a ring of satellites at a configurable altitude, each already travelling at circular-orbit speed so the ring holds its orbit as soon as you press play.
 
 Loading any of these examples is the fastest way to see a working scenario authored in both modes.
