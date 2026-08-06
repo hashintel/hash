@@ -206,10 +206,11 @@ fn invert(direct_posts: &[u64], direct_ids: &[OntologyRowId], domain: usize) -> 
     }
 
     // The representation choice is the size comparison, in bytes on both sides: a dense set
-    // costs the whole frame regardless of population while a list costs four bytes per member.
-    // The strict inequality sends the equal-cost case to the list, which reads without decoding.
+    // costs the whole frame regardless of population while a list costs one position entry per
+    // member. The strict inequality sends the equal-cost case to the list, which reads without
+    // decoding.
     let dense_bytes = DenseBitSlice::<BasePosition>::total_byte_len(points as u64);
-    let is_dense = |count: u64| dense_bytes < count * size_of::<u32>() as u64;
+    let is_dense = |count: u64| dense_bytes < count * size_of::<BasePosition>() as u64;
 
     // The dense count is known before the region exists, so the sets live in one allocation
     // laid out exactly as the file stores them.

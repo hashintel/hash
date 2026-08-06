@@ -240,7 +240,7 @@ impl PostingsFile {
             self.header()
                 .parent_ids_offset()
                 .expect("open validated the geometry"),
-            self.header().parent_edges() * size_of::<u64>() as u64,
+            self.header().parent_edges() * size_of::<OntologyRowId>() as u64,
         );
 
         <[OntologyRowId]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
@@ -278,7 +278,7 @@ impl PostingsFile {
             self.header()
                 .direct_ids_offset()
                 .expect("open validated the geometry"),
-            self.header().direct_entries() * size_of::<u64>() as u64,
+            self.header().direct_entries() * size_of::<OntologyRowId>() as u64,
         );
 
         <[OntologyRowId]>::ref_from_bytes(bytes).unwrap_or_else(|_| {
@@ -313,7 +313,7 @@ impl PostingsFile {
             self.header()
                 .list_entries_offset()
                 .expect("open validated the geometry"),
-            self.header().list_entries() * size_of::<u32>() as u64,
+            self.header().list_entries() * size_of::<BasePosition>() as u64,
         );
 
         <[BasePosition]>::ref_from_bytes(bytes).unwrap_or_else(|_| {

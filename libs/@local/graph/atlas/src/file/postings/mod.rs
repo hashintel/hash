@@ -328,7 +328,7 @@ impl FileHeader {
     /// header.
     #[must_use]
     pub(crate) const fn direct_posts_offset(&self) -> Option<u64> {
-        let ids = padded_size(self.parent_edges.get(), size_of::<u64>() as u64)?;
+        let ids = padded_size(self.parent_edges.get(), size_of::<OntologyRowId>() as u64)?;
         self.parent_ids_offset()?.checked_add(ids)
     }
 
@@ -348,7 +348,7 @@ impl FileHeader {
     /// header.
     #[must_use]
     pub(crate) const fn dense_sets_offset(&self) -> Option<u64> {
-        let ids = padded_size(self.direct_entries.get(), size_of::<u64>() as u64)?;
+        let ids = padded_size(self.direct_entries.get(), size_of::<OntologyRowId>() as u64)?;
         self.direct_ids_offset()?.checked_add(ids)
     }
 
@@ -371,7 +371,7 @@ impl FileHeader {
         let entries = self
             .list_entries
             .get()
-            .checked_mul(size_of::<u32>() as u64)?;
+            .checked_mul(size_of::<BasePosition>() as u64)?;
         self.list_entries_offset()?.checked_add(entries)
     }
 
