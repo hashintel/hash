@@ -987,7 +987,6 @@ export const Overview = ({
                   excludeOutliers={excludeOutliers}
                   activeRoute={resolvedRoute || undefined}
                   pipelineSummaries={filteredGraph.pipeline_summary}
-                  productNodes={graph.nodes}
                   onExpandedChange={setCustomerOrdersExpanded}
                 />
               </div>

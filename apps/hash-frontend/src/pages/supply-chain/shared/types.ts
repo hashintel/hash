@@ -442,6 +442,8 @@ export interface OrderLineRow {
   n_deliveries: number;
   order_qty: number | null;
   delivered_qty: number | null;
+  /** SAP sales unit (LIPS.VRKME) for `delivered_qty`. */
+  delivered_qty_uom?: string | null;
   /** Distinct delivered batches; links the line to batch_timelines. */
   batches: string[];
   batch_available: string | null;

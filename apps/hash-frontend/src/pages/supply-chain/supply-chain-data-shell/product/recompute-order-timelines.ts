@@ -44,6 +44,7 @@ export interface OrderStatistics {
   openOrderCount: number | null;
   averageBatchesPerOrder: number | null;
   averageOrderVolume: number | null;
+  averageOrderVolumeUnit: string | null;
   openMedianAgeDays: number | null;
   observedAsOf: string | null;
   distinctCustomers: number;
@@ -238,6 +239,8 @@ function computeOrderStatistics(
 
   const batchIdsByOrder = new Map<string, Set<string>>();
   const volumeByOrder = new Map<string, number>();
+  const deliveredQuantityUnits = new Set<string>();
+  let hasDeliveredQuantityWithoutUnit = false;
   for (const line of lines) {
     const orderBatchIds =
       batchIdsByOrder.get(line.sales_order) ?? new Set<string>();
@@ -247,6 +250,14 @@ function computeOrderStatistics(
     batchIdsByOrder.set(line.sales_order, orderBatchIds);
 
     if (line.delivered_qty != null && line.delivered_qty > 0) {
+      const deliveredQuantityUnit = line.delivered_qty_uom
+        ?.trim()
+        .toUpperCase();
+      if (deliveredQuantityUnit) {
+        deliveredQuantityUnits.add(deliveredQuantityUnit);
+      } else {
+        hasDeliveredQuantityWithoutUnit = true;
+      }
       volumeByOrder.set(
         line.sales_order,
         (volumeByOrder.get(line.sales_order) ?? 0) + line.delivered_qty,
@@ -262,9 +273,18 @@ function computeOrderStatistics(
         batchesPerOrder.length
       : null;
   const orderVolumes = [...volumeByOrder.values()];
+  const quantitiesCanBeAggregated =
+    deliveredQuantityUnits.size === 0 ||
+    (deliveredQuantityUnits.size === 1 && !hasDeliveredQuantityWithoutUnit);
   const averageOrderVolume =
-    orderVolumes.length > 0
+    quantitiesCanBeAggregated && orderVolumes.length > 0
       ? orderVolumes.reduce((sum, qty) => sum + qty, 0) / orderVolumes.length
+      : null;
+  const commonDeliveredQuantityUnit =
+    deliveredQuantityUnits.values().next().value ?? null;
+  const averageOrderVolumeUnit =
+    deliveredQuantityUnits.size === 1 && quantitiesCanBeAggregated
+      ? commonDeliveredQuantityUnit
       : null;
 
   const customerLines = lines.filter(
@@ -312,6 +332,7 @@ function computeOrderStatistics(
     openOrderCount: openOrderCount ?? null,
     averageBatchesPerOrder,
     averageOrderVolume,
+    averageOrderVolumeUnit,
     openMedianAgeDays,
     observedAsOf: observedAsOf ?? null,
     distinctCustomers,

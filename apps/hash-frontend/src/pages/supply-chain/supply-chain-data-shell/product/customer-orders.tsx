@@ -15,28 +15,16 @@ import { PipelineWaterfall } from "./shared/pipeline-waterfall";
 import type { TimeRange } from "../../shared/time-range";
 import type {
   BatchTimelines,
-  GraphNode,
   OrderTimelines,
   PipelineSummary,
 } from "../../shared/types";
 
-function orderQtyUnit(
-  orderTimelines: OrderTimelines,
-  productNodes?: GraphNode[],
-): string | null {
-  const columnUnit = orderTimelines.detail_columns?.find(
-    (column) => column.key === "delivered_qty",
-  )?.unit;
-  if (columnUnit) {
-    return columnUnit;
-  }
-  for (const node of productNodes ?? []) {
-    const unit = node.normalization?.unit;
-    if (unit) {
-      return unit;
-    }
-  }
-  return null;
+function orderQtyUnit(orderTimelines: OrderTimelines): string | null {
+  return (
+    orderTimelines.detail_columns?.find(
+      (column) => column.key === "delivered_qty",
+    )?.unit ?? null
+  );
 }
 
 const stack = css({ display: "flex", flexDirection: "column", gap: "4" });
@@ -122,8 +110,6 @@ interface CustomerOrdersPanelProps {
   /** Destination route from the E2E pipeline picker; scopes dispatched lines. */
   activeRoute?: string;
   pipelineSummaries?: Record<string, PipelineSummary>;
-  /** Used to resolve quantity units when the order extract omits them. */
-  productNodes?: GraphNode[];
   onExpandedChange?: (expanded: boolean) => void;
 }
 
@@ -134,7 +120,6 @@ export const CustomerOrdersPanel = ({
   excludeOutliers,
   activeRoute,
   pipelineSummaries,
-  productNodes,
   onExpandedChange,
 }: CustomerOrdersPanelProps) => {
   const { sites } = useRegistry();
@@ -200,19 +185,20 @@ export const CustomerOrdersPanel = ({
   }, [collapsed, hasStatistics, onExpandedChange]);
 
   const coverageLabel = shares
-    ? `${formatNumber(shares.n)} dispatched order lines · ${formatNumber(openOrderCount)} open order lines${
-        routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
-      } \u00b7 ${rangeLabel}`
-    : `no dispatched order lines · ${formatNumber(openOrderCount)} open order lines${
-        routeScopeLabel ? ` \u00b7 ${routeScopeLabel}` : ""
-      } \u00b7 ${rangeLabel}`;
+    ? `${formatNumber(shares.n)} dispatched order lines${
+        routeScopeLabel ? ` ${routeScopeLabel}` : ""
+      } · ${formatNumber(openOrderCount)} total open order lines \u00b7 ${rangeLabel}`
+    : `no dispatched order lines ${
+        routeScopeLabel ? `  ${routeScopeLabel}` : ""
+      } · ${formatNumber(openOrderCount)} total open order lines \u00b7 ${rangeLabel}`;
   const formatPercent = (value: number) =>
     `${formatNumber(value, { maximumFractionDigits: 0 })}%`;
   const formatDays = (value: number) =>
     `${formatNumber(value, { maximumFractionDigits: 0 })}d`;
   const formatDecimal = (value: number) =>
     formatNumber(value, { maximumFractionDigits: 1 });
-  const qtyUnit = orderQtyUnit(orderTimelines, productNodes);
+  const qtyUnit =
+    statistics?.averageOrderVolumeUnit ?? orderQtyUnit(orderTimelines);
   const formatVolume = (value: number) =>
     qtyUnit
       ? `${formatDecimal(value)} ${qtyUnit.toLowerCase()}`

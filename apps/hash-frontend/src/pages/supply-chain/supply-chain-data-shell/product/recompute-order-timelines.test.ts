@@ -108,17 +108,20 @@ describe("customer-order recomputation", () => {
       ...line("2026-06-01", "from_stock"),
       sales_order: "100",
       delivered_qty: 10,
+      delivered_qty_uom: "KG",
     };
     const secondLine = {
       ...line("2026-06-02", "from_stock"),
       sales_order: "100",
       so_item: "20",
       delivered_qty: 15,
+      delivered_qty_uom: "KG",
     };
     const otherOrder = {
       ...line("2026-06-03", "from_stock"),
       sales_order: "200",
       delivered_qty: 20,
+      delivered_qty_uom: "KG",
     };
 
     const result = recomputeOrderTimelines(
@@ -127,6 +130,26 @@ describe("customer-order recomputation", () => {
     );
 
     expect(result.statistics?.averageOrderVolume).toBe(22.5);
+    expect(result.statistics?.averageOrderVolumeUnit).toBe("KG");
+  });
+
+  it("does not aggregate order volumes with mixed delivery units", () => {
+    const result = recomputeOrderTimelines(
+      [
+        {
+          ...line("2026-06-01", "from_stock"),
+          delivered_qty_uom: "KG",
+        },
+        {
+          ...line("2026-06-02", "from_stock"),
+          delivered_qty_uom: "L",
+        },
+      ],
+      "12m",
+    );
+
+    expect(result.statistics?.averageOrderVolume).toBeNull();
+    expect(result.statistics?.averageOrderVolumeUnit).toBeNull();
   });
 
   it("retains open-order statistics without dispatched lines", () => {
