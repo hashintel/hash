@@ -216,17 +216,13 @@ pub(crate) struct AssemblyEvidence {
     /// The winning void's edges the boundary bisects geometrically.
     ///
     /// Zeros when the derivation found no void.
-    #[serde(default)]
     pub near_duplicate_void: [f64; 2],
     /// The derivation's search ceiling, which is the median pairwise distance scaled by the
     /// fraction.
-    #[serde(default)]
     pub near_duplicate_ceiling: f64,
     /// Over-budget components subdivision split.
-    #[serde(default)]
     pub subdivided_groups: usize,
     /// Groups accepted over budget because identity edges alone hold them together.
-    #[serde(default)]
     pub oversized_accepted: usize,
     /// Components whose subdivision found no fitting near-duplicate cut and severed every
     /// near-duplicate edge under the empty cut.
@@ -234,10 +230,8 @@ pub(crate) struct AssemblyEvidence {
     /// Each counted component scattered rows the boundary judged interchangeable across smaller
     /// groups, so a train/validation split may separate near-duplicates. `None` when the document
     /// predates the counter: the event was possible and uncounted, which is not a zero.
-    #[serde(default)]
     pub empty_cut_components: Option<usize>,
     /// The weakest axis rank subdivision engaged.
-    #[serde(default)]
     pub deepest_relaxation: Relaxation,
 }
 

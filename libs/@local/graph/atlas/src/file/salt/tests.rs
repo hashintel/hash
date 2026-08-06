@@ -271,7 +271,7 @@ fn evidence() -> Evidence {
             relations: 49,
             overridden: 1,
         },
-        classifier: Some(classifier_evidence()),
+        classifier: classifier_evidence(),
         relations: BuildMeasurements {
             pruning_threshold: 0.001,
             retained_edges: 8_700_000,
@@ -540,6 +540,119 @@ fn a_document_without_the_multi_typed_edge_histogram_refuses() {
         .expect_err("a missing undefaulted field should refuse");
     assert!(
         error.to_string().contains("multi_typed_edges"),
+        "the refusal should name the missing field: {error}",
+    );
+}
+
+#[test]
+fn a_document_without_the_classifier_evidence_refuses() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let evidence = document
+        .pointer_mut("/metadata/evidence")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the evidence should be an object");
+
+    // Every published document records where its classifier came from,
+    // since the fit either receives one or trains one and emits the
+    // evidence unconditionally, so a document without the block is a
+    // document this pipeline never wrote.
+    evidence
+        .remove("classifier")
+        .expect("the published shape should carry the classifier evidence");
+
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted field should refuse");
+    assert!(
+        error.to_string().contains("classifier"),
+        "the refusal should name the missing field: {error}",
+    );
+}
+
+#[test]
+fn a_document_missing_an_assembly_reading_refuses() {
+    let base: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+
+    // The control for the removals below: the untouched document
+    // decodes, so each refusal traces to its missing key alone.
+    let _: SaltRepository =
+        serde_json::from_value(base.clone()).expect("the complete document should deserialize");
+
+    // The writer derives every assembly reading from the corpus it
+    // trained on and emits each one unconditionally, so a document
+    // without one is a document this pipeline never wrote.
+    for key in [
+        "near_duplicate_void",
+        "near_duplicate_ceiling",
+        "subdivided_groups",
+        "oversized_accepted",
+        "deepest_relaxation",
+    ] {
+        let mut document = base.clone();
+        let assembly = document
+            .pointer_mut("/metadata/evidence/classifier/assembly")
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("the assembly evidence should be an object");
+        assembly
+            .remove(key)
+            .expect("the published shape should carry every assembly reading");
+
+        let error = serde_json::from_value::<SaltRepository>(document)
+            .expect_err("a missing undefaulted field should refuse");
+        assert!(
+            error.to_string().contains(key),
+            "the refusal should name the missing field {key}: {error}",
+        );
+    }
+}
+
+#[test]
+fn a_document_without_the_empty_cut_count_decodes_as_absent() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let assembly = document
+        .pointer_mut("/metadata/evidence/classifier/assembly")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the assembly evidence should be an object");
+
+    // The key is physically removed, the shape a document carries when
+    // no assembly counted its empty cuts.
+    assert!(
+        assembly.remove("empty_cut_components").is_some(),
+        "the published shape should carry the empty-cut count: {assembly:?}",
+    );
+    let decoded: SaltRepository =
+        serde_json::from_value(document.clone()).expect("the older shape should deserialize");
+    let ClassifierEvidence::Fitted { assembly, .. } = &decoded.metadata.evidence.classifier else {
+        panic!("the fixture classifier evidence is fitted");
+    };
+    assert_eq!(
+        assembly.empty_cut_components, None,
+        "an absent key reads as an absent count rather than a measured zero"
+    );
+    let mut expected = repository();
+    let ClassifierEvidence::Fitted { assembly, .. } = &mut expected.metadata.evidence.classifier
+    else {
+        panic!("the fixture classifier evidence is fitted");
+    };
+    assembly.empty_cut_components = None;
+    assert_eq!(decoded, expected);
+
+    // The control for the removal itself: a sibling count with no
+    // default refuses, so the decode above passed on the optional key
+    // and not on a tolerated-absence rule covering the whole record.
+    let assembly = document
+        .pointer_mut("/metadata/evidence/classifier/assembly")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the assembly evidence should be an object");
+    assembly
+        .remove("subdivided_groups")
+        .expect("the published shape should carry the subdivision count");
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted field should refuse");
+    assert!(
+        error.to_string().contains("subdivided_groups"),
         "the refusal should name the missing field: {error}",
     );
 }

@@ -547,9 +547,9 @@ async fn fit_publishes_a_complete_generation() {
     hasher.update(b"fixture classifier artifact");
     assert_eq!(
         repository.metadata.evidence.classifier,
-        Some(ClassifierEvidence::Supplied {
+        ClassifierEvidence::Supplied {
             source: hasher.finalize(),
-        }),
+        },
     );
     // The baseline placement trains no model: the manifest records
     // the checkpoint's absence beside the placement identity.
@@ -1150,12 +1150,12 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
     // The evidence records the assembly policy, the fit summary, and
     // the holdout evaluation; the unclear verdict asserts no geometry
     // class and stays out of the agreement denominator.
-    let Some(ClassifierEvidence::Fitted {
+    let ClassifierEvidence::Fitted {
         corpus,
         assembly,
         fit: summary,
         holdout,
-    }) = repository.metadata.evidence.classifier
+    } = repository.metadata.evidence.classifier
     else {
         panic!("the manifest should record an in-run classifier fit");
     };

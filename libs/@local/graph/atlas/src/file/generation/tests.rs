@@ -18,8 +18,8 @@ use crate::{
         salt::{
             SaltFiles, SaltRepository,
             metadata::{
-                Evidence, LandmarkEvidence, Placement, PolicyEvidence, RankingOrigin,
-                Reproducibility, SaltMetadata, Snapshot,
+                ClassifierEvidence, Evidence, LandmarkEvidence, Placement, PolicyEvidence,
+                RankingOrigin, Reproducibility, SaltMetadata, Snapshot,
             },
         },
     },
@@ -166,7 +166,9 @@ fn evidence() -> Evidence {
             relations: 1,
             overridden: 0,
         },
-        classifier: None,
+        classifier: ClassifierEvidence::Supplied {
+            source: digest("classifier.clsf"),
+        },
         relations: BuildMeasurements {
             pruning_threshold: 0.0,
             retained_edges: 2,

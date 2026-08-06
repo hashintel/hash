@@ -150,9 +150,8 @@ pub(crate) struct Evidence {
     pub policy: PolicyEvidence,
     /// Where the relation-policy classifier came from.
     ///
-    /// With the fit and holdout measurements when this run fitted it. `None` records a generation
-    /// published before the metadata recorded the classifier input.
-    pub classifier: Option<ClassifierEvidence>,
+    /// With the fit and holdout measurements when this run fitted it.
+    pub classifier: ClassifierEvidence,
     /// The relation build's dropped-instance and pruned-mass account.
     #[serde(with = "BuildMeasurementsDef")]
     pub relations: BuildMeasurements,
