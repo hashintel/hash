@@ -22,12 +22,13 @@ mod tests;
 
 use core::{error::Error, fmt, num::NonZero};
 
-use hashql_core::id::{Id, IdSlice, IdVec};
+use hashql_core::id::{Id, IdSlice};
 use kiddo::{NearestNeighbour, SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
     math::{Positive, Vec2},
+    runs::{Runs, RunsBuilder},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
         semantic::SemanticGraphView,
@@ -327,22 +328,15 @@ where
             .map(|row| self.mine_row(field, N::from_usize(row)))
             .collect();
 
-        let mut offsets = IdVec::<N, _>::with_capacity(rows.len() + 1);
-        let mut targets = Vec::new();
+        let mut builder = RunsBuilder::with_capacity(rows.len(), 0);
         let mut weights = Vec::new();
-
-        offsets.push(0);
         for mined in rows {
-            for (target, weight) in mined {
-                targets.push(target);
-                weights.push(weight);
-            }
-            offsets.push(targets.len());
+            weights.extend(mined.iter().map(|&(_, weight)| weight));
+            builder.push_run(mined.into_iter().map(|(target, _)| target));
         }
 
         MinedFrame {
-            offsets: offsets.into_boxed_slice(),
-            targets: targets.into_boxed_slice(),
+            targets: builder.finish(),
             weights: weights.into_boxed_slice(),
         }
     }
@@ -360,11 +354,9 @@ where
 /// rank.
 #[derive(Debug, PartialEq)]
 pub(crate) struct MinedFrame<N> {
-    /// Per-row spans into the columns, `rows + 1` entries from zero.
-    offsets: Box<IdSlice<N, usize>>,
-    /// Mined counterpart rows.
-    targets: Box<[N]>,
-    /// Rank weights, in `(0, maximum_weight]`.
+    /// Mined counterpart rows, grouped into one run per anchor row.
+    targets: Runs<N, N>,
+    /// Rank weights in `(0, maximum_weight]`, one beside each target.
     weights: Box<[f32]>,
 }
 
@@ -376,14 +368,14 @@ where
     #[inline]
     #[must_use]
     pub(crate) const fn rows(&self) -> usize {
-        self.offsets.len() - 1
+        self.targets.runs()
     }
 
     /// Returns the mined pair count over all rows.
     #[inline]
     #[must_use]
-    pub(crate) const fn pairs(&self) -> usize {
-        self.targets.len()
+    pub(crate) fn pairs(&self) -> usize {
+        self.targets.items().len()
     }
 
     /// Iterates one row's mined pairs as weighted node pairs.
@@ -395,11 +387,10 @@ where
     where
         N: Id,
     {
-        let span = self.offsets[row]..self.offsets[row.plus(1)];
-
-        self.targets[span.clone()]
+        self.targets
+            .run(row)
             .iter()
-            .zip(&self.weights[span])
+            .zip(&self.weights[self.targets.span(row)])
             .map(move |(&target, &weight)| (NodePair::new(row, target), weight))
     }
 
@@ -424,24 +415,22 @@ where
             "pooled frames should cover the same rows"
         );
 
-        let mut offsets = IdVec::<N, _>::with_capacity(self.offsets.len());
-        let mut targets = Vec::new();
+        let mut builder = RunsBuilder::with_capacity(self.rows(), self.pairs().max(other.pairs()));
         let mut weights = Vec::new();
         let mut merged: Vec<(N, f32)> = Vec::new();
 
-        offsets.push(0);
         for row in 0..self.rows() {
             let row = N::from_usize(row);
 
             merged.clear();
             for frame in [self, other] {
-                let span = frame.offsets[row]..frame.offsets[row.plus(1)];
-
                 merged.extend(
-                    frame.targets[span.clone()]
+                    frame
+                        .targets
+                        .run(row)
                         .iter()
                         .copied()
-                        .zip(frame.weights[span].iter().copied()),
+                        .zip(frame.weights[frame.targets.span(row)].iter().copied()),
                 );
             }
 
@@ -452,17 +441,12 @@ where
             });
             merged.dedup_by_key(|(target, _)| *target);
 
-            for &(target, weight) in &merged {
-                targets.push(target);
-                weights.push(weight);
-            }
-
-            offsets.push(targets.len());
+            weights.extend(merged.iter().map(|&(_, weight)| weight));
+            builder.push_run(merged.iter().map(|&(target, _)| target));
         }
 
         Self {
-            offsets: offsets.into_boxed_slice(),
-            targets: targets.into_boxed_slice(),
+            targets: builder.finish(),
             weights: weights.into_boxed_slice(),
         }
     }

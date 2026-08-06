@@ -17,6 +17,7 @@ use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFi
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{Positive, Vec2},
+    runs::Runs,
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -370,13 +371,13 @@ fn pooled_frames_keep_the_maximum_weight() {
     // target 1 mined only in the second; row 1 mined only in the
     // first. Pooled rows order by ascending target.
     let first = MinedFrame {
-        offsets: IdSlice::from_boxed_slice(vec![0, 1, 2].into_boxed_slice()),
-        targets: vec![NodeRowId::new(2), NodeRowId::new(0)].into_boxed_slice(),
+        targets: Runs::from_parts(vec![0, 1, 2], vec![NodeRowId::new(2), NodeRowId::new(0)])
+            .expect("the fixture fenceposts are valid"),
         weights: vec![0.5, 1.0].into_boxed_slice(),
     };
     let second = MinedFrame {
-        offsets: IdSlice::from_boxed_slice(vec![0, 2, 2].into_boxed_slice()),
-        targets: vec![NodeRowId::new(2), NodeRowId::new(1)].into_boxed_slice(),
+        targets: Runs::from_parts(vec![0, 2, 2], vec![NodeRowId::new(2), NodeRowId::new(1)])
+            .expect("the fixture fenceposts are valid"),
         weights: vec![0.25, 1.0].into_boxed_slice(),
     };
 
