@@ -30,7 +30,8 @@ import {
   EDGE_MIN_WIDTH,
   EDGE_WIDTH,
   hexToRgb,
-  iconTextureUrl,
+  iconAtlasKey,
+  iconAtlasSource,
   lightenRgb,
   RGBA_OPAQUE,
   trimPathBothEnds,
@@ -56,12 +57,12 @@ import {
   POINT_RADIUS,
 } from "./zoom-attributes";
 
-import type { IconName } from "../../Icon/icon";
 import type { BundledEdge } from "./edge-bundling";
 import type {
   DetailIconAtlas,
   HoverableEdge,
   HoverLine,
+  NetworkGraphIcon,
   NetworkGraphId,
   NetworkGraphPoint,
   NetworkGraphEdge,
@@ -73,8 +74,10 @@ import type { Layer, OrthographicViewState, PickingInfo } from "@deck.gl/core";
 // public entry point.
 export type {
   NetworkGraphEdge,
+  NetworkGraphIcon,
   NetworkGraphId,
   NetworkGraphPoint,
+  NetworkGraphSvgIcon,
 } from "./network-graph-util";
 
 /** A pointer interaction (hover or click) with a node in the network graph. */
@@ -1179,40 +1182,57 @@ export const NetworkGraph = ({
     return () => observer.disconnect();
   }, [graphBounds, maxZoomProp]);
 
-  // Distinct icon names used by the graph points.
-  const pointIconNames = useMemo(
-    () => [
-      ...new Set(points.flatMap((point) => (point.icon ? [point.icon] : []))),
-    ],
-    [points],
-  );
-
-  /**
-   * A stable key over the distinct icon names (points + overlay points) so the
-   * atlas is rebuilt only when the icon *set* changes, not on every selection.
-   */
-  const iconNamesKey = useMemo(() => {
-    const set = new Set(pointIconNames);
-    for (const point of overlayPoints) {
+  // Distinct icons used by the graph (points + overlay points), keyed by their
+  // atlas key (a ds icon name, or an SVG icon's URL) -> the icon itself. Deduped
+  // so the atlas holds one cell per distinct icon.
+  const iconsByKey = useMemo(() => {
+    const map = new Map<string, NetworkGraphIcon>();
+    for (const point of [...points, ...overlayPoints]) {
       if (point.icon) {
-        set.add(point.icon);
+        const key = iconAtlasKey(point.icon);
+        if (!map.has(key)) {
+          map.set(key, point.icon);
+        }
       }
     }
-    return [...set].sort().join(" ");
-  }, [pointIconNames, overlayPoints]);
+    return map;
+  }, [points, overlayPoints]);
+
+  /**
+   * A stable key over the distinct icons so the atlas is rebuilt only when the
+   * icon *set* changes, not on every selection or tiling refetch. Newline-joined,
+   * since an SVG key is a URL (which can hold a space but never a newline).
+   */
+  const iconAtlasSignature = useMemo(
+    () => [...iconsByKey.keys()].sort().join("\n"),
+    [iconsByKey],
+  );
+
+  // The latest icon map, mirrored into a ref so the atlas effect (keyed on the
+  // signature so it rebuilds only when the set changes) can read the icons
+  // without depending on the map's per-render identity. Resolving each icon's
+  // rasterisable source stays inside the effect (browser-only; see
+  // `iconAtlasSource`). Mirrored from an effect (a render-time ref write is
+  // disallowed); it runs before the atlas effect below in the same commit, so
+  // that effect always reads the latest icons.
+  const iconsByKeyRef = useRef(iconsByKey);
+  useEffect(() => {
+    iconsByKeyRef.current = iconsByKey;
+  }, [iconsByKey]);
 
   /**
    * Rasterise every icon used by the data (and overlaid points) into a single mask
-   * atlas for the detail {@link IconLayer}. Async — icons appear once loaded.
+   * atlas for the detail {@link IconLayer}. Async, so icons appear once loaded.
    */
   useEffect(() => {
-    const names = iconNamesKey ? iconNamesKey.split(" ") : [];
-    if (names.length === 0) {
+    const keys = iconAtlasSignature ? iconAtlasSignature.split("\n") : [];
+    if (keys.length === 0) {
       return;
     }
+    const icons = iconsByKeyRef.current;
     const cell = DETAIL_ICON_TEXTURE;
-    const columns = Math.ceil(Math.sqrt(names.length));
-    const rows = Math.ceil(names.length / columns);
+    const columns = Math.ceil(Math.sqrt(keys.length));
+    const rows = Math.ceil(keys.length / columns);
     const canvas = document.createElement("canvas");
     canvas.width = columns * cell;
     canvas.height = rows * cell;
@@ -1223,17 +1243,46 @@ export const NetworkGraph = ({
     const mapping: DetailIconAtlas["mapping"] = {};
     let cancelled = false;
     void Promise.all(
-      names.map(
-        (name, index) =>
+      keys.map(
+        (key, index) =>
           new Promise<void>((resolve) => {
+            const icon = icons.get(key);
+            if (!icon) {
+              resolve();
+              return;
+            }
+            const source = iconAtlasSource(icon);
             const image = new Image();
+            // A same-origin (or CORS-enabled) image keeps the atlas canvas
+            // untainted so `toDataURL` below succeeds; ds icons are inline data
+            // URLs and need no crossOrigin.
+            if (!source.startsWith("data:")) {
+              image.crossOrigin = "anonymous";
+            }
             image.onload = () => {
-              const x = (index % columns) * cell;
-              const y = Math.floor(index / columns) * cell;
-              ctx.drawImage(image, x, y, cell, cell);
-              mapping[name] = {
-                x,
-                y,
+              const cellX = (index % columns) * cell;
+              const cellY = Math.floor(index / columns) * cell;
+              // Fit the glyph within the cell preserving aspect ratio (ds icons
+              // are square; served type icons may not be), centred so the
+              // mapping's centre anchor still lands on it.
+              const naturalWidth = image.naturalWidth || cell;
+              const naturalHeight = image.naturalHeight || cell;
+              const drawScale = Math.min(
+                cell / naturalWidth,
+                cell / naturalHeight,
+              );
+              const drawWidth = naturalWidth * drawScale;
+              const drawHeight = naturalHeight * drawScale;
+              ctx.drawImage(
+                image,
+                cellX + (cell - drawWidth) / 2,
+                cellY + (cell - drawHeight) / 2,
+                drawWidth,
+                drawHeight,
+              );
+              mapping[key] = {
+                x: cellX,
+                y: cellY,
                 width: cell,
                 height: cell,
                 mask: true,
@@ -1243,8 +1292,7 @@ export const NetworkGraph = ({
               resolve();
             };
             image.onerror = () => resolve();
-            // `name` came from a point's `icon` (an `IconName`) via the string key.
-            image.src = iconTextureUrl(name as IconName);
+            image.src = source;
           }),
       ),
     ).then(() => {
@@ -1255,7 +1303,7 @@ export const NetworkGraph = ({
     return () => {
       cancelled = true;
     };
-  }, [iconNamesKey]);
+  }, [iconAtlasSignature]);
 
   // Current zoom as a single number (orthographic zoom may be a pair).
   const currentZoom = useMemo(() => {

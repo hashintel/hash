@@ -6,6 +6,7 @@ import {
   EDGE_COLOR,
   EDGE_HOVER_WIDTH,
   FALLBACK_COLOR,
+  iconAtlasKey,
   LABEL_BORDER_RADIUS,
   LABEL_FONT_FAMILY,
   LABEL_FONT_SIZE,
@@ -424,7 +425,7 @@ export class DetailedNodeLayer extends CompositeLayer<
               data: iconPoints,
               iconAtlas: iconAtlas.url,
               iconMapping: iconAtlas.mapping,
-              getIcon: (point) => point.icon ?? "",
+              getIcon: (point) => (point.icon ? iconAtlasKey(point.icon) : ""),
               getPosition: (point) => [
                 point.x,
                 point.y,

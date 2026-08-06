@@ -107,6 +107,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -127,7 +128,10 @@ import {
   fetchTile,
   type FetchedTile,
   getAtlasSessionRevision,
+  getAtlasTileMaxZoom,
+  setAtlasViewFilter,
   subscribeToAtlasSessionRevision,
+  subscribeToAtlasTileMaxZoom,
   type TileNode,
 } from "./fetch-tile";
 import {
@@ -1317,6 +1321,17 @@ export interface UseGetViewportNodesOptions {
    * referentially stable across renders, like {@link fetcher}. Defaults to none.
    */
   readonly coloredTypeIds?: readonly string[];
+  /**
+   * The entity-query filter document binding the view, as the exact JSON bytes the manifest is POSTed
+   * (or `undefined` for the unfiltered view). Unlike every other option it conditions no request the
+   * cache makes: it binds the *session* those requests run under — the manifest seals it into the
+   * authority token — so changing it replaces the session rather than the cache, which recreates the
+   * cache, refetches, and discards on-screen rows through
+   * {@link UseGetViewportNodesResult.sessionRevision} all the same, by the path a re-pin already
+   * takes. Pass a stable serialization for a fixed filter (the server digests these bytes verbatim);
+   * defaults to the unfiltered view.
+   */
+  readonly filter?: string;
 }
 
 /** {@link useGetViewportNodes}' result: the graph plus the backing cache's fill. */
@@ -1332,6 +1347,14 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
    * and generations" note.
    */
   readonly sessionRevision: number;
+  /**
+   * The deepest quadtree depth the active generation tiles, from its manifest's
+   * `bucketSchedule.maxZoom` (the transport's {@link getAtlasTileMaxZoom}).
+   * `null` until the first session bootstraps. A consumer driving the tiling
+   * camera clamps its requested tile depth to this rather than assuming the wire
+   * ceiling — a given generation may tile shallower.
+   */
+  readonly tileMaxZoom: number | null;
   /** Tiles resident in the cache after the latest load. */
   readonly tileCount: number;
   /** Prefetch effectiveness accumulated over the session. */
@@ -1390,7 +1413,18 @@ export const useGetViewportNodes = (
     edgesFetcher,
     includeDetailedData = false,
     coloredTypeIds = EMPTY_COLORED_TYPE_IDS,
+    filter,
   } = options;
+
+  // Bind the atlas session's view to `filter` before any fetch runs. A layout effect, not a passive
+  // one: `useAtlasQuery`'s fetch is passive, so binding here lands ahead of the first bootstrap and
+  // the view is filtered from its first tile rather than after a superseded unfiltered one. A real
+  // change moves `sessionRevision` (see {@link setAtlasViewFilter}), and the machinery below — the
+  // cache memo and the query's `validity`, both keyed on it — recreates the cache, refetches, and
+  // discards the on-screen rows, exactly as a re-pin does.
+  useLayoutEffect(() => {
+    setAtlasViewFilter(baseUrl, filter);
+  }, [baseUrl, filter]);
 
   // The session binding every resident tile was decoded under (see the module's
   // "Sessions and generations" note). Replacing that session makes those tiles
@@ -1403,6 +1437,16 @@ export const useGetViewportNodes = (
     subscribeToAtlasSessionRevision,
     getAtlasSessionRevision,
     getAtlasSessionRevision,
+  );
+
+  // The deepest depth this generation's manifest tiles (its
+  // `bucketSchedule.maxZoom`), so a consumer can clamp its requested tile depth
+  // to what the server serves rather than the wire ceiling. `null` until the
+  // first bootstrap resolves it.
+  const tileMaxZoom = useSyncExternalStore(
+    subscribeToAtlasTileMaxZoom,
+    getAtlasTileMaxZoom,
+    getAtlasTileMaxZoom,
   );
 
   const cache = useMemo(
@@ -1470,6 +1514,7 @@ export const useGetViewportNodes = (
     isSuccess: query.isSuccess,
     refetch: query.refetch,
     sessionRevision,
+    tileMaxZoom,
     tileCount: query.data?.tileCount ?? 0,
     prefetchStats: cache.prefetchStats,
   };

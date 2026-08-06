@@ -25,6 +25,7 @@ import {
   visualizerHeaderHeight,
 } from "./entities-visualizer/header";
 import { NetworkGraphView } from "./entities-visualizer/network-graph-view";
+import { buildEntitiesFilter } from "./entities-visualizer/shared/build-filter";
 import { createDefaultFilterState } from "./entities-visualizer/shared/filter-state";
 import { useAvailableTypes } from "./entities-visualizer/shared/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
@@ -59,6 +60,11 @@ import type {
   Ordering,
 } from "@local/hash-graph-client";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+
+// Stable empty sets so a non-graph view passes the same "nothing hidden"
+// references every render.
+const EMPTY_TYPE_ID_SET: ReadonlySet<VersionedUrl> = new Set();
+const EMPTY_BASE_URL_SET: ReadonlySet<BaseUrl> = new Set();
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -236,6 +242,11 @@ export const EntitiesVisualizer: FunctionComponent<{
     [setCursor],
   );
 
+  // The latest view, for the files-only auto-view effect to read without taking
+  // `view` as a dependency (which would fight a manual view selection).
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
   const [sort, _setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
   >({
@@ -360,6 +371,8 @@ export const EntitiesVisualizer: FunctionComponent<{
   const {
     availableEntityTypes,
     propertyFilterData,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
     loading: availableTypesLoading,
   } = useAvailableTypes({
     filterState,
@@ -367,6 +380,65 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
   });
+
+  // The graph filters and colours nodes (non-link entities); its edges (links)
+  // aren't filterable. So in the graph view the filter bar hides link types and
+  // link-only properties, and the graph query drops them — but this is display /
+  // query only: `filterState` keeps them, so a link filter set in the table view
+  // is still there when the user switches back.
+  const isGraphView = view === "NetworkGraph";
+  const hiddenTypeIds = isGraphView ? linkEntityTypeIds : EMPTY_TYPE_ID_SET;
+  const hiddenPropertyBaseUrls = isGraphView
+    ? linkOnlyPropertyBaseUrls
+    : EMPTY_BASE_URL_SET;
+
+  // The network graph reads the same filter the table does, serialized to the exact bytes the atlas
+  // manifest is POSTed — those bytes seal the view into the graph's session (see `NetworkGraphView`).
+  // Stable across renders for an unchanged filter so the session is not needlessly rebound. Link-type
+  // selections and link-only property filters are dropped from the graph's query — its nodes are
+  // non-link entities, so a link-type clause matches nothing and a link-only property clause would
+  // empty the graph — while `filterState` keeps them for the table view.
+  const graphFilter = useMemo(() => {
+    const selectedTypeIds = filterState.type.selectedTypeIds
+      ? new Set(
+          [...filterState.type.selectedTypeIds].filter(
+            (typeId) => !linkEntityTypeIds.has(typeId),
+          ),
+        )
+      : null;
+    const propertyFilters = filterState.propertyFilters.filter(
+      (propertyFilter) => !linkOnlyPropertyBaseUrls.has(propertyFilter.baseUrl),
+    );
+    return JSON.stringify(
+      buildEntitiesFilter({
+        filterState: {
+          ...filterState,
+          type: { selectedTypeIds },
+          propertyFilters,
+        },
+        internalWebIds: internalWebs.map(({ webId }) => webId),
+        pinnedEntityTypeBaseUrl: entityTypeBaseUrl,
+        pinnedEntityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+      }),
+    );
+  }, [
+    filterState,
+    internalWebs,
+    entityTypeBaseUrl,
+    entityTypeId,
+    linkEntityTypeIds,
+    linkOnlyPropertyBaseUrls,
+  ]);
+
+  // The graph colours nodes by their (non-link) entity type, so its palette omits
+  // link types.
+  const graphEntityTypes = useMemo(
+    () =>
+      availableEntityTypes.filter(
+        (type) => !linkEntityTypeIds.has(type.entityTypeId),
+      ),
+    [availableEntityTypes, linkEntityTypeIds],
+  );
 
   useEffect(() => {
     if (availableTypesLoading) {
@@ -440,21 +512,25 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const isDisplayingFilesOnly = useMemo(
     () =>
-      /**
-       * To allow the `Grid` view to come into view on first render where
-       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
-       * matches a `File` entity type from a statically defined list.
-       */
-      (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
-      (entityTypeBaseUrl &&
-        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
-      /**
-       * Otherwise we check the fetched `entityTypes` as a fallback.
-       */
-      (closedMultiEntityTypes.length &&
-        closedMultiEntityTypes.every(({ allOf }) =>
-          allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
-        )),
+      // Coerced to a boolean so a change between falsy shapes (e.g. `false` from
+      // `every` vs `0` from an empty `length`) doesn't retrigger the effect below.
+      Boolean(
+        /**
+         * To allow the `Grid` view to come into view on first render where
+         * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
+         * matches a `File` entity type from a statically defined list.
+         */
+        (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
+        (entityTypeBaseUrl &&
+          allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+        /**
+         * Otherwise we check the fetched `entityTypes` as a fallback.
+         */
+        (closedMultiEntityTypes.length &&
+          closedMultiEntityTypes.every(({ allOf }) =>
+            allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+          )),
+      ),
     [
       entityTypeBaseUrl,
       entityTypeId,
@@ -465,10 +541,18 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
+  // Prefer the gallery Grid view for files-only content, and leave it again once
+  // the content is no longer files-only (Grid is offered only then). An explicit
+  // NetworkGraph selection is never overridden: the graph is a valid view for any
+  // content, so a filter that narrows the result set — or empties it — must not
+  // eject the user from it (it shows its own "no results" state instead).
   useEffect(() => {
+    if (viewRef.current === "NetworkGraph") {
+      return;
+    }
     if (isDisplayingFilesOnly) {
       setView("Grid");
-    } else {
+    } else if (viewRef.current === "Grid") {
       setView("Table");
     }
   }, [isDisplayingFilesOnly, setView]);
@@ -587,6 +671,8 @@ export const EntitiesVisualizer: FunctionComponent<{
               showTypeColors={view === "NetworkGraph"}
               typeColorOverrides={typeColorOverrides}
               setTypeColor={setTypeColor}
+              hiddenTypeIds={hiddenTypeIds}
+              hiddenPropertyBaseUrls={hiddenPropertyBaseUrls}
             />
           )
         }
@@ -615,8 +701,9 @@ export const EntitiesVisualizer: FunctionComponent<{
       {view === "NetworkGraph" ? (
         <Box height={availableHeight} sx={tableContentSx}>
           <NetworkGraphView
-            availableEntityTypes={availableEntityTypes}
+            availableEntityTypes={graphEntityTypes}
             typeColorOverrides={typeColorOverrides}
+            filter={graphFilter}
             onOpenEntity={handleEntityClick}
           />
         </Box>

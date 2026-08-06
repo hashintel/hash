@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { clampPanTarget } from "./network-graph-util";
+import {
+  clampPanTarget,
+  iconAtlasKey,
+  iconAtlasSource,
+} from "./network-graph-util";
 
 /**
  * The pan clamp keeps the network in view, working off the node-*centre* bounds it
@@ -61,5 +65,29 @@ describe("clampPanTarget", () => {
     const viewportLeftEdge = clampedX - width / (2 * scale);
     const nodeLeftRim = bounds.minX - radiusPx / scale;
     expect(viewportLeftEdge).toBeLessThanOrEqual(nodeLeftRim);
+  });
+});
+
+describe("iconAtlasKey", () => {
+  it("keys a ds icon by its registry name", () => {
+    expect(iconAtlasKey("cube")).toBe("cube");
+  });
+
+  it("keys an SVG icon by its URL", () => {
+    expect(iconAtlasKey({ svgUrl: "/icons/types/box.svg" })).toBe(
+      "/icons/types/box.svg",
+    );
+  });
+});
+
+describe("iconAtlasSource", () => {
+  it("rasterises a ds icon to an inline data URL", () => {
+    expect(iconAtlasSource("cube")).toMatch(/^data:image\/svg\+xml/u);
+  });
+
+  it("loads an SVG icon straight from its URL", () => {
+    expect(iconAtlasSource({ svgUrl: "/icons/types/box.svg" })).toBe(
+      "/icons/types/box.svg",
+    );
   });
 });

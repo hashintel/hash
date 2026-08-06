@@ -18,7 +18,7 @@
 //! condition, from a configuration its caller supplies.
 //!
 //! The proof admits exactly the rows the query returned. Permissions evaluate against the live
-//! decision-time axes, so the proof reflects policy as it stands at request time; entities the
+//! decision-time axes, so the proof reflects policy as it stands at request time. Entities the
 //! store admits that the generation does not carry contribute no rows.
 
 use core::{error::Error, fmt, pin::pin};
@@ -32,18 +32,19 @@ use hash_graph_authorization::policies::{
     store::{PolicyStore, PrincipalStore, error::ContextCreationError},
 };
 use hash_graph_postgres_store::store::{
-    AsClient,
+    AsClient, StoreProvider,
     error::StoreError,
     postgres::query::{SelectCompiler, SelectCompilerError},
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{
-        Filter,
+        Filter, ParameterConversionError,
         protection::{PropertyProtectionFilterConfig, transform_filter},
     },
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
+use hash_graph_types::ontology::DataTypeLookup;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityUuid},
@@ -69,6 +70,8 @@ pub(crate) enum ProofError {
     Policies(Report<ContextCreationError>),
     /// The caller's filter does not compile against the entity query surface.
     Filter(Report<SelectCompilerError>),
+    /// The caller's filter carries a parameter that does not match its path's type.
+    Convert(Report<ParameterConversionError>),
     /// The scope's held filter document does not parse.
     Document(serde_json::Error),
     /// The policy filter does not compile against the entity query surface.
@@ -85,6 +88,9 @@ impl fmt::Display for ProofError {
             Self::Connect(_) => fmt.write_str("the resolution reached no store connection"),
             Self::Policies(_) => fmt.write_str("the actor's policy set could not be assembled"),
             Self::Filter(_) => fmt.write_str("the request filter does not compile"),
+            Self::Convert(_) => {
+                fmt.write_str("the request filter's parameters do not match its paths")
+            }
             Self::Document(_) => fmt.write_str("the scope's held filter document does not parse"),
             Self::PolicyFilter(_) => fmt.write_str("the policy filter does not compile"),
             Self::Query(_) => fmt.write_str("the store rejected the visibility query"),
@@ -99,6 +105,7 @@ impl Error for ProofError {
             Self::Connect(report) => Some(report.current_context()),
             Self::Policies(report) => Some(report.current_context()),
             Self::Filter(report) | Self::PolicyFilter(report) => Some(report.current_context()),
+            Self::Convert(report) => Some(report.current_context()),
             Self::Document(error) => Some(error),
             Self::Query(error) | Self::Rows(error) => Some(error),
         }
@@ -115,7 +122,7 @@ impl Error for ProofError {
 /// policies.
 ///
 /// [`Filter::for_policies`] yields an empty [`Filter::All`] on exactly one path, an unconstrained
-/// permit meeting no forbid; every other shape carries a conjunct, a disjunct, or a negation. A
+/// permit meeting no forbid. Every other shape carries a conjunct, a disjunct, or a negation. A
 /// caller filter keeps the query, since a caller that narrows its view asked for the narrowed view.
 const fn admits_every_row(
     filter: Option<&Filter<'_, Entity>>,
@@ -144,6 +151,7 @@ const fn admits_every_row(
 /// # Errors
 ///
 /// Returns [`ProofError::Policies`] when assembling the actor's policy set fails,
+/// [`ProofError::Convert`] when a filter parameter does not match its path's type,
 /// [`ProofError::Filter`] when `filter` does not compile, [`ProofError::PolicyFilter`] when the
 /// policy filter does not compile, [`ProofError::Query`] when the store rejects the statement, and
 /// [`ProofError::Rows`] when the row stream fails before it ends. A failure yields no proof, so a
@@ -158,6 +166,10 @@ pub(crate) async fn visibility_proof<S>(
 ) -> Result<VisibilityProof, ProofError>
 where
     S: PrincipalStore + PolicyStore + AsClient + Sync,
+    // The conversion resolves a caller filter's parameters to their paths' types through the
+    // store, exactly as the entity read path does, so the store must back the same
+    // `DataTypeLookup` provider.
+    for<'a> StoreProvider<'a, S>: DataTypeLookup + Sync,
 {
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
     let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
@@ -177,6 +189,26 @@ where
     if admits_every_row(filter, &policy_filter) {
         return Ok(VisibilityProof::full_visibility());
     }
+
+    // Convert the caller filter's parameters to the types its paths expect - a web-id text
+    // parameter to a UUID, a property value to its data type - exactly as the entity read path
+    // does before it compiles (`PostgresStore::query_entities_impl`). The compiler binds a
+    // converted parameter with its column's type. An unconverted text parameter against a UUID
+    // or typed column compiles but the store rejects the statement at execution. The conversion
+    // reads data types through the same `StoreProvider` the read path builds.
+    let converted;
+    let filter = match filter {
+        Some(filter) => {
+            let mut owned = filter.clone();
+            owned
+                .convert_parameters(&StoreProvider::new(store, &policy_components))
+                .await
+                .map_err(ProofError::Convert)?;
+            converted = owned;
+            Some(&converted)
+        }
+        None => None,
+    };
 
     // The store's read path transforms a caller's filter whenever the deployment configures
     // protection and the actor is not an instance admin. The same condition governs here, since the
@@ -329,7 +361,7 @@ mod tests {
     /// A caller filter keeps the query even under the tautology.
     ///
     /// The bug class is a short-circuit that answers the filtered request with the whole
-    /// generation: an operator asking for a narrowed view would receive every row instead, which is
+    /// generation. An operator asking for a narrowed view would receive every row instead, which is
     /// a wrong answer rather than a leak.
     #[test]
     fn caller_filter_keeps_the_query() {

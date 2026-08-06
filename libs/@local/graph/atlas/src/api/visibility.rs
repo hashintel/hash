@@ -109,9 +109,9 @@ impl Resolved {
 pub(super) struct Visibility {
     /// The held entry the request's scope resolved to.
     ///
-    /// The proof, the census resolved with it, and the view's delivery schedule are read through
-    /// it. One resolution per scope answers every request under that scope, so the root tile's
-    /// global metadata costs no walk on the request that reads it.
+    /// It hands a request the proof, the census resolved with it, and the view's delivery
+    /// schedule. One resolution per scope answers every request under that scope, so the root
+    /// tile's global metadata costs no walk on the request that reads it.
     entry: Arc<CacheEntry>,
     /// The delivery-cut offset the presented token seals.
     ///
@@ -126,10 +126,10 @@ impl Visibility {
         self.entry.proof()
     }
 
-    /// Binds the request's delivery view: the held resolution read at the token's cut offset.
+    /// Binds the request's delivery view, the held resolution read at the token's cut offset.
     ///
-    /// Every data route calls this once and hands the result to assembly, so the pairing of proof,
-    /// census and schedule is checked at the request boundary rather than restated per endpoint.
+    /// Every data route calls this once and hands the result to assembly, so the request boundary
+    /// checks the pairing of proof, census and schedule rather than each endpoint restating it.
     ///
     /// # Errors
     ///
@@ -265,10 +265,12 @@ pub(super) async fn resolve(
 /// Three readings, because a caller cannot repair all three the same way. [`ProofError::Filter`] is
 /// the caller's own filter document failing to compile against the entity query surface, which no
 /// retry repairs. It answers `400` `invalid-body`, the problem an unparsable document already earns
-/// at the manifest. [`ProofError::PolicyFilter`] is this deployment's policy set failing to
-/// compile, so it answers the internal problem with the compiler's message in the log rather than
-/// the response. Every remaining stage answers the `503`, because the process cannot say what the
-/// caller may see and a later attempt may succeed.
+/// at the manifest. [`ProofError::Convert`] joins that reading, since a filter parameter that
+/// does not match its path's type is the caller's document to fix.
+/// [`ProofError::PolicyFilter`] is this deployment's policy set failing to compile, so it answers
+/// the internal problem with the compiler's message in the log rather than the response. Every
+/// remaining stage answers the `503`, because the process cannot say what the caller may see and a
+/// later attempt may succeed.
 ///
 /// [`ProofError::Query`] stays a `503` even though a caller's document can provoke it (a parameter
 /// whose type the compiler accepts and Postgres rejects) because that one variant also carries real
@@ -282,6 +284,14 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
             ProblemType::InvalidBody,
             format!(
                 "the filter document does not compile: {}",
+                report.current_context()
+            ),
+        ),
+        ProofError::Convert(report) => Problem::new(
+            StatusCode::BAD_REQUEST,
+            ProblemType::InvalidBody,
+            format!(
+                "a filter parameter does not match its path's type: {}",
                 report.current_context()
             ),
         ),
@@ -299,11 +309,11 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
 
 /// The problem one refused binding answers.
 ///
-/// A sealed offset the view cannot serve is stale authority rather than a request defect: an
-/// operator view takes no offset, so a token carrying one was minted under a contract this process
-/// no longer serves. That answers the uniform `401`, whose stated remedy is a fresh manifest
-/// request, and the mint that request runs seals the offset the view does serve. The combination
-/// stays a server defect in the log, because no current mint can produce it.
+/// A sealed offset the view cannot serve is stale authority rather than a request defect. An
+/// operator view takes no offset, so the mint that issued a token carrying one ran under a
+/// contract this process no longer serves. That answers the uniform `401`, whose stated remedy is
+/// a fresh manifest request, and the mint that request runs seals the offset the view does serve.
+/// The combination stays a server defect in the log, because no current mint can produce it.
 ///
 /// Every other binding failure names an input this process produced and answers the internal
 /// problem.
@@ -325,7 +335,7 @@ fn view_problem(error: ViewError) -> Problem<'static> {
 
 /// The authenticated actor one request names, without resolving its scope.
 ///
-/// The manifest's mint and continuity reading need the actor identity alone; [`Visibility`]
+/// The manifest's mint and continuity reading need the actor identity alone. [`Visibility`]
 /// resolves the full scope where a handler assembles a response.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Actor(pub AuthenticatedActor);

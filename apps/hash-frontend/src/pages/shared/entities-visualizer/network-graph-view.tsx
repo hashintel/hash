@@ -24,10 +24,10 @@ import {
 import {
   NetworkGraph,
   PortalContainerContext,
-  type IconName,
   type NetworkGraphEdge,
   type NetworkGraphEdgeInteraction,
   type NetworkGraphHandle,
+  type NetworkGraphIcon,
   type NetworkGraphInteraction,
   type NetworkGraphPoint,
   type NetworkGraphSelection,
@@ -39,7 +39,6 @@ import {
 } from "@local/hash-isomorphic-utils/data-types";
 
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
-import { iconNameFromEntityIcon } from "../../../components/tiled-network-graph/entity-icon-name";
 import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
@@ -74,9 +73,9 @@ import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
 import {
+  noColor,
   resolveTypeColor,
   typeColorRanks,
-  unassignedTypeColor,
 } from "./shared/type-colors";
 
 import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
@@ -90,8 +89,12 @@ import type {
 
 /** Aim for roughly this many tiles across the viewport when choosing a depth. */
 const TARGET_TILES_ACROSS = 2;
-/** Deepest tile zoom requested: the deepest depth the Atlas quadtree addresses. */
-const MAX_DEPTH = 16;
+/**
+ * Fallback deepest tile zoom, used only until the session manifest reports its
+ * own `bucketSchedule.maxZoom` (see {@link useGetViewportNodes}'s `tileMaxZoom`).
+ * The wire ceiling the quadtree can address; a given generation may tile shallower.
+ */
+const DEFAULT_TILE_MAX_ZOOM = 16;
 /** Debounce (ms) on camera changes before refetching, coalescing a pan/zoom drag. */
 const DEBOUNCE_MS = 150;
 /**
@@ -163,6 +166,7 @@ const deriveViewport = (
   camera: Camera,
   size: Size,
   graphBounds: Bounds | null,
+  maxDepth: number,
 ): Viewport | null => {
   if (camera.zoom === null || camera.center === null || size.width === 0) {
     return null;
@@ -182,7 +186,7 @@ const deriveViewport = (
 
   const graphWorldWidth = GRAPH_WORLD.maxX - GRAPH_WORLD.minX;
   const depth = Math.log2((TARGET_TILES_ACROSS * graphWorldWidth) / (x2 - x1));
-  return { x1, x2, y1, y2, zoom: Math.min(depth, MAX_DEPTH) };
+  return { x1, x2, y1, y2, zoom: Math.min(depth, maxDepth) };
 };
 
 /**
@@ -208,33 +212,68 @@ const boundsOf = (points: readonly NetworkGraphPoint[]): Bounds => {
   return { minX, maxX, minY, maxY };
 };
 
+/**
+ * The SVG URL for a HASH entity/type icon value (the form the graph and popover
+ * draw directly, as a tintable mask — the same served type icons `EntityOrTypeIcon`
+ * shows elsewhere), or `undefined` for an emoji or other non-SVG value. A `/path`
+ * is returned as-is: it's fed to an `<img>`/`IconLayer`/CSS `mask`, which resolves
+ * it against the document, so no `window` access (SSR-safe).
+ */
+const svgIconUrl = (icon: string | undefined): string | undefined => {
+  if (
+    icon === undefined ||
+    !(
+      icon.startsWith("/") ||
+      icon.startsWith("http://") ||
+      icon.startsWith("https://")
+    )
+  ) {
+    return undefined;
+  }
+  return icon.toLowerCase().split(/[?#]/u)[0]!.endsWith(".svg")
+    ? icon
+    : undefined;
+};
+
+/**
+ * A node's icon for the graph — the {@link NetworkGraphIcon} SVG form — resolved
+ * from a raw HASH icon value, or undefined for an emoji/other non-SVG value.
+ */
+const svgIconFromEntityIcon = (
+  icon: string | undefined,
+): NetworkGraphIcon | undefined => {
+  const url = svgIconUrl(icon);
+  return url !== undefined ? { svgUrl: url } : undefined;
+};
+
 const toPoint = (
   node: ViewportNode,
   color: string,
-  iconName?: IconName,
+  icon?: NetworkGraphIcon,
 ): NetworkGraphPoint => {
   // `label`/`icon` arrive only for tiles fetched with detailed data (the
   // detailed view). The graph draws the label in a pill beneath the node and the
   // icon inside it. Located nodes carry no icon of their own, so the caller
-  // resolves one from the node's type and passes it as `iconName`; tile nodes
-  // fall back to their own icon value resolved to a ds icon name. `color` comes
-  // from the type filter's per-type palette, keyed by the node's type.
-  const icon = iconName ?? iconNameFromEntityIcon(node.icon);
+  // resolves one from the node's type and passes it as `icon`; tile nodes fall
+  // back to their own icon value resolved to a drawable SVG (emojis are ignored).
+  // `color` comes from the type filter's per-type palette, keyed by the node's
+  // type.
+  const resolvedIcon = icon ?? svgIconFromEntityIcon(node.icon);
   return {
     id: node.id,
     x: node.x,
     y: node.y,
     color,
     ...(node.label !== undefined ? { label: node.label } : {}),
-    ...(icon !== undefined ? { icon } : {}),
+    ...(resolvedIcon !== undefined ? { icon: resolvedIcon } : {}),
   };
 };
 
 /**
  * An entity/type icon value the popover and edge-label pill render as text: the
  * value as-is when it is an emoji, or `undefined` when it is a `/path`/`https`
- * URL to an SVG (which those text surfaces can't draw — nodes resolve those to a
- * ds icon via {@link iconNameFromEntityIcon} instead).
+ * URL to an SVG (which those text surfaces can't draw — nodes and the popover
+ * chips draw those SVGs directly via {@link svgIconUrl} instead).
  */
 const emojiFromEntityIcon = (icon: string | undefined): string | undefined =>
   icon !== undefined &&
@@ -292,7 +331,7 @@ const hashSeed = (seed: number | string): number => {
  * Picks which of a node's matched queried types drives its colour. Rather than
  * always taking the first (most-common) match, it samples one at random —
  * deterministically seeded by the node id via {@link hashSeed} so the choice is
- * stable per node. Types that resolve to grey ({@link unassignedTypeColor}) are
+ * stable per node. Types that resolve to grey ({@link noColor}) are
  * de-prioritised: a grey type is only ever chosen when the node has no
  * coloured match. Returns the index into `colors` (aligned to `coloredTypeIds`),
  * or `undefined` when the node matches none of the queried types.
@@ -306,7 +345,7 @@ const pickTypeIndex = (
     return undefined;
   }
   const coloured = typeIndices.filter(
-    (index) => (colors[index] ?? unassignedTypeColor) !== unassignedTypeColor,
+    (index) => (colors[index] ?? noColor) !== noColor,
   );
   const pool = coloured.length > 0 ? coloured : typeIndices;
   return pool[hashSeed(seed) % pool.length];
@@ -369,12 +408,19 @@ const describeGraphError = (error: unknown): string => {
 export const NetworkGraphView = ({
   availableEntityTypes,
   typeColorOverrides,
+  filter,
   onOpenEntity,
 }: {
   /** Types shown in the filter dropdown; position drives the default palette. */
   availableEntityTypes: AvailableType[];
   /** The user's per-type colour choices from the filter dropdown. */
   typeColorOverrides: TypeColorOverrides;
+  /**
+   * The entity-query filter document (as serialized JSON bytes) the graph's view is bound to — built
+   * from the header's filter ribbon by `buildEntitiesFilter`. It binds the atlas session, so changing
+   * it refetches the whole graph under the new view; see {@link useGetViewportNodes}'s `filter`.
+   */
+  filter?: string;
   /** Opens the entity drawer for an entity — the popover's "Go to entity". */
   onOpenEntity?: (entityId: EntityId) => void;
 }) => {
@@ -461,7 +507,7 @@ export const NetworkGraphView = ({
         index: ranks.get(type.entityTypeId) ?? Infinity,
         overrides: typeColorOverrides,
       });
-      if (color !== unassignedTypeColor) {
+      if (color !== noColor) {
         result.push({ entityTypeId: type.entityTypeId, color });
       }
     }
@@ -499,9 +545,9 @@ export const NetworkGraphView = ({
     ): string => {
       const index = pickTypeIndex(typeIndices, seed, coloredTypeColors);
       if (index === undefined) {
-        return unassignedTypeColor;
+        return noColor;
       }
-      return coloredTypeColors[index] ?? unassignedTypeColor;
+      return coloredTypeColors[index] ?? noColor;
     },
     [coloredTypeColors],
   );
@@ -524,12 +570,13 @@ export const NetworkGraphView = ({
     [coloredTypeIds, coloredTypeColors],
   );
 
-  // The ds icon for a node, resolved from its type's icon in memory (the wire no
-  // longer ships a per-node icon). Drawn inside the node in the detailed view;
-  // only SVG-path type icons map to a ds glyph.
-  const nodeIconFor = useCallback(
-    (typeId: VersionedUrl | undefined): IconName | undefined =>
-      iconNameFromEntityIcon(resolveTypeMeta(typeId)?.icon),
+  // The SVG icon drawn inside a node in the detailed view, resolved from its
+  // type's icon in memory (the wire no longer ships a per-node icon). Every
+  // served type icon is kept; emojis and other non-SVG values are ignored (drawn
+  // nowhere in the graph).
+  const nodeSvgIconFor = useCallback(
+    (typeId: VersionedUrl | undefined): NetworkGraphIcon | undefined =>
+      svgIconFromEntityIcon(resolveTypeMeta(typeId)?.icon),
     [resolveTypeMeta],
   );
 
@@ -540,21 +587,21 @@ export const NetworkGraphView = ({
     [resolveTypeMeta],
   );
 
-  // A type's popover chip icon: its emoji, or the ds glyph its SVG icon resolves
-  // to (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
+  // A type's popover chip icon: its emoji, or the SVG its icon resolves to
+  // (mutually exclusive — see `LocatedEntityIcon`). Undefined when neither.
   const typeIconFor = useCallback(
     (typeId: VersionedUrl | undefined): LocatedEntityIcon | undefined => {
       const emoji = emojiIconFor(typeId);
-      const name = nodeIconFor(typeId);
-      if (emoji === undefined && name === undefined) {
+      const svgUrl = svgIconUrl(resolveTypeMeta(typeId)?.icon);
+      if (emoji === undefined && svgUrl === undefined) {
         return undefined;
       }
       return {
         ...(emoji !== undefined ? { emoji } : {}),
-        ...(name !== undefined ? { name } : {}),
+        ...(svgUrl !== undefined ? { svgUrl } : {}),
       };
     },
-    [emojiIconFor, nodeIconFor],
+    [emojiIconFor, resolveTypeMeta],
   );
 
   // Every popover type chip for a node: one per coloured queried type it matches
@@ -588,14 +635,11 @@ export const NetworkGraphView = ({
       for (const index of typeIndices ?? []) {
         const entityTypeId = coloredTypeIds[index];
         if (entityTypeId !== undefined) {
-          addChip(
-            entityTypeId,
-            coloredTypeColors[index] ?? unassignedTypeColor,
-          );
+          addChip(entityTypeId, coloredTypeColors[index] ?? noColor);
         }
       }
       if (typeId !== undefined) {
-        addChip(typeId, unassignedTypeColor);
+        addChip(typeId, noColor);
       }
       return chips;
     },
@@ -670,9 +714,9 @@ export const NetworkGraphView = ({
       toPoint(
         node,
         color,
-        nodeIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
+        nodeSvgIconFor(primaryTypeId(node.typeIndices, node.typeId, node.id)),
       ),
-    [nodeIconFor, primaryTypeId],
+    [nodeSvgIconFor, primaryTypeId],
   );
 
   const frameRef = useRef<HTMLDivElement>(null);
@@ -680,6 +724,9 @@ export const NetworkGraphView = ({
   const cameraRef = useRef<Camera>({ zoom: null, center: null });
   const sizeRef = useRef<Size>({ width: 0, height: 0 });
   const boundsRef = useRef<Bounds | null>(null);
+  // The deepest tile depth to request, mirrored from the manifest so the
+  // debounced `deriveViewport` can read it without `schedule` depending on it.
+  const maxDepthRef = useRef(DEFAULT_TILE_MAX_ZOOM);
   const timerRef = useRef<number | undefined>(undefined);
   // The pending hover→locate delay timer, and a sequence bumped on every node
   // hover so a stale locate can't clear the spinner for a newer (or ended) hover.
@@ -704,6 +751,11 @@ export const NetworkGraphView = ({
   // Whether the hovered node's ego-graph prefetch is in flight — drives a small
   // spinner in the label box, from hover start until the locate settles.
   const [hoverLocateLoading, setHoverLocateLoading] = useState(false);
+  // Whether the hovered node's located ego-graph came back truncated (the edge
+  // cap dropped edges and their neighbours — `entity.complete === false`). Drives
+  // a "not all connections shown" note under the label box. Reset on every hover
+  // change, set only once the locate lands.
+  const [hoverIncomplete, setHoverIncomplete] = useState(false);
 
   // What's highlighted (a clicked or searched node's located neighbourhood, or a
   // clicked edge), the selection's live on-screen anchor (re-reported on
@@ -761,16 +813,17 @@ export const NetworkGraphView = ({
     [],
   );
 
-  const { data, isError, error, sessionRevision } = useGetViewportNodes(
-    viewport,
-    {
+  const { data, isError, error, sessionRevision, tileMaxZoom } =
+    useGetViewportNodes(viewport, {
       baseUrl: ATLAS_API_BASE_URL,
       // Always fetch labelled (and icon-ed) tile data, so every visible node is
       // labelled regardless of zoom rather than only in the detailed view.
       includeDetailedData: true,
       coloredTypeIds,
-    },
-  );
+      // Binds the atlas session to the header's filter (see `filter` prop). A
+      // change refetches the graph under the new view via `sessionRevision`.
+      filter,
+    });
 
   // The session revision the painted state below was resolved under. A mismatch
   // with the live revision triggers the synchronous reset further down, so the
@@ -789,6 +842,13 @@ export const NetworkGraphView = ({
   );
 
   const edges = useMemo(() => (data?.edges ?? []).map(toEdge), [data, toEdge]);
+
+  // The overview query has resolved (so `data` is defined) but carried no nodes:
+  // the view is empty — the filters match nothing. Distinct from the initial load
+  // (`data` still undefined), so an empty result shows a message rather than an
+  // endless spinner. `points.length` rather than `data` alone excludes the single
+  // render where the first non-empty load has nodes but `bounds` is not yet set.
+  const noResults = data !== undefined && points.length === 0;
 
   // Freeze the framing bounds to the dataset extent off the first (overview)
   // load, so the camera opens bounding the data and never reframes as more points
@@ -832,10 +892,24 @@ export const NetworkGraphView = ({
     }
     timerRef.current = window.setTimeout(() => {
       setViewport(
-        deriveViewport(cameraRef.current, sizeRef.current, boundsRef.current),
+        deriveViewport(
+          cameraRef.current,
+          sizeRef.current,
+          boundsRef.current,
+          maxDepthRef.current,
+        ),
       );
     }, DEBOUNCE_MS);
   }, []);
+
+  // Mirror the manifest's tile max-zoom into the ref the debounced derivation
+  // reads, and re-derive once it lands so a generation that tiles shallower than
+  // the fallback caps the requested depth. Until it resolves the fallback holds;
+  // the initial overview sits well below any cap, so it never over-requests.
+  useEffect(() => {
+    maxDepthRef.current = tileMaxZoom ?? DEFAULT_TILE_MAX_ZOOM;
+    schedule();
+  }, [tileMaxZoom, schedule]);
 
   const handleZoom = useCallback(
     (zoom: number, framingBaseZoom: number) => {
@@ -982,7 +1056,7 @@ export const NetworkGraphView = ({
 
   // A located endpoint node → the edge popover's from/to entry: the entity's
   // label plus its primary type's icon (the same type its node colour and icon
-  // are sampled from) as an emoji or a ds glyph, and an `onClick` that selects
+  // are sampled from) as an emoji or an SVG, and an `onClick` that selects
   // (and reveals) the endpoint's node so the popover label jumps to it. Falls
   // back to a label keyed by the endpoint's row id when the node isn't in the
   // subgraph — still selectable, since that row id is itself a locate source.
@@ -1003,18 +1077,18 @@ export const NetworkGraphView = ({
       }
       const typeId = primaryTypeId(node.typeIndices, node.typeId, node.id);
       const emoji = emojiIconFor(typeId);
-      const name = nodeIconFor(typeId);
+      const svgUrl = svgIconUrl(resolveTypeMeta(typeId)?.icon);
       const icon = {
         ...(emoji !== undefined ? { emoji } : {}),
-        ...(name !== undefined ? { name } : {}),
+        ...(svgUrl !== undefined ? { svgUrl } : {}),
       };
       return {
         label: node.label ?? `Node ${node.id}`,
-        ...(emoji !== undefined || name !== undefined ? { icon } : {}),
+        ...(emoji !== undefined || svgUrl !== undefined ? { icon } : {}),
         ...(onClick !== undefined ? { onClick } : {}),
       };
     },
-    [selectNode, primaryTypeId, emojiIconFor, nodeIconFor],
+    [selectNode, primaryTypeId, emojiIconFor, resolveTypeMeta],
   );
 
   // Prefetched locate ego-graphs for the current search results, keyed by entity
@@ -1078,6 +1152,7 @@ export const NetworkGraphView = ({
     setHoveredByExternal(null);
     setHoveredLabel(null);
     setHoverLocateLoading(false);
+    setHoverIncomplete(false);
     // The extent is re-frozen off the successor's first load by the derivation
     // above, which fires again once `bounds` is null and points arrive. The ref
     // mirror is cleared in the same breath because the debounced viewport
@@ -1203,6 +1278,7 @@ export const NetworkGraphView = ({
         hoverLocateTimerRef.current = undefined;
       }
       setHoveredByExternal(null);
+      setHoverIncomplete(false);
       const { point } = interaction;
       const label = point?.label ?? null;
       setHoveredLabel(label);
@@ -1236,6 +1312,9 @@ export const NetworkGraphView = ({
             }
             setHoverLocateLoading(false);
             setHoveredByExternal(locatedNodeSelection(entity));
+            // `complete` is false when the edge cap truncated the ego-graph, so
+            // the drawn neighbourhood isn't the node's full set.
+            setHoverIncomplete(!entity.complete);
           })
           .catch(() => {
             if (seq === hoverLocateSeqRef.current) {
@@ -1342,7 +1421,7 @@ export const NetworkGraphView = ({
           const icon = typeIconFor(typeId);
           return {
             label: resolveTypeMeta(typeId)?.title ?? typeId,
-            color: unassignedTypeColor,
+            color: noColor,
             ...(icon !== undefined ? { icon } : {}),
           };
         });
@@ -1465,6 +1544,7 @@ export const NetworkGraphView = ({
             ) : null}
             <NetworkGraphSearch
               elevated={searchOnTop}
+              filter={filter}
               onActivate={() => setSearchOnTop(true)}
               onSelect={handleSearchSelect}
               onHover={handleSearchHover}
@@ -1480,10 +1560,12 @@ export const NetworkGraphView = ({
                   display: "flex",
                   alignItems: "center",
                   gap: 0.75,
-                  // Match the collapsed search button's height (top-left).
-                  height: 30,
+                  // Match the collapsed search button's height (top-left), growing
+                  // taller when the truncation note is shown beneath the label.
+                  minHeight: 30,
                   maxWidth: 320,
                   px: 1.25,
+                  py: 0.5,
                   borderRadius: 1.5,
                   border: "1px solid rgba(14, 17, 20, 0.12)",
                   backgroundColor: "rgba(14, 17, 20, 0.53)",
@@ -1495,19 +1577,36 @@ export const NetworkGraphView = ({
                 {hoverLocateLoading ? (
                   <LoadingSpinner size={14} thickness={5} color="white" />
                 ) : null}
-                <Typography
-                  variant="smallTextParagraphs"
-                  sx={{
-                    color: "white",
-                    fontWeight: 500,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {hoveredLabel}
-                </Typography>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="smallTextParagraphs"
+                    sx={{
+                      color: "white",
+                      fontWeight: 500,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {hoveredLabel}
+                  </Typography>
+                  {hoverIncomplete ? (
+                    <Typography
+                      variant="smallTextParagraphs"
+                      sx={{
+                        color: "rgba(255, 255, 255, 0.65)",
+                        fontSize: 11,
+                        lineHeight: 1.3,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        pl: 1,
+                      }}
+                    >
+                      Not all connections shown
+                    </Typography>
+                  ) : null}
+                </Box>
               </Box>
             ) : null}
             <Stack
@@ -1561,6 +1660,10 @@ export const NetworkGraphView = ({
               <Typography variant="smallTextParagraphs" color="gray.70">
                 {describeGraphError(error)} Start it, then reload — tiles are
                 fetched through hash-api’s <code>/atlas</code> route.
+              </Typography>
+            ) : noResults ? (
+              <Typography variant="smallTextParagraphs" color="gray.70">
+                No entities match the current filters.
               </Typography>
             ) : (
               <LoadingSpinner size={42} color={theme.palette.blue[60]} />

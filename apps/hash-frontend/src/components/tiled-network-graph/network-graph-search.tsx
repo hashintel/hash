@@ -123,6 +123,7 @@ export const NetworkGraphSearch = ({
   popperContainer,
   elevated = true,
   onActivate,
+  filter,
 }: {
   onSelect: (result: NetworkGraphSearchResult) => void;
   /**
@@ -154,6 +155,13 @@ export const NetworkGraphSearch = ({
    * back above the selection popover (by setting `elevated`).
    */
   onActivate?: () => void;
+  /**
+   * The header's entity-query filter, serialized as JSON — the same bytes the
+   * graph's atlas session is bound to (see `network-graph-view.tsx`). When set,
+   * search results are constrained to entities matching it as well as the typed
+   * query, so the search only surfaces nodes the current view actually shows.
+   */
+  filter?: string;
 }) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -202,13 +210,29 @@ export const NetworkGraphSearch = ({
 
   const trimmedQuery = query.trim();
 
+  // The header filter, parsed back from its serialized bytes. Combined with the
+  // label filter below so the search covers only the current view; a malformed
+  // value (shouldn't happen) is ignored rather than breaking the search.
+  const viewFilter = useMemo<Filter | null>(() => {
+    if (!filter) {
+      return null;
+    }
+    try {
+      return JSON.parse(filter) as Filter;
+    } catch {
+      return null;
+    }
+  }, [filter]);
+
   const { data, loading } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
     variables: {
       request: {
-        filter: buildLabelSearchFilter(trimmedQuery),
+        filter: viewFilter
+          ? { all: [viewFilter, buildLabelSearchFilter(trimmedQuery)] }
+          : buildLabelSearchFilter(trimmedQuery),
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includeEntityTypes: "resolved",
@@ -337,19 +361,34 @@ export const NetworkGraphSearch = ({
       >
         <Stack
           direction="row"
-          alignItems="center"
+          alignItems="flex-start"
           justifyContent="space-between"
-          sx={{ height: 34, pl: 2, pr: 1 }}
+          sx={{ minHeight: 34, pt: 0.75, pl: 2, pr: 1 }}
         >
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.gray[90],
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
-            Search
-          </Typography>
+          <Box>
+            <Typography
+              sx={{
+                color: ({ palette }) => palette.gray[90],
+                fontSize: 14,
+                fontWeight: 500,
+                lineHeight: 1.3,
+              }}
+            >
+              Search
+            </Typography>
+            {viewFilter ? (
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[50],
+                  fontSize: 10,
+                  lineHeight: 1.3,
+                  mb: 1,
+                }}
+              >
+                Limited to current filters
+              </Typography>
+            ) : null}
+          </Box>
           <IconButton
             aria-label="Close search"
             onClick={() => setOpen(false)}

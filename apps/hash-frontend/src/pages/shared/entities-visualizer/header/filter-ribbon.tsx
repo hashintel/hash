@@ -16,7 +16,7 @@ import type {
 } from "../shared/property-filters/property-filter";
 import type { TypeColorOverrides } from "../shared/type-colors";
 import type { AvailableType } from "../shared/use-available-types";
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 type FilterRibbonProps = {
@@ -33,6 +33,14 @@ type FilterRibbonProps = {
   showTypeColors: boolean;
   typeColorOverrides: TypeColorOverrides;
   setTypeColor: (entityTypeId: VersionedUrl, color: string) => void;
+  /**
+   * Type ids to hide from the type filter, and property base URLs to hide from
+   * the property picker and its active pills (the graph view's link types and
+   * link-only properties). Hiding is display-only: the underlying filter state is
+   * untouched, so filters set in the table view survive a switch to the graph.
+   */
+  hiddenTypeIds: ReadonlySet<VersionedUrl>;
+  hiddenPropertyBaseUrls: ReadonlySet<BaseUrl>;
 };
 
 let propertyFilterIdCounter = 0;
@@ -52,9 +60,20 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   showTypeColors,
   typeColorOverrides,
   setTypeColor,
+  hiddenTypeIds,
+  hiddenPropertyBaseUrls,
 }) => {
   const [draftPropertyFilter, setDraftPropertyFilter] =
     useState<PropertyFilter | null>(null);
+
+  // Properties offered in the picker, and the active property pills, with the
+  // hidden (link-only) ones removed — display only; `filterState` keeps them.
+  const visiblePropertyFilterMetadata = propertyFilterMetadata.filter(
+    (property) => !hiddenPropertyBaseUrls.has(property.baseUrl),
+  );
+  const visiblePropertyFilters = filterState.propertyFilters.filter(
+    (propertyFilter) => !hiddenPropertyBaseUrls.has(propertyFilter.baseUrl),
+  );
 
   const setIncludeArchived = (includeArchived: boolean) =>
     setFilterState((prev) => ({ ...prev, includeArchived }));
@@ -123,12 +142,13 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
           showColors={showTypeColors}
           typeColorOverrides={typeColorOverrides}
           setTypeColor={setTypeColor}
+          hiddenTypeIds={hiddenTypeIds}
         />
       )}
       {filterState.includeArchived && (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       )}
-      {filterState.propertyFilters.map((propertyFilter) => (
+      {visiblePropertyFilters.map((propertyFilter) => (
         <PropertyFilterPill
           key={propertyFilter.id}
           filter={propertyFilter}
@@ -153,7 +173,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       <AddFiltersMenu
         canAddIncludeArchived={!filterState.includeArchived}
         onAddIncludeArchived={() => setIncludeArchived(true)}
-        filterableProperties={propertyFilterMetadata}
+        filterableProperties={visiblePropertyFilterMetadata}
         propertiesLoading={availableTypesLoading}
         onAddPropertyFilter={handleAddPropertyFilter}
       />

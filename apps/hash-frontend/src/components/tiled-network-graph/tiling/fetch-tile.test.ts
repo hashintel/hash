@@ -23,6 +23,7 @@ import {
   fetchTile,
   FetchTileError,
   getAtlasSessionRevision,
+  setAtlasViewFilter,
   subscribeToAtlasSessionRevision,
   withAtlasRetry,
 } from "./fetch-tile";
@@ -1477,6 +1478,114 @@ describe("the atlas authority token", () => {
     ).rejects.toBeInstanceOf(AtlasDeliveryCutChangedError);
     // One painted tile and one refusal: the superseded caller retried nothing.
     expect(dataRoutes(seen)).toHaveLength(2);
+  });
+});
+
+describe("the atlas view filter", () => {
+  // The bound view is not session state: `clearAtlasSessionCache` drops sessions and tokens but
+  // leaves the origin's view in place, so a re-pin re-bootstraps the same view. Reset it explicitly —
+  // leaking it would bind the next test's first bootstrap to this test's filter.
+  afterEach(() => {
+    setAtlasViewFilter(BASE, undefined);
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  const FILTER =
+    '{"all":[{"equal":[{"path":["type","versionedUrl"]},{"parameter":"type://a"}]}]}';
+
+  it("POSTs the bound filter document at the bootstrap, and never on a data route", async () => {
+    const generation = genHex(0x51);
+    setAtlasViewFilter(BASE, FILTER);
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/3/5/1`]: () =>
+        saltile(tileBytes(0x51, 3, 5, 1)),
+    });
+
+    await fetchTile(3, 13, { baseUrl: BASE });
+
+    // The bootstrap carries the filter as its body and states its type — a filtered view is what
+    // makes the bootstrap non-simple — while staying tokenless, since it mints the view rather than
+    // continuing one.
+    expect(manifestFetches(seen)).toEqual([
+      {
+        path: `/atlas/generation/${generation}/manifest`,
+        method: "POST",
+        authority: null,
+        contentType: "application/json",
+        body: FILTER,
+      },
+    ]);
+    // The filter binds the session, not the request: a data route carries the token and its own
+    // filter-free body.
+    expect(dataRoutes(seen)).toEqual([
+      {
+        path: `/atlas/tile/${generation}/plain/3/5/1`,
+        method: "POST",
+        authority: TOKEN_A,
+        contentType: "application/json",
+        body: "{}",
+      },
+    ]);
+  });
+
+  it("resends the filter verbatim at a renewal, so the view does not widen", async () => {
+    const generation = genHex(0x52);
+    setAtlasViewFilter(BASE, FILTER);
+    let expired = false;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) => {
+        if (request.authority === null) {
+          return manifest(generation, 16, TOKEN_A);
+        }
+        expired = false;
+        return manifest(generation, 16, TOKEN_B);
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        expired ? unauthorized() : saltile(tileBytes(0x52, 1, 1, 0)),
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+    // The token ages out mid-viewport, forcing a renewal.
+    expired = true;
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    // Both the mint and the re-mint carry the same filter bytes: a bodyless renewal would state the
+    // unfiltered view and silently widen the session behind a `200`.
+    expect(manifestFetches(seen).map((request) => request.body)).toEqual([
+      FILTER,
+      FILTER,
+    ]);
+    // The renewal is a manifest fetch, not a re-bootstrap: `current` is read once.
+    expect(
+      seen.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(1);
+  });
+
+  it("replaces the session on a changed filter, and is a no-op on an unchanged one", async () => {
+    const generation = genHex(0x53);
+    stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x53, 1, 1, 0)),
+    });
+
+    setAtlasViewFilter(BASE, FILTER);
+    await fetchTile(1, 1, { baseUrl: BASE });
+    const settled = getAtlasSessionRevision();
+
+    // Re-binding the same view keeps the session: no revision move, so painted rows survive.
+    setAtlasViewFilter(BASE, FILTER);
+    expect(getAtlasSessionRevision()).toBe(settled);
+
+    // A different view is a session replacement — the sealed digest a data route presents can only be
+    // re-minted by a fresh bootstrap — so the revision moves, exactly as a re-pin's would.
+    setAtlasViewFilter(BASE, '{"all":[]}');
+    expect(getAtlasSessionRevision()).not.toBe(settled);
   });
 });
 

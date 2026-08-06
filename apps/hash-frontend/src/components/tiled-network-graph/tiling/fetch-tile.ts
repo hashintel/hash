@@ -403,10 +403,28 @@ interface AtlasAuthority {
   deliverySpanLog2: number | undefined;
   /** An in-flight renewal, shared so a viewport's simultaneous refusals cost one manifest fetch. */
   renewal: Promise<void> | undefined;
+  /**
+   * The view's filter document as the exact bytes this session bootstrapped with, resent verbatim on
+   * every renewal (`undefined` for the unfiltered view). A renewal states the view it wants, and a
+   * bodyless one states the unfiltered view — so a filtered session that omitted these bytes would
+   * widen behind a `200` (see {@link renewAtlasAuthority}). Snapshotted per session so a later change
+   * to the origin's bound view (which is a new session) cannot alter what this one renews under.
+   */
+  readonly filter: string | undefined;
 }
 
 /** Authority state per atlas origin, created by that origin's bootstrap (see {@link fetchSaltileSession}). */
 const authorityCache = new Map<string, AtlasAuthority>();
+
+/**
+ * The filter document each origin's current view is bound to, as the exact JSON bytes the manifest is
+ * POSTed — absent for the unfiltered view. {@link setAtlasViewFilter} is the one writer; a bootstrap
+ * reads it to mint the view's token (see {@link fetchSaltileSession}) and snapshots it onto the
+ * session's {@link AtlasAuthority} so a renewal resends it verbatim. Keyed by origin because the view
+ * is a property of the origin's single session: one active view at a time, and changing it replaces
+ * that session rather than adding a second.
+ */
+const atlasViewFilters = new Map<string, string>();
 
 /**
  * Names the active authority/session population.
@@ -531,15 +549,19 @@ type AtlasRequest =
   /** Names the generation to pin: the one `GET` here, and tokenless. */
   | { readonly role: "current" }
   /**
-   * Mints the authority of a fresh view. Bodyless and tokenless, so it stays a CORS-simple request.
-   *
-   * Its tokenlessness is doubly determined and no test can distinguish the two: this role presents
-   * nothing, and the entry the bootstrap installs holds no token to present (see
-   * {@link fetchSaltileSession}). The role is the half a reader can see at the request.
+   * Mints the authority of a fresh view. Tokenless — this role presents nothing, and the entry the
+   * bootstrap installs holds no token to present (see {@link fetchSaltileSession}). Its `body`, when
+   * present, is the view's filter document; a bootstrap of the unfiltered view carries none, which
+   * keeps that request CORS-simple where a filtered one accepts a preflight for its JSON body.
    */
-  | { readonly role: "manifest-bootstrap" }
-  /** Re-mints the authority of the view sealed in the retained token, which it presents. */
-  | { readonly role: "manifest-renewal" }
+  | { readonly role: "manifest-bootstrap"; readonly body?: string }
+  /**
+   * Re-mints the authority of the view sealed in the retained token, which it presents. Resends the
+   * view's filter document verbatim as its `body` (none for the unfiltered view): a bodyless renewal
+   * states the unfiltered view and would silently widen a filtered session (see
+   * {@link renewAtlasAuthority}).
+   */
+  | { readonly role: "manifest-renewal"; readonly body?: string }
   /** One of the four routes requiring the token, and the only role whose `401` can be a stale one. */
   | { readonly role: "data"; readonly body: string };
 
@@ -560,7 +582,9 @@ const requestAtlasOnce = async (
   // Read with the token, not before it and not after the response: the incarnation this request may
   // publish into is the one whose token it is about to present (see `authorityIncarnation`).
   const incarnation = authorityIncarnation;
-  const body = request.role === "data" ? request.body : undefined;
+  // Every role but `current` may carry a body: the data routes always do, and the two manifest roles
+  // do when the view is filtered (the filter document). `current` is the one `GET`, and bodyless.
+  const body = request.role === "current" ? undefined : request.body;
   // The data routes require the token, and the renewal presents the expiring one because presenting
   // it is what carries the view across the re-mint. The other two roles are tokenless: `current` has
   // nothing to present, and a bootstrap presenting a token would ask to continue the very view it is
@@ -644,8 +668,9 @@ const requestCurrent = (url: string): Promise<Response> =>
  * The manifest's method lives here and nowhere else. It is a `POST` route, so its requests are
  * indistinguishable by shape from the data routes' — which is why the role travels as a role (see
  * {@link AtlasRequest}) and why both manifest call sites come through this function rather than
- * describing the route themselves. A body is the filter document's, and this client sends none, so a
- * manifest request here is bodyless in both roles.
+ * describing the route themselves. A body is the filter document's: `filter`, when present, is POSTed
+ * in both roles so the view it names is minted (a bootstrap) and re-minted (a renewal) under the same
+ * bytes; the unfiltered view carries none and the request stays bodyless.
  *
  * Neither role is tied to a caller's `signal`, for the same reason the bootstrap is not: one caller
  * aborting must not poison a value the others await.
@@ -653,9 +678,16 @@ const requestCurrent = (url: string): Promise<Response> =>
 const requestManifest = (
   url: string,
   role: "manifest-bootstrap" | "manifest-renewal",
+  filter?: string,
 ): Promise<Response> =>
   withAtlasRetry(() =>
-    requestAtlasOnce(url, "application/json", { role }, undefined, undefined),
+    requestAtlasOnce(
+      url,
+      "application/json",
+      filter === undefined ? { role } : { role, body: filter },
+      undefined,
+      undefined,
+    ),
   );
 
 /**
@@ -672,13 +704,14 @@ const requestManifest = (
  * presentation here, so it is forgiven rather than refused.
  *
  * What the presented token does not decide is which view the renewal asks for. The request body
- * states that, and a bodyless request states the unfiltered one, so continuity holds by construction
- * only for a client that sends no filter document — which is this one, in both roles (see
- * {@link requestManifest}). A session that ever holds a filter has to resend its filter bytes
- * verbatim on every renewal: omitting them renews into the unfiltered view behind a `200` and a
- * fresh token, with no refusal and no header marking the widening, so every row that arrives
- * afterwards answers a question the session never asked. The view's identity is still not read or
- * compared here — only the delivery cut it resolved, which is a number rather than a view.
+ * states that, and a bodyless request states the unfiltered one, so a filtered session has to resend
+ * its filter bytes verbatim on every renewal — omitting them would renew into the unfiltered view
+ * behind a `200` and a fresh token, with no refusal and no header marking the widening, so every row
+ * that arrives afterwards would answer a question the session never asked. This renewal resends them:
+ * {@link AtlasAuthority.filter} is the bytes the session bootstrapped with, and it travels here
+ * unchanged (`undefined` for the unfiltered view keeps the request bodyless). The view's identity is
+ * still not read or compared here — only the delivery cut it resolved, which is a number rather than
+ * a view.
  *
  * Keeping painted rows across the `200` rests on the serving contract refusing an invalid
  * presentation — a bad tag or another actor's token — rather than reading it as no token at all.
@@ -737,6 +770,7 @@ const renewAtlasAuthority = async (url: string): Promise<boolean> => {
   authority.renewal ??= requestManifest(
     authority.manifestUrl,
     "manifest-renewal",
+    authority.filter,
   )
     .then(async (response) => {
       const renewed = parseManifest(
@@ -865,10 +899,56 @@ export interface SaltileSession {
 const manifestUrl = (baseUrl: string, generation: string): string =>
   `${baseUrl}/generation/${generation}/manifest`;
 
+/**
+ * The deepest quadtree depth the active generation actually tiles, from its
+ * manifest's `bucketSchedule.maxZoom`; `null` until the first session
+ * bootstraps. Distinct from the wire ceiling {@link ATLAS_TILE_MAX_ZOOM} (the
+ * furthest any generation *could* tile) — a given generation may tile shallower.
+ */
+let atlasTileMaxZoom: number | null = null;
+const tileMaxZoomListeners = new Set<() => void>();
+
+/**
+ * The active generation's tile max-zoom, or `null` before the first session
+ * bootstraps. Paired with {@link subscribeToAtlasTileMaxZoom} it is a
+ * `useSyncExternalStore` source, so a view can clamp its requested tile depth to
+ * what the server tiles rather than the wire ceiling {@link ATLAS_TILE_MAX_ZOOM}.
+ */
+export const getAtlasTileMaxZoom = (): number | null => atlasTileMaxZoom;
+
+/**
+ * Subscribes `listener` to changes of {@link getAtlasTileMaxZoom}, returning its
+ * unsubscribe. Listeners are called synchronously, after the value updates.
+ */
+export const subscribeToAtlasTileMaxZoom = (
+  listener: () => void,
+): (() => void) => {
+  tileMaxZoomListeners.add(listener);
+  return () => {
+    tileMaxZoomListeners.delete(listener);
+  };
+};
+
+/** Records a freshly bootstrapped session's tile max-zoom, notifying on a change. */
+const publishAtlasTileMaxZoom = (maxZoom: number): void => {
+  if (atlasTileMaxZoom === maxZoom) {
+    return;
+  }
+  atlasTileMaxZoom = maxZoom;
+  // Copied: a listener may unsubscribe (or subscribe) while being notified.
+  for (const listener of [...tileMaxZoomListeners]) {
+    listener();
+  }
+};
+
 const fetchSaltileSession = async (
   baseUrl: string,
 ): Promise<SaltileSession> => {
   const incarnation = authorityIncarnation;
+  // The view this session serves, as the exact filter bytes {@link setAtlasViewFilter} bound to this
+  // origin (absent for the unfiltered view). Read once here: a change to it supersedes this bootstrap
+  // through the incarnation guard below, so a session only ever mints — and renews — under one view.
+  const filter = atlasViewFilters.get(baseUrl);
   // `current` names the active generation; its manifest carries the canonical
   // variant set, bucket schedule, and max zoom. Neither read is tied to a
   // caller's AbortSignal: the result is shared across every tile fetch, so one
@@ -900,12 +980,18 @@ const fetchSaltileSession = async (
     generation: current.generation,
     deliverySpanLog2: undefined,
     renewal: undefined,
+    filter,
   });
 
   // Tokenless by role, which is what makes it a bootstrap: the manifest resolves a fresh view rather
-  // than re-minting the authority of one this client no longer holds a usable token for.
+  // than re-minting the authority of one this client no longer holds a usable token for. Its body,
+  // when present, is the filter document naming that view; a bootstrap of the unfiltered view is
+  // bodyless.
   const manifest = parseManifest(
-    await readAtlasJson(url, await requestManifest(url, "manifest-bootstrap")),
+    await readAtlasJson(
+      url,
+      await requestManifest(url, "manifest-bootstrap", filter),
+    ),
     current.generation,
   );
 
@@ -931,6 +1017,12 @@ const fetchSaltileSession = async (
       authority.deliverySpanLog2 = deliverySpanLog2;
     }
   }
+
+  // Publish the manifest's tile max-zoom so a view driving the camera can clamp
+  // its requested tile depth to what this generation actually tiles, rather than
+  // the wire ceiling (see {@link getAtlasTileMaxZoom}). Immutable per generation,
+  // so a renewal never moves it; only a re-pin (a fresh bootstrap) can.
+  publishAtlasTileMaxZoom(manifest.bucketSchedule.maxZoom);
 
   return {
     generation: current.generation,
@@ -1120,6 +1212,39 @@ export const clearAtlasSessionCache = (baseUrl?: string): void => {
   for (const listener of sessionRevisionListeners) {
     listener();
   }
+};
+
+/**
+ * Binds the view every session for `baseUrl` serves to `filter` — the exact JSON bytes of an
+ * entity-query filter document, or `undefined` for the unfiltered view.
+ *
+ * The bytes are what the manifest POSTs to mint the authority token that seals the view (see
+ * {@link fetchSaltileSession}); the server digests them exactly as presented, so a caller must pass
+ * the same string for the same logical filter — a stable serialization — or every render rebinds. An
+ * unchanged filter is a no-op, so re-establishing the same view on a remount reuses the session
+ * rather than rebootstrapping it.
+ *
+ * A real change is a session replacement, not a refetch: a data route presents a sealed digest, so
+ * rows under the new view can only come from a session bootstrapped under it. So the pinned session
+ * and its token drop through {@link clearAtlasSessionCache}, which moves
+ * {@link getAtlasSessionRevision} exactly as a re-pin does — holders of decoded rows discard them,
+ * and the next fetch bootstraps under the new view. Bind the view before the first fetch (a layout
+ * effect, ahead of the passive fetch that bootstraps) so the first session is already the filtered
+ * one rather than a superseded unfiltered one.
+ */
+export const setAtlasViewFilter = (
+  baseUrl: string,
+  filter: string | undefined,
+): void => {
+  if (atlasViewFilters.get(baseUrl) === filter) {
+    return;
+  }
+  if (filter === undefined) {
+    atlasViewFilters.delete(baseUrl);
+  } else {
+    atlasViewFilters.set(baseUrl, filter);
+  }
+  clearAtlasSessionCache(baseUrl);
 };
 
 /**
