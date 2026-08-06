@@ -35,7 +35,7 @@ function step(overrides: Partial<StepDetail>): StepDetail {
     type: "production",
     durations: [8, 10, 12],
     observations: [
-      { date: "2025-08-01", value: 9 },
+      { date: "2025-06-01", value: 9 },
       { date: "2026-02-01", value: 12 },
     ],
 
@@ -151,6 +151,13 @@ describe("opportunity brief helpers", () => {
     expect(brief.calibrationDirection).toBe("increase");
     expect(brief.opportunityTrigger.primaryMetric).toContain("+50%");
     expect(brief.diagnosis[0]).toContain("below the observed high-percentile");
+    expect(brief.trend).toMatchObject({
+      currentN: 1,
+      currentValue: 12,
+      previousN: 1,
+      previousValue: 9,
+      direction: "worsening",
+    });
     expect(brief.diagnosis.some((line) => /trend/i.test(line))).toBe(true);
     expect(brief.recommendedActions[0]?.text).toContain(
       "longest normalized durations",

@@ -294,46 +294,47 @@ const PipelineBar = ({
         </span>
       </div>
       <div className={barTrack}>
-        {stages.map((stage) => {
-          const value = stage[metric] ?? 0;
-          if (value <= 0) {
-            return null;
-          }
-          const pct = (value / total) * 100;
-          const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
-          const tooltipContent = (
-            <>
-              {stage.label}: {formatNumber(value, { maximumFractionDigits: 0 })}
-              d {metric}
-              {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
-            </>
-          );
-          return (
-            <div
-              key={stage.id}
-              className={cx(segWrapBase, dashed ? segWrapDashed : undefined)}
-              style={{
-                flex: `${pct} 1 0%`,
-                minWidth: "16px",
-                backgroundColor: color,
-              }}
-            >
-              <Tooltip
-                content={tooltipContent}
-                disableTooltip={!showSegmentTooltips}
-                openDelay="none"
-                closeDelay="none"
-                className={segmentTooltipTrigger}
+        {total > 0 &&
+          stages.map((stage) => {
+            const value = stage[metric] ?? 0;
+            if (value <= 0) {
+              return null;
+            }
+            const pct = (value / total) * 100;
+            const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
+            const tooltipContent = (
+              <>
+                {stage.label}:{" "}
+                {formatNumber(value, { maximumFractionDigits: 0 })}d {metric}
+                {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
+              </>
+            );
+            return (
+              <div
+                key={stage.id}
+                className={cx(segWrapBase, dashed ? segWrapDashed : undefined)}
+                style={{
+                  flex: `${pct} 1 0%`,
+                  minWidth: "16px",
+                  backgroundColor: color,
+                }}
               >
-                {pct > 4 && (
-                  <span className={segValue}>
-                    {formatNumber(value, { maximumFractionDigits: 0 })}d
-                  </span>
-                )}
-              </Tooltip>
-            </div>
-          );
-        })}
+                <Tooltip
+                  content={tooltipContent}
+                  disableTooltip={!showSegmentTooltips}
+                  openDelay="none"
+                  closeDelay="none"
+                  className={segmentTooltipTrigger}
+                >
+                  {pct > 4 && (
+                    <span className={segValue}>
+                      {formatNumber(value, { maximumFractionDigits: 0 })}d
+                    </span>
+                  )}
+                </Tooltip>
+              </div>
+            );
+          })}
         {marker && (
           <div
             className={cx(

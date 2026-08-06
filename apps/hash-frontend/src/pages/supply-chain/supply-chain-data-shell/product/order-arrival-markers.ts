@@ -81,9 +81,13 @@ function positionForLeadDays(
 
 function mean(values: number[], excludeOutliers: boolean): number {
   const fences = excludeOutliers ? computeIqrFences(values) : null;
-  const meanValues = fences
+  const filteredValues = fences
     ? values.filter((value) => value >= fences.lower && value <= fences.upper)
     : values;
+  const meanValues = filteredValues.length > 0 ? filteredValues : values;
+  if (meanValues.length === 0) {
+    return 0;
+  }
   return meanValues.reduce((sum, value) => sum + value, 0) / meanValues.length;
 }
 
