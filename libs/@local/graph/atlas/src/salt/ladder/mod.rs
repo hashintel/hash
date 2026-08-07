@@ -136,8 +136,9 @@ pub(crate) struct Field<'coordinates> {
 ///
 /// The schedule and the rung that publishes.
 ///
-/// The canonical value names a schedule member bit-exactly ([`select_canonical`]); a value outside
-/// the schedule is a configuration contradiction and fails the fit at selection.
+/// The canonical value names a schedule member bit-exactly ([`select_canonical`]). A value outside
+/// the schedule is a configuration contradiction, and [`Self::canonical_index`] decides the
+/// membership from the options alone, so a fit refuses the contradiction before it trains.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LadderOptions {
     /// The condition schedule the ladder projects.
@@ -146,6 +147,27 @@ pub(crate) struct LadderOptions {
     ///
     /// `1.0` is the full-strength lens, matching the reference pipeline's canonical condition.
     pub canonical: f32 = 1.0,
+}
+
+impl LadderOptions {
+    /// Returns the canonical rung's position in the schedule.
+    ///
+    /// The canonical value names a schedule member bit-exactly, so the index exists exactly when
+    /// the configuration is self-consistent. The membership is a property of the options alone,
+    /// decidable before any rung projects.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the canonical value names no rung of the schedule.
+    pub(crate) fn canonical_index(&self) -> Result<usize, CanonicalError> {
+        self.conditions
+            .values()
+            .iter()
+            .position(|condition| condition.to_bits() == self.canonical.to_bits())
+            .ok_or(CanonicalError::UnknownRung {
+                value: self.canonical,
+            })
+    }
 }
 
 const impl Default for LadderOptions {

@@ -12,7 +12,7 @@ use zerocopy::{LE, TryFromBytes as _, U64};
 use super::{
     ClassifierInput, FitConfig, FitError, PlacementOptions, PolicyOptions, ProjectorOptions,
     StageError, SuppliedAnnotations, SuppliedVerdicts, Supplies,
-    compute::{PlacementInner, placement_device, resolve_supplied},
+    compute::resolve_supplied,
     error::PlacementError,
     fit,
     prepare::identity::{IdentityTable, IdentityTableArchive},
@@ -68,10 +68,9 @@ use crate::{
         },
         postings::artifact::PostingsArchive,
         projector::{
-            artifact,
             loss::CoincidentEnergy,
-            model::NodeRole,
-            train::{BatchPlan, NodeColumns, RelationLens, TrainError, TrainingSchedule, refresh},
+            model::Architecture,
+            train::{BatchPlan, RelationLens, TrainError, TrainingSchedule},
             verdict::{PlacementClass, ReviewedVerdicts},
         },
         relation::artifact::{AttractionArchive, ProtectionArchive},
@@ -1450,9 +1449,21 @@ fn minimal_schedule() -> TrainingSchedule {
 
 /// The projector fixture's training run.
 ///
-/// Short enough for a test, long enough that the boundary and every rung run.
+/// Short enough for a test, long enough that the boundary and every rung run. The hidden
+/// architecture shrinks while the representation width keeps the pipeline's contract, so a
+/// forward or training step costs a fraction of the ratified model's; the publish seam's own
+/// certificates (`compute::projector::tests`) pin the bit-exact publish contracts, and these
+/// fixtures certify the fit's composition.
 fn projector_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
+    options.architecture = Architecture {
+        width: NonZero::new(8).expect("the fixture width is nonzero"),
+        residual_blocks: NonZero::new(1).expect("the fixture depth is nonzero"),
+        representation_dimensions: NonZero::new(PROJECTOR_DIMENSIONS)
+            .expect("the projector width is nonzero"),
+        role_dimensions: NonZero::new(4).expect("the fixture role width is nonzero"),
+        condition_dimensions: NonZero::new(1).expect("the fixture condition width is nonzero"),
+    };
     options.schedule = TrainingSchedule::new(
         NonZero::new(12).expect("the fixture step count is nonzero"),
         6,
@@ -1494,42 +1505,6 @@ fn proximal_link_verdicts() -> SuppliedVerdicts {
     SuppliedVerdicts::from_bytes(document.as_bytes()).expect("the fixture document admits")
 }
 
-/// Reproduces one corpus forward of a published generation's model.
-// The reprojection rides the placement stage's own inference backend:
-// the certificate compares the published column against the checkpoint
-// bit for bit, and a cross-backend comparison would measure kernel
-// flavor instead of publish fidelity.
-fn reproject(published: &Utf8Path, options: &ProjectorOptions, eta: f32) -> IdVec<NodeRowId, Vec2> {
-    let checkpoint = fs::read(published.join("projector.mpk")).expect("the checkpoint reads");
-    let model = artifact::open_model::<PlacementInner>(
-        checkpoint.as_slice(),
-        options.architecture,
-        &placement_device(),
-    )
-    .expect("the checkpoint opens on the plain backend");
-
-    let representations =
-        ArrayFile::open(published.join("representations.arr")).expect("the matrix maps");
-    let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
-        representations
-            .vectors()
-            .expect("the matrix holds projector-width rows"),
-    );
-    let roles = vec![NodeRole::KnowledgeEntity; rows.len()];
-
-    refresh::forward(
-        &model,
-        NodeColumns {
-            representations: rows,
-            roles: IdSlice::from_raw(&roles),
-        },
-        eta,
-        options.forward_rows,
-        &placement_device(),
-    )
-    .expect("the published model projects finitely")
-}
-
 #[test]
 fn default_placement_is_the_trained_projector() {
     // The conditioned projector is the pipeline's architecture; a bare
@@ -1568,7 +1543,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
     let mut options = projector_options();
     options.schedule = minimal_schedule();
     let config = FitConfig {
-        placement: PlacementOptions::Projector(options.clone()),
+        placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
@@ -1619,24 +1594,17 @@ async fn forceless_projector_publishes_the_baseline_rung() {
         "a forceless run measures no ladder"
     );
 
-    // The published checkpoint reproduces the published coordinates:
-    // reopening the model on a plain backend and projecting the
-    // published representations at the baseline rung is bit-identical
-    // to the staged column.
-    let projected = reproject(published.path(), &options, 0.0);
+    // The publish seam's certificates (`compute::projector::tests`) pin
+    // the column's bit-exact relationship to the checkpoint; here the
+    // column covers the corpus rows.
     let coordinates =
         ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
-    let placed = coordinates.points().expect("the column holds 2D points");
-    assert_eq!(placed.len(), projected.len());
-    assert!(
-        placed
-            .iter()
-            .zip(&projected)
-            .all(
-                |(persisted, fresh)| persisted.x().to_bits() == fresh.x().to_bits()
-                    && persisted.y().to_bits() == fresh.y().to_bits()
-            ),
-        "the published column should be the model's own projection",
+    assert_eq!(
+        coordinates
+            .points()
+            .expect("the column holds 2D points")
+            .len(),
+        NODES,
     );
 }
 
@@ -1726,21 +1694,17 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
     let canonical = &ladder.rungs[ladder.canonical_index];
     assert!(canonical.adjacent_movement > 0.0);
 
-    // The published column is the canonical rung's projection under
-    // the recorded alignment, bit for bit: checkpoint, evidence, and
-    // column describe one field.
-    let projected = reproject(published.path(), &options, ladder.canonical);
+    // The publish seam's certificates (`compute::projector::tests`) pin the column's bit-exact
+    // relationship to the checkpoint and the recorded alignment; here the column covers the
+    // corpus rows.
     let coordinates =
         ArrayFile::open(published.path().join("coordinates.arr")).expect("the column maps");
-    let placed = coordinates.points().expect("the column holds 2D points");
-    assert_eq!(placed.len(), projected.len());
-    assert!(
-        placed.iter().zip(&projected).all(|(persisted, fresh)| {
-            let aligned = canonical.alignment.apply(*fresh);
-            persisted.x().to_bits() == aligned.x().to_bits()
-                && persisted.y().to_bits() == aligned.y().to_bits()
-        }),
-        "the published column should be the aligned canonical projection",
+    assert_eq!(
+        coordinates
+            .points()
+            .expect("the column holds 2D points")
+            .len(),
+        NODES,
     );
 }
 
@@ -2111,23 +2075,14 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
 
-    // 0.3 names no rung of the measured schedule, so the configuration
+    // 0.3 names no rung of the schedule, so the configuration
     // contradicts itself and the fit must refuse to publish. The
-    // reviewed verdict gives the boundary a measured radius. The
-    // rejection is a fixed condition-schedule mismatch that holds at
-    // any training length, so the shortest schedule whose boundary
-    // follows an opening step certifies the refusal a longer run
-    // would hit.
+    // membership is decidable from the options alone, so the refusal
+    // lands before a single training step: the run's cost is the
+    // stages ahead of the placement. The reviewed verdict keeps the
+    // canonical mismatch as the configuration's only defect.
     let mut options = projector_options();
     options.ladder.canonical = 0.3;
-    options.schedule = TrainingSchedule::new(
-        NonZero::new(2).expect("the fixture step count is nonzero"),
-        1,
-        NonZero::new(1).expect("the fixture cadence is nonzero"),
-        UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
-        UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
-    )
-    .expect("the fixture schedule is valid");
     let verdicts = proximal_link_verdicts();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options),

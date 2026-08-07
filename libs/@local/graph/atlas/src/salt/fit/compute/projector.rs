@@ -47,7 +47,7 @@ use crate::{
     math::{AlignedVecN, NonNegative, Positive, Vec2},
     progress::Progress,
     salt::{
-        knn::artifact::KnnArchive,
+        knn::{artifact::KnnArchive, table::KnnView},
         ladder::{Field, measure_ladder, select_canonical},
         landmark::artifact::LandmarkSkeletonArchive,
         projector::{
@@ -56,8 +56,8 @@ use crate::{
             model::{NodeRole, Projector},
             scale::{LOCAL_SCALE_NEIGHBOURS, LocalScales, insert_nearest, sorted_median},
             train::{
-                self, Coefficients, FrozenRadius, NodeColumns, SupportAnchor, TrainOptions,
-                TrainerInputs, refresh,
+                self, BoundaryEvidence, Coefficients, FrozenRadius, NodeColumns, SupportAnchor,
+                TrainOptions, TrainerInputs, refresh,
             },
             verdict::ResolvedVerdict,
         },
@@ -130,6 +130,22 @@ pub(super) struct DistinctInputs<'fit> {
     pub indexes: &'fit RelationIndexes<DistinctRowId, EdgeRowId>,
 }
 
+/// The training-domain views the publish half reads.
+///
+/// The quotient, the neighbour table, and the attraction index carry the ladder's per-rung loss
+/// measurements over the distinct rows, and the unresolved-verdict count echoes into the
+/// placement's evidence.
+pub(super) struct PublishInputs<'fit> {
+    /// The corpus-to-distinct row quotient.
+    pub quotient: &'fit RowQuotient,
+    /// The distinct-domain neighbour table.
+    pub knn: KnnView<'fit, DistinctRowId>,
+    /// The distinct-domain attraction index.
+    pub attraction: &'fit AttractionIndex<DistinctRowId, EdgeRowId>,
+    /// Verdicts naming no row of this corpus.
+    pub unresolved_verdicts: usize,
+}
+
 /// The supplied verdicts resolved into the corpus row domain.
 #[derive(Debug, Default)]
 pub(in crate::salt::fit) struct VerdictResolution {
@@ -192,6 +208,11 @@ impl Context<'_> {
         if configured != PROJECTOR_DIMENSIONS {
             return Err(PlacementError::RepresentationWidth { configured }.into());
         }
+
+        // The canonical rung's membership in the schedule is decidable from the options alone,
+        // so a contradictory configuration refuses here rather than after training runs the
+        // schedule and every rung projects.
+        options.ladder.canonical_index()?;
         let affinity =
             AffinityEnergy::new(self.config.curve, options.affinity_offset).ok_or_else(|| {
                 StageError::from(PlacementError::ObjectiveCurve {
@@ -275,7 +296,36 @@ impl Context<'_> {
             &train_options,
             progress,
         )?;
-        let checkpoint = self.stage_checkpoint(&fitted.model)?;
+
+        self.publish_projector(
+            options,
+            &PublishInputs {
+                quotient: distinct.quotient,
+                knn: distinct.knn.view(),
+                attraction: &distinct.indexes.attraction,
+                unresolved_verdicts: inputs.resolution.unresolved,
+            },
+            columns,
+            &fitted.model,
+            fitted.evidence.boundary.as_ref(),
+        )
+    }
+
+    /// Stages everything the projector placement publishes.
+    ///
+    /// The publish half of the placement: it reads a model and its frozen boundary evidence, and
+    /// it stages the checkpoint, the canonical coordinate column, and the placement's evidence. A
+    /// boundary whose radius composes a relation energy opens the ladder, and the canonical
+    /// rung's aligned field publishes ([`Self::measure_conditions`]).
+    fn publish_projector(
+        &self,
+        options: &ProjectorOptions,
+        inputs: &PublishInputs<'_>,
+        columns: NodeColumns<'_, NodeRowId>,
+        model: &Projector<TrainerBackend>,
+        boundary: Option<&BoundaryEvidence>,
+    ) -> Result<PlacementArtifacts, StageError> {
+        let checkpoint = self.stage_checkpoint(model)?;
 
         // Inference runs on the inner backend. The trainer fits the lens
         // exactly when the boundary froze a radius. Without one the
@@ -283,12 +333,8 @@ impl Context<'_> {
         // rung provably projects the identical field, and the baseline
         // publishes directly with no ladder to measure.
         let device = device();
-        let model = fitted.model.valid();
-        let energy = fitted
-            .evidence
-            .boundary
-            .as_ref()
-            .and_then(|boundary| compose_energy(options, boundary.radius));
+        let model = model.valid();
+        let energy = boundary.and_then(|boundary| compose_energy(options, boundary.radius));
 
         let (ladder, digest) = if let Some(energy) = energy {
             let _span = tracing::info_span!("ladder").entered();
@@ -309,12 +355,8 @@ impl Context<'_> {
             placement: Placement::Projector,
             evidence: Some(ProjectorEvidence {
                 steps: options.schedule.steps().get(),
-                boundary: fitted
-                    .evidence
-                    .boundary
-                    .as_ref()
-                    .map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
-                unresolved_verdicts: inputs.resolution.unresolved,
+                boundary: boundary.map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
+                unresolved_verdicts: inputs.unresolved_verdicts,
                 ladder,
             }),
         })
@@ -382,7 +424,7 @@ impl Context<'_> {
         options: &ProjectorOptions,
         model: &Projector<TrainerInner>,
         columns: NodeColumns<'_, NodeRowId>,
-        inputs: &PlacementInputs<'_>,
+        inputs: &PublishInputs<'_>,
         energy: RelationEnergy,
     ) -> Result<(LadderEvidence, Sha256Digest), StageError> {
         let device = device();
@@ -392,19 +434,19 @@ impl Context<'_> {
         let mut losses = Vec::with_capacity(conditions.len());
         for (index, &eta) in conditions.iter().enumerate() {
             let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)?;
-            // The loss population is the training domain: the full
-            // frame gathers at the quotient's first rows - identical
-            // representations project identically, so the gather is
-            // the distinct rows' own frame.
-            let distinct_frame = gather_distinct(&frame, inputs.distinct.quotient);
-            let scales = refresh::scales(&distinct_frame, &inputs.distinct.knn.view(), eta)
-                .map_err(|error| error.map_rows(|row| inputs.distinct.quotient.first_row(row)))?;
+            // The loss population is the training domain: the full frame gathers at the quotient's
+            // first rows - identical representations project identically, so the gather is the
+            // distinct rows' own frame.
+            let distinct_frame = gather_distinct(&frame, inputs.quotient);
+            let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
+                .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
             losses.push(relation_loss(
                 &distinct_frame,
                 &scales,
-                &inputs.distinct.indexes.attraction,
+                inputs.attraction,
                 energy,
             ));
+
             write_frame(rung_path(&ladder, index), &frame)?;
         }
 
@@ -461,20 +503,14 @@ impl Context<'_> {
             let frame = file
                 .points()
                 .expect("the coordinate column was sealed as f32 pairs");
-            let distinct_frame =
-                gather_distinct(IdSlice::from_raw(frame), inputs.distinct.quotient);
+            let distinct_frame = gather_distinct(IdSlice::from_raw(frame), inputs.quotient);
             let scales = refresh::scales(
                 &distinct_frame,
-                &inputs.distinct.knn.view(),
+                &inputs.knn,
                 selection.measurement.condition,
             )
-            .map_err(|error| error.map_rows(|row| inputs.distinct.quotient.first_row(row)))?;
-            relation_loss(
-                &distinct_frame,
-                &scales,
-                &inputs.distinct.indexes.attraction,
-                energy,
-            )
+            .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
+            relation_loss(&distinct_frame, &scales, inputs.attraction, energy)
         };
 
         // The schedule's first rung is bit-exactly `0.0` by
@@ -893,7 +929,30 @@ mod tests {
         reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
     )]
 
-    use super::loss_regressions;
+    use std::fs;
+
+    use super::{loss_regressions, *};
+    use crate::{
+        file::generation::{GenerationRoot, StagedGeneration},
+        math::{AffinityCurve, BoxedVecN, Finite, Similarity, UnitFraction},
+        salt::{
+            fit::FitConfig,
+            knn::table::{Knn, KnnMatrix},
+            ladder::Conditions,
+            landmark::select::SelectionOptions,
+            policy::ClassProbabilities,
+            projector::{
+                loss::CoincidentEnergy,
+                model::Architecture,
+                train::{RelationLens, TrainingSchedule},
+                verdict::calibrate::ProximalCalibration,
+            },
+            relation::{
+                Policies, RelationConfidence, RelationInstance, RelationPolicy,
+                attraction::AttractionOptions,
+            },
+        },
+    };
 
     #[test]
     fn loss_regressions_examine_the_even_to_odd_transition() {
@@ -939,5 +998,388 @@ mod tests {
         assert_eq!(regressions.len(), 1);
         assert_eq!(regressions[0].delta, 1.0);
         assert_eq!(regressions[0].relative, None);
+    }
+
+    /// Corpus rows of the publish fixture.
+    ///
+    /// Row 3 carries row 0's representation and row 5 carries row 2's, so the quotient collapses
+    /// six corpus rows onto four distinct rows.
+    const ROWS: usize = 6;
+    const DISTINCT: usize = 4;
+    const CORPUS_CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
+
+    /// The reviewed relation type of the attraction fixture.
+    const RELATION: u64 = 7;
+
+    fn nonzero(value: usize) -> core::num::NonZero<usize> {
+        core::num::NonZero::new(value).expect("fixture values are nonzero")
+    }
+
+    fn scratch_dir(name: &str) -> Utf8PathBuf {
+        let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
+            .expect("the temp directory is UTF-8")
+            .join(format!(
+                "hash-graph-atlas-publish-{}-{name}",
+                std::process::id()
+            ));
+        let _: Result<(), std::io::Error> = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    /// The corpus representations, one distinct pattern per row with copies at rows 3 and 5.
+    fn corpus_storage() -> BoxedVecN<CORPUS_CAPACITY> {
+        let mut storage = BoxedVecN::zero();
+        let array = storage.as_array_mut();
+        for row in 0..ROWS {
+            let source = match row {
+                3 => 0,
+                5 => 2,
+                _ => row,
+            };
+            let base = row * PROJECTOR_DIMENSIONS;
+            array[base + source] = 1.0;
+            array[base + 16 + source] = -0.5;
+        }
+        storage
+    }
+
+    /// A complete-graph neighbour table over the distinct rows.
+    fn distinct_knn() -> Knn<DistinctRowId> {
+        let mut indptr = vec![0_u64];
+        let mut columns = Vec::new();
+        let mut values = Vec::new();
+        for row in 0..DISTINCT {
+            for column in (0..DISTINCT).filter(|&column| column != row) {
+                columns.push(u32::try_from(column).expect("fixture columns fit u32"));
+                values.push(0.75);
+            }
+            indptr.push(u64::try_from(columns.len()).expect("fixture entries fit u64"));
+        }
+        let matrix = KnnMatrix::try_new((DISTINCT, DISTINCT), indptr, columns, values)
+            .map_err(|(_, _, _, error)| error)
+            .expect("the fixture matrix is structurally valid");
+        Knn::new(matrix).expect("the fixture table is a valid neighbour table")
+    }
+
+    /// Relation indexes carrying one full-Proximal relation over the distinct rows.
+    fn distinct_indexes() -> RelationIndexes<DistinctRowId, EdgeRowId> {
+        let policy = RelationPolicy {
+            relation: OntologyRowId::new(RELATION),
+            attraction: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            selected: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            applicability: 1.0,
+            strength: 1.0,
+        };
+        let instance = |edge: u64, source: usize, target: usize| RelationInstance {
+            edge: EdgeRowId::new(edge),
+            relation: OntologyRowId::new(RELATION),
+            source: DistinctRowId::from_usize(source),
+            target: DistinctRowId::from_usize(target),
+            confidence: RelationConfidence::default(),
+            multiplicity: 1,
+        };
+        let mut instances = vec![instance(0, 0, 2), instance(1, 1, 3)];
+        RelationIndexes::build(
+            DISTINCT,
+            Policies::new(&[policy]).expect("the fixture policy is certified"),
+            &mut instances,
+            AttractionOptions::default(),
+        )
+        .expect("the fixture instances satisfy the input contract")
+    }
+
+    /// The skinny projector fixture.
+    ///
+    /// The representation width stays the pipeline's contract while the hidden architecture
+    /// shrinks, so a forward pass costs a fraction of the ratified model's.
+    fn skinny_options() -> ProjectorOptions {
+        let mut options = ProjectorOptions::ratified();
+        options.architecture = Architecture {
+            width: nonzero(8),
+            residual_blocks: nonzero(1),
+            representation_dimensions: nonzero(PROJECTOR_DIMENSIONS),
+            role_dimensions: nonzero(4),
+            condition_dimensions: nonzero(1),
+        };
+        options.schedule = TrainingSchedule::new(
+            nonzero(1),
+            0,
+            nonzero(1),
+            UnitFraction::new(1.0e-3).expect("the fixture initial rate is a unit fraction"),
+            UnitFraction::new(1.0e-5).expect("the fixture minimum rate is a unit fraction"),
+        )
+        .expect("the fixture schedule is valid");
+        options.lens = RelationLens::new(
+            CoincidentEnergy::new(0.01, 0.5).expect("the fixture energy is valid"),
+            Positive::new(0.25).expect("the fixture temperature is positive"),
+            Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
+        );
+        options.ladder.conditions =
+            Conditions::new(vec![0.0, 1.0]).expect("the fixture schedule is valid");
+        options.ladder.canonical = 1.0;
+        options.forward_rows = nonzero(4);
+        options
+    }
+
+    /// Reads the staged canonical column and asserts each duplicate cluster shares one coordinate.
+    fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
+        let column = ArrayFile::open(staging.path_of(&Role::Coordinates.file_name()))
+            .expect("the column should map");
+        let placed = column.points().expect("the column holds 2D points");
+        assert_eq!(placed.len(), ROWS);
+        for (copy, first) in [(3_usize, 0_usize), (5, 2)] {
+            assert_eq!(placed[copy].x().to_bits(), placed[first].x().to_bits());
+            assert_eq!(placed[copy].y().to_bits(), placed[first].y().to_bits());
+        }
+        placed.to_vec()
+    }
+
+    /// A boundary that froze the fixture radius from reviewed pairs.
+    fn measured_boundary() -> BoundaryEvidence {
+        BoundaryEvidence {
+            step: 0,
+            radius: FrozenRadius::Measured {
+                radius: Finite::new(0.5).expect("the fixture radius is finite"),
+            },
+            calibration: ProximalCalibration {
+                radius: Some(0.5),
+                types: Vec::new(),
+            },
+        }
+    }
+
+    /// A boundary that froze nothing.
+    fn vacuous_boundary() -> BoundaryEvidence {
+        BoundaryEvidence {
+            step: 0,
+            radius: FrozenRadius::Vacuous,
+            calibration: ProximalCalibration {
+                radius: None,
+                types: Vec::new(),
+            },
+        }
+    }
+
+    fn fit_config() -> FitConfig {
+        FitConfig {
+            seed: 11,
+            selection: SelectionOptions {
+                maximum_count: core::num::NonZero::new(4).expect("the fixture capacity is nonzero"),
+                ..
+            },
+            curve: AffinityCurve::fit(1.0, 0.1).expect("the reference falloff is well-conditioned"),
+            ..
+        }
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore = "the publish half stages files through the platform")]
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "the staging directory is read back after the publish returns; dropping it early \
+                  would delete the files under assertion"
+    )]
+    fn publish_stages_the_baseline_field_for_a_vacuous_boundary() {
+        let corpus = corpus_storage();
+        let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
+            AlignedVecN::from_slice(&corpus.as_array()[..CORPUS_CAPACITY])
+                .expect("boxed storage is aligned"),
+        );
+        let quotient = RowQuotient::build(rows);
+        assert_eq!(quotient.distinct_len(), DISTINCT);
+
+        let knn = distinct_knn();
+        let indexes = distinct_indexes();
+        let inputs = PublishInputs {
+            quotient: &quotient,
+            knn: knn.view(),
+            attraction: &indexes.attraction,
+            unresolved_verdicts: 3,
+        };
+        let roles = vec![NodeRole::KnowledgeEntity; ROWS];
+        let columns = || NodeColumns {
+            representations: rows,
+            roles: IdSlice::from_raw(&roles),
+        };
+
+        let options = skinny_options();
+        let device = device();
+        let model = Projector::<TrainerBackend>::new(
+            options.architecture,
+            &device,
+            stage_rng(11, Stage::ProjectorInit),
+        );
+
+        let config = fit_config();
+        let root = GenerationRoot::new(scratch_dir("vacuous")).expect("the root should open");
+        let staging = root.stage().expect("the staging directory should open");
+        let scratch = root.scratch().expect("the scratch directory should open");
+        let context = Context {
+            staging: &staging,
+            scratch: &scratch,
+            config: &config,
+        };
+
+        let boundary = vacuous_boundary();
+        let artifacts = context
+            .publish_projector(&options, &inputs, columns(), &model, Some(&boundary))
+            .expect("the publish half should stage");
+
+        assert_eq!(artifacts.placement, Placement::Projector);
+        assert!(artifacts.checkpoint.is_some());
+        let evidence = artifacts
+            .evidence
+            .as_ref()
+            .expect("a projector placement records evidence");
+        assert_eq!(evidence.steps, 1);
+        assert_eq!(evidence.boundary, Some(FrozenRadiusEvidence::Vacuous));
+        assert_eq!(evidence.unresolved_verdicts, 3);
+        assert!(
+            evidence.ladder.is_none(),
+            "a vacuous boundary opens no ladder"
+        );
+
+        // The staged column is the model's own zero-rung projection, bit
+        // for bit, and byte-identical representations project to one
+        // coordinate.
+        let placed = staged_column(&staging);
+        let projected = refresh::forward(
+            &model.valid(),
+            columns(),
+            0.0,
+            options.forward_rows,
+            &device,
+        )
+        .expect("the fixture model projects finitely");
+        assert!(
+            placed
+                .iter()
+                .zip(projected.iter())
+                .all(
+                    |(persisted, fresh)| persisted.x().to_bits() == fresh.x().to_bits()
+                        && persisted.y().to_bits() == fresh.y().to_bits()
+                ),
+            "the published column should be the model's own projection",
+        );
+    }
+
+    #[test]
+    #[cfg_attr(miri, ignore = "the publish half stages files through the platform")]
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "the staging directory is read back after the publish returns; dropping it early \
+                  would delete the files under assertion"
+    )]
+    fn publish_stages_the_aligned_canonical_rung_for_a_measured_boundary() {
+        let corpus = corpus_storage();
+        let rows: &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> = IdSlice::from_raw(
+            AlignedVecN::from_slice(&corpus.as_array()[..CORPUS_CAPACITY])
+                .expect("boxed storage is aligned"),
+        );
+        let quotient = RowQuotient::build(rows);
+        let knn = distinct_knn();
+        let indexes = distinct_indexes();
+        let inputs = PublishInputs {
+            quotient: &quotient,
+            knn: knn.view(),
+            attraction: &indexes.attraction,
+            unresolved_verdicts: 0,
+        };
+        let roles = vec![NodeRole::KnowledgeEntity; ROWS];
+        let columns = || NodeColumns {
+            representations: rows,
+            roles: IdSlice::from_raw(&roles),
+        };
+
+        let options = skinny_options();
+        let device = device();
+        let model = Projector::<TrainerBackend>::new(
+            options.architecture,
+            &device,
+            stage_rng(13, Stage::ProjectorInit),
+        );
+
+        let config = fit_config();
+        let root = GenerationRoot::new(scratch_dir("measured")).expect("the root should open");
+        let staging = root.stage().expect("the staging directory should open");
+        let scratch = root.scratch().expect("the scratch directory should open");
+        let context = Context {
+            staging: &staging,
+            scratch: &scratch,
+            config: &config,
+        };
+
+        let boundary = measured_boundary();
+        let artifacts = context
+            .publish_projector(&options, &inputs, columns(), &model, Some(&boundary))
+            .expect("the publish half should stage");
+
+        let evidence = artifacts
+            .evidence
+            .as_ref()
+            .expect("a projector placement records evidence");
+        assert!(matches!(
+            evidence.boundary,
+            Some(FrozenRadiusEvidence::Measured { .. })
+        ));
+        let ladder = evidence
+            .ladder
+            .as_ref()
+            .expect("a measured boundary measures the ladder");
+        assert_eq!(ladder.rungs.len(), 2);
+        assert_eq!(ladder.canonical.to_bits(), 1.0_f32.to_bits());
+        assert_eq!(ladder.canonical_index, 1);
+        assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
+        assert_eq!(
+            ladder.rungs[0].baseline_movement.to_bits(),
+            0.0_f64.to_bits()
+        );
+        assert!(
+            ladder
+                .rungs
+                .iter()
+                .all(|rung| rung.relation_loss.is_finite())
+        );
+        assert!(ladder.persisted_relation_loss.is_finite());
+
+        // The staged column is the staged checkpoint's canonical-rung
+        // projection under the recorded alignment, bit for bit:
+        // checkpoint, evidence, and column describe one field.
+        let checkpoint = fs::read(staging.path_of(&Role::Projector.file_name()))
+            .expect("the checkpoint should read");
+        let reopened = artifact::open_model::<TrainerInner>(
+            checkpoint.as_slice(),
+            options.architecture,
+            &device,
+        )
+        .expect("the checkpoint should open on the inner backend");
+        let projected = refresh::forward(
+            &reopened,
+            columns(),
+            ladder.canonical,
+            options.forward_rows,
+            &device,
+        )
+        .expect("the reopened model projects finitely");
+
+        let placed = staged_column(&staging);
+        let alignment = ladder.rungs[ladder.canonical_index].alignment;
+        assert!(
+            placed
+                .iter()
+                .zip(projected.iter())
+                .all(|(persisted, fresh)| {
+                    let aligned = alignment.apply(*fresh);
+                    persisted.x().to_bits() == aligned.x().to_bits()
+                        && persisted.y().to_bits() == aligned.y().to_bits()
+                }),
+            "the published column should be the aligned canonical projection",
+        );
     }
 }

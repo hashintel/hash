@@ -6,8 +6,8 @@
 use core::assert_matches;
 
 use super::{
-    CanonicalError, Conditions, ConditionsError, Field, LadderError, RungMeasurement,
-    measure_ladder, select_canonical,
+    CanonicalError, Conditions, ConditionsError, Field, LadderError, LadderOptions,
+    RungMeasurement, measure_ladder, select_canonical,
 };
 use crate::math::{Rotation, Similarity, Vec2};
 
@@ -334,6 +334,31 @@ fn measurements_echo_the_loss_series() {
         .map(|measurement| measurement.condition)
         .collect();
     assert_eq!(conditions_seen, [0.0, 0.25, 0.5, 1.0]);
+}
+
+#[test]
+fn canonical_index_is_membership_over_the_options_alone() {
+    let conditions = Conditions::new(vec![0.0, 0.5, 1.0]).expect("the schedule is valid");
+
+    // Every schedule member resolves to its own position.
+    for (index, &canonical) in conditions.values().iter().enumerate() {
+        let options = LadderOptions {
+            conditions: conditions.clone(),
+            canonical,
+        };
+        assert_eq!(options.canonical_index(), Ok(index));
+    }
+
+    // Membership rejects a value inside the schedule's range that names
+    // no rung rather than interpolating it.
+    let options = LadderOptions {
+        conditions,
+        canonical: 0.25,
+    };
+    assert_eq!(
+        options.canonical_index(),
+        Err(CanonicalError::UnknownRung { value: 0.25 })
+    );
 }
 
 #[test]

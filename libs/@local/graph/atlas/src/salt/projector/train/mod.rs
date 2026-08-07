@@ -44,8 +44,8 @@ use core::{error::Error, fmt, num::NonZero};
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryState, Fitted, FrozenRadius, RelationLens, TrainError, TrainOptions, TrainerInputs,
-        TrainerOptimizerRecord, TrainingSchedule, fit,
+        BoundaryEvidence, BoundaryState, Fitted, FrozenRadius, RelationLens, TrainError,
+        TrainOptions, TrainerInputs, TrainerOptimizerRecord, TrainingSchedule, fit,
     },
 };
 #[expect(
@@ -54,7 +54,7 @@ pub(crate) use self::{
               metadata summaries and the checkpoint-fork tuning protocol"
 )]
 pub(crate) use self::{
-    fit::{BoundaryEvidence, TickTelemetry, TrainingEvidence, fit_from_boundary, fit_to_boundary},
+    fit::{TickTelemetry, TrainingEvidence, fit_from_boundary, fit_to_boundary},
     metrics::{BudgetBreakdown, DisplacementHistogram, DisplacementMoments, DisplacementSummary},
     step::LossBreakdown,
 };
