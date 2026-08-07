@@ -1,0 +1,5 @@
+---
+"@hashintel/petrinaut": minor
+---
+
+Experiments support parameter ranges (sweeps): each scenario parameter in the create-experiment drawer can be a fixed value or a range (min, max, number of values), and ranged parameters expand into a grid of combinations. Sweeps are computed lazily and view-driven: a seed pass gives every combination one run for an instant overview, then compute follows what the user looks at — the experiment view drawer's parameter navigator (toggle to pin a value to a slider, or leave combined to marginalize across all values) doubles as the run scheduler's focus, refining the viewed combinations in progressively larger batches (1 → 10 → 50 → 100 → 500 → 1000 …) up to the requested run count, sampling unpinned values randomly and evenly. Moving the selection interrupts out-of-view batches; closing the drawer pauses refinement ("Idle" status). `CreateExperimentInput.scenarioParameterValues` now takes fixed-or-range inputs, `ExperimentRecord` exposes `parameterAxes` and per-combination `cells` (with accumulated `runsCompleted` and live `inFlightMetricFrames`), and the experiments context gains `setExperimentRunFocus`.

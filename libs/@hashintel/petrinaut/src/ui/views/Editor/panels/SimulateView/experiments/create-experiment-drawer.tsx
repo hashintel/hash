@@ -17,6 +17,13 @@ import {
   ExperimentsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
+import {
+  buildParameterRangeValues,
+  MAX_EXPERIMENT_COMBINATIONS,
+  WARN_EXPERIMENT_COMBINATIONS,
+  type BuildRangeValuesOutcome,
+  type ExperimentParameterInput,
+} from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -70,6 +77,53 @@ const paramRowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[8px]",
+});
+
+const paramColumnStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[4px]",
+});
+
+const paramModeSelectStyle = css({
+  width: "[96px]",
+  flexShrink: 0,
+});
+
+const rangeInputsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  flex: "1",
+  minWidth: "[0]",
+});
+
+// Aligns with the inputs: name (140px) + type (60px) + two 8px gaps.
+const rangeDetailStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  paddingLeft: "[216px]",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+});
+
+const rangeDetailErrorStyle = css({
+  color: "red.s100",
+  whiteSpace: "normal",
+});
+
+const combinationSummaryStyle = css({
+  fontSize: "sm",
+  color: "neutral.s90",
+});
+
+const combinationWarningStyle = css({
+  color: "orange.s80",
+});
+
+const combinationErrorStyle = css({
+  color: "red.s100",
 });
 
 const paramNameStyle = css({
@@ -250,6 +304,92 @@ const DEFAULT_METRIC_CODE = `/**
 
 return 0;`;
 const EMPTY_SCENARIOS: readonly Scenario[] = [];
+
+/**
+ * Per-parameter form state: a fixed value (expression text) or a range
+ * (min/max/valueCount) kept as raw strings so partially-typed input never
+ * coerces to a number.
+ */
+type ScenarioParameterDraft = {
+  mode: "fixed" | "range";
+  fixedValue: string;
+  min: string;
+  max: string;
+  valueCount: string;
+};
+
+const DEFAULT_PARAMETER_DRAFT: ScenarioParameterDraft = {
+  mode: "fixed",
+  fixedValue: "",
+  min: "",
+  max: "",
+  valueCount: "5",
+};
+
+const parameterModeOptions: SelectItem<string>[] = [
+  { value: "fixed", text: "Fixed" },
+  { value: "range", text: "Range" },
+];
+
+function isRangeDraft(
+  param: ScenarioParameter,
+  draft: ScenarioParameterDraft,
+): boolean {
+  return param.type !== "boolean" && draft.mode === "range";
+}
+
+function getScenarioParameterRangeOutcome(
+  param: ScenarioParameter,
+  draft: ScenarioParameterDraft,
+): BuildRangeValuesOutcome {
+  if (
+    draft.min.trim() === "" ||
+    draft.max.trim() === "" ||
+    draft.valueCount.trim() === ""
+  ) {
+    return {
+      ok: false,
+      error: `${param.identifier}: set min, max, and the number of values`,
+    };
+  }
+
+  return buildParameterRangeValues(param, {
+    mode: "range",
+    min: Number(draft.min),
+    max: Number(draft.max),
+    valueCount: Number(draft.valueCount),
+  });
+}
+
+function formatRangeValuesPreview(values: readonly number[]): string {
+  const shown =
+    values.length <= 8
+      ? values.join(", ")
+      : `${values.slice(0, 6).join(", ")}, …, ${values.at(-1)}`;
+
+  return `${shown} (${values.length} values)`;
+}
+
+function buildScenarioParameterInputs(
+  scenario: Scenario | undefined,
+  getDraft: (identifier: string) => ScenarioParameterDraft,
+): Record<string, ExperimentParameterInput> {
+  const inputs: Record<string, ExperimentParameterInput> = {};
+
+  for (const param of scenario?.scenarioParameters ?? []) {
+    const draft = getDraft(param.identifier);
+    inputs[param.identifier] = isRangeDraft(param, draft)
+      ? {
+          mode: "range",
+          min: Number(draft.min),
+          max: Number(draft.max),
+          valueCount: Number(draft.valueCount),
+        }
+      : { mode: "fixed", value: draft.fixedValue };
+  }
+
+  return inputs;
+}
 
 function getDefaultScenarioSelection(scenarios: readonly Scenario[]): string {
   return scenarios[0]?.id ?? NO_SCENARIO_VALUE;
@@ -469,25 +609,105 @@ function buildMetricSpecs(
 
 const ScenarioParameterRow = ({
   param,
-  value,
+  draft,
   onChange,
 }: {
   param: ScenarioParameter;
-  value: string;
-  onChange: (value: string) => void;
-}) => (
-  <div className={paramRowStyle}>
-    <span className={paramNameStyle}>{param.identifier}</span>
-    <span className={paramTypeStyle}>{param.type}</span>
-    <CodeEditor
-      singleLine
-      language="typescript"
-      value={value}
-      onChange={(v) => onChange(v ?? "")}
-      placeholder={String(param.default)}
-    />
-  </div>
-);
+  draft: ScenarioParameterDraft;
+  onChange: (draft: ScenarioParameterDraft) => void;
+}) => {
+  const supportsRange = param.type !== "boolean";
+  const isRange = isRangeDraft(param, draft);
+  const rangeOutcome = isRange
+    ? getScenarioParameterRangeOutcome(param, draft)
+    : null;
+
+  return (
+    <div className={paramColumnStyle}>
+      <div className={paramRowStyle}>
+        <span className={paramNameStyle}>{param.identifier}</span>
+        <span className={paramTypeStyle}>{param.type}</span>
+        {supportsRange ? (
+          <div className={paramModeSelectStyle}>
+            <Select
+              required
+              value={draft.mode}
+              onChange={(mode) =>
+                onChange({
+                  ...draft,
+                  mode: mode === "range" ? "range" : "fixed",
+                })
+              }
+              items={parameterModeOptions}
+              size="sm"
+            />
+          </div>
+        ) : null}
+        {isRange ? (
+          <div className={rangeInputsStyle}>
+            <NumberInput
+              size="sm"
+              step="any"
+              min={Number.MIN_SAFE_INTEGER}
+              placeholder="Min"
+              aria-label={`${param.identifier} range minimum`}
+              value={draft.min === "" ? null : Number(draft.min)}
+              onChange={(min) =>
+                onChange({ ...draft, min: min === null ? "" : String(min) })
+              }
+            />
+            <NumberInput
+              size="sm"
+              step="any"
+              min={Number.MIN_SAFE_INTEGER}
+              placeholder="Max"
+              aria-label={`${param.identifier} range maximum`}
+              value={draft.max === "" ? null : Number(draft.max)}
+              onChange={(max) =>
+                onChange({ ...draft, max: max === null ? "" : String(max) })
+              }
+            />
+            <NumberInput
+              size="sm"
+              min={1}
+              max={MAX_EXPERIMENT_COMBINATIONS}
+              placeholder="Values"
+              aria-label={`${param.identifier} number of values`}
+              value={draft.valueCount === "" ? null : Number(draft.valueCount)}
+              onChange={(valueCount) =>
+                onChange({
+                  ...draft,
+                  valueCount: valueCount === null ? "" : String(valueCount),
+                })
+              }
+            />
+          </div>
+        ) : (
+          <CodeEditor
+            singleLine
+            language="typescript"
+            value={draft.fixedValue}
+            onChange={(fixedValue) =>
+              onChange({ ...draft, fixedValue: fixedValue ?? "" })
+            }
+            placeholder={String(param.default)}
+          />
+        )}
+      </div>
+      {rangeOutcome ? (
+        rangeOutcome.ok ? (
+          <span className={rangeDetailStyle}>
+            {formatRangeValuesPreview(rangeOutcome.values)}
+          </span>
+        ) : (
+          <span className={cx(rangeDetailStyle, rangeDetailErrorStyle)}>
+            {rangeOutcome.error}
+          </span>
+        )
+      ) : null}
+    </div>
+  );
+};
 
 const ExperimentMetricLspSession = ({
   code,
@@ -814,7 +1034,9 @@ export const CreateExperimentDrawer = ({
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     null,
   );
-  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramDrafts, setParamDrafts] = useState<
+    Record<string, ScenarioParameterDraft>
+  >({});
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
   const [dt, setDt] = useState(DEFAULT_DT);
@@ -844,13 +1066,41 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
-  const footerError = error ?? metricFormError;
-  const canRun = !isSubmitting && metricFormError === null;
+
+  const getParamDraft = (identifier: string): ScenarioParameterDraft =>
+    paramDrafts[identifier] ?? DEFAULT_PARAMETER_DRAFT;
+
+  const rangeOutcomes = (selectedScenario?.scenarioParameters ?? [])
+    .filter((param) => isRangeDraft(param, getParamDraft(param.identifier)))
+    .map((param) =>
+      getScenarioParameterRangeOutcome(param, getParamDraft(param.identifier)),
+    );
+  const firstRangeError =
+    rangeOutcomes.find(
+      (outcome): outcome is Extract<BuildRangeValuesOutcome, { ok: false }> =>
+        !outcome.ok,
+    )?.error ?? null;
+  const combinationCount = firstRangeError
+    ? null
+    : rangeOutcomes.reduce(
+        (product, outcome) =>
+          product * (outcome.ok ? outcome.values.length : 1),
+        1,
+      );
+  const combinationError =
+    firstRangeError ??
+    (combinationCount !== null && combinationCount > MAX_EXPERIMENT_COMBINATIONS
+      ? `${combinationCount} parameter combinations exceeds the maximum of ${MAX_EXPERIMENT_COMBINATIONS} — reduce the ranges' value counts`
+      : null);
+
+  const footerError = error ?? metricFormError ?? combinationError;
+  const canRun =
+    !isSubmitting && metricFormError === null && combinationError === null;
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
     setSelectedScenarioId(null);
-    setParamValues({});
+    setParamDrafts({});
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
     setDt(DEFAULT_DT);
@@ -872,7 +1122,7 @@ export const CreateExperimentDrawer = ({
 
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
-    setParamValues({});
+    setParamDrafts({});
     setError(null);
   };
 
@@ -948,7 +1198,10 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? null
             : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramValues,
+        scenarioParameterValues: buildScenarioParameterInputs(
+          selectedScenario,
+          getParamDraft,
+        ),
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1071,16 +1324,39 @@ export const CreateExperimentDrawer = ({
                   <ScenarioParameterRow
                     key={param.identifier}
                     param={param}
-                    value={paramValues[param.identifier] ?? ""}
-                    onChange={(v) =>
-                      setParamValues((prev) => ({
+                    draft={getParamDraft(param.identifier)}
+                    onChange={(draft) => {
+                      setError(null);
+                      setParamDrafts((prev) => ({
                         ...prev,
-                        [param.identifier]: v,
-                      }))
-                    }
+                        [param.identifier]: draft,
+                      }));
+                    }}
                   />
                 ))
               )
+            ) : null}
+
+            {combinationCount !== null && combinationCount > 1 ? (
+              <span
+                className={cx(
+                  combinationSummaryStyle,
+                  combinationCount > MAX_EXPERIMENT_COMBINATIONS
+                    ? combinationErrorStyle
+                    : combinationCount > WARN_EXPERIMENT_COMBINATIONS
+                      ? combinationWarningStyle
+                      : undefined,
+                )}
+              >
+                {combinationCount.toLocaleString()} combinations ×{" "}
+                {(Number(runCount) || 0).toLocaleString()} runs ={" "}
+                {(combinationCount * (Number(runCount) || 0)).toLocaleString()}{" "}
+                total runs
+                {combinationCount > WARN_EXPERIMENT_COMBINATIONS &&
+                combinationCount <= MAX_EXPERIMENT_COMBINATIONS
+                  ? " — this may take a while and use significant memory"
+                  : ""}
+              </span>
             ) : null}
           </Section>
 

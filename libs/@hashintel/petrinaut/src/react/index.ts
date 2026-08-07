@@ -33,10 +33,24 @@ export type {
 export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,
+  ExperimentCell,
+  ExperimentCellStatus,
   ExperimentRecord,
+  ExperimentRunFocus,
   ExperimentStatus,
   ExperimentsContextValue,
 } from "./experiments/context";
+export {
+  buildParameterGridCombinations,
+  buildParameterRangeValues,
+  countGridCombinations,
+  MAX_EXPERIMENT_COMBINATIONS,
+  mergeMetricFramesAcrossCells,
+} from "./experiments/parameter-grid";
+export type {
+  ExperimentParameterAxis,
+  ExperimentParameterInput,
+} from "./experiments/parameter-grid";
 export { NotificationsContext } from "./notifications/context";
 export type {
   AddNotificationInput,
