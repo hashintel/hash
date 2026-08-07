@@ -7,7 +7,7 @@
     reason = "the fixture pattern folds indices into small integers through a modulus"
 )]
 
-use core::{cell::Cell, simd::f64x8};
+use core::simd::f64x8;
 
 use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
 use crate::math::{DVecN, test_alloc::CountingAllocator};
