@@ -5,7 +5,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName, principal::actor::AuthenticatedActor,
+    action::ActionName, principal::actor::AuthenticatedActor, store::PrincipalStore as _,
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
@@ -29,7 +29,9 @@ use hash_graph_store::{
         temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis},
     },
 };
-use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+use hash_graph_temporal_versioning::{
+    RightBoundedTemporalInterval, TemporalTagged as _, Timestamp, TransactionTime,
+};
 use hash_status::StatusCode;
 use postgres_types::Json;
 use tokio_postgres::{GenericClient as _, Row};
@@ -508,11 +510,19 @@ where
             .await
             .change_context(InsertionError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(InsertionError)?,
+        );
+
         let mut inserted_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();
         let mut inserted_ontology_ids = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder =
+            PolicyComponents::builder(&transaction).with_timestamp(transaction_time.cast());
 
         let property_type_validator = PropertyTypeValidator;
 
@@ -539,6 +549,7 @@ where
                     &parameters.ownership,
                     parameters.conflict_behavior,
                     &provenance,
+                    transaction_time,
                 )
                 .await?
             {
@@ -657,7 +668,9 @@ where
             policy_components.optimization_data(ActionName::ViewPropertyType),
         );
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&policy_filter)
@@ -701,7 +714,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = params.temporal_axes.resolve();
+        let temporal_axes = params
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         self.query_property_types_impl(params, &temporal_axes, &policy_components)
             .await
     }
@@ -730,7 +745,9 @@ where
             .await
             .change_context(QueryError)?;
 
-        let temporal_axes = request.temporal_axes.resolve();
+        let temporal_axes = request
+            .temporal_axes
+            .resolve_with(policy_components.timestamp());
         let time_axis = temporal_axes.variable_time_axis();
 
         let mut subgraph = Subgraph::new(request.temporal_axes, temporal_axes.clone());
@@ -846,6 +863,13 @@ where
     {
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            transaction
+                .current_timestamp()
+                .await
+                .change_context(UpdateError)?,
+        );
+
         let mut updated_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();
         let mut inserted_ontology_ids = Vec::new();
@@ -884,7 +908,11 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
 
             let (ontology_id, web_id, temporal_versioning) = transaction
-                .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
+                .update_owned_ontology_id(
+                    &parameters.schema.id,
+                    &provenance.edition,
+                    transaction_time,
+                )
                 .await?;
 
             transaction
@@ -913,6 +941,7 @@ where
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
+            .with_timestamp(transaction_time.cast())
             .with_property_type_ids(&old_property_type_ids)
             .with_actions([ActionName::UpdatePropertyType], MergePolicies::No)
             .await
@@ -1018,8 +1047,12 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.property_type_id, actor_id)
-            .await
+        self.archive_ontology_type(
+            &params.property_type_id,
+            actor_id,
+            Timestamp::from_anonymous(policy_components.timestamp()),
+        )
+        .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1069,6 +1102,7 @@ where
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
+            Timestamp::from_anonymous(policy_components.timestamp()),
         )
         .await
     }
@@ -1159,7 +1193,14 @@ where
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForPropertyTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
-        let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, MergePolicies::Yes)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+
+        let temporal_axes =
+            QueryTemporalAxesUnresolved::live_only().resolve_with(policy_components.timestamp());
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
 
         let property_type_uuids = params
@@ -1172,12 +1213,6 @@ where
         compiler
             .add_filter(&property_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
-
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
-            .with_action(params.action, MergePolicies::Yes)
-            .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<PropertyTypeWithMetadata>::for_policies(
             policy_components.extract_filter_policies(params.action),
             policy_components.optimization_data(params.action),

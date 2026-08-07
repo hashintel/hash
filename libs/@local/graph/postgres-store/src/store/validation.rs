@@ -9,6 +9,7 @@ use hash_graph_store::{
     error::QueryError, filter::Filter, query::Read as _,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
+use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::ontology::{DataTypeLookup, OntologyTypeProvider};
 use hash_graph_validation::EntityProvider;
 use hash_status::StatusCode;
@@ -127,6 +128,9 @@ pub struct StoreProvider<'a, S> {
     pub store: &'a S,
     pub cache: Box<StoreCache>,
     pub policy_components: Option<&'a PolicyComponents>,
+    /// The store's clock reading for the surrounding operation, used to resolve the temporal
+    /// axes of the lookups performed by this provider.
+    pub timestamp: Timestamp<()>,
 }
 
 impl<'a, S> StoreProvider<'a, S> {
@@ -135,6 +139,7 @@ impl<'a, S> StoreProvider<'a, S> {
             store,
             cache: Box::new(StoreCache::default()),
             policy_components: Some(policy_components),
+            timestamp: policy_components.timestamp(),
         }
     }
 }
@@ -158,7 +163,7 @@ where
                 .store
                 .read_one(
                     &filters,
-                    Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
+                    Some(&QueryTemporalAxesUnresolved::live_only().resolve_with(self.timestamp)),
                     false,
                 )
                 .await;
@@ -208,7 +213,7 @@ where
             .store
             .read_one(
                 &filters,
-                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve_with(self.timestamp)),
                 false,
             )
             .await?;
@@ -392,7 +397,7 @@ where
             .store
             .read(
                 &filters,
-                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve_with(self.timestamp)),
                 false,
             )
             .await
@@ -481,7 +486,7 @@ where
             .store
             .read_closed_schemas(
                 &filters,
-                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve_with(self.timestamp)),
             )
             .await
             .change_context(QueryError)?
@@ -615,7 +620,7 @@ where
             .store
             .read_one(
                 &filters,
-                Some(&QueryTemporalAxesUnresolved::live_only().resolve()),
+                Some(&QueryTemporalAxesUnresolved::live_only().resolve_with(self.timestamp)),
                 entity_id.draft_id.is_some(),
             )
             .await?;

@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use error_stack::{Report, ResultExt as _};
 use futures::TryStreamExt as _;
+use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{
     entity::{
         DeleteEntitiesParams, DeletionScope, DeletionSummary, EntityQueryPath, LinkDeletionBehavior,
@@ -896,12 +897,17 @@ where
     ///
     /// [`IncomingLinksExist`]: DeletionError::IncomingLinksExist
     /// [`Store`]: DeletionError::Store
+    #[expect(clippy::too_many_lines)]
     pub(super) async fn execute_entity_deletion(
         &mut self,
         actor_id: ActorEntityUuid,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
-        let transaction_time = Timestamp::<TransactionTime>::now();
+        let transaction_time = Timestamp::<TransactionTime>::from_anonymous(
+            self.current_timestamp()
+                .await
+                .change_context(DeletionError::Store)?,
+        );
         let decision_time = params
             .decision_time
             .unwrap_or_else(|| transaction_time.cast());

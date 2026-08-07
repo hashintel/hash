@@ -3614,6 +3614,7 @@ dependencies = [
  "error-stack",
  "hash-codec",
  "hash-codegen",
+ "hash-graph-temporal-versioning",
  "indoc",
  "insta",
  "postgres-types",
