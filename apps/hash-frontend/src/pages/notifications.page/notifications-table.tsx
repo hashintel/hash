@@ -31,14 +31,16 @@ import { useUserOrOrgShortnameByWebId } from "../../components/hooks/use-user-or
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { useNotificationCount } from "../../shared/notification-count-context";
 import { Button, Link } from "../../shared/ui";
+import { getOpportunityStatusMentionHref } from "./notifications-table/opportunity-status-mention";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 import type {
+  EntityMentionNotification,
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
 } from "./notifications-with-links-context";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -96,6 +98,23 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
   },
 }));
 
+const NotificationTarget = ({
+  children,
+  handleNotificationClick,
+  targetHref,
+}: {
+  children: ReactNode;
+  handleNotificationClick: () => void;
+  targetHref?: string;
+}) =>
+  targetHref ? (
+    <Link noLinkStyle href={targetHref} onClick={handleNotificationClick}>
+      {children}
+    </Link>
+  ) : (
+    <span>{children}</span>
+  );
+
 const GraphChangeNotificationContent = ({
   notification,
   handleNotificationClick,
@@ -110,13 +129,12 @@ const GraphChangeNotificationContent = ({
   return (
     <Typography component="span">
       HASH AI {operation}d{" "}
-      <Link
-        href={targetHref ?? ""}
-        noLinkStyle
-        onClick={handleNotificationClick}
+      <NotificationTarget
+        handleNotificationClick={handleNotificationClick}
+        targetHref={targetHref}
       >
         {occurredInEntityLabel}
-      </Link>{" "}
+      </NotificationTarget>{" "}
       {extractDraftIdFromEntityId(occurredInEntity.metadata.recordId.entityId)
         ? "as draft"
         : ""}
@@ -153,13 +171,48 @@ const PageRelatedNotificationContent = ({
           : kind === "page-mention"
             ? "mentioned you in "
             : "mentioned you in a comment on "}
-      <Link
-        noLinkStyle
-        href={targetHref ?? ""}
-        onClick={handleNotificationClick}
+      <NotificationTarget
+        handleNotificationClick={handleNotificationClick}
+        targetHref={targetHref}
       >
         {pageTitle}
-      </Link>
+      </NotificationTarget>
+    </>
+  );
+};
+
+const EntityMentionNotificationContent = ({
+  notification,
+  handleNotificationClick,
+  targetHref,
+}: {
+  notification: EntityMentionNotification;
+  handleNotificationClick: () => void;
+  targetHref?: string;
+}) => {
+  const isParticipationUpdate =
+    notification.kind === "opportunity-status-participation";
+  const isOpportunityStatusUpdate =
+    notification.kind === "opportunity-status-mention" || isParticipationUpdate;
+
+  return (
+    <>
+      <Link noLinkStyle href={`/@${notification.triggeredByUser.shortname}`}>
+        {notification.triggeredByUser.displayName}
+      </Link>{" "}
+      {isParticipationUpdate
+        ? "added an update to "
+        : isOpportunityStatusUpdate
+          ? "mentioned you in an update to "
+          : "mentioned you in "}
+      <NotificationTarget
+        handleNotificationClick={handleNotificationClick}
+        targetHref={targetHref}
+      >
+        {isOpportunityStatusUpdate
+          ? (notification.opportunityLabel ?? "an opportunity")
+          : notification.occurredInEntityLabel}
+      </NotificationTarget>
     </>
   );
 };
@@ -190,11 +243,21 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   });
 
   const targetHref = useMemo(() => {
+    if (
+      notification.kind === "opportunity-status-mention" ||
+      notification.kind === "opportunity-status-participation"
+    ) {
+      return getOpportunityStatusMentionHref(notification.occurredInEntity);
+    }
+
     if (!entityOwningShortname) {
       return undefined;
     }
 
-    if (notification.kind === "graph-change") {
+    if (
+      notification.kind === "graph-change" ||
+      notification.kind === "entity-mention"
+    ) {
       return generateEntityPath({
         entityId: notification.occurredInEntity.metadata.recordId.entityId,
         includeDraftId: true,
@@ -286,6 +349,14 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
             handleNotificationClick={handleNotificationClick}
             targetHref={targetHref}
           />
+        ) : notification.kind === "entity-mention" ||
+          notification.kind === "opportunity-status-mention" ||
+          notification.kind === "opportunity-status-participation" ? (
+          <EntityMentionNotificationContent
+            handleNotificationClick={handleNotificationClick}
+            notification={notification}
+            targetHref={targetHref}
+          />
         ) : (
           <PageRelatedNotificationContent
             handleNotificationClick={handleNotificationClick}
@@ -295,24 +366,26 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
         )}
       </TableCell>
       <TableCell sx={{ display: "flex", columnGap: 1 }}>
-        <Button href={targetHref} onClick={handleNotificationClick} size="xs">
-          {notification.kind === "new-comment" ||
-          notification.kind === "comment-reply" ||
-          notification.kind === "comment-mention"
-            ? "View comment"
-            : notification.kind === "graph-change"
-              ? "View entity"
-              : "View page"}
-        </Button>
+        {targetHref ? (
+          <Button href={targetHref} onClick={handleNotificationClick} size="xs">
+            {notification.kind === "new-comment" ||
+            notification.kind === "comment-reply" ||
+            notification.kind === "comment-mention"
+              ? "View comment"
+              : notification.kind === "opportunity-status-mention" ||
+                  notification.kind === "opportunity-status-participation"
+                ? "View update"
+                : notification.kind === "graph-change" ||
+                    notification.kind === "entity-mention"
+                  ? "View entity"
+                  : "View page"}
+          </Button>
+        ) : null}
         {notification.readAt ? null : (
           <Button
             variant="tertiary"
             size="xs"
-            onClick={() =>
-              markNotificationAsRead({
-                notificationEntityId: notification.entity.entityId,
-              })
-            }
+            onClick={handleNotificationClick}
           >
             Mark as read
           </Button>

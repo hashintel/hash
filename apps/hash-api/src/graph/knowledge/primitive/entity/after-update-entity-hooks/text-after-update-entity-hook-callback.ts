@@ -3,7 +3,6 @@ import { getDefinedPropertyFromPatchesGetter } from "@local/hash-graph-sdk/entit
 
 import {
   archiveNotification,
-  createMentionNotification,
   getMentionNotification,
 } from "../../../system-types/notification";
 import {
@@ -11,7 +10,7 @@ import {
   getTextFromEntity,
 } from "../../../system-types/text";
 import { getUser } from "../../../system-types/user";
-import { checkPermissionsOnEntity } from "../../entity";
+import { deliverMentionNotifications } from "../shared/mention-delivery";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
 
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
@@ -96,51 +95,13 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
     }
 
     await Promise.all([
-      ...removedMentionedUsers.map(async (removedMentionedUser) => {
-        const existingNotification = await getMentionNotification(
-          context,
-          { actorId: removedMentionedUser.accountId },
-          {
-            recipient: removedMentionedUser,
-            triggeredByUser,
-            occurredInEntity,
-            occurredInComment,
-            occurredInBlock,
-            occurredInText: text,
-          },
-        );
-
-        if (existingNotification) {
-          await archiveNotification(
-            context,
-            { actorId: removedMentionedUser.accountId },
-            { notification: existingNotification },
-          );
-        }
-      }),
-      ...addedMentionedUsers
-        .filter(
-          (addedMentionedUser) =>
-            triggeredByUser.accountId !== addedMentionedUser.accountId,
-        )
-        .map(async (addedMentionedUser) => {
-          const { view: mentionedUserCanViewPage } =
-            await checkPermissionsOnEntity(
-              context,
-              { actorId: addedMentionedUser.accountId },
-              { entity: occurredInEntity.entity },
-            );
-
-          if (!mentionedUserCanViewPage) {
-            return;
-          }
-
+      Promise.all(
+        removedMentionedUsers.map(async (removedMentionedUser) => {
           const existingNotification = await getMentionNotification(
             context,
-            /** @todo: use authentication of machine user instead */
-            { actorId: addedMentionedUser.accountId },
+            { actorId: removedMentionedUser.accountId },
             {
-              recipient: addedMentionedUser,
+              recipient: removedMentionedUser,
               triggeredByUser,
               occurredInEntity,
               occurredInComment,
@@ -149,21 +110,27 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
             },
           );
 
-          if (!existingNotification) {
-            await createMentionNotification(
+          if (existingNotification) {
+            await archiveNotification(
               context,
-              /** @todo: use authentication of machine user instead */
-              { actorId: addedMentionedUser.accountId },
-              {
-                webId: addedMentionedUser.accountId,
-                occurredInEntity,
-                occurredInBlock,
-                occurredInComment,
-                occurredInText: text,
-                triggeredByUser,
-              },
+              { actorId: removedMentionedUser.accountId },
+              { notification: existingNotification },
             );
           }
         }),
+      ),
+      deliverMentionNotifications({
+        authentication,
+        context,
+        mentionedUsers: addedMentionedUsers,
+        target: {
+          occurredInEntity,
+          occurredInComment,
+          occurredInBlock,
+          occurredInText: text,
+        },
+        textualContent: updatedTextualContent,
+        triggeredByUser,
+      }),
     ]);
   };

@@ -497,3 +497,85 @@ describe.skip("Page Mention Notification", () => {
     expect(afterCommentMentionNotification).toBeNull();
   });
 });
+
+describe("Entity Mention Notification", () => {
+  let triggerUser: User;
+  let recipientUser: User;
+
+  beforeAll(async () => {
+    const graphContext = createTestImpureGraphContext();
+
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
+    triggerUser = await createTestUser(graphContext, "notiftrigger", logger);
+    recipientUser = await createTestUser(
+      graphContext,
+      "notifrecipient",
+      logger,
+    );
+  });
+
+  afterAll(async () => {
+    await deleteKratosIdentity({
+      kratosIdentityId: triggerUser.kratosIdentityId,
+    });
+    await deleteKratosIdentity({
+      kratosIdentityId: recipientUser.kratosIdentityId,
+    });
+  });
+
+  it("creates and retrieves a mention targeting a non-page entity", async () => {
+    const graphContext = createTestImpureGraphContext();
+    const notification = await createMentionNotification(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      {
+        triggeredByUser: triggerUser,
+        occurredInEntity: recipientUser,
+        webId: recipientUser.accountId as WebId,
+      },
+    );
+    const outgoingLinks = await getEntityOutgoingLinks(
+      graphContext,
+      { actorId: recipientUser.accountId },
+      { entityId: notification.entity.metadata.recordId.entityId },
+    );
+
+    expect(
+      outgoingLinks.filter(({ metadata }) =>
+        metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        ),
+      ),
+    ).toHaveLength(1);
+    expect(
+      outgoingLinks.some(({ metadata }) =>
+        metadata.entityTypeIds.includes(
+          systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        ),
+      ),
+    ).toBe(false);
+    await expect(
+      getMentionNotification(
+        graphContext,
+        { actorId: recipientUser.accountId },
+        {
+          recipient: recipientUser,
+          triggeredByUser: triggerUser,
+          occurredInEntity: recipientUser,
+        },
+      ),
+    ).resolves.toMatchObject({
+      entity: {
+        metadata: {
+          recordId: {
+            entityId: notification.entity.metadata.recordId.entityId,
+          },
+        },
+      },
+    });
+  });
+});

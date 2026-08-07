@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -9,14 +16,24 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
+import { useAuthInfo } from "../../shared/auth-info-context";
+import { useScope } from "./scope-context";
 import {
   STATUS_OPTIONS,
   statusCommentRequired,
+  statusTokensToPlainText,
   type StatusEntry,
   type StatusOption,
 } from "./status";
+import { StatusBody } from "./status-body";
+import {
+  StatusEditor,
+  type StatusEditorHandle,
+} from "./status-dialog/status-editor";
 import { trackSupplyChainInteraction } from "./telemetry";
 
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 // `popover` sits above the slide-over (`modal`), so the dialog appears over an
 // open step detail panel rather than behind it.
 const backdrop = css({
@@ -117,19 +134,6 @@ const fieldLabel = css({
   textStyle: "xs",
   color: "fg.subtle",
 });
-const textarea = css({
-  minH: "28",
-  resize: "vertical",
-  borderWidth: "1px",
-  borderStyle: "solid",
-  borderColor: "bd.subtle",
-  borderRadius: "md",
-  px: "3",
-  py: "2",
-  textStyle: "sm",
-  color: "fg.heading",
-  bg: "bgSolid.min",
-});
 const errorText = css({ textStyle: "xs", color: "status.error.fg.body" });
 const footer = css({
   px: "5",
@@ -147,12 +151,19 @@ const saveOrder = css({ order: "1" });
 const cancelOrder = css({ order: "0" });
 
 const DEFAULT_STATUS: StatusOption = "Investigation started";
-const latestStatusCategory = (entries: readonly StatusEntry[]): StatusOption =>
-  entries.reduce<StatusEntry | undefined>(
+const latestStatusCategory = (
+  entries: readonly StatusEntry[],
+): StatusOption => {
+  const latestCategory = entries.reduce<StatusEntry | undefined>(
     (latestEntry, entry) =>
       !latestEntry || entry.at > latestEntry.at ? entry : latestEntry,
     undefined,
-  )?.category ?? DEFAULT_STATUS;
+  )?.category;
+
+  return latestCategory === "Investigation started"
+    ? "Investigation update"
+    : (latestCategory ?? DEFAULT_STATUS);
+};
 const statusItems: SelectItem<StatusOption>[] = STATUS_OPTIONS.map(
   (option) => ({
     value: option,
@@ -165,7 +176,11 @@ export interface StatusDialogProps {
   title: string;
   entries?: readonly StatusEntry[];
   onClose: () => void;
-  onSave: (status: { category: StatusOption; text: string }) => void;
+  onSave: (status: {
+    category: StatusOption;
+    text: string;
+    tokens: TextToken[];
+  }) => void;
   /**
    * Render in-place instead of portaling to the layout root. Use when the dialog
    * is opened from inside another modal, such as the step detail slide-over.
@@ -188,17 +203,60 @@ export const StatusDialog = ({
   const [category, setCategory] = useState<StatusOption>(() =>
     latestStatusCategory(entries),
   );
-  const [text, setText] = useState("");
+  const [tokens, setTokens] = useState<TextToken[]>([]);
   const [error, setError] = useState<string | null>(null);
   const statusSelectId = useId();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<StatusEditorHandle>(null);
   const portalRef = usePortalContainerRef();
+  const scope = useScope();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
+  const { authenticatedUser } = useAuthInfo();
+  const members = useMemo(() => {
+    if (!authenticatedUser) {
+      return [];
+    }
+
+    const activeOrg = authenticatedUser.memberOf.find(
+      ({ org }) => org.webId === scope,
+    )?.org;
+    const scopeUsers =
+      activeOrg?.memberships.map(({ user }) => user) ??
+      (authenticatedUser.accountId === scope ? [authenticatedUser] : []);
+
+    return scopeUsers.flatMap((user) =>
+      user.accountId !== authenticatedUser.accountId &&
+      user.displayName &&
+      user.shortname
+        ? [
+            {
+              displayName: user.displayName,
+              entityId: user.entity.metadata.recordId.entityId,
+              shortname: user.shortname,
+            },
+          ]
+        : [],
+    );
+  }, [authenticatedUser, scope]);
+  const memberShortnamesByEntityId = useMemo(
+    () => new Map(members.map((member) => [member.entityId, member.shortname])),
+    [members],
+  );
 
   useEffect(() => {
-    setText("");
+    setTokens([]);
     setError(null);
     const id = requestAnimationFrame(() => {
-      textareaRef.current?.focus({ preventScroll: true });
+      editorRef.current?.focus();
     });
     return () => cancelAnimationFrame(id);
   }, []);
@@ -208,7 +266,7 @@ export const StatusDialog = ({
     if (!statusCommentRequired(next)) {
       setError(null);
     }
-    textareaRef.current?.focus();
+    editorRef.current?.focus();
   };
   const handleCancel = () => {
     trackSupplyChainInteraction({
@@ -220,6 +278,10 @@ export const StatusDialog = ({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const text = statusTokensToPlainText(
+      tokens,
+      (entityId) => `@${memberShortnamesByEntityId.get(entityId) ?? "user"}`,
+    );
     const trimmedText = text.trim();
     if (statusCommentRequired(category) && trimmedText.length === 0) {
       trackSupplyChainInteraction({
@@ -227,10 +289,10 @@ export const StatusDialog = ({
         source: "status_dialog",
       });
       setError("Add a comment for this status.");
-      textareaRef.current?.focus();
+      editorRef.current?.focus();
       return;
     }
-    onSave({ category, text: trimmedText });
+    onSave({ category, text: trimmedText, tokens });
   };
 
   const dialog = (
@@ -283,23 +345,27 @@ export const StatusDialog = ({
                 {[...entries]
                   .sort((left, right) => left.at.localeCompare(right.at))
                   .map((entry) => (
-                    <article
-                      key={`${entry.at}-${entry.user}-${entry.category}-${entry.text}`}
-                      className={historyEntry}
-                    >
+                    <article key={entry.entityId} className={historyEntry}>
                       <div className={historyMeta}>
                         <span>
                           <span className={historyCategory}>
                             {entry.category}
-                          </span>{" "}
-                          · {entry.user}
+                          </span>
+                          {entry.user ? <> · {entry.user}</> : null}
                         </span>
                         <time dateTime={entry.at}>
                           {new Date(entry.at).toLocaleString()}
                         </time>
                       </div>
                       <p className={historyComment}>
-                        {entry.text || "(no comment)"}
+                        {entry.tokens.length ? (
+                          <StatusBody
+                            mentionedUsersByEntityId={statusUsersByEntityId}
+                            tokens={entry.tokens}
+                          />
+                        ) : (
+                          entry.text.trim() || "(no comment)"
+                        )}
                       </p>
                     </article>
                   ))}
@@ -318,13 +384,16 @@ export const StatusDialog = ({
                 htmlForId={statusSelectId}
               />
             </div>
-            <textarea
-              ref={textareaRef}
-              className={textarea}
-              value={text}
-              onChange={(event) => {
-                setText(event.target.value);
-                if (error && event.target.value.trim()) {
+            <StatusEditor
+              ref={editorRef}
+              value={tokens}
+              members={members}
+              onChange={(nextTokens) => {
+                setTokens(nextTokens);
+                if (
+                  error &&
+                  statusTokensToPlainText(nextTokens).trim().length > 0
+                ) {
                   setError(null);
                 }
               }}

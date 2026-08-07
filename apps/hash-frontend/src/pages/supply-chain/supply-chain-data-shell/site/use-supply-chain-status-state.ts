@@ -9,6 +9,7 @@ import {
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
+  blockProtocolPropertyTypes,
   systemDataTypes,
   systemEntityTypes,
   systemPropertyTypes,
@@ -23,7 +24,11 @@ import { useActors } from "../../../../shared/use-actors";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { isDwellType } from "../../shared/categories";
 import { useScope } from "../../shared/scope-context";
-import { STATUS_OPTIONS, statusKey } from "../../shared/status";
+import {
+  parseStatusTokens,
+  STATUS_OPTIONS,
+  statusKey,
+} from "../../shared/status";
 import {
   trackSupplyChainError,
   trackSupplyChainInteraction,
@@ -43,6 +48,7 @@ import {
   mergeReadKeySets,
   type ReadOp,
 } from "./read-state";
+import { siteNodeDisplayLabel } from "./shared/helpers";
 
 import type {
   CreateEntityMutation,
@@ -69,19 +75,19 @@ import type {
   PropertyObjectWithMetadata,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  OpportunityStatusUpdate,
-  OpportunityStatusUpdatePropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
+import type { OpportunityStatusUpdate } from "@local/hash-isomorphic-utils/system-types/opportunitystatusupdate";
 import type { SupplyChainUserPreferencesPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/supplychainuserpreferences";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 /** A status report parsed from the graph before its author is resolved. */
 interface RawStatusReport {
+  entityId: EntityId;
   key: string;
   /** ISO timestamp from the entity's creation edition. */
   at: string;
   category: StatusOption;
   text: string;
+  tokens: TextToken[];
   /** Author resolved server-side from edition provenance. */
   authorId: ActorEntityUuid;
 }
@@ -92,22 +98,9 @@ const statusCategoryBaseUrl =
   systemPropertyTypes.opportunityStatus.propertyTypeBaseUrl;
 const statusTextBaseUrl =
   systemPropertyTypes.statusUpdateText.propertyTypeBaseUrl;
-
-// Status reports and read markers intentionally use the generic generated
-// system types plus the shared GraphQL entity mutations. There is no
-// supply-chain-specific backend helper for this accepted model.
-
-const textValueWithMetadata = (value: string) => ({
-  value,
-  metadata: { dataTypeId: blockProtocolDataTypes.text.dataTypeId },
-});
-
-const categoryValueWithMetadata = (value: StatusOption) => ({
-  value,
-  metadata: {
-    dataTypeId: systemDataTypes.opportunityStatusCategory.dataTypeId,
-  },
-});
+const titleBaseUrl = systemPropertyTypes.title.propertyTypeBaseUrl;
+const textualContentBaseUrl =
+  blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
 const getStringProperty = (
   entity: HashEntity,
@@ -163,13 +156,16 @@ const parseStatusReports = (entities: HashEntity[]): RawStatusReport[] => {
       continue;
     }
 
+    const text = getStringProperty(entity, statusTextBaseUrl) ?? "";
     reports.push({
+      entityId: entity.metadata.recordId.entityId,
       key,
       at: entity.metadata.provenance.createdAtDecisionTime,
       category: toStatusOption(
         getStringProperty(entity, statusCategoryBaseUrl),
       ),
-      text: getStringProperty(entity, statusTextBaseUrl) ?? "",
+      text,
+      tokens: parseStatusTokens(entity.properties[textualContentBaseUrl], text),
       authorId: entity.metadata.provenance.createdById,
     });
   }
@@ -179,6 +175,7 @@ const parseStatusReports = (entities: HashEntity[]): RawStatusReport[] => {
 
 export const useSupplyChainStatusState = (
   siteId: string,
+  siteName: string,
 ): {
   actions: OpportunityStatusActions;
   statusHistory: StatusStore;
@@ -215,19 +212,40 @@ export const useSupplyChainStatusState = (
     () => [...new Set(statusReports.map((report) => report.authorId))],
     [statusReports],
   );
-  const { actors } = useActors({ accountIds: authorIds });
+  const { actors, loading: actorsLoading } = useActors({
+    accountIds: authorIds,
+  });
 
   const statusHistory = useMemo<StatusStore>(() => {
     const namesById = new Map(
       (actors ?? []).map((actor) => [actor.accountId, actor.displayName]),
     );
+    if (authenticatedUser) {
+      namesById.set(
+        authenticatedUser.accountId,
+        authenticatedUser.displayName ?? authenticatedUser.shortname ?? "you",
+      );
+    }
     const store: StatusStore = {};
     for (const report of statusReports) {
+      const author = actors?.find(
+        (actor) => actor.kind === "user" && actor.accountId === report.authorId,
+      );
+      const authorName = namesById.get(report.authorId);
       const entry: StatusEntry = {
+        entityId: report.entityId,
         at: report.at,
         category: report.category,
         text: report.text,
-        user: namesById.get(report.authorId) ?? "Unknown user",
+        tokens: report.tokens,
+        ...(authorName
+          ? { user: authorName }
+          : !actorsLoading
+            ? { user: "Unknown user" }
+            : {}),
+        ...(author?.kind === "user"
+          ? { userEntityId: author.entity.metadata.recordId.entityId }
+          : {}),
       };
       store[report.key] = [...(store[report.key] ?? []), entry];
     }
@@ -235,7 +253,7 @@ export const useSupplyChainStatusState = (
       entries.sort((left, right) => left.at.localeCompare(right.at));
     }
     return store;
-  }, [actors, statusReports]);
+  }, [actors, actorsLoading, authenticatedUser, statusReports]);
 
   const loadStatusReports = useCallback(async () => {
     if (!siteId) {
@@ -438,7 +456,11 @@ export const useSupplyChainStatusState = (
   );
 
   const onSaveStatus = useCallback(
-    (node: SiteNode, status: { category: StatusOption; text: string }) => {
+    (
+      node: SiteNode,
+      status: { category: StatusOption; text: string; tokens: TextToken[] },
+      productId: string,
+    ) => {
       if (!userId) {
         return;
       }
@@ -447,7 +469,7 @@ export const useSupplyChainStatusState = (
       const opportunityType = isDwellType(node.type) ? "dwell" : "planning";
       trackSupplyChainStatusReportCreated({
         opportunityType,
-        productId: node.products[0]?.id ?? "",
+        productId,
         siteId,
         source: "status_dialog",
         statusCategory: status.category,
@@ -459,30 +481,43 @@ export const useSupplyChainStatusState = (
       setStatusReports((current) => [
         ...current,
         {
+          entityId: `${scope}~optimistic-${crypto.randomUUID()}` as EntityId,
           key,
           at: new Date().toISOString(),
           category: status.category,
           text: status.text,
+          tokens: status.tokens,
           authorId: userId,
         },
       ]);
 
+      const textValueWithMetadata = (value: string) => ({
+        value,
+        metadata: { dataTypeId: blockProtocolDataTypes.text.dataTypeId },
+      });
       const properties = {
         value: {
-          "https://hash.ai/@h/types/property-type/scope-key/":
-            textValueWithMetadata(key),
-          "https://hash.ai/@h/types/property-type/site-code/":
-            textValueWithMetadata(siteId),
-          "https://hash.ai/@h/types/property-type/opportunity-status/":
-            categoryValueWithMetadata(status.category),
-          ...(status.text
-            ? {
-                "https://hash.ai/@h/types/property-type/status-update-text/":
-                  textValueWithMetadata(status.text),
-              }
-            : {}),
+          [scopeKeyBaseUrl]: textValueWithMetadata(key),
+          [siteCodeBaseUrl]: textValueWithMetadata(siteId),
+          [titleBaseUrl]: textValueWithMetadata(
+            `${siteNodeDisplayLabel(node)} at ${siteName}`,
+          ),
+          [statusCategoryBaseUrl]: {
+            value: status.category,
+            metadata: {
+              dataTypeId: systemDataTypes.opportunityStatusCategory.dataTypeId,
+            },
+          },
+          [textualContentBaseUrl]: {
+            value: status.tokens.map((token) => ({
+              value: token,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.object.dataTypeId,
+              },
+            })),
+          },
         },
-      } satisfies OpportunityStatusUpdatePropertiesWithMetadata as PropertyObjectWithMetadata;
+      } satisfies PropertyObjectWithMetadata;
 
       void createEntity({
         variables: {
@@ -498,7 +533,7 @@ export const useSupplyChainStatusState = (
           trackSupplyChainError({
             interaction: "status_report_create_failed",
             opportunityType,
-            productId: node.products[0]?.id ?? "",
+            productId,
             siteId,
             source: "status_dialog",
             stepId: node.id,
@@ -506,7 +541,7 @@ export const useSupplyChainStatusState = (
           void loadStatusReports();
         });
     },
-    [createEntity, loadStatusReports, scope, siteId, userId],
+    [createEntity, loadStatusReports, scope, siteId, siteName, userId],
   );
 
   const statuses = useMemo(() => buildStatuses(readKeys), [readKeys]);

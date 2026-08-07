@@ -8,13 +8,16 @@ import {
   pageOrNotificationNotArchivedFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-
 import {
-  summarizeEntitiesQuery,
-  updateEntitiesMutation,
-  updateEntityMutation,
-} from "../graphql/queries/knowledge/entity.queries";
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { summarizeEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import {
+  archiveNotificationsMutation,
+  markNotificationsAsReadMutation,
+} from "../graphql/queries/knowledge/notification.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { usePollInterval } from "./use-poll-interval";
 
@@ -23,17 +26,12 @@ import type {
   SummarizeEntitiesQueryVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
-  UpdateEntitiesMutation,
-  UpdateEntitiesMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
+  ArchiveNotificationsMutation,
+  ArchiveNotificationsMutationVariables,
+  MarkNotificationsAsReadMutation,
+  MarkNotificationsAsReadMutationVariables,
 } from "../graphql/api-types.gen";
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
-import type {
-  ArchivedPropertyValueWithMetadata,
-  Notification,
-  ReadAtPropertyValueWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type NotificationCountContextValues = {
@@ -112,6 +110,16 @@ export const NotificationCountContextProvider: FunctionComponent<
                 ],
               },
               pageOrNotificationNotArchivedFilter,
+              {
+                not: {
+                  exists: {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.readAt.propertyTypeBaseUrl,
+                    ],
+                  },
+                },
+              },
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
@@ -131,17 +139,17 @@ export const NotificationCountContextProvider: FunctionComponent<
     fetchPolicy: "network-only",
   });
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation, {
+  const [markNotificationsAsRead] = useMutation<
+    MarkNotificationsAsReadMutation,
+    MarkNotificationsAsReadMutationVariables
+  >(markNotificationsAsReadMutation, {
     onCompleted: () => refetchNotificationSummary(),
   });
 
-  const [updateEntities] = useMutation<
-    UpdateEntitiesMutation,
-    UpdateEntitiesMutationVariables
-  >(updateEntitiesMutation, {
+  const [archiveNotifications] = useMutation<
+    ArchiveNotificationsMutation,
+    ArchiveNotificationsMutationVariables
+  >(archiveNotificationsMutation, {
     onCompleted: () => refetchNotificationSummary(),
   });
 
@@ -202,40 +210,19 @@ export const NotificationCountContextProvider: FunctionComponent<
     async (params) => {
       const { notificationEntityId } = params;
 
-      const now = new Date();
-
-      await updateEntity({
+      await markNotificationsAsRead({
         variables: {
-          entityUpdate: {
-            entityId: notificationEntityId,
-            propertyPatches: [
-              {
-                op: "add",
-                path: [
-                  "https://hash.ai/@h/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
-                ],
-                property: {
-                  value: now.toISOString(),
-                  metadata: {
-                    dataTypeId:
-                      "https://hash.ai/@h/types/data-type/datetime/v/1",
-                  },
-                } satisfies ReadAtPropertyValueWithMetadata,
-              },
-            ],
-          },
+          notificationEntityIds: [notificationEntityId],
         },
       });
     },
-    [updateEntity],
+    [markNotificationsAsRead],
   );
 
   const markNotificationsAsReadForEntity = useCallback<
     NotificationCountContextValues["markNotificationsAsReadForEntity"]
   >(
     async (params) => {
-      const now = new Date();
-
       const { targetEntityId } = params;
 
       const notifications = await getNotificationsLinkingToEntity({
@@ -243,31 +230,16 @@ export const NotificationCountContextProvider: FunctionComponent<
       });
 
       if (notifications.length) {
-        await updateEntities({
+        await markNotificationsAsRead({
           variables: {
-            entityUpdates: notifications.map((notification) => ({
-              entityId: notification.metadata.recordId.entityId,
-              propertyPatches: [
-                {
-                  op: "add",
-                  path: [
-                    "https://hash.ai/@h/types/property-type/read-at/" satisfies keyof Notification["properties"] as BaseUrl,
-                  ],
-                  property: {
-                    value: now.toISOString(),
-                    metadata: {
-                      dataTypeId:
-                        "https://hash.ai/@h/types/data-type/datetime/v/1",
-                    },
-                  } satisfies ReadAtPropertyValueWithMetadata,
-                },
-              ],
-            })),
+            notificationEntityIds: notifications.map(
+              (notification) => notification.metadata.recordId.entityId,
+            ),
           },
         });
       }
     },
-    [getNotificationsLinkingToEntity, updateEntities],
+    [getNotificationsLinkingToEntity, markNotificationsAsRead],
   );
 
   const archiveNotificationsForEntity = useCallback<
@@ -281,31 +253,16 @@ export const NotificationCountContextProvider: FunctionComponent<
       });
 
       if (notifications.length) {
-        await updateEntities({
+        await archiveNotifications({
           variables: {
-            entityUpdates: notifications.map((notification) => ({
-              entityId: notification.metadata.recordId.entityId,
-              propertyPatches: [
-                {
-                  op: "add",
-                  path: [
-                    "https://hash.ai/@h/types/property-type/archived/" satisfies keyof Notification["properties"] as BaseUrl,
-                  ],
-                  property: {
-                    value: true,
-                    metadata: {
-                      dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-                    },
-                  } satisfies ArchivedPropertyValueWithMetadata,
-                },
-              ],
-            })),
+            notificationEntityIds: notifications.map(
+              (notification) => notification.metadata.recordId.entityId,
+            ),
           },
         });
       }
     },
-    [getNotificationsLinkingToEntity, updateEntities],
+    [archiveNotifications, getNotificationsLinkingToEntity],
   );
 
   const value = useMemo<NotificationCountContextValues>(

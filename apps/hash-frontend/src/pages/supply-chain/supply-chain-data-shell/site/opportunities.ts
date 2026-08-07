@@ -9,6 +9,7 @@ import type { StatusOption } from "../../shared/status";
 import type { TimeRange } from "../../shared/time-range";
 import type { SiteNode } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export type OpportunityKind = "dwell_cost" | "planning_over" | "planning_under";
 
@@ -23,7 +24,8 @@ export interface OpportunityStatusActions {
   onMarkUnread: (id: string) => void;
   onSaveStatus: (
     node: SiteNode,
-    status: { category: StatusOption; text: string },
+    status: { category: StatusOption; text: string; tokens: TextToken[] },
+    productId: string,
   ) => void;
 }
 

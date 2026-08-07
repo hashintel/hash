@@ -725,7 +725,13 @@ export const Overview = ({
     siteProductionTimeline?.site_id === productSiteId
       ? siteProductionTimeline
       : null;
-  const opportunityStatusStore = useSupplyChainStatusState(productSiteId);
+  const productSiteName =
+    sites.find((site) => normaliseSiteCode(site.slug) === productSiteId)
+      ?.name ?? productSiteId;
+  const opportunityStatusStore = useSupplyChainStatusState(
+    productSiteId,
+    productSiteName,
+  );
   const selectedStatusKey = selectedNode
     ? statusKey(productSiteId, selectedNode)
     : null;
@@ -1040,6 +1046,7 @@ export const Overview = ({
                   opportunityStatusStore.actions.onSaveStatus(
                     statusTarget,
                     entry,
+                    productId,
                   );
                   setStatusTarget(null);
                 }}
@@ -1059,7 +1066,11 @@ export const Overview = ({
           }
           onClose={() => setStatusTarget(null)}
           onSave={(entry) => {
-            opportunityStatusStore.actions.onSaveStatus(statusTarget, entry);
+            opportunityStatusStore.actions.onSaveStatus(
+              statusTarget,
+              entry,
+              productId,
+            );
             setStatusTarget(null);
           }}
         />

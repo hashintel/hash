@@ -7,9 +7,12 @@ import {
   type ReactNode,
 } from "react";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useUsers } from "../../../components/hooks/use-users";
+import { useNotificationCount } from "../../../shared/notification-count-context";
 import { Link } from "../../../shared/ui/link";
 import {
   BriefLink,
@@ -43,6 +46,7 @@ import {
 import { useRegistry } from "./registry-context";
 import { SlideOver, SlideOverClose } from "./slide-over";
 import { deriveStatusActionState, type StatusEntry } from "./status";
+import { StatusBody } from "./status-body";
 import { ConsumptionMetricsRow } from "./step-detail-panel/consumption-metrics";
 import {
   DataTableSection,
@@ -55,6 +59,10 @@ import {
 } from "./step-detail-panel/distribution-chart";
 import { MonthlyCostChart } from "./step-detail-panel/monthly-cost-chart";
 import { SavingsCalculator } from "./step-detail-panel/savings-calculator";
+import {
+  statusUpdateDomId,
+  useStatusUpdateFocus,
+} from "./step-detail-panel/status-focus";
 import {
   StatsRow,
   ObservationCount,
@@ -178,6 +186,12 @@ const statusSection = css({
   flexDirection: "column",
   gap: "3",
 });
+const statusSectionHeader = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+});
 const statusSectionTitle = css({
   textStyle: "base",
   fontWeight: "semibold",
@@ -194,6 +208,10 @@ const statusItem = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
+});
+const focusedStatusItem = css({
+  borderColor: "bd.strong",
+  bg: "bg.subtle",
 });
 const statusMeta = css({
   display: "flex",
@@ -354,6 +372,8 @@ interface StepDetailPanelProps {
   measureOverride?: BaseMeasure;
   /** All status updates left against this step/node (any order; rendered newest-first). */
   statusEntries?: StatusEntry[];
+  /** Status update entity UUID to focus after opening from a notification. */
+  focusedStatusUpdateUuid?: string | null;
   /** Opens the shared status dialog for this step. */
   onStatus?: () => void;
   /** Inline modal content opened from inside the slide-over. */
@@ -391,10 +411,22 @@ export const StepDetailPanel = ({
   briefHref,
   measureOverride,
   statusEntries = [],
+  focusedStatusUpdateUuid,
   onStatus,
   statusDialog,
 }: StepDetailPanelProps) => {
   const { timeRange, setTimeRange } = useTimeRange();
+  const { users } = useUsers();
+  const statusUsersByEntityId = useMemo(
+    () =>
+      new Map(
+        (users ?? []).map((user) => [
+          user.entity.metadata.recordId.entityId,
+          user,
+        ]),
+      ),
+    [users],
+  );
   const [step, setStep] = useState<StepDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -715,6 +747,52 @@ export const StepDetailPanel = ({
     () => deriveStatusActionState(statusEntries),
     [statusEntries],
   );
+  const {
+    focusedStatusUpdateRef,
+    highlightedStatusUpdateUuid,
+    statusSectionRef,
+  } = useStatusUpdateFocus({
+    focusedStatusUpdateUuid,
+    statusSectionReady: !loading && Boolean(step),
+    statusEntries,
+  });
+  const { markNotificationsAsReadForEntity } = useNotificationCount();
+  const notificationsMarkedReadRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (
+      !focusedStatusUpdateUuid ||
+      loading ||
+      !step ||
+      notificationsMarkedReadRef.current.has(focusedStatusUpdateUuid)
+    ) {
+      return;
+    }
+
+    const focusedStatusEntry = statusEntries.find(
+      (statusEntry) =>
+        extractEntityUuidFromEntityId(statusEntry.entityId) ===
+        focusedStatusUpdateUuid,
+    );
+
+    if (!focusedStatusEntry) {
+      return;
+    }
+
+    notificationsMarkedReadRef.current.add(focusedStatusUpdateUuid);
+    void markNotificationsAsReadForEntity({
+      targetEntityId: focusedStatusEntry.entityId,
+    }).catch(() => {
+      notificationsMarkedReadRef.current.delete(focusedStatusUpdateUuid);
+    });
+  }, [
+    focusedStatusUpdateUuid,
+    loading,
+    markNotificationsAsReadForEntity,
+    step,
+    statusEntries,
+  ]);
+
   return (
     <SlideOver onClose={onClose} label={step?.label ?? "Step detail"}>
       {/* Header */}
@@ -1092,8 +1170,15 @@ export const StepDetailPanel = ({
 
       {/* Status updates received for this step (newest first) */}
       {!loading && step && (
-        <div className={statusSection}>
-          <h3 className={statusSectionTitle}>Status</h3>
+        <div className={statusSection} ref={statusSectionRef}>
+          <div className={statusSectionHeader}>
+            <h3 className={statusSectionTitle}>Status</h3>
+            {onStatus && (
+              <Button size="sm" variant="subtle" onClick={onStatus}>
+                Post update
+              </Button>
+            )}
+          </div>
           {statusEntries.length === 0 ? (
             <p className={statusEmpty}>
               No status updates yet. Use the Status button above to add the
@@ -1101,21 +1186,48 @@ export const StepDetailPanel = ({
             </p>
           ) : (
             <div className={statusList}>
-              {[...statusEntries].reverse().map((entry) => (
-                <div
-                  key={`${entry.at}-${entry.user}-${entry.category}-${entry.text}`}
-                  className={statusItem}
-                >
-                  <div className={statusMeta}>
-                    <span className={statusCategory}>{entry.category}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{entry.user}</span>
-                    <span className={statusDot}>·</span>
-                    <span>{formatStatusDate(entry.at)}</span>
+              {[...statusEntries].reverse().map((entry) => {
+                const isFocused =
+                  focusedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+                const isHighlighted =
+                  highlightedStatusUpdateUuid ===
+                  extractEntityUuidFromEntityId(entry.entityId);
+
+                return (
+                  <div
+                    id={statusUpdateDomId(entry)}
+                    key={entry.entityId}
+                    ref={isFocused ? focusedStatusUpdateRef : undefined}
+                    className={cx(
+                      statusItem,
+                      isHighlighted && focusedStatusItem,
+                    )}
+                  >
+                    <div className={statusMeta}>
+                      <span className={statusCategory}>{entry.category}</span>
+                      {entry.user ? (
+                        <>
+                          <span className={statusDot}>·</span>
+                          <span>{entry.user}</span>
+                        </>
+                      ) : null}
+                      <span className={statusDot}>·</span>
+                      <span>{formatStatusDate(entry.at)}</span>
+                    </div>
+                    <p className={statusBody}>
+                      {entry.tokens.length > 0 ? (
+                        <StatusBody
+                          mentionedUsersByEntityId={statusUsersByEntityId}
+                          tokens={entry.tokens}
+                        />
+                      ) : (
+                        statusEntryText(entry)
+                      )}
+                    </p>
                   </div>
-                  <p className={statusBody}>{statusEntryText(entry)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

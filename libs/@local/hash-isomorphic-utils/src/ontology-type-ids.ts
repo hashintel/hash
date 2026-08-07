@@ -248,7 +248,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
+      "https://hash.ai/@h/types/entity-type/mention-notification/v/8",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/mention-notification/" as BaseUrl,
   },
@@ -263,7 +263,7 @@ export const systemEntityTypes = {
   },
   opportunityStatusUpdate: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/opportunity-status-update/v/1",
+      "https://hash.ai/@h/types/entity-type/opportunity-status-update/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/opportunity-status-update/" as BaseUrl,
   },
