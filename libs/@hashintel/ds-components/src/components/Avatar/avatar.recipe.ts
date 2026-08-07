@@ -1,4 +1,32 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { cva, sva } from "@hashintel/ds-helpers/css";
+
+/**
+ * Maps each avatar `size` to the `--avatar-size` custom property that drives an
+ * avatar's box — its width, radius and border all derive from it.
+ *
+ * Shared so AvatarGroup can declare the same variable on its own root: the
+ * group's stacking wrappers sit *above* the avatars in the tree, so they can't
+ * read the `--avatar-size` each avatar sets on itself (custom properties only
+ * inherit downward). The group applies this recipe to its root to expose the
+ * value to those wrappers, keeping a single source of truth for the size scale.
+ *
+ * `custom` sets nothing — the consumer supplies `--avatar-size` directly.
+ */
+export const avatarSize = cva({
+  variants: {
+    size: {
+      xxs: { "--avatar-size": "16px" },
+      xs: { "--avatar-size": "20px" },
+      sm: { "--avatar-size": "24px" },
+      md: { "--avatar-size": "32px" },
+      lg: { "--avatar-size": "48px" },
+      custom: {},
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});
 
 export const styles = sva({
   slots: ["root", "image", "placeholder", "initials", "icon"],
@@ -6,7 +34,7 @@ export const styles = sva({
     root: {
       "--avatar-radius":
         "min(calc(1.3px * sqrt(var(--avatar-size) / 1px)), calc(var(--avatar-size) * 0.35))",
-      borderWidth: "[max(1px, min(calc(var(--avatar-size) / 48), 3px))]", // 1px to a 3px cap
+      borderWidth: "[max(1px, min(calc(var(--avatar-size) / 32), 3px))]", // 1/32 of size (matches lg's 1.5px @ 48px), clamped 1px–3px
       borderStyle: "solid",
       position: "relative",
       display: "inline-flex",
@@ -58,11 +86,11 @@ export const styles = sva({
       square: { root: { borderRadius: "[var(--avatar-radius)]" } },
     },
     size: {
+      // `--avatar-size` for each size comes from the shared `avatarSize` recipe
+      // (avatar-size.recipe.ts), applied to the root alongside these styles.
       xxs: {
         root: {
-          "--avatar-size": "16px",
           "--avatar-radius": "0.25rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[7px]",
@@ -70,9 +98,7 @@ export const styles = sva({
       },
       xs: {
         root: {
-          "--avatar-size": "20px",
           "--avatar-radius": "0.25rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[9px]",
@@ -80,9 +106,7 @@ export const styles = sva({
       },
       sm: {
         root: {
-          "--avatar-size": "24px",
           "--avatar-radius": "0.375rem",
-          borderWidth: "[1px]",
         },
         placeholder: {
           fontSize: "[11px]",
@@ -90,7 +114,6 @@ export const styles = sva({
       },
       md: {
         root: {
-          "--avatar-size": "32px",
           "--avatar-radius": "0.375rem",
         },
         placeholder: {
@@ -99,9 +122,7 @@ export const styles = sva({
       },
       lg: {
         root: {
-          "--avatar-size": "48px",
           "--avatar-radius": "0.5rem",
-          borderWidth: "[1.5px]",
         },
         placeholder: {
           fontSize: "[20px]",

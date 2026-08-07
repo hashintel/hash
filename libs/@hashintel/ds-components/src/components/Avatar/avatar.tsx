@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { isEmptyString } from "../../util/string";
+import { AvatarGroupContext } from "../AvatarGroup/avatar-group-context";
 import { Icon, type IconName } from "../Icon/icon";
-import { styles } from "./avatar.recipe";
+import { avatarSize, styles } from "./avatar.recipe";
 
 import type { FormInputSize, Tone } from "../../util/form-shared";
 import type { ExclusifyUnion } from "type-fest";
+
+export type AvatarSize = FormInputSize | "custom";
+export type AvatarTone = Extract<Tone, "neutral" | "brand">;
 
 type AvatarProps = {
   className?: string;
@@ -15,14 +19,14 @@ type AvatarProps = {
   src?: string;
   /** For ex: "Firstname Lastname", "Organization", "Shortname (online)" */
   alt: string;
-  size?: FormInputSize | "custom";
+  size?: AvatarSize;
   /** What to show when no image is loaded or defined. Initials will be truncated to up to 2 characters max */
   placeholder:
     | { initials: string }
     | { icon: IconName }
     | { custom: React.ReactNode };
   shape: "circle" | "square";
-  tone?: Extract<Tone, "neutral" | "brand">;
+  tone?: AvatarTone;
 } & ExclusifyUnion<
   | { onClick?: React.ButtonHTMLAttributes<Element>["onClick"] }
   | { href?: string; target?: "_blank" }
@@ -43,11 +47,16 @@ export const Avatar = ({
   shape,
   src,
   alt,
-  size = "md",
-  tone = "neutral",
+  size: sizeProp,
+  tone: toneProp,
   placeholder,
   ...rest
 }: AvatarProps) => {
+  // An enclosing AvatarGroup supplies size/tone; an explicit prop still wins.
+  const group = useContext(AvatarGroupContext);
+  const size = sizeProp ?? group.size ?? "md";
+  const tone = toneProp ?? group.tone ?? "neutral";
+
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [trackedSrc, setTrackedSrc] = useState(src);
@@ -124,7 +133,7 @@ export const Avatar = ({
 
   const sharedProps = {
     ...rest,
-    className: cx(classes.root, className),
+    className: cx(avatarSize({ size }), classes.root, className),
     "aria-label": alt,
     "data-loaded": loaded,
   };
