@@ -116,7 +116,6 @@ describe("site overview export", () => {
         {
           entityId: "web~status-1" as EntityId,
           at: "2026-07-01T10:00:00.000Z",
-          user: "First",
           category: "Investigation started" as const,
           text: "",
           tokens: [],
@@ -172,11 +171,14 @@ describe("site overview export", () => {
       material_value_currency: "JPY",
       previous_sample_count: 1,
     });
-    expect(rows[0]?.comments).toContain("First");
-    expect(rows[0]?.comments).toContain("Later, with comma @alex");
-    expect(rows[0]?.comments?.toString().indexOf("First")).toBeLessThan(
-      rows[0]?.comments?.toString().indexOf("Second") ?? 0,
+    expect(rows[0]?.comments).toContain(
+      "2026-07-01T10:00:00.000Z |  | Investigation started",
     );
+    expect(rows[0]?.comments).toContain("Later, with comma @alex");
+    expect(
+      rows[0]?.comments?.toString().indexOf("2026-07-01T10:00:00.000Z"),
+    ).toBeLessThan(rows[0]?.comments?.toString().indexOf("Second") ?? 0);
+    expect(rows[0]?.comments).not.toContain("undefined");
     expect(rows[1]).toMatchObject({
       category: "Planning",
       period_material_value: 5000.123,

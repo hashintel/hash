@@ -169,7 +169,7 @@ const formatComments = (
               `@${mentionShortnamesByEntityId.get(entityId) ?? entityId}`,
           )
         : entry.text;
-      return `${entry.at} | ${entry.user} | ${entry.category} | ${
+      return `${entry.at} | ${entry.user ?? ""} | ${entry.category} | ${
         text || "(no comment)"
       }`;
     })

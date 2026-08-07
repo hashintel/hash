@@ -240,7 +240,7 @@ export const useSupplyChainStatusState = (
         tokens: report.tokens,
         ...(authorName
           ? { user: authorName }
-          : !actorsLoading && actors
+          : !actorsLoading
             ? { user: "Unknown user" }
             : {}),
         ...(author?.kind === "user"

@@ -42,6 +42,8 @@ export const StatusBody = ({
         className={mentionStyle}
         href={`/@${user.shortname}`}
         key={`${tokenKey}-${token.entityId}`}
+        rel="noopener noreferrer"
+        target="_blank"
       >
         {label}
       </a>
