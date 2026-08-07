@@ -37,3 +37,7 @@ Proves or refutes (proof obligations delegated from the Questioning-UX contract,
 - **The Flue dev controller gives `app.ts` the entire request space** — no fall-through to vite's HTML serving — so a co-located browser UI is served by the Hono app itself (vite still transforms module requests, but react-refresh/HMR is off the table without a second server). A real deployment would face the same: the ui shell is a separate app or app-served static assets.
 - Data-channel writes are Valibot-validated per write; `body: v.any()` works fine as the opaque plugin-payload slot with typed envelope fields around it.
 - Restart durability untested by design (no `db.ts` → process-memory conversations; a restart wipes them — consistent with the deploy-target-owns-persistence hypothesis).
+
+## Comments
+
+**2026-08-07 (user, post-resolution):** Ratified reading of the questionnaire dimension against the clobbering finding — the whole questionnaire is a **single affordance with multiple steps**, not per-question affordances. The **one-ask-per-batch invariant stands** even though one ask may carry multiple questions passed in the same call. **Progression is UI-driven**: the payload carries all N questions, the ui walks them locally, answers return as evidence (individually or batched), and the agent interprets on settlement — zero intermediate model turns, sidestepping the wake-wart. Interpretation-on-settlement hands off to the capture-sweep semantics in ticket 11.
