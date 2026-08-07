@@ -256,6 +256,7 @@ impl Atlas {
         let proof = view.proof();
         let walk = Walk::of(self, proof);
         let mut delivered = self.delivered_rows(&walk, view.cut(), &request.tiles)?;
+
         // Both branches of the union already gather visible rows alone - a scope cascade holds
         // only what its proof admitted, and the corpus walk answers only an operator view. The
         // intersection is what discharges `induced`'s caller requirement rather than a second
