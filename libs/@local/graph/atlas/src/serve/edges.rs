@@ -8,15 +8,12 @@ use core::{error::Error, fmt};
 use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
 
 use super::{
-    Atlas, TileCoordinate, WireRow,
-    density::CutOffset,
-    grid,
+    Atlas, TileCoordinate, WireRow, grid,
     hydrate::{DetailError, EdgeLinkDetails, EdgesStore},
     intern::Table,
     neighbourhood::Neighbourhood,
-    schedule::{ScheduleCut, ViewSchedule},
+    schedule::ScheduleCut,
     view::{View, ViewError},
-    visibility::VisibilityProof,
     walk::Walk,
 };
 use crate::{
@@ -60,8 +57,9 @@ pub(crate) enum EdgesError {
     Unsupported(&'static str),
     /// The delivery view did not bind.
     ///
-    /// Only [`Atlas::edges`] answers this, because that path binds the view itself.
-    /// [`Atlas::assemble_edges`] takes a bound view, so its rejections are all request-shaped.
+    /// A binding refusal converts into this variant through [`From`], so one error union carries a
+    /// route's binding and assembly rejections together. [`Atlas::edges`] takes the view already
+    /// bound, so its own rejections are all request-shaped.
     View(ViewError),
     /// The store half of the detail trailer failed.
     ///
@@ -95,6 +93,12 @@ impl fmt::Display for EdgesError {
 }
 
 impl Error for EdgesError {}
+
+impl From<ViewError> for EdgesError {
+    fn from(value: ViewError) -> Self {
+        Self::View(value)
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -159,37 +163,26 @@ pub struct EdgesDocument {
 }
 
 impl Atlas {
-    /// Answers one edges request.
+    /// Answers one edges request over its bound delivery view.
     ///
     /// `SALTILEE` envelope bytes carrying the edges whose endpoints both lie in the listed tiles'
     /// delivered rows, ready to send under `application/vnd.hash.saltile-v1`.
     ///
-    /// This path resolves everything a view needs on its own, once per call, exactly as
-    /// [`Atlas::tile`] does and for the same reason. A request asking for the detail trailer
-    /// resolves labels in process from the generation's own payloads, and `store` answers the one
-    /// hydration order such a request places. A minimal request drops the capability unused.
+    /// A request asking for the detail trailer resolves labels in process from the generation's
+    /// own payloads, and `store` answers the one hydration order such a request places. A minimal
+    /// request drops the capability unused.
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_edges`], plus [`EdgesError::View`] when `k` resolves past the key
-    /// width and [`EdgesError::Details`] when the store half of the detail trailer fails.
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
+    /// As [`Atlas::assemble_edges`], plus [`EdgesError::Details`] when the store half of the
+    /// detail trailer fails.
     pub(crate) fn edges(
         &self,
         request: &EdgesRequest,
         limits: EdgesLimits,
-        proof: &VisibilityProof,
-        k: CutOffset,
+        view: View<'_>,
         store: impl EdgesStore,
     ) -> Result<Vec<u8>, EdgesError> {
-        let schedule = ViewSchedule::of(self, proof);
-        let view = self
-            .view(proof, self.census(proof), &schedule, k)
-            .map_err(EdgesError::View)?;
-
         let document = self.assemble_edges(request, limits, &view)?;
 
         let details = match request.detail {

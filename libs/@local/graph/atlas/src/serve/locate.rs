@@ -12,7 +12,7 @@ use hashql_core::id::IdSlice;
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
-    Atlas, CutOffset, ServeLimits, TileCoordinate, VisibilityProof, WireRow,
+    Atlas, ServeLimits, TileCoordinate, WireRow,
     colour::Palette,
     grid,
     hydrate::{
@@ -21,7 +21,7 @@ use super::{
     },
     intern::Table,
     neighbourhood::{DeliveredEdge, Neighbourhood},
-    schedule::{ScheduleCut, ViewSchedule},
+    schedule::ScheduleCut,
     view::{View, ViewError},
     visibility::VisibleRow,
 };
@@ -372,8 +372,9 @@ pub(crate) enum LocateError {
     Unsupported(&'static str),
     /// The delivery view did not bind.
     ///
-    /// Only [`Atlas::locate`] answers this, because that path binds the view itself.
-    /// [`Atlas::assemble_locate`] takes a bound view, so its rejections are all request-shaped.
+    /// A binding refusal converts into this variant through [`From`], so one error union carries a
+    /// route's binding and assembly rejections together. [`Atlas::locate`] takes the view already
+    /// bound, so its own rejections are all request-shaped.
     View(ViewError),
     /// The store half of the response failed.
     ///
@@ -409,6 +410,12 @@ impl core::fmt::Display for LocateError {
 
 impl core::error::Error for LocateError {}
 
+impl From<ViewError> for LocateError {
+    fn from(value: ViewError) -> Self {
+        Self::View(value)
+    }
+}
+
 /// One assembled locate response: everything [`Atlas::encode_locate`] needs.
 ///
 /// The document owns its columns, so it crosses thread boundaries between assembly, hydration, and
@@ -436,43 +443,31 @@ pub(crate) struct LocateDocument {
 }
 
 impl Atlas {
-    /// Answers one locate request.
+    /// Answers one locate request over its bound delivery view.
     ///
     /// `SALTILEL` envelope bytes carrying the source's ego-graph, ready to send under
     /// `application/vnd.hash.saltile-v1`.
     ///
-    /// This path resolves everything a view needs on its own, once per call, exactly as
-    /// [`Atlas::tile`] does and for the same reason. Locate is the detail view, so the trailer
-    /// always accompanies the response: `store` answers the one hydration order this call places,
-    /// and every label resolves in process from the generation's own payloads, keyed on the
-    /// answer's resolution columns.
+    /// Locate is the detail view, so the trailer always accompanies the response: `store` answers
+    /// the one hydration order this call places, and every label resolves in process from the
+    /// generation's own payloads, keyed on the answer's resolution columns.
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_locate`], plus [`LocateError::View`] when `k` resolves past the key
-    /// width and [`LocateError::Details`] when the store half of the response fails.
+    /// As [`Atlas::assemble_locate`], plus [`LocateError::Details`] when the store half of the
+    /// response fails.
     ///
     /// # Panics
     ///
     /// This panics when an identity table contradicts the row columns behind the delivered set,
     /// which open's cross-artifact validation rules out.
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
     pub(crate) fn locate(
         &self,
         request: &LocateRequest,
         limits: ServeLimits,
-        proof: &VisibilityProof,
-        k: CutOffset,
+        view: View<'_>,
         store: impl LocateStore,
     ) -> Result<Vec<u8>, LocateError> {
-        let schedule = ViewSchedule::of(self, proof);
-        let view = self
-            .view(proof, self.census(proof), &schedule, k)
-            .map_err(LocateError::View)?;
-
         let document = self.assemble_locate(request, limits, &view)?;
 
         let nodes = self.locate_node_entities(&document);

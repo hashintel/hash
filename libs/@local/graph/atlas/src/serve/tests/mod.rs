@@ -514,8 +514,7 @@ impl<'proof> Bound<'proof> {
 
     /// Binds the delivery view assembly reads.
     fn view(&self, atlas: &Atlas) -> View<'_> {
-        atlas
-            .view(self.proof, self.census, &self.schedule, self.k)
+        View::bind(atlas.grid, self.proof, self.census, &self.schedule, self.k)
             .expect("the fixture's proof, schedule and offset pair")
     }
 }
@@ -645,8 +644,7 @@ async fn every_operator_head_accounts_for_its_delivery() {
                 .tile(
                     &request(z, x, y, mode),
                     TileLimits::default(),
-                    &FULL,
-                    CutOffset::ZERO,
+                    Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
                 )
                 .expect("the operator tile serves");
             let rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
@@ -677,8 +675,7 @@ async fn serves_tiles_from_a_published_generation() {
         .tile(
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
         )
         .expect("the root tile should serve");
     assert_eq!(&bytes[..8], b"SALTILET");
@@ -726,8 +723,7 @@ async fn serves_tiles_from_a_published_generation() {
         .tile(
             &request(0, 0, 0, Mode::Total),
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
         )
         .expect("the root total should serve");
     assert_eq!(
@@ -756,8 +752,7 @@ async fn serves_tiles_from_a_published_generation() {
                     query: TileQuery::default(),
                 },
                 TileLimits::default(),
-                &FULL,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             )
             .expect("every node tile should serve");
         let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
@@ -834,8 +829,7 @@ async fn serves_empty_and_deepest_cells() {
                     query: TileQuery::default(),
                 },
                 TileLimits::default(),
-                &FULL,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             )
             .expect("the empty tile should serve"),
         expected,
@@ -855,8 +849,7 @@ async fn serves_empty_and_deepest_cells() {
                 },
             },
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
         )
         .expect("the deepest total tile should serve");
     let tile_rows = decode_rows(section(&bytes, ROW_IDS).expect("ROW_IDS is present"));
@@ -872,8 +865,7 @@ async fn rejects_and_reports_the_contract() {
         atlas.tile(
             &request(4, 0, 0, Mode::Delta),
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas)
         ),
         Err(TileError::Depth { z: 4, maximum: 3 }),
     );
@@ -881,8 +873,7 @@ async fn rejects_and_reports_the_contract() {
         atlas.tile(
             &request(2, 4, 0, Mode::Delta),
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas)
         ),
         Err(TileError::Grid { z: 2, x: 4, y: 0 }),
     );
@@ -895,7 +886,11 @@ async fn rejects_and_reports_the_contract() {
         TileLimits::default().colored_type_ids as usize + 1
     ];
     assert_eq!(
-        atlas.tile(&colored, TileLimits::default(), &FULL, CutOffset::ZERO),
+        atlas.tile(
+            &colored,
+            TileLimits::default(),
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas)
+        ),
         Err(TileError::Types {
             count: TileLimits::default().colored_type_ids as usize + 1,
             maximum: TileLimits::default().colored_type_ids,
@@ -1154,8 +1149,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
         .edges(
             &request,
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the full grid should serve");
@@ -1181,8 +1175,7 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
             .edges(
                 &request,
                 EdgesLimits::default(),
-                &FULL,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             )
             .expect("the repeat should serve"),
@@ -1221,8 +1214,7 @@ async fn edges_serve_the_root_visible_subgraph() {
         .edges(
             &edges_request(vec![root]),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the root should serve");
@@ -1237,8 +1229,7 @@ async fn edges_serve_the_root_visible_subgraph() {
         .edges(
             &edges_request(vec![root, root]),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the doubled root should serve");
@@ -1290,8 +1281,7 @@ async fn edges_exclude_partially_delivered_pairs() {
         .edges(
             &edges_request(vec![coordinate_of(cell)]),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the source tile should serve");
@@ -1384,8 +1374,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         .edges(
             &edges_request(full_grid()),
             capped,
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the capped request should serve");
@@ -1402,8 +1391,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
                 edges: 0,
                 ..EdgesLimits::default()
             },
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the zero cap should serve");
@@ -1426,8 +1414,7 @@ async fn edges_reject_and_report_the_contract() {
                 tiles: 1,
                 ..EdgesLimits::default()
             },
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         ),
         Err(EdgesError::Tiles {
@@ -1439,8 +1426,7 @@ async fn edges_reject_and_report_the_contract() {
         atlas.edges(
             &edges_request(vec![TileCoordinate { z: 4, x: 0, y: 0 }]),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         ),
         Err(EdgesError::Depth { z: 4, maximum: 3 }),
@@ -1449,8 +1435,7 @@ async fn edges_reject_and_report_the_contract() {
         atlas.edges(
             &edges_request(vec![TileCoordinate { z: 2, x: 4, y: 0 }]),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         ),
         Err(EdgesError::Grid { z: 2, x: 4, y: 0 }),
@@ -1462,8 +1447,7 @@ async fn edges_reject_and_report_the_contract() {
         .edges(
             &edges_request(Vec::new()),
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         )
         .expect("the empty request should serve");
@@ -1511,8 +1495,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
         .edges(
             &request,
             EdgesLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
             UnresolvedStore,
         )
         .expect("the detail request should serve");
@@ -1583,7 +1566,11 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
             },
         };
         let bytes = atlas
-            .tile(&request, TileLimits::default(), &FULL, CutOffset::ZERO)
+            .tile(
+                &request,
+                TileLimits::default(),
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            )
             .expect("the resolved tile serves");
         assert!(
             row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
@@ -1606,7 +1593,11 @@ async fn locate_sources_resolve_to_their_first_visible_tile() {
                 },
             };
             let bytes = atlas
-                .tile(&parent, TileLimits::default(), &FULL, CutOffset::ZERO)
+                .tile(
+                    &parent,
+                    TileLimits::default(),
+                    Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+                )
                 .expect("the parent tile serves");
             assert!(
                 !row_of(&bytes).contains(&wire_of(source.row.get().as_u32())),
@@ -1882,7 +1873,11 @@ async fn colored_requests_resolve_fixture_types_and_zero_unknowns() {
             .expect("the literal is a versioned url"),
     ];
     let bytes = atlas
-        .tile(&colored, TileLimits::default(), &FULL, CutOffset::ZERO)
+        .tile(
+            &colored,
+            TileLimits::default(),
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+        )
         .expect("a colored request serves");
 
     let rows = section(&bytes, ROW_IDS).expect("ROW_IDS is present");
@@ -2456,10 +2451,20 @@ async fn locate_by_wire_row_matches_by_entity() {
     assert_eq!(by_row.row, Some(wire));
     assert_eq!(by_row.entity_id, None);
     let by_entity_bytes = atlas
-        .locate(&by_entity, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
+        .locate(
+            &by_entity,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UnresolvedStore,
+        )
         .expect("the entity resolves");
     let by_row_bytes = atlas
-        .locate(&by_row, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
+        .locate(
+            &by_row,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UnresolvedStore,
+        )
         .expect("the wire row resolves");
     assert_eq!(
         by_entity_bytes, by_row_bytes,
@@ -2480,7 +2485,12 @@ async fn locate_by_wire_row_matches_by_entity() {
     for garbage in [48, u32::MAX] {
         by_row.row = Some(codec::WireRow::pinned(garbage));
         assert_matches!(
-            atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+            atlas.locate(
+                &by_row,
+                limits,
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+                UntouchedStore
+            ),
             Err(super::LocateError::UnknownEntity),
             "{garbage}",
         );
@@ -2490,13 +2500,23 @@ async fn locate_by_wire_row_matches_by_entity() {
     by_row.row = Some(wire);
     by_row.entity_id = Some(entity_string_of(7));
     assert_matches!(
-        atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        atlas.locate(
+            &by_row,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UntouchedStore
+        ),
         Err(super::LocateError::Source { carried: 2 }),
     );
     by_row.row = None;
     by_row.entity_id = None;
     assert_matches!(
-        atlas.locate(&by_row, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        atlas.locate(
+            &by_row,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UntouchedStore
+        ),
         Err(super::LocateError::Source { carried: 0 }),
     );
 }
@@ -2521,7 +2541,12 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
 
     let mut request = locate_request(entity_string_of(0));
     let bytes = atlas
-        .locate(&request, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
+        .locate(
+            &request,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UnresolvedStore,
+        )
         .expect("the request is well-formed");
     assert_eq!(bytes[0..8], *b"SALTILEL");
 
@@ -2597,7 +2622,12 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             .expect("the literal is a versioned url"),
     ];
     let colored_bytes = atlas
-        .locate(&request, limits, &FULL, CutOffset::ZERO, UnresolvedStore)
+        .locate(
+            &request,
+            limits,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
+            UnresolvedStore,
+        )
         .expect("unresolvable colored ids are legal");
     assert_eq!(colored_bytes, response(Some(&[Membership::List(&[])])));
 }
@@ -2622,8 +2652,7 @@ async fn locate_rejections_carry_their_names() {
             atlas.locate(
                 &locate_request(id.clone()),
                 limits,
-                &FULL,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             ),
             Err(super::LocateError::UnknownEntity),
@@ -2640,7 +2669,7 @@ async fn locate_rejections_carry_their_names() {
         limits.tile.colored_type_ids as usize + 1
     ];
     assert_matches!(
-        atlas.locate(&colored, limits, &FULL, CutOffset::ZERO, UntouchedStore),
+        atlas.locate(&colored, limits, Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas), UntouchedStore),
         Err(super::LocateError::Types { count, maximum })
             if count == limits.tile.colored_type_ids as usize + 1
                 && maximum == limits.tile.colored_type_ids,

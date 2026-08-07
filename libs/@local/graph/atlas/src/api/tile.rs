@@ -10,7 +10,7 @@ use super::{
     extract::{Body, Coordinates, Generation, VariantPath},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
-    visibility::Visibility,
+    visibility::{Visibility, view_problem},
 };
 use crate::serve::{TileCoordinate, TileError, TileQuery, TileRequest};
 
@@ -71,14 +71,17 @@ pub(super) async fn handler(
         query: query.map_or_else(TileQuery::default, |Body(query)| query),
     };
 
-    // Assembly and encoding are CPU-bound and ride rayon; hydration
-    // awaits the store between them - the trailer is the envelope's
-    // last section by design, so geometry never waits on Postgres.
+    // The whole pipeline is one synchronous call on a rayon worker. Binding runs there too, so
+    // a scope's first request pays its cascade build off the async runtime.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits.tile;
 
-    let result =
-        spawn(move || atlas.tile(&request, limits, visibility.proof(), visibility.k)).await?;
+    let result = spawn(move || {
+        let view = visibility.view(&atlas)?;
+
+        atlas.tile(&request, limits, view)
+    })
+    .await?;
 
     let bytes = match result {
         Ok(bytes) => bytes,
@@ -103,14 +106,9 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        // Only the self-binding convenience path answers this; the handler binds through
-        // `Visibility::view`, which reports a refused cut as the internal problem itself.
-        Err(error @ TileError::View(_)) => {
-            return Err(Problem::internal(
-                error,
-                "tile delivery refused its schedule",
-            ));
-        }
+        // A stale sealed offset answers the uniform refusal. A mismatched pair or width names
+        // an input this process produced and answers the internal problem.
+        Err(TileError::View(error)) => return Err(view_problem(error)),
     };
 
     Ok(Saltile::new(bytes))

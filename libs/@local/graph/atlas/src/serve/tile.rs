@@ -10,10 +10,9 @@ use type_system::ontology::id::VersionedUrl;
 use super::{
     Atlas, Mode, TileCoordinate,
     colour::{MaskSet, Palette},
-    density::{CutOffset, ViewOccupancy},
+    density::ViewOccupancy,
     grid,
     hydrate::NodeDetails,
-    schedule::ViewSchedule,
     view::{View, ViewError},
     visibility::VisibilityProof,
     walk::{DeliveredPoints, ViewCensus, Walk, full::occupied_children},
@@ -83,8 +82,9 @@ pub enum TileError {
     Unsupported(&'static str),
     /// The delivery view did not bind.
     ///
-    /// Only [`Atlas::tile`] answers this, because that path binds the view itself.
-    /// [`Atlas::assemble_tile`] takes a bound view, so its rejections are all request-shaped.
+    /// A binding refusal converts into this variant through [`From`], so one error union carries a
+    /// route's binding and assembly rejections together. [`Atlas::tile`] takes the view already
+    /// bound, so its own rejections are all request-shaped.
     View(ViewError),
 }
 
@@ -178,37 +178,22 @@ struct TileDocument {
 }
 
 impl Atlas {
-    /// Answers one tile request without the detail trailer.
+    /// Answers one tile request over its bound delivery view.
     ///
-    /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`.
-    ///
-    /// This path rejects a request that sets `includeDetailedData` by name, because it serves
-    /// deployments without a store connection. A transport with one assembles, hydrates, and
-    /// encodes through [`Atlas::assemble_tile`] and [`Atlas::encode_tile`].
-    ///
-    /// This path resolves everything a view needs on its own, once per call. A transport instead
-    /// resolves the census and the schedule with the scope and binds through [`Atlas::view`], so
-    /// the scope pays for those walks and the request reads the result. Without a store, the
-    /// deployment holds no scope and nothing remains to amortize against.
+    /// `SALTILET` envelope bytes, ready to send under `application/vnd.hash.saltile-v1`. A
+    /// request asking for the detail trailer resolves per-point labels and icons in process from
+    /// the generation's own payloads, so every section of the envelope assembles from the opened
+    /// artifacts alone.
     ///
     /// # Errors
     ///
-    /// As [`Atlas::assemble_tile`], plus [`TileError::Unsupported`] when the query sets
-    /// `includeDetailedData` and [`TileError::View`] when `k` resolves past the key width.
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
+    /// As [`Atlas::assemble_tile`].
     pub fn tile(
         &self,
         request: &TileRequest,
         limits: TileLimits,
-        proof: &VisibilityProof,
-        k: CutOffset,
+        view: View<'_>,
     ) -> Result<Vec<u8>, TileError> {
-        let schedule = ViewSchedule::of(self, proof);
-        let view = self.view(proof, self.census(proof), &schedule, k)?;
-
         let document = self.assemble_tile(request, limits, &view)?;
 
         let details = match request.query.detail {

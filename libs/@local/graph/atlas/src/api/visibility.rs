@@ -117,7 +117,7 @@ pub(super) struct Visibility {
     ///
     /// Sealed at the manifest by the density policy and read back at admission, so the served cut
     /// and the declared cut are the same value by construction.
-    pub k: CutOffset,
+    k: CutOffset,
 }
 
 impl Visibility {
@@ -133,11 +133,10 @@ impl Visibility {
     ///
     /// # Errors
     ///
-    /// The uniform `401` problem when the presented token seals an offset the resolved view cannot
-    /// serve, whose remedy is the fresh manifest request that answer already asks for. Every other
-    /// binding failure answers the internal problem, because this process produced the inputs.
-    pub(super) fn view(&self, atlas: &Atlas) -> Result<View<'_>, Problem<'static>> {
-        View::of(atlas, &self.entry, self.k).map_err(view_problem)
+    /// As [`View::of`]. A route converts the refusal into its own error union and answers it
+    /// through [`view_problem`].
+    pub(super) fn view(&self, atlas: &Atlas) -> Result<View<'_>, ViewError> {
+        View::of(atlas, &self.entry, self.k)
     }
 }
 
@@ -317,7 +316,7 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
 ///
 /// Every other binding failure names an input this process produced and answers the internal
 /// problem.
-fn view_problem(error: ViewError) -> Problem<'static> {
+pub(super) fn view_problem(error: ViewError) -> Problem<'static> {
     match error {
         ViewError::Offset(_) => {
             tracing::error!(

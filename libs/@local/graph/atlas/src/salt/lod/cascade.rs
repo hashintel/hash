@@ -2,7 +2,10 @@
 
 use std::collections::HashSet;
 
-use hashql_core::id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet};
+use hashql_core::{
+    collections::fast_hash_set,
+    id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet},
+};
 
 use super::rank::Ranking;
 use crate::morton::{Depth, MortonKey};
@@ -46,7 +49,7 @@ pub(crate) fn buckets<R: Id>(
     // domain outgrows the row count from depth ~10 on while the populated cells stay bounded by the
     // rows, so the hash set pays only for the cells the cascade touches. The row set fills a linear
     // domain, which a dense bit set fits.
-    let mut seen = HashSet::new();
+    let mut seen = fast_hash_set();
 
     // One rank-ordered pass per depth suffices with a single cell set. Within any cell an
     // assigned point always outranks every still-unassigned point, because every point of the

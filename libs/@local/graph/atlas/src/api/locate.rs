@@ -15,7 +15,7 @@ use super::{
     extract::{Body, Generation, VariantPath},
     problem::{Problem, ProblemType, reject_generation, reject_variant},
     saltile::{Saltile, spawn},
-    visibility::Visibility,
+    visibility::{Visibility, view_problem},
 };
 use crate::{
     dataset::postgres::id::ArchivedEntityId,
@@ -90,7 +90,11 @@ pub(super) async fn handler(
     };
 
     let (result, ()) = tokio::join!(
-        spawn(move || atlas.locate(&request, limits, visibility.proof(), visibility.k, store)),
+        spawn(move || {
+            let view = visibility.view(&atlas)?;
+
+            atlas.locate(&request, limits, view, store)
+        }),
         async {
             // An order never arrives when the pipeline rejects the request or panics first.
             let Ok(order) = order_receiver.await else {
@@ -130,14 +134,9 @@ pub(super) async fn handler(
                 error.to_string(),
             ));
         }
-        // A refused binding names an input this process produced, so it answers the internal
-        // problem, as on the tile and edges routes.
-        Err(error @ LocateError::View(_)) => {
-            return Err(Problem::internal(
-                error,
-                "locate delivery refused its schedule",
-            ));
-        }
+        // A stale sealed offset answers the uniform refusal. A mismatched pair or width names
+        // an input this process produced and answers the internal problem.
+        Err(LocateError::View(error)) => return Err(view_problem(error)),
         Err(error @ LocateError::Details(_)) => {
             return Err(Problem::internal(error, "the detail hydration failed"));
         }

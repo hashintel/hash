@@ -19,8 +19,8 @@ use std::collections::{HashMap, HashSet};
 use hashql_core::id::Id as _;
 
 use super::{
-    Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileError,
-    TileLimits, UntouchedStore, children_of, codec, decode_rows, edges_request, entity_string_of,
+    Bound, CutOffset, EdgesLimits, FIXTURE_LOD, FULL, HEAD, ROW_IDS, TileCoordinate, TileLimits,
+    UntouchedStore, View, children_of, codec, decode_rows, edges_request, entity_string_of,
     expected_edges_bytes, head_counts, head_global, mask_hiding, open_edge_artifacts, publish,
     qualifying_columns, request, section, test_codec, wire_columns,
 };
@@ -344,8 +344,7 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
                             .tile(
                                 &request(z, x, y, mode),
                                 TileLimits::default(),
-                                &proof,
-                                offset,
+                                Bound::new(&atlas, &proof, offset).view(&atlas),
                             )
                             .expect("the restricted tile serves");
                         let head = section(&bytes, HEAD).expect("HEAD is present");
@@ -422,21 +421,26 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
     }
 }
 
-/// A resolved cut past the key width refuses the whole tile.
+/// A resolved cut past the key width refuses at the binding, so no tile request can carry it.
+///
+/// Every route takes a bound view, so a refused offset never reaches assembly and the whole-tile
+/// refusal holds by construction.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
     let (_generation, atlas) = publish("cut-refusal").await;
     let proof = mask_hiding(&atlas, &[0]);
 
-    let result = atlas.tile(
-        &request(0, 0, 0, Mode::Delta),
-        TileLimits::default(),
+    let schedule = ViewSchedule::of(&atlas, &proof);
+    let result = View::bind(
+        atlas.grid,
         &proof,
+        atlas.census(&proof),
+        &schedule,
         CutOffset::new(32),
     );
     assert!(
-        matches!(result, Err(TileError::View(ViewError::Schedule(_)))),
+        matches!(result, Err(ViewError::Schedule(_))),
         "a cut past the key width must refuse, got {result:?}",
     );
 }
@@ -444,7 +448,7 @@ async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
 /// A proof paired with the other contract's schedule refuses at the binding.
 ///
 /// The refusal moved out of assembly when the delivery inputs became one bound value. No endpoint
-/// can receive a mismatched pair. The pair is checked where it is assembled, and [`Atlas::view`] is
+/// can receive a mismatched pair. The pair is checked where it is assembled, and [`View::bind`] is
 /// the only entry point still accepting the four inputs apart.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -454,13 +458,25 @@ async fn mismatched_proof_and_schedule_refuse_the_contract() {
     let scope = ViewSchedule::of(&atlas, &masked);
 
     let corpus = ViewSchedule::Corpus;
-    let corpus_for_masked = atlas.view(&masked, atlas.census(&masked), &corpus, CutOffset::ZERO);
+    let corpus_for_masked = View::bind(
+        atlas.grid,
+        &masked,
+        atlas.census(&masked),
+        &corpus,
+        CutOffset::ZERO,
+    );
     assert_eq!(
         corpus_for_masked.expect_err("a masked proof must not serve the corpus schedule"),
         ViewError::Contract,
     );
 
-    let scope_for_full = atlas.view(&FULL, atlas.census(&FULL), &scope, CutOffset::ZERO);
+    let scope_for_full = View::bind(
+        atlas.grid,
+        &FULL,
+        atlas.census(&FULL),
+        &scope,
+        CutOffset::ZERO,
+    );
     assert_eq!(
         scope_for_full.expect_err("an operator proof must not serve a scope cascade"),
         ViewError::Contract,
@@ -482,13 +498,25 @@ async fn operator_proof_refuses_a_nonzero_offset() {
     let (_generation, atlas) = publish("operator-offset-refusal").await;
     let corpus = ViewSchedule::Corpus;
 
-    let refused = atlas.view(&FULL, atlas.census(&FULL), &corpus, CutOffset::new(1));
+    let refused = View::bind(
+        atlas.grid,
+        &FULL,
+        atlas.census(&FULL),
+        &corpus,
+        CutOffset::new(1),
+    );
     assert_eq!(
         refused.expect_err("an operator proof must not carry a nonzero offset"),
         ViewError::Offset(CutOffset::new(1)),
     );
 
-    let bound = atlas.view(&FULL, atlas.census(&FULL), &corpus, CutOffset::ZERO);
+    let bound = View::bind(
+        atlas.grid,
+        &FULL,
+        atlas.census(&FULL),
+        &corpus,
+        CutOffset::ZERO,
+    );
     assert!(
         bound.is_ok(),
         "the operator pair at offset zero must still bind, got {bound:?}",
@@ -584,8 +612,7 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                     .edges(
                         &edges_request(tiles),
                         EdgesLimits::default(),
-                        &proof,
-                        CutOffset::new(k),
+                        Bound::new(&atlas, &proof, CutOffset::new(k)).view(&atlas),
                         UntouchedStore,
                     )
                     .expect("the scoped edges request serves");
@@ -851,9 +878,14 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
         // The offset this caller is served at is one the corpus contract has no bytes for.
         if k > 0 {
             assert_eq!(
-                atlas
-                    .view(&FULL, atlas.census(&FULL), &ViewSchedule::Corpus, offset)
-                    .expect_err("the operator contract admits no offset"),
+                View::bind(
+                    atlas.grid,
+                    &FULL,
+                    atlas.census(&FULL),
+                    &ViewSchedule::Corpus,
+                    offset
+                )
+                .expect_err("the operator contract admits no offset"),
                 ViewError::Offset(offset),
             );
         }
@@ -890,8 +922,7 @@ fn assert_saturated_scope_grid(
                         .tile(
                             &request(z, x, y, mode),
                             TileLimits::default(),
-                            all_rows,
-                            offset,
+                            Bound::new(atlas, all_rows, offset).view(atlas),
                         )
                         .expect("the saturated scope serves");
                     let head = section(&bytes, HEAD).expect("HEAD is present");
@@ -928,8 +959,7 @@ fn assert_saturated_scope_grid(
                             .tile(
                                 &request(z, x, y, mode),
                                 TileLimits::default(),
-                                &FULL,
-                                CutOffset::ZERO,
+                                Bound::new(atlas, &FULL, CutOffset::ZERO).view(atlas),
                             )
                             .expect("the operator contract serves");
                         assert_eq!(
@@ -944,9 +974,14 @@ fn assert_saturated_scope_grid(
         // The offset this caller is served at is one the corpus contract has no bytes for.
         if k > 0 {
             assert_eq!(
-                atlas
-                    .view(&FULL, atlas.census(&FULL), &ViewSchedule::Corpus, offset)
-                    .expect_err("the operator contract admits no offset"),
+                View::bind(
+                    atlas.grid,
+                    &FULL,
+                    atlas.census(&FULL),
+                    &ViewSchedule::Corpus,
+                    offset
+                )
+                .expect_err("the operator contract admits no offset"),
                 ViewError::Offset(offset),
             );
         }

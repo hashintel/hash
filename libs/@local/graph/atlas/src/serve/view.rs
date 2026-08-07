@@ -79,7 +79,7 @@ impl Error for ViewError {}
 /// The value borrows the resolution it binds, which a scope holds for its reuse window, so
 /// construction costs only per-request arithmetic and repeats no per-scope work.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct View<'scope> {
+pub struct View<'scope> {
     /// The rows the scope may see.
     proof: &'scope VisibilityProof,
     /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
@@ -96,6 +96,11 @@ impl<'scope> View<'scope> {
     ///
     /// An operator proof binds the corpus schedule with no cut, and a scoped proof its own cascade
     /// read at `k`.
+    ///
+    /// Caller requirement: `census` is [`Atlas::census`] of `proof`, and `schedule` is
+    /// [`ViewSchedule::of`] over that same proof. Binding checks only that the proof and the
+    /// schedule name the same serving contract. A census resolved from another proof of the same
+    /// shape passes that check, so the pairing is the caller's to hold.
     ///
     /// # Errors
     ///
@@ -182,35 +187,5 @@ impl<'scope> View<'scope> {
     #[must_use]
     pub(crate) const fn is_full(&self) -> bool {
         self.cut.is_none()
-    }
-}
-
-impl Atlas {
-    /// Binds one resolved scope's delivery inputs into the view its responses read.
-    ///
-    /// Caller requirement: `census` is [`Atlas::census`] of `proof`, and `schedule` is
-    /// [`ViewSchedule::of`] over that same proof. Binding checks only that the proof and the
-    /// schedule name the same serving contract. A census resolved from another proof of the same
-    /// shape passes that check, so the pairing is the caller's to hold. A scope resolves the proof,
-    /// the census and the schedule once, and every request under it reads them. `k` is the offset
-    /// the request's own token seals.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ViewError::Contract`] when `proof` and `schedule` name different serving
-    /// contracts, [`ViewError::Offset`] when an operator proof carries a nonzero `k`, and
-    /// [`ViewError::Schedule`] when `k` resolves past the key width.
-    #[expect(
-        clippy::min_ident_chars,
-        reason = "`k` is the delivery-cut offset's name throughout the density contract"
-    )]
-    pub(crate) fn view<'scope>(
-        &self,
-        proof: &'scope VisibilityProof,
-        census: ViewCensus,
-        schedule: &'scope ViewSchedule,
-        k: CutOffset,
-    ) -> Result<View<'scope>, ViewError> {
-        View::bind(self.grid, proof, census, schedule, k)
     }
 }

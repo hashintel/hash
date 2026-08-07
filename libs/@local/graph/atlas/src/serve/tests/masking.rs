@@ -130,8 +130,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
             .tile(
                 &request(0, 0, 0, mode),
                 TileLimits::default(),
-                &proof,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
             )
             .expect("the masked root serves");
 
@@ -219,8 +218,7 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
                     query: TileQuery::default(),
                 },
                 TileLimits::default(),
-                &nothing,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &nothing, CutOffset::ZERO).view(&atlas),
             )
             .expect("the fully masked tile serves"),
         expected,
@@ -261,8 +259,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
             .edges(
                 &edges_request(full_grid()),
                 EdgesLimits::default(),
-                &proof,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
@@ -365,8 +362,7 @@ async fn locate_filters_partners_under_the_mask() {
         atlas.locate(
             &locate_request(entity_string_of(0)),
             limits,
-            &hidden_source,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &hidden_source, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         ),
         Err(crate::serve::LocateError::UnknownEntity),
@@ -383,8 +379,7 @@ async fn locate_filters_partners_under_the_mask() {
         atlas.locate(
             &by_row,
             limits,
-            &hidden_source,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &hidden_source, CutOffset::ZERO).view(&atlas),
             UntouchedStore,
         ),
         Err(crate::serve::LocateError::UnknownEntity),
@@ -442,8 +437,7 @@ async fn hidden_link_row_is_withheld_from_the_edges_grid() {
             .edges(
                 &edges_request(full_grid()),
                 EdgesLimits::default(),
-                &proof,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
@@ -673,8 +667,7 @@ fn assert_tiles_mask_by_intersection(atlas: &Atlas, proof: &VisibilityProof, hid
                     .tile(
                         &request(z, x, y, mode),
                         TileLimits::default(),
-                        proof,
-                        CutOffset::ZERO,
+                        Bound::new(atlas, proof, CutOffset::ZERO).view(atlas),
                     )
                     .expect("the masked tile serves");
                 let masked_rows =
@@ -730,8 +723,7 @@ fn assert_edges_mask_by_intersection(
             .edges(
                 &edges_request(full_grid()),
                 EdgesLimits::default(),
-                proof,
-                CutOffset::ZERO,
+                Bound::new(atlas, proof, CutOffset::ZERO).view(atlas),
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
@@ -941,8 +933,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             atlas.locate(
                 &locate_request(ghost_id.clone()),
                 limits,
-                &proof,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             ),
             Err(crate::serve::LocateError::UnknownEntity),
@@ -952,8 +943,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
             atlas.locate(
                 &by_row(ghost_wire),
                 limits,
-                &proof,
-                CutOffset::ZERO,
+                Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                 UntouchedStore,
             ),
             Err(crate::serve::LocateError::UnknownEntity),
@@ -979,8 +969,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                 atlas.locate(
                     &locate_request(id.clone()),
                     limits,
-                    &proof,
-                    CutOffset::ZERO,
+                    Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                     UntouchedStore,
                 ),
                 Err(crate::serve::LocateError::UnknownEntity),
@@ -990,8 +979,7 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
                 atlas.locate(
                     &by_row(node_codec.encode(NodeRowId::from_u32(row)).get()),
                     limits,
-                    &proof,
-                    CutOffset::ZERO,
+                    Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
                     UntouchedStore,
                 ),
                 Err(crate::serve::LocateError::UnknownEntity),
@@ -1084,8 +1072,7 @@ async fn masked_root_publishes_the_visible_views_own_census() {
         .tile(
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
-            &proof,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &proof, CutOffset::ZERO).view(&atlas),
         )
         .expect("the masked root serves");
     let (visible_count, extent, min_resolution) =
@@ -1112,8 +1099,7 @@ async fn masked_root_publishes_the_visible_views_own_census() {
         .tile(
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
-            &FULL,
-            CutOffset::ZERO,
+            Bound::new(&atlas, &FULL, CutOffset::ZERO).view(&atlas),
         )
         .expect("the unmasked root serves");
     let (full_count, full_extent, _) =
@@ -1198,8 +1184,7 @@ async fn masked_root_publishes_the_views_own_depth() {
         .tile(
             &request(0, 0, 0, Mode::Delta),
             TileLimits::default(),
-            &mask_hiding(&atlas, &hidden),
-            CutOffset::ZERO,
+            Bound::new(&atlas, &mask_hiding(&atlas, &hidden), CutOffset::ZERO).view(&atlas),
         )
         .expect("the masked root serves");
     let (_, _, min_resolution) = head_global(section(&bytes, HEAD).expect("HEAD is present"))
