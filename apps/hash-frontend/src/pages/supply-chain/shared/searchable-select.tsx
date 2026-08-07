@@ -195,13 +195,20 @@ export const SearchableSelect = ({
           onChange(next);
         }
       }}
-      onInputValueChange={(details) => setQuery(details.inputValue)}
-      onOpenChange={(details) => {
-        if (!details.open) {
-          setQuery("");
+      onInputValueChange={(details) => {
+        // Only user typing should drive the filter. Ark also writes the selected
+        // item label into the input on select / interact-outside; adopting that
+        // would shrink the open list down to the current selection.
+        if (details.reason === "input-change") {
+          setQuery(details.inputValue);
+          return;
         }
+        setQuery("");
       }}
-      selectionBehavior="replace"
+      onOpenChange={() => {
+        setQuery("");
+      }}
+      selectionBehavior="clear"
       placeholder={selectedLabel || placeholder}
       className={className}
     >
