@@ -239,4 +239,111 @@ mod tests {
             );
         }
     }
+
+    // The stride is odd, so consecutive samples differ in exponent/mantissa phase. Full-bit-range
+    // iteration covers negative inputs, subnormals, both zeros, both infinities, and NaN payloads
+    // without listing them.
+    const F32_STRIDE: usize = 641;
+
+    /// Allowed kernel-to-reference distance in representation steps.
+    ///
+    /// The kernel's 1.0-ulp accuracy tier plus half a step for the reference's own
+    /// correctly-rounded narrowing, rounded up to whole steps.
+    const U10_F32_TOLERANCE: u64 = 2;
+
+    /// Position of a value in the ordered sequence of representable `f32`s.
+    ///
+    /// Adjacent representable values differ by one across the whole line, including zeros,
+    /// subnormals, and infinities, so one distance bound holds without per-class cases.
+    fn ordered_f32(value: f32) -> i64 {
+        let bits = value.to_bits();
+        if bits & 0x8000_0000 == 0 {
+            i64::from(bits)
+        } else {
+            -i64::from(bits & 0x7FFF_FFFF)
+        }
+    }
+
+    /// Strided samples of the full input bit range track scalar libm inside the step tolerance.
+    ///
+    /// The agreement tests in this module compare entry points that share every constant and
+    /// every reconstruction step, so drift in that shared arithmetic moves all of them
+    /// identically and only an external reference can pin it. `ulp_sweep.rs` holds the
+    /// exhaustive `#[ignore]` form of this check.
+    #[test]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "narrowing the wider-precision libm result is how the sweep builds its reference"
+    )]
+    fn tracks_libm_across_the_full_bit_range() {
+        let mut lanes = [0.0_f32; 8];
+        let mut filled = 0;
+        for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
+            lanes[filled] = f32::from_bits(bits);
+            filled += 1;
+            if filled == lanes.len() {
+                filled = 0;
+                let output = exp_f32::<8>(Simd::from_array(lanes));
+                for lane in 0..lanes.len() {
+                    let at = lanes[lane];
+                    let reference = f64::from(at).exp() as f32;
+                    if reference.is_nan() {
+                        assert!(
+                            output[lane].is_nan(),
+                            "exp_f32({at}): kernel {} vs NaN reference",
+                            output[lane]
+                        );
+                        continue;
+                    }
+                    let distance = ordered_f32(output[lane]).abs_diff(ordered_f32(reference));
+                    assert!(
+                        distance <= U10_F32_TOLERANCE,
+                        "exp_f32({at}): kernel {} vs libm {reference}, {distance} steps apart",
+                        output[lane]
+                    );
+                }
+            }
+        }
+    }
+
+    /// Edge-case results are exact.
+    ///
+    /// The contract matches [`exp_f32`](super::super::sleef::exp_f32). Zero yields exactly one
+    /// and negative infinity exactly zero. An infinity lane stays infinite and a NaN lane stays
+    /// NaN. The assertions compare bit patterns, so a merely-close value fails.
+    #[test]
+    fn edge_cases_are_exact() {
+        let output = exp_f32::<4>(Simd::from_array([
+            0.0,
+            f32::NEG_INFINITY,
+            f32::INFINITY,
+            f32::NAN,
+        ]));
+        assert_eq!(output[0].to_bits(), 1.0_f32.to_bits());
+        assert_eq!(output[1].to_bits(), 0.0_f32.to_bits());
+        assert_eq!(output[2].to_bits(), f32::INFINITY.to_bits());
+        assert!(output[3].is_nan());
+    }
+
+    /// Every named entry point agrees with the generic kernel bit for bit.
+    ///
+    /// On aarch64 the entry points are the TBL4 forms, elsewhere the passthrough fallbacks, so
+    /// the sweep pins the agreement on every target this module compiles for.
+    #[test]
+    fn entry_points_agree_with_the_generic_kernel() {
+        let mut lanes = [0.0_f32; 8];
+        let mut filled = 0;
+        for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
+            lanes[filled] = f32::from_bits(bits);
+            filled += 1;
+            if filled == lanes.len() {
+                filled = 0;
+                let values = Simd::from_array(lanes);
+                let generic = exp_f32::<8>(values);
+                assert_eq!(exp_f32x8(values).to_bits(), generic.to_bits());
+                let low = simd_swizzle!(values, [0, 1, 2, 3]);
+                assert_eq!(exp_f32x4(low).to_bits(), exp_f32::<4>(low).to_bits());
+            }
+        }
+    }
 }

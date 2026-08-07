@@ -294,6 +294,211 @@ fn fit_is_stable_under_sample_refinement() {
 }
 
 #[test]
+fn fit_accepts_a_minimum_distance_equal_to_the_spread() {
+    // The documented domain excludes only `minimum_distance > spread`;
+    // equality is the boundary case that stays inside.
+    assert!(AffinityCurve::fit(1.0, 1.0).is_some());
+}
+
+#[test]
+fn fit_with_divides_the_range_into_samples_minus_one_steps() {
+    // The spacing divides the sampled range by `samples - 1`, not by
+    // `samples`, and the final sample therefore sits exactly at the range
+    // end. The explicit grid spells that spacing out; fitting over it runs
+    // the identical solver on identical inputs, so the results agree to
+    // narrowing precision. A coarse eight-sample grid makes any spacing
+    // drift orders of magnitude wider than the tolerance.
+    let fitted = AffinityCurve::fit_with(1.0, 0.1, AffinityFitConfig { samples: 8, .. })
+        .expect("eight samples meet the documented minimum");
+
+    let minimum_distance = f64::from(0.1_f32);
+    let (expected_a, expected_b) = fit_curve(SampleGrid::new(8, 3.0 / 7.0), |distance| {
+        if distance < minimum_distance {
+            1.0
+        } else {
+            (-(distance - minimum_distance)).exp()
+        }
+    })
+    .expect("the explicit reference grid is well-conditioned");
+
+    assert!(
+        (f64::from(fitted.a()) - expected_a).abs() < 1e-4 * expected_a,
+        "expected a near {expected_a}, got {}",
+        fitted.a(),
+    );
+    assert!(
+        (f64::from(fitted.b()) - expected_b).abs() < 1e-4 * expected_b,
+        "expected b near {expected_b}, got {}",
+        fitted.b(),
+    );
+}
+
+#[test]
+fn solver_refuses_a_target_that_poisons_only_the_objective() {
+    // The zero-distance sample contributes its residual and nothing else
+    // (its partials are skipped), so a NaN target at zero drives exactly
+    // one accumulated sum non-finite: the residual sum of squares. The
+    // finiteness gate is the only check standing between that poisoned
+    // objective and a solver that converges happily on the remaining
+    // samples.
+    let result = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
+        if distance == 0.0 {
+            f64::NAN
+        } else {
+            1.0 / (1.0 + 1.5 * distance.powf(1.8))
+        }
+    });
+
+    assert!(
+        result.is_none(),
+        "a poisoned objective must not fit: {result:?}",
+    );
+}
+
+#[test]
+fn solver_keeps_parameters_strictly_positive() {
+    // A constant target above one rewards a negative `a`: the curve only
+    // exceeds one where `a · d^(2b)` is below zero. Each step out of the
+    // positive quadrant is a failed step, so whatever the solver returns
+    // (here it fails to converge) stays inside the domain `new` accepts.
+    let result = fit_curve(SampleGrid::new(300, 1.0 / 299.0), |_| 1.4);
+
+    assert!(
+        result.is_none_or(|(a, b)| a > 0.0 && b > 0.0),
+        "parameters left the positive domain: {result:?}",
+    );
+}
+
+#[test]
+fn solver_refuses_a_grid_that_cannot_move_the_exponent() {
+    // With distance one as the only positive sample, `ln 1 = 0` zeroes
+    // every `b`-partial: the normal matrix's `b` diagonal is exactly zero,
+    // and multiplicative damping keeps it zero. The damped solve must
+    // refuse the singular system at every retry rather than invent a step
+    // from an additively repaired diagonal.
+    let result = fit_curve(SampleGrid::new(2, 1.0), |distance| {
+        if distance == 0.0 { 1.0 } else { 0.3 }
+    });
+
+    assert!(
+        result.is_none(),
+        "a singular system must not fit: {result:?}",
+    );
+}
+
+#[test]
+fn solver_solves_a_well_conditioned_system_of_tiny_magnitudes() {
+    // Distances of 1e-5 shrink every normal-equation entry by tens of
+    // orders of magnitude while the system stays perfectly solvable. The
+    // cancellation floor scales with the product of BOTH damped diagonals;
+    // a floor divided by either diagonal inflates astronomically here and
+    // refuses every step.
+    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(4, 1e-5), |distance| {
+        1.0 / (1.0 + 2.0 * distance.powf(2.0))
+    })
+    .expect("a tiny well-conditioned grid still fits");
+
+    assert!(
+        (fitted_a - 2.0).abs() < 2e-3,
+        "expected a to recover 2.0, got {fitted_a}",
+    );
+    assert!(
+        (fitted_b - 1.0).abs() < 1e-3,
+        "expected b to recover 1.0, got {fitted_b}",
+    );
+}
+
+#[test]
+fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
+    // From the fixed start (1, 1), an exact target at a = 100 or a = 1e8
+    // is reached only through the damping controller's full cycle:
+    // rejected overshoots raise the damping multiplicatively, accepted
+    // steps relax it, and the tiny-step exit measures each step against
+    // its own parameter. Flipping or rescaling any of those strands the
+    // walk short of recovery.
+    for known_a in [100.0, 1e8] {
+        let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
+            1.0 / (1.0 + known_a * distance.powf(2.0))
+        })
+        .expect("an exact affinity target is well-conditioned");
+
+        assert!(
+            (fitted_a - known_a).abs() < 1e-6 * known_a,
+            "expected a to recover {known_a}, got {fitted_a}",
+        );
+        assert!(
+            (fitted_b - 1.0).abs() < 1e-6,
+            "expected b to recover 1.0, got {fitted_b}",
+        );
+    }
+}
+
+#[test]
+fn solver_terminates_a_creep_along_the_domain_boundary() {
+    // A target thirty times the curve's whole range pulls `a` toward the
+    // zero boundary it may never cross: every Newton step overshoots into
+    // the forbidden quadrant, and only a damped fraction survives. The
+    // walk ends through the improvement difference falling under its
+    // relative tolerance. Additive damping growth on domain rejections
+    // and both broken improvement readings leave the creep unfinished.
+    let result = fit_curve(SampleGrid::new(300, 3.0 / 299.0), |distance| {
+        30.0 / (1.0 + 1.5 * distance.powf(1.8))
+    });
+
+    assert!(
+        result.is_some_and(|(a, b)| a > 0.0 && b > 0.0),
+        "the boundary creep must converge: {result:?}",
+    );
+}
+
+#[test]
+fn tiny_step_convergence_requires_both_parameters() {
+    // The `a` parameter is bisected so the first damped step moves `a` by
+    // under 1e-17 (seven orders inside the relative tolerance) while
+    // moving `b` by 0.84. An exit that accepts either tiny component
+    // alone, or measures `b` against an absolute threshold, stops at the
+    // start (1, 1); the conjunction of relative thresholds walks on and
+    // recovers the target exactly.
+    const TUNED_A: f64 = 0.931_322_701_934_099;
+
+    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(12, 0.25), |distance| {
+        1.0 / (1.0 + TUNED_A * distance.powf(6.0))
+    })
+    .expect("an exact affinity target is well-conditioned");
+
+    assert!(
+        (fitted_a - TUNED_A).abs() < 1e-6 * TUNED_A,
+        "expected a to recover {TUNED_A}, got {fitted_a}",
+    );
+    assert!(
+        (fitted_b - 3.0).abs() < 3e-6,
+        "expected b to recover 3.0, got {fitted_b}",
+    );
+}
+
+#[test]
+fn solver_rescues_a_walk_whose_steps_worsen_the_objective() {
+    // A steep falloff thirty spreads out makes whole stretches of proposed
+    // steps worsen the objective before the walk finds the descent again.
+    // The rescue lives in the rejection damping growing multiplicatively:
+    // sixteen additive bumps cap the damping near fifty, and the walk
+    // never re-enters the acceptable region.
+    let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(50, 30.0 / 49.0), |distance| {
+        1.0 / (1.0 + 30.0 * distance.powf(60.0))
+    })
+    .expect("a steep exact target still fits");
+
+    assert!(
+        (fitted_a - 30.0).abs() < 1e-3 * 30.0,
+        "expected a to recover 30.0, got {fitted_a}",
+    );
+    assert!(
+        (fitted_b - 30.0).abs() < 1e-3 * 30.0,
+        "expected b to recover 30.0, got {fitted_b}",
+    );
+}
+
+#[test]
 fn new_rejects_degenerate_parameters() {
     assert!(AffinityCurve::new(1.0, 1.0).is_some());
     assert!(AffinityCurve::new(0.0, 1.0).is_none());

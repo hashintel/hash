@@ -3,6 +3,8 @@
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]
 
+use core::num::NonZero;
+
 use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
@@ -651,6 +653,92 @@ fn fit_rejects_degenerate_inputs() {
 }
 
 #[test]
+fn fit_recovers_exact_images_at_every_accepted_length() {
+    let known = mixed_similarity();
+    let target = FIT_POINTS.map(|point| known.apply(point));
+
+    // Lengths 2 through 6 cover the acceptance boundary from the accepting side (a rejection
+    // bound drifting to `<= 2` turns the shortest prefix into `None`) and every split between
+    // the SIMD batch and the trailing scalar loop: 2 and 3 fold entirely in the rest loop,
+    // 4 entirely in the batch, 5 and 6 in both. An accumulator defect in either path moves
+    // the recovered coefficients at the lengths that exercise it.
+    let unit_weights = [1.0_f32; 6];
+    for pairs in 2..=FIT_POINTS.len() {
+        let source = &FIT_POINTS[..pairs];
+        let target = &target[..pairs];
+        let weights = &unit_weights[..pairs];
+
+        for fitted in [
+            Similarity::fit(source, target, weights),
+            Similarity::fit_par(source, target, weights),
+            Similarity::fit_uniform(source, target),
+            Similarity::fit_uniform_par(source, target),
+        ] {
+            let fitted = fitted.expect("distinct exact pairs determine the similarity");
+            for (&actual, &expected) in fitted.to_array().iter().zip(&known.to_array()) {
+                assert_scalar_close(actual, expected);
+            }
+        }
+    }
+}
+
+#[test]
+fn fit_uniform_rejects_mismatched_lengths() {
+    let known = mixed_similarity();
+    let target = FIT_POINTS.map(|point| known.apply(point));
+
+    // Both truncation directions: a rejection that degrades into a zip would silently fit the
+    // shorter prefix of these exact images and return `Some`.
+    assert!(Similarity::fit_uniform(&FIT_POINTS[..5], &target).is_none());
+    assert!(Similarity::fit_uniform(&FIT_POINTS, &target[..5]).is_none());
+    assert!(Similarity::fit_uniform_par(&FIT_POINTS[..5], &target).is_none());
+    assert!(Similarity::fit_uniform_par(&FIT_POINTS, &target[..5]).is_none());
+}
+
+#[test]
+fn fit_rejects_a_negative_weight_at_every_index() {
+    let known = mixed_similarity();
+    let source = &FIT_POINTS[..5];
+    let target: Vec<Vec2> = source.iter().map(|&point| known.apply(point)).collect();
+
+    // The sweep places the negative weight in every SIMD batch lane and in the trailing
+    // scalar pair, since indices 0 through 3 fill the one full batch and index 4 rides the
+    // rest loop. The coordinates stay finite and the moments stay well conditioned under the
+    // mixed-sign weights, so the validity mask is the only rejection, and a fold that loses
+    // the weight-sign lane fits these exact images instead.
+    for index in 0..source.len() {
+        let mut weights = [1.0_f32; 5];
+        weights[index] = -0.5;
+
+        assert!(
+            Similarity::fit(source, &target, &weights).is_none(),
+            "a negative weight at index {index} must reject"
+        );
+        assert!(
+            Similarity::fit_par(source, &target, &weights).is_none(),
+            "a negative weight at index {index} must reject in the parallel fit"
+        );
+    }
+}
+
+#[test]
+fn fit_par_rejects_an_invalid_chunk_beside_a_valid_one() {
+    let known = mixed_similarity();
+    let source = &CERT_POINTS[..8];
+    let target: Vec<Vec2> = source.iter().map(|&point| known.apply(point)).collect();
+
+    // The chunk size of four splits the eight pairs so that the first chunk is entirely
+    // valid and the second carries the negative weight, leaving `FitSums::combine`'s
+    // validity conjunction as the only rejection of the merged moments. The pairs are exact
+    // images with finite coordinates, so a merge that keeps the invalid side's moments while
+    // losing its flag fits them exactly.
+    let mut weights = [1.0_f32; 8];
+    weights[6] = -0.5;
+    let chunk = NonZero::new(4).expect("four is not zero");
+    assert!(Similarity::fit_par_with(source, &target, &weights, chunk).is_none());
+}
+
+#[test]
 fn invalid_scales_are_rejected() {
     let invalid_scales = [
         0.0,
@@ -726,16 +814,28 @@ fn apply_scales_distances_uniformly(
 fn fit_recovers_a_random_similarity(
     #[strategy = similarity_strategy()] similarity: Similarity,
     #[strategy = proptest::array::uniform8(-0.5_f32..0.5)] jitter: [f32; 8],
+    #[strategy = 2_usize..=8] pairs: usize,
 ) {
-    let source = [
+    // The pool spreads eight points so every prefix of two or more is well conditioned, and
+    // the varying prefix length exercises every split between the SIMD batch and the trailing
+    // scalar loop across the random input space.
+    let pool = [
         Vec2::new(jitter[0], jitter[1]),
         Vec2::new(8.0 + jitter[2], jitter[3]),
         Vec2::new(jitter[4], 8.0 + jitter[5]),
         Vec2::new(-8.0 + jitter[6], -8.0 + jitter[7]),
+        Vec2::new(8.0 + jitter[1], 8.0 + jitter[6]),
+        Vec2::new(-8.0 + jitter[3], jitter[0]),
+        Vec2::new(jitter[7], -8.0 + jitter[2]),
+        Vec2::new(-8.0 + jitter[5], 8.0 + jitter[4]),
     ];
-    let target = source.map(|point| similarity.apply(point));
+    let source = &pool[..pairs];
+    let target: Vec<Vec2> = source
+        .iter()
+        .map(|&point| similarity.apply(point))
+        .collect();
 
-    let fitted = Similarity::fit(&source, &target, &[1.0; 4])
+    let fitted = Similarity::fit(source, &target, &[1.0_f32; 8][..pairs])
         .expect("well-spread points with an exact image are well-conditioned");
 
     // The target coordinates are f32-rounded images, so the recovered
