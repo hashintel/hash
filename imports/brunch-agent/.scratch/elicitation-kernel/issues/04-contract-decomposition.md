@@ -82,3 +82,7 @@ Simultaneous multi-plugin composition · plugin removal · full replay · capabi
 
 - §4 SDK-machinery list (evidence anchoring, issue construction, fixtures, **local simulation harness** — "debugging should not require reading an entire agent transcript") → issue 06 (Shipping shape).
 - Envelope + absence states + turn-suspension → issue 05 (Questioning-UX contract).
+
+## Comments
+
+**2026-08-07 (vocabulary clarification from issue 05's resolution).** The ownership table's "Host (embedding + affordances)" bundled two concerns that later split: the **ui** shell (interface: rendering, input, reply transport, identity) and the **substrate** (the embedding environment: deploy target, storage-port implementation, artifact delivery, model/provider). Under the hardened lexicon (`CONTEXT.md`), this table's "Host" row reads as substrate concerns plus ui concerns; "kernel" reads as **harness**. No substantive change to the decomposition.
