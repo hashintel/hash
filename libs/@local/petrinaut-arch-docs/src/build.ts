@@ -20,6 +20,7 @@ import {
   type BundleManifest,
 } from "./emit/bundle-outputs";
 import { buildOverviewDiagram, buildSubtreeDiagram } from "./emit/d2";
+import { buildLayouts, renderLayoutsModule } from "./emit/layout";
 import {
   buildPages,
   resolveAuthoredLinks,
@@ -266,6 +267,13 @@ export const buildBundle = async (options: {
     authored,
   });
 
+  /**
+   * Positions for every fold state, shipped as a module the interactive diagram
+   * imports. Generated rather than authored, but it travels with the authored
+   * components because that is where a bundle consumer looks for importable code.
+   */
+  const layouts = await buildLayouts(model.layers, model.edges, slugForLayer);
+
   return {
     model,
     manifest,
@@ -273,7 +281,14 @@ export const buildBundle = async (options: {
     authored,
     diagramSources,
     singleFile: buildSingleFileArchitecture(model),
-    components: authoredResult.components,
+    components: [
+      ...authoredResult.components,
+      {
+        path: "components/architecture-layouts.ts",
+        name: "architecture-layouts",
+        contents: renderLayoutsModule(layouts, GENERATOR_NAME),
+      },
+    ],
     diagnostics,
   };
 };

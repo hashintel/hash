@@ -108,15 +108,16 @@ Regenerate it whenever you need it; nothing depends on a stored copy.
 The bundle is framework-neutral by design — the Starlight site in
 `apps/petrinaut-docs` and hash.dev are both just consumers.
 
-| File                | What it is                                                       |
-| ------------------- | ---------------------------------------------------------------- |
-| `architecture.json` | The model: layers, edges, boundaries, invariants, enforced rules |
-| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI |
-| `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
-| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
-| `components/*.tsx`  | React diagram components imported by authored pages              |
-| `diagrams/*.d2`     | Diagram sources (diffable)                                       |
-| `diagrams/*.svg`    | Rendered diagrams                                                |
+| File                                 | What it is                                                       |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `architecture.json`                  | The model: layers, edges, boundaries, invariants, enforced rules |
+| `architecture.md`                    | The whole architecture as one file — the cheapest read for an AI |
+| `manifest.json`                      | Page tree for building navigation without crawling `pages/`      |
+| `pages/**.mdx`                       | Generated layer pages, plus authored pages merged in             |
+| `components/*.tsx`                   | React diagram components imported by authored pages              |
+| `components/architecture-layouts.ts` | Pre-computed diagram geometry (generated)                        |
+| `diagrams/*.d2`                      | Diagram sources (diffable)                                       |
+| `diagrams/*.svg`                     | Rendered diagrams                                                |
 
 **Generated** MDX is YAML frontmatter plus plain CommonMark — no JSX, no
 imports, no framework components — which is what lets it render in Astro, in
@@ -135,6 +136,52 @@ slugs map to URLs without a trailing slash.** A host that serves
 `/architecture/core/simulation/` rather than `/architecture/core/simulation`
 must rewrite them; `manifest.json` gives you every slug to do so. The Starlight
 consumer sets `trailingSlash: "never"` for this reason.
+
+## The interactive layer map
+
+`components/architecture-graph.tsx` renders the layer tree as a diagram a reader
+can fold and unfold. It is the one part of the bundle with a dependency beyond
+React — `@xyflow/react`, which a host must install — so it is worth knowing what
+that buys and what it costs.
+
+**No layout runs in the browser.** The reachable fold states are enumerable — 30
+for the current model, because folding a layer makes its descendants' own states
+unobservable — so the build lays out every one of them with ELK and emits the
+coordinates as `components/architecture-layouts.ts`. That keeps `elkjs` a
+devDependency of this package, never shipped, which matters because it is
+EPL-2.0 rather than MIT/Apache.
+
+**It renders without JavaScript.** On the server, and on the first client render,
+the component emits a plain inline `<svg>` from those coordinates, with a real
+`<a href>` per layer and ELK's routed edges. Only after mount does it swap to
+React Flow for pan, zoom and the fold controls. A host that never hydrates the
+island still gets a correct, navigable diagram.
+
+Two props are the host's business, because the bundle cannot know them:
+
+```jsx
+<ArchitectureGraph hrefPrefix="/" hrefSuffix=".html" />
+```
+
+Markdown links in the pages are rewritten by the host's own pipeline; these are
+built in JSX and are not. `hrefSuffix` matches however the host addresses pages —
+`.html` for the Starlight consumer, usually empty elsewhere.
+
+### What is drawn, and what is not
+
+Folding re-points every edge at whatever is still visible. Two cases stop being
+drawable and are reported on the node as _internal_ instead:
+
+- an edge between two layers folded into the same box, and
+- an edge between a layer and something nested inside it — an arrow from a box
+  into itself.
+
+Reciprocal pairs are merged into one edge with two arrowheads, keeping both
+counts. None of this invents a dependency: an aggregated edge sums real
+`fileDependencies`, and an internal count reports real imports.
+
+`src/emit/collapse.ts` holds all of it as pure functions over the model, with
+tests. Nothing about folding is decided in the browser.
 
 ## Hand-written pages (optional)
 

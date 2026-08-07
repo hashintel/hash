@@ -4,9 +4,25 @@ description: How the Petrinaut packages fit together, and where to start reading
 sidebar_order: 0
 ---
 
+import { ArchitectureGraph } from "@diagrams/architecture-graph";
+
 Petrinaut is a visual editor and simulation runtime for Stochastic Dynamic
 Coloured Petri Nets (SDCPN). This documentation is in two halves that are
 maintained differently, and it is worth knowing which you are reading.
+
+## The layer map
+
+Every box is a layer, every arrow is real imports. Open a layer with `+` to see
+what is inside it, and follow a name to its page.
+
+{/* `hrefSuffix` matches this host's `build.format: "file"`; see the component. */}
+
+<ArchitectureGraph client:load height="560px" hrefSuffix=".html" />
+
+Arrows are drawn only between boxes that sit alongside each other. A dependency
+between two things folded into the same box, or between a box and something
+nested inside it, is counted on the node as _internal_ rather than drawn as an
+arrow pointing into itself.
 
 **Generated pages** — everything under [Architecture](architecture) — are
 extracted from annotations in the source on every build, and CI fails if they
