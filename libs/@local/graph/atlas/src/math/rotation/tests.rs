@@ -195,3 +195,21 @@ fn renormalize_preserves_the_angle(
         renormalized.sin(),
     );
 }
+
+/// Renormalization rescales both components even far from unit length.
+///
+/// The stored pair `(0.75, 1.0)` has norm `1.25` exactly, so the rescale is a quarter of the
+/// magnitude and each mis-scaled component misses its target by far more than the tolerance.
+/// Drift-sized inputs cannot see that: near unit length, multiplying and dividing by the scale
+/// land within drift of each other.
+#[test]
+fn renormalize_rescales_a_quarter_off_unit_pair() {
+    let renormalized = Rotation::from_cos_sin(0.75, 1.0).renormalize();
+
+    assert!(
+        (renormalized.cos() - 0.6).abs() < 1e-6 && (renormalized.sin() - 0.8).abs() < 1e-6,
+        "renormalized to ({}, {})",
+        renormalized.cos(),
+        renormalized.sin(),
+    );
+}

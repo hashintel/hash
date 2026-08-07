@@ -85,6 +85,8 @@ mod vec2;
 mod vecn;
 
 #[cfg(test)]
+mod test_alloc;
+#[cfg(test)]
 mod tests;
 
 #[cfg(test)]

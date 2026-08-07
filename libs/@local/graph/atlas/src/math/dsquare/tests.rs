@@ -7,10 +7,10 @@
     reason = "the fixture pattern folds indices into small integers through a modulus"
 )]
 
-use core::simd::f64x8;
+use core::{cell::Cell, simd::f64x8};
 
 use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
-use crate::math::DVecN;
+use crate::math::{DVecN, test_alloc::CountingAllocator};
 
 /// A deterministic integer pattern in `[−5, 5]`.
 fn pattern(row: usize, column: usize) -> f64 {
@@ -364,4 +364,49 @@ fn the_empty_matrix_factors_and_solves() {
 
     assert_eq!(factor.order(), 0);
     factor.solve_in_place(&mut []);
+}
+
+/// A 2 × 2 factorization whose every intermediate is exact.
+///
+/// `A = [[4, 2], [2, 5]]` factors as `L = [[2, 0], [1, 2]]`: `√4`, `2/2`, and `√(5 − 1)` all
+/// land on representable integers. The `Debug` forms print the matrix's rows and the factor's
+/// lower triangle.
+#[test]
+fn exact_factor_reports_its_order_and_debug_forms() {
+    let mut matrix = DSquareMatrix::zeroed(2);
+    matrix.row_mut(0).copy_from_slice(&[4.0, 2.0]);
+    matrix.row_mut(1).copy_from_slice(&[2.0, 5.0]);
+    assert_eq!(format!("{matrix:?}"), "[[4.0, 2.0], [2.0, 5.0]]");
+
+    let factor = matrix.cholesky().expect("the matrix is positive definite");
+    assert_eq!(factor.order(), 2);
+    assert_eq!(format!("{factor:?}"), "[[2.0], [1.0, 2.0]]");
+}
+
+/// Dropping a matrix returns its buffer to the allocator that provided it.
+#[test]
+fn matrix_drop_returns_the_buffer_to_its_allocator() {
+    let alloc = CountingAllocator::new();
+
+    let matrix = DSquareMatrix::zeroed_in(2, &alloc);
+    assert_eq!(alloc.deallocations(), 0);
+
+    drop(matrix);
+    assert_eq!(alloc.deallocations(), 1);
+}
+
+/// The factorization moves the buffer, and dropping the factor returns it exactly once.
+#[test]
+fn factor_drop_returns_the_moved_buffer_to_its_allocator() {
+    let alloc = CountingAllocator::new();
+
+    let mut matrix = DSquareMatrix::zeroed_in(2, &alloc);
+    matrix.row_mut(0).copy_from_slice(&[4.0, 2.0]);
+    matrix.row_mut(1).copy_from_slice(&[2.0, 5.0]);
+
+    let factor = matrix.cholesky().expect("the matrix is positive definite");
+    assert_eq!(alloc.deallocations(), 0);
+
+    drop(factor);
+    assert_eq!(alloc.deallocations(), 1);
 }

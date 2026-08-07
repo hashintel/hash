@@ -4,6 +4,9 @@
               exactly-representable values, and round-trip narrowing are exact contracts"
 )]
 
+use core::hash::{Hash, Hasher as _};
+use std::hash::DefaultHasher;
+
 use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, prop_oneof, property_test};
 
 use crate::math::{
@@ -201,6 +204,64 @@ fn unit_fractions_round_trip_serde_and_refuse_out_of_domain() {
     );
     serde_json::from_str::<OpenUnitFraction>("0.0").expect_err("0.0 is out of range");
     serde_json::from_str::<OpenUnitFraction>("1.0").expect_err("1.0 is out of range");
+}
+
+/// The endpoint predicates detect exactly their endpoint.
+#[test]
+fn unit_fraction_predicates_detect_exactly_their_endpoint() {
+    assert!(UnitFraction::ZERO.is_zero());
+    assert!(UnitFraction::ONE.is_one());
+    assert!(!UnitFraction::HALF.is_zero());
+    assert!(!UnitFraction::HALF.is_one());
+
+    // Exactness: the nearest representable neighbours do not qualify.
+    let below_one = UnitFraction::new(1.0 - f64::EPSILON / 2.0).expect("below one");
+    assert!(!below_one.is_one());
+    let above_zero = UnitFraction::new(f64::MIN_POSITIVE).expect("above zero");
+    assert!(!above_zero.is_zero());
+}
+
+/// Fractions display as the raw number, and conversion errors name the value and its interval.
+#[test]
+fn unit_fractions_display_the_number_and_errors_the_interval() {
+    assert_eq!(UnitFraction::HALF.to_string(), "0.5");
+    let open = OpenUnitFraction::new(0.25).expect("0.25 lies inside (0, 1)");
+    assert_eq!(open.to_string(), "0.25");
+
+    assert_eq!(
+        UnitFraction::try_from(1.5)
+            .expect_err("1.5 lies outside [0, 1]")
+            .to_string(),
+        "1.5 is not a fraction in [0, 1]"
+    );
+    assert_eq!(
+        OpenUnitFraction::try_from(1.5)
+            .expect_err("1.5 lies outside (0, 1)")
+            .to_string(),
+        "1.5 is not a fraction in (0, 1)"
+    );
+}
+
+/// Hashes one value with the std default hasher.
+fn hash_of(value: impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// `Hash` agrees with `Eq` and separates distinct fractions.
+#[test]
+fn unit_fraction_hashes_follow_numeric_value() {
+    // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+    assert_eq!(
+        hash_of(UnitFraction::new(-0.0).expect("-0.0 lies inside [0, 1]")),
+        hash_of(UnitFraction::ZERO)
+    );
+    assert_ne!(hash_of(UnitFraction::ZERO), hash_of(UnitFraction::ONE));
+
+    let quarter = OpenUnitFraction::new(0.25).expect("0.25 lies inside (0, 1)");
+    let half = OpenUnitFraction::new(0.5).expect("0.5 lies inside (0, 1)");
+    assert_ne!(hash_of(quarter), hash_of(half));
 }
 
 #[test]

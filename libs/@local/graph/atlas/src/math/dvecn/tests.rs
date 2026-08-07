@@ -4,9 +4,12 @@
               identities are exact contracts"
 )]
 
+use core::hash::{Hash, Hasher as _};
+use std::hash::DefaultHasher;
+
 use proptest::{prop_assert, prop_assert_eq, property_test, strategy::Strategy};
 
-use crate::math::{BoxedDVecN, DVecN};
+use crate::math::{AlignedDVecN, BoxedDVecN, DVecN, test_alloc::CountingAllocator};
 
 #[test]
 fn max_and_sum_match_scalar_folds_across_chunk_sizes() {
@@ -703,4 +706,99 @@ fn aligned_reductions_agree_with_unaligned_bits_across_chunk_sizes() {
         core::array::from_fn::<f64, 21, _>(|index| coordinate(index).mul_add(0.09, -0.8)),
         core::array::from_fn::<f64, 21, _>(|index| coordinate(index).mul_add(0.23, 1.6)),
     );
+}
+
+/// The interleaved reductions visit a third lane group and the remainder in one call.
+///
+/// Twenty-five components split as three 8-lane groups plus one remainder component, so the
+/// two-accumulator fold revisits accumulator zero at group index two. Signed integer components
+/// keep every partial sum exact.
+#[test]
+fn abs_sum_interleaves_three_lane_groups() {
+    let components = core::array::from_fn::<f64, 25, _>(|index| {
+        let magnitude = coordinate(index);
+        if index.is_multiple_of(2) {
+            -magnitude
+        } else {
+            magnitude
+        }
+    });
+
+    // Σ 0..=24 = 300, a sum of exactly representable integers.
+    assert_eq!(DVecN::new(components).abs_sum(), 300.0);
+    assert_eq!(BoxedDVecN::from(components).abs_sum(), 300.0);
+}
+
+/// The scaled two-pass norm visits a third lane group and the remainder in one call.
+///
+/// The 3-4-5 triangle keeps every step exact: the scale is `4`, the ratios are `0.75` and `-1`,
+/// and `4 · √1.5625 = 5`.
+#[test]
+fn stable_l2_interleaves_three_lane_groups() {
+    let mut components = [0.0_f64; 25];
+    components[0] = 3.0;
+    components[24] = -4.0;
+
+    assert_eq!(DVecN::new(components).stable_l2(), 5.0);
+}
+
+/// Negation flips the aligned lane groups of guaranteed-aligned storage.
+#[test]
+fn negate_flips_the_aligned_lane_groups() {
+    let mut boxed = BoxedDVecN::from([1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0, -8.0]);
+
+    DVecN::from_mut(boxed.as_array_mut()).negate();
+
+    assert_eq!(
+        *boxed.as_array(),
+        [-1.0, 2.0, -3.0, 4.0, -5.0, 6.0, -7.0, 8.0]
+    );
+}
+
+/// The checking wrapper admits aligned storage and refuses an offset view of it.
+#[test]
+fn aligned_from_mut_checks_alignment() {
+    let mut boxed = BoxedDVecN::from([7.0_f64; 9]);
+    let array: &mut [f64; 9] = boxed.as_array_mut();
+
+    let (head, _) = array.split_at_mut(8);
+    let head: &mut [f64; 8] = head.try_into().expect("eight components split off");
+    assert!(AlignedDVecN::from_mut(head).is_some());
+
+    // One component in, the view sits eight bytes past the 64-byte boundary.
+    let tail: &mut [f64; 8] = (&mut array[1..])
+        .try_into()
+        .expect("eight components remain");
+    assert!(AlignedDVecN::from_mut(tail).is_none());
+}
+
+/// Hashes one value with the std default hasher.
+fn hash_of(value: impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// `Hash` follows the components and `Debug` prints them.
+#[test]
+fn boxed_hash_and_debug_follow_the_components() {
+    let low = BoxedDVecN::from([0.5, 1.5]);
+    let high = BoxedDVecN::from([1.0, 1.5]);
+
+    // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+    assert_ne!(hash_of(&low), hash_of(&high));
+    assert_eq!(format!("{low:?}"), "AlignedDVecN([0.5, 1.5])");
+}
+
+/// Dropping a box returns its buffer to the allocator that provided it.
+#[test]
+fn boxed_drop_returns_the_buffer_to_its_allocator() {
+    let alloc = CountingAllocator::new();
+
+    let boxed = BoxedDVecN::try_new_in(DVecN::from_ref(&[1.0, 2.0, 3.0]), &alloc)
+        .expect("the global allocator provides a three-component buffer");
+    assert_eq!(alloc.deallocations(), 0);
+
+    drop(boxed);
+    assert_eq!(alloc.deallocations(), 1);
 }

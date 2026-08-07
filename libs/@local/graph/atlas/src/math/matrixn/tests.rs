@@ -1,6 +1,7 @@
 use core::simd::f32x8;
 
 use super::MatrixN;
+use crate::math::test_alloc::CountingAllocator;
 
 #[test]
 fn zeroed_matrix_reads_zero_everywhere() {
@@ -69,4 +70,28 @@ fn empty_matrix_is_well_formed() {
     assert!(matrix.rows().is_empty());
     assert!(matrix.as_components().is_empty());
     assert_eq!(matrix, matrix.clone());
+}
+
+/// `Debug` prints the rows.
+#[test]
+fn debug_prints_the_rows() {
+    let mut matrix = MatrixN::<8>::zeroed(1);
+    matrix.rows_mut()[0].as_array_mut()[0] = 1.5;
+
+    assert_eq!(
+        format!("{matrix:?}"),
+        "[AlignedVecN([1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])]"
+    );
+}
+
+/// Dropping a matrix returns its buffer to the allocator that provided it.
+#[test]
+fn drop_returns_the_buffer_to_its_allocator() {
+    let alloc = CountingAllocator::new();
+
+    let matrix = MatrixN::<8, _>::zeroed_in(2, &alloc);
+    assert_eq!(alloc.deallocations(), 0);
+
+    drop(matrix);
+    assert_eq!(alloc.deallocations(), 1);
 }

@@ -9,13 +9,15 @@
 )]
 
 use core::{
+    hash::{Hash, Hasher as _},
     iter,
     simd::{Simd, f32x8, num::SimdFloat as _},
 };
+use std::hash::DefaultHasher;
 
 use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
-use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
+use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN, test_alloc::CountingAllocator};
 
 /// Deterministic, sign-varying components crossing multiple 8-lane chunks.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
@@ -522,4 +524,48 @@ fn dot_matches_a_plain_f64_reference(
         actual,
         expected,
     );
+}
+
+/// The checking slice wrapper refuses an offset view of aligned storage.
+///
+/// Eight `f32` components fill exactly one `f32x8` group, so the width condition holds and only
+/// the address decides. One component in, the view sits four bytes past the boundary.
+#[test]
+fn aligned_from_slice_mut_checks_the_address() {
+    let mut boxed = BoxedVecN::new(&VecN::new([7.0_f32; 16]));
+    let array: &mut [f32; 16] = boxed.as_array_mut();
+
+    assert!(AlignedVecN::<8>::from_slice_mut(&mut array[..8]).is_some());
+    assert!(AlignedVecN::<8>::from_slice_mut(&mut array[1..9]).is_none());
+}
+
+/// Hashes one value with the std default hasher.
+fn hash_of(value: impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// `Hash` follows the components and `Debug` prints them.
+#[test]
+fn boxed_hash_and_debug_follow_the_components() {
+    let low = BoxedVecN::new(&VecN::new([0.5_f32, 1.5]));
+    let high = BoxedVecN::new(&VecN::new([1.0_f32, 1.5]));
+
+    // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+    assert_ne!(hash_of(&low), hash_of(&high));
+    assert_eq!(format!("{low:?}"), "AlignedVecN([0.5, 1.5])");
+}
+
+/// Dropping a box returns its buffer to the allocator that provided it.
+#[test]
+fn boxed_drop_returns_the_buffer_to_its_allocator() {
+    let alloc = CountingAllocator::new();
+
+    let boxed = BoxedVecN::try_new_in(&VecN::new([1.0_f32, 2.0, 3.0]), &alloc)
+        .expect("the global allocator provides a three-component buffer");
+    assert_eq!(alloc.deallocations(), 0);
+
+    drop(boxed);
+    assert_eq!(alloc.deallocations(), 1);
 }
