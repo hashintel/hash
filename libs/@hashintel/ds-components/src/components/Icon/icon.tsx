@@ -57,6 +57,7 @@ import Cubes from "./svgs/regular/cubes.svg";
 import DiagramNested from "./svgs/regular/diagram-nested.svg";
 import DiagramProject from "./svgs/regular/diagram-project.svg";
 import DiagramSubtask from "./svgs/regular/diagram-subtask.svg";
+import DiamondExclamation from "./svgs/regular/diamond-exclamation.svg";
 import Download from "./svgs/regular/download.svg";
 import EllipsisVertical from "./svgs/regular/ellipsis-vertical.svg";
 import Ellipsis from "./svgs/regular/ellipsis.svg";
@@ -182,6 +183,7 @@ const IconMap = {
   diagramProject: DiagramProject,
   diagramSubtask: DiagramSubtask,
   diagramNodes: CircleNodes,
+  diamondExclamation: DiamondExclamation,
   download: Download,
   edit: PenToSquare,
   ellipsis: Ellipsis,

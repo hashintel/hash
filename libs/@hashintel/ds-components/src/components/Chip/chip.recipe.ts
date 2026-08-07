@@ -1,6 +1,6 @@
 import { cva, sva } from "@hashintel/ds-helpers/css";
 
-export const chipVariants = ["fill", "fillLight", "outline", "subtle"] as const;
+export const chipVariants = ["defined", "soft", "outline", "ghost"] as const;
 
 export const styles = sva({
   slots: ["root", "label", "centerButton"],
@@ -264,14 +264,14 @@ export const styles = sva({
       pink: { root: { colorPalette: "pink" } },
     },
     variant: {
-      fill: {
+      defined: {
         root: {
           background: "colorPalette.bgSolid.subtle",
           borderColor: "colorPalette.bd.solid",
           color: "colorPalette.fg.link",
         },
       },
-      fillLight: {
+      soft: {
         root: {
           background: "colorPalette.bgSolid.surface.active",
           borderColor: "colorPalette.bd.subtle",
@@ -286,9 +286,9 @@ export const styles = sva({
           "--chip-hover-strength": "9%",
         },
       },
-      // Identical to fillLight  but invisible at rest: unless hovered or focused,
+      // Identical to soft but invisible at rest: unless hovered or focused,
       // the fill, main border and any straight-affix dividers all go transparent.
-      subtle: {
+      ghost: {
         root: {
           background: "colorPalette.bgSolid.surface.active",
           borderColor: "colorPalette.bd.subtle",
@@ -381,14 +381,14 @@ export const styles = sva({
   compoundVariants: [
     // The clickable-root hover composites the shared hover mix opaquely over the
     // variant's resting bg — the same colour the segments reach by layering the
-    // translucent `--chip-hover-tint`. `fill`/`fillLight` restate their resting
+    // translucent `--chip-hover-tint`. `defined`/`soft` restate their resting
     // token in the mix (there's no way to read "current bg"); `outline` rests on
-    // opaque white, so it mixes over `--colors-white`; `subtle` mirrors fillLight.
+    // opaque white, so it mixes over `--colors-white`; `ghost` mirrors soft.
     // These mixes stay `in srgb` (unlike the oklab mixes elsewhere): the browser
     // alpha-composites in srgb, so only srgb here matches the segments' colour.
     {
       clickable: true,
-      variant: "fill",
+      variant: "defined",
       css: {
         root: {
           _hover: {
@@ -401,7 +401,7 @@ export const styles = sva({
     },
     {
       clickable: true,
-      variant: ["fillLight", "subtle"],
+      variant: ["soft", "ghost"],
       css: {
         root: {
           _hover: {
@@ -426,7 +426,7 @@ export const styles = sva({
     },
     {
       color: "yellow",
-      variant: ["fillLight", "subtle"],
+      variant: ["soft", "ghost"],
       css: {
         root: {
           borderColor: "colorPalette.bd.subtle.hover",
@@ -449,7 +449,7 @@ export const styles = sva({
   defaultVariants: {
     size: "md",
     color: "grey",
-    variant: "fill",
+    variant: "defined",
     shape: "default",
   },
 });

@@ -14,7 +14,7 @@ type ItemBase = {
 
   indent?: number;
   disabled?: boolean;
-  tone?: Tone;
+  tone?: Exclude<Tone, "warning" | "success">;
   selectedStyle?: "tick" | "checkbox" | "highlight";
 
   /**

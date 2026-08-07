@@ -37,7 +37,7 @@ export const Checkbox = ({
   /** Vertical alignment of the box against the label when it wraps over multiple lines */
   labelAlign?: "top" | "center";
   /** The tone applied when the checkbox is checked */
-  tone?: Exclude<Tone, "error"> | "success";
+  tone?: Exclude<Tone, "error" | "warning">;
   /** Render the box in the indeterminate ("partially checked") state */
   indeterminate?: boolean;
   /** An optional value used for native form submissions */

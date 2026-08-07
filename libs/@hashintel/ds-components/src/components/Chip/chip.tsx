@@ -40,7 +40,7 @@ export type ChipProps = {
   size?: ChipSize;
   shape?: "default" | "round";
   color?: ChipColor;
-  variant?: "fill" | "fillLight" | "outline" | "subtle";
+  variant?: "defined" | "soft" | "outline" | "ghost";
   onClick?: () => void;
   prefix?: PrefixOrSuffix;
 } & ExclusifyUnion<
@@ -124,7 +124,7 @@ export const Chip = ({
   size = "md",
   shape = "default",
   color = "grey",
-  variant = "fill",
+  variant = "defined",
   onClick,
   prefix,
   suffix,

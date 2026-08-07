@@ -16,10 +16,10 @@ const colors: ChipColor[] = [
 ];
 
 const variants: NonNullable<ChipProps["variant"]>[] = [
-  "fill",
-  "fillLight",
+  "defined",
+  "soft",
   "outline",
-  "subtle",
+  "ghost",
 ];
 
 const shapes: NonNullable<ChipProps["shape"]>[] = ["default", "round"];
@@ -136,7 +136,7 @@ export default {
   args: {
     children: "Chip",
     color: "grey",
-    variant: "fill",
+    variant: "defined",
     size: "md",
     shape: "default",
   },
