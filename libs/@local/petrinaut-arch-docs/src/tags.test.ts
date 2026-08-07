@@ -121,7 +121,7 @@ export const evaluate = () => {};
   });
 
   it("ignores standard JSDoc tags", () => {
-    const { diagnostics, annotated } = scanTags(`/**
+    const { tags, diagnostics } = scanTags(`/**
  * Does a thing.
  *
  * @param input the thing
@@ -130,7 +130,8 @@ export const evaluate = () => {};
  */`);
 
     expect(diagnostics).toEqual([]);
-    expect(annotated).toBe(false);
+    expect(tags.layerRoot).toBeNull();
+    expect(tags.role).toBeNull();
   });
 
   it("does not treat a tag mentioned mid-sentence as a tag", () => {

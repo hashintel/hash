@@ -117,8 +117,6 @@ export interface GraphOptions {
 export interface GraphResult {
   edges: Edge[];
   warnings: string[];
-  /** File-level dependencies whose target resolved outside any layer. */
-  unresolvedCount: number;
 }
 
 export const buildGraph = async (
@@ -178,7 +176,6 @@ export const buildGraph = async (
   }
 
   const edges = new Map<string, EdgeAccumulator>();
-  let unresolvedCount = 0;
 
   for (const module of modules) {
     const fromFile = toPosix(relative(repoRoot, join(repoRoot, module.source)));
@@ -194,8 +191,8 @@ export const buildGraph = async (
       );
       const toLayer = fileLayers.get(toFile);
 
+      // Imports landing outside any layer — node_modules, uncovered packages.
       if (toLayer === undefined) {
-        unresolvedCount += 1;
         continue;
       }
 
@@ -238,5 +235,5 @@ export const buildGraph = async (
         left.from.localeCompare(right.from) || left.to.localeCompare(right.to),
     );
 
-  return { edges: result, warnings, unresolvedCount };
+  return { edges: result, warnings };
 };

@@ -329,16 +329,15 @@ const buildLayerPage = (
 
   body.push(`> ${layer.role}`, "");
 
-  const facts = [
-    `**Package** \`${layer.package}\``,
-    `**Layer id** \`${layer.id}\``,
-    `**Files** ${layer.fileCount}`,
-    `**Lines** ${layer.lineCount.toLocaleString("en-US")}`,
-  ];
-  if (layer.owner !== null) {
-    facts.push(`**Owner** ${layer.owner}`);
-  }
-  body.push(facts.join(" · "), "");
+  body.push(
+    [
+      `**Package** \`${layer.package}\``,
+      `**Layer id** \`${layer.id}\``,
+      `**Files** ${layer.fileCount}`,
+      `**Lines** ${layer.lineCount.toLocaleString("en-US")}`,
+    ].join(" · "),
+    "",
+  );
 
   body.push(
     `Declared in [\`${layer.declaredIn}\`](${sourceLink(sourceUrlPrefix, layer.declaredIn)}).`,

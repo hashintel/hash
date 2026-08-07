@@ -36,7 +36,6 @@ export const layerDeclarationSchema = z
       )
       .default([]),
     invariants: z.array(z.string().min(1)).default([]),
-    owner: z.string().min(1).optional(),
   })
   .strict();
 

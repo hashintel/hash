@@ -30,62 +30,67 @@ specific failures motivated this package:
 Here the architecture is declared next to the code it describes, and CI fails
 when a declaration stops matching reality.
 
-## The two inputs
+## Declaring a layer
 
-Either declares a layer. Prefer the doc comment — it needs no new file. Reach
-for a README when the folder has real prose to carry, or when no single file is
-the obvious host.
+A declaration is two lines — an id and a one-line role:
 
-### Folder `README.md` frontmatter
+```ts
+/**
+ * @layerRoot core.simulation.monte-carlo
+ * @role Runs many simulations with bounded frame memory
+ */
+```
 
-The prose below the frontmatter becomes the layer's page body, so a folder
-README that already explains itself becomes an architecture page for free.
+That is a complete declaration. Everything below is optional, and worth adding
+only where the fact is real.
+
+| Tag           | Adds                                                       |
+| ------------- | ---------------------------------------------------------- |
+| `@layerName`  | Display name. Defaults to the last id segment.             |
+| `@entryPoint` | A public import specifier reaching this layer. Repeatable. |
+| `@boundary`   | `<kind> — <what may not cross>`. Repeatable.               |
+| `@invariant`  | Something that must stay true here. Repeatable.            |
+| `@layer`      | Assigns **this file alone** to an already-declared layer.  |
+
+`@boundary` kinds are `thread`, `worker`, `process`, `network`, `package` and
+`sandbox`; the separator may be `—`, `-` or `:`.
+
+`@layer` is the escape hatch for a single misplaced file. Reach for it rarely — a
+file that needs it is usually a file in the wrong folder.
+
+Tags are read from any block comment, only at the start of a line, so mentioning
+`@layerRoot` in prose declares nothing. A tag's text wraps across lines until the
+next tag or a blank line.
+
+### Declaring from a README instead
+
+A folder `README.md` can declare the same thing in frontmatter, and its prose
+becomes the layer's page body — so a folder README that already explains itself
+becomes an architecture page for free. Use it when the folder has real prose to
+carry, or when no single file is the obvious host. Otherwise prefer the doc
+comment: it needs no new file.
 
 ```yaml
 ---
-layer: core.simulation.monte-carlo # dotted id; every ancestor must also be declared
-name: Monte Carlo runtime # display name (defaults to the last id segment)
-role: Runs many simulations with bounded frame memory # one line; required
-entryPoints: # public import specifiers reaching this layer
+layer: core.simulation.monte-carlo
+role: Runs many simulations with bounded frame memory
+name: Monte Carlo runtime
+entryPoints:
   - "@hashintel/petrinaut-core/workers/monte-carlo"
 boundaries:
   - kind: worker
     note: Frame buffers stay inside the worker
 invariants:
   - Frame memory is bounded regardless of run length
-owner: simulation # optional
 ---
 ```
 
-A README with no `layer` key is left alone as an ordinary document, and is linked
-from its layer page under "Further reading".
+Use one or the other on a folder, never both. A README with no `layer` key is
+left alone as an ordinary document, and is linked from its layer page under
+"Further reading".
 
-### Doc-comment tags
-
-```ts
-/**
- * @layerRoot core.simulation.monte-carlo   declares the layer from an entry file
- * @layerName Monte Carlo runtime           display name
- * @role Runs many bounded-memory simulations
- * @layer core.simulation.engine            assigns THIS FILE only, overriding inheritance
- * @entryPoint @hashintel/petrinaut-core/workers/monte-carlo
- * @boundary worker — frame buffers never cross to the main thread
- * @invariant Two reusable frame buffers per run; no per-frame allocation
- * @owner simulation
- */
-```
-
-- `@layerRoot` declares the layer from the folder's primary file — a barrel if
-  there is one, otherwise the module the folder is really about. Use it or a
-  README, never both on one folder.
-- `@layer` is the escape hatch for a single misplaced file. Reach for it rarely —
-  a file that needs it is usually a file in the wrong folder.
-- `@boundary` accepts `thread`, `worker`, `process`, `network`, `package` or
-  `sandbox`, then `—`, `-` or `:`, then a note saying what may not cross.
-- Tags are read from any block comment in the file, and a tag's text continues
-  across wrapped lines until the next tag or a blank line.
-- Tags are only recognised at the start of a line inside a block comment, so
-  mentioning `@layerRoot` in prose does not accidentally declare anything.
+Layer ids are dotted and hierarchical, and every ancestor must itself be
+declared — `core.simulation.monte-carlo` requires `core.simulation` and `core`.
 
 ### Inheritance is what keeps this small
 

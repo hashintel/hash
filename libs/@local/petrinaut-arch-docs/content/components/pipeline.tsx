@@ -70,5 +70,3 @@ const Step = ({
     )}
   </>
 );
-
-export default Pipeline;

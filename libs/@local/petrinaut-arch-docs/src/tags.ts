@@ -40,7 +40,6 @@ export interface ParsedTags {
   layer: TagValue | null;
   layerName: TagValue | null;
   role: TagValue | null;
-  owner: TagValue | null;
   entryPoints: TagValue[];
   boundaries: BoundaryTag[];
   invariants: TagValue[];
@@ -54,8 +53,6 @@ export interface TagDiagnostic {
 export interface TagScanResult {
   tags: ParsedTags;
   diagnostics: TagDiagnostic[];
-  /** True when the file carried at least one architecture tag. */
-  annotated: boolean;
 }
 
 const emptyTags = (): ParsedTags => ({
@@ -63,67 +60,19 @@ const emptyTags = (): ParsedTags => ({
   layer: null,
   layerName: null,
   role: null,
-  owner: null,
   entryPoints: [],
   boundaries: [],
   invariants: [],
 });
 
 /** Tags that may appear at most once per file. */
-const singularTags = [
-  "layerRoot",
-  "layer",
-  "layerName",
-  "role",
-  "owner",
-] as const;
+const singularTags = ["layerRoot", "layer", "layerName", "role"] as const;
 
 type SingularTag = (typeof singularTags)[number];
 
 const repeatableTags = ["entryPoint", "boundary", "invariant"] as const;
 
 const knownTagNames = new Set<string>([...singularTags, ...repeatableTags]);
-
-/**
- * Tag names that look like ours but are not, so a typo produces a diagnostic
- * instead of being silently ignored. Anything not in `knownTagNames` and not
- * a standard JSDoc tag is reported.
- */
-const ignoredTagNames = new Set([
-  "param",
-  "returns",
-  "return",
-  "throws",
-  "example",
-  "see",
-  "link",
-  "deprecated",
-  "internal",
-  "public",
-  "private",
-  "protected",
-  "readonly",
-  "typeParam",
-  "template",
-  "type",
-  "typedef",
-  "default",
-  "remarks",
-  "module",
-  "packageDocumentation",
-  "since",
-  "todo",
-  "fileoverview",
-  "file",
-  "overload",
-  "satisfies",
-  "experimental",
-  "alpha",
-  "beta",
-  "eslint",
-  "vitest",
-  "vi",
-]);
 
 const blockCommentPattern = /\/\*\*[\s\S]*?\*\//gu;
 
@@ -228,7 +177,6 @@ const collectRawTags = (lines: { text: string; line: number }[]): RawTag[] => {
 export const scanTags = (sourceText: string): TagScanResult => {
   const tags = emptyTags();
   const diagnostics: TagDiagnostic[] = [];
-  let annotated = false;
 
   const assignSingular = (name: SingularTag, { text, line }: RawTag): void => {
     if (text === "") {
@@ -243,7 +191,6 @@ export const scanTags = (sourceText: string): TagScanResult => {
       return;
     }
     tags[name] = { value: text, line };
-    annotated = true;
   };
 
   const lineStarts = lineStartOffsets(sourceText);
@@ -269,7 +216,6 @@ export const scanTags = (sourceText: string): TagScanResult => {
           continue;
         }
         tags.entryPoints.push({ value: text, line });
-        annotated = true;
         continue;
       }
 
@@ -282,7 +228,6 @@ export const scanTags = (sourceText: string): TagScanResult => {
           continue;
         }
         tags.invariants.push({ value: text, line });
-        annotated = true;
         continue;
       }
 
@@ -308,24 +253,23 @@ export const scanTags = (sourceText: string): TagScanResult => {
         }
 
         tags.boundaries.push({ kind: parsedKind.data, note, line });
-        annotated = true;
         continue;
       }
 
-      if (!knownTagNames.has(name) && !ignoredTagNames.has(name)) {
-        const lowered = name.toLowerCase();
-        const suggestion = [...knownTagNames].find(
-          (known) => known.toLowerCase() === lowered,
-        );
-        if (suggestion) {
-          diagnostics.push({
-            line,
-            message: `unknown tag @${name}; did you mean @${suggestion}?`,
-          });
-        }
+      // Only a miscased version of one of our own tags is reported. Every other
+      // unknown tag is someone else's — `@param`, `@deprecated`, an eslint
+      // directive — and is none of our business.
+      const suggestion = [...knownTagNames].find(
+        (known) => known !== name && known.toLowerCase() === name.toLowerCase(),
+      );
+      if (suggestion !== undefined) {
+        diagnostics.push({
+          line,
+          message: `unknown tag @${name}; did you mean @${suggestion}?`,
+        });
       }
     }
   }
 
-  return { tags, diagnostics, annotated };
+  return { tags, diagnostics };
 };

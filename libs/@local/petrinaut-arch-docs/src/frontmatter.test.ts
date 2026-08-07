@@ -15,7 +15,6 @@ boundaries:
     note: Frame buffers never cross to the main thread
 invariants:
   - Two reusable frame buffers per run
-owner: simulation
 ---
 
 # Monte Carlo
@@ -36,7 +35,6 @@ Runs batches.
         },
       ],
       invariants: ["Two reusable frame buffers per run"],
-      owner: "simulation",
     });
     expect(body).toBe("# Monte Carlo\n\nRuns batches.");
   });

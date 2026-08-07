@@ -18,7 +18,6 @@ import {
   buildManifest,
   buildSingleFileArchitecture,
   type BundleManifest,
-  type DiagramRecord,
 } from "./emit/bundle-outputs";
 import { buildOverviewDiagram, buildSubtreeDiagram } from "./emit/d2";
 import {
@@ -136,12 +135,6 @@ export const buildBundle = async (options: {
       buildSubtreeDiagram(parentId, model.layers, model.edges, GENERATOR_NAME),
     );
   }
-
-  const diagrams: DiagramRecord[] = [...diagramSources.keys()].map((name) => ({
-    name,
-    source: `diagrams/${name}.d2`,
-    svg: `diagrams/${name}.svg`,
-  }));
 
   const authoredResult = await collectAuthoredContent({
     repoRoot,
@@ -271,7 +264,6 @@ export const buildBundle = async (options: {
     generator: GENERATOR_NAME,
     generated,
     authored,
-    diagrams,
   });
 
   return {

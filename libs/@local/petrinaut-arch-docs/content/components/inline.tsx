@@ -25,5 +25,3 @@ export const Inline = ({ text }: { text: string }): ReactElement => (
     )}
   </>
 );
-
-export default Inline;

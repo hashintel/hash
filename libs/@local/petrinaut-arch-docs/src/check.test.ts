@@ -29,7 +29,6 @@ const layer = (overrides: Partial<Layer> & Pick<Layer, "id">): Layer => ({
   boundaries: [],
   invariants: [],
   entryPoints: [],
-  owner: null,
   references: [],
   files: ["src/a.ts"],
   fileCount: 1,

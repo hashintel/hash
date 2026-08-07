@@ -31,7 +31,6 @@ interface LayerAccumulator {
   boundaries: Boundary[];
   invariants: Annotation[];
   entryPoints: Set<string>;
-  owner: string | null;
   references: string[];
   files: string[];
   lineCount: number;
@@ -260,7 +259,6 @@ export const extract = async (
               line: 1,
             })),
             entryPoints: declaration.entryPoints,
-            owner: declaration.owner ?? null,
           });
         }
 
@@ -301,7 +299,6 @@ export const extract = async (
             line: invariant.line,
           })),
           entryPoints: tags.entryPoints.map((entryPoint) => entryPoint.value),
-          owner: tags.owner?.value ?? null,
         });
 
         if (!tags.role) {
@@ -420,7 +417,6 @@ export const extract = async (
       entryPoints: [...accumulator.entryPoints].sort((left, right) =>
         left.localeCompare(right),
       ),
-      owner: accumulator.owner,
       references: accumulator.references.sort((left, right) =>
         left.localeCompare(right),
       ),

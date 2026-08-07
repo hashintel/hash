@@ -21,8 +21,6 @@ export interface ManifestPage {
   description: string;
   /** `generated` pages are rewritten on every build; `authored` are hand-written. */
   kind: "generated" | "authored";
-  /** Nesting depth implied by the slug, for convenience when building nav. */
-  depth: number;
   order: number;
 }
 
@@ -33,20 +31,12 @@ export interface BundleManifest {
   /** Relative path to the machine-readable model. */
   model: string;
   pages: ManifestPage[];
-  diagrams: { name: string; source: string; svg: string | null }[];
-}
-
-export interface DiagramRecord {
-  name: string;
-  source: string;
-  svg: string | null;
 }
 
 export const buildManifest = (options: {
   generator: string;
   generated: GeneratedPage[];
   authored: AuthoredPage[];
-  diagrams: DiagramRecord[];
 }): BundleManifest => {
   const pages: ManifestPage[] = [
     ...options.generated.map((page) => ({
@@ -55,7 +45,6 @@ export const buildManifest = (options: {
       title: page.title,
       description: page.description,
       kind: "generated" as const,
-      depth: page.slug.split("/").length - 1,
       order: page.order,
     })),
     ...options.authored.map((page) => ({
@@ -64,7 +53,6 @@ export const buildManifest = (options: {
       title: page.title,
       description: page.description,
       kind: "authored" as const,
-      depth: page.slug.split("/").length - 1,
       order: page.order,
     })),
   ].sort(
@@ -78,7 +66,6 @@ export const buildManifest = (options: {
     generator: options.generator,
     model: "architecture.json",
     pages,
-    diagrams: options.diagrams,
   };
 };
 
@@ -127,10 +114,6 @@ export const buildSingleFileArchitecture = (
       `- Declared in: \`${layer.declaredIn}\``,
       `- Size: ${layer.fileCount} files, ${layer.lineCount} lines`,
     );
-
-    if (layer.owner !== null) {
-      lines.push(`- Owner: ${layer.owner}`);
-    }
 
     if (layer.entryPoints.length > 0) {
       lines.push(

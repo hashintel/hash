@@ -86,5 +86,3 @@ const Segment = ({ segment }: { segment: SegmentSpec }) => (
     </div>
   </>
 );
-
-export default ByteMap;

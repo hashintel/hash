@@ -73,7 +73,6 @@ export const layerSchema = z.object({
   invariants: z.array(annotationSchema),
   /** Public import specifiers through which this layer is reachable. */
   entryPoints: z.array(z.string().min(1)),
-  owner: z.string().nullable(),
   /** Other markdown under this layer, e.g. `hir/BUFFER_ABI.md`, linked from its page. */
   references: z.array(z.string().min(1)),
   files: z.array(z.string().min(1)),

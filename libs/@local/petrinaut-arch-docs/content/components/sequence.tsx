@@ -81,5 +81,3 @@ export const Sequence = ({ title, actors, rows }: SequenceProps) => (
     </div>
   </figure>
 );
-
-export default Sequence;

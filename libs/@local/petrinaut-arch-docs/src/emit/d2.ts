@@ -15,13 +15,6 @@ import { spawnSync } from "node:child_process";
 
 import type { Edge, Layer } from "../model";
 
-export interface Diagram {
-  name: string;
-  title: string;
-  description: string;
-  source: string;
-}
-
 const quote = (text: string): string => JSON.stringify(text);
 
 /** Top-level ancestor of a dotted id, used for colour classing. */

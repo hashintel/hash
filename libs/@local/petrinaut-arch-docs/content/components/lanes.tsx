@@ -90,5 +90,3 @@ export const Lanes = ({ title, lanes, legend }: LanesProps) => (
     )}
   </figure>
 );
-
-export default Lanes;
