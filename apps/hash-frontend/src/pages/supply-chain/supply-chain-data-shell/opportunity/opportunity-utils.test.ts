@@ -35,7 +35,7 @@ function step(overrides: Partial<StepDetail>): StepDetail {
     type: "production",
     durations: [8, 10, 12],
     observations: [
-      { date: "2025-08-01", value: 9 },
+      { date: "2025-06-01", value: 9 },
       { date: "2026-02-01", value: 12 },
     ],
 
@@ -53,6 +53,12 @@ function step(overrides: Partial<StepDetail>): StepDetail {
 }
 
 describe("opportunity brief helpers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-15T00:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it("adds trigger, confidence, and recommended actions to dwell briefs", () => {
     const brief = buildDwellOpportunityBrief(
       step({ type: "qa_hold" }),
@@ -145,6 +151,13 @@ describe("opportunity brief helpers", () => {
     expect(brief.calibrationDirection).toBe("increase");
     expect(brief.opportunityTrigger.primaryMetric).toContain("+50%");
     expect(brief.diagnosis[0]).toContain("below the observed high-percentile");
+    expect(brief.trend).toMatchObject({
+      currentN: 1,
+      currentValue: 12,
+      previousN: 1,
+      previousValue: 9,
+      direction: "worsening",
+    });
     expect(brief.diagnosis.some((line) => /trend/i.test(line))).toBe(true);
     expect(brief.recommendedActions[0]?.text).toContain(
       "longest normalized durations",
@@ -207,9 +220,7 @@ describe("opportunity brief helpers", () => {
       step({
         excluded_pct: 35,
         stats: { ...baseStats, n: 60 },
-        observations: [
-          { date: new Date().toISOString().slice(0, 10), value: 9 },
-        ],
+        observations: [{ date: "2026-06-15", value: 9 }],
       }),
       step({ observations: [] }),
       "12m",

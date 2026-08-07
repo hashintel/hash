@@ -20,10 +20,12 @@ interface PipelineHeaderProps {
   onActiveRouteChange: (route: string) => void;
   /** Larger title for the expanded what-if panel. */
   expanded?: boolean;
-  /** Render an expand-up chevron; fires onExpand on click. */
-  onExpand?: () => void;
-  /** Render a collapse-down chevron; fires onCollapse on click. */
-  onCollapse?: () => void;
+  /** Match the waterfall's 150px label column so controls sit over the bar track. */
+  barAlignedControls?: boolean;
+  contentCollapsed?: boolean;
+  onContentToggle?: () => void;
+  simulatorActive?: boolean;
+  onSimulatorToggle?: () => void;
 }
 
 const row = css({
@@ -61,15 +63,30 @@ const controls = css({
   minW: "0",
   maxW: "full",
 });
-const selectWidth = css({ w: "[min(13rem,100%)]", minW: "0" });
+const selectWidth = css({ maxW: "[13rem]", minW: "0" });
 const selectWidthExpanded = css({
-  w: "[min(28rem,48vw,100%)]",
+  maxW: "[min(28rem,48vw)]",
   minW: "0",
 });
 const singleLabel = css({
-  textStyle: "sm",
+  mr: "2",
+  textStyle: "xs",
   fontWeight: "medium",
   color: "fg.heading",
+});
+const simulatorActiveIcon = css({
+  color: "blue.s90",
+});
+const barControlsRow = css({
+  display: "flex",
+  gap: "1",
+  alignItems: "center",
+  minW: "0",
+});
+const titleInBarTrack = css({
+  flex: "1",
+  minW: "0",
+  justifyContent: "flex-start",
 });
 
 /**
@@ -86,12 +103,14 @@ export const PipelineHeader = ({
   activeRoute,
   onActiveRouteChange,
   expanded = false,
-  onExpand,
-  onCollapse,
+  barAlignedControls = false,
+  contentCollapsed = false,
+  onContentToggle,
+  simulatorActive = false,
+  onSimulatorToggle,
 }: PipelineHeaderProps) => {
   const { sites } = useRegistry();
   const routes = Object.keys(summaries);
-  const summary = summaries[activeRoute];
 
   // Resolve a friendly destination name for a route. The route key for
   // non-direct routes is a bare destination-hub code. Prefer a registered
@@ -124,7 +143,7 @@ export const PipelineHeader = ({
 
   const routeText = (key: string): string => {
     if (key === "direct") {
-      return summaries[key]?.label ?? "Direct";
+      return "Direct to customer";
     }
     return `Via ${destinationName(key)}`;
   };
@@ -139,10 +158,84 @@ export const PipelineHeader = ({
     const counts = `${formatNumber(cov.traced)} of ${formatNumber(cov.total)}`;
     const scope =
       activeRoute === "direct"
-        ? `${counts} direct batches traced`
+        ? `${counts} direct-to-customer batches traced`
         : `${counts} batches to ${destinationName(activeRoute)} traced`;
     return rangeLabel ? `${scope} \u00b7 ${rangeLabel}` : scope;
   })();
+
+  const routeControl =
+    routes.length > 1 ? (
+      <Select
+        value={activeRoute}
+        onChange={(next) => {
+          if (next) {
+            onActiveRouteChange(next);
+          }
+        }}
+        items={routes.map((row2) => ({
+          value: row2,
+          text: routeText(row2),
+        }))}
+        required
+        size="xs"
+        width="fitContent"
+        className={expanded ? selectWidthExpanded : selectWidth}
+        aria-label="Destination route"
+      />
+    ) : (
+      <span className={singleLabel}>{routeText(activeRoute)}</span>
+    );
+
+  const simulatorControl = onSimulatorToggle && (
+    <Button
+      variant="subtle"
+      tone="neutral"
+      size="xs"
+      iconName="sliders"
+      onClick={onSimulatorToggle}
+      className={simulatorActive ? simulatorActiveIcon : undefined}
+      aria-pressed={simulatorActive}
+      aria-label={simulatorActive ? "Show pipeline" : "Open simulator"}
+    />
+  );
+
+  const disclosureControl = onContentToggle && (
+    <Button
+      variant="subtle"
+      tone="neutral"
+      size="xs"
+      iconName={contentCollapsed ? "chevronDown" : "chevronUp"}
+      onClick={onContentToggle}
+      aria-label={
+        contentCollapsed
+          ? "Show end-to-end pipeline"
+          : "Hide end-to-end pipeline"
+      }
+    />
+  );
+
+  if (barAlignedControls) {
+    return (
+      <div className={barControlsRow}>
+        <div className={cx(titleGroup, titleInBarTrack)}>
+          <h3 className={cx(titleBase, expanded ? titleLg : titleMd)}>
+            End-to-End Pipeline
+          </h3>
+          {coverageLabel && (
+            <span
+              className={coverageText}
+              title={destinationFullLabel(activeRoute)}
+            >
+              {coverageLabel}
+            </span>
+          )}
+        </div>
+        {routeControl}
+        {simulatorControl}
+        {disclosureControl}
+      </div>
+    );
+  }
 
   return (
     <div className={row}>
@@ -160,41 +253,9 @@ export const PipelineHeader = ({
         )}
       </div>
       <div className={controls}>
-        {routes.length > 1 ? (
-          <Select
-            value={activeRoute}
-            onChange={(next) => {
-              if (next) {
-                onActiveRouteChange(next);
-              }
-            }}
-            items={routes.map((row2) => ({
-              value: row2,
-              text: routeText(row2),
-            }))}
-            required
-            size="xs"
-            width="fitContent"
-            className={expanded ? selectWidthExpanded : selectWidth}
-            aria-label="Destination route"
-          />
-        ) : (
-          <span className={singleLabel}>{summary?.label ?? ""}</span>
-        )}
-        {(onExpand || onCollapse) && (
-          <Button
-            variant="subtle"
-            tone="neutral"
-            size="xs"
-            iconName={onExpand ? "chevronUp" : "chevronDown"}
-            onClick={onExpand ?? onCollapse}
-            aria-label={
-              onExpand
-                ? "Expand what-if simulator"
-                : "Collapse what-if simulator"
-            }
-          />
-        )}
+        {routeControl}
+        {simulatorControl}
+        {disclosureControl}
       </div>
     </div>
   );

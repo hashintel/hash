@@ -36,6 +36,25 @@ const dwellTypes = new Set([
   "destination_dwell",
 ]);
 
+const requiredOrderDetailColumns = [
+  "sales_order",
+  "so_item",
+  "customer",
+  "country",
+  "order_created",
+  "delivery_created",
+  "dispatch_date",
+  "n_deliveries",
+  "order_qty",
+  "delivered_qty",
+  "batch_available",
+  "fulfilment",
+  "mto_pegged",
+  "seg_order_to_delivery",
+  "seg_delivery_to_dispatch",
+  "total_days",
+];
+
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
@@ -263,5 +282,131 @@ describe("supply-chain demo data", () => {
     }
 
     expect(checkedDwellSteps).toBeGreaterThan(0);
+  });
+
+  it("ships internally consistent customer timelines linked to demo batches", () => {
+    const dataDir = activeDemoDir();
+    const products = readJson<Array<{ id: string }>>(
+      path.join(dataDir, "products.json"),
+    );
+
+    for (const product of products) {
+      const graph = readJson<{
+        batch_timelines: {
+          batches: Array<{
+            batch: string;
+            qa_release_date: string;
+            delivery_date: string;
+          }>;
+        };
+        order_timelines: {
+          lines: Array<{
+            sales_order: string;
+            so_item: string;
+            customer: string;
+            country: string;
+            order_created: string;
+            delivery_created: string;
+            dispatch_date: string;
+            batches: string[];
+            batch_available: string;
+            fulfilment: "from_stock" | "awaited_production" | "unknown";
+            mto_pegged: boolean;
+            seg_order_to_delivery: number;
+            seg_delivery_to_dispatch: number;
+            total_days: number;
+          }>;
+          open_lines: number;
+          open_order_created_dates: string[];
+          observed_as_of: string;
+          detail_columns: Array<{ key: string }>;
+        };
+      }>(path.join(dataDir, product.id, "graph.json"));
+
+      const batchById = new Map(
+        graph.batch_timelines.batches.map((batch) => [batch.batch, batch]),
+      );
+      const orderTimelines = graph.order_timelines;
+      expect(orderTimelines.lines.length).toBeGreaterThan(0);
+      expect(orderTimelines.detail_columns.map(({ key }) => key)).toEqual(
+        expect.arrayContaining(requiredOrderDetailColumns),
+      );
+      expect(orderTimelines.open_lines).toBe(
+        orderTimelines.open_order_created_dates.length,
+      );
+      const fulfilmentSources = new Set<string>();
+      const orderLevelDetailsBySalesOrder = new Map<
+        string,
+        { customer: string; country: string; orderCreated: string }
+      >();
+      let mtoPeggedLines = 0;
+
+      for (const line of orderTimelines.lines) {
+        const orderLevelDetails = {
+          customer: line.customer,
+          country: line.country,
+          orderCreated: line.order_created,
+        };
+        const existingOrderLevelDetails = orderLevelDetailsBySalesOrder.get(
+          line.sales_order,
+        );
+        if (existingOrderLevelDetails) {
+          expect(orderLevelDetails).toEqual(existingOrderLevelDetails);
+        } else {
+          orderLevelDetailsBySalesOrder.set(
+            line.sales_order,
+            orderLevelDetails,
+          );
+        }
+
+        expect(line.batches.length).toBeGreaterThan(0);
+        const linkedBatches = line.batches.map((batchId) => {
+          const batch = batchById.get(batchId);
+          expect(batch).toBeDefined();
+          return batch;
+        });
+        const orderCreated = Date.parse(line.order_created);
+        const deliveryCreated = Date.parse(line.delivery_created);
+        const dispatch = Date.parse(line.dispatch_date);
+        expect(orderCreated).toBeLessThanOrEqual(deliveryCreated);
+        expect(deliveryCreated).toBeLessThanOrEqual(dispatch);
+        expect(line.seg_order_to_delivery).toBe(
+          Math.round((deliveryCreated - orderCreated) / 86_400_000),
+        );
+        expect(line.seg_delivery_to_dispatch).toBe(
+          Math.round((dispatch - deliveryCreated) / 86_400_000),
+        );
+        expect(line.total_days).toBe(
+          Math.round((dispatch - orderCreated) / 86_400_000),
+        );
+        expect(line.batch_available).toBe(linkedBatches[0]?.qa_release_date);
+        if (line.fulfilment === "from_stock") {
+          expect(Date.parse(line.batch_available)).toBeLessThanOrEqual(
+            orderCreated,
+          );
+        }
+        if (line.fulfilment === "awaited_production") {
+          expect(Date.parse(line.batch_available)).toBeGreaterThan(
+            orderCreated,
+          );
+        }
+        fulfilmentSources.add(line.fulfilment);
+        if (line.mto_pegged) {
+          mtoPeggedLines += 1;
+        }
+      }
+
+      expect(fulfilmentSources).toEqual(
+        new Set(["from_stock", "awaited_production"]),
+      );
+      expect(mtoPeggedLines).toBeGreaterThan(0);
+      expect(Date.parse(orderTimelines.observed_as_of)).toBe(
+        Math.max(
+          ...graph.batch_timelines.batches.map((batch) =>
+            Date.parse(batch.delivery_date),
+          ),
+        ),
+      );
+    }
   });
 });

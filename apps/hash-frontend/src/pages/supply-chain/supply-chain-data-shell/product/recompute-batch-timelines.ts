@@ -1,4 +1,5 @@
 import { computeIqrFences } from "../../shared/outlier-selection/iqr";
+import { nearestRankPercentile } from "../../shared/segment-stats";
 
 import type {
   BatchRow,
@@ -62,12 +63,21 @@ function segStats(
           return (lower + upper) / 2;
         })()
       : upper;
-  const p25 = values[Math.floor(values.length * 0.25)];
-  const p75 = values[Math.floor(values.length * 0.75)];
-  if (p25 === undefined || p75 === undefined) {
+  const p25 = nearestRankPercentile(values, 0.25);
+  const p75 = nearestRankPercentile(values, 0.75);
+  const p95 = nearestRankPercentile(values, 0.95);
+  if (p25 === undefined || p75 === undefined || p95 === undefined) {
     throw new Error("Segment statistics percentile value missing");
   }
-  return { label: "", mean, median, p25, p75, n: values.length };
+  return {
+    label: "",
+    mean,
+    median,
+    p25,
+    p75,
+    p95,
+    n: values.length,
+  };
 }
 
 /** Pipeline stages in display order: segment key, label, and step type. */
@@ -195,6 +205,8 @@ export function recomputeBatchTimelines(
       stages,
       total_mean: totalDays?.mean ?? stageMeanTotal,
       total_median: totalDays?.median ?? stageMedianTotal,
+      total_p75: totalDays?.p75,
+      total_p95: totalDays?.p95,
     };
   }
 

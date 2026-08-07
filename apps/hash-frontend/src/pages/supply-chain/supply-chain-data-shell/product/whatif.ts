@@ -97,6 +97,9 @@ export interface SimulationResult {
   costSavingPeriod: number | null;
   costSavingAnnualised: number | null;
   costCurrency: string | null;
+  /** Baseline stages for the same simulator-eligible batch population. */
+  baselineStagesMean: PipelineStage[];
+  baselineStagesMedian: PipelineStage[];
   /** Per-batch-mean re-segmented stages for the dashed mean bar. */
   simulatedStagesMean: PipelineStage[];
   /** Per-batch-median re-segmented stages for the dashed median bar. */
@@ -749,8 +752,15 @@ export function aggregateSimulation(
 
   const baselineTotals: number[] = [];
   const simulatedTotals: number[] = [];
-  // Per-segment buckets collect every valid raw batch value.
-  const segs = {
+  // Baseline and simulated buckets intentionally use the same eligible
+  // batches, so waterfall stages and total labels describe one population.
+  const baselineSegments = {
+    procToPS: [] as number[],
+    prodStartToFinish: [] as number[],
+    prodFinishToQa: [] as number[],
+    qaToCustomer: [] as number[],
+  };
+  const simulatedSegments = {
     procToPS: [] as number[],
     prodStartToFinish: [] as number[],
     prodFinishToQa: [] as number[],
@@ -793,25 +803,29 @@ export function aggregateSimulation(
     // Skip a segment's contribution when its legend chip is toggled off. The
     // validity band applies independently per segment.
     if (isActive("procurement") && inRange(procToPSRaw)) {
-      segs.procToPS.push(procToPSRaw);
+      baselineSegments.procToPS.push(procToPSRaw);
+      simulatedSegments.procToPS.push(procToPSRaw);
       baselineTotal += procToPSRaw;
       simulatedTotal += procToPSRaw;
     }
     if (isActive("production") && inRange(prodStartToFinishRaw)) {
       const sim2 = Math.max(0, prodStartToFinishRaw - prodSegmentReduction);
-      segs.prodStartToFinish.push(sim2);
+      baselineSegments.prodStartToFinish.push(prodStartToFinishRaw);
+      simulatedSegments.prodStartToFinish.push(sim2);
       baselineTotal += prodStartToFinishRaw;
       simulatedTotal += sim2;
     }
     if (isActive("qa_hold") && inRange(prodFinishToQaRaw)) {
       const sim2 = Math.max(0, prodFinishToQaRaw - qaHoldReduction);
-      segs.prodFinishToQa.push(sim2);
+      baselineSegments.prodFinishToQa.push(prodFinishToQaRaw);
+      simulatedSegments.prodFinishToQa.push(sim2);
       baselineTotal += prodFinishToQaRaw;
       simulatedTotal += sim2;
     }
     if (isActive("transit") && inRange(qaToCustomerRaw)) {
       const sim2 = Math.max(0, qaToCustomerRaw - postQaReduction);
-      segs.qaToCustomer.push(sim2);
+      baselineSegments.qaToCustomer.push(qaToCustomerRaw);
+      simulatedSegments.qaToCustomer.push(sim2);
       baselineTotal += qaToCustomerRaw;
       simulatedTotal += sim2;
     }
@@ -848,18 +862,32 @@ export function aggregateSimulation(
 
   const sortedSegMedian = (vals: number[]) =>
     [...vals].sort((left, right) => left - right);
+  const baselineStagesMean = buildStages(
+    mean(baselineSegments.procToPS, excludeOutliers) ?? 0,
+    mean(baselineSegments.prodStartToFinish, excludeOutliers) ?? 0,
+    mean(baselineSegments.prodFinishToQa, excludeOutliers) ?? 0,
+    mean(baselineSegments.qaToCustomer, excludeOutliers) ?? 0,
+    activeSegments,
+  );
+  const baselineStagesMedian = buildStages(
+    median(sortedSegMedian(baselineSegments.procToPS)) ?? 0,
+    median(sortedSegMedian(baselineSegments.prodStartToFinish)) ?? 0,
+    median(sortedSegMedian(baselineSegments.prodFinishToQa)) ?? 0,
+    median(sortedSegMedian(baselineSegments.qaToCustomer)) ?? 0,
+    activeSegments,
+  );
   const simulatedStagesMean = buildStages(
-    mean(segs.procToPS, excludeOutliers) ?? 0,
-    mean(segs.prodStartToFinish, excludeOutliers) ?? 0,
-    mean(segs.prodFinishToQa, excludeOutliers) ?? 0,
-    mean(segs.qaToCustomer, excludeOutliers) ?? 0,
+    mean(simulatedSegments.procToPS, excludeOutliers) ?? 0,
+    mean(simulatedSegments.prodStartToFinish, excludeOutliers) ?? 0,
+    mean(simulatedSegments.prodFinishToQa, excludeOutliers) ?? 0,
+    mean(simulatedSegments.qaToCustomer, excludeOutliers) ?? 0,
     activeSegments,
   );
   const simulatedStagesMedian = buildStages(
-    median(sortedSegMedian(segs.procToPS)) ?? 0,
-    median(sortedSegMedian(segs.prodStartToFinish)) ?? 0,
-    median(sortedSegMedian(segs.prodFinishToQa)) ?? 0,
-    median(sortedSegMedian(segs.qaToCustomer)) ?? 0,
+    median(sortedSegMedian(simulatedSegments.procToPS)) ?? 0,
+    median(sortedSegMedian(simulatedSegments.prodStartToFinish)) ?? 0,
+    median(sortedSegMedian(simulatedSegments.prodFinishToQa)) ?? 0,
+    median(sortedSegMedian(simulatedSegments.qaToCustomer)) ?? 0,
     activeSegments,
   );
 
@@ -877,6 +905,8 @@ export function aggregateSimulation(
     costSavingPeriod,
     costSavingAnnualised,
     costCurrency: cost.currency,
+    baselineStagesMean,
+    baselineStagesMedian,
     simulatedStagesMean,
     simulatedStagesMedian,
   };

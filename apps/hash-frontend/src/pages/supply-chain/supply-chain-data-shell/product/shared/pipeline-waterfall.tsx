@@ -1,9 +1,14 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { formatNumber } from "../../../shared/cost";
-import { Tooltip } from "../../../shared/tooltip";
 
-import type { PipelineSummary, PipelineStage } from "../../../shared/types";
+import type {
+  PipelineOrderMarker,
+  PipelineOrderMarkers,
+  PipelineSummary,
+  PipelineStage,
+} from "../../../shared/types";
 import type { SegmentId } from "../whatif";
 
 const wrap = css({
@@ -11,7 +16,6 @@ const wrap = css({
   flexDirection: "column",
   gap: "4",
   minW: "0",
-  overflowX: "hidden",
 });
 const barsStack = css({ display: "flex", flexDirection: "column", gap: "3" });
 const emptyBase = css({
@@ -81,6 +85,14 @@ const barRowBase = css({
   alignItems: "stretch",
   minW: "0",
 });
+const barTrack = css({
+  position: "relative",
+  display: "flex",
+  gap: "1",
+  flex: "1",
+  minW: "0",
+  overflow: "visible",
+});
 const barTall = css({ h: "10" });
 const barShort = css({ h: "7" });
 const labelBoxBase = css({
@@ -131,11 +143,65 @@ const segWrapDashed = css({
   borderColor: "[rgba(255,255,255,0.7)]",
   opacity: "0.8",
 });
+const segmentTooltipTrigger = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  w: "full",
+  h: "full",
+});
 const segValue = css({
   textStyle: "xs",
   fontWeight: "medium",
   color: "[white]",
   whiteSpace: "nowrap",
+});
+const orderMarkerCluster = css({
+  position: "absolute",
+  top: "[50%]",
+  display: "flex",
+  alignItems: "center",
+  zIndex: "[10]",
+  transform: "translateY(-50%)",
+});
+const orderMarkerClusterBefore = css({
+  left: "3",
+});
+const orderMarkerClusterAfter = css({
+  right: "3",
+});
+const orderMarkerBeforeArrow = css({
+  w: "4.5",
+  h: "2",
+  flexShrink: 0,
+  color: "fg.max",
+});
+const orderMarker = css({
+  display: "block",
+  position: "relative",
+  w: "3",
+  h: "3",
+  bg: "fg.max",
+  borderWidth: "2px",
+  borderStyle: "solid",
+  borderColor: "bgSolid.min",
+  boxShadow: "sm",
+  cursor: "help",
+  flexShrink: 0,
+  transform: "[rotate(45deg)]",
+});
+const orderMarkerTooltipTrigger = css({
+  display: "flex",
+  alignItems: "center",
+});
+const orderLegendSwatch = css({
+  w: "2.5",
+  h: "2.5",
+  bg: "fg.max",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bgSolid.min",
+  transform: "[rotate(45deg)]",
 });
 
 interface PipelineWaterfallProps {
@@ -146,12 +212,28 @@ interface PipelineWaterfallProps {
    * the active route is always controlled by the parent.
    */
   activeRoute: string;
+  /** Baseline mean stages for the simulator-eligible population. */
+  baselineStagesMean?: PipelineStage[];
+  /** Baseline median stages for the simulator-eligible population. */
+  baselineStagesMedian?: PipelineStage[];
   /** Re-segmented stages for the dashed mean bar. */
   simulatedStagesMean?: PipelineStage[];
   /** Re-segmented stages for the dashed median bar. */
   simulatedStagesMedian?: PipelineStage[];
+  /** Complete-duration totals for the simulator's baseline population. */
+  baselineTotalMean?: number | null;
+  baselineTotalMedian?: number | null;
+  /** Complete-duration totals after applying the simulation. */
+  simulatedTotalMean?: number | null;
+  simulatedTotalMedian?: number | null;
   /** When true, render at the larger size suited to the expanded panel. */
   expanded?: boolean;
+  /** Render P75 and P95 rows when stages carry percentile values. */
+  showPercentileRows?: boolean;
+  /** Render one actual-duration row instead of aggregate statistic rows. */
+  totalOnly?: boolean;
+  /** Customer-order creation positions to overlay on mean/median rows. */
+  orderArrivalMarkers?: PipelineOrderMarkers;
   /**
    * Which pipeline segments are currently included. Omitted = all four
    * active (non-interactive behaviour).
@@ -169,6 +251,8 @@ const SEGMENT_COLORS: Record<string, string> = {
   production: "#9797fe",
   qa_hold: "#c3a8e6",
   transit: "#ff9c5e",
+  order_wait: "#5eb98a",
+  fulfilment: "#e6b34a",
 };
 
 const PipelineBar = ({
@@ -178,15 +262,19 @@ const PipelineBar = ({
   metric,
   tall = false,
   dashed = false,
+  marker,
+  showSegmentTooltips = true,
 }: {
   label: string;
   stages: PipelineStage[];
   total: number;
-  metric: "mean" | "median";
+  metric: "mean" | "median" | "p75" | "p95";
   tall?: boolean;
   dashed?: boolean;
+  marker?: PipelineOrderMarker;
+  showSegmentTooltips?: boolean;
 }) => {
-  if (total <= 0) {
+  if (total < 0) {
     return null;
   }
 
@@ -205,53 +293,135 @@ const PipelineBar = ({
           </span>
         </span>
       </div>
-      {stages.map((stage) => {
-        const value = stage[metric];
-        if (value <= 0) {
-          return null;
-        }
-        const pct = (value / total) * 100;
-        const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
-        const tooltipContent = (
-          <>
-            {stage.label}: {formatNumber(value, { maximumFractionDigits: 0 })}d{" "}
-            {metric}
-            {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
-          </>
-        );
-
-        return (
-          <Tooltip
-            key={stage.id}
-            content={tooltipContent}
-            delayMs={0}
-            wrapperClassName={cx(
-              segWrapBase,
-              dashed ? segWrapDashed : undefined,
+      <div className={barTrack}>
+        {total > 0 &&
+          stages.map((stage) => {
+            const value = stage[metric] ?? 0;
+            if (value <= 0) {
+              return null;
+            }
+            const pct = (value / total) * 100;
+            const color = SEGMENT_COLORS[stage.type] ?? "#94a3b8";
+            const tooltipContent = (
+              <>
+                {stage.label}:{" "}
+                {formatNumber(value, { maximumFractionDigits: 0 })}d {metric}
+                {stage.n != null ? ` (n=${formatNumber(stage.n)})` : ""}
+              </>
+            );
+            return (
+              <div
+                key={stage.id}
+                className={cx(segWrapBase, dashed ? segWrapDashed : undefined)}
+                style={{
+                  flex: `${pct} 1 0%`,
+                  minWidth: "16px",
+                  backgroundColor: color,
+                }}
+              >
+                <Tooltip
+                  content={tooltipContent}
+                  disableTooltip={!showSegmentTooltips}
+                  openDelay="none"
+                  closeDelay="none"
+                  className={segmentTooltipTrigger}
+                >
+                  {pct > 4 && (
+                    <span className={segValue}>
+                      {formatNumber(value, { maximumFractionDigits: 0 })}d
+                    </span>
+                  )}
+                </Tooltip>
+              </div>
+            );
+          })}
+        {marker && (
+          <div
+            className={cx(
+              orderMarkerCluster,
+              marker.beforeTrace
+                ? orderMarkerClusterBefore
+                : marker.afterTrace || marker.positionPct >= 100
+                  ? orderMarkerClusterAfter
+                  : undefined,
             )}
-            wrapperStyle={{
-              flex: `${pct} 1 0%`,
-              minWidth: "16px",
-              backgroundColor: color,
-            }}
+            style={
+              marker.beforeTrace ||
+              marker.afterTrace ||
+              marker.positionPct >= 100
+                ? undefined
+                : {
+                    left: `${marker.positionPct}%`,
+                    transform: "translate(-50%, -50%)",
+                  }
+            }
           >
-            {pct > 4 && (
-              <span className={segValue}>
-                {formatNumber(value, { maximumFractionDigits: 0 })}d
-              </span>
-            )}
-          </Tooltip>
-        );
-      })}
+            <Tooltip
+              content={
+                <>
+                  {metric === "mean" ? "Mean" : "Median"} order:{" "}
+                  {formatNumber(marker.daysBeforeRouteEndpoint, {
+                    maximumFractionDigits: 0,
+                  })}
+                  d before route endpoint · {formatNumber(marker.n)}{" "}
+                  {marker.routeLabel} order lines
+                  {marker.beforeVisibleCount > 0
+                    ? ` · ${formatNumber(marker.beforeVisibleCount)} before visible trace`
+                    : ""}
+                  {marker.beforeTrace
+                    ? " · date predates visible pipeline start"
+                    : ""}
+                  {marker.afterTrace
+                    ? " · order created after route endpoint"
+                    : ""}
+                </>
+              }
+              openDelay="none"
+              closeDelay="none"
+              className={orderMarkerTooltipTrigger}
+            >
+              {marker.beforeTrace && (
+                <svg
+                  className={orderMarkerBeforeArrow}
+                  viewBox="0 0 18 8"
+                  aria-hidden
+                >
+                  <path
+                    d="M0 4 H18 M0 4 L4 1 M0 4 L4 7"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              <span
+                className={orderMarker}
+                aria-label="Customer order created"
+              />
+            </Tooltip>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 export const PipelineWaterfall = ({
   summaries,
   activeRoute,
+  baselineStagesMean,
+  baselineStagesMedian,
   simulatedStagesMean,
   simulatedStagesMedian,
+  baselineTotalMean,
+  baselineTotalMedian,
+  simulatedTotalMean,
+  simulatedTotalMedian,
   expanded = false,
+  showPercentileRows = false,
+  totalOnly = false,
+  orderArrivalMarkers,
   activeSegments,
   onSegmentToggle,
 }: PipelineWaterfallProps) => {
@@ -264,8 +434,47 @@ export const PipelineWaterfall = ({
   const isSegmentActive = (type: string) =>
     !activeSegments || activeSegments.has(type as SegmentId);
   const stages = allStages.filter((step) => isSegmentActive(step.type));
-  const totalMean = stages.reduce((acc, step) => acc + step.mean, 0);
-  const totalMedian = stages.reduce((acc, step) => acc + step.median, 0); // Filter simulated stages the same way so the dashed overlay matches
+  const meanStages = (baselineStagesMean ?? allStages).filter((step) =>
+    isSegmentActive(step.type),
+  );
+  const medianStages = (baselineStagesMedian ?? allStages).filter((step) =>
+    isSegmentActive(step.type),
+  );
+  const allSegmentsActive = stages.length === allStages.length;
+  const summedStageMean = meanStages.reduce(
+    (total, stage) => total + stage.mean,
+    0,
+  );
+  const summedStageMedian = medianStages.reduce(
+    (total, stage) => total + stage.median,
+    0,
+  );
+  const totalMean =
+    baselineTotalMean ??
+    (allSegmentsActive ? summary.total_mean : summedStageMean);
+  const totalMedian =
+    baselineTotalMedian ??
+    (allSegmentsActive ? summary.total_median : summedStageMedian);
+  const summedStageP75 = stages.reduce(
+    (total, stage) => total + (stage.p75 ?? 0),
+    0,
+  );
+  const summedStageP95 = stages.reduce(
+    (total, stage) => total + (stage.p95 ?? 0),
+    0,
+  );
+  // Complete-order quantiles are not additive. The row label uses the true
+  // total distribution while the coloured widths remain normalized marginal
+  // segment quantiles.
+  const totalP75 =
+    allSegmentsActive && summary.total_p75 != null
+      ? summary.total_p75
+      : summedStageP75;
+  const totalP95 =
+    allSegmentsActive && summary.total_p95 != null
+      ? summary.total_p95
+      : summedStageP95;
+  // Filter simulated stages the same way so the dashed overlay matches
   // the visible baseline composition exactly.
   const simStagesMean = simulatedStagesMean?.filter((step) =>
     isSegmentActive(step.type),
@@ -273,56 +482,94 @@ export const PipelineWaterfall = ({
   const simStagesMedian = simulatedStagesMedian?.filter((step) =>
     isSegmentActive(step.type),
   );
-  const simMeanTotal = simStagesMean
-    ? simStagesMean.reduce((acc, step) => acc + step.mean, 0)
-    : 0;
-  const simMedianTotal = simStagesMedian
-    ? simStagesMedian.reduce((acc, step) => acc + step.median, 0)
-    : 0;
+  const simMeanTotal =
+    simulatedTotalMean ??
+    (simStagesMean
+      ? simStagesMean.reduce((acc, step) => acc + step.mean, 0)
+      : 0);
+  const simMedianTotal =
+    simulatedTotalMedian ??
+    (simStagesMedian
+      ? simStagesMedian.reduce((acc, step) => acc + step.median, 0)
+      : 0);
   const hasSimulated =
     (simStagesMean && simMeanTotal > 0) ||
     (simStagesMedian && simMedianTotal > 0);
-  const hasAnyActive = stages.length > 0 && (totalMean > 0 || totalMedian > 0);
+  const hasAnyActive = stages.length > 0;
   return (
     <div className={wrap}>
       {/* Bars */}
       {hasAnyActive ? (
         <div className={barsStack}>
-          <PipelineBar
-            label="MEAN"
-            stages={stages}
-            total={totalMean}
-            metric="mean"
-            tall={expanded}
-          />
-
-          <PipelineBar
-            label="MEDIAN"
-            stages={stages}
-            total={totalMedian}
-            metric="median"
-            tall={expanded}
-          />
-
-          {simStagesMean && simMeanTotal > 0 && (
+          {totalOnly ? (
             <PipelineBar
-              label="SIM. MEAN"
-              stages={simStagesMean}
-              total={simMeanTotal}
+              label="TOTAL"
+              stages={stages}
+              total={totalMean}
               metric="mean"
               tall={expanded}
-              dashed
+              showSegmentTooltips={false}
             />
-          )}
-          {simStagesMedian && simMedianTotal > 0 && (
-            <PipelineBar
-              label="SIM. MEDIAN"
-              stages={simStagesMedian}
-              total={simMedianTotal}
-              metric="median"
-              tall={expanded}
-              dashed
-            />
+          ) : (
+            <>
+              <PipelineBar
+                label="MEAN"
+                stages={meanStages}
+                total={totalMean}
+                metric="mean"
+                tall={expanded}
+                marker={orderArrivalMarkers?.mean}
+              />
+
+              <PipelineBar
+                label="MEDIAN"
+                stages={medianStages}
+                total={totalMedian}
+                metric="median"
+                tall={expanded}
+                marker={orderArrivalMarkers?.median}
+              />
+
+              {showPercentileRows && totalP75 > 0 && (
+                <PipelineBar
+                  label="P75"
+                  stages={stages}
+                  total={totalP75}
+                  metric="p75"
+                  tall={expanded}
+                />
+              )}
+              {showPercentileRows && totalP95 > 0 && (
+                <PipelineBar
+                  label="P95"
+                  stages={stages}
+                  total={totalP95}
+                  metric="p95"
+                  tall={expanded}
+                />
+              )}
+
+              {simStagesMean && simMeanTotal > 0 && (
+                <PipelineBar
+                  label="SIM. MEAN"
+                  stages={simStagesMean}
+                  total={simMeanTotal}
+                  metric="mean"
+                  tall={expanded}
+                  dashed
+                />
+              )}
+              {simStagesMedian && simMedianTotal > 0 && (
+                <PipelineBar
+                  label="SIM. MEDIAN"
+                  stages={simStagesMedian}
+                  total={simMedianTotal}
+                  metric="median"
+                  tall={expanded}
+                  dashed
+                />
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -379,6 +626,13 @@ export const PipelineWaterfall = ({
             <span className={simLabel}>Simulated</span>
           </div>
         )}
+        {orderArrivalMarkers &&
+          (orderArrivalMarkers.mean || orderArrivalMarkers.median) && (
+            <div className={legendStatic}>
+              <div className={orderLegendSwatch} />
+              <span className={legendLabelActive}>Customer order created</span>
+            </div>
+          )}
       </div>
     </div>
   );
