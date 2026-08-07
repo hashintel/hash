@@ -3,9 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityMentionKind } from "./notifications-with-links-context";
+import {
+  getEntityMentionKind,
+  getOpportunityStatusNotificationContext,
+} from "./notifications-with-links-context";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -45,5 +49,20 @@ describe("getEntityMentionKind", () => {
         recipientEntityId,
       ),
     ).toBe("opportunity-status-participation");
+  });
+
+  it("extracts the human-readable opportunity context", () => {
+    const statusUpdate = status([
+      { tokenType: "text", text: "Investigation started" },
+    ]);
+    statusUpdate.properties[systemPropertyTypes.title.propertyTypeBaseUrl] =
+      "QA hold: Product A";
+    statusUpdate.properties[systemPropertyTypes.siteCode.propertyTypeBaseUrl] =
+      "Cork";
+
+    expect(getOpportunityStatusNotificationContext(statusUpdate)).toEqual({
+      opportunityLabel: "QA hold: Product A",
+      opportunitySiteCode: "Cork",
+    });
   });
 });

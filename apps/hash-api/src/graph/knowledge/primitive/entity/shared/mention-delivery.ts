@@ -142,6 +142,25 @@ const sendMentionEmail = async ({
         extractBaseUrl(entityTypeId) ===
         systemEntityTypes.opportunityStatusUpdate.entityTypeBaseUrl,
     );
+  const statusProperties = isStatusMention
+    ? simplifyProperties(
+        target.occurredInEntity.entity
+          .properties as OpportunityStatusUpdate["properties"],
+      )
+    : null;
+  const opportunityTitle =
+    statusProperties && typeof statusProperties.title === "string"
+      ? statusProperties.title
+      : null;
+  const opportunitySiteCode =
+    statusProperties && typeof statusProperties.siteCode === "string"
+      ? statusProperties.siteCode
+      : null;
+  const opportunityDescription = opportunityTitle
+    ? `${opportunityTitle}${
+        opportunitySiteCode ? ` at ${opportunitySiteCode}` : ""
+      }`
+    : null;
   const targetDescription = isStatusMention
     ? "a supply-chain status update"
     : includesPageEntityTypeId(
@@ -158,13 +177,37 @@ const sendMentionEmail = async ({
     allowedAttributes: {},
     allowedTags: [],
   });
+  const safeOpportunityDescription = opportunityDescription
+    ? sanitizeHtml(opportunityDescription, {
+        allowedAttributes: {},
+        allowedTags: [],
+      })
+    : null;
   const isParticipationUpdate = deliveryKind === "participation";
   const subject = isParticipationUpdate
-    ? "New update to an opportunity you're involved in"
-    : `You were mentioned in ${targetDescription}`;
+    ? `New update to ${
+        opportunityDescription ?? "an opportunity you're involved in"
+      }`
+    : isStatusMention
+      ? `You were mentioned in an update to ${
+          opportunityDescription ?? "an opportunity"
+        }`
+      : `You were mentioned in ${targetDescription}`;
   const introduction = isParticipationUpdate
-    ? `<p><strong>${triggeredByName}</strong> added an update to an opportunity you're involved in.</p>`
-    : `<p><strong>${triggeredByName}</strong> mentioned you in ${targetDescription}.</p>`;
+    ? `<p><strong>${triggeredByName}</strong> added an update to ${
+        safeOpportunityDescription
+          ? `<strong>${safeOpportunityDescription}</strong>`
+          : "an opportunity you're involved in"
+      }.</p>`
+    : `<p><strong>${triggeredByName}</strong> mentioned you in ${
+        isStatusMention
+          ? `an update to ${
+              safeOpportunityDescription
+                ? `<strong>${safeOpportunityDescription}</strong>`
+                : "an opportunity"
+            }`
+          : targetDescription
+      }.</p>`;
 
   await backOff(
     () =>

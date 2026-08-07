@@ -48,6 +48,7 @@ import {
   mergeReadKeySets,
   type ReadOp,
 } from "./read-state";
+import { siteNodeDisplayLabel } from "./shared/helpers";
 
 import type {
   CreateEntityMutation,
@@ -97,6 +98,7 @@ const statusCategoryBaseUrl =
   systemPropertyTypes.opportunityStatus.propertyTypeBaseUrl;
 const statusTextBaseUrl =
   systemPropertyTypes.statusUpdateText.propertyTypeBaseUrl;
+const titleBaseUrl = systemPropertyTypes.title.propertyTypeBaseUrl;
 const textualContentBaseUrl =
   blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
@@ -483,6 +485,7 @@ export const useSupplyChainStatusState = (
         value: {
           [scopeKeyBaseUrl]: textValueWithMetadata(key),
           [siteCodeBaseUrl]: textValueWithMetadata(siteId),
+          [titleBaseUrl]: textValueWithMetadata(siteNodeDisplayLabel(node)),
           [statusCategoryBaseUrl]: {
             value: status.category,
             metadata: {

@@ -63,6 +63,7 @@ const targetEntity = {
     [systemPropertyTypes.siteCode.propertyTypeBaseUrl]: "site-1",
     [systemPropertyTypes.scopeKey.propertyTypeBaseUrl]:
       "site-1::qa_hold::node-1",
+    [systemPropertyTypes.title.propertyTypeBaseUrl]: "QA hold: Product A",
   },
 } as unknown as HashEntity;
 
@@ -123,6 +124,15 @@ describe("deliverMentionNotifications", () => {
     expect(sendMail).toHaveBeenCalledTimes(3);
     expect(sendMail.mock.calls[2]?.[0].html).toContain(
       "/supply-chain/site/site-1?opportunity=site-1%3A%3Aqa_hold%3A%3Anode-1",
+    );
+    expect(sendMail.mock.calls[2]?.[0]).toEqual(
+      expect.objectContaining({
+        subject:
+          "You were mentioned in an update to QA hold: Product A at site-1",
+        html: expect.stringContaining(
+          "mentioned you in an update to <strong>QA hold: Product A at site-1</strong>",
+        ),
+      }),
     );
     expect(sendMail.mock.calls[2]?.[0].html).not.toContain("<script>");
   });
@@ -244,9 +254,9 @@ describe("deliverMentionNotifications", () => {
 
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        subject: "New update to an opportunity you're involved in",
+        subject: "New update to QA hold: Product A at site-1",
         html: expect.stringContaining(
-          "added an update to an opportunity you're involved in",
+          "added an update to <strong>QA hold: Product A at site-1</strong>",
         ),
       }),
     );

@@ -192,22 +192,33 @@ const EntityMentionNotificationContent = ({
 }) => {
   const isParticipationUpdate =
     notification.kind === "opportunity-status-participation";
+  const isOpportunityStatusUpdate =
+    notification.kind === "opportunity-status-mention" || isParticipationUpdate;
+  const opportunityDescription = notification.opportunityLabel
+    ? `${notification.opportunityLabel}${
+        notification.opportunitySiteCode
+          ? ` at ${notification.opportunitySiteCode}`
+          : ""
+      }`
+    : null;
 
   return (
     <>
       <Link noLinkStyle href={`/@${notification.triggeredByUser.shortname}`}>
         {notification.triggeredByUser.displayName}
       </Link>{" "}
-      {isParticipationUpdate ? "added an update to " : "mentioned you in "}
+      {isParticipationUpdate
+        ? "added an update to "
+        : isOpportunityStatusUpdate
+          ? "mentioned you in an update to "
+          : "mentioned you in "}
       <NotificationTarget
         handleNotificationClick={handleNotificationClick}
         targetHref={targetHref}
       >
-        {isParticipationUpdate
-          ? "an opportunity you're involved in"
-          : notification.kind === "opportunity-status-mention"
-            ? "an opportunity status update"
-            : notification.occurredInEntityLabel}
+        {isOpportunityStatusUpdate
+          ? (opportunityDescription ?? "an opportunity")
+          : notification.occurredInEntityLabel}
       </NotificationTarget>
     </>
   );

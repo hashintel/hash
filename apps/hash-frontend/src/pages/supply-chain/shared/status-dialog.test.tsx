@@ -159,6 +159,31 @@ describe("StatusDialog", () => {
     expect(updates[1]?.textContent).toContain("Later comment");
   });
 
+  it("defaults to an investigation update after an investigation starts", () => {
+    render(
+      <StatusDialog
+        title="QA hold"
+        entries={[
+          {
+            entityId: "web~started" as EntityId,
+            at: "2026-01-01T12:00:00.000Z",
+            user: "Investigator",
+            category: "Investigation started",
+            text: "",
+            tokens: [],
+          },
+        ]}
+        inline
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole<HTMLSelectElement>("combobox").value).toBe(
+      "Investigation update",
+    );
+  });
+
   it("uses the selected status and validates its required comment", () => {
     const onSave = vi.fn();
     render(

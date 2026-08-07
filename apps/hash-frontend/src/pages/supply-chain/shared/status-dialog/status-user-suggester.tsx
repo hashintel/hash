@@ -42,6 +42,12 @@ const list = css({
   p: "0.5",
   listStyle: "none",
   w: "[min(14rem,calc(100vw-0.5rem))]",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "bd.subtle",
+  borderRadius: "md",
+  bg: "bgSolid.min",
+  boxShadow: "lg",
 });
 const option = css({
   display: "flex",
@@ -98,26 +104,28 @@ export const StatusUserSuggester = ({
       role="listbox"
     >
       {matches.length ? (
-        matches.map((user, index) => (
-          <li key={user.entityId} role="presentation">
-            <button
-              aria-selected={index === activeIndex}
-              className={cx(option, index === activeIndex && selectedOption)}
-              id={`${id}-option-${index}`}
-              onClick={() => onSelect(user)}
-              onMouseDown={(event) => {
-                event.preventDefault();
-              }}
-              ref={index === activeIndex ? activeOptionRef : undefined}
-              role="option"
-              tabIndex={-1}
-              type="button"
-            >
-              <span className={displayName}>{user.displayName}</span>
-              <span className={shortname}>@{user.shortname}</span>
-            </button>
-          </li>
-        ))
+        [...matches, ...matches, ...matches, ...matches, ...matches].map(
+          (user, index) => (
+            <li key={user.entityId} role="presentation">
+              <button
+                aria-selected={index === activeIndex}
+                className={cx(option, index === activeIndex && selectedOption)}
+                id={`${id}-option-${index}`}
+                onClick={() => onSelect(user)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
+                ref={index === activeIndex ? activeOptionRef : undefined}
+                role="option"
+                tabIndex={-1}
+                type="button"
+              >
+                <span className={displayName}>{user.displayName}</span>
+                <span className={shortname}>@{user.shortname}</span>
+              </button>
+            </li>
+          ),
+        )
       ) : (
         <li className={empty}>No matching members</li>
       )}

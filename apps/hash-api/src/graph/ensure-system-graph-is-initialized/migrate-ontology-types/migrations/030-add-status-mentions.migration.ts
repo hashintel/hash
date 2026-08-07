@@ -4,6 +4,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import {
@@ -56,6 +57,9 @@ const migrate: MigrationFunction = async ({
       ...opportunityStatusUpdateEntityType.schema,
       properties: {
         ...opportunityStatusUpdateEntityType.schema.properties,
+        [systemPropertyTypes.title.propertyTypeBaseUrl]: {
+          $ref: systemPropertyTypes.title.propertyTypeId,
+        },
         [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: {
           $ref: blockProtocolPropertyTypes.textualContent.propertyTypeId,
         },

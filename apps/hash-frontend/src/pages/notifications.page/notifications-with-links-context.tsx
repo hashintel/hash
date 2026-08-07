@@ -87,6 +87,8 @@ export type EntityMentionNotification = {
   entity: HashEntity<MentionNotificationProperties>;
   occurredInEntity: HashEntity;
   occurredInEntityLabel: string;
+  opportunityLabel?: string;
+  opportunitySiteCode?: string;
   triggeredByUser: MinimalUser;
 } & SimpleProperties<MentionNotificationProperties["properties"]> &
   (
@@ -189,6 +191,22 @@ export const getEntityMentionKind = (
   return recipientWasMentioned
     ? "opportunity-status-mention"
     : "opportunity-status-participation";
+};
+
+export const getOpportunityStatusNotificationContext = (
+  statusUpdate: HashEntity,
+): {
+  opportunityLabel?: string;
+  opportunitySiteCode?: string;
+} => {
+  const { siteCode, title } = simplifyProperties(
+    statusUpdate.properties as OpportunityStatusUpdate["properties"],
+  );
+
+  return {
+    opportunityLabel: typeof title === "string" ? title : undefined,
+    opportunitySiteCode: typeof siteCode === "string" ? siteCode : undefined,
+  };
 };
 
 export const useNotificationsWithLinksContextValue =
@@ -343,11 +361,18 @@ export const useNotificationsWithLinksContextValue =
                 occurredInEntity.metadata.entityTypeIds as VersionedUrl[],
               )
             ) {
+              const kind = getEntityMentionKind(
+                occurredInEntity,
+                authenticatedUser?.entity.metadata.recordId.entityId ?? "",
+              );
+              const opportunityContext =
+                kind === "opportunity-status-mention" ||
+                kind === "opportunity-status-participation"
+                  ? getOpportunityStatusNotificationContext(occurredInEntity)
+                  : {};
+
               return {
-                kind: getEntityMentionKind(
-                  occurredInEntity,
-                  authenticatedUser?.entity.metadata.recordId.entityId ?? "",
-                ),
+                kind,
                 readAt,
                 entity:
                   entity as unknown as HashEntity<MentionNotificationProperties>,
@@ -356,6 +381,7 @@ export const useNotificationsWithLinksContextValue =
                   notificationsSubgraph,
                   occurredInEntity,
                 ),
+                ...opportunityContext,
                 triggeredByUser,
               } satisfies EntityMentionNotification;
             }

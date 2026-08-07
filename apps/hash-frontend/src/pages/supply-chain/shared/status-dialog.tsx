@@ -151,12 +151,19 @@ const saveOrder = css({ order: "1" });
 const cancelOrder = css({ order: "0" });
 
 const DEFAULT_STATUS: StatusOption = "Investigation started";
-const latestStatusCategory = (entries: readonly StatusEntry[]): StatusOption =>
-  entries.reduce<StatusEntry | undefined>(
+const latestStatusCategory = (
+  entries: readonly StatusEntry[],
+): StatusOption => {
+  const latestCategory = entries.reduce<StatusEntry | undefined>(
     (latestEntry, entry) =>
       !latestEntry || entry.at > latestEntry.at ? entry : latestEntry,
     undefined,
-  )?.category ?? DEFAULT_STATUS;
+  )?.category;
+
+  return latestCategory === "Investigation started"
+    ? "Investigation update"
+    : (latestCategory ?? DEFAULT_STATUS);
+};
 const statusItems: SelectItem<StatusOption>[] = STATUS_OPTIONS.map(
   (option) => ({
     value: option,

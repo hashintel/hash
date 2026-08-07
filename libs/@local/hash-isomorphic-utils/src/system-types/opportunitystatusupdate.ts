@@ -9,6 +9,8 @@ import type {
   TextDataTypeWithMetadata,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
+  TitlePropertyValue,
+  TitlePropertyValueWithMetadata,
   ValueDataType,
   ValueDataTypeWithMetadata,
 } from "./shared.js";
@@ -25,6 +27,8 @@ export type {
   TextDataTypeWithMetadata,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
+  TitlePropertyValue,
+  TitlePropertyValueWithMetadata,
   ValueDataType,
   ValueDataTypeWithMetadata,
 };
@@ -81,6 +85,7 @@ export type OpportunityStatusUpdateProperties = {
   "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValue;
   "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
+  "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValue;
 };
 
 export type OpportunityStatusUpdatePropertiesWithMetadata = {
@@ -91,6 +96,7 @@ export type OpportunityStatusUpdatePropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/site-code/": SiteCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/status-update-text/"?: StatusUpdateTextPropertyValueWithMetadata;
     "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/title/"?: TitlePropertyValueWithMetadata;
   };
 };
 
