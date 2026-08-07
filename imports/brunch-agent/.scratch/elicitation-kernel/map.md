@@ -49,6 +49,7 @@ A reviewable **spec** for a standalone architecture (working name **elicitation 
 
 ## Not yet specified
 
+- Diagnostic "exploded view" harness for HITL prototype sessions — an instrumented walking-skeleton UI with parallel state readout and labeled moving parts (persistent state, pending affordance slot, tool traffic, terminate boundaries, advisory wakes, activation timing) so the human can react to internals, not just the chat surface; surfaced by the user after the ticket-10 walking skeleton, wanted "at some point" — sharpens once the next prototype ticket exists to host it
 - Spec permanence / sessions-roam-across-specs — shapes what artifacts the elicitor emits and how sessions relate to them; may graduate once the contract decomposition lands
 - Unstructured-ingest crossover at scale — the IR inside the contract-decomposition ticket absorbs the parsing/mapping core; what remains foggy is bulk/brownfield ingest as a first-class mode
 - elicit-to-petri-net as a future plugin — abstract questions (what fits a net; what IR precedes a net) wait until the pack model exists
