@@ -3,6 +3,7 @@ export { AvatarGroup } from "./components/AvatarGroup/avatar-group";
 export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Banner } from "./components/Banner/banner";
 export { Button, type ButtonProps } from "./components/Button/button";
+export { ButtonGroup } from "./components/ButtonGroup/button-group";
 export { CharacterCount } from "./components/CharacterCount/character-count";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
