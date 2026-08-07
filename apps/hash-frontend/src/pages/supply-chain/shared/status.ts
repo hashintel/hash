@@ -21,7 +21,7 @@ export interface StatusEntry {
   /** ISO timestamp the status was first created (original decision time). */
   at: string;
   /** Author display name, resolved from the status entity's original creator. */
-  user: string;
+  user?: string;
   /** User entity resolved from the status entity's original creator. */
   userEntityId?: EntityId;
   category: StatusOption;

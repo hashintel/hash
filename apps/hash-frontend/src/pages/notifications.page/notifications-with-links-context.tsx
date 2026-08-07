@@ -88,7 +88,6 @@ export type EntityMentionNotification = {
   occurredInEntity: HashEntity;
   occurredInEntityLabel: string;
   opportunityLabel?: string;
-  opportunitySiteCode?: string;
   triggeredByUser: MinimalUser;
 } & SimpleProperties<MentionNotificationProperties["properties"]> &
   (
@@ -197,15 +196,13 @@ export const getOpportunityStatusNotificationContext = (
   statusUpdate: HashEntity,
 ): {
   opportunityLabel?: string;
-  opportunitySiteCode?: string;
 } => {
-  const { siteCode, title } = simplifyProperties(
+  const { title } = simplifyProperties(
     statusUpdate.properties as OpportunityStatusUpdate["properties"],
   );
 
   return {
     opportunityLabel: typeof title === "string" ? title : undefined,
-    opportunitySiteCode: typeof siteCode === "string" ? siteCode : undefined,
   };
 };
 

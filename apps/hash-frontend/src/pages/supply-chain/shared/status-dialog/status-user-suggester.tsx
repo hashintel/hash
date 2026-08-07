@@ -104,28 +104,26 @@ export const StatusUserSuggester = ({
       role="listbox"
     >
       {matches.length ? (
-        [...matches, ...matches, ...matches, ...matches, ...matches].map(
-          (user, index) => (
-            <li key={user.entityId} role="presentation">
-              <button
-                aria-selected={index === activeIndex}
-                className={cx(option, index === activeIndex && selectedOption)}
-                id={`${id}-option-${index}`}
-                onClick={() => onSelect(user)}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                ref={index === activeIndex ? activeOptionRef : undefined}
-                role="option"
-                tabIndex={-1}
-                type="button"
-              >
-                <span className={displayName}>{user.displayName}</span>
-                <span className={shortname}>@{user.shortname}</span>
-              </button>
-            </li>
-          ),
-        )
+        matches.map((user, index) => (
+          <li key={user.entityId} role="presentation">
+            <button
+              aria-selected={index === activeIndex}
+              className={cx(option, index === activeIndex && selectedOption)}
+              id={`${id}-option-${index}`}
+              onClick={() => onSelect(user)}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              ref={index === activeIndex ? activeOptionRef : undefined}
+              role="option"
+              tabIndex={-1}
+              type="button"
+            >
+              <span className={displayName}>{user.displayName}</span>
+              <span className={shortname}>@{user.shortname}</span>
+            </button>
+          </li>
+        ))
       ) : (
         <li className={empty}>No matching members</li>
       )}

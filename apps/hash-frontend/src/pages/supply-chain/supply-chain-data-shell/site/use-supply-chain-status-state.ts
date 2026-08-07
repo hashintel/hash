@@ -175,6 +175,7 @@ const parseStatusReports = (entities: HashEntity[]): RawStatusReport[] => {
 
 export const useSupplyChainStatusState = (
   siteId: string,
+  siteName: string,
 ): {
   actions: OpportunityStatusActions;
   statusHistory: StatusStore;
@@ -211,24 +212,37 @@ export const useSupplyChainStatusState = (
     () => [...new Set(statusReports.map((report) => report.authorId))],
     [statusReports],
   );
-  const { actors } = useActors({ accountIds: authorIds });
+  const { actors, loading: actorsLoading } = useActors({
+    accountIds: authorIds,
+  });
 
   const statusHistory = useMemo<StatusStore>(() => {
     const namesById = new Map(
       (actors ?? []).map((actor) => [actor.accountId, actor.displayName]),
     );
+    if (authenticatedUser) {
+      namesById.set(
+        authenticatedUser.accountId,
+        authenticatedUser.displayName ?? authenticatedUser.shortname ?? "you",
+      );
+    }
     const store: StatusStore = {};
     for (const report of statusReports) {
       const author = actors?.find(
         (actor) => actor.kind === "user" && actor.accountId === report.authorId,
       );
+      const authorName = namesById.get(report.authorId);
       const entry: StatusEntry = {
         entityId: report.entityId,
         at: report.at,
         category: report.category,
         text: report.text,
         tokens: report.tokens,
-        user: namesById.get(report.authorId) ?? "Unknown user",
+        ...(authorName
+          ? { user: authorName }
+          : !actorsLoading && actors
+            ? { user: "Unknown user" }
+            : {}),
         ...(author?.kind === "user"
           ? { userEntityId: author.entity.metadata.recordId.entityId }
           : {}),
@@ -239,7 +253,7 @@ export const useSupplyChainStatusState = (
       entries.sort((left, right) => left.at.localeCompare(right.at));
     }
     return store;
-  }, [actors, statusReports]);
+  }, [actors, actorsLoading, authenticatedUser, statusReports]);
 
   const loadStatusReports = useCallback(async () => {
     if (!siteId) {
@@ -485,7 +499,9 @@ export const useSupplyChainStatusState = (
         value: {
           [scopeKeyBaseUrl]: textValueWithMetadata(key),
           [siteCodeBaseUrl]: textValueWithMetadata(siteId),
-          [titleBaseUrl]: textValueWithMetadata(siteNodeDisplayLabel(node)),
+          [titleBaseUrl]: textValueWithMetadata(
+            `${siteNodeDisplayLabel(node)} at ${siteName}`,
+          ),
           [statusCategoryBaseUrl]: {
             value: status.category,
             metadata: {
@@ -525,7 +541,7 @@ export const useSupplyChainStatusState = (
           void loadStatusReports();
         });
     },
-    [createEntity, loadStatusReports, scope, siteId, userId],
+    [createEntity, loadStatusReports, scope, siteId, siteName, userId],
   );
 
   const statuses = useMemo(() => buildStatuses(readKeys), [readKeys]);

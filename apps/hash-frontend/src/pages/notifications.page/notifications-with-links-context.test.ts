@@ -56,13 +56,12 @@ describe("getEntityMentionKind", () => {
       { tokenType: "text", text: "Investigation started" },
     ]);
     statusUpdate.properties[systemPropertyTypes.title.propertyTypeBaseUrl] =
-      "QA hold: Product A";
+      "QA hold: Product A at Cork Plant";
     statusUpdate.properties[systemPropertyTypes.siteCode.propertyTypeBaseUrl] =
-      "Cork";
+      "site-1";
 
     expect(getOpportunityStatusNotificationContext(statusUpdate)).toEqual({
-      opportunityLabel: "QA hold: Product A",
-      opportunitySiteCode: "Cork",
+      opportunityLabel: "QA hold: Product A at Cork Plant",
     });
   });
 });

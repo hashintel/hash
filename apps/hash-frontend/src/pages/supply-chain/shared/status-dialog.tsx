@@ -350,8 +350,8 @@ export const StatusDialog = ({
                         <span>
                           <span className={historyCategory}>
                             {entry.category}
-                          </span>{" "}
-                          · {entry.user}
+                          </span>
+                          {entry.user ? <> · {entry.user}</> : null}
                         </span>
                         <time dateTime={entry.at}>
                           {new Date(entry.at).toLocaleString()}

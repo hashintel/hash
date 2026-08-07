@@ -152,15 +152,6 @@ const sendMentionEmail = async ({
     statusProperties && typeof statusProperties.title === "string"
       ? statusProperties.title
       : null;
-  const opportunitySiteCode =
-    statusProperties && typeof statusProperties.siteCode === "string"
-      ? statusProperties.siteCode
-      : null;
-  const opportunityDescription = opportunityTitle
-    ? `${opportunityTitle}${
-        opportunitySiteCode ? ` at ${opportunitySiteCode}` : ""
-      }`
-    : null;
   const targetDescription = isStatusMention
     ? "a supply-chain status update"
     : includesPageEntityTypeId(
@@ -177,20 +168,18 @@ const sendMentionEmail = async ({
     allowedAttributes: {},
     allowedTags: [],
   });
-  const safeOpportunityDescription = opportunityDescription
-    ? sanitizeHtml(opportunityDescription, {
+  const safeOpportunityDescription = opportunityTitle
+    ? sanitizeHtml(opportunityTitle, {
         allowedAttributes: {},
         allowedTags: [],
       })
     : null;
   const isParticipationUpdate = deliveryKind === "participation";
   const subject = isParticipationUpdate
-    ? `New update to ${
-        opportunityDescription ?? "an opportunity you're involved in"
-      }`
+    ? `New update to ${opportunityTitle ?? "an opportunity you're involved in"}`
     : isStatusMention
       ? `You were mentioned in an update to ${
-          opportunityDescription ?? "an opportunity"
+          opportunityTitle ?? "an opportunity"
         }`
       : `You were mentioned in ${targetDescription}`;
   const introduction = isParticipationUpdate

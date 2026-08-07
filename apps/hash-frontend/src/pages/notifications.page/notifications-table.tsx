@@ -194,13 +194,6 @@ const EntityMentionNotificationContent = ({
     notification.kind === "opportunity-status-participation";
   const isOpportunityStatusUpdate =
     notification.kind === "opportunity-status-mention" || isParticipationUpdate;
-  const opportunityDescription = notification.opportunityLabel
-    ? `${notification.opportunityLabel}${
-        notification.opportunitySiteCode
-          ? ` at ${notification.opportunitySiteCode}`
-          : ""
-      }`
-    : null;
 
   return (
     <>
@@ -217,7 +210,7 @@ const EntityMentionNotificationContent = ({
         targetHref={targetHref}
       >
         {isOpportunityStatusUpdate
-          ? (opportunityDescription ?? "an opportunity")
+          ? (notification.opportunityLabel ?? "an opportunity")
           : notification.occurredInEntityLabel}
       </NotificationTarget>
     </>

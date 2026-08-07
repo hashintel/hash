@@ -20,7 +20,13 @@ const SitePage: NextPageWithLayout = () => {
       ? router.query["site-id"]
       : (sites[0]?.slug ?? ""),
   );
-  const opportunityStatusStore = useSupplyChainStatusState(siteId);
+  const siteName = sites.find(
+    (site) => normaliseSiteCode(site.slug) === siteId,
+  )?.name;
+  const opportunityStatusStore = useSupplyChainStatusState(
+    siteId,
+    siteName ?? siteId,
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const opportunityScopeKey = searchParams.get("opportunity");
   const focusedStatusUpdateUuid = searchParams.get("statusUpdate");
@@ -36,10 +42,6 @@ const SitePage: NextPageWithLayout = () => {
       { replace: true },
     );
   }, [setSearchParams]);
-
-  const siteName = sites.find(
-    (site) => normaliseSiteCode(site.slug) === siteId,
-  )?.name;
 
   useEffect(() => {
     if (!siteId) {

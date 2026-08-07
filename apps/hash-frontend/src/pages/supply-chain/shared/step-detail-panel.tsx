@@ -1206,8 +1206,12 @@ export const StepDetailPanel = ({
                   >
                     <div className={statusMeta}>
                       <span className={statusCategory}>{entry.category}</span>
-                      <span className={statusDot}>·</span>
-                      <span>{entry.user}</span>
+                      {entry.user ? (
+                        <>
+                          <span className={statusDot}>·</span>
+                          <span>{entry.user}</span>
+                        </>
+                      ) : null}
                       <span className={statusDot}>·</span>
                       <span>{formatStatusDate(entry.at)}</span>
                     </div>
