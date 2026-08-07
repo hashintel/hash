@@ -22,6 +22,10 @@ _Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the who
 The innermost shell: target-defining policy. Declares packs, forms, and validators; composes at authoring time; receives harness capabilities by injection. Mostly policy — mechanism stays in the harness.
 _Avoid_: extension, pack (a pack is a unit *within* a plugin)
 
+**Binding**:
+The substrate-facing adapter between harness and substrate: implements the harness's named substrate-capability list (tool registration, instruction assembly, persistent state, affordance emission, suspend-for-reply, private model call) in one substrate's dialect. One per substrate; the harness imports no substrate, a binding imports both. Bindings vary in size — each absorbs what its substrate lacks or forbids.
+_Avoid_: adapter (generic), integration, wrapper
+
 ### Interaction
 
 **Affordance**:
