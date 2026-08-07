@@ -19,6 +19,7 @@ mod partial_updates;
 mod property_metadata;
 mod property_type;
 mod read_only;
+mod semantic_search;
 mod sorting;
 mod table;
 mod transaction;

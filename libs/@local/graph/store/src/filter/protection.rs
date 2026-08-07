@@ -758,11 +758,6 @@ fn collect_excluded_types_recursive<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | Filter::ContainsSegment(lhs, rhs) => {
             collect_from_comparison(lhs, rhs, config, excluded);
         }
-        Filter::CosineDistance(lhs, rhs, distance) => {
-            collect_from_expr(lhs, config, excluded);
-            collect_from_expr(rhs, config, excluded);
-            collect_from_expr(distance, config, excluded);
-        }
         Filter::In(expr, _) => collect_from_expr(expr, config, excluded),
         Filter::Exists { path } => collect_from_path(path, config, excluded),
     }
@@ -939,7 +934,6 @@ pub fn transform_filter<'f, 'p: 'f>(
         | Filter::GreaterOrEqual(..)
         | Filter::Less(..)
         | Filter::LessOrEqual(..)
-        | Filter::CosineDistance(..)
         | Filter::In(..)
         | Filter::StartsWith(..)
         | Filter::EndsWith(..)
@@ -1409,10 +1403,9 @@ mod tests {
     // =========================================================================
     // TODO(BE-313): Embedding (property-specific + combined)
     // =========================================================================
-    // mod embedding {
-    //     - cosine_distance_on_property_embedding_detected
-    //     - cosine_distance_on_combined_embedding_detected
-    // }
+    // Semantic ranking bypasses the `Filter` tree: `SelectCompiler::rank_by_quantized_distance`
+    // and `restrict_embedding_property` address embeddings at the compiler level, invisible to
+    // this transformation. Protecting a per-property ranking needs a check at that surface.
 
     // =========================================================================
     // Tests: Filter Transformation

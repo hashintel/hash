@@ -47,6 +47,13 @@ pub enum Function {
     ///
     /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
     ExtractEpochMs(Box<Expression>),
+    /// Reduces a vector to one bit per dimension, set when the component is positive.
+    ///
+    /// Transpiles to `binary_quantize(<expr>)` in PostgreSQL. The result is comparable with
+    /// [`BinaryOperator::HammingDistance`] against a `bit` column of the same width.
+    ///
+    /// [`BinaryOperator::HammingDistance`]: super::BinaryOperator::HammingDistance
+    BinaryQuantize(Box<Expression>),
     Unnest(Vec<Expression>),
     Now,
 }
@@ -74,7 +81,8 @@ impl Function {
             | Self::UpperInc(expr)
             | Self::LowerInf(expr)
             | Self::UpperInf(expr)
-            | Self::ExtractEpochMs(expr) => visitor(expr),
+            | Self::ExtractEpochMs(expr)
+            | Self::BinaryQuantize(expr) => visitor(expr),
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::Coalesce(lhs, rhs) => {
@@ -121,7 +129,8 @@ impl Function {
             | Self::UpperInc(expr)
             | Self::LowerInf(expr)
             | Self::UpperInf(expr)
-            | Self::ExtractEpochMs(expr) => visitor(expr),
+            | Self::ExtractEpochMs(expr)
+            | Self::BinaryQuantize(expr) => visitor(expr),
             Self::JsonContains(lhs, rhs)
             | Self::JsonPathQueryFirst(lhs, rhs)
             | Self::Coalesce(lhs, rhs) => {
@@ -276,6 +285,11 @@ impl Transpile for Function {
                 fmt.write_str("(extract(epoch from ")?;
                 expression.transpile(fmt)?;
                 fmt.write_str(") * 1000)::int8")
+            }
+            Self::BinaryQuantize(expression) => {
+                fmt.write_str("binary_quantize(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
             }
             Self::Unnest(expression) => {
                 fmt.write_str("UNNEST(")?;

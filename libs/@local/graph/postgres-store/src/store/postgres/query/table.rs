@@ -1024,7 +1024,6 @@ pub enum DataTypeEmbeddings {
     OntologyId,
     Embedding,
     UpdatedAtTransactionTime,
-    Distance,
 }
 
 impl DatabaseColumn<'_> for DataTypeEmbeddings {
@@ -1033,7 +1032,6 @@ impl DatabaseColumn<'_> for DataTypeEmbeddings {
             Self::OntologyId => "ontology_id".into(),
             Self::Embedding => "embedding".into(),
             Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
-            Self::Distance => "distance".into(),
         }
     }
 
@@ -1042,7 +1040,6 @@ impl DatabaseColumn<'_> for DataTypeEmbeddings {
             Self::OntologyId => PostgresType::Uuid,
             Self::Embedding => PostgresType::Vector,
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
-            Self::Distance => PostgresType::Float8,
         }
     }
 }
@@ -1053,7 +1050,6 @@ impl FilterColumn<'_> for DataTypeEmbeddings {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
         }
     }
 }
@@ -1096,7 +1092,6 @@ pub enum PropertyTypeEmbeddings {
     OntologyId,
     Embedding,
     UpdatedAtTransactionTime,
-    Distance,
 }
 
 impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
@@ -1105,7 +1100,6 @@ impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
             Self::OntologyId => "ontology_id".into(),
             Self::Embedding => "embedding".into(),
             Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
-            Self::Distance => "distance".into(),
         }
     }
 
@@ -1114,7 +1108,6 @@ impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
             Self::OntologyId => PostgresType::Uuid,
             Self::Embedding => PostgresType::Vector,
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
-            Self::Distance => PostgresType::Float8,
         }
     }
 }
@@ -1125,7 +1118,6 @@ impl FilterColumn<'_> for PropertyTypeEmbeddings {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
         }
     }
 }
@@ -1134,8 +1126,11 @@ impl FilterColumn<'_> for PropertyTypeEmbeddings {
 pub enum EntityTypeEmbeddings {
     OntologyId,
     Embedding,
+    /// The binary-quantized [`Embedding`], one bit per dimension.
+    ///
+    /// [`Embedding`]: Self::Embedding
+    EmbeddingBits,
     UpdatedAtTransactionTime,
-    Distance,
 }
 
 impl DatabaseColumn<'_> for EntityTypeEmbeddings {
@@ -1143,8 +1138,8 @@ impl DatabaseColumn<'_> for EntityTypeEmbeddings {
         match self {
             Self::OntologyId => "ontology_id".into(),
             Self::Embedding => "embedding".into(),
+            Self::EmbeddingBits => "embedding_bits".into(),
             Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
-            Self::Distance => "distance".into(),
         }
     }
 
@@ -1152,8 +1147,8 @@ impl DatabaseColumn<'_> for EntityTypeEmbeddings {
         match self {
             Self::OntologyId => PostgresType::Uuid,
             Self::Embedding => PostgresType::Vector,
+            Self::EmbeddingBits => PostgresType::Bit,
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
-            Self::Distance => PostgresType::Float8,
         }
     }
 }
@@ -1163,8 +1158,8 @@ impl FilterColumn<'_> for EntityTypeEmbeddings {
         match self {
             Self::OntologyId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::EmbeddingBits => ParameterType::Vector(Box::new(ParameterType::Boolean)),
             Self::UpdatedAtTransactionTime => ParameterType::Timestamp,
-            Self::Distance => ParameterType::Decimal,
         }
     }
 }
@@ -1175,10 +1170,17 @@ pub enum EntityEmbeddings {
     EntityUuid,
     DraftId,
     Embedding,
+    /// The binary-quantized [`Embedding`], one bit per dimension.
+    ///
+    /// Stored generated column. At 392 bytes it stays in the heap tuple, whereas the 12 kB
+    /// [`Embedding`] is always out-of-line, so ranking candidates on this column avoids a TOAST
+    /// read per row.
+    ///
+    /// [`Embedding`]: Self::Embedding
+    EmbeddingBits,
     Property,
     UpdatedAtTransactionTime,
     UpdatedAtDecisionTime,
-    Distance,
 }
 
 impl DatabaseColumn<'_> for EntityEmbeddings {
@@ -1188,10 +1190,10 @@ impl DatabaseColumn<'_> for EntityEmbeddings {
             Self::EntityUuid => "entity_uuid".into(),
             Self::DraftId => "draft_id".into(),
             Self::Embedding => "embedding".into(),
+            Self::EmbeddingBits => "embedding_bits".into(),
             Self::Property => "property".into(),
             Self::UpdatedAtDecisionTime => "updated_at_decision_time".into(),
             Self::UpdatedAtTransactionTime => "updated_at_transaction_time".into(),
-            Self::Distance => "distance".into(),
         }
     }
 
@@ -1199,11 +1201,11 @@ impl DatabaseColumn<'_> for EntityEmbeddings {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
             Self::Embedding => PostgresType::Vector,
+            Self::EmbeddingBits => PostgresType::Bit,
             Self::Property => PostgresType::Text,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 PostgresType::TimestampTz
             }
-            Self::Distance => PostgresType::Float8,
         }
     }
 }
@@ -1213,11 +1215,11 @@ impl FilterColumn<'_> for EntityEmbeddings {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId => ParameterType::Uuid,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::Decimal)),
+            Self::EmbeddingBits => ParameterType::Vector(Box::new(ParameterType::Boolean)),
             Self::Property => ParameterType::BaseUrl,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
-            Self::Distance => ParameterType::Decimal,
         }
     }
 }

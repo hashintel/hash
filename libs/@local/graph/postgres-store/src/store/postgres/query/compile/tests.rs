@@ -7,8 +7,8 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
     filter::{
-        Filter, FilterExpression, JsonPath, Parameter, PathToken,
-        protection::PropertyProtectionFilterConfig,
+        Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, ParameterList,
+        PathToken, protection::PropertyProtectionFilterConfig,
     },
     property_type::PropertyTypeQueryPath,
     query::{NullOrdering, Ordering},
@@ -25,6 +25,7 @@ use type_system::{
         BaseUrl, DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
         VersionedUrl,
     },
+    principal::actor_group::WebId,
 };
 use uuid::Uuid;
 
@@ -1604,44 +1605,374 @@ fn filter_entity_by_type_base_url() {
     );
 }
 
+/// A semantic read ranks candidates under the permission filter rather than filtering the ranked
+/// rows, so the statement carrying `ORDER BY … LIMIT` has to carry the permission predicate too.
+/// Were the two split across statements, the limit would cut the candidates before the permission
+/// filter saw them and a restricted actor would get too few results, and the wrong ones.
 #[test]
-fn filter_embedding_distance() {
+fn semantic_ordering_ranks_under_the_permission_filter() {
+    let permitted_webs = [WebId::new(Uuid::from_u128(1))];
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
     let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
 
-    let filter = Filter::CosineDistance(
+    // The shape `Filter::for_policies` produces for an actor permitted a set of webs.
+    let permission_filter = Filter::In(
         FilterExpression::Path {
-            path: EntityQueryPath::Embedding,
+            path: EntityQueryPath::WebId,
         },
-        FilterExpression::Parameter {
-            parameter: Parameter::Vector(Embedding::from(vec![0.0; 1536])),
-            convert: None,
-        },
-        FilterExpression::Parameter {
-            parameter: Parameter::Decimal(Real::from_natural(5, -1)),
-            convert: None,
+        FilterExpressionList::ParameterList {
+            parameters: ParameterList::WebIds(&permitted_webs),
         },
     );
-    compiler.add_filter(&filter).expect("Failed to add filter");
+    compiler
+        .add_filter(&permission_filter)
+        .expect("the permission filter should compile");
+    let embeddings_alias = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.restrict_embedding_property(embeddings_alias, None);
+    compiler.set_limit(400);
 
     test_compilation(
         &compiler,
         r#"
-        SELECT DISTINCT ON("entity_embeddings_0_1_0"."distance") *, "entity_embeddings_0_1_0"."distance"
+        SELECT *
         FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-        LEFT OUTER JOIN (SELECT "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid", MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
-        FROM "entity_embeddings"
-        GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid") AS "entity_embeddings_0_1_0"
+        INNER JOIN "entity_embeddings" AS "entity_embeddings_1_1_0"
+          ON "entity_embeddings_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
+          AND ("entity_embeddings_1_1_0"."property" IS NULL)
+        ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($2::vector)) ASC
+        LIMIT 400
+        "#,
+        &[&permitted_webs.as_slice(), &embedding],
+    );
+}
+
+/// The per-property embedding space is addressed by equality on the `property` column instead of
+/// its `IS NULL` row.
+#[test]
+fn semantic_ordering_selects_one_embedding_space() {
+    let embedding = Embedding::from(vec![0.0; 3072]);
+    let property = "https://example.com/@example-org/types/property-type/name/";
+
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+    let embeddings_alias = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.restrict_embedding_property(embeddings_alias, Some(&property));
+    compiler.set_limit(400);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_embeddings" AS "entity_embeddings_0_1_0"
           ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
          AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
         WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
-          AND ("entity_embeddings_0_1_0"."distance" <= $2)
-        ORDER BY "entity_embeddings_0_1_0"."distance" ASC
+          AND ("entity_embeddings_0_1_0"."property" = $2)
+        ORDER BY "entity_embeddings_0_1_0"."embedding_bits" <~> binary_quantize(($1::vector)) ASC
+        LIMIT 400
+        "#,
+        &[&embedding, &property],
+    );
+}
+
+/// `entity_type_embeddings` has no `property` column, so ranking entity types needs no space
+/// restriction.
+#[test]
+fn semantic_ordering_ranks_entity_types() {
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let mut compiler = SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(None, false);
+    compiler
+        .rank_by_quantized_distance(&EntityTypeQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.set_limit(400);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT *
+        FROM "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_0_0"
+        INNER JOIN "entity_type_embeddings" AS "entity_type_embeddings_0_1_0"
+          ON "entity_type_embeddings_0_1_0"."ontology_id" = "ontology_temporal_metadata_0_0_0"."ontology_id"
+        ORDER BY "entity_type_embeddings_0_1_0"."embedding_bits" <~> binary_quantize(($1::vector)) ASC
+        LIMIT 400
+        "#,
+        &[&embedding],
+    );
+}
+
+/// One branch of the permit disjunction as [`Filter::for_policy_branches`] shapes it — the permit
+/// with every forbid negated — compiled together with the request filter. A branch replaces the
+/// top-level permit disjunction with a conjunction; a permit can still hold a disjunction of its
+/// own, which then stays inside the branch.
+#[test]
+fn semantic_ordering_compiles_a_policy_branch() {
+    let permitted_webs = [WebId::new(Uuid::from_u128(1))];
+    let forbidden_uuid = Uuid::from_u128(2);
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+
+    let policy_branch = Filter::All(vec![
+        Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::WebId,
+            },
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::WebIds(&permitted_webs),
+            },
+        ),
+        Filter::Not(Box::new(Filter::Any(vec![Filter::Equal(
+            FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Uuid(forbidden_uuid),
+                convert: None,
+            },
+        )]))),
+    ]);
+    let request_filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Archived,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Boolean(false),
+            convert: None,
+        },
+    );
+
+    compiler
+        .add_filter(&policy_branch)
+        .expect("the policy branch should compile");
+    compiler
+        .add_filter(&request_filter)
+        .expect("the request filter should compile");
+    let embeddings_alias = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.restrict_embedding_property(embeddings_alias, None);
+    compiler.set_limit(400);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT *
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_editions" AS "entity_editions_1_1_0"
+          ON "entity_editions_1_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        INNER JOIN "entity_embeddings" AS "entity_embeddings_2_1_0"
+          ON "entity_embeddings_2_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_2_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
+          AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+          AND ("entity_editions_1_1_0"."archived" = $3)
+          AND ("entity_embeddings_2_1_0"."property" IS NULL)
+        ORDER BY "entity_embeddings_2_1_0"."embedding_bits" <~> binary_quantize(($4::vector)) ASC
+        LIMIT 400
         "#,
         &[
-            &Embedding::from(vec![0.0; 1536]),
-            &Real::from_natural(5, -1),
+            &permitted_webs.as_slice(),
+            &forbidden_uuid,
+            &false,
+            &embedding,
         ],
     );
+}
+
+/// The branch split end to end: the policies go through [`Filter::for_policy_branches`] and
+/// every branch compiles to its own statement, so a change to the branch assembly shows up here
+/// as a changed statement.
+#[test]
+fn semantic_ordering_compiles_the_policy_branch_split() {
+    use hash_graph_authorization::policies::{
+        Effect, OptimizationData,
+        resource::{EntityResourceConstraint, ResourceConstraint},
+    };
+    use type_system::{
+        knowledge::entity::id::EntityUuid,
+        principal::actor::{ActorId, UserId},
+    };
+
+    let embedding = Embedding::from(vec![0.0; 3072]);
+    let actor_id = Some(ActorId::User(UserId::new(Uuid::from_u128(10))));
+
+    let permitted_entity = Uuid::from_u128(1);
+    let forbidden_entity = Uuid::from_u128(2);
+    let permit = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+        id: EntityUuid::new(permitted_entity),
+    });
+    let forbid = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
+        id: EntityUuid::new(forbidden_entity),
+    });
+    let optimization_data = OptimizationData {
+        permitted_web_ids: vec![
+            WebId::new(Uuid::from_u128(3)),
+            WebId::new(Uuid::from_u128(4)),
+        ],
+        ..OptimizationData::default()
+    };
+
+    let branches = Filter::<Entity>::for_policy_branches(
+        [
+            (Effect::Permit, Some(&permit)),
+            (Effect::Forbid, Some(&forbid)),
+        ],
+        actor_id,
+        &optimization_data,
+    );
+    assert_eq!(
+        branches.len(),
+        2,
+        "the policies should split into an entity permit and a web permit branch"
+    );
+
+    let expectations: [(&str, &[&dyn ToSql]); 2] = [
+        (
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_embeddings" AS "entity_embeddings_1_1_0"
+              ON "entity_embeddings_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND (("entity_temporal_metadata_0_0_0"."entity_uuid" = $1)
+              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND ("entity_embeddings_1_1_0"."property" IS NULL)
+            ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
+            LIMIT 400
+            "#,
+            &[&permitted_entity, &forbidden_entity, &embedding],
+        ),
+        (
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            INNER JOIN "entity_embeddings" AS "entity_embeddings_1_1_0"
+              ON "entity_embeddings_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_embeddings_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+              AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($1))
+              AND (NOT(("entity_temporal_metadata_0_0_0"."entity_uuid" = $2))))
+              AND ("entity_embeddings_1_1_0"."property" IS NULL)
+            ORDER BY "entity_embeddings_1_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
+            LIMIT 400
+            "#,
+            &[
+                &optimization_data.permitted_web_ids.as_slice(),
+                &forbidden_entity,
+                &embedding,
+            ],
+        ),
+    ];
+
+    for (branch, (expected_statement, expected_parameters)) in branches.iter().zip(expectations) {
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+        compiler
+            .add_filter(branch)
+            .expect("the policy branch should compile");
+        let embeddings_alias = compiler
+            .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+            .expect("the embedding path should have a quantized form to rank on");
+        compiler.restrict_embedding_property(embeddings_alias, None);
+        compiler.set_limit(400);
+
+        test_compilation(&compiler, expected_statement, expected_parameters);
+    }
+}
+
+/// The statement core every branch key-read shares: temporal axes, key selections, ranking, and
+/// the embedding-space restriction. The per-branch policy and request filters are pinned
+/// separately. The key columns are read back positionally, so this pins their order alongside
+/// the ranking shape.
+#[test]
+fn semantic_ordering_production_shape() {
+    let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
+    let pinned_timestamp = temporal_axes.pinned_timestamp();
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let web_id_path = EntityQueryPath::WebId;
+    let uuid_path = EntityQueryPath::Uuid;
+    let draft_id_path = EntityQueryPath::DraftId;
+
+    let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), false);
+    compiler.add_selection_path(&web_id_path);
+    compiler.add_selection_path(&uuid_path);
+    compiler.add_selection_path(&draft_id_path);
+    let embeddings_alias = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+    compiler.restrict_embedding_property(embeddings_alias, None);
+    compiler.set_limit(400);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT "entity_temporal_metadata_0_0_0"."web_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_temporal_metadata_0_0_0"."draft_id"
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_embeddings" AS "entity_embeddings_0_1_0"
+          ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+         AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
+          AND ("entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ)
+          AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
+          AND ("entity_embeddings_0_1_0"."property" IS NULL)
+        ORDER BY "entity_embeddings_0_1_0"."embedding_bits" <~> binary_quantize(($3::vector)) ASC
+        LIMIT 400
+        "#,
+        &[
+            &pinned_timestamp,
+            &temporal_axes.variable_interval(),
+            &embedding,
+        ],
+    );
+}
+
+#[test]
+fn semantic_ordering_rejects_non_embedding_paths() {
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+    let error = compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Uuid, &embedding)
+        .expect_err("a non-embedding path should have no quantized form to rank on");
+    assert!(matches!(
+        error.current_context(),
+        SelectCompilerError::UnsupportedEmbeddingPath
+    ));
+}
+
+#[test]
+fn cursor_after_semantic_ordering_is_rejected() {
+    let embedding = Embedding::from(vec![0.0; 3072]);
+
+    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
+    compiler
+        .rank_by_quantized_distance(&EntityQueryPath::Embedding, &embedding)
+        .expect("the embedding path should have a quantized form to rank on");
+
+    let error = compiler
+        .add_cursor_selection(
+            &EntityQueryPath::Uuid,
+            core::convert::identity,
+            None,
+            Ordering::Ascending,
+            None,
+        )
+        .expect_err("a cursor is not allowed after a semantic ranking");
+    assert!(matches!(
+        error.current_context(),
+        SelectCompilerError::CursorDisallowed { .. }
+    ));
 }
 
 #[test]
@@ -1900,95 +2231,6 @@ mod property_masking {
             "ORDER BY should use masked properties expression: {sql}"
         );
     }
-}
-
-fn embedding_distance_filter() -> Filter<'static, Entity> {
-    Filter::CosineDistance(
-        FilterExpression::Path {
-            path: EntityQueryPath::Embedding,
-        },
-        FilterExpression::Parameter {
-            parameter: Parameter::Vector(Embedding::from(vec![0.0; 1536])),
-            convert: None,
-        },
-        FilterExpression::Parameter {
-            parameter: Parameter::Decimal(Real::from_natural(5, -1)),
-            convert: None,
-        },
-    )
-}
-
-#[test]
-fn second_embedding_filter_is_rejected() {
-    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
-    let filter = embedding_distance_filter();
-    compiler
-        .add_filter(&filter)
-        .expect("the first embedding filter should compile");
-
-    let error = compiler
-        .add_filter(&filter)
-        .expect_err("a second embedding filter should be rejected");
-    assert!(matches!(
-        error.current_context(),
-        SelectCompilerError::MultipleEmbeddings
-    ));
-}
-
-#[test]
-fn buried_embeddings_join_is_not_rewritten() {
-    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
-
-    // Within one combined filter every branch shares a `condition_index`, so the distance arm
-    // reuses the embeddings join created by the `Exists` branch — buried under the properties
-    // join added in between. Rewriting the topmost join would replace the wrong one.
-    let json_path = JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed("name"))]);
-    let filter = Filter::All(vec![
-        Filter::Exists {
-            path: EntityQueryPath::Embedding,
-        },
-        Filter::Equal(
-            FilterExpression::Path {
-                path: EntityQueryPath::Properties(Some(json_path)),
-            },
-            FilterExpression::Parameter {
-                parameter: Parameter::Text(Cow::Borrowed("Bob")),
-                convert: None,
-            },
-        ),
-        embedding_distance_filter(),
-    ]);
-
-    let error = compiler
-        .add_filter(&filter)
-        .expect_err("a buried embeddings join cannot be rewritten into the distance subquery");
-    assert!(matches!(
-        error.current_context(),
-        SelectCompilerError::MultipleEmbeddings
-    ));
-}
-
-#[test]
-fn cursor_after_embedding_filter_is_rejected() {
-    let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
-    let filter = embedding_distance_filter();
-    compiler
-        .add_filter(&filter)
-        .expect("the embedding filter should compile");
-
-    let error = compiler
-        .add_cursor_selection(
-            &EntityQueryPath::Uuid,
-            core::convert::identity,
-            None,
-            Ordering::Ascending,
-            None,
-        )
-        .expect_err("a cursor is not allowed after an embedding filter");
-    assert!(matches!(
-        error.current_context(),
-        SelectCompilerError::CursorDisallowed { .. }
-    ));
 }
 
 #[test]
@@ -2362,45 +2604,6 @@ fn fetch_keys_then_hydrate_with_cursor() {
 }
 
 #[test]
-fn fetch_keys_then_hydrate_embedding_distance() {
-    let mut compiler = SelectCompiler::<Entity>::new(None, false);
-    let filter = embedding_distance_filter();
-    compiler
-        .add_filter(&filter)
-        .expect("the embedding filter should compile");
-    compiler.set_limit(3);
-    compiler.set_statement_shape(StatementShape::FencedKeysFirst);
-
-    // The grouped distance subquery emits one row per entity, so it may drive the key query.
-    test_compilation(
-        &compiler,
-        r#"
-        WITH "roots" AS MATERIALIZED (SELECT "entity_embeddings_0_1_0"."distance"
-        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-        LEFT OUTER JOIN (SELECT "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid", MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
-        FROM "entity_embeddings"
-        GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid") AS "entity_embeddings_0_1_0"
-          ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
-         AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-        WHERE ("entity_temporal_metadata_0_0_0"."draft_id" IS NULL)
-          AND ("entity_embeddings_0_1_0"."distance" <= $2)),
-        "limited" AS (SELECT *
-        FROM "roots"
-        ORDER BY "distance" ASC
-        LIMIT 3)
-        SELECT DISTINCT ON("limited"."distance") "limited"."distance"
-        FROM "limited"
-        ORDER BY "limited"."distance" ASC
-        LIMIT 3
-        "#,
-        &[
-            &Embedding::from(vec![0.0; 1536]),
-            &Real::from_natural(5, -1),
-        ],
-    );
-}
-
-#[test]
 fn fetch_keys_then_hydrate_carries_existing_ctes() {
     let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
     let pinned_timestamp = temporal_axes.pinned_timestamp();
@@ -2456,7 +2659,7 @@ fn fetch_keys_then_hydrate_carries_existing_ctes() {
 
 #[test]
 fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
-    use super::{CompiledJoin, JoinSource};
+    use super::CompiledJoin;
     use crate::store::postgres::query::{Alias, JoinType, Table};
 
     let mut compiler = SelectCompiler::<Entity>::new(None, true);
@@ -2477,7 +2680,6 @@ fn fetch_keys_then_hydrate_generating_hydration_join_falls_back() {
             number: 0,
         },
         join_type: JoinType::RightOuter,
-        source: JoinSource::Table,
         conditions: Vec::new(),
         to_many: false,
     });

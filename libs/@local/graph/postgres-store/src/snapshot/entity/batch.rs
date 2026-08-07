@@ -81,9 +81,12 @@ where
                         (LIKE entity_edge INCLUDING ALL)
                         ON COMMIT DROP;
 
+                    -- Staging holds the rows for a single copy, so it needs neither the HNSW
+                    -- index nor the quantized column derived from the vectors.
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
-                        (LIKE entity_embeddings INCLUDING ALL)
+                        (LIKE entity_embeddings INCLUDING ALL EXCLUDING INDEXES)
                         ON COMMIT DROP;
+                    ALTER TABLE entity_embeddings_tmp DROP COLUMN embedding_bits;
                 ",
             )
             .instrument(tracing::info_span!(
@@ -235,8 +238,26 @@ where
                     INSERT INTO entity_edge
                         SELECT * FROM entity_edge_tmp;
 
-                    INSERT INTO entity_embeddings
-                        SELECT * FROM entity_embeddings_tmp;
+                    -- The explicit list leaves out the generated `embedding_bits` column, which
+                    -- rejects inserts even when the staging table is empty.
+                    INSERT INTO entity_embeddings (
+                        web_id,
+                        entity_uuid,
+                        draft_id,
+                        property,
+                        embedding,
+                        updated_at_decision_time,
+                        updated_at_transaction_time
+                    )
+                        SELECT
+                            web_id,
+                            entity_uuid,
+                            draft_id,
+                            property,
+                            embedding,
+                            updated_at_decision_time,
+                            updated_at_transaction_time
+                        FROM entity_embeddings_tmp;
             ",
             )
             .instrument(tracing::info_span!(

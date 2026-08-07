@@ -259,13 +259,25 @@ impl Expression {
         })
     }
 
+    /// Hamming distance between two `bit` expressions of equal width.
     #[must_use]
-    pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
+    pub fn hamming_distance(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
-            op: BinaryOperator::CosineDistance,
+            op: BinaryOperator::HammingDistance,
             left: Box::new(lhs),
             right: Box::new(rhs),
         })
+    }
+
+    /// Reduces a vector expression to one bit per dimension.
+    ///
+    /// The argument is pinned to `vector`: `binary_quantize` is overloaded per vector type, so an
+    /// untyped parameter fails Postgres' overload resolution.
+    #[must_use]
+    pub fn binary_quantize(expression: Self) -> Self {
+        Self::Function(Function::BinaryQuantize(Box::new(
+            expression.cast(PostgresType::Vector),
+        )))
     }
 
     #[must_use]
