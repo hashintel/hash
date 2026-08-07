@@ -205,8 +205,10 @@ export const SearchableSelect = ({
         }
         setQuery("");
       }}
-      onOpenChange={() => {
-        setQuery("");
+      onOpenChange={(details) => {
+        if (!details.open) {
+          setQuery("");
+        }
       }}
       selectionBehavior="clear"
       placeholder={selectedLabel || placeholder}
