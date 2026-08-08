@@ -123,8 +123,18 @@ The bundle is framework-neutral by design — the Starlight site in
 imports, no framework components — which is what lets it render in Astro, in
 hash.dev's Next.js MDX pipeline, and as plain text.
 
-**Authored** pages may additionally import the diagram components below. That is
-the one thing the bundle asks of a host: a React-capable MDX pipeline.
+**Authored** pages may additionally import the diagram components below, which is
+where every requirement the bundle places on a host comes from:
+
+| A host must provide                | For                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| A React-capable MDX pipeline       | Any authored page that imports a diagram component                  |
+| `@xyflow/react`                    | The interactive layer map, and nothing else                         |
+| A hydration directive on that page | Folding the layer map; without one it still renders as a static SVG |
+
+Nothing else. In particular the bundle asks for **no Markdown or Rehype
+plugins** — a host renders it with its Markdown pipeline exactly as configured,
+which is what keeps "render the bundle" a small job rather than a negotiation.
 
 ### Embedding the bundle elsewhere
 
