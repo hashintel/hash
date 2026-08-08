@@ -6,6 +6,7 @@ import {
 import actualMode from "../../../../../../docs/actual-mode.md?raw";
 import adHocScenarios from "../../../../../../docs/ad-hoc-scenarios.md?raw";
 import aiAssistant from "../../../../../../docs/ai-assistant.md?raw";
+import compilationOutput from "../../../../../../docs/compilation-output.md?raw";
 import drawingANet from "../../../../../../docs/drawing-a-net.md?raw";
 import examples from "../../../../../../docs/examples.md?raw";
 import experiments from "../../../../../../docs/experiments.md?raw";
@@ -40,6 +41,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   "actual-mode": actualMode,
   "ai-assistant": aiAssistant,
   "visual-settings": visualSettings,
+  "compilation-output": compilationOutput,
   examples,
 };
 

@@ -566,7 +566,11 @@ workerRuntime.onMessage((data) => {
         const { id } = data;
         respond(
           id,
-          compileHirArtifacts(data.params.sdcpn, data.params.extensions),
+          compileHirArtifacts(
+            data.params.sdcpn,
+            data.params.extensions,
+            data.params.options,
+          ),
         );
         break;
       }
