@@ -23,6 +23,9 @@ export default defineConfig(({ command }) => ({
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization.ts"),
+        // Backend contract and selection. A separate entry so a heavy backend
+        // can be registered without dragging its implementation in with it.
+        experiments: resolve(packageRoot, "src/experiments.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
