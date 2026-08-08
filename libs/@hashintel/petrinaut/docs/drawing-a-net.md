@@ -92,6 +92,22 @@ You can also edit an arc's weight via the properties panel for the transition it
 
 See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-for-multi-token-operations).
 
+## Token capacity
+
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+
+A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
+
+Details worth knowing:
+
+- The check uses the **net** change per firing. A transition that consumes one token from a place and returns one to it leaves the count unchanged, so a place sitting exactly at capacity does not block it.
+- Read and inhibitor arcs do not consume tokens, so they never free up room.
+- A capacity of `0` means the place can never receive tokens.
+- If every remaining transition is blocked by a full output place, the run ends as a [deadlock](simulation.md#deadlock) -- the same as running out of input tokens.
+- A scenario or initial marking that already exceeds a place's capacity is an error: capacity blocks transitions, so it cannot fix a starting state that is already over the limit.
+
+Capacity is also how you bound a model's worst-case size. With every place capped, the largest possible marking is fixed, which makes the state space finite and the memory a run can consume predictable.
+
 ## Pan and Select modes
 
 The editor has two cursor modes, toggled from the bottom toolbar dropdown:
