@@ -1,10 +1,14 @@
 import { SDCPNItemError } from "../../errors";
-import { materializeEngineFrame } from "../frames/internal-frame";
+import {
+  materializeEngineFrame,
+  readEngineFrame,
+} from "../frames/internal-frame";
 import {
   executeBufferKernel,
   fillPlaceBases,
   fillTokenIndices,
 } from "./buffer-transition";
+import { hasCapacityHeadroom } from "./capacity";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
 import { createTokenRegionViews } from "./token-layout";
@@ -72,6 +76,21 @@ export function computePossibleTransition(
 
   // Return null if not enabled
   if (!isTransitionEnabled) {
+    return null;
+  }
+
+  // A full output place blocks its producers, mirroring an input arc that
+  // cannot be satisfied. Transitions are executed one at a time here, with
+  // removals applied between them, so the frame's counts are already current
+  // and there is no pending output to account for.
+  if (
+    transition.capacityConstraints.length > 0 &&
+    !hasCapacityHeadroom(
+      transition.capacityConstraints,
+      readEngineFrame(simulation.frameLayout, frame).placeCounts,
+      null,
+    )
+  ) {
     return null;
   }
 

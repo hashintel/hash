@@ -74,6 +74,19 @@ export type Place = {
   colorId: null | ID;
   dynamicsEnabled: boolean;
   differentialEquationId: null | ID;
+  /**
+   * Optional maximum number of tokens this place will hold.
+   *
+   * A transition whose firing would take this place past its capacity is not
+   * enabled — the same way a transition without enough input tokens is not
+   * enabled — so a full place blocks the transitions that feed it and the limit
+   * is never exceeded. Evaluated on the net change per firing, so a transition
+   * that both consumes from and produces into this place is not blocked by its
+   * own output.
+   *
+   * `null` or absent means unbounded.
+   */
+  capacity?: number | null;
   /** When true, this place is exposed as a component port for subnet instances. */
   isPort?: boolean;
   visualizerCode?: string;
