@@ -40,4 +40,5 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets using natural language.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
+- [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.
