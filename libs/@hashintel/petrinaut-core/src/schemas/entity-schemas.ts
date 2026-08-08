@@ -200,6 +200,10 @@ export const placeSchema = z
       description:
         "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
     }),
+    capacity: z.int().nonnegative().nullable().optional().meta({
+      description:
+        "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it.",
+    }),
     isPort: z.boolean().optional().meta({
       description:
         "When true, this place is exposed as a component port on instances of the subnet that contains it.",

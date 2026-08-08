@@ -90,6 +90,9 @@ export function makeCompiledTransition({
   return {
     id: transition.id,
     name: transition.name,
+    // Capacity is exercised through `buildSimulation`; these hand-built
+    // transitions are unconstrained.
+    capacityConstraints: [],
     inputPlaces,
     outputPlaces,
     lambdaFn,

@@ -54,6 +54,11 @@ export function advanceRun(run: MonteCarloRunState): boolean {
     let workingFrame = writeFrameAfterDynamics(run);
     const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
     const firedTransitions = new Set<string>();
+    // Output tokens are applied once at the end of the frame, so capacity
+    // checks need to see what earlier transitions already committed this frame.
+    // Only allocated for nets that actually declare capacities.
+    const pendingOutputCounts = run.pendingOutputCounts;
+    pendingOutputCounts?.fill(0);
 
     for (const transitionId of run.simulation.frameLayout.transitionIds) {
       const transition = run.simulation.compiledTransitions.get(transitionId);
@@ -65,6 +70,7 @@ export function advanceRun(run: MonteCarloRunState): boolean {
         run,
         workingFrame,
         transition,
+        pendingOutputCounts,
       );
       // Every evaluation's randomness is consumed, fired or not — reusing
       // the state would re-test the same draw next frame.
@@ -80,6 +86,17 @@ export function advanceRun(run: MonteCarloRunState): boolean {
         firing.remove,
       );
       mergeTokenAdditions(tokensToAdd, firing.add);
+
+      if (pendingOutputCounts) {
+        for (const [placeId, tokens] of Object.entries(firing.add)) {
+          const placeIndex =
+            run.simulation.frameLayout.placeIndexById.get(placeId);
+          if (placeIndex !== undefined) {
+            pendingOutputCounts[placeIndex] =
+              (pendingOutputCounts[placeIndex] ?? 0) + tokens.length;
+          }
+        }
+      }
     }
 
     workingFrame = applyTokenAdditions(run, workingFrame, tokensToAdd);
