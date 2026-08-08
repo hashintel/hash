@@ -1,17 +1,21 @@
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-import { Button, Drawer, Icon } from "@hashintel/ds-components";
+import { Button, Drawer, Icon, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
+  getExperimentElapsedMs,
+  isExperimentActive,
 } from "../../../../../../react/experiments/context";
 import { Section, SectionList } from "../../../../../components/section";
+import { TableStatusBadge } from "../../../../../components/table";
 import {
   ExperimentMetricTimeline,
   type MetricSize,
 } from "./experiment-metric-timeline";
+import { formatDurationMs } from "./format-duration";
 
 const summaryGridStyle = css({
   display: "grid",
@@ -104,6 +108,69 @@ function formatStatus(experiment: ExperimentRecord): string {
   }
 }
 
+function describeComputeBackend(experiment: ExperimentRecord): string {
+  if (experiment.computeBackend === "webgpu") {
+    return "Stepped on the GPU through WebGPU. Results are statistically equivalent to the CPU backend, but not identical for a given seed — the two use different random generators.";
+  }
+
+  if (experiment.computeBackendFallbackReason !== null) {
+    // Otherwise this only ever appeared in a notification, which is gone by the
+    // time anyone looks at the results and wonders why they are not GPU-backed.
+    return `The GPU backend was requested but could not run this net: ${experiment.computeBackendFallbackReason}`;
+  }
+
+  return "Stepped on the CPU, across worker threads.";
+}
+
+const ComputeBackendBadge = ({
+  experiment,
+}: {
+  experiment: ExperimentRecord;
+}) => {
+  const isGpu = experiment.computeBackend === "webgpu";
+
+  return (
+    <Tooltip content={describeComputeBackend(experiment)} position="bottom-end">
+      {/* The same pill the experiments table and the active-experiments popover
+          use for status. The design system's own `Badge` was the obvious choice,
+          but its `brand` scheme puts #5EB1EF on a near-white #FBFDFF — about
+          2.3:1, below the 4.5:1 WCAG AA needs for text this size. */}
+      <TableStatusBadge
+        tone={isGpu ? "active" : "neutral"}
+        iconName={isGpu ? "lightning" : undefined}
+      >
+        {isGpu ? "GPU" : "CPU"}
+      </TableStatusBadge>
+    </Tooltip>
+  );
+};
+
+/**
+ * Returns a clock that advances while `active`, so an elapsed-time readout keeps
+ * moving.
+ *
+ * The experiment's own progress events already re-render this panel often enough
+ * to animate a timer — but they stop arriving if a run stalls, and that is
+ * exactly when someone is watching the clock.
+ */
+function useNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    const update = () => setNow(Date.now());
+    update();
+    const intervalId = window.setInterval(update, 250);
+
+    return () => window.clearInterval(intervalId);
+  }, [active]);
+
+  return now;
+}
+
 function groupMetricFramesByMetric(
   metricFrames: readonly MetricFrame[],
 ): MetricFrame[][] {
@@ -128,6 +195,9 @@ const ExperimentSummary = ({
     progress && experiment.maxTime > 0
       ? Math.min(100, (progress.time / experiment.maxTime) * 100)
       : 0;
+  const now = useNow(isExperimentActive(experiment));
+  const elapsedMs = getExperimentElapsedMs(experiment, now);
+  const hasFinished = experiment.finishedAt !== null;
 
   return (
     <>
@@ -163,6 +233,16 @@ const ExperimentSummary = ({
           <span className={statValueStyle}>
             {formatNumber(progress?.time ?? 0)} /{" "}
             {formatNumber(experiment.maxTime)}
+          </span>
+        </div>
+        <div className={statStyle}>
+          <span className={statLabelStyle}>
+            {hasFinished ? "Duration" : "Elapsed"}
+          </span>
+          <span className={statValueStyle}>
+            {/* Wall-clock, as distinct from the simulated "Time" above it. Dashed
+                out rather than shown as zero when stepping never began. */}
+            {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
           </span>
         </div>
       </div>
@@ -253,7 +333,16 @@ export const ViewExperimentDrawer = ({
       />
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
-          <Section title="Summary" collapsible defaultOpen>
+          <Section
+            title="Summary"
+            collapsible
+            defaultOpen
+            // In the header rather than the grid below, so which backend ran
+            // stays visible when the section is collapsed.
+            renderHeaderAction={() => (
+              <ComputeBackendBadge experiment={experiment} />
+            )}
+          >
             <ExperimentSummary experiment={experiment} />
           </Section>
           {experiment.metricFrames.length > 0 ? (

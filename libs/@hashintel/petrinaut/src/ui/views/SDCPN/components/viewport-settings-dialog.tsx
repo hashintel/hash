@@ -2,6 +2,7 @@ import { use } from "react";
 
 import { Button, Dialog, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
@@ -115,8 +116,15 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
+    webGpuEnabled,
+    setWebGpuEnabled,
+    showCompilationOutput,
+    setShowCompilationOutput,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
+  // Gated on runtime availability rather than a build flag, so the control is
+  // only offered where it can actually do something.
+  const webGpuAvailable = isWebGpuAvailable();
 
   if (!open) {
     return null;
@@ -223,6 +231,41 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             />
           </SettingRow>
         )}
+        <h3 className={sectionTitleStyle}>Simulation</h3>
+        <SettingRow
+          label={
+            <>
+              WebGPU <span className={badgeStyle}>Experimental</span>
+            </>
+          }
+          description={
+            webGpuAvailable
+              ? "Offer a GPU option when creating an experiment. Each experiment then chooses its own backend, so GPU and CPU runs can go side by side. Much faster where the net qualifies, though results agree statistically rather than seed-for-seed."
+              : "This browser does not expose WebGPU, so experiments run on the CPU."
+          }
+        >
+          <Toggle
+            value={webGpuEnabled && webGpuAvailable}
+            onChange={setWebGpuEnabled}
+            size="sm"
+            disabled={!webGpuAvailable}
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Compilation output{" "}
+              <span className={badgeStyle}>Experimental</span>
+            </>
+          }
+          description="Add a Compilation tab to the bottom panel, showing how the net's code lowered to HIR and what stops it running on the GPU"
+        >
+          <Toggle
+            value={showCompilationOutput}
+            onChange={setShowCompilationOutput}
+            size="sm"
+          />
+        </SettingRow>
       </Dialog.Body>
       <Dialog.Footer
         actions={

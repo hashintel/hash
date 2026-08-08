@@ -21,6 +21,7 @@ type EditorEditionMode =
   | "add-component";
 export type CursorMode = "select" | "pan";
 export type BottomPanelTab =
+  | "compilation"
   | "diagnostics"
   | "simulation-settings"
   | "actual-events"

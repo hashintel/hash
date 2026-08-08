@@ -26,11 +26,13 @@ import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
+  type ExperimentComputeBackend,
   type ExperimentRecord,
   type ExperimentStatus,
   ExperimentsContext,
   type ExperimentsContextValue,
   isExperimentActive,
+  isTerminalExperimentStatus,
 } from "./context";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
@@ -213,12 +215,35 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experimentId: string,
     patch: Partial<ExperimentRecord>,
   ) => {
+    // A patch that moves the experiment to a terminal status is stamped with the
+    // arrival time here rather than at each call site, so that no path — normal
+    // completion, a worker error, or cancellation — can finish an experiment
+    // without recording when it stopped.
+    const finishedAt =
+      patch.status !== undefined && isTerminalExperimentStatus(patch.status)
+        ? Date.now()
+        : null;
+
     setExperiments((prev) =>
-      prev.map((experiment) =>
-        experiment.id === experimentId
-          ? { ...experiment, ...patch }
-          : experiment,
-      ),
+      prev.map((experiment) => {
+        if (experiment.id !== experimentId) {
+          return experiment;
+        }
+
+        return {
+          ...experiment,
+          ...patch,
+          // The status, progress and event subscriptions can each sync the same
+          // terminal status, so only the first stamp counts. Their timestamps
+          // coincide today — the engine tears its transports down on reaching a
+          // terminal state, so nothing arrives later — which is why no test can
+          // tell this apart from re-stamping. It is here so that the recorded
+          // time stays the moment the run stopped if that ever changes.
+          ...(finishedAt !== null && experiment.finishedAt === null
+            ? { finishedAt }
+            : {}),
+        };
+      }),
     );
   };
 
@@ -279,9 +304,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         });
       }
 
-      if (event.type === "complete" || event.type === "cancelled") {
-        disposeExperimentHandle(experimentId);
-      }
+      // Every member of this event union is terminal — `complete`, `cancelled`,
+      // `error` — so any event means the handle is finished with. Disposal is
+      // what releases the backend's resources; for the GPU path that is
+      // `device.destroy()`, and skipping it on `error` left a live GPUDevice
+      // held until the record was removed.
+      disposeExperimentHandle(experimentId);
     });
 
     registrationsRef.current.set(experimentId, {
@@ -362,6 +390,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       status: "initializing",
       error: null,
       metricSpecs: input.metricSpecs,
+      computeBackend: "cpu",
+      computeBackendFallbackReason: null,
+      startedAt: null,
+      finishedAt: null,
       progress: null,
       latestMetricFramesById: {},
       metricFrames: [],
@@ -391,84 +423,112 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             code: spec.code,
           })),
         };
-        const { artifacts, failures } = await requestHirArtifacts(
-          compiledExperimentSdcpn,
-          experimentExtensions,
-        );
 
-        // Compilation cannot currently be aborted. A cancelled or removed
-        // experiment must stop here rather than turning a late compile result
-        // (or failure below) into a worker or an error notification.
-        if (!pendingRegistrationsRef.current.has(experimentId)) {
-          return;
-        }
+        // Built per backend rather than once, because the HIR trees roughly
+        // triple the artifact payload structured-cloned to every shard worker,
+        // and only a shader-generating backend reads them. `needsHirTrees` comes
+        // from the backend itself, so a new backend cannot be forgotten here.
+        const buildRequest = async ({
+          needsHirTrees,
+        }: {
+          needsHirTrees: boolean;
+        }): Promise<ExperimentRequest> => {
+          const { artifacts, failures } = await requestHirArtifacts(
+            compiledExperimentSdcpn,
+            experimentExtensions,
+            { includeHir: needsHirTrees },
+          );
 
-        const metricSpecs = input.metricSpecs.map((spec) => {
-          if (spec.kind !== "expression") {
-            return spec;
-          }
-          const artifact = artifacts.metrics[spec.id];
-          if (!artifact) {
-            const diagnostics = failures
-              .filter(
-                (failure) =>
-                  failure.itemType === "metric" && failure.itemId === spec.id,
-              )
-              .flatMap((failure) =>
-                failure.diagnostics.map((diagnostic) => diagnostic.message),
+          const metricSpecs = input.metricSpecs.map((spec) => {
+            if (spec.kind !== "expression") {
+              return spec;
+            }
+            const artifact = artifacts.metrics[spec.id];
+            if (!artifact) {
+              const diagnostics = failures
+                .filter(
+                  (failure) =>
+                    failure.itemType === "metric" && failure.itemId === spec.id,
+                )
+                .flatMap((failure) =>
+                  failure.diagnostics.map((diagnostic) => diagnostic.message),
+                );
+              throw new Error(
+                `Metric "${spec.label}" did not compile${
+                  diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
+                }`,
               );
-            throw new Error(
-              `Metric "${spec.label}" did not compile${
-                diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
-              }`,
-            );
-          }
-          return { ...spec, artifact };
-        });
+            }
+            return { ...spec, artifact };
+          });
 
-        const request: ExperimentRequest = {
-          // Artifact fingerprints cover the complete sanitized SDCPN, including
-          // its metric definitions. Run the worker against the exact snapshot
-          // used above rather than the pre-substitution model.
-          sdcpn: compiledExperimentSdcpn,
-          extensions: experimentExtensions,
-          initialMarking,
-          parameterValues,
-          seed: input.seed,
-          dt: input.dt,
-          maxTime: input.maxTime,
-          runCount: input.runCount,
-          metricSpecs,
-          hirArtifacts: artifacts,
+          return {
+            // Artifact fingerprints cover the complete sanitized SDCPN,
+            // including its metric definitions. Run against the exact snapshot
+            // compiled above rather than the pre-substitution model.
+            sdcpn: compiledExperimentSdcpn,
+            extensions: experimentExtensions,
+            initialMarking,
+            parameterValues,
+            seed: input.seed,
+            dt: input.dt,
+            maxTime: input.maxTime,
+            runCount: input.runCount,
+            metricSpecs,
+            hirArtifacts: artifacts,
+          };
         };
 
-        // Preference order, best first. Only one backend today; the point of
-        // going through the registry is that adding another is a registration
-        // rather than an edit to this branch.
-        const registrations: ExperimentBackendRegistration[] = [
-          {
-            id: "cpu",
-            label: "CPU (Web Workers)",
-            load: () =>
-              Promise.resolve(
-                createWorkerPoolExperimentBackend({
-                  createWorker: workerFactoryRef.current,
-                  ...(shardCountRef.current === undefined
-                    ? {}
-                    : { shardCount: shardCountRef.current }),
-                }),
-              ),
-          },
-        ];
+        // Preference order, best first. The GPU backend is only a candidate when
+        // it was asked for; the worker-pool backend is always last because it
+        // accepts everything, which is what makes it the fallback.
+        const registrations: ExperimentBackendRegistration[] = [];
+        if (input.computeBackend === "webgpu") {
+          registrations.push({
+            id: "webgpu",
+            label: "GPU (WebGPU)",
+            // Imported here, not at module scope, so a session that never asks
+            // for the GPU never loads the shader generator.
+            load: async () => {
+              const { createWebGpuExperimentBackend } =
+                await import("@hashintel/petrinaut-core/webgpu");
+              return createWebGpuExperimentBackend();
+            },
+          });
+        }
+        registrations.push({
+          id: "cpu",
+          label: "CPU (Web Workers)",
+          load: () =>
+            Promise.resolve(
+              createWorkerPoolExperimentBackend({
+                createWorker: workerFactoryRef.current,
+                ...(shardCountRef.current === undefined
+                  ? {}
+                  : { shardCount: shardCountRef.current }),
+              }),
+            ),
+        });
 
         const selection = await selectExperimentBackend({
           registrations,
-          buildRequest: () => Promise.resolve(request),
-          instantiateOptions: { signal: abortController.signal },
+          buildRequest,
+          instantiateOptions: {
+            signal: abortController.signal,
+            // Problems only detectable once running — a saturated histogram —
+            // arrive too late for the notes returned at selection.
+            onNote: (note) => {
+              addNotification({
+                message: `${experiment.name}: ${note.message}`,
+                tone: "error",
+              });
+            },
+          },
         });
 
-        // Setup cannot be aborted mid-flight. A cancelled or removed experiment
-        // must stop here rather than turning a late result into a running handle.
+        // Compilation and device acquisition cannot be aborted mid-flight. A
+        // cancelled or removed experiment must stop here rather than turning a
+        // late result into a running handle.
         if (!pendingRegistrationsRef.current.has(experimentId)) {
           if (selection.ok) {
             selection.handle.dispose();
@@ -485,8 +545,34 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         const { handle } = selection;
+        const usedBackend = selection.backendId as ExperimentComputeBackend;
+        // Only the backends the user chose *against* are worth reporting, and
+        // only when something was declined — otherwise this is the happy path.
+        const [firstDeclined] = selection.declined;
+        const fallbackReason = firstDeclined?.reason ?? null;
+        if (firstDeclined) {
+          addNotification({
+            message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
+            tone: "neutral",
+          });
+        }
+        for (const note of selection.notes) {
+          addNotification({
+            message: `${experiment.name}: ${note.message}`,
+            tone: "neutral",
+          });
+        }
 
         pendingRegistrationsRef.current.delete(experimentId);
+        patchExperiment(experimentId, {
+          computeBackend: usedBackend,
+          computeBackendFallbackReason: fallbackReason,
+          // Stepping starts on the next line. Setup — compiling user code,
+          // spinning up workers, acquiring the GPU device — is deliberately
+          // outside the measurement, so the two backends are compared on the
+          // work they actually differ in.
+          startedAt: Date.now(),
+        });
         registerExperimentHandle(experiment, handle);
         handle.start();
       } catch (error) {
