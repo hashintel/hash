@@ -66,13 +66,18 @@
       "types": "./dist/workers/simulation.d.d.ts",
       "import": "./dist/workers/simulation.js"
     },
+    "./webgpu": {
+      "types": "./dist/webgpu.d.d.ts",
+      "import": "./dist/webgpu.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && yarn check:browser-safe-entries",
+    "check:browser-safe-entries": "node scripts/check-browser-safe-entries.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
@@ -90,6 +95,7 @@
   "devDependencies": {
     "@types/node": "22.18.13",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "@webgpu/types": "0.1.71",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "rolldown": "1.1.2",

@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type {
+  CompileHirArtifactsOptions,
   CompletionList,
   Diagnostic,
   DocumentUri,
@@ -51,6 +52,7 @@ export interface LanguageClientContextValue {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: CompileHirArtifactsOptions,
   ) => Promise<HirCompileResult>;
   /**
    * Lower a scenario's expressions and code-mode body to HIR (in the
