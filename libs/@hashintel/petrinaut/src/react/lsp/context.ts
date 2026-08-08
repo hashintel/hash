@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type {
+  CompileHirArtifactsOptions,
   CompletionList,
   Diagnostic,
   DocumentUri,
@@ -49,6 +50,7 @@ export interface LanguageClientContextValue {
   requestHirArtifacts: (
     sdcpn: SDCPN,
     extensions?: PetrinautExtensionSettings,
+    options?: CompileHirArtifactsOptions,
   ) => Promise<HirCompileResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;

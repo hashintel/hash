@@ -21,6 +21,7 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | **Runs**                | `1000`                            | Positive integer; how many independent simulations to run.                                                                                                                                                         |
 | **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
 | **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
+| **Run on GPU**          | off                               | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental).                 |
 
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
 
@@ -50,6 +51,51 @@ Two consequences worth knowing:
 
 - Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
 - Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
+
+### Compute backend (experimental)
+
+Experiments run on the CPU unless you ask for the GPU. Switch on **WebGPU** under **Settings → Simulation**, and the Create Experiment drawer gains a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
+
+The choice is per experiment, not global, so a GPU experiment and a CPU experiment can run side by side — useful for comparing the two on the same model. Each gets its own GPU device, so nothing is shared between them.
+
+The switch is greyed out when the current model cannot run on the GPU; hover it for the reason. The setting is only offered where your browser exposes WebGPU. Chrome, Edge and Safari 26+ do; Firefox needs it enabled.
+
+The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
+
+- **fewer than 256 tokens in any place a metric measures.** Metrics are reduced on the device into a histogram with one bin per token count, so counts of 256 or more cannot be told apart. A net whose measured place already starts above that is refused; one that grows past it mid-run warns you that values above 255 are clamped;
+- every place that holds typed tokens to declare a [token capacity](drawing-a-net.md#token-capacity), so buffer sizes are known up front;
+- no `string` or `uuid` token attributes, which need more than the 32 bits WebGPU offers;
+- **arcs consuming at most two typed tokens per place.** A condition that reads token attributes runs on the GPU at weight 1 and at weight 2 — a pairwise condition like a collision test is scanned over every pair — but not beyond;
+- typed tokens consumed from at most one place per transition, since two would be a product across arcs;
+- metrics that measure place token counts, without a time aggregation.
+
+When an experiment does not qualify, it runs on the CPU instead and a message explains which requirement was not met. Nothing fails, and you do not need to check in advance. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
+
+There is also a ceiling on **run count**, because every run's state lives in one GPU buffer. How many runs fit depends on your hardware and on how much state a run needs, and Petrinaut asks your GPU for its own limit rather than the minimum every GPU must support — on an Apple M-series machine that is 4 GB rather than 128 MB. If an experiment still exceeds it, the message says how many runs would fit, and that experiment runs on the CPU.
+
+Two things to know before comparing results:
+
+- **The same seed gives different numbers on the two backends.** They use different random number generators — WebGPU cannot reproduce the CPU one — so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
+- Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
+- The GPU steps every run to the configured max time, while the CPU stops a run as soon as it can no longer fire anything. So a net that finishes early reports a **higher frame count and simulated time** on the GPU for the same results. Nothing is wrong with either; they just stop counting at different points.
+
+### Reading the summary
+
+Open an experiment's drawer and its **Summary** section reports:
+
+| Field        | Meaning                                                                                                              |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **Status**   | One of the five statuses above.                                                                                      |
+| **Scenario** | The scenario the experiment runs, or `Default`.                                                                      |
+| **Runs**     | How many runs are in flight, and how many have finished.                                                             |
+| **Errors**   | How many individual runs errored. An experiment can complete with some runs errored.                                 |
+| **Frame**    | The frame number reached — the slowest worker's position, so it never runs ahead of the results.                     |
+| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                          |
+| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took. |
+
+A badge beside the **Summary** heading shows whether the run used the **CPU** or the **GPU**, and stays visible when the section is collapsed. Hover it for detail — on a CPU-backed experiment that asked for the GPU, the badge explains which requirement the net did not meet.
+
+**Elapsed** and **Duration** measure simulating only. Compiling the net's user code and starting the workers (or acquiring the GPU device and compiling the shader) happens before the clock starts, so the number is comparable between the two backends. An experiment that fails before it starts simulating shows `—` rather than a duration.
 
 ### Actions
 

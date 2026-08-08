@@ -100,9 +100,23 @@ function lowerAndCheck(
  * not scalarize to a buffer program are reported in `failures` (mirrored by
  * the LSP as error diagnostics); such items cannot simulate.
  */
+export type CompileHirArtifactsOptions = {
+  /**
+   * Also carry the lowered HIR tree on each artifact.
+   *
+   * Off by default: the tree roughly triples artifact size (measured +197% on
+   * the supply-chain example), and artifacts are posted to every Monte Carlo
+   * shard worker, none of which need it. Only the WebGPU backend does, because
+   * it generates a shader from the HIR and cannot lower the net itself — that
+   * would pull the TypeScript frontend into the browser bundle.
+   */
+  includeHir?: boolean;
+};
+
 export function compileHirArtifacts(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  options: CompileHirArtifactsOptions = {},
 ): HirCompileResult {
   const sanitized = sanitizeSDCPNForExtensions(sdcpn, extensions);
   const artifacts: HirArtifacts = {
@@ -162,7 +176,10 @@ export function compileHirArtifacts(
         });
         continue;
       }
-      artifacts.dynamics[de.id] = { source };
+      artifacts.dynamics[de.id] = {
+        source,
+        ...(options.includeHir ? { hir: item.fn } : {}),
+      };
     }
 
     for (const transition of transitions) {
@@ -197,6 +214,7 @@ export function compileHirArtifacts(
             });
           } else {
             artifacts.lambdas[transition.id] = {
+              ...(options.includeHir ? { hir: item.fn } : {}),
               source: program.source,
               inputSlotCount: program.inputSlotCount,
             };
@@ -235,6 +253,7 @@ export function compileHirArtifacts(
               source: program.source,
               inputSlotCount: program.inputSlotCount,
               outputByteCount: program.outputByteCount,
+              ...(options.includeHir ? { hir: item.fn } : {}),
             };
           }
         }

@@ -51,6 +51,26 @@ export type UserSettings = {
    * only takes effect at the next init — not the current session.
    */
   showWalkthroughOnInit: boolean;
+  /**
+   * Whether the WebGPU backend is offered at all.
+   *
+   * A master switch, not a choice of engine: with it on, each experiment picks
+   * its own backend as it is created, so a GPU and a CPU experiment can run side
+   * by side. Off means the per-experiment control is not shown.
+   *
+   * The backend is a restricted subset engine — bounded state, 32-bit numbers —
+   * and uses a different random generator, so it does not reproduce CPU
+   * trajectories seed for seed (it agrees statistically).
+   */
+  webGpuEnabled: boolean;
+  /**
+   * Shows the Compilation tab in the bottom panel, which reports how the net's
+   * user code lowered to HIR and what the GPU backend can take.
+   *
+   * Off by default: it explains the compiler rather than the model, so it is
+   * only useful when you are debugging why something did not compile.
+   */
+  showCompilationOutput: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -73,6 +93,8 @@ export type UserSettingsActions = {
   setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
+  setWebGpuEnabled: (value: boolean) => void;
+  setShowCompilationOutput: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -101,6 +123,8 @@ export const defaultUserSettings: UserSettings = {
   useEntitiesTreeView: false,
   enableNetComponents: false,
   showWalkthroughOnInit: true,
+  webGpuEnabled: false,
+  showCompilationOutput: false,
   subViewPanels: {},
 };
 
@@ -124,6 +148,8 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
   setShowWalkthroughOnInit: () => {},
+  setWebGpuEnabled: () => {},
+  setShowCompilationOutput: () => {},
   updateSubViewSection: () => {},
 };
 

@@ -205,6 +205,9 @@ export {
   getDefaultMonteCarloShardCount,
   planMonteCarloShards,
 } from "./simulation";
+// Dependency-free WebGPU capability check. The backend itself lives behind the
+// `./webgpu` entry point, which bundles the HIR frontend and must not reach UI.
+export { isWebGpuAvailable } from "./webgpu/support";
 export type {
   BackpressureConfig,
   CreateMonteCarloExperimentConfig,
@@ -296,6 +299,7 @@ export type {
 // --- HIR (type-only from the main entry; the compiler itself stays in the
 // LSP worker, runtime instantiation in ./hir-runtime) ---
 export type {
+  CompileHirArtifactsOptions,
   HirArtifacts,
   HirCompileFailure,
   HirCompileResult,

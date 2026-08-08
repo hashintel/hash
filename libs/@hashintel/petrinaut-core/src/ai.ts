@@ -96,6 +96,7 @@ export const petrinautDocNames = [
   "actual-mode",
   "ai-assistant",
   "visual-settings",
+  "compilation-output",
   "examples",
 ] as const;
 
@@ -121,7 +122,9 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "ai-assistant":
     "In-app AI assistant: opening the panel, conversation surface, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
-    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style.",
+    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output.",
+  "compilation-output":
+    "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
     "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Supply Chain, Deployment Pipeline, Production Machines, Satellites in Orbit, Probabilistic Satellites Launcher.",
 };
