@@ -1,3 +1,18 @@
+---
+layer: core.hir
+name: HIR compiler
+role: Lowers user-authored TypeScript to a source-spanned IR, then typechecks, lints and emits it
+entryPoints:
+  - "@hashintel/petrinaut-core/hir"
+  - "@hashintel/petrinaut-core/hir-runtime"
+boundaries:
+  - kind: sandbox
+    note: Emitted user code runs against a fixed buffer ABI, not against arbitrary host globals
+invariants:
+  - HIR nodes carry no inferred types inline; types live in a side table keyed by node id
+  - This pipeline is the only runtime path for dynamics, transition lambdas, kernels and expression metrics
+---
+
 # Petrinaut HIR
 
 The HIR is Petrinaut's source-spanned intermediate representation for

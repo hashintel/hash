@@ -1,0 +1,214 @@
+/*
+ * Styling for the interactive layer map.
+ *
+ * Same rules as `diagram.css`: plain CSS, no preprocessor, no design system, and
+ * colours derived from the host's `currentColor` so the diagram works on a light
+ * or a dark page without being told which it is. The two renderers — the static
+ * SVG and the React Flow one — deliberately share the family colours so folding
+ * or hydrating does not change what a layer looks like.
+ */
+
+.pnd-graph {
+  --pnd-petrinaut: #b5762f;
+}
+
+/* -- static SVG -------------------------------------------------------- */
+
+.pnd-graph-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.pnd-graph-edge {
+  fill: none;
+  stroke: var(--pnd-muted);
+}
+
+.pnd-graph-node rect {
+  fill: color-mix(in srgb, var(--pnd-accent, currentColor) 12%, transparent);
+  stroke: var(--pnd-accent, currentColor);
+  stroke-width: 1;
+}
+
+.pnd-graph-node-container rect {
+  fill: color-mix(in srgb, var(--pnd-accent, currentColor) 5%, transparent);
+  stroke-dasharray: 4 3;
+}
+
+.pnd-graph-node text {
+  fill: currentColor;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pnd-graph-node text.pnd-graph-badge {
+  font-size: 11px;
+  font-weight: 400;
+  fill: var(--pnd-muted);
+}
+
+.pnd-graph-error {
+  padding: 1rem;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.5rem;
+}
+
+/* -- interactive ------------------------------------------------------- */
+
+.pnd-graph-canvas {
+  width: 100%;
+  border: 1px solid var(--pnd-line);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/*
+ * React Flow paints its own surface and its controls assume a light page. Both
+ * are pinned to the host's colours so the canvas does not become a white slab in
+ * a dark theme.
+ */
+.pnd-graph-canvas .react-flow__renderer,
+.pnd-graph-canvas .react-flow__pane {
+  background: transparent;
+}
+
+/*
+ * Without this, no edge is drawn at all.
+ *
+ * React Flow leaves `.react-flow__edges` at 0×0 and gives each edge's `<svg>` no
+ * size either, relying on the SVG default of `display: inline` plus its
+ * intrinsic 300×150, and on `overflow: visible` to paint outside that box. A
+ * host whose CSS reset says `svg { display: block }` — Starlight does, and so
+ * does Tailwind Preflight — turns that into `width: auto` inside a zero-width
+ * parent, which resolves to zero. An SVG of zero width is not rendered at all,
+ * so every edge silently disappears while still reporting a correct bounding
+ * box to script, which makes it a genuinely confusing failure.
+ *
+ * Giving both real dimensions makes the diagram independent of the host's reset.
+ */
+.pnd-graph-canvas .react-flow__edges,
+.pnd-graph-canvas .react-flow__edges > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pnd-graph-canvas .react-flow__controls-button {
+  background: var(--pnd-surface);
+  border-bottom-color: var(--pnd-line);
+  fill: currentColor;
+}
+
+/* The default minimap is 200×150 and swallows a short, wide diagram. */
+.pnd-graph-canvas .react-flow__minimap {
+  width: 140px;
+  height: 90px;
+  background: var(--pnd-surface);
+}
+
+.pnd-graph-canvas .react-flow__minimap-mask {
+  fill: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.pnd-flow-node {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--pnd-accent, currentColor);
+  border-radius: 6px;
+  background: color-mix(
+    in srgb,
+    var(--pnd-accent, currentColor) 12%,
+    transparent
+  );
+  font-size: 0.8rem;
+}
+
+/* A container's label belongs at the top, beside its children, not centred. */
+.pnd-flow-node-container {
+  justify-content: flex-start;
+  background: color-mix(
+    in srgb,
+    var(--pnd-accent, currentColor) 5%,
+    transparent
+  );
+  border-style: dashed;
+}
+
+.pnd-flow-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.pnd-flow-name {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pnd-flow-name:hover {
+  text-decoration: underline;
+}
+
+.pnd-flow-toggle {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: 1px solid var(--pnd-line);
+  border-radius: 3px;
+  background: var(--pnd-surface);
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pnd-flow-toggle:hover {
+  border-color: var(--pnd-accent, currentColor);
+}
+
+.pnd-flow-badge {
+  margin-top: 0.15rem;
+  color: var(--pnd-muted);
+  font-size: 0.7rem;
+}
+
+.pnd-flow-internal {
+  font-style: italic;
+}
+
+/* A dependency that leaves its package is the one edge fact worth colouring. */
+.pnd-graph-canvas .pnd-flow-edge .react-flow__edge-path {
+  stroke: var(--pnd-muted);
+}
+
+.pnd-graph-canvas .pnd-flow-edge-cross .react-flow__edge-path {
+  stroke: var(--pnd-core);
+}
+
+/* -- family colours, shared by both renderers -------------------------- */
+
+.pnd-family-core {
+  --pnd-accent: var(--pnd-core);
+}
+
+.pnd-family-react {
+  --pnd-accent: var(--pnd-react);
+}
+
+.pnd-family-ui {
+  --pnd-accent: var(--pnd-ui);
+}
+
+.pnd-family-petrinaut {
+  --pnd-accent: var(--pnd-petrinaut);
+}

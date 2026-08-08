@@ -1,3 +1,10 @@
+/**
+ * @layerRoot core.file-format
+ * @layerName File format
+ * @role Reads and writes the on-disk SDCPN document format, plus export converters
+ * @invariant Parsing is the only entry point for untrusted document input, so it validates rather than trusting shape
+ */
+
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,

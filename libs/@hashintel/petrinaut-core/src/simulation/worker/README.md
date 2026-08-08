@@ -1,3 +1,16 @@
+---
+layer: core.simulation.worker
+name: Simulation worker
+role: Computes simulation frames off the main thread under host backpressure
+entryPoints:
+  - "@hashintel/petrinaut-core/workers/simulation"
+boundaries:
+  - kind: worker
+    note: Host and worker communicate only by the documented message protocol
+invariants:
+  - Frames are computed in batches gated by host backpressure, so a fast worker cannot outrun its consumer
+---
+
 # Simulation Worker
 
 Worker runtime for off-main-thread SDCPN simulation computation.

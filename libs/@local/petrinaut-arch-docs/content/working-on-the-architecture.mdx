@@ -1,0 +1,136 @@
+---
+title: Working on the architecture
+description: How to declare a layer, refine one, and what CI holds you to.
+sidebar_order: 2
+---
+
+The generated pages come from annotations in the Petrinaut source. This page is
+the short version of how to change them; the full reference lives in
+[`libs/@local/petrinaut-arch-docs/README.md`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/README.md).
+
+## Declaring a layer
+
+Add frontmatter to the folder's `README.md`:
+
+```yaml
+---
+layer: core.simulation.monte-carlo
+name: Monte Carlo runtime
+role: Runs many simulations with bounded frame memory
+---
+```
+
+The prose below the frontmatter becomes the layer's page body, so an existing
+folder README needs only the frontmatter added.
+
+For a folder with a barrel entry file and no README, annotate the entry file
+instead:
+
+```ts
+/**
+ * @layerRoot core.simulation.monte-carlo
+ * @layerName Monte Carlo runtime
+ * @role Runs many simulations with bounded frame memory
+ */
+```
+
+Use one mechanism or the other, never both on the same folder.
+
+## You do not need to annotate every file
+
+A file with no annotation belongs to the nearest ancestor folder that declares a
+layer. Roughly forty declarations cover four hundred files. Declare a layer where
+the architecture genuinely changes — a new boundary, a different responsibility —
+not on every directory that exists.
+
+## Recording facts that belong to code
+
+Boundaries and invariants can be declared either in the README frontmatter or on
+the specific file they concern, and the file is usually the better home because
+the claim then sits where someone would break it:
+
+```ts
+/**
+ * @boundary worker — frame buffers never cross to the main thread
+ * @invariant Two reusable frame buffers per run; no per-frame allocation
+ */
+```
+
+Write invariants as properties that could be violated. "Handles simulation state"
+is a description and belongs in `@role`; "no per-frame allocation" is a claim a
+reviewer can check, and that is what earns a place here.
+
+## Moving or renaming a folder
+
+Nothing to update, provided the folder keeps its declaration with it. That is the
+main practical gain over the old path-matching script, where a move silently
+re-bucketed files into a fallback group.
+
+Renaming a _layer id_ is a real change: it moves the layer's page and invalidates
+inbound links, and every descendant id has to move with it.
+
+## Adding a new package
+
+Add it to `packages` in
+[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/architecture.config.ts),
+declare a root layer in its source, and rebuild. Build configuration outside the
+package's source directory is deliberately excluded — it configures the build, it
+is not part of the design.
+
+## What CI will hold you to
+
+Run the check before pushing:
+
+```bash
+yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+```
+
+It fails when a source file no layer covers appears, when a `@entryPoint` stops being a
+real export, when a dependency violates a declared rule, and when the committed
+bundle no longer matches the source. The last one is the common case: after
+changing annotations or moving code, regenerate with
+
+```bash
+yarn workspace @local/petrinaut-arch-docs doc:architecture
+```
+
+and commit the result alongside your change.
+
+## Adding a hand-written guide
+
+Authored pages live in `libs/@local/petrinaut-arch-docs/content/` and are
+optional. To have one sit _inside_ the architecture tree rather than beside it,
+name the layer it explains:
+
+```yaml
+---
+title: Memory model
+attachTo: core.simulation
+sidebar_order: 10
+---
+```
+
+The page then appears beneath that layer, and the layer's page links to it under
+"Guides".
+
+Because `attachTo` decides where the page ends up, link to other pages by name
+rather than by path — `[text](layer:core.simulation.engine)` for a generated
+page, `[text](doc:simulation/memory-model)` for another authored one. A target
+that does not resolve fails the check.
+
+## Declaring a rule
+
+Rules live in `architecture.config.ts` and are checked against the real import
+graph:
+
+```ts
+{
+  from: "react",
+  to: "ui",
+  reason: "state providers must not depend on the components that render them",
+}
+```
+
+Add one only when the code already satisfies it — a rule is a statement of fact
+that CI keeps true, not an aspiration. Check first with a build; if there are
+existing violations, either fix them in the same change or leave the rule out.

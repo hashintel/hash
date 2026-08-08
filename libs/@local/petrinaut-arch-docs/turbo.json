@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "doc:architecture": {
+      "cache": false
+    },
+    "lint:arch-docs": {
+      "cache": false
+    }
+  }
+}

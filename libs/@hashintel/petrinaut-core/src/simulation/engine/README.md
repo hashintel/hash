@@ -1,3 +1,11 @@
+---
+layer: core.simulation.engine
+name: Simulation engine
+role: Builds an SDCPN definition into a runnable instance and computes frames
+invariants:
+  - Owns the runtime stepping state and frame layout; user-code compilation is delegated to the authoring layer
+---
+
 # Simulation Engine
 
 Core simulation logic for SDCPN Petri net execution.

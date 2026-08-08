@@ -1,3 +1,14 @@
+---
+layer: core.actual-mode
+name: Actual mode
+role: Renders an execution supplied by an external source rather than by simulation
+boundaries:
+  - kind: network
+    note: Execution events arrive from a host-supplied transport; this layer stays transport-neutral
+invariants:
+  - Experimental — not a stable Petrinaut protocol, so no external consumer may depend on its shape
+---
+
 # Actual Mode Core
 
 This folder contains the experimental, transport-neutral pieces of Petrinaut

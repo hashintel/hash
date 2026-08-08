@@ -1,0 +1,71 @@
+---
+title: How a step is computed
+description: The fixed order of one simulation step, and what makes a run reproducible.
+sidebar_order: 10
+attachTo: core.simulation.engine
+---
+
+import { Pipeline } from "@diagrams/pipeline";
+
+`buildSimulation(input)` turns an SDCPN into a runnable instance;
+`computeNextFrame(simulation)` advances it by one immutable frame. Both are pure
+return values — the worker is what turns them into protocol messages.
+
+Building an instance flattens component instances, compiles user code, and packs
+the initial marking into frame 0. Compilation is selective: lambdas only where
+available, kernels only for coloured outputs, dynamics only for colours with at
+least one real element.
+
+## One step, in order
+
+The order is fixed, and several surprising behaviours follow from it.
+
+<Pipeline
+  numbered
+  title="One step, in order"
+  steps={[
+    { label: "Max time", note: "Reached? Return without computing." },
+    {
+      label: "Dynamics",
+      note: "Decode tokens, call the user function, apply Euler `x += dx·dt` to real slots.",
+    },
+    {
+      label: "Transitions",
+      note: "Enablement, token-combination enumeration, lambda, then kernel for coloured outputs.",
+    },
+    {
+      label: "Timers",
+      note: "If nothing fired, advance every transition's idle time by dt.",
+    },
+    { label: "Complete?", note: "Max time reached, or deadlock." },
+  ]}
+/>
+
+Discrete derivatives are forced to zero in step 2; removals compact the buffer
+and additions append in step 3.
+
+Dynamics run before transitions, so a transition sees token values already
+advanced by this step's integration. Timers only advance on a step where nothing
+fired, so they measure idle time rather than wall time.
+
+## Immutability, and what it costs
+
+Every stage that changes state allocates a new buffer: dynamics, token removal,
+and token insertion each rebuild the frame. That makes history trivially correct
+— previous frames are never mutated — at the cost of allocation churn per step.
+
+This is the single clearest optimisation opportunity in the engine. Monte Carlo already
+demonstrates the alternative: two buffers swapped per step, no history. Bringing
+that to the interactive path means moving history retention wholly onto the main
+thread, which the frame store already isolates.
+
+## Determinism
+
+One seeded RNG is threaded through stochastic lambda sampling and distribution
+draws, as a pure `nextRandom(state) → [value, nextState]` whose state lives on
+the instance.
+
+The guarantee: the same `(SDCPN, marking, parameters, seed, dt)` always
+reproduces the same frame sequence. This is what makes experiments comparable
+across runs, and it is why the RNG state is threaded rather than global — a
+global would couple runs sharing a worker.

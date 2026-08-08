@@ -1,3 +1,10 @@
+/**
+ * @layerRoot core.clipboard
+ * @layerName Clipboard
+ * @role Serialises a selection and pastes it back, resolving name collisions
+ * @invariant Pasted elements are renamed rather than overwriting an existing element of the same name
+ */
+
 import { v4 as generateUuid } from "uuid";
 
 import { getArcEndpointPlaceId } from "../arc-endpoints";

@@ -1,7 +1,15 @@
-// Public surface for `@hashintel/petrinaut/react` — React bindings.
-//
-// Hooks, contexts, and bridge providers that synchronize a Core instance with
-// React. No visual widgets — `/ui` builds on top of this.
+/**
+ * Public surface for `@hashintel/petrinaut/react` — React bindings.
+ *
+ * Hooks, contexts, and bridge providers that synchronize a Core instance with
+ * React. No visual widgets — `/ui` builds on top of this.
+ *
+ * @layerRoot react
+ * @layerName React bindings
+ * @role Contexts, hooks and providers that mirror core state into React
+ * @entryPoint @hashintel/petrinaut/react
+ * @invariant No imports from `ui/` — this layer must be mountable without rendering the editor, which is what makes the providers testable in isolation
+ */
 
 // --- Instance access + low-level adapters ---
 export { PetrinautInstanceContext } from "./instance-context";

@@ -1,3 +1,10 @@
+/**
+ * @layerRoot react.experiments
+ * @layerName Experiments provider
+ * @role Tracks Monte Carlo experiment handles and their streamed metric results
+ * @boundary worker — Only metric aggregates arrive from the experiment worker; frame buffers never reach this layer
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 

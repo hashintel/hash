@@ -2,6 +2,11 @@
  * Shared hardening helpers for evaluating user-authored JS expressions
  * (scenario expressions, metric bodies, …). Co-located so the compilers
  * can't drift on what they consider "safe enough".
+ *
+ * @layerRoot core.simulation.authoring
+ * @layerName User-code authoring
+ * @role Compiles and sandboxes the code users write inside a net
+ * @boundary sandbox — User code is evaluated with restricted globals; it never receives the host scope
  */
 
 /**

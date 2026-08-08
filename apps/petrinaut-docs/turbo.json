@@ -1,0 +1,17 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "sync:bundle": {
+      "cache": false
+    },
+    "build": {
+      "cache": false,
+      "dependsOn": ["sync:bundle"],
+      "outputs": ["dist/**"]
+    },
+    "lint:tsc": {
+      "cache": false,
+      "dependsOn": ["sync:bundle"]
+    }
+  }
+}

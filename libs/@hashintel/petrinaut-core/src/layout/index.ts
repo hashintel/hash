@@ -1,3 +1,9 @@
+/**
+ * @layerRoot core.layout
+ * @layerName Graph layout
+ * @role Computes node positions for a net, so auto-layout does not require the canvas
+ */
+
 export {
   calculateGraphLayout,
   type LayoutDimensions,

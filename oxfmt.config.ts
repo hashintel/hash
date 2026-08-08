@@ -67,5 +67,11 @@ export default defineConfig({
     "**/*.snap.*",
     "**/openapi.json",
     "**/*.aux.mir",
+    // The architecture bundle is written by @local/petrinaut-arch-docs, which
+    // owns its byte-for-byte output — CI diffs a fresh build against these
+    // files to detect drift. Reformatting them here would make every
+    // regeneration fail the format check and every format run fail the drift
+    // check.
+    "libs/@local/petrinaut-arch-docs/bundle/**",
   ],
 });

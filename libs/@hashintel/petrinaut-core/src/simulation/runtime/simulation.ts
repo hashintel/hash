@@ -1,3 +1,11 @@
+/**
+ * @layerRoot core.simulation.runtime
+ * @layerName Simulation controller
+ * @role Host-side controller for a run — owns the transport, the frame store and the status streams
+ * @entryPoint @hashintel/petrinaut-core
+ * @boundary thread — Talks to the worker only through the transport; it holds no reference to engine state
+ */
+
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   sanitizeSDCPNForExtensions,

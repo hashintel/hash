@@ -1,3 +1,11 @@
+---
+layer: react.playback
+name: Playback provider
+role: Drives the viewed frame with a requestAnimationFrame loop and applies the per-mode ack policy
+invariants:
+  - Owns the ack/backpressure decision for the whole app — view-only never acks, so nothing is computed while merely scrubbing
+---
+
 # Playback Module
 
 React context for viewing simulation frames at controlled speeds.

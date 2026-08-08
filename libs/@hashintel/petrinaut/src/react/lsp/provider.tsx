@@ -1,3 +1,10 @@
+/**
+ * @layerRoot react.lsp
+ * @layerName LSP provider
+ * @role Exposes the core language client to the editor as React context
+ * @boundary thread — Every completion, hover and diagnostic is an async round trip to the language-server worker
+ */
+
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {

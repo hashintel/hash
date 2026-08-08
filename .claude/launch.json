@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "petrinaut-docs",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "workspace",
+        "@apps/petrinaut-docs",
+        "dev",
+        "--port",
+        "4321"
+      ],
+      "port": 4321
+    }
+  ]
+}

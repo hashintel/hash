@@ -1,3 +1,10 @@
+/**
+ * @layerRoot core.simulation.frames
+ * @layerName Frames & metrics
+ * @role The frame layout and the readers hosts use to inspect one frame
+ * @invariant Readers are views over an existing buffer, not copies, so reading a frame does not allocate per place or per transition
+ */
+
 import { readTokenRecord } from "../engine/token-layout";
 import {
   createEngineFrameLayout,

@@ -1,3 +1,11 @@
+/**
+ * @layerRoot core.lsp
+ * @layerName LSP client
+ * @role Language-server client and transport for editing user code in the net
+ * @entryPoint @hashintel/petrinaut-core/workers/lsp
+ * @boundary thread — requests reach the language server over a worker transport, so every call is async
+ */
+
 export {
   createLanguageClient,
   type CreateLanguageClientConfig,

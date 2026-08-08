@@ -1,0 +1,121 @@
+---
+title: Monte Carlo experiments
+description: How many runs execute in bounded memory, and why only aggregates reach the UI.
+sidebar_order: 10
+attachTo: core.simulation.monte-carlo
+---
+
+import { Lanes } from "@diagrams/lanes";
+
+An experiment runs many independent simulations of the same net with bounded
+memory, aggregates metrics inside the worker, and ships only small JSON metric
+frames to the host. **Frame buffers never cross the thread boundary.**
+
+The engine itself is shared with the interactive path — the same enablement,
+lambda, kernel and dynamics code — adapted to different frame storage.
+
+## The layers
+
+The host holds one experiment handle per experiment, subscribed to its status,
+progress and metric stores. The handle runs either in worker mode or in local
+mode, where the simulator runs on the calling thread; local mode is what tests
+and embedders use.
+
+Inside the worker, the loop is: advance every run one frame, post progress and
+any pending metric frames, yield, repeat. Cancellation is checked between
+batches, and the default batch is 4.
+
+The simulator owns N runs and advances them **round-robin**, one frame each per
+call. That is deliberate: it stops long runs from starving short ones, so
+progress reporting stays meaningful and a single pathological run cannot stall
+the batch.
+
+## Per run
+
+Each run carries its own seed, parameter values and initial marking — defaults
+come from the experiment config and are overridable per run, typically as
+`base seed + index`.
+
+Errors are **per run**: one run failing does not stop the others, which is what
+makes a large sweep survive a parameter combination that happens to throw. A run
+completes on its own deadlock or on the shared max time.
+
+Each run also reports buffer telemetry — bytes used, capacity, and reallocation
+count — which is the first thing to look at when an experiment is slower than
+expected.
+
+## Two buffers, swapped every step
+
+<Lanes
+  title="Two buffers per run"
+  lanes={[
+    {
+      title: "During step k",
+      accent: "core",
+      boxes: [
+        { label: "current — read", note: "State at frame k" },
+        {
+          label: "next — write",
+          note: "Dynamics and transitions write frame k+1 here",
+        },
+      ],
+    },
+    {
+      title: "After the step",
+      accent: "worker",
+      boxes: [
+        { label: "Swap pointers", note: "No allocation, no history" },
+        {
+          label: "Metrics observe frame k+1",
+          note: "Then the data may be overwritten",
+        },
+      ],
+    },
+  ]}
+/>
+
+The consequence to internalise: **frame readers handed to metric code are only
+valid during observation.** They are views over a buffer that the next step will
+overwrite. Anything a metric needs later must be extracted into the value it
+returns.
+
+If the next token count does not fit, only the target buffer reallocates, taking
+the larger of what is required and double the current capacity.
+
+The Monte Carlo buffer layout is a leaner sibling of the interactive frame: the
+same sections, **no 64-byte header**, one extra section for elapsed frames, and a
+token region with spare capacity beyond what is used. Views are created once per
+buffer rather than per read.
+
+## Metrics are computed where the data is
+
+```text
+specs → compile before start → sample per frame → aggregate → metric frames
+```
+
+Metric specs are serializable and sent at init: either an expression (carrying
+HIR artifacts) or a built-in such as mean place-token count or transition firing
+count.
+
+Sampling visits every run's current frame through the same reader interface the
+interactive path uses. Aggregation happens across runs — mean, sum, min, max,
+last for a scalar — or keeps the run axis and bins it into a distribution.
+
+What reaches the host is therefore small JSON: a scalar frame carries a value
+per frame and per time, and a distribution frame carries bins as value/frequency
+pairs. A host can paint a bins-by-frames heatmap, or derive medians and
+percentiles from the bins, **without ever holding simulation state**.
+
+## Contrast with the interactive path
+
+No acks, no backpressure: the worker free-runs to completion in small batches,
+and the only upstream control is cancel. That is affordable precisely because the
+payloads are aggregates rather than frames — there is no consumer pace to respect
+because there is no unbounded data to hold back.
+
+## Known costs
+
+Runs are round-robin on one worker thread, though the run-state model was
+designed so runs can shard across workers later. Buffer growth is naive doubling;
+static analysis of arc weights could size buffers up front and remove
+reallocations entirely.

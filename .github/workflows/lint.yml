@@ -237,6 +237,22 @@ jobs:
           mise run doc:dependency-diagram
           git --no-pager diff --exit-code --color '**/docs/dependency-diagram.mmd'
 
+      - name: Validate Petrinaut architecture docs
+        if: ${{ success() || failure() }}
+        run: |
+          ## Builds the architecture bundle and reports on the annotations it
+          ## reads: unannotated files, undeclared layers, dead `@seam`s, and
+          ## dependency rules the import graph violates. The bundle itself is
+          ## build output and is discarded. Needs no `d2`: nothing is rendered.
+          if ! yarn workspace @local/petrinaut-arch-docs lint:arch-docs; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Fix the annotations reported above. See libs/@local/petrinaut-arch-docs/README.md.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
         run: |
