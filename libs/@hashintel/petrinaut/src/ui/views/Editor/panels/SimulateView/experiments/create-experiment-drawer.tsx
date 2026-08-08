@@ -4,16 +4,22 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Drawer,
-  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
   Select,
   TextInput,
+  Toggle,
+  Tooltip,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
+import { EMPTY_AD_HOC_STATE, isWebGpuAvailable } from "@hashintel/petrinaut-core";
+import {
+  analyzeCompilation,
+  summarizeGpuUnavailability,
+  toGpuMetricSpecs,
+} from "@hashintel/petrinaut-core/webgpu";
 
 import {
   ExperimentsContext,
@@ -46,6 +52,7 @@ import { ExperimentScenarioRun } from "./experiment-scenario-run";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
+  PetrinautExtensionSettings,
   Scenario,
   ScenarioParameter,
   SDCPN,
@@ -53,17 +60,80 @@ import type {
 
 // -- Styles -------------------------------------------------------------------
 
-// metric rows use slightly lighter field labels than the default
-const metricFieldLabelStyle = css({
-  "& :is(label, legend)": {
-    fontWeight: "medium",
-  },
-});
-
 const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[6px]",
+});
+
+const labelStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s120",
+});
+
+const backendControlStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1.5",
+  flexShrink: "[0]",
+  // Matches the height the sibling inputs occupy, so the grid row's baselines
+  // line up rather than the control floating in a shorter cell.
+  minHeight: "[34px]",
+});
+
+const backendSideLabelStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[1]",
+  // Muted until selected, so the toggle's position reads as a choice between two
+  // named backends rather than an unlabelled on/off.
+  color: "neutral.s100",
+  transition: "[color 0.15s ease]",
+  "&[data-selected=true]": {
+    color: "neutral.s120",
+  },
+});
+
+/**
+ * The GPU side is purple rather than neutral, so the accelerated path is visibly
+ * a different thing and not merely the toggle in its other position.
+ */
+const gpuSideLabelStyle = css({
+  "&[data-selected=true]": {
+    color: "purple.s90",
+  },
+});
+
+/*
+ * The design system's toggle has no purple tone, and adding one there would change
+ * a shared component for one screen's sake. These reach into its parts from
+ * outside instead: `&[data-state='checked'] [data-part='control']` is one
+ * selector more specific than the recipe's own `&[data-state='checked']`, so it
+ * wins without `!important`.
+ */
+const gpuToggleStyle = css({
+  "&[data-state='checked'] [data-part='control']": {
+    backgroundColor: "purple.s80",
+  },
+  "&[data-state='checked']:hover:not([data-disabled]) [data-part='control']": {
+    backgroundColor: "purple.s70",
+  },
+});
+
+const gpuToggleGlowStyle = css({
+  "&[data-state='checked'] [data-part='control']": {
+    animationName: "[petrinautGpuGlow]",
+    animationDuration: "[2.4s]",
+    animationIterationCount: "[infinite]",
+    animationTimingFunction: "ease-in-out",
+  },
+});
+
+const gridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
+  gap: "3",
 });
 
 const paramRowStyle = css({
@@ -178,12 +248,11 @@ const metricKindTriggerLabelStyle = css({
   fontWeight: "medium",
 });
 
-// top padding separates the properties from the metric row's collapse header
 const metricExpandedContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  padding: "[1px 16px 16px]",
+  padding: "[0 16px 16px]",
 });
 
 const metricCollapsibleContentStyle = css({
@@ -204,6 +273,12 @@ const metricSpecificFieldsStyle = css({
   gap: "2",
 });
 
+const codeDiagnosticStyle = css({
+  fontSize: "xs",
+  color: "red.s100",
+  whiteSpace: "pre-wrap",
+});
+
 const emptyParamsStyle = css({
   display: "flex",
   alignItems: "center",
@@ -213,7 +288,10 @@ const emptyParamsStyle = css({
   color: "neutral.s80",
 });
 
-const errorsStyle = css({
+const errorStyle = css({
+  fontSize: "sm",
+  color: "red.s100",
+  marginRight: "auto",
   whiteSpace: "pre-wrap",
 });
 
@@ -521,19 +599,8 @@ const ExperimentExpressionMetricEditor = ({
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
-    <Form.Field
-      label="Code"
-      size="sm"
-      className={metricFieldLabelStyle}
-      errors={
-        lspDiagnostics.count > 0
-          ? [
-              lspDiagnostics.firstMessage ??
-                `${lspDiagnostics.count} diagnostics`,
-            ]
-          : undefined
-      }
-    >
+    <div className={fieldStyle}>
+      <span className={labelStyle}>Code</span>
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -542,7 +609,12 @@ const ExperimentExpressionMetricEditor = ({
         height="260px"
         options={readOnly ? { readOnly: true } : undefined}
       />
-    </Form.Field>
+      {lspDiagnostics.count > 0 ? (
+        <span className={codeDiagnosticStyle}>
+          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
+        </span>
+      ) : null}
+    </div>
   );
 };
 
@@ -735,11 +807,8 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <Form.Field
-                  label="Place"
-                  size="sm"
-                  className={metricFieldLabelStyle}
-                >
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Place</span>
                   <Select
                     required
                     value={metric.placeId}
@@ -747,15 +816,12 @@ const ExperimentMetricRow = ({
                     items={placeOptions}
                     size="sm"
                   />
-                </Form.Field>
+                </div>
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <Form.Field
-                    label="Transition"
-                    size="sm"
-                    className={metricFieldLabelStyle}
-                  >
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Transition</span>
                     <Select
                       required
                       value={metric.transitionId}
@@ -765,12 +831,9 @@ const ExperimentMetricRow = ({
                       items={transitionOptions}
                       size="sm"
                     />
-                  </Form.Field>
-                  <Form.Field
-                    label="Count"
-                    size="sm"
-                    className={metricFieldLabelStyle}
-                  >
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Count</span>
                     <Select
                       required
                       value={metric.transitionMode}
@@ -780,7 +843,7 @@ const ExperimentMetricRow = ({
                       items={transitionModeOptions}
                       size="sm"
                     />
-                  </Form.Field>
+                  </div>
                 </>
               ) : null}
             </div>
@@ -808,13 +871,119 @@ interface CreateExperimentDrawerProps {
   onClose: () => void;
 }
 
+/**
+ * Whether the GPU backend could run this experiment, and the reason when it
+ * could not.
+ *
+ * The net is analysed asynchronously (lowering user code happens in the language
+ * worker) but the metric gate is evaluated synchronously from the drafts, so
+ * editing a metric updates the answer without another round-trip.
+ */
+function useGpuAvailability({
+  enabled,
+  sdcpn,
+  extensions,
+  metricSpecs,
+}: {
+  enabled: boolean;
+  sdcpn: SDCPN;
+  extensions: PetrinautExtensionSettings;
+  metricSpecs: readonly ExperimentMetricSpecInput[] | null;
+}): { available: boolean; reason: string | null; pending: boolean } {
+  const { requestHirArtifacts } = use(LanguageClientContext);
+  const [netReason, setNetReason] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    let cancelled = false;
+    setPending(true);
+
+    const analyze = async () => {
+      try {
+        const { artifacts } = await requestHirArtifacts(sdcpn, extensions, {
+          includeHir: true,
+        });
+        if (cancelled) {
+          return;
+        }
+        setNetReason(
+          summarizeGpuUnavailability(
+            analyzeCompilation({ sdcpn, artifacts, extensions }),
+          ),
+        );
+      } catch (caught) {
+        if (!cancelled) {
+          setNetReason(
+            caught instanceof Error
+              ? `The net could not be compiled: ${caught.message}`
+              : "The net could not be compiled.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPending(false);
+        }
+      }
+    };
+
+    void analyze();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, sdcpn, extensions, requestHirArtifacts]);
+
+  if (!enabled) {
+    return { available: false, reason: null, pending: false };
+  }
+  if (pending) {
+    return { available: false, reason: null, pending: true };
+  }
+  if (netReason !== null) {
+    return { available: false, reason: netReason, pending: false };
+  }
+
+  // Expression metrics are computed from full simulation state, which the GPU
+  // path never materialises on the host, so they rule the backend out before the
+  // histogram gate is worth consulting. Narrowing as we go also gives
+  // `toGpuMetricSpecs` the compiled-spec type it wants without a cast: only
+  // expression specs lack an `artifact`.
+  const histogramSpecs: MonteCarloMetricSpec[] = [];
+  for (const spec of metricSpecs ?? []) {
+    if (spec.kind === "expression") {
+      return {
+        available: false,
+        reason: `Metric "${spec.label}" is an expression metric, which the GPU backend cannot compute. Use place token-count metrics to run on the GPU.`,
+        pending: false,
+      };
+    }
+    histogramSpecs.push(spec);
+  }
+
+  if (histogramSpecs.length > 0) {
+    const gpuMetrics = toGpuMetricSpecs(histogramSpecs);
+    if (!gpuMetrics.ok) {
+      return { available: false, reason: gpuMetrics.reason, pending: false };
+    }
+  }
+
+  return { available: true, reason: null, pending: false };
+}
+
 export const CreateExperimentDrawer = ({
   open,
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
+  // Read here, not in ExperimentsProvider: that provider is mounted outside
+  // UserSettingsProvider and so cannot see these settings.
+  const { webGpuEnabled, showAnimations, enableAdHocScenarios } =
+    use(UserSettingsContext);
   const { createExperiment } = use(ExperimentsContext);
-  const { enableAdHocScenarios } = use(UserSettingsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -832,6 +1001,7 @@ export const CreateExperimentDrawer = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gpuRequested, setGpuRequested] = useState(false);
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -854,6 +1024,29 @@ export const CreateExperimentDrawer = ({
   const footerError = error ?? metricFormError;
   const canRun = !isSubmitting && metricFormError === null;
 
+  // `null` while the drafts are incomplete: the GPU metric gate has nothing to
+  // judge yet, and Run is disabled for the same reason.
+  let draftMetricSpecs: ExperimentMetricSpecInput[] | null = null;
+  try {
+    draftMetricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+  } catch {
+    draftMetricSpecs = null;
+  }
+
+  const webGpuAvailable = isWebGpuAvailable();
+  const gpu = useGpuAvailability({
+    enabled: open && webGpuEnabled && webGpuAvailable,
+    sdcpn: petriNetDefinition,
+    extensions,
+    metricSpecs: draftMetricSpecs,
+  });
+  // Derived rather than stored, so a net edited into ineligibility after the
+  // switch was flipped neither shows as on nor submits a GPU experiment. The
+  // switch's own state and the submitted backend read the same value, so they
+  // cannot disagree.
+  const gpuSelected = gpuRequested && gpu.available;
+  const computeBackend = gpuSelected ? "webgpu" : "cpu";
+
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
     setSelectedScenarioId(null);
@@ -867,6 +1060,7 @@ export const CreateExperimentDrawer = ({
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
+    setGpuRequested(false);
   };
 
   const handleClose = () => {
@@ -967,6 +1161,9 @@ export const CreateExperimentDrawer = ({
         dt: Number(dt),
         maxTime: Number(maxTime),
         metricSpecs,
+        // Read here rather than in ExperimentsProvider, which is mounted outside
+        // UserSettingsProvider and so cannot see this setting.
+        computeBackend,
       });
       resetForm();
     } catch (submitError) {
@@ -996,11 +1193,13 @@ export const CreateExperimentDrawer = ({
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
-            <Form.Field label="Name" size="sm">
+            <div className={fieldStyle}>
+              <span className={labelStyle}>Name</span>
               <TextInput size="sm" value={name} onChange={setName} />
-            </Form.Field>
-            <Form.Row>
-              <Form.Field label="Runs" size="sm">
+            </div>
+            <div className={gridStyle}>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Runs</span>
                 <NumberInput
                   size="sm"
                   min={1}
@@ -1011,8 +1210,9 @@ export const CreateExperimentDrawer = ({
                     )
                   }
                 />
-              </Form.Field>
-              <Form.Field label="Time step" size="sm">
+              </div>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Time step</span>
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1022,8 +1222,9 @@ export const CreateExperimentDrawer = ({
                     setDt(nextDt === null ? "" : String(nextDt))
                   }
                 />
-              </Form.Field>
-              <Form.Field label="Max time (s)" size="sm">
+              </div>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Max time (s)</span>
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1033,8 +1234,61 @@ export const CreateExperimentDrawer = ({
                     setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
                   }
                 />
-              </Form.Field>
-            </Form.Row>
+              </div>
+              {/* A labelled cell in the same grid as Runs / Time step / Max time:
+                  the backend is a property of the experiment like the rest, and a
+                  bare control below the grid read as an orphan. */}
+              {webGpuEnabled && webGpuAvailable && (
+                <div
+                  className={fieldStyle}
+                  // `pending` and `unavailable` both disable the toggle, so which
+                  // one it is gets published for tests to distinguish.
+                  data-backend-state={
+                    gpu.pending
+                      ? "pending"
+                      : gpu.available
+                        ? "available"
+                        : "unavailable"
+                  }
+                >
+                  <span className={labelStyle}>Backend</span>
+                  <Tooltip
+                    content={gpu.reason ?? ""}
+                    disableTooltip={gpu.reason === null}
+                    position="top-start"
+                  >
+                    {/* Wrapped so the tooltip still opens while the control is
+                        disabled — a disabled control fires no pointer events. */}
+                    <span className={backendControlStyle}>
+                      <span
+                        className={backendSideLabelStyle}
+                        data-selected={!gpuSelected}
+                      >
+                        CPU
+                      </span>
+                      <Toggle
+                        size="sm"
+                        value={gpuSelected}
+                        onChange={setGpuRequested}
+                        disabled={!gpu.available}
+                        className={cx(
+                          gpuToggleStyle,
+                          showAnimations && gpuToggleGlowStyle,
+                        )}
+                      />
+                      <span
+                        className={cx(backendSideLabelStyle, gpuSideLabelStyle)}
+                        data-selected={gpuSelected}
+                      >
+                        GPU
+                      </span>
+                    </span>
+                  </Tooltip>
+                </div>
+              )}
+            </div>
+            {/* Only shown once WebGPU is switched on in settings — otherwise the
+                choice does not exist and the row would be noise. */}
           </Section>
 
           <Section title="Scenario" collapsible defaultOpen>
@@ -1178,11 +1432,7 @@ export const CreateExperimentDrawer = ({
       <Drawer.Footer
         secondaryActions={
           footerError ? (
-            <Form.Field.Errors
-              className={errorsStyle}
-              errors={[footerError]}
-              size="sm"
-            />
+            <span className={errorStyle}>{footerError}</span>
           ) : undefined
         }
         actions={

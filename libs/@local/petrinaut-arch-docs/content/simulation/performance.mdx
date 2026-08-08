@@ -5,8 +5,9 @@ sidebar_order: 20
 attachTo: core.simulation
 ---
 
-Status: §3 (worker sharding) and §5 (place capacity) are implemented. §2 and
-§4 measurements still stand and are unaddressed. §6–§9 remain proposals.
+Status: §3 (worker sharding), §5 (place capacity) and §8 (the WebGPU backend)
+are implemented. §2 and §4 measurements still stand and are unaddressed. §6, §7
+and §9 remain proposals, and §8a records a defect found along the way.
 
 Goal: make **Experiments** (Monte Carlo batches) as fast as possible, with
 per-seed parallelism across threads/workers, and decide whether WASM (browser),
@@ -41,14 +42,19 @@ run on a 10-core Apple Silicon laptop, Node 25.6, against the built `dist` of
 5. **WASM is worth doing, but as a second codegen backend behind whole-loop
    codegen, not as a rewrite.** Expect ~1.5–3× over _good_ JS, not over
    today's engine.
-6. **WebGPU: discrete transitions are possible but only for a restricted
-   subset, and WGSL has no `f64`** — so a GPU path is a numerically-different
-   fork, not an acceleration of the existing one. Offloading _only_ ODEs is
-   architecturally worse than doing nothing (per-frame round-trip).
+6. **WebGPU: implemented, ~1780× on the SIR net** (§8.4). Discrete transitions
+   do work, for a restricted subset — uncoloured nets are the sweet spot, where a
+   run's whole state is 36 bytes of integers living in registers for a whole
+   dispatch. It is a numerically-different fork rather than an acceleration:
+   different generator, so agreement is statistical (within 0.5% measured), and
+   `f32` throughout. Two predictions here were wrong — f32 is _not_ the limiting
+   factor for ODEs, and RK4 on the GPU is far more accurate than the CPU's Euler.
+   The one that held is that partial per-frame offload is worse than nothing,
+   which is why the backend owns whole experiments rather than frames.
 
-Done: **§3 worker sharding**, **§5 capacities**.
+Done: **§3 worker sharding**, **§5 capacities**, **§8 WebGPU backend**.
 Remaining, in order: **§4 hot-path fixes → §6 whole-loop codegen → §7
-WASM/native → §8 GPU (spike only)**.
+WASM/native**, plus **§8a** (the CPU generator defect) as its own change.
 
 §4 item 1 (the quadratic enumeration blow-up) is the single highest-value change
 left and is independent of everything else.
@@ -631,23 +637,288 @@ The rule: **GPU pays off only if the entire stepping loop lives on the GPU for
 many frames without readback.** Partial offload of any per-frame stage is
 strictly worse than not doing it.
 
-### 8.4 Verdict
+### 8.4 Verdict — spike run, and it lands far above the bar
 
-Sequence this **after** §4–§7, and scope it as a spike, not a roadmap item.
-Realistic upside for a suitable net — bounded capacities, weight-1 arcs,
-`f32`-tolerant, thousands of runs — is large (plausibly 10–100× over a
-multi-threaded CPU implementation, dominated by how much divergence the net
-causes). But it is a second engine with different numerics, a restricted
-feature subset, and a hard dependency on §5, and it only helps at run counts
-where a well-optimised threaded CPU engine may already be fast enough.
+The spike below was scoped to answer one question: is a GPU path ≥10× the CPU,
+or not worth having? It is **~1780×** on the SIR net, so it now exists as
+`src/webgpu/`, selected by a **Compute backend** setting and wired into the
+experiments provider: an experiment asking for the GPU gets it when the net
+qualifies, and otherwise runs on the CPU with the reason recorded on the
+experiment and shown to the user. `ExperimentRecord.computeBackend` records which
+backend actually ran, because the two are not numerically interchangeable.
 
-Reasonable spike, ~1 week, answering one question: for the SIR net with 10 000
-runs, `f32`, capacities set, what is the end-to-end wall clock versus the
-threaded CPU path? If it is not ≥10×, drop it.
+Two predictions in §8.2 and §8.3 above were wrong, and the corrections are the
+interesting part.
 
-A cheaper GPU idea worth noting: keep simulation on the CPU and use WebGPU only
-for **rendering** large token populations and distribution charts, which has no
-numerical-fidelity problem at all.
+**`f32` is not the limiting factor for ODEs.** §8.2 treats f32 as a fidelity
+problem. Measured on logistic growth integrated to _t_ = 10 with a closed-form
+reference:
+
+| `dt` | GPU Euler f32 | GPU RK2 f32 | GPU RK4 f32  | CPU Euler f64 (incumbent) |
+| ---- | ------------- | ----------- | ------------ | ------------------------- |
+| 0.5  | 0.15%         | 0.128%      | **0.00155%** | 0.15%                     |
+| 0.1  | 0.02%         | 0.00422%    | **5.3e-7%**  | 0.02%                     |
+| 0.01 | 0.00179%      | 0.0000235%  | 0.0000082%   | 0.00181%                  |
+
+f32 Euler tracks f64 Euler to three significant figures, because integrator
+truncation error dwarfs rounding error at these step counts. And because a
+token's derivative depends only on that token (`emit-buffer-js.ts`'s dynamics
+loop reads only `__b`, its own token base), RK4's four stages fit in **one
+invocation with no extra dispatch** — measured at 2.5× Euler's cost for four
+orders of magnitude less error. So the GPU path is not a fidelity compromise: at
+`dt` 0.1 it is ~38,000× more accurate than the CPU's Euler while still being
+vastly faster. RK4 is the default for that reason.
+
+**The "no partial offload" rule holds, and it dictates the architecture.** §8.3
+is right that a per-frame round-trip is fatal — which is exactly why the GPU
+path does **not** implement `MonteCarloSimulator`. That interface's synchronous
+per-frame `advanceAll()` would force one `mapAsync` per frame. Instead
+`webgpu/runner.ts` dispatches 300 frames at a time with the whole stepping loop
+inside the shader, and `webgpu/gpu-experiment.ts` implements the
+_whole-experiment_ handle only.
+
+Measured, SIR, 4096 runs × 600 frames, one distribution metric, Apple metal-3:
+
+|                | Wall clock | ns / run-frame |
+| -------------- | ---------- | -------------- |
+| CPU engine     | 6060 ms    | 2466           |
+| WebGPU backend | 3.4 ms     | 1.87           |
+
+Per-frame cross-run distributions are reduced **on the device** into histograms
+in workgroup-shared memory, flushed once per frame — measured 2× faster than
+global atomics, and necessary because shipping raw samples back would be ~2.4 GB
+for 600 frames × 1M runs against under a megabyte for histograms.
+
+**Correctness.** The two backends use different generators by necessity (§8.2's
+determinism point stands, and see the RNG note below), so agreement is
+statistical. Verified against the CPU engine on identical configuration:
+
+| Frame | CPU mean infected | GPU    | Diff |
+| ----- | ----------------- | ------ | ---- |
+| 60    | 9.950             | 9.960  | 0.1% |
+| 240   | 24.039            | 23.997 | 0.2% |
+| 480   | 42.760            | 42.675 | 0.2% |
+| 599   | 52.027            | 51.873 | 0.3% |
+
+Getting there caught a real semantic subtlety worth recording. A first version
+redrew the acceptance variate every frame and diverged by **21% by frame 599** —
+systematically, not as noise. The CPU engine only commits its generator state
+when a transition _fires_ (`advance-run.ts` skips the assignment via
+`if (!effect) continue`), which holds `u` fixed until it is consumed and makes
+the transition fire at the first frame where `elapsed >= -ln(u)/rate` — that is
+inverse-transform sampling of an exponential waiting time. Redrawing turns it
+into a per-frame Bernoulli trial, which fires far too eagerly. The shader now
+threads a candidate state the same way.
+
+**What the backend does not do.** Uncoloured discrete nets are the sweet spot: a
+run's whole state is 36 bytes of integers that live in registers for a whole
+dispatch. Beyond that it is a subset engine, and `webgpu/eligibility.ts` refuses
+rather than approximates — typed places need a declared capacity, `string` and
+`uuid` attributes are impossible in 32-bit WGSL, typed input arcs above weight 2
+are refused, and only place-token-count metrics are served. Everything else falls
+back to the CPU with a reason.
+
+### 8.6 Weighted typed arcs: the objection was wrong
+
+§8.2 refuses weighted arcs on the grounds that choosing among `C(n, w)`
+combinations "does not vectorise". That reasoning does not hold up, and the
+correction is worth recording because it moves weight-2 from research to
+engineering.
+
+The stated problem was divergence: a nested loop over candidate combinations has
+data-dependent trip counts, and under SIMT those cost the maximum across the
+subgroup. But the nesting is avoidable. Unranking through the **combinatorial
+number system** maps a flat index `x` to the `x`-th lexicographic combination in
+closed form, so the search becomes a single loop over a statically-shaped index
+space. This is standard practice for triangular thread domains, where collision
+detection is one of the named applications — see
+[A Non-linear GPU Thread Map for Triangular Domains](https://arxiv.org/abs/1609.01490).
+
+Two things had to be checked rather than assumed:
+
+**f32 is sufficient.** The closed form takes a square root and WGSL has no `f64`.
+Simulating f32 rounding at every step and round-tripping every pair: exact through
+`n = 4096`, first mismatch at `n = 5793`. The metric histogram already caps a
+measured place at 256 tokens, so there is roughly a 16× margin.
+
+**The real constraint is ordering, not throughput.** The CPU draws its acceptance
+uniform `u` **once** per transition per frame and reuses it for every combination
+(`monte-carlo/transition-effect.ts`), firing on the first combination whose
+`exp(-λ·Δt) ≤ u`. Because `exp` is monotone decreasing, that single threshold means
+"does this transition fire at all" is a plain OR over combinations — equivalently
+`max(λ) ≥ -ln(u)/Δt`. But _which_ combination fires is the **lowest-indexed**
+passing one, not the largest `λ`. With several pairs passing — routine for a
+collision model — choosing by `λ` consumes different tokens and the trajectory
+diverges structurally rather than by noise.
+
+So the GPU needs a flat scan in the CPU's own pair order, stopping at the first
+hit. `webgpu/pair-selection.ts` implements that ordering and emits the scan; its
+tests check the order against the engine's own
+`enumerateWeightedMarkingIndicesGenerator` rather than against themselves.
+
+Both prerequisites are now in place. Lambdas read token attributes through the
+accessor `emitDynamics` already used, and firing compacts the token array stably,
+mirroring `monte-carlo/frame-operations.ts`. `eligibility.ts` accepts arc weight up
+to 2 on a typed place; wider arcs still refuse, because only the pair case has a
+closed-form unranking that preserves the engine's ordering.
+
+So `Collision` — `const [a, b] = tokens.Space` over a weight-2 arc — now compiles
+to WGSL, and so does the whole satellites net once its places declare capacities:
+all seven items (three lambdas, one dynamics, three kernels) emit, in 333 lines of
+WGSL over 552 bytes of state per run.
+
+Transition kernels emit too, which is what closes the "produces zero-attribute
+tokens" gap. One ordering trap is worth recording, because the generated shader
+looked correct and was not: a kernel reads the attributes of the tokens the firing
+**consumes**, and compaction overwrites exactly those slots. Emitting the writes
+in source order therefore read a survivor that compaction had just moved into the
+consumed token's place — silently the wrong token's attributes, with no error
+anywhere. Every produced value is now hoisted into a `let kout_N` **before**
+compaction, and `compile-net-shader.test.ts` pins that relative order.
+
+Produced tokens are written above `counts[p] + pending[p]`, mirroring the CPU's
+deferral of additions to the end of the frame, so a token produced this frame is
+not a candidate for a later transition in the same frame.
+
+What still keeps the satellites net's _own_ experiment off the GPU is unrelated:
+two of its four metrics reduce over token attributes, which only an expression
+metric can express, and the GPU refuses those.
+
+Still open from §8.2: WGSL builtin accuracy is implementation-defined
+(`sin`/`cos` carry ~2⁻¹¹ absolute error), so GPU results are not reproducible
+across _devices_ either, only across runs on one adapter.
+
+A cheaper GPU idea still worth noting separately: use WebGPU for **rendering**
+large token populations and distribution charts, which has no numerical-fidelity
+question at all.
+
+### 8.5 How the HIR reaches the shader generator
+
+The shader is generated from HIR, so the GPU backend needs HIR trees in the
+browser. The obvious route — call `lowerNetHir` on the main thread — does not
+work and is worth writing down, because it broke the `@apps/hash-frontend` build
+twice.
+
+Lowering needs the TypeScript compiler, whose `require("module")` webpack cannot
+resolve for a browser target. The import chain is perfectly valid TypeScript, so
+`lint:tsc`, `lint:eslint` and `test:unit` are all blind to it; only bundling a
+consumer surfaces it. Guarding the import site is the wrong fix: any module the
+`webgpu` entry reaches transitively reintroduces it.
+
+What works is to carry the HIR on the compiled artifacts, which are already
+produced in the language worker where the compiler legitimately lives, and have
+`webgpu/hir-from-artifacts.ts` read them back. That keeps the browser-facing
+entries compiler-free.
+
+HIR roughly triples artifact size (15.3 KB → 45.5 KB on
+`supplyChainWithDisruption`), and artifacts are structured-cloned to every shard
+worker, so it is opt-in: `compileHirArtifacts(sdcpn, extensions, { includeHir })`,
+requested by the experiments provider only when the chosen backend is `webgpu`.
+
+`scripts/check-browser-safe-entries.mjs` walks the built entry graphs for
+Node-only specifiers and runs as part of `yarn build`. It takes about a second,
+against roughly nine minutes for a frontend build.
+
+### 8.7 Device limits: ask the adapter, not the spec
+
+`adapter.requestDevice()` without `requiredLimits` returns a device on the
+WebGPU **default** limits, which are the floor every conformant implementation
+must clear — not what the hardware can do. The two that bind here are
+`maxStorageBufferBindingSize` (128 MiB) and `maxBufferSize` (256 MiB). Measured
+on an Apple metal-3 adapter, both are reported as **4096 MiB**, so the default
+cost a factor of 32 and refused run counts the GPU could hold comfortably —
+"Run state needs 311 MB but this device caps a storage buffer at 134 MB", where
+134 is just `128 MiB / 1e6` rounded.
+
+The device now requests exactly what the adapter reports. Asking for the
+adapter's own value is always valid — the spec only rejects asking for _more_ —
+and raising a limit allocates nothing by itself, so there is no reason to ask
+for less than the ceiling and size buffers to the experiment instead. Both
+limits must be raised: raising only the binding size moves the wall from 128 MiB
+to 256 MiB rather than removing it.
+
+### 8.8 Read back a summary, not the state
+
+Raising the limits moved the wall rather than removing it, and the next two walls
+were both the host, not the GPU.
+
+**The host mirror.** Seeding built the whole initial state as one `Uint32Array`.
+At 3112 bytes per run a million runs is 2.90 GiB in one contiguous ArrayBuffer,
+which the browser refuses outright — "Array buffer allocation failed", before
+frame zero. Runs are independent and laid out contiguously, so seeding now stages
+4 MiB at a time and uploads with `writeBuffer` at increasing offsets. The run
+index is absolute, not chunk-relative, or every chunk would repeat the first
+chunk's RNG streams and silently correlate runs.
+
+**The readback.** Then a million runs failed differently: `mapAsync` reporting
+"[Invalid Buffer] is invalid due to a previous error", _after_ the whole
+simulation had run. The real error was three operations upstream — Dawn signals
+an out-of-memory `createBuffer` by returning an _error buffer_ rather than
+throwing, so allocation looks like it succeeded and every later use reports being
+poisoned. Buffer creation is now wrapped in an out-of-memory error scope so the
+actual message ("Failed to allocate memory for buffer mapping") is what the user
+sees.
+
+The allocation that failed was the mappable copy of the run state. Host-visible
+memory is scarcer than device memory and gives out well below `maxBufferSize`:
+measured, a 1.94 GiB mappable buffer allocates and a 2.90 GiB one does not, on an
+adapter reporting 4 GiB. No limit predicts it, so the code attempts the
+allocation and explains the failure rather than guessing a threshold and refusing
+experiments that would have worked.
+
+But the readback should never have been that large. Of a run's state the host
+decodes exactly two things — the place counts and the status — and discards the
+token array, which is nearly all of it. The shader now writes those into a
+compact `summary` buffer (binding 3) from the registers it already holds them in,
+at `placeCount + 1` words per run. A second entry point would have re-read them
+from memory for nothing.
+
+Measured consequence for a 3112-byte-per-run net at a million runs: readback
+falls from 2.90 GiB to 15 MiB, run state stops leaving the device at all, and the
+experiment that failed now allocates, maps and decodes. The ceiling is now the
+state storage buffer itself — `maxStorageBufferBindingSize / bytesPerRun`, about
+1.38 M runs at that size — and `describeBufferOverflow` reports how many runs
+would fit, which is exact because run state is linear in the run count.
+
+**Still open: dispatch chunking.** Run state is still one buffer, so the run
+count is bounded by that 4 GB. Removing the bound means splitting runs across
+several dispatches, each sized to fit, and merging the metric histograms across
+them — tractable because runs are independent and the histograms are a
+commutative monoid, but a real change to the dispatch loop, and not done.
+
+---
+
+## 8a. A defect found while investigating the GPU RNG
+
+Not a GPU issue — it is in the shipped CPU engine, and it deserves its own fix.
+
+`simulation/engine/seeded-rng.ts` is an LCG computing `(1103515245 * seed + 12345) % 2^31`
+in f64. For any seed above `2^53 / 1103515245 ≈ 8,162,278` — **99.6% of its own
+2^31 seed space** — the multiply exceeds f64's exact-integer range, so the low
+bits the modulo reads are rounding artefacts. `engine/uuid.ts` already documents
+this and works around it by using only the top 16 bits of each draw.
+
+Measured consequences:
+
+- the generator's cycle is **10,466 states**, against ~2^31 for a sound LCG;
+- every seed tested enters that same cycle, after a median of 3,864 draws
+  (min 1, p90 6,975);
+- so the harm depends on draws per run: at ~1,200 draws (SIR at `maxTime` 60)
+  only 17% of runs reach the cycle and SIR's summary statistics match a sound
+  generator closely; at 3,600 draws it is 47%; at **9,000 draws every run is on
+  the shared 10,466-state cycle**, spending a median 5,092 draws there and
+  therefore overlapping other runs heavily.
+
+9,000 draws is reachable at the product's default `maxTime` of 180 — 1,800 frames
+× 5 transitions. So this is latent at today's typical experiment sizes and
+becomes real for longer or larger nets, where it would understate variance and
+distort the tails that Experiments exist to show. Means hold up better than
+quantiles.
+
+The GPU backend sidesteps it by using PCG (`webgpu/wgsl-prelude.ts`), which is
+part of why the two backends cannot agree seed for seed. Fixing the CPU
+generator is a separate change: it alters every existing seed's trajectory, which
+§10's cross-version decision permits but which still deserves its own review.
 
 ---
 
@@ -668,26 +939,31 @@ step faster", and it deserves evaluation alongside the engineering work.
 
 ---
 
-## 10. Questions for you
+## 10. Decisions taken
 
-Blocking design decisions:
+The three questions this section originally asked have been answered:
 
-1. **Capacity semantics** — when a firing would exceed a place's capacity: is
-   the transition not enabled (classical, cheap, composes with inhibitor arcs),
-   or does it error and fail the run? Do capacities affect _existing_ nets at
-   all, or only where explicitly set?
-2. **Reproducibility contract** — must the same seed give the same trajectory
-   across (a) shard counts, (b) engine versions, (c) CPU vs WASM vs GPU
-   backends? (a) is preserved by the §3 design. (b) is broken by hot-path item 7.
-   (c) is essentially impossible for GPU (`f32`) and hard for WASM (`libm`).
-   Knowing which of these you are willing to give up decides §7 and §8.
-3. **Worker budget** — one shared pool across concurrent experiments, or per
-   experiment? What is the acceptable core count while the user keeps editing?
+1. **Capacity semantics** — a firing that would exceed a place's capacity leaves
+   the transition _not enabled_, so a full place blocks its producers. It does
+   not error. Capacity is opt-in per place; nets that set none behave exactly as
+   before. Implemented as described in §5.3.
+2. **Reproducibility contract** — the same seed need **not** give the same
+   trajectory across engine versions. That frees §4 item 7 (RNG reuse), and it
+   softens the `libm` bit-exactness problem for §7: a WASM backend may diverge
+   from the JS one as long as each is internally deterministic. Sharding
+   preserves determinism outright (§3), so it needed no trade-off.
+3. **Worker budget** — full parallelism per experiment: one worker per core
+   minus one, capped at the run count. Concurrent experiments therefore
+   oversubscribe rather than share a pool, and the user-facing docs say to run
+   them one at a time for maximum speed. A shared pool remains a possible
+   refinement (§3.3).
 
-Sequencing:
+Still open:
 
-1. Should I start with §4 items 1–6 (measurable, behaviour-preserving, no new
-   concepts), or do you want the §3 sharding landed first because it is the
-   visible feature?
-2. Is the §9 event-driven mode in scope at all, or is fixed-`dt` a fixed
-   product decision?
+1. Does the GPU path's `f32` divergence from the CPU path's `f64` count as
+   acceptable for the same seed _and the same engine version_? Cross-version
+   divergence is now permitted, but that does not settle the cross-backend case
+   within one version. This is the remaining gate on §8.
+2. Is the §9 event-driven mode (Gillespie / next-reaction) in scope, or is
+   fixed-`dt` a settled product decision? It is a larger lever than any
+   remaining engineering item here.

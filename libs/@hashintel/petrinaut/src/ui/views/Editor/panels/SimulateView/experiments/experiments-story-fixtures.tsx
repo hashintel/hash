@@ -8,6 +8,7 @@ import {
   ExperimentsContext,
   type ExperimentRecord,
   type ExperimentsContextValue,
+  isTerminalExperimentStatus,
 } from "../../../../../../react/experiments/context";
 import {
   EditorContext,
@@ -72,11 +73,24 @@ export function makeExperiment(
   overrides: Partial<ExperimentRecord> = {},
 ): ExperimentRecord {
   const status = overrides.status ?? "running";
+  const createdAt = Date.now() - index * 60_000;
+  // Stepping begins shortly after creation, once user code has compiled. An
+  // initializing experiment has not reached that point.
+  const startedAt = status === "initializing" ? null : createdAt + 800;
 
   return {
     id: `experiment-${index}`,
+    computeBackend: "cpu",
+    computeBackendFallbackReason: null,
     name: `SIR Monte Carlo ${index}`,
-    createdAt: Date.now() - index * 60_000,
+    createdAt,
+    startedAt,
+    // A running experiment's elapsed time is measured against the live clock, so
+    // it advances while the story is open — as it does in the app.
+    finishedAt:
+      startedAt !== null && isTerminalExperimentStatus(status)
+        ? startedAt + 47_300
+        : null,
     scenarioId: "scenario__seasonal_flu",
     scenarioName: "Seasonal Flu",
     runCount: 1_000,
@@ -151,6 +165,8 @@ const createFakeExperiment = (
   input: CreateExperimentInput,
 ): ExperimentRecord => ({
   id: `experiment-${Date.now()}`,
+  computeBackend: input.computeBackend ?? "cpu",
+  computeBackendFallbackReason: null,
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
@@ -162,6 +178,8 @@ const createFakeExperiment = (
   status: "initializing",
   error: null,
   metricSpecs: input.metricSpecs,
+  startedAt: null,
+  finishedAt: null,
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],
