@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Petrinaut WebGPU backend — validation</title>
+    <style>
+      body {
+        font:
+          13px/1.5 ui-monospace,
+          monospace;
+        margin: 2rem;
+        max-width: 70rem;
+      }
+      pre {
+        background: #f4f4f5;
+        padding: 1rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+      .fail {
+        color: #b91c1c;
+        font-weight: bold;
+      }
+      .pass {
+        color: #15803d;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebGPU backend validation</h1>
+    <p>
+      Runs the same net through the CPU Monte Carlo engine and the WebGPU
+      backend, then compares the per-frame token-count distributions. The two
+      backends use different random generators by necessity, so this checks
+      <em>statistical</em> agreement, not identical trajectories.
+    </p>
+    <pre id="out">running…</pre>
+    <script type="module">
+      const out = document.getElementById("out");
+      const log = (line) => {
+        out.textContent += `\n${line}`;
+      };
+      out.textContent = "";
+
+      const core =
+        await import("/@fs/Users/HASH/Code/hash/.claude/worktrees/hash-production-access-dfa9d3/libs/@hashintel/petrinaut-core/dist/index.js");
+      const gpu =
+        await import("/@fs/Users/HASH/Code/hash/.claude/worktrees/hash-production-access-dfa9d3/libs/@hashintel/petrinaut-core/dist/webgpu.js");
+      const examples =
+        await import("/@fs/Users/HASH/Code/hash/.claude/worktrees/hash-production-access-dfa9d3/libs/@hashintel/petrinaut-core/dist/examples/index.js");
+      const hir =
+        await import("/@fs/Users/HASH/Code/hash/.claude/worktrees/hash-production-access-dfa9d3/libs/@hashintel/petrinaut-core/dist/hir.js");
+
+      const sdcpn = examples.sirModel.petriNetDefinition;
+      const initialMarking = {
+        place__susceptible: 500,
+        place__infected: 5,
+        place__recovered: 0,
+      };
+      const DT = 0.1;
+      const MAX_TIME = 60;
+      const FRAMES = Math.round(MAX_TIME / DT);
+      const RUNS = 4096;
+
+      // ---- Eligibility -----------------------------------------------------
+      const eligibility = gpu.assessGpuEligibility(sdcpn);
+      log(`eligible: ${eligibility.eligible}`);
+      if (!eligibility.eligible) {
+        log(
+          `<span class="fail">reasons: ${JSON.stringify(eligibility.reasons, null, 2)}</span>`,
+        );
+        throw new Error("net not eligible");
+      }
+
+      // ---- GPU -------------------------------------------------------------
+      const backend = await gpu.requestGpuExperimentBackend({
+        sdcpn,
+        dt: DT,
+        metrics: [{ id: "infected", placeId: "place__infected" }],
+        odeMethod: "rk4",
+      });
+      if (!backend.supported) {
+        log(
+          `<span class="fail">GPU unavailable (${backend.cause}): ${backend.reason}</span>`,
+        );
+        throw new Error(backend.reason);
+      }
+      log(`device: ${backend.handle.info}`);
+      log(`state words/run: ${backend.shader.stateWordsPerRun}`);
+      log(`compiled lambdas: ${backend.shader.compiledLambdas.join(", ")}`);
+      if (backend.warnings.length)
+        log(`warnings: ${backend.warnings.join(" ")}`);
+
+      const gpuRun = await gpu.runGpuExperiment(
+        backend.handle,
+        backend.shader,
+        {
+          runCount: RUNS,
+          frameLimit: FRAMES,
+          framesPerDispatch: backend.framesPerDispatch,
+          seed: 42,
+          initial: {
+            placeCounts: eligibility.profile.places.map(
+              (place) => initialMarking[place.id] ?? 0,
+            ),
+          },
+        },
+      );
+      if (!gpuRun.ok) {
+        log(`<span class="fail">GPU run failed: ${gpuRun.reason}</span>`);
+        throw new Error(gpuRun.reason);
+      }
+      log(
+        `\nGPU: ${gpuRun.result.dispatchMs.toFixed(1)} ms for ${RUNS} runs x ${FRAMES} frames`,
+      );
+      log(
+        `  = ${((gpuRun.result.dispatchMs / (RUNS * FRAMES)) * 1e6).toFixed(3)} ns/run-frame`,
+      );
+      log(
+        `  completed=${gpuRun.result.completedRuns} deadlocked=${gpuRun.result.deadlockedRuns}`,
+      );
+      log(`  saturated histogram samples: ${gpuRun.result.saturatedSamples}`);
+
+      // ---- CPU -------------------------------------------------------------
+      const artifacts = hir.compileHirArtifacts(sdcpn).artifacts;
+      const metrics = core
+        .createMonteCarloUserDefinedMetricConfigsFromSpecs(
+          [
+            {
+              kind: "placeTokenCountMean",
+              id: "infected",
+              label: "Infected",
+              placeId: "place__infected",
+              runOutput: { type: "distribution", binning: "exact" },
+            },
+          ],
+          sdcpn,
+          {},
+        )
+        .map((config) => core.createMonteCarloUserDefinedMetric(config));
+      const simulator = core.createMonteCarloSimulator({
+        sdcpn,
+        initialMarking,
+        parameterValues: {},
+        seed: 42,
+        dt: DT,
+        maxTime: MAX_TIME,
+        runCount: RUNS,
+        hirArtifacts: artifacts,
+        metrics,
+      });
+      const cpuStart = performance.now();
+      simulator.runUntilComplete();
+      const cpuMs = performance.now() - cpuStart;
+      log(`\nCPU: ${cpuMs.toFixed(1)} ms for the same work`);
+      log(`  = ${((cpuMs / (RUNS * FRAMES)) * 1e6).toFixed(1)} ns/run-frame`);
+      log(
+        `\n<b>speedup: ${(cpuMs / gpuRun.result.dispatchMs).toFixed(0)}x</b>`,
+      );
+
+      // ---- Compare distributions ------------------------------------------
+      const mean = (bins) => {
+        let total = 0;
+        let weighted = 0;
+        for (const [value, frequency] of bins) {
+          total += frequency;
+          weighted += value * frequency;
+        }
+        return total ? weighted / total : null;
+      };
+      const cpuFrames = metrics[0].frames;
+      const gpuByFrame = new Map(
+        gpuRun.result.frames.map((frame) => [frame.frameNumber, frame]),
+      );
+
+      log(`\nframe |  CPU mean infected |  GPU mean infected | abs diff`);
+      let worst = 0;
+      let comparedFrames = 0;
+      for (const frameNumber of [0, 60, 120, 240, 360, 480, 599]) {
+        const cpuFrame = cpuFrames.find((f) => f.frameNumber === frameNumber);
+        const gpuFrame = gpuByFrame.get(frameNumber);
+        if (!cpuFrame || !gpuFrame) continue;
+        const cpuMean = mean(cpuFrame.bins);
+        const gpuMean = mean(gpuFrame.bins);
+        if (cpuMean === null || gpuMean === null) continue;
+        const diff = Math.abs(cpuMean - gpuMean);
+        worst = Math.max(worst, diff / Math.max(1, cpuMean));
+        comparedFrames++;
+        log(
+          `${String(frameNumber).padStart(5)} | ${cpuMean.toFixed(3).padStart(18)} | ${gpuMean
+            .toFixed(3)
+            .padStart(18)} | ${diff.toFixed(3)}`,
+        );
+      }
+      // Two independent generators over 4096 runs should agree on the mean to
+      // within a few percent; a systematic error in the shader would show up as
+      // a much larger, frame-growing divergence.
+      const ok = comparedFrames > 0 && worst < 0.05;
+      log(
+        `\nworst relative difference in mean: ${(worst * 100).toFixed(2)}% over ${comparedFrames} frames`,
+      );
+      out.innerHTML += ok
+        ? `\n<span class="pass">PASS — backends agree statistically</span>`
+        : `\n<span class="fail">FAIL — distributions diverge</span>`;
+    </script>
+  </body>
+</html>

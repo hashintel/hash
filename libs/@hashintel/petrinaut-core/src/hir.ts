@@ -21,6 +21,7 @@ export {
 } from "./hir/analyze";
 export {
   compileHirArtifacts,
+  type CompileHirArtifactsOptions,
   type HirCompileFailure,
   type HirCompileResult,
 } from "./hir/compile";
