@@ -3,10 +3,16 @@ export {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
+  createMonteCarloMetricShardMerger,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
 } from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
+export {
+  getDefaultMonteCarloShardCount,
+  planMonteCarloShards,
+} from "./runtime/shard-plan";
+export type { MonteCarloShardPlanEntry } from "./runtime/shard-plan";
 export type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,

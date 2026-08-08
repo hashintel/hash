@@ -144,6 +144,7 @@
     "dist/**",
     "build/**",
     "coverage/**",
+    "benchmarks/**",
     "*.gen.*",
     "*.tsbuildinfo",
     ".turbo/**"

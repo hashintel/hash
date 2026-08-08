@@ -77,6 +77,11 @@ function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
     timeValue: null,
     runSampleCount: 2,
     timeSampleCount: 1,
+    // Carried on every scalar frame so a sharded experiment can merge across
+    // shards before reducing.
+    runAggregate: { count: 2, sum: 2, min: 1, max: 1, last: 1 },
+    aggregateRuns: "mean",
+    aggregateTime: "none",
   };
 }
 
@@ -208,6 +213,9 @@ const TestWrapper = ({
               MonteCarloToMainMessage
             >
           }
+          // One shard, so a single fake worker stands in for the whole
+          // experiment. Sharding itself is covered in petrinaut-core.
+          experimentShardCount={1}
         >
           <ExperimentsContextConsumer onContextValue={onContextValue} />
         </ExperimentsProvider>
