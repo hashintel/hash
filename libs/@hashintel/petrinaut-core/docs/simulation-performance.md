@@ -1,7 +1,7 @@
 # Simulation performance: threads, WASM, and GPU
 
-Status: §3 (worker sharding) is implemented. §2 and §4 measurements still stand
-and are unaddressed. §5–§9 remain proposals.
+Status: §3 (worker sharding) and §5 (place capacity) are implemented. §2 and
+§4 measurements still stand and are unaddressed. §6–§9 remain proposals.
 
 Goal: make **Experiments** (Monte Carlo batches) as fast as possible, with
 per-seed parallelism across threads/workers, and decide whether WASM (browser),
@@ -27,10 +27,11 @@ laptop, Node 25.6, against the built `dist` of this package.
    result-preserving — now implemented** (§3.3): ~4× on 8 shards (10-core
    machine), byte-identical output at every shard count. The metric accumulators
    were already monoids (`empty`/`merge`), so this was designed for.
-4. **Optional per-place token capacity is the keystone** (§5). Beyond the
-   modelling feature, it converts frames from growable to fixed-size, which is
-   the precondition for SoA layout, a WASM linear-memory ABI, a computable
-   state-space bound, and any GPU path.
+4. **Optional per-place token capacity — now implemented** (§5.3). Beyond the
+   modelling feature, it is the keystone that converts frames from growable to
+   fixed-size, which is the precondition for SoA layout, a WASM linear-memory
+   ABI, a computable state-space bound, and any GPU path. Those follow-ons are
+   _not_ done: the runtime still uses growable frames.
 5. **WASM is worth doing, but as a second codegen backend behind whole-loop
    codegen, not as a rewrite.** Expect ~1.5–3× over _good_ JS, not over
    today's engine.
@@ -39,9 +40,9 @@ laptop, Node 25.6, against the built `dist` of this package.
    fork, not an acceleration of the existing one. Offloading _only_ ODEs is
    architecturally worse than doing nothing (per-frame round-trip).
 
-Done: **§3 worker sharding**.
-Remaining, in order: **§4 hot-path fixes → §5 capacities → §6 whole-loop
-codegen → §7 WASM/native → §8 GPU (spike only)**.
+Done: **§3 worker sharding**, **§5 capacities**.
+Remaining, in order: **§4 hot-path fixes → §6 whole-loop codegen → §7
+WASM/native → §8 GPU (spike only)**.
 
 §4 item 1 (the quadratic enumeration blow-up) is the single highest-value change
 left and is independent of everything else.
@@ -406,7 +407,7 @@ measured.
 allocate `runs × frameBytes` as one contiguous block — required for a WASM
 linear-memory layout and mandatory for GPU (§8).
 
-### 5.3 Proposed semantics
+### 5.3 Semantics as implemented
 
 A transition is not enabled when firing would take any output place above its
 capacity — the supply-side mirror of an input arc that cannot be satisfied. Three
@@ -428,7 +429,7 @@ details that were decisions rather than consequences:
   happening.
 
 Constraints are precomputed per transition at build time
-(`engine/capacity.ts`) and would be empty for nets without capacities, so the hot path
+(`engine/capacity.ts`) and are empty for nets without capacities, so the hot path
 pays nothing for a feature it does not use.
 
 An initial marking above a place's capacity is rejected at build time: capacity

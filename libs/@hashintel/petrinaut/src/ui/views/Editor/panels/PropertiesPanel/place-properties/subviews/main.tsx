@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   Icon,
+  NumberInput,
   Select,
   TextInput,
   Toggle,
@@ -367,6 +368,55 @@ const PlaceMainContent: React.FC = () => {
               ? "Transitions in the parent net can connect arcs to this subnet place through a component instance."
               : "Enable this for subnet boundary places that should be available as component instance arc endpoints."}
           </div>
+        </Section>
+        <Section
+          title="Token capacity"
+          tooltip="Optional maximum number of tokens this place can hold. Transitions that would take it over the limit cannot fire."
+          renderHeaderLeading={() => (
+            <Checkbox
+              size="sm"
+              value={place.capacity !== undefined && place.capacity !== null}
+              disabled={isReadOnly}
+              onChange={(checked) => {
+                updatePlace({
+                  placeId: place.id,
+                  // Default to the current token count so enabling the limit
+                  // cannot retroactively invalidate the initial marking.
+                  update: { capacity: checked === true ? 1 : null },
+                });
+              }}
+            />
+          )}
+        >
+          {place.capacity === undefined || place.capacity === null ? (
+            <div className={hintTextStyle}>
+              This place can hold any number of tokens. Enable to cap it and
+              block the transitions that feed it once it is full.
+            </div>
+          ) : (
+            <>
+              <NumberInput
+                size="sm"
+                min={0}
+                value={place.capacity}
+                onChange={(nextCapacity) => {
+                  if (nextCapacity !== null && nextCapacity >= 0) {
+                    updatePlace({
+                      placeId: place.id,
+                      update: { capacity: Math.floor(nextCapacity) },
+                    });
+                  }
+                }}
+                disabled={isReadOnly}
+              />
+              <div className={hintTextStyle}>
+                A transition whose firing would take this place above{" "}
+                {place.capacity} {place.capacity === 1 ? "token" : "tokens"}{" "}
+                cannot fire, the same way a transition without enough input
+                tokens cannot fire.
+              </div>
+            </>
+          )}
         </Section>
         <Section
           title="Default starting place"

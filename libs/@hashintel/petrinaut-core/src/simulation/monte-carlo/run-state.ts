@@ -145,6 +145,9 @@ export function createRunState(
     completionReason: null,
     error: null,
     reallocations: 0,
+    pendingOutputCounts: simulation.frameLayout.hasPlaceCapacities
+      ? new Uint32Array(simulation.frameLayout.placeIds.length)
+      : null,
   };
 }
 
