@@ -38,6 +38,9 @@ where
                     CREATE TEMPORARY TABLE entity_type_embeddings_tmp (
                         LIKE entity_type_embeddings INCLUDING ALL
                     ) ON COMMIT DROP;
+                    -- Staging holds the rows for a single copy, so it does not need the
+                    -- quantized column derived from the vectors.
+                    ALTER TABLE entity_type_embeddings_tmp DROP COLUMN embedding_bits;
                 ",
             )
             .instrument(tracing::info_span!(
@@ -102,8 +105,18 @@ where
                     INSERT INTO entity_types
                         SELECT * FROM entity_types_tmp;
 
-                    INSERT INTO entity_type_embeddings
-                        SELECT * FROM entity_type_embeddings_tmp;
+                    -- The explicit list leaves out the generated `embedding_bits` column, which
+                    -- rejects inserts even when the staging table is empty.
+                    INSERT INTO entity_type_embeddings (
+                        ontology_id,
+                        embedding,
+                        updated_at_transaction_time
+                    )
+                        SELECT
+                            ontology_id,
+                            embedding,
+                            updated_at_transaction_time
+                        FROM entity_type_embeddings_tmp;
                 ",
             )
             .instrument(tracing::info_span!(

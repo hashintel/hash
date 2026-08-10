@@ -27,6 +27,8 @@ pub enum PostgresType {
     JsonPath,
     // `pgvector` embedding vector
     Vector,
+    // bit string, transpiles without a width and is therefore unusable as a parameter cast
+    Bit,
     // `entity_edge_kind` enum
     EntityEdgeKind,
     // `edge_direction` enum
@@ -58,6 +60,7 @@ impl Transpile for PostgresType {
             Self::JsonB => fmt.write_str(Type::JSONB.name()),
             Self::JsonPath => fmt.write_str(Type::JSONPATH.name()),
             Self::Vector => fmt.write_str("vector"),
+            Self::Bit => fmt.write_str(Type::BIT.name()),
             Self::EntityEdgeKind => fmt.write_str("entity_edge_kind"),
             Self::EdgeDirection => fmt.write_str("edge_direction"),
             Self::PrincipalType => fmt.write_str("principal_type"),
