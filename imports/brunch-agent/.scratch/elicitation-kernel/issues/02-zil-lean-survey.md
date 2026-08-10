@@ -4,6 +4,8 @@ Type: research
 Status: resolved
 Resolved: 2026-08-06
 
+> **Rename note (2026-08-10, spec assembly):** occurrences of `elicit-proof-obligations` below are the historical name; the second target is the **assurance argument**, package `plugin-assurance` (per the [Formal-verification canon survey](09-formal-verification-canon-survey.md)'s category-error verdict). This ticket's ElicitationPack sketch is superseded by ticket 09's `Statement` contract (pre-pass S10); the surviving contributions are the existence proof, the assurance lattice with prohibited promotions, derivation provenance, and the derived-status idea.
+
 ## Question
 
 What elicitation-for-formal-verification insights does https://github.com/jagg-ix/zil-lean hold, and is a lean/formal-flavored elicitation target *dev-sized* — small enough to develop the kernel against without wading into a massively complex target?

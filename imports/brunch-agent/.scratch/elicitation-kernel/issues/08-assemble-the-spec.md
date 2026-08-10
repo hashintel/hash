@@ -1,12 +1,27 @@
 # Assemble the spec
 
 Type: task
-Status: open
+Status: resolved
+Resolved: 2026-08-10
 Blocked by: 04, 05, 06, 07, 09, 10, 11, 12, 13
 
 ## Question
 
 Assemble the destination spec from the resolved decisions: architecture + contract decomposition + questioning-UX contract + shipping shape + first milestone against the confirmed dev-target portfolio. Non-goals (harness-agnosticism) and the elicitor→executor seam named explicitly. This is the map's terminal deliverable; resolving it ends the effort.
+
+## Answer
+
+> Resolved by spec assembly, 2026-08-10. Full read of the ~54K-token working set (map, glossary, tickets 01–13 in the pre-pass's amendment order, both inbox docs), one session, no digest subagents — as sized.
+
+**The spec is assembled: [spec.md](../spec.md)** — the map's terminal deliverable. Fourteen sections + an adjudications appendix: purpose · non-goals & the elicitor→executor seam · vocabulary · four shells + binding · the capture envelope (derived-status principle, three strata) · operations & validation strata · questioning-UX contract · capture mechanics · sessions/durability/storage port · the ten-item substrate-capability list · plugins & packs · shipping shape · dev targets & milestone one (gherkin + assurance argument, `Statement` contract) · acceptance material (five proof obligations, ten harness invariants restated in envelope vocabulary, gating tests, testing strategy, open verification items).
+
+**All seven pre-pass contradictions adjudicated** (spec Appendix A): C1 storage port binding-implemented, with the `db.ts`-vs-capture-store reconciliation stated; C2 the four operations stay pure — ticket 12's PluginContext-storage clause scoped to non-op code, milestone one defines no such methods; C3 status derived, never stored — retraction specified as an explicit user-cited event with no successor; C4 tap-ness made a transport fact via a harness-defined reserved reply encoding (else absences are inferred); C5 invariant 1 reconciled with the provenance rule — user-derived captures cite user entries, `defaulted`/`external-lookup` cite declared defaults/documented transformations; C6 the channel is a per-message current-affordance surface, durable identity on tool output parts, reject-second-interactive-affordance as mechanism; C7 picked together — no instruction interpolation (kills the wake wart's cause), pending question on the ask tool result + pending-affordance slot, reply binding harness-mechanical via the single-pending invariant, no echo token.
+
+**Notable assembler adjudications beyond the seven** (each flagged inline in the spec): retraction semantics; `not-mentioned` demoted to computed fact; absence-strip label mapping and the `not-yet-decided`/`deferred` distinction; advisories as computed-ephemeral vs. stored issues; issue namespacing; domain labels computed via `project` at read time; transport outcomes `answered | redirected | unanswered` (`unavailable` retired); session→target-document binding via `initialData`; milestone-one store format constrained by whole-sweep atomicity; **kernel card** kept as a term of art, **"kernel invariants" renamed harness invariants**.
+
+**Fold-ins completed alongside**: `CONTEXT.md` gained the envelope-vocabulary section (capture envelope, evidence span, epistemic status, absence state, supersession, resolution record, issue, advisory, pack, kernel card, PluginContext, storage port — pre-pass L11) and the kernel-compound ruling (L12); the `plugin-assurance` rename propagated as header notes on tickets 02 and 07; the 42-item obligation checklist verified covered (§ mapping held during drafting); the ten kernel invariants restated in current vocabulary (S14) so only one vocabulary exists in the acceptance criteria.
+
+Resolving this ticket ends the effort: the map's frontier is empty. Remaining fog (dev-app probe view, remote deploy target, storage format, concurrent-session coordination, plugin-ecosystem machinery, the real name) is post-spec by construction and graduates with the build effort the spec now enables.
 
 ## Comments
 

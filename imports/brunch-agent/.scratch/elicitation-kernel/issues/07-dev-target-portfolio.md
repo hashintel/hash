@@ -5,6 +5,8 @@ Status: resolved
 Resolved: 2026-08-06
 Blocked by: 02
 
+> **Rename note (2026-08-10, spec assembly):** occurrences of `elicit-proof-obligations` below are the historical name; the second target is the **assurance argument**, package `plugin-assurance` (per the [Formal-verification canon survey](09-formal-verification-canon-survey.md)'s category-error verdict). Also superseded here: the four-rung status ladder is demoted to a derived UI label with the assumption ledger as headline (pre-pass S8), and the Geolog/ARIA adjacency guess is refuted (pre-pass S9).
+
 ## Question
 
 Confirm the first milestone's two live dev targets. The zil-lean survey resolved the shape of the second: full elicit-lean is **not** dev-sized (writing Lean statements from intent is the deep-expertise step), but the **elicit-proof-obligations** slice is — capture an assumption/lemma/theorem/guarantee dependency graph with criticality and evidence refs, validated by acyclicity + Datalog closure (no Lean statements, no proofs), per the ElicitationPack/ProjectionPack sketches in the survey answer. The survey judges it a *better* second target than BPMN on both pack axes; BPMN stays third.
