@@ -114,8 +114,10 @@ export const Tooltip = ({
 
     if (needsFocus) {
       wrapper.tabIndex = 0;
+      wrapper.setAttribute("data-no-autofocus", "");
     } else {
       wrapper.removeAttribute("tabindex");
+      wrapper.removeAttribute("data-no-autofocus");
     }
   }, [children, disableTooltip]);
 
