@@ -25,9 +25,9 @@ export type BannerRootProps = {
   tone: Tone;
   /**
    * The leading icon: `true` for the tone's default icon, `false` for none, a
-   * named design-system icon, or arbitrary custom content.
+   * named design-system icon, or arbitrary custom content. Defaults to `true`.
    */
-  icon: boolean | { iconName: IconName } | { custom: React.ReactNode };
+  icon?: boolean | { iconName: IconName } | { custom: React.ReactNode };
   /**
    * `solid` is a saturated tone fill with white text; `soft` tints the surface;
    * `outline` sits on an opaque surface.
@@ -144,7 +144,7 @@ export const BannerRoot = ({
   className,
   children,
   tone,
-  icon,
+  icon = true,
   variant = "soft",
   dismissible,
   ...ariaAttributes

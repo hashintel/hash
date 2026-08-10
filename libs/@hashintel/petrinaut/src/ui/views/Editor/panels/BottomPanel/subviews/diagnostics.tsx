@@ -229,7 +229,7 @@ const DiagnosticsContent: React.FC = () => {
     <>
       {/* Simulation runtime error */}
       {hasSimulationError && (
-        <Banner tone="error" icon className={simulationBannerStyle}>
+        <Banner tone="error" className={simulationBannerStyle}>
           <Banner.Description className={simulationErrorTextStyle}>
             {simulationError}
           </Banner.Description>
