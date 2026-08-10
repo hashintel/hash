@@ -8,9 +8,9 @@ inputs:
     description: The symmetric key encrypting the value.
     required: true
 outputs:
-  ciphertext:
+  encrypted_value:
     description: The encrypted value, base64-encoded.
-    value: ${{ steps.encrypt.outputs.ciphertext }}
+    value: ${{ steps.encrypt.outputs.encrypted_value }}
 
 runs:
   using: composite
@@ -23,5 +23,5 @@ runs:
         ENC_KEY: ${{ inputs.encryption_key }}
       run: |
         : "${VALUE:?}" "${ENC_KEY:?}"
-        ciphertext=$(printf '%s' "${VALUE}" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ENC_KEY -base64 -A)
-        echo "ciphertext=${ciphertext}" >>"${GITHUB_OUTPUT}"
+        encrypted_value=$(printf '%s' "${VALUE}" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ENC_KEY -base64 -A)
+        echo "encrypted_value=${encrypted_value}" >>"${GITHUB_OUTPUT}"

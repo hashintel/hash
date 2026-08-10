@@ -15,13 +15,13 @@ runs:
       id: decrypt
       uses: ./.github/actions/decrypt-secret
       with:
-        ciphertext: ${{ inputs.encrypted_credentials }}
+        encrypted_value: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
 
     - name: Export credentials
       shell: bash
       env:
-        CREDENTIALS: ${{ steps.decrypt.outputs.plaintext }}
+        CREDENTIALS: ${{ steps.decrypt.outputs.value }}
       run: |
         account_id=$(jq --raw-output --exit-status '.account_id' <<<"${CREDENTIALS}")
         bucket=$(jq --raw-output --exit-status '.bucket' <<<"${CREDENTIALS}")

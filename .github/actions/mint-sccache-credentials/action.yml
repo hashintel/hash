@@ -16,7 +16,7 @@ inputs:
 outputs:
   encrypted_credentials:
     description: The encrypted credential bundle, JSON with named keys. Empty when the fetch was skipped or failed.
-    value: ${{ steps.encrypt.outputs.ciphertext }}
+    value: ${{ steps.encrypt.outputs.encrypted_value }}
 
 runs:
   using: composite

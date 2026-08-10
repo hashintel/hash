@@ -17,7 +17,7 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      encrypted-token: ${{ steps.encrypt.outputs.ciphertext }}
+      encrypted-github-token: ${{ steps.encrypt.outputs.encrypted_value }}
       encrypted-sccache-credentials: ${{ steps.mint-sccache.outputs.encrypted_credentials }}
 
     steps:
@@ -67,12 +67,12 @@ jobs:
         id: app-token
         uses: ./.github/actions/decrypt-secret
         with:
-          ciphertext: ${{ needs.mint-token.outputs.encrypted-token }}
+          encrypted_value: ${{ needs.mint-token.outputs.encrypted-github-token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          token: ${{ steps.app-token.outputs.plaintext }}
+          token: ${{ steps.app-token.outputs.value }}
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -91,7 +91,7 @@ jobs:
           version: yarn changeset:version
           commitMode: github-api
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.plaintext }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.value }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
