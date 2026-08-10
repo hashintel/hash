@@ -65,7 +65,7 @@ jobs:
       actions: read
       contents: read
       id-token: write
-    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@b7a5d7f651c1d6a862d5dd97aa6164125bedb6c5 # main
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
@@ -73,3 +73,4 @@ jobs:
       dryRun: ${{ inputs.dryRun || 'disabled' }}
     secrets:
       CF_ACCESS_STAGE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+      RENOVATE_TOKEN_ENC_KEY: ${{ secrets.RENOVATE_TOKEN_ENC_KEY }}

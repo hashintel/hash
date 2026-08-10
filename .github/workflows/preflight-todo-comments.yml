@@ -11,4 +11,4 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@b7a5d7f651c1d6a862d5dd97aa6164125bedb6c5 # main

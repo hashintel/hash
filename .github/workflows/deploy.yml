@@ -37,8 +37,11 @@ concurrency:
 jobs:
   setup:
     runs-on: ubuntu-24.04
+    # No `id-token`: this job runs dependency code (`turbo query`) but consumes
+    # no OIDC — it passes `rust: false`, and the sccache credential fetch from
+    # Vault is the only OIDC consumer in `install-tools`.
     permissions:
-      id-token: write
+      contents: read
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
       backend-images: ${{ steps.packages.outputs.backend-images }}

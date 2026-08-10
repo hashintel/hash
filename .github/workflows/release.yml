@@ -1,6 +1,13 @@
 ## Uses a GitHub App installation token so that ‘Version Packages’ PRs trigger
 ## downstream workflows (GITHUB_TOKEN-created PRs do not).
 ## https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs
+##
+## Minting and publishing are separate jobs. Only the mint job holds
+## `id-token: write`, and it runs no repository dependency code, so a
+## compromised build-time dependency in the release job cannot reach Vault to
+## sign fresh App JWTs. The token crosses the job boundary encrypted: GitHub
+## drops masked values from job outputs, so the plaintext could not make the
+## trip anyway, and the ciphertext is useless without `RELEASE_TOKEN_ENC_KEY`.
 
 name: Release
 on:
@@ -8,17 +15,21 @@ on:
     branches:
       - main
 jobs:
-  release:
+  mint-token:
+    name: Mint token
     runs-on: ubuntu-latest
     if: github.repository == 'hashintel/hash'
     environment: main
     permissions:
+      contents: read
       id-token: write
+    outputs:
+      token-ciphertext: ${{ steps.encrypt.outputs.token-ciphertext }}
 
     steps:
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+        uses: hashintel/.github/.github/actions/github-app-token@b7a5d7f651c1d6a862d5dd97aa6164125bedb6c5 # main
         with:
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
@@ -28,17 +39,54 @@ jobs:
           cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
           cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
 
+      # The token is already masked, and GitHub silently drops masked values
+      # from job outputs, so only ciphertext can cross the job boundary. The
+      # plaintext must never be echoed here.
+      - name: Encrypt token
+        id: encrypt
+        env:
+          TOKEN: ${{ steps.app-token.outputs.token }}
+          ENC_KEY: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
+        run: |
+          : "${TOKEN:?}" "${ENC_KEY:?}"
+          ciphertext=$(printf '%s' "${TOKEN}" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ENC_KEY -base64 -A)
+          echo "token-ciphertext=${ciphertext}" >>"${GITHUB_OUTPUT}"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: mint-token
+    environment: main
+    # No `id-token` here: compromised dependency code in this job gets at most
+    # the hour-long installation token, not the ability to mint new ones.
+    permissions:
+      contents: read
+
+    steps:
+      # First step, so the plaintext is masked before anything else runs.
+      - name: Decrypt token
+        id: app-token
+        env:
+          TOKEN_CIPHERTEXT: ${{ needs.mint-token.outputs.token-ciphertext }}
+          ENC_KEY: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
+        run: |
+          : "${TOKEN_CIPHERTEXT:?}" "${ENC_KEY:?}"
+          token=$(printf '%s' "${TOKEN_CIPHERTEXT}" | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:ENC_KEY -base64 -A)
+          echo "::add-mask::${token}"
+          echo "token=${token}" >>"${GITHUB_OUTPUT}"
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ steps.app-token.outputs.token }}
 
+      # `sccache: false` because this job intentionally holds no `id-token`
+      # permission, which the sccache credential fetch from Vault relies on.
+      # Rust itself stays: publishing `@blockprotocol/type-system` builds the
+      # wasm artifact from the Rust crate via wasm-pack.
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          sccache: false
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
