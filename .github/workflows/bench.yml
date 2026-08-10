@@ -67,9 +67,31 @@ jobs:
           echo "unit=$UNIT_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
           echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
+  sccache-credentials:
+    needs: [optimize-ci]
+    if: needs.optimize-ci.outputs.skip == 'false'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: ./.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
   unit-benches:
     name: Unit
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     permissions:
       id-token: write
       contents: read
@@ -94,9 +116,8 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -135,9 +156,8 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -189,7 +209,7 @@ jobs:
 
   integration-benches:
     name: Integration
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     permissions:
       id-token: write
       contents: read
@@ -214,9 +234,8 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -314,9 +333,6 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           sccache: false # sccache is already running in the background
 
       - name: Prune repository
@@ -422,7 +438,14 @@ jobs:
 
   passed:
     name: Benches passed
-    needs: [setup, unit-benches, integration-benches, optimize-ci]
+    needs:
+      [
+        setup,
+        sccache-credentials,
+        unit-benches,
+        integration-benches,
+        optimize-ci,
+      ]
     if: always() && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
@@ -431,6 +454,9 @@ jobs:
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
       - name: Check unit benches
         run: |
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]

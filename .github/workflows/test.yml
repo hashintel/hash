@@ -393,7 +393,15 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, sccache-credentials, unit-tests, integration-tests, publish-rust, optimize-ci]
+    needs:
+      [
+        setup,
+        sccache-credentials,
+        unit-tests,
+        integration-tests,
+        publish-rust,
+        optimize-ci,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:

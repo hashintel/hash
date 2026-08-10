@@ -1,54 +1,24 @@
 name: Install sccache
 description: Setup sccache for Rust project caching
 inputs:
-  vault_address:
-    description: The URL of the Vault server holding `ci/sccache/r2`.
-    default: ""
-  cf_access_client_id:
-    description: Cloudflare Access service-token client ID for that Vault.
-    default: ""
-  cf_access_client_secret:
-    description: Cloudflare Access service-token client secret for that Vault.
-    default: ""
   encrypted_credentials:
-    description: Encrypted credential bundle from mint-sccache-credentials, used instead of a direct Vault fetch.
-    default: ""
+    description: Encrypted credential bundle from mint-sccache-credentials.
+    required: true
   encryption_key:
     description: The symmetric key decrypting `encrypted_credentials`.
-    default: ""
+    required: true
 
 runs:
   using: composite
   steps:
-    - name: Retrieve secrets
-      id: secrets
-      if: ${{ inputs.encrypted_credentials == '' }}
-      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
-      with:
-        # The endpoint sits behind Cloudflare Access, hence the service-token
-        # headers. Vault's own ACL still decides what the role may read.
-        url: ${{ inputs.vault_address }}
-        method: jwt
-        role: ci-hash-sccache
-        extraHeaders: |
-          CF-Access-Client-Id: ${{ inputs.cf_access_client_id }}
-          CF-Access-Client-Secret: ${{ inputs.cf_access_client_secret }}
-        secrets: |
-          ci/data/sccache/r2 account_id | SCCACHE_ACCOUNT_ID ;
-          ci/data/sccache/r2 bucket | SCCACHE_BUCKET ;
-          ci/data/sccache/r2 access_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
-          ci/data/sccache/r2 secret_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
-
-    - name: Decrypt secrets
+    - name: Decrypt credentials
       id: decrypt
-      if: ${{ inputs.encrypted_credentials != '' }}
       uses: ./.github/actions/decrypt-secret
       with:
         ciphertext: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
 
     - name: Export credentials
-      if: ${{ inputs.encrypted_credentials != '' }}
       shell: bash
       env:
         CREDENTIALS: ${{ steps.decrypt.outputs.plaintext }}
