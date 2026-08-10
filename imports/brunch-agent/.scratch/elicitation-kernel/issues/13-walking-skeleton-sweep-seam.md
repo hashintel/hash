@@ -1,7 +1,7 @@
 # Walking skeleton: sweep seam on Flue
 
 Type: prototype
-Status: open
+Status: claimed
 
 ## Question
 
