@@ -35,11 +35,12 @@ code. The system is fully decoupled from brunch's September MVP.
   *pressure test*, not a build target: the substrate-capability list (§10) and the second-binding
   test (§14.2) keep a hypothetical second binding demonstrably small, but no second binding is
   built or maintained.
-- **Executor-standalone is out of scope** — a different kind of project. The spec names only the
-  **elicitor→executor handoff seam**: the target-document is the handoff artifact. Its capture
-  store (plus session logs) is the authoritative state; an executor consumes derived projections of
-  it through the same read-time derivation surface any other consumer uses (§6.1, §9.1). Nothing
-  in this spec depends on an executor existing.
+- **No privileged downstream consumer.** This is a general elicitation product; the spec names no
+  handoff to any specified tool. Whatever consumes an elicited target-document — human readers,
+  build tooling, another agent — does so through the same read-time derivation surface as any
+  other reader (§6.1, §9.1), and nothing in this spec depends on such a consumer existing. (The
+  map charter's "elicitor→executor seam" was brunch adoption leakage, dropped on review
+  2026-08-10.)
 - **Deferred plugin-ecosystem machinery** (named, not designed): simultaneous multi-plugin
   composition, plugin removal, full replay, capability negotiation, version/migration machinery.
   The spec names the five version axes (§12.6) and implements none.
@@ -147,15 +148,25 @@ Distinctions that must not collapse:
 The absence strip's three labels map: **don't-know → `unknown-to-user`**, **not-applicable →
 `not-applicable`**, **decide-later → `deferred`**.
 
+This enum is a working set, validated only against the milestone-one targets. Fine epistemic
+distinctions have a record of arriving late and mattering (brunch took real time to separate the
+character of an *assumption* from a *known-unknown*), so extension pressure is expected rather
+than a design failure — absence states are envelope vocabulary, so an extension is a
+concept-schema-axis change (§12.6), cheap while the ecosystem is workspace-internal. Naming new
+states for behavioral activation (the way "fog of war" carries a whole stance in one image) is
+kernel-card-grade work: pick words the agent can *act* from, not taxonomy for its own sake.
+
 **Explicit vs. inferred absence is a transport fact** (adjudicated, C4): inbound reply transport is
 string-only, and a bare string cannot distinguish a one-tap `not-applicable` from typed prose. The
 harness therefore defines a **reserved reply encoding** — a sentinel-format string the ui emits
 for structured affordance taps (absence-strip taps, choice selections). A reply parsing as that
 encoding, arriving while its affordance occupies the pending-affordance slot, is
 transport-explicit; every other reply is conversational, and absences read from it carry
-`epistemic_status: inferred`. A ui that only affords the markdown floor never produces the
-encoding and honestly yields inferred-only absences. Tap-ness must be a transport fact to earn
-`explicit`; nothing else may claim it.
+`epistemic_status: inferred`. Structured taps are an **optional ui capability, not a
+requirement**: no ui is obliged to afford single-tap buttons at all — the contract says only that
+*if* a ui affords them, tap-ness rides the encoding. A ui that only affords the markdown floor
+never produces the encoding and honestly yields inferred-only absences. Tap-ness must be a
+transport fact to earn `explicit`; nothing else may claim it.
 
 ## 6. Operations, validation strata, issues
 
@@ -164,7 +175,9 @@ encoding and honestly yields inferred-only absences. Tap-ness must be a transpor
 - **Required**: `project` (captures → draft artifact + **typed loss report**: `mapped-exactly /
   normalized / approximate / collapsed / omitted / defaulted / unrepresentable`) and `validate`
   (→ typed issues). `project` also computes the plugin's domain labels (§13.3) — read-time
-  derivation is projection.
+  derivation is projection. (The operation keeps the canon name `project`; in running prose this
+  spec prefers the noun — "produce a projection" — because the verb collides with everyday
+  senses.)
 - **Optional**: `reconcile` — dedup/merge over the plugin's own payload structure; the harness
   calls it when present.
 - **Agent-native**: `observe` — noticing is the agent's work, guided by pack kernel cards;
@@ -409,8 +422,8 @@ unscripted conversational conflict-surfacing.
 The data model **distinguishes true user entries from injected on-behalf-of-user entries**.
 Capture evidence spans anchor only on true user (and user-affordance-payload) entries; injected
 briefings live in the log honestly but are **never citable as capture evidence** — and on Flue
-this is mechanically enforced, since signals project structurally non-user (a capture citing an
-injected entry is refused at validation). Reconciliation with harness invariant 1 (Appendix A,
+this is mechanically enforced, since signals appear structurally non-user in the entry projection
+(a capture citing an injected entry is refused at validation). Reconciliation with harness invariant 1 (Appendix A,
 C5): user-derived captures cite user entries; `defaulted` / `external-lookup` captures cite a
 declared default or documented transformation instead.
 
@@ -429,13 +442,38 @@ enforced as store-level refusals); the binding implements it for its deploy targ
 never touches persistence. Reconciliation with the shipping-shape's "host-owned storage": the
 substrate's *conversation* storage (Flue's `db.ts`) stays host-authored because Flue requires it
 of the consuming app; the harness's *capture store* is the storage port, implemented in
-`packages/flue` (and any future binding). The remote-parity constraint reads accordingly: the
+`packages/binding-flue` (and any future binding). The remote-parity constraint reads accordingly: the
 storage port is owned **outside the plugin** (§12.5).
 
 **Milestone-one local store**: binding-owned; the format is binding-internal **but constrained** —
 it must provide whole-sweep-atomic application and refusals with serialized writes (adjudicated,
 L13; a flat append-only text file does not qualify unaided). The ticket-13 skeleton's shape (JSON
 file, tmp+rename atomic, in-process serialization) is the proven floor.
+
+### 9.7 Context compaction vs. the durable log
+
+Pi-family substrates compact long transcripts, with custom compaction definitions controlling
+which entry kinds survive in the context the model re-reads — ordinary user and agent messages
+are normally summarized away. This never touches the spec's durability claims, **provided one
+constraint holds, stated here as part of the storage contract**:
+
+- **Compaction may shrink what the model re-reads, never what the store can resolve.** Evidence
+  pointers and the sweep machinery bind to the **durable entry projection** (capability 8, §10),
+  not to the model's context window. A binding must guarantee the durable projection is
+  compaction-independent; a substrate whose compaction prunes durable history is a substrate whose
+  binding must preserve the pruned entries itself (binding absorption, as with capability 10).
+- Two existing mechanisms already cushion the model-side loss: **excerpt-primary evidence spans**
+  (§5) keep every capture citable and self-contained even where durable access degrades, and the
+  **re-entry briefing** (§9.3) already treats "the model no longer remembers" as a normal state —
+  a compacted session is informationally a resumed one. Per-session harness state (high-water
+  mark, pending-affordance slot) lives outside the transcript and cannot be compacted away.
+- If a binding supplies a compaction definition, injected signals and affordance tool parts need
+  no protected status: briefings are recomputable facts and affordance identity is durable on
+  tool output parts — only true user entries are irreplaceable, and those are the durable
+  projection's problem, not compaction's.
+
+Whether Flue's compaction (if and as it ships one) preserves the durable-history projection
+unmodified is **unverified** — named in §14.5.
 
 ## 10. The substrate-capability list
 
@@ -523,17 +561,21 @@ Bun-workspace monorepo in this repo:
 ```
 packages/core              # the harness; plugin SDK is its public export surface
 packages/core/testing      # (subpath) fixtures, arbitraries, replay driver — prod bundles stay clean
-packages/flue              # the Flue binding (implements §10; owns the storage port impl)
+packages/binding-flue      # the Flue binding (implements §10; owns the storage port impl)
 packages/plugin-gherkin
 packages/plugin-assurance  # renamed 2026-08-10 from plugin-proof-obligations (§13.2)
 apps/dev                   # owns 'use agent' module, app.ts, db.ts, Vite build
 ```
 
 **Dependency invariants (spec invariants):** plugins depend on `core` only — never on the binding,
-never on Flue; the harness imports no substrate; a binding imports both. Plugin packages are
-`plugin-*`, never `elicit-*` (identity, not function). Envisioned horizon, named not committed:
-per-substrate binding packages (`flue-<name>`, `pi-<name>`, `codex-<name>`) — the payoff if the
-second-binding test keeps passing. **Publishing posture: workspace-internal**; the publishable
+never on Flue; the harness imports no substrate; a binding imports both. **Role prefixes name
+what a package is architecturally**: plugin packages are `plugin-*` (never `elicit-*`) and
+binding packages are `binding-*` — the glossary's own noun, where `adapter-*`/`wrapper-*` are
+avoided terms (amended on review 2026-08-10; ticket 06 had bare `packages/flue` and a
+`<substrate>-<name>` horizon scheme — the product name belongs in the npm scope, e.g.
+`@<name>/binding-flue`, not the package basename). Envisioned horizon, named not committed:
+per-substrate binding packages (`binding-flue`, `binding-pi`, `binding-codex`) — the payoff if
+the second-binding test keeps passing. **Publishing posture: workspace-internal**; the publishable
 shape is exactly the package boundaries above, but publishing waits on the real name and an
 external consumer.
 
@@ -700,6 +742,9 @@ target leakage.
   confirm no other instruction-state write path re-triggers advisory wakes (milestone-one binding).
 - **History-projection paging** (>1000 entries) and binding base-URL discovery — binding
   implementation details flagged by ticket 13.
+- **Compaction vs. durable history** (§9.7) — verify that Pi/Flue compaction leaves the durable
+  entry projection unmodified (or scope what the binding must preserve itself); no prototype has
+  driven a session across a compaction boundary (milestone-one binding).
 
 ---
 
