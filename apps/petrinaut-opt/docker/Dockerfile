@@ -5,31 +5,42 @@
 
 ARG NODE_VERSION=22
 ARG PYTHON_VERSION=3.13
-ARG TURBO_VERSION=2.6.3
 ARG UV_VERSION=0.11.18
 
 
-FROM node:${NODE_VERSION}-bookworm-slim AS cli-pruner
+FROM node:${NODE_VERSION}-bookworm-slim AS cli-tools
 
-ARG TURBO_VERSION
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+ENV MISE_DATA_DIR="/mise"
+ENV MISE_CACHE_DIR="/mise/cache"
+ENV PATH="/mise/shims:$PATH"
+
+COPY .config/mise /etc/mise
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    /etc/mise/install.sh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    mise install --locked npm:turbo
+
+
+FROM cli-tools AS cli-pruner
 
 WORKDIR /repo
-
-RUN npm install --global "turbo@${TURBO_VERSION}"
 
 COPY . .
 
-RUN turbo prune @hashintel/petrinaut-cli --docker
+RUN mise trust && \
+    turbo prune @hashintel/petrinaut-cli --docker
 
 
-FROM node:${NODE_VERSION}-bookworm-slim AS cli-builder
-
-ARG TURBO_VERSION
+FROM cli-tools AS cli-builder
 
 WORKDIR /repo
 
-RUN corepack enable && \
-    npm install --global "turbo@${TURBO_VERSION}"
+RUN corepack enable
 
 # Install from dependency manifests first so source changes do not invalidate
 # the dependency layer.

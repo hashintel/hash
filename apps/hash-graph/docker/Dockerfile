@@ -6,7 +6,6 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
-ENV MISE_INSTALL_PATH="/usr/local/bin/mise"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
@@ -15,8 +14,7 @@ COPY .config/mise /etc/mise
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
-    # renovate: datasource=github-releases depName=jdx/mise
-    export MISE_VERSION=2026.7.14 MISE_INSTALL_EXT=tar.gz && curl https://mise.run | sh && \
+    /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
