@@ -39,9 +39,6 @@ const allowedGitDependencies = [];
 
 /**
  * Lifecycle scripts which Yarn runs as part of `yarn install`.
- *
- * Publish lifecycle scripts (`prepack`, `prepublishOnly`, ...) are deliberately
- * absent: they are required to publish packages and do not run on install.
  */
 const bannedInstallScripts = [
   "preinstall",
@@ -305,8 +302,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
  * Enforces that no workspace declares an install lifecycle script.
  *
  * Install scripts allow for arbitrary code execution on `yarn install` and are
- * not allowed. Publish lifecycle scripts (`prepack`, `prepublishOnly`, ...) are
- * deliberately not covered, as they are required to publish packages.
+ * not allowed.
  *
  * @param {Context} context - The Yarn constraint context.
  */
