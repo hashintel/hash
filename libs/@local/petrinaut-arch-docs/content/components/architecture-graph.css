@@ -94,6 +94,25 @@
   overflow: visible;
 }
 
+/*
+ * Without this, nothing inside a node can be clicked — not the fold buttons,
+ * not the layer links.
+ *
+ * React Flow sets `pointer-events: none` on a node that is not selectable, not
+ * draggable and not connectable, which is exactly how this diagram is
+ * configured: dragging a layer box would imply the arrangement means something
+ * the reader chose, and it does not. Its interaction model assumes a node is
+ * interactive *because* you select, drag or connect it, so a read-only node
+ * that merely contains links has no supported shape. Restoring pointer events
+ * on the node re-enables its contents without re-enabling dragging.
+ *
+ * `!important` is required, not sloppiness: React Flow writes the value as an
+ * inline style on the node element, which no stylesheet rule can outrank.
+ */
+.pnd-graph-canvas .react-flow__node {
+  pointer-events: all !important;
+}
+
 .pnd-graph-canvas .react-flow__controls-button {
   background: var(--pnd-surface);
   border-bottom-color: var(--pnd-line);
