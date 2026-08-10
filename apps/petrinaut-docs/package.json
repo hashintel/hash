@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "dev": "yarn sync:bundle && astro dev",
+    "dev": "astro dev",
     "lint:tsc": "astro check --minimumSeverity error",
     "preview": "astro preview",
     "sync:bundle": "node scripts/sync-bundle.mjs"

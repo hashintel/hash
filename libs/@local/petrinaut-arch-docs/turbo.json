@@ -2,7 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "doc:architecture": {
-      "cache": false
+      // Not cached. Turborepo hashes a task's own package plus its dependencies'
+      // task *outputs*, and the annotations this reads are plain source comments
+      // in `@hashintel/petrinaut` and `petrinaut-core` — not any task's output.
+      // A cached result would therefore survive an annotation change and go
+      // quietly stale, which is the exact failure this package exists to prevent.
+      // The run takes a few seconds; correctness is worth more here.
+      "cache": false,
+      // Declared so consumers can depend on this task rather than on the
+      // directory existing, and so `turbo run` prunes it on a clean.
+      "outputs": ["bundle/**"]
     },
     "lint:arch-docs": {
       "cache": false

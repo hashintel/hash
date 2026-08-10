@@ -235,8 +235,8 @@ jobs:
         if: ${{ success() || failure() }}
         run: |
           ## Builds the architecture bundle and reports on the annotations it
-          ## reads: unannotated files, undeclared layers, dead `@seam`s, and
-          ## dependency rules the import graph violates. The bundle itself is
+          ## reads: unannotated files, undeclared layers, dead `@entryPoint`s,
+          ## and dependency rules the import graph violates. The bundle itself is
           ## build output and is discarded. Needs no `d2`: nothing is rendered.
           if ! yarn workspace @local/petrinaut-arch-docs lint:arch-docs; then
             echo ''

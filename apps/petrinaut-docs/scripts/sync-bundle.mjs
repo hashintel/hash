@@ -1,9 +1,10 @@
 /**
- * Regenerates the architecture bundle and copies it into this app's content tree.
+ * Copies the architecture bundle into this app's content tree.
  *
- * The bundle is build output and is not committed, so this generates it rather
- * than assuming it is on disk — one code path for both `dev` and `build`, and no
- * way to render a stale copy.
+ * Generating the bundle is `@local/petrinaut-arch-docs`'s job, declared in
+ * `turbo.json` as a dependency of this task. This script used to spawn the
+ * generator itself, which meant a cross-package build step lived in a shell call
+ * that Turborepo could not see, order or report on. Now it only copies.
  *
  * Reading the bundle in place via a `glob` loader with an out-of-root `base`
  * works for `astro build` but not for `astro dev`: Astro resolves an MDX page's
@@ -13,27 +14,23 @@
  * bundle is portable.
  */
 
-import { spawnSync } from "node:child_process";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { access, cp, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const generatorRoot = fileURLToPath(
-  new URL("../../../libs/@local/petrinaut-arch-docs/", import.meta.url),
+const bundleRoot = fileURLToPath(
+  new URL("../../../libs/@local/petrinaut-arch-docs/bundle/", import.meta.url),
 );
-const bundleRoot = `${generatorRoot}bundle/`;
 const contentRoot = fileURLToPath(new URL("../src/content/", import.meta.url));
 
-const generated = spawnSync("yarn", ["doc:architecture"], {
-  cwd: generatorRoot,
-  encoding: "utf8",
-  stdio: "inherit",
-});
-
-if (generated.status !== 0) {
+try {
+  await access(bundleRoot);
+} catch {
   process.stderr.write(
-    "Failed to generate the architecture bundle; see the output above.\n",
+    `No bundle at ${bundleRoot}\n` +
+      "Run this through Turborepo so the generator runs first:\n" +
+      "  turbo run sync:bundle --filter @apps/petrinaut-docs\n",
   );
-  process.exit(generated.status ?? 1);
+  process.exit(1);
 }
 
 for (const directory of ["docs", "diagrams", "components"]) {
