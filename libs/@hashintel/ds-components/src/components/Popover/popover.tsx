@@ -207,8 +207,9 @@ const PopoverRoot = ({
       Title: "h2" as const,
       Description: "p" as const,
       componentName: "Popover" as const,
+      closeOnInteractOutside,
     }),
-    [onClose],
+    [onClose, closeOnInteractOutside],
   );
 
   return (

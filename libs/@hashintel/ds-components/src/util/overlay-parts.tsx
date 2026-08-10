@@ -39,6 +39,8 @@ type OverlayContextValue = {
   Description: OverlayPrimitive;
   /** Sets the close-button label and squares off the Drawer's right edge. */
   componentName: "Dialog" | "Drawer" | "Popover";
+  /** Popover-only: whether an outside interaction dismisses it. */
+  closeOnInteractOutside?: boolean;
 };
 
 export const OverlayContext = createContext<OverlayContextValue | null>(null);
@@ -100,6 +102,7 @@ export const OverlayHeader = ({
       }}
       iconName="close"
       size="sm"
+      autoFocus="never"
     />
   );
 
