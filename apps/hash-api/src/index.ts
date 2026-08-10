@@ -30,6 +30,7 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
+import { HEALTH_PATH } from "@local/hash-backend-utils/opentelemetry";
 import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -378,6 +379,16 @@ const main = async () => {
   }
 
   app.use(cors(CORS_CONFIG));
+
+  /**
+   * Registered ahead of the request logger, the proxies, the rate limiters and
+   * `authMiddleware`, so a probe cannot be slowed down or rejected by any of
+   * them. `authMiddleware` in particular would otherwise resolve the session on
+   * every probe.
+   */
+  app.get(HEALTH_PATH, (_req, res) => {
+    res.type("application/health+json").status(200).send({ status: "pass" });
+  });
 
   if (isProdEnv && !isSelfHostedInstance) {
     /**
@@ -843,9 +854,6 @@ const main = async () => {
       });
     });
   }
-
-  // Used by AWS Application Load Balancer (ALB) for health checks
-  app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {

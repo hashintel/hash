@@ -105,37 +105,6 @@ describe("attachPetrinautOptimizationRunStream", () => {
     );
   });
 
-  it("aggregates a best-so-far when a direction is supplied", async () => {
-    const { events } = await attachPetrinautOptimizationRunStream({
-      endpoint: "http://petrinaut-opt.test",
-      runId: "run-42",
-      direction: "minimize",
-      fetchImpl: async () =>
-        new Response(
-          'id: 1\ndata: {"step":0,"params":{"rate":0.8},"init_state":{},"metric":4,"state":"COMPLETE"}\n\n' +
-            'id: 2\ndata: {"step":1,"params":{"rate":0.4},"init_state":{},"metric":2,"state":"COMPLETE"}\n\n' +
-            "id: 3\nevent: done\ndata: {}\n\n",
-          {
-            headers: {
-              "content-type": "text/event-stream",
-              "x-requested-trials": "3",
-            },
-          },
-        ),
-    });
-
-    const collected = await collect(events);
-    expect(collected.at(-1)).toEqual({
-      type: "complete",
-      requestedTrials: 3,
-      completedTrials: 2,
-      prunedTrials: 0,
-      failedTrials: 0,
-      best: { trial: 1, parameters: { rate: 0.4 }, objective: 2 },
-      seq: 3,
-    });
-  });
-
   it("adapts a cancelled run's terminal frame", async () => {
     const { events } = await attachPetrinautOptimizationRunStream({
       endpoint: "http://petrinaut-opt.test",

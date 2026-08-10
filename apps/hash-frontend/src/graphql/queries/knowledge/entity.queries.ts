@@ -39,6 +39,12 @@ export const summarizeEntitiesQuery = gql`
   }
 `;
 
+export const queryEntitiesTableQuery = gql`
+  query queryEntitiesTable($request: QueryEntitiesTableParams!) {
+    queryEntitiesTable(request: $request)
+  }
+`;
+
 export const updateEntityMutation = gql`
   mutation updateEntity($entityUpdate: EntityUpdateDefinition!) {
     # This is a scalar, which has no selection.

@@ -10,13 +10,10 @@ read Petrinaut models, scenario bindings, metrics, or the Petrinaut type system.
 
 ## API
 
-Both optimization endpoints accept the complete optimization manifest as their
-JSON request body. The manifest is produced by the Petrinaut UI/Node API and is
-forwarded unchanged to the CLI.
+Run creation accepts the complete optimization manifest as its JSON request
+body. The manifest is produced by the Petrinaut UI/Node API and is forwarded
+unchanged to the CLI.
 
-- `POST /optimize/all` streams every finished trial.
-- `POST /optimize/best` streams the best-so-far result after each finished
-  trial. No data frame is emitted until at least one trial completes.
 - `POST /optimize/runs` starts a detached run and returns its id. Attach or
   reattach to its replayable event stream with
   `GET /optimize/runs/{run_id}/events`; `DELETE /optimize/runs/{run_id}`

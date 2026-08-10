@@ -6,6 +6,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { getItemFilePath } from "./file-paths";
 
@@ -467,6 +468,7 @@ export function generateScenarioSessionFiles(
     `import type { Parameters } from "${parametersDefsPath}";`,
     `declare const parameters: Parameters;`,
     scenarioTypeDecl,
+    SCENARIO_HELPER_TYPE_DECLARATIONS,
   ].join("\n");
 
   // Generate defs file (shared declarations for this session)
@@ -503,6 +505,11 @@ export function generateScenarioSessionFiles(
 
   // Generate full code file for "Define as code" initial state — only when
   // that mode is active so we don't lint stale code from the inactive mode.
+  // Empty code still gets a virtual file, unlike the expression modes below:
+  // this editor is where users press Ctrl+Space to discover `range`,
+  // `scenario`, and `parameters`, and completions need a source file to
+  // resolve against. See `emptyInitialStateCode` for how the wrapper avoids
+  // TS2355 on a body that has nothing to return yet.
   if (session.initialStateAsCode && session.initialStateCode !== undefined) {
     // Build return type: { "PlaceName"?: TokenType[], ... }
     const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
@@ -537,11 +544,17 @@ export function generateScenarioSessionFiles(
         ? `{\n${initialStateTypeProperties.join("\n")}\n}`
         : "Record<string, never>";
 
+    // An untouched editor has nothing to return yet, and the runtime compiler
+    // treats empty code as "no initial state". Widening the wrapper's return
+    // type to include `void` suppresses TS2355 ("must return a value") for
+    // that case only — non-empty code is still held to `InitialState`.
+    const emptyInitialStateCode = session.initialStateCode.trim() === "";
+
     const fullCodePrefix = [
       commonPrefix,
       ...initialStateTypeImports,
       `type InitialState = ${initialStateReturnType};`,
-      `function __check(): InitialState {`,
+      `function __check(): InitialState${emptyInitialStateCode ? " | void" : ""} {`,
     ].join("\n");
 
     const filePath = getItemFilePath("scenario-initial-state-full-code", {

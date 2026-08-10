@@ -1,13 +1,16 @@
-import { useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
+import { useAuthInfo } from "../../shared/auth-info-context";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { SupplyChainDataShell } from "../supply-chain-data-shell";
 import { SupplyChainAppSkeleton } from "./load-state";
+import { useSearchParams } from "./use-search-params";
 
+import type { WebId } from "@blockprotocol/type-system";
 import type { ReactElement, ReactNode } from "react";
 
 /**
@@ -23,7 +26,38 @@ import type { ReactElement, ReactNode } from "react";
  */
 const SupplyChainShell = ({ children }: { children: ReactNode }) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const { activeWorkspaceWebId } = useActiveWorkspace();
+  const { authenticatedUser } = useAuthInfo();
+  const { activeWorkspaceWebId, updateActiveWorkspaceWebId } =
+    useActiveWorkspace();
+  const [searchParams] = useSearchParams();
+  const requestedWebId = searchParams.get("webId") as WebId | null;
+  const authorizedRequestedWebId = useMemo(
+    () =>
+      requestedWebId &&
+      authenticatedUser &&
+      (requestedWebId === authenticatedUser.accountId ||
+        authenticatedUser.memberOf.some(
+          ({ org }) => org.webId === requestedWebId,
+        ))
+        ? requestedWebId
+        : null,
+    [authenticatedUser, requestedWebId],
+  );
+  const effectiveWorkspaceWebId =
+    authorizedRequestedWebId ?? activeWorkspaceWebId;
+
+  useEffect(() => {
+    if (
+      authorizedRequestedWebId &&
+      authorizedRequestedWebId !== activeWorkspaceWebId
+    ) {
+      updateActiveWorkspaceWebId(authorizedRequestedWebId);
+    }
+  }, [
+    activeWorkspaceWebId,
+    authorizedRequestedWebId,
+    updateActiveWorkspaceWebId,
+  ]);
 
   return (
     <PortalContainerContext.Provider value={rootRef}>
@@ -35,12 +69,12 @@ const SupplyChainShell = ({ children }: { children: ReactNode }) => {
           overflow: "hidden",
         }}
       >
-        {activeWorkspaceWebId === undefined ? (
+        {effectiveWorkspaceWebId === undefined ? (
           <SupplyChainAppSkeleton />
         ) : (
           <SupplyChainDataShell
-            key={activeWorkspaceWebId}
-            scope={activeWorkspaceWebId}
+            key={effectiveWorkspaceWebId}
+            scope={effectiveWorkspaceWebId}
           >
             {children}
           </SupplyChainDataShell>

@@ -2,7 +2,7 @@ import { Fragment, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes, type Tone } from "../../util/form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
@@ -14,7 +14,11 @@ import {
 import type { Story, StoryDefault } from "@ladle/react";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
-const tones: Tone[] = ["neutral", "brand", "error"];
+const tones: NonNullable<ButtonElementProps["tone"]>[] = [
+  "neutral",
+  "brand",
+  "error",
+];
 
 export default {
   title: "Components/Button",
@@ -92,14 +96,21 @@ export const Default: Story<ButtonElementProps> = (args) => {
           key={tone}
           className={css({
             display: "flex",
-            gap: "[16px]",
+            gap: "[32px]",
             alignItems: "flex-end",
             flexWrap: "wrap",
             marginBottom: "4",
           })}
         >
           {variants.map((variant) => (
-            <Fragment key={variant}>
+            <div
+              key={variant}
+              className={css({
+                display: "flex",
+                gap: "[8px]",
+                alignItems: "flex-end",
+              })}
+            >
               <Button
                 {...args}
                 variant={variant}
@@ -121,7 +132,7 @@ export const Default: Story<ButtonElementProps> = (args) => {
               <Button {...args} variant={variant} tone={tone} pressed>
                 pressed
               </Button>
-            </Fragment>
+            </div>
           ))}
         </div>
       ))}

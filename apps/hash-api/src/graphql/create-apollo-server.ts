@@ -9,6 +9,8 @@ import {
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
+import { context } from "@opentelemetry/api";
+import { getRPCMetadata } from "@opentelemetry/core";
 import * as Sentry from "@sentry/node";
 
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
@@ -121,6 +123,44 @@ const statsPlugin = ({
   },
 });
 
+/** Same keys `@opentelemetry/instrumentation-graphql` uses on its own spans. */
+const graphqlOperationNameAttribute = "graphql.operation.name";
+const graphqlOperationTypeAttribute = "graphql.operation.type";
+
+const maxOperationNameLength = 128;
+
+/**
+ * Record the GraphQL operation on the HTTP server span, which carries the same
+ * name for every GraphQL request and is what Tempo's processors read.
+ *
+ * An attribute rather than the span name, because operation names come from the
+ * client and a name would let a caller mint a metric series per request.
+ * `getRPCMetadata` yields the server span rather than whichever span is
+ * innermost here.
+ */
+const tracingPlugin = (): ApolloServerPlugin<GraphQLContext> => ({
+  requestDidStart: async () => ({
+    didResolveOperation: async ({ operationName, operation }) => {
+      const span = getRPCMetadata(context.active())?.span;
+      if (!span) {
+        return;
+      }
+      const operationType = operation?.operation;
+      if (operationType) {
+        span.setAttribute(graphqlOperationTypeAttribute, operationType);
+      }
+      if (operationName) {
+        // Length is otherwise bounded only by the request body limit, and
+        // `/graphql` answers unauthenticated requests.
+        span.setAttribute(
+          graphqlOperationNameAttribute,
+          operationName.slice(0, maxOperationNameLength),
+        );
+      }
+    },
+  }),
+});
+
 export interface CreateApolloServerParams {
   graphApi: GraphApi;
   cache: Keyv;
@@ -182,6 +222,7 @@ export const createApolloServer = async ({
 }`,
           }),
       statsPlugin({ statsd }),
+      tracingPlugin(),
       ApolloServerPluginDrainHttpServer({ httpServer }),
     ],
   });

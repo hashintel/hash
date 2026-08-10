@@ -17,7 +17,7 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     /** The overall style of the button */
     variant?: Variant;
     /** Sets the color treatment of the button for destructive actions. */
-    tone?: Tone;
+    tone?: Exclude<Tone, "warning" | "success">;
     /** The size (height) of the button */
     size?: FormInputSize;
     /** The shape of the button. Non default shapes should VERY rarely be used */
@@ -199,6 +199,9 @@ export const Button = (props: ButtonProps) => {
   const sharedProps = {
     className: cx(classes.button, className),
     tabIndex,
+    // Exposes the resolved variant so containers (e.g. ButtonGroup) can style
+    // based on a child's variant. Mirrors the recipe's `solid` default.
+    "data-variant": variant ?? "solid",
     "aria-pressed": isPressed,
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,

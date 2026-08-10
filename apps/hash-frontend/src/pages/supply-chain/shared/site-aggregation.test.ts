@@ -175,9 +175,9 @@ describe("deduplicateNodes", () => {
     const monthly = [kgDayMonth("2026-01", 10000)];
     const sharedA = node({
       id: "im-a",
-      label: "Intermediate Dwell: MN-L Wet Cake",
+      label: "Intermediate Dwell: Intermediate Cake",
       type: "intermediate_dwell",
-      material: "MN-L Wet Cake",
+      material: "Intermediate Cake",
       plant: "PL-A",
       stats: stats(10, 23.5),
       cost: cost(100),

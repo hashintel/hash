@@ -88,6 +88,12 @@ export const siteOverviewSection: DocSectionDef = {
               detail panel, and viewable by anyone with access to the
               organisation.
             </LI>
+            <LI>
+              Type <Term>@</Term> followed by a colleague&apos;s display name or
+              username to mention them in an update. Selecting them from the
+              suggestions sends an in-app notification and a best-effort email;
+              the notification opens the relevant step detail.
+            </LI>
           </UL>
           <P>
             Opening a row&apos;s step detail gives access to the printable{" "}

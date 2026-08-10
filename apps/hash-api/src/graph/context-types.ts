@@ -1,5 +1,7 @@
+import type { EmailTransporter } from "../email/transporters";
 import type { ActorType, OriginProvenance } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
@@ -15,6 +17,8 @@ export type ImpureGraphContext<
     actorType: ActorType;
     origin: OriginProvenance;
   };
+  emailTransporter?: EmailTransporter;
+  logger?: Logger;
 } & (RequiresUpload extends true
   ? { uploadProvider: FileStorageProvider }
   : { uploadProvider?: FileStorageProvider }) &

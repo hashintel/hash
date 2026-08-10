@@ -74,7 +74,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
+    mise install --locked node npm:turbo java oxfmt npm:@redocly/cli cargo-binstall github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc
 
 COPY --from=base /app/out/json/ .
 COPY --from=base /app/out/yarn.lock ./yarn.lock
@@ -112,4 +112,4 @@ ENV NODE_ENV=production
 ENTRYPOINT [ "yarn"]
 CMD ["start"]
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health || exit 1

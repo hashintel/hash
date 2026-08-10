@@ -1,6 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 import { clusterEventsByPixel } from "./model";
+import { TIMELINE_LABEL_WIDTH_CSS } from "./timeline-geometry";
 import { TimelineTooltip } from "./timeline-tooltip";
 import { DispatchTooltipContent } from "./tooltip-content";
 
@@ -17,7 +18,7 @@ const laneLabel = css({
   left: "0",
   zIndex: "[10]",
   flex: "none",
-  w: "[220px]",
+  w: TIMELINE_LABEL_WIDTH_CSS,
   boxSizing: "border-box",
   px: "3",
   py: "3",

@@ -149,120 +149,21 @@
         "summary": "Root"
       }
     },
-    "/optimize/all": {
-      "post": {
-        "description": "Stream one SSE data frame for every completed Optuna trial.",
-        "operationId": "post_optimize_all_optimize_all_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Optimization Manifest",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
+    "/health": {
+      "get": {
+        "description": "Report liveness, without checking any dependency.\n\nA probe that reaches through to a dependency takes every task out of\nrotation as soon as that dependency is slow.",
+        "operationId": "health_health_get",
         "responses": {
           "200": {
             "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Server-Sent Events optimization stream"
-          },
-          "413": {
-            "description": "The optimization manifest exceeds 8 MiB"
-          },
-          "422": {
-            "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             },
-            "description": "Validation Error"
-          },
-          "429": {
-            "description": "The service is already at its study limit",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds to wait before retrying the study",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The CLI or optimization study could not initialize"
+            "description": "Successful Response"
           }
         },
-        "summary": "Post Optimize All"
-      }
-    },
-    "/optimize/best": {
-      "post": {
-        "description": "Stream the best-so-far SSE data frame after every completed trial.",
-        "operationId": "post_optimize_best_optimize_best_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Optimization Manifest",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": "Server-Sent Events optimization stream"
-          },
-          "413": {
-            "description": "The optimization manifest exceeds 8 MiB"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          },
-          "429": {
-            "description": "The service is already at its study limit",
-            "headers": {
-              "Retry-After": {
-                "description": "Seconds to wait before retrying the study",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The CLI or optimization study could not initialize"
-          }
-        },
-        "summary": "Post Optimize Best"
+        "summary": "Health"
       }
     },
     "/optimize/runs": {

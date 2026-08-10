@@ -20,22 +20,13 @@ const streamChunks = (...chunks: string[]) => {
 const collect = async (
   stream: ReadableStream<Uint8Array>,
   options: {
-    direction?: "maximize" | "minimize" | null;
-    emitSyntheticStarted?: boolean;
     maxEventBytes?: number;
     onActivity?: () => void;
   } = {},
 ) => {
   const events = [];
   for await (const event of decodePetrinautOptimizerStream(stream, {
-    // `null` requests attachment-style decoding without a direction.
-    ...(options.direction === null
-      ? {}
-      : { direction: options.direction ?? "maximize" }),
     requestedTrials: 2,
-    ...(options.emitSyntheticStarted === undefined
-      ? {}
-      : { emitSyntheticStarted: options.emitSyntheticStarted }),
     ...(options.maxEventBytes === undefined
       ? {}
       : { maxEventBytes: options.maxEventBytes }),
@@ -58,14 +49,16 @@ describe("decodePetrinautOptimizerStream", () => {
     );
 
     expect(events).toEqual([
-      { type: "started", requestedTrials: 2 },
       {
         type: "trial",
         trial: 0,
         parameters: { workers: 2 },
         objective: 10,
         state: "complete",
-        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        // A consumer may attach past a cursor and so never observe the whole
+        // study; it retains its own running best, and the decoder never
+        // aggregates one.
+        best: null,
       },
       {
         type: "trial",
@@ -73,7 +66,7 @@ describe("decodePetrinautOptimizerStream", () => {
         parameters: { workers: 3 },
         objective: null,
         state: "pruned",
-        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        best: null,
       },
       {
         type: "complete",
@@ -81,29 +74,9 @@ describe("decodePetrinautOptimizerStream", () => {
         completedTrials: 1,
         prunedTrials: 1,
         failedTrials: 0,
-        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        best: null,
       },
     ]);
-  });
-
-  it("selects the lowest completed objective for minimization", async () => {
-    const events = await collect(
-      streamChunks(
-        'data: {"step":0,"params":{"rate":0.8},"metric":4,"state":"COMPLETE"}\n\n',
-        'data: {"step":1,"params":{"rate":0.4},"metric":2,"state":"COMPLETE"}\n\n',
-        "event: done\ndata: {}\n\n",
-      ),
-      { direction: "minimize" },
-    );
-
-    expect(events.at(-1)).toEqual({
-      type: "complete",
-      requestedTrials: 2,
-      completedTrials: 2,
-      prunedTrials: 0,
-      failedTrials: 0,
-      best: { trial: 1, parameters: { rate: 0.4 }, objective: 2 },
-    });
   });
 
   it("adapts named and state-based terminal optimizer errors", async () => {
@@ -112,7 +85,6 @@ describe("decodePetrinautOptimizerStream", () => {
         streamChunks('event: error\ndata: {"message":"study failed"}\n\n'),
       ),
     ).resolves.toEqual([
-      { type: "started", requestedTrials: 2 },
       {
         type: "error",
         code: "optimization_failed",
@@ -125,7 +97,6 @@ describe("decodePetrinautOptimizerStream", () => {
         streamChunks('data: {"state":"ERROR","message":"scenario failed"}\n\n'),
       ),
     ).resolves.toEqual([
-      { type: "started", requestedTrials: 2 },
       {
         type: "error",
         code: "optimization_failed",
@@ -176,17 +147,27 @@ describe("decodePetrinautOptimizerStream", () => {
     ).rejects.toThrow("after a terminal event");
   });
 
-  it("cancels upstream when its consumer stops after the started event", async () => {
+  it("cancels upstream when its consumer stops mid-stream", async () => {
     const cancel = vi.fn();
-    const stream = new ReadableStream<Uint8Array>({ cancel });
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(
+            'data: {"step":0,"params":{},"metric":1,"state":"COMPLETE"}\n\n',
+          ),
+        );
+        // Deliberately left open: the consumer walks away mid-stream.
+      },
+      cancel,
+    });
     const events = decodePetrinautOptimizerStream(stream, {
-      direction: "maximize",
       requestedTrials: 1,
     })[Symbol.asyncIterator]();
 
-    await expect(events.next()).resolves.toEqual({
+    await expect(events.next()).resolves.toMatchObject({
       done: false,
-      value: { type: "started", requestedTrials: 1 },
+      value: { type: "trial", trial: 0 },
     });
     await events.return?.();
 
@@ -208,15 +189,13 @@ describe("decodePetrinautOptimizerStream", () => {
     );
 
     expect(events).toEqual([
-      // The synthetic started event predates upstream bytes, so it has no seq.
-      { type: "started", requestedTrials: 2 },
       {
         type: "trial",
         trial: 0,
         parameters: { workers: 2 },
         objective: 10,
         state: "complete",
-        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        best: null,
         seq: 1,
       },
       {
@@ -225,7 +204,7 @@ describe("decodePetrinautOptimizerStream", () => {
         completedTrials: 1,
         prunedTrials: 0,
         failedTrials: 0,
-        best: { trial: 0, parameters: { workers: 2 }, objective: 10 },
+        best: null,
         seq: 2,
       },
     ]);
@@ -265,7 +244,6 @@ describe("decodePetrinautOptimizerStream", () => {
   it("adapts a superseded frame to a terminal, non-retryable attachment error", async () => {
     const events = await collect(
       streamChunks("event: superseded\ndata: {}\n\n"),
-      { direction: null, emitSyntheticStarted: false },
     );
 
     expect(events).toEqual([
@@ -287,39 +265,5 @@ describe("decodePetrinautOptimizerStream", () => {
         ),
       ),
     ).rejects.toThrow("after a terminal event");
-  });
-
-  it("decodes attachments without a synthetic started event or a best", async () => {
-    const events = await collect(
-      streamChunks(
-        'id: 3\ndata: {"step":2,"params":{"rate":0.4},"metric":2,"state":"COMPLETE"}\n\n',
-        "id: 4\nevent: done\ndata: {}\n\n",
-      ),
-      { direction: null, emitSyntheticStarted: false },
-    );
-
-    expect(events).toEqual([
-      {
-        type: "trial",
-        trial: 2,
-        parameters: { rate: 0.4 },
-        objective: 2,
-        state: "complete",
-        // Without a direction, best-so-far aggregation is skipped: a replay
-        // past a cursor cannot know the true running best, so the consumer's
-        // retained best stays authoritative.
-        best: null,
-        seq: 3,
-      },
-      {
-        type: "complete",
-        requestedTrials: 2,
-        completedTrials: 1,
-        prunedTrials: 0,
-        failedTrials: 0,
-        best: null,
-        seq: 4,
-      },
-    ]);
   });
 });

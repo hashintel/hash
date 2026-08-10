@@ -1,9 +1,9 @@
 import { createParser } from "eventsource-parser";
 
 import {
+  PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   petrinautOptimizationEventSchema,
   type PetrinautOptimizationEvent,
-  type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
 
 import type { EventSourceMessage, ParseError } from "eventsource-parser";
@@ -12,47 +12,26 @@ type JsonRecord = Record<string, unknown>;
 
 type StreamState = {
   requestedTrials: number;
-  direction: PetrinautOptimizationInput["objective"]["direction"] | undefined;
   completedTrials: number;
   prunedTrials: number;
   failedTrials: number;
-  best: Extract<PetrinautOptimizationEvent, { type: "complete" }>["best"];
   terminal: boolean;
 };
 
 /**
  * Configuration needed to adapt one upstream optimization stream.
  *
- * The decoder has two modes:
- *
- * - **Study mode** (the default, used by `POST /optimize/all`): the caller
- *   knows the manifest, passes `direction`, and a synthetic `started` event is
- *   emitted before any upstream bytes are read. Best-so-far aggregation runs
- *   client-side from the trials observed on this stream.
- * - **Attachment mode** (used by `GET /optimize/runs/{run_id}/events`): the
- *   caller re-attaches mid-run, so a replay that starts past the cursor never
- *   represents the whole study. Pass `emitSyntheticStarted: false` and omit
- *   `direction`: no `started` event is emitted and best-so-far aggregation is
- *   skipped — every trial and complete event then carries `best: null` (legal
- *   per the canonical schema) and the consumer, which retains its own running
- *   best across reconnections, remains the single source of truth for it.
+ * The decoder serves attachments to detached runs
+ * (`GET /optimize/runs/{run_id}/events`): a consumer may re-attach mid-run,
+ * so a replay that starts past the cursor never represents the whole study.
+ * No best-so-far aggregation happens here — every trial and complete event
+ * carries `best: null` (legal per the canonical schema) and the consumer,
+ * which retains its own running best across reconnections, remains the
+ * single source of truth for it.
  */
 export type DecodePetrinautOptimizerStreamOptions = {
-  /**
-   * Whether lower or higher objective values are considered better.
-   *
-   * When omitted, best-so-far aggregation is skipped entirely and every
-   * emitted trial and complete event carries `best: null`.
-   */
-  direction?: PetrinautOptimizationInput["objective"]["direction"];
   /** Number of trials requested by the optimization manifest. */
   requestedTrials: number;
-  /**
-   * Whether to emit the synthetic client-side `started` event before reading
-   * upstream bytes. Defaults to `true`; attachments to an already-running
-   * detached run pass `false` because the study started long before them.
-   */
-  emitSyntheticStarted?: boolean;
   /** Optional UTF-8 byte limit applied to each complete upstream event. */
   maxEventBytes?: number;
   /** Called whenever bytes arrive, including heartbeat-only chunks. */
@@ -82,8 +61,7 @@ const utf8ByteLength = (value: string): number =>
  * Parse an SSE frame's `id:` line into a canonical sequence number.
  *
  * Detached-run attachments stamp every frame with `id: <seq>` so consumers
- * can resume from a cursor; the legacy study stream sends no ids at all, in
- * which case the adapted events simply carry no `seq`.
+ * can resume from a cursor; frames without an id simply carry no `seq`.
  *
  * Only plain bounded decimal ids are accepted (mirroring the cursor NodeAPI
  * accepts): `Number()` would otherwise coerce empty strings, exponent or hex
@@ -223,7 +201,7 @@ const adaptSseEvent = (
     return {
       event: petrinautOptimizationEventSchema.parse({
         type: "error",
-        code: "optimization_cancelled",
+        code: PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
         message: "The optimization was cancelled",
         retryable: false,
         ...sequenceField,
@@ -239,7 +217,7 @@ const adaptSseEvent = (
         completedTrials: state.completedTrials,
         prunedTrials: state.prunedTrials,
         failedTrials: state.failedTrials,
-        best: state.best,
+        best: null,
         ...sequenceField,
       }),
       state: { ...state, terminal: true },
@@ -266,34 +244,19 @@ const adaptSseEvent = (
   }
 
   const trial = parseTrial(value);
-  const best =
-    state.direction !== undefined &&
-    trial.state === "complete" &&
-    trial.objective !== null &&
-    (state.best === null ||
-      (state.direction === "maximize"
-        ? trial.objective > state.best.objective
-        : trial.objective < state.best.objective))
-      ? {
-          trial: trial.trial,
-          parameters: trial.parameters,
-          objective: trial.objective,
-        }
-      : state.best;
   const nextState: StreamState = {
     ...state,
     completedTrials:
       state.completedTrials + (trial.state === "complete" ? 1 : 0),
     prunedTrials: state.prunedTrials + (trial.state === "pruned" ? 1 : 0),
     failedTrials: state.failedTrials + (trial.state === "failed" ? 1 : 0),
-    best,
   };
 
   return {
     event: petrinautOptimizationEventSchema.parse({
       type: "trial",
       ...trial,
-      best,
+      best: null,
       ...sequenceField,
     }),
     state: nextState,
@@ -314,11 +277,9 @@ export async function* decodePetrinautOptimizerStream(
 ): AsyncIterable<PetrinautOptimizationEvent> {
   let state: StreamState = {
     requestedTrials: options.requestedTrials,
-    direction: options.direction,
     completedTrials: 0,
     prunedTrials: 0,
     failedTrials: 0,
-    best: null,
     terminal: false,
   };
   const events: EventSourceMessage[] = [];
@@ -374,14 +335,6 @@ export async function* decodePetrinautOptimizerStream(
   };
 
   try {
-    if (options.emitSyntheticStarted ?? true) {
-      // Synthesized before any upstream bytes exist, so it never has a seq.
-      yield petrinautOptimizationEventSchema.parse({
-        type: "started",
-        requestedTrials: state.requestedTrials,
-      });
-    }
-
     let result = await reader.read();
     while (!result.done) {
       options.onActivity?.();

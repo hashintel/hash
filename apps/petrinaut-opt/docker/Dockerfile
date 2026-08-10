@@ -116,6 +116,6 @@ USER petrinaut
 EXPOSE 4004
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
-    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4004/status', timeout=4).close()"]
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4004/health', timeout=4).close()"]
 
 CMD ["python", "-m", "uvicorn", "src.optimization_api:app", "--host", "0.0.0.0", "--port", "4004"]

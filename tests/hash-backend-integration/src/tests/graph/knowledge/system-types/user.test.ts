@@ -57,6 +57,7 @@ const logger = new Logger({
 const graphContext = createTestImpureGraphContext();
 
 const shortname = generateRandomShortname("userTest");
+const incompleteUserShortname = generateRandomShortname("incomplete");
 
 /**
  * Email addresses that are permitted to sign up in a test environment.
@@ -92,6 +93,14 @@ describe("User model class", () => {
       kratosIdentityId: identity.id,
       shortname,
       displayName: "Alice",
+    });
+
+    const { data: provisionedIdentity } = await kratosIdentityApi.getIdentity({
+      id: identity.id,
+    });
+
+    expect(provisionedIdentity.metadata_public).toStrictEqual({
+      graph_actor_id: createdUser.accountId,
     });
 
     expect(
@@ -430,7 +439,7 @@ describe("User model class", () => {
           op: "add",
           path: [systemPropertyTypes.shortname.propertyTypeBaseUrl],
           property: {
-            value: "incomplete",
+            value: incompleteUserShortname,
             metadata: {
               dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },

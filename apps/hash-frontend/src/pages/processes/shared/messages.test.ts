@@ -24,6 +24,17 @@ describe("isHostToIframeMessage", () => {
     ).toBe(false);
   });
 
+  it("accepts detached-run creation replies", () => {
+    expect(
+      isHostToIframeMessage({
+        kind: "optimizationCreateResult",
+        requestId: "req-1",
+        ok: true,
+        runId: "run-1",
+      }),
+    ).toBe(true);
+  });
+
   it("rejects unknown host message kinds", () => {
     expect(isHostToIframeMessage({ kind: "notAHostMessage" })).toBe(false);
   });

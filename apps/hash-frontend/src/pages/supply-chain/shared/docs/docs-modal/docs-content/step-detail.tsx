@@ -71,7 +71,9 @@ export const stepDetailDoc: DocEntry = {
           record investigation progress, updates, conclusions or rejections.
           Status history is tied to the step/opportunity, reappears when the
           same target is opened again, and is viewable by anyone with access to
-          the supply-chain data web.
+          the supply-chain data web. To mention a colleague, type <Term>@</Term>{" "}
+          followed by their display name or username, then choose them from the
+          suggestions using the mouse, Enter or Tab.
         </LI>
         <LI>
           Use <Term>Data</Term> to open a table with the underlying records used

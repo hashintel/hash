@@ -30,8 +30,10 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import {
+  getGraphActorIdFromKratos,
   getVerifiedEmailsFromKratosIdentity,
   kratosIdentityApi,
+  provisionGraphActorIdInKratos,
 } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
@@ -344,7 +346,7 @@ export const getUser: ImpureGraphFunction<
 };
 
 /**
- * Create a system user entity.
+ * Create a system user entity and record its actor ID on the Kratos identity.
  *
  * @param params.emails - the emails of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
@@ -352,7 +354,6 @@ export const getUser: ImpureGraphFunction<
  * @param params.isInstanceAdmin (optional) - whether or not the user is an instance admin of the HASH instance (defaults to `false`)
  * @param params.shortname (optional) - the shortname of the user
  * @param params.displayName (optional) - the display name of the user
- * @param params.accountId (optional) - the pre-populated account Id of the user
  */
 export const createUser: ImpureGraphFunction<
   {
@@ -381,6 +382,21 @@ export const createUser: ImpureGraphFunction<
   if (existingUserWithKratosIdentityId) {
     throw new Error(
       `A user entity with kratos identity id "${kratosIdentityId}" already exists.`,
+    );
+  }
+
+  /**
+   * An actor ID exists only after the web below, so the conflict is the one
+   * part that can be established beforehand. A check after the write leaves
+   * an orphaned web behind.
+   */
+  const provisionedGraphActorId = await getGraphActorIdFromKratos({
+    kratosIdentityId,
+  });
+
+  if (provisionedGraphActorId) {
+    throw new Error(
+      `Kratos identity "${kratosIdentityId}" is provisioned for Graph actor "${provisionedGraphActorId}", which has no user entity.`,
     );
   }
 
@@ -488,6 +504,11 @@ export const createUser: ImpureGraphFunction<
 
   const user = getUserFromEntity({ entity });
 
+  await provisionGraphActorIdInKratos({
+    graphActorId: user.accountId,
+    kratosIdentityId,
+  });
+
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
     await addActorGroupMember(ctx.graphApi, authentication, {
@@ -527,28 +548,21 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
   { user: User; updatedTraits: Partial<KratosUserIdentityTraits> },
   Promise<void>
 > = async (ctx, authentication, { user, updatedTraits }) => {
-  const {
-    id: kratosIdentityId,
-    traits: currentKratosTraits,
-    schema_id,
-    state,
-  } = await getUserKratosIdentity(ctx, authentication, { user });
+  const { id: kratosIdentityId, traits: currentKratosTraits } =
+    await getUserKratosIdentity(ctx, authentication, { user });
 
-  /** @todo: figure out why the `state` can be undefined */
-  if (!state) {
-    throw new Error("Previous user identity state is undefined");
-  }
-
-  await kratosIdentityApi.updateIdentity({
+  await kratosIdentityApi.patchIdentity({
     id: kratosIdentityId,
-    updateIdentityBody: {
-      schema_id,
-      state,
-      traits: {
-        ...currentKratosTraits,
-        ...updatedTraits,
+    jsonPatch: [
+      {
+        op: "replace",
+        path: "/traits",
+        value: {
+          ...currentKratosTraits,
+          ...updatedTraits,
+        },
       },
-    },
+    ],
   });
 };
 

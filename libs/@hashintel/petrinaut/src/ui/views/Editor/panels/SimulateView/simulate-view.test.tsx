@@ -38,9 +38,11 @@ vi.mock("./scenarios/scenarios-view", () => ({
 }));
 
 const capability: PetrinautOptimization = {
-  async *optimize() {
-    yield { type: "started", requestedTrials: 1 };
+  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
+  async *attachOptimizationRun() {
+    yield { type: "started", requestedTrials: 1, seq: 1 };
   },
+  cancelOptimizationRun: () => Promise.resolve(),
 };
 
 afterEach(cleanup);

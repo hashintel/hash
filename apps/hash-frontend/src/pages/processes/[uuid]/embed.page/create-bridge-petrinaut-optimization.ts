@@ -11,22 +11,92 @@ import {
   nextRequestId,
 } from "../../shared/messages";
 
+/** Classification of an optimization transport failure. */
+export type OptimizationErrorCategory =
+  | "network"
+  | "http"
+  | "protocol"
+  | "aborted";
+
+/**
+ * A classified optimization transport failure carrying the correlation ids
+ * needed to trace it to the NodeAPI and optimizer logs. Consumers build a
+ * user-facing message from `category` and progress rather than surfacing the
+ * raw `message`.
+ */
+export class PetrinautOptimizationTransportError extends Error {
+  readonly category: OptimizationErrorCategory;
+  readonly hashRequestId: string | null;
+  readonly optimizationRunId: string | null;
+  readonly httpStatus: number | null;
+  /** Seconds from a `Retry-After` header, when the service sent one (429). */
+  readonly retryAfter: number | null;
+
+  constructor(
+    message: string,
+    options: {
+      category: OptimizationErrorCategory;
+      hashRequestId?: string | null;
+      optimizationRunId?: string | null;
+      httpStatus?: number | null;
+      retryAfter?: number | null;
+    },
+  ) {
+    super(message);
+    this.name = "PetrinautOptimizationTransportError";
+    this.category = options.category;
+    this.hashRequestId = options.hashRequestId ?? null;
+    this.optimizationRunId = options.optimizationRunId ?? null;
+    this.httpStatus = options.httpStatus ?? null;
+    this.retryAfter = options.retryAfter ?? null;
+  }
+}
+
 type PendingRequest = {
   stream: ReadableStream<Uint8Array>;
   controller: ReadableStreamDefaultController<Uint8Array>;
   resolveResponse: (response: Response) => void;
   rejectResponse: (error: Error) => void;
   responded: boolean;
+  /** Correlation ids from the response-start header, for later stream errors. */
+  hashRequestId: string | null;
+  optimizationRunId: string | null;
   clearResponseStartTimeout: () => void;
   cleanup: () => void;
 };
 
 type OptimizationSignal = NonNullable<
-  Parameters<PetrinautOptimization["optimize"]>[1]
+  Parameters<PetrinautOptimization["createOptimizationRun"]>[1]
 >["signal"];
 
+/** A `createOptimizationRun` round-trip awaiting its `optimizationCreateResult`. */
+type PendingCreate = {
+  resolve: (result: { runId: string }) => void;
+  reject: (error: Error) => void;
+  cleanup: () => void;
+};
+
 const pendingRequests = new Map<string, PendingRequest>();
+const pendingCreates = new Map<string, PendingCreate>();
 const RESPONSE_START_TIMEOUT_MS = 45_000;
+
+/**
+ * Outcomes of already-settled create round-trips, kept briefly so a late
+ * `optimizationCreateResult` can be told apart from an unknown one. A late
+ * success for a create that was locally aborted or timed out names a live
+ * run nobody will ever own — it must be cancelled — while a duplicated
+ * success for an accepted create must NOT cancel the live run.
+ */
+const settledCreates = new Map<string, "accepted" | "rejected">();
+
+const rememberSettledCreate = (
+  requestId: string,
+  outcome: "accepted" | "rejected",
+) => {
+  settledCreates.set(requestId, outcome);
+  // Expire the tombstone once a late reply can no longer be expected.
+  setTimeout(() => settledCreates.delete(requestId), RESPONSE_START_TIMEOUT_MS);
+};
 
 const postToHost = (message: IframeToHostMessage) => {
   // The sandboxed iframe has an opaque origin. This still targets only its
@@ -57,6 +127,17 @@ const rejectPendingRequest = (requestId: string, error: Error) => {
   pendingRequests.delete(requestId);
 };
 
+const rejectPendingCreate = (requestId: string, error: Error) => {
+  const pending = pendingCreates.get(requestId);
+  if (!pending) {
+    return;
+  }
+  pending.cleanup();
+  pendingCreates.delete(requestId);
+  rememberSettledCreate(requestId, "rejected");
+  pending.reject(error);
+};
+
 let listenerInstalled = false;
 
 const ensureListener = () => {
@@ -83,6 +164,44 @@ const ensureListener = () => {
     }
 
     const message = data as HostToIframeMessage;
+    if (message.kind === "optimizationCreateResult") {
+      const pendingCreate = pendingCreates.get(message.requestId);
+      if (!pendingCreate) {
+        // A late reply for a create that already timed out or aborted
+        // locally (or an unknown request id): a successful one names a live
+        // run nobody will ever own, so ask the host to cancel it.
+        if (
+          message.ok &&
+          typeof message.runId === "string" &&
+          settledCreates.get(message.requestId) !== "accepted"
+        ) {
+          postToHost({ kind: "optimizationCancel", runId: message.runId });
+        }
+        return;
+      }
+      pendingCreate.cleanup();
+      pendingCreates.delete(message.requestId);
+      if (message.ok && typeof message.runId === "string") {
+        rememberSettledCreate(message.requestId, "accepted");
+        pendingCreate.resolve({ runId: message.runId });
+      } else {
+        rememberSettledCreate(message.requestId, "rejected");
+        pendingCreate.reject(
+          new PetrinautOptimizationTransportError(
+            message.message ?? "The optimization request failed",
+            {
+              category: message.category ?? "http",
+              httpStatus: message.status,
+              retryAfter: message.retryAfter,
+              hashRequestId: message.hashRequestId,
+              optimizationRunId: message.optimizationRunId,
+            },
+          ),
+        );
+      }
+      return;
+    }
+
     if (
       message.kind !== "optimizationResponseStart" &&
       message.kind !== "optimizationChunk" &&
@@ -102,15 +221,31 @@ const ensureListener = () => {
         if (pending.responded) {
           rejectPendingRequest(
             message.requestId,
-            new Error("The optimizer sent more than one response header"),
+            new PetrinautOptimizationTransportError(
+              "The optimizer sent more than one response header",
+              { category: "protocol" },
+            ),
           );
           return;
         }
         pending.responded = true;
+        pending.hashRequestId = message.hashRequestId;
+        pending.optimizationRunId = message.optimizationRunId;
         pending.clearResponseStartTimeout();
+        const headers = new Headers({
+          "content-type": "application/x-ndjson",
+        });
+        // Carry the correlation ids on the synthesized response so the HTTP
+        // error path (`readHttpError`) can attach them too.
+        if (message.hashRequestId !== null) {
+          headers.set("x-hash-request-id", message.hashRequestId);
+        }
+        if (message.optimizationRunId !== null) {
+          headers.set("x-optimization-run-id", message.optimizationRunId);
+        }
         pending.resolveResponse(
           new Response(pending.stream, {
-            headers: { "content-type": "application/x-ndjson" },
+            headers,
             status: message.status,
             statusText: message.statusText,
           }),
@@ -129,7 +264,10 @@ const ensureListener = () => {
         if (!pending.responded) {
           rejectPendingRequest(
             message.requestId,
-            new Error("The optimizer ended before sending a response"),
+            new PetrinautOptimizationTransportError(
+              "The optimizer ended before sending a response",
+              { category: "protocol" },
+            ),
           );
           return;
         }
@@ -143,19 +281,34 @@ const ensureListener = () => {
         break;
       }
       case "optimizationError":
-        rejectPendingRequest(message.requestId, new Error(message.message));
+        rejectPendingRequest(
+          message.requestId,
+          new PetrinautOptimizationTransportError(message.message, {
+            category: message.category,
+            hashRequestId: message.hashRequestId ?? pending.hashRequestId,
+            optimizationRunId:
+              message.optimizationRunId ?? pending.optimizationRunId,
+            httpStatus: message.httpStatus,
+          }),
+        );
         break;
     }
   });
 };
 
-const bridgeFetch = (
-  input: PetrinautOptimizationInput,
+/**
+ * Ask the host to open an optimizer NDJSON stream and synthesize a `Response`
+ * from the relayed response-start/chunk/end/error messages. `initiate` is the
+ * `optimizationAttach` message naming the detached run's event stream, and
+ * must carry `requestId` so the relayed replies correlate back to this call.
+ */
+const openBridgeStream = (
+  requestId: string,
+  initiate: IframeToHostMessage,
   signal?: OptimizationSignal,
 ): Promise<Response> => {
   ensureListener();
 
-  const requestId = nextRequestId();
   let streamController!: ReadableStreamDefaultController<Uint8Array>;
 
   const stream = new ReadableStream<Uint8Array>({
@@ -178,7 +331,10 @@ const bridgeFetch = (
     postToHost({ kind: "optimizationAbort", requestId });
     rejectPendingRequest(
       requestId,
-      new Error("The optimization service did not respond in time"),
+      new PetrinautOptimizationTransportError(
+        "The optimization service did not respond in time",
+        { category: "network" },
+      ),
     );
   }, RESPONSE_START_TIMEOUT_MS);
   const clearResponseStartTimeout = () => clearTimeout(responseStartTimeout);
@@ -190,6 +346,8 @@ const bridgeFetch = (
       resolveResponse: resolve,
       rejectResponse: reject,
       responded: false,
+      hashRequestId: null,
+      optimizationRunId: null,
       clearResponseStartTimeout,
       cleanup: () => {
         clearResponseStartTimeout();
@@ -204,11 +362,75 @@ const bridgeFetch = (
   }
   signal?.addEventListener("abort", onAbort, { once: true });
 
-  postToHost({ kind: "optimizationRequest", requestId, input });
+  postToHost(initiate);
   return response;
 };
 
-const readHttpError = async (response: Response): Promise<Error> => {
+/**
+ * Ask the host to create a detached optimization run and resolve its
+ * server-issued run id. Rejects with a classified
+ * {@link PetrinautOptimizationTransportError} (carrying the HTTP status and
+ * any `Retry-After` seconds) when the host reports a failure, or with an
+ * `AbortError` when `signal` fires first.
+ */
+const requestOptimizationRunCreation = (
+  input: PetrinautOptimizationInput,
+  signal?: OptimizationSignal,
+): Promise<{ runId: string }> => {
+  ensureListener();
+
+  const requestId = nextRequestId();
+
+  return new Promise<{ runId: string }>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      rejectPendingCreate(
+        requestId,
+        new PetrinautOptimizationTransportError(
+          "The optimization service did not respond in time",
+          { category: "network" },
+        ),
+      );
+    }, RESPONSE_START_TIMEOUT_MS);
+    const onAbort = () => rejectPendingCreate(requestId, abortError());
+
+    pendingCreates.set(requestId, {
+      resolve,
+      reject,
+      cleanup: () => {
+        clearTimeout(timeout);
+        signal?.removeEventListener("abort", onAbort);
+      },
+    });
+
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    postToHost({ kind: "optimizationCreate", requestId, input });
+  });
+};
+
+/** The correlation ids NodeAPI mirrors onto every proxied response. */
+type ResponseCorrelation = {
+  hashRequestId: string | null;
+  optimizationRunId: string | null;
+};
+
+const responseCorrelation = (response: Response): ResponseCorrelation => ({
+  hashRequestId: response.headers.get("x-hash-request-id"),
+  optimizationRunId: response.headers.get("x-optimization-run-id"),
+});
+
+const readHttpError = async (
+  response: Response,
+): Promise<PetrinautOptimizationTransportError> => {
+  const correlation = {
+    category: "http" as const,
+    ...responseCorrelation(response),
+    httpStatus: response.status,
+  };
   const body = await response.text();
   if (body) {
     try {
@@ -220,26 +442,51 @@ const readHttpError = async (response: Response): Promise<Error> => {
             ? json.message
             : null;
       if (message) {
-        return new Error(message);
+        return new PetrinautOptimizationTransportError(message, correlation);
       }
     } catch {
       // Fall through and include the plain response body.
     }
   }
-  return new Error(
+  return new PetrinautOptimizationTransportError(
     body ||
       `Optimization request failed with status ${response.status} ${response.statusText}`,
+    correlation,
   );
 };
 
-const parseEventLine = (line: string): PetrinautOptimizationEvent => {
+/**
+ * A protocol violation while decoding the optimizer's NDJSON stream. The
+ * correlation ids come from the response being decoded, so a stream that goes
+ * wrong mid-flight is as traceable as one that fails its status line.
+ */
+const protocolError = (message: string, correlation?: ResponseCorrelation) =>
+  new PetrinautOptimizationTransportError(message, {
+    category: "protocol",
+    ...correlation,
+  });
+
+const parseEventLine = (
+  line: string,
+  correlation: ResponseCorrelation,
+): PetrinautOptimizationEvent => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(line);
   } catch {
-    throw new Error("The optimizer returned malformed NDJSON");
+    throw protocolError("The optimizer returned malformed NDJSON", correlation);
   }
-  return petrinautOptimizationEventSchema.parse(parsed);
+  // A syntactically valid line can still be the wrong shape. Classify that as
+  // a protocol violation too, so it takes the same reconnect path and the
+  // schema's validation detail never reaches the user.
+  const event = petrinautOptimizationEventSchema.safeParse(parsed);
+  if (!event.success) {
+    throw protocolError(
+      "The optimizer returned an unrecognized event",
+      correlation,
+    );
+  }
+  return event.data;
 };
 
 /** Validate and decode the optimizer's public NDJSON protocol. */
@@ -249,8 +496,12 @@ export async function* parsePetrinautOptimizationResponse(
   if (!response.ok) {
     throw await readHttpError(response);
   }
+  const correlation = responseCorrelation(response);
   if (!response.body) {
-    throw new Error("The optimizer returned an empty response body");
+    throw protocolError(
+      "The optimizer returned an empty response body",
+      correlation,
+    );
   }
 
   const reader = response.body.getReader();
@@ -261,9 +512,12 @@ export async function* parsePetrinautOptimizationResponse(
 
   const parseAndTrack = (line: string, terminalSeen: boolean) => {
     if (terminalSeen) {
-      throw new Error("The optimizer returned data after a terminal event");
+      throw protocolError(
+        "The optimizer returned data after a terminal event",
+        correlation,
+      );
     }
-    const event = parseEventLine(line);
+    const event = parseEventLine(line, correlation);
     return {
       event,
       terminal: event.type === "complete" || event.type === "error",
@@ -298,7 +552,10 @@ export async function* parsePetrinautOptimizationResponse(
       yield parsed.event;
     }
     if (!terminalEventSeen) {
-      throw new Error("The optimizer stream ended without a terminal event");
+      throw protocolError(
+        "The optimizer stream ended without a terminal event",
+        correlation,
+      );
     }
   } finally {
     if (!reachedEnd) {
@@ -307,11 +564,25 @@ export async function* parsePetrinautOptimizationResponse(
   }
 }
 
-async function* streamOptimization(
-  input: PetrinautOptimizationInput,
-  signal?: OptimizationSignal,
+async function* streamOptimizationRun(
+  runId: string,
+  options: {
+    cursor: number;
+    signal?: OptimizationSignal;
+    onAttached?: () => void;
+  },
 ): AsyncGenerator<PetrinautOptimizationEvent> {
-  const response = await bridgeFetch(input, signal);
+  const requestId = nextRequestId();
+  const response = await openBridgeStream(
+    requestId,
+    { kind: "optimizationAttach", requestId, runId, cursor: options.cursor },
+    options.signal,
+  );
+  if (response.ok) {
+    // The attachment was accepted; events may still be a long way off on a
+    // quiet run, so consumers get an explicit "connected" signal.
+    options.onAttached?.();
+  }
   yield* parsePetrinautOptimizationResponse(response);
 }
 
@@ -319,6 +590,25 @@ async function* streamOptimization(
  * HASH implementation of Petrinaut's host capability. The sandboxed editor
  * never receives API credentials or an upstream URL; its parent owns both.
  */
-export const createBridgePetrinautOptimization = (): PetrinautOptimization => ({
-  optimize: (input, options) => streamOptimization(input, options?.signal),
-});
+export const createBridgePetrinautOptimization = (): PetrinautOptimization => {
+  // Installed at bridge creation, not lazily on the first optimization call:
+  // a late `optimizationCreateResult` arriving right after an iframe reload
+  // must be heard so its orphaned run can be cancelled.
+  ensureListener();
+  return {
+    createOptimizationRun: (input, options) =>
+      requestOptimizationRunCreation(input, options?.signal),
+    attachOptimizationRun: (runId, options) =>
+      streamOptimizationRun(runId, {
+        cursor: options?.cursor ?? 0,
+        signal: options?.signal,
+        onAttached: options?.onAttached,
+      }),
+    cancelOptimizationRun: (runId) => {
+      // Fire-and-forget by design: the host DELETEs the run and only logs
+      // failures, so there is no reply to await.
+      postToHost({ kind: "optimizationCancel", runId });
+      return Promise.resolve();
+    },
+  };
+};

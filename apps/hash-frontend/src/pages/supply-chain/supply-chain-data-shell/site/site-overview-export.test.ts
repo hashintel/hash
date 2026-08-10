@@ -6,8 +6,10 @@ import {
   buildSiteOverviewExportRows,
 } from "./site-overview-export";
 
+import type { StatusStore } from "../../shared/status";
 import type { SiteNode, StepStats } from "../../shared/types";
 import type { DwellRow, PlanningRow } from "./shared/row-types";
+import type { EntityId } from "@blockprotocol/type-system";
 
 const stats: StepStats = {
   n: 2,
@@ -94,19 +96,29 @@ describe("site overview export", () => {
   it("exports dwell and planning rows with every measure and status history", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-28T12:00:00.000Z"));
-    const statusHistory = {
+    const statusHistory: StatusStore = {
       "site-1::dwell::raw_dwell_MAT-1": [
         {
+          entityId: "web~status-2" as EntityId,
           at: "2026-07-02T10:00:00.000Z",
           user: "Second",
           category: "Investigation update" as const,
-          text: "Later, with comma",
+          text: "",
+          tokens: [
+            { tokenType: "text" as const, text: "Later, with comma " },
+            {
+              tokenType: "mention" as const,
+              mentionType: "user" as const,
+              entityId: "web~alex" as EntityId,
+            },
+          ],
         },
         {
+          entityId: "web~status-1" as EntityId,
           at: "2026-07-01T10:00:00.000Z",
-          user: "First",
           category: "Investigation started" as const,
           text: "",
+          tokens: [],
         },
       ],
     };
@@ -114,6 +126,7 @@ describe("site overview export", () => {
     const input = {
       dwellRows: [dwellRow],
       historicalNodes: [baseNode, planningRow],
+      mentionShortnamesByEntityId: new Map([["web~alex" as EntityId, "alex"]]),
       planningRows: [planningRow],
       products: [{ id: "product-1", material: "FG-1", name: "Product, One" }],
       settings: {
@@ -158,10 +171,14 @@ describe("site overview export", () => {
       material_value_currency: "JPY",
       previous_sample_count: 1,
     });
-    expect(rows[0]?.comments).toContain("First");
-    expect(rows[0]?.comments?.toString().indexOf("First")).toBeLessThan(
-      rows[0]?.comments?.toString().indexOf("Second") ?? 0,
+    expect(rows[0]?.comments).toContain(
+      "2026-07-01T10:00:00.000Z |  | Investigation started",
     );
+    expect(rows[0]?.comments).toContain("Later, with comma @alex");
+    expect(
+      rows[0]?.comments?.toString().indexOf("2026-07-01T10:00:00.000Z"),
+    ).toBeLessThan(rows[0]?.comments?.toString().indexOf("Second") ?? 0);
+    expect(rows[0]?.comments).not.toContain("undefined");
     expect(rows[1]).toMatchObject({
       category: "Planning",
       period_material_value: 5000.123,
@@ -173,7 +190,13 @@ describe("site overview export", () => {
     expect(csv).toContain("Material value currency");
     expect(csv).not.toContain("P95 current samples");
     expect(csv).toContain('"Product, One"');
-    expect(csv).toContain("Later, with comma");
+    expect(csv).toContain("Later, with comma @alex");
+    expect(
+      buildSiteOverviewCsv({
+        ...input,
+        mentionShortnamesByEntityId: new Map(),
+      }),
+    ).toContain("Later, with comma @web~alex");
   });
 
   it("orders and trims columns for spreadsheet review", () => {

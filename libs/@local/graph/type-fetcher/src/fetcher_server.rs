@@ -246,12 +246,23 @@ impl FetchServer {
 
 /// Creates the HTTP router exposing the type fetcher service.
 ///
-/// Serves [`FETCH_ONTOLOGY_TYPES_PATH`] for fetching ontology types and `/health` for
-/// healthchecks.
+/// Serves [`FETCH_ONTOLOGY_TYPES_PATH`] for fetching ontology types and `/health` for healthchecks.
+///
+/// The probe body duplicates `hash_graph_api::rest::probe`, which cannot be reused because that
+/// crate depends on this one.
 pub fn router(server: FetchServer) -> Router {
     Router::new()
         .route(FETCH_ONTOLOGY_TYPES_PATH, post(fetch_ontology_types))
-        .route("/health", get(async || "Healthy".into_response()))
+        .route(
+            "/health",
+            get(async || {
+                (
+                    [(reqwest::header::CONTENT_TYPE, "application/health+json")],
+                    r#"{"status":"pass"}"#,
+                )
+                    .into_response()
+            }),
+        )
         .with_state(server)
 }
 

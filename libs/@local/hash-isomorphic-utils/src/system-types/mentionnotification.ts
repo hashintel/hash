@@ -293,7 +293,7 @@ import type {
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
-import type { ObjectMetadata } from "@blockprotocol/type-system";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Actor,
@@ -588,11 +588,11 @@ export type {
 };
 
 /**
- * A notification that a user was mentioned somewhere.
+ * A notification that a user was mentioned in an entity.
  */
 export type MentionNotification = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
+    "https://hash.ai/@h/types/entity-type/mention-notification/v/8",
   ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
@@ -610,7 +610,7 @@ export type MentionNotificationOccurredInCommentLink = {
 
 export type MentionNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
-  rightEntity: Page;
+  rightEntity: Entity;
 };
 
 export type MentionNotificationOccurredInTextLink = {
@@ -634,7 +634,7 @@ export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
 };
 
 /**
- * A notification that a user was mentioned somewhere.
+ * A notification that a user was mentioned in an entity.
  */
 export type MentionNotificationProperties = NotificationProperties & {};
 

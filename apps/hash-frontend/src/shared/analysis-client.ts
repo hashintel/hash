@@ -2,6 +2,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import type {
   AnalysisInvocation,
+  AnalysisErrorCode,
   AnalysisResponse,
   AnalysisResult,
   ArtifactRef,
@@ -14,9 +15,12 @@ import type {
  */
 
 export class AnalysisError extends Error {
-  constructor(message: string) {
+  public readonly code?: AnalysisErrorCode;
+
+  constructor(message: string, code?: AnalysisErrorCode) {
     super(message);
     this.name = "AnalysisError";
+    this.code = code;
   }
 }
 
@@ -64,7 +68,10 @@ const resultReady = (result: AnalysisResult | undefined): AnalysisResult => {
     throw new AnalysisError("Empty analysis response");
   }
   if (result.status === "error") {
-    throw new AnalysisError(result.error ?? "Analysis returned an error");
+    throw new AnalysisError(
+      result.error ?? "Analysis returned an error",
+      result.errorCode,
+    );
   }
   if (result.status !== "ready" || !result.artifacts?.length) {
     throw new AnalysisError(

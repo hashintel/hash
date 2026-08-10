@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { Button, Select, type SelectItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -106,6 +108,7 @@ interface ProductionScheduleToolbarProps {
   onLaneDisplayChange: (value: LaneDisplay) => void;
   onPresetChange: (value: ScheduleRangePreset) => void;
   onSearchInputChange: (value: string) => void;
+  onShowLineOccupancyChange: (value: boolean) => void;
   onShowEventMarkersChange: (value: boolean) => void;
   onShowInventoryDwellChange: (value: boolean) => void;
   onShowRawMaterialsChange: (value: boolean) => void;
@@ -115,6 +118,10 @@ interface ProductionScheduleToolbarProps {
   searchStatus: string | null;
   searchValue: string;
   showEventMarkers: boolean;
+  showLineOccupancy: boolean;
+  lineOccupancyStatus?: string;
+  lineOccupancyUnavailable?: boolean;
+  lineOccupancyLoading?: boolean;
   showInventoryDwell: boolean;
   showRawMaterials: boolean;
   zoomScale: number;
@@ -131,6 +138,7 @@ export const ProductionScheduleToolbar = ({
   onLaneDisplayChange,
   onPresetChange,
   onSearchInputChange,
+  onShowLineOccupancyChange,
   onShowEventMarkersChange,
   onShowInventoryDwellChange,
   onShowRawMaterialsChange,
@@ -140,153 +148,192 @@ export const ProductionScheduleToolbar = ({
   searchStatus,
   searchValue,
   showEventMarkers,
+  showLineOccupancy,
+  lineOccupancyStatus,
+  lineOccupancyUnavailable = false,
+  lineOccupancyLoading = false,
   showInventoryDwell,
   showRawMaterials,
   zoomScale,
-}: ProductionScheduleToolbarProps) => (
-  <div className={toolbar}>
-    <div className={field}>
-      <span>Range</span>
-      <Select
-        className={toolbarSelect}
-        items={rangeItems}
-        value={preset}
-        onChange={onPresetChange}
-        required
-        size="sm"
-        width="fitContent"
-        aria-label="Range"
-      />
-    </div>
-    {preset === "custom" && (
-      <>
-        <label className={field}>
-          From
-          <input
-            className={cx(control, dateControl)}
-            type="date"
-            value={customStart}
-            max={customEnd || undefined}
-            onChange={(event) => onCustomStartChange(event.target.value)}
-          />
-        </label>
-        <label className={field}>
-          To
-          <input
-            className={cx(control, dateControl)}
-            type="date"
-            value={customEnd}
-            min={customStart || undefined}
-            onChange={(event) => onCustomEndChange(event.target.value)}
-          />
-        </label>
-      </>
-    )}
-    <div className={field}>
-      Zoom
-      <div className={toolbarGroup}>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          className={zoomButton}
-          aria-label="Zoom out"
-          disabled={zoomScale <= 1}
-          onClick={onZoomOut}
-        >
-          −
-        </Button>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          className={zoomButton}
-          onClick={onFitZoom}
-        >
-          Fit
-        </Button>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          className={zoomButton}
-          aria-label="Zoom in"
-          disabled={zoomScale >= maximumZoomScale}
-          onClick={onZoomIn}
-        >
-          +
-        </Button>
-      </div>
-    </div>
-    <div className={field}>
-      Raw material
-      <label className={toolbarGroup}>
-        <input
-          type="checkbox"
-          className={toolbarCheckbox}
-          aria-label="Show raw materials"
-          checked={showRawMaterials}
-          onChange={(event) => onShowRawMaterialsChange(event.target.checked)}
-        />
-        Show
-      </label>
-    </div>
-    <div className={displaySettings}>
-      <div className={field} data-production-schedule-toolbar-field="display">
-        <span>Display</span>
+}: ProductionScheduleToolbarProps) => {
+  const occupancyDescriptionId = useId();
+  const occupancyDescription = lineOccupancyUnavailable
+    ? "Recorded line occupancy is unavailable for this dataset."
+    : lineOccupancyStatus;
+
+  return (
+    <div className={toolbar}>
+      <div className={field}>
+        <span>Range</span>
         <Select
-          className={laneDisplaySelect}
-          items={laneDisplayItems}
-          value={laneDisplay}
-          onChange={onLaneDisplayChange}
+          className={toolbarSelect}
+          items={rangeItems}
+          value={preset}
+          onChange={onPresetChange}
           required
           size="sm"
           width="fitContent"
-          aria-label="Lane display"
+          aria-label="Range"
         />
       </div>
-      {laneDisplay === "lane" && (
-        <div className={toolbarOptions}>
-          <label className={toolbarGroup}>
+      {preset === "custom" && (
+        <>
+          <label className={field}>
+            From
             <input
-              type="checkbox"
-              className={toolbarCheckbox}
-              checked={showInventoryDwell}
-              onChange={(event) =>
-                onShowInventoryDwellChange(event.target.checked)
-              }
+              className={cx(control, dateControl)}
+              type="date"
+              value={customStart}
+              max={customEnd || undefined}
+              onChange={(event) => onCustomStartChange(event.target.value)}
             />
-            Show inventory dwell
           </label>
-          <label className={toolbarGroup}>
+          <label className={field}>
+            To
             <input
-              type="checkbox"
-              className={toolbarCheckbox}
-              checked={showEventMarkers}
-              disabled={!showInventoryDwell}
-              onChange={(event) =>
-                onShowEventMarkersChange(event.target.checked)
-              }
+              className={cx(control, dateControl)}
+              type="date"
+              value={customEnd}
+              min={customStart || undefined}
+              onChange={(event) => onCustomEndChange(event.target.value)}
             />
-            Show event markers
           </label>
-        </div>
+        </>
       )}
-    </div>
-    <div className={field}>
-      <span>
-        Find batch or order{" "}
-        <span className={searchStatusStyle} role="status" aria-live="polite">
-          {searchStatus}
+      <div className={field}>
+        Zoom
+        <div className={toolbarGroup}>
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="sm"
+            className={zoomButton}
+            aria-label="Zoom out"
+            disabled={zoomScale <= 1}
+            onClick={onZoomOut}
+          >
+            −
+          </Button>
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="sm"
+            className={zoomButton}
+            onClick={onFitZoom}
+          >
+            Fit
+          </Button>
+          <Button
+            variant="subtle"
+            tone="neutral"
+            size="sm"
+            className={zoomButton}
+            aria-label="Zoom in"
+            disabled={zoomScale >= maximumZoomScale}
+            onClick={onZoomIn}
+          >
+            +
+          </Button>
+        </div>
+      </div>
+      <div className={field}>
+        Raw material
+        <label className={toolbarGroup}>
+          <input
+            type="checkbox"
+            className={toolbarCheckbox}
+            aria-label="Show raw materials"
+            checked={showRawMaterials}
+            onChange={(event) => onShowRawMaterialsChange(event.target.checked)}
+          />
+          Show
+        </label>
+      </div>
+      <div className={field}>
+        Line use
+        <label
+          className={toolbarGroup}
+          title={
+            lineOccupancyUnavailable
+              ? "Occupancy unavailable"
+              : lineOccupancyStatus
+          }
+        >
+          <input
+            type="checkbox"
+            className={toolbarCheckbox}
+            aria-label="Show recorded line occupancy"
+            aria-describedby={
+              occupancyDescription ? occupancyDescriptionId : undefined
+            }
+            checked={showLineOccupancy}
+            disabled={lineOccupancyUnavailable || lineOccupancyLoading}
+            onChange={(event) =>
+              onShowLineOccupancyChange(event.target.checked)
+            }
+          />
+          <span id={occupancyDescriptionId}>
+            {occupancyDescription ?? "Show"}
+          </span>
+        </label>
+      </div>
+      <div className={displaySettings}>
+        <div className={field} data-production-schedule-toolbar-field="display">
+          <span>Display</span>
+          <Select
+            className={laneDisplaySelect}
+            items={laneDisplayItems}
+            value={laneDisplay}
+            onChange={onLaneDisplayChange}
+            required
+            size="sm"
+            width="fitContent"
+            aria-label="Lane display"
+          />
+        </div>
+        {laneDisplay === "lane" && (
+          <div className={toolbarOptions}>
+            <label className={toolbarGroup}>
+              <input
+                type="checkbox"
+                className={toolbarCheckbox}
+                checked={showInventoryDwell}
+                onChange={(event) =>
+                  onShowInventoryDwellChange(event.target.checked)
+                }
+              />
+              Show inventory dwell
+            </label>
+            <label className={toolbarGroup}>
+              <input
+                type="checkbox"
+                className={toolbarCheckbox}
+                checked={showEventMarkers}
+                disabled={!showInventoryDwell}
+                onChange={(event) =>
+                  onShowEventMarkersChange(event.target.checked)
+                }
+              />
+              Show event markers
+            </label>
+          </div>
+        )}
+      </div>
+      <div className={field}>
+        <span>
+          Find batch or order{" "}
+          <span className={searchStatusStyle} role="status" aria-live="polite">
+            {searchStatus}
+          </span>
         </span>
-      </span>
-      <SupplyChainSearchInput
-        ariaLabel="Search production timeline by identifier"
-        onChange={onSearchInputChange}
-        placeholder="Batch, order, delivery..."
-        size="sm"
-        value={searchValue}
-      />
+        <SupplyChainSearchInput
+          ariaLabel="Search production timeline by identifier"
+          onChange={onSearchInputChange}
+          placeholder="Batch, order, delivery..."
+          size="sm"
+          value={searchValue}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};

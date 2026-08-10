@@ -7,7 +7,7 @@ import asyncio
 import logging
 import os
 import threading
-from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -36,12 +36,9 @@ tracer = trace.get_tracer("pn_api")
 MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024
 MAX_ACTIVE_OPTIMIZATIONS = 4
 RETRY_AFTER_SECONDS = 30
-_OPTIMIZATION_PATHS = {"/optimize/all", "/optimize/best", "/optimize/runs"}
-_SSE_RESPONSES = {
-    200: {
-        "description": "Server-Sent Events optimization stream",
-        "content": {"text/event-stream": {"schema": {"type": "string"}}},
-    },
+_OPTIMIZATION_PATHS = {"/optimize/runs"}
+_CREATE_RUN_RESPONSES = {
+    201: {"description": "A detached optimization run was started"},
     413: {"description": "The optimization manifest exceeds 8 MiB"},
     429: {
         "description": "The service is already at its study limit",
@@ -53,12 +50,6 @@ _SSE_RESPONSES = {
         },
     },
     500: {"description": "The CLI or optimization study could not initialize"},
-}
-_CREATE_RUN_RESPONSES = {
-    201: {"description": "A detached optimization run was started"},
-    413: _SSE_RESPONSES[413],
-    429: _SSE_RESPONSES[429],
-    500: _SSE_RESPONSES[500],
 }
 _RUN_EVENTS_RESPONSES = {
     200: {
@@ -340,16 +331,6 @@ def _create_admitted_run_cleanup(
     return cleanup
 
 
-async def _stream_with_cleanup(
-    stream: AsyncIterator[str], cleanup: Callable[[], Awaitable[None]]
-) -> AsyncIterator[str]:
-    try:
-        async for frame in stream:
-            yield frame
-    finally:
-        await asyncio.shield(cleanup())
-
-
 def _initialization_error(
     app: FastAPI,
     run_id: str,
@@ -425,66 +406,6 @@ async def _admit_and_initialize_run(
             request.app, run_id, error, request_id=correlation["request_id"]
         ) from error
     return run_id, optimizer, correlation
-
-
-@app.post(
-    "/optimize/all",
-    response_class=StreamingResponse,
-    responses=_SSE_RESPONSES,
-)
-async def post_optimize_all(
-    request: Request,
-    optimization_manifest: dict[str, Any],
-) -> StreamingResponse:
-    """Stream one SSE data frame for every completed Optuna trial."""
-    run_id, optimizer, _correlation = await _admit_and_initialize_run(
-        request, optimization_manifest
-    )
-
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
-    return StreamingResponse(
-        _stream_with_cleanup(
-            optimizer.stream_all(request, run_id=run_id, n_trials=optimizer.n_trials),
-            cleanup,
-        ),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "X-Optimization-Run-ID": run_id,
-        },
-        background=BackgroundTask(cleanup),
-    )
-
-
-@app.post(
-    "/optimize/best",
-    response_class=StreamingResponse,
-    responses=_SSE_RESPONSES,
-)
-async def post_optimize_best(
-    request: Request,
-    optimization_manifest: dict[str, Any],
-) -> StreamingResponse:
-    """Stream the best-so-far SSE data frame after every completed trial."""
-    run_id, optimizer, _correlation = await _admit_and_initialize_run(
-        request, optimization_manifest
-    )
-
-    cleanup = _create_admitted_run_cleanup(request.app, optimizer)
-    return StreamingResponse(
-        _stream_with_cleanup(
-            optimizer.stream_best(request, run_id=run_id, n_trials=optimizer.n_trials),
-            cleanup,
-        ),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-            "X-Optimization-Run-ID": run_id,
-        },
-        background=BackgroundTask(cleanup),
-    )
 
 
 @app.post("/optimize/runs", status_code=201, responses=_CREATE_RUN_RESPONSES)
@@ -649,6 +570,19 @@ def get_run_status(run_id: str) -> RunStatus:
     if status is None:
         raise HTTPException(404, f"optimization run not found: {run_id}")
     return status
+
+
+@app.get("/health")
+async def health() -> Response:
+    """Report liveness, without checking any dependency.
+
+    A probe that reaches through to a dependency takes every task out of
+    rotation as soon as that dependency is slow.
+    """
+    return Response(
+        content='{"status":"pass"}',
+        media_type="application/health+json",
+    )
 
 
 @app.get("/")

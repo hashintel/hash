@@ -82,6 +82,7 @@ function createMockSimulationContext(
     selectedScenarioId: null,
     scenarioParameterValues: {},
     compiledScenarioResult: null,
+    scenarioCompilationErrors: null,
     dt: 0.01,
     maxTime: null,
     totalFrames: frameCount,

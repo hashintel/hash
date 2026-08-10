@@ -57,6 +57,7 @@ import Cubes from "./svgs/regular/cubes.svg";
 import DiagramNested from "./svgs/regular/diagram-nested.svg";
 import DiagramProject from "./svgs/regular/diagram-project.svg";
 import DiagramSubtask from "./svgs/regular/diagram-subtask.svg";
+import DiamondExclamation from "./svgs/regular/diamond-exclamation.svg";
 import Download from "./svgs/regular/download.svg";
 import EllipsisVertical from "./svgs/regular/ellipsis-vertical.svg";
 import Ellipsis from "./svgs/regular/ellipsis.svg";
@@ -128,6 +129,7 @@ import PauseSolid from "./svgs/solid/pause.svg";
 import PlaySolid from "./svgs/solid/play.svg";
 import StarSolid from "./svgs/solid/star.svg";
 import Stop from "./svgs/solid/stop.svg";
+import User from "./svgs/solid/user.svg";
 
 import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
@@ -181,6 +183,7 @@ const IconMap = {
   diagramProject: DiagramProject,
   diagramSubtask: DiagramSubtask,
   diagramNodes: CircleNodes,
+  diamondExclamation: DiamondExclamation,
   download: Download,
   edit: PenToSquare,
   ellipsis: Ellipsis,
@@ -259,6 +262,7 @@ const IconMap = {
   trash: TrashCan,
   truck: Truck,
   undo: ArrowRotateLeft,
+  user: User,
   userPlus: UserPlus,
   warning: TriangleExclamation,
   zoomIn: MagnifyingGlassPlus,

@@ -81,6 +81,16 @@ pub enum Distinctness {
     Distinct,
 }
 
+/// Candidates a quantized ranking reads per requested result row.
+///
+/// [`rank_by_quantized_distance`] orders on the binary-quantized embedding, whose order deviates
+/// from the exact one, so callers re-score a multiple of the requested rows against the full
+/// vector to recover what the quantization misordered. The budget covers quantization alone —
+/// filters participate in the ranking itself, never in the re-scoring.
+///
+/// [`rank_by_quantized_distance`]: SelectCompiler::rank_by_quantized_distance
+pub const QUANTIZED_RANK_OVERFETCH: usize = 4;
+
 /// How [`SelectCompiler::compile`] lays out the statement.
 ///
 /// Both keys-first shapes filter, sort, and limit a narrow key set in CTEs and hydrate the

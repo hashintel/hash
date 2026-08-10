@@ -149,11 +149,20 @@ export const createEntity = async <
 
   for (const afterCreateHook of afterCreateEntityHooks) {
     if (entity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)) {
-      void afterCreateHook.callback({
-        context,
-        entity,
-        authentication,
-      });
+      void afterCreateHook
+        .callback({
+          context,
+          entity,
+          authentication,
+        })
+        .catch((error) => {
+          context.logger?.error("After-create entity hook failed", {
+            actorId: authentication.actorId,
+            entityId: entity.metadata.recordId.entityId,
+            entityTypeId: afterCreateHook.entityTypeId,
+            error,
+          });
+        });
     }
   }
 

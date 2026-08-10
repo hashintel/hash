@@ -2,14 +2,14 @@ import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-enti
 
 import type {
   DataTypeWithMetadata,
-  Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 
 export const isType = (
   item:
-    | Entity
+    | { metadata: { entityTypeIds: VersionedUrl[] } }
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata,
@@ -39,5 +39,6 @@ export const isTypeDataType = (
     | DataTypeWithMetadata,
 ) => type.schema.kind === "dataType";
 
-export const isEntityPageEntity = (item: Entity) =>
-  includesPageEntityTypeId(item.metadata.entityTypeIds);
+export const isEntityPageEntity = (item: {
+  metadata: { entityTypeIds: VersionedUrl[] };
+}) => includesPageEntityTypeId(item.metadata.entityTypeIds);

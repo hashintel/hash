@@ -1,9 +1,14 @@
-export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
-export { Badge, type BadgeProps } from "./components/Badge/badge";
+export { Avatar } from "./components/Avatar/avatar";
+export { AvatarGroup } from "./components/AvatarGroup/avatar-group";
+export { Badge } from "./components/Badge/badge";
+export { BaseBadge } from "./components/Badge/base-badge";
+export { Banner } from "./components/Banner/banner";
 export { Button, type ButtonProps } from "./components/Button/button";
+export { ButtonGroup } from "./components/ButtonGroup/button-group";
 export { CharacterCount } from "./components/CharacterCount/character-count";
 export { Checkbox } from "./components/Checkbox/checkbox";
 export { CheckboxGroup } from "./components/CheckboxGroup/checkbox-group";
+export { Chip, type ChipColor } from "./components/Chip/chip";
 export { Dialog } from "./components/Dialog/dialog";
 export { Drawer } from "./components/Drawer/drawer";
 export { Form } from "./components/Form/form";

@@ -55,6 +55,29 @@ describe("formatNextBottleneck", () => {
   });
 });
 
+function baseBatch(overrides: Partial<BatchRow>): BatchRow {
+  return {
+    batch: "B1",
+    route: null,
+    n_traced_materials: null,
+    earliest_po_date: null,
+    earliest_gr_date: null,
+    earliest_production_start: null,
+    fg_receipt_date: null,
+    qa_release_date: null,
+    delivery_date: null,
+    delivery_source: null,
+    seg_proc_to_prodstart: 0,
+    seg_prodstart_to_prodfinish: 0,
+    seg_prodfinish_to_qa: 0,
+    seg_qa_to_customer: 0,
+    total_days: null,
+    total_from_po: null,
+    step_contributions: { upstream_chains: [], post_production: {} },
+    ...overrides,
+  };
+}
+
 describe("aggregateSimulation (baseline, no levers)", () => {
   it("sums the four segments and reports zero savings", () => {
     const batch: BatchRow = {
@@ -90,30 +113,37 @@ describe("aggregateSimulation (baseline, no levers)", () => {
     );
     expect(prod?.mean).toBe(10);
   });
-});
 
-function baseBatch(overrides: Partial<BatchRow>): BatchRow {
-  return {
-    batch: "B1",
-    route: null,
-    n_traced_materials: null,
-    earliest_po_date: null,
-    earliest_gr_date: null,
-    earliest_production_start: null,
-    fg_receipt_date: null,
-    qa_release_date: null,
-    delivery_date: null,
-    delivery_source: null,
-    seg_proc_to_prodstart: 0,
-    seg_prodstart_to_prodfinish: 0,
-    seg_prodfinish_to_qa: 0,
-    seg_qa_to_customer: 0,
-    total_days: null,
-    total_from_po: null,
-    step_contributions: { upstream_chains: [], post_production: {} },
-    ...overrides,
-  };
-}
+  it("uses simulator-eligible batches for baseline stages and totals", () => {
+    const enrichedBatch = baseBatch({
+      batch: "enriched",
+      seg_qa_to_customer: 10,
+    });
+    const unenrichedBatch = baseBatch({
+      batch: "unenriched",
+      seg_qa_to_customer: 100,
+      step_contributions: undefined,
+    });
+
+    const result = aggregateSimulation(
+      [],
+      [enrichedBatch, unenrichedBatch],
+      {},
+      [],
+      null,
+      {
+        waccRate: 0.1,
+        storageCost: 0.336,
+      },
+    );
+
+    expect(result.baselineMean).toBe(10);
+    expect(
+      result.baselineStagesMean.find((stage) => stage.type === "transit")?.mean,
+    ).toBe(10);
+    expect(result.batchesTotal).toBe(1);
+  });
+});
 
 describe("aggregateSimulation (outlier policy)", () => {
   it("excludes outliers from means without changing medians", () => {
