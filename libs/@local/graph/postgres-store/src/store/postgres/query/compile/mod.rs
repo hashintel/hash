@@ -663,7 +663,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                         .iter()
                                         .map(|&column| Expression::ColumnReference(column.into()))
                                         .collect(),
-                                }),
+                                })
+                                .build(),
                         )
                         .alias(last_reference_table.clone())
                         .build();

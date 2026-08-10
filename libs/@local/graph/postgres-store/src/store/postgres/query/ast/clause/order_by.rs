@@ -12,11 +12,22 @@ pub struct OrderByExpression {
 impl OrderByExpression {
     pub fn push(
         &mut self,
-        expression: Expression,
+        expression: impl Into<Expression>,
         ordering: Ordering,
         nulls: Option<NullOrdering>,
     ) {
-        self.columns.push((expression, ordering, nulls));
+        self.columns.push((expression.into(), ordering, nulls));
+    }
+
+    #[must_use]
+    pub fn with(
+        mut self,
+        expression: impl Into<Expression>,
+        ordering: Ordering,
+        nulls: Option<NullOrdering>,
+    ) -> Self {
+        self.push(expression, ordering, nulls);
+        self
     }
 
     pub fn insert_front(

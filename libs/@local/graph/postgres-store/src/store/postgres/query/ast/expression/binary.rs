@@ -23,6 +23,8 @@ pub enum BinaryOperator {
     LessOrEqual,
     /// `<lhs> = ANY(<rhs>)`
     In,
+    /// `<lhs> ~ <rhs>`
+    RegexMatch,
 
     // --- Arithmetic ---
     /// `<lhs> + <rhs>`
@@ -69,6 +71,7 @@ impl BinaryOperator {
             Self::Less => " < ",
             Self::LessOrEqual => " <= ",
             Self::In => " = ANY(",
+            Self::RegexMatch => " ~ ",
             Self::Add => " + ",
             Self::Subtract => " - ",
             Self::Multiply => " * ",
@@ -106,6 +109,7 @@ impl BinaryOperator {
             | Self::JsonAccessAsText
             | Self::ArrayContains
             | Self::Overlap
+            | Self::RegexMatch
             | Self::CosineDistance => Ok(()),
         }
     }

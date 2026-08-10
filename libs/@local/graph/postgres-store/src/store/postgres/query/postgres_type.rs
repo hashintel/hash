@@ -26,7 +26,14 @@ pub enum PostgresType {
     JsonB,
     JsonPath,
     // `pgvector` embedding vector
-    Vector,
+    Vector {
+        /// The vector's component count, rendered as `vector(n)` when present.
+        ///
+        /// A cast to a dimensioned vector type asserts the count and fails the query when the
+        /// value disagrees. `None` casts to the undimensioned `vector` type, which accepts any
+        /// length.
+        dimensions: Option<usize>,
+    },
     // `entity_edge_kind` enum
     EntityEdgeKind,
     // `edge_direction` enum
@@ -57,7 +64,10 @@ impl Transpile for PostgresType {
             Self::TstzRange => fmt.write_str(Type::TSTZ_RANGE.name()),
             Self::JsonB => fmt.write_str(Type::JSONB.name()),
             Self::JsonPath => fmt.write_str(Type::JSONPATH.name()),
-            Self::Vector => fmt.write_str("vector"),
+            Self::Vector { dimensions: None } => fmt.write_str("vector"),
+            Self::Vector {
+                dimensions: Some(dimensions),
+            } => write!(fmt, "vector({dimensions})"),
             Self::EntityEdgeKind => fmt.write_str("entity_edge_kind"),
             Self::EdgeDirection => fmt.write_str("edge_direction"),
             Self::PrincipalType => fmt.write_str("principal_type"),

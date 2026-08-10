@@ -1027,7 +1027,7 @@ impl DatabaseColumn<'_> for DataTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
             Self::Distance => PostgresType::Float8,
         }
@@ -1099,7 +1099,7 @@ impl DatabaseColumn<'_> for PropertyTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
             Self::Distance => PostgresType::Float8,
         }
@@ -1138,7 +1138,7 @@ impl DatabaseColumn<'_> for EntityTypeEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::OntologyId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::UpdatedAtTransactionTime => PostgresType::TimestampTz,
             Self::Distance => PostgresType::Float8,
         }
@@ -1185,7 +1185,7 @@ impl DatabaseColumn<'_> for EntityEmbeddings {
     fn postgres_type(&self) -> PostgresType {
         match self {
             Self::WebId | Self::EntityUuid | Self::DraftId => PostgresType::Uuid,
-            Self::Embedding => PostgresType::Vector,
+            Self::Embedding => PostgresType::Vector { dimensions: None },
             Self::Property => PostgresType::Text,
             Self::UpdatedAtTransactionTime | Self::UpdatedAtDecisionTime => {
                 PostgresType::TimestampTz

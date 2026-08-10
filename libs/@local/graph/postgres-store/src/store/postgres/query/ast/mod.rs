@@ -19,6 +19,9 @@ pub use self::{
         UnaryExpression, UnaryOperator, VariadicExpression, VariadicOperator, WindowStatement,
     },
     identifier::Identifier,
-    statement::{Distinctness, OnConflict, SelectStatement, Statement, bulk_insert},
+    statement::{
+        Distinctness, OnConflict, SelectStatement, SetOperation, SetOperator, Statement,
+        bulk_insert,
+    },
     table_reference::{TableName, TableReference},
 };

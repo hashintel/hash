@@ -70,11 +70,25 @@ pub enum Expression {
         expr: Box<Self>,
         index: usize,
     },
+    /// 1-based array slice access, both bounds inclusive.
+    ///
+    /// Transpiles to `(<expr>)[<lower>:<upper>]` in PostgreSQL. A slice whose bounds select no
+    /// elements is the empty array.
+    ArraySlice {
+        expr: Box<Self>,
+        lower: Box<Self>,
+        upper: Box<Self>,
+    },
     /// Row constructor - builds a composite row value from individual expressions.
     ///
     /// Transpiles to `ROW(e1, e2, ...)` in PostgreSQL.
     Row(Vec<Self>),
     Select(Box<SelectStatement>),
+    /// Subquery existence test.
+    ///
+    /// Transpiles to `EXISTS (SELECT ...)`, which is true when the subquery delivers at least
+    /// one row. Negate with [`not`](Self::not) for `NOT(EXISTS (...))`.
+    Exists(Box<SelectStatement>),
     /// Conditional expression.
     ///
     /// Transpiles to `CASE WHEN {cond1} THEN {result1} WHEN {cond2} THEN {result2} ... ELSE
@@ -128,196 +142,219 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn equal(lhs: Self, rhs: Self) -> Self {
+    pub fn equal(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Equal,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn not_equal(lhs: Self, rhs: Self) -> Self {
+    pub fn not_equal(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::NotEqual,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn is_null(expr: Self) -> Self {
+    pub fn exists(statement: SelectStatement) -> Self {
+        Self::Exists(Box::new(statement))
+    }
+
+    #[must_use]
+    #[expect(
+        clippy::wrong_self_convention,
+        reason = "the SQL predicate is named `IS NULL`, and the builder consumes its expression"
+    )]
+    pub fn is_null(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::IsNull,
-            expr: Box::new(expr),
+            expr: Box::new(self),
         })
     }
 
     #[must_use]
-    pub fn is_not_null(expr: Self) -> Self {
-        Self::is_null(expr).not()
+    #[expect(
+        clippy::wrong_self_convention,
+        reason = "the SQL predicate is named `IS NOT NULL`, and the builder consumes its \
+                  expression"
+    )]
+    pub fn is_not_null(self) -> Self {
+        self.is_null().not()
     }
 
     #[must_use]
-    pub fn less(lhs: Self, rhs: Self) -> Self {
+    pub fn less(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Less,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn less_or_equal(lhs: Self, rhs: Self) -> Self {
+    pub fn less_or_equal(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::LessOrEqual,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn greater(lhs: Self, rhs: Self) -> Self {
+    pub fn greater(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Greater,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn greater_or_equal(lhs: Self, rhs: Self) -> Self {
+    pub fn greater_or_equal(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::GreaterOrEqual,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn r#in(lhs: Self, rhs: Self) -> Self {
+    pub fn r#in(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::In,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn time_interval_contains_timestamp(lhs: Self, rhs: Self) -> Self {
+    pub fn regex_match(self, rhs: impl Into<Self>) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::RegexMatch,
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
+        })
+    }
+
+    #[must_use]
+    pub fn time_interval_contains_timestamp(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::TimeIntervalContainsTimestamp,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn overlap(lhs: Self, rhs: Self) -> Self {
+    pub fn overlap(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Overlap,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn array_contains(lhs: Self, rhs: Self) -> Self {
+    pub fn array_contains(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::ArrayContains,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn cosine_distance(lhs: Self, rhs: Self) -> Self {
+    pub fn cosine_distance(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::CosineDistance,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
     #[expect(clippy::should_implement_trait)]
-    pub fn add(lhs: Self, rhs: Self) -> Self {
+    pub fn add(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Add,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn subtract(lhs: Self, rhs: Self) -> Self {
+    pub fn subtract(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Subtract,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn multiply(lhs: Self, rhs: Self) -> Self {
+    pub fn multiply(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Multiply,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn divide(lhs: Self, rhs: Self) -> Self {
+    pub fn divide(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Divide,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn modulo(lhs: Self, rhs: Self) -> Self {
+    pub fn modulo(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Modulo,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn bitwise_and(lhs: Self, rhs: Self) -> Self {
+    pub fn bitwise_and(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::BitwiseAnd,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn bitwise_or(lhs: Self, rhs: Self) -> Self {
+    pub fn bitwise_or(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::BitwiseOr,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn json_access(lhs: Self, rhs: Self) -> Self {
+    pub fn json_access(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::JsonAccess,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
     #[must_use]
-    pub fn json_access_as_text(lhs: Self, rhs: Self) -> Self {
+    pub fn json_access_as_text(self, rhs: impl Into<Self>) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::JsonAccessAsText,
-            left: Box::new(lhs),
-            right: Box::new(rhs),
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
         })
     }
 
@@ -330,18 +367,18 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn negate(inner: Self) -> Self {
+    pub fn negate(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::Negate,
-            expr: Box::new(inner),
+            expr: Box::new(self),
         })
     }
 
     #[must_use]
-    pub fn bitwise_not(inner: Self) -> Self {
+    pub fn bitwise_not(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::BitwiseNot,
-            expr: Box::new(inner),
+            expr: Box::new(self),
         })
     }
 
@@ -351,23 +388,26 @@ impl Expression {
     }
 
     #[must_use]
-    pub fn coalesce(self, fallback: Self) -> Self {
-        Self::Function(Function::Coalesce(Box::new(self), Box::new(fallback)))
+    pub fn coalesce(self, fallback: impl Into<Self>) -> Self {
+        Self::Function(Function::Coalesce(
+            Box::new(self),
+            Box::new(fallback.into()),
+        ))
     }
 
     #[must_use]
-    pub fn starts_with(lhs: Self, rhs: Self) -> Self {
-        Self::StartsWith(Box::new(lhs), Box::new(rhs))
+    pub fn starts_with(self, rhs: impl Into<Self>) -> Self {
+        Self::StartsWith(Box::new(self), Box::new(rhs.into()))
     }
 
     #[must_use]
-    pub fn ends_with(lhs: Self, rhs: Self) -> Self {
-        Self::EndsWith(Box::new(lhs), Box::new(rhs))
+    pub fn ends_with(self, rhs: impl Into<Self>) -> Self {
+        Self::EndsWith(Box::new(self), Box::new(rhs.into()))
     }
 
     #[must_use]
-    pub fn contains_segment(lhs: Self, rhs: Self) -> Self {
-        Self::ContainsSegment(Box::new(lhs), Box::new(rhs))
+    pub fn contains_segment(self, rhs: impl Into<Self>) -> Self {
+        Self::ContainsSegment(Box::new(self), Box::new(rhs.into()))
     }
 
     #[must_use]
@@ -379,9 +419,44 @@ impl Expression {
     pub fn json_scalar(self) -> Self {
         Self::Function(Function::JsonScalar(Box::new(self)))
     }
+
+    #[must_use]
+    pub fn window(self, window: WindowStatement) -> Self {
+        Self::Window(Box::new(self), window)
+    }
+
+    #[must_use]
+    pub fn array_element(self, index: usize) -> Self {
+        Self::ArrayElement {
+            expr: Box::new(self),
+            index,
+        }
+    }
+}
+
+impl From<ColumnReference<'static>> for Expression {
+    fn from(value: ColumnReference<'static>) -> Self {
+        Self::ColumnReference(value)
+    }
+}
+
+impl From<Function> for Expression {
+    fn from(value: Function) -> Self {
+        Self::Function(value)
+    }
+}
+
+impl From<Constant> for Expression {
+    fn from(value: Constant) -> Self {
+        Self::Constant(value)
+    }
 }
 
 impl Transpile for Expression {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Pattern match for all Expression variants"
+    )]
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // --- Value expressions ---
@@ -395,6 +470,15 @@ impl Transpile for Expression {
                 fmt.write_char('(')?;
                 expr.transpile(fmt)?;
                 write!(fmt, ")[{index}]")
+            }
+            Self::ArraySlice { expr, lower, upper } => {
+                fmt.write_char('(')?;
+                expr.transpile(fmt)?;
+                fmt.write_str(")[")?;
+                lower.transpile(fmt)?;
+                fmt.write_char(':')?;
+                upper.transpile(fmt)?;
+                fmt.write_char(']')
             }
             Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
@@ -424,6 +508,11 @@ impl Transpile for Expression {
                 fmt.write_char(')')
             }
             Self::Select(select) => select.transpile(fmt),
+            Self::Exists(select) => {
+                fmt.write_str("EXISTS (")?;
+                select.transpile(fmt)?;
+                fmt.write_char(')')
+            }
             Self::CaseWhen {
                 conditions,
                 else_result,
@@ -494,15 +583,16 @@ mod tests {
     use hash_codec::numeric::Real;
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
-        filter::{Filter, FilterExpression, Parameter},
+        filter::{Filter, FilterExpression, Parameter, PathToken},
+        query::Ordering,
     };
     use postgres_types::ToSql;
     use type_system::ontology::DataTypeWithMetadata;
 
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Identifier, PostgresQueryPath as _, SelectCompiler,
-        test_helper::max_version_expression,
+        Alias, FromItem, Identifier, OrderByExpression, PostgresQueryPath as _, SelectCompiler,
+        SelectExpression, Table, test_helper::max_version_expression,
     };
 
     #[test]
@@ -536,6 +626,195 @@ mod tests {
         assert_eq!(
             Expression::Constant(Constant::JsonNull).transpile_to_string(),
             "'null'::jsonb"
+        );
+    }
+
+    #[test]
+    fn transpile_row_number_over_ordering() {
+        assert_eq!(
+            Expression::Window(
+                Box::new(Expression::from(Function::RowNumber)),
+                WindowStatement::order_by(Expression::Parameter(1), Ordering::Ascending, None)
+                    .then_order_by(Expression::Parameter(2), Ordering::Ascending, None),
+            )
+            .transpile_to_string(),
+            "row_number() OVER (ORDER BY $1 ASC, $2 ASC)"
+        );
+    }
+
+    #[test]
+    fn transpile_array_agg_with_ordering() {
+        let mut order_by = OrderByExpression::default();
+        order_by.push(Expression::Parameter(1), Ordering::Ascending, None);
+
+        assert_eq!(
+            Expression::from(Function::ArrayAgg {
+                expression: Box::new(Expression::Parameter(1)),
+                order_by,
+            })
+            .transpile_to_string(),
+            "array_agg($1 ORDER BY $1 ASC)"
+        );
+    }
+
+    #[test]
+    fn transpile_array_agg_without_ordering() {
+        assert_eq!(
+            Expression::from(Function::ArrayAgg {
+                expression: Box::new(Expression::Parameter(1)),
+                order_by: OrderByExpression::default(),
+            })
+            .transpile_to_string(),
+            "array_agg($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_normalized_subvector_cast() {
+        assert_eq!(
+            Expression::from(Function::L2Normalize(Box::new(Expression::from(
+                Function::Subvector {
+                    vector: Box::new(Expression::Parameter(1)),
+                    start: 1,
+                    count: 512,
+                }
+            ))))
+            .cast(PostgresType::Vector {
+                dimensions: Some(512),
+            })
+            .transpile_to_string(),
+            "(l2_normalize(subvector($1, 1, 512))::vector(512))"
+        );
+    }
+
+    #[test]
+    fn transpile_jsonb_array_elements() {
+        assert_eq!(
+            Expression::from(Function::JsonbArrayElements(Box::new(
+                Expression::Parameter(1)
+            )))
+            .transpile_to_string(),
+            "jsonb_array_elements($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_count_forms() {
+        assert_eq!(
+            Expression::Window(
+                Box::new(Expression::from(Function::Count(None))),
+                WindowStatement::partition_by(Expression::Parameter(1))
+                    .then_partition_by(Expression::Parameter(2)),
+            )
+            .transpile_to_string(),
+            "count(*) OVER (PARTITION BY $1, $2)"
+        );
+        assert_eq!(
+            Expression::from(Function::Count(Some(Box::new(Expression::Parameter(1)))))
+                .transpile_to_string(),
+            "count($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_text_functions() {
+        assert_eq!(
+            Expression::from(Function::Ln(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "ln($1)"
+        );
+        assert_eq!(
+            Expression::from(Function::Md5(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "md5($1)"
+        );
+        assert_eq!(
+            Expression::from(Function::CharLength(Box::new(Expression::from(
+                Function::Btrim(Box::new(Expression::Parameter(1)))
+            ))))
+            .transpile_to_string(),
+            "char_length(btrim($1))"
+        );
+        assert_eq!(
+            Expression::from(Function::ConcatWs {
+                separator: Box::new(Expression::Parameter(1)),
+                expressions: vec![Expression::Parameter(2), Expression::Parameter(3)],
+            })
+            .transpile_to_string(),
+            "concat_ws($1, $2, $3)"
+        );
+        assert_eq!(
+            Expression::from(Function::Substring {
+                string: Box::new(Expression::Parameter(1)),
+                start: Box::new(Expression::add(
+                    Expression::Parameter(2),
+                    Expression::Constant(Constant::U32(1)),
+                )),
+            })
+            .transpile_to_string(),
+            "substring($1 FROM $2 + 1)"
+        );
+        assert_eq!(
+            Expression::from(Function::RegexpReplace {
+                string: Box::new(Expression::Parameter(1)),
+                pattern: Box::new(Expression::Parameter(2)),
+                replacement: Box::new(Expression::Parameter(3)),
+            })
+            .transpile_to_string(),
+            "regexp_replace($1, $2, $3)"
+        );
+    }
+
+    #[test]
+    fn transpile_regex_match() {
+        assert_eq!(
+            Expression::regex_match(Expression::Parameter(1), Expression::Parameter(2))
+                .transpile_to_string(),
+            "$1 ~ $2"
+        );
+    }
+
+    #[test]
+    fn transpile_array_slice() {
+        assert_eq!(
+            Expression::ArraySlice {
+                expr: Box::new(Expression::Parameter(1)),
+                lower: Box::new(Expression::Constant(Constant::U32(1))),
+                upper: Box::new(Expression::Parameter(2)),
+            }
+            .transpile_to_string(),
+            "($1)[1:$2]"
+        );
+    }
+
+    #[test]
+    fn transpile_json_extract_keeps_jsonb() {
+        assert_eq!(
+            Expression::from(Function::JsonExtract(
+                Box::new(Expression::Parameter(1)),
+                PathToken::Field(Cow::Borrowed("allOf")),
+            ))
+            .transpile_to_string(),
+            "$1->'allOf'"
+        );
+    }
+
+    #[test]
+    fn transpile_exists_and_its_negation() {
+        let statement = || {
+            SelectStatement::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(FromItem::table(Table::OntologyIds))
+                .build()
+        };
+
+        assert_eq!(
+            Expression::exists(statement()).transpile_to_string(),
+            "EXISTS (SELECT *\nFROM \"ontology_ids\")"
+        );
+        assert_eq!(
+            Expression::exists(statement()).not().transpile_to_string(),
+            "NOT(EXISTS (SELECT *\nFROM \"ontology_ids\"))"
         );
     }
 

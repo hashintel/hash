@@ -42,6 +42,15 @@ impl WhereExpression {
     }
 }
 
+impl FromIterator<Expression> for WhereExpression {
+    fn from_iter<I: IntoIterator<Item = Expression>>(iter: I) -> Self {
+        Self {
+            conditions: iter.into_iter().collect(),
+            cursor: Vec::new(),
+        }
+    }
+}
+
 impl Transpile for WhereExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         if self.conditions.is_empty() && self.cursor.is_empty() {

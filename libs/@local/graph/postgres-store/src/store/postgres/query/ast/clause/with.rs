@@ -1,10 +1,10 @@
 use core::fmt::{self, Write as _};
 
-use crate::store::postgres::query::{Statement, Table, Transpile};
+use crate::store::postgres::query::{Statement, TableName, Transpile};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CommonTableExpression {
-    table: Table,
+    table: TableName<'static>,
     statement: Statement,
 }
 
@@ -14,11 +14,25 @@ pub struct WithExpression {
 }
 
 impl WithExpression {
-    pub fn add_statement(&mut self, table: Table, statement: impl Into<Statement>) {
+    pub fn add_statement(
+        &mut self,
+        table: impl Into<TableName<'static>>,
+        statement: impl Into<Statement>,
+    ) {
         self.common_table_expressions.push(CommonTableExpression {
-            table,
+            table: table.into(),
             statement: statement.into(),
         });
+    }
+
+    #[must_use]
+    pub fn with_statement(
+        mut self,
+        table: impl Into<TableName<'static>>,
+        statement: impl Into<Statement>,
+    ) -> Self {
+        self.add_statement(table, statement);
+        self
     }
 
     #[must_use]
@@ -43,7 +57,7 @@ impl Transpile for WithExpression {
             if idx > 0 {
                 fmt.write_str(", ")?;
             }
-            expression.table.name().transpile(fmt)?;
+            expression.table.transpile(fmt)?;
             fmt.write_str(" AS (")?;
             expression.statement.transpile(fmt)?;
             fmt.write_char(')')?;
@@ -57,7 +71,7 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, FromItem, Identifier, SelectExpression, SelectStatement,
+        Alias, FromItem, Identifier, SelectExpression, SelectStatement, Table,
         test_helper::{max_version_expression, trim_whitespace},
     };
 

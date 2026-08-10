@@ -2,7 +2,7 @@ use core::fmt::{self, Write as _};
 
 use hash_graph_store::filter::PathToken;
 
-use crate::store::postgres::query::{Expression, PostgresType, Transpile};
+use crate::store::postgres::query::{Expression, OrderByExpression, PostgresType, Transpile};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Function {
@@ -11,6 +11,11 @@ pub enum Function {
     JsonAgg(Box<Expression>),
     JsonExtractText(Box<Expression>),
     JsonExtractAsText(Box<Expression>, PathToken<'static>),
+    /// Extracts a JSON field or array element, keeping the `jsonb` type.
+    ///
+    /// Transpiles to `<expr>->'field'` or `<expr>->index`. The text-returning counterpart is
+    /// [`JsonExtractAsText`](Self::JsonExtractAsText).
+    JsonExtract(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
     JsonScalar(Box<Expression>),
@@ -45,6 +50,85 @@ pub enum Function {
     /// Transpiles to `(extract(epoch from <expr>) * 1000)::int8` in PostgreSQL.
     ExtractEpochMs(Box<Expression>),
     Unnest(Vec<Expression>),
+    /// The `row_number` window function: the 1-based position of the row within its window.
+    ///
+    /// Transpiles to `row_number()`. Wrap the resulting expression in [`Expression::Window`] to
+    /// supply the `OVER (...)` clause the function requires.
+    ///
+    /// [`Expression::Window`]: crate::store::postgres::query::Expression::Window
+    RowNumber,
+    /// Aggregates the expression's values into an array.
+    ///
+    /// Transpiles to `array_agg(<expr>)`, or `array_agg(<expr> ORDER BY ...)` when the ordering
+    /// is non-empty. The ordering fixes the array's element order, which is otherwise
+    /// unspecified.
+    ArrayAgg {
+        expression: Box<Expression>,
+        order_by: OrderByExpression,
+    },
+    /// Expands a `jsonb` array into one row per element.
+    ///
+    /// Transpiles to `jsonb_array_elements(<expr>)`, a set-returning function that belongs in a
+    /// FROM item.
+    JsonbArrayElements(Box<Expression>),
+    /// Counts rows or non-NULL values.
+    ///
+    /// Transpiles to `count(*)` when the argument is `None` and `count(<expr>)` otherwise.
+    Count(Option<Box<Expression>>),
+    /// The natural logarithm.
+    ///
+    /// Transpiles to `ln(<expr>)`.
+    Ln(Box<Expression>),
+    /// The MD5 hash of a text value, as a hex string.
+    ///
+    /// Transpiles to `md5(<expr>)`.
+    Md5(Box<Expression>),
+    /// Trims whitespace from both ends of a text value.
+    ///
+    /// Transpiles to `btrim(<expr>)`.
+    Btrim(Box<Expression>),
+    /// The character count of a text value.
+    ///
+    /// Transpiles to `char_length(<expr>)`.
+    CharLength(Box<Expression>),
+    /// Concatenates values with a separator, skipping NULLs.
+    ///
+    /// Transpiles to `concat_ws(<separator>, <expr>, ...)`.
+    ConcatWs {
+        separator: Box<Expression>,
+        expressions: Vec<Expression>,
+    },
+    /// The substring starting at a 1-based character position.
+    ///
+    /// Transpiles to `substring(<string> FROM <start>)`.
+    Substring {
+        string: Box<Expression>,
+        start: Box<Expression>,
+    },
+    /// Replaces every match of a POSIX regular expression.
+    ///
+    /// Transpiles to `regexp_replace(<string>, <pattern>, <replacement>)`.
+    RegexpReplace {
+        string: Box<Expression>,
+        pattern: Box<Expression>,
+        replacement: Box<Expression>,
+    },
+    /// Expands a `jsonb` object into one row per key-value pair.
+    ///
+    /// Transpiles to `jsonb_each(<expr>)`, a set-returning function that belongs in a FROM item.
+    JsonbEach(Box<Expression>),
+    /// `pgvector`: rescales a vector to unit l2 norm.
+    ///
+    /// Transpiles to `l2_normalize(<expr>)`.
+    L2Normalize(Box<Expression>),
+    /// `pgvector`: extracts `count` components of `vector`, starting at the 1-based `start`.
+    ///
+    /// Transpiles to `subvector(<expr>, <start>, <count>)`.
+    Subvector {
+        vector: Box<Expression>,
+        start: usize,
+        count: usize,
+    },
     Now,
 }
 
@@ -95,6 +179,13 @@ impl Transpile for Function {
                 match key {
                     PathToken::Field(field) => write!(fmt, "->>'{field}'"),
                     PathToken::Index(index) => write!(fmt, "->>{index}"),
+                }
+            }
+            Self::JsonExtract(expression, key) => {
+                expression.transpile(fmt)?;
+                match key {
+                    PathToken::Field(field) => write!(fmt, "->'{field}'"),
+                    PathToken::Index(index) => write!(fmt, "->{index}"),
                 }
             }
             Self::JsonContains(json, value) => {
@@ -186,6 +277,101 @@ impl Transpile for Function {
                 }
 
                 fmt.write_char(')')
+            }
+            Self::RowNumber => fmt.write_str("row_number()"),
+            Self::ArrayAgg {
+                expression,
+                order_by,
+            } => {
+                fmt.write_str("array_agg(")?;
+                expression.transpile(fmt)?;
+                if !order_by.is_empty() {
+                    fmt.write_char(' ')?;
+                    order_by.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
+            Self::JsonbArrayElements(expression) => {
+                fmt.write_str("jsonb_array_elements(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Count(None) => fmt.write_str("count(*)"),
+            Self::Count(Some(expression)) => {
+                fmt.write_str("count(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Ln(expression) => {
+                fmt.write_str("ln(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Md5(expression) => {
+                fmt.write_str("md5(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Btrim(expression) => {
+                fmt.write_str("btrim(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::CharLength(expression) => {
+                fmt.write_str("char_length(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::ConcatWs {
+                separator,
+                expressions,
+            } => {
+                fmt.write_str("concat_ws(")?;
+                separator.transpile(fmt)?;
+                for expression in expressions {
+                    fmt.write_str(", ")?;
+                    expression.transpile(fmt)?;
+                }
+                fmt.write_char(')')
+            }
+            Self::Substring { string, start } => {
+                fmt.write_str("substring(")?;
+                string.transpile(fmt)?;
+                fmt.write_str(" FROM ")?;
+                start.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::RegexpReplace {
+                string,
+                pattern,
+                replacement,
+            } => {
+                fmt.write_str("regexp_replace(")?;
+                string.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                pattern.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                replacement.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonbEach(expression) => {
+                fmt.write_str("jsonb_each(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::L2Normalize(expression) => {
+                fmt.write_str("l2_normalize(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::Subvector {
+                vector,
+                start,
+                count,
+            } => {
+                fmt.write_str("subvector(")?;
+                vector.transpile(fmt)?;
+                write!(fmt, ", {start}, {count})")
             }
             Self::JsonPathQueryFirst(target, path) => {
                 fmt.write_str("jsonb_path_query_first(")?;

@@ -33,9 +33,10 @@ pub use self::{
         BinaryExpression, BinaryOperator, ColumnName, ColumnReference, Constant, Distinctness,
         EqualityOperator, Expression, FromItem, FromItemFunctionBuilder, FromItemJoinBuilder,
         FromItemSubqueryBuilder, FromItemTableBuilder, Function, GroupByExpression, Identifier,
-        JoinType, OnConflict, OrderByExpression, SelectExpression, SelectStatement, Statement,
-        TableName, TableReference, UnaryExpression, UnaryOperator, VariadicExpression,
-        VariadicOperator, WhereExpression, WindowStatement, WithExpression, bulk_insert,
+        JoinType, OnConflict, OrderByExpression, SelectExpression, SelectStatement, SetOperation,
+        SetOperator, Statement, TableName, TableReference, UnaryExpression, UnaryOperator,
+        VariadicExpression, VariadicOperator, WhereExpression, WindowStatement, WithExpression,
+        bulk_insert,
     },
     compile::{SelectCompiler, SelectCompilerError},
     postgres_type::PostgresType,
@@ -81,7 +82,12 @@ pub trait Transpile {
     /// Returns an error if the value cannot be formatted or written to the formatter.
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
-    fn transpile_to_string(&self) -> String {
+    /// Adapts the value into a [`Display`] that renders the transpiled SQL.
+    ///
+    /// The adapter borrows the value and writes through the surrounding formatter, so
+    /// interpolating a transpiled name into a larger `format!` or `write!` costs no intermediate
+    /// allocation.
+    fn display(&self) -> impl Display {
         struct Transpiler<'a, T: ?Sized>(&'a T);
         impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {
             fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
@@ -89,7 +95,11 @@ pub trait Transpile {
             }
         }
 
-        Transpiler(self).to_string()
+        Transpiler(self)
+    }
+
+    fn transpile_to_string(&self) -> String {
+        self.display().to_string()
     }
 }
 

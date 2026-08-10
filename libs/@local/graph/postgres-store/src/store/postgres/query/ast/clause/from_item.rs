@@ -2,7 +2,7 @@ use core::fmt::{self, Write as _};
 
 use super::{JoinType, TableSample};
 use crate::store::postgres::query::{
-    ColumnName, Expression, Function, SelectStatement, TableReference, Transpile,
+    ColumnName, Expression, Function, Statement, TableReference, Transpile,
 };
 
 /// A FROM item in a PostgreSQL query.
@@ -85,8 +85,8 @@ pub enum FromItem<'id> {
         /// - Set-returning functions that need to reference preceding columns
         /// - Per-row computations that require context from other tables
         lateral: bool,
-        /// The subquery SELECT statement.
-        statement: Box<SelectStatement>,
+        /// The subquery statement, either a plain SELECT or a set operation over several.
+        statement: Statement,
         /// Optional alias for the subquery result.
         ///
         /// While PostgreSQL requires aliases for subqueries in most contexts,
@@ -252,7 +252,7 @@ impl<'id> FromItem<'id> {
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
     pub const fn table(
         #[builder(start_fn, into)] table: TableReference<'id>,
-        alias: Option<TableReference<'id>>,
+        #[builder(into)] alias: Option<TableReference<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
@@ -272,16 +272,16 @@ impl<'id> FromItem<'id> {
     ///
     /// See [`FromItemSubqueryBuilder`] for available options.
     #[builder(finish_fn = build, derive(Debug, Clone, Into))]
-    pub fn subquery(
-        #[builder(start_fn, into)] statement: SelectStatement,
-        alias: Option<TableReference<'id>>,
+    pub const fn subquery(
+        #[builder(start_fn, into)] statement: Statement,
+        #[builder(into)] alias: Option<TableReference<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
         #[builder(default)] lateral: bool,
     ) -> Self {
         Self::Subquery {
-            statement: Box::new(statement),
+            statement,
             alias,
             column_alias,
             lateral,
@@ -295,7 +295,7 @@ impl<'id> FromItem<'id> {
     pub const fn function(
         #[builder(start_fn, into)] function: Function,
         #[builder(default)] with_ordinality: bool,
-        alias: Option<TableReference<'id>>,
+        #[builder(into)] alias: Option<TableReference<'id>>,
         #[builder(default, setters(vis = "", name = "set_column_aliases"))] column_alias: Vec<
             ColumnName<'id>,
         >,
@@ -341,6 +341,42 @@ impl<'id> FromItem<'id> {
                 columns,
                 alias: join_using_alias,
             }
+        }
+    }
+
+    /// Joins with ON conditions: `self INNER JOIN <from> ON <conditions>`.
+    ///
+    /// An empty condition list transpiles to `ON TRUE`, the cartesian product.
+    #[must_use]
+    pub fn inner_join_on(
+        self,
+        from: impl Into<Self>,
+        conditions: impl IntoIterator<Item: Into<Expression>>,
+    ) -> Self {
+        Self::JoinOn {
+            left: Box::new(self),
+            join_type: JoinType::Inner,
+            right: Box::new(from.into()),
+            condition: conditions.into_iter().map(Into::into).collect(),
+        }
+    }
+
+    /// Joins with ON conditions, keeping every left row: `self LEFT OUTER JOIN <from> ON
+    /// <conditions>`.
+    ///
+    /// An empty condition list transpiles to `ON TRUE`, which keeps exactly one right row per
+    /// left row when the right side delivers one, as a `LATERAL` subquery does.
+    #[must_use]
+    pub fn left_join_on(
+        self,
+        from: impl Into<Self>,
+        conditions: impl IntoIterator<Item: Into<Expression>>,
+    ) -> Self {
+        Self::JoinOn {
+            left: Box::new(self),
+            join_type: JoinType::LeftOuter,
+            right: Box::new(from.into()),
+            condition: conditions.into_iter().map(Into::into).collect(),
         }
     }
 
@@ -707,8 +743,8 @@ mod tests {
 
     use super::{super::table_sample::SamplingMethod, *};
     use crate::store::postgres::query::{
-        Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, Table, TableName,
-        TableReference,
+        Alias, Expression, ForeignKeyReference, Identifier, SelectExpression, SelectStatement,
+        Table, TableName, TableReference,
         table::{Column, DataTypes, OntologyIds},
     };
 

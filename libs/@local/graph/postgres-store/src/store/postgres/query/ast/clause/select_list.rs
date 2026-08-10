@@ -22,6 +22,29 @@ pub enum SelectExpression {
     Asterisk(Option<TableReference<'static>>),
 }
 
+impl SelectExpression {
+    /// Creates an unaliased select item.
+    #[must_use]
+    pub fn new(expression: impl Into<Expression>) -> Self {
+        Self::Expression {
+            expression: expression.into(),
+            alias: None,
+        }
+    }
+
+    /// Creates an aliased select item: `<expression> AS "<alias>"`.
+    #[must_use]
+    pub fn aliased(
+        expression: impl Into<Expression>,
+        alias: impl Into<Identifier<'static>>,
+    ) -> Self {
+        Self::Expression {
+            expression: expression.into(),
+            alias: Some(alias.into()),
+        }
+    }
+}
+
 impl Transpile for SelectExpression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
