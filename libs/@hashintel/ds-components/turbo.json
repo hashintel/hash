@@ -19,6 +19,13 @@
     },
     "codegen": {
       "dependsOn": ["^build"],
+      // `codegen:panda` must never be run with `--clean`. Its outdir is
+      // `../ds-helpers/styled-system`, which is the entire published payload of
+      // `@hashintel/ds-helpers`. `changeset publish` publishes packages
+      // concurrently, so this task runs (from several packages' publish hooks)
+      // while `npm pack` is reading that directory; Panda's `--clean` calls
+      // `emptyDirSync` on it and the tarball comes out with only the six
+      // metadata files. See 0.1.1 / 0.2.0 / 0.2.1 on npm.
       "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
     },
     "dev": {

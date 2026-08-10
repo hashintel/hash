@@ -52,7 +52,7 @@
     "build:lib:js": "tsup --config tsup.config.ts",
     "codegen": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:panda",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
-    "codegen:panda": "panda codegen --clean",
+    "codegen:panda": "panda codegen",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "codemod:beta-fractal-pilots": "tsx scripts/migrate-beta-fractal-pilots.ts",
     "dev": "yarn dev:ladle",
