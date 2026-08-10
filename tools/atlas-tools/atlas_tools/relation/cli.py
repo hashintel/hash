@@ -289,71 +289,6 @@ class ResolveAmbiguousCommand(BaseSettings):
         echo(f"wrote {result.paths.manifest_path}")
 
 
-class FitCommand(BaseSettings):
-    """Fit the soft-label policy classifier into one versioned bundle."""
-
-    soft_labels: CliPositionalArg[FilePath]
-    embeddings: CliPositionalArg[FilePath]
-    closure: CliPositionalArg[DirectoryPath]
-    config: CliPositionalArg[FilePath]
-    out: Path
-    resolutions: DirectoryPath | None = None
-    coincident_reviews: DirectoryPath | None = None
-    deliverables: DirectoryPath | None = None
-
-    model_config = SettingsConfigDict(extra="forbid")
-
-    def cli_cmd(self) -> None:
-        from atlas_tools.relation.evaluation.application.api import fit_classifier
-
-        try:
-            result = fit_classifier(
-                soft_labels_path=self.soft_labels,
-                embeddings_path=self.embeddings,
-                closure_directory=self.closure,
-                config_path=self.config,
-                output_directory=self.out,
-                resolutions_directory=self.resolutions,
-                coincident_reviews_directory=self.coincident_reviews,
-                deliverables_directory=self.deliverables,
-            )
-        except (OSError, ValueError) as error:
-            fail(error)
-        echo(f"wrote {result.metadata_path}")
-        echo(f"wrote {result.arrays_path}")
-        echo(f"wrote {result.out_of_fold_path}")
-
-
-class ExportClassifierCommand(BaseSettings):
-    """Export a verified fit bundle as Atlas-native ``classifier.salt``."""
-
-    classifier: CliPositionalArg[DirectoryPath]
-    closure: CliPositionalArg[DirectoryPath]
-    out: Path
-    soft_labels: FilePath | None = None
-    resolutions: DirectoryPath | None = None
-    coincident_reviews: DirectoryPath | None = None
-    deliverables: DirectoryPath | None = None
-    model_config = SettingsConfigDict(extra="forbid")
-
-    def cli_cmd(self) -> None:
-        from atlas_tools.relation.evaluation.application.api import export_atlas_classifier
-
-        try:
-            result = export_atlas_classifier(
-                classifier_directory=self.classifier,
-                closure_directory=self.closure,
-                output_path=self.out,
-                soft_labels_path=self.soft_labels,
-                resolutions_directory=self.resolutions,
-                coincident_reviews_directory=self.coincident_reviews,
-                deliverables_directory=self.deliverables,
-            )
-        except (OSError, ValueError) as error:
-            fail(error)
-        echo(f"wrote {result.path}")
-
-
 class ExportFitInputsCommand(BaseSettings):
     """Export verified real card embeddings as SALT relation-policy inputs."""
 
@@ -502,47 +437,6 @@ class ExportReviewedVerdictsCommand(BaseSettings):
         echo(f"missing versioned_url {result.missing_versioned_url_count}")
 
 
-class ReportCommand(BaseSettings):
-    """Render the policy evaluation report (machine JSON plus markdown)."""
-
-    run: CliPositionalArg[DirectoryPath]
-    cards: CliPositionalArg[DirectoryPath]
-    config: CliPositionalArg[FilePath]
-    gold: FilePath | None = None
-    classifier: DirectoryPath | None = None
-    closure: DirectoryPath | None = None
-    soft_labels: FilePath | None = None
-    resolutions: DirectoryPath | None = None
-    coincident_reviews: DirectoryPath | None = None
-    deliverables: DirectoryPath | None = None
-    out: Path
-
-    model_config = SettingsConfigDict(extra="forbid")
-
-    def cli_cmd(self) -> None:
-        from atlas_tools.relation.evaluation.application.api import write_policy_report
-
-        try:
-            result = write_policy_report(
-                run_directory=self.run,
-                cards_directory=self.cards,
-                config_path=self.config,
-                gold_path=self.gold,
-                classifier_directory=self.classifier,
-                closure_directory=self.closure,
-                soft_labels_path=self.soft_labels,
-                resolutions_directory=self.resolutions,
-                coincident_reviews_directory=self.coincident_reviews,
-                deliverables_directory=self.deliverables,
-                output_directory=self.out,
-            )
-        except (OSError, ValueError) as error:
-            fail(error)
-        echo(f"wrote {result.report_json_path}")
-        echo(f"wrote {result.report_markdown_path}")
-        echo(f"wrote {result.metadata_path}")
-
-
 class AnalyzeCommand(BaseSettings):
     """Analyze a factorial-pilot handoff into decisions.json and report.md."""
 
@@ -584,28 +478,6 @@ class VisualizeCommand(BaseSettings):
         echo(f"wrote {result.report_html}")
 
 
-class VisualizeReportCommand(BaseSettings):
-    """Render source-bound images and reports from a validated policy report."""
-
-    report: CliPositionalArg[DirectoryPath]
-    out: Path
-
-    model_config = SettingsConfigDict(extra="forbid")
-
-    def cli_cmd(self) -> None:
-        from atlas_tools.relation.evaluation.application.api import visualize_policy_report
-
-        try:
-            result = visualize_policy_report(self.report, self.out)
-        except (OSError, ValueError) as error:
-            fail(error)
-        for graph in result.graphs:
-            echo(f"wrote {graph}")
-        echo(f"wrote {result.explainer_md}")
-        echo(f"wrote {result.report_pdf}")
-        echo(f"wrote {result.report_html}")
-
-
 class RelationCli(BaseModel):
     """Operations over relation-card sets."""
 
@@ -621,15 +493,11 @@ class RelationCli(BaseModel):
     review_coincident: CliSubCommand[ReviewCoincidentCommand]
     resolve_ambiguous: CliSubCommand[ResolveAmbiguousCommand]
     confirm_placements: CliSubCommand[ConfirmPlacementsCommand]
-    fit: CliSubCommand[FitCommand]
     export_annotation_corpus: CliSubCommand[ExportAnnotationCorpusCommand]
-    export_classifier: CliSubCommand[ExportClassifierCommand]
     export_fit_inputs: CliSubCommand[ExportFitInputsCommand]
     export_reviewed_verdicts: CliSubCommand[ExportReviewedVerdictsCommand]
-    report: CliSubCommand[ReportCommand]
     analyze: CliSubCommand[AnalyzeCommand]
     visualize: CliSubCommand[VisualizeCommand]
-    visualize_report: CliSubCommand[VisualizeReportCommand]
 
     def cli_cmd(self) -> None:
         CliApp.run_subcommand(self)

@@ -2,23 +2,13 @@
 
 Python tooling for the Semantic Atlas pipeline:
 
-- **`audit/`** measures the information ceiling of truncated-and-renormalized
-  embedding prefixes against the full vectors (recall@k, intrusion rate, rank
-  displacement, stratified by group). Map neighbor recall can never exceed
-  prefix neighbor recall, so this number bounds every projector downstream.
 - **`wikidata/`** mines Wikidata on two paths. The API path extracts
   entity-valued property inventories via SPARQL and wbgetentities and emits
   relation cards without touching the dump. The dump path streams the JSON
   dump (never storing it) into a P31-stratified entity sampling manifest for
   vec2slug retraining.
-- **`battery/`** is the engine-agnostic layout gate battery: planted-shape
-  generators, structure metrics (merge-tree leaf persistence, kNN recall,
-  trustworthiness and continuity, pendant diffusion, edge binding,
-  contraction), baselines (PCA-2D, umap-learn), rerun-noise floors, and
-  pass/fail gates including the no-structure-from-noise differential.
-- **`common/`** holds the shared contracts: raw f32 matrix and layout
-  artifact I/O, provenance envelopes, blockwise exact cosine kNN, and the
-  prefix transform.
+- **`common/`** holds the shared contracts: scalar aliases and provenance
+  envelopes.
 - **`relation_cards/`** owns the canonical relation-card format and its
   datasource adapters. Wikidata records and live HASH SemType link types pass
   through the same identifier-free renderer and truncation rules.
@@ -64,14 +54,13 @@ decoration:
   arithmetic is noise, not safety.
 - **Discriminated unions are the dispatch.** Polymorphic configuration is a
   pydantic union tagged by a `Literal` field; there are no registries and no
-  string comparisons. See `battery/generators.py` (`Generator`, tag `shape`)
-  and `battery/gates.py` (`GateConfig`, tag `type`); evaluation uses
-  `match` with `assert_never`. Closed string sets are `Literal` or `StrEnum`.
+  string comparisons. Evaluation uses `match` with `assert_never`, and closed
+  string sets are `Literal` or `StrEnum`.
 - **Structured payloads are models.** Anything crossing a function or file
   boundary is a pydantic model (`extra="forbid"` for config-like models) or
   a frozen dataclass. Plain dataclasses carry numpy arrays and hot-path rows
-  (for example `battery.datasets.Dataset` and `wikidata.dump.EntityRow`; the
-  dump stream is deliberately not pydantic-validated).
+  (for example `wikidata.dump.EntityRow`; the dump stream is deliberately not
+  pydantic-validated).
 - **Determinism.** Everything is seeded via `np.random.default_rng(seed)`;
   identical (config, seed) yields identical bytes. Tests make no network
   calls and read no wall clock. `created_at` is the only wall-clock field
@@ -90,14 +79,6 @@ decoration:
 
 ## Shared contracts (`atlas_tools/common`)
 
-- **Raw f32 matrices** (`common.matrix`): headerless row-major little-endian
-  float32 with a `<name>.meta.json` sidecar appended to the full filename
-  (`X.f32` and `X.f32.meta.json`). Loaders validate that the file size equals
-  `rows * dim * 4` and reject mismatches with an error naming the mismatch.
-- **Layouts** (`common.layout`): `layout.npz` with `xy` (n, 2) float32 plus
-  `row_id` (n,) int64, and a `layout.meta.json` sidecar. A missing sidecar is
-  a hard error (`require_provenance=False` exists for ad-hoc inspection). The
-  battery consumes only this format and never imports engine code.
 - **Provenance envelopes** (`common.provenance`): every artifact sidecar is a
   `Provenance[TDetails, TConfig]` carrying producer, `created_at`, tool
   version, typed `config` with a `config_hash` that is validated on load (so
@@ -111,87 +92,6 @@ decoration:
 ## CLIs
 
 Console scripts are installed in the venv (`uv run <name> ...`).
-
-### `audit`
-
-```sh
-uv run audit export-postgres --out X.f32 --strata-out strata.parquet
-uv run audit run --embeddings X.f32 --dims 128,256,512,1024 --k 15,30,50 \
-    --sample 20000 --strata strata.parquet --out report/
-# Force a backend when needed; auto prefers Metal/CUDA/ROCm and falls back to CPU.
-uv run audit run --embeddings X.f32 --dims 512 --k 50 --sample 1000 \
-    --backend gpu --memory-cap-gb 4 --out report-smoke/
-uv run audit synth-fixture --out X.f32   # synthetic acceptance fixture
-# Re-score an audit at near-tie clump granularity (same corpus + seed as the audit;
-# the recorded sample-row hash proves row alignment).
-uv run audit clump-recall --embeddings X.f32 --dim 512 --k 15,30,50 \
-    --epsilon 0.002 --strata strata.parquet --out clump-recall/ \
-    --expected-sample-rows-sha256 <report.meta.json sample_rows_sha256>
-```
-
-`export-postgres` streams whole-entity rows (`property IS NULL`) directly from
-the graph database. It writes the raw little-endian f32 matrix and provenance
-sidecar required by `audit run` without holding the corpus in memory. With
-`--strata-out`, the same cursor writes a row-aligned parquet containing `web_id`,
-`entity_type_title`, and `entity_type_base_url`; missing type metadata is null.
-Connection options read `HASH_GRAPH_PG_HOST`, `HASH_GRAPH_PG_PORT`,
-`HASH_GRAPH_PG_USER`, `HASH_GRAPH_PG_PASSWORD`, and `HASH_GRAPH_PG_DATABASE`, with
-the local development defaults available through `--help`.
-
-`run` samples **queries**, not candidate corpus rows: every sampled query is still
-compared exactly with every corpus row. The work is therefore proportional to
-`sample × corpus rows × (full pass + prefix passes)`. The default sample is 20,000;
-use 500-1,000 for a smoke run before starting the full audit.
-
-`clump-recall` regenerates an audit's seeded query sample (verified against the
-recorded `sample_rows_sha256`) and both top-k lists, then re-scores recall with
-members of one near-tie clump treated as interchangeable. Clumps are
-epsilon-connected components over a whole-corpus prefix-space top-`--label-k`
-table: an edge joins two rows when either stores the other within `--epsilon` on
-the doubled-cosine (`1 - cos`) scale. Collapsed recall counts sorted multiset
-intersections of clump labels, so a clump the retrieval shows fewer members of
-earns exactly the members shown; singleton labels reproduce plain recall, and
-collapsed recall never reads below plain. The whole-corpus label pass dominates
-the runtime (`corpus rows`, not `sample`, queries).
-
-Exact cosine kNN uses FAISS `IndexFlatIP` over L2-normalized vectors. Corpus blocks
-are streamed through a flat index and FAISS merges their top-k results, so no full
-query-by-corpus score matrix or normalized corpus is retained. `--backend auto` uses
-Metal on supported Apple Silicon wheels, CUDA/ROCm where exposed by FAISS, and
-otherwise FAISS's multithreaded CPU backend. FAISS 1.14.3 Metal retains each search's
-distance buffer for the process lifetime, so Metal corpus blocks run in bounded
-spawned workers; each worker exits before the next block, returning those allocations
-to the OS. `--memory-cap-gb` sizes those worker blocks and the estimated audit-owned
-arrays and FAISS workspace. It is not a hard process RSS cap because mapped input
-pages and backend allocator bookkeeping are outside that estimate.
-
-Progress is written to stderr for each full/prefix pass with completed exact
-comparisons, throughput, and ETA. Use `--quiet` to suppress it. `run` writes
-`report.json` (the source of truth; `report.md` and the returned `RunnerReport` are
-both derived from the file on disk) plus a `report.meta.json` provenance envelope.
-
-### `battery`
-
-```sh
-uv run battery run --suite suites/smoke.yaml --engines engines/default.yaml \
-    --out runs/dev/ --jobs 4
-uv run battery calibrate --layout layout.npz --manifest calibration.yaml
-uv run battery generate --shape chains --n 800 --seed 0 --out dataset/
-```
-
-- Suites (`suites/*.yaml`) validate into `harness.Suite`; dataset entries are
-  `{shape, n, params}` and validate directly into `Generator` union
-  instances. `suites/smoke.yaml` runs in seconds; `suites/phase2.yaml` is the
-  full release-gate suite.
-- Engines (`engines/*.yaml`) are subprocess commands that read embeddings and
-  edges and write `layout.npz`; the battery never imports engine code.
-  `command_no_edges` is required to evaluate the noise differential, and an
-  edges-consuming engine without it fails closed.
-- A run writes `results.parquet` (tidy long format), `report.md` (every cell
-  annotated with the rerun-noise spread), `gates.json` (typed `GatesReport`),
-  and `manifest.json` (a provenance envelope with config hashes, dataset
-  hashes, seeds, and library versions). Every reported number is reproducible
-  from the manifest alone.
 
 ### `relation`
 
@@ -420,23 +320,21 @@ uv run relation embed runs/cards config/eval/grid.yaml \
     --out runs/embeddings.parquet --cache runs/embedding-cache
 uv run relation resolve-ambiguous runs/soft-labels.parquet runs/cards \
     --reviewer <reviewer-name> --out runs/target-resolutions
-uv run relation fit runs/soft-labels.parquet runs/embeddings.parquet \
-    family-closure config/eval/grid.yaml --resolutions runs/target-resolutions \
-    --coincident-reviews runs/coincident-reviews \
-    --deliverables runs/grid-deliverables --out runs/classifier
-uv run relation export-classifier runs/classifier family-closure \
-    --soft-labels runs/soft-labels.parquet \
-    --resolutions runs/target-resolutions \
-    --coincident-reviews runs/coincident-reviews \
-    --deliverables runs/grid-deliverables --out runs/classifier.salt
-uv run relation report runs/grid runs/cards config/eval/grid.yaml \
-    --classifier runs/classifier \
-    --closure family-closure --soft-labels runs/soft-labels.parquet \
-    --resolutions runs/target-resolutions \
-    --coincident-reviews runs/coincident-reviews \
-    --deliverables runs/grid-deliverables --out runs/report
-uv run relation visualize-report runs/report --out runs/report-visuals
+uv run relation confirm-placements runs/soft-labels.parquet runs/cards \
+    --reviewer <reviewer-name> --out runs/placement-confirmations
+
+# Hand the reviewed supply to the Atlas trainer, which fits and reports:
+uv run relation export-annotation-corpus runs/grid-v2 runs/cards \
+    config/eval/grid.yaml --hash-cards runs/hash-cards \
+    --wikidata-records runs/wikidata-extract \
+    --wikidata-cards runs/wikidata-cards --closure runs/family-closure \
+    --out runs/annotation-corpus.json
+uv run relation export-reviewed-verdicts runs/target-resolutions \
+    runs/soft-labels.parquet runs/cards \
+    --confirmations runs/placement-confirmations --out runs/reviewed-verdicts.json
 ```
+
+Fitting the policy classifier and rendering its evaluation report belong to the Atlas Rust binary, which fits one generation over the live store and compiles its analysis over the published generation. This package's job ends at the reviewed supply: the annotation corpus and the reviewed verdicts, each a hash-pinned document the trainer admits with no preprocessing.
 
 `review-coincident` presents every obligatory Coincident queue row in a local
 Textual reviewer. It shows the exact card text, complete verdict tally, and every
@@ -447,19 +345,13 @@ deliverable gate, queue, card, and concat-manifest bytes. Confirmation preserves
 the original smoothed C/P/O target and vote weight. Rejection removes C votes,
 recomputes the same smoothed posterior from the remaining P/O counts, and uses the
 remaining count as weight; it fails closed if no P/O evidence remains. Exclusion
-keeps fold and prediction coverage with zero supervised weight. Existing classifier
-and report directories remain immutable, so applying these decisions requires a
-new fit and new report outputs.
+keeps fold and prediction coverage with zero supervised weight. A review decision
+reaches a deployed classifier by way of a fresh export and a fresh Atlas fit, so the
+reviewed artifacts are immutable and a changed decision is a new artifact.
 
-The pilot, grid, aggregate, embed, and panel-only report remain valid without a
-family closure. `fit` always requires one, and a report that loads a classifier
-must receive the exact closure with `--closure`. A classifier bound to ambiguous
-target resolutions or Coincident reviews also requires the exact soft labels and
-corresponding review artifact; Coincident review additionally requires the exact
-grid deliverables. Use `--soft-labels`, `--resolutions`, `--coincident-reviews`, and
-`--deliverables` as one complete provenance group; incomplete groups fail closed.
-`--gold` is optional: omitting it produces schema-v2 panel/classifier evidence with
-every gold-dependent field explicitly unavailable and no `gold.jsonl` provenance.
+The pilot, grid, aggregate and embed stages all remain valid without a family
+closure. The exports require one, because a verdict is read against the lineage
+components the closure defines.
 
 `aggregate` emits soft labels (Dirichlet(1,1,1) posterior means over
 {C, P, O}, unclear votes in the ambiguity column, n_votes, entropy, the
@@ -471,8 +363,8 @@ requires an explicit Coincident, Proximal, Overlay, or Excluded decision. A
 placement decision becomes a one-hot distribution with unit supervised weight.
 An exclusion remains in closure, fold, and prediction coverage but contributes
 zero supervised target weight. The immutable resolution artifact is bound to
-the exact soft labels and deck and is recorded by the classifier bundle; fit
-never silently promotes the prior or drops a row. `embed` keys each immutable
+the exact soft labels and deck. No stage silently promotes the prior or drops a
+row. `embed` keys each immutable
 cache entry by the card hash and complete producer identity: normalized
 endpoint, requested and observed model and dimension, request schema, producer
 revision, and `f32-le-v1` vector encoding. Before each cache-miss batch it
@@ -482,52 +374,20 @@ unmatched marker for a requested card has unknown billing state and blocks an
 automatic reissue. The embedding endpoint is the pipeline's only network
 surface besides OpenRouter completion requests.
 
-`fit` trains the multinomial logistic policy classifier against every
-placement-evidenced or explicitly resolved target, using soft-target
-cross-entropy weighted by the effective placement-vote count. Coincident review
-adjusts only Coincident evidence: confirmation preserves the synthetic soft label,
+Coincident review adjusts only Coincident evidence, and the reviewed artifacts carry
+those adjustments into every export: confirmation preserves the synthetic soft label,
 rejection removes C votes while retaining P/O evidence, and exclusion sets the
 supervised weight to zero. Coincident review and all-ambiguous resolution artifacts
-must be disjoint. Fit first binds the
-complete soft-label and embedding cohort to the independently verified
-[relation family closure](docs/relation-family-closure.md). Whole lineage
-components are then assigned to deterministic outer folds. Each held-out fold
-gets a temperature fitted from inner grouped out-of-fold predictions on the
-outer training rows, and an applicability model fitted only from outer-training
-embeddings. Consequently, neither a row nor its lineage component contributes
-to its own reported calibration or applicability evidence. The final deployment
-model, closure binding, reviewed-input bindings, separately identified fitting
-evidence, per-fold validation evidence, and immutable numeric arrays form one
-versioned schema-v5 evaluation bundle. The loader retains strict schema-v4
-compatibility for historical bundles; new fits write schema v5. This richer bundle
-is not the Atlas deployment format: its NPZ includes cross-fit-only state that Atlas
-must not consume. `export-classifier` revalidates the bundle, closure, and every
-bound review source, requires the canonical 3,072-dimensional embedding contract,
-and writes only Atlas kind-1/version-1 `classifier.salt`. The exporter reads the
-file back through the same strict SALTMMAP codec before reporting success. Atlas can
-mmap that file directly; class order, seven section shapes, little-endian scalar
-encodings, alignment, payload hash, temperature, scales, and sorted applicability
-distances match the Rust consumer exactly. `report` revalidates each required source
-group against the classifier before rendering panel health,
-classifier applicability when
-supplied, per-judge health, and vote economics. With `--gold`, it additionally
-renders gold agreement, per-class precision/recall, confusion matrices, the
-Coincident Wilson-LCB gate with its feedability line, and calibration.
-`visualize-report` validates that published report and emits five deterministic,
-source-bound PNGs for classifier applicability, judge health, vote economics,
-gold evaluation, and the results overview, plus an explainer Markdown file, a
-self-contained embedded-image HTML report, and a multipage PDF. A schema-v2
-no-gold report produces an explicit unavailable gold panel rather than zero
-metrics. When gold becomes available, write the gold-backed report and its
-visualizations to new directories to retain the pre-gold artifacts.
+must be disjoint. Both exports bind their cohort to the independently verified
+[relation family closure](docs/relation-family-closure.md), so a verdict that falls
+outside the closure's lineage components fails the export rather than being
+written unbound.
 
 Optional `gold.jsonl` is the swipe-tool export: one row per relation with the
 majority `verdict`, `pass_count`, label `entropy`, and an optional `post_exposure` flag
-for rulings made after the adjudicator saw panel outputs. Classifier fitting
-fails when the closure is missing, stale, or does not cover the joined cohort;
-there is no singleton fallback. If the C-predicted gold stratum is too small
-for the precision bound to ever clear its target, the report says
-`UNPASSABLE BY SAMPLE SIZE` rather than reporting a failure.
+for rulings made after the adjudicator saw panel outputs. An export fails when the
+closure is missing, stale, or does not cover the joined cohort; there is no singleton
+fallback.
 
 The pilot slice is not a separately maintained or hand-authored file. `evaluate`
 verifies the concatenated cards, excludes the fixed `FEW_SHOT` prompt examples,
@@ -682,10 +542,11 @@ imported/fresh/refinement counts, the realized trigger rate, SDK versions, and
 run dates. `deliverables/` adds `posteriors.jsonl`, `coincident-queue.jsonl`,
 `nomination-queue.jsonl`, `dissent-ledger.jsonl`, `gates.json`, and
 `report.md`; downstream stages add `soft-labels.parquet`,
-`embeddings.parquet`, the evaluation classifier bundle (`classifier.json`,
-`arrays.npz`, `out-of-fold.parquet`), the deployable `classifier.salt` export, and
-`report.json`/`report.md`, each with its applicable provenance. `.run.lock` and the
-`inflight/` marker directory are operational
+`embeddings.parquet`, `annotation-corpus.json` and `reviewed-verdicts.json`, each with
+its applicable provenance. Historical runs also hold the evaluation classifier bundle
+(`classifier.json`, `arrays.npz`, `out-of-fold.parquet`) and its `classifier.salt`
+export, which this package no longer produces; those directories stay readable and
+immutable. `.run.lock` and the `inflight/` marker directory are operational
 state rather than handoff artifacts.
 
 ### `hash-cards`
@@ -897,17 +758,13 @@ Throughput notes live in `atlas_tools/wikidata/BENCHMARK.md`.
 
 ```text
 atlas_tools/
-  common/       shared contracts (matrix, layout, provenance, knn)
-  audit/        prefix representation audit
-  battery/      generators, metrics, merge tree, harness, gates, engines
+  common/       shared contracts (scalar aliases, provenance)
   relation/     verified card concat, judge pilot/full-grid execution, and analysis
   relation_cards/
     common/     canonical card models, rendering, and budgets
     hash/       live HASH PostgreSQL / SemType adapter and emission
     wikidata/   Wikidata adapter and card-corpus emission
   wikidata/     miner: transport/cache/sparql/properties/taxonomy/dump
-suites/         battery suite configs (smoke, phase2)
-engines/        battery engine configs (default, adversarial for tests)
 fixtures/       small committed fixtures (< 5 MB total)
 tests/          pytest suites mirroring the package layout
 ```

@@ -1,20 +1,16 @@
 [project]
 name = "atlas-tools"
 version = "0.1.0"
-description = "Atlas Track A (data/audit) and Track C (layout gate battery) tooling"
+description = "Atlas relation-card evaluation, review and export tooling"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "numpy>=1.26,<2.3",
-    "scipy>=1.12",
     "scikit-learn>=1.4",
-    "umap-learn>=0.5.6",
-    "faiss-cpu>=1.14.3,<2",
     "hnswlib>=0.8.0",
     "matplotlib>=3.11,<4",
     "pyyaml>=6.0",
     "pyarrow>=16.0",
-    "pandas>=2.2",
     "requests>=2.31",
     "tiktoken>=0.7",
     "orjson>=3.10",
@@ -39,8 +35,6 @@ dev = [
 ]
 
 [project.scripts]
-audit      = "atlas_tools.audit.cli:main"
-battery    = "atlas_tools.battery.cli:main"
 hash-cards = "atlas_tools.relation_cards.hash.cli:main"
 relation   = "atlas_tools.relation.cli:main"
 wikidata   = "atlas_tools.wikidata.cli:main"
@@ -114,9 +108,8 @@ convention = "pep257"
 # the package tree, and they assert their own arithmetic.
 "fixtures/**" = ["T201", "INP001", "S101", "PLR2004", "D100"]
 # CLI modules import heavy dependencies inside command bodies on purpose:
-# --help must not pay for numpy/sklearn/umap/pyarrow.
-"**/cli.py"   = ["PLC0415"]
-"**/*_cli.py" = ["PLC0415"]
+# --help must not pay for numpy/sklearn/pyarrow.
+"**/cli.py" = ["PLC0415"]
 
 [tool.pyright]
 venvPath = "."

@@ -137,7 +137,7 @@ class Provenance[TDetails, TConfig = None](BaseModel):
     ) -> Self:
         """Build an envelope with this tool's version and the current time.
 
-        Call this on a parametrized alias (``MatrixProvenance.make(...)``) so ``TConfig``
+        Call this on a parametrized alias (``RecordsProvenance.make(...)``) so ``TConfig``
         and ``TDetails`` bind; unparametrized, ``TConfig`` defaults to ``None`` and any
         config is rejected.
         """
