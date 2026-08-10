@@ -32,7 +32,8 @@ WORKDIR /repo
 
 COPY . .
 
-RUN turbo prune @hashintel/petrinaut-cli --docker
+RUN mise trust && \
+    turbo prune @hashintel/petrinaut-cli --docker
 
 
 FROM cli-tools AS cli-builder
