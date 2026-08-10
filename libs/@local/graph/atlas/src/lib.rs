@@ -96,6 +96,7 @@
     impl_trait_in_assoc_type,
     iter_intersperse,
     iter_map_windows,
+    iterator_try_collect,
     nonpoison_mutex,
     pointer_is_aligned_to,
     portable_simd,

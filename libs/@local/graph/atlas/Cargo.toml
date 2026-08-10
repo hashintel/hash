@@ -40,7 +40,7 @@ futures                   = { workspace = true }
 hannoy                    = { workspace = true }
 hash-graph-authorization  = { workspace = true }
 hash-graph-postgres-store = { workspace = true, public = true }
-hash-graph-store          = { workspace = true }
+hash-graph-store          = { workspace = true, features = ["postgres"] }
 heed                      = { workspace = true }
 hkdf                      = { workspace = true }
 kiddo                     = { workspace = true, features = ["rkyv_08", "simd", "multi-threaded"] }
