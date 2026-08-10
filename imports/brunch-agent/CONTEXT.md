@@ -16,7 +16,7 @@ _Avoid_: host, host-interface, frontend, client
 
 **Harness**:
 The middle shell and the essence of the effort: the generic capability layer of the elicitation system — mechanism and orchestration (the conversation loop, the `ask` API, capture envelope, issue queue, sweep bookkeeping). Injected into plugins as a narrow context; never owned by them.
-_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system)
+_Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the whole system). Exempt compound: **kernel card** (below). "Kernel invariants" renamed **harness invariants** (spec §14.1).
 
 **Plugin**:
 The innermost shell: target-defining policy. Declares packs, forms, and validators; composes at authoring time; receives harness capabilities by injection. Mostly policy — mechanism stays in the harness.
@@ -67,6 +67,46 @@ _Avoid_: exchange completion
 **Interpretation render**:
 The harness-owned affordance form showing current captured state — the harness frames envelope semantics; the plugin's renderer definition (typed against its own payload shapes) supplies the content view when provided, with a harness default (plain JSON view) otherwise.
 _Avoid_: digest (brunch's form)
+
+### Envelope & packs
+
+**Capture envelope**:
+The harness-defined, domain-free wrapper around an opaque plugin payload: harness-minted id, evidence spans, epistemic status, confidence, value-xor-absence, alternatives grouping, one `supersedes` link. The hourglass waist. No stored status — envelope status (`active | superseded | retracted`) derives at read time from links and events.
+
+**Evidence span**:
+A capture's provenance link: a **quoted excerpt** (primary, the model-facing citation currency) plus a **pointer** (session id + entry range, harness-derived — entry identity is harness-side vocabulary only). Anchors only on true user and user-affordance-payload entries.
+
+**Epistemic status**:
+`explicit | inferred | tentative | defaulted | external-lookup` — how a capture's content relates to what the user actually said. Distinct from confidence; excluded from capture identity.
+
+**Absence state**:
+A first-class capture value where an answer would be: `unknown-to-user | not-yet-decided | not-applicable | explicitly-absent | declined | deferred` (`not-mentioned` is a computed fact, not a sweepable capture). Never collapses to null.
+_Avoid_: null, missing (as the stored representation)
+
+**Supersession**:
+The explicit correction mechanism, single-hop over active heads only. Two channels: the creation-time `supersedes` link (sweep-time correction) and the resolution record (issue-time adjudication). Superseded captures stay visible — corrections don't erase history.
+
+**Resolution record**:
+The explicit capture-store event that alone closes a `conflicting` issue (and, with no successor capture, expresses retraction). Must cite the true user's utterance as evidence.
+
+**Issue**:
+Typed, stored backpressure to the elicitation controller: `missing / ambiguous / conflicting / invalid / unsupported / unmapped / low-confidence`, with factual attributes. Two producers, namespaced: plugin ops (payload level) and the harness itself (envelope level). Closes only explicitly.
+_Avoid_: advisory (a different thing, below)
+
+**Advisory**:
+A computed, ephemeral, non-blocking fact the harness surfaces to the agent (unaccounted ask, unswept tail, world-moved delta). Never stored in the capture store; never gates anything.
+
+**Pack**:
+A unit within a plugin: **ElicitationPack** (kernel cards, completion contract, clarification hints) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
+
+**Kernel card**:
+The pack-content unit of elicitation guidance: Detects / Goal / contrastive Questions / Artifacts (brunch `BEHAVIORAL_KERNELS.md` lineage — "kernel" here names a small unit of behavioral guidance, not a shell; the compound is the glossary's one sanctioned "kernel" use).
+
+**PluginContext**:
+The narrow injected context through which a plugin receives harness capabilities (the ask API, envelope, issue queue, sweep bookkeeping). The plugin's entire world at runtime; the four operations remain pure (snapshot-in/deltas-out) regardless.
+
+**Storage port**:
+The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind.
 
 **Walking skeleton**:
 A prototype that proves a transport or integration end-to-end on the real substrate (e.g. a real Flue agent + web UI) with stubbed internals.
