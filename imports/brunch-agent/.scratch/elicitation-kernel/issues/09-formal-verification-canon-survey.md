@@ -6,6 +6,8 @@ Resolved: 2026-08-06
 
 ## Question
 
+> **Rename decided 2026-08-10** (HITL, during spec-assembly prep): the second target is the **assurance argument** — GSN's own noun, per this ticket's verdict that "proof obligations" reads as a category error. Package: `plugin-assurance` (was `plugin-proof-obligations` in the Shipping-shape topology). References to `elicit-proof-obligations` below are the historical name.
+
 What existing canon should the `elicit-proof-obligations` output contract hew to, and — written didactically, for a reader new to formal verification — what does a verification workflow *actually do*: what are its artifacts, what is one trying to produce, where does the human effort go?
 
 Specifically:

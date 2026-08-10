@@ -29,7 +29,7 @@ _Avoid_: adapter (generic), integration, wrapper
 ### Sessions & durability
 
 **Target-domain**:
-The artifact family being elicited — what a plugin defines (gherkin scenarios, proof obligations, BPMN). The family half of the former bare "target".
+The artifact family being elicited — what a plugin defines (gherkin scenarios, assurance arguments, BPMN). The family half of the former bare "target".
 _Avoid_: target-paradigm; bare "target" where family/instance is ambiguous
 
 **Target-document**:
