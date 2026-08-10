@@ -14,11 +14,11 @@ inputs:
   cf_access_client_secret:
     description: Cloudflare Access service-token client secret for that Vault. Empty on fork pull requests, which is what skips sccache there.
     default: ""
-  sccache_ciphertext:
+  encrypted_sccache_credentials:
     description: Encrypted sccache credential bundle from mint-sccache-credentials, used instead of a direct Vault fetch. Empty on fork pull requests, which is what skips sccache there.
     default: ""
   sccache_encryption_key:
-    description: The symmetric key decrypting `sccache_ciphertext`.
+    description: The symmetric key decrypting `encrypted_sccache_credentials`.
     default: ""
   rust:
     description: Should Rust be installed? Can either be `"true"` or `true`
@@ -61,12 +61,12 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && (inputs.cf_access_client_secret != '' || inputs.sccache_ciphertext != '') }}
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && (inputs.cf_access_client_secret != '' || inputs.encrypted_sccache_credentials != '') }}
       continue-on-error: true
       uses: ./.github/actions/install-sccache
       with:
         vault_address: ${{ inputs.vault_address }}
         cf_access_client_id: ${{ inputs.cf_access_client_id }}
         cf_access_client_secret: ${{ inputs.cf_access_client_secret }}
-        ciphertext: ${{ inputs.sccache_ciphertext }}
+        encrypted_credentials: ${{ inputs.encrypted_sccache_credentials }}
         encryption_key: ${{ inputs.sccache_encryption_key }}

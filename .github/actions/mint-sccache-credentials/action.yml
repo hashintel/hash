@@ -14,8 +14,8 @@ inputs:
     description: The symmetric key encrypting the credential bundle.
     default: ""
 outputs:
-  ciphertext:
-    description: The encrypted credential bundle. Empty when the fetch was skipped or failed.
+  encrypted_credentials:
+    description: The encrypted credential bundle, JSON with named keys. Empty when the fetch was skipped or failed.
     value: ${{ steps.encrypt.outputs.ciphertext }}
 
 runs:
@@ -39,14 +39,23 @@ runs:
           ci/data/sccache/r2 access_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
           ci/data/sccache/r2 secret_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
 
+    - name: Bundle credentials
+      id: bundle
+      if: ${{ steps.secrets.outcome == 'success' }}
+      shell: bash
+      run: |
+        credentials=$(jq --null-input --compact-output \
+          --arg account_id "${SCCACHE_ACCOUNT_ID:?}" \
+          --arg bucket "${SCCACHE_BUCKET:?}" \
+          --arg access_key_id "${SCCACHE_AWS_ACCESS_KEY_ID:?}" \
+          --arg secret_access_key "${SCCACHE_AWS_SECRET_ACCESS_KEY:?}" \
+          '$ARGS.named')
+        echo "credentials=${credentials}" >>"${GITHUB_OUTPUT}"
+
     - name: Encrypt credentials
       id: encrypt
       if: ${{ steps.secrets.outcome == 'success' }}
       uses: ./.github/actions/encrypt-secret
       with:
-        value: |
-          ${{ env.SCCACHE_ACCOUNT_ID }}
-          ${{ env.SCCACHE_BUCKET }}
-          ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
-          ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
+        value: ${{ steps.bundle.outputs.credentials }}
         encryption_key: ${{ inputs.encryption_key }}

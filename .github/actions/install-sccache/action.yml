@@ -10,11 +10,11 @@ inputs:
   cf_access_client_secret:
     description: Cloudflare Access service-token client secret for that Vault.
     default: ""
-  ciphertext:
+  encrypted_credentials:
     description: Encrypted credential bundle from mint-sccache-credentials, used instead of a direct Vault fetch.
     default: ""
   encryption_key:
-    description: The symmetric key decrypting `ciphertext`.
+    description: The symmetric key decrypting `encrypted_credentials`.
     default: ""
 
 runs:
@@ -22,7 +22,7 @@ runs:
   steps:
     - name: Retrieve secrets
       id: secrets
-      if: ${{ inputs.ciphertext == '' }}
+      if: ${{ inputs.encrypted_credentials == '' }}
       uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
       with:
         # The endpoint sits behind Cloudflare Access, hence the service-token
@@ -41,25 +41,25 @@ runs:
 
     - name: Decrypt secrets
       id: decrypt
-      if: ${{ inputs.ciphertext != '' }}
+      if: ${{ inputs.encrypted_credentials != '' }}
       uses: ./.github/actions/decrypt-secret
       with:
-        ciphertext: ${{ inputs.ciphertext }}
+        ciphertext: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
 
     - name: Export credentials
-      if: ${{ inputs.ciphertext != '' }}
+      if: ${{ inputs.encrypted_credentials != '' }}
       shell: bash
       env:
         CREDENTIALS: ${{ steps.decrypt.outputs.plaintext }}
       run: |
-        {
-          read -r account_id
-          read -r bucket
-          read -r access_key_id
-          read -r secret_access_key
-        } <<<"${CREDENTIALS}"
-        : "${account_id:?}" "${bucket:?}" "${access_key_id:?}" "${secret_access_key:?}"
+        account_id=$(jq --raw-output --exit-status '.account_id' <<<"${CREDENTIALS}")
+        bucket=$(jq --raw-output --exit-status '.bucket' <<<"${CREDENTIALS}")
+        access_key_id=$(jq --raw-output --exit-status '.access_key_id' <<<"${CREDENTIALS}")
+        secret_access_key=$(jq --raw-output --exit-status '.secret_access_key' <<<"${CREDENTIALS}")
+        for value in "${account_id}" "${bucket}" "${access_key_id}" "${secret_access_key}"; do
+          echo "::add-mask::${value}"
+        done
         {
           echo "SCCACHE_ACCOUNT_ID=${account_id}"
           echo "SCCACHE_BUCKET=${bucket}"
