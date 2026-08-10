@@ -1,6 +1,6 @@
 import { use, useCallback, useMemo, useState } from "react";
 
-import { Icon, Button } from "@hashintel/ds-components";
+import { Banner, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -97,29 +97,15 @@ const positionStyle = css({
   marginLeft: "[8px]",
 });
 
-const simulationErrorStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  paddingY: "2",
-  paddingX: "3",
-  backgroundColor: "red.bg.min",
-  borderRadius: "sm",
+const simulationBannerStyle = css({
   marginBottom: "3",
 });
 
 const simulationErrorTextStyle = css({
-  fontSize: "[11px]",
-  color: "red.s60",
-  wordWrap: "break-word",
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
   userSelect: "text",
   cursor: "text",
-  textWrap: "wrap",
-});
-
-const editButtonStyle = css({
-  marginTop: "1",
-  alignSelf: "flex-start",
 });
 
 type EntityType = "transition" | "differential-equation";
@@ -243,28 +229,28 @@ const DiagnosticsContent: React.FC = () => {
     <>
       {/* Simulation runtime error */}
       {hasSimulationError && (
-        <div className={simulationErrorStyle}>
-          <pre className={simulationErrorTextStyle}>{simulationError}</pre>
+        <Banner tone="error" icon className={simulationBannerStyle}>
+          <Banner.Description className={simulationErrorTextStyle}>
+            {simulationError}
+          </Banner.Description>
           {errorItemId && (
-            <Button
-              onClick={() => {
-                setGlobalMode("edit");
-                const itemType = getItemType(errorItemId);
-                if (itemType) {
-                  selectItem({ type: itemType, id: errorItemId });
-                }
-              }}
-              className={editButtonStyle}
-              iconName="arrowRight"
-              tone="error"
-              variant="subtle"
-              size="sm"
-              iconPosition="right"
-            >
-              Edit Item
-            </Button>
+            <Banner.Actions>
+              <Banner.ActionButton
+                iconName="arrowRight"
+                iconPosition="right"
+                onClick={() => {
+                  setGlobalMode("edit");
+                  const itemType = getItemType(errorItemId);
+                  if (itemType) {
+                    selectItem({ type: itemType, id: errorItemId });
+                  }
+                }}
+              >
+                Edit Item
+              </Banner.ActionButton>
+            </Banner.Actions>
           )}
-        </div>
+        </Banner>
       )}
 
       {groupedDiagnostics.map((group) => {

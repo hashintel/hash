@@ -85,12 +85,17 @@ export const BannerTitle = ({
 export const BannerDescription = ({
   className,
   children,
+  as = "p",
 }: {
   className?: string;
   children: React.ReactNode;
+  as?: "p" | "div";
 }) => {
   const { description } = styles();
-  return <div className={cx(description, className)}>{children}</div>;
+  const Component = as as React.ElementType;
+  return (
+    <Component className={cx(description, className)}>{children}</Component>
+  );
 };
 
 export const BannerActions = ({
