@@ -17,10 +17,22 @@ import { css, sva } from "@hashintel/ds-helpers/css";
  */
 export const styles = sva({
   className: "drawer",
-  slots: drawerAnatomy.extendWith("stackRoot").keys(),
+  slots: drawerAnatomy.extendWith("stackRoot", "swipeHandle").keys(),
   base: {
     stackRoot: {
       display: "contents",
+    },
+    /*
+     * Swipe-to-close is restricted to a thin strip along the panel's inside
+     * edge (the edge facing the viewport centre) rather than the whole panel.
+     * The strip runs the full length of that edge, flush against the panel's
+     * outer frame; each `position` variant pins it to the relevant edge. Its
+     * `zIndex` sits below the close button (which bleeds into the edge gutter on
+     * some anchors) so that control stays clickable.
+     */
+    swipeHandle: {
+      position: "absolute",
+      zIndex: "[0]",
     },
     positioner: {
       display: "flex",
@@ -60,6 +72,9 @@ export const styles = sva({
       },
       "&[data-swiping]": {
         animationName: "[none !important]",
+      },
+      "&:not([data-swiping])": {
+        userSelect: "[text !important]",
       },
     },
   },
@@ -108,6 +123,11 @@ export const styles = sva({
           _open: { animationName: "drawerSlideInRight" },
           _closed: { animationName: "drawerSlideOutRight" },
         },
+        swipeHandle: {
+          insetBlock: "0",
+          left: "0",
+          width: "[calc(var(--panel-horizontal-padding) - 2px)]",
+        },
       },
       left: {
         positioner: {
@@ -131,6 +151,11 @@ export const styles = sva({
           },
           _open: { animationName: "drawerSlideInLeft" },
           _closed: { animationName: "drawerSlideOutLeft" },
+        },
+        swipeHandle: {
+          insetBlock: "0",
+          right: "0",
+          width: "[calc(var(--panel-horizontal-padding) - 2px)]",
         },
       },
       top: {
@@ -157,6 +182,11 @@ export const styles = sva({
           _open: { animationName: "drawerSlideInTop" },
           _closed: { animationName: "drawerSlideOutTop" },
         },
+        swipeHandle: {
+          insetInline: "0",
+          bottom: "0",
+          height: "[calc(var(--panel-top-padding) - 2px)]",
+        },
       },
       bottom: {
         positioner: {
@@ -181,6 +211,11 @@ export const styles = sva({
           },
           _open: { animationName: "drawerSlideInBottom" },
           _closed: { animationName: "drawerSlideOutBottom" },
+        },
+        swipeHandle: {
+          insetInline: "0",
+          top: "0",
+          height: "[calc(var(--panel-top-padding) - 2px)]",
         },
       },
     },
