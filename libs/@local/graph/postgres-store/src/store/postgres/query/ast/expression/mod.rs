@@ -359,6 +359,15 @@ impl Expression {
     }
 
     #[must_use]
+    pub fn json_delete(self, rhs: impl Into<Self>) -> Self {
+        Self::Binary(BinaryExpression {
+            op: BinaryOperator::JsonDelete,
+            left: Box::new(self),
+            right: Box::new(rhs.into()),
+        })
+    }
+
+    #[must_use]
     pub const fn concatenate(exprs: Vec<Self>) -> Self {
         Self::Variadic(VariadicExpression {
             op: VariadicOperator::Concatenate,
@@ -688,13 +697,66 @@ mod tests {
     }
 
     #[test]
-    fn transpile_jsonb_array_elements() {
+    fn transpile_json_array_elements() {
         assert_eq!(
-            Expression::from(Function::JsonbArrayElements(Box::new(
+            Expression::from(Function::JsonArrayElements(Box::new(
                 Expression::Parameter(1)
             )))
             .transpile_to_string(),
             "jsonb_array_elements($1)"
+        );
+        assert_eq!(
+            Expression::from(Function::JsonArrayElementsText(Box::new(
+                Expression::Parameter(1)
+            )))
+            .transpile_to_string(),
+            "jsonb_array_elements_text($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_json_typeof() {
+        assert_eq!(
+            Expression::from(Function::JsonTypeof(Box::new(Expression::Parameter(1))))
+                .transpile_to_string(),
+            "jsonb_typeof($1)"
+        );
+    }
+
+    #[test]
+    fn transpile_json_path_query_array() {
+        assert_eq!(
+            Expression::from(Function::JsonPathQueryArray(
+                Box::new(Expression::Parameter(1)),
+                Box::new(Expression::Parameter(2)),
+            ))
+            .transpile_to_string(),
+            "jsonb_path_query_array($1, $2)"
+        );
+    }
+
+    #[test]
+    fn transpile_json_object_agg_forms() {
+        assert_eq!(
+            Expression::from(Function::JsonObjectAgg {
+                key: Box::new(Expression::Parameter(1)),
+                value: Box::new(Expression::Parameter(2)),
+                filter: None,
+            })
+            .transpile_to_string(),
+            "jsonb_object_agg($1, $2)"
+        );
+        assert_eq!(
+            Expression::from(Function::JsonObjectAgg {
+                key: Box::new(Expression::Parameter(1)),
+                value: Box::new(Expression::Parameter(2)),
+                filter: Some(Box::new(
+                    Expression::from(Function::JsonTypeof(Box::new(Expression::Parameter(2))))
+                        .r#in(Expression::Parameter(3)),
+                )),
+            })
+            .transpile_to_string(),
+            "jsonb_object_agg($1, $2) FILTER (WHERE jsonb_typeof($2) = ANY($3))"
         );
     }
 

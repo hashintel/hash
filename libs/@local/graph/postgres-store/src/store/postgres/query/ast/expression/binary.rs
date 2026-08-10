@@ -49,6 +49,8 @@ pub enum BinaryOperator {
     JsonAccess,
     /// `<lhs> ->> <rhs>`
     JsonAccessAsText,
+    /// `<lhs> - <rhs>`
+    JsonDelete,
 
     // --- Domain-specific ---
     /// `<lhs> @> <rhs>::TIMESTAMPTZ`
@@ -73,7 +75,7 @@ impl BinaryOperator {
             Self::In => " = ANY(",
             Self::RegexMatch => " ~ ",
             Self::Add => " + ",
-            Self::Subtract => " - ",
+            Self::Subtract | Self::JsonDelete => " - ",
             Self::Multiply => " * ",
             Self::Divide => " / ",
             Self::Modulo => " % ",
@@ -107,6 +109,7 @@ impl BinaryOperator {
             | Self::BitwiseOr
             | Self::JsonAccess
             | Self::JsonAccessAsText
+            | Self::JsonDelete
             | Self::ArrayContains
             | Self::Overlap
             | Self::RegexMatch

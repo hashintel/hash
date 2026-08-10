@@ -18,10 +18,19 @@ pub enum Function {
     JsonExtract(Box<Expression>, PathToken<'static>),
     JsonExtractPath(Vec<Expression>),
     JsonContains(Box<Expression>, Box<Expression>),
+    /// The type of a `jsonb` value, as text.
+    ///
+    /// Transpiles to `jsonb_typeof(<expr>)`, one of `object`, `array`, `string`, `number`,
+    /// `boolean`, and `null`.
+    JsonTypeof(Box<Expression>),
     JsonScalar(Box<Expression>),
     JsonBuildArray(Vec<Expression>),
     JsonBuildObject(Vec<(Expression, Expression)>),
     JsonPathQueryFirst(Box<Expression>, Box<Expression>),
+    /// Every match of a JSON path inside a `jsonb` value, as a `jsonb` array.
+    ///
+    /// Transpiles to `jsonb_path_query_array(<target>, <path>)`.
+    JsonPathQueryArray(Box<Expression>, Box<Expression>),
     /// Creates an array literal with explicit type cast.
     ///
     /// Transpiles to `ARRAY[{elements}]::{type}[]` in PostgreSQL.
@@ -66,11 +75,25 @@ pub enum Function {
         expression: Box<Expression>,
         order_by: OrderByExpression,
     },
+    /// Aggregates key-value pairs into one `jsonb` object.
+    ///
+    /// Transpiles to `jsonb_object_agg(<key>, <value>)`, with ` FILTER (WHERE <filter>)`
+    /// appended when a filter is present, so only the rows the filter admits aggregate.
+    JsonObjectAgg {
+        key: Box<Expression>,
+        value: Box<Expression>,
+        filter: Option<Box<Expression>>,
+    },
     /// Expands a `jsonb` array into one row per element.
     ///
     /// Transpiles to `jsonb_array_elements(<expr>)`, a set-returning function that belongs in a
     /// FROM item.
-    JsonbArrayElements(Box<Expression>),
+    JsonArrayElements(Box<Expression>),
+    /// Expands a `jsonb` array into one row per element, each element as text.
+    ///
+    /// Transpiles to `jsonb_array_elements_text(<expr>)`, a set-returning function that belongs
+    /// in a FROM item.
+    JsonArrayElementsText(Box<Expression>),
     /// Counts rows or non-NULL values.
     ///
     /// Transpiles to `count(*)` when the argument is `None` and `count(<expr>)` otherwise.
@@ -116,7 +139,7 @@ pub enum Function {
     /// Expands a `jsonb` object into one row per key-value pair.
     ///
     /// Transpiles to `jsonb_each(<expr>)`, a set-returning function that belongs in a FROM item.
-    JsonbEach(Box<Expression>),
+    JsonEach(Box<Expression>),
     /// `pgvector`: rescales a vector to unit l2 norm.
     ///
     /// Transpiles to `l2_normalize(<expr>)`.
@@ -193,6 +216,11 @@ impl Transpile for Function {
                 json.transpile(fmt)?;
                 fmt.write_str(", ")?;
                 value.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonTypeof(expression) => {
+                fmt.write_str("jsonb_typeof(")?;
+                expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
             Self::JsonBuildArray(expressions) => {
@@ -291,8 +319,13 @@ impl Transpile for Function {
                 }
                 fmt.write_char(')')
             }
-            Self::JsonbArrayElements(expression) => {
+            Self::JsonArrayElements(expression) => {
                 fmt.write_str("jsonb_array_elements(")?;
+                expression.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonArrayElementsText(expression) => {
+                fmt.write_str("jsonb_array_elements_text(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
             }
@@ -354,7 +387,7 @@ impl Transpile for Function {
                 replacement.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::JsonbEach(expression) => {
+            Self::JsonEach(expression) => {
                 fmt.write_str("jsonb_each(")?;
                 expression.transpile(fmt)?;
                 fmt.write_char(')')
@@ -379,6 +412,26 @@ impl Transpile for Function {
                 fmt.write_str(", ")?;
                 path.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            Self::JsonPathQueryArray(target, path) => {
+                fmt.write_str("jsonb_path_query_array(")?;
+                target.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                path.transpile(fmt)?;
+                fmt.write_char(')')
+            }
+            Self::JsonObjectAgg { key, value, filter } => {
+                fmt.write_str("jsonb_object_agg(")?;
+                key.transpile(fmt)?;
+                fmt.write_str(", ")?;
+                value.transpile(fmt)?;
+                fmt.write_char(')')?;
+                if let Some(filter) = filter {
+                    fmt.write_str(" FILTER (WHERE ")?;
+                    filter.transpile(fmt)?;
+                    fmt.write_char(')')?;
+                }
+                Ok(())
             }
             Self::ArrayLiteral {
                 elements,
