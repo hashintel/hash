@@ -38,6 +38,7 @@ export { TextArea } from "./components/TextArea/text-area";
 export { TextInput } from "./components/TextInput/text-input";
 export { TextMark } from "./components/TextMark/text-mark";
 export { Toggle } from "./components/Toggle/toggle";
+export { BaseTooltip, type Position } from "./components/Tooltip/base-tooltip";
 export { Tooltip } from "./components/Tooltip/tooltip";
 export {
   PortalContainerContext,
