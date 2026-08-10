@@ -1,0 +1,36 @@
+name: Decrypt secret
+description: Decrypts a ciphertext produced by encrypt-secret, masking every plaintext line before it is output.
+inputs:
+  ciphertext:
+    description: The encrypted value, base64-encoded.
+    required: true
+  encryption_key:
+    description: The symmetric key decrypting the value.
+    required: true
+outputs:
+  plaintext:
+    description: The decrypted value.
+    value: ${{ steps.decrypt.outputs.plaintext }}
+
+runs:
+  using: composite
+  steps:
+    - name: Decrypt value
+      id: decrypt
+      shell: bash
+      env:
+        CIPHERTEXT: ${{ inputs.ciphertext }}
+        ENC_KEY: ${{ inputs.encryption_key }}
+      run: |
+        : "${CIPHERTEXT:?}" "${ENC_KEY:?}"
+        plaintext=$(printf '%s' "${CIPHERTEXT}" | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:ENC_KEY -base64 -A)
+        while IFS= read -r line; do
+          if [[ -n "${line}" ]]; then
+            echo "::add-mask::${line}"
+          fi
+        done <<<"${plaintext}"
+        {
+          echo "plaintext<<__PLAINTEXT_EOF__"
+          printf '%s\n' "${plaintext}"
+          echo "__PLAINTEXT_EOF__"
+        } >>"${GITHUB_OUTPUT}"

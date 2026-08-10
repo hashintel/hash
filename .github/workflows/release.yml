@@ -17,9 +17,12 @@ jobs:
       contents: read
       id-token: write
     outputs:
-      token-ciphertext: ${{ steps.encrypt.outputs.token-ciphertext }}
+      token-ciphertext: ${{ steps.encrypt.outputs.ciphertext }}
+      sccache-ciphertext: ${{ steps.mint-sccache.outputs.ciphertext }}
 
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
       - name: Get token
         id: app-token
         uses: hashintel/.github/.github/actions/github-app-token@b7a5d7f651c1d6a862d5dd97aa6164125bedb6c5 # main
@@ -35,13 +38,19 @@ jobs:
       # GitHub drops masked values from job outputs, so only ciphertext can cross.
       - name: Encrypt token
         id: encrypt
-        env:
-          TOKEN: ${{ steps.app-token.outputs.token }}
-          ENC_KEY: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
-        run: |
-          : "${TOKEN:?}" "${ENC_KEY:?}"
-          ciphertext=$(printf '%s' "${TOKEN}" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ENC_KEY -base64 -A)
-          echo "token-ciphertext=${ciphertext}" >>"${GITHUB_OUTPUT}"
+        uses: ./.github/actions/encrypt-secret
+        with:
+          value: ${{ steps.app-token.outputs.token }}
+          encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
+
+      - name: Mint sccache credentials
+        id: mint-sccache
+        uses: ./.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
   release:
     runs-on: ubuntu-latest
@@ -49,29 +58,28 @@ jobs:
     environment: main
     permissions:
       contents: read
-      id-token: write
 
     steps:
-      # First step, so the plaintext is masked before anything else runs.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Directly after checkout, so the plaintext is masked before anything else runs.
       - name: Decrypt token
         id: app-token
-        env:
-          TOKEN_CIPHERTEXT: ${{ needs.mint-token.outputs.token-ciphertext }}
-          ENC_KEY: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
-        run: |
-          : "${TOKEN_CIPHERTEXT:?}" "${ENC_KEY:?}"
-          token=$(printf '%s' "${TOKEN_CIPHERTEXT}" | openssl enc -d -aes-256-cbc -pbkdf2 -pass env:ENC_KEY -base64 -A)
-          echo "::add-mask::${token}"
-          echo "token=${token}" >>"${GITHUB_OUTPUT}"
+        uses: ./.github/actions/decrypt-secret
+        with:
+          ciphertext: ${{ needs.mint-token.outputs.token-ciphertext }}
+          encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.app-token.outputs.plaintext }}
 
       - name: Install tools
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          sccache_ciphertext: ${{ needs.mint-token.outputs.sccache-ciphertext }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -83,7 +91,7 @@ jobs:
           version: yarn changeset:version
           commitMode: github-api
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.plaintext }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug

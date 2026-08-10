@@ -1,0 +1,27 @@
+name: Encrypt secret
+description: Encrypts a value with a symmetric key so that only ciphertext crosses a job boundary.
+inputs:
+  value:
+    description: The plaintext to encrypt. May span multiple lines.
+    required: true
+  encryption_key:
+    description: The symmetric key encrypting the value.
+    required: true
+outputs:
+  ciphertext:
+    description: The encrypted value, base64-encoded.
+    value: ${{ steps.encrypt.outputs.ciphertext }}
+
+runs:
+  using: composite
+  steps:
+    - name: Encrypt value
+      id: encrypt
+      shell: bash
+      env:
+        VALUE: ${{ inputs.value }}
+        ENC_KEY: ${{ inputs.encryption_key }}
+      run: |
+        : "${VALUE:?}" "${ENC_KEY:?}"
+        ciphertext=$(printf '%s' "${VALUE}" | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:ENC_KEY -base64 -A)
+        echo "ciphertext=${ciphertext}" >>"${GITHUB_OUTPUT}"

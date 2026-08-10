@@ -3,19 +3,26 @@ description: Setup sccache for Rust project caching
 inputs:
   vault_address:
     description: The URL of the Vault server holding `ci/sccache/r2`.
-    required: true
+    default: ""
   cf_access_client_id:
     description: Cloudflare Access service-token client ID for that Vault.
-    required: true
+    default: ""
   cf_access_client_secret:
     description: Cloudflare Access service-token client secret for that Vault.
-    required: true
+    default: ""
+  ciphertext:
+    description: Encrypted credential bundle from mint-sccache-credentials, used instead of a direct Vault fetch.
+    default: ""
+  encryption_key:
+    description: The symmetric key decrypting `ciphertext`.
+    default: ""
 
 runs:
   using: composite
   steps:
     - name: Retrieve secrets
       id: secrets
+      if: ${{ inputs.ciphertext == '' }}
       uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
       with:
         # The endpoint sits behind Cloudflare Access, hence the service-token
@@ -31,6 +38,34 @@ runs:
           ci/data/sccache/r2 bucket | SCCACHE_BUCKET ;
           ci/data/sccache/r2 access_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
           ci/data/sccache/r2 secret_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
+
+    - name: Decrypt secrets
+      id: decrypt
+      if: ${{ inputs.ciphertext != '' }}
+      uses: ./.github/actions/decrypt-secret
+      with:
+        ciphertext: ${{ inputs.ciphertext }}
+        encryption_key: ${{ inputs.encryption_key }}
+
+    - name: Export credentials
+      if: ${{ inputs.ciphertext != '' }}
+      shell: bash
+      env:
+        CREDENTIALS: ${{ steps.decrypt.outputs.plaintext }}
+      run: |
+        {
+          read -r account_id
+          read -r bucket
+          read -r access_key_id
+          read -r secret_access_key
+        } <<<"${CREDENTIALS}"
+        : "${account_id:?}" "${bucket:?}" "${access_key_id:?}" "${secret_access_key:?}"
+        {
+          echo "SCCACHE_ACCOUNT_ID=${account_id}"
+          echo "SCCACHE_BUCKET=${bucket}"
+          echo "SCCACHE_AWS_ACCESS_KEY_ID=${access_key_id}"
+          echo "SCCACHE_AWS_SECRET_ACCESS_KEY=${secret_access_key}"
+        } >>"${GITHUB_ENV}"
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10

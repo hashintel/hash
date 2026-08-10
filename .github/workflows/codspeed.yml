@@ -11,13 +11,12 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   setup:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     outputs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
@@ -30,9 +29,6 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       - name: Determine changed packages that have codspeed
@@ -48,6 +44,9 @@ jobs:
     name: Run benchmarks
     needs: [setup]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
       fail-fast: false
