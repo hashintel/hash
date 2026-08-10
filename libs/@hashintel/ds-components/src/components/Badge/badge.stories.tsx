@@ -1,252 +1,264 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Avatar } from "../Avatar/avatar";
+import { Button } from "../Button/button";
+import { Icon } from "../Icon/icon";
 import { Badge, type BadgeProps } from "./badge";
 
+import type { ChipColor } from "../Chip/chip";
 import type { Story, StoryDefault } from "@ladle/react";
 
+const colors: ChipColor[] = [
+  "grey",
+  "red",
+  "blue",
+  "green",
+  "orange",
+  "yellow",
+  "purple",
+  "pink",
+];
+
+const shapes: NonNullable<BadgeProps["shape"]>[] = ["square", "round"];
+
+const positions: NonNullable<BadgeProps["position"]>[] = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+];
+
+const noop = () => undefined;
+
+const row = css({
+  display: "flex",
+  gap: "[20px]",
+  alignItems: "center",
+  flexWrap: "wrap",
+});
+
+// Wider gaps for the position / anchor rows: a long badge overhangs its corner
+// by ~half its width, so neighbours need room to not collide.
+const wideRow = css({
+  display: "flex",
+  gap: "[72px]",
+  alignItems: "center",
+  flexWrap: "wrap",
+});
+
+const column = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[20px]",
+});
+
+const sectionTitle = css({
+  textStyle: "sm",
+  fontWeight: "semibold",
+  color: "fg.heading",
+  marginTop: "[8px]",
+});
+
+const bell = css({ color: "fg.muted" });
+
+/** The bell icon the badge attaches to in most of these examples. */
+const Bell = () => <Icon name="bell" size="lg" className={bell} />;
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <div className={sectionTitle}>{children}</div>
+);
+
+// An anchor plus its caption, so the "attaches to anything" rows read clearly.
+const anchorCell = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "[10px]",
+});
+
+const caption = css({ textStyle: "xs", color: "fg.subtle" });
+
+const smallText = css({ textStyle: "xs", color: "fg.body" });
+
+const largeText = css({
+  textStyle: "2xl",
+  fontWeight: "semibold",
+  color: "fg.heading",
+  lineHeight: "[1]",
+});
+
+// A stand-in app tile / thumbnail — the kind of square that carries a count.
+const tile = css({
+  width: "[40px]",
+  height: "[40px]",
+  borderRadius: "lg",
+  background: "bg.subtle",
+  border: "1px solid",
+  borderColor: "bd.subtle",
+});
+
+const AnchorCell = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className={anchorCell}>
+    {children}
+    <span className={caption}>{label}</span>
+  </div>
+);
+
+// The range of elements a badge attaches to, all carrying the same `content`.
+const Anchors = ({
+  content,
+  color,
+  position,
+}: Pick<BadgeProps, "content" | "color" | "position">) => (
+  <div className={wideRow}>
+    <AnchorCell label="icon">
+      <Badge content={content} color={color} position={position}>
+        <Bell />
+      </Badge>
+    </AnchorCell>
+    <AnchorCell label="button">
+      <Badge content={content} color={color} position={position}>
+        <Button variant="subtle" onClick={noop}>
+          Inbox
+        </Button>
+      </Badge>
+    </AnchorCell>
+    <AnchorCell label="avatar">
+      <Badge
+        content={content}
+        color={color}
+        position={position}
+        alignTo="circle"
+      >
+        <Avatar placeholder={{ initials: "AL" }} alt="AL" />
+      </Badge>
+    </AnchorCell>
+    <AnchorCell label="small text">
+      <Badge content={content} color={color} position={position}>
+        <span className={smallText}>Messages</span>
+      </Badge>
+    </AnchorCell>
+    <AnchorCell label="large text">
+      <Badge content={content} color={color} position={position}>
+        <span className={largeText}>Updates</span>
+      </Badge>
+    </AnchorCell>
+    <AnchorCell label="tile">
+      <Badge content={content} color={color} position={position}>
+        <span className={tile} />
+      </Badge>
+    </AnchorCell>
+  </div>
+);
+
 export default {
-  title: "Legacy/Badge",
+  title: "Components/Badge",
   parameters: {
     layout: "centered",
   },
   argTypes: {
-    colorScheme: {
-      control: { type: "select" },
-      options: [
-        "gray",
-        "brand",
-        "green",
-        "orange",
-        "red",
-        "purple",
-        "pink",
-        "yellow",
-      ],
-      description: "The color scheme of the badge",
-    },
-    size: {
-      control: { type: "select" },
-      options: ["xs", "sm", "md", "lg"],
-      description: "The size of the badge",
-    },
-    isSquare: {
-      control: { type: "boolean" },
-      description: "Whether the badge is square (for numeric badges)",
-    },
-    children: {
-      control: { type: "text" },
-      description: "The content of the badge",
-    },
+    color: { control: { type: "select", options: colors } },
+    shape: { control: { type: "select", options: shapes } },
+    position: { control: { type: "select", options: positions } },
+    content: { control: { type: "text" } },
   },
   args: {
-    children: "Badge",
-    colorScheme: "gray",
-    size: "xs",
-    isSquare: false,
+    content: "9",
+    color: "red",
+    shape: "round",
+    position: "top-right",
   },
 } satisfies StoryDefault<BadgeProps>;
 
-export const Default: Story<BadgeProps> = (args) => <Badge {...args} />;
-Default.args = {
-  children: "Badge",
-};
-
-export const ColorSchemes: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge {...args} colorScheme="gray">
-      Gray
-    </Badge>
-    <Badge {...args} colorScheme="brand">
-      Brand
-    </Badge>
-    <Badge {...args} colorScheme="green">
-      Green
-    </Badge>
-    <Badge {...args} colorScheme="orange">
-      Orange
-    </Badge>
-    <Badge {...args} colorScheme="red">
-      Red
-    </Badge>
-    <Badge {...args} colorScheme="purple">
-      Purple
-    </Badge>
-    <Badge {...args} colorScheme="pink">
-      Pink
-    </Badge>
-    <Badge {...args} colorScheme="yellow">
-      Yellow
-    </Badge>
-  </div>
-);
-ColorSchemes.parameters = {
-  controls: { exclude: ["children", "colorScheme"] },
-};
-
-export const Sizes: Story<BadgeProps> = () => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      alignItems: "center",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge size="xs">Extra Small</Badge>
-    <Badge size="sm">Small</Badge>
-    <Badge size="md">Medium</Badge>
-    <Badge size="lg">Large</Badge>
-  </div>
-);
-Sizes.parameters = {
-  controls: { exclude: ["children", "size", "isSquare"] },
-};
-
-export const SquareBadges: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      alignItems: "center",
-      flexWrap: "wrap",
-    })}
-  >
-    <Badge {...args} isSquare size="xs">
-      2
-    </Badge>
-    <Badge {...args} isSquare size="sm">
-      5
-    </Badge>
-    <Badge {...args} isSquare size="md">
-      9
-    </Badge>
-    <Badge {...args} isSquare size="lg">
-      12
-    </Badge>
-  </div>
-);
-SquareBadges.parameters = {
-  controls: { exclude: ["children", "size", "isSquare"] },
-};
-
-export const WithIcons: Story<BadgeProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[12px]",
-      flexDirection: "column",
-    })}
-  >
-    <div
-      className={css({
-        display: "flex",
-        gap: "[12px]",
-        flexWrap: "wrap",
-      })}
-    >
-      <Badge
-        {...args}
-        iconLeft={
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="6" cy="6" r="4" />
-          </svg>
-        }
-      >
-        With Left Icon
-      </Badge>
-      <Badge
-        {...args}
-        iconRight={
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="6" cy="6" r="4" />
-          </svg>
-        }
-      >
-        With Right Icon
-      </Badge>
-      <Badge
-        {...args}
-        colorScheme="green"
-        iconLeft={
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-            <path d="M6.5 1L8 5h4l-3 3 1 4-3.5-2.5L3 12l1-4-3-3h4l1.5-4z" />
-          </svg>
-        }
-      >
-        Premium
-      </Badge>
-    </div>
-  </div>
-);
-WithIcons.parameters = {
-  controls: { exclude: ["children"] },
-};
-
-export const AllCombinations: Story<BadgeProps> = () => {
-  const colors: Array<BadgeProps["colorScheme"]> = [
-    "gray",
-    "brand",
-    "green",
-    "orange",
-    "red",
-    "purple",
-    "pink",
-    "yellow",
-  ];
-  const sizes: Array<BadgeProps["size"]> = ["xs", "sm", "md", "lg"];
-
-  return (
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "[16px]",
-      })}
-    >
+// A single showcase covering colours, shape, and content.
+export const Default: Story<BadgeProps> = () => (
+  <div className={column}>
+    <SectionTitle>Colours</SectionTitle>
+    <div className={row}>
       {colors.map((color) => (
-        <div
-          key={color}
-          className={css({
-            display: "flex",
-            gap: "[12px]",
-            alignItems: "center",
-          })}
-        >
-          <div
-            className={css({
-              width: "[80px]",
-              fontSize: "[14px]",
-              textTransform: "capitalize",
-            })}
-          >
-            {color}
-          </div>
-          {sizes.map((size) => (
-            <Badge key={size} colorScheme={color} size={size}>
-              {color}
-            </Badge>
-          ))}
-          {sizes.map((size) => (
-            <Badge
-              key={`${size}-square`}
-              colorScheme={color}
-              size={size}
-              isSquare
-            >
-              2
-            </Badge>
-          ))}
-        </div>
+        <Badge key={color} content={9} color={color}>
+          <Bell />
+        </Badge>
       ))}
     </div>
-  );
+
+    <SectionTitle>Shape</SectionTitle>
+    <div className={row}>
+      {shapes.map((shape) => (
+        <Badge key={shape} content={9} shape={shape} color="red">
+          <Bell />
+        </Badge>
+      ))}
+    </div>
+
+    {/* `max` defaults to 99, so 100/1000 render as "99+". Content can be a
+        string, an icon, or an icon + text; omitting it renders a plain dot. */}
+    <SectionTitle>Content</SectionTitle>
+    <div className={row}>
+      {[9, 99, 100, 1000].map((count) => (
+        <Badge key={count} content={count} color="red">
+          <Bell />
+        </Badge>
+      ))}
+      <Badge content="new" color="red">
+        <Bell />
+      </Badge>
+      <Badge content={<Icon name="check" size="xxs" />} color="green">
+        <Bell />
+      </Badge>
+      <Badge
+        content={
+          <>
+            <Icon name="sparkles" size="xxs" />
+            New
+          </>
+        }
+        color="purple"
+      >
+        <Bell />
+      </Badge>
+      <Badge color="green">
+        <Bell />
+      </Badge>
+    </div>
+  </div>
+);
+Default.parameters = {
+  controls: { exclude: ["color", "shape", "position", "content"] },
 };
-AllCombinations.parameters = {
-  controls: { disabled: true },
-};
+
+// Short content at each corner, then the badge across a range of anchor
+// elements — with short content, and with long content at two corners to show
+// the width clamp extending outward from the anchor's midline.
+export const Position: Story<BadgeProps> = (args) => (
+  <div className={column}>
+    <div className={wideRow}>
+      {positions.map((position) => (
+        <Badge
+          key={position}
+          content={9}
+          position={position}
+          color={args.color}
+          shape={args.shape}
+        >
+          <Bell />
+        </Badge>
+      ))}
+    </div>
+
+    <SectionTitle>Attaches to any content</SectionTitle>
+    <Anchors content={9} color={args.color} />
+    <Anchors content={null} color={args.color} />
+
+    <SectionTitle>…and grows with longer content</SectionTitle>
+    <Anchors content="Processing" color={args.color} />
+    <Anchors content="Processing" position="bottom-left" color={args.color} />
+  </div>
+);
+Position.parameters = { controls: { exclude: ["position", "content"] } };
