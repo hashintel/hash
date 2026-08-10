@@ -1,7 +1,8 @@
 # Walking skeleton: sweep seam on Flue
 
 Type: prototype
-Status: claimed
+Status: resolved
+Resolved: 2026-08-10
 
 ## Question
 
@@ -15,6 +16,31 @@ Prove the four substrate capabilities the capture-sweep machinery assumes but no
 Success = a minimal Flue walking skeleton (seeded from `prototype/10-flue-roundtrip`) that wires ticket 11's pure reducer (`prototype/11-capture-sweep`) to a real session log through these four capabilities. The resolution amends Shipping shape's six-item substrate-capability list — these are its four missing entries (pre-pass L3) — or records what Flue lacks or forbids and what the Flue binding must therefore absorb (binding-size asymmetry is expected, per ticket 06).
 
 Blocks: [Assemble the spec](08-assemble-the-spec.md).
+
+## Answer
+
+> Resolved by walking skeleton + two HITL reaction rounds, 2026-08-10. Real Flue agent + web UI with a live target-document panel, two browser sessions against one target-document, driven live by the user; 21-check headless probe suite passing. Prototype on branch **`prototype/13-sweep-seam`** (`prototypes/sweep-seam/`; commits 276c0e4 skeleton, bbb3646 HITL fix).
+
+**Overall: all four capabilities hold on Flue — two natively, two absorbed by the binding, none forbidden — with one load-bearing amendment from the HITL rounds: evidence anchoring must be harness-resolved, not model-chosen.**
+
+### Verdict per capability
+
+1. **Settlement trigger — PROVEN, native.** `useAgentFinish` is the would-stop control seam: awaited before the response settles; `ctx.append` steers a settlement-check signal into a same-response continuation turn; the hook re-fires at the next would-stop; the response settles only when nothing appends. Trigger computes facts, judgment stays with the agent (declining is legal). Mechanism findings: the hook **fires on `terminate: true` suspensions too** (the pending-affordance guard is load-bearing — without it the nudge would append into a suspended ask turn); the nudge itself becomes a session entry, so the trigger needs a **loop guard** (never re-nudge the same latest-user-entry). Observed cadence drift: the model preferred sweeping at reply time without waiting for a nudge — harmless *because* sweeps are content-idempotent and harness-anchored; cadence is policy, exactly as ticket 11 said.
+2. **Read a session entry range — PROVEN, binding-absorbed.** No in-process path from agent code to the conversation store exists (`getFlueRuntime` is private; lifecycle contexts expose only tool names). The binding reads the **public durable-history projection** (`GET <agent-url>?view=history`, @flue/sdk) over self-HTTP; works mid-response. The projection is sweep-sufficient: stable ids, stream order, **`purpose` as the provenance discriminator** ('user'/'assistant'/'dispatch'/'advisory'), signal descriptors, tool parts with validated outputs. **The amendment (HITL round 1):** the projection numbering is harness-side knowledge ONLY — hidden advisories inflate it and the model's seq guesses never converge, while its verbatim quotes are flawless. So the model-facing citation currency is the **quoted excerpt**; the harness resolves quotes to entries (user-entries-only candidates; no-match refuses with a repair hint; multi-match anchors latest with an advisory). Sharpens ticket 12's span shape: the excerpt is primary at proposal time, the pointer is derived.
+3. **Inject an on-behalf-of-user state entry — PROVEN, native.** `ctx.append` (same-response) and `dispatch({kind:'signal'})` (real delivery) share one vocabulary. Caller-defined signals project as system-role / `purpose: 'dispatch'` / `display: 'diagnostic'` with tagName + trusted attributes — **structurally distinct from true user entries, so ticket 12's citable-evidence rule is mechanically enforced** (a capture citing an injected entry is refused). The re-entry briefing worked in every shape: fresh session, resumed session, post-restart session — and in HITL round 2 it produced unscripted **conversational conflict-surfacing**: briefed with "September 12" and told "September 13", the agent asked instead of overwriting, then swept the correction as a supersession citing both the assertion and the confirmation.
+4. **Transactional durable store — PROVEN as binding-owned; Flue neither provides nor forbids it.** `usePersistentState` is conversation-scoped by design; no cross-conversation store surface is public. The binding owns the target-document store (milestone one: JSON file, tmp+rename atomic, in-process serialization), and every ticket-11 semantic survived the real log: whole-sweep-atomic apply/refuse, content-keyed idempotence (**load-bearing, not optional**, under Flue's at-least-once tool re-execution), single-hop supersession as the stale-session guard. Restart probe: conversations 404 (in-memory, no `db.ts`), store survives, a fresh session answers correctly from its briefing alone.
+
+### Capability-list amendment (Shipping shape, issue 06 — closes pre-pass L3)
+
+The six-item substrate-capability list gains four entries: **7. subscribe to the would-stop lifecycle seam, with same-response signal steering** (native); **8. read the session's durable entry projection, with provenance-discriminating entry kinds** (binding-absorbed; no in-process API); **9. inject typed non-user signal entries, same-response and as deliveries** (native); **10. provide a transactional durable store outside conversation state** (binding-absorbed entirely). Binding-size asymmetry landed exactly where ticket 06 predicted.
+
+### HITL round 2 — cross-session dynamics observed live
+
+Session-a captured date/time, guests, budget; session-b opened with a contradictory assertion ("Hilton, September 13"): briefing → conversational conflict-surfacing → user confirmed → **c4 superseded c1 citing both user entries**. Then the superseded-history payoff: the user said "the same time we said before, whatever that was" — the time lived only in the *superseded* capture; the agent resolved it from the briefing's history and captured it as its own fact, honestly marked **inferred**, anchored to the user's actual words. "Corrections don't erase history" paying rent. One wrinkle for the spec: **compound payloads make supersession lossy** (c1 bundled date+time; c4 superseded it with date+venue and silently dropped the time until the user's remark rescued it) — capture granularity is plugin `validate`/kernel-card guidance territory. Same stratum as the other live find: a payload can smuggle an absence (`payload: "not-yet-decided"`) past the envelope — exactly the payload-level validation ticket 11 assigned to plugins.
+
+### Spec consequences (for issue 08)
+
+Entry identity is harness-side vocabulary; excerpts are the model-facing citation currency (amends the envelope's span story). Judgment prompts must never be the model's only source of mechanical facts (trigger suppression during suspension is correct but starves numbered context). Two payload-level validation examples now exist for the smallest-honest-plugin section. The wake-wart (ticket 10) remains cosmetically noisy ("I've noted the update…" doubling) — unchanged spec options.
 
 ## Comments
 
