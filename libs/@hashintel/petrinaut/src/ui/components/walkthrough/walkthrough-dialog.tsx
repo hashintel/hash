@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Button, Dialog } from "@hashintel/ds-components";
+import { Button, ButtonGroup, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -86,6 +86,8 @@ const progressGroupStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "3",
+  // Keep its content width so the full-width ButtonGroup beside it doesn't squash it.
+  flexShrink: "[0]",
 });
 
 const srOnlyStyle = css({
@@ -126,12 +128,6 @@ const dividerStyle = css({
   height: "[16px]",
   backgroundColor: "neutral.a10",
   flexShrink: "[0]",
-});
-
-const actionsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
 });
 
 export type WalkthroughDialogProps = {
@@ -268,7 +264,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
               </Button>
             )}
           </div>
-          <div className={actionsStyle}>
+          <ButtonGroup alignedTo="right">
             <Button
               variant="subtle"
               size="sm"
@@ -285,7 +281,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
             >
               {atLast ? "Get started" : "Next"}
             </Button>
-          </div>
+          </ButtonGroup>
         </div>
       </Dialog.Footer>
     </Dialog>
