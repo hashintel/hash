@@ -1,6 +1,7 @@
 /* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
@@ -28,6 +29,8 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     pressed?: boolean;
     disabled?: boolean;
     tabIndex?: number;
+    /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
+    autoFocus?: boolean | "never";
     onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
     onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
     onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
@@ -133,6 +136,7 @@ export const Button = (props: ButtonProps) => {
     onFocus,
     onBlur,
     tabIndex,
+    autoFocus,
     tooltipOptions,
     ...rest
   } = props;
@@ -207,6 +211,7 @@ export const Button = (props: ButtonProps) => {
     "aria-live": loading ? ("polite" as const) : undefined,
     "aria-disabled": disabled || loading || undefined,
     ...rest,
+    ...resolveAutoFocusProps(autoFocus),
   };
 
   // We split this out so that we can type the events properly

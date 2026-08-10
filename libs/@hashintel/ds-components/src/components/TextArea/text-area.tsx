@@ -3,6 +3,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { CharacterCount } from "../CharacterCount/character-count";
 import { useFieldId } from "../Form/field-id-context";
 import { textAreaRecipe } from "./text-area.recipe";
@@ -139,7 +140,7 @@ export const TextArea = ({
           spellCheck={spellcheck}
           data-testid={testId}
           className={classes.textarea}
-          autoFocus={autoFocus === true ? true : undefined}
+          {...resolveAutoFocusProps(autoFocus)}
           {...ariaProps}
         />
       </div>
