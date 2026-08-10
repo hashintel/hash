@@ -448,8 +448,10 @@ impl StagedGeneration {
     ///
     /// Returns an error when the manifest repeats a name or claims the metadata document's name. It
     /// also returns an error when the manifest disagrees with the staged file set or names a
-    /// generation that is already published. Serializing the metadata document returns an error
-    /// when it fails. A write, sync, permission, or rename failure returns an error as well.
+    /// generation that is already published. A non-finite evidence reading refuses ahead of
+    /// serialization, naming the field ([`SealError::NonFinite`]). Serializing the metadata
+    /// document returns an error when it fails. A write, sync, permission, or rename failure
+    /// returns an error as well.
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,

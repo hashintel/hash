@@ -17,6 +17,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
         array::OpenArrayError,
+        attraction::read::OpenAttractionError,
         generation::SealError,
         identity::read::OpenIdentityError,
         landmark::read::OpenLandmarkError,
@@ -31,7 +32,7 @@ use crate::{
             artifact::InvalidKnnFile, descent::NnDescentError, error::KnnError,
             hannoy::HannoyIndexError, recall,
         },
-        ladder::{CanonicalError, LadderError},
+        ladder::{CanonicalError, LadderError, paired::EncodeError},
         landmark::{
             artifact::InvalidLandmarkFile, assignment::AssignmentError, layout::EdgelessGraphError,
             quotient::QuotientError, select::SelectionError,
@@ -264,6 +265,13 @@ pub enum StageError {
     MapCoordinates(OpenArrayError),
     /// The staged coordinate column is not an f32 pair array.
     CoordinateShape,
+    /// The staged attraction index failed to map back.
+    MapAttraction(OpenAttractionError),
+    /// The paired-movement salt preimage failed to serialize.
+    ///
+    /// The preimage is a strict subset of the metadata document, so the seal would refuse the
+    /// same generation.
+    SaltPreimage(EncodeError),
     /// The corpus exceeds the `u32` wire position encoding.
     WireEncoding { rows: u64 },
     /// The level-of-detail derivation rejected its input.
@@ -307,6 +315,18 @@ pub enum StageError {
     /// The payload's message survives, unwinding removes the staging directory, and the async
     /// executor never observes the unwind.
     Panicked { message: Option<String> },
+}
+
+impl From<OpenAttractionError> for StageError {
+    fn from(error: OpenAttractionError) -> Self {
+        Self::MapAttraction(error)
+    }
+}
+
+impl From<EncodeError> for StageError {
+    fn from(error: EncodeError) -> Self {
+        Self::SaltPreimage(error)
+    }
 }
 
 impl From<io::Error> for StageError {
@@ -576,6 +596,11 @@ impl fmt::Display for StageError {
             Self::MapCards(error) => map_back(fmt, "card-embedding matrix", error),
             Self::MapCoordinates(error) => map_back(fmt, "coordinate column", error),
             Self::CoordinateShape => fmt.write_str("the staged coordinates are not f32 pairs"),
+            Self::MapAttraction(error) => map_back(fmt, "attraction index", error),
+            Self::SaltPreimage(error) => write!(
+                fmt,
+                "the paired-movement salt preimage failed to serialize: {error}"
+            ),
             Self::WireEncoding { rows } => write!(
                 fmt,
                 "the corpus holds {rows} rows, beyond the u32 wire position encoding"
@@ -655,6 +680,8 @@ impl Error for StageError {
             | Self::MapCards(error)
             | Self::MapCoordinates(error)
             | Self::MapEndpoints(error) => Some(error),
+            Self::MapAttraction(error) => Some(error),
+            Self::SaltPreimage(error) => Some(error),
             Self::Lod(error) => Some(error),
             Self::Quad(error) => Some(error),
             Self::Postings(error) => Some(error),

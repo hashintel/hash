@@ -36,10 +36,12 @@ use crate::{
     dataset::{OntologyIdentity, PROJECTOR_DIMENSIONS},
     file::{
         array::{ArrayFile, ArrayVariant, ArrayWriter, Dim, SizedArrayWriter},
+        attraction::read::AttractionFile,
         identity::{Key, read::IdentityFile},
         repository::RepositoryFile,
         salt::metadata::{
-            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, RungEvidence,
+            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, Reproducibility,
+            RungEvidence, Snapshot,
         },
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
@@ -48,7 +50,11 @@ use crate::{
     progress::Progress,
     salt::{
         knn::{artifact::KnnArchive, table::KnnView},
-        ladder::{Field, measure_ladder, select_canonical},
+        ladder::{
+            Field, measure_ladder,
+            paired::{self, PairedMovementEvidence},
+            select_canonical,
+        },
         landmark::artifact::LandmarkSkeletonArchive,
         projector::{
             artifact,
@@ -74,8 +80,8 @@ use crate::{
 ///
 /// The Metal flavor is the unfused `burn::backend::wgpu::CubeBackend`: under the fused
 /// `burn::backend::Metal` alias, `burn-fusion`'s stream ordering (0.21.0, ordering.rs:65) panics
-/// out of bounds on this workload's dynamic relation-batch shapes, killing the device service
-/// thread.
+/// out of bounds on this workload's step-varying relation-batch shapes, killing the device
+/// service thread.
 #[cfg(feature = "gpu")]
 pub(crate) type TrainerInner =
     burn::backend::wgpu::CubeBackend<burn::backend::wgpu::WgpuRuntime, f32, i32, u8>;
@@ -108,6 +114,13 @@ pub(super) struct PlacementInputs<'fit> {
     pub skeleton: &'fit LandmarkSkeletonArchive,
     /// The supplied verdicts, resolved into the corpus row domain.
     pub resolution: &'fit VerdictResolution,
+    /// The metadata document's `snapshot` section, the value the seal serializes.
+    ///
+    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage, so the
+    /// readout's draw replays from the published document's input sections alone.
+    pub snapshot: &'fit Snapshot,
+    /// The metadata document's `reproducibility` section, the value the seal serializes.
+    pub reproducibility: &'fit Reproducibility,
     /// The distinct-row training domain.
     pub distinct: DistinctInputs<'fit>,
 }
@@ -134,7 +147,8 @@ pub(super) struct DistinctInputs<'fit> {
 ///
 /// The quotient, the neighbour table, and the attraction index carry the ladder's per-rung loss
 /// measurements over the distinct rows, and the unresolved-verdict count echoes into the
-/// placement's evidence.
+/// placement's evidence. The metadata document's input sections ride beside them as the
+/// paired-movement salt preimage.
 pub(super) struct PublishInputs<'fit> {
     /// The corpus-to-distinct row quotient.
     pub quotient: &'fit RowQuotient,
@@ -144,6 +158,13 @@ pub(super) struct PublishInputs<'fit> {
     pub attraction: &'fit AttractionIndex<DistinctRowId, EdgeRowId>,
     /// Verdicts naming no row of this corpus.
     pub unresolved_verdicts: usize,
+    /// The metadata document's `snapshot` section, the value the seal serializes.
+    ///
+    /// With [`Self::reproducibility`] it forms the paired-movement salt preimage, so the
+    /// readout's draw replays from the published document's input sections alone.
+    pub snapshot: &'fit Snapshot,
+    /// The metadata document's `reproducibility` section, the value the seal serializes.
+    pub reproducibility: &'fit Reproducibility,
 }
 
 /// The supplied verdicts resolved into the corpus row domain.
@@ -304,6 +325,8 @@ impl Context<'_> {
                 knn: distinct.knn.view(),
                 attraction: &distinct.indexes.attraction,
                 unresolved_verdicts: inputs.resolution.unresolved,
+                snapshot: inputs.snapshot,
+                reproducibility: inputs.reproducibility,
             },
             columns,
             &fitted.model,
@@ -489,10 +512,11 @@ impl Context<'_> {
         );
 
         let canonical = fields[selection.index].coordinates;
-        let digest = self.stage_coordinate_column(
-            canonical.len() as u64,
-            canonical.iter().map(|&point| alignment.apply(point)),
-        )?;
+        let aligned: Vec<_> = canonical
+            .iter()
+            .map(|&point| alignment.apply(point))
+            .collect();
+        let digest = self.stage_coordinate_column(aligned.len() as u64, aligned.iter().copied())?;
 
         // Re-measured over the persisted bytes: the narrowing to `f32`
         // and the alignment application are inside the measurement,
@@ -521,15 +545,73 @@ impl Context<'_> {
             losses[0],
         );
 
+        // The readout measures between the two frames the evidence narrates: the baseline rung
+        // and the published canonical field, both in the baseline basis.
+        let paired_movement = self.measure_paired_movement(
+            inputs.snapshot,
+            inputs.reproducibility,
+            fields[0].coordinates,
+            &aligned,
+        )?;
+
         Ok((
             LadderEvidence {
                 rungs: measurements.iter().map(RungEvidence::from).collect(),
                 canonical: selection.measurement.condition,
                 canonical_index: selection.index,
                 persisted_relation_loss,
+                paired_movement: Some(paired_movement),
             },
             digest,
         ))
+    }
+
+    /// Measures the paired-movement readout over the staged attraction index.
+    ///
+    /// The readings run over the ladder's aligned frames: `zero` is the baseline rung's field
+    /// and `canonical` the published rung's field in the baseline basis. [`paired::measure`]
+    /// runs the whole readout, and every readout resolution is an evidence body, so the
+    /// generation publishes around a vacuous or failed reading.
+    ///
+    /// # Errors
+    ///
+    /// - [`StageError::SaltPreimage`] when the salt preimage does not serialize. The preimage is a
+    ///   strict subset of the metadata document, so the seal shares the failure.
+    /// - [`StageError::MapAttraction`] when the staged attraction index does not map back.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the staged index and the ladder frames disagree on the corpus row count.
+    /// One fit stages both over one corpus, so the disagreement is a pipeline defect rather than
+    /// a data condition, and no persisted refusal names it.
+    #[expect(
+        clippy::panic_in_result_fn,
+        reason = "the Result carries fit-level failures; a row-count contradiction between two \
+                  artifacts of one fit is a pipeline contract violation, documented under Panics"
+    )]
+    fn measure_paired_movement(
+        &self,
+        snapshot: &Snapshot,
+        reproducibility: &Reproducibility,
+        zero: &[Vec2],
+        canonical: &[Vec2],
+    ) -> Result<PairedMovementEvidence, StageError> {
+        let index = AttractionFile::open(self.staging.path_of(&Role::Attraction.file_name()))?;
+        assert_eq!(
+            index.rows(),
+            zero.len() as u64,
+            "the staged index and the ladder frames describe one corpus"
+        );
+
+        paired::measure(
+            snapshot,
+            reproducibility,
+            index.groups(),
+            index.edges(),
+            IdSlice::from_raw(zero),
+            IdSlice::from_raw(canonical),
+        )
+        .map_err(From::from)
     }
 
     /// Streams one coordinate frame of `rows` points into the staged canonical column.
@@ -931,11 +1013,13 @@ mod tests {
 
     use std::fs;
 
-    use super::{loss_regressions, *};
+    use super::{super::super::role::write_staged, loss_regressions, *};
     use crate::{
         file::generation::{GenerationRoot, StagedGeneration},
+        integrity::Update as _,
         math::{AffinityCurve, BoxedVecN, Finite, Similarity, UnitFraction},
         salt::{
+            embedding::EmbedderFingerprint,
             fit::FitConfig,
             knn::table::{Knn, KnnMatrix},
             ladder::Conditions,
@@ -1094,6 +1178,54 @@ mod tests {
         .expect("the fixture instances satisfy the input contract")
     }
 
+    /// Relation indexes over the corpus rows, the staged counterpart of [`distinct_indexes`].
+    ///
+    /// The corpus instances restate the distinct pairs at the quotient's first rows: distinct
+    /// rows 2 and 3 first occur at corpus rows 2 and 4.
+    fn corpus_indexes() -> RelationIndexes<NodeRowId, EdgeRowId> {
+        let policy = RelationPolicy {
+            relation: OntologyRowId::new(RELATION),
+            attraction: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            selected: ClassProbabilities {
+                coincident: 0.0,
+                proximal: 1.0,
+            },
+            applicability: 1.0,
+            strength: 1.0,
+        };
+        let instance = |edge: u64, source: u64, target: u64| RelationInstance {
+            edge: EdgeRowId::new(edge),
+            relation: OntologyRowId::new(RELATION),
+            source: NodeRowId::new(source),
+            target: NodeRowId::new(target),
+            confidence: RelationConfidence::default(),
+            multiplicity: 1,
+        };
+        let mut instances = vec![instance(0, 0, 2), instance(1, 1, 4)];
+        RelationIndexes::build(
+            ROWS,
+            Policies::new(&[policy]).expect("the fixture policy is certified"),
+            &mut instances,
+            AttractionOptions::default(),
+        )
+        .expect("the fixture corpus instances satisfy the input contract")
+    }
+
+    /// Stages the corpus-domain attraction file, as the relation stage leaves it.
+    ///
+    /// The paired-movement readout replays over the published index, so the ladder-walking
+    /// publish reads this file back.
+    fn stage_attraction(staging: &StagedGeneration) {
+        let relations = corpus_indexes();
+        write_staged(staging, Role::Attraction, |writer| {
+            relations.attraction.write_into(ROWS as u64, writer)
+        })
+        .expect("the attraction index should stage");
+    }
+
     /// The skinny projector fixture.
     ///
     /// The representation width stays the pipeline's contract while the hidden architecture
@@ -1166,6 +1298,27 @@ mod tests {
         }
     }
 
+    /// The metadata document's frozen-graph section of the publish fixture.
+    fn snapshot() -> Snapshot {
+        Snapshot {
+            axes: None,
+            nodes: 6,
+            edges: 2,
+            ontology_types: 1,
+        }
+    }
+
+    /// The metadata document's declared-inputs section of the publish fixture.
+    fn reproducibility() -> Reproducibility {
+        let mut hasher = Sha256::new();
+        hasher.update(b"publish fixture embedder");
+        Reproducibility {
+            config: fit_config(),
+            embedder: EmbedderFingerprint::new(hasher.finalize()),
+            prior: None,
+        }
+    }
+
     fn fit_config() -> FitConfig {
         FitConfig {
             seed: 11,
@@ -1196,11 +1349,15 @@ mod tests {
 
         let knn = distinct_knn();
         let indexes = distinct_indexes();
+        let snapshot = snapshot();
+        let reproducibility = reproducibility();
         let inputs = PublishInputs {
             quotient: &quotient,
             knn: knn.view(),
             attraction: &indexes.attraction,
             unresolved_verdicts: 3,
+            snapshot: &snapshot,
+            reproducibility: &reproducibility,
         };
         let roles = vec![NodeRole::KnowledgeEntity; ROWS];
         let columns = || NodeColumns {
@@ -1285,11 +1442,15 @@ mod tests {
         let quotient = RowQuotient::build(rows);
         let knn = distinct_knn();
         let indexes = distinct_indexes();
+        let snapshot = snapshot();
+        let reproducibility = reproducibility();
         let inputs = PublishInputs {
             quotient: &quotient,
             knn: knn.view(),
             attraction: &indexes.attraction,
             unresolved_verdicts: 0,
+            snapshot: &snapshot,
+            reproducibility: &reproducibility,
         };
         let roles = vec![NodeRole::KnowledgeEntity; ROWS];
         let columns = || NodeColumns {
@@ -1308,6 +1469,7 @@ mod tests {
         let config = fit_config();
         let root = GenerationRoot::new(scratch_dir("measured")).expect("the root should open");
         let staging = root.stage().expect("the staging directory should open");
+        stage_attraction(&staging);
         let scratch = root.scratch().expect("the scratch directory should open");
         let context = Context {
             staging: &staging,

@@ -53,7 +53,10 @@ use crate::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
         knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
-        ladder::CanonicalError,
+        ladder::{
+            CanonicalError,
+            paired::{Draw, MovementOutcome, RuleIdentity},
+        },
         landmark::{
             artifact::LandmarkSkeletonArchive,
             select::{LandmarkOrdinal, SelectionOptions},
@@ -1538,8 +1541,7 @@ async fn forceless_projector_publishes_the_baseline_rung() {
     // An Overlay override strips the fixture's link type of force. The boundary then freezes
     // nothing, the lens provably never trains, and the run skips the ladder whole.
     // The zero force makes the run vacuous by construction (`admit` sees no force at all), so the
-    // schedule carries no trained behaviour and one step certifies the same orchestration a longer
-    // run would.
+    // schedule trains nothing and one step certifies the same orchestration a longer run would.
     let mut options = projector_options();
     options.schedule = minimal_schedule();
     let config = FitConfig {
@@ -1606,6 +1608,85 @@ async fn forceless_projector_publishes_the_baseline_rung() {
             .len(),
         NODES,
     );
+}
+
+/// Certifies the paired-movement readout of one published trained document.
+///
+/// The recorded salt re-derives from the document's own input sections, the draw counts replay
+/// over the published attraction index, and the measured body's strata census the whole
+/// candidate pool. The trained fixture holds 48 rows and the two full-force edges (0, 1) and
+/// (2, 3), so the pair domain censuses 2 oriented pairs and both draw, while the 44 rows
+/// outside the edges form the control pool and `m = n = 2` controls draw from it.
+fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
+    let paired = repository
+        .metadata
+        .evidence
+        .projector
+        .as_ref()
+        .expect("a trained placement records projector evidence")
+        .ladder
+        .as_ref()
+        .expect("a trained lens measures the ladder")
+        .paired_movement
+        .as_ref()
+        .expect("a ladder written with the readout carries a present body");
+    assert_eq!(paired.rule, RuleIdentity::INITIAL);
+    let rule = RuleIdentity::INITIAL
+        .recognize()
+        .expect("the initial identity recognizes");
+    let salt = rule
+        .derive_salt(
+            &repository.metadata.snapshot,
+            &repository.metadata.reproducibility,
+        )
+        .expect("the published sections serialize");
+    assert_eq!(
+        paired.salt, salt,
+        "the recorded salt derives from the document's input sections alone"
+    );
+    assert_eq!(paired.rank_window, 256);
+
+    let index =
+        AttractionFile::open(published.join("attraction.atrc")).expect("the published index maps");
+    let draw = Draw::over(rule, salt, index.rows(), index.groups(), index.edges())
+        .expect("the published index censuses");
+    assert_eq!(paired.pair_candidates, 2);
+    assert_eq!(paired.pairs_selected, 2);
+    assert_eq!(paired.control_candidates, 44);
+    assert_eq!(paired.controls_selected, 2);
+    assert_eq!(paired.pair_candidates, draw.pair_candidates());
+    assert_eq!(paired.pairs_selected, draw.pairs().len() as u64);
+    assert_eq!(paired.control_candidates, draw.control_candidates());
+    assert_eq!(paired.controls_selected, draw.controls().len() as u64);
+
+    let MovementOutcome::Measured { pairs, deciles } = &paired.outcome else {
+        panic!(
+            "a force-bearing corpus measures, where the outcome was {:?}",
+            paired.outcome
+        );
+    };
+    assert_eq!(pairs.count, 2);
+    assert_eq!(
+        deciles.len(),
+        10,
+        "a nonempty candidate pool builds every stratum"
+    );
+    assert_eq!(
+        deciles
+            .iter()
+            .map(|stratum| stratum.candidates)
+            .sum::<u64>(),
+        44,
+        "the strata census the whole candidate pool"
+    );
+    assert_eq!(
+        deciles.iter().map(|stratum| stratum.selected).sum::<u64>(),
+        2,
+        "every drawn control lands in a stratum"
+    );
+    for stratum in deciles {
+        assert_eq!(stratum.displacement.is_some(), stratum.selected > 0);
+    }
 }
 
 #[tokio::test]
@@ -1693,6 +1774,10 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
     // The run trained the lens, and the canonical rung moved measurably against its predecessor.
     let canonical = &ladder.rungs[ladder.canonical_index];
     assert!(canonical.adjacent_movement > 0.0);
+
+    // The paired-movement readout lands beside the rungs, and its salt and draw replay from
+    // the published document alone.
+    assert_paired_replay(published.path(), &repository);
 
     // The publish seam's certificates (`compute::projector::tests`) pin the column's bit-exact
     // relationship to the checkpoint and the recorded alignment; here the column covers the

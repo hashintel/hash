@@ -43,7 +43,7 @@ hash-graph-postgres-store = { workspace = true, public = true }
 hash-graph-store          = { workspace = true }
 heed                      = { workspace = true }
 hkdf                      = { workspace = true }
-kiddo                     = { workspace = true, features = ["rkyv_08"] }
+kiddo                     = { workspace = true, features = ["rkyv_08", "simd", "multi-threaded"] }
 memchr                    = { workspace = true }
 memmap2                   = { workspace = true }
 moka                      = { workspace = true, features = ["future"] }

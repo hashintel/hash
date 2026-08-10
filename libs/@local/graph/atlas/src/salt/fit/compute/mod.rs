@@ -192,12 +192,15 @@ where
     )?;
     progress.stage_completed(Stage::Landmarks);
 
+    let (snapshot, reproducibility) = input_sections(inputs, &ingested);
     let resolution = context.resolve_verdicts::<O>(inputs.verdicts.as_ref())?;
     let placement = context.stage_placement(
         &PlacementInputs {
             rows,
             skeleton: &landmarks.artifact,
             resolution: &resolution,
+            snapshot: &snapshot,
+            reproducibility: &reproducibility,
             distinct: DistinctInputs {
                 rows: distinct,
                 quotient: &quotient,
@@ -216,6 +219,8 @@ where
     let repository = assemble(
         inputs,
         ingested,
+        snapshot,
+        reproducibility,
         Computed {
             classifier: classifier_artifacts,
             policy,
@@ -265,8 +270,37 @@ fn build_quotient(
     Ok((quotient, matrix))
 }
 
+/// Builds the metadata document's input sections.
+///
+/// Built ahead of placement: the paired-movement draw derives its salt from these exact values,
+/// and the seal serializes the same ones ([`assemble`]).
+fn input_sections(inputs: &Inputs, ingested: &Ingested) -> (Snapshot, Reproducibility) {
+    (
+        Snapshot {
+            axes: ingested.axes,
+            nodes: ingested.nodes,
+            edges: ingested.edges,
+            ontology_types: ingested.cards.types,
+        },
+        Reproducibility {
+            config: inputs.config.clone(),
+            embedder: ingested.fingerprint,
+            prior: inputs.prior.as_ref().map(Generation::id),
+        },
+    )
+}
+
 /// Binds every staged file and evidence value into the repository the seal publishes.
-fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepository {
+///
+/// The `snapshot` and `reproducibility` sections arrive pre-built: the placement stage borrowed
+/// them for the paired-movement salt, and the sealed document records the same values.
+fn assemble(
+    inputs: &Inputs,
+    ingested: Ingested,
+    snapshot: Snapshot,
+    reproducibility: Reproducibility,
+    computed: Computed,
+) -> SaltRepository {
     let (annotation_corpus, annotation_embeddings, annotation_hashes) =
         match computed.classifier.annotation {
             Some(annotation) => (
@@ -311,17 +345,8 @@ fn assemble(inputs: &Inputs, ingested: Ingested, computed: Computed) -> SaltRepo
             annotation_hashes,
         },
         metadata: SaltMetadata {
-            snapshot: Snapshot {
-                axes: ingested.axes,
-                nodes: ingested.nodes,
-                edges: ingested.edges,
-                ontology_types: ingested.cards.types,
-            },
-            reproducibility: Reproducibility {
-                config: inputs.config.clone(),
-                embedder: ingested.fingerprint,
-                prior: inputs.prior.as_ref().map(Generation::id),
-            },
+            snapshot,
+            reproducibility,
             placement: computed.placement.placement,
             ranking: RankingOrigin::from(inputs.config.ranking),
             evidence: Evidence {

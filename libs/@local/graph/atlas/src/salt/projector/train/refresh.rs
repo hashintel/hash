@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::{NonNegative, Vec2},
+    math::{NonFinitePoint, NonNegative, Vec2},
     progress::Progress,
     salt::{
         knn::table::KnnView,
@@ -38,14 +38,12 @@ use crate::{
 };
 
 /// A refresh tick failed.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum RefreshError<N> {
     /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
     Diverged { row: N, eta: f32 },
     /// A local scale came out non-finite at this row and rung.
     NonFiniteScale { row: N, eta: f32 },
-    /// The corpus rows exceed the spatial index's `u32` item encoding.
-    RowsExceedIndexDomain { rows: usize },
 }
 
 impl<N> RefreshError<N> {
@@ -60,7 +58,6 @@ impl<N> RefreshError<N> {
                 row: row(diverged),
                 eta,
             },
-            Self::RowsExceedIndexDomain { rows } => RefreshError::RowsExceedIndexDomain { rows },
         }
     }
 }
@@ -78,10 +75,6 @@ where
             Self::NonFiniteScale { row, eta } => write!(
                 fmt,
                 "training diverged: row {row} measured a non-finite local scale at rung {eta}",
-            ),
-            Self::RowsExceedIndexDomain { rows } => write!(
-                fmt,
-                "{rows} corpus rows exceed the spatial index's u32 item encoding"
             ),
         }
     }
@@ -358,10 +351,7 @@ where
 fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
-        SpatialFieldError::NonFinite { row } => RefreshError::Diverged { row, eta },
-        SpatialFieldError::RowsExceedIndexDomain { rows } => {
-            RefreshError::RowsExceedIndexDomain { rows }
-        }
+        SpatialFieldError::NonFinite(NonFinitePoint { row }) => RefreshError::Diverged { row, eta },
     }
 }
 

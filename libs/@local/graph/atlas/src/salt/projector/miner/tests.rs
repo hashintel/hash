@@ -13,7 +13,7 @@ use core::num::NonZero;
 
 use hashql_core::id::{Id as _, IdSlice};
 
-use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField, SpatialFieldError};
+use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{Positive, Vec2},
@@ -164,7 +164,7 @@ fn reference_mine(
                         .then(left_row.cmp(right_row))
                 },
             );
-            candidates.truncate(options.search_size().min(coordinates.len()));
+            candidates.truncate(options.search_size().get().min(coordinates.len()));
 
             let mut accepted = Vec::new();
             for (_, candidate) in candidates {
@@ -198,19 +198,6 @@ fn reference_mine(
             accepted
         })
         .collect()
-}
-
-#[test]
-fn spatial_field_rejects_non_finite_coordinates() {
-    let mut coordinates = line_frame();
-    coordinates[3] = Vec2::new(f32::NAN, 0.0);
-
-    assert_eq!(
-        SpatialField::new(IdSlice::from_raw(&coordinates)).err(),
-        Some(SpatialFieldError::NonFinite {
-            row: NodeRowId::new(3)
-        }),
-    );
 }
 
 #[test]

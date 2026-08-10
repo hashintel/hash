@@ -6,6 +6,7 @@ use core::{
 };
 
 use super::{
+    dvecn::DVecN,
     kernel::mul_add_f64x4,
     scalar::narrow_f32,
     vec2::{Vec2, Vec2x4T},
@@ -100,6 +101,16 @@ impl DVec2 {
     #[must_use]
     pub fn norm_squared(self) -> f64 {
         self.dot(self)
+    }
+
+    /// Returns the squared Euclidean distance to `other`.
+    #[inline]
+    #[must_use]
+    pub const fn distance_squared(self, other: Self) -> f64 {
+        let dx = self.x() - other.x();
+        let dy = self.y() - other.y();
+
+        dx * dx + dy * dy
     }
 
     /// Returns `self * factor + accumulator` with one rounding per component.
@@ -226,6 +237,19 @@ impl DVec2x4T {
     /// The batch of four zero vectors: the accumulation identity.
     pub const ZERO: Self = Self([0.0; 8]);
 
+    /// Creates a batch holding four copies of `vec`.
+    ///
+    /// Every lane of the `x` group holds `vec.x()` and every lane of the `y` group holds
+    /// `vec.y()`, so one point compares against a whole batch lane-wise.
+    #[inline]
+    #[must_use]
+    pub const fn splat(vec: DVec2) -> Self {
+        let x = vec.x();
+        let y = vec.y();
+
+        Self([x, x, x, x, y, y, y, y])
+    }
+
     /// Returns the four `x` components as SIMD lanes.
     ///
     /// Lane `i` holds the `x` component of vector `i`.
@@ -340,6 +364,23 @@ impl DVec2x4T {
     #[must_use]
     pub fn length_squared(self) -> Simd<f64, 4> {
         self.dot(self)
+    }
+
+    /// Returns the four pairwise squared Euclidean distances.
+    ///
+    /// Component `i` holds `self[i].distance_squared(other[i])`. The subtraction and squaring run
+    /// at full batch width, and only the final add combines the axis halves. Every operation
+    /// rounds separately, exactly as the scalar form does, so each component agrees with
+    /// [`DVec2::distance_squared`] bit for bit on every input. Fusing the multiply-add would
+    /// change roundings and break that equality, so this kernel deliberately stays unfused,
+    /// unlike [`dot`](Self::dot).
+    #[inline]
+    #[must_use]
+    pub fn distance_squared(self, other: Self) -> DVecN<4> {
+        let difference = self.to_simd() - other.to_simd();
+        let squared = Self::from(difference * difference);
+
+        DVecN::new((*squared.xs() + *squared.ys()).to_array())
     }
 
     /// Returns `self * factor + accumulator`.

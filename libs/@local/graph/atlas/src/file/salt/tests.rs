@@ -28,7 +28,10 @@ use crate::{
             prepare::norm::{NormSpotCheck, RepresentationDefect},
         },
         knn::recall::RecallSpotCheck,
-        ladder::{Conditions, LadderOptions},
+        ladder::{
+            Conditions, LadderOptions,
+            paired::{PairedMovementEvidence, RuleIdentity},
+        },
         landmark::select::SelectionOptions,
         lod::{quad::QuadMeasurements, stage::LodMeasurements},
         policy::{
@@ -329,6 +332,7 @@ fn evidence() -> Evidence {
                 canonical: 1.0,
                 canonical_index: 1,
                 persisted_relation_loss: 397.25,
+                paired_movement: None,
             }),
         }),
     }
@@ -361,7 +365,7 @@ fn a_retired_layout_is_refused_by_its_version() {
     // retired layout. Version 1's recall evidence recorded the configured
     // `margin` where version 2 records the achieved `resolution`, and its
     // configuration echo carried no sampling `budget`. Neither field
-    // carries a serde default, so either difference alone kills a version
+    // has a serde default, so either difference alone kills a version
     // 2 decode. That is what turns the version's precedence into an
     // observable claim rather than a restatement.
     let mut document: serde_json::Value =
@@ -403,7 +407,7 @@ fn a_retired_layout_is_refused_by_its_version() {
         .pointer_mut("/version")
         .expect("the document should carry a version") = serde_json::json!(1);
 
-    // Field order carries the guarantee, so this decode takes the bytes a
+    // Field order is the guarantee, so this decode takes the bytes a
     // writer would produce rather than the value itself. The ordering is
     // the thing under test, and a value's key order falls outside what
     // this crate promises.
@@ -753,4 +757,128 @@ fn defects_serialize_rows_as_plain_integers() {
     let decoded: RepresentationDefect =
         serde_json::from_str(&json).expect("the serialized defect should deserialize");
     assert_eq!(decoded, defect);
+}
+
+/// A body of each present paired-movement outcome kind, decoded through the production reader.
+///
+/// The bodies decode from the ruled serialized shapes, so the fixture cannot drift from the
+/// wire form the pins in `salt::ladder::paired` hold.
+fn paired_bodies(repository: &SaltRepository) -> [PairedMovementEvidence; 3] {
+    let salt = RuleIdentity::INITIAL
+        .recognize()
+        .expect("the initial identity recognizes")
+        .derive_salt(
+            &repository.metadata.snapshot,
+            &repository.metadata.reproducibility,
+        )
+        .expect("the fixture sections serialize");
+    let family = serde_json::json!({
+        "q05": -1.5, "q25": -0.5, "q50": 0.5, "q75": 1.5, "q95": 2.5, "mean": 0.5,
+    });
+    let counts = serde_json::json!({
+        "rule": 1,
+        "salt": salt,
+        "rank_window": 256,
+        "pair_candidates": 2,
+        "pairs_selected": 2,
+        "control_candidates": 3,
+        "controls_selected": 2,
+    });
+    let with = |extension: serde_json::Value| {
+        let mut body = counts.clone();
+        body.as_object_mut()
+            .expect("the counts are an object")
+            .extend(
+                extension
+                    .as_object()
+                    .expect("the extension is an object")
+                    .clone(),
+            );
+        serde_json::from_value::<PairedMovementEvidence>(body)
+            .expect("the ruled shape decodes through the production reader")
+    };
+
+    [
+        with(serde_json::json!({
+            "outcome": "measured",
+            "pairs": {
+                "count": 2,
+                "distance": family,
+                "rank": family,
+                "contracting": 0.5,
+                "rank_improving": 0.0,
+            },
+            "deciles": [
+                {"upper": 1.5, "candidates": 3, "selected": 2, "displacement": family},
+            ],
+        })),
+        with(serde_json::json!({"outcome": "vacuous"})),
+        with(serde_json::json!({
+            "outcome": "failed",
+            "reason": {"cause": "endpoint", "edge": 0, "row": 9, "rows": 4},
+        })),
+    ]
+}
+
+#[test]
+fn present_paired_outcomes_round_trip_through_the_document() {
+    let mut repository = repository();
+
+    for body in paired_bodies(&repository) {
+        repository
+            .metadata
+            .evidence
+            .projector
+            .as_mut()
+            .expect("the fixture records projector evidence")
+            .ladder
+            .as_mut()
+            .expect("the fixture records a ladder")
+            .paired_movement = Some(body);
+
+        let document = serde_json::to_string(&repository).expect("the document serializes");
+        let decoded: SaltRepository =
+            serde_json::from_str(&document).expect("the document reads back");
+        assert_eq!(decoded, repository);
+    }
+}
+
+#[test]
+fn a_decoded_document_carries_only_in_domain_readings() {
+    // The evidence types validate at deserialization, so a tampered or corrupted reading
+    // refuses the whole document instead of parsing into a value the aggregation could never
+    // produce. The serializer cannot write a non-finite number, so the tamper edits the
+    // serialized value tree directly.
+    let mut repository = repository();
+    let [measured, _, _] = paired_bodies(&repository);
+    repository
+        .metadata
+        .evidence
+        .projector
+        .as_mut()
+        .expect("the fixture records projector evidence")
+        .ladder
+        .as_mut()
+        .expect("the fixture records a ladder")
+        .paired_movement = Some(measured);
+
+    let paired = "/metadata/evidence/projector/ladder/paired_movement";
+    for (pointer, tampered) in [
+        (
+            format!("{paired}/pairs/distance/q95"),
+            serde_json::Value::Null,
+        ),
+        (
+            format!("{paired}/pairs/contracting"),
+            serde_json::json!(1.5),
+        ),
+        (format!("{paired}/deciles/0/upper"), serde_json::json!(-1.0)),
+    ] {
+        let mut value = serde_json::to_value(&repository).expect("the document serializes");
+        *value
+            .pointer_mut(&pointer)
+            .expect("the fixture body carries the tampered field") = tampered;
+        serde_json::from_value::<SaltRepository>(value)
+            .expect_err("an out-of-domain reading refuses the document");
+    }
 }

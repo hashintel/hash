@@ -23,11 +23,10 @@ mod tests;
 use core::{error::Error, fmt, num::NonZero};
 
 use hashql_core::id::{Id, IdSlice};
-use kiddo::{NearestNeighbour, SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    math::{Positive, Vec2},
+    math::{KdTree, NonFinitePoint, Positive, Vec2, kdtree::KdNeighbour},
     runs::{Runs, RunsBuilder},
     salt::{
         relation::protection::{NodePair, ProtectionConfig, ProtectionView},
@@ -111,41 +110,46 @@ impl MinerOptions {
         self.maximum_weight.get() * (1.0 - relative).powf(self.rank_exponent.get())
     }
 
-    /// Returns the per-row search size: quota times margin, plus the query point itself.
-    const fn search_size(self) -> usize {
-        self.neighbours
-            .get()
-            .saturating_mul(self.search_margin.get())
-            .saturating_add(1)
+    /// Returns the per-row search size: quota times margin.
+    const fn search_size(self) -> NonZero<usize> {
+        self.neighbours.saturating_mul(self.search_margin)
     }
 }
 
 /// Building a spatial field over a coordinate frame failed.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum SpatialFieldError<N> {
     /// A coordinate is NaN or infinite: the projection diverged.
-    NonFinite { row: N },
-    /// The frame's rows exceed the index's `u32` item encoding.
-    RowsExceedIndexDomain { rows: usize },
+    NonFinite(NonFinitePoint<N>),
+}
+
+impl<N> From<NonFinitePoint<N>> for SpatialFieldError<N> {
+    fn from(value: NonFinitePoint<N>) -> Self {
+        Self::NonFinite(value)
+    }
 }
 
 impl<N> fmt::Display for SpatialFieldError<N>
 where
-    N: fmt::Display,
+    N: Id,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFinite { row } => {
-                write!(fmt, "the coordinate at row {row} is not finite")
-            }
-            Self::RowsExceedIndexDomain { rows } => {
-                write!(fmt, "{rows} rows exceed the index's u32 item encoding")
-            }
+            Self::NonFinite(error) => fmt::Display::fmt(error, fmt),
         }
     }
 }
 
-impl<N> Error for SpatialFieldError<N> where N: fmt::Debug + fmt::Display {}
+impl<N> Error for SpatialFieldError<N>
+where
+    N: Id,
+{
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::NonFinite(error) => Some(error),
+        }
+    }
+}
 
 /// The exact 2D neighbour index over one frame's detached coordinates.
 ///
@@ -153,8 +157,7 @@ impl<N> Error for SpatialFieldError<N> where N: fmt::Debug + fmt::Display {}
 /// mutate the field and are thread-safe. Exactness is part of the contract: consumers account for
 /// no recall.
 pub(crate) struct SpatialField<'frame, N> {
-    tree: ImmutableKdTree<f32, u32, 2, 32>,
-    points: &'frame IdSlice<N, Vec2>,
+    tree: KdTree<'frame, N>,
 }
 
 impl<N> fmt::Debug for SpatialField<'_, N> {
@@ -174,58 +177,25 @@ where
     /// Returns an error when a coordinate is not finite (a diverged projection must fail the tick,
     /// not seed an index) or the row count exceeds the index's `u32` item encoding.
     pub(crate) fn new(coordinates: &'frame IdSlice<N, Vec2>) -> Result<Self, SpatialFieldError<N>> {
-        if let Some(row) = coordinates.iter().position(|point| !point.is_finite()) {
-            return Err(SpatialFieldError::NonFinite {
-                row: N::from_usize(row),
-            });
-        }
-        if u32::try_from(coordinates.len()).is_err() {
-            return Err(SpatialFieldError::RowsExceedIndexDomain {
-                rows: coordinates.len(),
-            });
-        }
+        let tree = KdTree::build(coordinates)?;
 
-        // `Vec2` is transparently its interleaved component pair, so the
-        // frame reinterprets without copying.
-        let points = zerocopy::transmute_ref!(coordinates.as_raw());
-
-        Ok(Self {
-            tree: ImmutableKdTree::new_from_slice(points),
-            points: coordinates,
-        })
+        Ok(Self { tree })
     }
 
     /// Returns the frame's row count.
     #[inline]
     #[must_use]
     pub(crate) const fn rows(&self) -> usize {
-        self.points.len()
+        self.tree.points().len()
     }
 
-    /// Returns the `count` nearest rows to `row`, ascending by `(squared distance, row)`.
+    /// Returns the `count` nearest other rows of `row`, ascending by `(squared distance, row)`.
     ///
-    /// The query point is in the index, so `row` itself leads the result. The secondary row order
-    /// pins ties, so equal distances come back in one order regardless of tree traversal.
-    ///
-    /// Items are frame row indexes in the tree's compact `u32` domain;
-    /// [`NodeRowId::from_u32`](crate::identity::NodeRowId::from_u32) widens one losslessly.
-    // The tree stores one content id per point, so the u32 domain halves
-    // that storage against a 64-bit id.
-    fn nearest(&self, row: N, count: usize) -> Vec<NearestNeighbour<f32, u32>> {
-        let count = NonZero::new(count.min(self.points.len()))
-            .expect("search sizes are at least one by construction");
-
-        let mut nearest = self
-            .tree
-            .nearest_n::<SquaredEuclidean>(self.points[row].as_array(), count);
-
-        nearest.sort_unstable_by(|left, right| {
-            left.distance
-                .total_cmp(&right.distance)
-                .then(left.item.cmp(&right.item))
-        });
-
-        nearest
+    /// The index excludes the query row and selects the exact `count`-set under that order, so
+    /// equal distances come back in one order regardless of tree traversal and every returned
+    /// candidate is a potential pair partner.
+    fn nearest(&self, row: N, count: NonZero<usize>) -> Vec<KdNeighbour<N>> {
+        self.tree.nearest(row, count)
     }
 }
 
@@ -282,24 +252,18 @@ where
         let mut accepted = Vec::with_capacity(quota);
 
         for neighbour in field.nearest(row, self.options.search_size()) {
-            let candidate = neighbour.item;
-            let candidate_id = N::from_u32(candidate);
-
-            if candidate_id == row {
+            let candidate = neighbour.row;
+            if self.is_semantic_positive(row, candidate) {
                 continue;
             }
 
-            if self.is_semantic_positive(row, candidate_id) {
-                continue;
-            }
-
-            let pair = NodePair::new(row, candidate_id);
+            let pair = NodePair::new(row, candidate);
             if self.protection.judge(pair, self.config).hard {
                 continue;
             }
 
             let weight = self.options.weight(accepted.len());
-            accepted.push((candidate_id, weight));
+            accepted.push((candidate, weight));
             if accepted.len() == quota {
                 break;
             }

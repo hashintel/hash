@@ -42,6 +42,9 @@
 //! [`DSquareMatrix::cholesky`] factors it deterministically into the [`DCholeskyFactor`] that
 //! answers symmetric positive-definite linear systems.
 //!
+//! Exact neighbours: [`KdTree`] indexes a placed 2D frame and answers exact k-nearest-neighbour
+//! readouts equal to a full scan, with `f64` squared-distance readings and ties resolved by row.
+//!
 //! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
 //! attraction/repulsion gradients over batches. Its parameters come from [`AffinityCurve::fit`].
 //!
@@ -74,6 +77,7 @@ mod bounds;
 mod dsquare;
 mod dvec2;
 mod dvecn;
+pub(crate) mod kdtree;
 pub(crate) mod kernel;
 mod matrixn;
 mod rotation;
@@ -100,15 +104,16 @@ pub(crate) use self::{
     dsquare::{DCholeskyError, DSquareMatrix},
     dvec2::DVec2,
     dvecn::{AlignedDVecN, BoxedDVecN, DVecN},
+    kdtree::{KdTree, NonFinitePoint},
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative, OpenUnitFraction,
-        Positive, UnitFraction, huber, narrow_f32, sigmoid, softplus,
+        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
+        OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32, sigmoid, softplus,
     },
     similarity::Similarity,
     vec2::{Vec2, Vec2x4T},
     vecn::{AlignedVecN, BoxedVecN, VecN},
 };
 #[cfg(test)]
-pub(crate) use self::{dvec2::DVec2x4T, scalar::DFinite, translation::Translation, vec2::Vec2x4};
+pub(crate) use self::{dvec2::DVec2x4T, translation::Translation, vec2::Vec2x4};

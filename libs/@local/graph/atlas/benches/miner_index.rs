@@ -71,7 +71,7 @@ use core::{hint::black_box, num::NonZero, time::Duration};
 
 use codspeed_criterion_compat::{Criterion, Throughput, criterion_group, criterion_main};
 use hash_graph_atlas::bench::relation::{Profile, production_corpus};
-use kiddo::{SquaredEuclidean, immutable::float::kdtree::ImmutableKdTree};
+use kiddo::{ImmutableKdTree, SquaredEuclidean};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
@@ -345,10 +345,10 @@ impl Grid {
     }
 }
 
-type KdTree = ImmutableKdTree<f32, u32, 2, 32>;
+type KdTree = ImmutableKdTree<f32, 2>;
 
 fn build_kiddo(points: &[[f32; 2]]) -> KdTree {
-    KdTree::new_from_slice(points)
+    KdTree::new_from_slice(points).expect("the fixture fits the index's item domain")
 }
 
 /// Sums neighbour ids over a full per-point sweep, so the pass has an observable result.
@@ -370,7 +370,9 @@ fn sweep_kiddo(tree: &KdTree, points: &[[f32; 2]], k: usize) -> u64 {
     points
         .iter()
         .map(|point| {
-            tree.nearest_n::<SquaredEuclidean>(point, limit)
+            tree.query(point)
+                .nearest_n::<SquaredEuclidean<f32>>(limit)
+                .execute()
                 .iter()
                 .map(|neighbour| u64::from(neighbour.item))
                 .sum::<u64>()
@@ -457,7 +459,9 @@ fn report_recall(count: usize) {
             .iter()
             .map(|&sample| {
                 let mut ids: Vec<u32> = tree
-                    .nearest_n::<SquaredEuclidean>(&points[sample], limit)
+                    .query(&points[sample])
+                    .nearest_n::<SquaredEuclidean<f32>>(limit)
+                    .execute()
                     .iter()
                     .map(|neighbour| neighbour.item)
                     .collect();

@@ -27,7 +27,11 @@ use core::{
 };
 use std::simd::simd_swizzle;
 
-use super::kernel::mul_add_f32x4;
+use super::{
+    dvec2::{DVec2, DVec2x4T},
+    kernel::mul_add_f32x4,
+    scalar::DNonNegative,
+};
 
 #[cfg(test)]
 mod tests;
@@ -182,6 +186,25 @@ impl Vec2 {
     #[must_use]
     pub fn distance(self, other: Self) -> f32 {
         self.distance_squared(other).sqrt()
+    }
+
+    /// Returns the squared Euclidean distance to `other`, accumulated in `f64`.
+    ///
+    /// Both points widen exactly before the subtraction, so the reading carries no `f32`
+    /// arithmetic, and every operation rounds separately. This is the one metric of the
+    /// k-nearest-neighbour readouts: a consumer that compares its own readings against a
+    /// readout's computes them here, so tie sets never depend on the call site.
+    ///
+    /// A squared distance of finite points is finite and non-negative, so the reading returns
+    /// as [`DNonNegative`]. Finite inputs are the caller's contract.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn distance_squared_wide(self, other: Self) -> DNonNegative {
+        // In domain with no check: each widened coordinate difference of finite `f32` points
+        // stays below 2¹³⁰ and the sum of their squares below 2²⁶¹, far from `f64` overflow. A
+        // sum of squares is non-negative. The `new_unchecked` debug assert catches a non-finite
+        // input.
+        DNonNegative::new_unchecked(DVec2::from(self).distance_squared(DVec2::from(other)))
     }
 
     /// Linearly interpolates from `self` toward `other`.
@@ -405,6 +428,34 @@ const impl Index<usize> for Vec2 {
 pub struct Vec2x4T([f32; 8]);
 
 impl Vec2x4T {
+    /// Replicates a `Vec2` value across all lanes of `Self`.
+    pub const fn splat(value: Vec2) -> Self {
+        Self([
+            value.x(),
+            value.x(),
+            value.x(),
+            value.x(),
+            value.y(),
+            value.y(),
+            value.y(),
+            value.y(),
+        ])
+    }
+
+    /// Assembles a batch from one SIMD lane group per axis.
+    ///
+    /// Lane `i` of `xs` and `ys` becomes vector `i`. This is the natural way to store results back
+    /// after per-axis arithmetic.
+    #[inline]
+    #[must_use]
+    pub const fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {
+        let this = [xs, ys];
+        // SAFETY: `[Simd<f32, 4>; 2]` lays out the `x` lane group followed by the `y` lane
+        // group, exactly `Self`'s `repr(C)` `[f32; 8]` memory order; sizes match and every
+        // bit pattern is a valid `f32`.
+        unsafe { core::mem::transmute::<[Simd<f32, 4>; 2], Self>(this) }
+    }
+
     /// Returns the four `x` components as SIMD lanes.
     ///
     /// Lane `i` holds the `x` component of vector `i`.
@@ -464,20 +515,6 @@ impl Vec2x4T {
         let [xs, ys] = unsafe { core::mem::transmute::<Self, [Simd<f32, 4>; 2]>(self) };
 
         (xs, ys)
-    }
-
-    /// Assembles a batch from one SIMD lane group per axis.
-    ///
-    /// Lane `i` of `xs` and `ys` becomes vector `i`. This is the natural way to store results back
-    /// after per-axis arithmetic.
-    #[inline]
-    #[must_use]
-    pub const fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {
-        let this = [xs, ys];
-        // SAFETY: `[Simd<f32, 4>; 2]` lays out the `x` lane group followed by the `y` lane
-        // group, exactly `Self`'s `repr(C)` `[f32; 8]` memory order; sizes match and every
-        // bit pattern is a valid `f32`.
-        unsafe { core::mem::transmute::<[Simd<f32, 4>; 2], Self>(this) }
     }
 
     /// Returns the vector at `index`.
@@ -541,6 +578,25 @@ impl Vec2x4T {
         let dy = self.ys() - other.ys();
 
         mul_add_f32x4(dx, dx, dy * dy)
+    }
+
+    /// Returns the four pairwise squared Euclidean distances, accumulated in `f64`.
+    ///
+    /// Reading `i` equals `self[i].distance_squared_wide(other[i])` bit for bit: the widened
+    /// lanes subtract, square, and sum with the scalar metric's separate roundings, so a lane
+    /// readout and a scalar readout select the same rows under the same ties. Unlike
+    /// [`distance_squared`](Self::distance_squared), nothing fuses. Finite inputs are the
+    /// caller's contract, as for the scalar form.
+    #[inline]
+    #[must_use]
+    pub(crate) fn distance_squared_wide(self, other: Self) -> [DNonNegative; 4] {
+        let readings = DVec2x4T::from(self).distance_squared(DVec2x4T::from(other));
+
+        <[f64; 4]>::from(readings).map(|reading| {
+            // In domain with no check: the scalar metric's own bound applies per component, and
+            // a sum of squares is non-negative.
+            DNonNegative::new_unchecked(reading)
+        })
     }
 
     /// Returns the four squared lengths as SIMD lanes.

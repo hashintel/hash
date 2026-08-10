@@ -6,7 +6,7 @@
 
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
-use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
+use crate::math::{DVec2, DVec2x4T, DVecN, Vec2, Vec2x4T};
 
 #[test]
 fn operators_match_component_arithmetic() {
@@ -123,6 +123,72 @@ fn dvec2x4t_mul_add_matches_the_scalar_twin_per_lane() {
 }
 
 #[test]
+fn dvec2x4t_splat_repeats_the_vector_in_every_lane() {
+    let batch = DVec2x4T::splat(DVec2::new(1.5, -2.25));
+
+    assert_eq!(*batch.xs(), core::simd::Simd::splat(1.5));
+    assert_eq!(*batch.ys(), core::simd::Simd::splat(-2.25));
+}
+
+/// Assembles a batch from four double-precision vectors, one per lane.
+fn batch_of(vectors: [DVec2; 4]) -> DVec2x4T {
+    DVec2x4T::from_lanes(
+        core::simd::Simd::from_array(vectors.map(DVec2::x)),
+        core::simd::Simd::from_array(vectors.map(DVec2::y)),
+    )
+}
+
+/// Four full-mantissa vector pairs on which the fused and separate distance forms disagree.
+///
+/// Points widened from `f32` cannot discriminate: their lane differences and squares are exact
+/// in `f64`, so a fused mutant agrees with the unfused kernel on that whole domain. These pairs
+/// come from a search for the property that `dx.mul_add(dx, dy * dy)` differs from
+/// `dx * dx + dy * dy` in every lane.
+fn distance_pairs() -> ([DVec2; 4], [DVec2; 4]) {
+    (
+        [
+            DVec2::new(-3.6, 6.4),
+            DVec2::new(3.18, -7.44),
+            DVec2::new(-3.4, -2.8),
+            DVec2::new(0.3, -5.343),
+        ],
+        [
+            DVec2::new(-1.561, 7.1),
+            DVec2::new(-7.084, 4.5),
+            DVec2::new(2.34, -4.356),
+            DVec2::new(6.351, 1.3),
+        ],
+    )
+}
+
+#[test]
+#[expect(
+    clippy::suboptimal_flops,
+    reason = "the potency guard contrasts the fused and separate forms, so the separate form must \
+              stay unfused"
+)]
+fn dvec2x4t_distance_squared_matches_the_scalar_twin_per_lane() {
+    let (sources, targets) = distance_pairs();
+
+    // The fixture can fail under fusion: every lane's fused form disagrees with the separate
+    // form, so a `mul_add` mutant in the kernel dies in all four lanes.
+    for (source, target) in sources.iter().zip(&targets) {
+        let dx = source.x() - target.x();
+        let dy = source.y() - target.y();
+        assert_ne!(dx.mul_add(dx, dy * dy), dx * dx + dy * dy);
+    }
+
+    let distances = batch_of(sources).distance_squared(batch_of(targets));
+
+    for index in 0..4 {
+        assert_eq!(
+            distances.as_array()[index],
+            sources[index].distance_squared(targets[index]),
+        );
+    }
+}
+
+#[test]
 fn dvec2x4t_reduce_sums_each_axis() {
     // Integer-valued components sum exactly in any association order.
     let batch = DVec2x4T::from(Vec2x4T::from([
@@ -171,6 +237,22 @@ fn products_refine_the_f32_counterparts(
     let products = (f64::from(ax) * f64::from(bx)).abs() + (f64::from(ay) * f64::from(by)).abs();
     let tolerance = f64::from(f32::EPSILON) * 4.0 * (products + 1.0);
     prop_assert!((narrow_dot - wide_dot).abs() <= tolerance);
+}
+
+/// The lane metric is the scalar metric, bit for bit, on every input.
+#[property_test]
+fn distance_squared_lanes_match_the_scalar_metric_bitwise(
+    #[strategy = -1e150_f64..1e150] ax: f64,
+    #[strategy = -1e150_f64..1e150] ay: f64,
+    #[strategy = -1e150_f64..1e150] bx: f64,
+    #[strategy = -1e150_f64..1e150] by: f64,
+) {
+    let source = DVec2::new(ax, ay);
+    let target = DVec2::new(bx, by);
+
+    let distances = DVec2x4T::splat(source).distance_squared(DVec2x4T::splat(target));
+
+    prop_assert_eq!(distances, DVecN::new([source.distance_squared(target); 4]));
 }
 
 #[test]

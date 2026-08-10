@@ -20,7 +20,7 @@ use crate::{
         fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
         importance::RankingConfig,
         knn::recall::RecallSpotCheck,
-        ladder::RungMeasurement,
+        ladder::{RungMeasurement, paired::PairedMovementEvidence},
         lod::{quad::QuadMeasurements, stage::LodMeasurements},
         policy::{
             GeometryClass,
@@ -225,6 +225,12 @@ pub(crate) struct LadderEvidence {
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
     /// total over every attraction instance, with no per-type cap.
     pub persisted_relation_loss: f64,
+    /// The paired-movement readout beside the rungs.
+    ///
+    /// `None` records a ladder written before the readout existed. A ladder writer that
+    /// carries the readout always emits a present body, so a vacuous or failed measurement
+    /// stays distinguishable from this absence.
+    pub paired_movement: Option<PairedMovementEvidence>,
 }
 
 /// One rung's cross-condition evidence.

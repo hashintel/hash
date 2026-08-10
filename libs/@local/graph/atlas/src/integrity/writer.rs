@@ -16,6 +16,12 @@ pub(crate) trait Update {
     fn update(&mut self, bytes: &[u8]);
 }
 
+impl<T: Update + ?Sized> Update for &mut T {
+    fn update(&mut self, bytes: &[u8]) {
+        T::update(self, bytes);
+    }
+}
+
 pin_project! {
     /// A stream terminal that feeds every byte into an [`Update`] accumulator.
     ///
