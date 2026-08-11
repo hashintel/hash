@@ -353,7 +353,7 @@ impl Projections {
 
         let lateral = query::FromItem::Subquery {
             lateral: true,
-            statement: Box::new(subquery),
+            statement: subquery.into(),
             alias: Some(TableReference {
                 schema: None,
                 name: TableName::from(Table::EntityEditionCache),
