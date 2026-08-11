@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAuthoredLinks, slugForLayer } from "./mdx";
+import { resolveAuthoredLinks, layerSlug } from "./mdx";
 
 /**
  * An authored page's final slug depends on its `attachTo`, so it cannot write a
@@ -10,9 +10,9 @@ import { resolveAuthoredLinks, slugForLayer } from "./mdx";
  */
 
 const layerSlugs = new Map([
-  ["core", slugForLayer("core")],
-  ["core.simulation", slugForLayer("core.simulation")],
-  ["core.simulation.engine", slugForLayer("core.simulation.engine")],
+  ["core", layerSlug("core")],
+  ["core.simulation", layerSlug("core.simulation")],
+  ["core.simulation.engine", layerSlug("core.simulation.engine")],
 ]);
 
 const docSlugs = new Map([

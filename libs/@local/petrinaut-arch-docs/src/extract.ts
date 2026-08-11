@@ -11,12 +11,13 @@
  */
 
 import { readdir, readFile } from "node:fs/promises";
-import { join, posix, relative, sep } from "node:path";
+import { join, posix, relative } from "node:path";
 
 import { parseFrontmatter } from "./frontmatter";
+import { toPosix } from "./paths";
 import { scanTags } from "./tags";
 
-import type { Annotation, Boundary, Layer, ArchitecturePackage } from "./model";
+import type { Layer, ArchitecturePackage } from "./model";
 
 /** A layer declaration plus everything resolved onto it during the walk. */
 interface LayerAccumulator {
@@ -28,9 +29,6 @@ interface LayerAccumulator {
   /** Folder the declaration governs; descendants inherit from it. */
   scope: string;
   prose: string | null;
-  boundaries: Boundary[];
-  invariants: Annotation[];
-  entryPoints: Set<string>;
   references: string[];
   files: string[];
   lineCount: number;
@@ -60,8 +58,6 @@ export interface ExtractOptions {
 }
 
 const sourceExtensions = new Set([".ts", ".tsx", ".mts", ".cts"]);
-
-const toPosix = (path: string): string => path.split(sep).join(posix.sep);
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -200,8 +196,8 @@ export const extract = async (
       const register = (
         accumulator: Omit<
           LayerAccumulator,
-          "files" | "lineCount" | "references" | "entryPoints"
-        > & { entryPoints: string[] },
+          "files" | "lineCount" | "references"
+        >,
       ): void => {
         const existingFile = declaredBy.get(accumulator.id);
         if (existingFile !== undefined) {
@@ -229,7 +225,6 @@ export const extract = async (
         scopes.set(accumulator.scope, accumulator.id);
         accumulators.set(accumulator.id, {
           ...accumulator,
-          entryPoints: new Set(accumulator.entryPoints),
           references: [],
           files: [],
           lineCount: 0,
@@ -252,23 +247,12 @@ export const extract = async (
           const segments = declaration.layer.split(".");
           register({
             id: declaration.layer,
-            name: declaration.name ?? segments[segments.length - 1] ?? "",
+            name: segments[segments.length - 1] ?? "",
             package: pkg.name,
             role: declaration.role,
             declaredIn: entry.path,
             scope: entry.directory,
             prose: body === "" ? null : body,
-            boundaries: declaration.boundaries.map((boundary) => ({
-              ...boundary,
-              source: entry.path,
-              line: 1,
-            })),
-            invariants: declaration.invariants.map((text) => ({
-              text,
-              source: entry.path,
-              line: 1,
-            })),
-            entryPoints: declaration.entryPoints,
           });
         }
 
@@ -291,24 +275,12 @@ export const extract = async (
         const segments = id.split(".");
         register({
           id,
-          name: tags.layerName?.value ?? segments[segments.length - 1] ?? "",
+          name: segments[segments.length - 1] ?? "",
           package: pkg.name,
           role: tags.role?.value ?? "",
           declaredIn: entry.path,
           scope: entry.directory,
           prose: null,
-          boundaries: tags.boundaries.map((boundary) => ({
-            kind: boundary.kind,
-            note: boundary.note,
-            source: entry.path,
-            line: boundary.line,
-          })),
-          invariants: tags.invariants.map((invariant) => ({
-            text: invariant.value,
-            source: entry.path,
-            line: invariant.line,
-          })),
-          entryPoints: tags.entryPoints.map((entryPoint) => entryPoint.value),
         });
 
         if (!tags.role) {
@@ -348,13 +320,7 @@ export const extract = async (
         continue;
       }
 
-      const contents = await readFile(entry.absolutePath, "utf8");
-      const { tags } = scanTags(contents);
-
-      const overrideLayerId = tags.layer?.value ?? null;
-      const layerId = overrideLayerId ?? inheritedLayerId;
-
-      if (layerId === null) {
+      if (inheritedLayerId === null) {
         diagnostics.push({
           file: entry.path,
           line: null,
@@ -364,49 +330,20 @@ export const extract = async (
         continue;
       }
 
-      const accumulator = accumulators.get(layerId);
+      const accumulator = accumulators.get(inheritedLayerId);
 
       if (!accumulator) {
-        diagnostics.push({
-          file: entry.path,
-          line: tags.layer?.line ?? null,
-          severity: "error",
-          message: `@layer \`${layerId}\` is not a declared layer`,
-        });
         continue;
       }
+
+      // Only line counts are read here: with no per-file tags left in the
+      // vocabulary, a file's contents say nothing about the architecture beyond
+      // which layer's folder it sits in.
+      const contents = await readFile(entry.absolutePath, "utf8");
 
       accumulator.files.push(entry.path);
       accumulator.lineCount += countNonBlankLines(contents);
-      fileLayers.set(entry.path, layerId);
-
-      // A `@layerRoot` file already contributed its tags when the declaration
-      // was registered in pass 1; folding them in again would double every
-      // boundary and invariant on the layer.
-      if (accumulator.declaredIn === entry.path) {
-        continue;
-      }
-
-      for (const boundary of tags.boundaries) {
-        accumulator.boundaries.push({
-          kind: boundary.kind,
-          note: boundary.note,
-          source: entry.path,
-          line: boundary.line,
-        });
-      }
-
-      for (const invariant of tags.invariants) {
-        accumulator.invariants.push({
-          text: invariant.value,
-          source: entry.path,
-          line: invariant.line,
-        });
-      }
-
-      for (const entryPoint of tags.entryPoints) {
-        accumulator.entryPoints.add(entryPoint.value);
-      }
+      fileLayers.set(entry.path, inheritedLayerId);
     }
   }
 
@@ -422,11 +359,6 @@ export const extract = async (
       role: accumulator.role,
       declaredIn: accumulator.declaredIn,
       prose: accumulator.prose,
-      boundaries: accumulator.boundaries,
-      invariants: accumulator.invariants,
-      entryPoints: [...accumulator.entryPoints].sort((left, right) =>
-        left.localeCompare(right),
-      ),
       references: accumulator.references.sort((left, right) =>
         left.localeCompare(right),
       ),

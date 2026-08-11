@@ -25,31 +25,29 @@ Runs batches.
     expect(errors).toEqual([]);
     expect(declaration).toEqual({
       layer: "core.simulation.monte-carlo",
-      name: "Monte Carlo runtime",
       role: "Runs many bounded-memory simulations",
-      entryPoints: ["@hashintel/petrinaut-core/workers/monte-carlo"],
-      boundaries: [
-        {
-          kind: "worker",
-          note: "Frame buffers never cross to the main thread",
-        },
-      ],
-      invariants: ["Two reusable frame buffers per run"],
     });
     expect(body).toBe("# Monte Carlo\n\nRuns batches.");
   });
 
-  it("defaults the repeatable fields so callers never see undefined", () => {
-    const { declaration } = parseFrontmatter(`---
-layer: core.thing
-role: Does a thing
+  it("ignores keys this version does not read, rather than rejecting them", () => {
+    const { declaration, errors } = parseFrontmatter(`---
+layer: core.simulation.monte-carlo
+name: Monte Carlo runtime
+role: Runs many simulations with bounded frame memory
+entryPoints: ["@hashintel/petrinaut-core/workers/monte-carlo"]
+boundaries:
+  - kind: worker
+    note: Frame buffers stay inside the worker
+invariants: ["Two reusable frame buffers per run"]
 ---
 `);
 
-    expect(declaration?.entryPoints).toEqual([]);
-    expect(declaration?.boundaries).toEqual([]);
-    expect(declaration?.invariants).toEqual([]);
-    expect(declaration?.name).toBeUndefined();
+    expect(errors).toEqual([]);
+    expect(declaration).toEqual({
+      layer: "core.simulation.monte-carlo",
+      role: "Runs many simulations with bounded frame memory",
+    });
   });
 
   it("treats a README with no frontmatter as prose only", () => {
@@ -95,32 +93,6 @@ layer: core.thing
 
     expect(declaration).toBeNull();
     expect(errors.join(" ")).toContain("role");
-  });
-
-  it("rejects an unknown boundary kind", () => {
-    const { declaration, errors } = parseFrontmatter(`---
-layer: core.thing
-role: Does a thing
-boundaries:
-  - kind: wormhole
-    note: nope
----
-`);
-
-    expect(declaration).toBeNull();
-    expect(errors.join(" ")).toContain("boundaries.0.kind");
-  });
-
-  it("rejects unknown frontmatter keys on a declaration, catching typos", () => {
-    const { declaration, errors } = parseFrontmatter(`---
-layer: core.thing
-role: Does a thing
-invariant: singular key is a typo
----
-`);
-
-    expect(declaration).toBeNull();
-    expect(errors.join(" ")).toMatch(/invariant/u);
   });
 
   it("reports malformed YAML instead of throwing", () => {

@@ -14,17 +14,17 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { join, posix, relative, sep } from "node:path";
+import { join, relative } from "node:path";
 
 import { cruise, type ICruiseResult, type IModule } from "dependency-cruiser";
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
+
+import { toPosix } from "./paths";
 
 import type { ArchitecturePackage, Edge, Layer } from "./model";
 
 /** How many representative file pairs to record per edge. */
 const examplesPerEdge = 3;
-
-const toPosix = (path: string): string => path.split(sep).join(posix.sep);
 
 interface Alias {
   alias: string;

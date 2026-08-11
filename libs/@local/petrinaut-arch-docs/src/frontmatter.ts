@@ -14,30 +14,24 @@
 import { load } from "js-yaml";
 import { z } from "zod";
 
-import { boundaryKindSchema } from "./model";
-
 const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/u;
 
-export const layerDeclarationSchema = z
-  .object({
-    /** Dotted layer id this folder and its descendants belong to. */
-    layer: z.string().min(1),
-    /** Human-facing layer name. Falls back to the last id segment. */
-    name: z.string().min(1).optional(),
-    /** One-line responsibility statement. */
-    role: z.string().min(1),
-    entryPoints: z.array(z.string().min(1)).default([]),
-    boundaries: z
-      .array(
-        z.object({
-          kind: boundaryKindSchema,
-          note: z.string().min(1),
-        }),
-      )
-      .default([]),
-    invariants: z.array(z.string().min(1)).default([]),
-  })
-  .strict();
+/**
+ * Unknown keys are ignored rather than rejected.
+ *
+ * Several Petrinaut READMEs still carry `name`, `entryPoints`, `boundaries` and
+ * `invariants` from a richer vocabulary this version does not read. Rejecting
+ * them would force those facts to be deleted from the source to satisfy a
+ * generator that has simply stopped looking at them — so they stay written
+ * where they are, and re-reading one is a schema change here, not a rewrite of
+ * the packages.
+ */
+export const layerDeclarationSchema = z.object({
+  /** Dotted layer id this folder and its descendants belong to. */
+  layer: z.string().min(1),
+  /** One-line responsibility statement. */
+  role: z.string().min(1),
+});
 
 export type LayerDeclaration = z.infer<typeof layerDeclarationSchema>;
 
@@ -54,12 +48,7 @@ export interface FrontmatterResult {
  * a `layer` key almost always means the declaration is half-written, so it is
  * reported rather than ignored.
  */
-const declarationOnlyKeys = new Set([
-  "role",
-  "entryPoints",
-  "boundaries",
-  "invariants",
-]);
+const declarationOnlyKeys = new Set(["role"]);
 
 export const parseFrontmatter = (markdown: string): FrontmatterResult => {
   const match = frontmatterPattern.exec(markdown);

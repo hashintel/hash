@@ -56,7 +56,8 @@ const sourceLink = (
 ): string =>
   `${sourceUrlPrefix}${file}${line !== undefined && line > 1 ? `#L${line}` : ""}`;
 
-const layerSlug = (id: string): string =>
+/** The slug a layer's generated page occupies. */
+export const layerSlug = (id: string): string =>
   `architecture/${id.replace(/\./gu, "/")}`;
 
 /**
@@ -172,9 +173,6 @@ export const resolveAuthoredLinks = (
   return { contents: resolved, unresolved };
 };
 
-/** The slug a layer's generated page occupies. */
-export const slugForLayer = (id: string): string => layerSlug(id);
-
 /**
  * Rewrites `@diagrams/x` import specifiers to a path relative to the page.
  *
@@ -204,50 +202,6 @@ export const resolveComponentImports = (
   );
 
   return { contents: resolved, unresolved };
-};
-
-const describeBoundaries = (
-  layer: Layer,
-  sourceUrlPrefix: string,
-): string[] => {
-  if (layer.boundaries.length === 0) {
-    return [];
-  }
-
-  const rows = layer.boundaries.map(
-    (boundary) =>
-      `| \`${boundary.kind}\` | ${escapeTableCell(boundary.note)} | [${posix.basename(boundary.source)}](${sourceLink(sourceUrlPrefix, boundary.source, boundary.line)}) |`,
-  );
-
-  return [
-    "## Boundaries",
-    "",
-    "Crossing one of these is never a plain function call.",
-    "",
-    "| Kind | What may not cross | Declared in |",
-    "| --- | --- | --- |",
-    ...rows,
-    "",
-  ];
-};
-
-const describeInvariants = (
-  layer: Layer,
-  sourceUrlPrefix: string,
-): string[] => {
-  if (layer.invariants.length === 0) {
-    return [];
-  }
-
-  return [
-    "## Invariants",
-    "",
-    ...layer.invariants.map(
-      (invariant) =>
-        `- ${invariant.text} — [${posix.basename(invariant.source)}](${sourceLink(sourceUrlPrefix, invariant.source, invariant.line)})`,
-    ),
-    "",
-  ];
 };
 
 const describeEdges = (
@@ -365,20 +319,6 @@ const buildLayerPage = (
     );
   }
 
-  if (layer.entryPoints.length > 0) {
-    body.push(
-      "## Entry points",
-      "",
-      "Import specifiers through which this layer is reachable from outside its package.",
-      "",
-      ...layer.entryPoints.map((entryPoint) => `- \`${entryPoint}\``),
-      "",
-    );
-  }
-
-  body.push(...describeBoundaries(layer, sourceUrlPrefix));
-  body.push(...describeInvariants(layer, sourceUrlPrefix));
-
   if (children.length > 0) {
     body.push(
       "## Sub-layers",
@@ -464,7 +404,7 @@ const buildOverviewPage = (
   const roots = model.layers.filter((layer) => layer.parent === null);
 
   const body: string[] = [
-    "> Generated from annotations in the Petrinaut source. Every layer, edge and boundary on this page was read out of the code, not drawn by hand.",
+    "> Generated from annotations in the Petrinaut source. Every layer and edge on this page was read out of the code, not drawn by hand.",
     "",
   ];
 
@@ -523,38 +463,18 @@ const buildOverviewPage = (
     );
   }
 
-  const boundaryLayers = model.layers.filter(
-    (layer) => layer.boundaries.length > 0,
-  );
-
-  if (boundaryLayers.length > 0) {
-    body.push(
-      "## Boundaries across the system",
-      "",
-      "| Layer | Kind | What may not cross |",
-      "| --- | --- | --- |",
-      ...boundaryLayers.flatMap((layer) =>
-        layer.boundaries.map(
-          (boundary) =>
-            `| [${escapeTableCell(layer.name)}](${relativeTo(slug, layerSlug(layer.id))}) | \`${boundary.kind}\` | ${escapeTableCell(boundary.note)} |`,
-        ),
-      ),
-      "",
-    );
-  }
-
   return {
     path: `pages/${slug}.mdx`,
     slug,
     title: "Architecture",
     description:
-      "Generated map of the Petrinaut packages: layers, dependencies and boundaries.",
+      "Generated map of the Petrinaut packages: layers and the dependencies between them.",
     order: GENERATED_ORDER_BASE,
     contents:
       frontmatter({
         title: "Architecture",
         description:
-          "Generated map of the Petrinaut packages: layers, dependencies and boundaries.",
+          "Generated map of the Petrinaut packages: layers and the dependencies between them.",
         sidebar_order: GENERATED_ORDER_BASE,
       }) + `\n${body.join("\n")}`,
   };

@@ -7,9 +7,10 @@
  */
 
 import { readdir, readFile } from "node:fs/promises";
-import { join, posix, relative, sep } from "node:path";
+import { join, relative } from "node:path";
 
 import { parseFrontmatter } from "./frontmatter";
+import { toPosix } from "./paths";
 
 import type { Dirent } from "node:fs";
 
@@ -56,8 +57,6 @@ const componentExtensions = new Set([".tsx", ".ts", ".css"]);
 
 /** Directory under `content/` holding importable diagram components. */
 const componentDirectory = "components";
-
-const toPosix = (path: string): string => path.split(sep).join(posix.sep);
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");

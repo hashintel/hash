@@ -28,7 +28,7 @@ import {
   buildPages,
   resolveAuthoredLinks,
   resolveComponentImports,
-  slugForLayer,
+  layerSlug,
   type GeneratedPage,
 } from "./emit/mdx";
 import { extract, type Diagnostic } from "./extract";
@@ -121,14 +121,7 @@ export const buildBundle = async (options: {
     rules: settings.rules,
   } satisfies ArchitectureModel);
 
-  diagnostics.push(
-    ...runChecks({
-      repoRoot,
-      model,
-      rules: settings.rules,
-      packages,
-    }),
-  );
+  diagnostics.push(...runChecks({ model, rules: settings.rules }));
 
   const diagramSources = new Map<string, string>();
 
@@ -180,56 +173,49 @@ export const buildBundle = async (options: {
   }
 
   const declaredLayerIds = new Set(model.layers.map((layer) => layer.id));
+  const layerSlugsById = new Map(
+    model.layers.map((layer) => [layer.id, layerSlug(layer.id)]),
+  );
 
   /**
-   * Final slug for each authored page.
+   * Resolve every authored page's final slug in one pass.
    *
    * An attached page moves beneath its layer's page so the guide and the
    * generated reference for the same code sit together. Its file name becomes
    * the last segment, which is why two guides attached to one layer must not
-   * share a file name.
+   * share a file name. A page whose `attachTo` does not name a real layer is
+   * reported and stays where it was, so one bad guide does not move the rest.
    */
   const authoredSlugs = new Map<string, string>();
-  for (const page of authoredResult.pages) {
-    if (page.attachTo === null) {
-      authoredSlugs.set(page.slug, page.slug);
-      continue;
-    }
+  const guidesByLayer = new Map<
+    string,
+    { slug: string; title: string; description: string }[]
+  >();
 
-    if (!declaredLayerIds.has(page.attachTo)) {
+  for (const page of authoredResult.pages) {
+    const attached =
+      page.attachTo !== null && declaredLayerIds.has(page.attachTo);
+
+    if (page.attachTo !== null && !attached) {
       diagnostics.push({
         file: page.sourceFile,
         line: null,
         severity: "error",
         message: `attachTo \`${page.attachTo}\` is not a declared layer`,
       });
+    }
+
+    if (!attached || page.attachTo === null) {
       authoredSlugs.set(page.slug, page.slug);
       continue;
     }
 
     const leaf = page.slug.slice(page.slug.lastIndexOf("/") + 1);
-    authoredSlugs.set(page.slug, `${slugForLayer(page.attachTo)}/${leaf}`);
-  }
-
-  const layerSlugsById = new Map(
-    model.layers.map((layer) => [layer.id, slugForLayer(layer.id)]),
-  );
-
-  const guidesByLayer = new Map<
-    string,
-    { slug: string; title: string; description: string }[]
-  >();
-  for (const page of authoredResult.pages) {
-    if (page.attachTo === null || !declaredLayerIds.has(page.attachTo)) {
-      continue;
-    }
+    const slug = `${layerSlug(page.attachTo)}/${leaf}`;
+    authoredSlugs.set(page.slug, slug);
     guidesByLayer.set(page.attachTo, [
       ...(guidesByLayer.get(page.attachTo) ?? []),
-      {
-        slug: authoredSlugs.get(page.slug) ?? page.slug,
-        title: page.title,
-        description: page.description,
-      },
+      { slug, title: page.title, description: page.description },
     ]);
   }
 
@@ -251,10 +237,8 @@ export const buildBundle = async (options: {
       slug,
       componentNames,
     );
-    const contents = imported.contents;
-    const unresolved = [...linked.unresolved, ...imported.unresolved];
 
-    for (const target of unresolved) {
+    for (const target of [...linked.unresolved, ...imported.unresolved]) {
       diagnostics.push({
         file: page.sourceFile,
         line: null,
@@ -263,7 +247,12 @@ export const buildBundle = async (options: {
       });
     }
 
-    return { ...page, slug, path: `pages/${slug}.mdx`, contents };
+    return {
+      ...page,
+      slug,
+      path: `pages/${slug}.mdx`,
+      contents: imported.contents,
+    };
   });
 
   const includeDiagrams = options.includeDiagrams ?? true;
@@ -340,10 +329,7 @@ export const bundleTextFiles = (bundle: BuiltBundle): Map<string, string> => {
   }
 
   for (const component of bundle.components) {
-    files.set(
-      `components/${component.path.replace(/^components\//u, "")}`,
-      component.contents,
-    );
+    files.set(component.path, component.contents);
   }
 
   return files;

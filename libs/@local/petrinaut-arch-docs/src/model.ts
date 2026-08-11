@@ -11,42 +11,6 @@ import { z } from "zod";
 export const ARCHITECTURE_MODEL_VERSION = 1;
 
 /**
- * The kinds of boundary a layer can sit on.
- *
- * A boundary is where the cost or semantics of a call change — crossing one is
- * never free and never implicit. `thread` is a hop across an existing one;
- * `worker` is the entry point that defines one.
- */
-export const boundaryKindSchema = z.enum([
-  "thread",
-  "worker",
-  "process",
-  "network",
-  "package",
-  "sandbox",
-]);
-
-export type BoundaryKind = z.infer<typeof boundaryKindSchema>;
-
-export const boundarySchema = z.object({
-  kind: boundaryKindSchema,
-  /** What may not cross it. */
-  note: z.string().min(1),
-  source: z.string().min(1),
-  line: z.number().int().positive(),
-});
-
-export type Boundary = z.infer<typeof boundarySchema>;
-
-export const annotationSchema = z.object({
-  text: z.string().min(1),
-  source: z.string().min(1),
-  line: z.number().int().positive(),
-});
-
-export type Annotation = z.infer<typeof annotationSchema>;
-
-/**
  * A layer: one node in the architecture, and one page in the docs.
  *
  * `id` is dotted and hierarchical (`core.simulation.monte-carlo`). Every
@@ -69,10 +33,6 @@ export const layerSchema = z.object({
   declaredIn: z.string().min(1),
   /** Prose body of the declaring README, if any — becomes the page body. */
   prose: z.string().nullable(),
-  boundaries: z.array(boundarySchema),
-  invariants: z.array(annotationSchema),
-  /** Public import specifiers through which this layer is reachable. */
-  entryPoints: z.array(z.string().min(1)),
   /** Other markdown under this layer, e.g. `hir/BUFFER_ABI.md`, linked from its page. */
   references: z.array(z.string().min(1)),
   files: z.array(z.string().min(1)),

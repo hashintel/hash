@@ -2,8 +2,8 @@
  * `arch-docs build` writes the bundle; `arch-docs check` reports on it.
  *
  * `check` is what CI runs: it builds everything, discards the files, and fails
- * on any annotation error — an unannotated file, a dead `@entryPoint`, a violated
- * rule — so documentation cannot quietly stop being true.
+ * on any annotation error — an unannotated file, an undeclared ancestor, a
+ * violated rule — so the map cannot quietly stop matching the code.
  */
 
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
@@ -50,14 +50,6 @@ const reportDiagnostics = (diagnostics: Diagnostic[]): { errors: number } => {
 };
 
 const summarise = (bundle: BuiltBundle): void => {
-  const boundaries = bundle.model.layers.reduce(
-    (total, layer) => total + layer.boundaries.length,
-    0,
-  );
-  const invariants = bundle.model.layers.reduce(
-    (total, layer) => total + layer.invariants.length,
-    0,
-  );
   const files = bundle.model.layers.reduce(
     (total, layer) => total + layer.fileCount,
     0,
@@ -65,7 +57,7 @@ const summarise = (bundle: BuiltBundle): void => {
 
   process.stdout.write(
     dim(
-      `${bundle.model.layers.length} layers · ${bundle.model.edges.length} edges · ${files} files · ${boundaries} boundaries · ${invariants} invariants · ${bundle.generated.length} generated pages · ${bundle.authored.length} authored pages\n`,
+      `${bundle.model.layers.length} layers \u00b7 ${bundle.model.edges.length} edges \u00b7 ${files} files \u00b7 ${bundle.generated.length} generated pages \u00b7 ${bundle.authored.length} authored pages\n`,
     ),
   );
 };
@@ -132,8 +124,8 @@ const main = async (): Promise<number> => {
 
   if (command === "check") {
     // `check` builds the whole bundle and discards the files. The build is
-    // what surfaces the diagnostics — an unannotated file, a dead entry point, a
-    // violated rule — and because the bundle is never stored, there is no
+    // what surfaces the diagnostics — an unannotated file, an undeclared
+    // ancestor, a violated rule — and because the bundle is never stored, there is no
     // committed copy that could be out of date with the source.
     return errors > 0 ? 1 : 0;
   }

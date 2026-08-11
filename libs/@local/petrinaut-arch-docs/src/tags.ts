@@ -3,25 +3,23 @@
  *
  * A layer is declared either here, with `@layerRoot` on a folder's primary
  * file, or in a folder `README.md`'s frontmatter (see `frontmatter.ts`), whose
- * prose then becomes the layer's page. Other tags refine a layer with facts
- * belonging to specific code. Files with no tags inherit from the nearest
- * declaring ancestor.
+ * prose then becomes the layer's page. Files with no tags inherit from the
+ * nearest declaring ancestor.
+ *
+ * The vocabulary is deliberately two tags: an id and a one-line role. Both are
+ * needed to place a layer in the graph and to label it — anything more is a
+ * claim the generator cannot check, and this version does not make claims it
+ * cannot keep. Other tags (`@boundary`, `@invariant`, `@entryPoint`) remain
+ * written in the Petrinaut source and are simply not read; re-registering one
+ * here is all it would take to surface them again.
  *
  * Tags are recognised only at the start of a line inside a block comment, so a
  * tag named in prose or in a string literal is not picked up.
  */
 
-import { boundaryKindSchema, type BoundaryKind } from "./model";
-
 /** A tag occurrence, with the line it was found on for error reporting. */
 export interface TagValue {
   value: string;
-  line: number;
-}
-
-export interface BoundaryTag {
-  kind: BoundaryKind;
-  note: string;
   line: number;
 }
 
@@ -32,17 +30,8 @@ export interface ParsedTags {
    * have a barrel entry file but no README.
    */
   layerRoot: TagValue | null;
-  /**
-   * `@layer` — assigns this single file to an already-declared layer,
-   * overriding what it would inherit. Use sparingly: a file that needs this is
-   * often a file in the wrong folder.
-   */
-  layer: TagValue | null;
-  layerName: TagValue | null;
+  /** `@role` — one-line statement of what the layer is responsible for. */
   role: TagValue | null;
-  entryPoints: TagValue[];
-  boundaries: BoundaryTag[];
-  invariants: TagValue[];
 }
 
 export interface TagDiagnostic {
@@ -57,31 +46,17 @@ export interface TagScanResult {
 
 const emptyTags = (): ParsedTags => ({
   layerRoot: null,
-  layer: null,
-  layerName: null,
   role: null,
-  entryPoints: [],
-  boundaries: [],
-  invariants: [],
 });
 
 /** Tags that may appear at most once per file. */
-const singularTags = ["layerRoot", "layer", "layerName", "role"] as const;
+const singularTags = ["layerRoot", "role"] as const;
 
 type SingularTag = (typeof singularTags)[number];
 
-const repeatableTags = ["entryPoint", "boundary", "invariant"] as const;
-
-const knownTagNames = new Set<string>([...singularTags, ...repeatableTags]);
+const knownTagNames = new Set<string>(singularTags);
 
 const blockCommentPattern = /\/\*\*[\s\S]*?\*\//gu;
-
-/**
- * Splits `@boundary worker — frames never cross` into kind and note. The
- * separator may be an em dash, a hyphen or a colon; all three read naturally in
- * a comment and all three are common in this codebase.
- */
-const boundarySeparator = /\s*(?:—|--|-|:)\s*/u;
 
 /**
  * Byte offsets of the start of each line, so an offset can be turned into a
@@ -200,65 +175,17 @@ export const scanTags = (sourceText: string): TagScanResult => {
     const rawTags = collectRawTags(commentBodyLines(match[0], startLine));
 
     for (const rawTag of rawTags) {
-      const { name, text, line } = rawTag;
+      const { name, line } = rawTag;
 
       if (singularTags.includes(name as SingularTag)) {
         assignSingular(name as SingularTag, rawTag);
         continue;
       }
 
-      if (name === "entryPoint") {
-        if (text === "") {
-          diagnostics.push({
-            line,
-            message: "@entryPoint requires an import specifier",
-          });
-          continue;
-        }
-        tags.entryPoints.push({ value: text, line });
-        continue;
-      }
-
-      if (name === "invariant") {
-        if (text === "") {
-          diagnostics.push({
-            line,
-            message: "@invariant requires a description",
-          });
-          continue;
-        }
-        tags.invariants.push({ value: text, line });
-        continue;
-      }
-
-      if (name === "boundary") {
-        const [rawKind = "", ...noteParts] = text.split(boundarySeparator);
-        const parsedKind = boundaryKindSchema.safeParse(rawKind.trim());
-
-        if (!parsedKind.success) {
-          diagnostics.push({
-            line,
-            message: `unknown @boundary kind ${JSON.stringify(rawKind.trim())}; expected one of ${boundaryKindSchema.options.join(", ")}`,
-          });
-          continue;
-        }
-
-        const note = noteParts.join(" ").trim();
-        if (note === "") {
-          diagnostics.push({
-            line,
-            message: `@boundary ${parsedKind.data} needs a note explaining what may not cross it`,
-          });
-          continue;
-        }
-
-        tags.boundaries.push({ kind: parsedKind.data, note, line });
-        continue;
-      }
-
       // Only a miscased version of one of our own tags is reported. Every other
       // unknown tag is someone else's — `@param`, `@deprecated`, an eslint
-      // directive — and is none of our business.
+      // directive, or one of the annotations this version deliberately does not
+      // read — and is none of our business.
       const suggestion = [...knownTagNames].find(
         (known) => known !== name && known.toLowerCase() === name.toLowerCase(),
       );

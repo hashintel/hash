@@ -73,8 +73,8 @@ export const buildManifest = (options: {
  * The whole architecture as one Markdown file.
  *
  * Ordered so a reader (human or model) meets the system top-down: what the
- * packages are, what the rules are, then each layer with its boundaries,
- * invariants and dependencies. Deliberately terse — this is a reference, and
+ * packages are, what the rules are, then each layer with its role and
+ * dependencies. Deliberately terse — this is a reference, and
  * every token spent on prose here is one an agent pays on every read.
  */
 export const buildSingleFileArchitecture = (
@@ -83,7 +83,7 @@ export const buildSingleFileArchitecture = (
   const lines: string[] = [
     "# Petrinaut architecture",
     "",
-    "Generated from annotations in the source. Do not edit — change the `@layerRoot`/`@boundary`/`@invariant` annotations or the declaring README frontmatter instead.",
+    "Generated from annotations in the source. Do not edit — change the `@layerRoot`/`@role` annotations or the declaring README frontmatter instead.",
     "",
     "## Packages",
     "",
@@ -114,24 +114,6 @@ export const buildSingleFileArchitecture = (
       `- Declared in: \`${layer.declaredIn}\``,
       `- Size: ${layer.fileCount} files, ${layer.lineCount} lines`,
     );
-
-    if (layer.entryPoints.length > 0) {
-      lines.push(
-        `- Entry points: ${layer.entryPoints.map((entryPoint) => `\`${entryPoint}\``).join(", ")}`,
-      );
-    }
-
-    for (const boundary of layer.boundaries) {
-      lines.push(
-        `- Boundary (\`${boundary.kind}\`): ${boundary.note} [${boundary.source}:${boundary.line}]`,
-      );
-    }
-
-    for (const invariant of layer.invariants) {
-      lines.push(
-        `- Invariant: ${invariant.text} [${invariant.source}:${invariant.line}]`,
-      );
-    }
 
     const outgoing = model.edges.filter((edge) => edge.from === layer.id);
 

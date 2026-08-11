@@ -89,14 +89,14 @@ describe("extract", () => {
   it("declares a layer from a @layerRoot entry file", async () => {
     await write(
       "pkg/src/index.ts",
-      `/**\n * @layerRoot core\n * @layerName Core\n * @role Does the thing\n */\nexport const a = 1;\n`,
+      `/**\n * @layerRoot core\n * @role Does the thing\n */\nexport const a = 1;\n`,
     );
 
     const { layers, diagnostics } = await run();
 
     expect(diagnostics).toEqual([]);
     expect(layers).toHaveLength(1);
-    expect(layers[0]?.name).toBe("Core");
+    expect(layers[0]?.name).toBe("core");
     expect(layers[0]?.role).toBe("Does the thing");
     expect(layers[0]?.declaredIn).toBe("pkg/src/index.ts");
   });
@@ -111,71 +111,6 @@ describe("extract", () => {
 
     expect(
       diagnostics.some((diagnostic) => diagnostic.message.includes("@role")),
-    ).toBe(true);
-  });
-
-  it("does not double-count tags on the declaring file", async () => {
-    await write(
-      "pkg/src/index.ts",
-      `/**\n * @layerRoot core\n * @role Root\n * @boundary worker — nothing crosses\n * @invariant Holds\n */\nexport const a = 1;\n`,
-    );
-
-    const { layers } = await run();
-
-    expect(layers[0]?.boundaries).toHaveLength(1);
-    expect(layers[0]?.invariants).toHaveLength(1);
-  });
-
-  it("folds file-level boundaries and invariants onto the inherited layer", async () => {
-    await write("pkg/src/README.md", "---\nlayer: core\nrole: Root\n---\n");
-    await write(
-      "pkg/src/worker.ts",
-      `/**\n * @boundary worker — buffers stay put\n * @invariant Bounded memory\n * @entryPoint @test/pkg\n */\nexport const a = 1;\n`,
-    );
-
-    const { layers } = await run();
-
-    expect(layers[0]?.boundaries).toEqual([
-      {
-        kind: "worker",
-        note: "buffers stay put",
-        source: "pkg/src/worker.ts",
-        line: 2,
-      },
-    ]);
-    expect(layers[0]?.invariants[0]?.text).toBe("Bounded memory");
-    expect(layers[0]?.entryPoints).toEqual(["@test/pkg"]);
-  });
-
-  it("lets a single file override its inherited layer", async () => {
-    await write("pkg/src/README.md", "---\nlayer: core\nrole: Root\n---\n");
-    await write(
-      "pkg/src/engine/README.md",
-      "---\nlayer: core.engine\nrole: Engine\n---\n",
-    );
-    await write(
-      "pkg/src/misplaced.ts",
-      `/**\n * @layer core.engine\n */\nexport const a = 1;\n`,
-    );
-
-    const { fileLayers } = await run();
-
-    expect(fileLayers.get("pkg/src/misplaced.ts")).toBe("core.engine");
-  });
-
-  it("reports an @layer pointing at an undeclared layer", async () => {
-    await write("pkg/src/README.md", "---\nlayer: core\nrole: Root\n---\n");
-    await write(
-      "pkg/src/a.ts",
-      `/**\n * @layer core.nope\n */\nexport const a = 1;\n`,
-    );
-
-    const { diagnostics } = await run();
-
-    expect(
-      diagnostics.some((diagnostic) =>
-        diagnostic.message.includes("is not a declared layer"),
-      ),
     ).toBe(true);
   });
 

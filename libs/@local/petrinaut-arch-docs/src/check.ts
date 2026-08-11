@@ -2,19 +2,20 @@
  * Checks that turn the documentation into something CI can hold to account.
  *
  * Documentation rots because nothing fails when it stops being true. Each check
- * here makes one class of rot into a build error: a layer with no declaration, a
- * `@entryPoint` that no longer resolves, a rule the import graph violates, a committed
- * bundle that no longer matches the source.
+ * here makes one class of rot into a build error: a layer id implying an
+ * ancestor nobody declared, a rule the real import graph violates, a
+ * declaration whose folder has been emptied.
+ *
+ * Every check is a statement about the *graph* — which is the whole of what
+ * this version claims. It holds no unverifiable prose to account because it
+ * reads none.
  */
-
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { ancestorLayerIds } from "./model";
 
 import type { LayerRule } from "../architecture.config";
 import type { Diagnostic } from "./extract";
-import type { ArchitectureModel, ArchitecturePackage } from "./model";
+import type { ArchitectureModel } from "./model";
 
 /** True when `layerId` is the scope itself or nested inside it. */
 export const withinScope = (layerId: string, scope: string): boolean =>
@@ -79,47 +80,6 @@ export const checkRules = (
 };
 
 /**
- * A `@entryPoint` claims a layer is reachable through a public import specifier. If
- * the package stops exporting that path the claim is silently false, which is
- * exactly the kind of stale detail that makes docs untrustworthy.
- */
-export const checkEntryPoints = (
-  repoRoot: string,
-  model: ArchitectureModel,
-  packages: ArchitecturePackage[],
-): Diagnostic[] => {
-  const exportedSpecifiers = new Set<string>();
-
-  for (const pkg of packages) {
-    const manifestPath = join(repoRoot, pkg.path, "package.json");
-    if (!existsSync(manifestPath)) {
-      continue;
-    }
-
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-      exports?: Record<string, unknown>;
-    };
-
-    for (const subpath of Object.keys(manifest.exports ?? {})) {
-      exportedSpecifiers.add(
-        subpath === "." ? pkg.name : `${pkg.name}${subpath.slice(1)}`,
-      );
-    }
-  }
-
-  return model.layers.flatMap((layer) =>
-    layer.entryPoints
-      .filter((entryPoint) => !exportedSpecifiers.has(entryPoint))
-      .map((entryPoint) => ({
-        file: layer.declaredIn,
-        line: null,
-        severity: "error" as const,
-        message: `@entryPoint \`${entryPoint}\` on layer \`${layer.id}\` is not an export of any covered package`,
-      })),
-  );
-};
-
-/**
  * Layers with no files usually mean a declaration whose folder was emptied or
  * renamed. Grouping layers legitimately hold no files of their own, so this is a
  * warning: it is reported, but does not fail the build.
@@ -142,13 +102,10 @@ export const checkEmptyLayers = (model: ArchitectureModel): Diagnostic[] => {
 };
 
 export const runChecks = (options: {
-  repoRoot: string;
   model: ArchitectureModel;
   rules: LayerRule[];
-  packages: ArchitecturePackage[];
 }): Diagnostic[] => [
   ...checkAncestorsDeclared(options.model),
   ...checkRules(options.model, options.rules),
-  ...checkEntryPoints(options.repoRoot, options.model, options.packages),
   ...checkEmptyLayers(options.model),
 ];
