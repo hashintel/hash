@@ -102,6 +102,19 @@ describe("isSDCPNEqual", () => {
     expect(isSDCPNEqual(sampleNet, modified)).toBe(false);
   });
 
+  it("treats an optional key set to `undefined` as absent", () => {
+    const withUndefinedKeys: SDCPN = {
+      ...sampleNet,
+      scenarios: undefined,
+      metrics: undefined,
+      subnets: undefined,
+      componentInstances: undefined,
+    };
+
+    expect(isSDCPNEqual(withUndefinedKeys, sampleNet)).toBe(true);
+    expect(isSDCPNEqual(sampleNet, withUndefinedKeys)).toBe(true);
+  });
+
   it("returns false when places array has different length", () => {
     const modified = JSON.parse(JSON.stringify(sampleNet)) as SDCPN;
     modified.places.push({
