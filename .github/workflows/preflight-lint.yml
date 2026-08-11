@@ -1,0 +1,14 @@
+name: Preflight
+
+on:
+  pull_request:
+  merge_group:
+
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-actionlint.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
