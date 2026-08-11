@@ -1,8 +1,8 @@
 //! The hydrated data model.
 //!
-//! One column set per read surface, each aligned to its delivered order: hydration writes them off
-//! the store rows, assembly documents and encoders read them. An entity the store no longer serves
-//! reads `null` in every column and stays outside every completeness set.
+//! One column set per hydration read, each aligned to its delivered order: hydration writes them
+//! off the store rows, assembly documents and encoders read them. An entity the store no longer
+//! serves reads `null` in every column and stays outside every completeness set.
 
 use hashql_core::id::{IdSlice, IdVec};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};

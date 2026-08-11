@@ -13,7 +13,7 @@
 //! reach a trailer from the deliverable set, and the caps, counts, and completeness flags below all
 //! describe that set.
 //!
-//! The store's protection is a per-actor condition, and this surface evaluates none of them. The
+//! The store's protection is a per-actor condition, and the hydration queries evaluate none. The
 //! queries remove the protected keys for every caller, which withholds at least what the store
 //! withholds from any actor, including the owner of a protected value. A trailer's property map is
 //! therefore one function of the entity, identical for every caller the row admits.
@@ -23,14 +23,14 @@
 //! whole properties object through the type's `labelProperty` path, with no actor in the
 //! derivation, so a type whose label property the deployment protects keeps that value in its label
 //! column. A deployment that protects a label property makes that true of its labels with no code
-//! change here. The locate surfaces also name the base URL behind the label, which states that the
+//! change here. The locate responses also name the base URL behind the label, which states that the
 //! entity has a value at that path without delivering it.
 //!
 //! The tile trailer's per-point rules are the graph's own display resolution rather than a second
 //! implementation of a client's. The label is the value the store's label column resolved from the
 //! type's `labelProperty`, and the icon follows the SDK's display-field rule. Where the graph's
 //! resolution and a client's differ, the value delivered here is the graph's. Convergence is the
-//! graph's to make. This surface re-derives neither rule.
+//! graph's to make. This module re-derives neither rule.
 //!
 //! - Label: `entity_edition_cache.labels[1]`, the entity's display label; `null` when the entity
 //!   has none.
@@ -40,7 +40,7 @@
 //!   so a type inherits its ancestors' icons nearest first. `null` when no chain carries one, and
 //!   the client owns the fallback glyph.
 //!
-//! The locate and edges surfaces deliver type *references* instead of rendered display. Each
+//! The locate and edges responses deliver type *references* instead of rendered display. Each
 //! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves
 //! labels and icons through its own type metadata, so one owner holds each display concern.
 //!
@@ -68,6 +68,9 @@ mod columns;
 pub(crate) mod compile;
 mod order;
 pub(crate) mod select;
+#[cfg(test)]
+mod statement_fixtures;
+mod statements;
 
 // The hydration column constructors are test vocabulary: a fixture store builds its
 // all-unresolved answer from them, and no production caller constructs a hydration by hand.

@@ -7,14 +7,14 @@
 //! two masks. Node rows go in one mask and link rows in the other.
 //!
 //! Because the caller's filter and the policy filter meet in the same statement, a filtered request
-//! and a permission-restricted request arrive at the serving surface in the same shape, a proof
+//! and a permission-restricted request arrive at serving in the same shape, a proof
 //! that admits fewer rows. The proof therefore carries the request's whole visible view.
 //!
 //! A caller filter also carries the store's own protection obligation. The store's entity reads
 //! transform a caller's filter through [`PropertyProtectionFilterConfig`] before compiling it, so a
 //! filter over a protected property cannot enumerate the entity types that configuration excludes.
 //! This path compiles a caller filter as well. A proof is observable (the rows it admits are the
-//! rows the surfaces deliver), so this path applies the same transformation under the same
+//! rows the responses deliver), so this path applies the same transformation under the same
 //! condition, from a configuration its caller supplies.
 //!
 //! The proof admits exactly the rows the query returned. Permissions evaluate against the live
@@ -68,13 +68,13 @@ pub(crate) enum ProofError {
     Connect(Report<StoreError>),
     /// Assembling the actor's policy set failed.
     Policies(Report<ContextCreationError>),
-    /// The caller's filter does not compile against the entity query surface.
+    /// The caller's filter does not compile against the entity query paths.
     Filter(Report<SelectCompilerError>),
     /// The caller's filter carries a parameter that does not match its path's type.
     Convert(Report<ParameterConversionError>),
     /// The scope's held filter document does not parse.
     Document(serde_json::Error),
-    /// The policy filter does not compile against the entity query surface.
+    /// The policy filter does not compile against the entity query paths.
     PolicyFilter(Report<SelectCompilerError>),
     /// The store rejected the visibility query.
     Query(tokio_postgres::Error),
