@@ -120,7 +120,7 @@ jobs:
               echo "Checking diff of ${{ matrix.path }}/$line"
               git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
             fi
-          done <<< "$(cat ${{ matrix.path }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h
@@ -152,7 +152,7 @@ jobs:
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
-          cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
+          sarif-fmt < ${{ matrix.path }}/clippy.sarif
           jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif > /dev/null
 
           # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are plain text, not compiler
@@ -169,7 +169,7 @@ jobs:
         run: |
           {
             echo '```'
-            cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
+            sarif-fmt < ${{ matrix.path }}/clippy.sarif
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
