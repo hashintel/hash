@@ -159,7 +159,17 @@ export const extract = async (
   const packageEntries = new Map<string, WalkEntry[]>();
 
   for (const pkg of packages) {
+    // A package whose language has no extractor would otherwise contribute no
+    // files, no layers and no diagnostics — appearing in the model as covered
+    // while being entirely undescribed. That is the silent mis-bucketing this
+    // system exists to remove, so it is an error rather than a skip.
     if (pkg.language !== "typescript") {
+      diagnostics.push({
+        file: `${pkg.path}/package.json`,
+        line: null,
+        severity: "error",
+        message: `package \`${pkg.name}\` is configured as \`${pkg.language}\`, which has no extractor — it would be listed in the model with no layers. Remove it from architecture.config.ts until one exists.`,
+      });
       continue;
     }
 
