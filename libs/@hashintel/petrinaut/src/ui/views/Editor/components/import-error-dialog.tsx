@@ -1,10 +1,7 @@
-import { Button, Dialog } from "@hashintel/ds-components";
+import { Banner, Button, Dialog } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-const errorTextStyle = css({
-  fontSize: "sm",
-  color: "neutral.s90",
-  lineHeight: "[1.5]",
+const errorMessageStyle = css({
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
 });
@@ -33,7 +30,11 @@ export const ImportErrorDialog = ({
         description="The selected file could not be imported."
       />
       <Dialog.Body>
-        <p className={errorTextStyle}>{errorMessage}</p>
+        <Banner tone="error" icon={false}>
+          <Banner.Description className={errorMessageStyle}>
+            {errorMessage}
+          </Banner.Description>
+        </Banner>
       </Dialog.Body>
       <Dialog.Footer
         actions={
