@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -45,7 +45,7 @@ jobs:
           PACKAGES=$(turbo query "$PACKAGES_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
-          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   package:
     name: Package
@@ -66,10 +66,10 @@ jobs:
           fetch-depth: 2
 
       - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -77,7 +77,7 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: ${{ matrix.name }}
 
@@ -87,25 +87,25 @@ jobs:
           set -x
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "eslint=$ESLINT" | tee -a $GITHUB_OUTPUT
+          echo "eslint=$ESLINT" | tee -a "$GITHUB_OUTPUT"
 
           TSC=$(turbo run lint:tsc --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "tsc=$TSC" | tee -a $GITHUB_OUTPUT
+          echo "tsc=$TSC" | tee -a "$GITHUB_OUTPUT"
 
           CODEGEN=$(turbo run codegen --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "codegen=$CODEGEN" | tee -a $GITHUB_OUTPUT
+          echo "codegen=$CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
           CLIPPY=$(turbo run lint:clippy --filter '${{ matrix.name }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "clippy=$CLIPPY" | tee -a $GITHUB_OUTPUT
+          echo "clippy=$CLIPPY" | tee -a "$GITHUB_OUTPUT"
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Show disk usage
         run: df -h
@@ -120,7 +120,7 @@ jobs:
               echo "Checking diff of ${{ matrix.path }}/$line"
               git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
             fi
-          done <<< "$(cat ${{ matrix.path }}/turbo.json | grep -v '^ *//' | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h
@@ -152,7 +152,7 @@ jobs:
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
-          cat ${{ matrix.path }}/clippy.sarif | sarif-fmt
+          sarif-fmt < ${{ matrix.path }}/clippy.sarif
           jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif > /dev/null
 
           # Cargo's manifest lints (e.g. `cargo::unused_dependencies`) are plain text, not compiler
@@ -167,9 +167,11 @@ jobs:
       - name: Print clippy errors to summary
         if: failure() && steps.lints.outputs.clippy == 'true'
         run: |
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat ${{ matrix.path }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          {
+            echo '```'
+            sarif-fmt < ${{ matrix.path }}/clippy.sarif
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
@@ -212,10 +214,10 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -223,7 +225,7 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
@@ -244,7 +246,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:constraints` locally to apply autofixes.'
+            echo 'Try running "yarn fix:constraints" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -259,7 +261,7 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Please fix the above errors locally for the check to pass.'
-            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'If you do not see them, try merging target branch into yours.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -271,7 +273,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:markdownlint` locally to apply autofixes.'
+            echo 'Try running "yarn fix:markdownlint" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -283,7 +285,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:format` locally to apply autofixes.'
+            echo 'Try running "yarn fix:format" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -298,9 +300,9 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Changes were detected in .claude/skills/skill-rules.json file after running `yarn agents:skill-management generate-skill-rules`.'
+            echo 'Changes were detected in .claude/skills/skill-rules.json file after running "yarn agents:skill-management generate-skill-rules".'
             echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
-            echo 'Try running `yarn agents:skill-management generate-skill-rules` locally to apply autofixes.'
+            echo 'Try running "yarn agents:skill-management generate-skill-rules" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;
           fi
@@ -312,7 +314,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:taplo` locally to apply autofixes.'
+            echo 'Try running "yarn fix:taplo" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -326,7 +328,7 @@ jobs:
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Some dependencies can be deduplicated, which will make node_modules'
             echo 'lighter and potentially save us from unexplainable bugs.'
-            echo 'Please run `yarn fix:yarn-deduplicate` locally and commit yarn.lock.'
+            echo 'Please run "yarn fix:yarn-deduplicate" locally and commit yarn.lock.'
             echo 'You may need to run the command 2-3 times in some rare cases.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
@@ -343,10 +345,10 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Changes were detected in yarn.lock file after running `yarn install`.'
+            echo 'Changes were detected in yarn.lock file after running "yarn install".'
             echo 'This makes runtime less stable, so should be avoided.'
-            echo 'Please run `yarn install` locally and commit yarn.lock.'
-            echo 'You may also want to run `yarn fix:yarn-deduplicate` just in case.'
+            echo 'Please run "yarn install" locally and commit yarn.lock.'
+            echo 'You may also want to run "yarn fix:yarn-deduplicate" just in case.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;
           fi
@@ -358,9 +360,9 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Changes were detected in Cargo.lock file after running `cargo update --workspace`.'
+            echo 'Changes were detected in Cargo.lock file after running "cargo update --workspace".'
             echo 'This makes runtime less stable, so should be avoided.'
-            echo 'Please run `cargo update --workspace` locally and commit Cargo.lock.'
+            echo 'Please run "cargo update --workspace" locally and commit Cargo.lock.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;
           fi
@@ -373,7 +375,7 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Please fix the above errors locally for the check to pass.'
-            echo 'If you don’t see them, try merging target branch into yours.'
+            echo 'If you do not see them, try merging target branch into yours.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -385,8 +387,8 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `sqlfluff fix` locally to apply autofixes.'
-            echo 'Note, that SQLFluff does not come with `yarn install` and you may need to install it yourself.'
+            echo 'Try running "sqlfluff fix" locally to apply autofixes.'
+            echo 'Note, that SQLFluff does not come with "yarn install" and you may need to install it yourself.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi

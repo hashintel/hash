@@ -8,7 +8,7 @@ _.file                        = [".env", ".env.local"]
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
 lockfile                            = true
-minimum_release_age                 = "5d"
+minimum_release_age                 = "7d"
 
 [tools]
 # Basic tools
