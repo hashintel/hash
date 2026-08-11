@@ -8,6 +8,8 @@ on:
     types: [opened, synchronize, reopened, edited]
   merge_group:
 
+permissions: {}
+
 jobs:
   dependencies:
     name: Dependencies
