@@ -891,15 +891,6 @@ const impl core::ops::Mul for NonNegative {
     }
 }
 
-const impl core::ops::Div for NonNegative {
-    type Output = Self;
-
-    #[inline]
-    fn div(self, rhs: Self) -> Self {
-        Self(self.0 / rhs.0)
-    }
-}
-
 const impl core::ops::Div<Positive> for NonNegative {
     type Output = Self;
 
