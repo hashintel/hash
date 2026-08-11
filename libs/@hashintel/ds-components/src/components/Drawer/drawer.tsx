@@ -385,6 +385,9 @@ const DrawerRoot = ({
             <ArkDrawer.Content
               {...ariaAttributes}
               ref={stackContentRef}
+              // Disable the built-in whole-panel swipe; the Grabber strip below
+              // is the only place a swipe-to-close can start.
+              draggable={false}
               data-drawer-position={position}
               className={cx(
                 classes.content,
@@ -413,6 +416,9 @@ const DrawerRoot = ({
               >
                 {children}
               </OverlaySections>
+              {allowSwipe && (
+                <ArkDrawer.Grabber className={classes.swipeHandle} />
+              )}
             </ArkDrawer.Content>
           </ArkDrawer.Positioner>
         </div>

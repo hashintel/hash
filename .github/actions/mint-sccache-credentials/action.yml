@@ -55,7 +55,7 @@ runs:
     - name: Encrypt credentials
       id: encrypt
       if: ${{ steps.secrets.outcome == 'success' }}
-      uses: ./.github/actions/encrypt-secret
+      uses: $/.github/actions/encrypt-secret
       with:
         value: ${{ steps.bundle.outputs.credentials }}
         encryption_key: ${{ inputs.encryption_key }}

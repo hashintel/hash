@@ -33,7 +33,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install package manager via corepack
-      uses: ./.github/actions/install-corepack
+      uses: $/.github/actions/install-corepack
 
     - name: Setup environment
       shell: bash
@@ -54,7 +54,7 @@ runs:
     - name: "Install sccache"
       if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}
       continue-on-error: true
-      uses: ./.github/actions/install-sccache
+      uses: $/.github/actions/install-sccache
       with:
         encrypted_credentials: ${{ inputs.encrypted_sccache_credentials }}
         encryption_key: ${{ inputs.sccache_encryption_key }}

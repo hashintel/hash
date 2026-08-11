@@ -13,7 +13,7 @@ runs:
   steps:
     - name: Decrypt credentials
       id: decrypt
-      uses: ./.github/actions/decrypt-secret
+      uses: $/.github/actions/decrypt-secret
       with:
         encrypted_value: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
