@@ -19,8 +19,11 @@ import {
   buildSingleFileArchitecture,
   type BundleManifest,
 } from "./emit/bundle-outputs";
-import { buildOverviewDiagram, buildSubtreeDiagram } from "./emit/d2";
-import { buildLayouts, renderLayoutsModule } from "./emit/layout";
+import {
+  buildNeighbourhoodDiagram,
+  buildOverviewDiagram,
+  buildSubtreeDiagram,
+} from "./emit/d2";
 import {
   buildPages,
   resolveAuthoredLinks,
@@ -53,6 +56,15 @@ export interface BuiltBundle {
 
 /** Diagram embedded on the overview page. */
 const OVERVIEW_DIAGRAM = "overview";
+
+/**
+ * Diagram names are namespaced by subdirectory rather than by a name prefix,
+ * because a layer id is only guaranteed unique among layer ids — a flat
+ * `around-${id}` scheme would collide with a top-level layer actually called
+ * `around-something`.
+ */
+const NEIGHBOURHOOD_PREFIX = "around";
+const SUBTREE_PREFIX = "within";
 
 export const buildBundle = async (options: {
   repoRoot: string;
@@ -124,15 +136,31 @@ export const buildBundle = async (options: {
     OVERVIEW_DIAGRAM,
     buildOverviewDiagram(model.layers, model.edges, GENERATOR_NAME),
   );
-  // A drill-down diagram for every layer that has sub-layers, embedded on that
-  // layer's own page.
+
+  // A neighbourhood diagram for *every* layer, including leaves — those are
+  // where a reader most often lands, and "what does this touch" is the question
+  // they arrive with.
+  for (const layer of model.layers) {
+    diagramSources.set(
+      `${NEIGHBOURHOOD_PREFIX}/${layer.id}`,
+      buildNeighbourhoodDiagram(
+        layer.id,
+        model.layers,
+        model.edges,
+        GENERATOR_NAME,
+      ),
+    );
+  }
+
+  // A drill-down diagram for every layer that has sub-layers, answering the
+  // other question: what is inside this one.
   const parentLayerIds = model.layers
     .filter((layer) => model.layers.some((other) => other.parent === layer.id))
     .map((layer) => layer.id);
 
   for (const parentId of parentLayerIds) {
     diagramSources.set(
-      parentId,
+      `${SUBTREE_PREFIX}/${parentId}`,
       buildSubtreeDiagram(parentId, model.layers, model.edges, GENERATOR_NAME),
     );
   }
@@ -243,9 +271,17 @@ export const buildBundle = async (options: {
   const generated = buildPages(model, {
     sourceUrlPrefix: settings.sourceUrlPrefix,
     overviewDiagram: includeDiagrams ? OVERVIEW_DIAGRAM : null,
-    layerDiagrams: includeDiagrams
-      ? new Set(parentLayerIds)
-      : new Set<string>(),
+    neighbourhoodDiagrams: includeDiagrams
+      ? new Map(
+          model.layers.map((layer) => [
+            layer.id,
+            `${NEIGHBOURHOOD_PREFIX}/${layer.id}`,
+          ]),
+        )
+      : new Map<string, string>(),
+    subtreeDiagrams: includeDiagrams
+      ? new Map(parentLayerIds.map((id) => [id, `${SUBTREE_PREFIX}/${id}`]))
+      : new Map<string, string>(),
     guidesByLayer,
   });
 
@@ -267,13 +303,6 @@ export const buildBundle = async (options: {
     authored,
   });
 
-  /**
-   * Positions for every fold state, shipped as a module the interactive diagram
-   * imports. Generated rather than authored, but it travels with the authored
-   * components because that is where a bundle consumer looks for importable code.
-   */
-  const layouts = await buildLayouts(model.layers, model.edges, slugForLayer);
-
   return {
     model,
     manifest,
@@ -281,14 +310,7 @@ export const buildBundle = async (options: {
     authored,
     diagramSources,
     singleFile: buildSingleFileArchitecture(model),
-    components: [
-      ...authoredResult.components,
-      {
-        path: "components/architecture-layouts.ts",
-        name: "architecture-layouts",
-        contents: renderLayoutsModule(layouts, GENERATOR_NAME),
-      },
-    ],
+    components: authoredResult.components,
     diagnostics,
   };
 };

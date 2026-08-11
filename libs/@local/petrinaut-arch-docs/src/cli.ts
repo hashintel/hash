@@ -71,11 +71,12 @@ const summarise = (bundle: BuiltBundle): void => {
 };
 
 const writeBundle = async (bundle: BuiltBundle): Promise<void> => {
-  // Generated pages and diagrams are rewritten wholesale so a renamed layer
-  // cannot leave an orphaned page behind, which would silently keep serving a
-  // description of code that no longer exists.
+  // Generated pages, diagrams and components are rewritten wholesale so a
+  // renamed layer or a deleted component cannot leave an orphan behind, which
+  // would silently keep serving a description of code that no longer exists.
   await rm(join(bundleRoot, "pages"), { recursive: true, force: true });
   await rm(join(bundleRoot, "diagrams"), { recursive: true, force: true });
+  await rm(join(bundleRoot, "components"), { recursive: true, force: true });
   await mkdir(bundleRoot, { recursive: true });
 
   for (const [path, contents] of bundleTextFiles(bundle)) {

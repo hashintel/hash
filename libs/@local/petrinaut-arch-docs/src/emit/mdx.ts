@@ -319,7 +319,8 @@ const buildLayerPage = (
   layersById: Map<string, Layer>,
   sourceUrlPrefix: string,
   order: number,
-  diagramName: string | null,
+  neighbourhoodDiagram: string | null,
+  subtreeDiagram: string | null,
   attachedGuides: { slug: string; title: string; description: string }[],
 ): GeneratedPage => {
   const slug = layerSlug(layer.id);
@@ -344,11 +345,21 @@ const buildLayerPage = (
     "",
   );
 
-  if (diagramName !== null) {
+  if (neighbourhoodDiagram !== null) {
+    body.push(
+      `![What ${layer.name} depends on, and what depends on it](${assetPathFrom(
+        slug,
+        `diagrams/${neighbourhoodDiagram}.svg`,
+      )})`,
+      "",
+    );
+  }
+
+  if (subtreeDiagram !== null) {
     body.push(
       `![Layers within ${layer.name}](${assetPathFrom(
         slug,
-        `diagrams/${diagramName}.svg`,
+        `diagrams/${subtreeDiagram}.svg`,
       )})`,
       "",
     );
@@ -554,8 +565,10 @@ export const buildPages = (
   options: {
     sourceUrlPrefix: string;
     overviewDiagram: string | null;
-    /** Layer ids that have a diagram of their own sub-tree. */
-    layerDiagrams: Set<string>;
+    /** Layer id → diagram name showing its dependencies and dependents. */
+    neighbourhoodDiagrams: Map<string, string>;
+    /** Layer id → diagram name showing its direct children, for parents only. */
+    subtreeDiagrams: Map<string, string>;
     /** Authored guides attached to each layer id. */
     guidesByLayer?: Map<
       string,
@@ -575,7 +588,8 @@ export const buildPages = (
         layersById,
         options.sourceUrlPrefix,
         GENERATED_ORDER_BASE + index + 1,
-        options.layerDiagrams.has(layer.id) ? layer.id : null,
+        options.neighbourhoodDiagrams.get(layer.id) ?? null,
+        options.subtreeDiagrams.get(layer.id) ?? null,
         options.guidesByLayer?.get(layer.id) ?? [],
       ),
     );

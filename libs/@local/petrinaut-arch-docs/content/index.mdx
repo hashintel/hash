@@ -4,25 +4,26 @@ description: How the Petrinaut packages fit together, and where to start reading
 sidebar_order: 0
 ---
 
-import { ArchitectureGraph } from "@diagrams/architecture-graph";
-
 Petrinaut is a visual editor and simulation runtime for Stochastic Dynamic
 Coloured Petri Nets (SDCPN). This documentation is in two halves that are
 maintained differently, and it is worth knowing which you are reading.
 
-## The layer map
+## The diagrams
 
-Every box is a layer, every arrow is real imports. Open a layer with `+` to see
-what is inside it, and follow a name to its page.
+Every box is a layer and every arrow is real imports, counted from the
+dependency graph rather than drawn by hand. There are three kinds, each showing
+a different slice:
 
-{/* `hrefSuffix` matches this host's `build.format: "file"`; see the component. */}
+- The [Architecture](architecture) page opens with the **top-level layers** —
+  the whole system at a glance, with everything below the first level folded
+  into its parent.
+- Every layer page opens with its **neighbourhood**: what that layer depends on,
+  and what depends on it. This is usually the one you want.
+- A layer that has sub-layers also gets a **drill-down** of its direct children.
 
-<ArchitectureGraph client:load height="560px" hrefSuffix=".html" />
-
-Arrows are drawn only between boxes that sit alongside each other. A dependency
-between two things folded into the same box, or between a box and something
-nested inside it, is counted on the node as _internal_ rather than drawn as an
-arrow pointing into itself.
+Where a layer has more neighbours than fit legibly, the remainder is drawn as a
+single "further layers" node rather than omitted, and the full list is always in
+the tables on the page.
 
 **Generated pages** — everything under [Architecture](architecture) — are
 extracted from annotations in the source on every build, and CI fails if they

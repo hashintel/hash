@@ -30,7 +30,6 @@
     "@local/tsconfig": "workspace:*",
     "@types/js-yaml": "^4",
     "@types/node": "22.18.13",
-    "elkjs": "0.11.0",
     "oxlint": "1.63.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
