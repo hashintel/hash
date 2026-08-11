@@ -1,9 +1,9 @@
 //! The example facts, pooling live link instances per relation.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    ColumnName, Constant, Expression, FromItem, Function, OrderByExpression, PostgresType,
-    ReferenceTable, SelectExpression, SelectStatement, Table, WhereExpression, WindowStatement,
-    WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, Constant, Correlation, Expression, FromItem,
+    Function, OrderByExpression, Placeholder, PostgresType, ReferenceTable, SelectExpression,
+    SelectList, SelectStatement, Table, WhereExpression, WindowStatement, WithExpression,
     table::{
         DatabaseColumn, EntityEdge, EntityEditionCache, EntityEditions, EntityIsOfType,
         EntityTemporalMetadata, EntityTypeInheritsFrom, OntologyIds,
@@ -18,9 +18,8 @@ use super::{
         super::TemporalAxes,
         LINK_ROOT_BASE_URL,
         sql::{
-            Aliased, AttachmentVocabulary, Axes, Binder, BoundStatement, MAPPING, Mapping,
-            Placeholder, SelectList, current_identity_join, edition_conjunction,
-            time_axis_conjunction, type_mapping,
+            AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join,
+            edition_conjunction, time_axis_conjunction, type_mapping,
         },
     },
     CardParameters, OwnedExample, RelationFacts, fact_at,
@@ -135,21 +134,21 @@ impl DatabaseColumn<'_> for Example {
 }
 
 /// The CTE holding the type-table rows descending from the link root.
-const RELATIONS: Aliased<Mapping> = Aliased::new("relations");
+const RELATIONS: Correlation<Mapping> = Correlation::new("relations");
 /// The CTE holding each relation's current non-draft instances.
-const LINKS: Aliased<Example> = Aliased::new("links");
+const LINKS: Correlation<Example> = Correlation::new("links");
 /// The CTE holding instances joined to both endpoints.
-const RAW_EXAMPLES: Aliased<Example> = Aliased::new("raw_examples");
+const RAW_EXAMPLES: Correlation<Example> = Correlation::new("raw_examples");
 /// The CTE annotating endpoint frequencies and duplicate-pair ranks.
-const SCORED_EXAMPLES: Aliased<Example> = Aliased::new("scored_examples");
+const SCORED_EXAMPLES: Correlation<Example> = Correlation::new("scored_examples");
 /// The CTE keeping one row per endpoint pair, ranked within its subgroup.
-const STRATIFIED_EXAMPLES: Aliased<Example> = Aliased::new("stratified_examples");
+const STRATIFIED_EXAMPLES: Correlation<Example> = Correlation::new("stratified_examples");
 /// The CTE ordering each relation's pool deterministically.
-const RANKED_EXAMPLES: Aliased<Example> = Aliased::new("ranked_examples");
+const RANKED_EXAMPLES: Correlation<Example> = Correlation::new("ranked_examples");
 
 /// Builds the `relations` table: the type-table rows descending from the link root.
 fn relations(types: Placeholder, link_root: Placeholder) -> SelectStatement {
-    const INHERITS: Aliased<EntityTypeInheritsFrom> = Aliased::new("inherits");
+    const INHERITS: Correlation<EntityTypeInheritsFrom> = Correlation::new("inherits");
     const ROOT: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "root");
 
     SelectStatement::builder()
@@ -198,7 +197,7 @@ fn instances(axes: Axes) -> SelectStatement {
         Aliased::of(Table::EntityTemporalMetadata, "temporal");
     const EDITION: Aliased<EntityEditions> = Aliased::of(Table::EntityEditions, "edition");
 
-    // temporal.entity_edition_id = is_of_type.entity_edition_id AND <currency gates>
+    // temporal.entity_edition_id = is_of_type.entity_edition_id AND <currency conditions>
     let mut instance_gates = vec![
         TEMPORAL
             .column(EntityTemporalMetadata::EditionId)
@@ -234,7 +233,7 @@ fn instances(axes: Axes) -> SelectStatement {
             //  AND is_of_type.inheritance_depth = 0
             // JOIN entity_temporal_metadata AS temporal
             //   ON temporal.entity_edition_id = is_of_type.entity_edition_id
-            //  AND <currency gates>
+            //  AND <currency conditions>
             // JOIN entity_editions AS edition
             //   ON edition.entity_edition_id = is_of_type.entity_edition_id
             //  AND NOT edition.archived
@@ -411,9 +410,9 @@ fn raw_examples(
             // JOIN entity_edge AS left_edge ON <the has-left attachment>
             // JOIN entity_edge AS right_edge ON <the has-right attachment>
             // JOIN entity_temporal_metadata AS source_meta
-            //   ON source_meta names left_edge's target AND <currency gates>
+            //   ON source_meta names left_edge's target AND <currency conditions>
             // JOIN entity_temporal_metadata AS target_meta
-            //   ON target_meta names right_edge's target AND <currency gates>
+            //   ON target_meta names right_edge's target AND <currency conditions>
             // JOIN entity_edition_cache AS source_cache
             //   ON source_cache.entity_edition_id = source_meta.entity_edition_id
             // JOIN entity_edition_cache AS target_cache
@@ -832,5 +831,32 @@ mod tests {
 
         let statement = example_statement(&axes, &types, &64, &256);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
+    }
+}
+
+#[cfg(test)]
+mod prepare_probe {
+    use tokio_postgres::NoTls;
+    use uuid::Uuid;
+
+    use super::example_statement;
+    use crate::dataset::TemporalAxes;
+
+    #[tokio::test]
+    async fn statement_prepares_against_the_live_store() {
+        let (client, connection) = tokio_postgres::connect(
+            "host=localhost user=postgres password=postgres dbname=graph",
+            NoTls,
+        )
+        .await
+        .expect("the graph store is reachable");
+        tokio::spawn(connection);
+
+        let axes = TemporalAxes::now();
+        let types: Vec<Uuid> = Vec::new();
+        let statement = example_statement(&axes, &types, &64, &256);
+        if let Err(error) = client.prepare(&statement.sql).await {
+            panic!("example: {error}");
+        }
     }
 }

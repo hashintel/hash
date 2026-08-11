@@ -1,5 +1,6 @@
 //! The SQL statement AST: statements, clauses, and expressions that transpile to Postgres SQL.
 
+mod assembly;
 mod clause;
 mod column_reference;
 mod expression;
@@ -8,6 +9,7 @@ mod statement;
 mod table_reference;
 
 pub use self::{
+    assembly::{Aliased, Binder, BoundStatement, Correlation, Placeholder, SelectList},
     clause::{
         FromItem, FromItemFunctionBuilder, FromItemJoinBuilder, FromItemSubqueryBuilder,
         FromItemTableBuilder, GroupByExpression, JoinType, OrderByExpression, SelectExpression,

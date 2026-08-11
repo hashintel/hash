@@ -2,8 +2,9 @@
 //! relation.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    ColumnName, Constant, Expression, FromItem, Function, JoinType, OrderByExpression,
-    PostgresType, SelectExpression, SelectStatement, Table, WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, Constant, Correlation, Expression, FromItem,
+    Function, JoinType, OrderByExpression, Placeholder, PostgresType, SelectExpression, SelectList,
+    SelectStatement, Table, WithExpression,
     table::{DatabaseColumn, EntityTypes, OntologyIds, OntologyTemporalMetadata},
 };
 use hash_graph_store::query::Ordering;
@@ -13,10 +14,7 @@ use uuid::Uuid;
 use super::{
     super::{
         super::TemporalAxes,
-        sql::{
-            Aliased, Binder, BoundStatement, MAPPING, Mapping, Placeholder, SelectList, json_field,
-            json_text, type_mapping,
-        },
+        sql::{MAPPING, Mapping, json_field, json_text, type_mapping},
     },
     DESCRIPTION_KEY, ID_KEY, OwnedAssociation, RelationFacts, TITLE_KEY, fact_at,
 };
@@ -254,11 +252,11 @@ impl DatabaseColumn<'_> for Targets {
 }
 
 /// The CTE holding the latest current version of every entity type.
-const CURRENT_TYPES: Aliased<CurrentType> = Aliased::new("current_types");
+const CURRENT_TYPES: Correlation<CurrentType> = Correlation::new("current_types");
 /// The CTE holding the type table with each type's ordinality and base id.
-const RELATIONS: Aliased<Relation> = Aliased::new("relations");
+const RELATIONS: Correlation<Relation> = Correlation::new("relations");
 /// The CTE holding each source type's newest constraint per scoped type.
-const MATCHED: Aliased<Matched> = Aliased::new("matched");
+const MATCHED: Correlation<Matched> = Correlation::new("matched");
 
 /// Builds the `current_types` table: the latest current version of every entity type.
 fn current_types(transaction_point: Placeholder) -> SelectStatement {
@@ -344,7 +342,7 @@ fn current_types(transaction_point: Placeholder) -> SelectStatement {
 
 /// Builds the `relations` table: the type table with each type's ordinality and base id.
 fn relations(types: Placeholder) -> SelectStatement {
-    const IDS: Aliased<OntologyIds> = Aliased::new("ids");
+    const IDS: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "ids");
 
     SelectStatement::builder()
         .selects(vec![
@@ -376,8 +374,8 @@ fn relations(types: Placeholder) -> SelectStatement {
 /// contributes the newest, which the version-descending ordering under the DISTINCT pair
 /// selects.
 fn matched(version_suffix: Placeholder) -> SelectStatement {
-    const SOURCE: Aliased<CurrentType> = Aliased::new("source");
-    const CONSTRAINT_ENTRY: Aliased<ConstraintEntry> = Aliased::new("constraint_entry");
+    const SOURCE: Correlation<CurrentType> = Correlation::new("source");
+    const CONSTRAINT_ENTRY: Correlation<ConstraintEntry> = Correlation::new("constraint_entry");
 
     // substring(constraint_entry.key FROM char_length(relations.base_url) + <offset>)
     let key_remainder = |offset: u32| {
@@ -500,8 +498,8 @@ fn matched(version_suffix: Placeholder) -> SelectStatement {
 
 /// Builds the `targets` lateral: the constraint's references resolved to latest-current prose.
 fn targets(trailing_version_suffix: Placeholder, version_erasure: Placeholder) -> SelectStatement {
-    const ELEMENTS: Aliased<ReferenceValue> = Aliased::new("reference");
-    const REFERENCE: Aliased<ReferenceBase> = Aliased::new("reference");
+    const ELEMENTS: Correlation<ReferenceValue> = Correlation::new("reference");
+    const REFERENCE: Correlation<ReferenceBase> = Correlation::new("reference");
     const TARGET: Aliased<CurrentType> = CURRENT_TYPES.renames("target");
 
     // regexp_replace(reference.value ->> '$ref', <trailing version suffix>, '')
@@ -608,7 +606,7 @@ fn association_statement<'params>(
     types: &'params (impl ToSql + Sync),
     transaction_time: &'params (impl ToSql + Sync),
 ) -> BoundStatement<'params, AssociationColumns> {
-    const TARGETS: Aliased<Targets> = Aliased::new("targets");
+    const TARGETS: Correlation<Targets> = Correlation::new("targets");
 
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(types);
@@ -768,5 +766,32 @@ mod tests {
 
         let statement = association_statement(&types, &axes.transaction_time);
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
+    }
+}
+
+#[cfg(test)]
+mod prepare_probe {
+    use tokio_postgres::NoTls;
+    use uuid::Uuid;
+
+    use super::association_statement;
+    use crate::dataset::TemporalAxes;
+
+    #[tokio::test]
+    async fn statement_prepares_against_the_live_store() {
+        let (client, connection) = tokio_postgres::connect(
+            "host=localhost user=postgres password=postgres dbname=graph",
+            NoTls,
+        )
+        .await
+        .expect("the graph store is reachable");
+        tokio::spawn(connection);
+
+        let axes = TemporalAxes::now();
+        let types: Vec<Uuid> = Vec::new();
+        let statement = association_statement(&types, &axes.transaction_time);
+        if let Err(error) = client.prepare(&statement.sql).await {
+            panic!("association: {error}");
+        }
     }
 }

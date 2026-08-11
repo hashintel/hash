@@ -8,9 +8,9 @@
 
 use futures::{Stream, stream};
 use hash_graph_postgres_store::store::postgres::query::{
-    ColumnName, Constant, Expression, FromItem, Function, OrderByExpression, PostgresType,
-    ReferenceTable, SelectExpression, SelectStatement, Table, Transpile as _, WhereExpression,
-    WithExpression,
+    Aliased, Binder, BoundStatement, ColumnName, Constant, Correlation, Expression, FromItem,
+    Function, OrderByExpression, Placeholder, PostgresType, ReferenceTable, SelectExpression,
+    SelectList, SelectStatement, Table, Transpile as _, WhereExpression, WithExpression,
     table::{
         DatabaseColumn, EntityEditionCache, EntityEditions, EntityEmbeddings,
         EntityTemporalMetadata, EntityTypeInheritsFrom, EntityTypes,
@@ -28,9 +28,8 @@ use super::{
     },
     LINK_ROOT_BASE_URL, PostgresDatasetError, corpus,
     sql::{
-        Aliased, AttachmentVocabulary, Axes, Binder, BoundStatement, MAPPING, Mapping, Placeholder,
-        SelectList, current_identity_join, edition_conjunction, json_field, json_text,
-        type_mapping, uuid_array,
+        AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join, edition_conjunction,
+        json_field, json_text, type_mapping, uuid_array,
     },
     streams,
     vector::PgVector,
@@ -65,7 +64,7 @@ impl DatabaseColumn<'_> for Request {
 }
 
 /// The alias every request-shaped statement gives the unnested identity pair.
-const REQUEST: Aliased<Request> = Aliased::new("request");
+const REQUEST: Correlation<Request> = Correlation::new("request");
 
 /// The bound identity pair as a FROM item, one row per requested identity.
 ///
@@ -132,7 +131,7 @@ fn requests(axes: Axes, web_ids: Placeholder, entity_uuids: Placeholder) -> Sele
             // JOIN entity_temporal_metadata AS meta
             //   ON meta.web_id = request.web_id
             //  AND meta.entity_uuid = request.entity_uuid
-            //  AND <currency gates>
+            //  AND <currency conditions>
             // JOIN entity_editions AS edition
             //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
             request_pair(web_ids, entity_uuids)
@@ -382,7 +381,7 @@ pub(super) fn node_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, La
 
 /// Builds the edge label statement, ordered by link identity.
 pub(super) fn edge_label_statement(axes: &TemporalAxes) -> BoundStatement<'_, LabelColumns> {
-    const CACHE: Aliased<EntityEditionCache> = Aliased::new("cache");
+    const CACHE: Aliased<EntityEditionCache> = Aliased::of(Table::EntityEditionCache, "cache");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
@@ -473,7 +472,7 @@ pub(super) async fn ontology<'t>(
     impl Stream<Item = Result<Ontology<ArchivedOntologyTypeUuid>, PostgresDatasetError>> + use<'t>,
     PostgresDatasetError,
 > {
-    const INHERITS: Aliased<EntityTypeInheritsFrom> = Aliased::new("inherits");
+    const INHERITS: Correlation<EntityTypeInheritsFrom> = Correlation::new("inherits");
 
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(&types);
@@ -597,8 +596,8 @@ pub(super) async fn ontology_icons<'t>(
     PostgresDatasetError,
 > {
     const TYPES: Aliased<EntityTypes> = Aliased::of(Table::EntityTypes, "types");
-    const DISPLAY: Aliased<Display> = Aliased::new("display");
-    const ICON: Aliased<Icon> = Aliased::new("icon");
+    const DISPLAY: Correlation<Display> = Correlation::new("display");
+    const ICON: Correlation<Icon> = Correlation::new("icon");
     /// The closed schema's inheritance list, one entry per `allOf` ancestor.
     const ALL_OF_KEY: &str = "allOf";
     /// An entry's icon, when the ancestor declares one.

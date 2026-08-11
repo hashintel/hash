@@ -10,7 +10,7 @@
 //!
 //! # Row identity
 //!
-//! Node row ids are positions, minted by the [`corpus::scope`] fragment: `row_number()` over
+//! Node row ids are positions, assigned by the [`corpus::scope`] fragment: `row_number()` over
 //! canonical `(web_id, entity_uuid)` order, zero-based. The ordering key is the entity's
 //! immutable identity rather than its content, and under the frozen snapshot every query sees
 //! the same visible set, so every statement that attaches the fragment re-derives the
@@ -41,18 +41,19 @@
 //!   ([`Table`](hash_graph_postgres_store::store::postgres::query::Table) and its column enums), so
 //!   a rename upstream fails compilation here instead of failing at query time.
 //! - The corpus's own virtual tables carry the same discipline through [`vocabulary`]: the fragment
-//!   that mints a table aliases its outputs through the enum its consumers cite.
-//! - Parameters exist only as parameter expressions returned by a bind ([`sql::Binder`]), so a
-//!   statement cannot cite a parameter its bind list does not carry and the indices cannot drift
-//!   from the values.
-//! - Output columns exist only as indices returned by the select list ([`sql::SelectList`]), which
-//!   also builds the select clause, so the decoder reads exactly the positions the statement
-//!   selected.
+//!   that creates a table aliases its outputs through the enum its consumers cite.
+//! - Parameters exist only as parameter expressions returned by a bind
+//!   ([`Binder`](hash_graph_postgres_store::store::postgres::query::Binder)), so a statement cannot
+//!   cite a parameter its bind list does not carry and the indices cannot drift from the values.
+//! - Output columns exist only as indices returned by the select list
+//!   ([`SelectList`](hash_graph_postgres_store::store::postgres::query::SelectList)), which also
+//!   builds the select clause, so the decoder reads exactly the positions the statement selected.
 //! - The link-attachment discriminants bind as the store's own enums, type-checked on the wire,
 //!   rather than as quoted literals.
 //! - Names whose agreement never leaves one statement - a join alias such as `meta`, a CTE chain's
 //!   stage-local columns - are named constants beside the statement that introduces them
-//!   ([`sql::LocalTable`]), so every mention moves in one edit.
+//!   ([`Aliased`](hash_graph_postgres_store::store::postgres::query::Aliased)), so every mention
+//!   moves in one edit.
 //!
 //! The store's `SelectCompiler` stays out of this module: the compiler translates a
 //! caller-supplied filter into a statement at runtime, as in the serving side's visibility
@@ -88,6 +89,7 @@ mod vocabulary;
 use std::io;
 
 use futures::{FutureExt as _, Stream, TryStreamExt as _, stream};
+use hash_graph_postgres_store::store::postgres::query::BoundStatement;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 use tokio_postgres::{IsolationLevel, Transaction};
@@ -240,7 +242,7 @@ impl Dataset for PostgresDataset<'_> {
     fn nodes(&self) -> Self::NodeStream<'_> {
         async move {
             let types = self.type_table().await?;
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -263,7 +265,7 @@ impl Dataset for PostgresDataset<'_> {
     fn edges(&self) -> Self::EdgeStream<'_> {
         async move {
             let types = self.type_table().await?;
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -299,7 +301,7 @@ impl Dataset for PostgresDataset<'_> {
         let (web_ids, entity_uuids) = lookup::request_arrays(nodes);
 
         async move {
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -327,7 +329,7 @@ impl Dataset for PostgresDataset<'_> {
 
         async move {
             let types = self.type_table().await?;
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -387,7 +389,7 @@ impl Dataset for PostgresDataset<'_> {
     /// frozen snapshot.
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_> {
         async move {
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -415,7 +417,7 @@ impl Dataset for PostgresDataset<'_> {
     /// so positions agree under the frozen snapshot.
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_> {
         async move {
-            let sql::BoundStatement {
+            let BoundStatement {
                 sql,
                 parameters,
                 columns,
@@ -449,5 +451,50 @@ impl Dataset for PostgresDataset<'_> {
         }
         .into_stream()
         .try_flatten()
+    }
+}
+
+#[cfg(test)]
+mod prepare_probe {
+    use tokio_postgres::NoTls;
+    use uuid::Uuid;
+
+    use super::{corpus, lookup, streams};
+    use crate::dataset::TemporalAxes;
+
+    #[tokio::test]
+    async fn statements_prepare_against_the_live_store() {
+        let (client, connection) = tokio_postgres::connect(
+            "host=localhost user=postgres password=postgres dbname=graph",
+            NoTls,
+        )
+        .await
+        .expect("the graph store is reachable");
+        tokio::spawn(connection);
+
+        let axes = TemporalAxes::now();
+        let types: Vec<Uuid> = Vec::new();
+        let web_ids: Vec<Uuid> = Vec::new();
+        let entity_uuids: Vec<Uuid> = Vec::new();
+
+        for (name, sql) in [
+            ("type table", corpus::type_table_statement(&axes).sql),
+            ("node stream", streams::node_statement(&axes, &types).sql),
+            ("edge stream", streams::edge_statement(&axes, &types).sql),
+            (
+                "canonical embedding",
+                lookup::canonical_embedding_statement(&web_ids, &entity_uuids).sql,
+            ),
+            (
+                "node type",
+                lookup::node_type_statement(&axes, &types, &web_ids, &entity_uuids).sql,
+            ),
+            ("node label", lookup::node_label_statement(&axes).sql),
+            ("edge label", lookup::edge_label_statement(&axes).sql),
+        ] {
+            if let Err(error) = client.prepare(&sql).await {
+                panic!("{name}: {error}");
+            }
+        }
     }
 }

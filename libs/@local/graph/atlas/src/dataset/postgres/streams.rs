@@ -6,8 +6,8 @@
 //! disagree about positions.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    Expression, FromItem, Function, OrderByExpression, PostgresType, SelectStatement, Table,
-    WithExpression,
+    Aliased, Binder, BoundStatement, Expression, FromItem, Function, OrderByExpression,
+    PostgresType, SelectList, SelectStatement, Table, WithExpression,
     table::{EntityEditions, EntityEmbeddings},
 };
 use hash_graph_store::query::Ordering;
@@ -18,13 +18,14 @@ use uuid::Uuid;
 use super::{
     super::{Edge, Node, PROJECTOR_DIMENSIONS, TemporalAxes},
     LINK_ROOT_BASE_URL, PostgresDatasetError, corpus,
-    sql::{Aliased, AttachmentVocabulary, Axes, Binder, BoundStatement, SelectList},
+    sql::{AttachmentVocabulary, Axes},
     vector::PgVector,
     vocabulary::{CorpusTable, Links, Scope, TypeRows},
 };
 use crate::{
     dataset::postgres::id::ArchivedEntityId,
     identity::{NodeRowId, OntologyRowId},
+    math::UnitFraction,
 };
 
 /// The edition's direct-type ordinals from `type_rows`, or the empty array.
@@ -219,8 +220,8 @@ pub(super) fn edge_statement<'params>(
     axes: &'params TemporalAxes,
     types: &'params (impl ToSql + Sync),
 ) -> BoundStatement<'params, EdgeColumns> {
-    const EMBEDDING: Aliased<EntityEmbeddings> = Aliased::new("embedding");
-    const EDITION: Aliased<EntityEditions> = Aliased::new("edition");
+    const EMBEDDING: Aliased<EntityEmbeddings> = Aliased::of(Table::EntityEmbeddings, "embedding");
+    const EDITION: Aliased<EntityEditions> = Aliased::of(Table::EntityEditions, "edition");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);

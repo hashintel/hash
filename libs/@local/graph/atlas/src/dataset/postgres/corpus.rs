@@ -7,8 +7,9 @@
 //! derives the identical row numbering.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    ColumnName, ColumnReference, Constant, Expression, FromItem, Function, GroupByExpression,
-    OrderByExpression, PostgresType, SelectExpression, SelectStatement, SetOperation, Table,
+    Aliased, Binder, BoundStatement, ColumnName, ColumnReference, Constant, Correlation,
+    Expression, FromItem, Function, GroupByExpression, OrderByExpression, Placeholder,
+    PostgresType, SelectExpression, SelectList, SelectStatement, SetOperation, Table,
     WhereExpression, WindowStatement, WithExpression,
     table::{
         DatabaseColumn, EntityEdge, EntityEditions, EntityEmbeddings, EntityIsOfType,
@@ -21,8 +22,8 @@ use super::{
     super::TemporalAxes,
     LINK_ROOT_BASE_URL,
     sql::{
-        Aliased, AttachmentVocabulary, Axes, Binder, BoundStatement, MAPPING, Mapping, Placeholder,
-        SelectList, current_identity_join, edition_conjunction, type_mapping,
+        AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join, edition_conjunction,
+        type_mapping,
     },
     vocabulary::{CorpusTable, EditionSource, Links, Scope, TypeRows},
 };
@@ -74,10 +75,10 @@ fn link_typed(meta: Aliased<EntityTemporalMetadata>, link_root: Placeholder) -> 
 /// so under the frozen snapshot every statement attaching this fragment re-derives the
 /// identical numbering.
 ///
-/// The embedding join is the scope gate rather than an enrichment: an entity without a
+/// The embedding join is the admission condition rather than an enrichment: an entity without a
 /// whole-entity embedding has no position to fit. One row per identity is the embedding table's
 /// unique index promise (`(web_id, entity_uuid, property)` `NULLS NOT DISTINCT`), so
-/// `row_number` cannot mint twice. `entity_temporal_metadata.draft_id` alone decides the draft
+/// `row_number` cannot assign twice. `entity_temporal_metadata.draft_id` alone decides the draft
 /// axis: the embedding table's own draft column never enters, because the unique index already
 /// guarantees one whole-entity row per identity.
 pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
@@ -128,7 +129,7 @@ pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
             // JOIN entity_temporal_metadata AS meta
             //   ON meta.web_id = embedding.web_id
             //  AND meta.entity_uuid = embedding.entity_uuid
-            //  AND <currency gates>
+            //  AND <currency conditions>
             // JOIN entity_editions AS edition
             //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
             EMBEDDING
@@ -164,14 +165,15 @@ pub(super) fn scope(axes: Axes, link_root: Placeholder) -> SelectStatement {
 /// resolve through `scope`. Densification and admission happen in one motion, so a link whose
 /// endpoint falls outside the corpus drops with its endpoint, and the delivered rows are exactly
 /// the node stream's positions. The link entity itself passes the same temporal and archival
-/// gates as any node.
+/// conditions as any node.
 pub(super) fn links(axes: Axes, attachments: AttachmentVocabulary) -> SelectStatement {
     const LEFT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "left_edge");
     const RIGHT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "right_edge");
     const SOURCE: Aliased<Scope> = Aliased::renaming(CorpusTable::Scope.as_str(), "source");
     const TARGET: Aliased<Scope> = Aliased::renaming(CorpusTable::Scope.as_str(), "target");
-    const META: Aliased<EntityTemporalMetadata> = Aliased::new("meta");
-    const EDITION: Aliased<EntityEditions> = Aliased::new("edition");
+    const META: Aliased<EntityTemporalMetadata> =
+        Aliased::of(Table::EntityTemporalMetadata, "meta");
+    const EDITION: Aliased<EntityEditions> = Aliased::of(Table::EntityEditions, "edition");
 
     // Resolves the edge's target to its scope row, densifying the endpoint.
     let endpoint_join = |scope: Aliased<Scope>, edge: Aliased<EntityEdge>| {
@@ -233,7 +235,7 @@ pub(super) fn links(axes: Axes, attachments: AttachmentVocabulary) -> SelectStat
             // JOIN scope AS source ON source resolves left_edge's target
             // JOIN scope AS target ON target resolves right_edge's target
             // JOIN entity_temporal_metadata AS meta
-            //   ON meta names the link entity AND <currency gates>
+            //   ON meta names the link entity AND <currency conditions>
             // JOIN entity_editions AS edition
             //   ON edition.entity_edition_id = meta.entity_edition_id AND NOT edition.archived
             LEFT_EDGE
@@ -317,7 +319,7 @@ impl DatabaseColumn<'_> for TypeOrdinals {
 /// scales with the edition count rather than with rendered output rows.
 pub(super) fn type_rows<S: EditionSource>(types: Placeholder) -> SelectStatement {
     const IS_OF_TYPE: Aliased<EntityIsOfType> = Aliased::of(Table::EntityIsOfType, "is_of_type");
-    const ORDINALS: Aliased<TypeOrdinals> = Aliased::new("mapping");
+    const ORDINALS: Correlation<TypeOrdinals> = Correlation::new("mapping");
 
     // `unnest ... WITH ORDINALITY` numbers from one and the ordinal is 0-based.
     let ordinals = SelectStatement::builder()
@@ -413,8 +415,8 @@ pub(super) struct TypeTableColumns {
 /// edition and every corpus link's edition - in uuid byte order, so each result position is the
 /// ontology row id.
 pub(super) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, TypeTableColumns> {
-    const EDITIONS: Aliased<Scope> = Aliased::new("editions");
-    const IS_OF_TYPE: Aliased<EntityIsOfType> = Aliased::new("is_of_type");
+    const EDITIONS: Correlation<Scope> = Correlation::new("editions");
+    const IS_OF_TYPE: Aliased<EntityIsOfType> = Aliased::of(Table::EntityIsOfType, "is_of_type");
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);

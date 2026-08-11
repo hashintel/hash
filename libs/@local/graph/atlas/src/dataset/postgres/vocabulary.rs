@@ -1,6 +1,6 @@
 //! The corpus queries' own table vocabulary.
 //!
-//! The statements mint common table expressions - `scope`, `links`, `type_rows`, `requests` -
+//! The statements create common table expressions - `scope`, `links`, `type_rows`, `requests` -
 //! and other statements consume their columns. Those columns are contracts that cross statement
 //! boundaries, so they travel typed exactly as the schema's columns do. Each virtual table gets
 //! one enum implementing the store's [`DatabaseColumn`], and the producing fragment aliases its
@@ -97,7 +97,7 @@ pub(super) trait EditionSource {
 
 /// The columns of the `scope` table: one row per corpus node.
 ///
-/// Rows carry the entity identity, its current edition, and the dense zero-based row minted by
+/// Rows carry the entity identity, its current edition, and the dense zero-based row assigned by
 /// canonical `(web_id, entity_uuid)` order.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) enum Scope {

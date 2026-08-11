@@ -1,8 +1,8 @@
 //! The prose and ancestry facts, carrying each type's own phrasing and its inheritance chain.
 
 use hash_graph_postgres_store::store::postgres::query::{
-    FromItem, OrderByExpression, ReferenceTable, SelectStatement, Table, Transpile as _,
-    WhereExpression,
+    Aliased, Binder, Correlation, FromItem, OrderByExpression, ReferenceTable, SelectList,
+    SelectStatement, Table, Transpile as _, WhereExpression,
     table::{EntityTypeInheritsFrom, EntityTypes, OntologyIds},
 };
 use hash_graph_store::query::Ordering;
@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::{
     super::{
         LINK_ROOT_BASE_URL,
-        sql::{Aliased, Binder, MAPPING, Mapping, SelectList, json_field, json_text, type_mapping},
+        sql::{MAPPING, Mapping, json_field, json_text, type_mapping},
     },
     DESCRIPTION_KEY, ID_KEY, OwnedType, RelationFacts, TITLE_KEY, fact_at,
 };
@@ -133,9 +133,9 @@ pub(super) async fn ancestor_rows(
     types: &[Uuid],
     facts: &mut [RelationFacts],
 ) -> Result<(), tokio_postgres::Error> {
-    const INHERITS: Aliased<EntityTypeInheritsFrom> = Aliased::new("inherits");
-    const TYPES: Aliased<EntityTypes> = Aliased::new("types");
-    const IDS: Aliased<OntologyIds> = Aliased::new("ids");
+    const INHERITS: Correlation<EntityTypeInheritsFrom> = Correlation::new("inherits");
+    const TYPES: Aliased<EntityTypes> = Aliased::of(Table::EntityTypes, "types");
+    const IDS: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "ids");
     const OWN: Aliased<OntologyIds> = Aliased::of(Table::OntologyIds, "own");
 
     let mut binder = Binder::default();

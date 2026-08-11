@@ -268,3 +268,29 @@ pub(super) fn render_card(
 
     Ok((id.into(), card))
 }
+
+#[cfg(test)]
+mod prepare_probe {
+    use tokio_postgres::NoTls;
+
+    use super::prose;
+
+    #[tokio::test]
+    async fn prose_statements_deliver_against_the_live_store() {
+        let (mut client, connection) = tokio_postgres::connect(
+            "host=localhost user=postgres password=postgres dbname=graph",
+            NoTls,
+        )
+        .await
+        .expect("the graph store is reachable");
+        tokio::spawn(connection);
+
+        let transaction = client.transaction().await.expect("a transaction opens");
+        let mut facts = prose::prose_rows(&transaction, &[])
+            .await
+            .expect("prose rows deliver on an empty type list");
+        prose::ancestor_rows(&transaction, &[], &mut facts)
+            .await
+            .expect("ancestor rows deliver on an empty type list");
+    }
+}
