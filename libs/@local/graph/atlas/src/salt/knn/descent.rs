@@ -58,7 +58,7 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::AlignedVecN,
+    math::{AlignedVecN, NonNegative},
     progress::{DescentIteration, Progress},
     random::{keyed_rng, sample_indices_vec},
 };
@@ -133,7 +133,7 @@ impl NnDescent {
 /// A neighbour with its join-participation flag.
 #[derive(Debug, Copy, Clone)]
 struct Entry<N> {
-    distance: f32,
+    distance: NonNegative,
     id: N,
     new: bool,
 }
@@ -161,7 +161,7 @@ where
     fn new(mut entries: Vec<Entry<N>>) -> Self {
         entries.sort_unstable_by(|lhs, rhs| {
             lhs.distance
-                .total_cmp(&rhs.distance)
+                .cmp(&rhs.distance)
                 .then_with(|| lhs.id.cmp(&rhs.id))
         });
         let worst = entries.last().expect("lists initialize non-empty").distance;
@@ -178,7 +178,7 @@ where
     /// membership and placement must resolve against one list state, or two concurrent offers of
     /// the same id could both pass the scan. The section under the lock is O(width) over a
     /// width-bounded list.
-    fn offer(&self, id: N, distance: f32) -> bool {
+    fn offer(&self, id: N, distance: NonNegative) -> bool {
         if distance >= f32::from_bits(self.worst.load(Ordering::Relaxed)) {
             return false;
         }
@@ -233,7 +233,7 @@ fn initialize<N>(
     rows: usize,
     width: usize,
     seed: u64,
-    distance: &(impl Fn(N, N) -> f32 + Sync),
+    distance: impl Fn(N, N) -> NonNegative + Sync,
 ) -> IdVec<N, RowList<N>>
 where
     N: Id,
@@ -390,6 +390,13 @@ where
 {
     type Error = NnDescentError;
 
+    #[expect(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the entry count is far below exact f64 integer precision and the threshold only \
+                  gates a loop"
+    )]
     fn construct<P>(
         &mut self,
         embeddings: &IdSlice<N, AlignedVecN<PROJECTOR_DIMENSIONS>>,
@@ -416,20 +423,13 @@ where
         // cosine distance reduces to one minus the dot product - a third
         // of the full kernel's multiply-adds; the clamp absorbs
         // unit-norm rounding at the range's ends.
-        let distance = |lhs: N, rhs: N| -> f32 {
+        let distance = |lhs: N, rhs: N| -> NonNegative {
             let dot = embeddings[lhs].dot(&embeddings[rhs]);
-            (1.0 - dot).clamp(0.0, 2.0)
+            NonNegative::new_unchecked((1.0 - dot).clamp(0.0, 2.0))
         };
 
-        let lists = initialize(rows, width, seed, &distance);
+        let lists = initialize(rows, width, seed, distance);
 
-        #[expect(
-            clippy::cast_precision_loss,
-            clippy::cast_possible_truncation,
-            clippy::cast_sign_loss,
-            reason = "the entry count is far below exact f64 integer precision and the threshold \
-                      only gates a loop"
-        )]
         let threshold = (self.options.termination * (rows * width) as f64).ceil() as u64;
 
         for iteration in 0..self.options.maximum_iterations {
@@ -492,7 +492,7 @@ where
 
         let placeholder = Neighbour {
             id: N::MIN,
-            distance: 0.0,
+            distance: NonNegative::ZERO,
         };
 
         let mut entries = vec![placeholder; rows * width].into_boxed_slice();
@@ -525,9 +525,13 @@ mod tests {
     use hashql_core::id::Id as _;
 
     use super::{Entry, RowList, sample_pool};
-    use crate::{identity::NodeRowId, random::keyed_rng};
+    use crate::{
+        identity::NodeRowId,
+        math::{NonNegative, non_negative},
+        random::keyed_rng,
+    };
 
-    fn list(pairs: &[(f32, u32)]) -> RowList<NodeRowId> {
+    fn list(pairs: &[(NonNegative, u32)]) -> RowList<NodeRowId> {
         RowList::new(
             pairs
                 .iter()
@@ -542,8 +546,12 @@ mod tests {
 
     #[test]
     fn offer_displaces_the_worst_entry() {
-        let row = list(&[(0.1, 7), (0.5, 3), (0.9, 11)]);
-        assert!(row.offer(NodeRowId::from_u32(4), 0.3));
+        let row = list(&[
+            (non_negative!(0.1), 7),
+            (non_negative!(0.5), 3),
+            (non_negative!(0.9), 11),
+        ]);
+        assert!(row.offer(NodeRowId::from_u32(4), non_negative!(0.3)));
 
         let entries = row.entries.lock().expect("the test holds the only handle");
         let ids: Vec<u64> = entries.iter().map(|entry| entry.id.as_u64()).collect();
@@ -559,17 +567,21 @@ mod tests {
 
     #[test]
     fn offer_rejects_duplicates_and_non_improvements() {
-        let row = list(&[(0.1, 7), (0.5, 3), (0.9, 11)]);
+        let row = list(&[
+            (non_negative!(0.1), 7),
+            (non_negative!(0.5), 3),
+            (non_negative!(0.9), 11),
+        ]);
         assert!(
-            !row.offer(NodeRowId::from_u32(3), 0.2),
+            !row.offer(NodeRowId::from_u32(3), non_negative!(0.2)),
             "a present id cannot enter twice"
         );
         assert!(
-            !row.offer(NodeRowId::from_u32(4), 0.9),
+            !row.offer(NodeRowId::from_u32(4), non_negative!(0.9)),
             "a tie with the worst does not displace"
         );
         assert!(
-            !row.offer(NodeRowId::from_u32(4), 1.5),
+            !row.offer(NodeRowId::from_u32(4), non_negative!(1.5)),
             "a worse candidate does not displace"
         );
 

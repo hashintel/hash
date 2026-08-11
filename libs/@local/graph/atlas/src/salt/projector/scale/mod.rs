@@ -29,10 +29,12 @@ use crate::{
 /// neighbours the median. Tables storing fewer neighbours contribute them all.
 pub(crate) const LOCAL_SCALE_NEIGHBOURS: usize = 15;
 
-/// A coordinate involved in scale computation was non-finite.
+/// A node row's local scale overflowed the finite range.
 ///
-/// `row` is the smallest node row whose scale came out non-finite; the non-finite coordinate is
-/// that row's own or one of its selected neighbours'.
+/// `row` is the smallest node row whose scale came out non-finite. The coordinates are finite at
+/// entry, so the only non-finite reading this computation can produce is a distance that
+/// overflows to `+∞`, from pre-divergence coordinates large enough that their difference leaves
+/// the finite range.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct NonFiniteScale<N> {
     /// The smallest affected node row.
@@ -75,8 +77,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`NonFiniteScale`] naming the smallest affected row when any involved coordinate is
-    /// non-finite (a diverged projection).
+    /// Returns [`NonFiniteScale`] naming the smallest affected row when a distance overflows the
+    /// finite range (pre-divergence coordinates).
     ///
     /// # Panics
     ///
@@ -101,7 +103,7 @@ where
             "the neighbour table should store at least one neighbour per row"
         );
 
-        let scales: Vec<f32> = (0..coordinates.len())
+        let scales: Vec<_> = (0..coordinates.len())
             .into_par_iter()
             .map(|row| row_scale(coordinates, knn, N::from_usize(row)))
             .collect();
@@ -112,17 +114,7 @@ where
             });
         }
 
-        let scales = scales
-            .into_iter()
-            .map(|scale| {
-                NonNegative::new(scale).expect(
-                    "the scan above rejected non-finite scales, and a median of distances is \
-                     never negative",
-                )
-            })
-            .collect();
-
-        Ok(Self(IdSlice::from_boxed_slice(scales)))
+        Ok(Self(IdSlice::from_boxed_slice(scales.into_boxed_slice())))
     }
 
     /// Borrows the scales in node-row order.
@@ -173,6 +165,7 @@ pub(crate) fn insert_nearest<K: PartialOrd + Copy, const N: usize>(
     while slot > 0 && key < nearest[slot - 1] {
         slot -= 1;
     }
+
     if slot == N {
         return false;
     }
@@ -185,9 +178,9 @@ pub(crate) fn insert_nearest<K: PartialOrd + Copy, const N: usize>(
 /// Returns the median of ascending distances.
 ///
 /// An even count takes the midpoint of the middle pair, and an empty slice yields zero.
-pub(crate) const fn sorted_median(distances: &[f32]) -> f32 {
+pub(crate) const fn sorted_median(distances: &[NonNegative]) -> NonNegative {
     if distances.is_empty() {
-        return 0.0;
+        return NonNegative::ZERO;
     }
 
     let middle = distances.len() >> 1;
@@ -200,29 +193,26 @@ pub(crate) const fn sorted_median(distances: &[f32]) -> f32 {
 
 /// Computes one row's median 2D distance to its nearest neighbours.
 ///
-/// A row whose own coordinate is non-finite yields a non-finite median, because every distance it
-/// participates in is non-finite. A poisoned selected neighbour only sometimes reaches the median
-/// (NaN sorts last under the total order), so the contract promises no per-row detection of
-/// neighbour divergence. Corpus-level detection is complete regardless, because the diverged row
-/// itself always flags.
-fn row_scale<N>(coordinates: &IdSlice<N, Vec2>, knn: &KnnView<'_, N>, row: N) -> f32
+/// A distance between pre-divergence coordinates can overflow, and the escaped `+∞` sorts last
+/// under the bit order, so it reaches the median only when overflow dominates the row. The
+/// caller's scan therefore detects divergence at the corpus level rather than per distance.
+fn row_scale<N>(coordinates: &IdSlice<N, Vec2>, knn: &KnnView<'_, N>, row: N) -> NonNegative
 where
     N: Id,
 {
-    // The nearest entries by (stored distance, row id); stored distances are finite by the table's
-    // validation, so plain lexicographic comparison is total.
-    let mut nearest = [(f32::INFINITY, N::MAX); LOCAL_SCALE_NEIGHBOURS];
+    // The nearest entries by (stored distance, row id), lexicographic and total by the types.
+    let mut nearest = [(NonNegative::MAX, N::MAX); LOCAL_SCALE_NEIGHBOURS];
     for neighbour in knn.row(row) {
         insert_nearest(&mut nearest, (neighbour.distance, neighbour.id));
     }
 
     let count = knn.neighbours().min(LOCAL_SCALE_NEIGHBOURS);
 
-    let mut distances = [0.0_f32; LOCAL_SCALE_NEIGHBOURS];
+    let mut distances = [NonNegative::ZERO; LOCAL_SCALE_NEIGHBOURS];
     for (distance, &(_, neighbour)) in distances.iter_mut().zip(&nearest[..count]) {
         *distance = coordinates[row].distance(coordinates[neighbour]);
     }
-    distances[..count].sort_unstable_by(f32::total_cmp);
+    distances[..count].sort_unstable();
 
     sorted_median(&distances[..count])
 }

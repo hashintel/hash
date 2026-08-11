@@ -31,7 +31,7 @@ use super::{ARCHITECTURE, BackendKind};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, MatrixN, NonNegative, Positive, UnitFraction, Vec2},
+    math::{AffinityCurve, MatrixN, NonNegative, Positive, UnitFraction, Vec2, non_negative},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -548,7 +548,7 @@ fn landmark_pool(rows: usize, rng: &mut Xoshiro256PlusPlus) -> Vec<SupportAnchor
             rng.random_range(-1.0..=1.0_f32),
             rng.random_range(-1.0..=1.0_f32),
         ),
-        radius: 0.1,
+        radius: non_negative!(0.1),
         weight: 1.0,
     })
     .take(LANDMARK_POOL)

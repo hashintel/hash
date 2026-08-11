@@ -17,7 +17,7 @@ use super::{
 use crate::{
     file::{WriteInto as _, sprs::read::SprsFile},
     identity::NodeRowId,
-    math::kernel::exp_f32x8,
+    math::{NonNegative, kernel::exp_f32x8, non_negative},
     salt::knn::table::{Knn, KnnMatrix},
 };
 
@@ -26,7 +26,7 @@ fn options() -> SmoothingOptions {
 }
 
 /// Builds a validated k-NN table from uniform per-row neighbour lists.
-fn knn_from_rows(rows: &[Vec<(u32, f32)>]) -> Knn<NodeRowId> {
+fn knn_from_rows(rows: &[Vec<(u32, NonNegative)>]) -> Knn<NodeRowId> {
     let count = rows.len();
     let neighbours = rows[0].len();
     let mut indices = Vec::with_capacity(count * neighbours);
@@ -56,19 +56,21 @@ fn random_knn(rows: usize, neighbours: usize, seed: u64) -> Knn<NodeRowId> {
     .take(rows)
     .collect();
 
-    let table: Vec<Vec<(u32, f32)>> = (0..rows)
+    let table: Vec<Vec<(u32, NonNegative)>> = (0..rows)
         .map(|row| {
-            let mut candidates: Vec<(u32, f32)> = (0..rows)
+            let mut candidates: Vec<(u32, NonNegative)> = (0..rows)
                 .filter(|&other| other != row)
                 .map(|other| {
                     let dot =
                         points[row][0].mul_add(points[other][0], points[row][1] * points[other][1]);
                     let column = u32::try_from(other).expect("fixture rows fit u32");
-                    (column, (1.0 - dot).max(0.0))
+                    let distance = NonNegative::new((1.0 - dot).max(0.0))
+                        .expect("a clamped unit-circle cosine distance is finite and non-negative");
+                    (column, distance)
                 })
                 .collect();
             candidates.sort_unstable_by(|&(left_column, left), &(right_column, right)| {
-                left.total_cmp(&right).then(left_column.cmp(&right_column))
+                left.cmp(&right).then(left_column.cmp(&right_column))
             });
             candidates.truncate(neighbours);
             candidates.sort_unstable_by_key(|&(column, _)| column);
@@ -101,7 +103,7 @@ fn scalar_reference(
     let all_distances: Vec<f32> = (0..rows)
         .flat_map(|row| {
             view.row(NodeRowId::from_usize(row))
-                .map(|neighbour| neighbour.distance)
+                .map(|neighbour| neighbour.distance.get())
         })
         .collect();
     let corpus_mean = (all_distances
@@ -114,7 +116,7 @@ fn scalar_reference(
     for row in 0..rows {
         let distances: Vec<f32> = view
             .row(NodeRowId::from_usize(row))
-            .map(|neighbour| neighbour.distance)
+            .map(|neighbour| neighbour.distance.get())
             .collect();
         let rho = distances
             .iter()
@@ -159,7 +161,7 @@ fn scalar_reference(
             sigma.max(options.bandwidth_floor * if rho > 0.0 { row_mean } else { corpus_mean });
 
         for neighbour in view.row(NodeRowId::from_usize(row)) {
-            let adjusted = neighbour.distance - rho;
+            let adjusted = neighbour.distance.get() - rho;
             let membership = if adjusted > 0.0 {
                 (-adjusted / sigma).exp().max(f32::MIN_POSITIVE)
             } else {
@@ -191,7 +193,16 @@ fn scalar_reference(
     reason = "the fixture length is far below exact f64 integer precision"
 )]
 fn calibration_solves_the_membership_sum_equation() {
-    let distances = [0.05_f32, 0.11, 0.18, 0.21, 0.33, 0.4, 0.52, 0.61];
+    let distances = [
+        non_negative!(0.05),
+        non_negative!(0.11),
+        non_negative!(0.18),
+        non_negative!(0.21),
+        non_negative!(0.33),
+        non_negative!(0.4),
+        non_negative!(0.52),
+        non_negative!(0.61),
+    ];
     let target = (distances.len() as f64).log2();
 
     let mut solver = RowSolver::new(distances.len());
@@ -201,7 +212,7 @@ fn calibration_solves_the_membership_sum_equation() {
     let sum: f64 = distances
         .iter()
         .map(|&distance| {
-            f64::from(((-(distance - bandwidth.rho).max(0.0)) / bandwidth.sigma).exp())
+            f64::from(((-(distance.get() - bandwidth.rho).max(0.0)) / bandwidth.sigma).exp())
         })
         .sum();
     assert!(
@@ -213,7 +224,12 @@ fn calibration_solves_the_membership_sum_equation() {
 
 #[test]
 fn calibration_ignores_zero_distances_for_the_radius() {
-    let distances = [0.0_f32, 0.0, 0.3, 0.5];
+    let distances = [
+        NonNegative::ZERO,
+        NonNegative::ZERO,
+        non_negative!(0.3),
+        non_negative!(0.5),
+    ];
     let mut solver = RowSolver::new(distances.len());
     let bandwidth = solver.calibrate(&distances, 2.0, 1.0, &options());
 
@@ -222,7 +238,7 @@ fn calibration_ignores_zero_distances_for_the_radius() {
 
 #[test]
 fn duplicate_rows_saturate_at_full_membership() {
-    let distances = [0.0_f32; 4];
+    let distances = [NonNegative::ZERO; 4];
     let mut solver = RowSolver::new(distances.len());
     let bandwidth = solver.calibrate(&distances, 2.0, 0.25, &options());
 
@@ -247,12 +263,13 @@ fn duplicate_rows_saturate_at_full_membership() {
 )]
 fn simd_rows_match_the_scalar_definition_lane_for_lane() {
     for neighbours in [1_usize, 3, 7, 8, 9, 15, 16, 17] {
-        let distances: Vec<f32> = (0..neighbours)
+        let distances: Vec<NonNegative> = (0..neighbours)
             .map(|slot| {
                 if slot.is_multiple_of(3) {
-                    0.0
+                    NonNegative::ZERO
                 } else {
-                    0.05 * slot as f32
+                    NonNegative::new(0.05 * slot as f32)
+                        .expect("a small positive multiple is finite and non-negative")
                 }
             })
             .collect();
@@ -261,7 +278,7 @@ fn simd_rows_match_the_scalar_definition_lane_for_lane() {
         let mut solver = RowSolver::new(neighbours);
         // A first calibration over reversed distances, so the checked row
         // reuses scratch another row has written.
-        let reversed: Vec<f32> = distances.iter().rev().copied().collect();
+        let reversed: Vec<NonNegative> = distances.iter().rev().copied().collect();
         solver.calibrate(&reversed, target, 0.5, &options());
 
         let bandwidth = solver.calibrate(&distances, target, 0.5, &options());
@@ -269,7 +286,7 @@ fn simd_rows_match_the_scalar_definition_lane_for_lane() {
         solver.memberships(bandwidth, &mut memberships);
 
         for (slot, (&distance, &membership)) in distances.iter().zip(&memberships).enumerate() {
-            let adjusted = (distance - bandwidth.rho).max(0.0);
+            let adjusted = (distance.get() - bandwidth.rho).max(0.0);
             let expected = exp_f32x8(f32x8::splat(-(adjusted / bandwidth.sigma))).to_array()[0]
                 .max(f32::MIN_POSITIVE);
             assert_eq!(
@@ -349,10 +366,10 @@ fn one_sided_edges_keep_their_directed_membership() {
     // their union weights equal its directed memberships, which the
     // scalar reference computes independently.
     let knn = knn_from_rows(&[
-        vec![(1, 0.1), (3, 0.2)],
-        vec![(0, 0.1), (3, 0.3)],
-        vec![(0, 0.4), (1, 0.5)],
-        vec![(0, 0.2), (1, 0.3)],
+        vec![(1, non_negative!(0.1)), (3, non_negative!(0.2))],
+        vec![(0, non_negative!(0.1)), (3, non_negative!(0.3))],
+        vec![(0, non_negative!(0.4)), (1, non_negative!(0.5))],
+        vec![(0, non_negative!(0.2)), (1, non_negative!(0.3))],
     ]);
     let graph = SemanticGraph::build(&knn.view(), options());
     let reference = scalar_reference(&knn, &options());

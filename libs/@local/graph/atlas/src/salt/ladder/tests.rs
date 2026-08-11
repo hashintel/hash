@@ -191,8 +191,12 @@ fn pure_similarity_rung_measures_negligible_movement() {
     let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
         .expect("the schedule is valid");
     let base = base_field();
-    let transform = Similarity::new(2.0, Rotation::from_radians(1.3), Vec2::new(5.0, -3.0))
-        .expect("scale 2.0 is normal and positive");
+    let transform = Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_radians(1.3),
+        Vec2::new(5.0, -3.0),
+    )
+    .expect("scale 2.0 is normal and positive");
     let moved: Vec<Vec2> = base.iter().map(|&point| transform.apply(point)).collect();
 
     // The raw coordinates moved far - more than one unit per point on
@@ -229,7 +233,7 @@ fn pure_similarity_rung_measures_negligible_movement() {
     // The fitted alignment inverts the transform: its scale undoes the
     // doubling.
     assert!(
-        (rung.alignment.scale() - 0.5).abs() < 1e-4,
+        (rung.alignment.scale().get() - 0.5).abs() < 1e-4,
         "the alignment must recover the inverse scale, got {}",
         rung.alignment.scale()
     );
@@ -393,8 +397,12 @@ fn canonical_selection_requires_an_exact_member() {
     .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
-    let transform = Similarity::new(3.0, Rotation::from_radians(0.4), Vec2::new(-2.0, 8.0))
-        .expect("scale 3.0 is normal and positive");
+    let transform = Similarity::new(
+        non_negative!(3.0),
+        Rotation::from_radians(0.4),
+        Vec2::new(-2.0, 8.0),
+    )
+    .expect("scale 3.0 is normal and positive");
     let moved: Vec<Vec2> = deformed
         .iter()
         .map(|&point| transform.apply(point))

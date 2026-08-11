@@ -22,7 +22,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 
 use crate::{
     identity::OntologyRowId,
-    math::Vec2,
+    math::{DNonNegative, NonNegative, Vec2},
     salt::{
         projector::budget::{BudgetOutcome, BudgetSummary},
         relation::attraction::AttractionIndex,
@@ -254,15 +254,15 @@ where
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub(crate) struct DisplacementMoments {
     count: u64,
-    sum: f64,
-    sum_squares: f64,
-    maximum: f32,
+    sum: DNonNegative,
+    sum_squares: DNonNegative,
+    maximum: NonNegative,
 }
 
 impl DisplacementMoments {
     /// Records one displacement.
-    pub(crate) fn record(&mut self, displacement: f32) {
-        let value = f64::from(displacement);
+    pub(crate) fn record(&mut self, displacement: NonNegative) {
+        let value = DNonNegative::from(displacement);
 
         self.count += 1;
         self.sum += value;
@@ -280,21 +280,21 @@ impl DisplacementMoments {
     /// Returns the displacement sum.
     #[inline]
     #[must_use]
-    pub(crate) const fn sum(&self) -> f64 {
+    pub(crate) const fn sum(&self) -> DNonNegative {
         self.sum
     }
 
     /// Returns the sum of squared displacements.
     #[inline]
     #[must_use]
-    pub(crate) const fn sum_squares(&self) -> f64 {
+    pub(crate) const fn sum_squares(&self) -> DNonNegative {
         self.sum_squares
     }
 
     /// Returns the largest recorded displacement, zero when empty.
     #[inline]
     #[must_use]
-    pub(crate) const fn maximum(&self) -> f32 {
+    pub(crate) const fn maximum(&self) -> NonNegative {
         self.maximum
     }
 }
@@ -324,16 +324,13 @@ impl Default for DisplacementHistogram {
 }
 
 impl DisplacementHistogram {
-    /// Records one finite, non-negative displacement.
-    pub(crate) fn record(&mut self, displacement: f32) {
-        debug_assert!(
-            displacement.is_finite() && displacement >= 0.0,
-            "displacements are norms of finite coordinates"
-        );
-        // `abs` clears the sign bit so the exponent index is total
-        // over finite inputs; a negative zero would otherwise shift
-        // its sign into the index.
-        self.counts[(displacement.abs().to_bits() >> 23) as usize] += 1;
+    /// Records one displacement reading.
+    ///
+    /// `record` is total over what displacement arithmetic produces. A finite reading increments
+    /// its exponent bucket, while an overflowed `+∞` reading increments the top bucket (255)
+    /// instead. That poisons the moments to `+∞` and appears as a saturated tail.
+    pub(crate) fn record(&mut self, displacement: NonNegative) {
+        self.counts[(displacement.to_bits() >> 23) as usize] += 1;
         self.moments.record(displacement);
     }
 
@@ -392,7 +389,7 @@ impl DisplacementSummary {
             "the two extreme frames should cover the same rows"
         );
 
-        let displacements: IdVec<N, f32> = low
+        let displacements: IdVec<N, _> = low
             .iter()
             .zip(high)
             .map(|(&low, &high)| low.distance(high))

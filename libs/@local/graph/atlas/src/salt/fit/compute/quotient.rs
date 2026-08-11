@@ -25,7 +25,7 @@ use crate::{
         generation::ScratchDirectory,
     },
     identity::{EdgeRowId, NodeRowId},
-    math::AlignedVecN,
+    math::{AlignedVecN, NonNegative},
     salt::{
         knn::table::{Knn, KnnMatrix, KnnView},
         relation::RelationInstance,
@@ -193,7 +193,7 @@ pub(super) fn expand_neighbours(
     let (_, columns, distances) = table.matrix().into_raw_storage();
 
     let mut expanded_columns = vec![0_u32; entries];
-    let mut expanded_distances = vec![0.0_f32; entries];
+    let mut expanded_distances = vec![NonNegative::ZERO; entries];
 
     for (row, &distinct) in quotient.representatives().iter_enumerated() {
         let source_start = distinct.as_usize() * neighbours;
@@ -277,7 +277,7 @@ mod tests {
     use crate::{
         file::array::ArrayFile,
         identity::{EdgeRowId, NodeRowId, OntologyRowId},
-        math::{AlignedVecN, BoxedVecN, UnitFraction, unit_fraction},
+        math::{AlignedVecN, BoxedVecN, UnitFraction, non_negative, unit_fraction},
         salt::{
             knn::table::{Knn, KnnMatrix},
             relation::{RelationConfidence, RelationInstance},
@@ -409,7 +409,7 @@ mod tests {
             (3, 3),
             vec![0, 1, 2, 3],
             vec![1, 0, 1],
-            vec![0.5, 0.5, 0.25],
+            vec![non_negative!(0.5), non_negative!(0.5), non_negative!(0.25)],
         )
         .map_err(|(_, _, _, error)| error)
         .expect("the fixture matrix is compressed");
@@ -421,10 +421,10 @@ mod tests {
         assert_eq!(expanded.rows(), 5);
         assert_eq!(expanded.neighbours(), 1);
         let view = expanded.view();
-        let lists: Vec<(u64, f32)> = (0..5)
+        let lists: Vec<_> = (0..5)
             .flat_map(|row| {
                 view.row(NodeRowId::from_usize(row))
-                    .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
+                    .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance.get()))
             })
             .collect();
         // For rows A B A C B, copies take their representative's list and neighbours name first

@@ -9,15 +9,19 @@ use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 
 use super::Similarity;
 use crate::math::{
-    Rotation, Vec2, Vec2x4T,
+    NonNegative, Rotation, Vec2, Vec2x4T, non_negative,
     tests::{POINTS, assert_vec2_close},
     transform::Transform,
 };
 
 /// A similarity mixing all three components with inexact rotation angles.
 fn mixed_similarity() -> Similarity {
-    Similarity::new(2.0, Rotation::from_radians(0.3), Vec2::new(1.0, 2.0))
-        .expect("scale 2.0 is normal and positive")
+    Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_radians(0.3),
+        Vec2::new(1.0, 2.0),
+    )
+    .expect("scale 2.0 is normal and positive")
 }
 
 /// Six well-spread, non-degenerate sample points for fitting.
@@ -73,8 +77,12 @@ const CERT_NOISE: [Vec2; 12] = [
 ///
 /// A known similarity image of [`CERT_POINTS`] plus the asymmetric [`CERT_NOISE`].
 fn noisy_certificate_target() -> [Vec2; 12] {
-    let known = Similarity::new(1.75, Rotation::from_radians(0.55), Vec2::new(2.5, -1.25))
-        .expect("scale 1.75 is normal and positive");
+    let known = Similarity::new(
+        non_negative!(1.75),
+        Rotation::from_radians(0.55),
+        Vec2::new(2.5, -1.25),
+    )
+    .expect("scale 1.75 is normal and positive");
 
     core::array::from_fn(|index| known.apply(CERT_POINTS[index]) + CERT_NOISE[index])
 }
@@ -140,7 +148,7 @@ fn identity_maps_points_to_themselves() {
 #[test]
 fn new_stores_components_unchanged() {
     let rotation = Rotation::from_cos_sin(0.0, 1.0);
-    let similarity = Similarity::new(4.0, rotation, Vec2::new(0.5, -8.0))
+    let similarity = Similarity::new(non_negative!(4.0), rotation, Vec2::new(0.5, -8.0))
         .expect("scale 4.0 is normal and positive");
 
     assert_eq!(similarity.scale(), 4.0);
@@ -152,8 +160,12 @@ fn new_stores_components_unchanged() {
 fn apply_matches_hand_computed_values() {
     // Quarter turn with exact coefficients, power-of-two scale and offsets:
     // every intermediate is exactly representable.
-    let similarity = Similarity::new(2.0, Rotation::from_cos_sin(0.0, 1.0), Vec2::new(0.5, -4.0))
-        .expect("scale 2.0 is normal and positive");
+    let similarity = Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_cos_sin(0.0, 1.0),
+        Vec2::new(0.5, -4.0),
+    )
+    .expect("scale 2.0 is normal and positive");
 
     // (1, 2) rotates to (-2, 1), scales to (-4, 2), moves to (-3.5, -2).
     assert_eq!(similarity.apply(Vec2::new(1.0, 2.0)), Vec2::new(-3.5, -2.0));
@@ -168,8 +180,12 @@ fn apply_matches_hand_computed_values() {
 #[test]
 fn composition_matches_sequential_application() {
     let first = mixed_similarity();
-    let second = Similarity::new(0.5, Rotation::from_radians(1.1), Vec2::new(-3.0, 4.0))
-        .expect("scale 0.5 is normal and positive");
+    let second = Similarity::new(
+        non_negative!(0.5),
+        Rotation::from_radians(1.1),
+        Vec2::new(-3.0, 4.0),
+    )
+    .expect("scale 0.5 is normal and positive");
     let composed = first
         .then(second)
         .expect("the product 2.0 * 0.5 = 1.0 stays in the accepted range");
@@ -184,8 +200,12 @@ fn composition_matches_sequential_application() {
 
 #[test]
 fn inverse_round_trips_both_directions() {
-    let similarity = Similarity::new(4.0, Rotation::from_radians(0.7), Vec2::new(10.0, -2.0))
-        .expect("scale 4.0 is normal and positive");
+    let similarity = Similarity::new(
+        non_negative!(4.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(10.0, -2.0),
+    )
+    .expect("scale 4.0 is normal and positive");
     let inverse = similarity.inverse();
 
     // A power-of-two scale inverts exactly.
@@ -200,10 +220,18 @@ fn inverse_round_trips_both_directions() {
 #[test]
 fn boundary_scales_and_their_inverses_stay_valid() {
     // The smallest normal and its exact reciprocal 2¹²⁶ are the accepted range's two edges.
-    let bottom = Similarity::new(f32::MIN_POSITIVE, Rotation::IDENTITY, Vec2::ZERO)
-        .expect("the smallest normal has the reciprocal 2^126, which is normal");
-    let top = Similarity::new(2.0_f32.powi(126), Rotation::IDENTITY, Vec2::ZERO)
-        .expect("2^126 has the reciprocal f32::MIN_POSITIVE, which is normal");
+    let bottom = Similarity::new(
+        non_negative!(f32::MIN_POSITIVE),
+        Rotation::IDENTITY,
+        Vec2::ZERO,
+    )
+    .expect("the smallest normal has the reciprocal 2^126, which is normal");
+    let top = Similarity::new(
+        NonNegative::new(2.0_f32.powi(126)).expect("2^126 is finite"),
+        Rotation::IDENTITY,
+        Vec2::ZERO,
+    )
+    .expect("2^126 has the reciprocal f32::MIN_POSITIVE, which is normal");
 
     // Powers of two invert exactly, so each edge maps onto the other.
     assert_eq!(bottom.inverse().scale(), 2.0_f32.powi(126));
@@ -212,9 +240,9 @@ fn boundary_scales_and_their_inverses_stay_valid() {
 
 #[test]
 fn composition_rejects_scales_leaving_the_range() {
-    let large = Similarity::new(1.0e20, Rotation::IDENTITY, Vec2::ZERO)
+    let large = Similarity::new(non_negative!(1.0e20), Rotation::IDENTITY, Vec2::ZERO)
         .expect("1e20 and its reciprocal are normal");
-    let small = Similarity::new(1.0e-30, Rotation::IDENTITY, Vec2::ZERO)
+    let small = Similarity::new(non_negative!(1.0e-30), Rotation::IDENTITY, Vec2::ZERO)
         .expect("1e-30 and its reciprocal are normal");
 
     // 1e20 · 1e20 overflows to infinity. 1e-30 · 1e-30 underflows to zero.
@@ -248,8 +276,12 @@ fn transform_widening_matches_apply() {
 
 #[test]
 fn to_array_from_array_round_trip() {
-    let similarity = Similarity::new(2.0, Rotation::from_cos_sin(0.6, 0.8), Vec2::new(1.5, -2.25))
-        .expect("scale 2.0 is normal and positive");
+    let similarity = Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_cos_sin(0.6, 0.8),
+        Vec2::new(1.5, -2.25),
+    )
+    .expect("scale 2.0 is normal and positive");
 
     // Every slot holds a distinct value, pinning the persistence order.
     assert_eq!(similarity.to_array(), [2.0, 0.6, 0.8, 1.5, -2.25]);
@@ -261,8 +293,12 @@ fn to_array_from_array_round_trip() {
 
 #[test]
 fn fit_recovers_a_known_transform() {
-    let expected = Similarity::new(2.0, Rotation::from_radians(0.7), Vec2::new(3.0, -1.0))
-        .expect("scale 2.0 is normal and positive");
+    let expected = Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(3.0, -1.0),
+    )
+    .expect("scale 2.0 is normal and positive");
     let target = FIT_POINTS.map(|point| expected.apply(point));
 
     let fitted = Similarity::fit(&FIT_POINTS, &target, &[1.0; 6])
@@ -275,8 +311,12 @@ fn fit_recovers_a_known_transform() {
 
 #[test]
 fn fit_round_trips_an_exact_similarity_image() {
-    let expected = Similarity::new(0.75, Rotation::from_radians(-1.2), Vec2::new(-4.0, 2.5))
-        .expect("scale 0.75 is normal and positive");
+    let expected = Similarity::new(
+        non_negative!(0.75),
+        Rotation::from_radians(-1.2),
+        Vec2::new(-4.0, 2.5),
+    )
+    .expect("scale 0.75 is normal and positive");
     let target = FIT_POINTS.map(|point| expected.apply(point));
     let weights = [1.0, 2.0, 0.5, 1.5, 3.0, 0.25];
 
@@ -309,8 +349,12 @@ fn fit_is_optimal_against_a_perturbation_grid() {
     // each partial at the returned minimizer.
     for delta in [-1e-3_f32, 1e-3] {
         let perturbed = [
-            Similarity::new(scale * (1.0 + delta), rotation, translation)
-                .expect("a relative nudge keeps the scale normal and positive"),
+            Similarity::new(
+                NonNegative::new(scale * (1.0 + delta)).expect("a relative nudge stays finite"),
+                rotation,
+                translation,
+            )
+            .expect("a relative nudge keeps the scale normal and positive"),
             Similarity::new(scale, Rotation::from_radians(angle + delta), translation)
                 .expect("the scale is untouched"),
             Similarity::new(scale, rotation, translation + Vec2::new(delta, 0.0))
@@ -337,8 +381,12 @@ fn fit_is_equivariant_under_target_transformation() {
 
     // Post-transforming the target by a similarity scales every residual
     // uniformly, so the minimizer moves to the composition with it.
-    let post = Similarity::new(0.5, Rotation::from_radians(-0.9), Vec2::new(-3.0, 7.0))
-        .expect("scale 0.5 is normal and positive");
+    let post = Similarity::new(
+        non_negative!(0.5),
+        Rotation::from_radians(-0.9),
+        Vec2::new(-3.0, 7.0),
+    )
+    .expect("scale 0.5 is normal and positive");
     let moved_target = target.map(|point| post.apply(point));
 
     let refitted = Similarity::fit(&CERT_POINTS, &moved_target, &CERT_WEIGHTS)
@@ -374,8 +422,12 @@ fn fit_is_invariant_under_uniform_weight_scaling() {
 fn fit_par_matches_fit_on_large_input() {
     const PAIRS: usize = 10_000;
 
-    let known = Similarity::new(1.25, Rotation::from_radians(-0.35), Vec2::new(4.0, -2.0))
-        .expect("scale 1.25 is normal and positive");
+    let known = Similarity::new(
+        non_negative!(1.25),
+        Rotation::from_radians(-0.35),
+        Vec2::new(4.0, -2.0),
+    )
+    .expect("scale 1.25 is normal and positive");
 
     // The logistic map below is deterministic, allocation-light, and chaotic enough to spread
     // points, noise, and weights.
@@ -417,8 +469,12 @@ fn fit_par_matches_fit_on_large_input() {
 
 #[test]
 fn fit_ignores_zero_weight_pairs() {
-    let expected = Similarity::new(1.5, Rotation::from_radians(0.4), Vec2::new(1.0, 2.0))
-        .expect("scale 1.5 is normal and positive");
+    let expected = Similarity::new(
+        non_negative!(1.5),
+        Rotation::from_radians(0.4),
+        Vec2::new(1.0, 2.0),
+    )
+    .expect("scale 1.5 is normal and positive");
     let target = FIT_POINTS.map(|point| expected.apply(point));
 
     let without_outlier = Similarity::fit(&FIT_POINTS, &target, &[1.0; 6])
@@ -460,8 +516,12 @@ fn fit_uniform_matches_fit_with_unit_weights() {
 fn fit_uniform_par_matches_fit_uniform_on_large_input() {
     const PAIRS: usize = 10_000;
 
-    let known = Similarity::new(0.8, Rotation::from_radians(2.1), Vec2::new(-1.0, 6.0))
-        .expect("scale 0.8 is normal and positive");
+    let known = Similarity::new(
+        non_negative!(0.8),
+        Rotation::from_radians(2.1),
+        Vec2::new(-1.0, 6.0),
+    )
+    .expect("scale 0.8 is normal and positive");
 
     let mut value = 0.61_f32;
     let mut pseudo = move || {
@@ -510,8 +570,12 @@ fn rms_residual_reduces_hand_computed_distances() {
 
 #[test]
 fn rms_residual_vanishes_on_an_exact_image() {
-    let similarity = Similarity::new(2.0, Rotation::from_radians(0.7), Vec2::new(3.0, -1.0))
-        .expect("scale 2.0 is normal and positive");
+    let similarity = Similarity::new(
+        non_negative!(2.0),
+        Rotation::from_radians(0.7),
+        Vec2::new(3.0, -1.0),
+    )
+    .expect("scale 2.0 is normal and positive");
     let target = FIT_POINTS.map(|point| similarity.apply(point));
 
     let residual = similarity
@@ -550,8 +614,12 @@ fn rms_residual_is_the_fit_objective_at_the_minimizer() {
 fn rms_residual_par_matches_rms_residual() {
     const PAIRS: usize = 10_000;
 
-    let similarity = Similarity::new(1.5, Rotation::from_radians(-0.2), Vec2::new(2.0, 2.0))
-        .expect("scale 1.5 is normal and positive");
+    let similarity = Similarity::new(
+        non_negative!(1.5),
+        Rotation::from_radians(-0.2),
+        Vec2::new(2.0, 2.0),
+    )
+    .expect("scale 1.5 is normal and positive");
 
     let mut value = 0.43_f32;
     let mut pseudo = move || {
@@ -754,10 +822,14 @@ fn invalid_scales_are_rejected() {
     ];
 
     for scale in invalid_scales {
-        assert!(
-            Similarity::new(scale, Rotation::IDENTITY, Vec2::ZERO).is_none(),
-            "new must reject scale {scale}",
-        );
+        // Negative, NaN, and infinite scales are unrepresentable as `NonNegative`; the ones the
+        // domain admits must still fail `new`'s reciprocal validation.
+        if let Some(scale) = NonNegative::new(scale) {
+            assert!(
+                Similarity::new(scale, Rotation::IDENTITY, Vec2::ZERO).is_none(),
+                "new must reject scale {scale}",
+            );
+        }
         assert!(
             Similarity::from_array([scale, 1.0, 0.0, 0.0, 0.0]).is_none(),
             "from_array must reject scale {scale}",
@@ -772,7 +844,7 @@ fn similarity_strategy() -> impl Strategy<Value = Similarity> {
     (0.1_f32..10.0, -16.0_f32..16.0, -1e2_f32..1e2, -1e2_f32..1e2).prop_map(
         |(scale, radians, translate_x, translate_y)| {
             Similarity::new(
-                scale,
+                NonNegative::new(scale).expect("the strategy's scale range is finite"),
                 Rotation::from_radians(radians),
                 Vec2::new(translate_x, translate_y),
             )
@@ -796,10 +868,16 @@ fn apply_scales_distances_uniformly(
     let right = Vec2::new(right_x, right_y);
     prop_assume!(left.distance(right) >= 1.0);
 
-    let ratio = similarity.apply(left).distance(similarity.apply(right)) / left.distance(right);
+    // Raw ratio: the reference computation is the test's own scalar mirror, and the assumption
+    // above establishes the divisor at 1.0 or more.
+    let ratio = similarity
+        .apply(left)
+        .distance(similarity.apply(right))
+        .get()
+        / left.distance(right).get();
 
     prop_assert!(
-        (ratio - similarity.scale()).abs() <= 1e-3 * similarity.scale(),
+        (ratio - similarity.scale().get()).abs() <= 1e-3 * similarity.scale().get(),
         "distance ratio {} vs scale {}",
         ratio,
         similarity.scale(),
@@ -867,8 +945,12 @@ fn inverse_stays_inside_the_constructed_range(
     ),
 ) {
     let scale = mantissa * 2.0_f32.powi(exponent);
-    let similarity = Similarity::new(scale, Rotation::from_radians(radians), Vec2::new(1.0, -2.0))
-        .expect("a normal scale below 2^126 has a normal reciprocal");
+    let similarity = Similarity::new(
+        NonNegative::new(scale).expect("a normal positive scale is in domain"),
+        Rotation::from_radians(radians),
+        Vec2::new(1.0, -2.0),
+    )
+    .expect("a normal scale below 2^126 has a normal reciprocal");
 
     let inverse = similarity.inverse();
     prop_assert!(

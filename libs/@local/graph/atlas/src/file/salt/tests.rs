@@ -371,7 +371,7 @@ fn evidence() -> Evidence {
                         // (0.6, 0.8) lies exactly on the unit
                         // circle in f32.
                         alignment: Similarity::new(
-                            1.25,
+                            non_negative!(1.25),
                             Rotation::from_cos_sin(0.6, 0.8),
                             Vec2::new(0.5, -0.25),
                         )

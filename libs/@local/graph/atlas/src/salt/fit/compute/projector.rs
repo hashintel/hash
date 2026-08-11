@@ -881,16 +881,17 @@ fn gather_distinct(
 // tied neighbour choices cannot change the result. An exact index
 // reproduces the brute-force output bit for bit. Measure at a raised
 // capacity before acting.
-fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> f32
+fn skeleton_scale<N>(coordinates: &IdSlice<N, Vec2>, ordinal: N) -> NonNegative
 where
     N: Id,
 {
-    let mut nearest = [f32::INFINITY; LOCAL_SCALE_NEIGHBOURS];
+    let mut nearest = [NonNegative::MAX; LOCAL_SCALE_NEIGHBOURS];
     let mut count = 0_usize;
     for (other, &coordinate) in coordinates.iter_enumerated() {
         if other == ordinal {
             continue;
         }
+
         if insert_nearest(&mut nearest, coordinates[ordinal].distance(coordinate)) {
             count += 1;
         }
@@ -1272,7 +1273,7 @@ mod tests {
         for row in 0..DISTINCT {
             for column in (0..DISTINCT).filter(|&column| column != row) {
                 columns.push(u32::try_from(column).expect("fixture columns fit u32"));
-                values.push(0.75);
+                values.push(non_negative!(0.75));
             }
             indptr.push(u64::try_from(columns.len()).expect("fixture entries fit u64"));
         }

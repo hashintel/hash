@@ -420,7 +420,7 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
             .collect();
         all.sort_unstable_by(|left, right| {
             left.distance
-                .total_cmp(&right.distance)
+                .cmp(&right.distance)
                 .then_with(|| left.id.as_u64().cmp(&right.id.as_u64()))
         });
         all.truncate(limit);
@@ -784,7 +784,9 @@ where
         for (position, &left) in clique.iter().enumerate() {
             for &right in &clique[position + 1..] {
                 widest = widest.max(
-                    coordinates[N::from_usize(left)].distance(coordinates[N::from_usize(right)]),
+                    coordinates[N::from_usize(left)]
+                        .distance(coordinates[N::from_usize(right)])
+                        .get(),
                 );
             }
         }
@@ -800,8 +802,11 @@ where
     let mut narrowest = f32::INFINITY;
     for &left in CLIQUES[0] {
         for &right in CLIQUES[1] {
-            narrowest = narrowest
-                .min(coordinates[N::from_usize(left)].distance(coordinates[N::from_usize(right)]));
+            narrowest = narrowest.min(
+                coordinates[N::from_usize(left)]
+                    .distance(coordinates[N::from_usize(right)])
+                    .get(),
+            );
         }
     }
     narrowest

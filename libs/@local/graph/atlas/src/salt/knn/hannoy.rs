@@ -21,7 +21,12 @@ use heed::{Env, EnvOpenOptions};
 use rand::{Rng, SeedableRng};
 
 use super::{Embedding, NearestNeighboursIndex, Neighbour};
-use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, progress::Progress, random::Compat};
+use crate::{
+    dataset::PROJECTOR_DIMENSIONS,
+    math::{AlignedVecN, NonNegative},
+    progress::Progress,
+    random::Compat,
+};
 
 /// Reports the backend's own build phases to the run's observer.
 ///
@@ -381,7 +386,7 @@ impl HannoyIndex {
             // hannoy's cosine distance is (1 - cos) / 2 ∈ [0, 1];
             // doubling restores the crate's [0, 2] scale exactly,
             // because scaling by a power of two is lossless.
-            distance: distance * 2.0,
+            distance: NonNegative::new_unchecked(distance * 2.0),
         })
     }
 }

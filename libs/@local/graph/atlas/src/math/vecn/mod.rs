@@ -15,7 +15,7 @@ use core::{
 };
 use std::simd::Simd;
 
-use super::{AlignedDVecN, dvecn::DVecN, kernel::mul_add_f64x8};
+use super::{AlignedDVecN, NonNegative, dvecn::DVecN, kernel::mul_add_f64x8, non_negative};
 
 #[cfg(test)]
 mod tests;
@@ -149,7 +149,7 @@ impl<const N: usize> VecN<N> {
     )]
     #[inline]
     #[must_use]
-    pub fn cosine_distance(&self, other: &Self) -> f32 {
+    pub(crate) fn cosine_distance(&self, other: &Self) -> NonNegative {
         let (chunks_left, remainder_left) = self.0.as_chunks::<8>();
         let (chunks_right, remainder_right) = other.0.as_chunks::<8>();
 
@@ -180,10 +180,16 @@ impl<const N: usize> VecN<N> {
         }
 
         if left_norm == 0.0 || right_norm == 0.0 {
-            return if left_norm == right_norm { 0.0 } else { 1.0 };
+            return if left_norm == right_norm {
+                non_negative!(0.0)
+            } else {
+                non_negative!(1.0)
+            };
         }
 
-        narrow_accumulated((1.0 - dot / (left_norm * right_norm).sqrt()).clamp(0.0, 2.0))
+        let result =
+            narrow_accumulated((1.0 - dot / (left_norm * right_norm).sqrt()).clamp(0.0, 2.0));
+        NonNegative::new_unchecked(result)
     }
 
     /// Returns the dot product with a double-precision vector.
@@ -503,7 +509,7 @@ impl<const N: usize> AlignedVecN<N> {
     /// See [`VecN::cosine_distance`].
     #[inline]
     #[must_use]
-    pub fn cosine_distance(&self, other: &Self) -> f32 {
+    pub(crate) fn cosine_distance(&self, other: &Self) -> NonNegative {
         VecN::from_ref(self.as_array()).cosine_distance(VecN::from_ref(other.as_array()))
     }
 

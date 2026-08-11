@@ -65,7 +65,11 @@ pub fn vecn_dot_scalar_reference<const N: usize>(pair: &VecNPair<N>) -> f64 {
 #[inline(always)]
 #[must_use]
 pub fn vecn_cosine_distance<const N: usize>(pair: &VecNPair<N>) -> f32 {
-    black_box(&pair.left).cosine_distance(black_box(&pair.right))
+    // The raw reading crosses the hook because the scalar family is crate-internal and the
+    // bench target is another crate.
+    black_box(&pair.left)
+        .cosine_distance(black_box(&pair.right))
+        .get()
 }
 
 /// Builds a four-lane batch from plain `[x, y]` pairs.

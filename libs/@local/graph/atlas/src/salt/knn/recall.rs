@@ -47,7 +47,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     math::{
-        AlignedVecN, DNonNegative, DPositive, OpenUnitFraction, UnitFraction, nz,
+        AlignedVecN, DNonNegative, DPositive, NonNegative, OpenUnitFraction, UnitFraction, nz,
         open_unit_fraction, unit_fraction,
     },
     random::{mean_sample_size, normal_quantile, sample_indices_vec},
@@ -202,7 +202,7 @@ impl RecallSpotCheck {
 #[derive(Debug, Copy, Clone)]
 struct ExactNeighbour<N> {
     row: N,
-    distance: f32,
+    distance: NonNegative,
 }
 
 impl<N> PartialEq for ExactNeighbour<N>
@@ -234,7 +234,7 @@ where
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance
-            .total_cmp(&other.distance)
+            .cmp(&other.distance)
             .then_with(|| self.row.cmp(&other.row))
     }
 }

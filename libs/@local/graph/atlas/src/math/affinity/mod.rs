@@ -34,7 +34,9 @@
 use core::simd::{Select as _, Simd, cmp::SimdPartialOrd as _, num::SimdFloat as _};
 
 use super::{
+    NonNegative,
     kernel::{mul_add_f32x4, pow_f32x4},
+    non_negative,
     vec2::{Vec2, Vec2x4T},
 };
 
@@ -83,7 +85,7 @@ impl AffinityCurve {
     ///
     /// Keeps the coefficient finite as the squared distance approaches zero, bounding the repulsion
     /// between near-coincident points.
-    const REPULSION_GUARD: f32 = 0.001;
+    const REPULSION_GUARD: NonNegative = non_negative!(0.001);
 
     /// Creates a curve from its fitted parameters.
     ///
@@ -167,7 +169,7 @@ impl AffinityCurve {
         let distance_squared = from.distance_squared(to);
 
         let power = pow_f32x4(distance_squared, Simd::splat(self.b));
-        let denominator = (Simd::splat(Self::REPULSION_GUARD) + distance_squared)
+        let denominator = (Simd::splat(Self::REPULSION_GUARD.get()) + distance_squared)
             * mul_add_f32x4(Simd::splat(self.a), power, Simd::splat(1.0));
         let coefficient = Simd::splat(2.0 * repulsion_strength * self.b) / denominator;
 
@@ -191,8 +193,8 @@ impl AffinityCurve {
         }
 
         let power = distance_squared.powf(self.b - 1.0);
-        let coefficient =
-            (-2.0 * self.a * self.b * power) / (self.a * power).mul_add(distance_squared, 1.0);
+        let coefficient = (-2.0 * self.a * self.b * power)
+            / (self.a * power).mul_add(distance_squared.get(), 1.0);
 
         clip_vec2((from - to) * coefficient)
     }
@@ -209,7 +211,7 @@ impl AffinityCurve {
         }
 
         let denominator = (Self::REPULSION_GUARD + distance_squared)
-            * self.a.mul_add(distance_squared.powf(self.b), 1.0);
+            * self.a.mul_add(distance_squared.powf(self.b).get(), 1.0);
         let coefficient = 2.0 * repulsion_strength * self.b / denominator;
 
         clip_vec2((from - to) * coefficient)

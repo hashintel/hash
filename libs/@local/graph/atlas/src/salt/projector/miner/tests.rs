@@ -156,7 +156,12 @@ fn reference_mine(
     (0..coordinates.len())
         .map(|row| {
             let mut candidates: Vec<(f32, usize)> = (0..coordinates.len())
-                .map(|other| (coordinates[row].distance_squared(coordinates[other]), other))
+                .map(|other| {
+                    (
+                        coordinates[row].distance_squared(coordinates[other]).get(),
+                        other,
+                    )
+                })
                 .collect();
             candidates.sort_unstable_by(
                 |(left_distance, left_row), (right_distance, right_row)| {

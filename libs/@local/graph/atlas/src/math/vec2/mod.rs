@@ -159,10 +159,12 @@ impl Vec2 {
     ///
     /// Prefer this over [`length`](Self::length) when comparing magnitudes or feeding a squared
     /// metric. This avoids the square root.
+    ///
+    /// Overflow escapes to `+∞` and asserts in debug builds, mirroring integer `+`.
     #[inline]
     #[must_use]
     pub(crate) const fn length_squared(self) -> NonNegative {
-        NonNegative::new_unchecked(self.dot(self))
+        NonNegative::square(self.x()) + NonNegative::square(self.y())
     }
 
     /// Returns the length of the vector.
@@ -173,19 +175,25 @@ impl Vec2 {
     }
 
     /// Returns the squared Euclidean distance to `other`.
+    ///
+    /// Never NaN and never negative for finite points. Overflow escapes to `+∞` and asserts in
+    /// debug builds, mirroring integer `+`.
     #[inline]
     #[must_use]
-    pub const fn distance_squared(self, other: Self) -> f32 {
+    pub(crate) const fn distance_squared(self, other: Self) -> NonNegative {
         let dx = self.x() - other.x();
         let dy = self.y() - other.y();
 
-        dx * dx + dy * dy
+        NonNegative::square(dx) + NonNegative::square(dy)
     }
 
     /// Returns the Euclidean distance to `other`.
+    ///
+    /// The square root of [`distance_squared`](Self::distance_squared), and it carries the same
+    /// escape contract: an escaped `+∞` survives the root.
     #[inline]
     #[must_use]
-    pub fn distance(self, other: Self) -> f32 {
+    pub(crate) fn distance(self, other: Self) -> NonNegative {
         self.distance_squared(other).sqrt()
     }
 
@@ -351,6 +359,22 @@ const impl Div<f32> for Vec2 {
 const impl DivAssign<f32> for Vec2 {
     #[inline]
     fn div_assign(&mut self, rhs: f32) {
+        *self = *self / rhs;
+    }
+}
+
+const impl Div<NonNegative> for Vec2 {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: NonNegative) -> Self {
+        Self::new(self.x() / rhs.get(), self.y() / rhs.get())
+    }
+}
+
+const impl DivAssign<NonNegative> for Vec2 {
+    #[inline]
+    fn div_assign(&mut self, rhs: NonNegative) {
         *self = *self / rhs;
     }
 }

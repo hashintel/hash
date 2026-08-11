@@ -10,6 +10,7 @@ use rayon::{
 use sprs::{CsMatI, CsMatViewI};
 
 use super::{Neighbour, construction::NeighbourLists, error::KnnError};
+use crate::math::NonNegative;
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -30,17 +31,11 @@ pub(crate) enum KnnValidationError {
     },
     /// A row references itself.
     SelfNeighbour { row: usize },
-    /// A stored distance is not finite.
-    NonFiniteDistance {
-        row: usize,
-        neighbour: usize,
-        distance: f32,
-    },
     /// A stored distance lies outside the cosine range.
     DistanceOutOfRange {
         row: usize,
         neighbour: usize,
-        distance: f32,
+        distance: NonNegative,
     },
 }
 
@@ -68,14 +63,6 @@ impl fmt::Display for KnnValidationError {
                 "row {row} stores {actual} neighbours where the table stores {expected}",
             ),
             Self::SelfNeighbour { row } => write!(fmt, "row {row} references itself"),
-            Self::NonFiniteDistance {
-                row,
-                neighbour,
-                distance,
-            } => write!(
-                fmt,
-                "the distance {distance} from row {row} to neighbour {neighbour} is not finite",
-            ),
             Self::DistanceOutOfRange {
                 row,
                 neighbour,
@@ -132,14 +119,6 @@ pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationErr
                 return Err(KnnValidationError::SelfNeighbour { row });
             }
 
-            if !distance.is_finite() {
-                return Err(KnnValidationError::NonFiniteDistance {
-                    row,
-                    neighbour,
-                    distance,
-                });
-            }
-
             if !(0.0..=2.0).contains(&distance) {
                 return Err(KnnValidationError::DistanceOutOfRange {
                     row,
@@ -157,10 +136,10 @@ pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationErr
 /// Columns are `u32` because a `u32` encoding carries node rows end to end (the wire row ids, the
 /// search backend's item keys, the persisted column region). Row pointers are `u64` so the
 /// persisted and resident layouts coincide and a mapped table has the same type as a built one.
-pub(crate) type KnnMatrix = CsMatI<f32, u32, u64>;
+pub(crate) type KnnMatrix = CsMatI<NonNegative, u32, u64>;
 
 /// A borrowed [`KnnMatrix`].
-pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
+pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, NonNegative, u32, u64>;
 
 /// The persisted directed k-nearest-neighbour table of one generation.
 ///
@@ -235,7 +214,8 @@ where
             .ok_or(KnnError::TooManyEntries { rows, neighbours })?;
 
         let mut indices = vec![0_u32; entries];
-        let mut distances = vec![0.0_f32; entries];
+        let mut distances = vec![NonNegative::ZERO; entries];
+
         indices
             .par_chunks_mut(neighbours)
             .zip(distances.par_chunks_mut(neighbours))
@@ -243,8 +223,8 @@ where
             .try_for_each(|(row, (row_indices, row_distances))| {
                 let row = N::from_usize(row);
 
-                // CSR keys rows by ascending neighbour; the lists'
-                // distance ordering is recomputable from the values.
+                // CSR keys rows by ascending neighbour; the lists' distance ordering is
+                // recomputable from the values.
                 let mut found: Vec<_> = lists.row(row)[..neighbours].to_vec();
                 found.sort_unstable_by_key(|neighbour| neighbour.id.as_u64());
 

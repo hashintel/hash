@@ -28,7 +28,7 @@ use core::simd::{f32x8, f64x8, num::SimdFloat as _};
 use std::simd::Simd;
 
 use super::SmoothingOptions;
-use crate::math::{MatrixN, kernel::exp_f32x8};
+use crate::math::{MatrixN, NonNegative, kernel::exp_f32x8};
 
 const LANES: usize = 8;
 
@@ -62,13 +62,16 @@ impl RowSolver {
     /// distance in the `σ` floor when the row has no positive distance to measure a scale from.
     pub(super) fn calibrate(
         &mut self,
-        distances: &[f32],
+        distances: &[NonNegative],
         target: f64,
         fallback_scale: f32,
         options: &SmoothingOptions,
     ) -> Bandwidth {
         const INF: Simd<f32, 8> = Simd::splat(f32::INFINITY);
         const ZERO: Simd<f32, 8> = Simd::splat(0.0);
+
+        // `NonNegative` is `repr(transparent)` over `f32`
+        let distances: &[f32] = zerocopy::transmute_ref!(distances);
 
         let rho = distances
             .iter()
@@ -78,8 +81,7 @@ impl RowSolver {
         let rho = if rho.is_finite() { rho } else { 0.0 };
         let rho_x8 = Simd::splat(rho);
 
-        // Adjusted distances: max(d - ρ, 0) per lane, padding from the
-        // load's infinity fill.
+        // Adjusted distances: max(d - ρ, 0) per lane, padding from the load's infinity fill.
         let rows = self.adjusted.lanes_mut();
         for (row, distance) in rows.iter_mut().zip(distances.chunks(LANES)) {
             *row = (Simd::load_or(distance, INF) - rho_x8).simd_max(ZERO);

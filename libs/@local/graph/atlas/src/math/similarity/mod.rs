@@ -14,7 +14,9 @@
 use core::simd::Simd;
 
 use super::{
+    NonNegative,
     kernel::mul_add_f32x4,
+    non_negative,
     rotation::Rotation,
     transform::Transform,
     vec2::{Vec2, Vec2x4T},
@@ -75,7 +77,7 @@ mod tests;
     zerocopy::KnownLayout,
 )]
 pub(crate) struct Similarity {
-    scale: f32,
+    scale: NonNegative,
     rotation: Rotation,
     translation: Vec2,
 }
@@ -83,7 +85,7 @@ pub(crate) struct Similarity {
 impl Similarity {
     /// The similarity that maps every vector to itself.
     pub(crate) const IDENTITY: Self = Self {
-        scale: 1.0,
+        scale: non_negative!(1.0),
         rotation: Rotation::IDENTITY,
         translation: Vec2::ZERO,
     };
@@ -96,8 +98,12 @@ impl Similarity {
     /// reciprocals of accepted scales are themselves accepted.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(scale: f32, rotation: Rotation, translation: Vec2) -> Option<Self> {
-        if !scale.is_normal() || scale <= 0.0 || !(1.0 / scale).is_normal() {
+    pub(crate) const fn new(
+        scale: NonNegative,
+        rotation: Rotation,
+        translation: Vec2,
+    ) -> Option<Self> {
+        if !scale.is_normal() || !(1.0 / scale.get()).is_normal() {
             return None;
         }
 
@@ -111,7 +117,7 @@ impl Similarity {
     /// Returns the uniform scale factor.
     #[inline]
     #[must_use]
-    pub(crate) const fn scale(self) -> f32 {
+    pub(crate) const fn scale(self) -> NonNegative {
         self.scale
     }
 
@@ -141,9 +147,10 @@ impl Similarity {
     #[must_use]
     pub(crate) const fn then(self, next: Self) -> Option<Self> {
         let moved = next.rotation.apply(self.translation);
+        let scale = self.scale.checked_mul(next.scale)?;
 
         Self::new(
-            self.scale * next.scale,
+            scale,
             self.rotation.then(next.rotation),
             Vec2::new(
                 next.scale * moved.x() + next.translation.x(),
@@ -160,7 +167,7 @@ impl Similarity {
     #[inline]
     #[must_use]
     pub(crate) const fn inverse(self) -> Self {
-        let inverse_scale = 1.0 / self.scale;
+        let inverse_scale = self.scale.inverse();
         let rotation = self.rotation.inverse();
         let moved = rotation.apply(self.translation);
 
@@ -231,7 +238,7 @@ impl Similarity {
     #[must_use]
     pub(crate) const fn to_array(self) -> [f32; 5] {
         [
-            self.scale,
+            self.scale.get(),
             self.rotation.cos(),
             self.rotation.sin(),
             self.translation.x(),
@@ -252,7 +259,7 @@ impl Similarity {
         [scale, cos, sin, translation_x, translation_y]: [f32; 5],
     ) -> Option<Self> {
         Self::new(
-            scale,
+            NonNegative::new(scale)?,
             Rotation::from_cos_sin(cos, sin),
             Vec2::new(translation_x, translation_y),
         )

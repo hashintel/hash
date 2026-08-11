@@ -73,7 +73,7 @@ pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
 pub(crate) struct SupportAnchor<N> {
     pub row: N,
     pub target: Vec2,
-    pub radius: f32,
+    pub radius: NonNegative,
     pub weight: f32,
 }
 

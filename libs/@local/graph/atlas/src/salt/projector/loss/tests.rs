@@ -765,7 +765,7 @@ fn support_targets_reject_invalid_anchors() {
     let valid = BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(1.0, -1.0),
-        radius: 0.5,
+        radius: non_negative!(0.5),
         weight: 1.0,
     };
 
@@ -774,16 +774,6 @@ fn support_targets_reject_invalid_anchors() {
         SupportTargets::<TestBackend>::new(
             &[BatchAnchor {
                 target: Vec2::new(f32::NAN, 0.0),
-                ..valid
-            }],
-            &device
-        )
-        .is_none()
-    );
-    assert!(
-        SupportTargets::<TestBackend>::new(
-            &[BatchAnchor {
-                radius: -1.0,
                 ..valid
             }],
             &device
@@ -819,13 +809,13 @@ fn support_fixture(
         BatchAnchor {
             row: BatchRowId::new(0),
             target: Vec2::new(0.25, 0.5),
-            radius: 0.75,
+            radius: non_negative!(0.75),
             weight: 1.5,
         },
         BatchAnchor {
             row: BatchRowId::new(2),
             target: Vec2::new(-2.0, 1.25),
-            radius: 1.5,
+            radius: non_negative!(1.5),
             weight: 0.5,
         },
     ];
@@ -896,7 +886,7 @@ fn support_term_is_finite_at_exact_coincidence() {
     let anchors = [BatchAnchor {
         row: BatchRowId::new(0),
         target: Vec2::new(0.5, -0.25),
-        radius: 0.75,
+        radius: non_negative!(0.75),
         weight: 1.0,
     }];
     let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");

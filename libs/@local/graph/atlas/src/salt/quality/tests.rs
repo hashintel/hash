@@ -40,7 +40,9 @@ use crate::{
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN},
+    math::{
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, UnitFraction, Vec2, VecN, non_negative,
+    },
     progress::NoProgress,
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -60,13 +62,19 @@ use crate::{
 fn clump_fixture() -> Knn<NodeRowId> {
     let indptr: Vec<u64> = vec![0, 2, 4, 6, 8, 10, 12];
     let indices: Vec<u32> = vec![1, 2, 0, 2, 0, 1, 4, 5, 3, 5, 3, 4];
-    let distances: Vec<f32> = vec![
-        0.05, 0.08, // 0 → 1, 2
-        0.05, 0.05, // 1 → 0, 2
-        0.08, 0.05, // 2 → 0, 1
-        0.0, 1.5, // 3 → 4, 5
-        0.0, 1.4, // 4 → 3, 5
-        1.5, 1.4, // 5 → 3, 4
+    let distances: Vec<NonNegative> = vec![
+        non_negative!(0.05),
+        non_negative!(0.08), // 0 → 1, 2
+        non_negative!(0.05),
+        non_negative!(0.05), // 1 → 0, 2
+        non_negative!(0.08),
+        non_negative!(0.05), // 2 → 0, 1
+        non_negative!(0.0),
+        non_negative!(1.5), // 3 → 4, 5
+        non_negative!(0.0),
+        non_negative!(1.4), // 4 → 3, 5
+        non_negative!(1.5),
+        non_negative!(1.4), // 5 → 3, 4
     ];
     let matrix = sprs::CsMatI::new((6, 6), indptr, indices, distances);
     Knn::new(matrix).expect("the fixture satisfies every table invariant")
@@ -577,7 +585,7 @@ async fn corpus_readings_match_a_sorting_reference() {
         .collect();
     let mut scratch = RankScratch::new(universe.len());
 
-    let order_by = |distances: &dyn Fn(usize) -> f32| {
+    let order_by = |distances: &dyn Fn(usize) -> NonNegative| {
         #[expect(
             clippy::cast_possible_truncation,
             reason = "the fixture universe stays far below u32"
@@ -585,7 +593,7 @@ async fn corpus_readings_match_a_sorting_reference() {
         let mut order: Vec<u32> = (0..universe.len() as u32).collect();
         order.sort_unstable_by(|&one, &other| {
             distances(universe[one as usize])
-                .total_cmp(&distances(universe[other as usize]))
+                .cmp(&distances(universe[other as usize]))
                 .then_with(|| universe[one as usize].cmp(&universe[other as usize]))
         });
         order
@@ -612,9 +620,9 @@ async fn corpus_readings_match_a_sorting_reference() {
 
         // Radii replay: the k-th entries of the sorted distance lists.
         let radii = readings.radii[index];
-        let sorted_by = |distances: &dyn Fn(usize) -> f32| {
-            let mut all: Vec<f32> = universe.iter().map(|&row| distances(row)).collect();
-            all.sort_unstable_by(f32::total_cmp);
+        let sorted_by = |distances: &dyn Fn(usize) -> NonNegative| {
+            let mut all: Vec<NonNegative> = universe.iter().map(|&row| distances(row)).collect();
+            all.sort_unstable();
             all
         };
         let map_distances = sorted_by(&|row: usize| {
@@ -631,9 +639,9 @@ async fn corpus_readings_match_a_sorting_reference() {
         let mut preserved = 0_u64;
         for &[first, second] in &readings.triplet_pairs {
             let (first, second) = (comparisons[first as usize], comparisons[second as usize]);
-            let nearer = |distances: &dyn Fn(usize) -> f32| {
+            let nearer = |distances: &dyn Fn(usize) -> NonNegative| {
                 distances(first)
-                    .total_cmp(&distances(second))
+                    .cmp(&distances(second))
                     .then_with(|| first.cmp(&second))
                     .is_lt()
             };
@@ -752,11 +760,11 @@ async fn clump_readings_match_a_sorting_reference() {
         .filter(|row| !anchor_rows.contains(row))
         .collect();
     for (index, &anchor) in anchor_rows.iter().enumerate() {
-        let top_by = |distances: &dyn Fn(usize) -> f32| -> Vec<usize> {
+        let top_by = |distances: &dyn Fn(usize) -> NonNegative| -> Vec<usize> {
             let mut rows = universe.clone();
             rows.sort_unstable_by(|&one, &other| {
                 distances(one)
-                    .total_cmp(&distances(other))
+                    .cmp(&distances(other))
                     .then_with(|| one.cmp(&other))
             });
             rows.truncate(k);
@@ -821,8 +829,8 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
         radii: hits
             .iter()
             .map(|_| RadiusPair {
-                map: 1.0,
-                representation: 1.0,
+                map: non_negative!(1.0),
+                representation: non_negative!(1.0),
             })
             .collect(),
         triplet_pairs: Box::new([]),
@@ -1045,16 +1053,16 @@ fn assess_reads_density_from_radii() {
     // Ratios ln 2 and ln 4. The zero map radius is degenerate.
     readings.radii = Box::new([
         RadiusPair {
-            map: 2.0,
-            representation: 1.0,
+            map: non_negative!(2.0),
+            representation: non_negative!(1.0),
         },
         RadiusPair {
-            map: 4.0,
-            representation: 1.0,
+            map: non_negative!(4.0),
+            representation: non_negative!(1.0),
         },
         RadiusPair {
-            map: 0.0,
-            representation: 1.0,
+            map: non_negative!(0.0),
+            representation: non_negative!(1.0),
         },
     ]);
 
@@ -1108,12 +1116,12 @@ fn assess_fails_pinned_thresholds_without_evidence() {
     let mut readings = flag_fixture(&[true, true]);
     readings.radii = Box::new([
         RadiusPair {
-            map: 0.0,
-            representation: 1.0,
+            map: non_negative!(0.0),
+            representation: non_negative!(1.0),
         },
         RadiusPair {
-            map: 0.0,
-            representation: 1.0,
+            map: non_negative!(0.0),
+            representation: non_negative!(1.0),
         },
     ]);
     let types = types_of(&[&[], &[]]);

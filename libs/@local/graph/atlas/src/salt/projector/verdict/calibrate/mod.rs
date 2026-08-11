@@ -186,10 +186,7 @@ where
         let normalization = scales.normalization(source, target, options.epsilon);
 
         PairReading {
-            z: NonNegative::new(distance / normalization).expect(
-                "a distance over a positive normalization is finite and non-negative, so a \
-                 reading outside that domain is a defect of the coordinates or scales",
-            ),
+            z: distance / normalization,
             weight: DNonNegative::new(
                 sampling
                     * f64::from(edge.confidence.value())

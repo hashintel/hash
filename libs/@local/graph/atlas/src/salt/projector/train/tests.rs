@@ -37,8 +37,8 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
-        unit_fraction,
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, d_non_negative,
+        non_negative, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -378,13 +378,13 @@ fn allocator_seam_draws_and_assembles_identically() {
         SupportAnchor {
             row: NodeRowId::new(3),
             target: Vec2::new(0.5, -0.25),
-            radius: 1.0,
+            radius: non_negative!(1.0),
             weight: 1.0,
         },
         SupportAnchor {
             row: NodeRowId::new(1),
             target: Vec2::new(-0.5, 0.75),
-            radius: 2.0,
+            radius: non_negative!(2.0),
             weight: 0.5,
         },
     ];
@@ -518,19 +518,19 @@ fn draw_computes_the_estimator_scales() {
         SupportAnchor {
             row: NodeRowId::new(0),
             target: Vec2::new(0.0, 0.0),
-            radius: 1.0,
+            radius: non_negative!(1.0),
             weight: 1.0,
         },
         SupportAnchor {
             row: NodeRowId::new(1),
             target: Vec2::new(1.0, 0.0),
-            radius: 1.0,
+            radius: non_negative!(1.0),
             weight: 1.0,
         },
         SupportAnchor {
             row: NodeRowId::new(2),
             target: Vec2::new(2.0, 0.0),
-            radius: 1.0,
+            radius: non_negative!(1.0),
             weight: 1.0,
         },
     ];
@@ -638,7 +638,7 @@ fn assemble_reindexes_into_the_local_domain() {
     populations.landmarks = vec![SupportAnchor {
         row: NodeRowId::new(5),
         target: Vec2::new(0.25, -0.5),
-        radius: 1.0,
+        radius: non_negative!(1.0),
         weight: 1.0,
     }];
     populations.landmark_scale = 1.0;
@@ -877,7 +877,7 @@ fn support_terms_ride_autodiff_outside_the_budget() {
     populations.landmarks = vec![SupportAnchor {
         row: NodeRowId::new(1),
         target: Vec2::new(2.0, 0.0),
-        radius: 0.5,
+        radius: non_negative!(0.5),
         weight: 1.0,
     }];
     populations.landmark_scale = 1.0;
@@ -945,7 +945,13 @@ fn displacement_histogram_buckets_by_exponent() {
     // 127, 2.0 → 128, exact zero → 0. The moments are dyadic sums:
     // 0.25 + 1 + 2.25 + 4 = 7.5 for the squares.
     let mut histogram = DisplacementHistogram::default();
-    for displacement in [0.0, 0.5, 1.0, 1.5, 2.0] {
+    for displacement in [
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+        non_negative!(1.5),
+        non_negative!(2.0),
+    ] {
         histogram.record(displacement);
     }
 
@@ -957,8 +963,8 @@ fn displacement_histogram_buckets_by_exponent() {
 
     let moments = histogram.moments();
     assert_eq!(moments.count(), 5);
-    assert_eq!(moments.sum(), 5.0);
-    assert_eq!(moments.sum_squares(), 7.5);
+    assert_eq!(moments.sum(), d_non_negative!(5.0));
+    assert_eq!(moments.sum_squares(), d_non_negative!(7.5));
     assert_eq!(moments.maximum(), 2.0);
 }
 
@@ -1014,8 +1020,8 @@ fn displacement_summary_reports_every_axis() {
 
     let overall = summary.overall();
     assert_eq!(overall.moments().count(), 3);
-    assert_eq!(overall.moments().sum(), 6.0);
-    assert_eq!(overall.moments().maximum(), 5.0);
+    assert_eq!(overall.moments().sum(), d_non_negative!(6.0));
+    assert_eq!(overall.moments().maximum(), non_negative!(5.0));
     assert_eq!(overall.counts()[0], 1, "the still row");
     assert_eq!(overall.counts()[127], 1, "the unit displacement");
     assert_eq!(overall.counts()[129], 1, "five lies in [4, 8)");
@@ -1026,9 +1032,9 @@ fn displacement_summary_reports_every_axis() {
         2,
         "only participating rows carry a decile"
     );
-    assert_eq!(decile.moments().maximum(), 1.0);
+    assert_eq!(decile.moments().maximum(), non_negative!(1.0));
 
-    let types: Vec<(u64, u64, f64, f32)> = summary
+    let types: Vec<_> = summary
         .types()
         .map(|(relation, moments)| {
             (
@@ -1041,7 +1047,7 @@ fn displacement_summary_reports_every_axis() {
         .collect();
     assert_eq!(
         types,
-        [(11, 2, 1.0, 1.0)],
+        [(11, 2, d_non_negative!(1.0), non_negative!(1.0))],
         "the type bucket covers its participants' displacements"
     );
 }
@@ -1325,7 +1331,7 @@ fn padding_leaves_losses_and_parameter_gradients_bit_equal() {
     populations.landmarks = vec![SupportAnchor {
         row: NodeRowId::new(4),
         target: Vec2::new(1.0, 0.0),
-        radius: 1.0,
+        radius: non_negative!(1.0),
         weight: 1.0,
     }];
     populations.landmark_scale = 1.0;
@@ -1489,7 +1495,7 @@ fn landmark(row: usize) -> SupportAnchor<NodeRowId> {
     SupportAnchor {
         row: NodeRowId::from_usize(row),
         target: Vec2::ZERO,
-        radius: 1.0,
+        radius: non_negative!(1.0),
         weight: 1.0,
     }
 }

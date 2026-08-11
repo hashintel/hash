@@ -176,13 +176,13 @@ fn corpus_with(
             SupportAnchor {
                 row: NodeRowId::new(0),
                 target: Vec2::new(-1.0, 0.0),
-                radius: 1.0,
+                radius: non_negative!(1.0),
                 weight: 1.0,
             },
             SupportAnchor {
                 row: NodeRowId::from_usize(HALF),
                 target: Vec2::new(1.0, 0.0),
-                radius: 1.0,
+                radius: non_negative!(1.0),
                 weight: 1.0,
             },
         ],
@@ -249,9 +249,9 @@ fn knn_table() -> Knn<NodeRowId> {
         for column in (0..ROWS).filter(|&column| column != row) {
             columns.push(u32::try_from(column).expect("fixture columns fit u32"));
             values.push(if first_cluster(row) == first_cluster(column) {
-                0.25
+                non_negative!(0.25)
             } else {
-                1.75
+                non_negative!(1.75)
             });
         }
         indptr.push(u64::try_from(columns.len()).expect("fixture entries fit u64"));
@@ -385,7 +385,9 @@ where
     let mut total = 0.0;
     let mut count = 0.0;
     for (one, other) in pairs {
-        total += layout[N::from_usize(one)].distance(layout[N::from_usize(other)]);
+        total += layout[N::from_usize(one)]
+            .distance(layout[N::from_usize(other)])
+            .get();
         count += 1.0;
     }
     total / count

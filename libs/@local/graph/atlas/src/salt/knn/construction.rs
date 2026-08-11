@@ -25,7 +25,7 @@ use rayon::{
 use super::{Embedding, NearestNeighboursIndex, Neighbour, error::KnnError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::AlignedVecN,
+    math::{AlignedVecN, NonNegative},
     progress::{Batch, Progress},
     salt::knn::table::KnnValidationError,
 };
@@ -204,7 +204,7 @@ where
 
         let placeholder = Neighbour {
             id: N::MIN,
-            distance: 0.0,
+            distance: NonNegative::ZERO,
         };
 
         let mut entries = vec![placeholder; rows * width].into_boxed_slice();

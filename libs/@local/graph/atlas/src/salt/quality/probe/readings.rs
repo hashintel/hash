@@ -12,6 +12,7 @@ use super::super::{
     clump::ClumpAggregate,
     metric::{NeighbourhoodAggregate, TripletAggregate},
 };
+use crate::math::NonNegative;
 
 hashql_core::id::newtype! {
     /// One position on the grids' neighbourhood axis, in the options' reporting order.
@@ -154,9 +155,9 @@ impl ReadingGrid<ClumpAggregate> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RadiusPair {
     /// Distance to the k-th nearest non-anchor row on the map.
-    pub map: f32,
+    pub map: NonNegative,
     /// Cosine distance to the k-th nearest non-anchor row in the representation.
-    pub representation: f32,
+    pub representation: NonNegative,
 }
 
 /// Readings collapsed onto clump ids.

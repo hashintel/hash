@@ -48,17 +48,14 @@ use super::{
 use crate::{
     dataset::{CANONICAL_DIMENSIONS, PROJECTOR_DIMENSIONS},
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, Vec2},
+    math::{AlignedVecN, BoxedVecN, NonNegative, Vec2},
 };
 
 /// One ranked row under the probe's total order.
-///
-/// Distances order by [`f32::total_cmp`] and ties resolve by ascending row, so equal distances rank
-/// in one order in every pass.
 #[derive(Debug, Copy, Clone)]
 struct Ranked<N> {
     row: N,
-    distance: f32,
+    distance: NonNegative,
 }
 
 impl<N> PartialEq for Ranked<N>
@@ -90,7 +87,7 @@ where
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.distance
-            .total_cmp(&other.distance)
+            .cmp(&other.distance)
             .then_with(|| self.row.cmp(&other.row))
     }
 }
@@ -119,12 +116,16 @@ fn push_bounded<N, A: Allocator>(
 }
 
 /// Sorts universe indices nearest-first, ties by ascending row.
-fn order_into<A: Allocator>(order: &mut Vec<u32, A>, distances: &[f32], rows: &[NodeRowId]) {
+fn order_into<A: Allocator>(
+    order: &mut Vec<u32, A>,
+    distances: &[NonNegative],
+    rows: &[NodeRowId],
+) {
     order.clear();
     order.extend(0..distances.len() as u32);
     order.sort_unstable_by(|&one, &other| {
         distances[one as usize]
-            .total_cmp(&distances[other as usize])
+            .cmp(&distances[other as usize])
             .then_with(|| rows[one as usize].cmp(&rows[other as usize]))
     });
 }
@@ -444,9 +445,9 @@ impl SampledPass<'_> {
         // (distance, row) total order. Distinct rows leave no ties.
         let mut triplets = SpacePairArray::from_elem(TripletAggregate::default());
         for &[first, second] in self.pairs {
-            let nearer_first = |distances: &[f32]| {
+            let nearer_first = |distances: &[NonNegative]| {
                 distances[first as usize]
-                    .total_cmp(&distances[second as usize])
+                    .cmp(&distances[second as usize])
                     .then_with(|| {
                         self.comparison_rows[first as usize]
                             .cmp(&self.comparison_rows[second as usize])

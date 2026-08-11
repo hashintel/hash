@@ -15,6 +15,7 @@ use rayon::{
 
 use super::Similarity;
 use crate::math::{
+    NonNegative,
     dvec2::{DVec2, DVec2x4T},
     rotation::Rotation,
     scalar::narrow_f32,
@@ -403,7 +404,7 @@ impl FitSums {
         let translation = rotated.mul_add(-scale, target_centroid);
 
         Similarity::new(
-            narrow_f32(scale)?,
+            NonNegative::new(narrow_f32(scale)?)?,
             Rotation::from_cos_sin(narrow_f32(cos)?, narrow_f32(sin)?),
             translation.narrow()?,
         )

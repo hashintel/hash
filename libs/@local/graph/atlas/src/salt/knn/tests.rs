@@ -32,7 +32,9 @@ use crate::{
         },
     },
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN, d_non_negative, open_unit_fraction, unit_fraction},
+    math::{
+        AlignedVecN, BoxedVecN, d_non_negative, non_negative, open_unit_fraction, unit_fraction,
+    },
     progress::{Batch, DescentIteration, NoProgress, Progress},
     random::normal_quantile,
 };
@@ -109,7 +111,7 @@ impl ExactIndex {
             .collect();
         all.sort_unstable_by(|left, right| {
             left.distance
-                .total_cmp(&right.distance)
+                .cmp(&right.distance)
                 .then_with(|| left.id.as_u64().cmp(&right.id.as_u64()))
         });
         all
@@ -467,17 +469,20 @@ fn build_matches_hand_computed_neighbours() {
     let stored: Vec<Vec<(u64, f32)>> = (0..4)
         .map(|row| {
             view.row(NodeRowId::from_usize(row))
-                .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
+                .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance.get()))
                 .collect()
         })
         .collect();
 
     // Rows key their neighbours in ascending row order; the values are
     // the exact kernel outputs, so equality is bit-exact.
-    assert_eq!(stored[0], vec![(1, 1.0), (2, diagonal)]);
-    assert_eq!(stored[1], vec![(0, 1.0), (2, distance(1, 2))]);
-    assert_eq!(stored[2], vec![(0, diagonal), (1, distance(2, 1))]);
-    assert_eq!(stored[3], vec![(1, 1.0), (2, distance(3, 2))]);
+    assert_eq!(stored[0], vec![(1, 1.0), (2, diagonal.get())]);
+    assert_eq!(stored[1], vec![(0, 1.0), (2, distance(1, 2).get())]);
+    assert_eq!(
+        stored[2],
+        vec![(0, diagonal.get()), (1, distance(2, 1).get())]
+    );
+    assert_eq!(stored[3], vec![(1, 1.0), (2, distance(3, 2).get())]);
 }
 
 #[test]
@@ -854,36 +859,30 @@ fn an_observed_descent_reports_every_iteration_it_ran() {
 #[test]
 fn validation_rejects_each_broken_invariant() {
     // Row 0 referencing itself.
-    let matrix = KnnMatrix::new((2, 2), vec![0, 1, 2], vec![0, 0], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new(
+        (2, 2),
+        vec![0, 1, 2],
+        vec![0, 0],
+        vec![non_negative!(0.5), non_negative!(0.5)],
+    );
     assert_eq!(
         Knn::<NodeRowId>::new(matrix).expect_err("self reference"),
         KnnValidationError::SelfNeighbour { row: 0 }
     );
 
     // A distance beyond the cosine range.
-    let matrix = KnnMatrix::new((3, 3), vec![0, 1, 2, 3], vec![1, 2, 0], vec![2.5, 1.0, 1.0]);
+    let matrix = KnnMatrix::new(
+        (3, 3),
+        vec![0, 1, 2, 3],
+        vec![1, 2, 0],
+        vec![non_negative!(2.5), non_negative!(1.0), non_negative!(1.0)],
+    );
     assert_eq!(
         Knn::<NodeRowId>::new(matrix).expect_err("distance beyond 2"),
         KnnValidationError::DistanceOutOfRange {
             row: 0,
             neighbour: 1,
-            distance: 2.5,
-        },
-    );
-
-    // A non-finite distance.
-    let matrix = KnnMatrix::new(
-        (3, 3),
-        vec![0, 1, 2, 3],
-        vec![1, 2, 0],
-        vec![f32::NAN, 1.0, 1.0],
-    );
-    assert_matches!(
-        Knn::<NodeRowId>::new(matrix).expect_err("non-finite distance"),
-        KnnValidationError::NonFiniteDistance {
-            row: 0,
-            neighbour: 1,
-            ..
+            distance: non_negative!(2.5),
         },
     );
 
@@ -892,7 +891,12 @@ fn validation_rejects_each_broken_invariant() {
         (3, 3),
         vec![0, 2, 3, 4],
         vec![1, 2, 0, 0],
-        vec![0.5, 0.5, 0.5, 0.5],
+        vec![
+            non_negative!(0.5),
+            non_negative!(0.5),
+            non_negative!(0.5),
+            non_negative!(0.5),
+        ],
     );
     assert_eq!(
         Knn::<NodeRowId>::new(matrix).expect_err("ragged rows"),
@@ -904,14 +908,24 @@ fn validation_rejects_each_broken_invariant() {
     );
 
     // Column-compressed storage.
-    let matrix = KnnMatrix::new_csc((2, 2), vec![0, 1, 2], vec![1, 0], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new_csc(
+        (2, 2),
+        vec![0, 1, 2],
+        vec![1, 0],
+        vec![non_negative!(0.5), non_negative!(0.5)],
+    );
     assert_eq!(
         Knn::<NodeRowId>::new(matrix).expect_err("column compression"),
         KnnValidationError::ColumnCompressed,
     );
 
     // A rectangular domain.
-    let matrix = KnnMatrix::new((2, 3), vec![0, 1, 2], vec![1, 2], vec![0.5, 0.5]);
+    let matrix = KnnMatrix::new(
+        (2, 3),
+        vec![0, 1, 2],
+        vec![1, 2],
+        vec![non_negative!(0.5), non_negative!(0.5)],
+    );
     assert_eq!(
         Knn::<NodeRowId>::new(matrix).expect_err("rectangular domain"),
         KnnValidationError::NotSquare {
@@ -1217,11 +1231,11 @@ fn published_table_reopens_mapped() {
         let row = NodeRowId::from_usize(row);
         let owned_row: Vec<(u64, f32)> = owned
             .row(row)
-            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
+            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance.get()))
             .collect();
         let reopened_row: Vec<(u64, f32)> = reopened
             .row(row)
-            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance))
+            .map(|neighbour| (neighbour.id.as_u64(), neighbour.distance.get()))
             .collect();
         assert_eq!(reopened_row, owned_row);
     }

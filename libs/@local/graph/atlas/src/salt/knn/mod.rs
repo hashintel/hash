@@ -36,7 +36,11 @@ use core::num::NonZero;
 use hashql_core::id::Id;
 use rand::{Rng, SeedableRng};
 
-use crate::{dataset::PROJECTOR_DIMENSIONS, math::AlignedVecN, progress::Progress};
+use crate::{
+    dataset::PROJECTOR_DIMENSIONS,
+    math::{AlignedVecN, NonNegative},
+    progress::Progress,
+};
 
 pub(crate) mod artifact;
 pub(crate) mod construction;
@@ -69,7 +73,7 @@ pub(crate) struct Neighbour<N> {
     /// The matched node row.
     pub id: N,
     /// Cosine distance to the query, finite in `[0, 2]`.
-    pub distance: f32,
+    pub distance: NonNegative,
 }
 
 /// A replaceable approximate cosine search backend.

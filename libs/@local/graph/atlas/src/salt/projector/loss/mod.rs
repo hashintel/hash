@@ -304,7 +304,7 @@ where
 pub(crate) struct BatchAnchor {
     pub row: BatchRowId,
     pub target: Vec2,
-    pub radius: f32,
+    pub radius: NonNegative,
     pub weight: f32,
 }
 
@@ -358,8 +358,8 @@ pub(crate) struct SupportTargets<B: Backend> {
 impl<B: Backend> SupportTargets<B> {
     /// Materializes an anchor set.
     ///
-    /// Returns [`None`] when `anchors` is empty or any anchor carries a non-finite target, a
-    /// non-finite or negative radius, or a non-finite or negative weight.
+    /// Returns [`None`] when `anchors` is empty or any anchor carries a non-finite target, an
+    /// escaped radius, or a non-finite or negative weight.
     #[must_use]
     pub(crate) fn new(anchors: &[BatchAnchor], device: &B::Device) -> Option<Self> {
         if anchors.is_empty() {
@@ -368,7 +368,6 @@ impl<B: Backend> SupportTargets<B> {
         let valid = anchors.iter().all(|anchor| {
             anchor.target.is_finite()
                 && anchor.radius.is_finite()
-                && anchor.radius >= 0.0
                 && anchor.weight.is_finite()
                 && anchor.weight >= 0.0
         });
@@ -387,7 +386,7 @@ impl<B: Backend> SupportTargets<B> {
             .collect::<Vec<_>>();
         let radii = anchors
             .iter()
-            .map(|anchor| anchor.radius)
+            .map(|anchor| anchor.radius.get())
             .collect::<Vec<_>>();
         let weights = anchors
             .iter()
