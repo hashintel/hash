@@ -73,6 +73,14 @@ pub enum SprsMatrixError {
     },
     /// The matrix does not fit the address space.
     TooLarge,
+    /// A value's bit pattern lies outside the described type's domain.
+    ///
+    /// A domain-validated value type accepts exactly the bit patterns its validating constructors
+    /// store, so a region holding any other pattern describes values the type cannot hold.
+    Domain {
+        /// The described value type whose domain rejected the region.
+        value: ValueTag,
+    },
     /// The regions violate the compressed-row structure.
     Structure(StructureError),
 }
@@ -95,6 +103,10 @@ impl fmt::Display for SprsMatrixError {
                  {iptr:?} row pointers",
             ),
             Self::TooLarge => fmt.write_str("the matrix does not fit the address space"),
+            Self::Domain { value } => write!(
+                fmt,
+                "the value region holds a bit pattern outside the {value:?} domain",
+            ),
             Self::Structure(error) => write!(
                 fmt,
                 "the regions violate the compressed-row structure: {error}",
@@ -107,7 +119,7 @@ impl Error for SprsMatrixError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Structure(error) => Some(error),
-            Self::Elements { .. } | Self::TooLarge => None,
+            Self::Elements { .. } | Self::TooLarge | Self::Domain { .. } => None,
         }
     }
 }
@@ -207,13 +219,15 @@ impl SprsFile {
     /// An [`Opaque`](ValueTag::Opaque) value carries no identity beyond its width, which is that
     /// tag's documented contract. A [`Unit`](ValueTag::Unit) matrix stores no value bytes. Its `()`
     /// entries materialize at the recorded entry count, so the structure-only view drives sparse
-    /// algorithms like any other. Every call re-checks the compressed-row structure, which costs
-    /// one pass over the entries. Reuse the view within a stage rather than calling again.
+    /// algorithms like any other. Every call re-checks the compressed-row structure and, for a
+    /// domain-validated value type, every element's bit pattern. Each check costs one pass over
+    /// the entries, so reuse the view within a stage rather than calling again.
     ///
     /// # Errors
     ///
     /// Returns an error when the requested element types differ from the described ones, the matrix
-    /// exceeds the address space, or the regions violate the compressed-row structure.
+    /// exceeds the address space, a value's bit pattern lies outside the described type's domain,
+    /// or the regions violate the compressed-row structure.
     pub(crate) fn matrix<N, I, Iptr>(&self) -> Result<CsMatViewI<'_, N, I, Iptr>, SprsMatrixError>
     where
         N: SprsValue,
@@ -265,11 +279,14 @@ impl SprsFile {
         let expect = "open validated the region sizes and the mapping their alignment";
         let indptr = <[Iptr]>::ref_from_bytes(indptr).expect(expect);
         let indices = <[I]>::ref_from_bytes(indices).expect(expect);
-        let values = N::view_region(
+        let Some(values) = N::view_region(
             values,
             usize::try_from(entries)
                 .expect("the index region maps, so the entry count fits the address space"),
-        );
+        ) else {
+            return Err(SprsMatrixError::Domain { value: N::TAG });
+        };
+
         match header.order() {
             StorageVariant::Csr => CsMatViewI::try_new((rows, columns), indptr, indices, values),
             StorageVariant::Csc => {

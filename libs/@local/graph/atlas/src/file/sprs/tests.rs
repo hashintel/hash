@@ -469,7 +469,8 @@ fn structure_only_matrix_reopens_with_conjured_units() {
 
 #[test]
 fn unit_values_conjure_from_no_bytes() {
-    let units = <() as SprsValue>::view_region(&[], 7);
+    let units = <() as SprsValue>::view_region(&[], 7)
+        .expect("the unit view materializes at any entry count");
 
     assert_eq!(units.len(), 7);
 }

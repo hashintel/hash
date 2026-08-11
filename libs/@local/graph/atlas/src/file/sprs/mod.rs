@@ -60,7 +60,7 @@
 use core::fmt;
 
 use sprs::{CompressedStorage, SpIndex};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U64, Unalign};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, TryFromBytes, U64, Unalign};
 
 use super::array::{ArrayShape, ArrayVariant, Dim};
 
@@ -221,6 +221,7 @@ pub enum ValueTag {
     ///
     /// The tag of structure-only matrices, whose payload is the compressed pattern alone.
     Unit = 0x10,
+    NonNegative = 0x11,
 }
 
 impl ValueTag {
@@ -236,7 +237,7 @@ impl ValueTag {
             Self::Unit => Some(0),
             Self::U8 | Self::I8 => Some(1),
             Self::U16 | Self::I16 | Self::F16 | Self::BF16 => Some(2),
-            Self::U32 | Self::I32 | Self::F32 => Some(4),
+            Self::U32 | Self::I32 | Self::F32 | Self::NonNegative => Some(4),
             Self::U64 | Self::I64 | Self::F64 => Some(8),
             Self::U128 | Self::I128 | Self::F128 => Some(16),
         }
@@ -254,7 +255,9 @@ impl ValueTag {
 // derive from size_of::<Self>() at write and view time alike, so no
 // impl-provided width exists to lie about. The compile-time asserts
 // below keep the scalar tags' pinned widths honest.
-pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Copy {
+pub(crate) trait SprsValue:
+    TryFromBytes + IntoBytes + Immutable + KnownLayout + Copy
+{
     /// The wire identity of `Self` beyond its width.
     const TAG: ValueTag;
 
@@ -263,10 +266,8 @@ pub(crate) trait SprsValue: FromBytes + IntoBytes + Immutable + KnownLayout + Co
     /// `bytes` holds exactly `entries * size_of::<Self>()` bytes on a 4096-byte boundary - the
     /// format's region guarantee. The unit type overrides the byte-reinterpreting default: no value
     /// bytes exist for it, so its elements materialize at the entry count alone.
-    fn view_region(bytes: &[u8], entries: usize) -> &[Self] {
-        let _: usize = entries;
-        <[Self]>::ref_from_bytes(bytes)
-            .expect("the region length and alignment are the format's guarantee")
+    fn view_region(bytes: &[u8], entries: usize) -> Option<&[Self]> {
+        <[Self]>::try_ref_from_bytes_with_elems(bytes, entries).ok()
     }
 }
 
@@ -321,12 +322,14 @@ const _: () = assert!(ValueTag::Unit.width().unwrap() == size_of::<()>() as u64)
 impl SprsValue for () {
     const TAG: ValueTag = ValueTag::Unit;
 
-    fn view_region(_bytes: &[u8], entries: usize) -> &[Self] {
+    fn view_region(_bytes: &[u8], entries: usize) -> Option<&[Self]> {
         // SAFETY: `()` is zero-sized, so the slice covers no bytes: `NonNull::dangling` is non-null
         // and aligned, zero bytes are valid for reads at any address, and no element count of a
         // zero-sized type overflows `isize` in bytes. Every value of the unit type is trivially
         // initialized and valid.
-        unsafe { core::slice::from_raw_parts(core::ptr::NonNull::dangling().as_ptr(), entries) }
+        Some(unsafe {
+            core::slice::from_raw_parts(core::ptr::NonNull::dangling().as_ptr(), entries)
+        })
     }
 }
 
@@ -343,6 +346,7 @@ sprs_value! {
     i128 => I128,
     f32 => F32,
     f64 => F64,
+    crate::math::NonNegative => NonNegative,
 }
 
 sprs_index! {
