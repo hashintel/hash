@@ -8,9 +8,7 @@ export const styles = cva({
   },
   variants: {
     variant: {
-      spaced: {
-        gap: "2",
-      },
+      spaced: {},
       segmented: {
         columnGap: "0",
         rowGap: "2",
@@ -45,6 +43,16 @@ export const styles = cva({
         },
       },
     },
+    // The gap between buttons in a `spaced` group, on the shared FormInputSize
+    // scale. Keys declare the variant; the gap value is set per-variant below so
+    // it only applies to `spaced`.
+    spacing: {
+      xxs: {},
+      xs: {},
+      sm: {},
+      md: {},
+      lg: {},
+    },
     alignedTo: {
       left: { justifyContent: "flex-start" },
       right: { justifyContent: "flex-end" },
@@ -54,8 +62,16 @@ export const styles = cva({
       false: { flexWrap: "wrap" },
     },
   },
+  compoundVariants: [
+    { variant: "spaced", spacing: "xxs", css: { gap: "1" } },
+    { variant: "spaced", spacing: "xs", css: { gap: "1.5" } },
+    { variant: "spaced", spacing: "sm", css: { gap: "2" } },
+    { variant: "spaced", spacing: "md", css: { gap: "2.5" } },
+    { variant: "spaced", spacing: "lg", css: { gap: "3" } },
+  ],
   defaultVariants: {
     variant: "spaced",
+    spacing: "md",
     alignedTo: "left",
     noWrap: false,
   },

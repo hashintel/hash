@@ -59,7 +59,7 @@ const ApplyAutoLayoutWidget = ({
         The assistant suggests running auto-layout on the net. This may
         reposition places and transitions.
       </span>
-      <ButtonGroup>
+      <ButtonGroup spacing="sm">
         <Button
           size="sm"
           variant="solid"

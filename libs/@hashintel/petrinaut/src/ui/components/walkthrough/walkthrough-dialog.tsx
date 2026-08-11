@@ -264,7 +264,7 @@ export const WalkthroughDialog: React.FC<WalkthroughDialogProps> = ({
               </Button>
             )}
           </div>
-          <ButtonGroup alignedTo="right">
+          <ButtonGroup alignedTo="right" spacing="sm">
             <Button
               variant="subtle"
               size="sm"

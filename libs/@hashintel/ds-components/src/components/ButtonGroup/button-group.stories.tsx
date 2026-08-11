@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { type FormInputSize, formInputSizes } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { ButtonGroup } from "./button-group";
 
@@ -99,9 +100,13 @@ const frameClass = css({
 const shortLabels = ["One", "Two", "Three"];
 const manyLabels = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta"];
 
-const buttons = (labels: string[], variant: ButtonVariant = "subtle") =>
+const buttons = (
+  labels: string[],
+  variant: ButtonVariant = "subtle",
+  size?: FormInputSize,
+) =>
   labels.map((label, index) => (
-    <Button key={label} variant={variant} pressed={index === 0}>
+    <Button key={label} variant={variant} size={size} pressed={index === 0}>
       {label}
     </Button>
   ));
@@ -163,6 +168,29 @@ export const Default: Story = () => (
 );
 
 Default.parameters = {
+  controls: { disable: true },
+  actions: { disable: true },
+  interactions: { disable: true },
+};
+
+export const Spacing: Story = () => (
+  <div className={pageClass}>
+    <section className={sectionClass}>
+      <span className={sectionHeadingClass}>spaced · all spacing sizes</span>
+      <div className={compactRowsClass}>
+        {formInputSizes.map((spacing) => (
+          <Example key={spacing} framed={false} label={`spacing=${spacing}`}>
+            <ButtonGroup variant="spaced" spacing={spacing}>
+              {buttons(shortLabels, "subtle", spacing)}
+            </ButtonGroup>
+          </Example>
+        ))}
+      </div>
+    </section>
+  </div>
+);
+
+Spacing.parameters = {
   controls: { disable: true },
   actions: { disable: true },
   interactions: { disable: true },
