@@ -43,8 +43,10 @@ jobs:
           value: ${{ steps.app-token.outputs.token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
+      # Best-effort: on failure the output stays empty and the release builds uncached.
       - name: Mint sccache credentials
         id: mint-sccache
+        continue-on-error: true
         uses: $/.github/actions/mint-sccache-credentials
         with:
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
