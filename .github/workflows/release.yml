@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+        uses: hashintel/.github/.github/actions/github-app-token@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
         with:
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
