@@ -1,0 +1,40 @@
+name: Preflight
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/preflight-target.yml"
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  merge_group:
+
+jobs:
+  dependencies:
+    name: Dependencies
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
+    with:
+      # GHSA-frvp-7c67-39w9: advisory has a wrong affected-version range; the fix was
+      # backported in @hono/node-server. Remove once github/advisory-database#8824 merges.
+      allow-ghsas: GHSA-frvp-7c67-39w9
+
+  labeler:
+    name: Labeler
+    if: github.event_name != 'merge_group'
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Apply labels
+        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        with:
+          sync-labels: true
+
+  pr-title:
+    name: PR title
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main

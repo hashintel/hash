@@ -2,39 +2,21 @@ name: Preflight
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/preflight.yml"
-  pull_request_target:
+    # `edited` matters: the todo-comments scan derives its ticket IDs from the PR title.
     types: [opened, synchronize, reopened, edited]
   merge_group:
 
+permissions: {}
+
 jobs:
-  dependencies:
-    name: Dependencies
+  todo-comments:
+    name: Todo comments
     permissions:
       contents: read
-      pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
-    with:
-      # GHSA-frvp-7c67-39w9: advisory has a wrong affected-version range; the fix was
-      # backported in @hono/node-server. Remove once github/advisory-database#8824 merges.
-      allow-ghsas: GHSA-frvp-7c67-39w9
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
 
-  labeler:
-    name: Labeler
-    if: github.event_name != 'merge_group'
+  lint:
+    name: Lint
     permissions:
       contents: read
-      pull-requests: write
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Apply labels
-        uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
-        with:
-          sync-labels: true
-
-  pr-title:
-    name: PR title
-    permissions:
-      contents: read
-    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+    uses: hashintel/.github/.github/workflows/preflight-actionlint.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
