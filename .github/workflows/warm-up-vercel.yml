@@ -2,7 +2,7 @@ name: Scheduled production Vercel lambda warm-up
 
 on:
   schedule:
-    - cron: "*/3 * * * *" ## Every 3 minutes
+    - cron: "*/5 * * * *" ## Every 5 minutes
 
 permissions:
   contents: read
@@ -19,6 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: ./.github/actions/warm-up-vercel
+      - uses: $/.github/actions/warm-up-vercel
         with:
           deployment-base-url: "https://app.hash.ai"
