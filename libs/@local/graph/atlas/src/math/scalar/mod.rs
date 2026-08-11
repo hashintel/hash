@@ -470,6 +470,10 @@ impl<'de> serde::Deserialize<'de> for Positive {
 pub(crate) struct NonNegative(f32);
 
 impl NonNegative {
+    /// The largest in-domain value, `f32::MAX`.
+    ///
+    /// Every in-domain reading sorts at or before `MAX`. An escaped `+∞` sorts after it.
+    pub(crate) const MAX: Self = Self(f32::MAX);
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
@@ -508,6 +512,19 @@ impl NonNegative {
         Self(value + 0.0)
     }
 
+    /// Returns the square of a raw scalar.
+    ///
+    /// A square is never negative and never NaN for non-NaN arguments. Overflow escapes to `+∞`
+    /// and asserts in debug builds, mirroring integer `+`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn square(value: f32) -> Self {
+        let squared = value * value;
+        debug_assert!(squared.is_finite(), "the square left the domain");
+
+        Self(squared)
+    }
+
     /// Returns the value.
     #[inline]
     #[must_use]
@@ -523,6 +540,27 @@ impl NonNegative {
     #[must_use]
     pub(crate) const fn to_bits(self) -> u32 {
         self.0.to_bits()
+    }
+
+    /// Returns whether the value is normal: neither zero, subnormal, nor escaped.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_normal(self) -> bool {
+        self.0.is_normal()
+    }
+
+    /// Returns whether the value stayed in domain.
+    ///
+    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
+    /// non-finite reading is exactly an escaped one.
+    ///
+    /// The one caller shape is a validation point that rejects escaped readings before acting on
+    /// a computed value. Anywhere else the query re-checks what construction already proved, and
+    /// the check itself is the defect.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_finite(self) -> bool {
+        self.0.is_finite()
     }
 
     /// Returns whether `value`'s exact bits are a stored non-negative value.
@@ -660,6 +698,65 @@ impl NonNegative {
 
         Self(fused)
     }
+
+    /// Raises to a real power.
+    ///
+    /// Never NaN over the domain: a negative base is unrepresentable, and `0⁰` is one. Overflow,
+    /// and a zero base under a negative exponent, escape to `+∞` and assert in debug builds,
+    /// mirroring integer `+`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn powf(self, exponent: f32) -> Self {
+        let raised = self.0.powf(exponent);
+        debug_assert!(raised.is_finite(), "the power left the domain");
+
+        Self(raised)
+    }
+
+    /// Returns the reciprocal.
+    ///
+    /// Never NaN and never negative over the domain. A zero reading escapes to `+∞` and asserts
+    /// in debug builds, mirroring integer `+`. An escaped `+∞` collapses back to `+0.0`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn inverse(self) -> Self {
+        let inverse = 1.0 / self.0;
+        debug_assert!(
+            inverse.is_finite(),
+            "the inverse of a zero reading overflowed"
+        );
+
+        Self(inverse)
+    }
+
+    /// Returns the midpoint, without intermediate overflow.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn midpoint(self, other: Self) -> Self {
+        Self(self.0.midpoint(other.0))
+    }
+
+    /// Multiplies, returning [`None`] when the product overflows.
+    ///
+    /// A product of accepted values can leave the finite range. The checked form reports that
+    /// escape as an absence, mirroring the integer `checked_mul`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn checked_mul(self, rhs: Self) -> Option<Self> {
+        let product = self.0 * rhs.0;
+        if product.is_finite() {
+            Some(Self(product))
+        } else {
+            None
+        }
+    }
+}
+
+const impl Default for NonNegative {
+    #[inline]
+    fn default() -> Self {
+        Self(0.0)
+    }
 }
 
 const impl PartialEq for NonNegative {
@@ -780,7 +877,8 @@ const impl core::ops::Mul for NonNegative {
     ///
     /// A product of non-negatives is non-negative and never NaN, and zero keeps its canonical
     /// positive sign. Overflow escapes to `+∞` and asserts in debug builds, mirroring integer
-    /// `+`.
+    /// `+`. For a product the caller revalidates, [`checked_mul`](Self::checked_mul) returns the
+    /// overflow as [`None`].
     #[inline]
     fn mul(self, rhs: Self) -> Self {
         let product = self.0 * rhs.0;
@@ -790,6 +888,15 @@ const impl core::ops::Mul for NonNegative {
         );
 
         Self(product)
+    }
+}
+
+const impl core::ops::Div for NonNegative {
+    type Output = Self;
+
+    #[inline]
+    fn div(self, rhs: Self) -> Self {
+        Self(self.0 / rhs.0)
     }
 }
 
