@@ -38,7 +38,7 @@ jobs:
       # GitHub drops masked values from job outputs, so only ciphertext can cross.
       - name: Encrypt token
         id: encrypt
-        uses: $/.github/actions/encrypt-secret
+        uses: hashintel/.github/.github/actions/encrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
         with:
           value: ${{ steps.app-token.outputs.token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
@@ -65,7 +65,7 @@ jobs:
       # Directly after checkout, so the plaintext is masked before anything else runs.
       - name: Decrypt token
         id: app-token
-        uses: $/.github/actions/decrypt-secret
+        uses: hashintel/.github/.github/actions/decrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
         with:
           encrypted_value: ${{ needs.mint-token.outputs.encrypted-github-token }}
           encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
