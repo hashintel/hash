@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button, Dialog, Select, Toggle } from "@hashintel/ds-components";
+import { Button, Chip, Dialog, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
@@ -25,6 +25,10 @@ const labelStyle = css({
   color: "neutral.fg.heading",
   gridColumn: "1",
   gridRow: "1",
+  display: "flex",
+  alignItems: "center",
+  gap: "[2]",
+  flexWrap: "wrap",
 });
 
 const controlStyle = css({
@@ -57,22 +61,6 @@ const sectionTitleStyle = css({
 const selectStyle = css({
   width: "[160px]",
   flexShrink: "[0]",
-});
-
-const badgeStyle = css({
-  display: "inline-block",
-  marginLeft: "1.5",
-  px: "1.5",
-  py: "0.5",
-  fontSize: "[10px]",
-  fontWeight: "semibold",
-  lineHeight: "[1]",
-  letterSpacing: "wide",
-  textTransform: "uppercase",
-  color: "neutral.s10",
-  backgroundColor: "neutral.s100",
-  borderRadius: "md",
-  verticalAlign: "middle",
 });
 
 const SettingRow: React.FC<{
@@ -196,7 +184,9 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           label={
             <>
               Entities tree view{" "}
-              <span className={badgeStyle}>Experimental</span>
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
             </>
           }
           description="Show a unified tree of all entities in the left sidebar"
@@ -211,7 +201,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <SettingRow
             label={
               <>
-                Net Components <span className={badgeStyle}>Experimental</span>
+                Net Components{" "}
+                <Chip size="xs" color="orange" variant="outline" shape="round">
+                  Experimental
+                </Chip>
               </>
             }
             description="Enable subnet definitions and component instances for hierarchical net composition"

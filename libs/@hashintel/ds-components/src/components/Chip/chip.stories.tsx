@@ -244,6 +244,21 @@ export const Size: Story<ChipProps> = (args) => (
       ))}
     </div>
 
+    <div className={row}>
+      {chipSizes.map((size) => (
+        <Chip
+          key={size}
+          size={size}
+          color={args.color}
+          variant={args.variant}
+          prefix={{ loading: true }}
+          suffix={{ iconName: "check" }}
+        >
+          {size}
+        </Chip>
+      ))}
+    </div>
+
     {/* md edge cases: empty content, affixes with no label, and truncation of
         long content against a max-width. */}
     <div className={row}>
@@ -392,6 +407,28 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
             {dot}
           </Chip>
         ))}
+      </div>
+
+      <div className={row}>
+        <div className={rowLabel}>loading</div>
+        <Chip {...base} prefix={{ loading: true }}>
+          Prefix
+        </Chip>
+        <Chip
+          {...base}
+          prefix={{ loading: true }}
+          suffix={{ iconName: "check" }}
+        >
+          Prefix + suffix
+        </Chip>
+        <Chip
+          {...base}
+          onClick={noop}
+          prefix={{ loading: true }}
+          suffix={{ iconName: "check" }}
+        >
+          Clickable
+        </Chip>
       </div>
     </div>
   );

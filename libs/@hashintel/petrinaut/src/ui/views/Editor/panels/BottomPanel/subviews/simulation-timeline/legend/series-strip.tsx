@@ -1,16 +1,15 @@
-import { useComboboxContext } from "@ark-ui/react/combobox";
 import { useEffect, useRef, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Chip, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import type { TimelineSeriesMeta } from "../types";
 import type { FC } from "react";
 
 /**
- * How many series the strip renders. Anything beyond this is summarized by
- * the "+N more" chip — the strip is a single clipped line, so rendering
- * hundreds of entries would only add invisible DOM.
+ * How many series the strip renders. The strip is a single clipped line, so
+ * rendering hundreds of entries would only add invisible DOM; everything
+ * beyond this cap stays reachable through the dropdown.
  */
 const STRIP_RENDER_LIMIT = 40;
 
@@ -34,6 +33,11 @@ const stripNamesStyle = css({
   flex: "1",
   minWidth: "[0]",
   overflow: "hidden",
+  // Inset by the chip focus ring's width: `overflow` clips at the padding box,
+  // so this keeps the first entry's 2px ring inside the clip (it would
+  // otherwise be cut off against the strip's left edge). The right edge is a
+  // fade, so it needs no equivalent.
+  paddingLeft: "[2px]",
   whiteSpace: "nowrap",
   color: "neutral.s100",
   fontSize: "xs",
@@ -45,45 +49,52 @@ const stripNamesStyle = css({
   maskImage: "[linear-gradient(to right, #000 calc(100% - 28px), transparent)]",
 });
 
-const stripItemStyle = css({
+const stripItemWrapStyle = css({
   display: "inline-flex",
   alignItems: "center",
-  gap: "1",
   maxWidth: "[240px]",
   minWidth: "[0]",
   overflow: "hidden",
   marginRight: "1",
-  paddingX: "1",
-  paddingY: "0.5",
-  borderRadius: "sm",
-  // The surrounding strip uses a 30px line-height to centre the inline row;
-  // reset it here so the pill hugs its text instead of growing past the
-  // control.
-  lineHeight: "[1.2]",
   verticalAlign: "middle",
   pointerEvents: "auto",
-  transition:
-    "[max-width 0.18s ease, margin 0.18s ease, padding 0.18s ease, opacity 0.18s ease, background-color 0.15s ease]",
+  transition: "[max-width 0.18s ease, margin 0.18s ease, opacity 0.18s ease]",
+  // The resting glyph (colour swatch when shown, slashed "hidden" eye when
+  // hidden) is visible by default; the action icon stays hidden until the entry
+  // is hovered or keyboard-focused, when the two swap.
+  "& .stripItemActionIcon": {
+    display: "none",
+  },
   _hover: {
-    backgroundColor: "neutral.s30",
-    color: "neutral.s125",
-    "& .stripItemSwatch": {
+    "& .stripItemRest": {
       display: "none",
     },
     "& .stripItemActionIcon": {
-      display: "inline-flex",
+      display: "inline-block",
     },
   },
-  _focusWithin: {
-    backgroundColor: "neutral.s30",
-    color: "neutral.s125",
-    "& .stripItemSwatch": {
+  // Only :focus-visible (keyboard), not the plain focus a mouse click leaves on
+  // the chip button — otherwise a clicked entry would stay pinned to the action
+  // icon after the pointer left instead of settling back to its resting glyph.
+  "&:has(:focus-visible)": {
+    // Let the focused chip's box-shadow focus ring escape the clip that the
+    // leaving-collapse animation otherwise needs (a focused entry never
+    // collapses, so nothing spills).
+    overflow: "visible",
+    "& .stripItemRest": {
       display: "none",
     },
     "& .stripItemActionIcon": {
-      display: "inline-flex",
+      display: "inline-block",
     },
   },
+});
+
+// Cap the chip width so long series names truncate (via the Chip label's own
+// ellipsis) instead of pushing the strip wider.
+const stripChipStyle = css({
+  maxWidth: "[220px]",
+  minWidth: "[0]",
 });
 
 const hiddenStripItemStyle = css({
@@ -98,10 +109,11 @@ const hiddenStripItemStyle = css({
 const leavingStripItemStyle = css({
   maxWidth: "[0]",
   marginRight: "[0]",
-  paddingX: "[0]",
   opacity: 0,
 });
 
+// Fixed-size box holding the swatch / eye icon so swapping between them (on
+// hover or focus of the entry) never shifts the label.
 const stripActionStyle = css({
   display: "inline-flex",
   alignItems: "center",
@@ -109,15 +121,7 @@ const stripActionStyle = css({
   flexShrink: 0,
   width: "[16px]",
   height: "[16px]",
-  padding: "[0]",
-  border: "[0]",
-  borderRadius: "[2px]",
-  backgroundColor: "[transparent]",
   color: "neutral.s110",
-  cursor: "pointer",
-  _hover: {
-    color: "neutral.s125",
-  },
 });
 
 const stripSwatchStyle = css({
@@ -125,41 +129,6 @@ const stripSwatchStyle = css({
   height: "[8px]",
   borderRadius: "[2px]",
   flexShrink: 0,
-});
-
-const stripActionIconStyle = css({
-  display: "none",
-  alignItems: "center",
-  justifyContent: "center",
-});
-
-const stripItemTextStyle = css({
-  minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const moreChipStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  flexShrink: 0,
-  height: "[20px]",
-  paddingX: "1.5",
-  border: "[0]",
-  borderRadius: "md",
-  backgroundColor: "neutral.s20",
-  color: "neutral.s105",
-  cursor: "pointer",
-  fontSize: "[11px]",
-  fontWeight: "medium",
-  lineHeight: "[1]",
-  whiteSpace: "nowrap",
-  pointerEvents: "auto",
-  _hover: {
-    backgroundColor: "neutral.s30",
-    color: "neutral.s120",
-  },
 });
 
 const hiddenWhileTypingStyle = css({
@@ -288,9 +257,10 @@ export const useStripLingering = (
  * The collapsed legend strip rendered inside the selector control.
  *
  * It lists the series currently shown on the chart, in their stable chart
- * order. Hovering an entry morphs its colour swatch into an eye action;
- * clicking that action hides the series. Just-hidden series stay in place
- * (struck through, with the action flipped to "show") until the pointer or
+ * order. A shown entry displays its colour swatch, which morphs into a "hide"
+ * eye on hover or focus; clicking anywhere on the entry hides the series.
+ * Just-hidden entries stay in place — struck through, showing a slashed
+ * "hidden" eye that morphs into a "show" eye on hover — until the pointer or
  * focus leaves the whole selector control, so several entries can be toggled
  * — or an accidental click undone — before they animate out of the strip.
  * Hidden series are managed from the dropdown.
@@ -303,7 +273,6 @@ export const SeriesStrip: FC<{
   lingering: StripLingering;
   onToggleSeries: (seriesId: string) => void;
 }> = ({ series, hiddenSeries, isSearching, lingering, onToggleSeries }) => {
-  const combobox = useComboboxContext();
   const { lingeringSeriesIds, leavingSeriesIds, holdLingering, finalizeLeave } =
     lingering;
 
@@ -313,10 +282,9 @@ export const SeriesStrip: FC<{
       lingeringSeriesIds.has(item.seriesId) ||
       leavingSeriesIds.has(item.seriesId),
   );
+  // Hidden series and entries beyond the cap aren't listed here — they stay
+  // reachable through the dropdown (opened via the strip's count badge).
   const renderedSeries = stripSeries.slice(0, STRIP_RENDER_LIMIT);
-  // Everything not rendered here — hidden series and entries beyond the cap —
-  // is reachable through the dropdown.
-  const overflowCount = series.length - renderedSeries.length;
 
   return (
     <span className={cx(stripStyle, isSearching && hiddenWhileTypingStyle)}>
@@ -331,8 +299,9 @@ export const SeriesStrip: FC<{
           return (
             <span
               key={item.seriesId}
+              title={actionLabel}
               className={cx(
-                stripItemStyle,
+                stripItemWrapStyle,
                 !isVisible && !isLeaving && hiddenStripItemStyle,
                 isLeaving && leavingStripItemStyle,
               )}
@@ -349,52 +318,46 @@ export const SeriesStrip: FC<{
                 }
               }}
             >
-              <button
-                type="button"
+              <Chip
+                size="sm"
+                variant="ghost"
+                className={stripChipStyle}
                 aria-label={actionLabel}
-                title={actionLabel}
-                className={stripActionStyle}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
+                onClick={() => {
                   holdLingering(item.seriesId);
                   onToggleSeries(item.seriesId);
                 }}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
+                prefix={{
+                  variant: "naked",
+                  children: (
+                    <span className={stripActionStyle}>
+                      {isVisible ? (
+                        <span
+                          className={cx(stripSwatchStyle, "stripItemRest")}
+                          style={{ backgroundColor: item.color }}
+                        />
+                      ) : (
+                        <Icon
+                          name="eyeSlash"
+                          size="xs"
+                          className="stripItemRest"
+                        />
+                      )}
+                      <Icon
+                        name={isVisible ? "eyeSlash" : "eye"}
+                        size="xs"
+                        className="stripItemActionIcon"
+                      />
+                    </span>
+                  ),
                 }}
               >
-                <span
-                  className={cx(stripSwatchStyle, "stripItemSwatch")}
-                  style={{ backgroundColor: item.color }}
-                />
-                <span
-                  className={cx(stripActionIconStyle, "stripItemActionIcon")}
-                >
-                  <Icon name={isVisible ? "eyeSlash" : "eye"} size="xs" />
-                </span>
-              </button>
-              <span className={stripItemTextStyle}>{item.seriesName}</span>
+                {item.seriesName}
+              </Chip>
             </span>
           );
         })}
       </span>
-      {overflowCount > 0 && (
-        <button
-          type="button"
-          className={moreChipStyle}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            combobox.setOpen(true);
-          }}
-          onPointerDown={(event) => {
-            event.stopPropagation();
-          }}
-        >
-          +{overflowCount} more
-        </button>
-      )}
     </span>
   );
 };

@@ -1,5 +1,5 @@
-import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { Button, Chip } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 export type PromptChip = {
   id: string;
@@ -67,7 +67,7 @@ const containerStyle = css({
 const railStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "1",
+  gap: "1.5",
   flex: "[1]",
   minWidth: "[0]",
   overflowX: "auto",
@@ -79,13 +79,11 @@ const railStyle = css({
 
 const chipStyle = css({
   flexShrink: 0,
-  backgroundColor: "white",
-  _hover: {
-    backgroundColor: "neutral.s10",
-  },
-  _disabled: {
-    backgroundColor: "white",
-  },
+});
+
+const chipDisabledStyle = css({
+  opacity: "[0.5]",
+  pointerEvents: "none",
 });
 
 const dismissStyle = css({
@@ -117,17 +115,16 @@ export const PromptChips = ({
     <div className={containerStyle}>
       <div className={railStyle}>
         {chips.map((chip) => (
-          <Button
+          <Chip
             key={chip.id}
-            className={chipStyle}
-            size="xs"
-            variant="subtle"
-            tone="neutral"
-            disabled={disabled}
-            onClick={() => onSelect(chip.prompt)}
+            className={cx(chipStyle, disabled && chipDisabledStyle)}
+            variant="soft"
+            shape="round"
+            aria-disabled={disabled || undefined}
+            onClick={disabled ? undefined : () => onSelect(chip.prompt)}
           >
             {chip.label}
-          </Button>
+          </Chip>
         ))}
       </div>
       <Button
