@@ -36,7 +36,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install package manager via corepack
-      uses: ./.github/actions/install-corepack
+      uses: $/.github/actions/install-corepack
 
     - name: Setup environment
       shell: bash
@@ -57,7 +57,7 @@ runs:
     - name: "Install sccache"
       if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.cf_access_client_secret != '' }}
       continue-on-error: true
-      uses: ./.github/actions/install-sccache
+      uses: $/.github/actions/install-sccache
       with:
         vault_address: ${{ inputs.vault_address }}
         cf_access_client_id: ${{ inputs.cf_access_client_id }}

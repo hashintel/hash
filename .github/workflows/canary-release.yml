@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -22,7 +22,7 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Publish changesets to npm, with 'canary' tags
         run: |
@@ -31,9 +31,9 @@ jobs:
           git config user.email "support@hash.ai"
           git config user.name "hashdotai"
           git commit -am "temporarily convert changesets to canary releases"
-          git revert `git rev-parse HEAD` --no-edit
+          git revert "$(git rev-parse HEAD)" --no-edit
           git push
-          git checkout `git rev-parse HEAD~1`
+          git checkout "$(git rev-parse HEAD~1)"
 
           cat << EOF > "$HOME/.npmrc"
             //registry.npmjs.org/:_authToken=$NPM_TOKEN

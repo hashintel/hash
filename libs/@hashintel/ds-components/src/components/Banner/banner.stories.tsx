@@ -66,7 +66,6 @@ const KitchenSinkBanner = ({
   <Banner
     tone={tone}
     variant={variant}
-    icon
     dismissible={{ dismissible: true, onDismiss: noop }}
   >
     <Banner.Title>Summarise what happened</Banner.Title>
@@ -148,7 +147,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Title + icon + actions">
-      <Banner tone="brand" variant="soft" icon>
+      <Banner tone="brand" variant="soft">
         <Banner.Title>Summarise what happened</Banner.Title>
         <Banner.Actions>
           <Banner.ActionButton>Open</Banner.ActionButton>
@@ -158,7 +157,7 @@ export const Content: Story = () => (
     </Example>
 
     <Example name="Description + icon">
-      <Banner tone="brand" variant="soft" icon>
+      <Banner tone="brand" variant="soft">
         <Banner.Description>
           Describe what can be done about it here.
         </Banner.Description>
@@ -242,7 +241,6 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="soft"
-        icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
         <Banner.Title>Summarise what happened</Banner.Title>
@@ -259,7 +257,6 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="soft"
-        icon
         dismissible={{ dismissible: true, onDismiss: noop }}
       >
         <Banner.Title>
@@ -277,7 +274,6 @@ export const Content: Story = () => (
       <Banner
         tone="brand"
         variant="soft"
-        icon
         dismissible={{ dismissible: true, onDismiss: noop }}
         className={css({ maxWidth: "[400px]" })}
       >
