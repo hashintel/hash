@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -96,9 +96,9 @@ jobs:
             fi
           done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
 
-          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   unit-tests:
     name: Unit
@@ -117,10 +117,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -128,25 +128,25 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Find test steps to run
         id: tests
         run: |
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
           if [[ "$HAS_RUST" == "true" ]]; then
-            echo "COVERAGE_KEY=rust" >> $GITHUB_ENV
+            echo "COVERAGE_KEY=rust" >> "$GITHUB_ENV"
           else
-            echo "COVERAGE_KEY=javascript" >> $GITHUB_ENV
+            echo "COVERAGE_KEY=javascript" >> "$GITHUB_ENV"
           fi
 
       - name: Show disk usage
@@ -158,7 +158,7 @@ jobs:
           TEST_COVERAGE: ${{ github.event_name != 'merge_group' }}
         run: |
           turbo run test:unit --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
         run: df -h
@@ -216,10 +216,10 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -227,23 +227,22 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Find test steps to run
         id: tests
         run: |
-          TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.name }}" | jq -c '.tasks[]')
           HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
-          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a $GITHUB_OUTPUT
+          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a "$GITHUB_OUTPUT"
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -291,7 +290,7 @@ jobs:
           mkdir -p logs
           turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
           # Not strictly needed to run the healthchecks here as they are also run in the integration
           # tests but it this way we can fail the job early if the background tasks are not healthy.
@@ -305,7 +304,7 @@ jobs:
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
         run: |
           turbo run test:integration --env-mode=loose --filter "${{ matrix.name }}"
-          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')" >> "$GITHUB_ENV"
 
       - name: Show disk usage
         run: df -h
@@ -353,7 +352,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Clean up disk
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Build package flags
         id: flags
@@ -361,7 +360,7 @@ jobs:
           PUBLISH_PACKAGES: ${{ needs.setup.outputs.publish-rust }}
         run: |
           PACKAGES=$(echo "$PUBLISH_PACKAGES" | jq -r '.[]' | while read -r pkg; do echo -n "-p $pkg "; done)
-          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
       - name: Login
         run: |

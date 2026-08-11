@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -67,8 +67,8 @@ jobs:
           INTEGRATION_BENCH_PACKAGES=$(turbo query "$INTEGRATION_BENCH_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
-          echo "unit=$UNIT_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
-          echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "unit=$UNIT_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
+          echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
   unit-benches:
     name: Unit
@@ -90,11 +90,11 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -103,7 +103,7 @@ jobs:
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -132,10 +132,10 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -143,14 +143,14 @@ jobs:
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Run head benches
         run: turbo run bench:unit --filter "${{ matrix.name }}"
@@ -159,7 +159,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
-          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
           echo '<details><summary><h2>${{ matrix.name }} – Units</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
@@ -210,11 +210,11 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -223,7 +223,7 @@ jobs:
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
@@ -231,7 +231,7 @@ jobs:
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -265,7 +265,7 @@ jobs:
           mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/base-background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
           turbo run start:healthcheck --env-mode=loose
 
@@ -311,10 +311,10 @@ jobs:
 
       - name: Clean up disk
         if: github.event_name != 'pull_request'
-        uses: ./.github/actions/clean-up-disk
+        uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
@@ -323,14 +323,14 @@ jobs:
           sccache: false # sccache is already running in the background
 
       - name: Prune repository
-        uses: ./.github/actions/prune-repository
+        uses: $/.github/actions/prune-repository
         with:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
@@ -362,7 +362,7 @@ jobs:
           mkdir -p logs
           turbo run start --env-mode=loose --log-order stream >var/logs/head-background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a "$GITHUB_OUTPUT"
 
           turbo run start:healthcheck --env-mode=loose
 
@@ -379,7 +379,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
-          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> $GITHUB_ENV
+          echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
           echo '<details><summary><h2>${{ matrix.name }} – Integrations</h2></summary>' > "/tmp/$TRIMMED_PACKAGE_NAME.md"
           echo >> "/tmp/$TRIMMED_PACKAGE_NAME.md"
           turbo run analyze-benchmarks -- --output "/tmp/benches.md" --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
