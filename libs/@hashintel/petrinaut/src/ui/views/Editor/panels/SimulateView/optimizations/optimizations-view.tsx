@@ -1,16 +1,12 @@
 import { use, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Chip, Icon, LoadingSpinner } from "@hashintel/ds-components";
 
 import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import {
-  Table,
-  type TableColumn,
-  TableStatusBadge,
-} from "../../../../../components/table";
+import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateOptimizationDrawer } from "./create-optimization-drawer";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
@@ -39,19 +35,24 @@ const OptimizationStatusBadge = ({
     optimization.status === "initializing" || optimization.status === "running";
 
   return (
-    <TableStatusBadge
-      iconName={optimization.status === "error" ? "error" : undefined}
-      loading={isActive}
-      tone={
+    <Chip
+      variant="soft"
+      color={
+        isActive ? "blue" : optimization.status === "complete" ? "green" : "red"
+      }
+      prefix={
         isActive
-          ? "active"
+          ? {
+              variant: "naked",
+              children: <LoadingSpinner size="xs" variant="bars" />,
+            }
           : optimization.status === "error"
-            ? "error"
-            : "neutral"
+            ? { variant: "naked", iconName: "error" }
+            : undefined
       }
     >
       {formatStatus(optimization.status)}
-    </TableStatusBadge>
+    </Chip>
   );
 };
 
