@@ -302,16 +302,9 @@ export const buildLayouts = async (
     states.map(async (state): Promise<LayoutState> => {
       const graph = visibleGraph(layers, edges, state.collapsed);
       const result = await elk.layout(toElkGraph(graph.nodes, graph.edges));
-      /**
-       * Routed polylines are only ever drawn by the server-rendered SVG, and
-       * that only renders the initial state — folding needs JavaScript, and once
-       * JavaScript is running React Flow routes its own edges. Carrying routes
-       * for the other 29 states would be most of the payload for nothing.
-       */
-      const routes =
-        state.key === initial
-          ? collectEdgePoints(result)
-          : new Map<string, Point[]>();
+      // Every state needs its routed polylines: the diagram draws them itself in
+      // every fold state, not just the one the server rendered.
+      const routes = collectEdgePoints(result);
 
       return {
         key: state.key,

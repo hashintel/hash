@@ -1,7 +1,7 @@
 # Simulation Architecture
 
 > For the deep-dive (memory model, frame format, protocols, Monte Carlo), see
-> the architecture docs: `yarn workspace @apps/petrinaut-docs dev`, or read
+> the architecture docs: `turbo run dev --filter @apps/petrinaut-docs`, or read
 > [`libs/@local/petrinaut-arch-docs/content/simulation/`](../../../../@local/petrinaut-arch-docs/content/simulation).
 
 The simulation module is split into five boundaries:

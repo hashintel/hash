@@ -125,9 +125,9 @@ When you change structure in `libs/@hashintel/petrinaut-core` or `libs/@hashinte
 1. Add a declaration if you introduce a folder that is a genuinely new architectural unit — a new boundary or a distinct responsibility, not merely a new directory.
 2. Update the affected `@boundary`/`@invariant` annotations if you change what they claim. These are claims CI and reviewers rely on; an invariant that is no longer true is worse than none.
 
-Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors, dead `@entryPoint`s and rule violations. To read the docs, `mise run doc:architecture` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored).
+Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors, dead `@entryPoint`s and rule violations. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored).
 
-Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `yarn workspace @apps/petrinaut-docs dev`, which regenerates the bundle first. For a quick read of the whole architecture, generate the bundle and open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` — the entire model in one file.
+Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `turbo run dev --filter @apps/petrinaut-docs`, which regenerates the bundle first — run it through Turborepo, since the package script alone skips that. For a quick read of the whole architecture, generate the bundle and open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` — the entire model in one file.
 
 Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Add a page there for reasoning an import graph cannot express; the system works with that directory absent.
 

@@ -3,7 +3,7 @@
 How `@hashintel/petrinaut`'s React layer consumes the headless simulation
 runtime from `@hashintel/petrinaut-core`. The core's architecture (engine,
 frame format, worker protocol, Monte Carlo) is documented in the architecture
-docs — browse with `yarn workspace @apps/petrinaut-docs dev` — and this page
+docs — browse with `turbo run dev --filter @apps/petrinaut-docs` — and this page
 covers only the React side of the boundary.
 
 > This file is internal engineering documentation. It deliberately does NOT

@@ -129,7 +129,7 @@ where every requirement the bundle places on a host comes from:
 | A host must provide                | For                                                                 |
 | ---------------------------------- | ------------------------------------------------------------------- |
 | A React-capable MDX pipeline       | Any authored page that imports a diagram component                  |
-| `@xyflow/react`                    | The interactive layer map, and nothing else                         |
+| `d3-zoom` and `d3-selection`       | Pan and zoom on the layer map, and nothing else                     |
 | A hydration directive on that page | Folding the layer map; without one it still renders as a static SVG |
 
 Nothing else. In particular the bundle asks for **no Markdown or Rehype
@@ -151,8 +151,17 @@ consumer sets `trailingSlash: "never"` for this reason.
 
 `components/architecture-graph.tsx` renders the layer tree as a diagram a reader
 can fold and unfold. It is the one part of the bundle with a dependency beyond
-React — `@xyflow/react`, which a host must install — so it is worth knowing what
-that buys and what it costs.
+React — `d3-zoom`, which a host must install — so it is worth knowing what that
+buys and what it costs.
+
+**One renderer, not two.** The same component draws the diagram on the server and
+in the browser; hydrating adds a zoom transform and working fold controls, and
+changes nothing else. An earlier version handed the interactive view to a
+node-editor library, which meant two code paths that had to agree about the same
+picture and quietly stopped agreeing — that library marks a node
+`pointer-events: none` unless it is selectable, draggable or connectable, so a
+read-only node full of links became unclickable. A read-only diagram wants a
+viewer, not an editor: there is nothing here to select, drag or connect.
 
 **No layout runs in the browser.** The reachable fold states are enumerable — 30
 for the current model, because folding a layer makes its descendants' own states
@@ -161,11 +170,10 @@ coordinates as `components/architecture-layouts.ts`. That keeps `elkjs` a
 devDependency of this package, never shipped, which matters because it is
 EPL-2.0 rather than MIT/Apache.
 
-**It renders without JavaScript.** On the server, and on the first client render,
-the component emits a plain inline `<svg>` from those coordinates, with a real
-`<a href>` per layer and ELK's routed edges. Only after mount does it swap to
-React Flow for pan, zoom and the fold controls. A host that never hydrates the
-island still gets a correct, navigable diagram.
+**It renders without JavaScript.** The server emits a plain inline `<svg>` from
+those coordinates, with a real `<a href>` per layer and ELK's routed edges. A
+host that never hydrates the island still gets a correct, navigable diagram —
+just a fixed one, since folding and panning need a script.
 
 Two props are the host's business, because the bundle cannot know them:
 

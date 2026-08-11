@@ -14,7 +14,7 @@ Headless SDCPN simulation runtime.
 
 > Deep-dive documentation (memory layouts, the frame format, worker protocol,
 > Monte Carlo) lives in the architecture docs. Browse them with
-> `yarn workspace @apps/petrinaut-docs dev`, or read the sources in
+> `turbo run dev --filter @apps/petrinaut-docs`, or read the sources in
 > [`libs/@local/petrinaut-arch-docs/content/simulation/`](../../../../@local/petrinaut-arch-docs/content/simulation).
 
 ## Overview
