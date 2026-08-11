@@ -6,6 +6,10 @@ import type { SDCPN } from "../types/sdcpn";
  * Handles primitives, arrays, and plain objects. Does not handle
  * special types like Date, RegExp, Map, Set, etc. — those are not
  * used in SDCPN definitions.
+ *
+ * A key whose value is `undefined` is treated as absent, matching JSON
+ * semantics. SDCPN definitions are persisted as JSON, which drops such keys,
+ * so `{ metrics: undefined }` and `{}` describe the same saved document.
  */
 const deepEqual = (a: unknown, b: unknown): boolean => {
   // Same reference or identical primitive
@@ -41,20 +45,23 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
     const objA = a as Record<string, unknown>;
     const objB = b as Record<string, unknown>;
 
-    const propsA = Object.getOwnPropertyNames(objA);
-    const propsB = Object.getOwnPropertyNames(objB);
+    // `undefined` values are ignored, so that a key set to `undefined` and a
+    // key that was never set compare as equal
+    const propsA = Object.getOwnPropertyNames(objA).filter(
+      (prop) => objA[prop] !== undefined,
+    );
+    const propsB = Object.getOwnPropertyNames(objB).filter(
+      (prop) => objB[prop] !== undefined,
+    );
 
     // Different number of properties means not equal
     if (propsA.length !== propsB.length) {
       return false;
     }
 
-    // Every property in `a` must exist in `b` with the same value
+    // Every defined property in `a` must be defined in `b` with the same value
     for (const prop of propsA) {
-      if (
-        !Object.prototype.hasOwnProperty.call(objB, prop) ||
-        !deepEqual(objA[prop], objB[prop])
-      ) {
+      if (!deepEqual(objA[prop], objB[prop])) {
         return false;
       }
     }
