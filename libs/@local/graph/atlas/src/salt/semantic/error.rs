@@ -4,7 +4,7 @@ use core::{error::Error, fmt};
 
 /// A matrix violated a [`SemanticGraph`](super::SemanticGraph) invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum SemanticValidationError {
+pub(crate) enum SemanticValidationError {
     /// The matrix uses column compression.
     ColumnCompressed,
     /// The matrix is not square over the row domain.

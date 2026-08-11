@@ -57,7 +57,7 @@ where
 
 /// An opened sparse matrix file does not hold a valid semantic graph.
 #[derive(Debug)]
-pub enum InvalidSemanticFile {
+pub(crate) enum InvalidSemanticFile {
     /// The file does not hold the graph's matrix layout.
     Matrix(SprsMatrixError),
     /// The matrix violates a [`SemanticGraph`] invariant.

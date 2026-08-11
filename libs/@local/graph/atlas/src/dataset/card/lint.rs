@@ -5,7 +5,7 @@ use regex::Regex;
 
 /// Card text contains a datasource identifier or database key.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum IdentifierLeakError {
+pub(crate) enum IdentifierLeakError {
     /// The text embeds a URL scheme.
     Url,
     /// The text embeds a UUID.

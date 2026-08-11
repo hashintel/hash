@@ -31,7 +31,7 @@ pub(crate) struct CardsConfig {
 
 /// A card failed to render under its canonical contract.
 #[derive(Debug, PartialEq, Eq)]
-pub enum CardError<T> {
+pub(crate) enum CardError<T> {
     /// The tokenizer rejected the rendered text.
     Token(T),
     /// The final text leaks a source identifier.

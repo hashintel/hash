@@ -198,6 +198,15 @@ impl core::error::Error for ThresholdSupplyError {
 ///
 /// Every variant names the step that failed and holds that step's concrete fault - nothing erases
 /// to `dyn`.
+///
+/// The run payload's concrete type stays inside the crate. An external caller reads it
+/// through [`Error::source`](core::error::Error::source) as `&dyn Error`, and only in-crate
+/// consumers match on it.
+#[expect(
+    private_interfaces,
+    reason = "the run variant's payload is reachable outside the crate as a `dyn Error` source \
+              alone, and naming its concrete type stays an in-crate capability"
+)]
 #[derive(Debug)]
 pub enum RunError {
     /// The store could not open a snapshot transaction.
