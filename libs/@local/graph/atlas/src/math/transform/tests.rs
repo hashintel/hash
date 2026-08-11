@@ -204,7 +204,7 @@ fn inverse_round_trips_arbitrary_points(
 
     // The forward image reaches |p| · 10 + 1e3; the inverse multiplies
     // the rounding by up to another factor of 10.
-    let magnitude = point.length().mul_add(100.0, 1e4);
+    let magnitude = point.length().get().mul_add(100.0, 1e4);
     assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
 }
 
@@ -223,6 +223,6 @@ fn then_matches_sequential_application_on_arbitrary_transforms(
 
     // The first image reaches |p| · 10 + 1e3, the second another
     // factor of 10 plus 1e3.
-    let magnitude = point.length().mul_add(100.0, 1.1e4);
+    let magnitude = point.length().get().mul_add(100.0, 1.1e4);
     assert_close_at_magnitude(composed, sequential, magnitude);
 }

@@ -11,7 +11,7 @@
 use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
 use crate::math::{
-    Bounds2, Positive, Vec2, Vec2x4T,
+    Bounds2, Positive, Vec2, Vec2x4T, positive,
     tests::{POINTS, assert_vec2_close},
 };
 
@@ -424,7 +424,7 @@ fn fit_maps_source_corners_onto_target_corners(
     // ≤ 1e3`, so a handful of roundings amplify to a few times
     // `1e-4` of the target box's magnitude.
     let magnitude = target.min().length() + target.size().length();
-    let tolerance = 4e-3 * magnitude.max(1.0);
+    let tolerance = 4e-3 * magnitude.at_least(positive!(1.0));
     for (mapped, expected) in [
         (transform.apply(source.min()), target.min()),
         (transform.apply(source.max()), target.max()),
@@ -458,7 +458,7 @@ fn aspect_ratio_contains_the_box_and_holds_its_ratio(
     #[strategy = factor_strategy()] ratio: Positive,
 ) {
     let grown = bounds.with_aspect_ratio(ratio);
-    let tolerance = 1e-4 * (grown.min().length() + grown.size().length()).max(1.0);
+    let tolerance = 1e-4 * (grown.min().length() + grown.size().length()).at_least(positive!(1.0));
 
     prop_assert!(
         grown.min().x() <= bounds.min().x() + tolerance
@@ -497,7 +497,8 @@ fn scaling_about_the_centre_scales_both_extents(
 ) {
     let scaled = bounds.scaled_about_centre(factor);
     let expected = bounds.size() * factor.get();
-    let tolerance = 1e-4 * (scaled.min().length() + scaled.size().length()).max(1.0);
+    let tolerance =
+        1e-4 * (scaled.min().length() + scaled.size().length()).at_least(positive!(1.0));
 
     prop_assert!(
         (scaled.size().x() - expected.x()).abs() <= tolerance

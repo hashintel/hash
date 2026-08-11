@@ -25,14 +25,14 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
     FrozenRadius, LossBreakdown, RelationLens, TrainError, TrainOptions, TrainerInputs,
-    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary,
+    TrainingSchedule, fit, fit_from_boundary, fit_to_boundary, session,
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
-        unit_fraction,
+        AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, d_non_negative,
+        d_positive, non_negative, open_unit_fraction, positive, unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -49,7 +49,13 @@ use crate::{
                 batch::{NodeColumns, SupportAnchor},
                 refresh,
             },
-            verdict::{PlacementClass, ResolvedVerdict},
+            verdict::{
+                PlacementClass, ResolvedVerdict,
+                calibrate::{
+                    ProximalCalibration, TypeCalibration,
+                    stability::{StabilityBound, StabilityCertificate},
+                },
+            },
         },
         relation::{
             Policies, RelationConfidence, RelationIndexes, RelationInstance, RelationPolicy,
@@ -261,15 +267,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
@@ -315,10 +322,10 @@ fn options(schedule: TrainingSchedule) -> TrainOptions {
         },
         affinity: AffinityEnergy::new(
             AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
-            0.5,
+            positive!(0.5),
         )
-        .expect("the fixture epsilon is valid"),
-        support: SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid"),
+        .expect("the fixture exponent satisfies the objective bound"),
+        support: SupportOptions::new(positive!(1.0), positive!(0.5)),
         budget: Budget {
             floor: positive!(0.25),
         },
@@ -332,7 +339,7 @@ fn options(schedule: TrainingSchedule) -> TrainOptions {
         ),
         miner: MinerOptions::new(nonzero(2), nonzero(2), positive!(1.0), positive!(1.0)),
         lens: RelationLens::new(
-            CoincidentEnergy::new(0.0, 1.0).expect("the fixture coincident energy is valid"),
+            CoincidentEnergy::new(non_negative!(0.0), positive!(1.0)),
             positive!(0.25),
             positive!(0.5),
         ),
@@ -355,7 +362,11 @@ fn model() -> Projector<TestBackend> {
 }
 
 /// Forwards the trained corpus at a rung.
-fn project(trained: &Projector<TestBackend>, corpus: &Corpus, eta: f32) -> IdVec<NodeRowId, Vec2> {
+fn project(
+    trained: &Projector<TestBackend>,
+    corpus: &Corpus,
+    eta: NonNegative,
+) -> IdVec<NodeRowId, Vec2> {
     refresh::forward(
         &trained.valid(),
         corpus.inputs().columns,
@@ -402,7 +413,7 @@ fn training_separates_the_semantic_clusters() {
     assert_eq!(fitted.evidence.losses.len(), 25);
     assert!(fitted.evidence.boundary.is_none());
 
-    let layout = project(&fitted.model, &corpus, 0.0);
+    let layout = project(&fitted.model, &corpus, non_negative!(0.0));
     let within = mean_distance(
         &layout,
         (0..HALF)
@@ -442,7 +453,7 @@ fn landmark_support_keeps_the_frame() {
     )
     .expect("the semantic fixture trains");
 
-    let layout = project(&fitted.model, &corpus, 0.0);
+    let layout = project(&fitted.model, &corpus, non_negative!(0.0));
     for anchor in &corpus.landmarks {
         let distance = layout[anchor.row].distance(anchor.target);
         assert!(
@@ -462,7 +473,7 @@ fn landmark_support_keeps_the_frame() {
 #[test]
 fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     let corpus = semantic_corpus();
-    let before = project(&model(), &corpus, 0.0);
+    let before = project(&model(), &corpus, non_negative!(0.0));
     let mut options = options(schedule(10, 10, 2));
     // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
     // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
@@ -486,7 +497,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
         &NoProgress,
     )
     .expect("the semantic fixture trains");
-    let after = project(&fitted.model, &corpus, 0.0);
+    let after = project(&fitted.model, &corpus, non_negative!(0.0));
 
     let within_pairs = || {
         (0..HALF)
@@ -511,7 +522,7 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
 #[test]
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();
-    let before = project(&model(), &corpus, 0.0);
+    let before = project(&model(), &corpus, non_negative!(0.0));
     let mut options = options(schedule(10, 10, 2));
     // A dominant landmark coefficient pins the anchored rows. Neither repulsion term aims at a
     // fixed target point, so zeroing them keeps their sampling noise from swinging the one row this
@@ -535,7 +546,7 @@ fn few_steps_landmark_force_points_anchors_at_their_targets() {
         &NoProgress,
     )
     .expect("the semantic fixture trains");
-    let after = project(&fitted.model, &corpus, 0.0);
+    let after = project(&fitted.model, &corpus, non_negative!(0.0));
 
     for anchor in &corpus.landmarks {
         let row = anchor.row;
@@ -581,8 +592,8 @@ fn equal_seeds_train_equal_frames() {
 
     assert_eq!(one.evidence.losses, two.evidence.losses);
     assert_eq!(
-        project(&one.model, &corpus, 0.0),
-        project(&two.model, &corpus, 0.0),
+        project(&one.model, &corpus, non_negative!(0.0)),
+        project(&two.model, &corpus, non_negative!(0.0)),
         "equal seeds should train bit-equal frames on the deterministic backend"
     );
 }
@@ -611,12 +622,12 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         panic!("the boundary freezes a measured radius");
     };
     assert!(radius.get() > 0.0);
-    assert_eq!(boundary.calibration.radius, Some(radius.get()));
+    assert_eq!(boundary.calibration.radius, Some(radius));
 
     let entry = &boundary.calibration.types[0];
     assert_eq!(entry.relation, OntologyRowId::new(RELATION));
     assert_eq!(entry.pairs, 3);
-    assert!(entry.mass > 0.0);
+    assert!(entry.mass > d_non_negative!(0.0));
     assert!(entry.quantiles.is_some());
 
     // Phase A is semantic-only; the ladder's zero rung stays so; and
@@ -639,6 +650,40 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         .map(|tick| tick.step)
         .collect();
     assert_eq!(ticks, [0, 4, 6, 8]);
+
+    // The certificate rides the calibration as an evaluation of the same freeze population.
+    let certificate = boundary
+        .calibration
+        .stability
+        .as_ref()
+        .expect("a measured boundary carries its evaluated certificate");
+    assert_eq!(certificate.quantile.get(), 0.25);
+    assert!(certificate.effective_support.get() > 0.0);
+    assert_eq!(certificate.pairs, 3);
+    assert_eq!(
+        certificate.pass,
+        certificate.epsilon_zero.get() <= certificate.quantile.get()
+            && certificate.gap.get() <= certificate.tau.get()
+    );
+
+    // The drift instrument reads at every scale-bearing tick: the boundary tick and the ones
+    // after it. The first entry is the freeze-time reading of the freeze frame itself, so it
+    // sits at or above the radius fraction, and every reading is a mass share.
+    let fraction_steps: Vec<usize> = fitted
+        .evidence
+        .fractions
+        .iter()
+        .map(|reading| reading.step)
+        .collect();
+    assert_eq!(fraction_steps, [6, 8]);
+    assert!(
+        fitted
+            .evidence
+            .fractions
+            .iter()
+            .all(|reading| (0.0..=1.0).contains(&reading.fraction.get()))
+    );
+    assert!(fitted.evidence.fractions[0].fraction >= d_non_negative!(0.25));
 }
 
 #[test]
@@ -682,6 +727,11 @@ fn forceless_corpus_trains_vacuously() {
     assert_eq!(boundary.radius, FrozenRadius::Vacuous);
     assert_eq!(boundary.calibration.radius, None);
     assert!(boundary.calibration.types.is_empty());
+    assert_eq!(boundary.calibration.stability, None);
+    assert!(
+        fitted.evidence.fractions.is_empty(),
+        "a vacuous run has no radius to drift against"
+    );
     assert!(
         fitted
             .evidence
@@ -709,15 +759,15 @@ fn vacuous_run_trains_a_flat_ladder() {
     )
     .expect("a forceless corpus trains vacuously");
 
-    let low = project(&fitted.model, &corpus, 0.0);
+    let low = project(&fitted.model, &corpus, non_negative!(0.0));
     assert_eq!(
         low,
-        project(&fitted.model, &corpus, 1.0),
+        project(&fitted.model, &corpus, non_negative!(1.0)),
         "the lens extremes should project bit-identical maps"
     );
     assert_eq!(
         low,
-        project(&fitted.model, &corpus, 0.5),
+        project(&fitted.model, &corpus, non_negative!(0.5)),
         "the middle rung should project the same map as the extremes"
     );
     assert!(
@@ -751,21 +801,22 @@ fn coincident_without_proximal_force_refuses() {
     let coincident_policy = RelationPolicy {
         relation: OntologyRowId::new(RELATION),
         attraction: ClassProbabilities {
-            coincident: 1.0,
-            proximal: 0.0,
+            coincident: unit_fraction!(1.0),
+            proximal: unit_fraction!(0.0),
         },
         selected: ClassProbabilities {
-            coincident: 1.0,
-            proximal: 0.0,
+            coincident: unit_fraction!(1.0),
+            proximal: unit_fraction!(0.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     };
     let corpus = corpus_with(
         &[coincident_policy],
         vec![instance(0, RELATION, 0, 4), instance(1, RELATION, 1, 5)],
         Vec::new(),
-        AttractionOptions::new(2.0, 0.0).expect("the fixture options are valid"),
+        AttractionOptions::new(non_negative!(2.0), non_negative!(0.0)),
     );
     let error = fit(
         model(),
@@ -839,7 +890,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
     let chunked = refresh::forward(
         &inference,
         corpus.inputs().columns,
-        1.0,
+        non_negative!(1.0),
         nonzero(3),
         &device(),
     )
@@ -847,7 +898,7 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
     let whole = refresh::forward(
         &inference,
         corpus.inputs().columns,
-        1.0,
+        non_negative!(1.0),
         nonzero(ROWS),
         &device(),
     )
@@ -957,12 +1008,12 @@ fn checkpointed_resume_matches_the_straight_run() {
         "the resumed boundary should freeze the bit-equal radius"
     );
     assert_eq!(
-        project(&resumed.model, &corpus, 0.0),
-        project(&straight.model, &corpus, 0.0),
+        project(&resumed.model, &corpus, non_negative!(0.0)),
+        project(&straight.model, &corpus, non_negative!(0.0)),
     );
     assert_eq!(
-        project(&resumed.model, &corpus, 1.0),
-        project(&straight.model, &corpus, 1.0),
+        project(&resumed.model, &corpus, non_negative!(1.0)),
+        project(&straight.model, &corpus, non_negative!(1.0)),
         "the straight and resumed runs should train bit-equal frames"
     );
 }
@@ -1017,8 +1068,8 @@ fn forked_ladders_share_the_frozen_radius() {
         "fork cells should freeze the bit-equal radius from the shared opening"
     );
     assert_ne!(
-        project(&one.model, &corpus, 1.0),
-        project(&two.model, &corpus, 1.0),
+        project(&one.model, &corpus, non_negative!(1.0)),
+        project(&two.model, &corpus, non_negative!(1.0)),
         "the forked relation coefficient should change the trained ladder"
     );
 }
@@ -1234,4 +1285,124 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     let first = &snapshots.first().expect("a tick reported").0;
     let last = &snapshots.last().expect("a tick reported").0;
     assert_ne!(first, last);
+}
+
+/// Runs a closure under a warn-level subscriber and returns everything it logged.
+fn captured_warnings(run: impl FnOnce()) -> String {
+    #[derive(Clone, Default)]
+    struct Capture(alloc::sync::Arc<Mutex<Vec<u8>>>);
+
+    impl std::io::Write for Capture {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0
+                .lock()
+                .expect("the capture lock is never poisoned")
+                .extend_from_slice(buf);
+            Ok(buf.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl<'writer> tracing_subscriber::fmt::MakeWriter<'writer> for Capture {
+        type Writer = Self;
+
+        fn make_writer(&'writer self) -> Self::Writer {
+            self.clone()
+        }
+    }
+
+    let capture = Capture::default();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::WARN)
+        .with_writer(capture.clone())
+        .with_ansi(false)
+        .finish();
+    tracing::subscriber::with_default(subscriber, run);
+
+    let bytes = capture
+        .0
+        .lock()
+        .expect("the capture lock is never poisoned")
+        .clone();
+    String::from_utf8(bytes).expect("formatted log output is UTF-8")
+}
+
+/// A certificate literal whose decision is the given `pass`, dyadic throughout.
+fn certificate(pass: bool) -> StabilityCertificate {
+    StabilityCertificate {
+        quantile: open_unit_fraction!(0.25),
+        delta: open_unit_fraction!(0.05),
+        kappa: d_positive!(1.0),
+        temperature: d_positive!(0.5),
+        tau: d_positive!(0.5),
+        effective_support: d_positive!(4.0),
+        pairs: 4,
+        mass: d_non_negative!(2.0),
+        epsilon_zero: d_positive!(0.5),
+        gap: d_non_negative!(0.25),
+        bound: StabilityBound::Unattainable,
+        pass,
+        type_effective_support: d_positive!(1.0),
+    }
+}
+
+/// A calibration whose leave-one-out spread is exactly `spread` around a unit radius.
+fn spread_calibration(spread: f32, pass: bool) -> ProximalCalibration {
+    ProximalCalibration {
+        radius: Some(non_negative!(1.0)),
+        types: vec![TypeCalibration {
+            relation: OntologyRowId::new(5),
+            pairs: 4,
+            mass: d_non_negative!(2.0),
+            quantiles: Some([non_negative!(1.0), non_negative!(2.0), non_negative!(3.0)]),
+            radius_without: Some(
+                NonNegative::new(1.0 + spread)
+                    .expect("the fixture spread keeps the radius non-negative"),
+            ),
+        }],
+        stability: Some(certificate(pass)),
+    }
+}
+
+#[test]
+fn a_failing_certificate_warns_with_its_finding_id() {
+    let calibration = spread_calibration(0.25, false);
+    let output =
+        captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
+
+    assert!(output.contains("RFC-0006 entry 7"), "{output}");
+    assert!(
+        output.contains("fails its evaluated stability bound"),
+        "{output}"
+    );
+    // The leave-one-type-out spread rides beside the warning.
+    assert!(output.contains("leave_one_out_spread"), "{output}");
+    // The tight spread crossed no successor trigger.
+    assert!(!output.contains("RFC-0006 entry 1"), "{output}");
+}
+
+#[test]
+fn a_spread_beyond_one_temperature_warns_with_its_finding_id() {
+    let calibration = spread_calibration(4.0, true);
+    let output =
+        captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
+
+    assert!(output.contains("RFC-0006 entry 1"), "{output}");
+    assert!(
+        output.contains("more than one transition width"),
+        "{output}"
+    );
+    assert!(!output.contains("RFC-0006 entry 7"), "{output}");
+}
+
+#[test]
+fn a_passing_certificate_with_a_tight_spread_warns_nothing() {
+    let calibration = spread_calibration(0.25, true);
+    let output =
+        captured_warnings(|| session::warn_boundary_findings(&calibration, positive!(0.5)));
+
+    assert_eq!(output, "");
 }

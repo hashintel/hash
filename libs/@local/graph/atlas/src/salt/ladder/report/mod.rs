@@ -66,7 +66,7 @@ use crate::{
         salt::{SaltRepository, metadata::LadderEvidence},
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AlignedVecN, Vec2},
+    math::{AlignedVecN, DNonNegative, NonNegative, Vec2},
     salt::{
         fit::{PlacementInner, PlacementOptions, ProjectorOptions, placement_device},
         projector::{
@@ -134,11 +134,11 @@ pub(crate) struct Certificate {
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct RungReading {
     /// The rung's condition value.
-    pub condition: f32,
+    pub condition: NonNegative,
     /// The manifest's frozen relation loss at projection time, local-scale units.
-    pub relation_loss: f64,
+    pub relation_loss: DNonNegative,
     /// The manifest's RMS movement against the baseline field after alignment.
-    pub baseline_movement: f64,
+    pub baseline_movement: DNonNegative,
     /// The measured contraction of engaged pairs against the baseline rung, over all groups.
     pub contraction: ContractionReading,
     /// Per-group contraction, ascending by relation row.
@@ -177,11 +177,11 @@ pub(crate) struct GroupReading {
     /// The relation type's ontology row.
     pub relation: u32,
     /// The group's Coincident channel weight.
-    pub coincident: f32,
+    pub coincident: NonNegative,
     /// The group's Proximal channel weight.
-    pub proximal: f32,
+    pub proximal: NonNegative,
     /// The group's strength factor, one factor of every instance's mass.
-    pub strength: f32,
+    pub strength: NonNegative,
     /// The group's contraction aggregate.
     pub contraction: ContractionReading,
 }
@@ -307,7 +307,7 @@ impl LadderReport {
             groups: attraction.group_count(),
             participants,
             canonical_index: evidence.canonical_index,
-            canonical_condition: evidence.canonical,
+            canonical_condition: evidence.canonical.get(),
             contraction_argmax_index,
             canonical_is_argmax: contraction_argmax_index == evidence.canonical_index,
             certificate,
@@ -321,7 +321,7 @@ struct GroupTerms {
     /// The relation type's ontology row.
     relation: OntologyRowId,
     /// The group's shared `[coincident, proximal, strength]` weights.
-    weights: [f32; 3],
+    weights: [NonNegative; 3],
     /// The group's instances with their masses.
     terms: Vec<EdgeTerm>,
 }
@@ -357,16 +357,15 @@ fn ladder_sources(repository: &SaltRepository) -> (&ProjectorOptions, &LadderEvi
     );
     for (index, (&condition, rung)) in schedule.iter().zip(&evidence.rungs).enumerate() {
         assert_eq!(
-            condition.to_bits(),
-            rung.condition.to_bits(),
+            condition, rung.condition,
             "rung {index}: the echoed schedule and the ladder evidence disagree on the condition \
              ({condition} against {})",
             rung.condition,
         );
     }
+
     assert_eq!(
-        evidence.rungs[evidence.canonical_index].condition.to_bits(),
-        evidence.canonical.to_bits(),
+        evidence.rungs[evidence.canonical_index].condition, evidence.canonical,
         "the canonical index does not name the canonical condition",
     );
 
@@ -393,7 +392,11 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
         .map(|(index, rung)| {
             let frame = refresh::forward(model, columns, rung.condition, forward_rows, device)
                 .unwrap_or_else(|error| panic!("rung {index} projects a finite frame: {error:?}"));
-            tracing::info!(index, condition = rung.condition, "projected the rung");
+            tracing::info!(
+                index,
+                condition = %rung.condition,
+                "projected the rung"
+            );
             frame
                 .as_raw()
                 .iter()
@@ -418,9 +421,8 @@ fn materialize_terms(attraction: &AttractionArchive) -> Vec<GroupTerms> {
                         source: edge.source,
                         target: edge.target,
                         // The trainer's loss factor, computed identically (`relation_loss`).
-                        mass: f64::from(
-                            edge.confidence.value() * edge.normalization * weights.strength,
-                        ),
+                        mass: (edge.confidence.value() * edge.normalization)
+                            * f64::from(weights.strength),
                     })
                     .collect(),
             }

@@ -16,7 +16,7 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
-use crate::math::narrow_f32;
+use crate::math::{DNonNegative, NonNegative, PositiveUnitFraction, narrow_f32};
 
 /// Instances per parallel emission chunk within one relation group.
 ///
@@ -64,34 +64,34 @@ where
         EMISSION_CHUNK,
     );
 
-    let mut measurements = BuildMeasurements {
-        pruning_threshold: attraction.pruning_threshold(),
-        retained_edges: 0,
-        pruned_edges: 0,
-        retained_mass: 0.0,
-        pruned_mass: 0.0,
-        self_references,
-        // Starts empty: the histogram counts readings per edge, which only the fit's relation stage
-        // sees while draining the edge stream. That stage writes the counts here after the build
-        // returns.
-        multi_typed_edges: Vec::new(),
-        // Starts at a measured zero for the same reason: the clamp
-        // happens at the drain, and its count joins these measurements
-        // afterwards.
-        clamped_confidences: Some(0),
-    };
-
+    let mut retained_edges = 0;
+    let mut pruned_edges = 0;
+    let mut retained_mass = DNonNegative::ZERO;
+    let mut pruned_mass = DNonNegative::ZERO;
     let mut groups = Vec::with_capacity(built.len());
     for (group, partial) in built {
-        measurements.retained_edges += group.edges().len();
-        measurements.pruned_edges += partial.pruned;
-        measurements.retained_mass += partial.retained_mass;
-        measurements.pruned_mass += partial.pruned_mass;
+        retained_edges += group.edges().len();
+        pruned_edges += partial.pruned;
+        retained_mass += partial.retained_mass;
+        pruned_mass += partial.pruned_mass;
 
         if !group.edges().is_empty() {
             groups.push(group);
         }
     }
+
+    let measurements = BuildMeasurements {
+        pruning_threshold: attraction.pruning_threshold(),
+        retained_edges,
+        pruned_edges,
+        retained_mass,
+        pruned_mass,
+        self_references,
+        // Starts empty: the histogram counts readings per edge, which only the fit's relation stage
+        // sees while draining the edge stream. That stage writes the counts here after the build
+        // returns.
+        multi_typed_edges: Vec::new(),
+    };
 
     let protection = assemble_protection(rows, &mut records);
 
@@ -182,8 +182,8 @@ impl<N> ProtectionRecord<N> {
 #[derive(Default)]
 pub(super) struct GroupMeasurements {
     pruned: usize,
-    retained_mass: f64,
-    pruned_mass: f64,
+    retained_mass: DNonNegative,
+    pruned_mass: DNonNegative,
 }
 
 /// Builds every relation's attraction group over its resolved range.
@@ -310,10 +310,11 @@ fn pair_evidence<N>(run: &[ProtectionRecord<N>]) -> PairEvidence {
 #[derive(Copy, Clone)]
 struct GroupFactors {
     /// The positive force scale `s+`.
-    scale: f32,
-    /// The selected positive class evidence `p_C + p_P`.
-    positive: f32,
-    /// The relation's calibrated applicability `a`.
+    scale: NonNegative,
+    /// The selected positive class evidence `p_C + p_P`, in double precision.
+    positive: f64,
+    /// The relation's calibrated applicability `a`, narrowed once so the protection evidence
+    /// derives from one shared `f32` reading.
     applicability: f32,
 }
 
@@ -337,14 +338,23 @@ where
 {
     let relation = instances[0].relation;
     let weights = AttractionWeights {
-        coincident: attraction.coincident_coefficient() * policy.attraction.coincident,
-        proximal: policy.attraction.proximal,
+        coincident: NonNegative::new(
+            narrow_f32(
+                f64::from(attraction.coincident_coefficient().get()) * policy.attraction.coincident,
+            )
+            .expect("a fraction of a finite coefficient narrows finitely"),
+        )
+        .expect("a fraction of a positive coefficient is non-negative"),
+        proximal: NonNegative::new(
+            narrow_f32(policy.attraction.proximal.get()).expect("a fraction narrows finitely"),
+        )
+        .expect("a fraction is non-negative"),
         strength: policy.strength,
     };
     let factors = GroupFactors {
         scale: weights.scale(),
-        positive: policy.selected.coincident + policy.selected.proximal,
-        applicability: policy.applicability,
+        positive: f64::from(policy.selected.coincident) + f64::from(policy.selected.proximal),
+        applicability: narrow_f32(policy.applicability.get()).expect("a fraction narrows finitely"),
     };
 
     let share = |instance: &RelationInstance<N, E>| f64::from(instance.multiplicity.max(1)).recip();
@@ -448,24 +458,28 @@ where
     let mut measurements = GroupMeasurements::default();
     for (instance, record) in chunk.iter().zip(records) {
         let confidence = instance.confidence.effective();
+        let confidence_value = confidence.value();
 
-        // value · a ≤ value exactly: multiplying a non-negative f32 by a factor ∈ [0, 1] cannot
-        // round above it, so every record keeps `discounted ≤ undiscounted`, and taking the maximum
-        // over records keeps that ordering.
-        let value = confidence.value() * factors.positive;
+        // One narrow derives the undiscounted side, and the discounted side multiplies the
+        // narrowed value: `undiscounted · a ≤ undiscounted` exactly, because multiplying a
+        // non-negative f32 by a factor ∈ [0, 1] cannot round above it, so every record keeps
+        // `discounted ≤ undiscounted` and taking the maximum over records keeps that ordering.
+        // The shared intermediate is also what keeps the protection floor identity exact: both
+        // sides of `max(discounted, F · undiscounted)` scale the same f32 value.
+        let undiscounted = narrow_f32(confidence_value * factors.positive)
+            .expect("a fraction of a finite f32 factor narrows finitely");
         *record = ProtectionRecord {
             pair: instance.pair(),
-            discounted: value * factors.applicability,
-            undiscounted: value,
+            discounted: undiscounted * factors.applicability,
+            undiscounted,
         };
 
         let share = f64::from(instance.multiplicity.max(1)).recip();
-        let mass = confidence.value()
-            * factors.scale
-            * narrow_f32(share).expect("a positive count's reciprocal is in (0, 1]");
-        if mass < attraction.pruning_threshold() {
+        let mass = confidence_value * f64::from(factors.scale) * share;
+        if mass < f64::from(attraction.pruning_threshold().get()) {
             measurements.pruned += 1;
-            measurements.pruned_mass += f64::from(mass);
+            measurements.pruned_mass += DNonNegative::new(mass)
+                .expect("a product of non-negative finite factors is finite and non-negative");
             continue;
         }
 
@@ -475,7 +489,7 @@ where
             let degree = |row: u64| sources.degree(row) + targets.degree(row);
             let source = degree(instance.source.as_u64());
             let target = degree(instance.target.as_u64());
-            narrow_f32(((1.0 + source) * (1.0 + target)).sqrt().recip() * share)
+            PositiveUnitFraction::new(((1.0 + source) * (1.0 + target)).sqrt().recip() * share)
                 .expect("a product of factors in (0, 1] is in (0, 1]")
         };
 
@@ -486,7 +500,8 @@ where
             confidence,
             normalization,
         });
-        measurements.retained_mass += f64::from(mass);
+        measurements.retained_mass += DNonNegative::new(mass)
+            .expect("a product of non-negative finite factors is finite and non-negative");
     }
 
     (edges, measurements)

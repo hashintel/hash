@@ -28,6 +28,7 @@ use core::{
 use std::simd::simd_swizzle;
 
 use super::{
+    NonNegative,
     dvec2::{DVec2, DVec2x4T},
     kernel::mul_add_f32x4,
     scalar::DNonNegative,
@@ -160,14 +161,14 @@ impl Vec2 {
     /// metric. This avoids the square root.
     #[inline]
     #[must_use]
-    pub const fn length_squared(self) -> f32 {
-        self.dot(self)
+    pub(crate) const fn length_squared(self) -> NonNegative {
+        NonNegative::new_unchecked(self.dot(self))
     }
 
     /// Returns the length of the vector.
     #[inline]
     #[must_use]
-    pub fn length(self) -> f32 {
+    pub(crate) fn length(self) -> NonNegative {
         self.length_squared().sqrt()
     }
 

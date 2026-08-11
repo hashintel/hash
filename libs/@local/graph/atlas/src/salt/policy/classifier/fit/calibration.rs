@@ -7,10 +7,11 @@
 
 use hashql_core::id::IdSlice;
 
-use super::TrainingRow;
+use super::{FitError, TrainingRow};
 use crate::{
     identity::CardRow,
-    salt::policy::{GeometryClass, classifier::softmax},
+    math::DNonNegative,
+    salt::policy::{GeometryClass, Posterior},
 };
 
 /// The card-row-aligned out-of-fold logit column calibration reads.
@@ -30,12 +31,12 @@ const GOLDEN_RATIO_CONJUGATE: f64 = core::f64::consts::GOLDEN_RATIO - 1.0;
 const PROBABILITY_FLOOR: f64 = 1.0e-12;
 
 /// Discrimination and calibration quality at both temperatures.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(super) struct ValidationMetrics {
-    pub raw_cross_entropy: f64,
-    pub calibrated_cross_entropy: f64,
-    pub raw_brier: f64,
-    pub calibrated_brier: f64,
+    pub raw_cross_entropy: DNonNegative,
+    pub calibrated_cross_entropy: DNonNegative,
+    pub raw_brier: DNonNegative,
+    pub calibrated_brier: DNonNegative,
 }
 
 /// Fits the deployment temperature on out-of-fold logits.
@@ -84,13 +85,26 @@ pub(super) fn fit_temperature(rows: &Rows, logits: &Logits) -> f64 {
 }
 
 /// Reports quality at the raw and deployment temperatures.
-pub(super) fn metrics(rows: &Rows, logits: &Logits, temperature: f64) -> ValidationMetrics {
-    ValidationMetrics {
-        raw_cross_entropy: cross_entropy(rows, logits, 1.0),
-        calibrated_cross_entropy: cross_entropy(rows, logits, temperature),
-        raw_brier: brier(rows, logits, 1.0),
-        calibrated_brier: brier(rows, logits, temperature),
-    }
+///
+/// # Errors
+///
+/// Returns [`FitError::NonFinite`] when a weighted mean leaves the non-negative finite domain.
+/// Both means are non-negative by derivation (targets and weights are validated at
+/// `TrainingSet::new`, posteriors lie in the unit interval, and the cross-entropy logarithm is
+/// floored), so the refusal names a weights defect.
+pub(super) fn metrics(
+    rows: &Rows,
+    logits: &Logits,
+    temperature: f64,
+) -> Result<ValidationMetrics, FitError> {
+    let admit = |value: f64| DNonNegative::new(value).ok_or(FitError::NonFinite);
+
+    Ok(ValidationMetrics {
+        raw_cross_entropy: admit(cross_entropy(rows, logits, 1.0))?,
+        calibrated_cross_entropy: admit(cross_entropy(rows, logits, temperature))?,
+        raw_brier: admit(brier(rows, logits, 1.0))?,
+        calibrated_brier: admit(brier(rows, logits, temperature))?,
+    })
 }
 
 /// Weighted-mean soft-label cross-entropy of the uncalibrated posteriors.
@@ -104,7 +118,7 @@ fn cross_entropy(rows: &Rows, logits: &Logits, temperature: f64) -> f64 {
     let mut total_weight = 0.0;
 
     for (row, logits) in rows.iter().zip(logits) {
-        let probabilities = softmax(*logits, temperature);
+        let probabilities = Posterior::softmax(*logits, temperature).to_array();
         let row_loss = row
             .target
             .into_iter()
@@ -125,7 +139,7 @@ fn brier(rows: &Rows, logits: &Logits, temperature: f64) -> f64 {
     let mut total_weight = 0.0;
 
     for (row, logits) in rows.iter().zip(logits) {
-        let probabilities = softmax(*logits, temperature);
+        let probabilities = Posterior::softmax(*logits, temperature).to_array();
         let row_loss = probabilities
             .into_iter()
             .zip(row.target)

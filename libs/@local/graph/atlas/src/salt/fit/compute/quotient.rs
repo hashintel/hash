@@ -256,7 +256,7 @@ pub(super) fn collapse_instances(
                     .confidence
                     .effective()
                     .value()
-                    .total_cmp(&left.confidence.effective().value())
+                    .cmp(&left.confidence.effective().value())
             })
             .then_with(|| left.edge.cmp(&right.edge))
     });
@@ -277,7 +277,7 @@ mod tests {
     use crate::{
         file::array::ArrayFile,
         identity::{EdgeRowId, NodeRowId, OntologyRowId},
-        math::{AlignedVecN, BoxedVecN},
+        math::{AlignedVecN, BoxedVecN, UnitFraction, unit_fraction},
         salt::{
             knn::table::{Knn, KnnMatrix},
             relation::{RelationConfidence, RelationInstance},
@@ -435,33 +435,34 @@ mod tests {
     #[test]
     fn collapse_keeps_the_strongest_reading_per_triple() {
         let quotient = fixture_quotient();
-        let instance = |edge: u64, relation: u64, source: u64, target: u64, link: Option<f32>| {
-            RelationInstance {
-                edge: EdgeRowId::new(edge),
-                relation: OntologyRowId::new(relation),
-                source: NodeRowId::new(source),
-                target: NodeRowId::new(target),
-                confidence: RelationConfidence {
-                    link,
-                    source: None,
-                    target: None,
-                },
-                multiplicity: 1,
-            }
-        };
+        let instance =
+            |edge: u64, relation: u64, source: u64, target: u64, link: Option<UnitFraction>| {
+                RelationInstance {
+                    edge: EdgeRowId::new(edge),
+                    relation: OntologyRowId::new(relation),
+                    source: NodeRowId::new(source),
+                    target: NodeRowId::new(target),
+                    confidence: RelationConfidence {
+                        link,
+                        source: None,
+                        target: None,
+                    },
+                    multiplicity: 1,
+                }
+            };
 
         let instances = [
             // A ghost pair, because rows 2 and 0 are copies of A and rows 1 and 4 are copies of B.
             // The stronger reading wins.
-            instance(10, 7, 2, 1, Some(0.8)),
-            instance(11, 7, 0, 4, Some(0.9)),
+            instance(10, 7, 2, 1, Some(unit_fraction!(0.8))),
+            instance(11, 7, 0, 4, Some(unit_fraction!(0.9))),
             // Equal confidence: the lower edge row wins.
             instance(13, 8, 2, 3, None),
             instance(12, 8, 0, 3, None),
             // Endpoints collapsing onto one distinct row pass through.
-            instance(14, 7, 0, 2, Some(0.5)),
+            instance(14, 7, 0, 2, Some(unit_fraction!(0.5))),
             // A different relation stays a separate reading.
-            instance(15, 9, 0, 4, Some(0.1)),
+            instance(15, 9, 0, 4, Some(unit_fraction!(0.1))),
         ];
 
         let collapsed = super::collapse_instances(&instances, &quotient);

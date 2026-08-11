@@ -43,7 +43,7 @@ const CURRENT_FILE: &str = "current";
 
 /// A staging could not seal into a published generation.
 #[derive(Debug)]
-pub enum SealError {
+pub(crate) enum SealError {
     /// The manifest lists one name for two roles.
     Duplicate {
         /// The repeated file name.
@@ -147,7 +147,7 @@ impl Error for CurrentError {
 
 /// Activating a generation failed.
 #[derive(Debug)]
-pub enum ActivateError {
+pub(crate) enum ActivateError {
     /// The generation is not published in this root.
     Unpublished(GenerationId),
     /// Replacing the pointer failed.
@@ -260,7 +260,7 @@ impl GenerationRoot {
     /// Creates a scratch directory for one run's transient state.
     ///
     /// Search-backend environments and other non-artifact working state live here: inside the root,
-    /// so the space sits on the filesystem sized for generations, and dot-prefixed, so no listing
+    /// so the space is on the filesystem sized for generations, and dot-prefixed, so no listing
     /// mistakes it for one. Dropping the handle removes the directory and everything inside.
     ///
     /// # Errors
@@ -448,10 +448,8 @@ impl StagedGeneration {
     ///
     /// Returns an error when the manifest repeats a name or claims the metadata document's name. It
     /// also returns an error when the manifest disagrees with the staged file set or names a
-    /// generation that is already published. A non-finite evidence reading refuses ahead of
-    /// serialization, naming the field ([`SealError::NonFinite`]). Serializing the metadata
-    /// document returns an error when it fails. A write, sync, permission, or rename failure
-    /// returns an error as well.
+    /// generation that is already published. Serializing the metadata document returns an error
+    /// when it fails. A write, sync, permission, or rename failure returns an error as well.
     pub(crate) fn seal(
         self,
         repository: &SaltRepository,

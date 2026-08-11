@@ -58,7 +58,8 @@ impl DrawSalt {
 pub(super) struct OrderKey(Sha256Digest);
 
 impl OrderKey {
-    /// The identity-1 order domain tag ([`SALT_DOMAIN`]).
+    /// The identity-1 order domain tag; the shared framing contract lives on
+    /// [`DrawSalt::DOMAIN`].
     const DOMAIN: &[u8] = b"atlas.paired-movement.order.1\n";
 }
 
@@ -118,7 +119,7 @@ struct SaltPreimage<'a> {
 /// document the production writer serializes on every publish. The seam stays typed rather
 /// than panicking, matching the seal path's posture.
 #[derive(Debug)]
-pub struct EncodeError(serde_json::Error);
+pub(crate) struct EncodeError(serde_json::Error);
 
 impl fmt::Display for EncodeError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -9,6 +9,7 @@ use super::{InvalidPolicyFile, PolicyTableArchive, write_policies};
 use crate::{
     file::policy::read::PolicyFile,
     identity::OntologyRowId,
+    math::{NonNegative, UnitFraction, unit_fraction},
     salt::policy::{ClassProbabilities, RelationPolicy},
 };
 
@@ -22,24 +23,29 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-fn policy(relation: u64, coincident: f32) -> RelationPolicy {
+fn policy(relation: u64, coincident: UnitFraction) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
             coincident,
-            proximal: 0.25,
+            proximal: unit_fraction!(0.25),
         },
         selected: ClassProbabilities {
             coincident,
-            proximal: 0.5,
+            proximal: unit_fraction!(0.5),
         },
-        applicability: 0.75,
-        strength: 1.0,
+        applicability: unit_fraction!(0.75),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
 fn fixture() -> Vec<RelationPolicy> {
-    vec![policy(2, 0.0), policy(5, 0.5), policy(9, 1.0)]
+    vec![
+        policy(2, unit_fraction!(0.0)),
+        policy(5, unit_fraction!(0.5)),
+        policy(9, unit_fraction!(1.0)),
+    ]
 }
 
 fn fixture_bytes() -> Vec<u8> {
@@ -68,7 +74,10 @@ fn round_trip_is_bit_exact() {
 fn find_resolves_by_relation() {
     let table = reopen("find.plcy", &fixture_bytes()).expect("the fixture is valid");
 
-    assert_eq!(table.find(OntologyRowId::new(5)), Some(policy(5, 0.5)));
+    assert_eq!(
+        table.find(OntologyRowId::new(5)),
+        Some(policy(5, unit_fraction!(0.5)))
+    );
     assert_eq!(table.find(OntologyRowId::new(4)), None);
     assert_eq!(table.find(OntologyRowId::new(10)), None);
 }
@@ -86,7 +95,7 @@ fn empty_table_maps() {
 #[test]
 fn rejects_unordered_and_duplicate_relations() {
     // Row 1's relation raised above row 2's.
-    let offset = 4096 + 32;
+    let offset = 4096 + 56;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 8].copy_from_slice(&11_u64.to_le_bytes());
     assert_matches!(
@@ -106,16 +115,26 @@ fn rejects_unordered_and_duplicate_relations() {
 #[test]
 fn rejects_out_of_domain_values() {
     // Row 1's attraction Coincident raised above one.
-    let offset = 4096 + 32 + 8;
+    let offset = 4096 + 56 + 8;
     let mut bytes = fixture_bytes();
-    bytes[offset..offset + 4].copy_from_slice(&1.5_f32.to_le_bytes());
+    bytes[offset..offset + 8].copy_from_slice(&1.5_f64.to_le_bytes());
     assert_matches!(
         reopen("probability.plcy", &bytes),
         Err(InvalidPolicyFile::Domain { index: 1 }),
     );
 
+    // Row 1's attraction Proximal replaced with `-0.0`, numerically in range but not the
+    // canonical bit pattern of a stored fraction. The bit-level check refuses it.
+    let offset = 4096 + 56 + 16;
+    let mut bytes = fixture_bytes();
+    bytes[offset..offset + 8].copy_from_slice(&(-0.0_f64).to_le_bytes());
+    assert_matches!(
+        reopen("negative-zero.plcy", &bytes),
+        Err(InvalidPolicyFile::Domain { index: 1 }),
+    );
+
     // Row 2's strength made negative.
-    let offset = 4096 + 2 * 32 + 28;
+    let offset = 4096 + 2 * 56 + 48;
     let mut bytes = fixture_bytes();
     bytes[offset..offset + 4].copy_from_slice(&(-1.0_f32).to_le_bytes());
     assert_matches!(
@@ -124,9 +143,9 @@ fn rejects_out_of_domain_values() {
     );
 
     // Row 0's applicability made NaN.
-    let offset = 4096 + 24;
+    let offset = 4096 + 40;
     let mut bytes = fixture_bytes();
-    bytes[offset..offset + 4].copy_from_slice(&f32::NAN.to_le_bytes());
+    bytes[offset..offset + 8].copy_from_slice(&f64::NAN.to_le_bytes());
     assert_matches!(
         reopen("applicability.plcy", &bytes),
         Err(InvalidPolicyFile::Domain { index: 0 }),
@@ -137,5 +156,11 @@ fn rejects_out_of_domain_values() {
 #[should_panic(expected = "the resolved table is strictly ascending by relation")]
 fn writer_rejects_unordered_input() {
     let mut bytes = Vec::new();
-    let _result = write_policies(&[policy(5, 0.5), policy(2, 0.0)], &mut bytes);
+    let _result = write_policies(
+        &[
+            policy(5, unit_fraction!(0.5)),
+            policy(2, unit_fraction!(0.0)),
+        ],
+        &mut bytes,
+    );
 }

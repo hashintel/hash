@@ -42,7 +42,7 @@ use crate::{
 
 /// Preparation rejected the corpus or its configuration.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum PreparationError {
+pub(crate) enum PreparationError {
     /// The embedding and row counts differ.
     RowMismatch { embeddings: usize, rows: usize },
     /// The corpus holds no rows.

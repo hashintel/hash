@@ -44,8 +44,8 @@ use core::{error::Error, fmt, num::NonZero};
 pub(crate) use self::{
     batch::{NodeColumns, SupportAnchor},
     fit::{
-        BoundaryEvidence, BoundaryState, Fitted, FrozenRadius, RelationLens, TrainError,
-        TrainOptions, TrainerInputs, TrainerOptimizerRecord, TrainingSchedule, fit,
+        BoundaryEvidence, BoundaryState, Fitted, FrozenRadius, RefreshFraction, RelationLens,
+        TrainError, TrainOptions, TrainerInputs, TrainerOptimizerRecord, TrainingSchedule, fit,
     },
 };
 #[expect(
@@ -84,7 +84,7 @@ pub(crate) const RUNGS: [NonNegative; 3] = [
 
 /// A training step failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum StepError<N> {
+pub(crate) enum StepError<N> {
     /// The forward pass produced a non-finite coordinate: training diverged at this corpus row.
     Diverged { row: N },
 }

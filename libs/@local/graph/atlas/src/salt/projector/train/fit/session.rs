@@ -36,11 +36,11 @@ use super::{
         refresh::{self, Refresh, SnapshotSample},
         step::Evaluation,
     },
-    BoundaryEvidence, FrozenRadius, TickTelemetry, TrainError, TrainOptions, TrainerInputs,
-    TrainingEvidence, TrainingSchedule,
+    BoundaryEvidence, FrozenRadius, RefreshFraction, TickTelemetry, TrainError, TrainOptions,
+    TrainerInputs, TrainingEvidence, TrainingSchedule,
 };
 use crate::{
-    math::Finite,
+    math::{DNonNegative, Positive},
     progress::Progress,
     salt::{
         projector::{
@@ -50,7 +50,9 @@ use crate::{
             scale::LocalScales,
             verdict::{
                 PlacementClass, ResolvedVerdict,
-                calibrate::{CalibrationOptions, ProximalCalibration, calibrate},
+                calibrate::{
+                    CalibrationOptions, ProximalCalibration, calibrate, reviewed_fraction_within,
+                },
             },
         },
         relation::attraction::{AttractionGroup, AttractionIndex},
@@ -242,6 +244,26 @@ where
                     scales = Some(tables);
                 }
 
+                // The boundary froze against the low rung, so each scale-bearing tick re-asks
+                // the freeze-time question of its own low-rung frame: what share of reviewed
+                // mass now sits at or inside the frozen radius.
+                if let Some(energy) = self.evaluation.options.relation
+                    && let Some(tables) = scales.as_ref()
+                    && let Some(fraction) = reviewed_fraction_within(
+                        self.inputs.verdicts,
+                        self.inputs.attraction,
+                        &outcome.frame,
+                        &tables[0],
+                        calibration_options(self.options),
+                        energy.proximal().radius(),
+                    )
+                {
+                    evidence.fractions.push(RefreshFraction {
+                        step: step_index,
+                        fraction,
+                    });
+                }
+
                 evidence.telemetry.push(TickTelemetry {
                     step: step_index,
                     displacement: outcome.displacement,
@@ -425,6 +447,7 @@ where
                 calibration: ProximalCalibration {
                     radius: None,
                     types: Vec::new(),
+                    stability: None,
                 },
             },
         ));
@@ -433,43 +456,33 @@ where
     let frame = refresh::forward(
         &model.valid(),
         inputs.columns,
-        RUNGS[0].get(),
+        RUNGS[0],
         options.forward_rows,
         device,
     )?;
-    let scales = refresh::scales(&frame, &inputs.knn, RUNGS[0].get())?;
+    let scales = refresh::scales(&frame, &inputs.knn, RUNGS[0])?;
     let calibration = calibrate(
         inputs.verdicts,
         inputs.attraction,
         &frame,
         &scales,
-        CalibrationOptions::new(options.plan.relation_cap, options.lens.epsilon.get())
-            .expect("a validated lens epsilon satisfies the calibration domain"),
+        calibration_options(options),
     );
+    warn_boundary_findings(&calibration, options.lens.temperature);
 
     let (frozen, radius) = match calibration.radius {
-        // The quantile is drawn from the locally normalized `z` population, whose values are
-        // finite.
-        Some(radius) => {
-            let radius = Finite::new(radius).expect("a quantile of finite z values is finite");
-            (radius, FrozenRadius::Measured { radius })
-        }
+        Some(radius) => (radius, FrozenRadius::Measured { radius }),
         // The entry check admits this run only with reviewed coverage. Reaching here means the
         // two mass walks disagree, so this returns an error rather than composing from nothing.
         None => return Err(TrainError::MissingProximalReviews),
     };
 
-    let proximal = ProximalEnergy::new(frozen.get(), options.lens.temperature.get())
-        .expect("a measured quantile of the z population is non-negative");
-    let energy = RelationEnergy::new(
-        options.lens.coincident,
-        proximal,
-        options.lens.epsilon.get(),
-    )
-    .ok_or_else(|| TrainError::DegenerateRadius {
-        radius: frozen.get(),
-        coincident: options.lens.coincident.radius(),
-    })?;
+    let proximal = ProximalEnergy::new(frozen, options.lens.temperature);
+    let energy = RelationEnergy::new(options.lens.coincident, proximal, options.lens.epsilon)
+        .ok_or_else(|| TrainError::DegenerateRadius {
+            radius: frozen,
+            coincident: options.lens.coincident.radius(),
+        })?;
 
     Ok((
         Some(energy),
@@ -479,6 +492,50 @@ where
             calibration,
         },
     ))
+}
+
+/// The boundary measurement's parameters, from the training options they must match.
+const fn calibration_options(options: &TrainOptions) -> CalibrationOptions {
+    CalibrationOptions::new(
+        options.plan.relation_cap,
+        options.lens.epsilon,
+        options.lens.temperature,
+    )
+}
+
+/// Reports the boundary measurement's contract findings.
+///
+/// Both notices are report-only channels over the persisted evidence: they steer nothing, gate
+/// nothing, and the run trains and publishes regardless. The finding field names the ledger row
+/// whose successor decision consumes the reading.
+pub(super) fn warn_boundary_findings(calibration: &ProximalCalibration, temperature: Positive) {
+    let spread = calibration.leave_one_out_spread();
+
+    if let Some(certificate) = &calibration.stability
+        && !certificate.pass
+    {
+        tracing::warn!(
+            finding = "RFC-0006 entry 7",
+            effective_support = certificate.effective_support.get(),
+            epsilon_zero = certificate.epsilon_zero.get(),
+            gap = certificate.gap.get(),
+            tau = certificate.tau.get(),
+            bound = ?certificate.bound,
+            leave_one_out_spread = spread.map(DNonNegative::get),
+            "the reviews arm's effective mass fails its evaluated stability bound"
+        );
+    }
+
+    if let Some(spread) = spread
+        && spread.get() > f64::from(temperature.get())
+    {
+        tracing::warn!(
+            finding = "RFC-0006 entry 1",
+            spread = spread.get(),
+            temperature = temperature.get(),
+            "a single omitted type moves the pooled radius by more than one transition width"
+        );
+    }
 }
 
 /// Which relation classes carry force anywhere in the index.
@@ -498,8 +555,8 @@ impl ForceClasses {
 
         for group in index.groups().iter().filter(|group| exerts_force(group)) {
             let weights = group.weights();
-            classes.proximal |= weights.proximal > 0.0;
-            classes.coincident |= weights.coincident > 0.0;
+            classes.proximal |= !weights.proximal.is_zero();
+            classes.coincident |= !weights.coincident.is_zero();
         }
 
         classes
@@ -526,7 +583,7 @@ fn reviewed_proximal_force<N, E>(
                 })
                 .is_ok_and(|position| {
                     let group = &groups[position];
-                    exerts_force(group) && group.weights().proximal > 0.0
+                    exerts_force(group) && !group.weights().proximal.is_zero()
                 })
         })
 }
@@ -534,6 +591,6 @@ fn reviewed_proximal_force<N, E>(
 /// Whether a group can exert any force.
 ///
 /// Instances exist and the strength multiplier passes them through.
-fn exerts_force<N, E>(group: &AttractionGroup<N, E>) -> bool {
-    !group.edges().is_empty() && group.weights().strength > 0.0
+const fn exerts_force<N, E>(group: &AttractionGroup<N, E>) -> bool {
+    !group.edges().is_empty() && !group.weights().strength.is_zero()
 }

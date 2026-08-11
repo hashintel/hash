@@ -59,9 +59,9 @@ use crate::{
 /// Every variant aborts the fit: a generation whose coordinates the configured placement could not
 /// produce publishes nothing.
 #[derive(Debug)]
-pub enum PlacementError {
-    /// The projector objective rejects the fit's low-dimensional kernel or affinity offset.
-    ObjectiveCurve { exponent: f32, offset: f32 },
+pub(crate) enum PlacementError {
+    /// The projector objective rejects the fit's low-dimensional kernel.
+    ObjectiveCurve { exponent: f32 },
     /// The configured architecture disagrees with the dataset's representation width.
     RepresentationWidth { configured: usize },
     /// Projector training failed.
@@ -79,11 +79,10 @@ pub enum PlacementError {
 impl fmt::Display for PlacementError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ObjectiveCurve { exponent, offset } => write!(
+            Self::ObjectiveCurve { exponent } => write!(
                 fmt,
                 "the projector objective rejects the configuration: the curve exponent {exponent} \
-                 must be at least 0.5 and the affinity offset {offset} finite and strictly \
-                 positive",
+                 must be at least 0.5",
             ),
             Self::RepresentationWidth { configured } => write!(
                 fmt,
@@ -154,7 +153,7 @@ impl From<CanonicalError> for PlacementError {
 /// is corrupt, of another layout version, or of another dataset's id type, and the fit aborts
 /// rather than running without reuse.
 #[derive(Debug)]
-pub enum PriorError {
+pub(crate) enum PriorError {
     /// A prior card-embedding array failed to map.
     MapCards(OpenArrayError),
     /// The prior card files do not hold row-aligned digest and embedding columns.
@@ -222,7 +221,7 @@ impl Error for PriorError {
 /// Every variant is dataset- and provider-free, so the whole enum is `Send + 'static` and crosses
 /// the rayon offload boundary.
 #[derive(Debug)]
-pub enum StageError {
+pub(crate) enum StageError {
     /// A staged write, scratch directory, or digest pass failed.
     Io(io::Error),
     /// The norm spot check's sampling settings are unusable.
@@ -708,7 +707,7 @@ impl Error for StageError {
 /// `D` is the dataset's error and `E` the embedding provider's. Both arise only during ingest.
 /// Every compute-side failure arrives as [`FitError::Stage`].
 #[derive(Debug)]
-pub enum FitError<D, E> {
+pub(crate) enum FitError<D, E> {
     /// The dataset failed to deliver a stream item.
     Dataset(D),
     /// The card stream failed.

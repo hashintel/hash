@@ -11,7 +11,9 @@
 //! Displacement telemetry measures the relation lens's integrated effect at every refresh tick.
 //! From coordinates at both lens extremes, the per-node displacement `Δ_i = ‖y_i(1) - y_i(0)‖`
 //! summarizes how far the lens moves each node, reported over the same axes as the budget. The
-//! displacement is evidence and never steers training.
+//! displacement is an in-run reading that never steers training, and it stays in the run: the
+//! per-tick series reaches observers through the training loop's own reporting and joins no
+//! generation evidence.
 
 use alloc::collections::BTreeMap;
 use core::mem;

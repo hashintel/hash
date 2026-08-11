@@ -17,7 +17,7 @@ use crate::{
 
 /// Building the postings failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PostingsError {
+pub(crate) enum PostingsError {
     /// A node row's direct types name an ontology row outside the type domain.
     NodeType { row: NodeRowId, id: OntologyRowId },
     /// A type's direct parents name an ontology row outside the type domain.

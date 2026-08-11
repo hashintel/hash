@@ -19,7 +19,7 @@ use hashql_core::id::{Id, IdSlice};
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 
 use crate::{
-    math::{NonNegative, Vec2},
+    math::{NonNegative, Positive, Vec2},
     salt::knn::table::KnnView,
 };
 
@@ -136,16 +136,19 @@ where
     ///
     /// The value is `√((scale(source) + ε) · (scale(target) + ε))`: the geometric mean of the
     /// pair's ε-shifted local scales. Dividing a pair's distance by it yields the locally
-    /// normalized distance `z`, comparable between dense and sparse map regions; `epsilon` keeps
-    /// the result positive where a scale is zero.
+    /// normalized distance `z`, comparable between dense and sparse map regions. `epsilon`
+    /// shifts a zero scale off zero. The product is a typed [`Positive`] multiplication, so its
+    /// crossings are the family's: near-maximal shifted scales past the finite domain, or an
+    /// `ε²` below the subnormal range with zero scales, debug-assert and pass through in
+    /// release - a configured `ε` of `2⁻⁷⁴` or more keeps a zero-scale product in domain.
     ///
     /// # Panics
     ///
     /// This panics when either row is outside the node-row domain.
     #[inline]
     #[must_use]
-    pub(crate) fn normalization(&self, source: N, target: N, epsilon: f32) -> f32 {
-        ((self.0[source].get() + epsilon) * (self.0[target].get() + epsilon)).sqrt()
+    pub(crate) fn normalization(&self, source: N, target: N, epsilon: Positive) -> Positive {
+        ((self.0[source] + epsilon) * (self.0[target] + epsilon)).sqrt()
     }
 
     /// Returns the node-row count.

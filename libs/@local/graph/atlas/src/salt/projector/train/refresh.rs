@@ -39,11 +39,11 @@ use crate::{
 
 /// A refresh tick failed.
 #[derive(Debug, Clone, PartialEq)]
-pub enum RefreshError<N> {
+pub(crate) enum RefreshError<N> {
     /// A corpus forward produced a non-finite coordinate: training diverged at this row and rung.
-    Diverged { row: N, eta: f32 },
+    Diverged { row: N, eta: NonNegative },
     /// A local scale came out non-finite at this row and rung.
-    NonFiniteScale { row: N, eta: f32 },
+    NonFiniteScale { row: N, eta: NonNegative },
 }
 
 impl<N> RefreshError<N> {
@@ -85,6 +85,12 @@ impl<N> Error for RefreshError<N> where N: fmt::Debug + fmt::Display {}
 /// One refresh tick's artifacts.
 #[derive(Debug)]
 pub(crate) struct RefreshOutcome<N> {
+    /// The low rung's forwarded frame.
+    ///
+    /// The tick's own artifacts consume it in place; it rides out for the boundary-drift
+    /// instrument, which re-measures the reviewed mass fraction over the same rung the radius
+    /// froze on.
+    pub frame: IdVec<N, Vec2>,
     /// Hard negatives mined at both lens extremes, pooled by maximum weight.
     pub mined: MinedFrame<N>,
     /// One local-scale table per rung, in [`RUNGS`] order.
@@ -99,8 +105,8 @@ pub(crate) struct RefreshOutcome<N> {
 ///
 /// An observer's appetite ([`Progress::projector_sample_size`]) buys a fixed set of rows, chosen
 /// before the loop and reported at every tick, so a watcher sees the same points moving rather than
-/// a fresh cloud each time. Landmark rows come first - they are the skeleton the placement hangs
-/// on, and a renderer draws them apart - and they take at most half the budget, so a landmark-rich
+/// a fresh cloud each time. Landmark rows come first, because they are the skeleton the placement
+/// hangs on and a renderer draws them apart. They take at most half the budget, so a landmark-rich
 /// corpus still shows its interior. The rest is an even stride over the corpus rows no landmark
 /// holds, so the two shares partition the sample by role: every reported point past the landmark
 /// prefix is an ordinary row.
@@ -246,7 +252,7 @@ where
         sample: &SnapshotSample<N>,
         progress: &P,
     ) -> Result<RefreshOutcome<N>, RefreshError<N>> {
-        let [low_eta, middle_eta, high_eta] = RUNGS.map(NonNegative::get);
+        let [low_eta, middle_eta, high_eta] = RUNGS;
 
         let low = forward(model, self.columns, low_eta, self.forward_rows, device)?;
         sample.report(&low, progress);
@@ -273,6 +279,7 @@ where
         let displacement = DisplacementSummary::measure(&low, &high, &self.participants, deciles);
 
         Ok(RefreshOutcome {
+            frame: low,
             mined,
             scales,
             displacement,
@@ -292,7 +299,7 @@ where
 pub(crate) fn forward<N, B: Backend<FloatElem = f32>>(
     model: &Projector<B>,
     columns: NodeColumns<'_, N>,
-    eta: f32,
+    eta: NonNegative,
     forward_rows: NonZero<usize>,
     device: &B::Device,
 ) -> Result<IdVec<N, Vec2>, RefreshError<N>>
@@ -336,7 +343,7 @@ where
 pub(crate) fn scales<N>(
     frame: &IdSlice<N, Vec2>,
     knn: &KnnView<'_, N>,
-    eta: f32,
+    eta: NonNegative,
 ) -> Result<LocalScales<N>, RefreshError<N>>
 where
     N: Id,
@@ -348,7 +355,7 @@ where
 }
 
 /// Maps a spatial-index failure onto the tick's error.
-fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
+fn field_error<N>(error: SpatialFieldError<N>, eta: NonNegative) -> RefreshError<N> {
     match error {
         // Unreachable in practice: `forward` checked every coordinate.
         SpatialFieldError::NonFinite(NonFinitePoint { row }) => RefreshError::Diverged { row, eta },
@@ -359,7 +366,7 @@ fn field_error<N>(error: SpatialFieldError<N>, eta: f32) -> RefreshError<N> {
 fn slice_input<N, B: Backend>(
     columns: NodeColumns<'_, N>,
     range: Range<usize>,
-    eta: f32,
+    eta: NonNegative,
     device: &B::Device,
 ) -> ProjectorInput<B>
 where
@@ -383,6 +390,6 @@ where
             device,
         ),
         roles: Tensor::<B, 1, Int>::from_data(TensorData::new(roles, [rows]), device),
-        condition: Tensor::from_data(TensorData::new(vec![eta; rows], [rows, 1]), device),
+        condition: Tensor::from_data(TensorData::new(vec![eta.get(); rows], [rows, 1]), device),
     }
 }

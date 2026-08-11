@@ -11,7 +11,7 @@ use super::{
     RunState, StageStatus,
 };
 use crate::{
-    math::Vec2,
+    math::{Vec2, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -33,12 +33,12 @@ fn check(recall: f64) -> RecallSpotCheck {
         neighbours_per_row: 50,
         matched,
         expected: 10_000,
-        deviation: 0.289,
-        minimum_recall: 0.89,
+        deviation: d_non_negative!(0.289),
+        minimum_recall: unit_fraction!(0.89),
         // z(0.99) · 0.289 / sqrt(200), the resolution such a sample
         // reaches.
-        resolution: 0.0475,
-        confidence: 0.99,
+        resolution: d_non_negative!(0.0475),
+        confidence: open_unit_fraction!(0.99),
     }
 }
 

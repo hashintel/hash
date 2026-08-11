@@ -1,17 +1,11 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "fixtures use dyadic coordinates and scales whose distances, normalizations, and \
-              weights are exact in f32/f64, so equality assertions are contracts"
-)]
-
 use core::num::NonZero;
 
 use hashql_core::id::{Id as _, IdSlice};
 
-use super::{CalibrationOptions, ProximalCalibration, calibrate};
+use super::{CalibrationOptions, ProximalCalibration, calibrate, reviewed_fraction_within};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{NonNegative, Vec2},
+    math::{NonNegative, Vec2, d_non_negative, d_positive, non_negative, positive, unit_fraction},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -30,15 +24,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
@@ -95,8 +90,11 @@ fn unit_scales(rows: usize) -> LocalScales<NodeRowId> {
 }
 
 fn options(cap: usize) -> CalibrationOptions {
-    CalibrationOptions::new(NonZero::new(cap).expect("test limits are positive"), 0.25)
-        .expect("0.25 is a valid scale guard")
+    CalibrationOptions::new(
+        NonZero::new(cap).expect("test limits are positive"),
+        positive!(0.25),
+        positive!(0.5),
+    )
 }
 
 #[test]
@@ -121,12 +119,15 @@ fn z_is_measured_in_the_loss_normalization_by_hand() {
     );
 
     // weight = sampling(1) · c(1) · ν(0.5) · p_P(1) · h(1) = 0.5.
-    assert_eq!(outcome.radius, Some(1.0));
+    assert_eq!(outcome.radius, Some(non_negative!(1.0)));
     assert_eq!(outcome.types.len(), 1);
     assert_eq!(outcome.types[0].relation.as_u64(), 5);
     assert_eq!(outcome.types[0].pairs, 1);
-    assert_eq!(outcome.types[0].mass, 0.5);
-    assert_eq!(outcome.types[0].quantiles, Some([1.0, 1.0, 1.0]));
+    assert_eq!(outcome.types[0].mass, d_non_negative!(0.5));
+    assert_eq!(
+        outcome.types[0].quantiles,
+        Some([non_negative!(1.0), non_negative!(1.0), non_negative!(1.0)])
+    );
     // Leaving out the only type leaves nothing to measure.
     assert_eq!(outcome.types[0].radius_without, None);
 }
@@ -162,9 +163,12 @@ fn radius_is_the_weighted_p25() {
     // Total mass 2.0. Cumulative weight crosses 0.25/0.5/0.75 of it at
     // z = 1, 2, and 3: the smallest z whose cumulative 0.5-steps reach
     // 0.5, 1.0, and 1.5. The radius is the low quartile.
-    assert_eq!(outcome.radius, Some(1.0));
-    assert_eq!(outcome.types[0].mass, 2.0);
-    assert_eq!(outcome.types[0].quantiles, Some([1.0, 2.0, 3.0]));
+    assert_eq!(outcome.radius, Some(non_negative!(1.0)));
+    assert_eq!(outcome.types[0].mass, d_non_negative!(2.0));
+    assert_eq!(
+        outcome.types[0].quantiles,
+        Some([non_negative!(1.0), non_negative!(2.0), non_negative!(3.0)])
+    );
     assert_eq!(outcome.types[0].radius_without, None);
 }
 
@@ -203,16 +207,16 @@ fn cap_bounds_a_high_volume_type() {
         &scales,
         options(2),
     );
-    assert_eq!(capped.radius, Some(1.0));
-    assert_eq!(capped.types[0].mass, 1.0);
-    assert_eq!(capped.types[1].mass, 1.0);
+    assert_eq!(capped.radius, Some(non_negative!(1.0)));
+    assert_eq!(capped.types[0].mass, d_non_negative!(1.0));
+    assert_eq!(capped.types[1].mass, d_non_negative!(1.0));
 
     // The leave-one-out spread names type 9 as the radius's owner:
     // without type 5 the two z = 1 pairs still cross a quarter of
     // their 1.0 mass at the first pair; without type 9 only z = 5
     // remains.
-    assert_eq!(capped.types[0].radius_without, Some(1.0));
-    assert_eq!(capped.types[1].radius_without, Some(5.0));
+    assert_eq!(capped.types[0].radius_without, Some(non_negative!(1.0)));
+    assert_eq!(capped.types[1].radius_without, Some(non_negative!(5.0)));
 
     // Cap 8: type 5 weighs 4.0 against type 9's 1.0 and buys the
     // radius with volume - the behaviour the sampler factor forbids.
@@ -223,7 +227,7 @@ fn cap_bounds_a_high_volume_type() {
         &scales,
         options(8),
     );
-    assert_eq!(uncapped.radius, Some(5.0));
+    assert_eq!(uncapped.radius, Some(non_negative!(5.0)));
 }
 
 #[test]
@@ -271,22 +275,22 @@ fn hubs_are_discounted_by_degree() {
     assert!(hub.mass < peers.mass);
     let expected_hub_mass = 4.0 / 10.0_f64.sqrt();
     assert!(
-        (hub.mass - expected_hub_mass).abs() < 1e-6,
+        (hub.mass.get() - expected_hub_mass).abs() < 1e-6,
         "hub mass {} should be 4/sqrt(10) = {expected_hub_mass}",
-        hub.mass,
+        hub.mass.get(),
     );
-    assert_eq!(peers.mass, 1.5);
+    assert_eq!(peers.mass, d_non_negative!(1.5));
 
     // The pooled p25 equals the peers' z = 1, because their 1.5 mass alone covers the quarter
     // threshold before any hub pair enters.
-    let total = hub.mass + peers.mass;
+    let total = hub.mass.get() + peers.mass.get();
     assert!(1.5 >= 0.25 * total);
-    assert_eq!(outcome.radius, Some(1.0));
+    assert_eq!(outcome.radius, Some(non_negative!(1.0)));
 
     // Without the hub only the peers' z = 1 remains; without the
     // peers only the hub's z = 2 does.
-    assert_eq!(hub.radius_without, Some(1.0));
-    assert_eq!(peers.radius_without, Some(2.0));
+    assert_eq!(hub.radius_without, Some(non_negative!(1.0)));
+    assert_eq!(peers.radius_without, Some(non_negative!(2.0)));
 }
 
 #[test]
@@ -320,7 +324,7 @@ fn missing_groups_and_foreign_classes_contribute_nothing() {
     assert_eq!(outcome.types.len(), 1);
     assert_eq!(outcome.types[0].relation.as_u64(), 7);
     assert_eq!(outcome.types[0].pairs, 0);
-    assert_eq!(outcome.types[0].mass, 0.0);
+    assert_eq!(outcome.types[0].mass, d_non_negative!(0.0));
     assert_eq!(outcome.types[0].quantiles, None);
     assert_eq!(outcome.types[0].radius_without, None);
 }
@@ -344,17 +348,173 @@ fn no_verdicts_yield_no_radius() {
         ProximalCalibration {
             radius: None,
             types: Vec::new(),
+            stability: None,
         },
     );
 }
 
 #[test]
-fn options_reject_an_invalid_scale_guard() {
-    let cap = NonZero::new(4).expect("four is positive");
+fn the_fraction_instrument_re_measures_the_freeze_population() {
+    // The p25 fixture: four disjoint pairs (weight 0.5 each, total 2.0) at z = 1, 2, 3, 4.
+    let instances = (0..4)
+        .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
+        .collect();
+    let index = attraction_index(8, &[proximal_policy(5)], instances);
+    let coordinates = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(10.0, 0.0),
+        Vec2::new(12.0, 0.0),
+        Vec2::new(20.0, 0.0),
+        Vec2::new(23.0, 0.0),
+        Vec2::new(30.0, 0.0),
+        Vec2::new(34.0, 0.0),
+    ];
+    let scales = unit_scales(8);
+    let verdicts = [proximal_verdict(5)];
+    let frame = IdSlice::from_raw(&coordinates);
 
-    assert!(CalibrationOptions::new(cap, 0.25).is_some());
-    assert!(CalibrationOptions::new(cap, 0.0).is_none());
-    assert!(CalibrationOptions::new(cap, -1.0).is_none());
-    assert!(CalibrationOptions::new(cap, f32::NAN).is_none());
-    assert!(CalibrationOptions::new(cap, f32::INFINITY).is_none());
+    // The radius lies on the z = 1 atom. The boundary is inclusive: the pair at the radius
+    // itself counts, and the freeze-time reading is the quarter the percentile crossed.
+    let at_radius = reviewed_fraction_within(
+        &verdicts,
+        &index,
+        frame,
+        &scales,
+        options(4),
+        non_negative!(1.0),
+    );
+    assert_eq!(at_radius, Some(d_non_negative!(0.25)));
+
+    // Between atoms the reading is the mass at or below, not an interpolation.
+    let between = reviewed_fraction_within(
+        &verdicts,
+        &index,
+        frame,
+        &scales,
+        options(4),
+        non_negative!(2.5),
+    );
+    assert_eq!(between, Some(d_non_negative!(0.5)));
+
+    // Below the whole population nothing is within, and the reading is a present zero.
+    let below = reviewed_fraction_within(
+        &verdicts,
+        &index,
+        frame,
+        &scales,
+        options(4),
+        non_negative!(0.5),
+    );
+    assert_eq!(below, Some(d_non_negative!(0.0)));
+
+    // No reviewed mass at all reads absent, never zero.
+    let unreviewed =
+        reviewed_fraction_within(&[], &index, frame, &scales, options(4), non_negative!(1.0));
+    assert_eq!(unreviewed, None);
+}
+
+#[test]
+fn the_calibration_carries_its_stability_certificate() {
+    // The p25 fixture again: four equal weights make every certificate reading exact.
+    let instances = (0..4)
+        .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
+        .collect();
+    let index = attraction_index(8, &[proximal_policy(5)], instances);
+    let coordinates = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(1.0, 0.0),
+        Vec2::new(10.0, 0.0),
+        Vec2::new(12.0, 0.0),
+        Vec2::new(20.0, 0.0),
+        Vec2::new(23.0, 0.0),
+        Vec2::new(30.0, 0.0),
+        Vec2::new(34.0, 0.0),
+    ];
+    let scales = unit_scales(8);
+
+    let outcome = calibrate(
+        &[proximal_verdict(5)],
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(4),
+    );
+
+    let certificate = outcome
+        .stability
+        .as_ref()
+        .expect("a measured radius carries its certificate");
+
+    // With four balanced pairs n_eff is the count, and the floor (29.51 at δ = 0.05) fails.
+    assert_eq!(certificate.effective_support, d_positive!(4.0));
+    assert_eq!(certificate.pairs, 4);
+    assert_eq!(certificate.mass, d_non_negative!(2.0));
+    assert_eq!(certificate.temperature, d_positive!(0.5));
+    assert_eq!(certificate.tau, d_positive!(0.5));
+    assert_eq!(
+        certificate.epsilon_zero,
+        d_positive!(0.679_050_757_870_309_8)
+    );
+    // Past the floor the lower endpoint clamps at the population minimum z = 1 and the upper
+    // level walks to the maximum z = 4.
+    assert_eq!(certificate.gap, d_non_negative!(3.0));
+    assert!(!certificate.pass);
+    // A single reviewed type is maximally thin, and any reader can see it.
+    assert_eq!(certificate.type_effective_support, d_positive!(1.0));
+
+    // A vacuous measurement carries no certificate.
+    let vacuous = calibrate(
+        &[],
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(4),
+    );
+    assert_eq!(vacuous.stability, None);
+}
+
+#[test]
+fn the_leave_one_out_spread_reads_the_owning_review() {
+    // Type 5 has two pairs at z = 5 (mass 1.0) and type 9 two pairs at z = 1 (mass 1.0).
+    // Leaving either out moves the pooled radius to the other's atom.
+    let mut instances: Vec<_> = (0..2)
+        .map(|pair| instance(pair, 5, 2 * pair, 2 * pair + 1))
+        .collect();
+    instances.push(instance(2, 9, 4, 5));
+    instances.push(instance(3, 9, 6, 7));
+    let index = attraction_index(8, &[proximal_policy(5), proximal_policy(9)], instances);
+
+    let coordinates = [
+        Vec2::new(0.0, 0.0),
+        Vec2::new(5.0, 0.0),
+        Vec2::new(10.0, 0.0),
+        Vec2::new(15.0, 0.0),
+        Vec2::new(20.0, 0.0),
+        Vec2::new(21.0, 0.0),
+        Vec2::new(30.0, 0.0),
+        Vec2::new(31.0, 0.0),
+    ];
+    let scales = unit_scales(8);
+
+    let outcome = calibrate(
+        &[proximal_verdict(5), proximal_verdict(9)],
+        &index,
+        IdSlice::from_raw(&coordinates),
+        &scales,
+        options(4),
+    );
+
+    // Pooled radius z = 1 (type 9's atom crosses the quarter threshold). Without type 5 the
+    // radius stays 1, and without type 9 it moves to 5. The spread is the larger movement.
+    assert_eq!(outcome.radius, Some(non_negative!(1.0)));
+    assert_eq!(outcome.leave_one_out_spread(), Some(d_non_negative!(4.0)));
+
+    // A vacuous calibration has no radius to spread around.
+    let vacuous = ProximalCalibration {
+        radius: None,
+        types: Vec::new(),
+        stability: None,
+    };
+    assert_eq!(vacuous.leave_one_out_spread(), None);
 }

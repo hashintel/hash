@@ -53,7 +53,7 @@ const impl Default for QuotientOptions {
 
 /// The contraction inputs are inconsistent or the quotient collapses.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum QuotientError {
+pub(crate) enum QuotientError {
     /// The assignment covers a different corpus than the graph.
     AssignmentRows { expected: usize, actual: usize },
     /// No corpus edge crosses landmarks: the quotient has no edges.

@@ -24,7 +24,7 @@
 //! on the floor sooner or later, whatever confidence it printed. The knobs are scale-free, and the
 //! check measures both the variance and the clearance rather than reading them from configuration.
 //! (An acceptance-sampling budget, which was this check's original sizing, certifies all-pass
-//! criteria and carries no guarantee about a mean: per-row recall is strongly bimodal, and at the
+//! criteria and guarantees nothing about a mean: per-row recall is strongly bimodal, and at the
 //! acceptance-sized 688 rows the check refused sound backends on sampling noise.)
 //!
 //! The exact side of the check stands alone as [`ExactReference`]: one sampled brute-force
@@ -46,26 +46,28 @@ use super::{
 };
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::AlignedVecN,
+    math::{
+        AlignedVecN, DNonNegative, DPositive, OpenUnitFraction, UnitFraction, nz,
+        open_unit_fraction, unit_fraction,
+    },
     random::{mean_sample_size, normal_quantile, sample_indices_vec},
 };
 
 // The defaults are the backend admission criterion, recall@50 ≥ 0.89:
 // the criterion is aggregate recall over the sample, so a long per-row
 // tail cannot fail a backend whose aggregate holds.
-const DEFAULT_NEIGHBOURS: NonZero<usize> =
-    NonZero::new(50).expect("the default comparison depth is nonzero");
-const DEFAULT_MINIMUM_RECALL: f64 = 0.89;
+const DEFAULT_NEIGHBOURS: NonZero<usize> = nz!(50);
+const DEFAULT_MINIMUM_RECALL: UnitFraction = unit_fraction!(0.89);
 // A one-in-a-hundred risk that the aggregate's sampling error exceeds
 // the reported resolution in the admitting direction. The sample grows
 // as the square of the normal quantile, so the sample size prices the level in rows. 0.999 costs
 // ~1.8x the sample this one sizes, and 0.95 costs half of it while admitting one backend in twenty
 // whose true aggregate sits below the floor.
-const DEFAULT_CONFIDENCE: f64 = 0.99;
+const DEFAULT_CONFIDENCE: OpenUnitFraction = open_unit_fraction!(0.99);
 // The acceptance-era sample size, kept as the pilot: large enough to
 // read the per-row deviation within a few percent, small enough that
 // a decisively good or bad backend settles at ~19s of brute force.
-const DEFAULT_PILOT: NonZero<usize> = NonZero::new(688).expect("the default pilot size is nonzero");
+const DEFAULT_PILOT: NonZero<usize> = nz!(688);
 // How long a build may spend proving its own admission. The value is a policy decision about a
 // machine's time rather than a measured quantity. Ten minutes covers the sizing at the scale the
 // check runs at: the full-scale backend sweep (985,932 rows) measured healthy builds at ~0.902
@@ -85,13 +87,14 @@ pub(crate) struct SpotCheckOptions {
     /// A corpus smaller than this compares every non-self row. This is the `k` of the measured
     /// recall@k, independent of the persisted table's neighbour count.
     pub neighbours: NonZero<usize> = DEFAULT_NEIGHBOURS,
-    /// Minimum admitted aggregate recall over the sample, in `[0, 1]`.
-    pub minimum_recall: f64 = DEFAULT_MINIMUM_RECALL,
+    /// Minimum admitted aggregate recall over the sample.
+    pub minimum_recall: UnitFraction = DEFAULT_MINIMUM_RECALL,
     /// One-sided confidence that the aggregate's sampling error stays inside the reported
     /// [resolution](RecallSpotCheck::resolution).
     ///
-    /// Inside the open interval `(0, 1)`.
-    pub confidence: f64 = DEFAULT_CONFIDENCE,
+    /// Above one half, so the sizing quantile stays non-negative; the check refuses a smaller
+    /// confidence before it samples.
+    pub confidence: OpenUnitFraction = DEFAULT_CONFIDENCE,
     /// Rows of the sizing pilot.
     ///
     /// A corpus smaller than this compares every row exhaustively. The pilot measures the per-row deviation, the aggregate's clearance of the minimum, and the rate the brute force runs at, and its size floors the verdict sample, because a normal bound over a sample too small to estimate its own deviation resolves nothing.
@@ -110,7 +113,13 @@ const impl Default for SpotCheckOptions {
 }
 
 /// Aggregate exact-recall evidence for one backend and corpus.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[expect(
+    private_interfaces,
+    reason = "the typed readings serialize as plain numbers and reach an external reader through \
+              the wire and `Display`; naming their concrete scalar types stays an in-crate \
+              capability"
+)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RecallSpotCheck {
     /// Distinct rows compared in the verdict sample.
     pub sampled_rows: u64,
@@ -124,17 +133,17 @@ pub struct RecallSpotCheck {
     ///
     /// What this sample measured, not what sized it: the pilot's own reading of the spread is what
     /// chose this sample's size.
-    pub deviation: f64,
+    pub deviation: DNonNegative,
     /// The admission minimum the check ran under.
-    pub minimum_recall: f64,
+    pub minimum_recall: UnitFraction,
     /// The one-sided sampling resolution the verdict sample achieved, in recall units.
     ///
     /// The half-width `z · deviation / sqrt(sampled_rows)` the [admission](Self::admission)
     /// reading compares against the minimum, narrowed by the finite-population factor. Zero
     /// when the sample is the corpus, because a census has no sampling error to bound.
-    pub resolution: f64,
+    pub resolution: DNonNegative,
     /// The one-sided confidence the resolution holds at.
-    pub confidence: f64,
+    pub confidence: OpenUnitFraction,
 }
 
 /// What one recall spot check demonstrated about its backend.
@@ -180,9 +189,9 @@ impl RecallSpotCheck {
     pub fn admission(&self) -> RecallAdmission {
         let recall = self.recall();
 
-        if recall - self.resolution >= self.minimum_recall {
+        if recall - self.resolution.get() >= self.minimum_recall.get() {
             RecallAdmission::Admitted
-        } else if recall + self.resolution < self.minimum_recall {
+        } else if recall + self.resolution.get() < self.minimum_recall.get() {
             RecallAdmission::Refused
         } else {
             RecallAdmission::Unresolved
@@ -470,7 +479,7 @@ pub(crate) struct Scoring {
     /// Exact neighbours across the whole sample.
     pub expected: u64,
     /// Sample standard deviation of per-row recall.
-    pub deviation: f64,
+    pub deviation: DNonNegative,
 }
 
 impl Scoring {
@@ -493,9 +502,9 @@ impl Scoring {
 ///
 /// The per-row sum needs no separate accumulator: it is the matched total divided by the comparison
 /// depth.
-fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
+fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> DNonNegative {
     if rows < 2 {
-        return 0.0;
+        return DNonNegative::ZERO;
     }
 
     #[expect(
@@ -507,7 +516,9 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
     // the root real.
     let variance = (count * mean).mul_add(-mean, squares).max(0.0) / (count - 1.0);
 
-    variance.sqrt()
+    // Per-row recalls lie in [0, 1], so the squared sum stays within the row count and the
+    // clamped variance is finite non-negative. The root of such a value is in domain.
+    DNonNegative::new_unchecked(variance.sqrt())
 }
 
 /// Returns the rows that resolve the pilot's measured clearance of the admission minimum.
@@ -519,10 +530,16 @@ fn deviation(rows: usize, matched: u64, expected: u64, squares: f64) -> f64 {
 /// A caller that has already read a quantile out of `confidence` leaves one way for the sizing to
 /// come back empty: an aggregate sitting exactly on the floor, which no finite sample resolves and
 /// which therefore asks for every row a budget allows.
-fn sizing_rows(piloted: &Scoring, minimum_recall: f64, confidence: f64) -> usize {
-    let clearance = (piloted.recall() - minimum_recall).abs();
+fn sizing_rows(
+    piloted: &Scoring,
+    minimum_recall: UnitFraction,
+    confidence: OpenUnitFraction,
+) -> usize {
+    let clearance = (piloted.recall() - minimum_recall.get()).abs();
 
-    mean_sample_size(piloted.deviation, clearance, confidence).unwrap_or(usize::MAX)
+    DPositive::new(clearance).map_or(usize::MAX, |clearance| {
+        mean_sample_size(piloted.deviation, clearance, confidence)
+    })
 }
 
 /// Returns the rows `budget` buys at the rate `measured` rows took to sample and score.
@@ -558,7 +575,7 @@ fn budget_rows(budget: Duration, elapsed: Duration, measured: usize) -> usize {
 /// the aggregate is a mean over rows drawn without replacement from a corpus of `N`, so a sample
 /// that reaches the corpus has no sampling error left to bound and the point estimate is the
 /// population value.
-fn resolution(quantile: f64, scored: &Scoring, rows: usize) -> f64 {
+fn resolution(quantile: f64, scored: &Scoring, rows: usize) -> DNonNegative {
     #[expect(
         clippy::cast_precision_loss,
         reason = "sample and corpus sizes stay far below exact f64 integer precision"
@@ -566,14 +583,16 @@ fn resolution(quantile: f64, scored: &Scoring, rows: usize) -> f64 {
     let (sampled, population) = (scored.sampled_rows as f64, rows as f64);
 
     if sampled <= 0.0 || population < 2.0 {
-        return 0.0;
+        return DNonNegative::ZERO;
     }
 
     let correction = ((population - sampled) / (population - 1.0))
         .max(0.0)
         .sqrt();
 
-    quantile * scored.deviation / sampled.sqrt() * correction
+    // The caller refused a confidence at or below one half, so the quantile is non-negative;
+    // the deviation, the root, and the clamped correction are non-negative by construction.
+    DNonNegative::new_unchecked(quantile * scored.deviation.get() / sampled.sqrt() * correction)
 }
 
 /// Sizes and reads one staged recall check, scoring sampled rows through `score`.
@@ -591,9 +610,14 @@ where
     N: Id,
 {
     let rows = embeddings.len();
-    let quantile = normal_quantile(options.confidence).ok_or(KnnError::SampleConfidence {
-        confidence: options.confidence,
-    })?;
+    let quantile = normal_quantile(options.confidence);
+    if quantile < 0.0 {
+        // A one-sided bound needs a non-negative quantile: a confidence at or below one half
+        // would size no sample and read a negative resolution.
+        return Err(KnnError::SampleConfidence {
+            confidence: options.confidence,
+        });
+    }
 
     // Stage one. Timing the pilot inside the span that scores it prices
     // exactly the work the verdict sample repeats.

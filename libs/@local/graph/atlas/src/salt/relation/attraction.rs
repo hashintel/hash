@@ -8,7 +8,10 @@
 //! construction.
 
 use super::EffectiveConfidence;
-use crate::identity::OntologyRowId;
+use crate::{
+    identity::OntologyRowId,
+    math::{NonNegative, PositiveUnitFraction},
+};
 
 /// Shared attraction settings of one generation, valid by construction.
 ///
@@ -20,10 +23,10 @@ use crate::identity::OntologyRowId;
 /// layout, and 0 retains every instance. The omitted-mass fraction a threshold produces
 /// ([`super::BuildMeasurements::omitted_mass_fraction`]) audits it, and the threshold controls only
 /// attraction sampling. Protection masses never pass through it.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct AttractionOptions {
-    coincident_coefficient: f32 = 0.0,
-    pruning_threshold: f32 = 0.0,
+    coincident_coefficient: NonNegative = NonNegative::ZERO,
+    pruning_threshold: NonNegative = NonNegative::ZERO,
 }
 
 const impl Default for AttractionOptions {
@@ -35,35 +38,31 @@ const impl Default for AttractionOptions {
 impl AttractionOptions {
     /// Creates settings from a Coincident coefficient and a pruning threshold.
     ///
-    /// Returns [`None`] unless both values are finite and non-negative. The default is `κ_C = 0`
-    /// (the Coincident class exerts no pull until the generation meets its release criterion) and
-    /// `η_F = 0` (every admitted instance survives).
+    /// Both values carry their domain in the type, so construction validates nothing. The
+    /// default is `κ_C = 0` (the Coincident class exerts no pull until the generation meets its
+    /// release criterion) and `η_F = 0` (every admitted instance survives).
     #[must_use]
-    pub(crate) const fn new(coincident_coefficient: f32, pruning_threshold: f32) -> Option<Self> {
-        if !(coincident_coefficient.is_finite() && coincident_coefficient >= 0.0) {
-            return None;
-        }
-        if !(pruning_threshold.is_finite() && pruning_threshold >= 0.0) {
-            return None;
-        }
-
-        Some(Self {
+    pub(crate) const fn new(
+        coincident_coefficient: NonNegative,
+        pruning_threshold: NonNegative,
+    ) -> Self {
+        Self {
             coincident_coefficient,
             pruning_threshold,
-        })
+        }
     }
 
     /// Returns the shared Coincident coefficient `κ_C`.
     #[inline]
     #[must_use]
-    pub(crate) const fn coincident_coefficient(self) -> f32 {
+    pub(crate) const fn coincident_coefficient(self) -> NonNegative {
         self.coincident_coefficient
     }
 
     /// Returns the force-pruning threshold `η_F`.
     #[inline]
     #[must_use]
-    pub(crate) const fn pruning_threshold(self) -> f32 {
+    pub(crate) const fn pruning_threshold(self) -> NonNegative {
         self.pruning_threshold
     }
 }
@@ -82,10 +81,10 @@ pub(crate) struct AttractionEdge<N, E> {
     pub target: N,
     /// The instance's effective confidence `c` with score provenance.
     pub confidence: EffectiveConfidence,
-    /// The degree normalization `ν`, in `(0, 1]`.
+    /// The degree normalization `ν`.
     ///
     /// Computed over the complete admitted instance set of the group's relation.
-    pub normalization: f32,
+    pub normalization: PositiveUnitFraction,
 }
 
 /// The per-relation weight factors of one attraction group.
@@ -96,11 +95,11 @@ pub(crate) struct AttractionEdge<N, E> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct AttractionWeights {
     /// The Coincident class weight `κ_C · p*_C`.
-    pub coincident: f32,
+    pub coincident: NonNegative,
     /// The Proximal class weight `p*_P`.
-    pub proximal: f32,
+    pub proximal: NonNegative,
     /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
-    pub strength: f32,
+    pub strength: NonNegative,
 }
 
 impl AttractionWeights {
@@ -110,7 +109,7 @@ impl AttractionWeights {
     /// pruning predicate compares that mass against the threshold.
     #[inline]
     #[must_use]
-    pub(crate) const fn scale(self) -> f32 {
+    pub(crate) const fn scale(self) -> NonNegative {
         self.coincident + self.proximal
     }
 }

@@ -46,7 +46,8 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
-        d_non_negative, d_positive, greater_than_one, open_unit_fraction,
+        d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
+        unit_fraction,
     },
     progress::NoProgress,
     salt::{
@@ -128,7 +129,11 @@ fn dataset() -> MemoryDataset {
 /// corpus that violates the confidence contract differs from the clean one in nothing else.
 /// Every row carries display text, so the staged identity artifacts persist real payloads.
 fn dataset_with_edge_confidences(
-    readings: [(Option<f64>, Option<f64>, Option<f64>); 2],
+    readings: [(
+        Option<UnitFraction>,
+        Option<UnitFraction>,
+        Option<UnitFraction>,
+    ); 2],
 ) -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0xF17);
 
@@ -485,12 +490,6 @@ fn assert_complete_generation_snapshot(repository: &SaltRepository) {
         repository.metadata.evidence.relations.multi_typed_edges,
         vec![2],
     );
-    // The zero control for the confidence clamp: this corpus has no scores, so no reading can
-    // violate the contract and the count published beside the histogram is a measured zero.
-    assert_eq!(
-        repository.metadata.evidence.relations.clamped_confidences,
-        Some(0),
-    );
 }
 
 /// Asserts every file the manifest lists matches its recorded digest byte for byte.
@@ -795,16 +794,7 @@ async fn policy_artifacts_publish_and_read_back() {
     let prediction = classifier
         .predict(&embeddings[2])
         .expect("the fixture card classifies");
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the resolution boundary narrows probabilities the same way"
-    )]
-    {
-        assert_eq!(
-            policy.applicability.to_bits(),
-            (prediction.applicability as f32).to_bits(),
-        );
-    }
+    assert_eq!(policy.applicability, prediction.applicability);
     assert_eq!(
         policy.strength.to_bits(),
         1.0_f32.to_bits(),
@@ -1169,7 +1159,6 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
     assert_eq!(assembly.fold_groups, 4);
     assert_eq!(summary.folds, 2);
     assert!(summary.iterations > 0);
-    assert!(summary.raw_cross_entropy.is_finite());
 
     assert_eq!(holdout.cards.len(), 2);
     assert_eq!(holdout.evaluated, 1);
@@ -1199,7 +1188,7 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
         prediction
             .calibrated
             .probability(*left)
-            .total_cmp(&prediction.calibrated.probability(*right))
+            .cmp(&prediction.calibrated.probability(*right))
     })
     .expect("the class set is nonempty");
     assert_eq!(rho.predicted, expected);
@@ -1317,11 +1306,11 @@ async fn override_supersedes_the_classifier() {
     // The override's distribution is the selected one, asserted with
     // applicability 1, so the attraction mix passes it through
     // unchanged.
-    assert_eq!(policy.selected.coincident.to_bits(), 0.25_f32.to_bits());
-    assert_eq!(policy.selected.proximal.to_bits(), 0.5_f32.to_bits());
-    assert_eq!(policy.attraction.coincident.to_bits(), 0.25_f32.to_bits());
-    assert_eq!(policy.attraction.proximal.to_bits(), 0.5_f32.to_bits());
-    assert_eq!(policy.applicability.to_bits(), 1.0_f32.to_bits());
+    assert_eq!(policy.selected.coincident.to_bits(), 0.25_f64.to_bits());
+    assert_eq!(policy.selected.proximal.to_bits(), 0.5_f64.to_bits());
+    assert_eq!(policy.attraction.coincident.to_bits(), 0.25_f64.to_bits());
+    assert_eq!(policy.attraction.proximal.to_bits(), 0.5_f64.to_bits());
+    assert_eq!(policy.applicability.to_bits(), 1.0_f64.to_bits());
 
     // The document echoes the overrides and admission verbatim: the
     // record round-trips through the metadata schema.
@@ -1485,7 +1474,7 @@ fn projector_options() -> ProjectorOptions {
         temporal_anchors: 0,
     };
     options.lens = RelationLens::new(
-        CoincidentEnergy::new(0.5, 0.5).expect("the fixture energy is valid"),
+        CoincidentEnergy::new(non_negative!(0.5), positive!(0.5)),
         Positive::new(0.25).expect("the fixture temperature is positive"),
         Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
     );
@@ -1754,26 +1743,19 @@ async fn trained_lens_publishes_the_canonical_rung_aligned() {
         .as_ref()
         .expect("a trained lens measures the ladder");
     assert_eq!(ladder.rungs.len(), options.ladder.conditions.len());
-    assert_eq!(ladder.canonical.to_bits(), 1.0_f32.to_bits());
+    assert_eq!(ladder.canonical.get().to_bits(), 1.0_f32.to_bits());
     assert_eq!(ladder.canonical_index, ladder.rungs.len() - 1);
-    assert!(ladder.persisted_relation_loss.is_finite());
 
     // The baseline rung is its own frame; every recorded loss is a
     // real measurement.
     assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
     assert_eq!(
-        ladder.rungs[0].baseline_movement.to_bits(),
+        ladder.rungs[0].baseline_movement.get().to_bits(),
         0.0_f64.to_bits()
-    );
-    assert!(
-        ladder
-            .rungs
-            .iter()
-            .all(|rung| rung.relation_loss.is_finite()),
     );
     // The run trained the lens, and the canonical rung moved measurably against its predecessor.
     let canonical = &ladder.rungs[ladder.canonical_index];
-    assert!(canonical.adjacent_movement > 0.0);
+    assert!(canonical.adjacent_movement > d_non_negative!(0.0));
 
     // The paired-movement readout lands beside the rungs, and its salt and draw replay from
     // the published document alone.
@@ -1842,7 +1824,7 @@ fn duplicate_dataset() -> MemoryDataset {
         edge(100, 0, 4),
         edge(101, 0, 1),
         Edge {
-            confidence: Some(0.75),
+            confidence: Some(unit_fraction!(0.75)),
             ..edge(102, 1, 4)
         },
     ];
@@ -1937,7 +1919,7 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     let verdicts = proximal_link_verdicts();
     let mut options = projector_options();
     options.lens = RelationLens::new(
-        CoincidentEnergy::new(0.01, 0.5).expect("the fixture energy is valid"),
+        CoincidentEnergy::new(non_negative!(0.01), positive!(0.5)),
         Positive::new(0.25).expect("the fixture temperature is positive"),
         Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
     );
@@ -2167,7 +2149,7 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     // stages ahead of the placement. The reviewed verdict keeps the
     // canonical mismatch as the configuration's only defect.
     let mut options = projector_options();
-    options.ladder.canonical = 0.3;
+    options.ladder.canonical = non_negative!(0.3);
     let verdicts = proximal_link_verdicts();
     let config = FitConfig {
         placement: PlacementOptions::Projector(options),
@@ -2247,7 +2229,7 @@ fn relation_dataset() -> MemoryDataset {
     };
     let edges = vec![
         Edge {
-            confidence: Some(0.5),
+            confidence: Some(unit_fraction!(0.5)),
             ..unscored(200, 0, 1, smallvec![OntologyRowId::new(2)])
         },
         unscored(
@@ -2257,8 +2239,8 @@ fn relation_dataset() -> MemoryDataset {
             smallvec![OntologyRowId::new(2), OntologyRowId::new(3)],
         ),
         Edge {
-            confidence: Some(0.75),
-            source_confidence: Some(0.5),
+            confidence: Some(unit_fraction!(0.75)),
+            source_confidence: Some(unit_fraction!(0.5)),
             ..unscored(202, 3, 3, smallvec![OntologyRowId::new(3)])
         },
         unscored(203, 0, 1, smallvec![OntologyRowId::new(2)]),
@@ -2291,60 +2273,6 @@ fn relation_dataset() -> MemoryDataset {
     ]);
 
     MemoryDataset::new(nodes, edges, ontology, HashMap::new(), cards)
-}
-
-/// The drain clamps out-of-range confidence readings and publishes the count.
-///
-/// The dataset contract puts every confidence in `0.0..=1.0` and nothing enforces it, so the drain
-/// bounds each violating reading and publishes how many it bounded. The fixture supplies one
-/// reading above the range, one below it, and one `NaN`, while the second edge's in-range reading
-/// is the control. The count therefore reports the number of violations rather than the number of
-/// scored readings.
-#[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
-async fn out_of_range_confidences_are_clamped_and_counted() {
-    let root = GenerationRoot::new(scratch("clamped-confidences")).expect("the root should open");
-    let dataset = dataset_with_edge_confidences([
-        (Some(1.5), Some(-0.25), Some(f64::NAN)),
-        (Some(0.5), None, None),
-    ]);
-    let classifier = fixture_input();
-
-    let published = fit(
-        &dataset,
-        &HashEmbedder,
-        &config(),
-        Supplies {
-            classifier: &classifier,
-            ..
-        },
-        &root,
-        &NoProgress,
-    )
-    .await
-    .expect("the fit should publish rather than refuse a corpus its own application layer wrote");
-
-    let document =
-        fs::read(published.path().join("metadata.json")).expect("the document should read");
-    // An unclamped NaN reading reaches the force masses, JSON has
-    // no NaN so the mass serializes as null, and the published
-    // generation refuses its own manifest with `invalid type: null,
-    // expected f64`.
-    let repository: SaltRepository =
-        serde_json::from_slice(&document).expect("the document should deserialize");
-    let relations = &repository.metadata.evidence.relations;
-    assert_eq!(relations.clamped_confidences, Some(3));
-    // The same fact stated where a reader will look for it.
-    assert!(
-        relations.retained_mass.is_finite(),
-        "the retained mass should stay finite: {}",
-        relations.retained_mass,
-    );
-    assert!(
-        relations.pruned_mass.is_finite(),
-        "the pruned mass should stay finite: {}",
-        relations.pruned_mass,
-    );
 }
 
 /// Collects a mapped adjacency list into its edge row numbers.
@@ -2409,14 +2337,14 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
         .edges::<NodeRowId, EdgeRowId>()
         .find(|edge| edge.edge.as_u64() == 0)
         .expect("edge row 0 is retained under relation 2");
-    assert_eq!(scored.confidence.value().to_bits(), 0.5_f32.to_bits());
+    assert_eq!(scored.confidence.value(), unit_fraction!(0.5));
     assert!(scored.confidence.scored().link());
     assert!(!scored.confidence.scored().source());
     assert!(!scored.confidence.scored().target());
 
     let neutral = membership.edge::<NodeRowId, EdgeRowId>(0);
     assert_eq!(neutral.edge.as_u64(), 1);
-    assert_eq!(neutral.confidence.value().to_bits(), 1.0_f32.to_bits());
+    assert_eq!(neutral.confidence.value(), unit_fraction!(1.0));
     assert!(!neutral.confidence.scored().link());
 }
 
@@ -2543,8 +2471,8 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_eq!(relations.retained_edges, 4);
     assert_eq!(relations.pruned_edges, 0);
     assert_eq!(relations.self_references, 1);
-    assert_eq!(relations.retained_mass.to_bits(), 1.25_f64.to_bits());
-    assert_eq!(relations.pruned_mass.to_bits(), 0.0_f64.to_bits());
+    assert_eq!(relations.retained_mass, d_non_negative!(1.25));
+    assert_eq!(relations.pruned_mass, d_non_negative!(0.0));
     // Of the four edges, three carry one relation reading each (the self-loop counts at the drain)
     // and one carries two.
     assert_eq!(relations.multi_typed_edges, vec![3, 1]);

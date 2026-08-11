@@ -1,10 +1,11 @@
 use core::{error::Error, fmt};
 
 use super::table::KnnValidationError;
+use crate::math::OpenUnitFraction;
 
 /// Building or spot-checking against a backend failed.
 #[derive(Debug)]
-pub enum KnnError<N, E> {
+pub(crate) enum KnnError<N, E> {
     /// The backend reported an error.
     Backend(E),
     /// The assembled table violates a [`Knn`](super::table::Knn) invariant.
@@ -13,8 +14,8 @@ pub enum KnnError<N, E> {
     TooManyRows { rows: usize },
     /// The requested table shape overflows the entry count.
     TooManyEntries { rows: usize, neighbours: usize },
-    /// A confidence level outside the open unit interval has no quantile to size a sample with.
-    SampleConfidence { confidence: f64 },
+    /// A confidence level at or below one half sizes no one-sided sample.
+    SampleConfidence { confidence: OpenUnitFraction },
     /// Constructed lists are narrower than the table's stored width.
     ListsWidth { width: usize, neighbours: usize },
     /// A search returned a different neighbour count than the table stores per row.
@@ -94,8 +95,8 @@ impl<N: fmt::Display, E: fmt::Display> fmt::Display for KnnError<N, E> {
             ),
             Self::SampleConfidence { confidence } => write!(
                 fmt,
-                "a confidence of {confidence} does not size a sample; the confidence must lie \
-                 strictly inside (0, 1)",
+                "a confidence of {confidence} does not size a one-sided sample; the confidence \
+                 must exceed one half",
             ),
             Self::ListsWidth { width, neighbours } => write!(
                 fmt,

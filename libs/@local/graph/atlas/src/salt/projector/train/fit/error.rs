@@ -3,11 +3,14 @@
 use core::{error::Error, fmt};
 
 use super::TrainingSchedule;
-use crate::salt::projector::train::{StepError, refresh::RefreshError};
+use crate::{
+    math::NonNegative,
+    salt::projector::train::{StepError, refresh::RefreshError},
+};
 
 /// A training run failed.
 #[derive(Debug, Clone, PartialEq)]
-pub enum TrainError<N> {
+pub(crate) enum TrainError<N> {
     /// The semantic graph carries no edge weight: there is no layout evidence to train against.
     NoSemanticEvidence,
     /// The schedule's boundary is step zero.
@@ -24,7 +27,10 @@ pub enum TrainError<N> {
     /// No measurement can therefore set the Proximal radius the relation energy composes with.
     CoincidentWithoutProximal,
     /// The frozen Proximal radius does not exceed the Coincident one.
-    DegenerateRadius { radius: f32, coincident: f32 },
+    DegenerateRadius {
+        radius: NonNegative,
+        coincident: NonNegative,
+    },
     /// A refresh tick or boundary measurement failed.
     Refresh(RefreshError<N>),
     /// A training step failed.

@@ -40,14 +40,18 @@ use core::{error::Error, fmt};
 use hashql_core::id::Id as _;
 
 use super::{ClassProbabilities, Posterior, RelationPolicy};
-use crate::{identity::OntologyRowId, math::UnitFraction, salt::policy::classifier::Prediction};
+use crate::{
+    identity::OntologyRowId,
+    math::{NonNegative, UnitFraction},
+    salt::policy::classifier::Prediction,
+};
 
 #[cfg(test)]
 mod tests;
 
 /// A resolution input violated the table contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ResolveError {
+pub(crate) enum ResolveError {
     /// A relation occurs more than once in the classifications.
     DuplicateRelation { relation: OntologyRowId },
     /// A relation carries two overrides of the same precedence.
@@ -96,7 +100,7 @@ pub(crate) enum Classification {
 ///
 /// The lowest variant present wins.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PolicySource {
+pub(crate) enum PolicySource {
     /// An explicit human override.
     Human,
     /// A human-reviewed soft label.
@@ -184,7 +188,7 @@ pub(crate) fn resolve(
             let (selected, applicability) = match (winner, classification) {
                 (Some(record), _) => (
                     ClassProbabilities::from_posterior(&record.distribution),
-                    1.0,
+                    UnitFraction::ONE,
                 ),
                 (None, Classification::Predicted(prediction)) => (
                     ClassProbabilities::from_posterior(&prediction.calibrated),
@@ -192,18 +196,19 @@ pub(crate) fn resolve(
                 ),
                 (None, Classification::Unclassified) => (
                     ClassProbabilities {
-                        coincident: 0.0,
-                        proximal: 0.0,
+                        coincident: UnitFraction::ZERO,
+                        proximal: UnitFraction::ZERO,
                     },
-                    0.0,
+                    UnitFraction::ZERO,
                 ),
             };
             RelationPolicy {
                 relation,
                 attraction: attraction(selected, applicability, admission),
                 selected,
-                applicability: narrow(applicability),
-                strength: 1.0,
+                applicability,
+                strength: NonNegative::ONE,
+                _pad: [0; 4],
             }
         })
         .collect())
@@ -213,13 +218,13 @@ pub(crate) fn resolve(
 ///
 /// Overlay is the unstored remainder, so mixing toward it scales the stored components by `a`;
 /// admission then reroutes a failing mixed Coincident mass to that remainder.
-fn attraction(
+const fn attraction(
     selected: ClassProbabilities,
-    applicability: f64,
+    applicability: UnitFraction,
     admission: CoincidentAdmission,
 ) -> ClassProbabilities {
-    let mixed_coincident = applicability * f64::from(selected.coincident);
-    let mixed_proximal = applicability * f64::from(selected.proximal);
+    let mixed_coincident = applicability * selected.coincident;
+    let mixed_proximal = applicability * selected.proximal;
 
     let admitted = !admission.enforced
         || (mixed_coincident >= admission.class_probability_threshold.get()
@@ -227,11 +232,11 @@ fn attraction(
 
     ClassProbabilities {
         coincident: if admitted {
-            narrow(mixed_coincident)
+            mixed_coincident
         } else {
-            0.0
+            UnitFraction::ZERO
         },
-        proximal: narrow(mixed_proximal),
+        proximal: mixed_proximal,
     }
 }
 
@@ -263,14 +268,4 @@ fn winning_overrides<'over>(
     }
 
     Ok(winners)
-}
-
-/// Narrows a resolved probability to working precision.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "probabilities lie in [0, 1], far inside f32 range"
-)]
-#[inline]
-const fn narrow(value: f64) -> f32 {
-    value as f32
 }

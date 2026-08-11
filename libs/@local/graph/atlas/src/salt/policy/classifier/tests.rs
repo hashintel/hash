@@ -3,11 +3,11 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use super::{Applicability, Classifier, PredictError, softmax, standardized_distance};
+use super::{Applicability, Classifier, PredictError, standardized_distance};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     math::{BoxedDVecN, BoxedVecN},
-    salt::policy::GeometryClass,
+    salt::policy::{GeometryClass, Posterior},
 };
 
 /// Builds an embedding with the leading components set.
@@ -47,7 +47,7 @@ fn classifier(
 
 #[test]
 fn softmax_of_equal_logits_is_uniform() {
-    let uniform = softmax([0.0, 0.0, 0.0], 1.0);
+    let uniform = Posterior::softmax([0.0, 0.0, 0.0], 1.0).to_array();
     assert_eq!(uniform, [1.0 / 3.0; 3]);
 }
 
@@ -60,7 +60,7 @@ fn softmax_matches_an_unshifted_reference() {
     }
 
     for temperature in [0.5, 1.0, 2.0] {
-        let actual = softmax([0.5, -0.5, 0.0], temperature);
+        let actual = Posterior::softmax([0.5, -0.5, 0.0], temperature).to_array();
         let expected = reference([0.5, -0.5, 0.0], temperature);
         for (actual, expected) in actual.into_iter().zip(expected) {
             assert!((actual - expected).abs() < 1.0e-15);
@@ -70,9 +70,18 @@ fn softmax_matches_an_unshifted_reference() {
 }
 
 #[test]
+fn softmax_of_extreme_logits_stays_a_distribution() {
+    // A logit near `f64::MAX` over a temperature below one overflows to `+∞` if divided
+    // before the shift, and `∞ - ∞` then poisons every component with NaN. The shift-first
+    // order keeps the quotient finite and the degenerate distribution exact.
+    let posterior = Posterior::softmax([1.7e308, 0.0, 0.0], 0.5).to_array();
+    assert_eq!(posterior, [1.0, 0.0, 0.0]);
+}
+
+#[test]
 fn temperature_flattens_the_distribution() {
-    let raw = softmax([2.0, 0.0, -1.0], 1.0);
-    let calibrated = softmax([2.0, 0.0, -1.0], 4.0);
+    let raw = Posterior::softmax([2.0, 0.0, -1.0], 1.0).to_array();
+    let calibrated = Posterior::softmax([2.0, 0.0, -1.0], 4.0).to_array();
     assert!(calibrated[0] < raw[0]);
     assert!(calibrated[2] > raw[2]);
 }
@@ -113,10 +122,10 @@ fn predict_computes_logits_posteriors_and_applicability() {
     let prediction = model.predict(&input).expect("finite inputs should predict");
 
     assert_eq!(prediction.logits, [0.75, -0.5, 0.0]);
-    assert_eq!(prediction.raw.to_array(), softmax([0.75, -0.5, 0.0], 1.0));
+    assert_eq!(prediction.raw, Posterior::softmax([0.75, -0.5, 0.0], 1.0));
     assert_eq!(
-        prediction.calibrated.to_array(),
-        softmax([0.75, -0.5, 0.0], 2.0),
+        prediction.calibrated,
+        Posterior::softmax([0.75, -0.5, 0.0], 2.0),
     );
     assert_eq!(
         prediction.raw.probability(GeometryClass::Coincident),

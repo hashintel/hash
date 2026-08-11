@@ -122,7 +122,7 @@ where
 
 /// The assignment inputs or backend misbehaved.
 #[derive(Debug)]
-pub enum AssignmentError<N, E> {
+pub(crate) enum AssignmentError<N, E> {
     /// A selected row lies outside the corpus.
     UnknownRow { row: N, rows: usize },
     /// The backend reported an error.

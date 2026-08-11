@@ -12,7 +12,12 @@ use super::super::{
     build::{self, ProtectionRecord},
     protection::ProtectionIndex,
 };
-use crate::{identity::OntologyRowId, random::uniform_below, salt::policy::ClassProbabilities};
+use crate::{
+    identity::OntologyRowId,
+    math::{NonNegative, UnitFraction},
+    random::uniform_below,
+    salt::policy::ClassProbabilities,
+};
 
 /// Cumulative specific-type link volumes measured in the live store.
 ///
@@ -177,17 +182,20 @@ impl<N, E> Corpus<N, E> {
                 // Masses and applicabilities spread across the table so
                 // pruning-threshold and floor sweeps separate relations
                 // instead of dropping all or nothing.
-                let step = f32::from(u8::try_from(relation).expect("the table holds 17 types"));
+                let step = f64::from(u8::try_from(relation).expect("the table holds 17 types"));
                 let distribution = ClassProbabilities {
-                    coincident: 0.0,
-                    proximal: (step / 16.0).mul_add(-0.9375, 1.0),
+                    coincident: UnitFraction::ZERO,
+                    proximal: UnitFraction::new((step / 16.0).mul_add(-0.9375, 1.0))
+                        .expect("the sweep interpolates inside the unit interval"),
                 };
                 RelationPolicy {
                     relation: OntologyRowId::from_usize(relation),
                     attraction: distribution,
                     selected: distribution,
-                    applicability: (step / 16.0).mul_add(-0.75, 1.0),
-                    strength: 1.0,
+                    applicability: UnitFraction::new((step / 16.0).mul_add(-0.75, 1.0))
+                        .expect("the sweep interpolates inside the unit interval"),
+                    strength: NonNegative::ONE,
+                    _pad: [0; 4],
                 }
             })
             .collect();

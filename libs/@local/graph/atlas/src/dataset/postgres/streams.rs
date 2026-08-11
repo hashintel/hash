@@ -176,7 +176,7 @@ pub(super) fn decode_node(
     let web_id: Uuid = row.try_get(columns.web_id)?;
     let entity_uuid: Uuid = row.try_get(columns.entity_uuid)?;
     let embedding: PgVector<PROJECTOR_DIMENSIONS> = row.try_get(columns.embedding)?;
-    let confidence: Option<f64> = row.try_get(columns.confidence)?;
+    let confidence: Option<UnitFraction> = row.try_get(columns.confidence)?;
     let ordinals: Vec<i64> = row.try_get(columns.ordinals)?;
 
     Ok(Node {
@@ -351,9 +351,9 @@ pub(super) fn decode_edge(
     let target: i64 = row.try_get(target)?;
     let ordinals: Vec<i64> = row.try_get(ordinals)?;
     let embedding: Option<PgVector<PROJECTOR_DIMENSIONS>> = row.try_get(embedding)?;
-    let confidence: Option<f64> = row.try_get(confidence)?;
-    let source_confidence: Option<f64> = row.try_get(source_confidence)?;
-    let target_confidence: Option<f64> = row.try_get(target_confidence)?;
+    let confidence: Option<UnitFraction> = row.try_get(confidence)?;
+    let source_confidence: Option<UnitFraction> = row.try_get(source_confidence)?;
+    let target_confidence: Option<UnitFraction> = row.try_get(target_confidence)?;
 
     let row_id = |value: i64| {
         u64::try_from(value)

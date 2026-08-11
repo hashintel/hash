@@ -24,23 +24,26 @@
 //!
 //! # The types, by role
 //!
-//! 2D geometry: [`Vec2`] is the scalar point/vector; [`Vec2x4`] (natural order) and [`Vec2x4T`]
-//! (transposed order) batch four of them for SIMD, staging and computing respectively. [`Bounds2`]
-//! is the validated bounding box, with serial, SIMD, and parallel construction.
+//! 2D geometry: [`Vec2`] is the scalar point/vector; [`Vec2x4`](vec2::Vec2x4) (natural order) and
+//! [`Vec2x4T`] (transposed order) batch four of them for SIMD, staging and computing respectively.
+//! [`Bounds2`] is the validated bounding box, with serial, SIMD, and parallel construction.
 //!
-//! Transforms, most constrained first: [`Rotation`] (angle only, exact inverse), [`Translation`]
-//! (offset only, exact inverse), [`Similarity`] (uniform scale + rotation + translation, total
-//! inverse, fitted from weighted point correspondences), [`Transform`] (general affine, fallible
-//! inverse). Prefer the most constrained type that models the job; each widens into [`Transform`]
-//! via [`From`], and composition is always `a.then(b)`, reading in application order.
+//! Transforms, most constrained first: [`Rotation`] (angle only, exact inverse),
+//! [`Translation`](translation::Translation) (offset only, exact inverse), [`Similarity`]
+//! (uniform scale + rotation + translation, total inverse, fitted from weighted point
+//! correspondences), [`Transform`](transform::Transform) (general affine, fallible inverse).
+//! Prefer the most constrained type that models the job; each widens into
+//! [`Transform`](transform::Transform) via [`From`], and composition is always `a.then(b)`,
+//! reading in application order.
 //!
 //! Embeddings: [`VecN`] is the `N`-dimensional `f32` vector with the distance kernels;
 //! [`BoxedVecN`] owns SIMD-aligned heap storage and hands out [`AlignedVecN`] references. [`DVecN`]
 //! is the double-precision twin for the few consumers whose algorithms need it.
 //!
 //! Dense solves: [`DSquareMatrix`] is the runtime-order square `f64` matrix;
-//! [`DSquareMatrix::cholesky`] factors it deterministically into the [`DCholeskyFactor`] that
-//! answers symmetric positive-definite linear systems.
+//! [`DSquareMatrix::cholesky`] factors it deterministically into the
+//! [`DCholeskyFactor`](dsquare::DCholeskyFactor) that answers symmetric positive-definite
+//! linear systems.
 //!
 //! Exact neighbours: [`KdTree`] indexes a placed 2D frame and answers exact k-nearest-neighbour
 //! readouts equal to a full scan, with `f64` squared-distance readings and ties resolved by row.
@@ -48,8 +51,10 @@
 //! Layout fitting: [`AffinityCurve`] evaluates the affinity curve of UMAP-style layouts and its
 //! attraction/repulsion gradients over batches. Its parameters come from [`AffinityCurve::fit`].
 //!
-//! Scalar helpers: [`softplus`], [`huber`], and the checked narrowings [`narrow_f32`] /
-//! [`narrow_f32_exact`].
+//! Scalar helpers: [`softplus`] and the checked narrowings [`narrow_f32`] /
+//! [`narrow_f32_exact`](scalar::narrow_f32_exact). The Huber penalty and the logistic function
+//! live on [`NonNegative`] as
+//! [`huber`](NonNegative::huber) and [`sigmoid`](NonNegative::sigmoid).
 //!
 //! # Precision policy
 //!
@@ -95,8 +100,7 @@ mod tests;
 
 #[cfg(test)]
 pub(crate) use self::scalar::{
-    d_finite, d_non_negative, d_positive, finite, greater_than_one, non_negative,
-    open_unit_fraction, positive, unit_fraction,
+    Finite, d_finite, d_non_negative, finite, greater_than_one, positive_unit_fraction,
 };
 pub(crate) use self::{
     affinity::AffinityCurve,
@@ -108,8 +112,9 @@ pub(crate) use self::{
     matrixn::MatrixN,
     rotation::Rotation,
     scalar::{
-        DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
-        OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32, sigmoid, softplus,
+        DFinite, DNonNegative, DPositive, GreaterThanOne, Log2, NonNegative, OpenUnitFraction,
+        Positive, PositiveUnitFraction, UnitFraction, d_positive, narrow_f32, non_negative, nz,
+        open_unit_fraction, positive, softplus, unit_fraction,
     },
     similarity::Similarity,
     vec2::{Vec2, Vec2x4T},

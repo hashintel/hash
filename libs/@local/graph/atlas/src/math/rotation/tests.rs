@@ -6,7 +6,7 @@
 use proptest::{prop_assert, property_test, strategy::Strategy};
 
 use crate::math::{
-    Rotation, Vec2, Vec2x4T,
+    Rotation, Vec2, Vec2x4T, positive,
     tests::{POINTS, assert_vec2_close},
 };
 
@@ -108,7 +108,7 @@ fn apply_preserves_length(
 
     let length = vec.length();
     prop_assert!(
-        (rotated.length() - length).abs() <= 16.0 * f32::EPSILON * length.max(1.0),
+        (rotated.length() - length).abs() <= 16.0 * f32::EPSILON * length.at_least(positive!(1.0)),
         "|{:?}| = {} became {}",
         vec,
         length,
@@ -131,7 +131,7 @@ fn then_matches_sequential_application(
     let composed = first.then(second).apply(vec);
     let sequential = second.apply(first.apply(vec));
 
-    let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
+    let tolerance = 32.0 * f32::EPSILON * vec.length().at_least(positive!(1.0));
     prop_assert!(
         (composed.x() - sequential.x()).abs() <= tolerance
             && (composed.y() - sequential.y()).abs() <= tolerance,
@@ -153,7 +153,7 @@ fn inverse_undoes_apply(
 
     let round_tripped = rotation.inverse().apply(rotation.apply(vec));
 
-    let tolerance = 32.0 * f32::EPSILON * vec.length().max(1.0);
+    let tolerance = 32.0 * f32::EPSILON * vec.length().at_least(positive!(1.0));
     prop_assert!(
         (round_tripped.x() - vec.x()).abs() <= tolerance
             && (round_tripped.y() - vec.y()).abs() <= tolerance,

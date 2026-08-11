@@ -43,7 +43,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedDVecN, DVecN, MatrixN},
+    math::{AlignedVecN, BoxedDVecN, DNonNegative, DPositive, DVecN, MatrixN},
     progress::Progress,
     salt::policy::GeometryClass,
 };
@@ -63,7 +63,7 @@ mod tests;
 
 /// A training input violated the corpus contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum TrainingSetError {
+pub(crate) enum TrainingSetError {
     /// The corpus holds no rows.
     Empty,
     /// The embedding and row counts differ.
@@ -112,7 +112,7 @@ impl Error for TrainingSetError {}
 
 /// The fit could not produce a valid classifier.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum FitError {
+pub(crate) enum FitError {
     /// The solver configuration violated a cross-field constraint.
     Config(SolverConfigError),
     /// The fold count cannot hold one validation portion out. A fit needs at least 2 folds.
@@ -323,17 +323,17 @@ pub(crate) struct FitEvidence {
     /// Out-of-fold logits per training row, in class order.
     pub out_of_fold_logits: Box<IdSlice<CardRow, [f64; GeometryClass::COUNT]>>,
     /// The selected L2 penalty on contrast coefficients.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// Every regularization candidate's out-of-fold reading, ascending by strength.
     pub selection: Box<[RegularizationReading]>,
     /// Weighted-mean cross-entropy of the uncalibrated posteriors.
-    pub raw_cross_entropy: f64,
+    pub raw_cross_entropy: DNonNegative,
     /// Weighted-mean cross-entropy at the deployment temperature.
-    pub calibrated_cross_entropy: f64,
+    pub calibrated_cross_entropy: DNonNegative,
     /// Weighted-mean Brier score of the uncalibrated posteriors.
-    pub raw_brier: f64,
+    pub raw_brier: DNonNegative,
     /// Weighted-mean Brier score at the deployment temperature.
-    pub calibrated_brier: f64,
+    pub calibrated_brier: DNonNegative,
     /// Started outer iterations of the final full-corpus fit.
     pub iterations: u64,
 }
@@ -385,7 +385,7 @@ pub(crate) fn fit<P: Progress + Sync>(
 
     let out_of_fold_logits = selection.out_of_fold_logits;
     let temperature = calibration::fit_temperature(training.rows(), &out_of_fold_logits);
-    let metrics = calibration::metrics(training.rows(), &out_of_fold_logits, temperature);
+    let metrics = calibration::metrics(training.rows(), &out_of_fold_logits, temperature)?;
     let applicability = applicability::fit_applicability(training)?;
 
     let (coefficients, intercepts) = split_parameters(&final_parameters);
@@ -399,7 +399,7 @@ pub(crate) fn fit<P: Progress + Sync>(
         evidence: FitEvidence {
             folds: folds.into_boxed_slice(),
             out_of_fold_logits: out_of_fold_logits.into_boxed_slice(),
-            regularization: selection.regularization.get(),
+            regularization: selection.regularization,
             selection: selection.curve,
             raw_cross_entropy: metrics.raw_cross_entropy,
             calibrated_cross_entropy: metrics.calibrated_cross_entropy,

@@ -32,7 +32,7 @@ use crate::{
         },
     },
     identity::NodeRowId,
-    math::{AlignedVecN, BoxedVecN},
+    math::{AlignedVecN, BoxedVecN, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, DescentIteration, NoProgress, Progress},
     random::normal_quantile,
 };
@@ -997,13 +997,13 @@ fn spot_check_honours_configured_options() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            minimum_recall: 0.8,
+            minimum_recall: unit_fraction!(0.8),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
     )
     .expect("the degraded backend still answers every query");
-    assert_eq!(check.minimum_recall, 0.8);
+    assert_eq!(check.minimum_recall, unit_fraction!(0.8));
     assert_eq!(
         check.admission(),
         recall::RecallAdmission::Admitted,
@@ -1034,7 +1034,7 @@ fn spot_check_honours_configured_options() {
     miri,
     ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
 )]
-fn spot_check_rejects_a_degenerate_confidence() {
+fn spot_check_rejects_a_one_sided_confidence_at_or_below_one_half() {
     let rows = fan_fixture(4, 0.15);
     let matrix = Matrix::new(&rows);
     let index = ExactIndex::from_rows(&rows);
@@ -1042,12 +1042,15 @@ fn spot_check_rejects_a_degenerate_confidence() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            confidence: 1.0,
+            confidence: open_unit_fraction!(0.3),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
     );
-    assert_matches!(result, Err(KnnError::SampleConfidence { confidence: 1.0 }),);
+    assert_matches!(
+        result,
+        Err(KnnError::SampleConfidence { confidence }) if confidence == open_unit_fraction!(0.3),
+    );
 }
 
 /// A backend far above the floor resolves its clearance at the pilot's size.
@@ -1076,9 +1079,9 @@ fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
     .expect("the exact backend answers every query");
 
     assert_eq!(check.sampled_rows, 4);
-    assert_eq!(check.deviation, 0.0);
+    assert_eq!(check.deviation, d_non_negative!(0.0));
     assert_eq!(check.recall(), 1.0);
-    assert_eq!(check.resolution, 0.0);
+    assert_eq!(check.resolution, d_non_negative!(0.0));
     assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
 }
 
@@ -1103,7 +1106,7 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            minimum_recall: 0.93,
+            minimum_recall: unit_fraction!(0.93),
             pilot: NonZero::new(4).expect("four is nonzero"),
             ..
         },
@@ -1114,10 +1117,10 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
     assert_eq!(check.sampled_rows, 60, "the verdict sample is exhaustive");
     assert_eq!(check.matched, 60 * 50 - 202);
     assert_eq!(check.expected, 60 * 50);
-    assert!(check.deviation > 0.0);
+    assert!(check.deviation > d_non_negative!(0.0));
     // A census of the corpus leaves no sampling error to bound, so the
     // aggregate itself clears the minimum.
-    assert_eq!(check.resolution, 0.0);
+    assert_eq!(check.resolution, d_non_negative!(0.0));
     assert_eq!(check.admission(), recall::RecallAdmission::Admitted);
 }
 
@@ -1140,7 +1143,7 @@ fn spot_check_stops_at_the_sampling_budget() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            minimum_recall: 0.94,
+            minimum_recall: unit_fraction!(0.94),
             pilot: NonZero::new(4).expect("four is nonzero"),
             budget: Duration::ZERO,
             ..
@@ -1159,21 +1162,21 @@ fn spot_check_stops_at_the_sampling_budget() {
     // demonstrate is not a refusal.
     assert_eq!(check.matched, 200 - 18);
     assert_eq!(check.recall(), 0.91);
-    assert!(check.recall() < check.minimum_recall);
-    assert!(check.resolution > check.minimum_recall - check.recall());
+    assert!(check.recall() < check.minimum_recall.get());
+    assert!(check.resolution.get() > check.minimum_recall.get() - check.recall());
     assert_eq!(check.admission(), recall::RecallAdmission::Unresolved);
 
     // The recorded resolution is the achieved half-width: the normal
     // quantile of the configured confidence over the sample's own
     // spread, narrowed by the finite-population factor.
-    let quantile = normal_quantile(check.confidence).expect("0.99 is in domain");
+    let quantile = normal_quantile(check.confidence);
     let correction = ((60.0 - 4.0) / 59.0_f64).sqrt();
-    let expected = quantile * check.deviation / 2.0 * correction;
+    let expected = quantile * check.deviation.get() / 2.0 * correction;
     assert!(
-        (check.resolution - expected).abs() < 1e-12,
+        (check.resolution.get() - expected).abs() < 1e-12,
         "resolution {} does not follow the recorded deviation {}",
-        check.resolution,
-        check.deviation,
+        check.resolution.get(),
+        check.deviation.get(),
     );
 }
 

@@ -11,6 +11,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{OrdinaryNegativeSampler, RelationEdgeSampler, SemanticEdgeSampler};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    math::{NonNegative, unit_fraction},
     salt::{
         policy::ClassProbabilities,
         relation::{
@@ -66,15 +67,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 

@@ -16,8 +16,8 @@
 //! [`evidence`] aggregates the readings into the persisted body the metadata document embeds
 //! beside the rungs, with nearest-rank quantiles over per-pair differences, collateral strata
 //! over the candidate census, and a tri-state outcome that cannot carry a partial family.
-//! [`measure`] runs the whole readout for one generation, salt to evidence body, as one pure
-//! function the fit's writer wraps around the staged artifacts.
+//! [`measure`](mod@measure) runs the whole readout for one generation, salt to evidence body,
+//! as one pure function the fit's writer wraps around the staged artifacts.
 
 mod census;
 mod evidence;

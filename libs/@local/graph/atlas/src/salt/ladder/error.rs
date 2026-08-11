@@ -2,8 +2,10 @@
 
 use core::{error::Error, fmt};
 
+use crate::math::NonNegative;
+
 /// A rejected condition schedule.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ConditionsError {
     /// Fewer than two rungs: nothing to compare across.
     TooFew {
@@ -13,23 +15,16 @@ pub(crate) enum ConditionsError {
     /// The first rung is not the exact zero-condition value `0.0`.
     BaselineNotZero {
         /// The offered first rung.
-        value: f32,
-    },
-    /// A rung is not a finite number.
-    NonFinite {
-        /// Position of the rejected rung.
-        index: usize,
-        /// The offered value.
-        value: f32,
+        value: NonNegative,
     },
     /// A rung does not exceed its predecessor.
     Unordered {
         /// Position of the rejected rung.
         index: usize,
         /// The predecessor it fails to exceed.
-        previous: f32,
+        previous: NonNegative,
         /// The offered value.
-        value: f32,
+        value: NonNegative,
     },
 }
 
@@ -48,9 +43,6 @@ impl fmt::Display for ConditionsError {
                     "the first rung must be the exact zero-condition value 0.0, got {value}"
                 )
             }
-            Self::NonFinite { index, value } => {
-                write!(fmt, "rung {index} is not finite: {value}")
-            }
             Self::Unordered {
                 index,
                 previous,
@@ -68,8 +60,8 @@ impl fmt::Display for ConditionsError {
 impl Error for ConditionsError {}
 
 /// A rejected ladder measurement input.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum LadderError {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum LadderError {
     /// The field count does not match the schedule.
     FieldCount {
         /// Rungs in the schedule.
@@ -85,13 +77,6 @@ pub enum LadderError {
         rows: usize,
         /// The baseline field's row count.
         expected: usize,
-    },
-    /// A field's relation loss is not finite.
-    NonFiniteLoss {
-        /// Position of the rejected field.
-        index: usize,
-        /// The offered loss.
-        value: f64,
     },
     /// A rung's field has no Procrustes alignment onto the compared field.
     ///
@@ -123,9 +108,6 @@ impl fmt::Display for LadderError {
                     "field {index} has {rows} rows; the baseline has {expected}"
                 )
             }
-            Self::NonFiniteLoss { index, value } => {
-                write!(fmt, "field {index} has a non-finite loss: {value}")
-            }
             Self::Degenerate { index, against } => {
                 write!(
                     fmt,
@@ -139,12 +121,12 @@ impl fmt::Display for LadderError {
 impl Error for LadderError {}
 
 /// A rejected canonical selection.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum CanonicalError {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum CanonicalError {
     /// The requested value is not a rung of the measured ladder.
     UnknownRung {
         /// The requested condition.
-        value: f32,
+        value: NonNegative,
     },
 }
 

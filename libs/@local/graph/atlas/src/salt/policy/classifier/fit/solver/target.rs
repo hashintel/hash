@@ -19,7 +19,7 @@ use crate::salt::policy::GeometryClass;
 
 /// A closed target rejected the raw triple.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum ClosedTargetError {
+pub(crate) enum ClosedTargetError {
     /// The raw component sum lies outside the unit-sum ulp tolerance.
     SumOutOfTolerance { sum: f64 },
     /// A normalized or derived component is non-finite or negative.

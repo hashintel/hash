@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     cli::tui::state::{KnnActivity, RunState},
-    math::Vec2,
+    math::{Vec2, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, DescentIteration, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -330,10 +330,10 @@ fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
         neighbours_per_row: 50,
         matched: 9_021,
         expected: 10_000,
-        deviation: 0.289,
-        minimum_recall: 0.89,
-        resolution: 0.0475,
-        confidence: 0.99,
+        deviation: d_non_negative!(0.289),
+        minimum_recall: unit_fraction!(0.89),
+        resolution: d_non_negative!(0.0475),
+        confidence: open_unit_fraction!(0.99),
     }));
     assert!(
         draw(&state, 0)[6].starts_with("│ ⠋ knn         recall 0.9021"),

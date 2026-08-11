@@ -22,7 +22,12 @@ use super::{
     FitConfig, FitError, TrainingSet, calibration, fit_model, objective,
     solver::{Gram, WorkCounters},
 };
-use crate::{identity::CardRow, math::DPositive, progress::Progress, salt::policy::GeometryClass};
+use crate::{
+    identity::CardRow,
+    math::{DNonNegative, DPositive},
+    progress::Progress,
+    salt::policy::GeometryClass,
+};
 
 /// The candidate strengths, ascending.
 pub(super) const CANDIDATES: [DPositive; 13] = {
@@ -51,9 +56,9 @@ pub(super) const CANDIDATES: [DPositive; 13] = {
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) struct RegularizationReading {
     /// The candidate L2 penalty on contrast coefficients.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// The candidate's weighted-mean out-of-fold cross-entropy of the uncalibrated posteriors.
-    pub cross_entropy: f64,
+    pub cross_entropy: DNonNegative,
 }
 
 /// The winning strength and the evidence that chose it.
@@ -139,13 +144,15 @@ pub(super) fn select<P: Progress + Sync>(
             return Err(FitError::NonFinite);
         }
 
-        let cross_entropy = calibration::raw_cross_entropy(training.rows(), &logits);
-        if !cross_entropy.is_finite() {
-            return Err(FitError::NonFinite);
-        }
+        // Non-negative by the mean's own derivation (targets and weights are validated at
+        // `TrainingSet::new`, posteriors lie in the unit interval), so the construction refuses
+        // exactly the non-finite escapes: a NaN or infinite mean is a weights defect.
+        let cross_entropy =
+            DNonNegative::new(calibration::raw_cross_entropy(training.rows(), &logits))
+                .ok_or(FitError::NonFinite)?;
 
         curve.push(RegularizationReading {
-            regularization: CANDIDATES[candidate].get(),
+            regularization: CANDIDATES[candidate],
             cross_entropy,
         });
 

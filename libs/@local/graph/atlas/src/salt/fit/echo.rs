@@ -19,7 +19,7 @@ use core::{num::NonZero, time::Duration};
 
 use super::{FitConfig, KnnConstructionChoice, PlacementOptions, PolicyOptions, prepare::norm};
 use crate::{
-    math::{AffinityCurve, Log2, UnitFraction},
+    math::{AffinityCurve, DPositive, Log2, OpenUnitFraction, UnitFraction},
     salt::{
         importance::RankingConfig,
         knn::{descent::NnDescentOptions, hannoy::HannoyIndexOptions, recall},
@@ -234,17 +234,17 @@ mod policy_overrides {
 
 /// Serializes [`AttractionOptions`] as its two named settings.
 ///
-/// Validates through [`AttractionOptions::new`] on deserialize.
+/// The typed fields refuse out-of-domain values at deserialize.
 mod attraction_options {
-    use serde::{Deserialize as _, Serialize as _, de::Error as _};
+    use serde::{Deserialize as _, Serialize as _};
 
-    use crate::salt::relation::attraction::AttractionOptions;
+    use crate::{math::NonNegative, salt::relation::attraction::AttractionOptions};
 
     /// The settings' wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct Record {
-        coincident_coefficient: f32,
-        pruning_threshold: f32,
+        coincident_coefficient: NonNegative,
+        pruning_threshold: NonNegative,
     }
 
     #[expect(
@@ -273,12 +273,10 @@ mod attraction_options {
             coincident_coefficient,
             pruning_threshold,
         } = Record::deserialize(deserializer)?;
-        AttractionOptions::new(coincident_coefficient, pruning_threshold).ok_or_else(|| {
-            D::Error::custom(format_args!(
-                "the settings kappa_C = {coincident_coefficient}, eta_F = {pruning_threshold} are \
-                 not both finite and non-negative"
-            ))
-        })
+        Ok(AttractionOptions::new(
+            coincident_coefficient,
+            pruning_threshold,
+        ))
     }
 }
 
@@ -333,8 +331,8 @@ mod placement {
         architecture: ArchitectureRecord,
         schedule: ScheduleRecord,
         plan: PlanRecord,
-        affinity_offset: f32,
-        support: [f32; 2],
+        affinity_offset: Positive,
+        support: [Positive; 2],
         budget: BudgetRecord,
         coefficients: [f32; 6],
         miner: MinerRecord,
@@ -390,10 +388,10 @@ mod placement {
     /// The relation lens's wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct LensRecord {
-        coincident_radius: f32,
-        coincident_threshold: f32,
-        temperature: f32,
-        epsilon: f32,
+        coincident_radius: NonNegative,
+        coincident_threshold: Positive,
+        temperature: Positive,
+        epsilon: Positive,
     }
 
     /// The protection thresholds' wire form; each channel is `[floor, threshold]`.
@@ -407,8 +405,8 @@ mod placement {
     /// The condition ladder's wire form.
     #[derive(serde::Serialize, serde::Deserialize)]
     struct LadderRecord {
-        conditions: Vec<f32>,
-        canonical: f32,
+        conditions: Vec<NonNegative>,
+        canonical: NonNegative,
     }
 
     pub(super) fn serialize<S>(
@@ -466,8 +464,8 @@ mod placement {
                 lens: LensRecord {
                     coincident_radius: options.lens.coincident().radius(),
                     coincident_threshold: options.lens.coincident().threshold(),
-                    temperature: options.lens.temperature().get(),
-                    epsilon: options.lens.epsilon().get(),
+                    temperature: options.lens.temperature(),
+                    epsilon: options.lens.epsilon(),
                 },
                 protection: ProtectionRecord {
                     hard: [
@@ -547,17 +545,8 @@ mod placement {
             )
             .ok_or_else(|| E::custom("the schedule fields do not form a training schedule"))?;
 
-            if !(record.affinity_offset.is_finite() && record.affinity_offset > 0.0) {
-                return Err(E::custom(format_args!(
-                    "the affinity offset {} is not finite and strictly positive",
-                    record.affinity_offset
-                )));
-            }
-
             let [threshold, epsilon] = record.support;
-            let support = SupportOptions::new(threshold, epsilon).ok_or_else(|| {
-                E::custom("the support constants are not finite and strictly positive")
-            })?;
+            let support = SupportOptions::new(threshold, epsilon);
 
             let floor = match record.budget {
                 // The bare-array form carries the floor third, and the destructuring discards its
@@ -585,7 +574,7 @@ mod placement {
                 })?,
             );
 
-            let lens = record.lens.into_lens()?;
+            let lens = record.lens.into_lens();
             let protection = record.protection.into_config()?;
 
             let landmark_support =
@@ -633,23 +622,13 @@ mod placement {
     }
 
     impl LensRecord {
-        /// Validates the wire fields into the relation lens.
-        fn into_lens<E: serde::de::Error>(self) -> Result<RelationLens, E> {
-            let coincident =
-                CoincidentEnergy::new(self.coincident_radius, self.coincident_threshold)
-                    .ok_or_else(|| E::custom("the lens fields do not form a Coincident energy"))?;
-            let constant = |value: f32, name| {
-                Positive::new(value).ok_or_else(|| {
-                    E::custom(format_args!(
-                        "the lens {name} is not finite and strictly positive"
-                    ))
-                })
-            };
-            Ok(RelationLens::new(
-                coincident,
-                constant(self.temperature, "temperature")?,
-                constant(self.epsilon, "scale guard")?,
-            ))
+        /// Composes the typed wire fields into the relation lens.
+        const fn into_lens(self) -> RelationLens {
+            RelationLens::new(
+                CoincidentEnergy::new(self.coincident_radius, self.coincident_threshold),
+                self.temperature,
+                self.epsilon,
+            )
         }
     }
 
@@ -686,9 +665,9 @@ struct SelectionOptionsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "norm::SpotCheckOptions")]
 struct NormCheckOptionsDef {
-    tolerance: f64,
-    defect_rate: f64,
-    confidence: f64,
+    tolerance: DPositive,
+    defect_rate: OpenUnitFraction,
+    confidence: OpenUnitFraction,
 }
 
 /// serde shadow of [`HannoyIndexOptions`].
@@ -722,8 +701,8 @@ struct NnDescentOptionsDef {
 #[serde(remote = "recall::SpotCheckOptions")]
 struct RecallCheckOptionsDef {
     neighbours: NonZero<usize>,
-    minimum_recall: f64,
-    confidence: f64,
+    minimum_recall: UnitFraction,
+    confidence: OpenUnitFraction,
     pilot: NonZero<usize>,
     #[serde(with = "seconds")]
     budget: Duration,

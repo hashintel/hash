@@ -43,7 +43,7 @@ use core::{
 use super::{GeometryClass, Posterior};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DVecN, kernel::mul_add_f64x8},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, UnitFraction, kernel::mul_add_f64x8},
 };
 
 pub(crate) mod artifact;
@@ -67,7 +67,7 @@ const _: () = assert!(CANONICAL_DIMENSIONS.is_multiple_of(8));
 
 /// A prediction overflowed into a non-finite logit or distance.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct PredictError;
+pub(crate) struct PredictError;
 
 impl fmt::Display for PredictError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -113,7 +113,7 @@ pub(crate) struct Prediction {
     /// Standardized distance from the training distribution.
     pub distance: f64,
     /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
-    pub applicability: f64,
+    pub applicability: UnitFraction,
 }
 
 impl Classifier {
@@ -155,16 +155,17 @@ impl Classifier {
             .distances
             .partition_point(|training| *training < distance);
 
-        #[expect(
-            clippy::cast_precision_loss,
-            reason = "training corpora are bounded far below f64 integer precision"
-        )]
-        let applicability = 1.0 - insertion as f64 / self.applicability.distances.len() as f64;
+        // `partition_point` keeps the insertion index at or below the length, so the ratio is a
+        // fraction by construction and only an empty distribution refuses.
+        let applicability =
+            UnitFraction::ratio(insertion as u64, self.applicability.distances.len() as u64)
+                .expect("a fitted classifier holds a nonempty training distance distribution")
+                .complement();
 
         Ok(Prediction {
             logits,
-            raw: Posterior::from_softmax_unchecked(softmax(logits, 1.0)),
-            calibrated: Posterior::from_softmax_unchecked(softmax(logits, self.temperature)),
+            raw: Posterior::softmax(logits, 1.0),
+            calibrated: Posterior::softmax(logits, self.temperature),
             distance,
             applicability,
         })
@@ -200,14 +201,4 @@ fn standardized_distance(
     )]
     let dimensions = CANONICAL_DIMENSIONS as f64;
     ((sums[0] + sums[1]).reduce_sum() / dimensions).sqrt()
-}
-
-/// Temperature-scaled softmax over class logits.
-///
-/// The logits divide by the temperature and pass through the max-shifted [`DVecN::softmax`], so
-/// finite logits and a positive temperature always produce a valid distribution.
-fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> [f64; GeometryClass::COUNT] {
-    *DVecN::new(logits.map(|value| value / temperature))
-        .softmax()
-        .as_array()
 }

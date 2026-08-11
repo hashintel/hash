@@ -25,12 +25,12 @@
 //! than an interpolation point.
 //!
 //! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-rung
-//! relation loss is its frozen objective; both enter here as plain values, so the seam between the
-//! stages stays artifact-level.
+//! relation loss is its frozen objective; both enter here as constructed domain values, so the
+//! seam between the stages stays artifact-level.
 
 use alloc::borrow::Cow;
 
-use crate::math::{Similarity, Vec2};
+use crate::math::{DNonNegative, NonNegative, Similarity, Vec2};
 
 mod error;
 pub(crate) mod paired;
@@ -42,14 +42,15 @@ pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
 /// A validated relation-lens condition schedule.
 ///
-/// Construction validates the schedule. A schedule has at least two rungs. The first rung is
-/// bit-exactly `0.0`, the zero-condition rung that every other rung measures against. Validation
-/// rejects `-0.0` because the value conditions the projector and enters reproducibility records
-/// bit-for-bit. The rungs ascend strictly and every value is finite. The values sit behind a
-/// [`Cow`] so the reference schedule is a constant.
-#[derive(Debug, Clone, PartialEq)]
+/// Construction validates the schedule. A schedule has at least two rungs. The first rung is the
+/// zero-condition rung that every other rung measures against. The rungs ascend strictly, and
+/// every value is finite and non-negative with a canonical sign of zero by construction
+/// ([`NonNegative`]), so a rung's bits identify its value in reproducibility records with no
+/// `-0.0` alias to guard against. A [`Cow`] carries the values so the reference schedule is a
+/// constant.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Conditions {
-    values: Cow<'static, [f32]>,
+    values: Cow<'static, [NonNegative]>,
 }
 
 impl Conditions {
@@ -58,16 +59,24 @@ impl Conditions {
     /// An unvalidated starting point carried over from the legacy pipeline. The ladder's own
     /// movement evidence revises it.
     pub(crate) const REFERENCE: Self = Self {
-        values: Cow::Borrowed(&[0.0, 0.25, 0.5, 0.75, 1.0]),
+        values: Cow::Borrowed(&[
+            NonNegative::new_unchecked(0.0),
+            NonNegative::new_unchecked(0.25),
+            NonNegative::new_unchecked(0.5),
+            NonNegative::new_unchecked(0.75),
+            NonNegative::new_unchecked(1.0),
+        ]),
     };
 
     /// Validates a condition schedule.
     ///
     /// # Errors
     ///
-    /// Returns an error when the schedule has fewer than two rungs, the first rung is not
-    /// bit-exactly `0.0`, a rung is not finite, or a rung does not strictly exceed its predecessor.
-    pub(crate) fn new(values: impl Into<Cow<'static, [f32]>>) -> Result<Self, ConditionsError> {
+    /// Returns an error when the schedule has fewer than two rungs, the first rung is not zero,
+    /// or a rung does not strictly exceed its predecessor.
+    pub(crate) fn new(
+        values: impl Into<Cow<'static, [NonNegative]>>,
+    ) -> Result<Self, ConditionsError> {
         let values = values.into();
         if values.len() < 2 {
             return Err(ConditionsError::TooFew {
@@ -75,16 +84,12 @@ impl Conditions {
             });
         }
 
-        if values[0].to_bits() != 0.0_f32.to_bits() {
+        if !values[0].is_zero() {
             return Err(ConditionsError::BaselineNotZero { value: values[0] });
         }
 
         let mut previous = None;
         for (index, &value) in values.iter().enumerate() {
-            if !value.is_finite() {
-                return Err(ConditionsError::NonFinite { index, value });
-            }
-
             if let Some(previous) = previous
                 && value <= previous
             {
@@ -104,7 +109,7 @@ impl Conditions {
     /// Returns the rungs in ascending order, the baseline first.
     #[inline]
     #[must_use]
-    pub(crate) fn values(&self) -> &[f32] {
+    pub(crate) fn values(&self) -> &[NonNegative] {
         &self.values
     }
 
@@ -130,30 +135,31 @@ pub(crate) struct Field<'coordinates> {
     /// The field's frozen attraction-energy loss.
     ///
     /// Computed by the projector objective at projection time.
-    pub relation_loss: f64,
+    pub relation_loss: DNonNegative,
 }
 
 /// One fit's whole ladder configuration.
 ///
 /// The schedule and the rung that publishes.
 ///
-/// The canonical value names a schedule member bit-exactly ([`select_canonical`]). A value outside
-/// the schedule is a configuration contradiction, and [`Self::canonical_index`] decides the
-/// membership from the options alone, so a fit refuses the contradiction before it trains.
-#[derive(Debug, Clone, PartialEq)]
+/// The canonical value names a schedule member exactly ([`select_canonical`]): equality on
+/// [`NonNegative`] is bit equality. A value outside the schedule is a configuration
+/// contradiction, and [`Self::canonical_index`] decides the membership from the options alone,
+/// so a fit refuses the contradiction before it trains.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LadderOptions {
     /// The condition schedule the ladder projects.
     pub conditions: Conditions = Conditions::REFERENCE,
     /// The condition whose aligned field publishes as the canonical coordinates.
     ///
     /// `1.0` is the full-strength lens, matching the reference pipeline's canonical condition.
-    pub canonical: f32 = 1.0,
+    pub canonical: NonNegative = NonNegative::ONE,
 }
 
 impl LadderOptions {
     /// Returns the canonical rung's position in the schedule.
     ///
-    /// The canonical value names a schedule member bit-exactly, so the index exists exactly when
+    /// The canonical value names a schedule member exactly, so the index exists exactly when
     /// the configuration is self-consistent. The membership is a property of the options alone,
     /// decidable before any rung projects.
     ///
@@ -164,7 +170,7 @@ impl LadderOptions {
         self.conditions
             .values()
             .iter()
-            .position(|condition| condition.to_bits() == self.canonical.to_bits())
+            .position(|&condition| condition == self.canonical)
             .ok_or(CanonicalError::UnknownRung {
                 value: self.canonical,
             })
@@ -181,17 +187,17 @@ const impl Default for LadderOptions {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RungMeasurement {
     /// The rung's condition value.
-    pub condition: f32,
+    pub condition: NonNegative,
     /// The field's frozen relation loss, echoed from the input.
-    pub relation_loss: f64,
+    pub relation_loss: DNonNegative,
     /// The similarity aligning the rung's field onto the baseline field.
     ///
     /// The identity for the baseline itself.
     pub alignment: Similarity,
     /// RMS movement against the baseline field after alignment.
-    pub baseline_movement: f64,
+    pub baseline_movement: DNonNegative,
     /// RMS movement against the preceding field after alignment.
-    pub adjacent_movement: f64,
+    pub adjacent_movement: DNonNegative,
 }
 
 /// Aligns and measures a condition ladder.
@@ -204,8 +210,8 @@ pub(crate) struct RungMeasurement {
 /// # Errors
 ///
 /// Returns an error when the field count does not match the schedule, a field's rows differ from
-/// the baseline's, a relation loss is not finite, or a field admits no similarity alignment
-/// (coincident points or an exactly cancelling covariance).
+/// the baseline's, or a field admits no similarity alignment (coincident points or an exactly
+/// cancelling covariance).
 pub(crate) fn measure_ladder(
     conditions: &Conditions,
     fields: &[Field<'_>],
@@ -226,19 +232,13 @@ pub(crate) fn measure_ladder(
                 expected: rows,
             });
         }
-        if !field.relation_loss.is_finite() {
-            return Err(LadderError::NonFiniteLoss {
-                index,
-                value: field.relation_loss,
-            });
-        }
     }
 
     let baseline = fields[0].coordinates;
     let mut measurements = Vec::with_capacity(fields.len());
     for (index, (&condition, field)) in conditions.values().iter().zip(fields).enumerate() {
         let (alignment, baseline_movement, adjacent_movement) = if index == 0 {
-            (Similarity::IDENTITY, 0.0, 0.0)
+            (Similarity::IDENTITY, DNonNegative::ZERO, DNonNegative::ZERO)
         } else {
             let against_baseline = aligned_movement(field.coordinates, baseline)
                 .ok_or(LadderError::Degenerate { index, against: 0 })?;
@@ -280,20 +280,20 @@ pub(crate) struct CanonicalSelection<'ladder> {
 
 /// Selects the rung publishing as the canonical field.
 ///
-/// The value must be an exact (bit-level) member of the measured schedule, so the canonical
-/// condition names an existing rung.
+/// The value must be an exact member of the measured schedule, so the canonical condition names
+/// an existing rung. Equality on [`NonNegative`] is bit equality.
 ///
 /// # Errors
 ///
 /// Returns an error when the value names no rung.
 pub(crate) fn select_canonical(
     measurements: &[RungMeasurement],
-    value: f32,
+    value: NonNegative,
 ) -> Result<CanonicalSelection<'_>, CanonicalError> {
     let (index, measurement) = measurements
         .iter()
         .enumerate()
-        .find(|(_, measurement)| measurement.condition.to_bits() == value.to_bits())
+        .find(|(_, measurement)| measurement.condition == value)
         .ok_or(CanonicalError::UnknownRung { value })?;
 
     Ok(CanonicalSelection { index, measurement })
@@ -303,11 +303,12 @@ pub(crate) fn select_canonical(
 ///
 /// Returns [`None`] when the fit rejects the pair (coincident points or an exactly cancelling
 /// covariance). The residual of a successful fit over validated fields is always finite.
-fn aligned_movement(source: &[Vec2], target: &[Vec2]) -> Option<(Similarity, f64)> {
+fn aligned_movement(source: &[Vec2], target: &[Vec2]) -> Option<(Similarity, DNonNegative)> {
     let alignment = Similarity::fit_uniform_par(source, target)?;
     let movement = alignment
         .rms_residual_par(source, target)
-        .expect("residuals of a fitted alignment over finite fields are finite");
+        .and_then(DNonNegative::new)
+        .expect("an RMS residual of a fitted alignment over finite fields is finite");
 
     Some((alignment, movement))
 }

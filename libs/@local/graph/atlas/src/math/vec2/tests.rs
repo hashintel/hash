@@ -580,7 +580,7 @@ fn batch_reductions_match_scalar_lanes_on_arbitrary_inputs(
         let distance = lhs[lane].distance_squared(rhs[lane]);
         prop_assert!(close(distances[lane], distance, distance));
 
-        let length = lhs[lane].length_squared();
+        let length = lhs[lane].length_squared().get();
         prop_assert!(close(lengths[lane], length, length));
     }
 }

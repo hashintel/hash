@@ -20,7 +20,7 @@ use super::{
 };
 use crate::{
     identity::{NodeRowId, OntologyRowId},
-    math::{BoxedVecN, VecN},
+    math::{BoxedVecN, VecN, unit_fraction},
 };
 
 const UUID_BYTES: [u8; 16] = [
@@ -98,7 +98,7 @@ fn fixture() -> MemoryDataset {
                 id: U64::<LE>::new(10),
                 ontology: smallvec![OntologyRowId::new(0)],
                 embedding: unit(0),
-                confidence: Some(0.75),
+                confidence: Some(unit_fraction!(0.75)),
             },
             Node {
                 id: U64::<LE>::new(11),
@@ -113,9 +113,9 @@ fn fixture() -> MemoryDataset {
             target: NodeRowId::new(1),
             ontology: smallvec![OntologyRowId::new(1)],
             embedding: None,
-            confidence: Some(0.5),
+            confidence: Some(unit_fraction!(0.5)),
             source_confidence: None,
-            target_confidence: Some(1.0),
+            target_confidence: Some(unit_fraction!(1.0)),
         }],
         vec![
             Ontology {
@@ -150,7 +150,7 @@ async fn memory_dataset_streams_rows_in_construction_order() {
         .unwrap_or_else(|never| never);
     assert_eq!(nodes.len(), 2);
     assert_eq!(nodes[0].id.get(), 10);
-    assert_eq!(nodes[0].confidence, Some(0.75));
+    assert_eq!(nodes[0].confidence, Some(unit_fraction!(0.75)));
     assert_eq!(nodes[1].ontology.len(), 2);
 
     let edges: Vec<_> = dataset
@@ -161,7 +161,7 @@ async fn memory_dataset_streams_rows_in_construction_order() {
     assert_eq!(edges.len(), 1);
     assert_eq!(edges[0].source.as_u64(), 0);
     assert_eq!(edges[0].target.as_u64(), 1);
-    assert_eq!(edges[0].target_confidence, Some(1.0));
+    assert_eq!(edges[0].target_confidence, Some(unit_fraction!(1.0)));
 
     let ontology: Vec<_> = dataset
         .ontology()

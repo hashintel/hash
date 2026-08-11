@@ -76,7 +76,7 @@ pub(crate) use self::ontology::OntologyIdentity;
 use crate::{
     file::identity::Key,
     identity::{NodeRowId, OntologyRowId},
-    math::BoxedVecN,
+    math::{BoxedVecN, UnitFraction},
 };
 
 pub(crate) mod auxiliary;
@@ -160,9 +160,7 @@ pub(crate) struct Node<N> {
     ///
     /// `None` means unscored. Consumers treat it as the neutral factor 1 while retaining the
     /// scored/unscored distinction.
-    // f64 mirrors the store schema (DOUBLE PRECISION); working precision
-    // narrows to f32 at the point of use.
-    pub confidence: Option<f64>,
+    pub confidence: Option<UnitFraction>,
 }
 
 /// One link between two nodes.
@@ -196,17 +194,17 @@ pub(crate) struct Edge<E> {
     /// scored/unscored distinction. The same reading applies to
     /// [`source_confidence`](Self::source_confidence) and
     /// [`target_confidence`](Self::target_confidence).
-    pub confidence: Option<f64>,
+    pub confidence: Option<UnitFraction>,
 
     /// The store's confidence in the link's attachment to [`source`](Self::source).
     ///
     /// The value lies in `0.0..=1.0`.
-    pub source_confidence: Option<f64>,
+    pub source_confidence: Option<UnitFraction>,
 
     /// The store's confidence in the link's attachment to [`target`](Self::target).
     ///
     /// The value lies in `0.0..=1.0`.
-    pub target_confidence: Option<f64>,
+    pub target_confidence: Option<UnitFraction>,
 }
 
 /// The data one fit runs over, wherever it lives.

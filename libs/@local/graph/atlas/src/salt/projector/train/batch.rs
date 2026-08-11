@@ -51,7 +51,7 @@ use crate::{
 
 /// The materialized model input's row alignment.
 ///
-/// The batch's gathered-row count is dynamic - draws and deduplication vary per step - and it
+/// The batch's gathered-row count varies per step - draws and deduplication decide it - and it
 /// becomes the reduction dimension of the backward matmuls. Some GPU matmul kernels elected by
 /// shape-bucketed autotune constrain that dimension to a plane-size multiple and abort on shapes
 /// that violate it, so every materialized frame pads its row count to this alignment. A generous
@@ -339,8 +339,8 @@ where
 
 /// The per-row model input columns of one corpus.
 ///
-/// The representation matrix and the role column are the two per-row inputs the projector consumes;
-/// they always travel together, cover the same rows, and stay borrowed from the mapped artifacts.
+/// The representation matrix and the role column are the two per-row inputs the projector
+/// consumes. They always travel together over the same rows, borrowed from the mapped artifacts.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct NodeColumns<'corpus, N> {
     /// Normalized representations, one aligned row per node.

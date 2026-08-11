@@ -100,7 +100,7 @@ const impl Default for HannoyIndexOptions {
 // The private field keeps hannoy's and heed's types out of the public
 // interface: both are private dependencies.
 #[derive(Debug)]
-pub struct HannoyIndexError<N>(IndexFault<N>);
+pub(crate) struct HannoyIndexError<N>(IndexFault<N>);
 
 impl<N> HannoyIndexError<N> {
     /// Maps the row the error names into another row domain.

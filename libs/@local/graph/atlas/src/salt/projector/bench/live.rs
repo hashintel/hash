@@ -31,7 +31,7 @@ use super::{ARCHITECTURE, BackendKind};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, MatrixN, NonNegative, Vec2},
+    math::{AffinityCurve, MatrixN, NonNegative, Positive, UnitFraction, Vec2},
     salt::{
         policy::ClassProbabilities,
         projector::{
@@ -403,14 +403,20 @@ fn objective_options() -> ObjectiveOptions {
             AffinityCurve::new(1.0, 1.0).expect("the curve constants are valid"),
             ratified.affinity_offset,
         )
-        .expect("the affinity offset is valid"),
+        .expect("the curve exponent satisfies the objective bound"),
         relation: Some(
             RelationEnergy::new(
-                CoincidentEnergy::new(0.05, 1.0).expect("the coincident energy is valid"),
-                ProximalEnergy::new(0.1, 0.25).expect("the proximal energy is valid"),
-                1.0e-3,
+                CoincidentEnergy::new(
+                    NonNegative::new(0.05).expect("the bench radius is non-negative"),
+                    Positive::new(1.0).expect("the bench threshold is positive"),
+                ),
+                ProximalEnergy::new(
+                    NonNegative::new(0.1).expect("the bench radius is non-negative"),
+                    Positive::new(0.25).expect("the bench temperature is positive"),
+                ),
+                Positive::new(1.0e-3).expect("the bench scale guard is positive"),
             )
-            .expect("the scale guard is valid"),
+            .expect("the radii are ordered"),
         ),
         support: ratified.support,
         budget: ratified.budget,
@@ -462,15 +468,16 @@ fn relation_indexes(rows: usize) -> RelationIndexes<NodeRowId, EdgeRowId> {
         .map(|relation| RelationPolicy {
             relation: OntologyRowId::new(100 + relation as u64),
             attraction: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
             selected: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
-            applicability: 1.0,
-            strength: 1.0,
+            applicability: UnitFraction::ONE,
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
         })
         .collect();
 

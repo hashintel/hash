@@ -11,7 +11,7 @@ use crate::file::region::write_region;
 
 /// Writing a matrix as a sparse matrix file failed.
 #[derive(Debug)]
-pub enum WriteSprsError {
+pub(crate) enum WriteSprsError {
     /// The underlying writer failed.
     Io(io::Error),
     /// A sliced matrix, whose pointers do not begin at zero and therefore have no on-disk form.

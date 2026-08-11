@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are contracts on exactly representable values"
-)]
-
 use hashql_core::id::Id as _;
 
 use super::{
@@ -10,7 +5,7 @@ use super::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::UnitFraction,
+    math::{UnitFraction, unit_fraction},
     salt::{
         policy::{ClassProbabilities, Posterior, classifier::Prediction},
         relation::Policies,
@@ -27,7 +22,7 @@ fn prediction(calibrated: [f64; 3], applicability: f64) -> Prediction {
         raw: posterior,
         calibrated: posterior,
         distance: 0.0,
-        applicability,
+        applicability: UnitFraction::new(applicability).expect("test applicabilities are valid"),
     }
 }
 
@@ -55,8 +50,8 @@ fn prediction_resolves_through_the_applicability_mix() {
     assert_eq!(
         policy.selected,
         ClassProbabilities {
-            coincident: 0.5,
-            proximal: 0.25,
+            coincident: unit_fraction!(0.5),
+            proximal: unit_fraction!(0.25),
         },
     );
     // Attraction scales the stored components by the applicability, and the implicit Overlay
@@ -64,8 +59,8 @@ fn prediction_resolves_through_the_applicability_mix() {
     assert_eq!(
         policy.attraction,
         ClassProbabilities {
-            coincident: 0.25,
-            proximal: 0.125,
+            coincident: unit_fraction!(0.25),
+            proximal: unit_fraction!(0.125),
         },
     );
     assert_eq!(policy.applicability, 0.5);
@@ -85,8 +80,8 @@ fn unclassifiable_relation_falls_back_to_overlay() {
     assert_eq!(
         policy.selected,
         ClassProbabilities {
-            coincident: 0.0,
-            proximal: 0.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(0.0),
         },
     );
     assert_eq!(policy.attraction, policy.selected);
@@ -126,8 +121,8 @@ fn overrides_supersede_predictions_by_precedence() {
     assert_eq!(
         policy.selected,
         ClassProbabilities {
-            coincident: 0.5,
-            proximal: 0.25,
+            coincident: unit_fraction!(0.5),
+            proximal: unit_fraction!(0.25),
         },
     );
     assert_eq!(policy.attraction, policy.selected);

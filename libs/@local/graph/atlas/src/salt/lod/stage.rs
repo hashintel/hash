@@ -47,7 +47,7 @@ const DEFAULT_SPAN: Log2 = Log2::new(6).expect("6 lies below the shift width");
 /// Both values are starting points that no measurement has validated. The [`LodMeasurements`] of
 /// real generations revise them, and the manifest records the configuration a generation used.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct LodConfig {
+pub(crate) struct LodConfig {
     /// Cells per tile axis of the delivery cut, as its base-2 log.
     ///
     /// A tile at zoom `z` delivers buckets at or below `z + span`, sampling a `2^span` by `2^span`
@@ -89,7 +89,7 @@ impl LodConfig {
 
 /// Building the lod structure failed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LodError {
+pub(crate) enum LodError {
     /// The configuration names a schedule no 64-bit key resolves.
     Schedule { config: LodConfig },
     /// The rank columns cover a different row count than the coordinates.

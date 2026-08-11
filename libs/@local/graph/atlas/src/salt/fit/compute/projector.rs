@@ -40,18 +40,19 @@ use crate::{
         identity::{Key, read::IdentityFile},
         repository::RepositoryFile,
         salt::metadata::{
-            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence, Reproducibility,
-            RungEvidence, Snapshot,
+            FrozenRadiusEvidence, LadderEvidence, Placement, ProjectorEvidence,
+            ProximalCalibrationEvidence, RefreshFractionEvidence, Reproducibility, RungEvidence,
+            Snapshot, StabilityCertificateEvidence, TypeRelationLoss,
         },
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Writer},
-    math::{AlignedVecN, NonNegative, Positive, Vec2},
+    math::{AlignedVecN, DNonNegative, DPositive, NonNegative, Positive, Vec2},
     progress::Progress,
     salt::{
         knn::{artifact::KnnArchive, table::KnnView},
         ladder::{
-            Field, measure_ladder,
+            Field, RungMeasurement, measure_ladder,
             paired::{self, PairedMovementEvidence},
             select_canonical,
         },
@@ -62,8 +63,8 @@ use crate::{
             model::{NodeRole, Projector},
             scale::{LOCAL_SCALE_NEIGHBOURS, LocalScales, insert_nearest, sorted_median},
             train::{
-                self, BoundaryEvidence, Coefficients, FrozenRadius, NodeColumns, SupportAnchor,
-                TrainOptions, TrainerInputs, refresh,
+                self, BoundaryEvidence, Coefficients, FrozenRadius, NodeColumns, RefreshFraction,
+                SupportAnchor, TrainOptions, TrainerInputs, refresh,
             },
             verdict::ResolvedVerdict,
         },
@@ -238,7 +239,6 @@ impl Context<'_> {
             AffinityEnergy::new(self.config.curve, options.affinity_offset).ok_or_else(|| {
                 StageError::from(PlacementError::ObjectiveCurve {
                     exponent: self.config.curve.b(),
-                    offset: options.affinity_offset,
                 })
             })?;
 
@@ -331,6 +331,7 @@ impl Context<'_> {
             columns,
             &fitted.model,
             fitted.evidence.boundary.as_ref(),
+            &fitted.evidence.fractions,
         )
     }
 
@@ -347,6 +348,7 @@ impl Context<'_> {
         columns: NodeColumns<'_, NodeRowId>,
         model: &Projector<TrainerBackend>,
         boundary: Option<&BoundaryEvidence>,
+        fractions: &[RefreshFraction],
     ) -> Result<PlacementArtifacts, StageError> {
         let checkpoint = self.stage_checkpoint(model)?;
 
@@ -365,7 +367,13 @@ impl Context<'_> {
                 self.measure_conditions(options, &model, columns, inputs, energy)?;
             (Some(evidence), digest)
         } else {
-            let frame = refresh::forward(&model, columns, 0.0, options.forward_rows, &device)?;
+            let frame = refresh::forward(
+                &model,
+                columns,
+                NonNegative::ZERO,
+                options.forward_rows,
+                &device,
+            )?;
             let digest = self.stage_coordinate_column(frame.len() as u64, frame.iter().copied())?;
             (None, digest)
         };
@@ -379,6 +387,8 @@ impl Context<'_> {
             evidence: Some(ProjectorEvidence {
                 steps: options.schedule.steps().get(),
                 boundary: boundary.map(|boundary| FrozenRadiusEvidence::from(boundary.radius)),
+                proximal_calibration: boundary
+                    .and_then(|boundary| calibration_evidence(boundary, fractions)),
                 unresolved_verdicts: inputs.unresolved_verdicts,
                 ladder,
             }),
@@ -454,7 +464,7 @@ impl Context<'_> {
         let ladder = self.scratch.directory("ladder")?;
         let conditions = options.ladder.conditions.values();
 
-        let mut losses = Vec::with_capacity(conditions.len());
+        let mut readouts = Vec::with_capacity(conditions.len());
         for (index, &eta) in conditions.iter().enumerate() {
             let frame = refresh::forward(model, columns, eta, options.forward_rows, &device)?;
             // The loss population is the training domain: the full frame gathers at the quotient's
@@ -463,7 +473,7 @@ impl Context<'_> {
             let distinct_frame = gather_distinct(&frame, inputs.quotient);
             let scales = refresh::scales(&distinct_frame, &inputs.knn, eta)
                 .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
-            losses.push(relation_loss(
+            readouts.push(relation_loss(
                 &distinct_frame,
                 &scales,
                 inputs.attraction,
@@ -472,11 +482,12 @@ impl Context<'_> {
 
             write_frame(rung_path(&ladder, index), &frame)?;
         }
+        let losses: Vec<_> = readouts.iter().map(|readout| readout.total).collect();
 
         // Logged before the alignment fits and the canonical selection:
         // the raw series survives their failures.
         tracing::info!(
-            radius = energy.proximal().radius(),
+            radius = %energy.proximal().radius(),
             conditions = ?conditions,
             losses = ?losses,
             "measured the rung relation losses"
@@ -493,12 +504,12 @@ impl Context<'_> {
             .collect::<Result<Vec<_>, _>>()?;
         let fields: Vec<Field<'_>> = files
             .iter()
-            .zip(&losses)
-            .map(|(file, &relation_loss)| Field {
+            .zip(&readouts)
+            .map(|(file, readout)| Field {
                 coordinates: file
                     .points()
                     .expect("the rung frame was written as f32 pairs"),
-                relation_loss,
+                relation_loss: readout.total,
             })
             .collect();
 
@@ -506,7 +517,7 @@ impl Context<'_> {
         let selection = select_canonical(&measurements, options.ladder.canonical)?;
         let alignment = selection.measurement.alignment;
         tracing::info!(
-            canonical = selection.measurement.condition,
+            canonical = selection.measurement.condition.get(),
             index = selection.index,
             "selected the canonical rung"
         );
@@ -534,7 +545,7 @@ impl Context<'_> {
                 selection.measurement.condition,
             )
             .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
-            relation_loss(&distinct_frame, &scales, inputs.attraction, energy)
+            relation_loss(&distinct_frame, &scales, inputs.attraction, energy).total
         };
 
         // The schedule's first rung is bit-exactly `0.0` by
@@ -556,7 +567,7 @@ impl Context<'_> {
 
         Ok((
             LadderEvidence {
-                rungs: measurements.iter().map(RungEvidence::from).collect(),
+                rungs: rung_evidence(&measurements, readouts),
                 canonical: selection.measurement.condition,
                 canonical_index: selection.index,
                 persisted_relation_loss,
@@ -696,30 +707,26 @@ fn compose_energy(options: &ProjectorOptions, radius: FrozenRadius) -> Option<Re
         FrozenRadius::Measured { radius } => radius,
         FrozenRadius::Vacuous => return None,
     };
-    let proximal = ProximalEnergy::new(radius.get(), options.lens.temperature().get())
-        .expect("the trainer froze a non-negative radius");
+    let proximal = ProximalEnergy::new(radius, options.lens.temperature());
     Some(
-        RelationEnergy::new(
-            options.lens.coincident(),
-            proximal,
-            options.lens.epsilon().get(),
-        )
-        .expect("the trainer composed this energy at the boundary"),
+        RelationEnergy::new(options.lens.coincident(), proximal, options.lens.epsilon())
+            .expect("the trainer composed this energy at the boundary"),
     )
 }
 
 /// One adjacent raw relation-loss regression in a measured series.
 struct LossRegression {
     /// The regressing rung's condition value.
-    condition: f32,
+    condition: NonNegative,
     /// The predecessor's condition value.
-    previous_condition: f32,
+    previous_condition: NonNegative,
     /// The loss increase over the predecessor.
-    delta: f64,
+    delta: DPositive,
     /// The increase relative to the predecessor's loss.
     ///
-    /// Absent over a zero predecessor rather than manufactured as inf/NaN.
-    relative: Option<f64>,
+    /// Absent where the predecessor is zero or the quotient rounds outside the finite positive
+    /// domain, rather than manufactured as inf/NaN.
+    relative: Option<DPositive>,
 }
 
 /// Finds every adjacent raw relation-loss regression in a measured series.
@@ -727,8 +734,8 @@ struct LossRegression {
 /// Examines every adjacent transition and yields one entry per rung whose loss exceeds its
 /// predecessor's, in schedule order.
 fn loss_regressions<'series>(
-    conditions: &'series [f32],
-    losses: &'series [f64],
+    conditions: &'series [NonNegative],
+    losses: &'series [DNonNegative],
 ) -> impl Iterator<Item = LossRegression> + 'series {
     conditions
         .iter()
@@ -738,18 +745,20 @@ fn loss_regressions<'series>(
             |[(&previous_condition, &previous), (&condition, &current)]| {
                 let delta = current - previous;
 
-                (delta > 0.0).then(|| LossRegression {
+                DPositive::new(delta).map(|delta| LossRegression {
                     condition,
                     previous_condition,
                     delta,
-                    relative: (previous > 0.0).then(|| delta / previous),
+                    relative: (previous > DNonNegative::ZERO)
+                        .then(|| DPositive::new(delta.get() / previous.get()))
+                        .flatten(),
                 })
             },
         )
 }
 
 /// Warns on every adjacent raw relation-loss regression in the measured series.
-fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
+fn warn_loss_regressions(conditions: &[NonNegative], losses: &[DNonNegative]) {
     for LossRegression {
         condition,
         previous_condition,
@@ -759,17 +768,17 @@ fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
     {
         if let Some(relative) = relative {
             tracing::warn!(
-                condition,
-                previous_condition,
-                delta,
-                relative,
+                condition = %condition,
+                previous_condition = %previous_condition,
+                delta = %delta,
+                relative = %relative,
                 "a rung's relation loss exceeds its predecessor's"
             );
         } else {
             tracing::warn!(
-                condition,
-                previous_condition,
-                delta,
+                condition = %condition,
+                previous_condition = %previous_condition,
+                delta = %delta,
                 "a rung's relation loss exceeds its predecessor's"
             );
         }
@@ -778,29 +787,38 @@ fn warn_loss_regressions(conditions: &[f32], losses: &[f64]) {
 
 /// Warns when the persisted canonical loss is not below the zero-condition raw loss.
 ///
-/// Reports the absolute delta. A zero baseline leaves out the relative delta rather than
-/// manufacturing inf/NaN.
-fn warn_persisted_regression(canonical: f32, persisted: f64, baseline: f64) {
+/// Reports the absolute delta. The relative delta is absent rather than manufactured where the
+/// baseline is zero or the quotient rounds outside the finite non-negative domain.
+fn warn_persisted_regression(
+    canonical: NonNegative,
+    persisted: DNonNegative,
+    baseline: DNonNegative,
+) {
     if persisted < baseline {
         return;
     }
 
-    let delta = persisted - baseline;
-    if baseline > 0.0 {
+    // In domain with no check: the guard proves the difference non-negative, and the
+    // difference of two finite values is finite.
+    let delta = DNonNegative::new_unchecked((persisted - baseline).get());
+    let relative = (baseline > DNonNegative::ZERO)
+        .then(|| DNonNegative::new(delta.get() / baseline.get()))
+        .flatten();
+    if let Some(relative) = relative {
         tracing::warn!(
-            canonical,
-            persisted,
-            baseline,
-            delta,
-            relative = delta / baseline,
+            canonical = %canonical,
+            persisted = %persisted,
+            baseline = %baseline,
+            delta = %delta,
+            relative = %relative,
             "the persisted canonical loss is not below the zero-condition raw loss"
         );
     } else {
         tracing::warn!(
-            canonical,
-            persisted,
-            baseline,
-            delta,
+            canonical = %canonical,
+            persisted = %persisted,
+            baseline = %baseline,
+            delta = %delta,
             "the persisted canonical loss is not below the zero-condition raw loss"
         );
     }
@@ -883,16 +901,18 @@ where
 }
 
 /// Sums the semantic graph's positive edge weight in double precision.
-fn semantic_weight<N>(view: &SemanticGraphView<'_, N>) -> f64
+fn semantic_weight<N>(view: &SemanticGraphView<'_, N>) -> DNonNegative
 where
     N: Id,
 {
-    let mut total = 0.0_f64;
+    let mut total = DNonNegative::ZERO;
+
     for row in 0..view.rows() {
         for edge in view.row(N::from_usize(row)) {
-            total += f64::from(edge.weight);
+            total += edge.weight;
         }
     }
+
     total
 }
 
@@ -910,12 +930,12 @@ where
 )]
 fn normalized_coefficients(
     bases: Coefficients,
-    weight: f64,
+    weight: DNonNegative,
     rows: usize,
     anchor_pool: usize,
     landmark_pool: usize,
 ) -> Coefficients {
-    if weight <= 0.0 {
+    if weight == DNonNegative::ZERO {
         return bases;
     }
 
@@ -923,19 +943,22 @@ fn normalized_coefficients(
         if mass <= 0.0 {
             return NonNegative::ZERO;
         }
+
         #[expect(
             clippy::cast_possible_truncation,
             reason = "the normalized coefficient narrows back to the trainer's f32 contract"
         )]
         let value = (f64::from(base.get()) / mass) as f32;
         NonNegative::new(value)
-            .expect("a finite non-negative base over a positive mass stays in domain")
+            .expect("an infinite coefficient needs a mass 38 orders below its base")
     };
 
     Coefficients::new(
-        Positive::new(scaled(bases.semantic().into(), weight).get())
-            .expect("a positive base over a positive finite weight stays positive"),
-        scaled(bases.ordinary(), weight),
+        Positive::new(scaled(bases.semantic().into(), weight.get()).get()).expect(
+            "a quotient leaves the positive domain only for a weight total more than 38 orders \
+             from its base",
+        ),
+        scaled(bases.ordinary(), weight.get()),
         scaled(bases.hard(), rows as f64),
         bases.relation(),
         scaled(bases.anchor(), anchor_pool as f64),
@@ -963,10 +986,90 @@ where
     Ok(())
 }
 
-/// Measures the corpus-total relation loss of one frame.
+/// Joins each rung's alignment measurement with its own walk's per-type loss shares.
+fn rung_evidence(
+    measurements: &[RungMeasurement],
+    readouts: impl IntoIterator<Item = RelationLossReadout>,
+) -> Vec<RungEvidence> {
+    measurements
+        .iter()
+        .zip(readouts)
+        .map(
+            |(
+                &RungMeasurement {
+                    condition,
+                    relation_loss,
+                    alignment,
+                    baseline_movement,
+                    adjacent_movement,
+                },
+                readout,
+            )| RungEvidence {
+                relation_losses: readout
+                    .per_type
+                    .into_iter()
+                    .map(|(relation, loss)| TypeRelationLoss { relation, loss })
+                    .collect(),
+                condition,
+                relation_loss,
+                alignment,
+                baseline_movement,
+                adjacent_movement,
+            },
+        )
+        .collect()
+}
+
+/// Assembles the persisted calibration body of a measured boundary.
+///
+/// A vacuous boundary persists nothing. Its measurement holds no population, so a reader's
+/// `None` means nothing was measured rather than a zero-valued body.
+fn calibration_evidence(
+    boundary: &BoundaryEvidence,
+    fractions: &[RefreshFraction],
+) -> Option<ProximalCalibrationEvidence> {
+    let FrozenRadius::Measured { radius } = boundary.radius else {
+        return None;
+    };
+
+    let stability = boundary
+        .calibration
+        .stability
+        .as_ref()
+        .expect("a measured boundary carries its evaluated certificate");
+
+    Some(ProximalCalibrationEvidence {
+        radius,
+        types: boundary.calibration.types.iter().map(From::from).collect(),
+        fractions: fractions
+            .iter()
+            .map(|reading| RefreshFractionEvidence {
+                step: reading.step as u64,
+                fraction: reading.fraction,
+            })
+            .collect(),
+        stability: StabilityCertificateEvidence::from(stability),
+    })
+}
+
+/// One frame's relation-loss readout.
+#[derive(Debug)]
+struct RelationLossReadout {
+    /// The corpus total over every attraction instance.
+    total: DNonNegative,
+    /// Each group's own accumulated share, in the index's group order (ascending by relation).
+    ///
+    /// The shares carry their own accumulation chains, so their sum matches the total to
+    /// rounding rather than bit-exactly; the total's chain is the persisted contract and stays
+    /// as it was.
+    per_type: Vec<(OntologyRowId, DNonNegative)>,
+}
+
+/// Measures the relation loss of one frame, corpus-total and per relation type.
 ///
 /// Every attraction instance's weighted class-mixture energy at its locally normalized distance,
-/// accumulated in double precision.
+/// accumulated in double precision - one accumulator for the corpus and one per group in the
+/// same walk.
 ///
 /// The per-instance formula is the batch relation term's with the estimator scale at one; the twin
 /// lives at [`relation_term`](crate::salt::projector::loss::relation_term).
@@ -975,33 +1078,39 @@ fn relation_loss<N, E>(
     scales: &LocalScales<N>,
     index: &AttractionIndex<N, E>,
     energy: RelationEnergy,
-) -> f64
+) -> RelationLossReadout
 where
     N: Id,
     E: Id,
 {
     let epsilon = energy.epsilon();
 
-    let mut total = 0.0_f64;
+    let mut total = DNonNegative::ZERO;
+    let mut per_type = Vec::with_capacity(index.groups().len());
     for group in index.groups() {
         let weights = group.weights();
+        let mut share = DNonNegative::ZERO;
+
         for edge in group.edges() {
             let source = edge.source;
             let target = edge.target;
             let difference = frame[source] - frame[target];
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
-            let (value, _) = energy.mixture(
-                distance / normalization,
-                weights.coincident,
-                weights.proximal,
-            );
-            let factor = edge.confidence.value() * edge.normalization * weights.strength;
+            let normalized = distance / normalization;
 
-            total = f64::from(factor).mul_add(f64::from(value), total);
+            let (value, _) = energy.mixture(normalized, weights.coincident, weights.proximal);
+            let factor = (edge.confidence.value() * edge.normalization)
+                * DNonNegative::from(weights.strength);
+
+            total = factor.mul_add(value.into(), total);
+            share = factor.mul_add(value.into(), share);
         }
+
+        per_type.push((group.relation(), share));
     }
-    total
+
+    RelationLossReadout { total, per_type }
 }
 
 #[cfg(test)]
@@ -1017,7 +1126,10 @@ mod tests {
     use crate::{
         file::generation::{GenerationRoot, StagedGeneration},
         integrity::Update as _,
-        math::{AffinityCurve, BoxedVecN, Finite, Similarity, UnitFraction},
+        math::{
+            AffinityCurve, BoxedVecN, NonNegative, Similarity, UnitFraction, d_non_negative,
+            d_positive, non_negative, open_unit_fraction, positive,
+        },
         salt::{
             embedding::EmbedderFingerprint,
             fit::FitConfig,
@@ -1029,7 +1141,10 @@ mod tests {
                 loss::CoincidentEnergy,
                 model::Architecture,
                 train::{RelationLens, TrainingSchedule},
-                verdict::calibrate::ProximalCalibration,
+                verdict::calibrate::{
+                    ProximalCalibration,
+                    stability::{StabilityBound, StabilityCertificate},
+                },
             },
             relation::{
                 Policies, RelationConfidence, RelationInstance, RelationPolicy,
@@ -1042,45 +1157,67 @@ mod tests {
     fn loss_regressions_examine_the_even_to_odd_transition() {
         // Only 1→2 rises; a non-overlapping pairing ((0,1), (2,3))
         // sees two falling pairs and misses it.
-        let conditions = [0.0, 0.25, 0.5, 0.75];
-        let losses = [1.0, 0.5, 0.75, 0.5];
+        let conditions = [
+            non_negative!(0.0),
+            non_negative!(0.25),
+            non_negative!(0.5),
+            non_negative!(0.75),
+        ];
+        let losses = [
+            d_non_negative!(1.0),
+            d_non_negative!(0.5),
+            d_non_negative!(0.75),
+            d_non_negative!(0.5),
+        ];
 
         let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
 
         assert_eq!(regressions.len(), 1);
         let regression = &regressions[0];
-        assert_eq!(regression.previous_condition, 0.25);
-        assert_eq!(regression.condition, 0.5);
-        assert_eq!(regression.delta, 0.25);
-        assert_eq!(regression.relative, Some(0.5));
+        assert_eq!(regression.previous_condition, non_negative!(0.25));
+        assert_eq!(regression.condition, non_negative!(0.5));
+        assert_eq!(regression.delta, d_positive!(0.25));
+        assert_eq!(regression.relative, Some(d_positive!(0.5)));
     }
 
     #[test]
     fn loss_regressions_examine_the_final_transition_of_an_odd_series() {
         // Only 3→4 rises; a non-overlapping pairing of a five-rung
         // series discards the final element with the remainder.
-        let conditions = [0.0, 0.25, 0.5, 0.75, 1.0];
-        let losses = [1.0, 0.75, 0.5, 0.25, 0.5];
+        let conditions = [
+            non_negative!(0.0),
+            non_negative!(0.25),
+            non_negative!(0.5),
+            non_negative!(0.75),
+            non_negative!(1.0),
+        ];
+        let losses = [
+            d_non_negative!(1.0),
+            d_non_negative!(0.75),
+            d_non_negative!(0.5),
+            d_non_negative!(0.25),
+            d_non_negative!(0.5),
+        ];
 
         let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
 
         assert_eq!(regressions.len(), 1);
         let regression = &regressions[0];
-        assert_eq!(regression.previous_condition, 0.75);
-        assert_eq!(regression.condition, 1.0);
-        assert_eq!(regression.delta, 0.25);
-        assert_eq!(regression.relative, Some(1.0));
+        assert_eq!(regression.previous_condition, non_negative!(0.75));
+        assert_eq!(regression.condition, non_negative!(1.0));
+        assert_eq!(regression.delta, d_positive!(0.25));
+        assert_eq!(regression.relative, Some(d_positive!(1.0)));
     }
 
     #[test]
     fn loss_regression_relative_delta_is_absent_over_a_zero_predecessor() {
-        let conditions = [0.0, 1.0];
-        let losses = [0.0, 1.0];
+        let conditions = [non_negative!(0.0), non_negative!(1.0)];
+        let losses = [d_non_negative!(0.0), d_non_negative!(1.0)];
 
         let regressions: Vec<_> = loss_regressions(&conditions, &losses).collect();
 
         assert_eq!(regressions.len(), 1);
-        assert_eq!(regressions[0].delta, 1.0);
+        assert_eq!(regressions[0].delta, d_positive!(1.0));
         assert_eq!(regressions[0].relative, None);
     }
 
@@ -1150,15 +1287,16 @@ mod tests {
         let policy = RelationPolicy {
             relation: OntologyRowId::new(RELATION),
             attraction: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
             selected: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
-            applicability: 1.0,
-            strength: 1.0,
+            applicability: UnitFraction::ONE,
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
         };
         let instance = |edge: u64, source: usize, target: usize| RelationInstance {
             edge: EdgeRowId::new(edge),
@@ -1186,15 +1324,16 @@ mod tests {
         let policy = RelationPolicy {
             relation: OntologyRowId::new(RELATION),
             attraction: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
             selected: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
             },
-            applicability: 1.0,
-            strength: 1.0,
+            applicability: UnitFraction::ONE,
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
         };
         let instance = |edge: u64, source: u64, target: u64| RelationInstance {
             edge: EdgeRowId::new(edge),
@@ -1248,13 +1387,13 @@ mod tests {
         )
         .expect("the fixture schedule is valid");
         options.lens = RelationLens::new(
-            CoincidentEnergy::new(0.01, 0.5).expect("the fixture energy is valid"),
+            CoincidentEnergy::new(non_negative!(0.01), positive!(0.5)),
             Positive::new(0.25).expect("the fixture temperature is positive"),
             Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
         );
-        options.ladder.conditions =
-            Conditions::new(vec![0.0, 1.0]).expect("the fixture schedule is valid");
-        options.ladder.canonical = 1.0;
+        options.ladder.conditions = Conditions::new(vec![NonNegative::ZERO, NonNegative::ONE])
+            .expect("the fixture schedule is valid");
+        options.ladder.canonical = NonNegative::ONE;
         options.forward_rows = nonzero(4);
         options
     }
@@ -1272,16 +1411,136 @@ mod tests {
         placed.to_vec()
     }
 
+    /// Asserts the staged column is the staged checkpoint's canonical-rung projection under the
+    /// recorded alignment, bit for bit: checkpoint, evidence, and column describe one field.
+    fn assert_column_is_aligned_projection(
+        staging: &StagedGeneration,
+        options: &ProjectorOptions,
+        ladder: &LadderEvidence,
+        columns: NodeColumns<'_, NodeRowId>,
+    ) {
+        let device = device();
+        let checkpoint = fs::read(staging.path_of(&Role::Projector.file_name()))
+            .expect("the checkpoint should read");
+        let reopened = artifact::open_model::<TrainerInner>(
+            checkpoint.as_slice(),
+            options.architecture,
+            &device,
+        )
+        .expect("the checkpoint should open on the inner backend");
+        let projected = refresh::forward(
+            &reopened,
+            columns,
+            ladder.canonical,
+            options.forward_rows,
+            &device,
+        )
+        .expect("the reopened model projects finitely");
+
+        let placed = staged_column(staging);
+        let alignment = ladder.rungs[ladder.canonical_index].alignment;
+        assert!(
+            placed
+                .iter()
+                .zip(projected.iter())
+                .all(|(persisted, fresh)| {
+                    let aligned = alignment.apply(*fresh);
+                    persisted.x().to_bits() == aligned.x().to_bits()
+                        && persisted.y().to_bits() == aligned.y().to_bits()
+                }),
+            "the published column should be the aligned canonical projection",
+        );
+    }
+
+    /// The drift readings a run would have recorded at its two scale-bearing ticks.
+    fn tick_fractions() -> [RefreshFraction; 2] {
+        [
+            RefreshFraction {
+                step: 0,
+                fraction: d_non_negative!(0.25),
+            },
+            RefreshFraction {
+                step: 8,
+                fraction: d_non_negative!(0.3125),
+            },
+        ]
+    }
+
+    /// Asserts every rung's per-type shares add up to its total within accumulation rounding.
+    ///
+    /// The shares run their own chains, so the agreement is a relative tolerance, not bit
+    /// equality.
+    fn assert_per_type_additivity(ladder: &LadderEvidence) {
+        for rung in &ladder.rungs {
+            let shares = &rung.relation_losses;
+            let sum: f64 = shares.iter().map(|entry| entry.loss.get()).sum();
+            let total = rung.relation_loss.get();
+            assert!(
+                (sum - total).abs() <= 1e-12 * total.max(1.0),
+                "per-type shares {sum} should add up to the rung total {total}",
+            );
+        }
+    }
+
+    /// Asserts the persisted calibration body echoes the boundary and the tick readings.
+    fn assert_calibration_body(evidence: &ProjectorEvidence, boundary: &BoundaryEvidence) {
+        let calibration = evidence
+            .proximal_calibration
+            .as_ref()
+            .expect("a measured boundary persists its calibration body");
+        assert_eq!(calibration.radius.get(), 0.5);
+        assert_eq!(
+            calibration.fractions,
+            vec![
+                RefreshFractionEvidence {
+                    step: 0,
+                    fraction: d_non_negative!(0.25),
+                },
+                RefreshFractionEvidence {
+                    step: 8,
+                    fraction: d_non_negative!(0.3125),
+                },
+            ]
+        );
+        assert_eq!(
+            calibration.stability,
+            StabilityCertificateEvidence::from(
+                boundary
+                    .calibration
+                    .stability
+                    .as_ref()
+                    .expect("the fixture boundary carries a certificate")
+            )
+        );
+    }
+
     /// A boundary that froze the fixture radius from reviewed pairs.
     fn measured_boundary() -> BoundaryEvidence {
         BoundaryEvidence {
             step: 0,
             radius: FrozenRadius::Measured {
-                radius: Finite::new(0.5).expect("the fixture radius is finite"),
+                radius: non_negative!(0.5),
             },
             calibration: ProximalCalibration {
-                radius: Some(0.5),
+                radius: Some(non_negative!(0.5)),
                 types: Vec::new(),
+                // Exact dyadic literals: the publish path serializes the certificate as-is,
+                // and this fixture exercises the wiring rather than the derivation.
+                stability: Some(StabilityCertificate {
+                    quantile: open_unit_fraction!(0.25),
+                    delta: open_unit_fraction!(0.05),
+                    kappa: d_positive!(1.0),
+                    temperature: d_positive!(0.125),
+                    tau: d_positive!(0.125),
+                    effective_support: d_positive!(4.0),
+                    pairs: 4,
+                    mass: d_non_negative!(2.0),
+                    epsilon_zero: d_positive!(0.5),
+                    gap: d_non_negative!(0.25),
+                    bound: StabilityBound::Unattainable,
+                    pass: false,
+                    type_effective_support: d_positive!(1.0),
+                }),
             },
         }
     }
@@ -1294,6 +1553,7 @@ mod tests {
             calibration: ProximalCalibration {
                 radius: None,
                 types: Vec::new(),
+                stability: None,
             },
         }
     }
@@ -1385,7 +1645,7 @@ mod tests {
 
         let boundary = vacuous_boundary();
         let artifacts = context
-            .publish_projector(&options, &inputs, columns(), &model, Some(&boundary))
+            .publish_projector(&options, &inputs, columns(), &model, Some(&boundary), &[])
             .expect("the publish half should stage");
 
         assert_eq!(artifacts.placement, Placement::Projector);
@@ -1401,6 +1661,10 @@ mod tests {
             evidence.ladder.is_none(),
             "a vacuous boundary opens no ladder"
         );
+        assert!(
+            evidence.proximal_calibration.is_none(),
+            "a vacuous boundary persists no calibration body, absent rather than zero"
+        );
 
         // The staged column is the model's own zero-rung projection, bit
         // for bit, and byte-identical representations project to one
@@ -1409,7 +1673,7 @@ mod tests {
         let projected = refresh::forward(
             &model.valid(),
             columns(),
-            0.0,
+            NonNegative::ZERO,
             options.forward_rows,
             &device,
         )
@@ -1479,7 +1743,14 @@ mod tests {
 
         let boundary = measured_boundary();
         let artifacts = context
-            .publish_projector(&options, &inputs, columns(), &model, Some(&boundary))
+            .publish_projector(
+                &options,
+                &inputs,
+                columns(),
+                &model,
+                Some(&boundary),
+                &tick_fractions(),
+            )
             .expect("the publish half should stage");
 
         let evidence = artifacts
@@ -1490,58 +1761,21 @@ mod tests {
             evidence.boundary,
             Some(FrozenRadiusEvidence::Measured { .. })
         ));
+        assert_calibration_body(evidence, &boundary);
         let ladder = evidence
             .ladder
             .as_ref()
             .expect("a measured boundary measures the ladder");
         assert_eq!(ladder.rungs.len(), 2);
-        assert_eq!(ladder.canonical.to_bits(), 1.0_f32.to_bits());
+        assert_eq!(ladder.canonical.get().to_bits(), 1.0_f32.to_bits());
         assert_eq!(ladder.canonical_index, 1);
         assert_eq!(ladder.rungs[0].alignment, Similarity::IDENTITY);
         assert_eq!(
-            ladder.rungs[0].baseline_movement.to_bits(),
+            ladder.rungs[0].baseline_movement.get().to_bits(),
             0.0_f64.to_bits()
         );
-        assert!(
-            ladder
-                .rungs
-                .iter()
-                .all(|rung| rung.relation_loss.is_finite())
-        );
-        assert!(ladder.persisted_relation_loss.is_finite());
+        assert_per_type_additivity(ladder);
 
-        // The staged column is the staged checkpoint's canonical-rung
-        // projection under the recorded alignment, bit for bit:
-        // checkpoint, evidence, and column describe one field.
-        let checkpoint = fs::read(staging.path_of(&Role::Projector.file_name()))
-            .expect("the checkpoint should read");
-        let reopened = artifact::open_model::<TrainerInner>(
-            checkpoint.as_slice(),
-            options.architecture,
-            &device,
-        )
-        .expect("the checkpoint should open on the inner backend");
-        let projected = refresh::forward(
-            &reopened,
-            columns(),
-            ladder.canonical,
-            options.forward_rows,
-            &device,
-        )
-        .expect("the reopened model projects finitely");
-
-        let placed = staged_column(&staging);
-        let alignment = ladder.rungs[ladder.canonical_index].alignment;
-        assert!(
-            placed
-                .iter()
-                .zip(projected.iter())
-                .all(|(persisted, fresh)| {
-                    let aligned = alignment.apply(*fresh);
-                    persisted.x().to_bits() == aligned.x().to_bits()
-                        && persisted.y().to_bits() == aligned.y().to_bits()
-                }),
-            "the published column should be the aligned canonical projection",
-        );
+        assert_column_is_aligned_projection(&staging, &options, ladder, columns());
     }
 }

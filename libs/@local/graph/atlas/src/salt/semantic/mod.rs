@@ -31,6 +31,7 @@ use sprs::{CsMatI, CsMatViewI, binop::csmat_binop};
 
 pub(crate) use self::error::SemanticValidationError;
 use super::knn::table::KnnView;
+use crate::math::PositiveUnitFraction;
 
 pub(crate) mod artifact;
 mod bandwidth;
@@ -239,7 +240,7 @@ pub(crate) struct SemanticEdge<N> {
     /// The other endpoint's node row.
     pub id: N,
     /// The undirected fuzzy weight, finite in `(0, 1]`.
-    pub weight: f32,
+    pub weight: PositiveUnitFraction,
 }
 
 /// Borrowed rows of one validated [`SemanticGraph`].
@@ -298,7 +299,8 @@ where
             .zip(weights)
             .map(|(&column, &weight)| SemanticEdge {
                 id: N::from_u32(column),
-                weight,
+                weight: PositiveUnitFraction::new(f64::from(weight))
+                    .expect("the graph validated every stored weight into (0, 1]"),
             })
     }
 }

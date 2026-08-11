@@ -10,9 +10,9 @@
 //! - [`SelectList`] owns a statement's output columns. Adding an output expression returns its
 //!   column index, so the decoder that reads the index and the select list that positioned it are
 //!   the same declaration and a reordered select list moves its decoders with it.
-//! - [`Aliased`] binds a base table to the statement-local name it stands under - `meta`, `edition`
-//!   - and to the column vocabulary it can be asked for. The reference is a named constant beside
-//!   the statement that introduces it, so every mention moves in one edit, and qualifying another
+//! - [`Aliased`] binds a base table to the statement-local name it stands under, `meta`, `edition`,
+//!   and to the column vocabulary it can be asked for. The reference is a named constant beside the
+//!   statement that introduces it, so every mention moves in one edit, and qualifying another
 //!   table's column through it fails compilation. Its [`from_item`](Aliased::from_item) is the FROM
 //!   item it introduces, so a join list reads as one [`inner_join_on`]/[`left_join_on`] chain.
 //!   Every constructor carries the table, so a rendered join names the relation it binds and a

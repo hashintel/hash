@@ -20,7 +20,7 @@ use rand::Rng;
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     identity::NodeRowId,
-    math::AlignedVecN,
+    math::{AlignedVecN, DPositive, OpenUnitFraction, d_positive, open_unit_fraction},
     random::{acceptance_sample_size, sample_indices_vec},
 };
 
@@ -30,15 +30,15 @@ use crate::{
 // prefix's share of the parent vector's unit energy (1/6 for energy spread evenly over 3072
 // components), thousands of tolerances from one. The sampling budget matches the crate's other
 // acceptance checks: 688 rows certify a 1% defect rate at 99.9% confidence when all pass.
-const DEFAULT_TOLERANCE: f64 = 1e-4;
-const DEFAULT_DEFECT_RATE: f64 = 0.01;
-const DEFAULT_CONFIDENCE: f64 = 0.999;
+const DEFAULT_TOLERANCE: DPositive = d_positive!(1e-4);
+const DEFAULT_DEFECT_RATE: OpenUnitFraction = open_unit_fraction!(0.01);
+const DEFAULT_CONFIDENCE: OpenUnitFraction = open_unit_fraction!(0.999);
 
 // The magnitudes the tolerance sits between: the squared-norm perturbation of narrowing one row to
 // f32, and the deviation of the nearest real failure mode (a prefix that kept 1/6 of the parent
 // vector's unit energy).
-const NARROWING_PERTURBATION: f64 = 1e-6;
-const UNRENORMALIZED_DEVIATION: f64 = 1.0 - 1.0 / 6.0;
+const NARROWING_PERTURBATION: DPositive = d_positive!(1e-6);
+const UNRENORMALIZED_DEVIATION: DPositive = d_positive!(1.0 - 1.0 / 6.0);
 const _: () = assert!(
     DEFAULT_TOLERANCE > NARROWING_PERTURBATION && DEFAULT_TOLERANCE < UNRENORMALIZED_DEVIATION
 );
@@ -47,15 +47,15 @@ const _: () = assert!(
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct SpotCheckOptions {
     /// Admitted deviation of a row's squared norm from one, two-sided.
-    pub tolerance: f64 = DEFAULT_TOLERANCE,
-    /// Defect rate the sample size certifies, strictly inside `(0, 1)`.
+    pub tolerance: DPositive = DEFAULT_TOLERANCE,
+    /// Defect rate the sample size certifies.
     ///
     /// See [`acceptance_sample_size`]. Smaller rates grow the sample.
-    pub defect_rate: f64 = DEFAULT_DEFECT_RATE,
-    /// Confidence of the certification, strictly inside `(0, 1)`.
+    pub defect_rate: OpenUnitFraction = DEFAULT_DEFECT_RATE,
+    /// Confidence of the certification.
     ///
     /// See [`acceptance_sample_size`]. Higher confidence grows the sample.
-    pub confidence: f64 = DEFAULT_CONFIDENCE,
+    pub confidence: OpenUnitFraction = DEFAULT_CONFIDENCE,
 }
 
 const impl Default for SpotCheckOptions {
@@ -66,7 +66,7 @@ const impl Default for SpotCheckOptions {
 
 /// One sampled row's violation of the representation contract.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub enum RepresentationDefect {
+pub(crate) enum RepresentationDefect {
     /// The row carries a non-finite component.
     NonFinite { row: NodeRowId, component: usize },
     /// The row's squared norm lies outside the unit tolerance.
@@ -92,17 +92,17 @@ impl fmt::Display for RepresentationDefect {
 
 /// Acceptance-sampling evidence for one matrix and contract.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct NormSpotCheck {
+pub(crate) struct NormSpotCheck {
     /// Rows in the checked matrix.
     pub rows: usize,
     /// Distinct rows verified.
     pub sampled_rows: usize,
     /// The squared-norm tolerance the check judged the rows against.
-    pub tolerance: f64,
+    pub tolerance: DPositive,
     /// The defect rate a pass certifies.
-    pub defect_rate: f64,
+    pub defect_rate: OpenUnitFraction,
     /// The confidence of the certification.
-    pub confidence: f64,
+    pub confidence: OpenUnitFraction,
     /// Every defective sampled row, ascending by row.
     pub defects: Vec<RepresentationDefect>,
 }
@@ -120,26 +120,16 @@ impl NormSpotCheck {
 }
 
 /// The spot check could not run.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum SpotCheckError {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum SpotCheckError {
     /// The matrix holds no rows to certify.
     Empty,
-    /// A sampling budget lies outside the open unit interval.
-    SampleBudget { defect_rate: f64, confidence: f64 },
 }
 
 impl fmt::Display for SpotCheckError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Empty => fmt.write_str("an empty matrix holds no contract to certify"),
-            Self::SampleBudget {
-                defect_rate,
-                confidence,
-            } => write!(
-                fmt,
-                "a defect rate of {defect_rate} at confidence {confidence} does not size a \
-                 sample; both must lie strictly inside (0, 1)",
-            ),
         }
     }
 }
@@ -154,8 +144,7 @@ impl Error for SpotCheckError {}
 ///
 /// # Errors
 ///
-/// Returns an error when the matrix is empty or the sampling budget lies outside the open unit
-/// interval.
+/// Returns an error when the matrix is empty.
 pub(crate) fn spot_check(
     embeddings: &[AlignedVecN<PROJECTOR_DIMENSIONS>],
     options: SpotCheckOptions,
@@ -165,12 +154,7 @@ pub(crate) fn spot_check(
     if rows == 0 {
         return Err(SpotCheckError::Empty);
     }
-    let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence)
-        .ok_or(SpotCheckError::SampleBudget {
-            defect_rate: options.defect_rate,
-            confidence: options.confidence,
-        })?
-        .min(rows);
+    let sampled_rows = acceptance_sample_size(options.defect_rate, options.confidence).min(rows);
 
     let mut sample = sample_indices_vec(rng, rows, sampled_rows).into_vec();
     sample.sort_unstable();
@@ -187,7 +171,7 @@ pub(crate) fn spot_check(
         }
 
         let squared_norm = embeddings[row].norm_squared();
-        if (f64::from(squared_norm) - 1.0).abs() > options.tolerance {
+        if (f64::from(squared_norm) - 1.0).abs() > options.tolerance.get() {
             defects.push(RepresentationDefect::Norm {
                 row: id,
                 squared_norm,

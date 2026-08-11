@@ -20,7 +20,7 @@ mod tests;
 
 use burn::tensor::{Tensor, backend::AutodiffBackend};
 
-use crate::math::{Positive, Vec2};
+use crate::math::{NonNegative, Positive, Vec2};
 
 /// The relation-gradient diagnostics' baseline convention.
 ///
@@ -43,7 +43,7 @@ impl Budget {
     pub(crate) fn measure(self, semantic: Vec2, relation: Vec2) -> BudgetOutcome {
         let semantic_norm = semantic.length();
         BudgetOutcome {
-            baseline: semantic_norm.max(self.floor.get()),
+            baseline: semantic_norm.at_least(self.floor),
             semantic_norm,
             relation_norm: relation.length(),
         }
@@ -54,11 +54,11 @@ impl Budget {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct BudgetOutcome {
     /// The semantic baseline `max(‖semantic‖, floor)`.
-    pub baseline: f32,
+    pub baseline: Positive,
     /// The semantic gradient norm before flooring.
-    pub semantic_norm: f32,
+    pub semantic_norm: NonNegative,
     /// The relation gradient norm.
-    pub relation_norm: f32,
+    pub relation_norm: NonNegative,
 }
 
 /// Streaming aggregation of budget outcomes for the training metrics.

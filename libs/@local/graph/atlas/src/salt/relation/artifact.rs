@@ -15,7 +15,7 @@ use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
 use hashql_core::id::Id;
-use zerocopy::{F32, U32, U64};
+use zerocopy::{F32, F64, U32, U64};
 
 use super::{
     EffectiveConfidence, Scored,
@@ -33,6 +33,7 @@ use crate::{
     },
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
+    math::{NonNegative, PositiveUnitFraction, UnitFraction},
 };
 
 impl<N> WriteInto for ProtectionIndex<N>
@@ -174,9 +175,9 @@ impl<N, E> AttractionIndex<N, E> {
             let record = GroupRecord {
                 relation: U64::new(group.relation().as_u64()),
                 first_edge: U64::new(first_edge),
-                coincident: F32::new(weights.coincident),
-                proximal: F32::new(weights.proximal),
-                strength: F32::new(weights.strength),
+                coincident: F32::new(weights.coincident.get()),
+                proximal: F32::new(weights.proximal.get()),
+                strength: F32::new(weights.strength.get()),
                 reserved: U32::new(0),
             };
             first_edge += group.edges().len() as u64;
@@ -189,8 +190,8 @@ impl<N, E> AttractionIndex<N, E> {
                     edge: U64::new(edge.edge.as_u64()),
                     source: U64::new(edge.source.as_u64()),
                     target: U64::new(edge.target.as_u64()),
-                    confidence: F32::new(edge.confidence.value()),
-                    normalization: F32::new(edge.normalization),
+                    confidence: F64::new(edge.confidence.value().get()),
+                    normalization: F64::new(edge.normalization.get()),
                     scored: U32::new(bits),
                     reserved: U32::new(0),
                 }
@@ -435,9 +436,12 @@ impl AttractionGroupView<'_> {
     #[must_use]
     pub(crate) const fn weights(&self) -> AttractionWeights {
         AttractionWeights {
-            coincident: self.record.coincident.get(),
-            proximal: self.record.proximal.get(),
-            strength: self.record.strength.get(),
+            coincident: NonNegative::new(self.record.coincident.get())
+                .expect("the mapped index validated every weight at open"),
+            proximal: NonNegative::new(self.record.proximal.get())
+                .expect("the mapped index validated every weight at open"),
+            strength: NonNegative::new(self.record.strength.get())
+                .expect("the mapped index validated every weight at open"),
         }
     }
 
@@ -489,8 +493,12 @@ where
         edge: E::from_u64(record.edge.get()),
         source: N::from_u64(record.source.get()),
         target: N::from_u64(record.target.get()),
-        confidence: EffectiveConfidence::new(record.confidence.get(), scored)
-            .expect("the mapped index validated every confidence at open"),
-        normalization: record.normalization.get(),
+        confidence: EffectiveConfidence::new(
+            UnitFraction::new(record.confidence.get())
+                .expect("the mapped index validated every confidence at open"),
+            scored,
+        ),
+        normalization: PositiveUnitFraction::new(record.normalization.get())
+            .expect("the mapped index validated every degree normalization at open"),
     }
 }

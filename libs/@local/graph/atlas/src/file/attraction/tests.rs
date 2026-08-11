@@ -5,7 +5,7 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use zerocopy::{F32, IntoBytes as _, U32, U64};
+use zerocopy::{F32, F64, IntoBytes as _, U32, U64};
 
 use super::{EdgeRecord, FileHeader, GroupRecord, read::AttractionFile, write::write_records};
 use crate::file::{attraction::read::OpenAttractionError, region::header::HeaderError};
@@ -17,7 +17,7 @@ fn header_bytes_lead_with_magic_and_version() {
 
     assert!(bytes.len() >= 40, "the header covers the asserted bytes");
     assert_eq!(&bytes[0..8], b"SALTATRC");
-    assert_eq!(&bytes[8..12], &0_u32.to_le_bytes());
+    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes());
     assert_eq!(&bytes[16..24], &3_u64.to_le_bytes());
     assert_eq!(&bytes[24..32], &17_u64.to_le_bytes());
     assert_eq!(&bytes[32..40], &100_u64.to_le_bytes());
@@ -28,7 +28,7 @@ fn geometry_equations_match_hand_computed_offsets() {
     // 3 groups occupy 96 bytes, padded to one region unit.
     let header = FileHeader::new(3, 17, 100);
     assert_eq!(header.edges_offset(), Some(8192));
-    assert_eq!(header.expected_file_len(), Some(8192 + 17 * 40));
+    assert_eq!(header.expected_file_len(), Some(8192 + 17 * 48));
 
     // 128 groups fill exactly one region unit: no padding.
     let exact = FileHeader::new(128, 1, 100);
@@ -65,13 +65,13 @@ fn group(relation: u64, first_edge: u64, weights: [f32; 3]) -> GroupRecord {
     }
 }
 
-fn edge(edge: u64, source: u64, target: u64, confidence: f32, degree: f32) -> EdgeRecord {
+fn edge(edge: u64, source: u64, target: u64, confidence: f64, degree: f64) -> EdgeRecord {
     EdgeRecord {
         edge: U64::new(edge),
         source: U64::new(source),
         target: U64::new(target),
-        confidence: F32::new(confidence),
-        normalization: F32::new(degree),
+        confidence: F64::new(confidence),
+        normalization: F64::new(degree),
         scored: U32::new(0b101),
         reserved: U32::new(0),
     }
@@ -170,7 +170,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.atrc");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(
         AttractionFile::open(&future),

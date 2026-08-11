@@ -24,7 +24,10 @@ use crate::{
         },
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Bounds2, Vec2},
+    math::{
+        AffinityCurve, Bounds2, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction,
+        unit_fraction,
+    },
     morton::Depth,
     salt::{
         embedding::{CardEmbeddingStats, EmbedderFingerprint},
@@ -140,9 +143,9 @@ fn evidence() -> Evidence {
         norm: NormSpotCheck {
             rows: 4,
             sampled_rows: 4,
-            tolerance: 1.0e-4,
-            defect_rate: 0.01,
-            confidence: 0.999,
+            tolerance: d_positive!(1.0e-4),
+            defect_rate: open_unit_fraction!(0.01),
+            confidence: open_unit_fraction!(0.999),
             defects: Vec::new(),
         },
         recall: RecallSpotCheck {
@@ -150,12 +153,12 @@ fn evidence() -> Evidence {
             neighbours_per_row: 2,
             matched: 8,
             expected: 8,
-            deviation: 0.0,
-            minimum_recall: 0.89,
+            deviation: d_non_negative!(0.0),
+            minimum_recall: unit_fraction!(0.89),
             // The four-row fixture is a census of its corpus: an
             // exhaustive sample carries no sampling error to bound.
-            resolution: 0.0,
-            confidence: 0.99,
+            resolution: d_non_negative!(0.0),
+            confidence: open_unit_fraction!(0.99),
         },
         landmarks: LandmarkEvidence {
             selected: 2,
@@ -170,14 +173,13 @@ fn evidence() -> Evidence {
             source: digest("classifier.clsf"),
         },
         relations: BuildMeasurements {
-            pruning_threshold: 0.0,
+            pruning_threshold: non_negative!(0.0),
             retained_edges: 2,
             pruned_edges: 0,
-            retained_mass: 1.5,
-            pruned_mass: 0.0,
+            retained_mass: d_non_negative!(1.5),
+            pruned_mass: d_non_negative!(0.0),
             self_references: 0,
             multi_typed_edges: vec![2],
-            clamped_confidences: Some(0),
         },
         lod: LodMeasurements {
             world: Bounds2::new(Vec2::new(-1.0, -1.0), Vec2::new(1.0, 1.0))

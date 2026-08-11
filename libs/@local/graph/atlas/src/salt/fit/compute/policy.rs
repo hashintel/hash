@@ -197,7 +197,7 @@ impl Context<'_> {
                     prediction
                         .calibrated
                         .probability(*left)
-                        .total_cmp(&prediction.calibrated.probability(*right))
+                        .cmp(&prediction.calibrated.probability(*right))
                 })
                 .unwrap_or_else(|| unreachable!("the class set is nonempty"));
 

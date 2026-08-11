@@ -16,7 +16,7 @@ use hashql_core::id::{Id as _, IdSlice};
 use super::{HardNegativeMiner, MinedFrame, MinerOptions, SpatialField};
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{Positive, Vec2},
+    math::{NonNegative, Positive, UnitFraction, Vec2, unit_fraction},
     runs::Runs,
     salt::{
         policy::ClassProbabilities,
@@ -71,15 +71,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
@@ -90,7 +91,7 @@ fn instance(
     relation: u64,
     source: u64,
     target: u64,
-    link: Option<f32>,
+    link: Option<UnitFraction>,
 ) -> RelationInstance<NodeRowId, EdgeRowId> {
     RelationInstance {
         edge: EdgeRowId::new(edge),
@@ -209,7 +210,10 @@ fn mined_rows_match_a_brute_force_reference() {
     let semantic = semantic_graph(8, &[(0, 1, 0.5), (2, 3, 1.0)]);
     let indexes = relation_indexes(
         8,
-        vec![instance(0, 0, 4, 5, None), instance(1, 0, 1, 2, Some(0.25))],
+        vec![
+            instance(0, 0, 4, 5, None),
+            instance(1, 0, 1, 2, Some(unit_fraction!(0.25))),
+        ],
     );
     let config = hard_config(0.5);
     let options = options(3, 2, 1.0, 1.0);

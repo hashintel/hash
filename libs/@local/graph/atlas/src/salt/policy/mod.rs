@@ -13,7 +13,10 @@
 
 use core::{fmt, mem};
 
-use crate::{identity::OntologyRowId, math::UnitFraction};
+use crate::{
+    identity::OntologyRowId,
+    math::{DVecN, NonNegative, UnitFraction},
+};
 
 pub(crate) mod annotation;
 pub(crate) mod artifact;
@@ -136,18 +139,31 @@ impl Posterior {
         Some(Self(validated))
     }
 
-    /// Adopts softmax output, whose components lie in the unit interval and sum to one.
-    #[inline]
+    /// Computes the temperature-scaled softmax of class logits.
+    ///
+    /// The logits shift by their maximum before the temperature division, then pass through the
+    /// max-shifted [`DVecN::softmax`], so finite logits and a positive finite temperature always
+    /// produce a valid distribution: components in the unit interval that sum to one. The order
+    /// matters. Dividing first can overflow one quotient to `+∞`, and a single infinite
+    /// component then poisons the whole shifted vector with `∞ - ∞`. Shifting first is free,
+    /// since softmax is shift-invariant. It also closes the overflow path: a pre-shifted logit
+    /// is never positive, so its quotient by any positive temperature never reaches `+∞`.
     #[must_use]
-    pub(crate) const fn from_softmax_unchecked(components: [f64; GeometryClass::COUNT]) -> Self {
-        Self(components.map(UnitFraction::new_unchecked))
+    pub(crate) fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> Self {
+        let max = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        Self(
+            (*DVecN::new(logits.map(|value| (value - max) / temperature))
+                .softmax()
+                .as_array())
+            .map(UnitFraction::new_unchecked),
+        )
     }
 
     /// Returns the probability of `class`.
     #[inline]
     #[must_use]
-    pub(crate) const fn probability(self, class: GeometryClass) -> f64 {
-        self.0[class.index()].get()
+    pub(crate) const fn probability(self, class: GeometryClass) -> UnitFraction {
+        self.0[class.index()]
     }
 
     /// Returns the distribution as an array in class order.
@@ -162,24 +178,25 @@ impl Posterior {
 ///
 /// Overlay, the third class, carries no geometric weight, so the two stored components are the
 /// distribution's entire geometric content. Each component lies in `0.0..=1.0`.
-// This type has no construction invariant of its own, so the derives admit byte-level construction.
-// The mapped policy table validates domains once at open.
+// The fields carry their own construction invariants, so the byte-level constructor is the
+// validating try-cast derive: a candidate is a distribution pair exactly when both fields
+// hold stored fractions.
 #[derive(
     Debug,
     Copy,
     Clone,
     PartialEq,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
-    zerocopy::FromBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
 pub(crate) struct ClassProbabilities {
     /// The Coincident class probability.
-    pub coincident: f32,
+    pub coincident: UnitFraction,
     /// The Proximal class probability.
-    pub proximal: f32,
+    pub proximal: UnitFraction,
 }
 
 impl ClassProbabilities {
@@ -190,13 +207,9 @@ impl ClassProbabilities {
     #[inline]
     #[must_use]
     pub(crate) const fn from_posterior(posterior: &Posterior) -> Self {
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "probabilities lie in [0, 1], far inside f32 range"
-        )]
         Self {
-            coincident: posterior.probability(GeometryClass::Coincident) as f32,
-            proximal: posterior.probability(GeometryClass::Proximal) as f32,
+            coincident: posterior.probability(GeometryClass::Coincident),
+            proximal: posterior.probability(GeometryClass::Proximal),
         }
     }
 }
@@ -209,15 +222,15 @@ impl ClassProbabilities {
 /// - Protection masses come from the selected distribution and applicability.
 /// - The attraction group receives the strength multiplier unchanged.
 // This type has no construction invariant of its own, so the derives admit byte-level construction.
-// The mapped policy table validates domains once at open. The `repr(C)` layout is the policy file's
-// pinned wire row, checked field for field where the artifact casts.
+// The `repr(C)` layout is the policy file's pinned wire row, checked field for field where the
+// artifact casts, and the try-cast derive validates every domain-typed field's bits at that cast.
 #[derive(
     Debug,
     Copy,
     Clone,
     PartialEq,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
-    zerocopy::FromBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
@@ -234,31 +247,9 @@ pub(crate) struct RelationPolicy {
     /// Protection masses derive from it.
     pub selected: ClassProbabilities,
     /// The calibrated applicability `a`, in `0.0..=1.0`.
-    pub applicability: f32,
+    pub applicability: UnitFraction,
     /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
-    pub strength: f32,
-}
-
-impl RelationPolicy {
-    /// Returns whether every value lies in its domain.
-    #[must_use]
-    pub(crate) const fn in_domain(&self) -> bool {
-        let probabilities = [
-            self.attraction.coincident,
-            self.attraction.proximal,
-            self.selected.coincident,
-            self.selected.proximal,
-            self.applicability,
-        ];
-
-        let mut index = 0;
-        while index < probabilities.len() {
-            if !(probabilities[index] >= 0.0 && probabilities[index] <= 1.0) {
-                return false;
-            }
-            index += 1;
-        }
-
-        self.strength.is_finite() && self.strength >= 0.0
-    }
+    pub strength: NonNegative,
+    /// Layout filler pinning the tail padding; writers emit zero, readers ignore.
+    pub _pad: [u8; 4],
 }

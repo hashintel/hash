@@ -29,6 +29,7 @@ use rand::{
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 pub(crate) use self::compat::Compat;
+use crate::math::{DNonNegative, DPositive, OpenUnitFraction};
 
 mod compat;
 #[cfg(test)]
@@ -140,9 +141,6 @@ pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
 /// defect_rate))`. Sampling without replacement from a finite population only lowers the all-pass
 /// probability, so the bound stays valid and conservative there too.
 ///
-/// Returns [`None`] unless `defect_rate` and `confidence` are both strictly between 0 and 1;
-/// parameters outside that open interval carry no statistical meaning.
-///
 /// # Examples
 ///
 /// ```ignore
@@ -150,24 +148,20 @@ pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
 /// // example, that each is L2-normalized) and finding all of them valid
 /// // gives 99.9% confidence that fewer than 1% of the full set fails
 /// // that check.
-/// assert_eq!(acceptance_sample_size(0.01, 0.999), Some(688));
-///
-/// // Out-of-range parameters have no defined sample size.
-/// assert_eq!(acceptance_sample_size(0.0, 0.999), None);
-/// assert_eq!(acceptance_sample_size(0.01, 1.0), None);
+/// let defect_rate = OpenUnitFraction::new(0.01).expect("one percent is interior");
+/// let confidence = OpenUnitFraction::new(0.999).expect("the confidence is interior");
+/// assert_eq!(acceptance_sample_size(defect_rate, confidence), 688);
 /// ```
 #[must_use]
-pub(crate) fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Option<usize> {
-    let in_open_unit_interval = |value: f64| value > 0.0 && value < 1.0;
-    if !in_open_unit_interval(defect_rate) || !in_open_unit_interval(confidence) {
-        return None;
-    }
-
-    // `ln_1p(-x)` is `ln(1 - x)` without forming the rounded difference.
+pub(crate) fn acceptance_sample_size(
+    defect_rate: OpenUnitFraction,
+    confidence: OpenUnitFraction,
+) -> usize {
     // Both logarithms are strictly negative, so the ratio is positive and
     // finite; `ceil` yields the smallest count whose all-pass probability
-    // drops to `1 - confidence` or below.
-    let samples = ((-confidence).ln_1p() / (-defect_rate).ln_1p()).ceil();
+    // drops to `1 - confidence` or below, up to f64 rounding at exact
+    // power boundaries.
+    let samples = (confidence.ln_complement() / defect_rate.ln_complement()).ceil();
 
     #[expect(
         clippy::cast_possible_truncation,
@@ -177,7 +171,7 @@ pub(crate) fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Optio
     )]
     let samples = samples as usize;
 
-    Some(samples)
+    samples
 }
 
 /// Computes the sample size estimating the population mean within `margin`.
@@ -196,72 +190,67 @@ pub(crate) fn acceptance_sample_size(defect_rate: f64, confidence: f64) -> Optio
 /// bound (half the range), and a pilot sample's measured deviation sizes the final sample without
 /// baking a population constant into configuration (Stein's two-stage procedure).
 ///
-/// Returns [`None`] unless `margin` is strictly positive, `confidence` is strictly between 0 and 1,
-/// and `deviation` is finite and non-negative; parameters outside those domains carry no
-/// statistical meaning.
+/// Every parameter carries its domain in the type, so every call has a defined sample size. A
+/// ratio too large for `f64` saturates to [`usize::MAX`], which no corpus reaches.
 ///
 /// # Examples
 ///
 /// ```ignore
 /// // Estimating a mean within one percentage point at 99% one-sided
 /// // confidence, with a measured per-item deviation of 0.32.
-/// assert_eq!(mean_sample_size(0.32, 0.01, 0.99), Some(5542));
+/// let deviation = DNonNegative::new(0.32).expect("the deviation is non-negative");
+/// let margin = DPositive::new(0.01).expect("the margin is positive");
+/// let confidence = OpenUnitFraction::new(0.99).expect("the confidence is interior");
+/// assert_eq!(mean_sample_size(deviation, margin, confidence), 5542);
 ///
 /// // A deviation of zero needs no sample at all.
-/// assert_eq!(mean_sample_size(0.0, 0.01, 0.99), Some(0));
-///
-/// // Out-of-domain parameters have no defined sample size.
-/// assert_eq!(mean_sample_size(0.32, 0.0, 0.99), None);
-/// assert_eq!(mean_sample_size(0.32, 0.01, 1.0), None);
+/// assert_eq!(mean_sample_size(DNonNegative::ZERO, margin, confidence), 0);
 /// ```
 #[must_use]
-pub(crate) fn mean_sample_size(deviation: f64, margin: f64, confidence: f64) -> Option<usize> {
-    if !deviation.is_finite() || deviation < 0.0 || !margin.is_finite() || margin <= 0.0 {
-        return None;
-    }
-
-    let z = normal_quantile(confidence)?;
-    let samples = (z * deviation / margin).powi(2).ceil();
+pub(crate) fn mean_sample_size(
+    deviation: DNonNegative,
+    margin: DPositive,
+    confidence: OpenUnitFraction,
+) -> usize {
+    let z = normal_quantile(confidence);
+    let samples = (z * deviation.get() / margin.get()).powi(2).ceil();
 
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the squared ratio is non-negative and finite, and the saturating \
-                  float-to-integer conversion is the narrowing itself"
+        reason = "the squared ratio is non-negative, and the saturating float-to-integer \
+                  conversion is the narrowing itself"
     )]
     let samples = samples as usize;
 
-    Some(samples)
+    samples
 }
 
 /// Inverts the standard normal cumulative distribution.
 ///
 /// Returns the value `z` with `Phi(z) = probability`: the boundary a standard normal variable stays
 /// below with exactly the given probability. Computed by Acklam's rational approximation, whose
-/// relative error stays below `1.15e-9` over the open unit interval - beyond any sampling design's
-/// sensitivity.
+/// relative error stays below `1.15e-9` over the normal range of the open interval and below
+/// `1.8e-9` on subnormal probabilities - beyond any sampling design's sensitivity.
 ///
-/// Returns [`None`] unless `probability` is strictly between 0 and 1; the endpoints have no finite
-/// quantile.
+/// The probability carries the open unit interval in its type, and every interior probability
+/// has a finite quantile.
 ///
 /// # Examples
 ///
 /// ```ignore
-/// let median = normal_quantile(0.5).expect("the median is in domain");
+/// let median = normal_quantile(OpenUnitFraction::new(0.5).expect("the median is interior"));
 /// assert!(median.abs() < 1e-9);
 ///
-/// let upper = normal_quantile(0.975).expect("the upper tail is in domain");
+/// let upper = normal_quantile(OpenUnitFraction::new(0.975).expect("the tail is interior"));
 /// assert!((upper - 1.959_964).abs() < 1e-5);
-///
-/// assert_eq!(normal_quantile(0.0), None);
-/// assert_eq!(normal_quantile(1.0), None);
 /// ```
 #[expect(
     clippy::min_ident_chars,
     reason = "A through D are the canonical names of Acklam's coefficient rows"
 )]
 #[must_use]
-pub(crate) fn normal_quantile(probability: f64) -> Option<f64> {
+pub(crate) fn normal_quantile(probability: OpenUnitFraction) -> f64 {
     // Acklam's coefficients: one rational approximation for the central
     // region and one for each tail, meeting at 0.02425.
     const A: [f64; 6] = [
@@ -295,12 +284,8 @@ pub(crate) fn normal_quantile(probability: f64) -> Option<f64> {
     ];
     const LOW: f64 = 0.02425;
 
-    let in_open_unit_interval = probability > 0.0 && probability < 1.0;
-    if !in_open_unit_interval {
-        return None;
-    }
-
-    let quantile = if probability < LOW {
+    let probability = probability.get();
+    if probability < LOW {
         let q = (-2.0 * probability.ln()).sqrt();
         horner(C, q) / horner(D, q).mul_add(q, 1.0)
     } else if probability > 1.0 - LOW {
@@ -310,9 +295,7 @@ pub(crate) fn normal_quantile(probability: f64) -> Option<f64> {
         let q = probability - 0.5;
         let r = q * q;
         horner(A, r) * q / horner(B, r).mul_add(r, 1.0)
-    };
-
-    Some(quantile)
+    }
 }
 
 /// Evaluates a polynomial by Horner's rule, leading coefficient first.

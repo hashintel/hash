@@ -32,7 +32,7 @@ use hashql_core::id::{Id, IdSlice, IdVec};
 pub(crate) use self::energy::{AffinityEnergy, CoincidentEnergy, ProximalEnergy, RelationEnergy};
 use crate::{
     identity::OntologyRowId,
-    math::{DVec2, Vec2},
+    math::{DVec2, NonNegative, Positive, PositiveUnitFraction, UnitFraction, Vec2},
     salt::{
         projector::scale::LocalScales,
         relation::{attraction::AttractionWeights, protection::NodePair},
@@ -49,8 +49,8 @@ hashql_core::id::newtype! {
 /// One relation type's drawn instances, re-indexed to the batch.
 ///
 /// The batch-domain twin of the sampler's corpus draw, slimmed to what the relation term consumes:
-/// endpoints as batch positions, per-instance weight factors as plain values, and the group's
-/// shared factors inline rather than borrowed from the attraction index.
+/// endpoints as batch positions, per-instance weight factors in their validated domains, and the
+/// group's shared factors inline rather than borrowed from the attraction index.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RelationEdges<N> {
     /// The relation type the instances share.
@@ -68,18 +68,22 @@ pub(crate) struct RelationEdge<N> {
     pub source: N,
     /// The instance's target position.
     pub target: N,
-    /// The effective confidence `c`, in `(0, 1]`. Corpus edge scoring validates the domain.
-    pub confidence: f32,
-    /// The degree normalization `ν`, in `(0, 1]`.
-    pub normalization: f32,
+    /// The effective confidence `c`.
+    ///
+    /// Zero is admissible: a scored-zero instance survives a zero pruning threshold and folds
+    /// in as zero force.
+    pub confidence: UnitFraction,
+    /// The degree normalization `ν`.
+    pub normalization: PositiveUnitFraction,
 }
 
 /// A per-node coordinate gradient accumulator.
 ///
-/// One field accumulates every term on one side of the budget seam; the budget then clips the
-/// relation field against the semantic field node by node. Contributions arrive in the working
-/// precision and accumulate in double precision; consumers narrow once at the working-precision
-/// seam. Reset and reuse the field across steps rather than reallocating.
+/// One field accumulates every term on one side of the budget boundary; the budget then clips the
+/// relation field against the semantic field node by node. Contributions arrive in either
+/// precision and accumulate in double precision; consumers narrow once where a total leaves the
+/// field for the working precision. Reset and reuse the field across steps rather than
+/// reallocating.
 #[derive(Debug)]
 pub(crate) struct GradientField<N>(Box<IdSlice<N, DVec2>>);
 
@@ -188,7 +192,7 @@ fn affinity_term<N>(
     pairs: impl IntoIterator<Item = (NodePair<N>, f32)>,
     scale: f32,
     field: &mut GradientField<N>,
-    evaluate: impl Fn(f32) -> (f32, f32),
+    evaluate: impl Fn(NonNegative) -> (f32, f32),
 ) -> f32
 where
     N: Id,
@@ -261,22 +265,25 @@ where
 
             let distance = difference.length();
             let normalization = scales.normalization(source, target, epsilon);
-            let (value, derivative) = energy.mixture(
-                distance / normalization,
-                weights.coincident,
-                weights.proximal,
-            );
-            let factor = scale * edge.confidence * edge.normalization * weights.strength;
+            // A non-negative distance over a positive normalization: the division carries the
+            // domain, so no reading needs re-validation.
+            let normalized = distance / normalization;
+            let (value, derivative) =
+                energy.mixture(normalized, weights.coincident, weights.proximal);
+            let factor = f64::from(scale)
+                * ((edge.confidence * edge.normalization) * f64::from(weights.strength));
 
-            total = f64::from(factor).mul_add(f64::from(value), total);
-            if distance <= 0.0 {
+            total = factor.mul_add(f64::from(value), total);
+            if distance.is_zero() {
                 continue;
             }
 
             // dz/dy_source = (y_source - y_target) / (d · normalization).
-            let gradient = difference * (factor * derivative / (distance * normalization));
-            field.accumulate(source, gradient);
-            field.accumulate(target, -gradient);
+            let gradient = DVec2::from(difference)
+                * (factor * f64::from(derivative)
+                    / (f64::from(distance) * f64::from(normalization)));
+            field.add(source, gradient);
+            field.add(target, -gradient);
         }
     }
 
@@ -305,37 +312,32 @@ pub(crate) struct BatchAnchor {
 ///
 /// `threshold` is the Huber threshold on the normalized residual; `epsilon` both guards the radius
 /// division and smooths the distance at coincidence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct SupportOptions {
-    threshold: f32,
-    epsilon: f32,
+    threshold: Positive,
+    epsilon: Positive,
 }
 
 impl SupportOptions {
-    /// Validates support constants.
+    /// Creates support constants.
     ///
-    /// Returns [`None`] unless both are finite and strictly positive.
+    /// Both values carry their domain in the type, so construction validates nothing.
     #[must_use]
-    pub(crate) const fn new(threshold: f32, epsilon: f32) -> Option<Self> {
-        let valid =
-            threshold.is_finite() && threshold > 0.0 && epsilon.is_finite() && epsilon > 0.0;
-        if !valid {
-            return None;
-        }
-        Some(Self { threshold, epsilon })
+    pub(crate) const fn new(threshold: Positive, epsilon: Positive) -> Self {
+        Self { threshold, epsilon }
     }
 
     /// Returns the Huber threshold.
     #[inline]
     #[must_use]
-    pub(crate) const fn threshold(self) -> f32 {
+    pub(crate) const fn threshold(self) -> Positive {
         self.threshold
     }
 
     /// Returns the radius guard.
     #[inline]
     #[must_use]
-    pub(crate) const fn epsilon(self) -> f32 {
+    pub(crate) const fn epsilon(self) -> Positive {
         self.epsilon
     }
 }
@@ -418,8 +420,8 @@ pub(crate) fn support_term<B: Backend>(
     options: SupportOptions,
     scale: f32,
 ) -> Tensor<B, 1> {
-    let epsilon = f64::from(options.epsilon);
-    let threshold = f64::from(options.threshold);
+    let epsilon = f64::from(options.epsilon.get());
+    let threshold = f64::from(options.threshold.get());
     let selected = coordinates.clone().select(0, targets.rows.clone());
     let squared = (selected - targets.targets.clone())
         .powi_scalar(2)

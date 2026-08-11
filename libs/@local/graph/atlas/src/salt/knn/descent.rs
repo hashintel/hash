@@ -95,7 +95,7 @@ const impl Default for NnDescentOptions {
 
 /// The NN-Descent construction failed.
 #[derive(Debug)]
-pub enum NnDescentError {
+pub(crate) enum NnDescentError {
     /// The corpus has at most one row.
     InsufficientRows { rows: usize },
     /// The row domain exceeds the resident lists' `u32` id encoding.

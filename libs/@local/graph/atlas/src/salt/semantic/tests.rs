@@ -294,7 +294,7 @@ fn agrees_with_the_scalar_reference() {
                 .get(&(row, edge.id.as_usize()))
                 .expect("every built edge appears in the reference union");
             assert!(
-                (edge.weight - expected).abs() <= 1e-4,
+                (edge.weight.get() - f64::from(*expected)).abs() <= 1e-4,
                 "edge ({row}, {}): built {} vs reference {expected}",
                 edge.id.as_u64(),
                 edge.weight,
@@ -361,7 +361,7 @@ fn one_sided_edges_keep_their_directed_membership() {
     for edge in view.row(NodeRowId::new(2)) {
         let expected = reference[&(2, edge.id.as_usize())];
         assert!(
-            (edge.weight - expected).abs() <= 1e-4,
+            (edge.weight.get() - f64::from(expected)).abs() <= 1e-4,
             "one-sided edge (2, {}): built {} vs reference {expected}",
             edge.id.as_u64(),
             edge.weight,
@@ -402,13 +402,13 @@ fn published_graph_reopens_mapped() {
     assert_eq!(reopened.entries(), owned.entries());
     for row in 0..owned.rows() {
         let row = NodeRowId::from_usize(row);
-        let owned_row: Vec<(u64, f32)> = owned
+        let owned_row: Vec<(u64, f64)> = owned
             .row(row)
-            .map(|edge| (edge.id.as_u64(), edge.weight))
+            .map(|edge| (edge.id.as_u64(), edge.weight.get()))
             .collect();
-        let reopened_row: Vec<(u64, f32)> = reopened
+        let reopened_row: Vec<(u64, f64)> = reopened
             .row(row)
-            .map(|edge| (edge.id.as_u64(), edge.weight))
+            .map(|edge| (edge.id.as_u64(), edge.weight.get()))
             .collect();
         assert_eq!(owned_row, reopened_row);
     }

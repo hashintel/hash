@@ -10,7 +10,7 @@
 
 /// The stage of the exact Newton solve where a value left the finite domain.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum NewtonStage {
+pub(crate) enum NewtonStage {
     /// A per-row curvature block, its weighted factor, or the physical gradient.
     Weights,
     /// A capacitance entry `I + ŨᵀŨ`.
@@ -29,7 +29,7 @@ pub enum NewtonStage {
 
 /// A typed non-publishing terminal of one solve.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SolverFailure {
+pub(crate) enum SolverFailure {
     /// Starting another outer iteration would exceed its budget.
     OuterIterationBudget,
     /// The predicted reduction is within the accepted objective's resolution.

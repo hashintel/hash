@@ -20,7 +20,7 @@ use crate::{
         region::PAGE_BYTES,
     },
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AlignedVecN, BoxedVecN, VecN},
+    math::{AlignedVecN, BoxedVecN, VecN, d_positive, open_unit_fraction, unit_fraction},
     salt::relation::RelationConfidence,
 };
 
@@ -137,10 +137,6 @@ async fn empty_dataset_seals_an_empty_matrix() {
 }
 
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "options round-trip into the evidence verbatim; bit equality is the contract"
-)]
 fn spot_check_certifies_a_normalized_matrix() {
     let matrix = Matrix::units(5);
     let check = norm::spot_check(
@@ -156,9 +152,9 @@ fn spot_check_certifies_a_normalized_matrix() {
     assert_eq!(check.sampled_rows, 5);
     assert!(check.passes());
     assert_eq!(check.defects, vec![]);
-    assert_eq!(check.tolerance, 1e-4);
-    assert_eq!(check.defect_rate, 0.01);
-    assert_eq!(check.confidence, 0.999);
+    assert_eq!(check.tolerance, d_positive!(1e-4));
+    assert_eq!(check.defect_rate, open_unit_fraction!(0.01));
+    assert_eq!(check.confidence, open_unit_fraction!(0.999));
 }
 
 #[test]
@@ -208,7 +204,7 @@ fn spot_check_honours_a_configured_tolerance() {
     let tight = norm::spot_check(
         matrix.view(),
         SpotCheckOptions {
-            tolerance: 1e-6,
+            tolerance: d_positive!(1e-6),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
@@ -239,7 +235,7 @@ fn spot_check_samples_large_matrices() {
 }
 
 #[test]
-fn spot_check_rejects_degenerate_inputs() {
+fn spot_check_rejects_an_empty_matrix() {
     assert_eq!(
         norm::spot_check(
             &[],
@@ -247,22 +243,6 @@ fn spot_check_rejects_degenerate_inputs() {
             Xoshiro256PlusPlus::seed_from_u64(42),
         ),
         Err(SpotCheckError::Empty),
-    );
-
-    let matrix = Matrix::units(2);
-    assert_eq!(
-        norm::spot_check(
-            matrix.view(),
-            SpotCheckOptions {
-                defect_rate: 0.0,
-                ..
-            },
-            Xoshiro256PlusPlus::seed_from_u64(42),
-        ),
-        Err(SpotCheckError::SampleBudget {
-            defect_rate: 0.0,
-            confidence: 0.999,
-        }),
     );
 }
 
@@ -284,14 +264,14 @@ fn instance_records_round_trip_their_option_confidences() {
     // encode/decode pair, absent scores included.
     let confidences = [
         RelationConfidence {
-            link: Some(0.5),
+            link: Some(unit_fraction!(0.5)),
             source: None,
             target: None,
         },
         RelationConfidence {
             link: None,
-            source: Some(0.25),
-            target: Some(1.0),
+            source: Some(unit_fraction!(0.25)),
+            target: Some(unit_fraction!(1.0)),
         },
         RelationConfidence {
             link: None,
@@ -299,9 +279,9 @@ fn instance_records_round_trip_their_option_confidences() {
             target: None,
         },
         RelationConfidence {
-            link: Some(1.0),
-            source: Some(0.0),
-            target: Some(0.75),
+            link: Some(unit_fraction!(1.0)),
+            source: Some(unit_fraction!(0.0)),
+            target: Some(unit_fraction!(0.75)),
         },
     ];
 
@@ -341,7 +321,7 @@ fn spool_round_trips_through_its_scratch_file() {
             NodeRowId::new(0),
             NodeRowId::new(1),
             RelationConfidence {
-                link: Some(0.5),
+                link: Some(unit_fraction!(0.5)),
                 source: None,
                 target: None,
             },

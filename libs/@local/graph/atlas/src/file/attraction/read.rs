@@ -13,7 +13,7 @@ use crate::file::region::{
 
 /// Opening an attraction file failed.
 #[derive(Debug)]
-pub enum OpenAttractionError {
+pub(crate) enum OpenAttractionError {
     /// Reading the header page failed.
     Header(HeaderError),
     /// The file length contradicts the header's geometry.

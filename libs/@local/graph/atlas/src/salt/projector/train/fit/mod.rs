@@ -13,10 +13,13 @@
 //! through the budget surrogate. A seed fixes every batch draw, so draws are deterministic. The
 //! backend's gradient accumulation need not be deterministic.
 //!
-//! The boundary measures the frozen radius from reviewed evidence, and the report carries the
-//! measured quantiles so a reader can judge the freeze against data. A corpus whose attraction
-//! index carries no force at all trains vacuously: the relation term stays absent and the run
-//! records why.
+//! The boundary measures the frozen radius from reviewed evidence, and the full measurement -
+//! per-type quantiles, mass shares, leave-one-type-out radii, and the evaluated stability
+//! certificate - persists in generation evidence, so a reader judges the freeze against data
+//! from the published artifact alone. Each scale-bearing tick also re-measures the weighted
+//! fraction of reviewed mass inside the frozen radius, the drift series beside the freeze.
+//! A corpus whose attraction index carries no force at all trains vacuously: the relation term
+//! stays absent and the run records why.
 
 mod error;
 mod session;
@@ -40,7 +43,7 @@ use super::{
     step::LossBreakdown,
 };
 use crate::{
-    math::{Finite, Positive, UnitFraction},
+    math::{DNonNegative, NonNegative, Positive, UnitFraction},
     progress::Progress,
     salt::{
         knn::table::KnnView,
@@ -63,7 +66,7 @@ use crate::{
 ///
 /// Run length, phase boundary, refresh cadence, and the learning-rate envelope.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct TrainingSchedule {
+pub(crate) struct TrainingSchedule {
     steps: NonZero<usize>,
     boundary: usize,
     refresh_interval: NonZero<usize>,
@@ -249,7 +252,7 @@ pub(crate) struct TrainerInputs<'run, N, E> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum FrozenRadius {
     /// Measured from the reviewed-Proximal pairs.
-    Measured { radius: Finite },
+    Measured { radius: NonNegative },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
 }
@@ -266,6 +269,20 @@ pub(crate) struct BoundaryEvidence {
     /// Pooled radius, per-type quantiles, mass shares, and leave-one-type-out radii. Empty on a
     /// vacuous run.
     pub calibration: ProximalCalibration,
+}
+
+/// One refresh tick's boundary-drift reading.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub(crate) struct RefreshFraction {
+    /// The step index the tick ran at.
+    pub step: usize,
+    /// The weighted fraction of reviewed-Proximal mass at or below the frozen radius.
+    ///
+    /// Measured over the tick's low-rung frame and its low-rung scale table, the same
+    /// rung/frame-scale pair the freeze measured on, so the series reads calibration drift and
+    /// never answers a movement question. The boundary tick contributes the first entry, and
+    /// later entries drift against it.
+    pub fraction: DNonNegative,
 }
 
 /// One refresh tick's displacement telemetry.
@@ -288,6 +305,11 @@ pub(crate) struct TrainingEvidence {
     pub losses: Vec<LossBreakdown>,
     /// Per-tick displacement telemetry, in step order.
     pub telemetry: Vec<TickTelemetry>,
+    /// Per-tick boundary-drift readings, in step order.
+    ///
+    /// Empty until the boundary froze a measured radius: the fraction is defined against the
+    /// frozen radius, so pre-boundary and vacuous ticks have nothing to read.
+    pub fractions: Vec<RefreshFraction>,
 }
 
 /// A trained projector and the evidence of its training.
@@ -377,6 +399,7 @@ impl<B: AutodiffBackend<FloatElem = f32>> BoundaryState<B> {
                     budget: BudgetBreakdown::new(),
                     losses: Vec::new(),
                     telemetry: Vec::new(),
+                    fractions: Vec::new(),
                 },
             },
             schedule,
@@ -467,6 +490,7 @@ pub(crate) fn fit_to_boundary<
                 budget: BudgetBreakdown::new(),
                 losses: Vec::with_capacity(schedule.steps.get()),
                 telemetry: Vec::new(),
+                fractions: Vec::new(),
             },
         },
         0..schedule.boundary,

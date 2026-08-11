@@ -1,6 +1,6 @@
 //! The attraction file format for relation groups over a flat edge array.
 //!
-//! Layout version 0 is mutable. Change the layout to fit what the pipeline needs and increment
+//! Layout version 1 is mutable. Change the layout to fit what the pipeline needs and increment
 //! [`Version`] when you do. The pinned parse rejects bytes of every other version, which is the
 //! intended failure mode. A fresh generation replaces the files a layout change strands.
 //!
@@ -11,7 +11,7 @@
 //! | offset | size   | region                                        |
 //! |--------|--------|-----------------------------------------------|
 //! | 0      | 8      | magic `SALTATRC`                              |
-//! | 8      | 4      | layout version, `u32` = 0                     |
+//! | 8      | 4      | layout version, `u32` = 1                     |
 //! | 12     | 4      | padding; writers emit zero, readers ignore    |
 //! | 16     | 8      | group count `G`, `u64`                        |
 //! | 24     | 8      | edge count `E`, `u64`                         |
@@ -19,7 +19,7 @@
 //! | 40     | 4056   | padding; writers emit zero, readers ignore    |
 //! | 4096   | G · 32 | groups: [`GroupRecord`] per relation group;   |
 //! |        |        | zero padding to the next 4096-byte boundary   |
-//! | ...    | E · 40 | edges: [`EdgeRecord`] in group-major order    |
+//! | ...    | E · 48 | edges: [`EdgeRecord`] in group-major order    |
 //! ```
 //!
 //! Group `i` owns the edge rows `first_edge[i] .. first_edge[i + 1]`, with the final group ending
@@ -44,7 +44,7 @@
 
 use core::fmt;
 
-use zerocopy::{F32, LE, U32, U64, Unalign};
+use zerocopy::{F32, F64, LE, U32, U64, Unalign};
 
 pub(crate) mod read;
 #[cfg(test)]
@@ -113,7 +113,7 @@ impl FileHeaderMagic {
 )]
 #[repr(u32)]
 pub(crate) enum Version {
-    V0 = 0,
+    V1 = 1,
 }
 
 /// A relation group's identity, shared weights, and edge range.
@@ -170,9 +170,9 @@ pub(crate) struct EdgeRecord {
     /// The node row the link points to.
     pub target: U64<LE>,
     /// The effective confidence `c`.
-    pub confidence: F32<LE>,
+    pub confidence: F64<LE>,
     /// The degree normalization `ν`.
-    pub normalization: F32<LE>,
+    pub normalization: F64<LE>,
     /// Score provenance bits: link, source, and target presence in the three lowest bits.
     pub scored: U32<LE>,
     /// Alignment filler; writers emit zero, readers ignore.
@@ -209,7 +209,7 @@ impl FileHeader {
     pub(crate) const fn new(groups: u64, edges: u64, rows: u64) -> Self {
         Self {
             magic: Unalign::new(FileHeaderMagic::MAGIC),
-            version: Unalign::new(Version::V0),
+            version: Unalign::new(Version::V1),
             reserved: U32::new(0),
             groups: U64::new(groups),
             edges: U64::new(edges),
@@ -276,4 +276,4 @@ impl fmt::Debug for FileHeader {
 }
 
 const _: () = assert!(size_of::<GroupRecord>() == 32);
-const _: () = assert!(size_of::<EdgeRecord>() == 40);
+const _: () = assert!(size_of::<EdgeRecord>() == 48);

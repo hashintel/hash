@@ -56,7 +56,7 @@ use crate::dataset::PROJECTOR_DIMENSIONS;
 
 /// A verified layer of the model, named as its mismatch reports it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Layer {
+pub(crate) enum Layer {
     /// The residual block stack as a whole.
     BlockStack,
     /// The representation input columns.
@@ -103,7 +103,7 @@ impl Layer {
 
 /// A verified dimension of a layer, named as its mismatch reports it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Dimension {
+pub(crate) enum Dimension {
     /// The block stack's block count.
     Depth,
     /// The representation column width.
@@ -147,7 +147,7 @@ impl Dimension {
 /// The named dimension is the first one that differs; an `actual` of zero on a bias or shift
 /// reports the parameter as absent, a shape no present parameter can have.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ArchitectureMismatch {
+pub(crate) struct ArchitectureMismatch {
     /// The layer carrying the differing dimension.
     pub layer: Layer,
     /// The differing dimension.

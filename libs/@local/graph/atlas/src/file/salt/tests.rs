@@ -7,8 +7,10 @@ use super::{
     metadata::{
         ClassifierEvidence, ClassifierFitSummary, Evidence, FrozenRadiusEvidence, HoldoutEvidence,
         HoldoutRecord, LadderEvidence, LandmarkEvidence, Placement, PolicyEvidence,
-        ProjectorEvidence, RankingOrigin, RegularizationReading, Reproducibility, RungEvidence,
-        SaltMetadata, Snapshot,
+        ProjectorEvidence, ProximalCalibrationEvidence, RankingOrigin, RefreshFractionEvidence,
+        RegularizationReading, Reproducibility, RungEvidence, SaltMetadata, Snapshot, StabilityArm,
+        StabilityBoundEvidence, StabilityCertificateEvidence, TypeCalibrationEvidence,
+        TypeRelationLoss,
     },
 };
 use crate::{
@@ -19,7 +21,10 @@ use crate::{
     },
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, finite},
+    math::{
+        AffinityCurve, Bounds2, Rotation, Similarity, UnitFraction, Vec2, d_non_negative,
+        d_positive, non_negative, open_unit_fraction, unit_fraction,
+    },
     morton::Depth,
     salt::{
         embedding::{CardEmbeddingStats, EmbedderFingerprint},
@@ -71,7 +76,8 @@ fn placement() -> PlacementOptions {
     )
     .expect("the fixture schedule is valid");
     options.ladder = LadderOptions {
-        conditions: Conditions::new(vec![0.0, 1.0]).expect("the fixture schedule is valid"),
+        conditions: Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+            .expect("the fixture schedule is valid"),
         ..
     };
 
@@ -204,26 +210,26 @@ fn classifier_evidence() -> ClassifierEvidence {
         }),
         fit: ClassifierFitSummary {
             folds: 5,
-            regularization: 1.0,
+            regularization: d_positive!(1.0),
             selection: vec![
                 RegularizationReading {
-                    regularization: 0.1,
-                    cross_entropy: 0.63,
+                    regularization: d_positive!(0.1),
+                    cross_entropy: d_non_negative!(0.63),
                 },
                 RegularizationReading {
-                    regularization: 1.0,
-                    cross_entropy: 0.61,
+                    regularization: d_positive!(1.0),
+                    cross_entropy: d_non_negative!(0.61),
                 },
                 RegularizationReading {
-                    regularization: 10.0,
-                    cross_entropy: 0.66,
+                    regularization: d_positive!(10.0),
+                    cross_entropy: d_non_negative!(0.66),
                 },
             ],
             iterations: 137,
-            raw_cross_entropy: 0.61,
-            calibrated_cross_entropy: 0.58,
-            raw_brier: 0.41,
-            calibrated_brier: 0.39,
+            raw_cross_entropy: d_non_negative!(0.61),
+            calibrated_cross_entropy: d_non_negative!(0.58),
+            raw_brier: d_non_negative!(0.41),
+            calibrated_brier: d_non_negative!(0.39),
         },
         holdout: HoldoutEvidence {
             evaluated: 5,
@@ -238,6 +244,46 @@ fn classifier_evidence() -> ClassifierEvidence {
     }
 }
 
+/// The calibration body of the fixture's measured boundary.
+///
+/// Exact dyadic literals: the fixture exercises the wire shape, and the reader fixtures
+/// downstream assert byte-stable decoding rather than cross-field theorems.
+fn calibration() -> ProximalCalibrationEvidence {
+    ProximalCalibrationEvidence {
+        radius: non_negative!(0.35),
+        types: vec![TypeCalibrationEvidence {
+            relation: 5,
+            pairs: 12,
+            mass: d_non_negative!(6.0),
+            quantiles: Some([non_negative!(0.35), non_negative!(0.5), non_negative!(0.75)]),
+            radius_without: None,
+        }],
+        fractions: vec![RefreshFractionEvidence {
+            step: 8,
+            fraction: d_non_negative!(0.25),
+        }],
+        stability: StabilityCertificateEvidence {
+            arm: StabilityArm::Reviews,
+            quantile: open_unit_fraction!(0.25),
+            delta: open_unit_fraction!(0.05),
+            kappa: d_positive!(1.0),
+            temperature: d_positive!(0.125),
+            tau: d_positive!(0.125),
+            effective_support: d_positive!(12.0),
+            pairs: 12,
+            mass: d_non_negative!(6.0),
+            epsilon_zero: d_positive!(0.375),
+            gap: d_non_negative!(0.0625),
+            bound: StabilityBoundEvidence::Finite {
+                support: d_positive!(30.5),
+                attained: false,
+            },
+            pass: false,
+            type_effective_support: d_positive!(1.0),
+        },
+    }
+}
+
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -247,9 +293,9 @@ fn evidence() -> Evidence {
         norm: NormSpotCheck {
             rows: 1_000_000,
             sampled_rows: 688,
-            tolerance: 1.0e-4,
-            defect_rate: 0.01,
-            confidence: 0.999,
+            tolerance: d_positive!(1.0e-4),
+            defect_rate: open_unit_fraction!(0.01),
+            confidence: open_unit_fraction!(0.999),
             defects: Vec::new(),
         },
         recall: RecallSpotCheck {
@@ -257,13 +303,13 @@ fn evidence() -> Evidence {
             neighbours_per_row: 50,
             matched: 173_600,
             expected: 192_450,
-            deviation: 0.32,
-            minimum_recall: 0.89,
+            deviation: d_non_negative!(0.32),
+            minimum_recall: unit_fraction!(0.89),
             // z(0.99) · 0.32 / sqrt(3849) over a corpus far larger than
             // the sample: the fixture reads as a build admitted at
             // 0.9021 - 0.012.
-            resolution: 0.012,
-            confidence: 0.99,
+            resolution: d_non_negative!(0.012),
+            confidence: open_unit_fraction!(0.99),
         },
         landmarks: LandmarkEvidence {
             selected: 4_096,
@@ -276,14 +322,13 @@ fn evidence() -> Evidence {
         },
         classifier: classifier_evidence(),
         relations: BuildMeasurements {
-            pruning_threshold: 0.001,
+            pruning_threshold: non_negative!(0.001),
             retained_edges: 8_700_000,
             pruned_edges: 100_000,
-            retained_mass: 4_200_000.0,
-            pruned_mass: 32.0,
+            retained_mass: d_non_negative!(4_200_000.0),
+            pruned_mass: d_non_negative!(32.0),
             self_references: 1_024,
             multi_typed_edges: vec![8_799_998, 1],
-            clamped_confidences: Some(3),
         },
         lod: lod_measurements(),
         quad: QuadMeasurements {
@@ -302,21 +347,27 @@ fn evidence() -> Evidence {
         projector: Some(ProjectorEvidence {
             steps: 12,
             boundary: Some(FrozenRadiusEvidence::Measured {
-                radius: finite!(0.35),
+                radius: non_negative!(0.35),
             }),
+            proximal_calibration: Some(calibration()),
             unresolved_verdicts: 1,
             ladder: Some(LadderEvidence {
                 rungs: vec![
                     RungEvidence {
-                        condition: 0.0,
-                        relation_loss: 421.5,
+                        condition: non_negative!(0.0),
+                        relation_loss: d_non_negative!(421.5),
+                        relation_losses: vec![TypeRelationLoss {
+                            relation: OntologyRowId::new(5),
+                            loss: d_non_negative!(421.5),
+                        }],
                         alignment: Similarity::IDENTITY,
-                        baseline_movement: 0.0,
-                        adjacent_movement: 0.0,
+                        baseline_movement: d_non_negative!(0.0),
+                        adjacent_movement: d_non_negative!(0.0),
                     },
                     RungEvidence {
-                        condition: 1.0,
-                        relation_loss: 397.25,
+                        condition: non_negative!(1.0),
+                        relation_loss: d_non_negative!(397.25),
+                        relation_losses: vec![],
                         // (0.6, 0.8) lies exactly on the unit
                         // circle in f32.
                         alignment: Similarity::new(
@@ -325,13 +376,13 @@ fn evidence() -> Evidence {
                             Vec2::new(0.5, -0.25),
                         )
                         .expect("the fixture scale is finite, positive, and normal"),
-                        baseline_movement: 0.125,
-                        adjacent_movement: 0.125,
+                        baseline_movement: d_non_negative!(0.125),
+                        adjacent_movement: d_non_negative!(0.125),
                     },
                 ],
-                canonical: 1.0,
+                canonical: non_negative!(1.0),
                 canonical_index: 1,
-                persisted_relation_loss: 397.25,
+                persisted_relation_loss: d_non_negative!(397.25),
                 paired_movement: None,
             }),
         }),
@@ -479,49 +530,6 @@ fn baseline_generation_records_projector_absence_as_explicit_null() {
     let decoded: SaltRepository =
         serde_json::from_str(&json).expect("the serialized repository should deserialize");
     assert_eq!(decoded, repository);
-}
-
-#[test]
-fn a_document_without_the_clamp_count_decodes_as_absent() {
-    let mut document: serde_json::Value =
-        serde_json::to_value(repository()).expect("the repository should serialize");
-    let mut expected = repository();
-    expected.metadata.evidence.relations.clamped_confidences = None;
-    let relations = document
-        .pointer_mut("/metadata/evidence/relations")
-        .and_then(serde_json::Value::as_object_mut)
-        .expect("the relation evidence should be an object");
-
-    // The key is physically removed, the shape a document carries when
-    // no fit counted its clamps.
-    assert!(
-        relations.remove("clamped_confidences").is_some(),
-        "the published shape should carry the clamp count: {relations:?}",
-    );
-    let decoded: SaltRepository =
-        serde_json::from_value(document.clone()).expect("the older shape should deserialize");
-    assert_eq!(
-        decoded.metadata.evidence.relations.clamped_confidences, None,
-        "an absent key reads as an absent count rather than a measured zero"
-    );
-    assert_eq!(decoded, expected);
-
-    // The control for the removal itself: a sibling count with no
-    // default refuses, so the decode above passed on the default and
-    // not on a tolerated-absence rule covering the whole record.
-    let relations = document
-        .pointer_mut("/metadata/evidence/relations")
-        .and_then(serde_json::Value::as_object_mut)
-        .expect("the relation evidence should be an object");
-    relations
-        .remove("self_references")
-        .expect("the published shape should carry the self-reference count");
-    let error = serde_json::from_value::<SaltRepository>(document)
-        .expect_err("a missing undefaulted field should refuse");
-    assert!(
-        error.to_string().contains("self_references"),
-        "the refusal should name the missing field: {error}",
-    );
 }
 
 #[test]
@@ -863,6 +871,7 @@ fn a_decoded_document_carries_only_in_domain_readings() {
         .paired_movement = Some(measured);
 
     let paired = "/metadata/evidence/projector/ladder/paired_movement";
+    let calibration = "/metadata/evidence/projector/proximal_calibration";
     for (pointer, tampered) in [
         (
             format!("{paired}/pairs/distance/q95"),
@@ -873,6 +882,62 @@ fn a_decoded_document_carries_only_in_domain_readings() {
             serde_json::json!(1.5),
         ),
         (format!("{paired}/deciles/0/upper"), serde_json::json!(-1.0)),
+        (
+            format!("{calibration}/stability/gap"),
+            serde_json::json!(-1.0),
+        ),
+        (
+            format!("{calibration}/stability/effective_support"),
+            serde_json::json!(0.0),
+        ),
+        (
+            format!("{calibration}/types/0/mass"),
+            serde_json::json!(-1.0),
+        ),
+        (
+            format!("{calibration}/fractions/0/fraction"),
+            serde_json::Value::Null,
+        ),
+        (
+            "/metadata/evidence/projector/ladder/rungs/0/relation_losses/0/loss".to_owned(),
+            serde_json::json!(-1.0),
+        ),
+        (
+            "/metadata/evidence/classifier/fit/regularization".to_owned(),
+            serde_json::json!(0.0),
+        ),
+        (
+            "/metadata/evidence/classifier/fit/selection/1/cross_entropy".to_owned(),
+            serde_json::json!(-0.1),
+        ),
+        (
+            "/metadata/evidence/classifier/fit/calibrated_brier".to_owned(),
+            serde_json::Value::Null,
+        ),
+        (
+            "/metadata/evidence/relations/pruning_threshold".to_owned(),
+            serde_json::json!(-1.0),
+        ),
+        (
+            "/metadata/evidence/relations/retained_mass".to_owned(),
+            serde_json::json!(-1.0),
+        ),
+        (
+            "/metadata/evidence/norm/tolerance".to_owned(),
+            serde_json::json!(0.0),
+        ),
+        (
+            "/metadata/evidence/norm/confidence".to_owned(),
+            serde_json::json!(1.0),
+        ),
+        (
+            "/metadata/evidence/recall/deviation".to_owned(),
+            serde_json::json!(-0.1),
+        ),
+        (
+            "/metadata/evidence/recall/minimum_recall".to_owned(),
+            serde_json::json!(1.5),
+        ),
     ] {
         let mut value = serde_json::to_value(&repository).expect("the document serializes");
         *value
@@ -881,4 +946,66 @@ fn a_decoded_document_carries_only_in_domain_readings() {
         serde_json::from_value::<SaltRepository>(value)
             .expect_err("an out-of-domain reading refuses the document");
     }
+}
+
+#[test]
+fn an_old_document_without_the_optional_keys_decodes_as_absent() {
+    // Decode-from-old means a published-shape repository-version-2 document written before a
+    // field existed decodes with that field absent, never zero.
+    let repository = repository();
+    let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
+
+    let projector = json["metadata"]["evidence"]["projector"]
+        .as_object_mut()
+        .expect("the projector evidence is an object");
+    assert!(
+        projector.remove("proximal_calibration").is_some(),
+        "the writer emits the calibration key"
+    );
+
+    let rung = json["metadata"]["evidence"]["projector"]["ladder"]["rungs"][0]
+        .as_object_mut()
+        .expect("a rung is an object");
+    assert!(
+        rung.remove("relation_losses").is_some(),
+        "the writer emits the per-type key"
+    );
+
+    let decoded: SaltRepository =
+        serde_json::from_value(json).expect("an old document still decodes");
+    let evidence = decoded
+        .metadata
+        .evidence
+        .projector
+        .expect("the projector evidence survives");
+    assert_eq!(evidence.proximal_calibration, None);
+    assert!(
+        evidence.ladder.expect("the ladder survives").rungs[0]
+            .relation_losses
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_missing_required_sibling_refuses_and_names_the_field() {
+    // The control proves the optional keys' own absence rule decodes the old document rather
+    // than record-wide permissiveness. Removing an undefaulted required sibling must refuse,
+    // naming the field.
+    let repository = repository();
+    let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
+
+    let projector = json["metadata"]["evidence"]["projector"]
+        .as_object_mut()
+        .expect("the projector evidence is an object");
+    assert!(
+        projector.remove("unresolved_verdicts").is_some(),
+        "the sibling exists to remove"
+    );
+
+    let error = serde_json::from_value::<SaltRepository>(json)
+        .expect_err("a missing required field refuses");
+    assert!(
+        error.to_string().contains("unresolved_verdicts"),
+        "the refusal names the field: {error}"
+    );
 }

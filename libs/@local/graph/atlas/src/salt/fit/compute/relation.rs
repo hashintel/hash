@@ -83,7 +83,6 @@ impl Context<'_> {
         quotient: &RowQuotient,
         spool: &InstanceSpool,
         multi_typed: &[u64],
-        clamped_confidences: u64,
     ) -> Result<RelationArtifacts, StageError> {
         let _span = tracing::info_span!("relations").entered();
 
@@ -121,7 +120,6 @@ impl Context<'_> {
         // cannot see; they join the build measurements here on their way
         // to the manifest.
         indexes.measurements.multi_typed_edges = multi_typed.to_vec();
-        indexes.measurements.clamped_confidences = Some(clamped_confidences);
 
         let attraction = write_staged(self.staging, Role::Attraction, |writer| {
             indexes.attraction.write_into(rows as u64, writer)

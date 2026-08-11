@@ -1,7 +1,7 @@
 //! Double-precision 2D vectors for accumulation.
 
 use core::{
-    ops::{Add, AddAssign, Div, Mul, Sub},
+    ops::{Add, AddAssign, Div, Mul, Neg, Sub},
     simd::{Simd, num::SimdFloat as _},
 };
 
@@ -191,6 +191,15 @@ const impl Div<f64> for DVec2 {
     #[inline]
     fn div(self, rhs: f64) -> Self {
         Self::new(self.x() / rhs, self.y() / rhs)
+    }
+}
+
+const impl Neg for DVec2 {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self {
+        Self::new(-self.x(), -self.y())
     }
 }
 

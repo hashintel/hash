@@ -610,13 +610,13 @@ fn quotient_contracts_cross_landmark_edges() {
     // (L1, L2) = 0.5 + 1 - 0.5 = 1.0.
     let view = quotient.view();
     assert_eq!(view.rows(), 3);
-    let row0: Vec<(u64, f32)> = view
+    let row0: Vec<(u64, f64)> = view
         .row(LandmarkOrdinal::new(0))
-        .map(|edge| (edge.id.as_u64(), edge.weight))
+        .map(|edge| (edge.id.as_u64(), edge.weight.get()))
         .collect();
-    let row1: Vec<(u64, f32)> = view
+    let row1: Vec<(u64, f64)> = view
         .row(LandmarkOrdinal::new(1))
-        .map(|edge| (edge.id.as_u64(), edge.weight))
+        .map(|edge| (edge.id.as_u64(), edge.weight.get()))
         .collect();
     assert_eq!(row0, [(1, 1.0)]);
     assert_eq!(row1, [(0, 1.0), (2, 1.0)]);

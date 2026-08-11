@@ -9,10 +9,10 @@
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 
-use zerocopy::{F32, IntoBytes as _, U64};
+use zerocopy::IntoBytes as _;
 
 use super::{
-    FileHeader, PaddedFileHeader, PolicyRow,
+    Endianness, FileHeader, PaddedFileHeader, PolicyRow,
     read::{OpenPolicyError, PolicyFile},
     write::write_rows,
 };
@@ -26,15 +26,16 @@ fn header_wire_layout() {
     // The literal length pins the layout and bounds the region slice.
     assert_eq!(bytes.len(), 4096);
     assert_eq!(&bytes[..8], b"SALTPLCY");
-    assert_eq!(&bytes[8..12], &0_u32.to_le_bytes(), "version 0");
-    assert_eq!(&bytes[12..16], &0_u32.to_le_bytes(), "reserved");
+    assert_eq!(&bytes[8..12], &1_u32.to_le_bytes(), "version 1");
+    assert_eq!(bytes[12], Endianness::NATIVE as u8, "row byte order");
+    assert_eq!(&bytes[13..16], &[0; 3], "reserved");
     assert_eq!(&bytes[16..24], &3_u64.to_le_bytes(), "policy count");
     assert!(
         bytes[24..].iter().all(|&byte| byte == 0),
         "writers emit zero padding",
     );
 
-    assert_eq!(header.expected_file_len(), Some(4096 + 3 * 32));
+    assert_eq!(header.expected_file_len(), Some(4096 + 3 * 56));
     // Overflowing geometry matches no real file.
     assert_eq!(FileHeader::new(u64::MAX).expected_file_len(), None);
 }
@@ -49,15 +50,16 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-fn fixture_row(relation: u64, coincident: f32) -> PolicyRow {
+fn fixture_row(relation: u64, coincident: f64) -> PolicyRow {
     PolicyRow {
-        relation: U64::new(relation),
-        attraction_coincident: F32::new(coincident),
-        attraction_proximal: F32::new(0.25),
-        selected_coincident: F32::new(coincident),
-        selected_proximal: F32::new(0.5),
-        applicability: F32::new(0.75),
-        strength: F32::new(1.0),
+        relation,
+        attraction_coincident: coincident,
+        attraction_proximal: 0.25,
+        selected_coincident: coincident,
+        selected_proximal: 0.5,
+        applicability: 0.75,
+        strength: 1.0,
+        reserved: [0; 4],
     }
 }
 
@@ -83,16 +85,14 @@ fn written_rows_reopen_verbatim() {
 
     assert_eq!(rows.len(), 3);
     assert_eq!(
-        rows.iter()
-            .map(|row| row.relation.get())
-            .collect::<Vec<_>>(),
+        rows.iter().map(|row| row.relation).collect::<Vec<_>>(),
         [2, 5, 9],
     );
-    assert_eq!(rows[1].attraction_coincident.get(), 0.5);
-    assert_eq!(rows[1].attraction_proximal.get(), 0.25);
-    assert_eq!(rows[1].selected_proximal.get(), 0.5);
-    assert_eq!(rows[1].applicability.get(), 0.75);
-    assert_eq!(rows[1].strength.get(), 1.0);
+    assert_eq!(rows[1].attraction_coincident, 0.5);
+    assert_eq!(rows[1].attraction_proximal, 0.25);
+    assert_eq!(rows[1].selected_proximal, 0.5);
+    assert_eq!(rows[1].applicability, 0.75);
+    assert_eq!(rows[1].strength, 1.0);
 }
 
 #[test]
@@ -126,7 +126,7 @@ fn open_rejects_foreign_and_torn_bytes() {
 
     let future = scratch("future-version.plcy");
     let mut bytes = fixture_bytes();
-    bytes[8..12].copy_from_slice(&1_u32.to_le_bytes());
+    bytes[8..12].copy_from_slice(&2_u32.to_le_bytes());
     fs::write(&future, &bytes).expect("the scratch file is writable");
     assert_matches!(PolicyFile::open(&future), Err(OpenPolicyError::Header(_)),);
 
@@ -135,4 +135,25 @@ fn open_rejects_foreign_and_torn_bytes() {
     bytes.truncate(bytes.len() - 1);
     fs::write(&torn, &bytes).expect("the scratch file is writable");
     assert_matches!(PolicyFile::open(&torn), Err(OpenPolicyError::Length { .. }),);
+
+    // The other valid byte-order flag parses and then refuses by name: the rows are stored in
+    // the writer's native order, and this reader's differs.
+    let foreign_order = scratch("foreign-order.plcy");
+    let mut bytes = fixture_bytes();
+    bytes[12] ^= 1;
+    fs::write(&foreign_order, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        PolicyFile::open(&foreign_order),
+        Err(OpenPolicyError::Endianness { .. }),
+    );
+
+    // A byte that names no order at all fails the pinned header parse outright.
+    let unnamed_order = scratch("unnamed-order.plcy");
+    let mut bytes = fixture_bytes();
+    bytes[12] = 2;
+    fs::write(&unnamed_order, &bytes).expect("the scratch file is writable");
+    assert_matches!(
+        PolicyFile::open(&unnamed_order),
+        Err(OpenPolicyError::Header(_)),
+    );
 }

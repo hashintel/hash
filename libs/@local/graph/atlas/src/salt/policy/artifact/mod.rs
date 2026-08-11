@@ -10,7 +10,7 @@ use core::{error::Error, fmt, mem::offset_of};
 use std::io;
 
 use hashql_core::id::Id as _;
-use zerocopy::{FromBytes as _, IntoBytes as _};
+use zerocopy::{FromBytes as _, IntoBytes as _, TryFromBytes as _};
 
 use super::RelationPolicy;
 use crate::{
@@ -48,13 +48,13 @@ const _: () = {
 
 /// An opened policy file does not hold a valid table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum InvalidPolicyFile {
+pub(crate) enum InvalidPolicyFile {
     /// The rows break the strictly ascending relation order.
     UnorderedRelations { index: usize },
-    /// A policy carries a value outside its domain.
+    /// A policy row's bits are not a canonical encoding of the domain types.
     ///
-    /// A probability or applicability outside `[0, 1]`, or a strength that is not finite and
-    /// nonnegative.
+    /// A fraction outside `[0, 1]`, a strength that is not finite and non-negative, or a
+    /// negative zero where the domain stores canonical zero.
     Domain { index: usize },
 }
 
@@ -133,23 +133,27 @@ impl PolicyTableArchive {
     /// Returns an error when the file violates a table invariant.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: PolicyFile) -> Result<Self, InvalidPolicyFile> {
-        let table = Self { file };
-        let policies = table.policies();
+        let rows = file.rows();
 
-        if let Some(position) = policies
+        if let Some(position) = rows
             .array_windows::<2>()
-            .position(|[left, right]| left.relation.as_u64() >= right.relation.as_u64())
+            .position(|[left, right]| left.relation >= right.relation)
         {
             return Err(InvalidPolicyFile::UnorderedRelations {
                 index: position + 1,
             });
         }
 
-        if let Some(index) = policies.iter().position(|policy| !policy.in_domain()) {
+        // The domain types carry every value bound in their bit validity, so the typed
+        // try-cast is the whole domain check.
+        if let Some(index) = rows
+            .iter()
+            .position(|row| RelationPolicy::try_read_from_bytes(row.as_bytes()).is_err())
+        {
             return Err(InvalidPolicyFile::Domain { index });
         }
 
-        Ok(table)
+        Ok(Self { file })
     }
 
     /// Returns the resolved relation count.
@@ -162,9 +166,9 @@ impl PolicyTableArchive {
     /// Views the policies, strictly ascending by relation.
     #[must_use]
     pub(crate) fn policies(&self) -> &[RelationPolicy] {
-        <[RelationPolicy]>::ref_from_bytes(self.file.rows().as_bytes()).expect(
-            "the policy row layouts are pinned equal at compile time and the mapped region is \
-             page-aligned",
+        <[RelationPolicy]>::try_ref_from_bytes(self.file.rows().as_bytes()).expect(
+            "opening validated every row against the domain types' bit validity, and the layouts \
+             are pinned equal at compile time",
         )
     }
 

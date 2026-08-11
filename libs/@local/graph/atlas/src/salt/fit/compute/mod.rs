@@ -168,7 +168,6 @@ where
         &quotient,
         &ingested.instances,
         &ingested.multi_typed,
-        ingested.clamped_confidences,
     )?;
     progress.stage_completed(Stage::Relations);
     let (knn, distinct_knn) =

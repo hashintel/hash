@@ -16,7 +16,7 @@ use crate::{
 
 /// Opening a landmark file failed.
 #[derive(Debug)]
-pub enum OpenLandmarkError {
+pub(crate) enum OpenLandmarkError {
     /// Reading the header page failed.
     Header(HeaderError),
     /// The file length contradicts the header's geometry.

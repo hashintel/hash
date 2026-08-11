@@ -57,7 +57,7 @@ use crate::math::UnitFraction;
     zerocopy::TryFromBytes,
 )]
 #[repr(u8)]
-pub enum SubgroupDimension {
+pub(crate) enum SubgroupDimension {
     Density = 0,
     Language = 1,
     Source = 2,
@@ -117,7 +117,7 @@ const impl IndexMut<SubgroupDimension> for SubgroupAxes {
 
 /// One categorical value on a stratification axis.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Subgroup {
+pub(crate) struct Subgroup {
     pub dimension: SubgroupDimension,
     pub value: u32,
 }
@@ -284,7 +284,7 @@ where
 
 /// The selection inputs are unsatisfiable or malformed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SelectionError {
+pub(crate) enum SelectionError {
     /// The corpus offers no candidates.
     EmptyCorpus,
     /// Candidate rows are not strictly ascending.

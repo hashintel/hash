@@ -14,11 +14,12 @@ use std::{
 use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
 use memmap2::Mmap;
-use zerocopy::{F32, FromBytes as _, IntoBytes as _, LE, U32, U64};
+use zerocopy::{F64, FromBytes as _, IntoBytes as _, LE, U32, U64};
 
 use crate::{
     file::generation::ScratchDirectory,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    math::UnitFraction,
     salt::relation::{RelationConfidence, RelationInstance},
 };
 
@@ -44,9 +45,9 @@ pub(crate) struct InstanceRecord {
     relation: U64<LE>,
     source: U64<LE>,
     target: U64<LE>,
-    link: F32<LE>,
-    source_confidence: F32<LE>,
-    target_confidence: F32<LE>,
+    link: F64<LE>,
+    source_confidence: F64<LE>,
+    target_confidence: F64<LE>,
     scored: U32<LE>,
     multiplicity: U32<LE>,
 }
@@ -85,9 +86,9 @@ impl InstanceRecord {
             relation: U64::new(relation.as_u64()),
             source: U64::new(source.as_u64()),
             target: U64::new(target.as_u64()),
-            link: F32::new(confidence.link.unwrap_or(1.0)),
-            source_confidence: F32::new(confidence.source.unwrap_or(1.0)),
-            target_confidence: F32::new(confidence.target.unwrap_or(1.0)),
+            link: F64::new(confidence.link.unwrap_or(UnitFraction::ONE).get()),
+            source_confidence: F64::new(confidence.source.unwrap_or(UnitFraction::ONE).get()),
+            target_confidence: F64::new(confidence.target.unwrap_or(UnitFraction::ONE).get()),
             scored: U32::new(scored),
             multiplicity: U32::new(multiplicity),
         }
@@ -104,9 +105,14 @@ impl InstanceRecord {
             source: NodeRowId::new(self.source.get()),
             target: NodeRowId::new(self.target.get()),
             confidence: RelationConfidence {
-                link: (scored & Self::LINK != 0).then(|| self.link.get()),
-                source: (scored & Self::SOURCE != 0).then(|| self.source_confidence.get()),
-                target: (scored & Self::TARGET != 0).then(|| self.target_confidence.get()),
+                // The spool reads back the fractions this run wrote, so the domain is consumed
+                // rather than re-checked, as for every other field.
+                link: (scored & Self::LINK != 0)
+                    .then(|| UnitFraction::new_unchecked(self.link.get())),
+                source: (scored & Self::SOURCE != 0)
+                    .then(|| UnitFraction::new_unchecked(self.source_confidence.get())),
+                target: (scored & Self::TARGET != 0)
+                    .then(|| UnitFraction::new_unchecked(self.target_confidence.get())),
             },
             multiplicity: self.multiplicity.get(),
         }
@@ -232,4 +238,4 @@ impl MappedInstances {
     }
 }
 
-const _: () = assert!(size_of::<InstanceRecord>() == 52);
+const _: () = assert!(size_of::<InstanceRecord>() == 64);

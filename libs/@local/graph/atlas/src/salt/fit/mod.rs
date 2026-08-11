@@ -55,7 +55,7 @@ use crate::{
         generation::{Generation, GenerationRoot, PublishedGeneration},
     },
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, NonNegative, Positive, UnitFraction},
+    math::{AffinityCurve, NonNegative, Positive, non_negative, nz, positive, unit_fraction},
     progress::{self, Progress},
     salt::{
         embedding::CardEmbedder,
@@ -180,11 +180,11 @@ pub(crate) struct ProjectorOptions {
     pub schedule: TrainingSchedule,
     /// The per-step sampling plan.
     pub plan: BatchPlan,
-    /// The logarithm offset of the semantic affinity energy, finite and strictly positive.
+    /// The logarithm offset of the semantic affinity energy.
     ///
     /// It bounds the near-coincidence repulsion derivative, so it is a force ceiling, not a
     /// numerical crumb.
-    pub affinity_offset: f32,
+    pub affinity_offset: Positive,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
     /// The per-node relation-gradient diagnostics' baseline convention.
@@ -243,35 +243,30 @@ impl ProjectorOptions {
         Self {
             architecture: Architecture { .. },
             schedule: TrainingSchedule::new(
-                NonZero::new(20_000).expect("the ratified step count is nonzero"),
+                nz!(20_000),
                 5_000,
-                NonZero::new(250).expect("the ratified cadence is nonzero"),
-                const {
-                    UnitFraction::new(1.0e-3).expect("the ratified initial rate is a unit fraction")
-                },
-                const {
-                    UnitFraction::new(1.0e-5).expect("the ratified minimum rate is a unit fraction")
-                },
+                nz!(250),
+                unit_fraction!(1.0e-3),
+                unit_fraction!(1.0e-5),
             )
             .expect("the ratified schedule is valid"),
             plan: BatchPlan {
-                semantic_pairs: NonZero::new(2048).expect("the ratified draw is nonzero"),
+                semantic_pairs: nz!(2048),
                 ordinary_pairs: 2048,
                 relation_types: 12,
-                relation_cap: NonZero::new(256).expect("the ratified cap is nonzero"),
+                relation_cap: nz!(256),
                 hard_queries: 512,
                 landmark_anchors: 512,
                 temporal_anchors: 0,
             },
-            affinity_offset: 1.0e-3,
-            support: SupportOptions::new(3.0, 1.0e-3)
-                .expect("the ratified support constants are valid"),
+            affinity_offset: positive!(1.0e-3),
+            support: SupportOptions::new(positive!(3.0), positive!(1.0e-3)),
             budget: Budget {
-                floor: const { Positive::new(2.0e-4).expect("the ratified floor is positive") },
+                floor: positive!(2.0e-4),
             },
             coefficients: Coefficients::new(
                 Positive::ONE,
-                const { NonNegative::new(5.0).expect("the ratified repulsion is non-negative") },
+                non_negative!(5.0),
                 NonNegative::ONE,
                 NonNegative::ONE,
                 NonNegative::ZERO,
@@ -284,9 +279,9 @@ impl ProjectorOptions {
                 Positive::ONE,
             ),
             lens: RelationLens::new(
-                CoincidentEnergy::new(0.05, 1.0).expect("the ratified energy is valid"),
-                const { Positive::new(0.25).expect("the ratified temperature is positive") },
-                const { Positive::new(1.0e-3).expect("the ratified scale guard is positive") },
+                CoincidentEnergy::new(non_negative!(0.05), positive!(1.0)),
+                positive!(0.25),
+                positive!(1.0e-3),
             ),
             protection: ProtectionConfig::default(),
             landmark_support: LandmarkSupport { .. },

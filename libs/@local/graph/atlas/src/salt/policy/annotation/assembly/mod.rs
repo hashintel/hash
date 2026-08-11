@@ -131,7 +131,7 @@ pub(crate) struct AssemblyConfig {
 
 /// Assembling the corpus into a training set failed.
 #[derive(Debug)]
-pub enum AssemblyError<E> {
+pub(crate) enum AssemblyError<E> {
     /// A card declares a prose language the template does not render.
     Language {
         /// The card's corpus index.

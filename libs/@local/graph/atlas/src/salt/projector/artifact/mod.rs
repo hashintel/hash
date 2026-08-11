@@ -38,7 +38,7 @@ use crate::{
 
 /// An error from writing or opening a checkpoint.
 #[derive(Debug)]
-pub enum CheckpointError {
+pub(crate) enum CheckpointError {
     /// Reading or writing the checkpoint bytes failed.
     Io(io::Error),
     /// The framework could not encode or decode the record.
@@ -103,7 +103,7 @@ impl CheckpointError {
 // The private field keeps burn's `RecorderError` out of the public
 // interface: burn is a private dependency.
 #[derive(Debug)]
-pub struct RecordFault(RecorderError);
+pub(crate) struct RecordFault(RecorderError);
 
 impl core::fmt::Display for RecordFault {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

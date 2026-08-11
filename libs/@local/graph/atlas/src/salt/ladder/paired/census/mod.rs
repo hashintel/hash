@@ -41,7 +41,8 @@ use crate::{
 /// draw therefore holds the sample's whole empirical distribution within one percentile point of
 /// its population's, with failure probability at most one in a million, and a smaller pair domain
 /// draws whole.
-const SAMPLE_CAP: usize = 72_555;
+// `pub(super)`: the evidence body documents its `pairs_selected` bound by naming this cap.
+pub(super) const SAMPLE_CAP: usize = 72_555;
 
 /// The index contradiction the census refused.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

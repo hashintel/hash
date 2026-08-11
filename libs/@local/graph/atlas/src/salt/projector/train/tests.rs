@@ -38,6 +38,7 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, NonNegative, Positive, Vec2, non_negative, positive,
+        unit_fraction,
     },
     progress::{NoProgress, Progress},
     salt::{
@@ -106,15 +107,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
@@ -156,9 +158,9 @@ fn relation_indexes(
 fn affinity() -> AffinityEnergy {
     AffinityEnergy::new(
         AffinityCurve::new(1.0, 1.0).expect("the fixture curve is valid"),
-        0.5,
+        positive!(0.5),
     )
-    .expect("the fixture epsilon is valid")
+    .expect("the fixture exponent satisfies the objective bound")
 }
 
 /// The relation energy of the dyadic fixtures: Proximal radius one at temperature one half.
@@ -167,15 +169,15 @@ fn affinity() -> AffinityEnergy {
 /// is `0.5`, so unit normalization comes from local scales of `0.5`.
 fn relation_energy() -> RelationEnergy {
     RelationEnergy::new(
-        CoincidentEnergy::new(0.25, 1.0).expect("the fixture coincident energy is valid"),
-        ProximalEnergy::new(1.0, 0.5).expect("the fixture proximal energy is valid"),
-        0.5,
+        CoincidentEnergy::new(non_negative!(0.25), positive!(1.0)),
+        ProximalEnergy::new(non_negative!(1.0), positive!(0.5)),
+        positive!(0.5),
     )
     .expect("the fixture radii are ordered")
 }
 
 fn support_options() -> SupportOptions {
-    SupportOptions::new(1.0, 0.5).expect("the fixture support options are valid")
+    SupportOptions::new(positive!(1.0), positive!(0.5))
 }
 
 /// Coefficients used by the objective fixtures.

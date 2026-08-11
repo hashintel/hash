@@ -10,11 +10,10 @@ use std::hash::DefaultHasher;
 use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, prop_oneof, property_test};
 
 use crate::math::{
-    d_finite, finite,
+    d_finite, finite, non_negative, positive,
     scalar::{
         DFinite, DNonNegative, DPositive, Finite, GreaterThanOne, Log2, NonNegative,
-        OpenUnitFraction, Positive, UnitFraction, huber, narrow_f32, narrow_f32_exact, sigmoid,
-        softplus,
+        OpenUnitFraction, Positive, UnitFraction, narrow_f32, narrow_f32_exact, softplus,
     },
 };
 
@@ -301,17 +300,17 @@ fn softplus_matches_naive_on_small_values() {
 #[test]
 fn sigmoid_matches_hand_computed_values() {
     // At zero the two branches agree exactly: 1 / (1 + 1).
-    assert_eq!(sigmoid(0.0), 0.5);
+    assert_eq!(NonNegative::sigmoid(0.0), 0.5);
     // Saturation: exp(-200) underflows f32, so the asymptotes are exact.
-    assert_eq!(sigmoid(200.0), 1.0);
-    assert_eq!(sigmoid(-200.0), 0.0);
+    assert_eq!(NonNegative::sigmoid(200.0), 1.0);
+    assert_eq!(NonNegative::sigmoid(-200.0), 0.0);
 }
 
 #[test]
 fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
     // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once exp(-|x|) drops below f32 ε.
     // The direct ratio keeps the tail.
-    let tail = sigmoid(-20.0);
+    let tail = NonNegative::sigmoid(-20.0).get();
     let expected = (-20.0_f32).exp();
     assert!(tail > 0.0);
     assert!((tail - expected).abs() <= 1e-6 * expected, "tail {tail}");
@@ -320,13 +319,19 @@ fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
 #[test]
 fn huber_matches_hand_computed_regimes() {
     // Quadratic regime: 0.5 · value^2, over exactly-representable inputs.
-    assert_eq!(huber(0.5, 1.0), 0.125);
-    assert_eq!(huber(0.0, 1.0), 0.0);
+    assert_eq!(
+        non_negative!(0.5).huber(positive!(1.0)),
+        non_negative!(0.125)
+    );
+    assert_eq!(NonNegative::ZERO.huber(positive!(1.0)), NonNegative::ZERO);
     // At the threshold both formulas give 0.5 · threshold^2.
-    assert_eq!(huber(1.0, 1.0), 0.5);
+    assert_eq!(non_negative!(1.0).huber(positive!(1.0)), non_negative!(0.5));
     // Linear regime: threshold · (value - 0.5 · threshold).
-    assert_eq!(huber(3.0, 1.0), 2.5);
-    assert_eq!(huber(2.0, 0.5), 0.875);
+    assert_eq!(non_negative!(3.0).huber(positive!(1.0)), non_negative!(2.5));
+    assert_eq!(
+        non_negative!(2.0).huber(positive!(0.5)),
+        non_negative!(0.875)
+    );
 }
 
 #[test]
@@ -334,13 +339,27 @@ fn huber_is_continuous_at_the_threshold() {
     let threshold = 1.0_f32;
     let step = 1e-4_f32;
 
-    let below = huber(threshold - step, threshold);
-    let above = huber(threshold + step, threshold);
+    let below = NonNegative::new(threshold - step)
+        .expect("a step below the threshold is non-negative")
+        .huber(positive!(1.0));
+    let above = NonNegative::new(threshold + step)
+        .expect("a step above the threshold is non-negative")
+        .huber(positive!(1.0));
 
     // The derivative at the threshold is the threshold itself, so values a step apart on either
     // side differ by about 2 · step.
     assert!(below < above);
-    assert!((above - below) < 1e-3);
+    assert!((above.get() - below.get()) < 1e-3);
+}
+
+#[test]
+fn huber_saturates_instead_of_overflowing() {
+    // In the quadratic regime the square of 10²⁰ overflows the `f32` range. The reading clamps
+    // to the domain's maximum instead of leaving it.
+    assert_eq!(
+        non_negative!(1.0e20).huber(positive!(1.0e20)),
+        non_negative!(f32::MAX)
+    );
 }
 
 #[test]
@@ -413,36 +432,36 @@ fn sigmoid_is_bounded_monotone_and_complementary(
         (second, first)
     };
 
-    prop_assert!((0.0..=1.0).contains(&sigmoid(lower)));
+    prop_assert!((0.0..=1.0).contains(&NonNegative::sigmoid(lower).get()));
     prop_assert!(
-        sigmoid(lower) <= sigmoid(upper),
+        NonNegative::sigmoid(lower) <= NonNegative::sigmoid(upper),
         "sigmoid({}) = {} above sigmoid({}) = {}",
         lower,
-        sigmoid(lower),
+        NonNegative::sigmoid(lower),
         upper,
-        sigmoid(upper),
+        NonNegative::sigmoid(upper),
     );
 
-    let complement = 1.0 - sigmoid(first);
+    let complement = 1.0 - NonNegative::sigmoid(first).get();
     prop_assert!(
-        (sigmoid(-first) - complement).abs() <= 1e-6,
+        (NonNegative::sigmoid(-first).get() - complement).abs() <= 1e-6,
         "sigmoid(-{0}) = {1} against 1 - sigmoid({0}) = {2}",
         first,
-        sigmoid(-first),
+        NonNegative::sigmoid(-first),
         complement,
     );
 }
 
-/// The Huber penalty is non-negative and monotone non-decreasing in the magnitude.
+/// The Huber penalty is monotone non-decreasing in the magnitude.
 ///
 /// For a fixed positive threshold, the quadratic and linear pieces are each monotone and meet
-/// continuously at the threshold. The strategies bound magnitudes to `0..1e3` and thresholds to
-/// `1e-3..1e3`.
+/// continuously at the threshold. The saturation at [`f32::MAX`] is itself monotone, so the
+/// property holds over the whole domain.
 #[property_test]
-fn huber_is_non_negative_and_monotone_in_the_magnitude(
-    #[strategy = 0.0_f32..1e3] first: f32,
-    #[strategy = 0.0_f32..1e3] second: f32,
-    #[strategy = 1e-3_f32..1e3] threshold: f32,
+fn huber_is_monotone_in_the_magnitude(
+    first: NonNegative,
+    second: NonNegative,
+    threshold: Positive,
 ) {
     let (lower, upper) = if first <= second {
         (first, second)
@@ -450,16 +469,15 @@ fn huber_is_non_negative_and_monotone_in_the_magnitude(
         (second, first)
     };
 
-    prop_assert!(huber(lower, threshold) >= 0.0);
     prop_assert!(
-        huber(lower, threshold) <= huber(upper, threshold),
+        lower.huber(threshold) <= upper.huber(threshold),
         "huber({}, {}) = {} above huber({}, {}) = {}",
         lower,
         threshold,
-        huber(lower, threshold),
+        lower.huber(threshold),
         upper,
         threshold,
-        huber(upper, threshold),
+        upper.huber(threshold),
     );
 }
 
@@ -558,6 +576,50 @@ fn non_negative_admits_exactly_the_non_negative_finite_domain() {
     assert_eq!(NonNegative::new(f32::NAN), None);
 }
 
+/// `-0.0` enters through `new` and `new_unchecked`; one bit pattern per value is the ground for
+/// bitwise `Eq`, `Ord`, and `Hash`, so both must store `+0.0`.
+#[test]
+fn non_negative_constructors_canonicalize_negative_zero() {
+    let plus_zero = 0.0_f32.to_bits();
+
+    assert_eq!(
+        NonNegative::new(-0.0)
+            .expect("-0.0 is non-negative")
+            .to_bits(),
+        plus_zero
+    );
+    assert_eq!(NonNegative::new_unchecked(-0.0).to_bits(), plus_zero);
+    assert!(NonNegative::new_unchecked(-0.0).is_zero());
+    assert_eq!(NonNegative::new(-0.0), Some(NonNegative::ZERO));
+}
+
+/// The total order agrees with the raw float order.
+#[property_test]
+fn non_negative_order_agrees_with_the_raw_floats(
+    #[strategy = 0.0_f32..=f32::MAX] left: f32,
+    #[strategy = 0.0_f32..=f32::MAX] right: f32,
+) {
+    let left = NonNegative::new(left).expect("the strategy stays inside the domain");
+    let right = NonNegative::new(right).expect("the strategy stays inside the domain");
+
+    prop_assert_eq!(
+        left.cmp(&right),
+        left.get()
+            .partial_cmp(&right.get())
+            .expect("non-negative values are never NaN")
+    );
+}
+
+/// Equal values hash equally across the two encodings of zero, and distinct values hash apart.
+#[test]
+fn non_negative_hashes_follow_numeric_value() {
+    assert_eq!(
+        hash_of(NonNegative::new(-0.0).expect("-0.0 is non-negative")),
+        hash_of(NonNegative::ZERO)
+    );
+    assert_ne!(hash_of(NonNegative::ZERO), hash_of(NonNegative::ONE));
+}
+
 /// The double-precision positive domain is exactly the finite values strictly above zero.
 #[test]
 fn d_positive_admits_exactly_the_positive_finite_domain() {
@@ -595,6 +657,53 @@ fn d_non_negative_admits_exactly_the_non_negative_finite_domain() {
     assert_eq!(DNonNegative::new(-1.0e-300), None);
     assert_eq!(DNonNegative::new(f64::INFINITY), None);
     assert_eq!(DNonNegative::new(f64::NAN), None);
+}
+
+/// `-0.0` enters through `new` and `new_unchecked`; one bit pattern per value is the ground for
+/// bitwise `Eq`, `Ord`, and `Hash`, so both must store `+0.0`.
+#[test]
+fn d_non_negative_constructors_canonicalize_negative_zero() {
+    let plus_zero = 0.0_f64.to_bits();
+
+    assert_eq!(
+        DNonNegative::new(-0.0)
+            .expect("-0.0 is non-negative")
+            .get()
+            .to_bits(),
+        plus_zero
+    );
+    assert_eq!(DNonNegative::new_unchecked(-0.0).get().to_bits(), plus_zero);
+    assert_eq!(DNonNegative::new(-0.0), Some(DNonNegative::ZERO));
+}
+
+/// The total order agrees with the raw float order.
+#[property_test]
+fn d_non_negative_order_agrees_with_the_raw_floats(
+    #[strategy = 0.0_f64..=f64::MAX] left: f64,
+    #[strategy = 0.0_f64..=f64::MAX] right: f64,
+) {
+    let left = DNonNegative::new(left).expect("the strategy stays inside the domain");
+    let right = DNonNegative::new(right).expect("the strategy stays inside the domain");
+
+    prop_assert_eq!(
+        left.cmp(&right),
+        left.get()
+            .partial_cmp(&right.get())
+            .expect("non-negative values are never NaN")
+    );
+}
+
+/// Equal values hash equally across the two encodings of zero, and distinct values hash apart.
+#[test]
+fn d_non_negative_hashes_follow_numeric_value() {
+    assert_eq!(
+        hash_of(DNonNegative::new(-0.0).expect("-0.0 is non-negative")),
+        hash_of(DNonNegative::ZERO)
+    );
+    assert_ne!(
+        hash_of(DNonNegative::ZERO),
+        hash_of(DNonNegative::new(1.0).expect("one is non-negative"))
+    );
 }
 
 /// The open unit interval excludes both endpoints, unlike its closed sibling.

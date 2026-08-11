@@ -21,10 +21,11 @@
 
 use core::{
     cmp::Ordering,
+    fmt,
     hash::{Hash, Hasher},
 };
 
-use super::{DNonNegative, DPositive, NonNegative, Positive};
+use super::{DNonNegative, DPositive, NonNegative, Positive, unsafe_impl_try_from_bytes};
 
 /// Validates a finite literal at compile time.
 ///
@@ -76,7 +77,7 @@ pub(crate) use d_finite;
 /// assert_eq!(Finite::new(f32::INFINITY), None);
 /// assert_eq!(Finite::new(f32::NEG_INFINITY), None);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, zerocopy::Immutable)]
 #[repr(transparent)]
 pub(crate) struct Finite(f32);
 
@@ -100,11 +101,63 @@ impl Finite {
         Some(Self(value))
     }
 
+    /// Returns whether `value`'s exact bits are a stored finite value.
+    ///
+    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: accepted
+    /// values store bit for bit, both zeros included, so the bits are valid exactly when
+    /// [`new`](Self::new) accepts the value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_canonical(value: f32) -> bool {
+        match Self::new(value) {
+            // Compare against what construction stored, so the check follows any future
+            // normalization.
+            Some(accepted) => accepted.0.to_bits() == value.to_bits(),
+            None => false,
+        }
+    }
+
+    /// Returns the absolute value.
+    ///
+    /// The magnitude of a finite value is finite and non-negative, with no re-validation, and
+    /// the magnitude of either zero is the canonical `+0.0`.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn abs(self) -> NonNegative {
+        NonNegative::new_unchecked(self.0.abs())
+    }
+
+    /// Creates a value the caller proves finite.
+    ///
+    /// The sign bit of a promised zero is kept. Where the proof is not immediate,
+    /// [`new`](Self::new) checks instead.
+    // Not `unsafe`: no unsafe code trusts finiteness, a broken promise yields a wrong reading
+    // rather than UB. Revisit if the value ever feeds an unchecked index.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new_unchecked(value: f32) -> Self {
+        debug_assert!(value.is_finite(), "the caller promised a finite value");
+
+        Self(value)
+    }
+
     /// Returns the value.
     #[inline]
     #[must_use]
     pub(crate) const fn get(self) -> f32 {
         self.0
+    }
+}
+
+impl fmt::Debug for Finite {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl fmt::Display for Finite {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
@@ -121,6 +174,36 @@ impl From<NonNegative> for Finite {
     #[inline]
     fn from(value: NonNegative) -> Self {
         Self(value.get())
+    }
+}
+
+const impl core::ops::Div<Positive> for Finite {
+    type Output = f32;
+
+    /// Divides by a positive divisor, which is never zero.
+    ///
+    /// The result is a raw float: the quotient of a finite value by a small positive one can
+    /// overflow to either infinity, following the numerator's sign. It is never NaN: that
+    /// would take a zero or infinite operand, and both domains exclude them. The caller
+    /// re-enters a domain at whichever boundary proves its bound.
+    #[inline]
+    fn div(self, rhs: Positive) -> f32 {
+        self.0 / rhs.get()
+    }
+}
+
+#[cfg(test)]
+impl proptest::arbitrary::Arbitrary for Finite {
+    type Parameters = ();
+    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+
+    /// Draws from the whole domain, both signs and subnormals included.
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        use proptest::strategy::Strategy as _;
+
+        (-f32::MAX..=f32::MAX)
+            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
+            .boxed()
     }
 }
 
@@ -173,7 +256,7 @@ impl<'de> serde::Deserialize<'de> for Finite {
 /// assert_eq!(DFinite::new(f64::INFINITY), None);
 /// assert_eq!(DFinite::new(f64::NEG_INFINITY), None);
 /// ```
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone, zerocopy::Immutable)]
 #[repr(transparent)]
 pub(crate) struct DFinite(f64);
 
@@ -195,6 +278,22 @@ impl DFinite {
         }
 
         Some(Self(value))
+    }
+
+    /// Returns whether `value`'s exact bits are a stored finite value.
+    ///
+    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: accepted
+    /// values store bit for bit, both zeros included, so the bits are valid exactly when
+    /// [`new`](Self::new) accepts the value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn is_canonical(value: f64) -> bool {
+        match Self::new(value) {
+            // Compare against what construction stored, so the check follows any future
+            // normalization.
+            Some(accepted) => accepted.0.to_bits() == value.to_bits(),
+            None => false,
+        }
     }
 
     /// Creates a value the caller proves finite.
@@ -243,7 +342,26 @@ impl DFinite {
     }
 }
 
-impl From<DPositive> for DFinite {
+impl fmt::Debug for DFinite {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(&self.0, fmt)
+    }
+}
+
+impl fmt::Display for DFinite {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, fmt)
+    }
+}
+
+const impl From<DFinite> for f64 {
+    #[inline]
+    fn from(value: DFinite) -> Self {
+        value.0
+    }
+}
+
+const impl From<DPositive> for DFinite {
     /// Widens into the enclosing domain: every positive value is finite.
     #[inline]
     fn from(value: DPositive) -> Self {
@@ -251,7 +369,7 @@ impl From<DPositive> for DFinite {
     }
 }
 
-impl From<DNonNegative> for DFinite {
+const impl From<DNonNegative> for DFinite {
     /// Widens into the enclosing domain: every non-negative value is finite.
     #[inline]
     fn from(value: DNonNegative) -> Self {
@@ -259,7 +377,7 @@ impl From<DNonNegative> for DFinite {
     }
 }
 
-impl From<i64> for DFinite {
+const impl From<i64> for DFinite {
     /// Converts an integer, which is always finite.
     ///
     /// Magnitudes up to 2⁵³ convert exactly, and above that the conversion rounds to the
@@ -307,6 +425,21 @@ impl Hash for DFinite {
     }
 }
 
+#[cfg(test)]
+impl proptest::arbitrary::Arbitrary for DFinite {
+    type Parameters = ();
+    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+
+    /// Draws from the whole domain, both signs and subnormals included.
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        use proptest::strategy::Strategy as _;
+
+        (-f64::MAX..=f64::MAX)
+            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
+            .boxed()
+    }
+}
+
 impl serde::Serialize for DFinite {
     /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -323,3 +456,5 @@ impl<'de> serde::Deserialize<'de> for DFinite {
         })
     }
 }
+
+unsafe_impl_try_from_bytes!(Finite[f32], DFinite[f64]);

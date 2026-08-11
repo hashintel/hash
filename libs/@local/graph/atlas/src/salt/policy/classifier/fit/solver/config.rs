@@ -21,7 +21,7 @@ use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 
 /// A cross-field constraint failed; per-field domains hold by construction.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum SolverConfigError {
+pub(crate) enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
     RadiusDomain {
         minimum: DPositive,

@@ -5,12 +5,6 @@
 //! surrogate deposits exactly the requested coordinate gradient, both at a detached coordinate leaf
 //! and through the full model Jacobian.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions over dyadic values are the point: exact norms, exact \
-              baselines, and exact gradient deposition are contracts, not rounding accidents"
-)]
-
 use alloc::collections::BTreeMap;
 
 use burn::{

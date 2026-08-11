@@ -29,7 +29,10 @@ use super::{
     attraction::AttractionOptions,
     build::{self, EMISSION_CHUNK, ProtectionRecord},
 };
-use crate::identity::{EdgeRowId, NodeRowId};
+use crate::{
+    identity::{EdgeRowId, NodeRowId},
+    math::{NonNegative, UnitFraction},
+};
 
 mod fixture;
 mod judge;
@@ -58,14 +61,14 @@ pub fn production_corpus(
 }
 
 /// Plain-number summary of one full build.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BuildSummary {
     /// Attraction edges retained by the pruning predicate.
     pub retained_edges: usize,
     /// Attraction edges dropped by the pruning predicate.
     pub pruned_edges: usize,
     /// The fraction of total force mass the pruning dropped.
-    pub omitted_mass_fraction: f64,
+    pub omitted_mass_fraction: UnitFraction,
     /// Stored protection entries.
     ///
     /// Each linked pair counts twice.
@@ -130,8 +133,12 @@ where
         coincident: f32,
         pruning: f32,
     ) -> BuildSummary {
-        let attraction = AttractionOptions::new(coincident, pruning)
-            .expect("the sweep passes finite, non-negative settings");
+        // The hook synthesizes its typed inputs from the sweep's plain settings: a bench target
+        // is its own crate and cannot name the crate-internal scalar types.
+        let attraction = AttractionOptions::new(
+            NonNegative::new(coincident).expect("the sweep passes a finite non-negative setting"),
+            NonNegative::new(pruning).expect("the sweep passes a finite non-negative setting"),
+        );
         let indexes =
             RelationIndexes::build(self.rows(), self.policies(), &mut scratch.0, attraction)
                 .expect("the synthesized corpus satisfies the build contract");

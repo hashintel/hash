@@ -19,6 +19,10 @@ use super::{
 use crate::{
     file::WriteInto as _,
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
+    math::{
+        NonNegative, PositiveUnitFraction, UnitFraction, d_non_negative, narrow_f32, non_negative,
+        positive_unit_fraction, unit_fraction,
+    },
 };
 
 /// The row domain every fixture spans.
@@ -29,15 +33,16 @@ fn proximal_policy(relation: u64) -> RelationPolicy {
     RelationPolicy {
         relation: OntologyRowId::new(relation),
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
         selected: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 1.0,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(1.0),
         },
-        applicability: 1.0,
-        strength: 1.0,
+        applicability: unit_fraction!(1.0),
+        strength: NonNegative::ONE,
+        _pad: [0; 4],
     }
 }
 
@@ -61,7 +66,7 @@ fn instance(
 /// The instance with its link score set.
 fn scored(
     mut base: RelationInstance<NodeRowId, EdgeRowId>,
-    link: f32,
+    link: UnitFraction,
 ) -> RelationInstance<NodeRowId, EdgeRowId> {
     base.confidence.link = Some(link);
     base
@@ -108,12 +113,12 @@ fn effective_confidence_combines_scores_exactly() {
     // 0.5 · √(0.25 · 0.25): every factor is a power of two, so the
     // product 0.125 is exact.
     let confidence = RelationConfidence {
-        link: Some(0.5),
-        source: Some(0.25),
-        target: Some(0.25),
+        link: Some(unit_fraction!(0.5)),
+        source: Some(unit_fraction!(0.25)),
+        target: Some(unit_fraction!(0.25)),
     };
     let effective = confidence.effective();
-    assert_eq!(effective.value(), 0.125);
+    assert_eq!(effective.value(), unit_fraction!(0.125));
     assert!(effective.scored().link());
     assert!(effective.scored().source());
     assert!(effective.scored().target());
@@ -122,14 +127,14 @@ fn effective_confidence_combines_scores_exactly() {
 #[test]
 fn unscored_confidences_are_neutral_with_provenance() {
     let effective = RelationConfidence::default().effective();
-    assert_eq!(effective.value(), 1.0);
+    assert_eq!(effective.value(), UnitFraction::ONE);
     assert!(!effective.scored().link());
     assert!(!effective.scored().source());
     assert!(!effective.scored().target());
 
     let partial = RelationConfidence {
         link: None,
-        source: Some(0.25),
+        source: Some(unit_fraction!(0.25)),
         target: None,
     }
     .effective();
@@ -160,14 +165,9 @@ fn degree_normalization_counts_the_relations_complete_instance_set() {
     assert_eq!(edges.len(), 5);
     assert_eq!(edges[0].source, NodeRowId::new(0));
     assert_eq!(edges[0].target, NodeRowId::new(1));
-    assert_eq!(edges[0].normalization, 0.25);
+    assert_eq!(edges[0].normalization, positive_unit_fraction!(0.25));
     // The 0 → 3 edge sees (1 + 3)(1 + 1) = 8.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the reference narrows to working precision exactly like the contract"
-    )]
-    let expected = (1.0 / 8.0_f64.sqrt()) as f32;
-    assert_eq!(edges[2].normalization, expected);
+    assert_eq!(edges[2].normalization.get(), 1.0 / 8.0_f64.sqrt());
 }
 
 #[test]
@@ -190,28 +190,29 @@ fn group_weights_carry_the_policy_and_coefficient() {
     let policy = RelationPolicy {
         relation: OntologyRowId::new(0),
         attraction: ClassProbabilities {
-            coincident: 0.25,
-            proximal: 0.5,
+            coincident: unit_fraction!(0.25),
+            proximal: unit_fraction!(0.5),
         },
         selected: ClassProbabilities {
-            coincident: 0.5,
-            proximal: 0.25,
+            coincident: unit_fraction!(0.5),
+            proximal: unit_fraction!(0.25),
         },
-        applicability: 1.0,
-        strength: 2.0,
+        applicability: unit_fraction!(1.0),
+        strength: non_negative!(2.0),
+        _pad: [0; 4],
     };
     let indexes = build(
         ROWS,
         &[policy],
         vec![instance(0, 0, 0, 1)],
-        AttractionOptions::new(2.0, 0.0).expect("the fixture settings are in domain"),
+        AttractionOptions::new(non_negative!(2.0), non_negative!(0.0)),
     );
 
     let weights = indexes.attraction.groups()[0].weights();
-    assert_eq!(weights.coincident, 0.5);
-    assert_eq!(weights.proximal, 0.5);
-    assert_eq!(weights.strength, 2.0);
-    assert_eq!(weights.scale(), 1.0);
+    assert_eq!(weights.coincident, non_negative!(0.5));
+    assert_eq!(weights.proximal, non_negative!(0.5));
+    assert_eq!(weights.strength, non_negative!(2.0));
+    assert_eq!(weights.scale(), non_negative!(1.0));
 }
 
 #[test]
@@ -264,8 +265,8 @@ fn one_edge_row_carries_several_relations() {
 fn pruning_splits_mass_at_the_threshold_inclusively() {
     let policy = RelationPolicy {
         attraction: ClassProbabilities {
-            coincident: 0.0,
-            proximal: 0.5,
+            coincident: unit_fraction!(0.0),
+            proximal: unit_fraction!(0.5),
         },
         ..proximal_policy(0)
     };
@@ -274,19 +275,22 @@ fn pruning_splits_mass_at_the_threshold_inclusively() {
         &[policy],
         vec![
             // Masses 1.0 · 0.5 = 0.5, 0.5 · 0.5 = 0.25, 0.25 · 0.5 = 0.125.
-            scored(instance(0, 0, 0, 1), 1.0),
-            scored(instance(1, 0, 0, 2), 0.5),
-            scored(instance(2, 0, 0, 3), 0.25),
+            scored(instance(0, 0, 0, 1), unit_fraction!(1.0)),
+            scored(instance(1, 0, 0, 2), unit_fraction!(0.5)),
+            scored(instance(2, 0, 0, 3), unit_fraction!(0.25)),
         ],
-        AttractionOptions::new(0.0, 0.25).expect("the fixture settings are in domain"),
+        AttractionOptions::new(non_negative!(0.0), non_negative!(0.25)),
     );
 
     // The build retains the mass exactly at the threshold.
     assert_eq!(indexes.measurements.retained_edges, 2);
     assert_eq!(indexes.measurements.pruned_edges, 1);
-    assert_eq!(indexes.measurements.retained_mass, 0.75);
-    assert_eq!(indexes.measurements.pruned_mass, 0.125);
-    assert_eq!(indexes.measurements.omitted_mass_fraction(), 0.125 / 0.875);
+    assert_eq!(indexes.measurements.retained_mass, d_non_negative!(0.75));
+    assert_eq!(indexes.measurements.pruned_mass, d_non_negative!(0.125));
+    assert_eq!(
+        indexes.measurements.omitted_mass_fraction(),
+        unit_fraction!(0.125 / 0.875)
+    );
     assert_eq!(indexes.attraction.edge_count(), 2);
 }
 
@@ -298,18 +302,18 @@ fn pruned_instances_keep_their_degree_contributions() {
         ROWS,
         &[proximal_policy(0)],
         vec![
-            scored(instance(0, 0, 0, 1), 1.0),
-            scored(instance(1, 0, 0, 2), 0.0),
-            scored(instance(2, 0, 0, 3), 0.0),
-            scored(instance(3, 0, 4, 1), 0.0),
-            scored(instance(4, 0, 5, 1), 0.0),
+            scored(instance(0, 0, 0, 1), unit_fraction!(1.0)),
+            scored(instance(1, 0, 0, 2), unit_fraction!(0.0)),
+            scored(instance(2, 0, 0, 3), unit_fraction!(0.0)),
+            scored(instance(3, 0, 4, 1), unit_fraction!(0.0)),
+            scored(instance(4, 0, 5, 1), unit_fraction!(0.0)),
         ],
-        AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
+        AttractionOptions::new(non_negative!(0.0), non_negative!(0.5)),
     );
 
     let edges = indexes.attraction.groups()[0].edges();
     assert_eq!(edges.len(), 1);
-    assert_eq!(edges[0].normalization, 0.25);
+    assert_eq!(edges[0].normalization, positive_unit_fraction!(0.25));
     assert_eq!(indexes.measurements.pruned_edges, 4);
 }
 
@@ -319,8 +323,8 @@ fn pruning_never_reaches_protection() {
     let indexes = build(
         ROWS,
         &[proximal_policy(0)],
-        vec![scored(instance(0, 0, 0, 1), 0.25)],
-        AttractionOptions::new(0.0, 0.5).expect("the fixture settings are in domain"),
+        vec![scored(instance(0, 0, 0, 1), unit_fraction!(0.25))],
+        AttractionOptions::new(non_negative!(0.0), non_negative!(0.5)),
     );
 
     assert_eq!(indexes.attraction.edge_count(), 0);
@@ -342,18 +346,18 @@ fn evidence_components_aggregate_independently_by_maximum() {
     let policies = [
         RelationPolicy {
             selected: ClassProbabilities {
-                coincident: 0.25,
-                proximal: 0.25,
+                coincident: unit_fraction!(0.25),
+                proximal: unit_fraction!(0.25),
             },
-            applicability: 0.75,
+            applicability: unit_fraction!(0.75),
             ..proximal_policy(0)
         },
         RelationPolicy {
             selected: ClassProbabilities {
-                coincident: 0.5,
-                proximal: 0.5,
+                coincident: unit_fraction!(0.5),
+                proximal: unit_fraction!(0.5),
             },
-            applicability: 0.25,
+            applicability: unit_fraction!(0.25),
             ..proximal_policy(1)
         },
     ];
@@ -442,7 +446,7 @@ fn judge_compares_floored_masses_against_thresholds() {
 fn floors_rescue_low_applicability_relations_at_query_time() {
     // An unfamiliar relation has strong link evidence and applicability 0.25.
     let policy = RelationPolicy {
-        applicability: 0.25,
+        applicability: unit_fraction!(0.25),
         ..proximal_policy(0)
     };
     let indexes = build(
@@ -490,11 +494,17 @@ fn empty_instances_build_empty_indexes() {
     assert_eq!(indexes.protection.view().entries(), 0);
     assert_eq!(indexes.protection.view().rows(), ROWS);
     assert_eq!(indexes.measurements.retained_edges, 0);
-    assert_eq!(indexes.measurements.omitted_mass_fraction(), 0.0);
+    assert_eq!(
+        indexes.measurements.omitted_mass_fraction(),
+        unit_fraction!(0.0)
+    );
 }
 
 #[test]
-fn policy_tables_certify_order_and_domains() {
+fn policy_tables_certify_order() {
+    // Every value domain rides in the policy's field types, so ordering is the one contract
+    // left for certification to check; the domain assertion died when the last raw field
+    // (strength) took its type.
     assert_eq!(
         Policies::new(&[proximal_policy(1), proximal_policy(0)])
             .expect_err("descending policies violate the order contract"),
@@ -503,31 +513,6 @@ fn policy_tables_certify_order_and_domains() {
             relation: OntologyRowId::new(0),
         },
     );
-
-    for policy in [
-        RelationPolicy {
-            applicability: f32::NAN,
-            ..proximal_policy(0)
-        },
-        RelationPolicy {
-            attraction: ClassProbabilities {
-                coincident: 1.5,
-                proximal: 0.0,
-            },
-            ..proximal_policy(0)
-        },
-        RelationPolicy {
-            strength: -1.0,
-            ..proximal_policy(0)
-        },
-    ] {
-        assert_eq!(
-            Policies::new(&[policy]).expect_err("the policy value lies outside its domain"),
-            RelationIndexError::PolicyDomain {
-                relation: OntologyRowId::new(0),
-            },
-        );
-    }
 }
 
 #[test]
@@ -564,11 +549,6 @@ fn row_domains_beyond_the_column_encoding_are_rejected() {
 
 #[test]
 fn option_constructors_reject_out_of_domain_settings() {
-    assert!(AttractionOptions::new(-1.0, 0.0).is_none());
-    assert!(AttractionOptions::new(f32::NAN, 0.0).is_none());
-    assert!(AttractionOptions::new(0.0, f32::INFINITY).is_none());
-    assert!(AttractionOptions::new(4.0, 0.01).is_some());
-
     assert!(ChannelConfig::new(1.5, 0.0).is_none());
     assert!(ChannelConfig::new(f32::NAN, 0.0).is_none());
     assert!(ChannelConfig::new(0.0, -1.0).is_none());
@@ -609,12 +589,8 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
         assert_eq!(edge.source, NodeRowId::from_usize(position));
         let left = if position == 0 { 2.0_f64 } else { 3.0 };
         let right = if position == nodes - 2 { 2.0_f64 } else { 3.0 };
-        #[expect(
-            clippy::cast_possible_truncation,
-            reason = "the reference narrows to working precision exactly like the contract"
-        )]
-        let expected = ((left * right).sqrt().recip()) as f32;
-        assert_eq!(edge.normalization, expected, "edge {position}");
+        let expected = (left * right).sqrt().recip();
+        assert_eq!(edge.normalization.get(), expected, "edge {position}");
     }
 
     // Every unscored instance carries mass exactly 1.0, so the chunked
@@ -624,7 +600,7 @@ fn group_spanning_several_emission_chunks_matches_the_chain_reference() {
         reason = "the fixture size sits far below f64 integer precision"
     )]
     let expected_mass = (nodes - 1) as f64;
-    assert_eq!(indexes.measurements.retained_mass, expected_mass);
+    assert_eq!(indexes.measurements.retained_mass.get(), expected_mass);
     assert_eq!(indexes.measurements.retained_edges, nodes - 1);
 }
 
@@ -667,9 +643,9 @@ prop_compose! {
                 0..3_u64,
                 0..8_u64,
                 0..8_u64,
-                proptest::option::of(0.0_f32..=1.0),
-                proptest::option::of(0.0_f32..=1.0),
-                proptest::option::of(0.0_f32..=1.0),
+                proptest::option::of(proptest::arbitrary::any::<UnitFraction>()),
+                proptest::option::of(proptest::arbitrary::any::<UnitFraction>()),
+                proptest::option::of(proptest::arbitrary::any::<UnitFraction>()),
             ),
             0..48,
         ),
@@ -705,14 +681,14 @@ fn build_is_order_independent_and_sorted(
         proximal_policy(0),
         RelationPolicy {
             selected: ClassProbabilities {
-                coincident: 0.25,
-                proximal: 0.25,
+                coincident: unit_fraction!(0.25),
+                proximal: unit_fraction!(0.25),
             },
-            applicability: 0.5,
+            applicability: unit_fraction!(0.5),
             ..proximal_policy(1)
         },
         RelationPolicy {
-            strength: 2.0,
+            strength: non_negative!(2.0),
             ..proximal_policy(2)
         },
     ];
@@ -805,13 +781,13 @@ fn published_index_reopens_mapped() {
     std::fs::create_dir_all(&dir).expect("the temp directory is writable");
 
     let policy = RelationPolicy {
-        applicability: 0.25,
+        applicability: unit_fraction!(0.25),
         ..proximal_policy(0)
     };
     let indexes = build_default(
         &[policy],
         vec![
-            scored(instance(0, 0, 0, 1), 0.5),
+            scored(instance(0, 0, 0, 1), unit_fraction!(0.5)),
             instance(1, 0, 2, 1),
             instance(2, 0, 3, 4),
         ],
@@ -875,8 +851,8 @@ fn published_attraction_index_reopens_mapped() {
     let policies = [
         RelationPolicy {
             attraction: ClassProbabilities {
-                coincident: 0.5,
-                proximal: 0.5,
+                coincident: unit_fraction!(0.5),
+                proximal: unit_fraction!(0.5),
             },
             ..proximal_policy(3)
         },
@@ -886,11 +862,11 @@ fn published_attraction_index_reopens_mapped() {
         ROWS,
         &policies,
         vec![
-            scored(instance(0, 3, 0, 1), 0.5),
+            scored(instance(0, 3, 0, 1), unit_fraction!(0.5)),
             instance(1, 3, 2, 3),
             instance(2, 9, 0, 2),
         ],
-        AttractionOptions::new(1.0, 0.0).expect("the fixture options are valid"),
+        AttractionOptions::new(non_negative!(1.0), non_negative!(0.0)),
     );
 
     let mut bytes = Vec::new();
@@ -1009,16 +985,26 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
     // A confidence above one fails the score check. The confidence
     // field sits 24 bytes into the record.
     let mut confident = bytes.clone();
-    confident[8192 + 24..8192 + 28].copy_from_slice(&2.0_f32.to_le_bytes());
+    confident[8192 + 24..8192 + 32].copy_from_slice(&2.0_f64.to_le_bytes());
     assert_eq!(
         open("confidence.atrc", &confident).expect_err("an out-of-range confidence is invalid"),
         InvalidAttractionIndex::InvalidConfidence { edge: 0 },
     );
 
+    // A degree normalization of zero fails the half-open domain check
+    // that admits a zero confidence. The normalization field sits 32
+    // bytes into the record.
+    let mut silenced = bytes.clone();
+    silenced[8192 + 32..8192 + 40].copy_from_slice(&0.0_f64.to_le_bytes());
+    assert_eq!(
+        open("normalization.atrc", &silenced).expect_err("a zero degree normalization is invalid"),
+        InvalidAttractionIndex::InvalidDegreeNormalization { edge: 0 },
+    );
+
     // Unknown provenance bits fail the score check. The scored field
-    // sits 32 bytes into the record.
+    // sits 40 bytes into the record.
     let mut scored_bits = bytes.clone();
-    scored_bits[8192 + 32..8192 + 36].copy_from_slice(&8_u32.to_le_bytes());
+    scored_bits[8192 + 40..8192 + 44].copy_from_slice(&8_u32.to_le_bytes());
     assert_eq!(
         open("scored.atrc", &scored_bits).expect_err("unknown provenance bits are invalid"),
         InvalidAttractionIndex::UnknownScoredBits { edge: 0 },
@@ -1026,8 +1012,8 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
 
     // Swapping a group's two edge records breaks the in-group order.
     let mut disordered = bytes.clone();
-    disordered.copy_within(8192 + 40..8192 + 80, 8192);
-    disordered[8192 + 40..8192 + 80].copy_from_slice(&bytes[8192..8192 + 40]);
+    disordered.copy_within(8192 + 48..8192 + 96, 8192);
+    disordered[8192 + 48..8192 + 96].copy_from_slice(&bytes[8192..8192 + 48]);
     assert_eq!(
         open("disordered.atrc", &disordered).expect_err("swapped edges are invalid"),
         InvalidAttractionIndex::UnorderedEdges { edge: 1 },
@@ -1057,8 +1043,14 @@ fn forward_reference_mass(
             .find(|policy| policy.relation == instance.relation)
             .expect("the fixture policies cover every relation");
         let confidence = instance.confidence.effective().value();
-        let positive = policy.selected.coincident + policy.selected.proximal;
-        mass = mass.max(confidence * positive * policy.applicability.max(floor));
+        let positive = f64::from(policy.selected.coincident) + f64::from(policy.selected.proximal);
+        // The mirror narrows where the build narrows: one narrow derives the undiscounted
+        // evidence, and the floored discount scales that shared f32 value.
+        let undiscounted = narrow_f32(confidence * positive)
+            .expect("a fraction of a finite f32 factor narrows finitely");
+        let applicability =
+            narrow_f32(policy.applicability.get()).expect("a fraction narrows finitely");
+        mass = mass.max(undiscounted * applicability.max(floor));
     }
     mass
 }
@@ -1088,18 +1080,15 @@ fn two_typed_edge_carries_the_mean_of_its_readings_not_the_sum() {
     let separate = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 1, 1, 2)]);
 
     assert_eq!(
-        mixed.measurements.retained_mass,
-        separate.measurements.retained_mass / 2.0,
+        mixed.measurements.retained_mass.get(),
+        separate.measurements.retained_mass.get() / 2.0,
     );
 
     // Each group holds the reading at half a link's force: share 0.5
     // on the mass and share-weighted degrees 0.5 at both endpoints,
     // so the persisted factor is 0.5 / √(1.5 · 1.5).
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the reference narrows to working precision exactly like the contract"
-    )]
-    let expected = (0.5 / (1.5_f64 * 1.5).sqrt()) as f32;
+    let expected = PositiveUnitFraction::new(0.5 / (1.5_f64 * 1.5).sqrt())
+        .expect("the reference factor lies in (0, 1]");
     for group in mixed.attraction.groups() {
         let edges = group.edges();
         assert_eq!(edges.len(), 1);
@@ -1142,13 +1131,8 @@ fn two_typed_realized_coefficients_sum_between_the_mean_and_its_double() {
     assert!(total >= mean);
     assert!(total < 2.0 * mean);
 
-    // The exact fixture ratio, through the same narrowing the build
-    // performs per reading.
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the reference narrows to working precision exactly like the contract"
-    )]
-    let per_reading = f64::from((0.5 / (1.5_f64 * 1.5).sqrt()) as f32);
+    // The exact fixture ratio, at the double precision the build keeps per reading.
+    let per_reading = 0.5 / (1.5_f64 * 1.5).sqrt();
     assert_eq!(total, 2.0 * per_reading);
 }
 
@@ -1180,14 +1164,11 @@ fn single_typed_builds_are_unchanged_by_the_share_machinery() {
     let policies = [proximal_policy(0)];
     let indexes = build_default(&policies, vec![instance(0, 0, 1, 2), instance(1, 0, 1, 3)]);
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "the reference narrows to working precision exactly like the contract"
-    )]
-    let expected = (1.0 / (3.0_f64 * 2.0).sqrt()) as f32;
+    let expected = PositiveUnitFraction::new(1.0 / (3.0_f64 * 2.0).sqrt())
+        .expect("the reference factor lies in (0, 1]");
     let group = &indexes.attraction.groups()[0];
     for edge in group.edges() {
         assert_eq!(edge.normalization, expected);
     }
-    assert_eq!(indexes.measurements.retained_mass, 2.0);
+    assert_eq!(indexes.measurements.retained_mass, d_non_negative!(2.0));
 }

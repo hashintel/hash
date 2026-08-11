@@ -1,15 +1,8 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exactness assertions on echoed inputs and constructed zeros are bit-precise \
-              contracts"
-)]
-use core::assert_matches;
-
 use super::{
     CanonicalError, Conditions, ConditionsError, Field, LadderError, LadderOptions,
     RungMeasurement, measure_ladder, select_canonical,
 };
-use crate::math::{Rotation, Similarity, Vec2};
+use crate::math::{Rotation, Similarity, Vec2, d_non_negative, non_negative};
 
 /// A sixteen-point deterministic cloud.
 ///
@@ -49,10 +42,25 @@ fn deformed_field(base: &[Vec2]) -> Vec<Vec2> {
 fn conditions_accept_the_reference_schedule() {
     let conditions = Conditions::default();
 
-    assert_eq!(conditions.values(), &[0.0, 0.25, 0.5, 0.75, 1.0]);
+    assert_eq!(
+        conditions.values(),
+        &[
+            non_negative!(0.0),
+            non_negative!(0.25),
+            non_negative!(0.5),
+            non_negative!(0.75),
+            non_negative!(1.0),
+        ]
+    );
     assert_eq!(conditions.len(), 5);
     assert_eq!(
-        Conditions::new(vec![0.0, 0.25, 0.5, 0.75, 1.0]),
+        Conditions::new(vec![
+            non_negative!(0.0),
+            non_negative!(0.25),
+            non_negative!(0.5),
+            non_negative!(0.75),
+            non_negative!(1.0),
+        ]),
         Ok(conditions)
     );
 }
@@ -60,64 +68,69 @@ fn conditions_accept_the_reference_schedule() {
 #[test]
 fn conditions_reject_each_violated_invariant() {
     assert_eq!(
-        Conditions::new(vec![]),
+        Conditions::new(Vec::new()),
         Err(ConditionsError::TooFew { count: 0 })
     );
     assert_eq!(
-        Conditions::new(vec![0.0]),
+        Conditions::new(vec![non_negative!(0.0)]),
         Err(ConditionsError::TooFew { count: 1 })
     );
     assert_eq!(
-        Conditions::new(vec![0.5, 1.0]),
-        Err(ConditionsError::BaselineNotZero { value: 0.5 })
-    );
-    // The baseline is bit-exact: negative zero conditions the projector with different bits, so
-    // validation rejects it.
-    assert_eq!(
-        Conditions::new(vec![-0.0, 1.0]),
-        Err(ConditionsError::BaselineNotZero { value: -0.0 })
-    );
-    assert_matches!(
-        Conditions::new(vec![0.0, f32::NAN]),
-        Err(ConditionsError::NonFinite { index: 1, .. })
-    );
-    assert_eq!(
-        Conditions::new(vec![0.0, f32::INFINITY]),
-        Err(ConditionsError::NonFinite {
-            index: 1,
-            value: f32::INFINITY,
+        Conditions::new(vec![non_negative!(0.5), non_negative!(1.0)]),
+        Err(ConditionsError::BaselineNotZero {
+            value: non_negative!(0.5)
         })
     );
     assert_eq!(
-        Conditions::new(vec![0.0, 0.5, 0.5]),
+        Conditions::new(vec![
+            non_negative!(0.0),
+            non_negative!(0.5),
+            non_negative!(0.5)
+        ]),
         Err(ConditionsError::Unordered {
             index: 2,
-            previous: 0.5,
-            value: 0.5,
+            previous: non_negative!(0.5),
+            value: non_negative!(0.5),
         })
     );
     assert_eq!(
-        Conditions::new(vec![0.0, 0.75, 0.5]),
+        Conditions::new(vec![
+            non_negative!(0.0),
+            non_negative!(0.75),
+            non_negative!(0.5)
+        ]),
         Err(ConditionsError::Unordered {
             index: 2,
-            previous: 0.75,
-            value: 0.5,
+            previous: non_negative!(0.75),
+            value: non_negative!(0.5),
         })
+    );
+}
+
+/// A negative-zero input is `+0.0` before validation sees it ([`NonNegative`] canonicalizes the
+/// sign of zero at construction), so no `-0.0` alias can reach the baseline check or condition
+/// the projector with different bits.
+#[test]
+fn conditions_accept_a_canonicalized_negative_zero_baseline() {
+    assert_eq!(
+        Conditions::new(vec![non_negative!(-0.0), non_negative!(1.0)]),
+        Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
     );
 }
 
 #[test]
 fn measure_rejects_invalid_input() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
 
@@ -134,7 +147,7 @@ fn measure_rejects_invalid_input() {
         fields[0],
         Field {
             coordinates: short,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
     assert_eq!(
@@ -145,33 +158,22 @@ fn measure_rejects_invalid_input() {
             expected: 16,
         })
     );
-
-    let non_finite_loss = [
-        fields[0],
-        Field {
-            coordinates: &base,
-            relation_loss: f64::NAN,
-        },
-    ];
-    assert_matches!(
-        measure_ladder(&conditions, &non_finite_loss),
-        Err(LadderError::NonFiniteLoss { index: 1, .. })
-    );
 }
 
 #[test]
 fn measure_rejects_a_degenerate_field() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     let coincident = vec![Vec2::new(3.0, -2.0); base.len()];
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &coincident,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
 
@@ -186,7 +188,8 @@ fn measure_rejects_a_degenerate_field() {
 
 #[test]
 fn pure_similarity_rung_measures_negligible_movement() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     let transform = Similarity::new(2.0, Rotation::from_radians(1.3), Vec2::new(5.0, -3.0))
         .expect("scale 2.0 is normal and positive");
@@ -208,20 +211,20 @@ fn pure_similarity_rung_measures_negligible_movement() {
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &moved,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     let rung = &measurements[1];
     assert!(
-        rung.adjacent_movement < 1e-3,
+        rung.adjacent_movement < d_non_negative!(1e-3),
         "a pure similarity image leaves no residual movement, moved {}",
-        rung.adjacent_movement
+        rung.adjacent_movement.get()
     );
     // The fitted alignment inverts the transform: its scale undoes the
     // doubling.
@@ -237,32 +240,38 @@ fn pure_similarity_rung_measures_negligible_movement() {
 
 #[test]
 fn deformed_rung_measures_a_large_movement() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
 
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     assert!(
-        measurements[1].adjacent_movement > 0.5,
+        measurements[1].adjacent_movement > d_non_negative!(0.5),
         "an axis swap over half the cloud is a large residual, got {}",
-        measurements[1].adjacent_movement
+        measurements[1].adjacent_movement.get()
     );
 }
 
 #[test]
 fn adjacent_and_baseline_movements_use_their_own_comparands() {
-    let conditions = Conditions::new(vec![0.0, 0.5, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+    ])
+    .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
     // The third rung repeats the second exactly: no movement against
@@ -270,26 +279,26 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
     ];
 
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
     let repeat = &measurements[2];
-    assert!(repeat.adjacent_movement < 1e-6);
+    assert!(repeat.adjacent_movement < d_non_negative!(1e-6));
     assert!(
-        repeat.baseline_movement > 0.5,
+        repeat.baseline_movement > d_non_negative!(0.5),
         "the repeat still differs from the baseline, got {}",
-        repeat.baseline_movement
+        repeat.baseline_movement.get()
     );
     // The repeated rung's baseline alignment matches its predecessor's:
     // identical fields fit identical alignments.
@@ -298,7 +307,13 @@ fn adjacent_and_baseline_movements_use_their_own_comparands() {
 
 #[test]
 fn measurements_echo_the_loss_series() {
-    let conditions = Conditions::new(vec![0.0, 0.25, 0.5, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![
+        non_negative!(0.0),
+        non_negative!(0.25),
+        non_negative!(0.5),
+        non_negative!(1.0),
+    ])
+    .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
     // The series falls, then rises twice: every loss echoes verbatim,
@@ -306,19 +321,19 @@ fn measurements_echo_the_loss_series() {
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 0.9,
+            relation_loss: d_non_negative!(0.9),
         },
         Field {
             coordinates: &base,
-            relation_loss: 0.94,
+            relation_loss: d_non_negative!(0.94),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 1.1,
+            relation_loss: d_non_negative!(1.1),
         },
     ];
 
@@ -326,19 +341,24 @@ fn measurements_echo_the_loss_series() {
 
     let losses: Vec<f64> = measurements
         .iter()
-        .map(|measurement| measurement.relation_loss)
+        .map(|measurement| measurement.relation_loss.get())
         .collect();
     assert_eq!(losses, [1.0, 0.9, 0.94, 1.1]);
     let conditions_seen: Vec<f32> = measurements
         .iter()
-        .map(|measurement| measurement.condition)
+        .map(|measurement| measurement.condition.get())
         .collect();
     assert_eq!(conditions_seen, [0.0, 0.25, 0.5, 1.0]);
 }
 
 #[test]
 fn canonical_index_is_membership_over_the_options_alone() {
-    let conditions = Conditions::new(vec![0.0, 0.5, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+    ])
+    .expect("the schedule is valid");
 
     // Every schedule member resolves to its own position.
     for (index, &canonical) in conditions.values().iter().enumerate() {
@@ -353,17 +373,24 @@ fn canonical_index_is_membership_over_the_options_alone() {
     // no rung rather than interpolating it.
     let options = LadderOptions {
         conditions,
-        canonical: 0.25,
+        canonical: non_negative!(0.25),
     };
     assert_eq!(
         options.canonical_index(),
-        Err(CanonicalError::UnknownRung { value: 0.25 })
+        Err(CanonicalError::UnknownRung {
+            value: non_negative!(0.25)
+        })
     );
 }
 
 #[test]
 fn canonical_selection_requires_an_exact_member() {
-    let conditions = Conditions::new(vec![0.0, 0.5, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![
+        non_negative!(0.0),
+        non_negative!(0.5),
+        non_negative!(1.0),
+    ])
+    .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
     let transform = Similarity::new(3.0, Rotation::from_radians(0.4), Vec2::new(-2.0, 8.0))
@@ -375,18 +402,18 @@ fn canonical_selection_requires_an_exact_member() {
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         // Genuine deformation, improving loss.
         Field {
             coordinates: &deformed,
-            relation_loss: 0.9,
+            relation_loss: d_non_negative!(0.9),
         },
         // A pure similarity image of its predecessor whose loss rises:
         // the measurements record both, and the rung still publishes.
         Field {
             coordinates: &moved,
-            relation_loss: 2.0,
+            relation_loss: d_non_negative!(2.0),
         },
     ];
 
@@ -394,65 +421,73 @@ fn canonical_selection_requires_an_exact_member() {
 
     // Every schedule member selects; the selection names the rung's
     // field position and carries its alignment.
-    let baseline = select_canonical(&measurements, 0.0).expect("the baseline is a member");
+    let baseline =
+        select_canonical(&measurements, non_negative!(0.0)).expect("the baseline is a member");
     assert_eq!(baseline.index, 0);
     assert_eq!(baseline.measurement.alignment, Similarity::IDENTITY);
 
-    let selected = select_canonical(&measurements, 0.5).expect("the middle rung is a member");
+    let selected =
+        select_canonical(&measurements, non_negative!(0.5)).expect("the middle rung is a member");
     assert_eq!(selected.index, 1);
     assert_eq!(selected.measurement.alignment, measurements[1].alignment);
 
     // The rung whose loss rose and whose movement collapsed onto its
     // predecessor publishes like any other member: the measurements
     // are diagnostics, not gates.
-    let risen = select_canonical(&measurements, 1.0).expect("the last rung is a member");
+    let risen =
+        select_canonical(&measurements, non_negative!(1.0)).expect("the last rung is a member");
     assert_eq!(risen.index, 2);
-    assert_eq!(risen.measurement.relation_loss, 2.0);
+    assert_eq!(risen.measurement.relation_loss, d_non_negative!(2.0));
 
     // Selection rejects a value outside the schedule rather than interpolating.
     assert_eq!(
-        select_canonical(&measurements, 0.25),
-        Err(CanonicalError::UnknownRung { value: 0.25 })
+        select_canonical(&measurements, non_negative!(0.25)),
+        Err(CanonicalError::UnknownRung {
+            value: non_negative!(0.25)
+        })
     );
 }
 
 #[test]
 fn canonical_selection_publishes_a_rung_that_repeats_the_baseline() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     // The rung repeats the baseline exactly: zero residual movement,
     // and it publishes regardless.
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 1.0,
+            relation_loss: d_non_negative!(1.0),
         },
         Field {
             coordinates: &base,
-            relation_loss: 0.9,
+            relation_loss: d_non_negative!(0.9),
         },
     ];
 
     let measurements = measure_ladder(&conditions, &fields).expect("the ladder is well-formed");
 
-    let selected = select_canonical(&measurements, 1.0).expect("the rung is a member");
+    let selected =
+        select_canonical(&measurements, non_negative!(1.0)).expect("the rung is a member");
     assert_eq!(selected.index, 1);
-    assert!(selected.measurement.adjacent_movement < 1e-6);
+    assert!(selected.measurement.adjacent_movement < d_non_negative!(1e-6));
 }
 
 #[test]
 fn baseline_rung_measures_as_the_identity() {
-    let conditions = Conditions::new(vec![0.0, 1.0]).expect("the schedule is valid");
+    let conditions = Conditions::new(vec![non_negative!(0.0), non_negative!(1.0)])
+        .expect("the schedule is valid");
     let base = base_field();
     let deformed = deformed_field(&base);
     let fields = [
         Field {
             coordinates: &base,
-            relation_loss: 2.5,
+            relation_loss: d_non_negative!(2.5),
         },
         Field {
             coordinates: &deformed,
-            relation_loss: 2.5,
+            relation_loss: d_non_negative!(2.5),
         },
     ];
 
@@ -465,9 +500,9 @@ fn baseline_rung_measures_as_the_identity() {
         baseline_movement,
         adjacent_movement,
     } = measurements[0];
-    assert_eq!(condition, 0.0);
-    assert_eq!(relation_loss, 2.5);
+    assert_eq!(condition, non_negative!(0.0));
+    assert_eq!(relation_loss, d_non_negative!(2.5));
     assert_eq!(alignment, Similarity::IDENTITY);
-    assert_eq!(baseline_movement, 0.0);
-    assert_eq!(adjacent_movement, 0.0);
+    assert_eq!(baseline_movement, d_non_negative!(0.0));
+    assert_eq!(adjacent_movement, d_non_negative!(0.0));
 }

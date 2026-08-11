@@ -13,7 +13,7 @@ use super::{Neighbour, construction::NeighbourLists, error::KnnError};
 
 /// A neighbour matrix violated a [`Knn`] invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum KnnValidationError {
+pub(crate) enum KnnValidationError {
     /// The matrix uses column-compressed storage.
     ColumnCompressed,
     /// The matrix is not square over the row domain.

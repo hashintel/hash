@@ -7,44 +7,6 @@
 
 use crate::math::UnitFraction;
 
-/// Confidence scores attached to one link instance.
-///
-/// Each score lies in `0.0..=1.0`, the dataset stream's confidence contract. `None` means unscored,
-/// which [`effective`](Self::effective) treats as the neutral factor 1 while retaining the
-/// scored/unscored distinction.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
-pub(crate) struct RelationConfidence {
-    /// The store's confidence in the link itself.
-    pub link: Option<f32>,
-    /// The store's confidence in the link's attachment to its source.
-    pub source: Option<f32>,
-    /// The store's confidence in the link's attachment to its target.
-    pub target: Option<f32>,
-}
-
-impl RelationConfidence {
-    /// Combines the three scores into one effective confidence.
-    ///
-    /// The value is `link · √(source · target)` with missing scores contributing the neutral factor
-    /// 1. The provenance bits record which scores were present.
-    #[must_use]
-    pub(crate) fn effective(self) -> EffectiveConfidence {
-        let scored = Scored::new(
-            self.link.is_some(),
-            self.source.is_some(),
-            self.target.is_some(),
-        );
-
-        let link = self.link.unwrap_or(1.0);
-        let source = self.source.unwrap_or(1.0);
-        let target = self.target.unwrap_or(1.0);
-        EffectiveConfidence {
-            value: link * (source * target).sqrt(),
-            scored,
-        }
-    }
-}
-
 /// Presence bits of the three scores behind one effective confidence.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Scored(u8);
@@ -117,32 +79,66 @@ impl Scored {
     }
 }
 
+/// Confidence scores attached to one link instance.
+///
+/// Each score lies in `0.0..=1.0`, the dataset stream's confidence contract. `None` means unscored,
+/// which [`effective`](Self::effective) treats as the neutral factor 1 while retaining the
+/// scored/unscored distinction.
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
+pub(crate) struct RelationConfidence {
+    /// The store's confidence in the link itself.
+    pub link: Option<UnitFraction>,
+    /// The store's confidence in the link's attachment to its source.
+    pub source: Option<UnitFraction>,
+    /// The store's confidence in the link's attachment to its target.
+    pub target: Option<UnitFraction>,
+}
+
+impl RelationConfidence {
+    /// Combines the three scores into one effective confidence.
+    ///
+    /// The value is `link · √(source · target)` with missing scores contributing the neutral factor
+    /// 1. The provenance bits record which scores were present.
+    #[must_use]
+    pub(crate) fn effective(self) -> EffectiveConfidence {
+        let scored = Scored::new(
+            self.link.is_some(),
+            self.source.is_some(),
+            self.target.is_some(),
+        );
+
+        let link = self.link.unwrap_or(UnitFraction::ONE);
+        let source = self.source.unwrap_or(UnitFraction::ONE);
+        let target = self.target.unwrap_or(UnitFraction::ONE);
+
+        EffectiveConfidence {
+            value: link * (source * target).sqrt(),
+            scored,
+        }
+    }
+}
+
 /// One link instance's combined confidence and its score provenance.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct EffectiveConfidence {
-    value: f32,
+    value: UnitFraction,
     scored: Scored,
 }
 
 impl EffectiveConfidence {
-    /// Validates an externally produced confidence.
+    /// Reassembles a confidence from its combined value and provenance bits.
     ///
-    /// Returns [`None`] unless the value is finite and lies in `[0, 1]`, the range
-    /// [`RelationConfidence::effective`] produces.
+    /// The domain rides in the fraction, so construction validates nothing.
     #[inline]
     #[must_use]
-    pub(crate) const fn new(value: f32, scored: Scored) -> Option<Self> {
-        if UnitFraction::new(value as f64).is_none() {
-            return None;
-        }
-
-        Some(Self { value, scored })
+    pub(crate) const fn new(value: UnitFraction, scored: Scored) -> Self {
+        Self { value, scored }
     }
 
     /// Returns the combined confidence, in `0.0..=1.0`.
     #[inline]
     #[must_use]
-    pub(crate) const fn value(self) -> f32 {
+    pub(crate) const fn value(self) -> UnitFraction {
         self.value
     }
 

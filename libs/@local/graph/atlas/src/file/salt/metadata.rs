@@ -2,50 +2,44 @@
 //!
 //! The schema is **mutable** and carries no version of its own. It nests inside the document that
 //! [`RepositoryVersion`](crate::file::repository::RepositoryVersion) leads, and it grows at a fixed
-//! repository version. A field added to the schema carries an absence rule of its own. A document
+//! repository version. A field added to the schema defines an absence rule of its own. A document
 //! published before that field existed still decodes, and the field's own rule supplies the
 //! reading. A change no absence rule can carry increments that version, such as a removed key or a
 //! key whose meaning changes.
 
 use core::num::NonZero;
 
+use hashql_core::id::Id as _;
+
 use crate::{
     dataset::TemporalAxes,
     file::{generation::GenerationId, morton::SEGMENTS},
+    identity::OntologyRowId,
     integrity::Sha256Digest,
-    math::{Bounds2, Finite, Similarity},
+    math::{Bounds2, DNonNegative, DPositive, NonNegative, OpenUnitFraction, Similarity},
     morton::Depth,
     salt::{
         embedding::{CardEmbeddingStats, EmbedderFingerprint},
         fit::{FitConfig, FitConfigDef, prepare::norm::NormSpotCheck},
         importance::RankingConfig,
         knn::recall::RecallSpotCheck,
-        ladder::{RungMeasurement, paired::PairedMovementEvidence},
+        ladder::paired::PairedMovementEvidence,
         lod::{quad::QuadMeasurements, stage::LodMeasurements},
         policy::{
             GeometryClass,
             annotation::{HoldoutClass, assembly::AssemblyEvidence},
         },
         postings::build::PostingsMeasurements,
-        projector::train::FrozenRadius,
+        projector::{
+            train::FrozenRadius,
+            verdict::calibrate::{
+                TypeCalibration,
+                stability::{StabilityBound, StabilityCertificate},
+            },
+        },
         relation::BuildMeasurements,
     },
 };
-
-/// Metadata describing one published SALT generation.
-///
-/// The input snapshot, the declared inputs the generation ran under, and the evidence that admitted
-/// its files.
-///
-/// Each section's types live with the stage that produces its values. This document assembles them.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct SaltMetadata {
-    pub snapshot: Snapshot,
-    pub reproducibility: Reproducibility,
-    pub placement: Placement,
-    pub ranking: RankingOrigin,
-    pub evidence: Evidence,
-}
 
 /// What produced the generation's canonical coordinates.
 ///
@@ -179,6 +173,12 @@ pub(crate) struct ProjectorEvidence {
     ///
     /// Absent when the schedule ended before the boundary step.
     pub boundary: Option<FrozenRadiusEvidence>,
+    /// The boundary calibration, its per-refresh drift readings, and its stability certificate.
+    ///
+    /// `None` records a document written before this body existed, a run whose schedule ended
+    /// before the boundary, or a vacuous boundary; [`Self::boundary`] distinguishes those for a
+    /// reader. A writer that carries the body emits it for every measured boundary.
+    pub proximal_calibration: Option<ProximalCalibrationEvidence>,
     /// Supplied verdicts that resolved to no ontology row of this snapshot.
     ///
     /// Evidence, not an error, because snapshots legitimately move on.
@@ -197,7 +197,7 @@ pub(crate) struct ProjectorEvidence {
 #[serde(rename_all = "kebab-case", tag = "provenance")]
 pub(crate) enum FrozenRadiusEvidence {
     /// Measured from the reviewed-Proximal pairs.
-    Measured { radius: Finite },
+    Measured { radius: NonNegative },
     /// Nothing to freeze: the attraction index carries no force.
     Vacuous,
 }
@@ -211,20 +211,192 @@ impl From<FrozenRadius> for FrozenRadiusEvidence {
     }
 }
 
+/// The persisted boundary calibration makes the measurement the radius froze from auditable at
+/// the artifact rather than only in memory.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct ProximalCalibrationEvidence {
+    /// The frozen pooled radius, echoed so the body reads on its own.
+    pub radius: NonNegative,
+    /// Per-type evidence, in the order the verdicts resolve (ascending by relation row).
+    pub types: Vec<TypeCalibrationEvidence>,
+    /// Per-refresh boundary-drift readings, in step order.
+    ///
+    /// The weighted fraction of reviewed mass at or below the frozen radius, re-measured at
+    /// each scale-bearing refresh tick over the freeze rung's frame and scale table. The
+    /// boundary tick contributes the first entry, and later entries drift against it.
+    pub fractions: Vec<RefreshFractionEvidence>,
+    /// The reviews arm's evaluated stability certificate.
+    pub stability: StabilityCertificateEvidence,
+}
+
+/// One reviewed type's persisted share of the boundary measurement.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct TypeCalibrationEvidence {
+    /// The reviewed relation's ontology row.
+    pub relation: u64,
+    /// The type's retained attraction pairs, or zero when the index holds no group for it.
+    pub pairs: u64,
+    /// The type's total pair weight - its mass in the pooled percentile.
+    pub mass: DNonNegative,
+    /// The weighted 25th, 50th, and 75th percentiles of the type's own `z` values.
+    ///
+    /// `None` when the type contributes no mass - an absence, never a zero.
+    pub quantiles: Option<[NonNegative; 3]>,
+    /// The pooled radius re-measured with this type left out.
+    ///
+    /// `None` when nothing else carries mass. The spread of these values across types is the
+    /// review-sufficiency instrument: a tight cluster means the radius does not hinge on any
+    /// single review, a wide one names the review that owns it.
+    pub radius_without: Option<NonNegative>,
+}
+
+/// One refresh tick's persisted boundary-drift reading.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct RefreshFractionEvidence {
+    /// The step index the tick ran at.
+    pub step: u64,
+    /// The weighted fraction of reviewed-Proximal mass at or below the frozen radius.
+    pub fraction: DNonNegative,
+}
+
+/// The population arm a stability certificate evaluated.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum StabilityArm {
+    /// The reviewed-Proximal pair population.
+    Reviews,
+}
+
+/// The reviews arm's persisted stability certificate.
+///
+/// The derivation, its false-pass statement, and the decision predicate live at
+/// [`stability`](crate::salt::projector::verdict::calibrate::stability); this record persists
+/// one evaluation with every constant it consumed, so the artifact names its own regime and a
+/// future compatible arm evaluates fresh rather than copying a scalar.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct StabilityCertificateEvidence {
+    /// The evaluated arm.
+    pub arm: StabilityArm,
+    /// The quantile level `q` the estimator freezes at.
+    pub quantile: OpenUnitFraction,
+    /// The false-pass budget `δ`.
+    pub delta: OpenUnitFraction,
+    /// The materiality multiplier `κ`.
+    pub kappa: DPositive,
+    /// The generation's frozen transition temperature `T`.
+    ///
+    /// Persisted because the evaluated population and result belong to this generation, not
+    /// because `T` has fitted-frame units.
+    pub temperature: DPositive,
+    /// The materiality tolerance `τ = κ·T`.
+    pub tau: DPositive,
+    /// The effective support of the weighted population - the derivation's `n_eff`.
+    pub effective_support: DPositive,
+    /// The raw pair count, reader context only: the decision never consults it.
+    pub pairs: u64,
+    /// The total pair mass.
+    pub mass: DNonNegative,
+    /// The evaluated deviation level `ε₀`.
+    pub epsilon_zero: DPositive,
+    /// The empirical interval width `G(ε₀)`.
+    pub gap: DNonNegative,
+    /// The evaluated bound, or the record that none exists.
+    pub bound: StabilityBoundEvidence,
+    /// The decision of the direct predicate.
+    pub pass: bool,
+    /// The type-level effective support over per-type masses, evidence only.
+    pub type_effective_support: DPositive,
+}
+
+/// The persisted stability bound, or the record that none exists.
+///
+/// An absent certificate is a document written without one, and a present certificate either
+/// evaluated a finite bound or found that none exists. Absence never impersonates a value.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "kind")]
+pub(crate) enum StabilityBoundEvidence {
+    /// The evaluated minimum effective support, with the strictness of its comparison.
+    Finite {
+        /// The bound's value `n*`.
+        support: DPositive,
+        /// Whether the safe set's supremum itself satisfies the tolerance.
+        attained: bool,
+    },
+    /// The safe set is empty: no amount of mass stabilizes the local gap.
+    Unattainable,
+}
+
+impl From<&TypeCalibration> for TypeCalibrationEvidence {
+    fn from(calibration: &TypeCalibration) -> Self {
+        Self {
+            relation: calibration.relation.as_u64(),
+            pairs: calibration.pairs as u64,
+            mass: calibration.mass,
+            quantiles: calibration.quantiles,
+            radius_without: calibration.radius_without,
+        }
+    }
+}
+
+impl From<&StabilityCertificate> for StabilityCertificateEvidence {
+    fn from(certificate: &StabilityCertificate) -> Self {
+        Self {
+            arm: StabilityArm::Reviews,
+            quantile: certificate.quantile,
+            delta: certificate.delta,
+            kappa: certificate.kappa,
+            temperature: certificate.temperature,
+            tau: certificate.tau,
+            effective_support: certificate.effective_support,
+            pairs: certificate.pairs as u64,
+            mass: certificate.mass,
+            epsilon_zero: certificate.epsilon_zero,
+            gap: certificate.gap,
+            bound: certificate.bound.into(),
+            pass: certificate.pass,
+            type_effective_support: certificate.type_effective_support,
+        }
+    }
+}
+
+impl From<StabilityBound> for StabilityBoundEvidence {
+    fn from(bound: StabilityBound) -> Self {
+        match bound {
+            StabilityBound::Finite { support, attained } => Self::Finite { support, attained },
+            StabilityBound::Unattainable => Self::Unattainable,
+        }
+    }
+}
+
+/// Metadata describing one published SALT generation.
+///
+/// The input snapshot, the declared inputs the generation ran under, and the evidence that admitted
+/// its files.
+///
+/// Each section's types live with the stage that produces its values. This document assembles them.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct SaltMetadata {
+    pub snapshot: Snapshot,
+    pub reproducibility: Reproducibility,
+    pub placement: Placement,
+    pub ranking: RankingOrigin,
+    pub evidence: Evidence,
+}
+
 /// The measured condition ladder and its published canonical rung.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LadderEvidence {
     /// One record per rung, in schedule order.
     pub rungs: Vec<RungEvidence>,
     /// The published rung's condition.
-    pub canonical: f32,
+    pub canonical: NonNegative,
     /// The published rung's schedule index.
     pub canonical_index: usize,
     /// The relation loss re-measured over the persisted aligned column.
     ///
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
     /// total over every attraction instance, with no per-type cap.
-    pub persisted_relation_loss: f64,
+    pub persisted_relation_loss: DNonNegative,
     /// The paired-movement readout beside the rungs.
     ///
     /// `None` records a ladder written before the readout existed. A ladder writer that
@@ -233,36 +405,42 @@ pub(crate) struct LadderEvidence {
     pub paired_movement: Option<PairedMovementEvidence>,
 }
 
-/// One rung's cross-condition evidence.
+/// One relation type's share of a rung's relation loss.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct TypeRelationLoss {
+    /// The relation's ontology row.
+    pub relation: OntologyRowId,
+    /// The type's accumulated weighted class-mixture energy.
+    pub loss: DNonNegative,
+}
+
+/// One rung's cross-condition evidence.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RungEvidence {
     /// The rung's condition value.
-    pub condition: f32,
+    pub condition: NonNegative,
     /// The field's frozen relation loss at projection time.
     ///
     /// The corpus total over every attraction instance, with no per-type cap.
-    pub relation_loss: f64,
+    pub relation_loss: DNonNegative,
+    /// Each relation type's own share of the loss, ascending by relation row (the attraction
+    /// index's group order), so serialization is deterministic.
+    ///
+    /// A writer always emits the list, empty exactly when the index holds no groups. A document
+    /// written before the per-type readout existed carries no key and decodes as the empty
+    /// list, which a reader cannot tell from a forceless corpus. The shares carry their own
+    /// accumulation chains, so their sum matches the total to rounding, not bit-exactly.
+    #[serde(default)]
+    pub relation_losses: Vec<TypeRelationLoss>,
     /// The similarity aligning the rung's field onto the baseline field.
     ///
     /// The identity for the baseline itself.
     #[serde(with = "similarity")]
     pub alignment: Similarity,
     /// RMS movement against the baseline field after alignment.
-    pub baseline_movement: f64,
+    pub baseline_movement: DNonNegative,
     /// RMS movement against the preceding field after alignment.
-    pub adjacent_movement: f64,
-}
-
-impl From<&RungMeasurement> for RungEvidence {
-    fn from(measurement: &RungMeasurement) -> Self {
-        Self {
-            condition: measurement.condition,
-            relation_loss: measurement.relation_loss,
-            alignment: measurement.alignment,
-            baseline_movement: measurement.baseline_movement,
-            adjacent_movement: measurement.adjacent_movement,
-        }
-    }
+    pub adjacent_movement: DNonNegative,
 }
 
 /// Serializes a [`Similarity`] as its decomposed coefficients.
@@ -411,14 +589,13 @@ struct LodMeasurementsDef {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(remote = "BuildMeasurements")]
 struct BuildMeasurementsDef {
-    pruning_threshold: f32,
+    pruning_threshold: NonNegative,
     retained_edges: usize,
     pruned_edges: usize,
-    retained_mass: f64,
-    pruned_mass: f64,
+    retained_mass: DNonNegative,
+    pruned_mass: DNonNegative,
     self_references: usize,
     multi_typed_edges: Vec<u64>,
-    clamped_confidences: Option<u64>,
 }
 
 /// Serializes a [`Depth`] as its subdivision count.
@@ -521,36 +698,36 @@ pub(crate) enum ClassifierEvidence {
 }
 
 /// One regularization candidate's out-of-fold reading.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RegularizationReading {
     /// The candidate L2 penalty on contrast coefficients.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// The candidate's weighted-mean out-of-fold cross-entropy of the uncalibrated posteriors.
-    pub cross_entropy: f64,
+    pub cross_entropy: DNonNegative,
 }
 
 /// The classifier fit's grouped out-of-fold measurements.
 ///
 /// Weighted means over the training rows. The per-row evidence is reproducible from the staged
 /// corpus under the echoed configuration, so the manifest carries the means alone.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClassifierFitSummary {
     /// Grouped cross-validation folds the evidence ran over.
     pub folds: usize,
     /// The selected L2 penalty on contrast coefficients.
-    pub regularization: f64,
+    pub regularization: DPositive,
     /// Every regularization candidate's out-of-fold reading, ascending by strength.
     pub selection: Vec<RegularizationReading>,
     /// Iterations of the final full-corpus fit.
     pub iterations: u64,
     /// Weighted-mean cross-entropy of the uncalibrated posteriors.
-    pub raw_cross_entropy: f64,
+    pub raw_cross_entropy: DNonNegative,
     /// Weighted-mean cross-entropy at the deployment temperature.
-    pub calibrated_cross_entropy: f64,
+    pub calibrated_cross_entropy: DNonNegative,
     /// Weighted-mean Brier score of the uncalibrated posteriors.
-    pub raw_brier: f64,
+    pub raw_brier: DNonNegative,
     /// Weighted-mean Brier score at the deployment temperature.
-    pub calibrated_brier: f64,
+    pub calibrated_brier: DNonNegative,
 }
 
 /// The fitted classifier's agreement with the held-out human verdicts.

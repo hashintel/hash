@@ -23,7 +23,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN, d_positive},
+    math::{AlignedVecN, BoxedVecN, DNonNegative, DPositive, d_positive},
     progress::{NoProgress, Progress},
     salt::policy::GeometryClass,
 };
@@ -338,9 +338,13 @@ fn overconfident_logits_calibrate_above_one() {
     assert!(temperature > 1.0);
     assert!((temperature - expected).abs() <= 1.0e-6 * expected);
     // Local optimality: the returned temperature beats its neighbours.
-    let optimum = calibration::metrics(rows, logits, temperature).calibrated_cross_entropy;
+    let optimum = calibration::metrics(rows, logits, temperature)
+        .expect("finite fixture rows have finite metrics")
+        .calibrated_cross_entropy;
     for neighbour in [temperature * 1.05, temperature / 1.05] {
-        let value = calibration::metrics(rows, logits, neighbour).calibrated_cross_entropy;
+        let value = calibration::metrics(rows, logits, neighbour)
+            .expect("finite fixture rows have finite metrics")
+            .calibrated_cross_entropy;
         assert!(optimum <= value);
     }
 }
@@ -364,7 +368,8 @@ fn calibration_never_worsens_cross_entropy() {
     let logits = IdSlice::from_raw(&logits);
 
     let temperature = calibration::fit_temperature(rows, logits);
-    let metrics = calibration::metrics(rows, logits, temperature);
+    let metrics = calibration::metrics(rows, logits, temperature)
+        .expect("finite fixture rows have finite metrics");
 
     // The unit temperature is always among the candidates.
     assert!(metrics.calibrated_cross_entropy <= metrics.raw_cross_entropy);
@@ -379,11 +384,12 @@ fn metrics_match_hand_computed_values() {
     }];
     let logits = [[0.0, 0.0, 0.0]];
 
-    let metrics = calibration::metrics(IdSlice::from_raw(&rows), IdSlice::from_raw(&logits), 1.0);
+    let metrics = calibration::metrics(IdSlice::from_raw(&rows), IdSlice::from_raw(&logits), 1.0)
+        .expect("finite fixture rows have finite metrics");
 
     // Uniform probabilities: CE = ln 3, Brier = (2/3)^2 + 2 · (1/3)^2.
-    assert!((metrics.raw_cross_entropy - 3.0_f64.ln()).abs() <= 1.0e-15);
-    assert!((metrics.raw_brier - 2.0 / 3.0).abs() <= 1.0e-15);
+    assert!((metrics.raw_cross_entropy.get() - 3.0_f64.ln()).abs() <= 1.0e-15);
+    assert!((metrics.raw_brier.get() - 2.0 / 3.0).abs() <= 1.0e-15);
 }
 
 #[test]
@@ -508,9 +514,10 @@ fn fit_recovers_the_generating_distributions() {
             .all(|logit| logit.is_finite())
     );
     assert!(
-        fitted.evidence.calibrated_cross_entropy <= fitted.evidence.raw_cross_entropy + 1.0e-12
+        fitted.evidence.calibrated_cross_entropy.get()
+            <= fitted.evidence.raw_cross_entropy.get() + 1.0e-12
     );
-    assert!(fitted.evidence.regularization <= 1.0);
+    assert!(fitted.evidence.regularization <= DPositive::ONE);
     assert!(fitted.evidence.iterations >= 1);
 
     // The separable corpus rewards weak regularization out of fold, so the
@@ -534,8 +541,8 @@ fn fit_recovers_the_generating_distributions() {
 #[test]
 fn regularization_winner_takes_the_minimum_and_ties_prefer_the_stronger_penalty() {
     let reading = |regularization: f64, cross_entropy: f64| regularization::RegularizationReading {
-        regularization,
-        cross_entropy,
+        regularization: DPositive::new(regularization).expect("the fixture penalty is positive"),
+        cross_entropy: DNonNegative::new(cross_entropy).expect("the fixture reading is finite"),
     };
 
     // An interior minimum wins.

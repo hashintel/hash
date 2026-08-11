@@ -24,7 +24,9 @@ use super::{
 };
 use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
-    math::{AffinityCurve, DVec2, NonNegative, Vec2},
+    math::{
+        AffinityCurve, DVec2, NonNegative, Positive, Vec2, non_negative, positive, unit_fraction,
+    },
     salt::{
         policy::ClassProbabilities,
         projector::scale::LocalScales,
@@ -55,20 +57,34 @@ fn curve(a: f32, b: f32) -> AffinityCurve {
     reason = "`a` and `b` are the affinity curve's literature parameter names"
 )]
 fn affinity_energy(a: f32, b: f32, epsilon: f32) -> AffinityEnergy {
-    AffinityEnergy::new(curve(a, b), epsilon).expect("test epsilon is positive and finite")
+    AffinityEnergy::new(
+        curve(a, b),
+        Positive::new(epsilon).expect("the test epsilon is positive"),
+    )
+    .expect("the test exponent satisfies the objective bound")
 }
 
 fn proximal(radius: f32, temperature: f32) -> ProximalEnergy {
-    ProximalEnergy::new(radius, temperature).expect("test proximal parameters are valid")
+    ProximalEnergy::new(
+        NonNegative::new(radius).expect("the test radius is non-negative"),
+        Positive::new(temperature).expect("the test temperature is positive"),
+    )
 }
 
 fn coincident(radius: f32, threshold: f32) -> CoincidentEnergy {
-    CoincidentEnergy::new(radius, threshold).expect("test coincident parameters are valid")
+    CoincidentEnergy::new(
+        NonNegative::new(radius).expect("the test radius is non-negative"),
+        Positive::new(threshold).expect("the test threshold is positive"),
+    )
 }
 
 fn relation_energy(epsilon: f32) -> RelationEnergy {
-    RelationEnergy::new(coincident(0.25, 1.0), proximal(1.0, 0.5), epsilon)
-        .expect("test relation parameters are valid")
+    RelationEnergy::new(
+        coincident(0.25, 1.0),
+        proximal(1.0, 0.5),
+        Positive::new(epsilon).expect("the test scale guard is positive"),
+    )
+    .expect("test relation parameters are valid")
 }
 
 fn pair(one: u32, other: u32) -> NodePair<BatchRowId> {
@@ -136,10 +152,13 @@ fn assert_derivative_close(derivative: f32, difference: f32, context: &str) {
 }
 
 #[test]
-fn affinity_energy_rejects_an_invalid_epsilon() {
-    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), 0.0), None);
-    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), -0.5), None);
-    assert_eq!(AffinityEnergy::new(curve(1.0, 1.0), f32::NAN), None);
+fn affinity_energy_rejects_a_shallow_exponent() {
+    // Below `b = 0.5` the coordinate gradient diverges at coincidence.
+    assert_eq!(
+        AffinityEnergy::new(curve(1.0, 0.25), positive!(0.125)),
+        None
+    );
+    assert!(AffinityEnergy::new(curve(1.0, 0.5), positive!(0.125)).is_some());
 }
 
 #[test]
@@ -149,11 +168,11 @@ fn affinity_energies_match_hand_computed_dyadic_values() {
     // zero and the derivative mass is a b q^2 = 0.25 exactly.
     let energy = affinity_energy(1.0, 1.0, 0.5);
 
-    let (value, derivative) = energy.attraction(1.0);
+    let (value, derivative) = energy.attraction(non_negative!(1.0));
     assert_eq!(value, 0.0);
     assert_eq!(derivative, 0.25);
 
-    let (value, derivative) = energy.repulsion(1.0);
+    let (value, derivative) = energy.repulsion(non_negative!(1.0));
     assert_eq!(value, 0.0);
     assert_eq!(derivative, -0.25);
 }
@@ -162,11 +181,11 @@ fn affinity_energies_match_hand_computed_dyadic_values() {
 fn affinity_energies_have_zero_derivative_at_coincidence() {
     let energy = affinity_energy(1.577, 0.895, 0.125);
 
-    let (value, derivative) = energy.attraction(0.0);
+    let (value, derivative) = energy.attraction(non_negative!(0.0));
     assert!(value.is_finite());
     assert_eq!(derivative, 0.0);
 
-    let (value, derivative) = energy.repulsion(0.0);
+    let (value, derivative) = energy.repulsion(non_negative!(0.0));
     assert!(value.is_finite());
     assert_eq!(derivative, 0.0);
 }
@@ -183,24 +202,28 @@ fn affinity_derivatives_match_finite_differences() {
         let energy = affinity_energy(a, b, 0.125);
         for at in [0.25_f32, 0.5, 1.0, 2.0, 5.0] {
             let step = at * 1e-3;
+            let at_domain = NonNegative::new(at).expect("the probe points are non-negative");
+            let probe = |distance_squared: f32| {
+                NonNegative::new(distance_squared).expect("the probes stay inside the domain")
+            };
             let difference = scalar_difference(
-                |distance_squared| energy.attraction(distance_squared).0,
+                |distance_squared| energy.attraction(probe(distance_squared)).0,
                 at,
                 step,
             );
             assert_derivative_close(
-                energy.attraction(at).1,
+                energy.attraction(at_domain).1,
                 difference,
                 &format!("attraction a {a} b {b} at {at}"),
             );
 
             let difference = scalar_difference(
-                |distance_squared| energy.repulsion(distance_squared).0,
+                |distance_squared| energy.repulsion(probe(distance_squared)).0,
                 at,
                 step,
             );
             assert_derivative_close(
-                energy.repulsion(at).1,
+                energy.repulsion(at_domain).1,
                 difference,
                 &format!("repulsion a {a} b {b} at {at}"),
             );
@@ -215,23 +238,36 @@ fn proximal_energy_matches_hand_computed_values() {
     // sigmoid(0) = 0.5 exactly.
     let energy = proximal(1.0, 0.5);
 
-    let (value, derivative) = energy.evaluate(1.0);
-    assert!(0.5_f32.mul_add(-core::f32::consts::LN_2, value).abs() < 1e-7);
-    assert_eq!(derivative, 0.5);
+    let (value, derivative) = energy.evaluate(non_negative!(1.0));
+    assert!(0.5_f32.mul_add(-core::f32::consts::LN_2, value.get()).abs() < 1e-7);
+    assert_eq!(derivative, non_negative!(0.5));
 
-    // Far outside, the pull saturates at unit slope; far inside it
-    // vanishes.
-    assert!((energy.evaluate(9.0).1 - 1.0).abs() < 1e-6);
-    assert!(energy.evaluate(-7.0).1 < 1e-6);
+    // Far outside, the pull saturates at unit slope.
+    assert!((energy.evaluate(non_negative!(9.0)).1.get() - 1.0).abs() < 1e-6);
+    // Far inside it vanishes: sixteen temperatures below a wide radius at coincidence.
+    assert!(proximal(8.0, 0.5).evaluate(NonNegative::ZERO).1.get() < 1e-6);
 }
 
 #[test]
 fn proximal_derivative_matches_finite_differences() {
     let energy = proximal(1.0, 0.5);
-    for at in [0.0_f32, 0.5, 0.875, 1.0, 1.5, 3.0] {
-        let difference = scalar_difference(|z| energy.evaluate(z).0, at, 1e-3);
+    // The grid stays a step above zero, where a central difference would leave the domain.
+    for at in [0.125_f32, 0.5, 0.875, 1.0, 1.5, 3.0] {
+        let difference = scalar_difference(
+            |z| {
+                energy
+                    .evaluate(NonNegative::new(z).expect("the grid stays inside the domain"))
+                    .0
+                    .get()
+            },
+            at,
+            1e-3,
+        );
         assert_derivative_close(
-            energy.evaluate(at).1,
+            energy
+                .evaluate(NonNegative::new(at).expect("the grid stays inside the domain"))
+                .1
+                .get(),
             difference,
             &format!("proximal at {at}"),
         );
@@ -243,12 +279,21 @@ fn coincident_energy_matches_hand_computed_regimes() {
     let energy = coincident(1.0, 1.0);
 
     // Inside the radius: exactly zero value and derivative.
-    assert_eq!(energy.evaluate(0.5), (0.0, 0.0));
+    assert_eq!(
+        energy.evaluate(non_negative!(0.5)),
+        (NonNegative::ZERO, NonNegative::ZERO)
+    );
     // In the quadratic regime an excess of 0.5 gives huber 0.125 and a derivative equal to the
     // excess.
-    assert_eq!(energy.evaluate(1.5), (0.125, 0.5));
+    assert_eq!(
+        energy.evaluate(non_negative!(1.5)),
+        (non_negative!(0.125), non_negative!(0.5))
+    );
     // In the linear regime an excess of 2 gives value 1 · (2 - 0.5) and a capped derivative.
-    assert_eq!(energy.evaluate(3.0), (1.5, 1.0));
+    assert_eq!(
+        energy.evaluate(non_negative!(3.0)),
+        (non_negative!(1.5), non_negative!(1.0))
+    );
 }
 
 #[test]
@@ -257,9 +302,21 @@ fn coincident_derivative_matches_finite_differences() {
     // The grid avoids the exact kink points, where a central
     // difference straddles two regimes.
     for at in [0.25_f32, 0.875, 1.25, 1.75, 2.5, 4.0] {
-        let difference = scalar_difference(|z| energy.evaluate(z).0, at, 1e-3);
+        let difference = scalar_difference(
+            |z| {
+                energy
+                    .evaluate(NonNegative::new(z).expect("the grid stays inside the domain"))
+                    .0
+                    .get()
+            },
+            at,
+            1e-3,
+        );
         assert_derivative_close(
-            energy.evaluate(at).1,
+            energy
+                .evaluate(NonNegative::new(at).expect("the grid stays inside the domain"))
+                .1
+                .get(),
             difference,
             &format!("coincident at {at}"),
         );
@@ -269,28 +326,36 @@ fn coincident_derivative_matches_finite_differences() {
 #[test]
 fn relation_energy_requires_ordered_radii() {
     // The Coincident radius must lie strictly below the Proximal one.
-    assert!(RelationEnergy::new(coincident(1.0, 1.0), proximal(1.0, 0.5), 0.25).is_none());
-    assert!(RelationEnergy::new(coincident(2.0, 1.0), proximal(1.0, 0.5), 0.25).is_none());
-    assert!(RelationEnergy::new(coincident(0.5, 1.0), proximal(1.0, 0.5), 0.0).is_none());
-    assert!(RelationEnergy::new(coincident(0.5, 1.0), proximal(1.0, 0.5), 0.25).is_some());
+    assert!(
+        RelationEnergy::new(coincident(1.0, 1.0), proximal(1.0, 0.5), positive!(0.25)).is_none()
+    );
+    assert!(
+        RelationEnergy::new(coincident(2.0, 1.0), proximal(1.0, 0.5), positive!(0.25)).is_none()
+    );
+    assert!(
+        RelationEnergy::new(coincident(0.5, 1.0), proximal(1.0, 0.5), positive!(0.25)).is_some()
+    );
 }
 
 #[test]
 fn relation_mixture_is_the_weighted_class_sum() {
     let energy = relation_energy(0.25);
-    let z = 1.75;
+    let z = non_negative!(1.75);
 
     let (coincident_value, coincident_derivative) = coincident(0.25, 1.0).evaluate(z);
     let (proximal_value, proximal_derivative) = proximal(1.0, 0.5).evaluate(z);
-    let (value, derivative) = energy.mixture(z, 0.5, 0.25);
+    let (value, derivative) = energy.mixture(z, non_negative!(0.5), non_negative!(0.25));
 
     assert_eq!(
-        value,
-        0.5_f32.mul_add(coincident_value, 0.25 * proximal_value)
+        value.get(),
+        0.5_f32.mul_add(coincident_value.get(), 0.25 * proximal_value.get())
     );
     assert_eq!(
-        derivative,
-        0.5_f32.mul_add(coincident_derivative, 0.25 * proximal_derivative)
+        derivative.get(),
+        0.5_f32.mul_add(
+            coincident_derivative.get(),
+            0.25 * proximal_derivative.get()
+        )
     );
 }
 
@@ -493,28 +558,30 @@ fn attraction_fixture() -> AttractionIndex<NodeRowId, EdgeRowId> {
         RelationPolicy {
             relation: OntologyRowId::new(3),
             attraction: ClassProbabilities {
-                coincident: 0.5,
-                proximal: 0.5,
+                coincident: unit_fraction!(0.5),
+                proximal: unit_fraction!(0.5),
             },
             selected: ClassProbabilities {
-                coincident: 0.5,
-                proximal: 0.5,
+                coincident: unit_fraction!(0.5),
+                proximal: unit_fraction!(0.5),
             },
-            applicability: 1.0,
-            strength: 1.0,
+            applicability: unit_fraction!(1.0),
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
         },
         RelationPolicy {
             relation: OntologyRowId::new(9),
             attraction: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: unit_fraction!(0.0),
+                proximal: unit_fraction!(1.0),
             },
             selected: ClassProbabilities {
-                coincident: 0.0,
-                proximal: 1.0,
+                coincident: unit_fraction!(0.0),
+                proximal: unit_fraction!(1.0),
             },
-            applicability: 1.0,
-            strength: 1.0,
+            applicability: unit_fraction!(1.0),
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
         },
     ];
     let mut instances = vec![
@@ -547,7 +614,7 @@ fn attraction_fixture() -> AttractionIndex<NodeRowId, EdgeRowId> {
         4,
         Policies::new(&policies).expect("the fixture policies are certified"),
         &mut instances,
-        AttractionOptions::new(1.0, 0.0).expect("the fixture options are valid"),
+        AttractionOptions::new(non_negative!(1.0), non_negative!(0.0)),
     )
     .expect("the fixture instances satisfy the input contract")
     .attraction
@@ -736,14 +803,6 @@ fn support_targets_reject_invalid_anchors() {
     assert!(SupportTargets::<TestBackend>::new(&[valid], &device).is_some());
 }
 
-#[test]
-fn support_options_reject_invalid_constants() {
-    assert!(SupportOptions::new(0.0, 0.25).is_none());
-    assert!(SupportOptions::new(1.0, 0.0).is_none());
-    assert!(SupportOptions::new(f32::INFINITY, 0.25).is_none());
-    assert!(SupportOptions::new(1.0, 0.25).is_some());
-}
-
 fn support_fixture(
     device: NdArrayDevice,
 ) -> (
@@ -771,7 +830,7 @@ fn support_fixture(
         },
     ];
     let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(1.0, 0.25).expect("the fixture constants are valid");
+    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
     (coordinates, targets, options)
 }
 
@@ -806,7 +865,9 @@ fn support_term_gradient_matches_the_analytic_formula() {
     let (threshold, epsilon) = (1.0_f32, 0.25_f32);
     for (row, coordinate, target, radius, weight) in anchors {
         let difference = coordinate - target;
-        let smoothed = epsilon.mul_add(epsilon, difference.length_squared()).sqrt();
+        let smoothed = epsilon
+            .mul_add(epsilon, difference.length_squared().get())
+            .sqrt();
         let normalized = (smoothed - epsilon) / (radius + epsilon);
         let factor = scale * weight * normalized.min(threshold) / (smoothed * (radius + epsilon));
         let expected = difference * factor;
@@ -839,7 +900,7 @@ fn support_term_is_finite_at_exact_coincidence() {
         weight: 1.0,
     }];
     let targets = SupportTargets::new(&anchors, &device).expect("the fixture anchors are valid");
-    let options = SupportOptions::new(1.0, 0.25).expect("the fixture constants are valid");
+    let options = SupportOptions::new(positive!(1.0), positive!(0.25));
 
     let value = support_term(&coordinates, &targets, options, 1.0);
     let scalar = value

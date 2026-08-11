@@ -87,12 +87,15 @@ pub(crate) use self::{
     confidence::{EffectiveConfidence, RelationConfidence, Scored},
     error::RelationIndexError,
 };
-use crate::identity::OntologyRowId;
 // The policy row vocabulary is `salt::policy`'s deliverable; the
 // certified `Policies` view over it stays here with its consumer.
 #[cfg(test)]
 pub(crate) use crate::salt::policy::ClassProbabilities;
 pub(crate) use crate::salt::policy::RelationPolicy;
+use crate::{
+    identity::OntologyRowId,
+    math::{DNonNegative, NonNegative, UnitFraction},
+};
 
 pub(crate) mod artifact;
 pub(crate) mod attraction;
@@ -146,8 +149,9 @@ impl<N, E> RelationInstance<N, E> {
 
 /// A certified relation policy table.
 ///
-/// Construction checks the table once - strictly ascending by relation row, every value in its
-/// domain - so lookups and the build consume it without further validation.
+/// Construction checks the strictly ascending relation order once; every value's domain rides
+/// in the policy's field types. Lookups and the build consume the table without further
+/// validation.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Policies<'policy>(&'policy [RelationPolicy]);
 
@@ -156,29 +160,14 @@ impl<'policy> Policies<'policy> {
     ///
     /// # Errors
     ///
-    /// Returns an error when the policies are not strictly ascending by relation row, or a policy
-    /// stores a probability, applicability, or strength outside its domain.
+    /// Returns an error when the policies are not strictly ascending by relation row.
     pub(crate) fn new(
         policies: &'policy [RelationPolicy],
     ) -> Result<Self, error::RelationIndexError> {
-        if let Some(first) = policies.first()
-            && !first.in_domain()
-        {
-            return Err(error::RelationIndexError::PolicyDomain {
-                relation: first.relation,
-            });
-        }
-
         for (previous, [before, policy]) in policies.array_windows().enumerate() {
             if before.relation >= policy.relation {
                 return Err(error::RelationIndexError::PolicyOrder {
                     position: previous + 1,
-                    relation: policy.relation,
-                });
-            }
-
-            if !policy.in_domain() {
-                return Err(error::RelationIndexError::PolicyDomain {
                     relation: policy.relation,
                 });
             }
@@ -203,18 +192,18 @@ impl<'policy> Policies<'policy> {
 /// The build's account of dropped instances and pruned force mass.
 ///
 /// The recorded threshold is the criterion the pruned/retained split was judged against.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct BuildMeasurements {
     /// The force-pruning threshold the build applied.
-    pub pruning_threshold: f32,
+    pub pruning_threshold: NonNegative,
     /// Attraction edges retained by the pruning predicate.
     pub retained_edges: usize,
     /// Attraction edges dropped by the pruning predicate.
     pub pruned_edges: usize,
     /// The summed force mass `c · s · s+` of the retained edges, accumulated in double precision.
-    pub retained_mass: f64,
+    pub retained_mass: DNonNegative,
     /// The summed force mass of the pruned edges, accumulated in double precision.
-    pub pruned_mass: f64,
+    pub pruned_mass: DNonNegative,
     /// Instances dropped because both endpoints are one row.
     ///
     /// They carry no geometric force and enter no index.
@@ -223,16 +212,6 @@ pub(crate) struct BuildMeasurements {
     ///
     /// Entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed_edges: Vec<u64>,
-    /// Stream confidence readings clamped into `0.0..=1.0` on the way in, counted per reading.
-    ///
-    /// The dataset contract declares the range and nothing enforces it, so the drain bounds each
-    /// violating reading and records how many it bounded. A count of zero is the contract holding,
-    /// and any other count is a defect in whatever wrote those rows.
-    ///
-    /// [`None`] records evidence carrying no count at all, and a reader keeps that reading
-    /// distinct from a measured zero: an absent count says nothing about whether the readings
-    /// were in range.
-    pub clamped_confidences: Option<u64>,
 }
 
 impl BuildMeasurements {
@@ -241,14 +220,17 @@ impl BuildMeasurements {
     /// This quantity audits the pruning threshold: a threshold is admissible while the omitted
     /// fraction stays numerically negligible. An instance set without positive mass omits nothing.
     #[must_use]
-    pub(crate) fn omitted_mass_fraction(&self) -> f64 {
-        let total = self.retained_mass + self.pruned_mass;
+    pub(crate) fn omitted_mass_fraction(&self) -> UnitFraction {
+        let total = self.retained_mass.get() + self.pruned_mass.get();
 
         if total <= 0.0 {
-            return 0.0;
+            return UnitFraction::ZERO;
         }
 
-        self.pruned_mass / total
+        // Adding the non-negative retained mass never rounds the sum below the pruned mass, so
+        // the quotient lies in [0, 1]; an overflowed total gives a zero quotient, still in domain.
+        UnitFraction::new(self.pruned_mass.get() / total)
+            .expect("a non-negative share of a total at least as large lies in [0, 1]")
     }
 }
 

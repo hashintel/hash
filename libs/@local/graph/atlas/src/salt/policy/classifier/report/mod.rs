@@ -18,18 +18,16 @@
 pub(crate) mod replay;
 
 use self::replay::Frozen;
-use super::{
-    fit::{Fit, TrainingSet, fit, regularization::RegularizationReading},
-    softmax,
-};
+use super::fit::{Fit, TrainingSet, fit, regularization::RegularizationReading};
 use crate::{
     file::{
         WriteInto as _,
         generation::{GenerationId, GenerationRoot},
     },
     integrity::Sha256Digest,
+    math::{DNonNegative, DPositive, UnitFraction},
     progress::NoProgress,
-    salt::policy::GeometryClass,
+    salt::policy::{GeometryClass, Posterior},
 };
 
 /// The certification verdict of the refit model against the staged artifact.
@@ -59,17 +57,17 @@ struct ModelSummary {
     /// Started outer iterations of the final full-corpus fit.
     iterations: u64,
     /// The selected L2 penalty on contrast coefficients.
-    regularization: f64,
+    regularization: DPositive,
     /// Every regularization candidate's out-of-fold reading, ascending by strength.
     selection: Box<[RegularizationReading]>,
     /// Weighted-mean cross-entropy of the uncalibrated out-of-fold posteriors.
-    raw_cross_entropy: f64,
+    raw_cross_entropy: DNonNegative,
     /// Weighted-mean cross-entropy at the deployment temperature.
-    calibrated_cross_entropy: f64,
+    calibrated_cross_entropy: DNonNegative,
     /// Weighted-mean Brier score of the uncalibrated out-of-fold posteriors.
-    raw_brier: f64,
+    raw_brier: DNonNegative,
     /// Weighted-mean Brier score at the deployment temperature.
-    calibrated_brier: f64,
+    calibrated_brier: DNonNegative,
     /// The applicability evidence's training distances, sorted ascending.
     training_distances: Box<[f64]>,
 }
@@ -96,7 +94,7 @@ struct RowReport {
     /// Standardized distance from the training distribution.
     distance: f64,
     /// Upper-tail rank of `distance` among the training distances, in `[0, 1]`.
-    applicability: f64,
+    applicability: UnitFraction,
 }
 
 /// The certified classifier report of one published generation.
@@ -161,8 +159,8 @@ impl ClassifierReport {
                     target: training_row.target,
                     weight: training_row.weight,
                     out_of_fold_logits: logits,
-                    raw_posterior: softmax(logits, 1.0),
-                    calibrated_posterior: softmax(logits, temperature),
+                    raw_posterior: Posterior::softmax(logits, 1.0).to_array(),
+                    calibrated_posterior: Posterior::softmax(logits, temperature).to_array(),
                     distance: prediction.distance,
                     applicability: prediction.applicability,
                 }

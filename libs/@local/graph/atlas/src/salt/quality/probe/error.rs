@@ -4,7 +4,7 @@ use core::{error::Error, fmt};
 
 /// The probe could not run.
 #[derive(Debug)]
-pub enum ProbeError<E> {
+pub(crate) enum ProbeError<E> {
     /// The corpus cannot host disjoint anchor and comparison samples.
     Design {
         rows: usize,
@@ -85,7 +85,7 @@ impl<E: Error + 'static> Error for ProbeError<E> {
 
 /// An unordered id-keyed delivery did not match its requests.
 #[derive(Debug)]
-pub enum DeliveryError<E> {
+pub(crate) enum DeliveryError<E> {
     /// The stream failed.
     Dataset(E),
     /// The stream delivered an id that was never requested.

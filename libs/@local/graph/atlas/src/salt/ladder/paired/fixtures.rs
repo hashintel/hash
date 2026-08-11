@@ -9,7 +9,7 @@
 use core::num::NonZero;
 
 use hashql_core::id::IdSlice;
-use zerocopy::{F32, U32, U64};
+use zerocopy::{F32, F64, U32, U64};
 
 use super::identity::{DrawRule, DrawSalt, RuleIdentity};
 use crate::{
@@ -100,8 +100,8 @@ pub(super) fn edge(source: u64, target: u64) -> EdgeRecord {
         edge: U64::new(0),
         source: U64::new(source),
         target: U64::new(target),
-        confidence: F32::new(1.0),
-        normalization: F32::new(1.0),
+        confidence: F64::new(1.0),
+        normalization: F64::new(1.0),
         scored: U32::new(0b111),
         reserved: U32::new(0),
     }
