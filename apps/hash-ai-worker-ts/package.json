@@ -33,7 +33,6 @@
     "generate:chart-config-schema": "yarn exe ./scripts/generate-chart-config-schema.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepare": "yarn generate:chart-config-schema",
     "sanitize-html": "NODE_ENV=development yarn exe ./scripts/sanitize-html.ts",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",

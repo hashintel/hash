@@ -5,6 +5,7 @@ import {
   sanitizeSDCPNForExtensions,
   sanitizeTransitionForExtensions,
 } from "./extensions";
+import { isSDCPNEqual } from "./lib/deep-equal";
 
 import type { PetrinautExtensionSettings } from "./extensions";
 import type { SDCPN } from "./types/sdcpn";
@@ -410,5 +411,55 @@ describe("transition logic availability", () => {
         "place-1": [[1], [2]],
       },
     });
+  });
+
+  it("does not add optional keys that are absent on the source", () => {
+    const sdcpn = createSDCPN();
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+
+    expect(Object.hasOwn(sanitized, "scenarios")).toBe(false);
+    expect(Object.hasOwn(sanitized, "metrics")).toBe(false);
+    expect(Object.hasOwn(sanitized, "subnets")).toBe(false);
+    expect(Object.hasOwn(sanitized, "componentInstances")).toBe(false);
+  });
+
+  it("does not add optional keys to subnets that are absent on the source", () => {
+    const sdcpn: SDCPN = {
+      ...createSDCPN(),
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Subnet 1",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+    };
+
+    const sanitized = sanitizeSDCPNForExtensions(sdcpn, allEnabled);
+
+    expect(Object.hasOwn(sanitized.subnets![0]!, "componentInstances")).toBe(
+      false,
+    );
+  });
+
+  it("leaves a freshly loaded net comparing equal to its persisted form", () => {
+    // The in-memory document, as the editor holds it.
+    const inMemory = sanitizeSDCPNForExtensions(createSDCPN(), allEnabled);
+
+    // Saving serialises to JSON, which drops keys that are absent (or set to
+    // `undefined`).
+    const persisted = JSON.parse(JSON.stringify(inMemory)) as SDCPN;
+
+    // Loading sanitizes the stored definition again. An untouched net must
+    // still compare equal to its snapshot, or the editor reports unsaved
+    // changes and the host arms its `beforeunload` guard.
+    const loaded = sanitizeSDCPNForExtensions(persisted, allEnabled);
+
+    expect(isSDCPNEqual(loaded, persisted)).toBe(true);
   });
 });

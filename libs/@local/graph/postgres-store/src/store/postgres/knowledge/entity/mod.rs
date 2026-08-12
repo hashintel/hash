@@ -2,6 +2,7 @@ mod delete;
 pub(crate) mod provenance;
 mod query;
 mod read;
+mod search;
 mod summary;
 mod table;
 
@@ -11,7 +12,6 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
     action::ActionName,
@@ -29,9 +29,9 @@ use hash_graph_store::{
         EntityValidationReport, EntityValidationType, HasPermissionForEntitiesParams,
         PatchEntityParams, QueryConversion, QueryEntitiesParams, QueryEntitiesResponse,
         QueryEntitiesTableParams, QueryEntitiesTableResponse, QueryEntitySubgraphParams,
-        QueryEntitySubgraphResponse, SearchEntitiesFilter, SearchEntitiesParams,
-        SearchEntitiesResponse, SummarizeEntitiesParams, SummarizeEntitiesResponse,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        QueryEntitySubgraphResponse, SearchEntitiesParams, SearchEntitiesResponse,
+        SummarizeEntitiesParams, SummarizeEntitiesResponse, UpdateEntityEmbeddingsParams,
+        ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{
@@ -630,11 +630,7 @@ where
         // always match their key row (foreign keys, and the write paths maintaining
         // `entity_edition_cache` in the same transaction) and the distinct key pins all
         // row-multiplying columns.
-        //
-        // TODO(BE-618): revisit the embedding shape once the distance query is index-backed.
-        if !compiler.has_embeddings_filter() {
-            compiler.set_statement_shape(StatementShape::KeysFirst);
-        }
+        compiler.set_statement_shape(StatementShape::KeysFirst);
 
         let cursor_parameters = params.sorting.encode().change_context(QueryError)?;
         let cursor_indices = params
@@ -1850,95 +1846,20 @@ where
         actor_id: ActorEntityUuid,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
-        let SearchEntitiesParams {
-            embedding,
-            maximum_semantic_distance,
-            limit,
-            include_entity_types,
-            filter:
-                SearchEntitiesFilter {
-                    entity_type_ids,
-                    web_ids,
-                    include_drafts,
-                },
-        } = params;
+        // The search issues several statements — one candidate read per policy branch, the
+        // rerank, and the hydration. Under `READ COMMITTED` each would use its own MVCC
+        // snapshot, so a write committing in between could rank an entity that the hydration no
+        // longer returns.
+        let transaction = self
+            .begin_read_only_transaction()
+            .await
+            .change_context(QueryError)?;
 
-        // TODO(BE-618): optimize the query — it scans embeddings without a vector index. A
-        //   halfvec/HNSW index needs an ANN-friendly query shape to be usable (the current
-        //   `MIN(<=>) GROUP BY` defeats it). The returned entities can also be trimmed to the
-        //   fields the search bar and inference actually use, but the query is the bottleneck.
-        let maximum_distance =
-            Real::try_from(maximum_semantic_distance.into_inner()).change_context(QueryError)?;
+        let response = transaction.search_entities_impl(actor_id, params).await?;
 
-        // The search always runs against the current time and never returns archived entities.
-        let mut filters = vec![
-            Filter::CosineDistance(
-                FilterExpression::Path {
-                    path: EntityQueryPath::Embedding,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Vector(embedding),
-                    convert: None,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Decimal(maximum_distance),
-                    convert: None,
-                },
-            ),
-            Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::Archived,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Boolean(false),
-                    convert: None,
-                },
-            ),
-        ];
+        transaction.commit().await.change_context(QueryError)?;
 
-        if !entity_type_ids.is_empty() {
-            filters.push(Filter::Any(
-                entity_type_ids
-                    .iter()
-                    .map(Filter::for_entity_by_type_id)
-                    .collect(),
-            ));
-        }
-        if !web_ids.is_empty() {
-            filters.push(Filter::In(
-                FilterExpression::Path {
-                    path: EntityQueryPath::WebId,
-                },
-                FilterExpressionList::ParameterList {
-                    parameters: ParameterList::WebIds(&web_ids),
-                },
-            ));
-        }
-
-        let response = self
-            .query_entities(
-                actor_id,
-                QueryEntitiesParams {
-                    filter: Filter::All(filters),
-                    temporal_axes: QueryTemporalAxesUnresolved::live_only(),
-                    sorting: EntityQuerySorting {
-                        paths: vec![],
-                        cursor: None,
-                    },
-                    conversions: Vec::new(),
-                    limit,
-                    include_drafts,
-                    include_entity_types: include_entity_types
-                        .then_some(IncludeEntityTypeOption::Closed),
-                    include_permissions: false,
-                },
-            )
-            .await?;
-
-        Ok(SearchEntitiesResponse {
-            entities: response.entities,
-            closed_multi_entity_types: response.closed_multi_entity_types,
-        })
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

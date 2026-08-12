@@ -1,6 +1,7 @@
 export { Avatar } from "./components/Avatar/avatar";
 export { AvatarGroup } from "./components/AvatarGroup/avatar-group";
-export { Badge, type BadgeProps } from "./components/Badge/badge";
+export { Badge } from "./components/Badge/badge";
+export { BaseBadge } from "./components/Badge/base-badge";
 export { Banner } from "./components/Banner/banner";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";

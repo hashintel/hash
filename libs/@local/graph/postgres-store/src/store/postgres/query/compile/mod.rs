@@ -24,14 +24,13 @@ use super::ast::{
 };
 use crate::store::postgres::query::{
     Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
-    GroupByClause, GroupingElement, Identifier, NonEmptyVec, NullsOrder, OrderByClause,
-    PostgresQueryPath, PostgresRecord, SelectExpression, SelectQuantifier, SelectStatement,
-    SimpleSelect, SortBy, SortDirection, Table, Transpile as _, WindowDefinition, WithClause,
+    Identifier, NonEmptyVec, NullsOrder, OrderByClause, PostgresQueryPath, PostgresRecord,
+    SelectExpression, SelectQuantifier, SelectStatement, SimpleSelect, SortBy, SortDirection,
+    Table, Transpile as _, WindowDefinition, WithClause,
     postgres_type::PostgresType,
     table::{
-        DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
-        EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyIds,
-        OntologyTemporalMetadata, PropertyTypeEmbeddings,
+        EntityEditions, EntityEmbeddings, EntityTemporalMetadata, EntityTypeEmbeddings,
+        EntityTypes, FilterColumn as _, JsonField, OntologyIds, OntologyTemporalMetadata,
     },
 };
 
@@ -58,8 +57,6 @@ pub struct CompilerArtifacts<'p> {
     table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
     has_to_many_join: bool,
-    /// Set once an embeddings distance subquery is installed; a statement supports only one.
-    has_embeddings_filter: bool,
 }
 
 struct PathSelection {
@@ -83,6 +80,16 @@ pub enum Distinctness {
     Indistinct,
     Distinct,
 }
+
+/// Candidates a quantized ranking reads per requested result row.
+///
+/// [`rank_by_quantized_distance`] orders on the binary-quantized embedding, whose order deviates
+/// from the exact one, so callers re-score a multiple of the requested rows against the full
+/// vector to recover what the quantization misordered. The budget covers quantization alone —
+/// filters participate in the ranking itself, never in the re-scoring.
+///
+/// [`rank_by_quantized_distance`]: SelectCompiler::rank_by_quantized_distance
+pub const QUANTIZED_RANK_OVERFETCH: usize = 4;
 
 /// How [`SelectCompiler::compile`] lays out the statement.
 ///
@@ -193,7 +200,6 @@ struct CompiledJoin {
     table: Table,
     alias: Alias,
     join_type: JoinType,
-    source: JoinSource,
     conditions: Vec<Expression>,
     /// Whether any relation using this join can fan out the driving rows.
     ///
@@ -206,23 +212,10 @@ impl CompiledJoin {
     /// The `FROM` item this join scans, aliased as [`table`](Self::table) at
     /// [`alias`](Self::alias).
     fn source_item(&self) -> FromItem<'static> {
-        let alias = self.table.aliased_name(self.alias);
-        match &self.source {
-            JoinSource::Table => FromItem::table(self.table).alias(alias).build(),
-            JoinSource::Subquery(statement) => FromItem::subquery((**statement).clone())
-                .alias(alias)
-                .build(),
-        }
+        FromItem::table(self.table)
+            .alias(self.table.aliased_name(self.alias))
+            .build()
     }
-}
-
-/// What a [`CompiledJoin`] scans.
-enum JoinSource {
-    /// The aliased [`table`](CompiledJoin::table) itself.
-    Table,
-    /// A derived table standing in for the plain table. The embeddings distance filter swaps
-    /// its join over to the aggregated distance subquery.
-    Subquery(Box<SelectStatement>),
 }
 
 /// One keyset-pagination sort key.
@@ -421,16 +414,8 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum SelectCompilerError {
-    #[display("Cannot convert parameter for distance function")]
-    ConvertDistanceParameter,
-    #[display("Only a single embedding filter is allowed per statement")]
-    MultipleEmbeddings,
-    #[display("Only embeddings are supported for cosine distance")]
+    #[display("The column at this path has no binary-quantized form to rank on")]
     UnsupportedEmbeddingPath,
-    #[display(
-        "Cosine distance is only supported with exactly one `path` and one `parameter` expression."
-    )]
-    UnsupportedDistanceExpression,
     #[display("Cannot add a cursor: {reason}")]
     CursorDisallowed { reason: &'static str },
     #[display("Parameters with a pending conversion cannot be compiled")]
@@ -477,7 +462,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 cursor_disallowed_reason: None,
                 has_to_many_join: false,
-                has_embeddings_filter: false,
             },
             temporal_axes,
             table_hooks,
@@ -1235,23 +1219,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         self.artifacts.has_to_many_join
     }
 
-    /// Whether an embeddings distance filter was compiled into the statement.
-    #[must_use]
-    pub const fn has_embeddings_filter(&self) -> bool {
-        self.artifacts.has_embeddings_filter
-    }
-
     /// Compiles a [`Filter`] to an [`Expression`].
     ///
     /// # Errors
     ///
     /// Returns an error if the filter compilation fails.
-    ///
-    /// # Panics
-    ///
-    /// Panics when an embeddings table declares no grouping columns, though the static table
-    /// list makes that unreachable.
-    #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter<'f: 'q>(
         &mut self,
@@ -1297,216 +1269,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_filter_expression(lhs)?.0,
                 self.compile_filter_expression(rhs)?.0,
             ),
-            Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
-                (
-                    FilterExpression::Path { path },
-                    FilterExpression::Parameter { parameter, convert },
-                )
-                | (
-                    FilterExpression::Parameter { parameter, convert },
-                    FilterExpression::Path { path },
-                ) => {
-                    let _span = tracing::info_span!("compile_cosine_distance").entered();
-                    ensure!(
-                        !self.artifacts.has_embeddings_filter,
-                        SelectCompilerError::MultipleEmbeddings
-                    );
-                    // We don't support custom sorting yet and limit/cursor implicitly set an order.
-                    // We special case the distance function to allow sorting by distance, so we
-                    // need to make sure that we don't have a limit or cursor.
-
-                    self.artifacts.cursor_disallowed_reason =
-                        Some("Cannot use distance function with cursor");
-
-                    // `convert` should be `None` as we don't support parameter conversion at this
-                    // stage, yet.
-                    ensure!(
-                        convert.is_none(),
-                        SelectCompilerError::ConvertDistanceParameter
-                    );
-
-                    let path_alias = self.add_join_statements(path);
-                    let parameter_expression = self.compile_parameter(parameter).0;
-                    let maximum_expression = self.compile_filter_expression(max)?.0;
-
-                    let (embeddings_column, None) = path.terminating_column() else {
-                        bail!(SelectCompilerError::UnsupportedEmbeddingPath);
-                    };
-                    let embeddings_table = embeddings_column.table();
-                    let distance_expression = Expression::ColumnReference(
-                        match embeddings_table {
-                            Table::DataTypeEmbeddings => {
-                                Column::DataTypeEmbeddings(DataTypeEmbeddings::Distance)
-                            }
-                            Table::PropertyTypeEmbeddings => {
-                                Column::PropertyTypeEmbeddings(PropertyTypeEmbeddings::Distance)
-                            }
-                            Table::EntityTypeEmbeddings => {
-                                Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Distance)
-                            }
-                            Table::EntityEmbeddings => {
-                                Column::EntityEmbeddings(EntityEmbeddings::Distance)
-                            }
-                            Table::OntologyIds
-                            | Table::OntologyTemporalMetadata
-                            | Table::OntologyOwnedMetadata
-                            | Table::OntologyExternalMetadata
-                            | Table::OntologyAdditionalMetadata
-                            | Table::DataTypes
-                            | Table::DataTypeConversions
-                            | Table::DataTypeConversionAggregation
-                            | Table::PropertyTypes
-                            | Table::EntityTypes
-                            | Table::EntityEditionCache
-                            | Table::EntityIds
-                            | Table::EntityDrafts
-                            | Table::EntityTemporalMetadata
-                            | Table::EntityEditions
-                            | Table::EntityIsOfType
-                            | Table::EntityHasLeftEntity
-                            | Table::EntityHasRightEntity
-                            | Table::EntityEdge
-                            | Table::Action
-                            | Table::ActionHierarchy
-                            | Table::Policy
-                            | Table::PolicyEdition
-                            | Table::PolicyAction
-                            | Table::UserActor
-                            | Table::MachineActor
-                            | Table::AiActor
-                            | Table::Web
-                            | Table::Team
-                            | Table::Role
-                            | Table::ActorRole
-                            | Table::Reference(_) => {
-                                bail!(SelectCompilerError::UnsupportedEmbeddingPath)
-                            }
-                        }
-                        .aliased(path_alias),
-                    );
-
-                    if let Some(last_join) = self.artifacts.joins.last_mut() {
-                        // The rewrite below replaces the topmost join with the distance
-                        // subquery, which is only sound when that join is the embeddings join
-                        // resolved for this path. A reused embeddings join buried under later
-                        // joins (created by an earlier non-distance filter on the embedding
-                        // path) cannot be rewritten.
-                        ensure!(
-                            last_join.table == embeddings_table && last_join.alias == path_alias,
-                            SelectCompilerError::MultipleEmbeddings
-                        );
-
-                        let select_columns: &[_] = match embeddings_table {
-                            Table::DataTypeEmbeddings => {
-                                &[Column::DataTypeEmbeddings(DataTypeEmbeddings::OntologyId)]
-                            }
-                            Table::PropertyTypeEmbeddings => &[Column::PropertyTypeEmbeddings(
-                                PropertyTypeEmbeddings::OntologyId,
-                            )],
-                            Table::EntityTypeEmbeddings => &[Column::EntityTypeEmbeddings(
-                                EntityTypeEmbeddings::OntologyId,
-                            )],
-                            Table::EntityEmbeddings => &[
-                                Column::EntityEmbeddings(EntityEmbeddings::WebId),
-                                Column::EntityEmbeddings(EntityEmbeddings::EntityUuid),
-                            ],
-                            Table::OntologyIds
-                            | Table::OntologyTemporalMetadata
-                            | Table::OntologyOwnedMetadata
-                            | Table::OntologyExternalMetadata
-                            | Table::OntologyAdditionalMetadata
-                            | Table::DataTypes
-                            | Table::DataTypeConversions
-                            | Table::DataTypeConversionAggregation
-                            | Table::PropertyTypes
-                            | Table::EntityTypes
-                            | Table::EntityEditionCache
-                            | Table::EntityIds
-                            | Table::EntityDrafts
-                            | Table::EntityTemporalMetadata
-                            | Table::EntityEditions
-                            | Table::EntityIsOfType
-                            | Table::EntityHasLeftEntity
-                            | Table::EntityHasRightEntity
-                            | Table::EntityEdge
-                            | Table::Action
-                            | Table::ActionHierarchy
-                            | Table::Policy
-                            | Table::PolicyEdition
-                            | Table::PolicyAction
-                            | Table::UserActor
-                            | Table::MachineActor
-                            | Table::AiActor
-                            | Table::Web
-                            | Table::Team
-                            | Table::Role
-                            | Table::ActorRole
-                            | Table::Reference(_) => unreachable!(),
-                        };
-
-                        last_join.source = JoinSource::Subquery(Box::new(SelectStatement::from(
-                            SimpleSelect::builder()
-                                .selects(
-                                    select_columns
-                                        .iter()
-                                        .map(|&column| SelectExpression::Expression {
-                                            expression: Expression::ColumnReference(column.into()),
-                                            output_name: None,
-                                        })
-                                        .chain(once(SelectExpression::Expression {
-                                            expression: Expression::Function(Function::Min(
-                                                Box::new(Expression::cosine_distance(
-                                                    Expression::ColumnReference(
-                                                        embeddings_column.into(),
-                                                    ),
-                                                    parameter_expression,
-                                                )),
-                                            )),
-                                            output_name: Some(Identifier::from("distance")),
-                                        }))
-                                        .collect::<Vec<_>>(),
-                                )
-                                .from(FromItem::table(embeddings_table))
-                                .group_by(
-                                    GroupByClause::builder().grouping_elements(
-                                        NonEmptyVec::try_from(
-                                            select_columns
-                                                .iter()
-                                                .map(|&column| {
-                                                    GroupingElement::Expressions(NonEmptyVec::from(
-                                                        Expression::ColumnReference(column.into()),
-                                                    ))
-                                                })
-                                                .collect::<Vec<_>>(),
-                                        )
-                                        .expect(
-                                            "every embeddings table groups by at least one column",
-                                        ),
-                                    ),
-                                ),
-                        )));
-                        // The grouped subquery emits exactly one row per join key, so the
-                        // original relation's fan-out no longer applies.
-                        last_join.to_many = false;
-                        self.artifacts.has_embeddings_filter = true;
-                    }
-
-                    self.sort_by.insert(
-                        0,
-                        SortBy::builder()
-                            .expression(distance_expression.clone())
-                            .direction(SortDirection::Ascending)
-                            .build(),
-                    );
-                    self.selects.push(SelectExpression::Expression {
-                        expression: distance_expression.clone(),
-                        output_name: None,
-                    });
-                    self.distinct_on.push(distance_expression.clone());
-                    Expression::less_or_equal(distance_expression, maximum_expression)
-                }
-                _ => bail!(SelectCompilerError::UnsupportedDistanceExpression),
-            },
             Filter::In(lhs, rhs) => Expression::r#in(
                 self.compile_filter_expression(lhs)?.0,
                 self.compile_filter_expression_list(rhs).0,
@@ -1639,7 +1401,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             | Filter::GreaterOrEqual(..)
             | Filter::Less(..)
             | Filter::LessOrEqual(..)
-            | Filter::CosineDistance(..)
             | Filter::In(..)
             | Filter::StartsWith(..)
             | Filter::EndsWith(..)
@@ -1911,7 +1672,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             | Filter::GreaterOrEqual(..)
             | Filter::Less(..)
             | Filter::LessOrEqual(..)
-            | Filter::CosineDistance(..)
             | Filter::In(..)
             | Filter::StartsWith(..)
             | Filter::EndsWith(..)
@@ -2242,7 +2002,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         table: join_table,
                         alias: join_alias,
                         join_type,
-                        source: JoinSource::Table,
                         conditions,
                         to_many: relation.is_to_many(),
                     });
@@ -2252,9 +2011,86 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         current_alias
     }
+
+    /// Ranks the statement by semantic distance to `embedding`, closest first.
+    ///
+    /// The rank is computed on the binary-quantized form of the embedding at `path`, which stays
+    /// in the heap tuple where the full vector is always `TOAST`ed. Quantization makes the order
+    /// approximate: callers needing the exact order re-score the returned candidates against the
+    /// full vector. The rank only reaches an HNSW index while it stays the statement's leading
+    /// sort under a limit.
+    ///
+    /// Ranking turns the embeddings join into an `INNER JOIN` treated as one row per record, so
+    /// records without an embedding drop out of the statement. On `entity_embeddings` the
+    /// one-row property only holds once [`restrict_embedding_property`] pins an embedding space —
+    /// the returned [`Alias`] addresses the join for it.
+    ///
+    /// Ranking rules out a cursor: a keyset predicate compares the cursor columns, which the
+    /// distance order ignores.
+    ///
+    /// # Errors
+    ///
+    /// [`SelectCompilerError::UnsupportedEmbeddingPath`] if the column at `path` has no
+    /// binary-quantized form.
+    ///
+    /// # Panics
+    ///
+    /// If the embeddings join resolved for `path` is missing from the statement, which the
+    /// path's relation rules out.
+    ///
+    /// [`restrict_embedding_property`]: Self::restrict_embedding_property
+    pub fn rank_by_quantized_distance<'f: 'q>(
+        &mut self,
+        path: &R::QueryPath<'f>,
+        embedding: &'p (dyn ToSql + Sync),
+    ) -> Result<Alias, Report<SelectCompilerError>>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
+        let bits_column = match path.terminating_column() {
+            (Column::EntityEmbeddings(EntityEmbeddings::Embedding), None) => {
+                Column::EntityEmbeddings(EntityEmbeddings::EmbeddingBits)
+            }
+            (Column::EntityTypeEmbeddings(EntityTypeEmbeddings::Embedding), None) => {
+                Column::EntityTypeEmbeddings(EntityTypeEmbeddings::EmbeddingBits)
+            }
+            _ => bail!(SelectCompilerError::UnsupportedEmbeddingPath),
+        };
+
+        self.artifacts.cursor_disallowed_reason =
+            Some("Cannot use a semantic ranking with a cursor");
+
+        let alias = self.add_join_statements(path);
+
+        // The relation resolves to an outer join, which would keep records without any embedding
+        // and rank them with a NULL distance.
+        let join = self
+            .artifacts
+            .joins
+            .iter_mut()
+            .rev()
+            .find(|join| join.table.name() == bits_column.table().name() && join.alias == alias)
+            .expect("ranking on an embedding path should resolve to an embeddings join");
+        join.join_type = JoinType::Inner;
+        join.to_many = false;
+
+        let rank = Expression::hamming_distance(
+            Expression::ColumnReference(bits_column.aliased(alias)),
+            Expression::binary_quantize(self.add_parameter(embedding)),
+        );
+        self.sort_by.insert(
+            0,
+            SortBy::builder()
+                .expression(rank)
+                .direction(SortDirection::Ascending)
+                .build(),
+        );
+
+        Ok(alias)
+    }
 }
 
-/// Entity-specific methods for property masking.
+/// Entity-specific compiler extensions.
 impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
     /// Configures property masking for Entity queries.
     ///
@@ -2326,5 +2162,31 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
         } else {
             column
         }
+    }
+
+    /// Restricts the embeddings join at `alias` to one embedding space.
+    ///
+    /// `entity_embeddings` interleaves two spaces: a combined embedding over all of an entity's
+    /// properties and one embedding per property value. Distances are only comparable within one
+    /// space, so a statement ranking over the table picks a side: [`None`] selects the combined
+    /// embedding, [`Some`] the embedding of that property. Either addresses at most one row per
+    /// entity.
+    ///
+    /// `alias` is the join handle returned by [`rank_by_quantized_distance`].
+    ///
+    /// [`rank_by_quantized_distance`]: Self::rank_by_quantized_distance
+    pub fn restrict_embedding_property(
+        &mut self,
+        alias: Alias,
+        property: Option<&'p (dyn ToSql + Sync)>,
+    ) {
+        let property_column = Expression::ColumnReference(
+            Column::EntityEmbeddings(EntityEmbeddings::Property).aliased(alias),
+        );
+        let property_condition = match property {
+            Some(property) => Expression::equal(property_column, self.add_parameter(property)),
+            None => Expression::is_null(property_column),
+        };
+        self.conditions.push(property_condition);
     }
 }

@@ -145,10 +145,6 @@ impl QueryRecordDecode for Entity {
             draft_id: row.get(indices.draft_id),
         };
 
-        if let Ok(distance) = row.try_get::<_, f64>("distance") {
-            tracing::trace!(%entity_id, %distance, "Entity embedding was calculated");
-        }
-
         let property_metadata = row
             .get::<_, Option<serde_json::Value>>(indices.property_metadata)
             .map(|value| {
