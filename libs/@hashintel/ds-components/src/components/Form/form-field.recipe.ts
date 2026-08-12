@@ -32,8 +32,12 @@ export const styles = sva({
             display: "contents",
           },
         },
+        // tracks mirror the section's: left labels, inputs, right labels —
+        // identical standalone and subgridded, so item placement is the same
+        // in both contexts
         inlineControl: {
           display: "grid",
+          gridTemplateColumns: "[auto minmax(0, 1fr) auto]",
           columnGap: "5",
           alignItems: "center",
           '[data-part="form-section"] > * > &': {
@@ -145,16 +149,16 @@ export const styles = sva({
   },
   // inline layout: slightly tighter gaps between inlineControl and its neighbours
   compoundVariants: [
-    // labelDirection mirrors the inline row: label track last, actions before
-    // the input
+    // labelDirection mirrors the inline row: the label sits in its side's
+    // auto track, the input spans from the opposite edge — absorbing the
+    // unused side track and its gap, so an empty side costs no width
     {
       layout: "inline",
       labelDirection: "left",
       hideLabel: false,
       css: {
-        inlineControl: { gridTemplateColumns: "[auto minmax(0, 1fr)]" },
-        label: { gridColumn: "1" },
-        inlineInput: { gridColumn: "[2]" },
+        label: { gridColumn: "[1]" },
+        inlineInput: { gridColumn: "[2 / -1]" },
       },
     },
     {
@@ -162,19 +166,16 @@ export const styles = sva({
       labelDirection: "right",
       hideLabel: false,
       css: {
-        inlineControl: { gridTemplateColumns: "[minmax(0, 1fr) auto]" },
-        label: { gridColumn: "[2]" },
-        inlineInput: { gridColumn: "1" },
+        label: { gridColumn: "[3]" },
+        inlineInput: { gridColumn: "[1 / 3]" },
         inlineLabelActions: { order: "-1" },
       },
     },
-    // a visually hidden label leaves no label track: the input takes the full
-    // row (spanning all section columns when subgridded) with no phantom gap
+    // a visually hidden label occupies no track: the input takes the full row
     {
       layout: "inline",
       hideLabel: true,
       css: {
-        inlineControl: { gridTemplateColumns: "[minmax(0, 1fr)]" },
         inlineInput: { gridColumn: "[1 / -1]" },
       },
     },

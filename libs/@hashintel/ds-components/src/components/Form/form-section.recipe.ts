@@ -4,10 +4,12 @@ export const styles = sva({
   slots: ["section"],
   base: {
     section: {
-      // tracks and gap mirror inlineControl's; inline fields subgrid onto them
-      // so labels and inputs align across adjacent fields
+      // tracks and gap mirror inlineControl's; inline fields subgrid onto
+      // them so labels and inputs align across adjacent fields. Three tracks:
+      // left labels, inputs, right labels (labelDirection="right") — a side
+      // with no labels stays empty and collapses to zero width
       display: "grid",
-      gridTemplateColumns: "[auto minmax(0, 1fr)]",
+      gridTemplateColumns: "[auto minmax(0, 1fr) auto]",
       columnGap: "5",
 
       "& > *": {

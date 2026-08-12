@@ -567,6 +567,26 @@ export const FormSection: Story<FormFieldArgs> = (args) => (
         />
       </Form.Field>
 
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Right label"
+        labelDirection="right"
+      >
+        <ControlledTextInput name="form-section-right" size={args.size} />
+      </Form.Field>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="A longer right label"
+        labelDirection="right"
+      >
+        <ControlledTextInput name="form-section-right-long" size={args.size} />
+      </Form.Field>
+
       <Form.Field {...args} as="label" layout="inline" label="Last">
         <ControlledTextInput name="form-section-last" size={args.size} />
       </Form.Field>
