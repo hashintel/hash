@@ -3,6 +3,7 @@ import { use, useState } from "react";
 import {
   Banner,
   Button,
+  Form,
   Icon,
   NumberInput,
   Select,
@@ -13,7 +14,6 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
@@ -35,23 +35,11 @@ const rootStyle = css({
   paddingX: "4",
 });
 
-const scenarioRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
+// Small right inset so the action buttons don't hug the column edge,
+// matching the parameters list below.
+const scenarioFieldStyle = css({
   flexShrink: 0,
-  // Small right inset so the action buttons don't hug the column edge,
-  // matching the parameters list below.
   paddingRight: "2",
-});
-
-const scenarioLabelStyle = css({
-  fontSize: "[10px]",
-  fontWeight: "semibold",
-  textTransform: "uppercase",
-  color: "neutral.a100",
-  letterSpacing: "[0.5px]",
-  flexShrink: 0,
 });
 
 // Sized like the Timeline metric picker: fill the remaining row width, and
@@ -115,19 +103,6 @@ const settingsRowStyle = css({
   flexDirection: "row",
   gap: "6",
   flexWrap: "wrap",
-});
-
-const settingGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[120px]",
-});
-
-const labelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
 });
 
 const smallLabelStyle = css({
@@ -379,8 +354,46 @@ const SimulationSettingsContent: React.FC = () => {
         {/* Scenario & Parameters Column */}
         <div className={scenarioColumnStyle}>
           {/* Scenario Picker */}
-          <div className={scenarioRowStyle}>
-            <span className={scenarioLabelStyle}>Scenario</span>
+          <Form.Field
+            layout="inline"
+            label="Scenario"
+            size="xs"
+            disabled={isSimulationActive}
+            className={scenarioFieldStyle}
+            labelActions={[
+              ...(selectedScenario
+                ? [
+                    <Button
+                      key="edit"
+                      size="xs"
+                      variant="ghost"
+                      aria-label="Edit scenario"
+                      tooltip="Edit Scenario"
+                      iconName="pencil"
+                      onClick={() => setIsViewScenarioOpen(true)}
+                    />,
+                  ]
+                : []),
+              <Button
+                key="create"
+                size="xs"
+                variant="ghost"
+                aria-label="Create scenario"
+                tooltip="Create Scenario"
+                iconName="plus"
+                onClick={() => setIsCreateScenarioOpen(true)}
+              />,
+              <Button
+                key="manage"
+                size="xs"
+                variant="ghost"
+                aria-label="Manage scenarios"
+                tooltip="Manage Scenarios"
+                iconName="list"
+                onClick={() => setGlobalMode("simulate")}
+              />,
+            ]}
+          >
             <div className={scenarioSelectWrapperStyle}>
               <Select
                 required
@@ -427,35 +440,7 @@ const SimulationSettingsContent: React.FC = () => {
                 }}
               />
             </div>
-            <div style={{ display: "flex" }}>
-              {selectedScenario && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  aria-label="Edit scenario"
-                  tooltip="Edit Scenario"
-                  iconName="pencil"
-                  onClick={() => setIsViewScenarioOpen(true)}
-                />
-              )}
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Create scenario"
-                tooltip="Create Scenario"
-                iconName="plus"
-                onClick={() => setIsCreateScenarioOpen(true)}
-              />
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Manage scenarios"
-                tooltip="Manage Scenarios"
-                iconName="list"
-                onClick={() => setGlobalMode("simulate")}
-              />
-            </div>
-          </div>
+          </Form.Field>
 
           {scenarioCompilationErrors && (
             <Banner
@@ -610,14 +595,17 @@ const SimulationSettingsContent: React.FC = () => {
         <div className={sectionStyle}>
           <div className={sectionTitleStyle}>Computation</div>
           <div className={settingsRowStyle}>
-            {/* Time Step Input */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="time-step-input" className={labelStyle}>
-                Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-              </label>
+            <Form.Field
+              label={
+                <>
+                  Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+                </>
+              }
+              labelTooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute."
+              size="xs"
+              disabled={isSimulationActive}
+            >
               <NumberInput
-                htmlForId="time-step-input"
                 size="xs"
                 width="xs"
                 min={0.001}
@@ -631,7 +619,7 @@ const SimulationSettingsContent: React.FC = () => {
                 }}
                 disabled={isSimulationActive}
               />
-            </div>
+            </Form.Field>
           </div>
         </div>
       </div>

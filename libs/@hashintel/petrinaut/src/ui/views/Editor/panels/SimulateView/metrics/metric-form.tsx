@@ -1,33 +1,13 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
-import { TextArea, TextInput } from "@hashintel/ds-components";
+import { Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
-
-// -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const hintStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  lineHeight: "[1.4]",
-});
 
 // -- Form state ---------------------------------------------------------------
 
@@ -162,8 +142,6 @@ export function useMetricLspSession(
 interface MetricFormSectionsProps {
   state: MetricFormState;
   callbacks: MetricFormCallbacks;
-  /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
-  idPrefix?: string;
   /** LSP session ID for metric body type-checking */
   metricSessionId?: string;
 }
@@ -171,7 +149,6 @@ interface MetricFormSectionsProps {
 const MetricFormSections = ({
   state,
   callbacks,
-  idPrefix = "",
   metricSessionId,
 }: MetricFormSectionsProps) => {
   const nameHasError = state.name.trim() === "";
@@ -184,51 +161,56 @@ const MetricFormSections = ({
     <SectionList>
       {/* -- General -------------------------------------------------- */}
       <Section title="General" collapsible defaultOpen>
-        <div className={fieldStyle}>
-          <label className={labelStyle} htmlFor={`${idPrefix}metric-name`}>
-            Metric name
-          </label>
+        <Form.Field
+          label="Metric name"
+          size="sm"
+          errors={
+            nameHasError && state.name !== ""
+              ? ["Metric name is required."]
+              : undefined
+          }
+        >
           <TextInput
-            htmlForId={`${idPrefix}metric-name`}
             size="sm"
             value={state.name}
             onChange={callbacks.onNameChange}
             invalid={nameHasError && state.name !== ""}
           />
-        </div>
+        </Form.Field>
 
-        <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}metric-description`}
-          >
-            Description
-          </label>
+        <Form.Field label="Description" size="sm">
           <TextArea
-            htmlForId={`${idPrefix}metric-description`}
             className={css({ minHeight: "[80px]" })}
             size="sm"
             value={state.description}
             onChange={callbacks.onDescriptionChange}
           />
-        </div>
+        </Form.Field>
       </Section>
 
       {/* -- Code ----------------------------------------------------- */}
       <Section title="Code" collapsible defaultOpen>
-        <span className={hintStyle}>
-          Function body invoked with{" "}
-          <code>state.places.&lt;Place&nbsp;Name&gt;</code> providing{" "}
-          <code>count</code> and (for colored places) <code>tokens</code>. Must{" "}
-          <code>return</code> a finite number.
-        </span>
-        <CodeEditor
-          language="typescript"
-          path={codeUri}
-          value={state.code}
-          onChange={(v) => callbacks.onCodeChange(v ?? "")}
-          height="300px"
-        />
+        <Form.Field
+          label="Code"
+          hideLabel
+          size="sm"
+          description={
+            <>
+              Function body invoked with{" "}
+              <code>state.places.&lt;Place&nbsp;Name&gt;</code> providing{" "}
+              <code>count</code> and (for colored places) <code>tokens</code>.
+              Must <code>return</code> a finite number.
+            </>
+          }
+        >
+          <CodeEditor
+            language="typescript"
+            path={codeUri}
+            value={state.code}
+            onChange={(v) => callbacks.onCodeChange(v ?? "")}
+            height="300px"
+          />
+        </Form.Field>
       </Section>
     </SectionList>
   );
@@ -238,8 +220,6 @@ const MetricFormSections = ({
 
 export interface MetricFormBodyProps {
   form: MetricFormInstance;
-  /** Unique prefix for element IDs */
-  idPrefix?: string;
   /**
    * LSP session ID for the metric body. Owned by the drawer parent so the
    * footer can scope its diagnostics summary to the same session.
@@ -249,7 +229,6 @@ export interface MetricFormBodyProps {
 
 export const MetricFormBody = ({
   form,
-  idPrefix,
   metricSessionId,
 }: MetricFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
@@ -263,7 +242,6 @@ export const MetricFormBody = ({
           form.setFieldValue("description", value),
         onCodeChange: (value) => form.setFieldValue("code", value),
       }}
-      idPrefix={idPrefix}
       metricSessionId={metricSessionId}
     />
   );

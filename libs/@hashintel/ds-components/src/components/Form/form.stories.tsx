@@ -55,7 +55,7 @@ const formRowAligns = [
   "top",
 ] as const satisfies readonly FormRowAlign[];
 
-const noop = () => { };
+const noop = () => {};
 
 const ControlledTextInput = (
   props: Omit<React.ComponentProps<typeof TextInput>, "value" | "onChange"> & {

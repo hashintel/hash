@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Button,
   Dialog,
+  Form,
   Icon,
   Menu,
   Select,
@@ -25,6 +26,10 @@ import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useDiffEqPropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+
+const fieldsSectionStyle = css({
+  paddingY: "3",
+});
 
 const colorDotStyle = css({
   width: "[12px]",
@@ -110,8 +115,9 @@ const DiffEqMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
+      <Form.Section className={fieldsSectionStyle}>
         <DraftFieldInput
+          label="Name"
           sourceId={differentialEquation.id}
           sourceValue={differentialEquation.name}
           validate={validateDisplayName}
@@ -124,43 +130,43 @@ const DiffEqMainContent: React.FC = () => {
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </Section>
 
-      <Section title="Associated Type">
-        <Tooltip
-          content={UI_MESSAGES.READ_ONLY_MODE}
-          disableTooltip={!isReadOnly}
-        >
-          <Select
-            required
-            value={differentialEquation.colorId ?? ""}
-            onChange={(colorId) => {
-              if (colorId) {
-                handleTypeChange(colorId);
-              }
-            }}
-            items={types.map((type) => ({
-              value: type.id,
-              text: type.name,
-            }))}
-            placeholder="Select a type"
-            size="sm"
-            disabled={isReadOnly}
-            renderItem={(value) => {
-              const type = types.find((tp) => tp.id === value);
-              return (
-                <div className={arcStyle}>
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: type?.displayColor }}
-                  />
-                  {type?.name ?? value}
-                </div>
-              );
-            }}
-          />
-        </Tooltip>
-      </Section>
+        <Form.Field label="Associated Type" size="sm" disabled={isReadOnly}>
+          <Tooltip
+            content={UI_MESSAGES.READ_ONLY_MODE}
+            disableTooltip={!isReadOnly}
+          >
+            <Select
+              required
+              value={differentialEquation.colorId ?? ""}
+              onChange={(colorId) => {
+                if (colorId) {
+                  handleTypeChange(colorId);
+                }
+              }}
+              items={types.map((type) => ({
+                value: type.id,
+                text: type.name,
+              }))}
+              placeholder="Select a type"
+              size="sm"
+              disabled={isReadOnly}
+              renderItem={(value) => {
+                const type = types.find((tp) => tp.id === value);
+                return (
+                  <div className={arcStyle}>
+                    <div
+                      className={colorDotStyle}
+                      style={{ backgroundColor: type?.displayColor }}
+                    />
+                    {type?.name ?? value}
+                  </div>
+                );
+              }}
+            />
+          </Tooltip>
+        </Form.Field>
+      </Form.Section>
 
       {showConfirmDialog && (
         <Dialog size="xs" onClose={cancelTypeChange}>

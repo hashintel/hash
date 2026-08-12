@@ -3,6 +3,7 @@ import { use, useEffect, useRef, useState } from "react";
 import {
   Button,
   Checkbox,
+  Form,
   Icon,
   Select,
   TextInput,
@@ -24,9 +25,8 @@ import { usePlacePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
+const fieldsSectionStyle = css({
+  paddingY: "3",
 });
 
 const jumpButtonContainerStyle = css({
@@ -122,112 +122,118 @@ const PlaceMainContent: React.FC = () => {
   return (
     <div ref={rootDivRef}>
       <SectionList>
-        <Section title="Name">
-          <Tooltip
-            content={UI_MESSAGES.READ_ONLY_MODE}
-            disableTooltip={!isReadOnly}
-          >
-            <TextInput
-              size="sm"
-              inputRef={nameInputRef}
-              value={nameField.value}
-              onChange={(name) => {
-                nameField.setValue(name);
-                if (nameField.error) {
-                  nameField.setError(null);
-                }
-              }}
-              onFocus={() => setIsNameInputFocused(true)}
-              onBlur={() => {
-                setIsNameInputFocused(false);
-                handleNameBlur();
-              }}
-              disabled={isReadOnly}
-              invalid={!!nameField.error}
-            />
-          </Tooltip>
-          {nameField.error && (
-            <div className={errorMessageStyle}>{nameField.error}</div>
-          )}
-        </Section>
-
-        {extensions.colors && (
-          <Section
-            title="Accepted token type"
-            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
-              availableTypes.length === 0
-                ? " You must create a data type in the left-hand sidebar first."
-                : ""
-            } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+        <Form.Section className={fieldsSectionStyle}>
+          <Form.Field
+            label="Name"
+            size="sm"
+            disabled={isReadOnly}
+            errors={nameField.error ? [nameField.error] : undefined}
           >
             <Tooltip
               content={UI_MESSAGES.READ_ONLY_MODE}
               disableTooltip={!isReadOnly}
             >
-              <Select
-                required
+              <TextInput
                 size="sm"
-                value={place.colorId ?? ""}
-                onChange={(colorId) => {
-                  const nextColorId = colorId === "" ? null : colorId;
-                  updatePlace({
-                    placeId: place.id,
-                    update: {
-                      colorId: nextColorId,
-                      dynamicsEnabled:
-                        nextColorId === null && place.dynamicsEnabled
-                          ? false
-                          : place.dynamicsEnabled,
-                    },
-                  });
+                inputRef={nameInputRef}
+                value={nameField.value}
+                onChange={(name) => {
+                  nameField.setValue(name);
+                  if (nameField.error) {
+                    nameField.setError(null);
+                  }
                 }}
-                items={[
-                  { value: "", text: "None" },
-                  ...types.map((type) => ({
-                    value: type.id,
-                    text: type.name,
-                  })),
-                ]}
-                renderItem={(value) => {
-                  const type = types.find((tp) => tp.id === value);
-                  return (
-                    <div className={arcStyle}>
-                      {type?.displayColor && (
-                        <div
-                          className={typeColorDotStyle}
-                          style={{ backgroundColor: type.displayColor }}
-                        />
-                      )}
-                      {type?.name ?? "None"}
-                    </div>
-                  );
+                onFocus={() => setIsNameInputFocused(true)}
+                onBlur={() => {
+                  setIsNameInputFocused(false);
+                  handleNameBlur();
                 }}
                 disabled={isReadOnly}
+                invalid={!!nameField.error}
               />
             </Tooltip>
+          </Form.Field>
 
-            {place.colorId && (
-              <div className={jumpButtonContainerStyle}>
-                <Button
-                  variant="subtle"
-                  tone="neutral"
-                  size="xs"
-                  onClick={() => {
-                    if (place.colorId) {
-                      const itemType = getItemType(place.colorId);
-                      if (itemType) {
-                        selectItem({ type: itemType, id: place.colorId });
-                      }
-                    }
+          {extensions.colors && (
+            <Form.Field
+              label="Accepted token type"
+              size="sm"
+              disabled={isReadOnly}
+              labelTooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
+                availableTypes.length === 0
+                  ? " You must create a data type in the left-hand sidebar first."
+                  : ""
+              } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+            >
+              <Tooltip
+                content={UI_MESSAGES.READ_ONLY_MODE}
+                disableTooltip={!isReadOnly}
+              >
+                <Select
+                  required
+                  size="sm"
+                  value={place.colorId ?? ""}
+                  onChange={(colorId) => {
+                    const nextColorId = colorId === "" ? null : colorId;
+                    updatePlace({
+                      placeId: place.id,
+                      update: {
+                        colorId: nextColorId,
+                        dynamicsEnabled:
+                          nextColorId === null && place.dynamicsEnabled
+                            ? false
+                            : place.dynamicsEnabled,
+                      },
+                    });
                   }}
-                  suffix={<Icon name="arrowRight" />}
-                >
-                  Jump to Type
-                </Button>
-              </div>
-            )}
-          </Section>
-        )}
+                  items={[
+                    { value: "", text: "None" },
+                    ...types.map((type) => ({
+                      value: type.id,
+                      text: type.name,
+                    })),
+                  ]}
+                  renderItem={(value) => {
+                    const type = types.find((tp) => tp.id === value);
+                    return (
+                      <div className={arcStyle}>
+                        {type?.displayColor && (
+                          <div
+                            className={typeColorDotStyle}
+                            style={{ backgroundColor: type.displayColor }}
+                          />
+                        )}
+                        {type?.name ?? "None"}
+                      </div>
+                    );
+                  }}
+                  disabled={isReadOnly}
+                />
+              </Tooltip>
+
+              {place.colorId && (
+                <div className={jumpButtonContainerStyle}>
+                  <Button
+                    variant="subtle"
+                    tone="neutral"
+                    size="xs"
+                    onClick={() => {
+                      if (place.colorId) {
+                        const itemType = getItemType(place.colorId);
+                        if (itemType) {
+                          selectItem({ type: itemType, id: place.colorId });
+                        }
+                      }
+                    }}
+                    suffix={<Icon name="arrowRight" />}
+                  >
+                    Jump to Type
+                  </Button>
+                </div>
+              )}
+            </Form.Field>
+          )}
+        </Form.Section>
 
         {extensions.colors && extensions.dynamics && (
           <Section

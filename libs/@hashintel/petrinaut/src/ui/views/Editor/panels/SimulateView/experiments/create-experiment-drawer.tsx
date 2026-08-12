@@ -4,6 +4,7 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Button,
   Drawer,
+  Form,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -52,18 +53,6 @@ const fieldStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
 });
 
 const paramRowStyle = css({
@@ -203,12 +192,6 @@ const metricSpecificFieldsStyle = css({
   gap: "2",
 });
 
-const codeDiagnosticStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-  whiteSpace: "pre-wrap",
-});
-
 const emptyParamsStyle = css({
   display: "flex",
   alignItems: "center",
@@ -216,13 +199,6 @@ const emptyParamsStyle = css({
   paddingY: "[16px]",
   fontSize: "sm",
   color: "neutral.s80",
-});
-
-const errorStyle = css({
-  fontSize: "sm",
-  color: "red.s100",
-  marginRight: "auto",
-  whiteSpace: "pre-wrap",
 });
 
 // -- Constants ----------------------------------------------------------------
@@ -529,8 +505,18 @@ const ExperimentExpressionMetricEditor = ({
   const codeUri = getMetricDocumentUri(metricSessionId);
 
   return (
-    <div className={fieldStyle}>
-      <span className={labelStyle}>Code</span>
+    <Form.Field
+      label="Code"
+      size="sm"
+      errors={
+        lspDiagnostics.count > 0
+          ? [
+              lspDiagnostics.firstMessage ??
+                `${lspDiagnostics.count} diagnostics`,
+            ]
+          : undefined
+      }
+    >
       <CodeEditor
         language="typescript"
         path={codeUri}
@@ -539,12 +525,7 @@ const ExperimentExpressionMetricEditor = ({
         height="260px"
         options={readOnly ? { readOnly: true } : undefined}
       />
-      {lspDiagnostics.count > 0 ? (
-        <span className={codeDiagnosticStyle}>
-          {lspDiagnostics.firstMessage ?? `${lspDiagnostics.count} diagnostics`}
-        </span>
-      ) : null}
-    </div>
+    </Form.Field>
   );
 };
 
@@ -737,8 +718,7 @@ const ExperimentMetricRow = ({
           metric.kind === "transitionFiringCount" ? (
             <div className={metricSpecificFieldsStyle}>
               {metric.kind === "placeTokenCountMean" ? (
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Place</span>
+                <Form.Field label="Place" size="sm">
                   <Select
                     required
                     value={metric.placeId}
@@ -746,12 +726,11 @@ const ExperimentMetricRow = ({
                     items={placeOptions}
                     size="sm"
                   />
-                </div>
+                </Form.Field>
               ) : null}
               {metric.kind === "transitionFiringCount" ? (
                 <>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Transition</span>
+                  <Form.Field label="Transition" size="sm">
                     <Select
                       required
                       value={metric.transitionId}
@@ -761,9 +740,8 @@ const ExperimentMetricRow = ({
                       items={transitionOptions}
                       size="sm"
                     />
-                  </div>
-                  <div className={fieldStyle}>
-                    <span className={labelStyle}>Count</span>
+                  </Form.Field>
+                  <Form.Field label="Count" size="sm">
                     <Select
                       required
                       value={metric.transitionMode}
@@ -773,7 +751,7 @@ const ExperimentMetricRow = ({
                       items={transitionModeOptions}
                       size="sm"
                     />
-                  </div>
+                  </Form.Field>
                 </>
               ) : null}
             </div>
@@ -984,13 +962,11 @@ export const CreateExperimentDrawer = ({
       <Drawer.Body className={css({ paddingTop: "[0]" })}>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Name</span>
+            <Form.Field label="Name" size="sm">
               <TextInput size="sm" value={name} onChange={setName} />
-            </div>
-            <div className={gridStyle}>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Runs</span>
+            </Form.Field>
+            <Form.Row>
+              <Form.Field label="Runs" size="sm">
                 <NumberInput
                   size="sm"
                   min={1}
@@ -1001,9 +977,8 @@ export const CreateExperimentDrawer = ({
                     )
                   }
                 />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Time step</span>
+              </Form.Field>
+              <Form.Field label="Time step" size="sm">
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1013,9 +988,8 @@ export const CreateExperimentDrawer = ({
                     setDt(nextDt === null ? "" : String(nextDt))
                   }
                 />
-              </div>
-              <div className={fieldStyle}>
-                <span className={labelStyle}>Max time (s)</span>
+              </Form.Field>
+              <Form.Field label="Max time (s)" size="sm">
                 <NumberInput
                   size="sm"
                   min={0}
@@ -1025,8 +999,8 @@ export const CreateExperimentDrawer = ({
                     setMaxTime(nextMaxTime === null ? "" : String(nextMaxTime))
                   }
                 />
-              </div>
-            </div>
+              </Form.Field>
+            </Form.Row>
           </Section>
 
           <Section title="Scenario" collapsible defaultOpen>
@@ -1126,7 +1100,7 @@ export const CreateExperimentDrawer = ({
       <Drawer.Footer
         secondaryActions={
           footerError ? (
-            <span className={errorStyle}>{footerError}</span>
+            <Form.Field.Errors errors={[footerError]} size="sm" />
           ) : undefined
         }
         actions={

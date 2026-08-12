@@ -109,7 +109,6 @@ const CreateScenarioBody = ({ form }: { form: ScenarioFormInstance }) => {
       parameters={extensions.parameters ? petriNetDefinition.parameters : []}
       places={petriNetDefinition.places}
       typesById={typesById}
-      idPrefix="create-"
     />
   );
 };

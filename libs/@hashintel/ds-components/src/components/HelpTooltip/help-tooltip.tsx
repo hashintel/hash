@@ -6,7 +6,7 @@ import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./help-tooltip.recipe";
 
 export const HelpTooltip = ({
-  align = 'top',
+  align = "top",
   className,
   ...props
 }: Omit<React.ComponentProps<typeof Tooltip>, "children"> & {

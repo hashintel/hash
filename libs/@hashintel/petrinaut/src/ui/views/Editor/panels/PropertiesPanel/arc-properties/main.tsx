@@ -2,6 +2,7 @@ import { createContext, use } from "react";
 
 import {
   Button,
+  Form,
   Icon,
   NumberInput,
   Select,
@@ -20,7 +21,6 @@ import {
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Section, SectionList } from "../../../../../components/section";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
@@ -40,6 +40,10 @@ const readOnlyFieldStyle = css({
   fontSize: "sm",
   color: "neutral.s110",
   padding: "1",
+});
+
+const fieldsSectionStyle = css({
+  paddingY: "3",
 });
 
 interface ArcPropertiesData {
@@ -83,15 +87,15 @@ const ArcMainContent: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <SectionList>
-      <Section title="Source">
+    <Form.Section className={fieldsSectionStyle}>
+      <Form.Field label="Source" size="sm">
         <div className={readOnlyFieldStyle}>{sourceName}</div>
-      </Section>
-      <Section title="Target">
+      </Form.Field>
+      <Form.Field label="Target" size="sm">
         <div className={readOnlyFieldStyle}>{targetName}</div>
-      </Section>
+      </Form.Field>
       {arcDirection === "input" && (
-        <Section title="Type">
+        <Form.Field label="Type" size="sm" disabled={isReadOnly}>
           <Tooltip
             content={UI_MESSAGES.READ_ONLY_MODE}
             disableTooltip={!isReadOnly}
@@ -115,9 +119,9 @@ const ArcMainContent: React.FC = () => {
               disabled={isReadOnly}
             />
           </Tooltip>
-        </Section>
+        </Form.Field>
       )}
-      <Section title="Weight">
+      <Form.Field label="Weight" size="sm" disabled={isReadOnly}>
         <NumberInput
           size="sm"
           min={1}
@@ -134,8 +138,8 @@ const ArcMainContent: React.FC = () => {
           }}
           disabled={isReadOnly}
         />
-      </Section>
-    </SectionList>
+      </Form.Field>
+    </Form.Section>
   );
 };
 

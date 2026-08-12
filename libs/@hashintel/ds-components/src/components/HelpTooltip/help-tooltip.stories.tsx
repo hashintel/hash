@@ -4,10 +4,9 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 type HelpTooltipProps = React.ComponentProps<typeof HelpTooltip>;
 
-const aligns = [
-  "top",
-  "center",
-] as const satisfies readonly NonNullable<HelpTooltipProps["align"]>[];
+const aligns = ["top", "center"] as const satisfies readonly NonNullable<
+  HelpTooltipProps["align"]
+>[];
 
 export default {
   title: "Components/HelpTooltip",

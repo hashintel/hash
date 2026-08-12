@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   getArcEndpoint,
@@ -29,6 +29,10 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 const emptyArcMessageStyle = css({
   fontSize: "xs",
   color: "[#999]",
+});
+
+const fieldsSectionStyle = css({
+  paddingY: "3",
 });
 
 const TransitionMainContent: React.FC = () => {
@@ -139,8 +143,9 @@ const TransitionMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
+      <Form.Section className={fieldsSectionStyle}>
         <DraftFieldInput
+          label="Name"
           sourceId={transition.id}
           sourceValue={transition.name}
           validate={validateDisplayName}
@@ -153,7 +158,7 @@ const TransitionMainContent: React.FC = () => {
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </Section>
+      </Form.Section>
 
       <Section title="Input Arcs" collapsible>
         {transition.inputArcs.length === 0 ? (

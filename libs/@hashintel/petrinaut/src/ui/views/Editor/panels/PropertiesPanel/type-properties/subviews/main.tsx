@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
   Button,
+  Form,
   Select,
   TextInput,
   Tooltip,
@@ -23,6 +24,10 @@ import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
+
+const fieldsSectionStyle = css({
+  paddingY: "3",
+});
 
 const emptyDimensionsStyle = css({
   fontSize: "xs",
@@ -319,8 +324,9 @@ const TypeMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
+      <Form.Section className={fieldsSectionStyle}>
         <DraftFieldInput
+          label="Name"
           sourceId={type.id}
           sourceValue={type.name}
           validate={validateDisplayName}
@@ -333,25 +339,25 @@ const TypeMainContent: React.FC = () => {
           disabled={isDisabled}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-      </Section>
 
-      <Section title="Color">
-        <Tooltip
-          content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
-          disableTooltip={!isDisabled}
-        >
-          <ColorSelect
-            value={type.displayColor}
-            onChange={(color) => {
-              updateType({
-                typeId: type.id,
-                update: { displayColor: color },
-              });
-            }}
-            disabled={isDisabled}
-          />
-        </Tooltip>
-      </Section>
+        <Form.Field label="Color" size="sm" disabled={isDisabled}>
+          <Tooltip
+            content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
+            disableTooltip={!isDisabled}
+          >
+            <ColorSelect
+              value={type.displayColor}
+              onChange={(color) => {
+                updateType({
+                  typeId: type.id,
+                  update: { displayColor: color },
+                });
+              }}
+              disabled={isDisabled}
+            />
+          </Tooltip>
+        </Form.Field>
+      </Form.Section>
 
       <Section
         title="Dimensions"
