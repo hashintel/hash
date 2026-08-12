@@ -3019,6 +3019,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
         entity_edition_id,
         direct_types,
         labels,
+        label_properties,
         type_titles,
         base_urls,
         versions,
@@ -3027,6 +3028,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     SELECT types.entity_edition_id,
            types.direct_types,
            labels.labels,
+           labels.label_properties,
            types.type_titles,
            types.base_urls,
            types.versions,
@@ -3069,7 +3071,11 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
                  array_agg(label_value.label
                      ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
                               ontology_ids.version DESC, label_value.ordinality
-                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS labels,
+                 array_agg(label_value.path
+                     ORDER BY entity_types.schema ->> 'title', ontology_ids.base_url,
+                              ontology_ids.version DESC, label_value.ordinality
+                 ) FILTER (WHERE label_value.label IS NOT NULL) AS label_properties
             FROM entity_is_of_type
             JOIN ontology_ids
               ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
@@ -3081,6 +3087,7 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
                SELECT jsonb_extract_path(
                           entity_editions.properties, label_path.path
                       ) #>> '{{}}' AS label,
+                      label_path.path,
                       label_path.ordinality
                  FROM jsonb_array_elements_text(
                           jsonb_path_query_array(

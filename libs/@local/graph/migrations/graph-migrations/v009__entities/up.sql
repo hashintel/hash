@@ -42,10 +42,15 @@ CREATE TABLE entity_editions (
 -- `closed_schema.allOf`), ordered by (title, base URL, version DESC); `labels[1]` is
 -- the display/sort label, NULL when the entity has none. Descending sorts reuse the
 -- same element — no min/max flip.
+-- `label_properties` aggregates the winning `labelProperty` path over the same rows in
+-- the same order under the same non-null filter, so `labels[i]` is the value of the
+-- property named by `label_properties[i]`, and `label_properties[1]` names the property
+-- providing the display label. NULL exactly when `labels` is NULL.
 CREATE TABLE entity_edition_cache (
     entity_edition_id UUID PRIMARY KEY REFERENCES entity_editions ON DELETE CASCADE,
     direct_types INT NOT NULL,
     labels TEXT [],
+    label_properties TEXT [],
     type_titles TEXT [] NOT NULL,
     base_urls TEXT [] NOT NULL,
     versions BIGINT [] NOT NULL,

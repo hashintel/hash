@@ -1662,6 +1662,24 @@ fn filter_embedding_distance() {
 }
 
 #[test]
+fn select_first_label_property() {
+    let mut compiler = SelectCompiler::<Entity>::new(None, false);
+    compiler.add_selection_path(&EntityQueryPath::FirstLabelProperty);
+
+    test_compilation(
+        &compiler,
+        r#"
+        SELECT ("entity_edition_cache_0_1_0"."label_properties")[1]
+        FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+        INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
+          ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+        WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+        "#,
+        &[],
+    );
+}
+
+#[test]
 fn sort_by_label_and_type_title() {
     let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
     let pinned_timestamp = temporal_axes.pinned_timestamp();

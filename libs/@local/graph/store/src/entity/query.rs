@@ -531,6 +531,15 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     FirstLabel,
+    /// Corresponds to the base URL of the property providing [`FirstLabel`].
+    ///
+    /// The value is the `labelProperty` path that produced [`FirstLabel`], so an entity with a
+    /// label always carries the pair, aligned.
+    ///
+    /// It's currently not possible to query for the first label property directly.
+    ///
+    /// [`FirstLabel`]: Self::FirstLabel
+    FirstLabelProperty,
 }
 
 impl fmt::Display for EntityQueryPath<'_> {
@@ -596,6 +605,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::RightEntityProvenance => fmt.write_str("rightEntityProvenance"),
             Self::FirstTypeTitle => fmt.write_str("firstTypeTitle"),
             Self::FirstLabel => fmt.write_str("firstLabel"),
+            Self::FirstLabelProperty => fmt.write_str("firstLabelProperty"),
         }
     }
 }
@@ -629,6 +639,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::EntityTypeEdge { path, .. } => path.expected_type(),
             Self::EntityEdge { path, .. } => path.expected_type(),
             Self::FirstTypeTitle | Self::FirstLabel => ParameterType::Text,
+            Self::FirstLabelProperty => ParameterType::BaseUrl,
         }
     }
 }
@@ -1015,6 +1026,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             }
             Self::FirstTypeTitle => EntityQueryPath::FirstTypeTitle,
             Self::FirstLabel => EntityQueryPath::FirstLabel,
+            Self::FirstLabelProperty => EntityQueryPath::FirstLabelProperty,
         }
     }
 }

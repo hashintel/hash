@@ -876,7 +876,9 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
             collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
-        EntityQueryPath::Label { .. } | EntityQueryPath::FirstLabel => {
+        EntityQueryPath::Label { .. }
+        | EntityQueryPath::FirstLabel
+        | EntityQueryPath::FirstLabelProperty => {
             // TODO(BE-313): check if label_property is protected
         }
         EntityQueryPath::Embedding => {

@@ -801,6 +801,7 @@ pub enum EntityEditionCache {
     EntityEditionId,
     DirectTypes,
     Labels,
+    LabelProperties,
     TypeTitles,
     BaseUrls,
     Versions,
@@ -813,6 +814,7 @@ impl DatabaseColumn<'_> for EntityEditionCache {
             Self::EntityEditionId => "entity_edition_id".into(),
             Self::DirectTypes => "direct_types".into(),
             Self::Labels => "labels".into(),
+            Self::LabelProperties => "label_properties".into(),
             Self::TypeTitles => "type_titles".into(),
             Self::BaseUrls => "base_urls".into(),
             Self::Versions => "versions".into(),
@@ -824,9 +826,11 @@ impl DatabaseColumn<'_> for EntityEditionCache {
         match self {
             Self::EntityEditionId => PostgresType::Uuid,
             Self::DirectTypes => PostgresType::Int4,
-            Self::Labels | Self::TypeTitles | Self::BaseUrls | Self::VersionedUrls => {
-                PostgresType::Array(Box::new(PostgresType::Text))
-            }
+            Self::Labels
+            | Self::LabelProperties
+            | Self::TypeTitles
+            | Self::BaseUrls
+            | Self::VersionedUrls => PostgresType::Array(Box::new(PostgresType::Text)),
             Self::Versions => PostgresType::Array(Box::new(PostgresType::Int8)),
         }
     }
@@ -838,7 +842,9 @@ impl FilterColumn<'_> for EntityEditionCache {
             Self::EntityEditionId => ParameterType::Uuid,
             Self::DirectTypes => ParameterType::Integer,
             Self::Labels | Self::TypeTitles => ParameterType::Vector(Box::new(ParameterType::Text)),
-            Self::BaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
+            Self::LabelProperties | Self::BaseUrls => {
+                ParameterType::Vector(Box::new(ParameterType::BaseUrl))
+            }
             Self::Versions => ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion)),
             Self::VersionedUrls => ParameterType::Vector(Box::new(ParameterType::VersionedUrl)),
         }
