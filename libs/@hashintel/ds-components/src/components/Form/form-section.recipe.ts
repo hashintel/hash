@@ -20,16 +20,11 @@ export const styles = sva({
       // their own vertical spacing (rowGap can't be used: it would also
       // separate an inline field's own description/errors rows). Inline
       // fields render no box (display: contents), so the margin goes on
-      // their first rendered part instead — skipping the visually hidden
-      // <legend> an inline as="legend" field starts with.
+      // their first rendered part instead.
       '& > [data-part="form-field"] + [data-part="form-field"]': {
         marginTop: "5",
       },
-      '& > [data-part="form-field"] + [data-layout="inline"] > *:first-child:not(legend)':
-        {
-          marginTop: "5",
-        },
-      '& > [data-part="form-field"] + [data-layout="inline"] > legend + *': {
+      '& > [data-part="form-field"] + [data-layout="inline"] > *:first-child': {
         marginTop: "5",
       },
     },

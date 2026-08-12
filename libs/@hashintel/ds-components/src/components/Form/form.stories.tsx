@@ -510,7 +510,13 @@ export const FormSection: Story<FormFieldArgs> = (args) => (
         />
       </Form.Field>
 
-      <Form.Field {...args} as="legend" layout="inline" label="Contact method">
+      <Form.Field
+        {...args}
+        as="legend"
+        layout="inline"
+        label="Contact method"
+        labelTooltip="How we should get in touch with you"
+      >
         <ControlledRadioGroup
           name="form-section-contact-method"
           layout="inline"

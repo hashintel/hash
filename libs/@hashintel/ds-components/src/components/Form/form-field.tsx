@@ -70,8 +70,10 @@ const FormField = ({
   });
   const id = useId();
   // inline nests the visible label inside inlineControl, where a <legend>
-  // would not name the fieldset — a visually hidden legend rendered as a
-  // direct child does that instead, and the visible label becomes a <span>
+  // would not name the fieldset — the label becomes a <span> and the
+  // fieldset is aria-labelledby'd to just the label text (wrapped in an id'd
+  // span), keeping the tooltip trigger and actions out of the name
+  const isInlineLegend = as === "legend" && layout === "inline";
   const labelType =
     as === "label"
       ? { as, htmlFor: id }
@@ -89,7 +91,7 @@ const FormField = ({
       hide={hideLabel}
       className={classes.label}
     >
-      {label}
+      {isInlineLegend ? <span id={id}>{label}</span> : label}
     </Label>
   );
 
@@ -137,11 +139,11 @@ const FormField = ({
   if (layout === "inline") {
     return (
       <fieldset
+        aria-labelledby={isInlineLegend ? id : undefined}
         className={cx(classes.root, className)}
         data-part="form-field"
         data-layout="inline"
       >
-        {as === "legend" && <legend className={classes.legend}>{label}</legend>}
         {descriptionEl}
         <div className={classes.inlineControl}>
           {labelEl}

@@ -1,11 +1,8 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
-import { srOnly } from "../../util/css-mixins";
-
 export const styles = sva({
   slots: [
     "root",
-    "legend",
     "label",
     "inlineControl",
     "inlineInput",
@@ -14,11 +11,7 @@ export const styles = sva({
     "descriptionBottom",
     "errors",
   ],
-  base: {
-    // hidden real <legend> naming the fieldset in inline layout, where the
-    // visible label sits inside inlineControl and cannot do so
-    legend: srOnly,
-  },
+  base: {},
   variants: {
     layout: {
       block: {},
