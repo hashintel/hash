@@ -152,13 +152,14 @@ impl fmt::Display for DPositive {
     }
 }
 
-impl From<Positive> for DPositive {
+const impl From<Positive> for DPositive {
     /// Widens into double precision, exactly.
     ///
     /// Every positive `f32` denotes a positive, finite `f64`, so no re-validation happens.
     #[inline]
     fn from(value: Positive) -> Self {
-        Self(f64::from(value.get()))
+        // `f64::from` is not const-callable. The widening cast is lossless.
+        Self(value.get() as f64)
     }
 }
 

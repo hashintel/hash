@@ -161,7 +161,7 @@ impl fmt::Display for Finite {
     }
 }
 
-impl From<Positive> for Finite {
+const impl From<Positive> for Finite {
     /// Widens into the enclosing domain: every positive value is finite.
     #[inline]
     fn from(value: Positive) -> Self {
@@ -169,7 +169,7 @@ impl From<Positive> for Finite {
     }
 }
 
-impl From<NonNegative> for Finite {
+const impl From<NonNegative> for Finite {
     /// Widens into the enclosing domain: every non-negative value is finite.
     #[inline]
     fn from(value: NonNegative) -> Self {

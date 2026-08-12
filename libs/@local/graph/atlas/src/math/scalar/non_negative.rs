@@ -379,7 +379,7 @@ impl fmt::Display for NonNegative {
     }
 }
 
-impl From<Positive> for NonNegative {
+const impl From<Positive> for NonNegative {
     /// Widens into the enclosing domain: every positive value is non-negative.
     #[inline]
     fn from(value: Positive) -> Self {
@@ -429,7 +429,7 @@ const impl core::ops::Add<Positive> for NonNegative {
     }
 }
 
-impl core::ops::Sub for NonNegative {
+const impl core::ops::Sub for NonNegative {
     type Output = Finite;
 
     /// Subtracts, into the finite domain.

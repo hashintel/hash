@@ -195,7 +195,7 @@ impl Hash for DNonNegative {
     }
 }
 
-impl core::ops::Sub for DNonNegative {
+const impl core::ops::Sub for DNonNegative {
     type Output = DFinite;
 
     /// Subtracts, into the finite domain.
@@ -220,7 +220,7 @@ const impl core::ops::Add<OpenUnitFraction> for DNonNegative {
     }
 }
 
-impl core::ops::AddAssign<OpenUnitFraction> for DNonNegative {
+const impl core::ops::AddAssign<OpenUnitFraction> for DNonNegative {
     #[inline]
     fn add_assign(&mut self, rhs: OpenUnitFraction) {
         self.0 += rhs.get();
@@ -296,7 +296,7 @@ impl<'de> serde::Deserialize<'de> for DNonNegative {
     }
 }
 
-impl From<DPositive> for DNonNegative {
+const impl From<DPositive> for DNonNegative {
     /// Widens into the enclosing domain: every positive value is non-negative.
     #[inline]
     fn from(value: DPositive) -> Self {
