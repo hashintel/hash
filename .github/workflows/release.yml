@@ -8,17 +8,24 @@ on:
     branches:
       - main
 jobs:
-  release:
+  mint-token:
+    name: Mint token
     runs-on: ubuntu-latest
     if: github.repository == 'hashintel/hash'
     environment: main
     permissions:
+      contents: read
       id-token: write
+    outputs:
+      encrypted-github-token: ${{ steps.encrypt.outputs.encrypted_value }}
+      encrypted-sccache-credentials: ${{ steps.mint-sccache.outputs.encrypted_credentials }}
 
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
       - name: Get token
         id: app-token
-        uses: hashintel/.github/.github/actions/github-app-token@8c1a3b18a4f6528fc8eabcf9acda7780a1e47776 # main
+        uses: hashintel/.github/.github/actions/github-app-token@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
         with:
           vault-address: ${{ vars.VAULT_PROD_ADDR }}
           vault-role: ci-hash-release
@@ -28,20 +35,56 @@ jobs:
           cf-access-client-id: ${{ vars.CF_ACCESS_PROD_CLIENT_ID }}
           cf-access-client-secret: ${{ secrets.CF_ACCESS_PROD_CLIENT_SECRET }}
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # GitHub drops masked values from job outputs, so only ciphertext can cross.
+      - name: Encrypt token
+        id: encrypt
+        uses: hashintel/.github/.github/actions/encrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          value: ${{ steps.app-token.outputs.token }}
+          encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
 
-      - name: Install tools
-        uses: ./.github/actions/install-tools
+      # Best-effort: on failure the output stays empty and the release builds uncached.
+      - name: Mint sccache credentials
+        id: mint-sccache
+        continue-on-error: true
+        uses: $/.github/actions/mint-sccache-credentials
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ vars.VAULT_STAGE_ADDR }}
           cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
           cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: mint-token
+    environment: main
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Directly after checkout, so the plaintext is masked before anything else runs.
+      - name: Decrypt token
+        id: app-token
+        uses: hashintel/.github/.github/actions/decrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
+        with:
+          encrypted_value: ${{ needs.mint-token.outputs.encrypted-github-token }}
+          encryption_key: ${{ secrets.RELEASE_TOKEN_ENC_KEY }}
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.value }}
+
+      - name: Install tools
+        uses: $/.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          encrypted_sccache_credentials: ${{ needs.mint-token.outputs.encrypted-sccache-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Create Release Pull Request or Publish to npm
         uses: changesets/action@63a615b9cd06ba9a3e6d13796c7fbcb080a60a0b # v1.8.0
@@ -50,7 +93,7 @@ jobs:
           version: yarn changeset:version
           commitMode: github-api
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.value }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
@@ -94,3 +137,64 @@ jobs:
           path: |
             /home/runner/.npm/_logs/
             **/.turbo/*.log
+
+  publish-rust:
+    name: Publish (Rust)
+    runs-on: ubuntu-24.04
+    if: github.repository == 'hashintel/hash'
+    environment: main
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 2
+
+      - name: Determine crates to publish
+        id: crates
+        run: |
+          PACKAGES=""
+          while IFS= read -r file; do
+            if [[ -n "$file" ]]; then
+              PACKAGE_NAME=$(yq '.package.name' -p toml -oy "$file")
+              if [[ "$PACKAGE_NAME" == "null" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish' -p toml -oy "$file")" == "false" ]]; then
+                continue
+              fi
+
+              if [[ "$(yq '.package.publish.workspace' -p toml -oy "$file")" == "true" ]]; then
+                if [[ "$(yq '.workspace.package.publish' -p toml -oy "Cargo.toml")" == "false" ]]; then
+                  continue
+                fi
+              fi
+
+              OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
+              if [[ "$OLD_VERSION" == "null" ]]; then
+                continue
+              fi
+              NEW_VERSION=$(yq '.package.version' -p toml -oy "$file")
+              if [[ "$OLD_VERSION" == "$NEW_VERSION" ]]; then
+                continue
+              fi
+
+              PACKAGES="$PACKAGES -p $PACKAGE_NAME"
+            fi
+          done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
+
+          echo "packages=${PACKAGES# }" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Authenticate with crates.io
+        id: auth
+        if: steps.crates.outputs.packages != ''
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: Publish
+        if: steps.crates.outputs.packages != ''
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --all-features --no-verify ${{ steps.crates.outputs.packages }}

@@ -1,6 +1,7 @@
 import { use, useState } from "react";
 
 import {
+  Banner,
   Button,
   Icon,
   NumberInput,
@@ -243,21 +244,25 @@ const emptyMessageStyle = css({
   fontStyle: "italic",
 });
 
-// Compact error callout shown when the selected scenario fails to compile,
-// so a broken scenario is never silently ignored.
-const scenarioErrorStyle = css({
+// Error callout shown when the selected scenario fails to compile, so a broken
+// scenario is never silently ignored. `flexShrink` keeps it from collapsing in
+// the settings column; the compact `textStyle`/`padding` keep the banner to the
+// same footprint (and wrap points) as the plain callout it replaced.
+const scenarioBannerStyle = css({
+  flexShrink: 0,
+  textStyle: "xs",
+  lineHeight: "[1.3]",
+  padding: "[6px 8px]",
+});
+
+// Stack the per-error messages with the same 4px rhythm as the lead line, and
+// let long ones (stack traces, expression bodies) wrap instead of stretching
+// the column.
+const scenarioMessagesStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
-  flexShrink: 0,
-  fontSize: "xs",
-  color: "red.s110",
-  backgroundColor: "red.s30",
-  borderRadius: "sm",
-  paddingX: "2",
-  paddingY: "1.5",
-  // Long messages (stack traces, expression bodies) wrap instead of
-  // stretching the column.
+  gap: "[4px]",
+  marginTop: "[4px !important]",
   overflowWrap: "anywhere",
 });
 
@@ -453,19 +458,26 @@ const SimulationSettingsContent: React.FC = () => {
           </div>
 
           {scenarioCompilationErrors && (
-            <div className={scenarioErrorStyle} role="alert">
-              <span className={css({ fontWeight: "semibold" })}>
+            <Banner
+              tone="error"
+              icon={false}
+              role="alert"
+              className={scenarioBannerStyle}
+            >
+              <Banner.Title as="h3">
                 Scenario failed to compile — its parameter overrides and initial
                 state are not applied.
-              </span>
-              {scenarioCompilationErrors.map((compilationError) => (
-                <span
-                  key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
-                >
-                  {compilationError.message}
-                </span>
-              ))}
-            </div>
+              </Banner.Title>
+              <Banner.Description className={scenarioMessagesStyle}>
+                {scenarioCompilationErrors.map((compilationError) => (
+                  <span
+                    key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
+                  >
+                    {compilationError.message}
+                  </span>
+                ))}
+              </Banner.Description>
+            </Banner>
           )}
 
           {/* Parameters Section */}

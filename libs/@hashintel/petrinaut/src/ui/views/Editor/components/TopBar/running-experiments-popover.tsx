@@ -1,6 +1,6 @@
 import { use, useRef, useState } from "react";
 
-import { Button, Icon, Popover } from "@hashintel/ds-components";
+import { Button, Chip, Icon, Popover } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +8,6 @@ import {
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
-import { TableStatusBadge } from "../../../../components/table";
 
 const contentWidthStyle = css({
   width: "[320px]",
@@ -122,9 +121,13 @@ const ExperimentStatusBadge = ({
 }: {
   status: ExperimentRecord["status"];
 }) => (
-  <TableStatusBadge loading tone="active">
+  <Chip
+    variant="soft"
+    color="blue"
+    prefix={{ variant: "naked", loading: true }}
+  >
     {formatStatus(status)}
-  </TableStatusBadge>
+  </Chip>
 );
 
 type RunningExperimentsPopoverProps = {

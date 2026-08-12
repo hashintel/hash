@@ -5,14 +5,11 @@ inputs:
   token:
     description: GitHub token for authentication
     required: true
-  vault_address:
-    description: The URL of the Vault server holding the sccache credentials.
+  encrypted_sccache_credentials:
+    description: Encrypted sccache credential bundle from mint-sccache-credentials. Empty on fork pull requests, which is what skips sccache there.
     default: ""
-  cf_access_client_id:
-    description: Cloudflare Access service-token client ID for that Vault.
-    default: ""
-  cf_access_client_secret:
-    description: Cloudflare Access service-token client secret for that Vault. Empty on fork pull requests, which is what skips sccache there.
+  sccache_encryption_key:
+    description: The symmetric key decrypting `encrypted_sccache_credentials`.
     default: ""
   rust:
     description: Should Rust be installed? Can either be `"true"` or `true`
@@ -36,7 +33,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
 
     - name: Install package manager via corepack
-      uses: ./.github/actions/install-corepack
+      uses: $/.github/actions/install-corepack
 
     - name: Setup environment
       shell: bash
@@ -55,10 +52,9 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.cf_access_client_secret != '' }}
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') && inputs.encrypted_sccache_credentials != '' }}
       continue-on-error: true
-      uses: ./.github/actions/install-sccache
+      uses: $/.github/actions/install-sccache
       with:
-        vault_address: ${{ inputs.vault_address }}
-        cf_access_client_id: ${{ inputs.cf_access_client_id }}
-        cf_access_client_secret: ${{ inputs.cf_access_client_secret }}
+        encrypted_credentials: ${{ inputs.encrypted_sccache_credentials }}
+        encryption_key: ${{ inputs.sccache_encryption_key }}

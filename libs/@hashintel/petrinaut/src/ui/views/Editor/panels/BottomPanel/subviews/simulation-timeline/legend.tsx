@@ -2,7 +2,7 @@ import { Combobox, createListCollection } from "@ark-ui/react/combobox";
 import { useFilter } from "@ark-ui/react/locale";
 import { useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Chip, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SeriesDropdown } from "./legend/series-dropdown";
@@ -55,20 +55,28 @@ const legendSearchAreaStyle = css({
   height: "[100%]",
 });
 
-const selectedCountBadgeStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
+const selectedCountChipStyle = css({
   flexShrink: 0,
-  height: "[20px]",
-  paddingX: "1.5",
-  borderRadius: "md",
-  backgroundColor: "neutral.s30",
-  color: "neutral.s115",
-  fontSize: "[11px]",
   fontVariantNumeric: "tabular-nums",
-  fontWeight: "semibold",
-  lineHeight: "[1]",
-  whiteSpace: "nowrap",
+  borderColor: "colorPalette.bgSolid.subtle",
+  _hover: {
+    background:
+      "[color-mix(in srgb, var(--chip-hover-ink) calc(var(--chip-hover-strength) + var(--chip-active-boost, 0%)), var(--colors-color-palette-bg-solid-subtle))]",
+  },
+});
+
+const countTriggerStyle = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  padding: "[0]",
+  border: "[0]",
+  borderRadius: "sm",
+  backgroundColor: "[transparent]",
+  cursor: "pointer",
+  outline: "[0]",
+  _focusVisible: {
+    boxShadow: "[0 0 0 1.5px {colors.neutral.a80}]",
+  },
 });
 
 const legendInputStyle = css({
@@ -104,6 +112,21 @@ const triggerButtonStyle = css({
     color: "neutral.s120",
   },
 });
+
+const SelectedCountChip: FC<{
+  selectedCount: number;
+  totalCount: number;
+}> = ({ selectedCount, totalCount }) => (
+  <Combobox.Trigger
+    focusable
+    className={countTriggerStyle}
+    aria-label={`${selectedCount} of ${totalCount} series shown — toggle list`}
+  >
+    <Chip size="sm" className={selectedCountChipStyle}>
+      {selectedCount}/{totalCount} shown
+    </Chip>
+  </Combobox.Trigger>
+);
 
 const buildHiddenSeries = (
   series: TimelineSeriesMeta[],
@@ -222,9 +245,10 @@ export const TimelineLegend: FC<{
             }
           }}
         >
-          <span className={selectedCountBadgeStyle}>
-            {selectedCount}/{series.length} shown
-          </span>
+          <SelectedCountChip
+            selectedCount={selectedCount}
+            totalCount={series.length}
+          />
           <div className={legendSearchAreaStyle}>
             <SeriesStrip
               series={series}
@@ -250,12 +274,6 @@ export const TimelineLegend: FC<{
               <Icon name="close" size="xxs" />
             </button>
           ) : null}
-          <Combobox.Trigger
-            aria-label="Toggle series list"
-            className={triggerButtonStyle}
-          >
-            <Icon name="chevronDown" size="xs" />
-          </Combobox.Trigger>
         </Combobox.Control>
         <SeriesDropdown
           items={visibleItems}

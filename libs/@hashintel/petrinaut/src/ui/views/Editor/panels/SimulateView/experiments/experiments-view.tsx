@@ -1,16 +1,12 @@
 import { use, useState } from "react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Chip, Icon } from "@hashintel/ds-components";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import {
-  Table,
-  type TableColumn,
-  TableStatusBadge,
-} from "../../../../../components/table";
+import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
@@ -39,13 +35,19 @@ const ExperimentStatusBadge = ({
   const isActive = status === "initializing" || status === "running";
 
   return (
-    <TableStatusBadge
-      iconName={status === "error" ? "error" : undefined}
-      loading={isActive}
-      tone={isActive ? "active" : status === "error" ? "error" : "neutral"}
+    <Chip
+      variant="soft"
+      color={isActive ? "blue" : status === "complete" ? "green" : "red"}
+      prefix={
+        isActive
+          ? { variant: "naked", loading: true }
+          : status === "error"
+            ? { variant: "naked", iconName: "error" }
+            : undefined
+      }
     >
       {label}
-    </TableStatusBadge>
+    </Chip>
   );
 };
 

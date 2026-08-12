@@ -4,25 +4,43 @@ on: workflow_dispatch
 permissions:
   contents: write
   pull-requests: read # `@changesets/changelog-github`
-  id-token: write # Vault OIDC
 
 jobs:
+  sccache-credentials:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Vault OIDC
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
   release:
     runs-on: ubuntu-latest
+    needs: [sccache-credentials]
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install tools
-        uses: ./.github/actions/install-tools
+        uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
+        uses: $/.github/actions/warm-up-repo
 
       - name: Publish changesets to npm, with 'canary' tags
         run: |
@@ -31,9 +49,9 @@ jobs:
           git config user.email "support@hash.ai"
           git config user.name "hashdotai"
           git commit -am "temporarily convert changesets to canary releases"
-          git revert `git rev-parse HEAD` --no-edit
+          git revert "$(git rev-parse HEAD)" --no-edit
           git push
-          git checkout `git rev-parse HEAD~1`
+          git checkout "$(git rev-parse HEAD~1)"
 
           cat << EOF > "$HOME/.npmrc"
             //registry.npmjs.org/:_authToken=$NPM_TOKEN

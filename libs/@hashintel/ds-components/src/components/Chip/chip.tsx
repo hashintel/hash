@@ -1,6 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
 import { Icon, type IconName } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
 import { affixStyles, dotStyles, styles } from "./chip.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
@@ -15,6 +16,7 @@ import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
 type PrefixOrSuffix = (
   | { iconName: IconName }
   | { dot: "filled" | "partiallyFilled" | "empty" }
+  | { loading: boolean }
   | { children: React.ReactNode }
 ) & {
   variant?: "straight" | "badge" | "angle" | "naked";
@@ -87,6 +89,10 @@ const ChipAffix = ({
       <Icon name={affix.iconName} size={iconSizeMap[size]} />
     ) : "dot" in affix ? (
       <ChipDot state={affix.dot} size={size} />
+    ) : "loading" in affix ? (
+      affix.loading && (
+        <LoadingSpinner size={iconSizeMap[size]} variant="bars" />
+      )
     ) : (
       affix.children
     );
