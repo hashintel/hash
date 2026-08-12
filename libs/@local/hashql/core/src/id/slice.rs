@@ -414,6 +414,17 @@ where
         self.raw.sort_unstable_by_key(func);
     }
 
+    /// Sorts the slice in place with the given comparator, in unstable order.
+    ///
+    /// See [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by) for details.
+    #[inline]
+    pub fn sort_unstable_by<F>(&mut self, compare: F)
+    where
+        F: Fn(&T, &T) -> cmp::Ordering,
+    {
+        self.raw.sort_unstable_by(compare);
+    }
+
     /// Sorts the slice in place with the given comparator, in parallel and unstable order.
     ///
     /// The parallel counterpart of [`slice::sort_unstable_by`](prim@slice#method.sort_unstable_by).
@@ -439,6 +450,28 @@ where
         K: Ord + Send,
     {
         self.raw.par_sort_unstable_by_key(func);
+    }
+
+    /// Returns `true` if the slice is sorted.
+    ///
+    /// See [`slice::is_sorted`](prim@slice#method.is_sorted) for details.
+    #[inline]
+    pub fn is_sorted(&self) -> bool
+    where
+        T: Ord,
+    {
+        self.raw.is_sorted()
+    }
+
+    /// Returns `true` if the slice is sorted by the given comparator.
+    ///
+    /// See [`slice::is_sorted_by`](prim@slice#method.is_sorted_by) for details.
+    #[inline]
+    pub fn is_sorted_by<F>(&self, compare: F) -> bool
+    where
+        F: Fn(&T, &T) -> bool,
+    {
+        self.raw.is_sorted_by(compare)
     }
 
     /// Searches for an item in the slice using binary search, returning the index of the item if
