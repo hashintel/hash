@@ -11,6 +11,7 @@
 //! measurement, so the stage's owned working set stays one frame regardless of the schedule length.
 //! Only the canonical aligned column publishes - version 1 publishes one variant.
 
+use core::num::NonZero;
 use std::{
     fs::File,
     io::{BufWriter, Write as _},
@@ -478,11 +479,15 @@ impl Context<'_> {
                 &scales,
                 inputs.attraction,
                 energy,
+                options.plan.relation_cap,
             ));
 
             write_frame(rung_path(&ladder, index), &frame)?;
         }
-        let losses: Vec<_> = readouts.iter().map(|readout| readout.total).collect();
+        let losses: Vec<_> = readouts
+            .iter()
+            .map(|readout| readout.uncapped_total)
+            .collect();
 
         // Logged before the alignment fits and the canonical selection:
         // the raw series survives their failures.
@@ -509,7 +514,7 @@ impl Context<'_> {
                 coordinates: file
                     .points()
                     .expect("the rung frame was written as f32 pairs"),
-                relation_loss: readout.total,
+                relation_loss: readout.uncapped_total,
             })
             .collect();
 
@@ -529,24 +534,12 @@ impl Context<'_> {
             .collect();
         let digest = self.stage_coordinate_column(aligned.len() as u64, aligned.iter().copied())?;
 
-        // Re-measured over the persisted bytes: the narrowing to `f32`
-        // and the alignment application are inside the measurement,
-        // ahead of the same distinct gather the rung losses used.
-        let persisted_relation_loss = {
-            let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
-                .map_err(StageError::MapCoordinates)?;
-            let frame = file
-                .points()
-                .expect("the coordinate column was sealed as f32 pairs");
-            let distinct_frame = gather_distinct(IdSlice::from_raw(frame), inputs.quotient);
-            let scales = refresh::scales(
-                &distinct_frame,
-                &inputs.knn,
-                selection.measurement.condition,
-            )
-            .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
-            relation_loss(&distinct_frame, &scales, inputs.attraction, energy).total
-        };
+        let persisted_relation_loss = self.measure_persisted_loss(
+            inputs,
+            selection.measurement.condition,
+            energy,
+            options.plan.relation_cap,
+        )?;
 
         // The schedule's first rung is bit-exactly `0.0` by
         // construction, so `losses[0]` is the zero-condition raw loss.
@@ -575,6 +568,28 @@ impl Context<'_> {
             },
             digest,
         ))
+    }
+
+    /// Re-measures the relation loss over the persisted aligned column.
+    ///
+    /// The narrowing to `f32` and the alignment application are inside the measurement, ahead of
+    /// the same distinct gather the rung losses used, so the reading guards both.
+    fn measure_persisted_loss(
+        &self,
+        inputs: &PublishInputs<'_>,
+        condition: NonNegative,
+        energy: RelationEnergy,
+        cap: NonZero<usize>,
+    ) -> Result<DNonNegative, StageError> {
+        let file = ArrayFile::open(self.staging.path_of(&Role::Coordinates.file_name()))
+            .map_err(StageError::MapCoordinates)?;
+        let frame = file
+            .points()
+            .expect("the coordinate column was sealed as f32 pairs");
+        let distinct_frame = gather_distinct(IdSlice::from_raw(frame), inputs.quotient);
+        let scales = refresh::scales(&distinct_frame, &inputs.knn, condition)
+            .map_err(|error| error.map_rows(|row| inputs.quotient.first_row(row)))?;
+        Ok(relation_loss(&distinct_frame, &scales, inputs.attraction, energy, cap).uncapped_total)
     }
 
     /// Measures the paired-movement readout over the staged attraction index.
@@ -1011,6 +1026,7 @@ fn rung_evidence(
                     .into_iter()
                     .map(|(relation, loss)| TypeRelationLoss { relation, loss })
                     .collect(),
+                capped_relation_loss: Some(readout.capped_total),
                 condition,
                 relation_loss,
                 alignment,
@@ -1056,21 +1072,30 @@ fn calibration_evidence(
 /// One frame's relation-loss readout.
 #[derive(Debug)]
 struct RelationLossReadout {
-    /// The corpus total over every attraction instance.
-    total: DNonNegative,
+    /// The uncapped corpus total over every attraction instance.
+    uncapped_total: DNonNegative,
+    /// The capped trained estimand.
+    ///
+    /// Each group's share enters scaled by `min(cap, n) / n` and folds in its own accumulation
+    /// chain, so the reading is the exact expectation of the trainer's capped-sampling batch
+    /// estimator.
+    capped_total: DNonNegative,
     /// Each group's own accumulated share, in the index's group order (ascending by relation).
     ///
-    /// The shares carry their own accumulation chains, so their sum matches the total to
-    /// rounding rather than bit-exactly; the total's chain is the persisted contract and stays
-    /// as it was.
+    /// The shares carry their own accumulation chains, so their sum matches the uncapped total
+    /// to rounding rather than bit-exactly; the uncapped total's own chain is the persisted
+    /// contract.
     per_type: Vec<(OntologyRowId, DNonNegative)>,
 }
 
-/// Measures the relation loss of one frame, corpus-total and per relation type.
+/// Measures a frame's relation loss: corpus total, per-type shares, and the capped estimand.
 ///
 /// Every attraction instance's weighted class-mixture energy at its locally normalized distance,
-/// accumulated in double precision - one accumulator for the corpus and one per group in the
-/// same walk.
+/// accumulated in double precision - one accumulator for the corpus, one per group, and one for
+/// the capped estimand, all in the same walk. The capped accumulator scales each group's finished
+/// share by `min(cap, n) / n`, the probability that one of the group's `n` edges enters the
+/// trainer's per-type draw, so the reading is the exact expectation of the capped-sampling batch
+/// estimator the trainer optimizes.
 ///
 /// The per-instance formula is the batch relation term's with the estimator scale at one; the twin
 /// lives at [`relation_term`](crate::salt::projector::loss::relation_term).
@@ -1079,6 +1104,7 @@ fn relation_loss<N, E>(
     scales: &LocalScales<N>,
     index: &AttractionIndex<N, E>,
     energy: RelationEnergy,
+    cap: NonZero<usize>,
 ) -> RelationLossReadout
 where
     N: Id,
@@ -1086,13 +1112,15 @@ where
 {
     let epsilon = energy.epsilon();
 
-    let mut total = DNonNegative::ZERO;
+    let mut uncapped_total = DNonNegative::ZERO;
+    let mut capped_total = DNonNegative::ZERO;
     let mut per_type = Vec::with_capacity(index.groups().len());
     for group in index.groups() {
         let weights = group.weights();
+        let edges = group.edges();
         let mut share = DNonNegative::ZERO;
 
-        for edge in group.edges() {
+        for edge in edges {
             let source = edge.source;
             let target = edge.target;
             let difference = frame[source] - frame[target];
@@ -1104,14 +1132,27 @@ where
             let factor = (edge.confidence.value() * edge.normalization)
                 * DNonNegative::from(weights.strength);
 
-            total = factor.mul_add(value.into(), total);
+            uncapped_total = factor.mul_add(value.into(), uncapped_total);
             share = factor.mul_add(value.into(), share);
         }
 
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "group sizes and the cap stay far below f64's exact-integer range"
+        )]
+        // `min(cap, n) / n` with `n ≥ 1`: the index never stores an empty group, so the
+        // quotient is finite and in `(0, 1]`.
+        let clip =
+            DNonNegative::new_unchecked(cap.get().min(edges.len()) as f64 / edges.len() as f64);
+        capped_total = clip.mul_add(share, capped_total);
         per_type.push((group.relation(), share));
     }
 
-    RelationLossReadout { total, per_type }
+    RelationLossReadout {
+        uncapped_total,
+        capped_total,
+        per_type,
+    }
 }
 
 #[cfg(test)]
@@ -1480,7 +1521,109 @@ mod tests {
                 (sum - total).abs() <= 1e-12 * total.max(1.0),
                 "per-type shares {sum} should add up to the rung total {total}",
             );
+            // The fixture's one group holds fewer edges than the ratified cap, so its clip is
+            // one and the capped estimand echoes the total bit-exactly: with a single group the
+            // share's chain is the total's, and a fused multiply by one onto zero is exact.
+            assert_eq!(
+                rung.capped_relation_loss,
+                Some(rung.relation_loss),
+                "an uncapped fixture's estimand should echo the rung total",
+            );
         }
+    }
+
+    /// The capped estimand scales each group's share by its draw probability.
+    ///
+    /// The fixture spans relation 7 with two edges and relation 9 with one, both over the
+    /// distinct rows. At cap 1 the two-edge group's share halves while the one-edge group's
+    /// passes whole; at a cap covering both groups nothing clips and the estimand is the
+    /// shares' fused sum.
+    #[test]
+    fn the_capped_estimand_scales_each_share_by_its_draw_probability() {
+        let policy = |relation: u64| RelationPolicy {
+            relation: OntologyRowId::new(relation),
+            attraction: ClassProbabilities {
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
+            },
+            selected: ClassProbabilities {
+                coincident: UnitFraction::ZERO,
+                proximal: UnitFraction::ONE,
+            },
+            applicability: UnitFraction::ONE,
+            strength: NonNegative::ONE,
+            _pad: [0; 4],
+        };
+        let instance = |edge: u64, relation: u64, source: usize, target: usize| RelationInstance {
+            edge: EdgeRowId::new(edge),
+            relation: OntologyRowId::new(relation),
+            source: DistinctRowId::from_usize(source),
+            target: DistinctRowId::from_usize(target),
+            confidence: RelationConfidence::default(),
+            multiplicity: 1,
+        };
+        let policies = [policy(RELATION), policy(9)];
+        let mut instances = vec![
+            instance(0, RELATION, 0, 2),
+            instance(1, RELATION, 1, 3),
+            instance(2, 9, 0, 3),
+        ];
+        let indexes = RelationIndexes::build(
+            DISTINCT,
+            Policies::new(&policies).expect("the fixture policies are certified"),
+            &mut instances,
+            AttractionOptions::default(),
+        )
+        .expect("the fixture instances satisfy the input contract");
+
+        let points = [
+            Vec2::new(0.0, 0.0),
+            Vec2::new(4.0, 0.0),
+            Vec2::new(0.0, 4.0),
+            Vec2::new(4.0, 4.0),
+        ];
+        let frame = IdSlice::<DistinctRowId, Vec2>::from_raw(&points);
+        let knn = distinct_knn();
+        let scales = LocalScales::compute(frame, &knn.view()).expect("the fixture frame is finite");
+        let energy = compose_energy(
+            &skinny_options(),
+            FrozenRadius::Measured {
+                radius: non_negative!(0.5),
+            },
+        )
+        .expect("a measured radius composes an energy");
+
+        let biting = relation_loss(frame, &scales, &indexes.attraction, energy, nonzero(1));
+        let covering = relation_loss(frame, &scales, &indexes.attraction, energy, nonzero(2));
+
+        // Neither the shares nor the uncapped total depend on the cap.
+        assert_eq!(biting.per_type, covering.per_type);
+        assert_eq!(biting.uncapped_total, covering.uncapped_total);
+
+        let [(seven, share_seven), (nine, share_nine)] = biting.per_type[..] else {
+            panic!("the fixture builds exactly two groups");
+        };
+        assert_eq!(seven, OntologyRowId::new(RELATION));
+        assert_eq!(nine, OntologyRowId::new(9));
+        assert!(
+            share_seven.get() > 0.0,
+            "the spread fixture pairs should carry force"
+        );
+
+        // Group order with hand-derived clips: `min(1, 2) / 2 = 1/2` for the two-edge group and
+        // `min(1, 1) / 1 = 1` for the one-edge group, folded in the walk's own fused chain.
+        let expected = d_non_negative!(1.0).mul_add(
+            share_nine,
+            d_non_negative!(0.5).mul_add(share_seven, DNonNegative::ZERO),
+        );
+        assert_eq!(biting.capped_total.get(), expected.get());
+
+        // A cap covering every group leaves nothing to clip.
+        let uncapped = d_non_negative!(1.0).mul_add(
+            share_nine,
+            d_non_negative!(1.0).mul_add(share_seven, DNonNegative::ZERO),
+        );
+        assert_eq!(covering.capped_total.get(), uncapped.get());
     }
 
     /// Asserts the persisted calibration body echoes the boundary and the tick readings.

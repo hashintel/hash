@@ -395,7 +395,8 @@ pub(crate) struct LadderEvidence {
     /// The relation loss re-measured over the persisted aligned column.
     ///
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
-    /// total over every attraction instance, with no per-type cap.
+    /// total over every attraction instance, with no per-type cap; it does not store the capped
+    /// trained estimand ([`RungEvidence::capped_relation_loss`]).
     pub persisted_relation_loss: DNonNegative,
     /// The paired-movement readout beside the rungs.
     ///
@@ -421,8 +422,20 @@ pub(crate) struct RungEvidence {
     pub condition: NonNegative,
     /// The field's frozen relation loss at projection time.
     ///
-    /// The corpus total over every attraction instance, with no per-type cap.
+    /// The corpus total over every attraction instance, with no per-type cap; it does not store
+    /// the capped trained estimand ([`Self::capped_relation_loss`]).
     pub relation_loss: DNonNegative,
+    /// The capped trained estimand at this rung.
+    ///
+    /// The per-type clipped total the trainer optimizes: each type's share scaled by
+    /// `min(cap, n) / n`, the exact expectation of the capped-sampling batch estimator, measured
+    /// in the same walk as [`relation_loss`](Self::relation_loss) with its own accumulation
+    /// chain.
+    ///
+    /// `None` records a ladder written before this readout existed. A writer that carries the
+    /// readout always emits a present value, so absence stays distinguishable from a measured
+    /// zero.
+    pub capped_relation_loss: Option<DNonNegative>,
     /// Each relation type's own share of the loss, ascending by relation row (the attraction
     /// index's group order), so serialization is deterministic.
     ///

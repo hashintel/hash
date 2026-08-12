@@ -46,6 +46,10 @@ use super::{PlacementClass, ResolvedVerdict};
 /// surfaces cannot drift apart. The per-type evidence quartiles are descriptive and keep their own
 /// literals; their first entry coinciding with this fraction is today's policy choice, not a shared
 /// definition.
+///
+/// The fraction itself is a policy choice with no derivation behind it. It freezes engagement
+/// demand at a quantile the semantic baseline already achieves, so demand is weakest where the
+/// relation signal adds most.
 const RADIUS_FRACTION: OpenUnitFraction =
     OpenUnitFraction::new(0.25).expect("0.25 lies inside (0, 1)");
 use self::stability::StabilityCertificate;

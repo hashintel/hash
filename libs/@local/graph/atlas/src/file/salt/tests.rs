@@ -356,6 +356,7 @@ fn evidence() -> Evidence {
                     RungEvidence {
                         condition: non_negative!(0.0),
                         relation_loss: d_non_negative!(421.5),
+                        capped_relation_loss: Some(d_non_negative!(210.75)),
                         relation_losses: vec![TypeRelationLoss {
                             relation: OntologyRowId::new(5),
                             loss: d_non_negative!(421.5),
@@ -367,6 +368,7 @@ fn evidence() -> Evidence {
                     RungEvidence {
                         condition: non_negative!(1.0),
                         relation_loss: d_non_negative!(397.25),
+                        capped_relation_loss: Some(d_non_negative!(99.3125)),
                         relation_losses: vec![],
                         // (0.6, 0.8) lies exactly on the unit
                         // circle in f32.
@@ -665,6 +667,64 @@ fn a_document_without_the_empty_cut_count_decodes_as_absent() {
         .expect_err("a missing undefaulted field should refuse");
     assert!(
         error.to_string().contains("subdivided_groups"),
+        "the refusal should name the missing field: {error}",
+    );
+}
+
+#[test]
+fn a_rung_without_the_capped_estimand_decodes_as_absent() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let rung = document
+        .pointer_mut("/metadata/evidence/projector/ladder/rungs/0")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the first rung should be an object");
+
+    // The key is physically removed, the shape a ladder carries when
+    // it was written before the capped readout existed.
+    assert!(
+        rung.remove("capped_relation_loss").is_some(),
+        "the published shape should carry the capped estimand: {rung:?}",
+    );
+    let decoded: SaltRepository =
+        serde_json::from_value(document.clone()).expect("the older shape should deserialize");
+    let ladder = decoded
+        .metadata
+        .evidence
+        .projector
+        .as_ref()
+        .and_then(|projector| projector.ladder.as_ref())
+        .expect("the fixture carries a ladder");
+    assert_eq!(
+        ladder.rungs[0].capped_relation_loss, None,
+        "an absent key reads as an absent reading rather than a measured zero"
+    );
+    let mut expected = repository();
+    expected
+        .metadata
+        .evidence
+        .projector
+        .as_mut()
+        .and_then(|projector| projector.ladder.as_mut())
+        .expect("the fixture carries a ladder")
+        .rungs[0]
+        .capped_relation_loss = None;
+    assert_eq!(decoded, expected);
+
+    // The control for the removal itself: the retained uncapped key
+    // has no default and refuses, so the decode above passed on the
+    // optional key and not on a tolerated-absence rule covering the
+    // whole rung.
+    let rung = document
+        .pointer_mut("/metadata/evidence/projector/ladder/rungs/0")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the first rung should be an object");
+    rung.remove("relation_loss")
+        .expect("the published shape should carry the uncapped total");
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted field should refuse");
+    assert!(
+        error.to_string().contains("relation_loss"),
         "the refusal should name the missing field: {error}",
     );
 }
