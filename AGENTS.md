@@ -125,7 +125,7 @@ When you change structure in `libs/@hashintel/petrinaut-core` or `libs/@hashinte
 
 Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fails on unannotated files, undeclared ancestors and rule violations. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored); open `bundle/architecture.md` for the entire model in one file.
 
-Full reference: `libs/@local/petrinaut-arch-docs/README.md`.
+Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse the docs with `turbo run dev --filter @apps/petrinaut-docs`, which regenerates the bundle first — run it through Turborepo, since the package script alone skips that.
 
 Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` carries the reasoning an import graph cannot express — why a boundary sits where it does, what the alternatives were. It is optional; the system works with that directory absent.
 
