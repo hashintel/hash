@@ -22,6 +22,7 @@ const FormField = ({
   size = "md",
   labelDirection = "left",
   layout = "block",
+  inputAlign = "start",
   description,
   descriptionBottom,
   labelTooltip,
@@ -38,8 +39,6 @@ const FormField = ({
   as?: "label" | "legend";
 
   labelDirection?: "left" | "right";
-  /** `inline` places the label in a column beside the input (defaults to `block`) */
-  layout?: "block" | "inline";
 
   description?: React.ReactNode;
   descriptionBottom?: React.ReactNode;
@@ -47,8 +46,28 @@ const FormField = ({
   labelActions?: React.ReactNode[];
 
   errors?: Array<string | React.ReactNode>;
-} & SharedInputAndFieldProps) => {
-  const classes = styles({ size, layout });
+} & (
+  | {
+      layout: "inline";
+      inputAlign?: "start" | "end";
+    }
+  | {
+      layout?: "block";
+      inputAlign?: never;
+    }
+) &
+  SharedInputAndFieldProps) => {
+  // resolve logical start/end to a physical side against labelDirection
+  const classes = styles({
+    size,
+    layout,
+    labelDirection,
+    hideLabel: !!hideLabel,
+    inputAlign:
+      (inputAlign === "end") !== (labelDirection === "right")
+        ? "right"
+        : "left",
+  });
   const id = useId();
   const labelType = as === "label" ? { as, htmlFor: id } : { as };
 
@@ -111,7 +130,11 @@ const FormField = ({
 
   if (layout === "inline") {
     return (
-      <fieldset className={cx(classes.root, className)}>
+      <fieldset
+        className={cx(classes.root, className)}
+        data-part="form-field"
+        data-layout="inline"
+      >
         {descriptionEl}
         <div className={classes.inlineControl}>
           {labelEl}
@@ -129,7 +152,7 @@ const FormField = ({
   }
 
   return (
-    <fieldset className={cx(classes.root, className)}>
+    <fieldset className={cx(classes.root, className)} data-part="form-field">
       {labelEl}
       {descriptionEl}
       {controlEl}

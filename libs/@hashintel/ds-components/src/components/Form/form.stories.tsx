@@ -5,7 +5,9 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
+import { CheckboxGroup } from "../CheckboxGroup/checkbox-group";
 import { NumberInput } from "../NumberInput/number-input";
+import { RadioGroup } from "../RadioGroup/radio-group";
 import { TextInput } from "../TextInput/text-input";
 import { Errors } from "./errors";
 import { Form } from "./form";
@@ -30,6 +32,12 @@ const fieldLayouts = [
   "inline",
 ] as const satisfies readonly FieldLayout[];
 
+type InputAlign = NonNullable<
+  React.ComponentProps<typeof Form.Field>["inputAlign"]
+>;
+
+const inputAligns = ["start", "end"] as const satisfies readonly InputAlign[];
+
 type FormRowGap = NonNullable<React.ComponentProps<typeof Form.Row>["gap"]>;
 type FormRowAlign = NonNullable<React.ComponentProps<typeof Form.Row>["align"]>;
 
@@ -47,7 +55,7 @@ const formRowAligns = [
   "top",
 ] as const satisfies readonly FormRowAlign[];
 
-const noop = () => {};
+const noop = () => { };
 
 const ControlledTextInput = (
   props: Omit<React.ComponentProps<typeof TextInput>, "value" | "onChange"> & {
@@ -100,12 +108,19 @@ export default {
     labelDirection: {
       control: { type: "radio" },
       options: labelDirections,
-      description: "Alignment of label and helper content",
+      description:
+        "Alignment of label and helper content; `right` mirrors the inline row",
     },
     layout: {
       control: { type: "radio" },
       options: fieldLayouts,
       description: "Arrangement of label and input",
+    },
+    inputAlign: {
+      control: { type: "radio" },
+      options: inputAligns,
+      description:
+        "Input alignment within an inline row (flips with labelDirection)",
     },
     description: {
       control: { type: "text" },
@@ -252,7 +267,46 @@ export const FormField: Story<FormFieldArgs> = (args) => (
 );
 
 export const FormFieldInlineLayout: Story<FormFieldArgs> = (args) => (
-  <FormField {...args} layout="inline" />
+  <>
+    <FormField {...args} layout="inline" />
+    <div className={sectionStyle}>
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Kitchen sink (inputAlign: start)"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name="form-field-inline-input-align-end"
+          initialValue="Kitchen sink value"
+          size={args.size}
+          width="md"
+          disabled
+          invalid
+        />
+      </Form.Field>
+    </div>
+    <div className={sectionStyle}>
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Kitchen sink (inputAlign: end)"
+        inputAlign="end"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name="form-field-inline-input-align-end"
+          initialValue="Kitchen sink value"
+          size={args.size}
+          width="md"
+          disabled
+          invalid
+        />
+      </Form.Field>
+    </div>
+  </>
 );
 
 export const FormFieldSize: Story<FormFieldArgs> = (args) => (
@@ -338,6 +392,157 @@ export const FormFieldLabelDirection: Story<FormFieldArgs> = (args) => (
         />
       </Form.Field>
     ))}
+    {labelDirections.map((direction) => (
+      <Form.Field
+        {...args}
+        as="label"
+        key={`${direction}-inline`}
+        label={`Direction: ${direction} (inline)`}
+        labelDirection={direction}
+        layout="inline"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name={`form-field-direction-${direction}-inline`}
+          initialValue="Kitchen sink value"
+          size={args.size}
+          disabled
+          invalid
+        />
+      </Form.Field>
+    ))}
+    {labelDirections.map((direction) => (
+      <Form.Field
+        {...args}
+        as="label"
+        key={`${direction}-inline-end`}
+        label={`Direction: ${direction} (inline, inputAlign: end)`}
+        labelDirection={direction}
+        layout="inline"
+        inputAlign="end"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name={`form-field-direction-${direction}-inline-end`}
+          initialValue="Kitchen sink value"
+          size={args.size}
+          width="md"
+          disabled
+          invalid
+        />
+      </Form.Field>
+    ))}
+  </div>
+);
+
+// custom (non-field) elements in a Form.Section space themselves
+const sectionRowStyle = css({ marginBottom: "5" });
+
+const sectionTextStyle = css({
+  textStyle: "sm",
+  color: "fg.subtle",
+  marginY: "[30px]",
+});
+
+export const FormSection: Story<FormFieldArgs> = (args) => (
+  <div className={sectionStyle}>
+    <Form.Section>
+      <Form.Field {...args} as="label" layout="inline" label="Name">
+        <ControlledTextInput name="form-section-name" size={args.size} />
+      </Form.Field>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="A much longer label"
+        required
+      >
+        <ControlledTextInput
+          name="form-section-longer-label"
+          size={args.size}
+        />
+      </Form.Field>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Actions"
+        labelActions={[<ActionButton key="action" />]}
+      >
+        <ControlledTextInput name="form-section-actions" size={args.size} />
+      </Form.Field>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Kitchen sink"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name="form-section-kitchen-sink"
+          initialValue="Kitchen sink value"
+          size={args.size}
+          disabled
+          invalid
+        />
+      </Form.Field>
+
+      <Form.Field {...args} as="label" label="Block layout field">
+        <ControlledTextInput name="form-section-block" size={args.size} />
+      </Form.Field>
+
+      <p className={sectionTextStyle}>
+        Custom elements can sit between fields — they span the full width of the
+        section and manage their own spacing.
+      </p>
+
+      <Form.Row className={sectionRowStyle}>
+        <Form.Field {...args} as="label" label="First in row">
+          <ControlledTextInput name="form-section-row-1" size={args.size} />
+        </Form.Field>
+        <Form.Field {...args} as="label" label="Second in row">
+          <ControlledTextInput name="form-section-row-2" size={args.size} />
+        </Form.Field>
+      </Form.Row>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="After the row with very very long content"
+      >
+        <ControlledTextInput name="form-section-after-row" size={args.size} />
+      </Form.Field>
+
+      <Form.Field {...args} as="label" layout="inline" label="Short width">
+        <ControlledTextInput
+          name="form-section-last"
+          size={args.size}
+          width="sm"
+        />
+      </Form.Field>
+
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Input align end"
+        inputAlign="end"
+      >
+        <ControlledTextInput
+          name="form-section-last"
+          size={args.size}
+          width="sm"
+        />
+      </Form.Field>
+
+      <Form.Field {...args} as="label" layout="inline" label="Last">
+        <ControlledTextInput name="form-section-last" size={args.size} />
+      </Form.Field>
+    </Form.Section>
   </div>
 );
 
@@ -345,7 +550,9 @@ const renderRowField = (
   args: FormFieldArgs,
   prefix: string,
   index: number,
-  overrides?: Partial<FormFieldArgs> & {
+  // layout/inputAlign are excluded: Partial flattens the union that ties
+  // inputAlign to layout="inline", and no row story overrides them anyway
+  overrides?: Partial<Omit<FormFieldArgs, "layout" | "inputAlign">> & {
     invalid?: boolean;
     connectToLeftInput?: boolean;
     connectToRightInput?: boolean;
@@ -405,6 +612,59 @@ export const FormRowDefault: Story<FormFieldArgs> = (args) => (
           ...(index === 0 ? { label: "4 fields with row errors" } : {}),
         }),
       )}
+    </Form.Row>
+
+    <Form.Row>
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="3 inline fields (only first labelled)"
+      >
+        <ControlledTextInput
+          name="form-row-default-inline-triple-1"
+          size={args.size}
+        />
+      </Form.Field>
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Second field"
+        hideLabel
+      >
+        <ControlledTextInput
+          name="form-row-default-inline-triple-2"
+          size={args.size}
+        />
+      </Form.Field>
+      <Form.Field
+        {...args}
+        as="label"
+        layout="inline"
+        label="Third field"
+        hideLabel
+      >
+        <ControlledTextInput
+          name="form-row-default-inline-triple-3"
+          size={args.size}
+        />
+      </Form.Field>
+    </Form.Row>
+
+    <Form.Row gap="lg">
+      <Form.Field {...args} as="label" layout="inline" label="First inline">
+        <ControlledTextInput
+          name="form-row-default-inline-pair-1"
+          size={args.size}
+        />
+      </Form.Field>
+      <Form.Field {...args} as="label" layout="inline" label="Second inline">
+        <ControlledTextInput
+          name="form-row-default-inline-pair-2"
+          size={args.size}
+        />
+      </Form.Field>
     </Form.Row>
   </div>
 );
@@ -536,6 +796,78 @@ const IntegerField = ({
   );
 };
 
+const CheckboxGroupField = ({
+  label,
+  description,
+  size,
+  required,
+  items,
+}: {
+  label: string;
+  description?: string;
+  size?: FormInputSize;
+  required?: boolean;
+  items: React.ComponentProps<typeof CheckboxGroup>["items"];
+}) => {
+  const field = useFieldContext<string[]>();
+  return (
+    <Form.Field
+      as="legend"
+      label={label}
+      description={description}
+      size={size}
+      required={required}
+      errors={field.state.meta.errors}
+    >
+      <CheckboxGroup
+        name={field.name}
+        items={items}
+        value={field.state.value}
+        onChange={(value) => field.handleChange(value)}
+        onBlur={field.handleBlur}
+        size={size}
+        invalid={field.state.meta.errors.length > 0}
+      />
+    </Form.Field>
+  );
+};
+
+const RadioGroupField = ({
+  label,
+  description,
+  size,
+  required,
+  items,
+}: {
+  label: string;
+  description?: string;
+  size?: FormInputSize;
+  required?: boolean;
+  items: React.ComponentProps<typeof RadioGroup>["items"];
+}) => {
+  const field = useFieldContext<string>();
+  return (
+    <Form.Field
+      as="legend"
+      label={label}
+      description={description}
+      size={size}
+      required={required}
+      errors={field.state.meta.errors}
+    >
+      <RadioGroup
+        name={field.name}
+        items={items}
+        value={field.state.value}
+        onChange={(value) => field.handleChange(value)}
+        onBlur={field.handleBlur}
+        size={size}
+        invalid={field.state.meta.errors.length > 0}
+      />
+    </Form.Field>
+  );
+};
+
 const SubmitButton = ({
   children,
   size,
@@ -570,7 +902,12 @@ const SubmitButton = ({
 };
 
 const { useAppForm } = createFormHook({
-  fieldComponents: { TextField, IntegerField },
+  fieldComponents: {
+    TextField,
+    IntegerField,
+    CheckboxGroupField,
+    RadioGroupField,
+  },
   formComponents: { SubmitButton },
   fieldContext,
   formContext,
@@ -583,6 +920,8 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
       email: "",
       username: "",
       age: 18,
+      interests: [] as string[],
+      contactMethod: "",
     },
     onSubmit: ({ value }) => {
       // eslint-disable-next-line no-alert
@@ -680,6 +1019,48 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
             min={0}
             max={120}
             required
+          />
+        )}
+      </form.AppField>
+
+      <form.AppField
+        name="interests"
+        validators={{
+          onChange: ({ value }) =>
+            value.length === 0 ? "Select at least one interest" : undefined,
+        }}
+      >
+        {(field) => (
+          <field.CheckboxGroupField
+            label="Interests"
+            size={args.size}
+            required
+            items={[
+              { value: "design", label: "Design" },
+              { value: "engineering", label: "Engineering" },
+              { value: "research", label: "Research" },
+            ]}
+          />
+        )}
+      </form.AppField>
+
+      <form.AppField
+        name="contactMethod"
+        validators={{
+          onChange: ({ value }) =>
+            value === "" ? "Select a contact method" : undefined,
+        }}
+      >
+        {(field) => (
+          <field.RadioGroupField
+            label="Contact method"
+            size={args.size}
+            required
+            items={[
+              { value: "email", label: "Email" },
+              { value: "phone", label: "Phone" },
+              { value: "post", label: "Post" },
+            ]}
           />
         )}
       </form.AppField>

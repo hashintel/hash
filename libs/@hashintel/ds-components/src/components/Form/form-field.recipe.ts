@@ -16,17 +16,27 @@ export const styles = sva({
     layout: {
       block: {},
       inline: {
-        root: {},
+        // as a direct child of a FormSection the fieldset box dissolves so
+        // inlineControl subgrids onto the section's columns and adjacent
+        // fields share label/input tracks (a fieldset cannot chain subgrids —
+        // its anonymous content box breaks track sizing)
+        root: {
+          '[data-part="form-section"] > &': {
+            display: "contents",
+          },
+        },
         inlineControl: {
           display: "grid",
-          gridTemplateColumns: "[auto minmax(0, 1fr)]",
           columnGap: "5",
           alignItems: "center",
+          '[data-part="form-section"] > * > &': {
+            gridTemplateColumns: "[subgrid]",
+            gridColumn: "[1 / -1]",
+          },
         },
         // float takes a <legend> out of its special fieldset rendering so it
         // participates in the grid; it has no effect on grid-item <label>s
         label: {
-          gridColumn: "1",
           gridRow: "1",
           float: "[left]",
           marginBottom: "0!",
@@ -41,7 +51,33 @@ export const styles = sva({
           alignItems: "center",
           gap: "1",
         },
+        description: {
+          '[data-part="form-section"] > * > &': { gridColumn: "[1 / -1]" },
+        },
+        descriptionBottom: {
+          '[data-part="form-section"] > * > &': { gridColumn: "[1 / -1]" },
+        },
+        errors: {
+          '[data-part="form-section"] > * > &': { gridColumn: "[1 / -1]" },
+        },
       },
+    },
+    // physical side, resolved from start/end × labelDirection in the
+    // component; targets inlineInput only, so it is inert in block layout
+    inputAlign: {
+      left: {},
+      right: {
+        inlineInput: { justifyContent: "flex-end" },
+      },
+    },
+    // inline grid placement depends on these and lives in compoundVariants
+    labelDirection: {
+      left: {},
+      right: {},
+    },
+    hideLabel: {
+      true: {},
+      false: {},
     },
     size: {
       xxs: {
@@ -105,6 +141,39 @@ export const styles = sva({
   },
   // inline layout: slightly tighter gaps between inlineControl and its neighbours
   compoundVariants: [
+    // labelDirection mirrors the inline row: label track last, actions before
+    // the input
+    {
+      layout: "inline",
+      labelDirection: "left",
+      hideLabel: false,
+      css: {
+        inlineControl: { gridTemplateColumns: "[auto minmax(0, 1fr)]" },
+        label: { gridColumn: "1" },
+        inlineInput: { gridColumn: "[2]" },
+      },
+    },
+    {
+      layout: "inline",
+      labelDirection: "right",
+      hideLabel: false,
+      css: {
+        inlineControl: { gridTemplateColumns: "[minmax(0, 1fr) auto]" },
+        label: { gridColumn: "[2]" },
+        inlineInput: { gridColumn: "1" },
+        inlineLabelActions: { order: "-1" },
+      },
+    },
+    // a visually hidden label leaves no label track: the input takes the full
+    // row (spanning all section columns when subgridded) with no phantom gap
+    {
+      layout: "inline",
+      hideLabel: true,
+      css: {
+        inlineControl: { gridTemplateColumns: "[minmax(0, 1fr)]" },
+        inlineInput: { gridColumn: "[1 / -1]" },
+      },
+    },
     {
       layout: "inline",
       size: "xxs",
