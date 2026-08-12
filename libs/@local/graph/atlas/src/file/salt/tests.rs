@@ -1069,3 +1069,58 @@ fn a_missing_required_sibling_refuses_and_names_the_field() {
         "the refusal names the field: {error}"
     );
 }
+
+#[test]
+fn an_old_ladder_without_the_paired_movement_key_decodes_as_absent() {
+    // A published-shape repository-version-2 ladder written before the readout existed
+    // carries no `paired_movement` key and decodes the field as absent, never as a vacuous
+    // or failed body.
+    let repository = repository();
+    let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
+
+    let ladder = json["metadata"]["evidence"]["projector"]["ladder"]
+        .as_object_mut()
+        .expect("the ladder evidence is an object");
+    assert!(
+        ladder.remove("paired_movement").is_some(),
+        "the ladder record carries the readout key"
+    );
+
+    let decoded: SaltRepository =
+        serde_json::from_value(json).expect("an old ladder still decodes");
+    assert_eq!(
+        decoded
+            .metadata
+            .evidence
+            .projector
+            .expect("the projector evidence survives")
+            .ladder
+            .expect("the ladder survives")
+            .paired_movement,
+        None
+    );
+}
+
+#[test]
+fn a_ladder_missing_a_required_sibling_refuses_and_names_the_field() {
+    // The control for the ladder record: removing an undefaulted required sibling refuses,
+    // so the readout key's decode rests on its own absence rule rather than record-wide
+    // permissiveness.
+    let repository = repository();
+    let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
+
+    let ladder = json["metadata"]["evidence"]["projector"]["ladder"]
+        .as_object_mut()
+        .expect("the ladder evidence is an object");
+    assert!(
+        ladder.remove("persisted_relation_loss").is_some(),
+        "the sibling exists to remove"
+    );
+
+    let error = serde_json::from_value::<SaltRepository>(json)
+        .expect_err("a missing required field refuses");
+    assert!(
+        error.to_string().contains("persisted_relation_loss"),
+        "the refusal names the field: {error}"
+    );
+}
