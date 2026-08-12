@@ -67,6 +67,26 @@ const ControlledTextInput = (
   return <TextInput {...rest} value={value} onChange={setValue} />;
 };
 
+const ControlledRadioGroup = (
+  props: Omit<
+    React.ComponentProps<typeof RadioGroup>,
+    "value" | "onChange" | "items"
+  >,
+) => {
+  const [value, setValue] = useState<"email" | "phone">("email");
+  return (
+    <RadioGroup
+      {...props}
+      items={[
+        { value: "email", label: "Email" },
+        { value: "phone", label: "Phone" },
+      ]}
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
 const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -487,6 +507,14 @@ export const FormSection: Story<FormFieldArgs> = (args) => (
           size={args.size}
           disabled
           invalid
+        />
+      </Form.Field>
+
+      <Form.Field {...args} as="legend" layout="inline" label="Contact method">
+        <ControlledRadioGroup
+          name="form-section-contact-method"
+          layout="inline"
+          size={args.size}
         />
       </Form.Field>
 

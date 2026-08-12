@@ -39,7 +39,6 @@ const containerStyle = css({
 const readOnlyFieldStyle = css({
   fontSize: "sm",
   color: "neutral.s110",
-  padding: "1",
 });
 
 const fieldsSectionStyle = css({

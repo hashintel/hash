@@ -69,7 +69,13 @@ const FormField = ({
         : "left",
   });
   const id = useId();
-  const labelType = as === "label" ? { as, htmlFor: id } : { as };
+  // inline nests the visible label inside inlineControl, where a <legend>
+  // would not name the fieldset — a visually hidden legend rendered as a
+  // direct child does that instead, and the visible label becomes a <span>
+  const labelType =
+    as === "label"
+      ? { as, htmlFor: id }
+      : { as: layout === "inline" ? ("span" as const) : as };
 
   const labelEl = (
     <Label
@@ -135,6 +141,7 @@ const FormField = ({
         data-part="form-field"
         data-layout="inline"
       >
+        {as === "legend" && <legend className={classes.legend}>{label}</legend>}
         {descriptionEl}
         <div className={classes.inlineControl}>
           {labelEl}

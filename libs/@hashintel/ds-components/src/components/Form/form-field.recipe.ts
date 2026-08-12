@@ -1,8 +1,11 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { srOnly } from "../../util/css-mixins";
+
 export const styles = sva({
   slots: [
     "root",
+    "legend",
     "label",
     "inlineControl",
     "inlineInput",
@@ -11,7 +14,11 @@ export const styles = sva({
     "descriptionBottom",
     "errors",
   ],
-  base: {},
+  base: {
+    // hidden real <legend> naming the fieldset in inline layout, where the
+    // visible label sits inside inlineControl and cannot do so
+    legend: srOnly,
+  },
   variants: {
     layout: {
       block: {},
@@ -34,11 +41,8 @@ export const styles = sva({
             gridColumn: "[1 / -1]",
           },
         },
-        // float takes a <legend> out of its special fieldset rendering so it
-        // participates in the grid; it has no effect on grid-item <label>s
         label: {
           gridRow: "1",
-          float: "[left]",
           marginBottom: "0!",
         },
         inlineInput: {

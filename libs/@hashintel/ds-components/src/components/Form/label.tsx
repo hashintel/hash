@@ -21,7 +21,7 @@ export const Label = ({
 }: {
   className?: string;
   children: React.ReactNode;
-  as?: "label" | "legend";
+  as?: "label" | "legend" | "span";
 
   size?: FormInputSize;
   direction?: "left" | "right";
@@ -37,7 +37,7 @@ export const Label = ({
       htmlFor: string;
     }
   | {
-      as: "legend";
+      as: "legend" | "span";
       htmlFor?: never;
     }
 )) => {
@@ -66,5 +66,6 @@ export const Label = ({
     );
   }
 
-  return <legend className={cx(classes.label, className)}>{content}</legend>;
+  const Element = as;
+  return <Element className={cx(classes.label, className)}>{content}</Element>;
 };
