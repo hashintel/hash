@@ -891,6 +891,8 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
         | EntityQueryPath::DirectTypeCount
+        | EntityQueryPath::ScalarProperties
+        | EntityQueryPath::PropertyCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
         | EntityQueryPath::LeftEntityProvenance

@@ -386,6 +386,9 @@ impl Table {
     }
 }
 
+/// The `jsonb_typeof` names of the values a [`JsonField::ScalarEntries`] read delivers inline.
+const JSON_SCALAR_TYPES: &[&str] = &["string", "number", "boolean", "null"];
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum JsonField<'p> {
     JsonPath(&'p JsonPath<'p>),
@@ -396,6 +399,21 @@ pub enum JsonField<'p> {
     /// Filter parameters against subscripted columns are typed as [`ParameterType::Text`],
     /// so this is only valid for text arrays.
     ArrayElement(usize),
+    /// The object's scalar entries, aggregated into one `jsonb` map.
+    ///
+    /// Compiles to a scalar subquery over `jsonb_each` that keeps every entry whose value is a
+    /// string, a number, a boolean, or an explicit null, and reads SQL `NULL` when no entry
+    /// qualifies. The qualifying type names travel as a bound parameter, so
+    /// [`into_owned`](Self::into_owned) converts this to
+    /// [`ScalarEntriesParameter`](Self::ScalarEntriesParameter).
+    ScalarEntries,
+    /// [`ScalarEntries`](Self::ScalarEntries) with its type names bound at the parameter index.
+    ScalarEntriesParameter(usize),
+    /// The object's whole entry count, as `int4`.
+    ///
+    /// Compiles to a scalar subquery over `jsonb_each`, so it also counts the entries a
+    /// [`ScalarEntries`](Self::ScalarEntries) read of the same column excludes.
+    EntryCount,
     Label {
         inheritance_depth: Option<u32>,
     },
@@ -415,6 +433,12 @@ impl<'p> JsonField<'p> {
             Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
             Self::StaticText(text) => (JsonField::StaticText(text), None),
             Self::ArrayElement(index) => (JsonField::ArrayElement(index), None),
+            Self::ScalarEntries => (
+                JsonField::ScalarEntriesParameter(current_parameter_index),
+                Some(&JSON_SCALAR_TYPES),
+            ),
+            Self::ScalarEntriesParameter(index) => (JsonField::ScalarEntriesParameter(index), None),
+            Self::EntryCount => (JsonField::EntryCount, None),
             Self::Label { inheritance_depth } => (JsonField::Label { inheritance_depth }, None),
         }
     }

@@ -422,6 +422,27 @@ pub enum EntityQueryPath<'p> {
     /// [`Entity`]: type_system::knowledge::Entity
     /// [`Entity::properties`]: type_system::knowledge::Entity::properties
     Properties(Option<JsonPath<'p>>),
+    /// The scalar entries of [`Entity::properties`], as one `jsonb` map.
+    ///
+    /// The map carries every property whose value is a string, a number, a boolean, or an
+    /// explicit null, and is SQL `NULL` when no entry qualifies. A configured property masking
+    /// removes a protected property here exactly as it does from [`Properties`].
+    ///
+    /// It's currently not possible to query for the scalar properties directly.
+    ///
+    /// [`Entity::properties`]: type_system::knowledge::Entity::properties
+    /// [`Properties`]: Self::Properties
+    ScalarProperties,
+    /// The number of entries of [`Entity::properties`].
+    ///
+    /// The count reads the same masked object as [`ScalarProperties`], so it also counts the
+    /// nested values that map excludes and never counts a masked property.
+    ///
+    /// It's currently not possible to query for the property count directly.
+    ///
+    /// [`Entity::properties`]: type_system::knowledge::Entity::properties
+    /// [`ScalarProperties`]: Self::ScalarProperties
+    PropertyCount,
     /// The property defined as [`label_property`] in the corresponding entity type metadata.
     ///
     /// ```rust
@@ -560,6 +581,8 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::CreatedAtDecisionTime => fmt.write_str("createdAtDecisionTime"),
             Self::Properties(Some(property)) => write!(fmt, "properties.{property}"),
             Self::Properties(None) => fmt.write_str("properties"),
+            Self::ScalarProperties => fmt.write_str("scalarProperties"),
+            Self::PropertyCount => fmt.write_str("propertyCount"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
             Self::Provenance(None) => fmt.write_str("provenance"),
             Self::Label { .. } => fmt.write_str("label"),
@@ -623,8 +646,9 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
                 ParameterType::Timestamp
             }
-            Self::DirectTypeCount => ParameterType::Integer,
+            Self::DirectTypeCount | Self::PropertyCount => ParameterType::Integer,
             Self::Properties(_)
+            | Self::ScalarProperties
             | Self::Label { .. }
             | Self::Provenance(_)
             | Self::EditionProvenance(_)
@@ -1010,6 +1034,8 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 direction,
             },
             Self::Properties(path) => EntityQueryPath::Properties(path.map(JsonPath::into_owned)),
+            Self::ScalarProperties => EntityQueryPath::ScalarProperties,
+            Self::PropertyCount => EntityQueryPath::PropertyCount,
             Self::Label { inheritance_depth } => EntityQueryPath::Label { inheritance_depth },
             Self::Embedding => EntityQueryPath::Embedding,
             Self::EntityConfidence => EntityQueryPath::EntityConfidence,

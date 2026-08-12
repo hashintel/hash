@@ -736,27 +736,14 @@ mod tests {
     }
 
     #[test]
-    fn transpile_json_object_agg_forms() {
+    fn transpile_json_object_agg() {
         assert_eq!(
             Expression::from(Function::JsonObjectAgg {
                 key: Box::new(Expression::Parameter(1)),
                 value: Box::new(Expression::Parameter(2)),
-                filter: None,
             })
             .transpile_to_string(),
             "jsonb_object_agg($1, $2)"
-        );
-        assert_eq!(
-            Expression::from(Function::JsonObjectAgg {
-                key: Box::new(Expression::Parameter(1)),
-                value: Box::new(Expression::Parameter(2)),
-                filter: Some(Box::new(
-                    Expression::from(Function::JsonTypeof(Box::new(Expression::Parameter(2))))
-                        .r#in(Expression::Parameter(3)),
-                )),
-            })
-            .transpile_to_string(),
-            "jsonb_object_agg($1, $2) FILTER (WHERE jsonb_typeof($2) = ANY($3))"
         );
     }
 

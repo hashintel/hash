@@ -37,6 +37,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::RightEntity]
             }
             Self::Properties(_)
+            | Self::ScalarProperties
+            | Self::PropertyCount
             | Self::Label { .. }
             | Self::EditionProvenance(_)
             | Self::EditionCreatedById
@@ -211,6 +213,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             Self::Properties(path) => (
                 Column::EntityEditions(EntityEditions::Properties),
                 path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::ScalarProperties => (
+                Column::EntityEditions(EntityEditions::Properties),
+                Some(JsonField::ScalarEntries),
+            ),
+            Self::PropertyCount => (
+                Column::EntityEditions(EntityEditions::Properties),
+                Some(JsonField::EntryCount),
             ),
             Self::Label { inheritance_depth } => (
                 Column::EntityEditions(EntityEditions::Properties),

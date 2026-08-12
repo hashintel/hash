@@ -21,14 +21,14 @@ use type_system::knowledge::Entity;
 
 use super::ast::{ColumnReference, JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, FromItem, Function,
-    GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WindowStatement,
+    Alias, Column, ColumnName, Correlation, Distinctness, EqualityOperator, Expression, FromItem,
+    Function, GroupByExpression, Identifier, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectStatement, Table, Transpile as _, WhereExpression, WindowStatement,
     postgres_type::PostgresType,
     table::{
-        DataTypeEmbeddings, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
-        EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyIds,
-        OntologyTemporalMetadata, PropertyTypeEmbeddings,
+        DataTypeEmbeddings, DatabaseColumn, EntityEditions, EntityEmbeddings,
+        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField,
+        OntologyIds, OntologyTemporalMetadata, PropertyTypeEmbeddings,
     },
 };
 
@@ -75,6 +75,45 @@ enum FilterGroup {
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
+
+/// The columns of one unnested property inside a scalar-entries or entry-count subquery.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ScalarProperty {
+    /// The property's base URL.
+    Key,
+    /// The property's value.
+    Value,
+}
+
+impl DatabaseColumn<'_> for ScalarProperty {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::Key => "key".into(),
+            Self::Value => "value".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::Key => PostgresType::Text,
+            Self::Value => PostgresType::JsonB,
+        }
+    }
+}
+
+/// One unnested property inside a scalar-entries or entry-count subquery.
+const SCALAR_PROPERTY: Correlation<ScalarProperty> = Correlation::new("scalar_property");
+
+/// One `jsonb_each` unnest of a properties object, standing as `"scalar_property"("key", "value")`.
+fn scalar_property_each(properties: Expression) -> FromItem<'static> {
+    FromItem::function(Function::JsonEach(Box::new(properties)))
+        .alias(SCALAR_PROPERTY)
+        .column_aliases(vec![
+            ScalarProperty::Key.name(),
+            ScalarProperty::Value.name(),
+        ])
+        .build()
+}
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
@@ -1140,6 +1179,45 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 expr: Box::new(column_expression),
                 index,
             },
+            Some(JsonField::ScalarEntries) => {
+                unreachable!("`ScalarEntries` should be handled by now")
+            }
+            Some(JsonField::ScalarEntriesParameter(index)) => {
+                // (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
+                //  FROM jsonb_each(<column>) AS "scalar_property"("key", "value")
+                //  WHERE jsonb_typeof("scalar_property"."value") = ANY($n::text[]))
+                Expression::Select(Box::new(
+                    SelectStatement::builder()
+                        .selects(vec![SelectExpression::new(Function::JsonObjectAgg {
+                            key: Box::new(SCALAR_PROPERTY.column(ScalarProperty::Key)),
+                            value: Box::new(SCALAR_PROPERTY.column(ScalarProperty::Value)),
+                        })])
+                        .from(scalar_property_each(column_expression))
+                        .where_expression(WhereExpression::from_iter([Expression::from(
+                            Function::JsonTypeof(Box::new(
+                                SCALAR_PROPERTY.column(ScalarProperty::Value),
+                            )),
+                        )
+                        .r#in(
+                            Expression::Parameter(index)
+                                .cast(PostgresType::Array(Box::new(PostgresType::Text))),
+                        )]))
+                        .build(),
+                ))
+                .grouped()
+            }
+            Some(JsonField::EntryCount) => {
+                // ((SELECT count(*) FROM jsonb_each(<column>) AS "scalar_property"("key",
+                // "value"))::int4)
+                Expression::Select(Box::new(
+                    SelectStatement::builder()
+                        .selects(vec![SelectExpression::new(Function::Count(None))])
+                        .from(scalar_property_each(column_expression))
+                        .build(),
+                ))
+                .grouped()
+                .cast(PostgresType::Int4)
+            }
             Some(JsonField::Label { inheritance_depth }) => {
                 if let Some(label_path) =
                     <R as QueryRecord>::QueryPath::label_property_path(inheritance_depth)

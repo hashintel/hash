@@ -77,12 +77,12 @@ pub enum Function {
     },
     /// Aggregates key-value pairs into one `jsonb` object.
     ///
-    /// Transpiles to `jsonb_object_agg(<key>, <value>)`, with ` FILTER (WHERE <filter>)`
-    /// appended when a filter is present, so only the rows the filter admits aggregate.
+    /// Transpiles to `jsonb_object_agg(<key>, <value>)`. Aggregating zero rows reads SQL
+    /// `NULL`, so restricting the aggregated set is the surrounding statement's WHERE clause's
+    /// job.
     JsonObjectAgg {
         key: Box<Expression>,
         value: Box<Expression>,
-        filter: Option<Box<Expression>>,
     },
     /// Expands a `jsonb` array into one row per element.
     ///
@@ -420,18 +420,12 @@ impl Transpile for Function {
                 path.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::JsonObjectAgg { key, value, filter } => {
+            Self::JsonObjectAgg { key, value } => {
                 fmt.write_str("jsonb_object_agg(")?;
                 key.transpile(fmt)?;
                 fmt.write_str(", ")?;
                 value.transpile(fmt)?;
-                fmt.write_char(')')?;
-                if let Some(filter) = filter {
-                    fmt.write_str(" FILTER (WHERE ")?;
-                    filter.transpile(fmt)?;
-                    fmt.write_char(')')?;
-                }
-                Ok(())
+                fmt.write_char(')')
             }
             Self::ArrayLiteral {
                 elements,
