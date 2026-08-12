@@ -73,7 +73,7 @@ const kitchenSinkProps = {
 };
 
 export default {
-  title: "Components/Form.Field",
+  title: "Components/Form",
   argTypes: {
     label: {
       control: { type: "text" },
@@ -121,7 +121,7 @@ export default {
 
 type FormFieldArgs = React.ComponentProps<typeof Form.Field>;
 
-export const Default: Story<FormFieldArgs> = (args) => (
+export const FormField: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     <Form.Field {...args} as="label" label="Disabled" disabled>
       <ControlledTextInput
@@ -237,7 +237,7 @@ export const Default: Story<FormFieldArgs> = (args) => (
   </div>
 );
 
-export const FormSize: Story<FormFieldArgs> = (args) => (
+export const FormFieldSize: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formInputSizes.map((size: FormInputSize) => (
       <Form.Field
@@ -263,7 +263,7 @@ export const FormSize: Story<FormFieldArgs> = (args) => (
 const { labelActions: _labelActions, ...kitchenSinkPropsNoActions } =
   kitchenSinkProps;
 
-export const LabelDirection: Story<FormFieldArgs> = (args) => (
+export const FormFieldLabelDirection: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {labelDirections.map((direction) => (
       <Form.Field

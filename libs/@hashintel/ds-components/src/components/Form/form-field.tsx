@@ -19,6 +19,7 @@ const FormField = ({
   hideLabel,
   size = "md",
   labelDirection = "left",
+  layout = "block",
   description,
   descriptionBottom,
   labelTooltip,
@@ -35,6 +36,7 @@ const FormField = ({
   as?: "label" | "legend";
 
   labelDirection?: "left" | "right";
+  layout?: "block" | "inline";
 
   description?: React.ReactNode;
   descriptionBottom?: React.ReactNode;
