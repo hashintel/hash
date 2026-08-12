@@ -1,11 +1,10 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, use } from "react";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { InfoIconTooltip } from "./info-icon-tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
 
@@ -177,7 +176,7 @@ export const Section = ({
     <div className={headerLeftStyle}>
       {renderHeaderLeading?.()}
       <span className={titleStyle}>{title}</span>
-      {tooltip && <InfoIconTooltip tooltip={tooltip} />}
+      {tooltip && <HelpTooltip content={tooltip} />}
     </div>
   );
 

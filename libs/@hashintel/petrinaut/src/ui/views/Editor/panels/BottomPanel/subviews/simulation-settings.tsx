@@ -3,6 +3,7 @@ import { use, useState } from "react";
 import {
   Banner,
   Button,
+  HelpTooltip,
   Icon,
   NumberInput,
   Select,
@@ -13,7 +14,6 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
@@ -614,7 +614,7 @@ const SimulationSettingsContent: React.FC = () => {
             <div className={settingGroupStyle}>
               <label htmlFor="time-step-input" className={labelStyle}>
                 Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
+                <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
               </label>
               <NumberInput
                 htmlForId="time-step-input"

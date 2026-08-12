@@ -1,12 +1,11 @@
 import React, { Fragment, use, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
-import { Icon } from "@hashintel/ds-components";
+import { HelpTooltip, Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
-import { InfoIconTooltip } from "../../info-icon-tooltip";
 
 import type { SubView } from "../types";
 
@@ -381,7 +380,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
           {title}
           {tooltip && (
             <span data-info-tooltip className={infoTooltipWrapperStyle}>
-              <InfoIconTooltip tooltip={tooltip} />
+              <HelpTooltip content={tooltip} />
             </span>
           )}
         </span>
