@@ -266,8 +266,8 @@ const gridCells: Cell[] = [
   {
     kind: "point",
     label: "point: center",
-    position: "bottom",
-    getPoint: (rect) => ({ x: rect.width / 2, y: rect.height / 2 }),
+    position: "bottom-start",
+    getPoint: () => ({ x: 50, y: 30 }),
   },
   { kind: "position", position: "right-start" },
   { kind: "position", position: "left" },

@@ -3,6 +3,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -283,7 +284,7 @@ export const BaseInput = ({
         classes.input,
         styledValue && !focused ? classes.hiddenInput : undefined,
       )}
-      autoFocus={autoFocus === true ? true : undefined}
+      {...resolveAutoFocusProps(autoFocus)}
       {...ariaProps}
     />
   );

@@ -9,6 +9,7 @@ export const positionerStyles = css({
 });
 
 export const contentStyles = css({
+  transformOrigin: "var(--transform-origin)",
   _open: {
     animationName: "popoverIn",
     animationDuration: "faster",
