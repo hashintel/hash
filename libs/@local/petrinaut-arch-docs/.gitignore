@@ -1,0 +1,9 @@
+# Build output. Regenerate with `mise run doc:architecture`.
+#
+# Not versioned: it is derived entirely from the annotations in the source and
+# the authored pages in `content/`, so committing it would mean reviewing the
+# same change twice and resolving conflicts in generated files.
+bundle/
+
+# Scratch copies from mutation-testing runs. Never part of the package.
+.mut/

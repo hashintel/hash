@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.handle
+ * @role Stateful handle wrapping a document, emitting change events to subscribers
+ */
+
 export {
   createJsonDocHandle,
   type CreateJsonDocHandleOptions,

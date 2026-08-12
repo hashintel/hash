@@ -1,3 +1,8 @@
+/**
+ * @layerRoot ui.monaco
+ * @role Wires the Monaco editor to the language server for authoring user code
+ */
+
 import { CompletionSync } from "./completion-sync";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";

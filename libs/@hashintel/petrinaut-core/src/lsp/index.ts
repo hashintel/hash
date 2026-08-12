@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.lsp
+ * @role Language-server client and transport for editing user code in the net
+ */
+
 export {
   createLanguageClient,
   type CreateLanguageClientConfig,

@@ -7,6 +7,9 @@
  * - Server push: `textDocument/publishDiagnostics`
  *
  * The LanguageService is created once and reused across SDCPN changes.
+ *
+ * @layerRoot core.lsp.worker
+ * @role Hosts the TypeScript language server off the main thread
  */
 import ts from "typescript";
 import {
