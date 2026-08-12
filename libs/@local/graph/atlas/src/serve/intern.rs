@@ -12,6 +12,10 @@
 
 use alloc::borrow::Cow;
 
+use hashql_core::{
+    algorithms::co_sort,
+    id::{Id as _, IdSlice, IdVec},
+};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 /// A value a trailer references by intern-table index.
@@ -37,6 +41,11 @@ impl Reference for VersionedUrl {
     }
 }
 
+hashql_core::id::newtype! {
+    #[id(const)]
+    pub(crate) struct TableIndex(u32)
+}
+
 /// One trailer's intern table.
 ///
 /// Construction collects every reference first, so lookups are total for the trailer that built
@@ -45,9 +54,9 @@ impl Reference for VersionedUrl {
 #[derive(Debug)]
 pub(super) struct Table<'doc, T> {
     /// The interned renderings, ascending bytewise, deduplicated.
-    rendered: Vec<Cow<'doc, str>>,
+    entries: IdVec<TableIndex, Cow<'doc, str>>,
     /// The interned references in their own ascending order, each with its wire index.
-    lookup: Vec<(&'doc T, u32)>,
+    lookup: Vec<(&'doc T, TableIndex)>,
 }
 
 impl<'doc, T: Reference> Table<'doc, T> {
@@ -61,27 +70,21 @@ impl<'doc, T: Reference> Table<'doc, T> {
         values.sort_unstable();
         values.dedup();
 
-        let mut entries: Vec<(Cow<'doc, str>, &'doc T)> = values
+        let (mut entries, mut lookup): (IdVec<TableIndex, _>, Vec<_>) = values
             .into_iter()
-            .map(|value| (value.rendering(), value))
-            .collect();
-        entries.sort_unstable_by(|left, right| left.0.as_bytes().cmp(right.0.as_bytes()));
-
-        let mut lookup: Vec<(&'doc T, u32)> = entries
-            .iter()
-            .enumerate()
-            .map(|(wire, &(_, value))| {
-                let wire = u32::try_from(wire).expect("the table is far below u32::MAX entries");
-                (value, wire)
-            })
-            .collect();
-        lookup.sort_unstable_by(|left, right| left.0.cmp(right.0));
-        let rendered = entries
-            .into_iter()
-            .map(|(rendering, _)| rendering)
+            .map(|value| (value.rendering(), (value, TableIndex::MIN)))
             .collect();
 
-        Self { rendered, lookup }
+        // `str` orders byte-lexicographically, so the renderings' own order is the wire's
+        // bytewise order.
+        co_sort(entries.as_raw_mut(), &mut lookup);
+        for (index, (_, table_index)) in lookup.iter_mut().enumerate() {
+            *table_index = TableIndex::from_usize(index);
+        }
+
+        lookup.sort_unstable_by_key(|&(value, _)| value);
+
+        Self { entries, lookup }
     }
 
     /// Returns a reference's table index.
@@ -90,7 +93,7 @@ impl<'doc, T: Reference> Table<'doc, T> {
     ///
     /// This panics for a reference the table does not intern, which construction over the whole
     /// reference set rules out.
-    pub(super) fn index_of(&self, reference: &T) -> u32 {
+    pub(super) fn index_of(&self, reference: &T) -> TableIndex {
         let index = self
             .lookup
             .binary_search_by(|&(value, _)| value.cmp(reference))
@@ -100,7 +103,7 @@ impl<'doc, T: Reference> Table<'doc, T> {
     }
 
     /// Views the interned renderings, ascending bytewise.
-    pub(super) const fn entries(&self) -> &[Cow<'doc, str>] {
-        &self.rendered
+    pub(super) const fn entries(&self) -> &IdSlice<TableIndex, Cow<'doc, str>> {
+        &self.entries
     }
 }

@@ -1509,7 +1509,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let (sources, targets, edge_ids) = wire_columns(&atlas, &sources, &targets, &internal_edges);
 
     let no_labels: Vec<&Label> = vec![Label::empty(); edge_ids.len()];
-    let no_types: Vec<Option<u32>> = vec![None; edge_ids.len()];
+    let no_types: Vec<Option<super::TableIndex>> = vec![None; edge_ids.len()];
     let expected = EdgesResponse {
         generation: generation.id().digest(),
         variant: 0,
@@ -1518,7 +1518,7 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
         targets: &targets,
         edge_ids: &edge_ids,
         trailer: Some(EdgesTrailer {
-            type_table: &[],
+            type_table: IdSlice::from_raw(&[]),
             link_labels: &no_labels,
             link_type_ids: &no_types,
         }),
@@ -2575,12 +2575,18 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let nodes = subgraph.rows.len();
     let edges = subgraph.edges.len();
     let no_labels: Vec<&Label> = vec![Label::empty(); nodes];
-    let no_types: Vec<Option<u32>> = vec![None; nodes];
+    let no_types: Vec<Option<super::TableIndex>> = vec![None; nodes];
     let no_link_labels: Vec<&Label> = vec![Label::empty(); edges];
-    let no_lists: Vec<Vec<u32>> = vec![Vec::new(); edges];
+    let no_lists: Vec<Vec<super::TableIndex>> = vec![Vec::new(); edges];
     let no_flags: Box<DenseBitSlice<EdgeSlot>> = DenseBitSlice::new_empty(edges);
-    let no_maps: Vec<Option<&[(u32, crate::salt::wire::locate::PropertyValue<'_>)]>> =
-        vec![None; edges];
+    let no_maps: Vec<
+        Option<
+            &[(
+                super::TableIndex,
+                crate::salt::wire::locate::PropertyValue<'_>,
+            )],
+        >,
+    > = vec![None; edges];
     let response = |masks: Option<&[Membership<'_>]>| {
         LocateResponse {
             generation: generation.id().digest(),
@@ -2598,8 +2604,8 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             targets: &targets,
             edge_ids: &edge_ids,
             trailer: LocateTrailer {
-                type_table: &[],
-                property_table: &[],
+                type_table: IdSlice::from_raw(&[]),
+                property_table: IdSlice::from_raw(&[]),
                 labels: &no_labels,
                 type_ids: &no_types,
                 properties: None,

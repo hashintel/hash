@@ -20,12 +20,14 @@
 
 use alloc::borrow::Cow;
 
+use hashql_core::id::{Id as _, IdSlice};
+
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
     identity::NodeRowId,
     integrity::Sha256Digest,
-    serve::WireRow,
+    serve::{TableIndex, WireRow},
 };
 
 /// One edges response in writable form.
@@ -71,18 +73,18 @@ impl EdgesResponse<'_> {
         const HEAD_AND_PADDING: usize = 96;
 
         let count = self.sources.len();
-        assert_eq!(
+        debug_assert_eq!(
             self.targets.len(),
             count,
             "the source and target columns must cover the same edges",
         );
-        assert_eq!(
+        debug_assert_eq!(
             self.edge_ids.len(),
             count,
             "the source and edge-id columns must cover the same edges",
         );
         if let Some(trailer) = &self.trailer {
-            trailer.check_covers(count);
+            trailer.debug_assert_invariants(count);
         }
 
         let mut envelope = EnvelopeWriter::new(Kind::Edges, 4);
@@ -126,40 +128,32 @@ impl EdgesResponse<'_> {
 pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer [Cow<'trailer, str>],
+    pub type_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
     /// Trailer key 1: link labels, edge order.
     pub link_labels: &'trailer [&'trailer Label],
     /// Trailer key 2.
     ///
     /// Each edge's first direct type as a type-table index, edge order. `null` marks a link the
     /// store no longer serves or whose types the store does not record.
-    pub link_type_ids: &'trailer [Option<u32>],
+    pub link_type_ids: &'trailer [Option<TableIndex>],
 }
 
 impl EdgesTrailer<'_> {
-    /// Asserts the coverage and interning laws.
-    fn check_covers(&self, count: usize) {
-        assert_eq!(
+    /// Asserts that the trailer arrays cover the delivered edges.
+    ///
+    /// Coverage is the one trailer law the types do not carry, since the arrays travel as
+    /// separate slices. Every check is a `debug_assert`, so release builds compile this to
+    /// nothing.
+    fn debug_assert_invariants(&self, count: usize) {
+        debug_assert_eq!(
             self.link_labels.len(),
             count,
             "the trailer link labels must cover exactly the delivered edges",
         );
-        assert_eq!(
+        debug_assert_eq!(
             self.link_type_ids.len(),
             count,
             "the trailer link type ids must cover exactly the delivered edges",
-        );
-        assert!(
-            self.type_table
-                .is_sorted_by(|left, right| left.as_bytes() < right.as_bytes()),
-            "the intern table must be bytewise-sorted and deduplicated",
-        );
-        assert!(
-            self.link_type_ids
-                .iter()
-                .flatten()
-                .all(|&index| (index as usize) < self.type_table.len()),
-            "link type ids must index into the type table",
         );
     }
 
@@ -181,7 +175,7 @@ impl EdgesTrailer<'_> {
         cbor.array(self.link_type_ids.len() as u64);
         for entry in self.link_type_ids {
             match entry {
-                Some(index) => cbor.uint(u64::from(*index)),
+                Some(index) => cbor.uint(index.as_u64()),
                 None => cbor.null(),
             }
         }

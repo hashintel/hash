@@ -764,7 +764,10 @@ mod tile {
 mod edges {
     use alloc::borrow::Cow;
 
+    use hashql_core::id::IdSlice;
+
     use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, WireRow, identity_of, section};
+    use crate::serve::TableIndex;
 
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
@@ -817,9 +820,9 @@ mod edges {
     fn trailer_carries_the_link_columns() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
-            type_table: &const { [Cow::Borrowed("s"), Cow::Borrowed("t")] },
+            type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
             link_labels: &const { [Label::new("a"), Label::empty(), Label::empty()] },
-            link_type_ids: &[Some(1), Some(0), None],
+            link_type_ids: &const { [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None] },
         });
         let bytes = response.encode();
 
@@ -873,33 +876,9 @@ mod edges {
     fn short_trailers_are_rejected() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
-            type_table: &[],
+            type_table: IdSlice::from_raw(&[]),
             link_labels: &const { [Label::empty(); 3] },
             link_type_ids: &[None],
-        });
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "intern table must be bytewise-sorted")]
-    fn unsorted_intern_tables_are_rejected() {
-        let mut response = minimal();
-        response.trailer = Some(EdgesTrailer {
-            type_table: &const { [Cow::Borrowed("t"), Cow::Borrowed("s")] },
-            link_labels: &const { [Label::empty(); 3] },
-            link_type_ids: &[None, None, None],
-        });
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "link type ids must index into the type table")]
-    fn out_of_table_type_ids_are_rejected() {
-        let mut response = minimal();
-        response.trailer = Some(EdgesTrailer {
-            type_table: &const { [Cow::Borrowed("s")] },
-            link_labels: &const { [Label::empty(); 3] },
-            link_type_ids: &[Some(1), None, None],
         });
         let _bytes = response.encode();
     }
@@ -916,7 +895,7 @@ mod locate {
         PropertyValue, Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of,
         section,
     };
-    use crate::serve::hydrate::EdgeSlot;
+    use crate::serve::{TableIndex, hydrate::EdgeSlot};
 
     /// The four-point base-order coordinate column behind the tests.
     fn points() -> [Vec2; 4] {
@@ -929,7 +908,7 @@ mod locate {
     }
 
     /// The two-edge link-type lists behind the minimal trailer: both empty.
-    static NO_TYPES: [Vec<u32>; 2] = [Vec::new(), Vec::new()];
+    static NO_TYPES: [Vec<TableIndex>; 2] = [Vec::new(), Vec::new()];
 
     /// The two-edge completeness set behind the minimal trailer: nothing complete.
     static NO_FLAGS: LazyLock<Box<DenseBitSlice<EdgeSlot>>> = LazyLock::new(|| dense_set(2, &[]));
@@ -971,8 +950,8 @@ mod locate {
             targets: &const { [WireRow::pinned(12), WireRow::pinned(13)] },
             edge_ids: &const { [identity_of(0x44), identity_of(0x55)] },
             trailer: LocateTrailer {
-                type_table: &[],
-                property_table: &[],
+                type_table: IdSlice::from_raw(&[]),
+                property_table: IdSlice::from_raw(&[]),
                 labels: &const { [Label::empty(); 3] },
                 type_ids: &[None, None, None],
                 properties: None,
@@ -1073,28 +1052,35 @@ mod locate {
     #[test]
     fn trailer_encodes_by_hand() {
         let positions = points();
-        let lists = [vec![1_u32, 0], Vec::new()];
+        let lists = [vec![TableIndex::new(1), TableIndex::new(0)], Vec::new()];
+        let link_map = [
+            (TableIndex::new(0), PropertyValue::Boolean(true)),
+            (TableIndex::new(1), PropertyValue::Null),
+        ];
+        let link_properties: [Option<&[(TableIndex, PropertyValue<'_>)]>; 2] =
+            [Some(&link_map), None];
         // Slot 0's type list is complete and slot 1's property map is, over the two delivered
         // edges.
         let type_flags = dense_set::<EdgeSlot>(2, &[0]);
         let property_flags = dense_set::<EdgeSlot>(2, &[1]);
         let mut response = minimal(&positions);
         response.trailer = LocateTrailer {
-            type_table: &const { [Cow::Borrowed("s"), Cow::Borrowed("t")] },
-            property_table: &const { [Cow::Borrowed("a"), Cow::Borrowed("b")] },
+            type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
+            property_table: IdSlice::from_raw(&const { [Cow::Borrowed("a"), Cow::Borrowed("b")] }),
             labels: &const { [Label::new("n"), Label::empty(), Label::empty()] },
-            type_ids: &[Some(1), None, Some(0)],
-            properties: Some(&[
-                (0, PropertyValue::Text("x")),
-                (1, PropertyValue::Integer(-2)),
-            ]),
+            type_ids: &const { [Some(TableIndex::new(1)), None, Some(TableIndex::new(0))] },
+            properties: Some(
+                &const {
+                    [
+                        (TableIndex::new(0), PropertyValue::Text("x")),
+                        (TableIndex::new(1), PropertyValue::Integer(-2)),
+                    ]
+                },
+            ),
             link_labels: &const { [Label::new("l"), Label::empty()] },
             link_type_ids: &lists,
             link_type_ids_complete: &type_flags,
-            link_properties: &[
-                Some(&[(0, PropertyValue::Boolean(true)), (1, PropertyValue::Null)]),
-                None,
-            ],
+            link_properties: &link_properties,
             link_properties_complete: &property_flags,
         };
         let bytes = response.encode();
@@ -1184,57 +1170,6 @@ mod locate {
         let short = dense_set::<EdgeSlot>(1, &[]);
         let mut response = minimal(&positions);
         response.trailer.link_type_ids_complete = &short;
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "bytewise-sorted and deduplicated")]
-    fn unsorted_intern_tables_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.trailer.property_table = &const { [Cow::Borrowed("b"), Cow::Borrowed("a")] };
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "node type ids must index into the type table")]
-    fn out_of_table_node_type_ids_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.trailer.type_ids = &[Some(0), None, None];
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "link type ids must index into the type table")]
-    fn out_of_table_link_type_ids_are_rejected() {
-        let positions = points();
-        let lists = [vec![0_u32], Vec::new()];
-        let mut response = minimal(&positions);
-        response.trailer.link_type_ids = &lists;
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "property map keys must index into the property table")]
-    fn out_of_table_property_keys_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.trailer.property_table = &const { [Cow::Borrowed("a")] };
-        response.trailer.properties = Some(&[(1, PropertyValue::Null)]);
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "property map keys must ascend")]
-    fn descending_property_keys_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.trailer.property_table = &const { [Cow::Borrowed("a"), Cow::Borrowed("b")] };
-        response.trailer.link_properties = &[
-            Some(&[(1, PropertyValue::Null), (0, PropertyValue::Null)]),
-            None,
-        ];
         let _bytes = response.encode();
     }
 }

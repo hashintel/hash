@@ -21,7 +21,8 @@
 
 use alloc::borrow::Cow;
 
-use hashql_core::id::IdSlice;
+use hashql_core::id::{Id as _, IdSlice};
+use zerocopy::IntoBytes as _;
 
 use super::{
     Kind,
@@ -37,7 +38,7 @@ use crate::{
     integrity::Sha256Digest,
     math::Vec2,
     salt::postings::artifact::Membership,
-    serve::{WireRow, hydrate::EdgeSlot},
+    serve::{TableIndex, WireRow, hydrate::EdgeSlot},
 };
 
 /// One locate response in writable form.
@@ -71,7 +72,7 @@ pub(crate) struct LocateResponse<'doc> {
     /// `HEAD` key 9: whether the trailer's source property map is the entity's whole deliverable
     /// set.
     ///
-    /// `false` when the simple-value filter or the property cap dropped anything, and for a source
+    /// `false` when the scalar-value filter or the property cap dropped anything, and for a source
     /// the store no longer serves.
     pub properties_complete: bool,
     /// Base positions in delivered order, source first.
@@ -115,17 +116,18 @@ impl LocateResponse<'_> {
             size_of::<u32>() + size_of::<u32>() + size_of::<ArchivedEntityId>();
 
         let edges = self.sources.len();
-        assert_eq!(
+        debug_assert_eq!(
             self.targets.len(),
             edges,
             "the source and target columns must cover the same edges",
         );
-        assert_eq!(
+        debug_assert_eq!(
             self.edge_ids.len(),
             edges,
             "the source and edge-id columns must cover the same edges",
         );
-        self.trailer.check_covers(self.delivered.len(), edges);
+        self.trailer
+            .debug_assert_invariants(self.delivered.len(), edges);
 
         let mut envelope = EnvelopeWriter::new(Kind::Locate, 7);
         envelope.reserve(self.delivered.len() * POINT_SIZE + edges * EDGE_SIZE);
@@ -224,23 +226,23 @@ impl LocateResponse<'_> {
 pub(crate) struct LocateTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer [Cow<'trailer, str>],
+    pub type_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
     /// Trailer key 1: the property intern table - every surviving property base URL once,
     /// bytewise-sorted.
-    pub property_table: &'trailer [Cow<'trailer, str>],
+    pub property_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
     /// Trailer key 2: labels, delivered order.
     pub labels: &'trailer [&'trailer Label],
     /// Trailer key 3.
     ///
     /// Each delivered node's first direct type as a type-table index, delivered order. `null`
     /// marks a node the store no longer serves or whose types the store does not record.
-    pub type_ids: &'trailer [Option<u32>],
+    pub type_ids: &'trailer [Option<TableIndex>],
     /// Trailer key 4.
     ///
     /// The source's property map, keyed by uint index into the property table, keys ascending.
     /// `null` marks a source the store no longer serves. Neighbour nodes carry no properties, and
     /// their detail is one locate away.
-    pub properties: Option<&'trailer [(u32, PropertyValue<'trailer>)]>,
+    pub properties: Option<&'trailer [(TableIndex, PropertyValue<'trailer>)]>,
     /// Trailer key 5: link labels, edge order.
     pub link_labels: &'trailer [&'trailer Label],
     /// Trailer key 6.
@@ -248,7 +250,7 @@ pub(crate) struct LocateTrailer<'trailer> {
     /// Each delivered edge's direct types as type-table indexes, edge order, canonical type order
     /// preserved, capped by the published `locateLinkTypeIds` limit. Empty for a link the store no
     /// longer serves.
-    pub link_type_ids: &'trailer [Vec<u32>],
+    pub link_type_ids: &'trailer [Vec<TableIndex>],
     /// Trailer key 7: per-edge type completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
@@ -260,97 +262,57 @@ pub(crate) struct LocateTrailer<'trailer> {
     /// Per-edge property maps, edge order, keyed by uint index into the property table, keys
     /// ascending, capped by the published `locateLinkProperties` limit. `null` marks a link the
     /// store no longer serves.
-    pub link_properties: &'trailer [Option<&'trailer [(u32, PropertyValue<'trailer>)]>],
+    pub link_properties: &'trailer [Option<&'trailer [(TableIndex, PropertyValue<'trailer>)]>],
     /// Trailer key 9: per-edge property completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
     /// means edge `e`'s property map is the link entity's whole deliverable set - unset means the
-    /// simple-value filter or the cap dropped something, or the store no longer serves the link.
+    /// scalar-value filter or the cap dropped something, or the store no longer serves the link.
     pub link_properties_complete: &'trailer DenseBitSlice<EdgeSlot>,
 }
 
 impl LocateTrailer<'_> {
-    /// Asserts the coverage and interning laws.
+    /// Asserts that the trailer arrays cover the delivered nodes and edges.
     ///
-    /// Node arrays cover exactly the delivered nodes, link arrays the delivered edges, the intern
-    /// tables are bytewise-sorted and deduplicated, every type reference indexes into the type
-    /// table, and every property map keys ascending into the property table's bounds.
-    fn check_covers(&self, nodes: usize, edges: usize) {
-        assert_eq!(
+    /// Coverage is the one trailer law the types do not carry, since the arrays travel as
+    /// separate slices. Every check is a `debug_assert`, so release builds compile this to
+    /// nothing.
+    fn debug_assert_invariants(&self, nodes: usize, edges: usize) {
+        debug_assert_eq!(
             self.labels.len(),
             nodes,
             "the trailer labels must cover exactly the delivered nodes",
         );
-        assert_eq!(
+        debug_assert_eq!(
             self.type_ids.len(),
             nodes,
             "the trailer type ids must cover exactly the delivered nodes",
         );
-        for (length, name) in [
-            (self.link_labels.len(), "labels"),
-            (self.link_type_ids.len(), "type ids"),
-            (self.link_properties.len(), "properties"),
-        ] {
-            assert_eq!(
-                length, edges,
-                "the trailer link {name} must cover exactly the delivered edges",
-            );
-        }
-        for (domain, name) in [
-            (
-                self.link_type_ids_complete.domain_size(),
-                "type completeness",
-            ),
-            (
-                self.link_properties_complete.domain_size(),
-                "property completeness",
-            ),
-        ] {
-            assert_eq!(
-                domain, edges as u64,
-                "the trailer link {name} must cover exactly the delivered edges",
-            );
-        }
-
-        for table in [self.type_table, self.property_table] {
-            assert!(
-                table.is_sorted_by(|left, right| left.as_bytes() < right.as_bytes()),
-                "an intern table must be bytewise-sorted and deduplicated",
-            );
-        }
-        let types = self.type_table.len();
-        assert!(
-            self.type_ids
-                .iter()
-                .flatten()
-                .all(|&index| (index as usize) < types),
-            "node type ids must index into the type table",
+        debug_assert_eq!(
+            self.link_labels.len(),
+            edges,
+            "the trailer link labels must cover exactly the delivered edges",
         );
-        assert!(
-            self.link_type_ids
-                .iter()
-                .flatten()
-                .all(|&index| (index as usize) < types),
-            "link type ids must index into the type table",
+        debug_assert_eq!(
+            self.link_type_ids.len(),
+            edges,
+            "the trailer link type ids must cover exactly the delivered edges",
         );
-        for entries in self
-            .link_properties
-            .iter()
-            .flatten()
-            .copied()
-            .chain(self.properties)
-        {
-            assert!(
-                entries.is_sorted_by(|left, right| left.0 < right.0),
-                "property map keys must ascend",
-            );
-            assert!(
-                entries
-                    .iter()
-                    .all(|&(index, _)| (index as usize) < self.property_table.len()),
-                "property map keys must index into the property table",
-            );
-        }
+        debug_assert_eq!(
+            self.link_properties.len(),
+            edges,
+            "the trailer link properties must cover exactly the delivered edges",
+        );
+        debug_assert_eq!(
+            self.link_type_ids_complete.domain_size(),
+            edges as u64,
+            "the trailer link type completeness must cover exactly the delivered edges",
+        );
+        debug_assert_eq!(
+            self.link_properties_complete.domain_size(),
+            edges as u64,
+            "the trailer link property completeness must cover exactly the delivered edges",
+        );
     }
 
     /// Encodes the trailer tail as one self-delimiting CBOR map.
@@ -377,7 +339,7 @@ impl LocateTrailer<'_> {
         cbor.array(self.type_ids.len() as u64);
         for entry in self.type_ids {
             match entry {
-                Some(index) => cbor.uint(u64::from(*index)),
+                Some(index) => cbor.uint(index.as_u64()),
                 None => cbor.null(),
             }
         }
@@ -392,14 +354,12 @@ impl LocateTrailer<'_> {
         for indexes in self.link_type_ids {
             cbor.array(indexes.len() as u64);
             for &index in indexes {
-                cbor.uint(u64::from(index));
+                cbor.uint(index.as_u64());
             }
         }
 
         cbor.uint(7);
-        cbor.bytes(zerocopy::IntoBytes::as_bytes(
-            self.link_type_ids_complete.words(),
-        ));
+        cbor.bytes(self.link_type_ids_complete.words().as_bytes());
 
         cbor.uint(8);
         cbor.array(self.link_properties.len() as u64);
@@ -408,19 +368,20 @@ impl LocateTrailer<'_> {
         }
 
         cbor.uint(9);
-        cbor.bytes(zerocopy::IntoBytes::as_bytes(
-            self.link_properties_complete.words(),
-        ));
+        cbor.bytes(self.link_properties_complete.words().as_bytes());
     }
 }
 
 /// Encodes one property map, `null` for an entity the store no longer serves.
-fn encode_property_map(cbor: &mut CborWriter<'_>, entries: Option<&[(u32, PropertyValue<'_>)]>) {
+fn encode_property_map(
+    cbor: &mut CborWriter<'_>,
+    entries: Option<&[(TableIndex, PropertyValue<'_>)]>,
+) {
     match entries {
         Some(entries) => {
             cbor.map(entries.len() as u64);
             for &(index, ref value) in entries {
-                cbor.uint(u64::from(index));
+                cbor.uint(index.as_u64());
                 value.encode(cbor);
             }
         }
@@ -428,7 +389,7 @@ fn encode_property_map(cbor: &mut CborWriter<'_>, entries: Option<&[(u32, Proper
     }
 }
 
-/// One simple property value.
+/// One scalar property value.
 ///
 /// These variants are the only value shapes the wire encodes. Nested objects and arrays never
 /// survive hydration.

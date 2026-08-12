@@ -313,7 +313,7 @@ impl Atlas {
     ) -> Vec<u8> {
         let columns = details.map(|details| {
             let table = Table::new(details.first_type_urls().iter().flatten());
-            let link_type_ids: Vec<Option<u32>> = details
+            let link_type_ids: Vec<_> = details
                 .first_type_urls()
                 .iter()
                 .map(|url| url.as_ref().map(|url| table.index_of(url)))

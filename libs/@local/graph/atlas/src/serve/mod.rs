@@ -60,6 +60,7 @@ pub(crate) use self::{
     edges::{EdgesError, EdgesLimits, EdgesRequest},
     error::OpenAtlasError,
     hydrate::GraphDatabaseClient,
+    intern::TableIndex,
     locate::{LocateError, LocateRequest},
     manifest::Manifest,
     open::OpenOptions,

@@ -52,7 +52,7 @@ use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
-    serve::{WireRow, hydrate::EdgeSlot},
+    serve::{TableIndex, WireRow, hydrate::EdgeSlot},
 };
 
 /// One pinned fixture with its name, response bytes, and sidecar.
@@ -634,7 +634,7 @@ fn g6_edges() -> Fixture {
         Label::empty(),
     ];
     let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"].map(Cow::Borrowed);
-    let link_type_ids = [Some(1_u32), Some(0), None];
+    let link_type_ids = [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None];
     let edge_ids = [
         identity_of(0xA0, 0xA1),
         identity_of(0xB0, 0xB1),
@@ -649,7 +649,7 @@ fn g6_edges() -> Fixture {
         targets: &[11, 7, 2].map(WireRow::pinned),
         edge_ids: &edge_ids,
         trailer: Some(EdgesTrailer {
-            type_table: &type_table,
+            type_table: IdSlice::from_raw(&type_table),
             link_labels: &link_labels,
             link_type_ids: &link_type_ids,
         }),
@@ -674,7 +674,7 @@ fn g6_edges() -> Fixture {
         "trailer": {
             "typeTable": type_table,
             "linkLabels": details_sidecar(&link_labels),
-            "linkTypeIds": link_type_ids,
+            "linkTypeIds": link_type_ids.map(|entry| entry.map(Id::as_u32)),
         },
     });
 
@@ -692,22 +692,22 @@ struct G7Trailer {
     /// The property intern table, bytewise-sorted.
     property_table: [Cow<'static, str>; 4],
     /// The source's property map, covering text, a negative integer, a double, and a boolean.
-    source_map: [(u32, PropertyValue<'static>); 4],
+    source_map: [(TableIndex, PropertyValue<'static>); 4],
     /// One edge's property map, covering a positive integer, an explicit `null`, and a negative
     /// double.
-    link_map: [(u32, PropertyValue<'static>); 3],
+    link_map: [(TableIndex, PropertyValue<'static>); 3],
     /// Node labels: non-ASCII, an empty label (a wire `null`), an astral plane character, a
     /// combining mark.
     labels: [&'static Label; 4],
     /// Each node's first direct type as a type-table index, one store-absent `null` among them.
-    type_ids: [Option<u32>; 4],
+    type_ids: [Option<TableIndex>; 4],
     /// Link labels: non-ASCII, an empty label (a wire `null`), ASCII.
     link_labels: [&'static Label; 3],
     /// Each edge's direct types as type-table indexes, one list empty.
     ///
     /// Canonical direct-type order is the store's, never sorted: the first list pins a descending
     /// pair on purpose.
-    link_type_ids: [Vec<u32>; 3],
+    link_type_ids: [Vec<TableIndex>; 3],
     /// The delivered edges whose type list is complete.
     link_type_ids_complete: Box<DenseBitSlice<EdgeSlot>>,
     /// The delivered edges whose property map is complete.
@@ -731,15 +731,15 @@ fn g7_trailer() -> G7Trailer {
         ]
         .map(Cow::Borrowed),
         source_map: [
-            (0, PropertyValue::Integer(-3)),
-            (1, PropertyValue::Text("Ada")),
-            (2, PropertyValue::Boolean(true)),
-            (3, PropertyValue::Float(0.5)),
+            (TableIndex::new(0), PropertyValue::Integer(-3)),
+            (TableIndex::new(1), PropertyValue::Text("Ada")),
+            (TableIndex::new(2), PropertyValue::Boolean(true)),
+            (TableIndex::new(3), PropertyValue::Float(0.5)),
         ],
         link_map: [
-            (0, PropertyValue::Integer(977)),
-            (1, PropertyValue::Null),
-            (3, PropertyValue::Float(-2.5)),
+            (TableIndex::new(0), PropertyValue::Integer(977)),
+            (TableIndex::new(1), PropertyValue::Null),
+            (TableIndex::new(3), PropertyValue::Float(-2.5)),
         ],
         labels: [
             Label::new("Caf\u{e9}"),
@@ -747,13 +747,22 @@ fn g7_trailer() -> G7Trailer {
             Label::new("\u{1d50a}"),
             Label::new("e\u{301}"),
         ],
-        type_ids: [Some(1_u32), None, Some(2), Some(0)],
+        type_ids: [
+            Some(TableIndex::new(1)),
+            None,
+            Some(TableIndex::new(2)),
+            Some(TableIndex::new(0)),
+        ],
         link_labels: [
             Label::new("\u{153}uvre"),
             Label::empty(),
             Label::new("cites"),
         ],
-        link_type_ids: [vec![1_u32, 0], vec![0], Vec::new()],
+        link_type_ids: [
+            vec![TableIndex::new(1), TableIndex::new(0)],
+            vec![TableIndex::new(0)],
+            Vec::new(),
+        ],
         // Slot 0's type list is complete, and slots 0 and 2 carry whole property maps, over the
         // three delivered edges.
         link_type_ids_complete: dense_set(3, &[0]),
@@ -798,7 +807,7 @@ fn g7_locate() -> Fixture {
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
     let trailer = g7_trailer();
-    let link_properties: [Option<&[(u32, PropertyValue<'_>)]>; 3] =
+    let link_properties: [Option<&[(TableIndex, PropertyValue<'_>)]>; 3] =
         [Some(&trailer.link_map), None, Some(&[])];
     let edge_ids = [
         identity_of(0xD0, 0xD1),
@@ -822,8 +831,8 @@ fn g7_locate() -> Fixture {
         targets: &[11, 61, 41].map(WireRow::pinned),
         edge_ids: &edge_ids,
         trailer: LocateTrailer {
-            type_table: &trailer.type_table,
-            property_table: &trailer.property_table,
+            type_table: IdSlice::from_raw(&trailer.type_table),
+            property_table: IdSlice::from_raw(&trailer.property_table),
             labels: &trailer.labels,
             type_ids: &trailer.type_ids,
             properties: Some(&trailer.source_map),
@@ -932,13 +941,21 @@ fn locate_sidecar(
         "targets": response.targets,
         "edgeIds": identities_sidecar(response.edge_ids),
         "trailer": {
-            "typeTable": trailer.type_table,
-            "propertyTable": trailer.property_table,
+            "typeTable": trailer.type_table.as_raw(),
+            "propertyTable": trailer.property_table.as_raw(),
             "labels": details_sidecar(trailer.labels),
-            "typeIds": trailer.type_ids,
+            "typeIds": trailer
+                .type_ids
+                .iter()
+                .map(|entry| entry.map(Id::as_u32))
+                .collect::<Vec<_>>(),
             "properties": properties,
             "linkLabels": details_sidecar(trailer.link_labels),
-            "linkTypeIds": trailer.link_type_ids,
+            "linkTypeIds": trailer
+                .link_type_ids
+                .iter()
+                .map(|list| list.iter().copied().map(Id::as_u32).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
             "linkTypeIdsComplete": flag_row(trailer.link_type_ids_complete),
             "linkProperties": link_properties,
             "linkPropertiesComplete": flag_row(trailer.link_properties_complete),
