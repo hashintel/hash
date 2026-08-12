@@ -3603,6 +3603,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-graph-authentication"
+version = "0.0.0"
+dependencies = [
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-graph-authorization"
 version = "0.0.0"
 dependencies = [
