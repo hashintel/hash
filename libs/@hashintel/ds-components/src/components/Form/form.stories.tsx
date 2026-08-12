@@ -21,6 +21,15 @@ const labelDirections = [
   "right",
 ] as const satisfies readonly LabelDirection[];
 
+type FieldLayout = NonNullable<
+  React.ComponentProps<typeof Form.Field>["layout"]
+>;
+
+const fieldLayouts = [
+  "block",
+  "inline",
+] as const satisfies readonly FieldLayout[];
+
 type FormRowGap = NonNullable<React.ComponentProps<typeof Form.Row>["gap"]>;
 type FormRowAlign = NonNullable<React.ComponentProps<typeof Form.Row>["align"]>;
 
@@ -92,6 +101,11 @@ export default {
       control: { type: "radio" },
       options: labelDirections,
       description: "Alignment of label and helper content",
+    },
+    layout: {
+      control: { type: "radio" },
+      options: fieldLayouts,
+      description: "Arrangement of label and input",
     },
     description: {
       control: { type: "text" },
@@ -237,6 +251,10 @@ export const FormField: Story<FormFieldArgs> = (args) => (
   </div>
 );
 
+export const FormFieldInlineLayout: Story<FormFieldArgs> = (args) => (
+  <FormField {...args} layout="inline" />
+);
+
 export const FormFieldSize: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formInputSizes.map((size: FormInputSize) => (
@@ -250,6 +268,25 @@ export const FormFieldSize: Story<FormFieldArgs> = (args) => (
       >
         <ControlledTextInput
           name={`form-field-size-${size}`}
+          initialValue="Kitchen sink value"
+          size={size}
+          disabled
+          invalid
+        />
+      </Form.Field>
+    ))}
+    {formInputSizes.map((size: FormInputSize) => (
+      <Form.Field
+        {...args}
+        as="label"
+        key={`${size}-inline`}
+        label={`Size: ${size} (inline)`}
+        size={size}
+        layout="inline"
+        {...kitchenSinkProps}
+      >
+        <ControlledTextInput
+          name={`form-field-size-${size}-inline`}
           initialValue="Kitchen sink value"
           size={size}
           disabled

@@ -1,5 +1,7 @@
 import { useId } from "react";
 
+import { cx } from "@hashintel/ds-helpers/css";
+
 import { Description } from "./description";
 import { Errors } from "./errors";
 import { FieldIdProvider } from "./field-id-context";
@@ -36,6 +38,7 @@ const FormField = ({
   as?: "label" | "legend";
 
   labelDirection?: "left" | "right";
+  /** `inline` places the label in a column beside the input (defaults to `block`) */
   layout?: "block" | "inline";
 
   description?: React.ReactNode;
@@ -45,62 +48,93 @@ const FormField = ({
 
   errors?: Array<string | React.ReactNode>;
 } & SharedInputAndFieldProps) => {
-  const classes = styles({ size });
+  const classes = styles({ size, layout });
   const id = useId();
   const labelType = as === "label" ? { as, htmlFor: id } : { as };
 
+  const labelEl = (
+    <Label
+      {...labelType}
+      size={size}
+      direction={labelDirection}
+      required={required}
+      actions={layout === "block" ? labelActions : undefined}
+      tooltip={labelTooltip}
+      disabled={disabled}
+      hide={hideLabel}
+      className={classes.label}
+    >
+      {label}
+    </Label>
+  );
+
+  const descriptionEl = description && (
+    <Description
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.description}
+      data-part="description"
+    >
+      {description}
+    </Description>
+  );
+
+  const descriptionBottomEl = descriptionBottom && (
+    <Description
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.descriptionBottom}
+      data-part="descriptionBottom"
+    >
+      {descriptionBottom}
+    </Description>
+  );
+  const errorsEl = errors && (
+    <Errors
+      errors={errors}
+      size={size}
+      direction={labelDirection}
+      disabled={disabled}
+      className={classes.errors}
+      data-part="errors"
+    />
+  );
+
+  const controlEl =
+    as === "label" ? (
+      <FieldIdProvider id={id}>{children}</FieldIdProvider>
+    ) : (
+      children
+    );
+
+  if (layout === "inline") {
+    return (
+      <fieldset className={cx(classes.root, className)}>
+        {descriptionEl}
+        <div className={classes.inlineControl}>
+          {labelEl}
+          <div className={classes.inlineInput}>
+            {controlEl}
+            {labelActions && (
+              <span className={classes.inlineLabelActions}>{labelActions}</span>
+            )}
+          </div>
+        </div>
+        {descriptionBottomEl}
+        {errorsEl}
+      </fieldset>
+    );
+  }
+
   return (
-    <fieldset className={className}>
-      <Label
-        {...labelType}
-        size={size}
-        direction={labelDirection}
-        required={required}
-        actions={labelActions}
-        tooltip={labelTooltip}
-        disabled={disabled}
-        hide={hideLabel}
-        className={classes.label}
-      >
-        {label}
-      </Label>
-      {description && (
-        <Description
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.description}
-          data-part="description"
-        >
-          {description}
-        </Description>
-      )}
-      {as === "label" ? (
-        <FieldIdProvider id={id}>{children}</FieldIdProvider>
-      ) : (
-        children
-      )}
-      {descriptionBottom && (
-        <Description
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.descriptionBottom}
-          data-part="descriptionBottom"
-        >
-          {descriptionBottom}
-        </Description>
-      )}
-      {errors && (
-        <Errors
-          errors={errors}
-          size={size}
-          direction={labelDirection}
-          disabled={disabled}
-          className={classes.errors}
-          data-part="errors"
-        />
-      )}
+    <fieldset className={cx(classes.root, className)}>
+      {labelEl}
+      {descriptionEl}
+      {controlEl}
+      {descriptionBottomEl}
+      {errorsEl}
     </fieldset>
   );
 };
