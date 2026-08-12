@@ -11,7 +11,7 @@ authors.workspace = true
 
 # Public third-party dependencies
 
-# Public third-party dependencies
+# Private workspace dependencies
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
