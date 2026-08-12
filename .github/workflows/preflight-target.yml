@@ -17,10 +17,6 @@ jobs:
       contents: read
       pull-requests: write
     uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@69449a772a55c55a101d4fefdceb4024b6bc3107 # main
-    with:
-      # GHSA-frvp-7c67-39w9: advisory has a wrong affected-version range; the fix was
-      # backported in @hono/node-server. Remove once github/advisory-database#8824 merges.
-      allow-ghsas: GHSA-frvp-7c67-39w9
 
   labeler:
     name: Labeler
