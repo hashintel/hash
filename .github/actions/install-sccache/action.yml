@@ -1,36 +1,41 @@
 name: Install sccache
 description: Setup sccache for Rust project caching
 inputs:
-  vault_address:
-    description: The URL of the Vault server holding `ci/sccache/r2`.
+  encrypted_credentials:
+    description: Encrypted credential bundle from mint-sccache-credentials.
     required: true
-  cf_access_client_id:
-    description: Cloudflare Access service-token client ID for that Vault.
-    required: true
-  cf_access_client_secret:
-    description: Cloudflare Access service-token client secret for that Vault.
+  encryption_key:
+    description: The symmetric key decrypting `encrypted_credentials`.
     required: true
 
 runs:
   using: composite
   steps:
-    - name: Retrieve secrets
-      id: secrets
-      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+    - name: Decrypt credentials
+      id: decrypt
+      uses: hashintel/.github/.github/actions/decrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
       with:
-        # The endpoint sits behind Cloudflare Access, hence the service-token
-        # headers. Vault's own ACL still decides what the role may read.
-        url: ${{ inputs.vault_address }}
-        method: jwt
-        role: ci-hash-sccache
-        extraHeaders: |
-          CF-Access-Client-Id: ${{ inputs.cf_access_client_id }}
-          CF-Access-Client-Secret: ${{ inputs.cf_access_client_secret }}
-        secrets: |
-          ci/data/sccache/r2 account_id | SCCACHE_ACCOUNT_ID ;
-          ci/data/sccache/r2 bucket | SCCACHE_BUCKET ;
-          ci/data/sccache/r2 access_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
-          ci/data/sccache/r2 secret_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
+        encrypted_value: ${{ inputs.encrypted_credentials }}
+        encryption_key: ${{ inputs.encryption_key }}
+
+    - name: Export credentials
+      shell: bash
+      env:
+        CREDENTIALS: ${{ steps.decrypt.outputs.value }}
+      run: |
+        account_id=$(jq --raw-output --exit-status '.account_id' <<<"${CREDENTIALS}")
+        bucket=$(jq --raw-output --exit-status '.bucket' <<<"${CREDENTIALS}")
+        access_key_id=$(jq --raw-output --exit-status '.access_key_id' <<<"${CREDENTIALS}")
+        secret_access_key=$(jq --raw-output --exit-status '.secret_access_key' <<<"${CREDENTIALS}")
+        for value in "${account_id}" "${bucket}" "${access_key_id}" "${secret_access_key}"; do
+          echo "::add-mask::${value}"
+        done
+        {
+          echo "SCCACHE_ACCOUNT_ID=${account_id}"
+          echo "SCCACHE_BUCKET=${bucket}"
+          echo "SCCACHE_AWS_ACCESS_KEY_ID=${access_key_id}"
+          echo "SCCACHE_AWS_SECRET_ACCESS_KEY=${secret_access_key}"
+        } >>"${GITHUB_ENV}"
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10

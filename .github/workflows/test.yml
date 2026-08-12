@@ -33,7 +33,7 @@ jobs:
   setup:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     outputs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
@@ -49,9 +49,6 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       - name: Determine changed packages
@@ -100,16 +97,36 @@ jobs:
           echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a "$GITHUB_OUTPUT"
           echo "publish-rust=$PUBLISH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
   unit-tests:
     name: Unit
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -123,9 +140,8 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository
@@ -203,14 +219,14 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup, optimize-ci]
+    needs: [setup, sccache-credentials, optimize-ci]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
     if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -222,9 +238,8 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository
@@ -367,13 +382,24 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, integration-tests, publish-rust, optimize-ci]
+    needs:
+      [
+        setup,
+        sccache-credentials,
+        unit-tests,
+        integration-tests,
+        publish-rust,
+        optimize-ci,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
       - name: Check unit tests
         run: |
           [[ ${{ needs.unit-tests.result }} =~ success|skipped ]]

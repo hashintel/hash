@@ -38,7 +38,7 @@ jobs:
   setup:
     runs-on: ubuntu-24.04
     permissions:
-      id-token: write
+      contents: read
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
       backend-images: ${{ steps.packages.outputs.backend-images }}
@@ -55,9 +55,6 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
           rust: false
 
       # Service catalog: the single source of truth for build/manifest/deploy.
@@ -231,9 +228,29 @@ jobs:
           echo "backend-deploys=$DEPLOY_MATRIX" | tee -a "$GITHUB_OUTPUT"
           echo "backend-staging=$STAGING_MATRIX" | tee -a "$GITHUB_OUTPUT"
 
+  sccache-credentials:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      encrypted-credentials: ${{ steps.mint.outputs.encrypted_credentials }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Mint sccache credentials
+        id: mint
+        uses: $/.github/actions/mint-sccache-credentials
+        with:
+          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
+          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
+          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
+
   sourcemaps:
     name: Sourcemaps
-    needs: [setup]
+    needs: [setup, sccache-credentials]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
@@ -279,9 +296,8 @@ jobs:
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          vault_address: ${{ vars.VAULT_STAGE_ADDR }}
-          cf_access_client_id: ${{ vars.CF_ACCESS_STAGE_CLIENT_ID }}
-          cf_access_client_secret: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+          encrypted_sccache_credentials: ${{ needs.sccache-credentials.outputs.encrypted-credentials }}
+          sccache_encryption_key: ${{ secrets.SCCACHE_ENC_KEY }}
 
       - name: Prune repository
         uses: $/.github/actions/prune-repository
@@ -575,13 +591,17 @@ jobs:
   # `needs: deploy` notifier would miss, since a skipped job is not a failure).
   passed:
     name: Deployments passed
-    needs: [setup, sourcemaps, build, stage, manifest, deploy]
+    needs:
+      [setup, sccache-credentials, sourcemaps, build, stage, manifest, deploy]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check setup
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+      - name: Check sccache credentials
+        run: |
+          [[ ${{ needs.sccache-credentials.result }} = success ]]
       - name: Check sourcemaps
         run: |
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]

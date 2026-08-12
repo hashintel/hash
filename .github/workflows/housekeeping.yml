@@ -73,3 +73,4 @@ jobs:
       dryRun: ${{ inputs.dryRun || 'disabled' }}
     secrets:
       CF_ACCESS_STAGE_CLIENT_SECRET: ${{ secrets.CF_ACCESS_STAGE_CLIENT_SECRET }}
+      RENOVATE_TOKEN_ENC_KEY: ${{ secrets.RENOVATE_TOKEN_ENC_KEY }}
