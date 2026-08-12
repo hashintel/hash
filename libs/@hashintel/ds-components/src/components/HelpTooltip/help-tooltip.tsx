@@ -6,10 +6,14 @@ import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./help-tooltip.recipe";
 
 export const HelpTooltip = ({
+  align = 'top',
   className,
   ...props
-}: Omit<React.ComponentProps<typeof Tooltip>, "children">) => {
-  const classes = styles();
+}: Omit<React.ComponentProps<typeof Tooltip>, "children"> & {
+  /** How the icon aligns with the surrounding text */
+  align?: "top" | "center";
+}) => {
+  const classes = styles({ align });
 
   return (
     <Tooltip
