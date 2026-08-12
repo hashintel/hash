@@ -127,6 +127,10 @@ Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, which fa
 
 Full reference: `libs/@local/petrinaut-arch-docs/README.md`.
 
+Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` carries the reasoning an import graph cannot express — why a boundary sits where it does, what the alternatives were. It is optional; the system works with that directory absent.
+
+Give such a page `attachTo: <layer id>` in its frontmatter and it nests inside the generated tree beneath that layer, rather than sitting in a separate section — that is how the simulation deep-dives are wired. Link between pages with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+
 ## Contextual Rules
 
 CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:
