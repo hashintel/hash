@@ -27,7 +27,7 @@ export const Label = ({
   direction?: "left" | "right";
 
   tooltip?: string | React.ReactNode;
-  actions?: React.ReactNode[];
+  actions?: React.ReactNode;
   required?: boolean;
   disabled?: boolean;
   hide?: boolean;

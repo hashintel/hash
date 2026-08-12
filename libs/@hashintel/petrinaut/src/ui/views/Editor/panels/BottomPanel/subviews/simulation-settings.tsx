@@ -360,39 +360,36 @@ const SimulationSettingsContent: React.FC = () => {
             size="xs"
             disabled={isSimulationActive}
             className={scenarioFieldStyle}
-            labelActions={[
-              ...(selectedScenario
-                ? [
-                    <Button
-                      key="edit"
-                      size="xs"
-                      variant="ghost"
-                      aria-label="Edit scenario"
-                      tooltip="Edit Scenario"
-                      iconName="pencil"
-                      onClick={() => setIsViewScenarioOpen(true)}
-                    />,
-                  ]
-                : []),
-              <Button
-                key="create"
-                size="xs"
-                variant="ghost"
-                aria-label="Create scenario"
-                tooltip="Create Scenario"
-                iconName="plus"
-                onClick={() => setIsCreateScenarioOpen(true)}
-              />,
-              <Button
-                key="manage"
-                size="xs"
-                variant="ghost"
-                aria-label="Manage scenarios"
-                tooltip="Manage Scenarios"
-                iconName="list"
-                onClick={() => setGlobalMode("simulate")}
-              />,
-            ]}
+            labelActions={
+              <>
+                {selectedScenario && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    aria-label="Edit scenario"
+                    tooltip="Edit Scenario"
+                    iconName="pencil"
+                    onClick={() => setIsViewScenarioOpen(true)}
+                  />
+                )}
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label="Create scenario"
+                  tooltip="Create Scenario"
+                  iconName="plus"
+                  onClick={() => setIsCreateScenarioOpen(true)}
+                />
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  aria-label="Manage scenarios"
+                  tooltip="Manage Scenarios"
+                  iconName="list"
+                  onClick={() => setGlobalMode("simulate")}
+                />
+              </>
+            }
           >
             <div className={scenarioSelectWrapperStyle}>
               <Select

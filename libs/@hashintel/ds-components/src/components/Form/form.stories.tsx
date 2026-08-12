@@ -104,7 +104,7 @@ const kitchenSinkProps = {
   description: "A short description above the input",
   descriptionBottom: "A short description below the input",
   labelTooltip: "Helpful tooltip text",
-  labelActions: [<ActionButton key="action" />],
+  labelActions: <ActionButton />,
   errors: ["First error", "Second error"],
   required: true,
 };
@@ -253,7 +253,7 @@ export const FormField: Story<FormFieldArgs> = (args) => (
       {...args}
       as="label"
       label="Actions"
-      labelActions={[<ActionButton key="action" />]}
+      labelActions={<ActionButton />}
     >
       <ControlledTextInput name="form-field-actions" size={args.size} />
     </Form.Field>
@@ -489,7 +489,7 @@ export const FormSection: Story<FormFieldArgs> = (args) => (
         as="label"
         layout="inline"
         label="Actions"
-        labelActions={[<ActionButton key="action" />]}
+        labelActions={<ActionButton />}
       >
         <ControlledTextInput name="form-section-actions" size={args.size} />
       </Form.Field>

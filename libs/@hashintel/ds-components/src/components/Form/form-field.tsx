@@ -43,7 +43,7 @@ const FormField = ({
   description?: React.ReactNode;
   descriptionBottom?: React.ReactNode;
   labelTooltip?: string | React.ReactNode;
-  labelActions?: React.ReactNode[];
+  labelActions?: React.ReactNode;
 
   errors?: Array<string | React.ReactNode>;
 } & (
