@@ -52,6 +52,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
+use super::MaskingActor;
 use crate::{
     bitset::CompressedBitSet,
     dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
@@ -131,11 +132,13 @@ const fn admits_every_row(
     filter.is_none() && matches!(policy_filter, Filter::All(conjuncts) if conjuncts.is_empty())
 }
 
-/// Resolves the rows visible to `actor` as a [`VisibilityProof`] over `atlas`.
+/// Resolves the rows visible to `actor` as a [`VisibilityProof`] over `atlas`, beside the
+/// [`MaskingActor`] the same policy resolution produced.
 ///
 /// `filter` narrows the view the proof admits. A request without one resolves the actor's whole
 /// viewable set, while a request with one resolves its intersection with that set, so the proof
-/// describes the view the request asked for.
+/// describes the view the request asked for. The masking actor travels with the proof so the
+/// scope's hydrations mask properties for the actor whose rows the proof admits.
 ///
 /// An unconstrained view answers without the store. Every row is visible when the actor's policies
 /// compile to the tautology and the request narrows nothing. The proof is then
@@ -163,7 +166,7 @@ pub(crate) async fn visibility_proof<S>(
     protection: &PropertyProtectionFilterConfig<'static>,
     store: &S,
     atlas: &Atlas,
-) -> Result<VisibilityProof, ProofError>
+) -> Result<(VisibilityProof, MaskingActor), ProofError>
 where
     S: PrincipalStore + PolicyStore + AsClient + Sync,
     // The conversion resolves a caller filter's parameters to their paths' types through the
@@ -180,6 +183,11 @@ where
         .await
         .map_err(ProofError::Policies)?;
 
+    let masking = MaskingActor {
+        id: policy_components.actor_id(),
+        instance_admin: policy_components.is_instance_admin(),
+    };
+
     let policy_filter = Filter::<Entity>::for_policies(
         policy_components.extract_filter_policies(ActionName::ViewEntity),
         policy_components.actor_id(),
@@ -187,7 +195,7 @@ where
     );
 
     if admits_every_row(filter, &policy_filter) {
-        return Ok(VisibilityProof::full_visibility());
+        return Ok((VisibilityProof::full_visibility(), masking));
     }
 
     // Convert the caller filter's parameters to the types its paths expect - a web-id text
@@ -274,7 +282,7 @@ where
         "resolved the actor's visible rows"
     );
 
-    Ok(VisibilityProof::from_masks(nodes, edges))
+    Ok((VisibilityProof::from_masks(nodes, edges), masking))
 }
 
 #[cfg(test)]

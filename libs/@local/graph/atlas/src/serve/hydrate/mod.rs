@@ -1,22 +1,24 @@
 //! Live store reads that hydrate detail for delivered points and edges.
 //!
 //! Detail hydrates at request time from Postgres, inline in the trailer, with no published label
-//! columns. Every read runs at `now()` instead of at the snapshot's decision time, so text edited
-//! after publish shows on snapshot geometry.
+//! columns. Every read runs at the request's own instant instead of at the snapshot's decision
+//! time, so text edited after publish shows on snapshot geometry.
 //!
 //! # What a trailer carries
 //!
 //! The guarantees compose at two altitudes. Hydration reads only post-intersection ids, so every
 //! hydrated entity is one the request's proof admits. That is the guarantee about *rows*. Inside an
 //! admitted row, the deployment's property protection decides which *fields* may leave the store,
-//! and an entity's **deliverable set** is every property no protection withholds. Property values
-//! reach a trailer from the deliverable set, and the caps, counts, and completeness flags below all
-//! describe that set.
+//! and an entity's **deliverable set** is every property no protection withholds from the
+//! requesting actor. Property values reach a trailer from the deliverable set, and the caps,
+//! counts, and completeness flags below all describe that set.
 //!
-//! The store's protection is a per-actor condition, and the hydration queries evaluate none. The
-//! queries remove the protected keys for every caller, which withholds at least what the store
-//! withholds from any actor, including the owner of a protected value. A trailer's property map is
-//! therefore one function of the entity, identical for every caller the row admits.
+//! The store's protection is a per-actor condition, and the hydration queries evaluate it for
+//! the requesting actor. Each order carries the actor its scope's policy resolution produced
+//! ([`MaskingActor`]), and the property statements compile through the store's own query
+//! compiler under the read path's masking conditions, so a trailer withholds exactly what the
+//! graph's entity reads withhold from that actor: an owner reads a protected value of their own
+//! where a stranger does not, and an instance admin reads unmasked.
 //!
 //! Labels stand outside that rule, here and on the graph's own read path. A label is a property
 //! value materialized per edition. The store derives `entity_edition_cache.labels[1]` from the
@@ -44,7 +46,7 @@
 //! entity's direct types read from `entity_edition_cache.versioned_urls`, and the client resolves
 //! labels and icons through its own type metadata, so one owner holds each display concern.
 //!
-//! Properties reach the wire as [`SimpleValue`] entries only, covering strings, numbers, booleans,
+//! Properties reach the wire as [`ScalarValue`] entries only, covering strings, numbers, booleans,
 //! and explicit nulls. Nested objects and arrays never survive the store-side filter. An over-cap
 //! entity drops properties reverse-lexicographically by base URL, and its label property drops
 //! last, so the label survives every cap that admits at least one property. That label property is
@@ -54,9 +56,9 @@
 //! double otherwise. Each hydration also counts the entity's *whole deliverable* set, so the
 //! trailer reports completeness (nothing filtered, nothing capped) per entity from that count.
 //!
-//! An id that resolves to no visible entity - deleted since publish, archived, drafted - reads
-//! `null` in every column and `false` in every completeness flag, mirroring the zero-mask rule for
-//! unresolvable type ids.
+//! An id that resolves to no visible entity - deleted since publish, archived, drafted, or with
+//! its derived edition cache not yet landed - reads `null` in every column and `false` in every
+//! completeness flag, mirroring the zero-mask rule for unresolvable type ids.
 //!
 //! The module splits by altitude: [`columns`] is the hydrated data model the documents and encoders
 //! read, [`client`] is the store boundary - the queries and the one async connection - [`order`] is
@@ -77,10 +79,10 @@ mod statements;
 #[cfg(test)]
 pub(crate) use self::order::{LocateLinkHydration, LocateNodeHydration};
 pub(crate) use self::{
-    client::{DetailError, GraphDatabaseClient},
+    client::{DetailError, GraphDatabaseClient, MaskingActor},
     columns::{
         DeliveredNodes, EdgeLinkDetails, EdgeSlot, LocateLinkDetails, LocateNodeDetails,
-        NodeDetails, NodeSlot, SimpleValue,
+        NodeDetails, NodeSlot, ScalarValue,
     },
     order::{EdgesStore, LocateHydration, LocateOrder, LocateStore},
 };

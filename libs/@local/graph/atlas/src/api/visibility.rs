@@ -40,7 +40,10 @@ use super::{
 use crate::serve::{
     Atlas, CutOffset, View, ViewError, VisibilityLimits, VisibilityProof,
     cache::{CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache},
-    hydrate::compile::{ProofError, visibility_proof},
+    hydrate::{
+        MaskingActor,
+        compile::{ProofError, visibility_proof},
+    },
 };
 
 /// The header naming the authenticated actor.
@@ -124,6 +127,11 @@ impl Visibility {
     /// Returns the rows the request may see.
     pub(super) fn proof(&self) -> &VisibilityProof {
         self.entry.proof()
+    }
+
+    /// Returns the actor this request's hydrations mask properties for.
+    pub(super) fn masking(&self) -> MaskingActor {
+        self.entry.masking()
     }
 
     /// Binds the request's delivery view, the held resolution read at the token's cut offset.
@@ -242,7 +250,7 @@ pub(super) async fn resolve(
 
             // The census rides the resolution, not the request: one pass over the base column
             // per scope, shared by every root tile it answers.
-            let proof = visibility_proof(
+            let (proof, masking) = visibility_proof(
                 actor,
                 filter.as_ref(),
                 &protection.filter_protection,
@@ -251,7 +259,7 @@ pub(super) async fn resolve(
             )
             .await?;
 
-            Ok::<_, ProofError>(PendingCacheEntry::of(&atlas, proof, document))
+            Ok::<_, ProofError>(PendingCacheEntry::of(&atlas, proof, masking, document))
         })
         .await
         .map_err(|error| proof_problem(&error))?;

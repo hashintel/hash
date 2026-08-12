@@ -21,7 +21,10 @@ use crate::{
     dataset::postgres::id::ArchivedEntityId,
     serve::{
         LocateError, LocateRequest,
-        hydrate::{DetailError, EdgeSlot, LocateHydration, LocateOrder, LocateStore, NodeSlot},
+        hydrate::{
+            DetailError, EdgeSlot, LocateHydration, LocateOrder, LocateStore, MaskingActor,
+            NodeSlot,
+        },
     },
 };
 
@@ -46,7 +49,8 @@ The HEAD also carries the source's first visible zoom and its tile there (the fl
      source's entity id as 32 raw bytes, and two completeness flags: `typeIdsComplete` (the \
      request's `coloredTypeIds` cover every direct type of the source) and `propertiesComplete` \
      (the trailer's source property map is the entity's whole deliverable set - every property no \
-     protection withholds). `coloredTypeIds` behaves exactly as on the tile route.
+     protection withholds from the requesting actor). `coloredTypeIds` behaves exactly as on the \
+     tile route.
 
 The response always carries the detail trailer, read from the store at request time. Every node \
      carries a label and a first direct type; the source additionally carries its properties, \
@@ -82,6 +86,7 @@ pub(super) async fn handler(
     // answer cross back here, where the connections live and the two queries run concurrently.
     let atlas = Arc::clone(&state.atlas);
     let limits = state.limits;
+    let masking = visibility.masking();
     let (order_sender, order_receiver) = oneshot::channel();
     let (answer_sender, answer_receiver) = oneshot::channel();
     let store = ChannelLocateStore {
@@ -100,7 +105,7 @@ pub(super) async fn handler(
             let Ok(order) = order_receiver.await else {
                 return;
             };
-            let _: Result<(), _> = answer_sender.send(hydrate(&state, order).await);
+            let _: Result<(), _> = answer_sender.send(hydrate(&state, order, masking).await);
         },
     );
 
@@ -189,15 +194,21 @@ impl LocateStore for ChannelLocateStore {
 async fn hydrate(
     state: &AppState,
     order: LocateOrderMessage,
+    masking: MaskingActor,
 ) -> Result<LocateHydration, DetailError> {
     let (nodes, links) = tokio::try_join!(
         state
             .remote
-            .locate_node_hydration(&order.nodes, order.properties)
+            .locate_node_hydration(&order.nodes, order.properties, masking)
             .in_current_span(),
         state
             .remote
-            .locate_link_hydration(&order.links, order.link_type_ids, order.link_properties)
+            .locate_link_hydration(
+                &order.links,
+                order.link_type_ids,
+                order.link_properties,
+                masking
+            )
             .in_current_span(),
     )?;
 

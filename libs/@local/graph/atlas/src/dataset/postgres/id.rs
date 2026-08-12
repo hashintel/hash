@@ -1,7 +1,7 @@
 use core::ops::Deref;
 
 use type_system::{
-    knowledge::entity::id::EntityUuid,
+    knowledge::entity::{EntityId, id::EntityUuid},
     ontology::{VersionedUrl, id::OntologyTypeUuid},
     principal::actor_group::WebId,
 };
@@ -43,6 +43,20 @@ impl ArchivedEntityUuid {
     /// Returns the raw uuid bytes.
     pub(crate) const fn to_bytes(self) -> [u8; 16] {
         self.0
+    }
+}
+
+impl From<EntityUuid> for ArchivedEntityUuid {
+    #[inline]
+    fn from(id: EntityUuid) -> Self {
+        Self(uuid::Uuid::from(id).into_bytes())
+    }
+}
+
+impl From<ArchivedEntityUuid> for EntityUuid {
+    #[inline]
+    fn from(id: ArchivedEntityUuid) -> Self {
+        Self::new(uuid::Uuid::from_bytes(id.0))
     }
 }
 
@@ -102,6 +116,20 @@ impl ArchivedWebId {
     }
 }
 
+impl From<WebId> for ArchivedWebId {
+    #[inline]
+    fn from(id: WebId) -> Self {
+        Self(uuid::Uuid::from(id).into_bytes())
+    }
+}
+
+impl From<ArchivedWebId> for WebId {
+    #[inline]
+    fn from(id: ArchivedWebId) -> Self {
+        Self::new(uuid::Uuid::from_bytes(id.0))
+    }
+}
+
 impl From<uuid::Uuid> for ArchivedWebId {
     #[inline]
     fn from(id: uuid::Uuid) -> Self {
@@ -152,6 +180,25 @@ pub(crate) struct ArchivedEntityId {
     pub web_id: ArchivedWebId,
     /// The entity's identity within its web.
     pub entity_uuid: ArchivedEntityUuid,
+}
+
+impl From<EntityId> for ArchivedEntityId {
+    fn from(id: EntityId) -> Self {
+        Self {
+            web_id: id.web_id.into(),
+            entity_uuid: id.entity_uuid.into(),
+        }
+    }
+}
+
+impl From<ArchivedEntityId> for EntityId {
+    fn from(id: ArchivedEntityId) -> Self {
+        Self {
+            web_id: id.web_id.into(),
+            entity_uuid: id.entity_uuid.into(),
+            draft_id: None,
+        }
+    }
 }
 
 impl Key for ArchivedEntityId {

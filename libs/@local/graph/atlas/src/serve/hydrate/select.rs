@@ -1,45 +1,77 @@
 //! The property-selection policy.
 //!
 //! Pure functions over hydrated property sets convert the store's property objects into
-//! [`SimpleValue`] entries and apply the per-entity cap, which drops the label property last.
+//! [`ScalarValue`] entries and apply the per-entity cap, which drops the label property last.
 //!
-//! The cap bounds size only. The sets reaching it hold no protected property, because the queries
-//! remove those keys before any value crosses the connection ([`client`](super::client)).
+//! The cap bounds size only. The sets reaching it hold no property the store's protection
+//! withholds from the requesting actor, because the queries mask before any value crosses the
+//! connection ([`client`](super::client)).
 
 use type_system::ontology::id::BaseUrl;
 
-use super::columns::SimpleValue;
+use super::columns::ScalarValue;
 
-/// Converts one entity's property object into its [`SimpleValue`] entries.
+/// Converts one entity's property object into its [`ScalarValue`] entries.
+///
+/// A key that is not a base URL and a nested value are store-contract violations: the write path
+/// admits only base-URL keys and the query aggregates a filtered object. Either one skips its
+/// entry with a warning rather than failing the read.
 ///
 /// # Panics
 ///
-/// This panics when the value is not a JSON object of [`SimpleValue`] shapes, and when a key is
-/// not a base URL. The store's query aggregates a filtered object and the store's write path
-/// admits only base-URL keys, so any other shape is a store-contract violation.
-pub(crate) fn simple_properties(value: serde_json::Value) -> Vec<(BaseUrl, SimpleValue)> {
+/// This panics when the value is not a JSON object, which the store's aggregation rules out.
+pub(crate) fn scalar_properties(value: serde_json::Value) -> Vec<(BaseUrl, ScalarValue)> {
     let serde_json::Value::Object(object) = value else {
         panic!("the store aggregates a JSON object")
     };
 
     object
         .into_iter()
-        .map(|(name, value)| {
-            let name = BaseUrl::new(name).expect("the store keys properties by base URL");
-            let value = match value {
-                serde_json::Value::String(text) => SimpleValue::Text(text),
-                serde_json::Value::Number(number) => number.as_i64().map_or_else(
-                    || SimpleValue::Float(number.as_f64().expect("a JSON number reads as f64")),
-                    SimpleValue::Integer,
-                ),
-                serde_json::Value::Bool(flag) => SimpleValue::Boolean(flag),
-                serde_json::Value::Null => SimpleValue::Null,
-                serde_json::Value::Object(_) | serde_json::Value::Array(_) => {
-                    unreachable!("the query ships simple values only")
+        .filter_map(|(name, value)| {
+            let name = match BaseUrl::new(name) {
+                Ok(name) => name,
+                Err(error) => {
+                    tracing::warn!(
+                        %error,
+                        "the store should key properties by base URL, but a key does not parse \
+                         as one"
+                    );
+
+                    return None;
                 }
             };
 
-            (name, value)
+            let value = match value {
+                serde_json::Value::String(string) => ScalarValue::String(string),
+                serde_json::Value::Number(number) => {
+                    if let Some(integer) = number.as_i64() {
+                        ScalarValue::Integer(integer)
+                    } else if let Some(float) = number.as_f64() {
+                        ScalarValue::Float(float)
+                    } else {
+                        tracing::warn!(
+                            %number,
+                            "query should have returned only scalar values, but included a \
+                             number f64 cannot carry"
+                        );
+
+                        return None;
+                    }
+                }
+                serde_json::Value::Bool(bool) => ScalarValue::Bool(bool),
+                serde_json::Value::Null => ScalarValue::Null,
+                value @ (serde_json::Value::Object(_) | serde_json::Value::Array(_)) => {
+                    tracing::warn!(
+                        ?value,
+                        "query should have returned only scalar values, but included a JSON \
+                         object or array"
+                    );
+
+                    return None;
+                }
+            };
+
+            Some((name, value))
         })
         .collect()
 }
@@ -49,23 +81,22 @@ pub(crate) fn simple_properties(value: serde_json::Value) -> Vec<(BaseUrl, Simpl
 /// The drop order is reverse-lexicographic by base URL (bytewise), the label property drops last,
 /// and survivors sort ascending by name, which is the wire's map-key order.
 pub(crate) fn select_properties(
-    mut entries: Vec<(BaseUrl, SimpleValue)>,
+    mut entries: Vec<(BaseUrl, ScalarValue)>,
     label_property: Option<&BaseUrl>,
     cap: usize,
-) -> Vec<(BaseUrl, SimpleValue)> {
-    if entries.len() > cap {
-        // Ranking the label before every other name makes one
-        // ascending sort the whole rule: the tail beyond the cap is
-        // exactly the reverse-lexicographic drop set.
-        entries.sort_by(|left, right| {
-            let ranks_after_label = |name: &BaseUrl| Some(name) != label_property;
-            ranks_after_label(&left.0)
-                .cmp(&ranks_after_label(&right.0))
-                .then_with(|| left.0.cmp(&right.0))
-        });
-        entries.truncate(cap);
+) -> Vec<(BaseUrl, ScalarValue)> {
+    entries.sort_by(|(lhs_key, _), (rhs_key, _)| lhs_key.cmp(rhs_key));
+
+    if entries.len() > cap && cap > 0 {
+        // A label beyond the cap takes the last surviving slot. It compares greater than every
+        // earlier survivor, so the list stays ascending through the swap.
+        if let Some(offset) = label_property
+            .and_then(|label| entries[cap..].iter().position(|(name, _)| name == label))
+        {
+            entries.swap(cap - 1, cap + offset);
+        }
     }
 
-    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    entries.truncate(cap);
     entries
 }

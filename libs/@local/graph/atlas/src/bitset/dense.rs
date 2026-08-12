@@ -391,10 +391,10 @@ impl<T> DenseBitSlice<T> {
 impl<T: Id> DenseBitSlice<T> {
     /// Returns whether the set admits `row`.
     ///
-    /// A row outside the domain is not admitted.
+    /// An index outside the domain is not admitted.
     #[must_use]
-    pub(crate) fn contains(&self, row: T) -> bool {
-        let row = row.as_u64();
+    pub(crate) fn contains(&self, index: T) -> bool {
+        let row = index.as_u64();
         if row >= self.domain_size.get() {
             return false;
         }
@@ -412,8 +412,9 @@ impl<T: Id> DenseBitSlice<T> {
         clippy::integer_division_remainder_used,
         reason = "the quotient names the row's word and the remainder its bit within that word"
     )]
-    pub(crate) fn count_below(&self, row: T) -> u64 {
-        let row = row.as_u64().min(self.domain_size.get());
+    pub(crate) fn count_below(&self, index: T) -> u64 {
+        let row = index.as_u64().min(self.domain_size.get());
+
         // The clamp bounds the split index by the word count, so both slices are in bounds.
         #[expect(clippy::cast_possible_truncation)]
         let index = (row / WORD_BITS as u64) as usize;
@@ -431,31 +432,45 @@ impl<T: Id> DenseBitSlice<T> {
         full + u64::from((self.words[index].get() & ((1 << bit) - 1)).count_ones())
     }
 
-    /// Inserts `row`, returning whether the set changed.
+    /// Sets `index` to `value`, returning whether the set changed.
     ///
     /// # Panics
     ///
-    /// This panics when `row` lies outside the domain.
-    pub(crate) fn insert(&mut self, row: T) -> bool {
+    /// This panics when `index` lies outside the domain.
+    #[inline]
+    pub(crate) fn set(&mut self, index: T, value: bool) -> bool {
+        if value {
+            self.insert(index)
+        } else {
+            self.remove(index)
+        }
+    }
+
+    /// Inserts `index`, returning whether the set changed.
+    ///
+    /// # Panics
+    ///
+    /// This panics when `index` lies outside the domain.
+    pub(crate) fn insert(&mut self, index: T) -> bool {
         assert!(
-            row.as_u64() < self.domain_size.get(),
+            index.as_u64() < self.domain_size.get(),
             "the row lies in the set's domain"
         );
-        let (index, mask) = word_index_and_mask(row.as_u64());
+        let (index, mask) = word_index_and_mask(index.as_u64());
         let stored = self.words[index].get();
         self.words[index] = U64::new(stored | mask);
         stored & mask == 0
     }
 
-    /// Removes `row`, returning whether the set changed.
+    /// Removes `index`, returning whether the set changed.
     ///
     /// A row outside the domain was never admitted, so removing one reports no change.
-    pub(crate) fn remove(&mut self, row: T) -> bool {
-        let row = row.as_u64();
-        if row >= self.domain_size.get() {
+    pub(crate) fn remove(&mut self, index: T) -> bool {
+        let index = index.as_u64();
+        if index >= self.domain_size.get() {
             return false;
         }
-        let (index, mask) = word_index_and_mask(row);
+        let (index, mask) = word_index_and_mask(index);
         let stored = self.words[index].get();
         self.words[index] = U64::new(stored & !mask);
         stored & mask != 0

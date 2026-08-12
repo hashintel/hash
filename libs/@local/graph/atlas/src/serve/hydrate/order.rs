@@ -15,7 +15,7 @@
 use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
-use super::{DeliveredNodes, EdgeSlot, NodeSlot, SimpleValue, client::DetailError};
+use super::{DeliveredNodes, EdgeSlot, NodeSlot, ScalarValue, client::DetailError};
 use crate::{bitset::DenseBitSlice, dataset::postgres::id::ArchivedEntityId};
 
 /// One locate response's store order.
@@ -61,7 +61,7 @@ pub(crate) struct LocateNodeHydration {
     /// The source's surviving properties, ascending by base URL.
     ///
     /// `None` marks a source the store no longer serves.
-    pub source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
+    pub source_properties: Option<Vec<(BaseUrl, ScalarValue)>>,
     /// Whether the source's surviving properties are the entity's whole deliverable set.
     pub source_properties_complete: bool,
 }
@@ -91,7 +91,7 @@ pub(crate) struct LocateLinkHydration {
     /// The delivered edges whose type list is the link's whole direct set.
     pub type_urls_complete: Box<DenseBitSlice<EdgeSlot>>,
     /// The link's surviving properties per delivered edge, ascending by base URL.
-    pub properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+    pub properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>>,
     /// The delivered edges whose surviving properties are the link entity's whole deliverable set.
     pub properties_complete: Box<DenseBitSlice<EdgeSlot>>,
 }

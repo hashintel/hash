@@ -2291,20 +2291,20 @@ async fn translate_resolves_store_identities_end_to_end() {
 }
 
 /// Shorthand for a null-valued property entry.
-fn property(name: &str) -> (BaseUrl, super::hydrate::SimpleValue) {
+fn property(name: &str) -> (BaseUrl, super::hydrate::ScalarValue) {
     (
         BaseUrl::new(name.to_owned()).expect("fixture keys are base URLs"),
-        super::hydrate::SimpleValue::Null,
+        super::hydrate::ScalarValue::Null,
     )
 }
 
 #[test]
-fn simple_properties_parse_every_simple_shape() {
-    use super::hydrate::SimpleValue;
+fn scalar_properties_parse_every_scalar_shape() {
+    use super::hydrate::ScalarValue;
 
     // The store renders 2.5 and 1.0 with their points, so both read
     // as doubles; a number beyond i64 falls back to f64 (the wire's
-    // integer is i64 - the simple-value shapes carry no wider integral form).
+    // integer is i64 - the scalar-value shapes carry no wider integral form).
     let object = serde_json::from_str(
         r#"{
             "https://x.test/f/": 2.5,
@@ -2318,23 +2318,23 @@ fn simple_properties_parse_every_simple_shape() {
         }"#,
     )
     .expect("the fixture is JSON");
-    let mut entries = super::hydrate::select::simple_properties(object);
+    let mut entries = super::hydrate::select::scalar_properties(object);
     entries.sort_by(|left, right| left.0.cmp(&right.0));
 
     let expected = [
-        ("https://x.test/f/", SimpleValue::Float(2.5)),
-        ("https://x.test/g/", SimpleValue::Float(1.0)),
-        ("https://x.test/i/", SimpleValue::Integer(7)),
-        ("https://x.test/j/", SimpleValue::Integer(-3)),
-        ("https://x.test/n/", SimpleValue::Null),
-        ("https://x.test/t/", SimpleValue::Text("text".to_owned())),
+        ("https://x.test/f/", ScalarValue::Float(2.5)),
+        ("https://x.test/g/", ScalarValue::Float(1.0)),
+        ("https://x.test/i/", ScalarValue::Integer(7)),
+        ("https://x.test/j/", ScalarValue::Integer(-3)),
+        ("https://x.test/n/", ScalarValue::Null),
+        ("https://x.test/t/", ScalarValue::String("text".to_owned())),
         // u64::MAX itself is not an f64, so the fallback rounds to the
         // nearest double.
         (
             "https://x.test/u/",
-            SimpleValue::Float(1.844_674_407_370_955_2e19),
+            ScalarValue::Float(1.844_674_407_370_955_2e19),
         ),
-        ("https://x.test/y/", SimpleValue::Boolean(true)),
+        ("https://x.test/y/", ScalarValue::Bool(true)),
     ];
     assert_eq!(
         entries,
@@ -2352,15 +2352,24 @@ fn simple_properties_parse_every_simple_shape() {
 
 #[test]
 #[should_panic(expected = "the store aggregates a JSON object")]
-fn simple_properties_reject_non_objects() {
-    let _entries = super::hydrate::select::simple_properties(serde_json::json!([1, 2]));
+fn scalar_properties_reject_non_objects() {
+    let _entries = super::hydrate::select::scalar_properties(serde_json::json!([1, 2]));
 }
 
 #[test]
-#[should_panic(expected = "the store keys properties by base URL")]
-fn simple_properties_reject_non_url_keys() {
-    let _entries =
-        super::hydrate::select::simple_properties(serde_json::json!({"not a url": null}));
+fn scalar_properties_skip_non_url_keys() {
+    let entries = super::hydrate::select::scalar_properties(
+        serde_json::json!({"not a url": null, "https://x.test/a/": true}),
+    );
+
+    // The malformed key skips its entry alone. The well-keyed sibling survives.
+    assert_eq!(
+        entries,
+        vec![(
+            BaseUrl::new("https://x.test/a/".to_owned()).expect("fixture keys are base URLs"),
+            super::hydrate::ScalarValue::Bool(true),
+        )],
+    );
 }
 
 #[test]
@@ -2691,33 +2700,34 @@ async fn locate_rejections_carry_their_names() {
 #[test]
 fn intern_tables_build_the_references() {
     use super::{
-        hydrate::SimpleValue,
+        TableIndex,
+        hydrate::ScalarValue,
         locate::{intern_properties, intern_types},
     };
     use crate::salt::wire::locate::PropertyValue;
 
-    let owned = |name: &str, value: SimpleValue| {
+    let owned = |name: &str, value: ScalarValue| {
         (
             BaseUrl::new(format!("https://x.test/{name}/")).expect("fixture keys are base URLs"),
             value,
         )
     };
     let source = vec![
-        owned("b", SimpleValue::Text("t".to_owned())),
-        owned("d", SimpleValue::Integer(7)),
+        owned("b", ScalarValue::String("t".to_owned())),
+        owned("d", ScalarValue::Integer(7)),
     ];
     let links = vec![
         None,
         Some(vec![
-            owned("a", SimpleValue::Null),
-            owned("b", SimpleValue::Boolean(true)),
+            owned("a", ScalarValue::Null),
+            owned("b", ScalarValue::Bool(true)),
         ]),
         Some(vec![]),
     ];
 
     let (names, maps) = intern_properties(Some(&source), IdSlice::from_raw(&links));
     assert_eq!(
-        names.entries(),
+        names.entries().as_raw(),
         [
             "https://x.test/a/",
             "https://x.test/b/",
@@ -2728,13 +2738,13 @@ fn intern_tables_build_the_references() {
         maps,
         vec![
             Some(vec![
-                (1, PropertyValue::Text("t")),
-                (2, PropertyValue::Integer(7)),
+                (TableIndex::new(1), PropertyValue::Text("t")),
+                (TableIndex::new(2), PropertyValue::Integer(7)),
             ]),
             None,
             Some(vec![
-                (0, PropertyValue::Null),
-                (1, PropertyValue::Boolean(true)),
+                (TableIndex::new(0), PropertyValue::Null),
+                (TableIndex::new(1), PropertyValue::Boolean(true)),
             ]),
             Some(vec![]),
         ],
@@ -2742,15 +2752,18 @@ fn intern_tables_build_the_references() {
 
     // An absent source stays the leading entry.
     let (names, maps) = intern_properties(None, IdSlice::from_raw(&links[..2]));
-    assert_eq!(names.entries(), ["https://x.test/a/", "https://x.test/b/"]);
+    assert_eq!(
+        names.entries().as_raw(),
+        ["https://x.test/a/", "https://x.test/b/"]
+    );
     assert_eq!(
         maps,
         vec![
             None,
             None,
             Some(vec![
-                (0, PropertyValue::Null),
-                (1, PropertyValue::Boolean(true)),
+                (TableIndex::new(0), PropertyValue::Null),
+                (TableIndex::new(1), PropertyValue::Boolean(true)),
             ]),
         ],
     );
@@ -2769,15 +2782,21 @@ fn intern_tables_build_the_references() {
     // The node-only type "m" interns; the node-second "z" also
     // interns through the link list.
     assert_eq!(
-        table.entries(),
+        table.entries().as_raw(),
         [
             "https://t.test/a/v/1",
             "https://t.test/m/v/1",
             "https://t.test/z/v/1"
         ],
     );
-    assert_eq!(type_ids, vec![Some(1), None, Some(0)]);
-    assert_eq!(link_type_ids, vec![vec![2, 0], Vec::new()]);
+    assert_eq!(
+        type_ids,
+        vec![Some(TableIndex::new(1)), None, Some(TableIndex::new(0))]
+    );
+    assert_eq!(
+        link_type_ids,
+        vec![vec![TableIndex::new(2), TableIndex::new(0)], Vec::new()]
+    );
 }
 
 /// The source coverage predicate reads exactly the ratified rule.

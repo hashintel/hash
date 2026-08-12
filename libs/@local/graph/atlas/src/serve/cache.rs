@@ -43,7 +43,7 @@ use std::{sync::OnceLock, time::Instant};
 use moka::ops::compute::Op;
 use type_system::principal::actor::ActorEntityUuid;
 
-use super::{Atlas, ViewCensus, VisibilityProof, schedule::ViewSchedule};
+use super::{Atlas, ViewCensus, VisibilityProof, hydrate::MaskingActor, schedule::ViewSchedule};
 use crate::{
     file::generation::GenerationId,
     integrity::{Sha256, Sha256Digest, Update as _},
@@ -141,6 +141,8 @@ pub(crate) struct CacheKey {
 pub(crate) struct PendingCacheEntry {
     /// The rows the actor may see.
     proof: VisibilityProof,
+    /// The actor the scope's hydrations mask properties for, resolved with [`Self::proof`].
+    masking: MaskingActor,
     /// The corpus-wide census of what [`Self::proof`] admits.
     census: ViewCensus,
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
@@ -157,10 +159,16 @@ impl PendingCacheEntry {
     /// The `filter` is the document the resolution ran over. The census walks the base column once
     /// for a masked proof and reads the artifacts for an unmasked one, so the resolution pays that
     /// cost rather than the requests that share it.
-    pub(crate) fn of(atlas: &Atlas, proof: VisibilityProof, filter: Option<Arc<[u8]>>) -> Self {
+    pub(crate) fn of(
+        atlas: &Atlas,
+        proof: VisibilityProof,
+        masking: MaskingActor,
+        filter: Option<Arc<[u8]>>,
+    ) -> Self {
         Self {
             census: atlas.census(&proof),
             proof,
+            masking,
             filter,
         }
     }
@@ -174,6 +182,10 @@ impl PendingCacheEntry {
     pub(crate) const fn with_empty_census(proof: VisibilityProof) -> Self {
         Self {
             proof,
+            masking: MaskingActor {
+                id: None,
+                instance_admin: false,
+            },
             census: ViewCensus::EMPTY,
             filter: None,
         }
@@ -194,6 +206,8 @@ impl PendingCacheEntry {
 pub(crate) struct CacheEntry {
     /// The rows the actor may see.
     proof: VisibilityProof,
+    /// The actor the scope's hydrations mask properties for, resolved with [`Self::proof`].
+    masking: MaskingActor,
     /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
     census: ViewCensus,
     /// The filter document the resolution of [`Self::proof`] ran over, as presented, absent when
@@ -221,6 +235,7 @@ impl CacheEntry {
     fn new(
         PendingCacheEntry {
             proof,
+            masking,
             census,
             filter,
         }: PendingCacheEntry,
@@ -229,6 +244,7 @@ impl CacheEntry {
     ) -> Self {
         Self {
             proof,
+            masking,
             census,
             filter,
             schedule: OnceLock::new(),
@@ -241,6 +257,11 @@ impl CacheEntry {
     /// Returns the rows the scope may see.
     pub(crate) const fn proof(&self) -> &VisibilityProof {
         &self.proof
+    }
+
+    /// Returns the actor the scope's hydrations mask properties for.
+    pub(crate) const fn masking(&self) -> MaskingActor {
+        self.masking
     }
 
     /// Returns the corpus-wide census of what [`Self::proof`] admits.

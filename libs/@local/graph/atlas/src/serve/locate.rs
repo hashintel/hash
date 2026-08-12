@@ -17,9 +17,9 @@ use super::{
     grid,
     hydrate::{
         DeliveredNodes, DetailError, EdgeSlot, LocateLinkDetails, LocateNodeDetails, LocateOrder,
-        LocateStore, NodeSlot, SimpleValue,
+        LocateStore, NodeSlot, ScalarValue,
     },
-    intern::Table,
+    intern::{Table, TableIndex},
     neighbourhood::{DeliveredEdge, Neighbourhood},
     schedule::ScheduleCut,
     view::{View, ViewError},
@@ -670,8 +670,7 @@ impl Atlas {
             .pop()
             .expect("the source's map is the intern order's first entry");
 
-        let link_properties: Vec<Option<&[(u32, PropertyValue<'_>)]>> =
-            link_property_maps.iter().map(Option::as_deref).collect();
+        let link_properties: Vec<_> = link_property_maps.iter().map(Option::as_deref).collect();
 
         LocateResponse {
             generation: self.generation.id().digest(),
@@ -709,7 +708,7 @@ impl Atlas {
 ///
 /// Uint indexes into the property table paired with borrowed values, ascending by index. `None`
 /// marks an entity the store no longer serves.
-type PropertyMapView<'doc> = Option<Vec<(u32, PropertyValue<'doc>)>>;
+type PropertyMapView<'doc> = Option<Vec<(TableIndex, PropertyValue<'doc>)>>;
 
 /// Returns whether a request's palette covers the source's direct types.
 ///
@@ -734,7 +733,11 @@ pub(crate) fn covers_source_types(
 pub(crate) fn intern_types<'doc>(
     nodes: &'doc IdSlice<NodeSlot, Vec<VersionedUrl>>,
     links: &'doc IdSlice<EdgeSlot, Vec<VersionedUrl>>,
-) -> (Table<'doc, VersionedUrl>, Vec<Option<u32>>, Vec<Vec<u32>>) {
+) -> (
+    Table<'doc, VersionedUrl>,
+    Vec<Option<TableIndex>>,
+    Vec<Vec<TableIndex>>,
+) {
     let table = Table::new(
         nodes
             .iter()
@@ -754,47 +757,46 @@ pub(crate) fn intern_types<'doc>(
     (table, type_ids, link_type_ids)
 }
 
+/// Views one hydrated value in the wire's borrowed form.
+const fn wire_value(value: &ScalarValue) -> PropertyValue<'_> {
+    match value {
+        ScalarValue::String(text) => PropertyValue::Text(text.as_str()),
+        ScalarValue::Integer(value) => PropertyValue::Integer(*value),
+        ScalarValue::Float(value) => PropertyValue::Float(*value),
+        ScalarValue::Bool(flag) => PropertyValue::Boolean(*flag),
+        ScalarValue::Null => PropertyValue::Null,
+    }
+}
+
 /// Builds the property intern table and the per-entity uint-index maps.
 ///
 /// The table is the bytewise-sorted, deduplicated union of the source's and every link's
 /// surviving names; the returned maps lead with the source's, then the links' in edge order. Each
 /// map keeps the hydration layer's ascending-name order, which maps to ascending indexes.
 pub(crate) fn intern_properties<'doc>(
-    source: Option<&'doc Vec<(BaseUrl, SimpleValue)>>,
-    links: &'doc IdSlice<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+    source: Option<&'doc [(BaseUrl, ScalarValue)]>,
+    links: &'doc IdSlice<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>>,
 ) -> (Table<'doc, BaseUrl>, Vec<PropertyMapView<'doc>>) {
-    let sets: Vec<Option<&[(BaseUrl, SimpleValue)]>> = core::iter::once(source.map(Vec::as_slice))
-        .chain(links.iter().map(|entry| entry.as_deref()))
-        .collect();
+    let sets = core::iter::once(source).chain(links.iter().map(Option::as_deref));
 
     let table = Table::new(
-        sets.iter()
+        sets.clone()
             .flatten()
             .flat_map(|entries| entries.iter().map(|(name, _)| name)),
     );
 
     let maps = sets
-        .iter()
         .map(|entry| {
-            entry.map(|survivors| {
+            let survivors = entry?;
+
+            Some(
                 survivors
                     .iter()
                     .map(|(name, value)| (table.index_of(name), wire_value(value)))
-                    .collect()
-            })
+                    .collect(),
+            )
         })
         .collect();
 
     (table, maps)
-}
-
-/// Views one hydrated value in the wire's borrowed form.
-const fn wire_value(value: &SimpleValue) -> PropertyValue<'_> {
-    match value {
-        SimpleValue::Text(text) => PropertyValue::Text(text.as_str()),
-        SimpleValue::Integer(value) => PropertyValue::Integer(*value),
-        SimpleValue::Float(value) => PropertyValue::Float(*value),
-        SimpleValue::Boolean(flag) => PropertyValue::Boolean(*flag),
-        SimpleValue::Null => PropertyValue::Null,
-    }
 }

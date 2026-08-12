@@ -129,14 +129,14 @@ impl<'details> NodeDetails<'details> {
     }
 }
 
-/// One simple property value.
+/// One scalar property value.
 ///
 /// A hydrated property value takes no other shape. The store filters out nested objects and arrays,
 /// so they never cross the connection.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum SimpleValue {
+pub(crate) enum ScalarValue {
     /// A text scalar.
-    Text(String),
+    String(String),
     /// A number the store renders integral, within `i64`.
     Integer(i64),
     /// Any other number.
@@ -144,7 +144,7 @@ pub(crate) enum SimpleValue {
     /// Store scalars are doubles on the wire.
     Float(f64),
     /// A boolean scalar.
-    Boolean(bool),
+    Bool(bool),
     /// An explicit null the entity carries.
     Null,
 }
@@ -163,12 +163,12 @@ pub(crate) struct LocateNodeDetails<'details> {
     type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
     /// The source's surviving properties, ascending by base URL.
     ///
-    /// `None` marks a source the store no longer serves; a resolved source without simple
+    /// `None` marks a source the store no longer serves; a resolved source without scalar
     /// properties reads an empty list.
-    source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
+    source_properties: Option<Vec<(BaseUrl, ScalarValue)>>,
     /// Whether the source's surviving properties are the entity's whole deliverable set.
     ///
-    /// `false` when the simple-value filter or the cap dropped anything, and when the store no
+    /// `false` when the scalar-value filter or the cap dropped anything, and when the store no
     /// longer serves the source.
     source_properties_complete: bool,
 }
@@ -178,7 +178,7 @@ impl<'details> LocateNodeDetails<'details> {
     pub(crate) const fn new(
         labels: IdVec<NodeSlot, &'details Label>,
         type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
-        source_properties: Option<Vec<(BaseUrl, SimpleValue)>>,
+        source_properties: Option<Vec<(BaseUrl, ScalarValue)>>,
         source_properties_complete: bool,
     ) -> Self {
         Self {
@@ -216,8 +216,8 @@ impl<'details> LocateNodeDetails<'details> {
     ///
     /// `None` marks a store-absent source.
     #[inline]
-    pub(crate) const fn source_properties(&self) -> Option<&Vec<(BaseUrl, SimpleValue)>> {
-        self.source_properties.as_ref()
+    pub(crate) const fn source_properties(&self) -> Option<&[(BaseUrl, ScalarValue)]> {
+        self.source_properties.as_deref()
     }
 
     /// Returns whether the source's surviving properties are the entity's whole deliverable set.
@@ -247,7 +247,7 @@ pub(crate) struct LocateLinkDetails<'details> {
     /// The link's surviving properties per delivered edge, ascending by base URL.
     ///
     /// `None` marks a link the store no longer serves.
-    properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+    properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>>,
     /// The delivered edges whose surviving properties are the link entity's whole deliverable set.
     properties_complete: Box<DenseBitSlice<EdgeSlot>>,
 }
@@ -258,7 +258,7 @@ impl<'details> LocateLinkDetails<'details> {
         labels: IdVec<EdgeSlot, &'details Label>,
         type_urls: IdVec<EdgeSlot, Vec<VersionedUrl>>,
         type_urls_complete: Box<DenseBitSlice<EdgeSlot>>,
-        properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>>,
+        properties: IdVec<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>>,
         properties_complete: Box<DenseBitSlice<EdgeSlot>>,
     ) -> Self {
         Self {
@@ -304,7 +304,7 @@ impl<'details> LocateLinkDetails<'details> {
     #[inline]
     pub(crate) const fn properties(
         &self,
-    ) -> &IdSlice<EdgeSlot, Option<Vec<(BaseUrl, SimpleValue)>>> {
+    ) -> &IdSlice<EdgeSlot, Option<Vec<(BaseUrl, ScalarValue)>>> {
         &self.properties
     }
 
