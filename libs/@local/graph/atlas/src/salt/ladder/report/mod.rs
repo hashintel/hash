@@ -407,7 +407,7 @@ fn rebuild_frames<B: Backend<FloatElem = f32>>(
 }
 
 /// Materializes every group's instances with the trainer's own loss factor as their mass.
-fn materialize_terms(attraction: &AttractionArchive) -> Vec<GroupTerms> {
+fn materialize_terms(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) -> Vec<GroupTerms> {
     (0..attraction.group_count())
         .map(|index| {
             let group = attraction.group(index);
@@ -416,7 +416,7 @@ fn materialize_terms(attraction: &AttractionArchive) -> Vec<GroupTerms> {
                 relation: group.relation(),
                 weights: [weights.coincident, weights.proximal, weights.strength],
                 terms: group
-                    .edges::<NodeRowId, EdgeRowId>()
+                    .edges()
                     .map(|edge| EdgeTerm {
                         source: edge.source,
                         target: edge.target,

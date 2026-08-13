@@ -4,7 +4,7 @@ use std::io;
 
 use zerocopy::IntoBytes as _;
 
-use super::{EdgeRecord, FileHeader, GroupRecord, PaddedFileHeader};
+use super::{EdgeRecord, EdgeRow, FileHeader, GroupRecord, NodeRow, PaddedFileHeader};
 use crate::file::region::write_padding;
 
 /// Streams the group and edge regions as an attraction file.
@@ -27,14 +27,18 @@ use crate::file::region::write_padding;
     reason = "the Result carries write failures; a broken length promise is a caller contract \
               violation, documented under Panics"
 )]
-pub(crate) fn write_records(
+pub(crate) fn write_records<N, E>(
     rows: u64,
     groups: impl ExactSizeIterator<Item = GroupRecord>,
     edge_count: u64,
-    edges: impl Iterator<Item = EdgeRecord>,
+    edges: impl Iterator<Item = EdgeRecord<N, E>>,
     mut write: impl io::Write,
-) -> io::Result<()> {
-    let header = FileHeader::new(groups.len() as u64, edge_count, rows);
+) -> io::Result<()>
+where
+    N: NodeRow,
+    E: EdgeRow,
+{
+    let header = FileHeader::new(N::KIND, E::KIND, groups.len() as u64, edge_count, rows);
 
     let group_bytes = header.groups() * size_of::<GroupRecord>() as u64;
 

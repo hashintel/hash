@@ -9,6 +9,7 @@ use serde_json::json;
 use super::measure;
 use crate::{
     file::attraction::{EdgeRecord, GroupRecord},
+    identity::{EdgeRowId, NodeRowId},
     math::{DFinite, Vec2},
     salt::ladder::paired::{
         evidence::MovementAggregate,
@@ -22,7 +23,7 @@ use crate::{
 /// domain is the four oriented pairs, the participant set is rows `0..=7`, and rows 8 and 9
 /// are the control candidates. The whole domain sits far under both draw bounds, so every
 /// candidate is drawn and no pinned aggregate depends on the salt-keyed order.
-fn readout_index() -> (Vec<GroupRecord>, Vec<EdgeRecord>) {
+fn readout_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) {
     (
         vec![group(3, 0, 1.0)],
         vec![edge(0, 1), edge(2, 3), edge(4, 5), edge(6, 7)],

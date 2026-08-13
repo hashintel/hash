@@ -2115,7 +2115,7 @@ async fn vacuous_placement_trains_without_reviews() {
     // The relation artifacts publish real force regardless: only the
     // trainer's view was vacuous.
     let attraction = AttractionArchive::new(
-        AttractionFile::open(published.path().join("attraction.atrc"))
+        AttractionFile::<NodeRowId, EdgeRowId>::open(published.path().join("attraction.atrc"))
             .expect("the attraction artifact should open"),
     )
     .expect("the attraction artifact should validate");
@@ -2311,7 +2311,7 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
 /// Relation 2 retains three instances and relation 3 retains one, since the self-loop reading
 /// carries no force and the drain discards it. The overridden weights and confidence provenance
 /// stay intact.
-fn assert_attraction_reads_back(attraction: &AttractionArchive) {
+fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) {
     assert_eq!(attraction.rows(), NODES as u64);
     assert_eq!(attraction.group_count(), 2);
     assert_eq!(attraction.edge_count(), 4);
@@ -2334,7 +2334,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     // and the published index: edge row 0's lone link score combines
     // with two neutral factors.
     let scored = employment
-        .edges::<NodeRowId, EdgeRowId>()
+        .edges()
         .find(|edge| edge.edge.as_u64() == 0)
         .expect("edge row 0 is retained under relation 2");
     assert_eq!(scored.confidence.value(), unit_fraction!(0.5));
@@ -2342,7 +2342,7 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive) {
     assert!(!scored.confidence.scored().source());
     assert!(!scored.confidence.scored().target());
 
-    let neutral = membership.edge::<NodeRowId, EdgeRowId>(0);
+    let neutral = membership.edge(0);
     assert_eq!(neutral.edge.as_u64(), 1);
     assert_eq!(neutral.confidence.value(), unit_fraction!(1.0));
     assert!(!neutral.confidence.scored().link());

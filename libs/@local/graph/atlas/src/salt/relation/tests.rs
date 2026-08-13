@@ -4,6 +4,8 @@
               asserted products and square roots are exact contracts"
 )]
 
+use core::assert_matches;
+
 use hashql_core::id::Id as _;
 use proptest::{prop_assert, prop_assert_eq, prop_compose, property_test};
 
@@ -878,7 +880,7 @@ fn published_attraction_index_reopens_mapped() {
     std::fs::write(&path, &bytes).expect("the file writes");
 
     let mapped = AttractionArchive::new(
-        crate::file::attraction::read::AttractionFile::open(&path)
+        crate::file::attraction::read::AttractionFile::<NodeRowId, EdgeRowId>::open(&path)
             .expect("the written file reopens"),
     )
     .expect("the published index validates");
@@ -945,7 +947,7 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
         let path = dir.join(name);
         std::fs::write(&path, bytes).expect("the file writes");
         AttractionArchive::new(
-            crate::file::attraction::read::AttractionFile::open(&path)
+            crate::file::attraction::read::AttractionFile::<NodeRowId, EdgeRowId>::open(&path)
                 .expect("the corrupted geometry still parses"),
         )
     };
@@ -982,29 +984,39 @@ fn corrupted_attraction_file_names_its_broken_invariant() {
         InvalidAttractionIndex::RowOutOfDomain { edge: 0 },
     );
 
-    // A confidence above one fails the score check. The confidence
-    // field sits 24 bytes into the record.
+    // A confidence above one refuses at the file parse itself: the
+    // record's field type admits only [0, 1], so the corruption never
+    // reaches the index validation. The confidence field sits 24
+    // bytes into the record.
     let mut confident = bytes.clone();
     confident[8192 + 24..8192 + 32].copy_from_slice(&2.0_f64.to_le_bytes());
-    assert_eq!(
-        open("confidence.atrc", &confident).expect_err("an out-of-range confidence is invalid"),
-        InvalidAttractionIndex::InvalidConfidence { edge: 0 },
+    let refused = dir.join("confidence.atrc");
+    std::fs::write(&refused, &confident).expect("the file writes");
+    assert_matches!(
+        crate::file::attraction::read::AttractionFile::<NodeRowId, EdgeRowId>::open(&refused),
+        Err(crate::file::attraction::read::OpenAttractionError::Value {
+            region: crate::file::attraction::read::Region::Edges,
+        }),
     );
 
-    // A degree normalization of zero fails the half-open domain check
-    // that admits a zero confidence. The normalization field sits 32
-    // bytes into the record.
+    // A degree normalization of zero refuses at the file parse the
+    // same way: the field type's domain is half-open and excludes
+    // zero. The normalization field sits 32 bytes into the record.
     let mut silenced = bytes.clone();
     silenced[8192 + 32..8192 + 40].copy_from_slice(&0.0_f64.to_le_bytes());
-    assert_eq!(
-        open("normalization.atrc", &silenced).expect_err("a zero degree normalization is invalid"),
-        InvalidAttractionIndex::InvalidDegreeNormalization { edge: 0 },
+    let refused = dir.join("normalization.atrc");
+    std::fs::write(&refused, &silenced).expect("the file writes");
+    assert_matches!(
+        crate::file::attraction::read::AttractionFile::<NodeRowId, EdgeRowId>::open(&refused),
+        Err(crate::file::attraction::read::OpenAttractionError::Value {
+            region: crate::file::attraction::read::Region::Edges,
+        }),
     );
 
     // Unknown provenance bits fail the score check. The scored field
-    // sits 40 bytes into the record.
+    // sits 40 bytes into the record, one byte wide.
     let mut scored_bits = bytes.clone();
-    scored_bits[8192 + 40..8192 + 44].copy_from_slice(&8_u32.to_le_bytes());
+    scored_bits[8192 + 40] = 8;
     assert_eq!(
         open("scored.atrc", &scored_bits).expect_err("unknown provenance bits are invalid"),
         InvalidAttractionIndex::UnknownScoredBits { edge: 0 },

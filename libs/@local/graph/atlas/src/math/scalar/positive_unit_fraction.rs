@@ -46,7 +46,7 @@ pub(crate) use positive_unit_fraction;
 /// assert!(PositiveUnitFraction::new(1.0).is_some());
 /// assert_eq!(PositiveUnitFraction::new(0.0), None);
 /// ```
-#[derive(Debug, Copy, Clone, zerocopy::Immutable)]
+#[derive(Debug, Copy, Clone, zerocopy::IntoBytes, zerocopy::Immutable, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub struct PositiveUnitFraction(f64);
 

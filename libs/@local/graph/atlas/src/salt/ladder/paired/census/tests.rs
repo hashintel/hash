@@ -13,7 +13,7 @@ use alloc::collections::BTreeSet;
 use super::{CensusError, Draw, Pair, SAMPLE_CAP};
 use crate::{
     file::attraction::{EdgeRecord, GroupRecord},
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId},
     salt::ladder::paired::{
         fixtures::{edge, group, node, reproducibility, rule, salt, snapshot},
         identity::DrawSalt,
@@ -33,7 +33,7 @@ fn pair(source: u64, target: u64) -> Pair {
 /// and one self-pair. The Coincident-only group's endpoints participate without pairing. The
 /// distinct Proximal pair domain is `(0,1)`, `(1,2)`, `(2,1)`, `(5,6)`, and `(6,6)`, and the
 /// participant set is rows `0..=6`.
-fn mixed_index() -> (Vec<GroupRecord>, Vec<EdgeRecord>) {
+fn mixed_index() -> (Vec<GroupRecord>, Vec<EdgeRecord<NodeRowId, EdgeRowId>>) {
     (
         vec![group(3, 0, 1.0), group(5, 3, 0.0), group(9, 5, 0.25)],
         vec![
@@ -53,19 +53,19 @@ fn mixed_index() -> (Vec<GroupRecord>, Vec<EdgeRecord>) {
 fn oracle_pairs(
     salt: DrawSalt,
     groups: &[GroupRecord],
-    edges: &[EdgeRecord],
+    edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
     cap: usize,
 ) -> (u64, Vec<Pair>) {
     let mut domain = BTreeSet::new();
     for (index, group) in groups.iter().enumerate() {
-        if group.proximal.get() > 0.0 {
-            let start = usize::try_from(group.first_edge.get())
-                .expect("the fixture ranges should be small");
+        if group.proximal() > 0.0 {
+            let start =
+                usize::try_from(group.edge_offset()).expect("the fixture ranges should be small");
             let end = groups.get(index + 1).map_or(edges.len(), |next| {
-                usize::try_from(next.first_edge.get()).expect("the fixture ranges should be small")
+                usize::try_from(next.edge_offset()).expect("the fixture ranges should be small")
             });
             for edge in &edges[start..end] {
-                domain.insert((edge.source.get(), edge.target.get()));
+                domain.insert((edge.source(), edge.target()));
             }
         }
     }
@@ -73,13 +73,7 @@ fn oracle_pairs(
     let candidates = domain.len() as u64;
     let mut keyed: Vec<_> = domain
         .into_iter()
-        .map(|(source, target)| {
-            (
-                rule().pair_order_key(salt, node(source), node(target)),
-                source,
-                target,
-            )
-        })
+        .map(|(source, target)| (rule().pair_order_key(salt, source, target), source, target))
         .collect();
     keyed.sort_unstable();
     keyed.truncate(cap);
@@ -88,7 +82,7 @@ fn oracle_pairs(
         candidates,
         keyed
             .into_iter()
-            .map(|(_key, source, target)| pair(source, target))
+            .map(|(_key, source, target)| Pair { source, target })
             .collect(),
     )
 }
@@ -97,12 +91,12 @@ fn oracle_pairs(
 fn oracle_controls(
     salt: DrawSalt,
     rows: u64,
-    edges: &[EdgeRecord],
+    edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
     cap: usize,
 ) -> (u64, Vec<NodeRowId>) {
     let participants: BTreeSet<u64> = edges
         .iter()
-        .flat_map(|edge| [edge.source.get(), edge.target.get()])
+        .flat_map(|edge| [u64::from(edge.source()), u64::from(edge.target())])
         .collect();
 
     let mut keyed: Vec<_> = (0..rows)
@@ -216,7 +210,8 @@ fn the_cap_bounds_the_pair_draw() {
     let salt = salt();
     let count = SAMPLE_CAP as u64 + 1;
     let groups = vec![group(3, 0, 1.0)];
-    let edges: Vec<EdgeRecord> = (0..count).map(|index| edge(index, index + 1)).collect();
+    let edges: Vec<EdgeRecord<NodeRowId, EdgeRowId>> =
+        (0..count).map(|index| edge(index, index + 1)).collect();
     let rows = count + 42;
 
     let draw =
@@ -253,7 +248,7 @@ fn the_cap_bounds_the_pair_draw() {
 #[test]
 fn one_index_one_draw_and_a_rotated_salt_permutes() {
     let groups = vec![group(3, 0, 1.0)];
-    let edges: Vec<EdgeRecord> = (0..48)
+    let edges: Vec<EdgeRecord<NodeRowId, EdgeRowId>> = (0..48)
         .map(|index| edge(2 * index, 2 * index + 1))
         .collect();
     let rows = 128;

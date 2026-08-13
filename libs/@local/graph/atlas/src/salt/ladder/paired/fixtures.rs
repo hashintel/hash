@@ -9,7 +9,6 @@
 use core::num::NonZero;
 
 use hashql_core::id::IdSlice;
-use zerocopy::{F32, F64, U32, U64};
 
 use super::identity::{DrawRule, DrawSalt, RuleIdentity};
 use crate::{
@@ -17,9 +16,9 @@ use crate::{
         attraction::{EdgeRecord, GroupRecord},
         salt::metadata::{Reproducibility, Snapshot},
     },
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AffinityCurve, Vec2},
+    math::{AffinityCurve, NonNegative, PositiveUnitFraction, UnitFraction, Vec2},
     salt::{embedding::EmbedderFingerprint, fit::FitConfig, landmark::select::SelectionOptions},
 };
 
@@ -83,28 +82,27 @@ pub(super) fn node(value: u64) -> NodeRowId {
 }
 
 /// Builds one attraction group record with the given Proximal class weight.
-pub(super) fn group(relation: u64, first_edge: u64, proximal: f32) -> GroupRecord {
-    GroupRecord {
-        relation: U64::new(relation),
-        first_edge: U64::new(first_edge),
-        coincident: F32::new(0.25),
-        proximal: F32::new(proximal),
-        strength: F32::new(1.0),
-        reserved: U32::new(0),
-    }
+pub(super) fn group(relation: u64, edge_offset: u64, proximal: f32) -> GroupRecord {
+    let weight = |value: f32| NonNegative::new(value).expect("the fixture weights are in domain");
+    GroupRecord::new(
+        OntologyRowId::new(relation),
+        edge_offset,
+        weight(0.25),
+        weight(proximal),
+        weight(1.0),
+    )
 }
 
 /// Builds one attraction edge record between two corpus rows.
-pub(super) fn edge(source: u64, target: u64) -> EdgeRecord {
-    EdgeRecord {
-        edge: U64::new(0),
-        source: U64::new(source),
-        target: U64::new(target),
-        confidence: F64::new(1.0),
-        normalization: F64::new(1.0),
-        scored: U32::new(0b111),
-        reserved: U32::new(0),
-    }
+pub(super) fn edge(source: u64, target: u64) -> EdgeRecord<NodeRowId, EdgeRowId> {
+    EdgeRecord::new(
+        EdgeRowId::new(0),
+        NodeRowId::new(source),
+        NodeRowId::new(target),
+        UnitFraction::new(1.0).expect("the fixture confidence is in domain"),
+        PositiveUnitFraction::new(1.0).expect("the fixture degree is in domain"),
+        0b111,
+    )
 }
 
 /// Views a point slice as a corpus-row frame.

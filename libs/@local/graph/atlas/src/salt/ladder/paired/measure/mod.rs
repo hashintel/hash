@@ -29,7 +29,7 @@ use crate::{
         attraction::{EdgeRecord, GroupRecord},
         salt::metadata::{Reproducibility, Snapshot},
     },
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId},
     math::{KdTree, Vec2},
 };
 
@@ -53,7 +53,7 @@ pub(crate) fn measure(
     snapshot: &Snapshot,
     reproducibility: &Reproducibility,
     groups: &[GroupRecord],
-    edges: &[EdgeRecord],
+    edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
     zero: &IdSlice<NodeRowId, Vec2>,
     canonical: &IdSlice<NodeRowId, Vec2>,
 ) -> Result<PairedMovementEvidence, EncodeError> {

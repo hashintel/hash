@@ -15,7 +15,6 @@ use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
 
 use hashql_core::id::Id;
-use zerocopy::{F32, F64, U32, U64};
 
 use super::{
     EffectiveConfidence, Scored,
@@ -25,7 +24,9 @@ use super::{
 use crate::{
     file::{
         WriteInto,
-        attraction::{EdgeRecord, GroupRecord, read::AttractionFile, write::write_records},
+        attraction::{
+            EdgeRecord, EdgeRow, GroupRecord, NodeRow, read::AttractionFile, write::write_records,
+        },
         sprs::{
             read::{SprsFile, SprsMatrixError},
             write::{WriteSprsError, write_matrix},
@@ -33,7 +34,6 @@ use crate::{
     },
     identity::OntologyRowId,
     integrity::{Sha256, Sha256Digest, Writer},
-    math::{NonNegative, PositiveUnitFraction, UnitFraction},
 };
 
 impl<N> WriteInto for ProtectionIndex<N>
@@ -149,52 +149,51 @@ where
     }
 }
 
-impl<N, E> AttractionIndex<N, E> {
+impl<N, E> AttractionIndex<N, E>
+where
+    N: NodeRow,
+    E: EdgeRow,
+{
     /// Writes the index as an attraction file.
     ///
-    /// `rows` is the corpus row domain the edges index into; the index does not carry it, the
-    /// caller's generation does. Returns the SHA-256 of the written bytes: the identity the
-    /// repository records for the published file.
+    /// The file persists the index's row domains in its header, so it reopens only under the
+    /// same types. `rows` is the row count of the endpoint domain the edges index into; the
+    /// index does not carry it, the caller's generation does. Returns the SHA-256 of the written
+    /// bytes: the identity the repository records for the published file.
     ///
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
-    pub(crate) fn write_into(&self, rows: u64, write: impl io::Write) -> io::Result<Sha256Digest>
-    where
-        N: Id,
-        E: Id,
-    {
+    pub(crate) fn write_into(&self, rows: u64, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
             writer: write,
         };
 
-        let mut first_edge = 0_u64;
+        let mut edge_offset = 0;
         let groups = self.groups().iter().map(|group| {
             let weights = group.weights();
-            let record = GroupRecord {
-                relation: U64::new(group.relation().as_u64()),
-                first_edge: U64::new(first_edge),
-                coincident: F32::new(weights.coincident.get()),
-                proximal: F32::new(weights.proximal.get()),
-                strength: F32::new(weights.strength.get()),
-                reserved: U32::new(0),
-            };
-            first_edge += group.edges().len() as u64;
+            let record = GroupRecord::new(
+                group.relation(),
+                edge_offset,
+                weights.coincident,
+                weights.proximal,
+                weights.strength,
+            );
+
+            edge_offset += group.edges().len() as u64;
             record
         });
         let edges = self.groups().iter().flat_map(|group| {
             group.edges().iter().map(|edge| {
-                let bits = u32::from(edge.confidence.scored().to_bits());
-                EdgeRecord {
-                    edge: U64::new(edge.edge.as_u64()),
-                    source: U64::new(edge.source.as_u64()),
-                    target: U64::new(edge.target.as_u64()),
-                    confidence: F64::new(edge.confidence.value().get()),
-                    normalization: F64::new(edge.normalization.get()),
-                    scored: U32::new(bits),
-                    reserved: U32::new(0),
-                }
+                EdgeRecord::new(
+                    edge.edge,
+                    edge.source,
+                    edge.target,
+                    edge.confidence.value(),
+                    edge.normalization,
+                    edge.confidence.scored().to_bits(),
+                )
             })
         });
         write_records(rows, groups, self.edge_count() as u64, edges, &mut writer)?;
@@ -212,14 +211,8 @@ pub(crate) enum InvalidAttractionIndex {
     UnorderedRelations { group: usize },
     /// A group's edge range is empty, out of bounds, or out of order.
     BrokenEdgeRanges { group: usize },
-    /// A group weight is negative or not finite.
-    InvalidWeights { group: usize },
     /// An edge references a node row outside the corpus domain.
     RowOutOfDomain { edge: usize },
-    /// An edge confidence lies outside `[0, 1]` or is not finite.
-    InvalidConfidence { edge: usize },
-    /// An edge degree normalization lies outside `(0, 1]` or is not finite.
-    InvalidDegreeNormalization { edge: usize },
     /// An edge carries score-provenance bits this module does not speak.
     UnknownScoredBits { edge: usize },
     /// The edges within one group break the ascending `(source, target, edge)` order.
@@ -240,20 +233,9 @@ impl fmt::Display for InvalidAttractionIndex {
                 fmt,
                 "the edge range of group {group} is empty, out of bounds, or out of order",
             ),
-            Self::InvalidWeights { group } => {
-                write!(fmt, "a weight of group {group} is negative or not finite")
-            }
             Self::RowOutOfDomain { edge } => write!(
                 fmt,
                 "edge {edge} references a node row outside the corpus domain",
-            ),
-            Self::InvalidConfidence { edge } => write!(
-                fmt,
-                "the confidence of edge {edge} lies outside [0, 1] or is not finite",
-            ),
-            Self::InvalidDegreeNormalization { edge } => write!(
-                fmt,
-                "the degree normalization of edge {edge} lies outside (0, 1] or is not finite",
             ),
             Self::UnknownScoredBits { edge } => write!(
                 fmt,
@@ -271,23 +253,32 @@ impl Error for InvalidAttractionIndex {}
 
 /// A published attraction index opened over its mapped file.
 ///
-/// Construction checks the index invariants once - relations strictly ascending, edge ranges
-/// contiguous and non-empty, weights and scores in domain, edges ascending within their group - so
-/// an open index only serves valid groups and consumers re-validate nothing. The regions stay in
-/// the page cache under memory pressure and off the heap.
+/// Construction checks every index invariant once, so an open index only serves valid groups
+/// and consumers re-validate nothing. The invariants:
+///
+/// - relations ascend strictly
+/// - edge ranges partition the edge region into non-empty spans
+/// - weights and scores stay in their domains
+/// - edges ascend within their group
+///
+/// The regions stay in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
-pub(crate) struct AttractionArchive {
-    file: AttractionFile,
+pub(crate) struct AttractionArchive<N, E> {
+    file: AttractionFile<N, E>,
 }
 
-impl AttractionArchive {
+impl<N, E> AttractionArchive<N, E>
+where
+    N: NodeRow,
+    E: EdgeRow,
+{
     /// Opens the index over its mapped file.
     ///
     /// # Errors
     ///
     /// Returns an error when the file violates an attraction-index invariant.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn new(file: AttractionFile) -> Result<Self, InvalidAttractionIndex> {
+    pub(crate) fn new(file: AttractionFile<N, E>) -> Result<Self, InvalidAttractionIndex> {
         let groups = file.groups();
         let edges = file.edges();
         let rows = file.rows();
@@ -299,34 +290,26 @@ impl AttractionArchive {
         }
 
         for (index, group) in groups.iter().enumerate() {
-            if index > 0 && groups[index - 1].relation.get() >= group.relation.get() {
+            if index > 0 && groups[index - 1].relation() >= group.relation() {
                 return Err(InvalidAttractionIndex::UnorderedRelations { group: index });
             }
 
-            let start = group.first_edge.get();
+            let start = group.edge_offset();
             let end = groups
                 .get(index + 1)
-                .map_or(edges.len() as u64, |next| next.first_edge.get());
+                .map_or(edges.len() as u64, GroupRecord::edge_offset);
 
             let contiguous = (index > 0 || start == 0) && start < end;
             if !contiguous {
                 return Err(InvalidAttractionIndex::BrokenEdgeRanges { group: index });
             }
-
-            let valid = |weight: f32| weight.is_finite() && weight >= 0.0;
-            if !(valid(group.coincident.get())
-                && valid(group.proximal.get())
-                && valid(group.strength.get()))
-            {
-                return Err(InvalidAttractionIndex::InvalidWeights { group: index });
-            }
         }
 
-        let mut previous: Option<(u64, u64, u64)> = None;
+        let mut previous: Option<(N, N, E)> = None;
         let mut boundaries = groups
             .iter()
             .skip(1)
-            .map(|group| group.first_edge.get())
+            .map(GroupRecord::edge_offset)
             .peekable();
         for (index, edge) in edges.iter().enumerate() {
             // Group boundaries reset the in-group order comparison.
@@ -334,28 +317,15 @@ impl AttractionArchive {
                 previous = None;
             }
 
-            if edge.source.get() >= rows || edge.target.get() >= rows {
+            if edge.source().as_u64() >= rows || edge.target().as_u64() >= rows {
                 return Err(InvalidAttractionIndex::RowOutOfDomain { edge: index });
             }
 
-            let confidence = edge.confidence.get();
-            if !(0.0..=1.0).contains(&confidence) {
-                return Err(InvalidAttractionIndex::InvalidConfidence { edge: index });
-            }
-
-            let degree = edge.normalization.get();
-            if !(degree > 0.0 && degree <= 1.0) {
-                return Err(InvalidAttractionIndex::InvalidDegreeNormalization { edge: index });
-            }
-
-            let speakable = u8::try_from(edge.scored.get())
-                .ok()
-                .and_then(Scored::from_bits);
-            if speakable.is_none() {
+            if Scored::from_bits(edge.scored()).is_none() {
                 return Err(InvalidAttractionIndex::UnknownScoredBits { edge: index });
             }
 
-            let key = (edge.source.get(), edge.target.get(), edge.edge.get());
+            let key = (edge.source(), edge.target(), edge.edge());
             if previous.is_some_and(|previous| previous >= key) {
                 return Err(InvalidAttractionIndex::UnorderedEdges { edge: index });
             }
@@ -393,18 +363,18 @@ impl AttractionArchive {
     ///
     /// This panics when `index` is not below [`group_count`](Self::group_count).
     #[must_use]
-    pub(crate) fn group(&self, index: usize) -> AttractionGroupView<'_> {
+    pub(crate) fn group(&self, index: usize) -> AttractionGroupView<'_, N, E> {
         let groups = self.file.groups();
         let record = &groups[index];
 
         // Construction validated the ranges against the edge region, so
         // the narrowing repeats accepted in-bounds values.
-        let start = usize::try_from(record.first_edge.get())
+        let start = usize::try_from(record.edge_offset())
             .expect("a validated edge offset fits the address space");
         let end = groups.get(index + 1).map_or_else(
             || self.file.edges().len(),
             |next| {
-                usize::try_from(next.first_edge.get())
+                usize::try_from(next.edge_offset())
                     .expect("a validated edge offset fits the address space")
             },
         );
@@ -418,17 +388,21 @@ impl AttractionArchive {
 
 /// One relation group borrowed from a mapped attraction index.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct AttractionGroupView<'map> {
+pub(crate) struct AttractionGroupView<'map, N, E> {
     record: &'map GroupRecord,
-    records: &'map [EdgeRecord],
+    records: &'map [EdgeRecord<N, E>],
 }
 
-impl AttractionGroupView<'_> {
+impl<N, E> AttractionGroupView<'_, N, E>
+where
+    N: NodeRow,
+    E: EdgeRow,
+{
     /// Returns the relation type the group's instances share.
     #[inline]
     #[must_use]
     pub(crate) const fn relation(&self) -> OntologyRowId {
-        OntologyRowId::new(self.record.relation.get())
+        self.record.relation()
     }
 
     /// Returns the relation's shared weight factors.
@@ -436,12 +410,9 @@ impl AttractionGroupView<'_> {
     #[must_use]
     pub(crate) const fn weights(&self) -> AttractionWeights {
         AttractionWeights {
-            coincident: NonNegative::new(self.record.coincident.get())
-                .expect("the mapped index validated every weight at open"),
-            proximal: NonNegative::new(self.record.proximal.get())
-                .expect("the mapped index validated every weight at open"),
-            strength: NonNegative::new(self.record.strength.get())
-                .expect("the mapped index validated every weight at open"),
+            coincident: self.record.coincident(),
+            proximal: self.record.proximal(),
+            strength: self.record.strength(),
         }
     }
 
@@ -456,49 +427,32 @@ impl AttractionGroupView<'_> {
     ///
     /// # Panics
     ///
-    /// Panics when `offset` is not below [`len`](Self::len).
+    /// This panics when `offset` is not below [`len`](Self::len).
     #[must_use]
-    pub(crate) const fn edge<N, E>(&self, offset: usize) -> AttractionEdge<N, E>
-    where
-        N: [const] Id,
-        E: [const] Id,
-    {
+    pub(crate) fn edge(&self, offset: usize) -> AttractionEdge<N, E> {
         decode(&self.records[offset])
     }
 
     /// Iterates the instances, ascending by `(source, target, edge)`.
-    pub(crate) fn edges<N, E>(&self) -> impl ExactSizeIterator<Item = AttractionEdge<N, E>> + '_
-    where
-        N: Id,
-        E: Id,
-    {
+    pub(crate) fn edges(&self) -> impl ExactSizeIterator<Item = AttractionEdge<N, E>> + '_ {
         self.records.iter().map(decode)
     }
 }
 
 /// Decodes one validated edge record into the resident edge type.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "validation bounds the provenance bits well inside u8 at open"
-)]
-const fn decode<N, E>(record: &EdgeRecord) -> AttractionEdge<N, E>
+fn decode<N, E>(record: &EdgeRecord<N, E>) -> AttractionEdge<N, E>
 where
-    N: [const] Id,
-    E: [const] Id,
+    N: NodeRow,
+    E: EdgeRow,
 {
-    let scored = Scored::from_bits(record.scored.get() as u8)
+    let scored = Scored::from_bits(record.scored())
         .expect("the mapped index validated every provenance bit at open");
 
     AttractionEdge {
-        edge: E::from_u64(record.edge.get()),
-        source: N::from_u64(record.source.get()),
-        target: N::from_u64(record.target.get()),
-        confidence: EffectiveConfidence::new(
-            UnitFraction::new(record.confidence.get())
-                .expect("the mapped index validated every confidence at open"),
-            scored,
-        ),
-        normalization: PositiveUnitFraction::new(record.normalization.get())
-            .expect("the mapped index validated every degree normalization at open"),
+        edge: record.edge(),
+        source: record.source(),
+        target: record.target(),
+        confidence: EffectiveConfidence::new(record.confidence(), scored),
+        normalization: record.normalization(),
     }
 }

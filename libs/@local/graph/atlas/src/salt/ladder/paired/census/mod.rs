@@ -31,7 +31,7 @@ use super::identity::{DrawRule, DrawSalt};
 use crate::{
     bitset::DenseBitSlice,
     file::attraction::{EdgeRecord, GroupRecord},
-    identity::NodeRowId,
+    identity::{EdgeRowId, NodeRowId},
 };
 
 /// The pair-sample cap.
@@ -140,16 +140,16 @@ impl Draw {
         salt: DrawSalt,
         rows: u64,
         groups: &[GroupRecord],
-        edges: &[EdgeRecord],
+        edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
     ) -> Result<Self, CensusError> {
         let ranges = edge_ranges(groups, edges)?;
 
         for (index, record) in edges.iter().enumerate() {
-            for row in [record.source.get(), record.target.get()] {
-                if row >= rows {
+            for row in [record.source(), record.target()] {
+                if u64::from(row) >= rows {
                     return Err(CensusError::Endpoint {
                         edge: index as u64,
-                        row,
+                        row: u64::from(row),
                         rows,
                     });
                 }
@@ -159,10 +159,10 @@ impl Draw {
         // The pair domain is the distinct oriented pairs of the Proximal-bearing groups.
         let mut candidates = Vec::new();
         for (group, &(start, end)) in groups.iter().zip(&ranges) {
-            if group.proximal.get() > 0.0 {
+            if group.proximal() > 0.0 {
                 candidates.extend(edges[start..end].iter().map(|record| Pair {
-                    source: NodeRowId::new(record.source.get()),
-                    target: NodeRowId::new(record.target.get()),
+                    source: record.source(),
+                    target: record.target(),
                 }));
             }
         }
@@ -268,13 +268,16 @@ impl Draw {
 ///
 /// This panics when an edge names an endpoint at or beyond `rows`. The census's endpoint sweep
 /// establishes the bound before either caller arrives here.
-pub(super) fn participants(rows: u64, edges: &[EdgeRecord]) -> Box<DenseBitSlice<NodeRowId>> {
+pub(super) fn participants(
+    rows: u64,
+    edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
+) -> Box<DenseBitSlice<NodeRowId>> {
     let domain = usize::try_from(rows).expect("a placed corpus fits the address space");
     let mut participants = DenseBitSlice::new_empty(domain);
 
     for record in edges {
-        participants.insert(NodeRowId::new(record.source.get()));
-        participants.insert(NodeRowId::new(record.target.get()));
+        participants.insert(record.source());
+        participants.insert(record.target());
     }
 
     participants
@@ -287,15 +290,16 @@ pub(super) fn participants(rows: u64, edges: &[EdgeRecord]) -> Box<DenseBitSlice
 /// refuses it rather than walking a range the file cannot hold.
 fn edge_ranges(
     groups: &[GroupRecord],
-    edges: &[EdgeRecord],
+    edges: &[EdgeRecord<NodeRowId, EdgeRowId>],
 ) -> Result<Vec<(usize, usize)>, CensusError> {
     let edge_count = edges.len() as u64;
     let mut ranges = Vec::with_capacity(groups.len());
     for (group, record) in groups.iter().enumerate() {
-        let start = record.first_edge.get();
+        let start = record.edge_offset();
         let end = groups
             .get(group + 1)
-            .map_or(edge_count, |next| next.first_edge.get());
+            .map_or(edge_count, GroupRecord::edge_offset);
+
         if start > end || end > edge_count {
             return Err(CensusError::GroupRange {
                 group: group as u64,
