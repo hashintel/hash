@@ -54,7 +54,8 @@ use std::sync::OnceLock;
 use hashql_core::id::{IdSlice, IdVec};
 
 pub use self::{
-    cache::VisibilityLimits, locate::LocateLimits, tile::TileLimits, translate::TranslateLimits,
+    cache::scope::VisibilityLimits, locate::LocateLimits, tile::TileLimits,
+    translate::TranslateLimits,
 };
 pub(crate) use self::{
     codec::WireRow,

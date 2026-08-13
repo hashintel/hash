@@ -39,7 +39,10 @@ use super::{
 };
 use crate::serve::{
     Atlas, CutOffset, View, ViewError, VisibilityLimits, VisibilityProof,
-    cache::{CacheEntry, CacheKey, FilterDigest, PendingCacheEntry, VisibilityCache},
+    cache::{
+        CacheEntry, PendingCacheEntry, VisibilityCache,
+        scope::{CacheKey, FilterDigest},
+    },
     hydrate::{
         MaskingActor,
         compile::{ProofError, visibility_proof},

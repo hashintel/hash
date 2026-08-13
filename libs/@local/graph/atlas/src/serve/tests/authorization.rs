@@ -28,7 +28,7 @@ use crate::{
     integrity::SecretHexBytes,
     serve::{
         authorization::{AuthorityError, Scope, TokenAuthority},
-        cache::FilterDigest,
+        cache::scope::FilterDigest,
         density::CutOffset,
     },
 };

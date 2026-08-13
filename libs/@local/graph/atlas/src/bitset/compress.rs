@@ -78,6 +78,20 @@ impl<T> CompressedBitSet<T> {
         self.rows.is_empty()
     }
 
+    /// Returns the set's retained container bytes.
+    ///
+    /// The figure sums the bitmap's array, run and bitset containers, so it moves with the
+    /// compression the row distribution earns rather than with the row count. Container
+    /// headers and the wrapper's own inline size are not counted.
+    #[must_use]
+    pub(crate) fn heap_bytes(&self) -> u64 {
+        let statistics = self.rows.statistics();
+
+        statistics.n_bytes_array_containers
+            + statistics.n_bytes_run_containers
+            + statistics.n_bytes_bitset_containers
+    }
+
     /// Returns whether the set admits every row of `[0, n)`.
     ///
     /// Rows at or above `n` never count against the answer: a set may admit them and still cover

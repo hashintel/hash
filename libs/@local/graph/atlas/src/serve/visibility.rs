@@ -60,6 +60,14 @@ impl<T: Id> Rows<T> {
     const fn is_full(&self) -> bool {
         matches!(self, Self::Full)
     }
+
+    /// Returns the axis's retained mask bytes, zero for the unmasked one.
+    fn heap_bytes(&self) -> u64 {
+        match self {
+            Self::Full => 0,
+            Self::Mask(mask) => mask.heap_bytes(),
+        }
+    }
 }
 
 /// Which delivery contract a proof serves.
@@ -187,6 +195,14 @@ impl VisibilityProof {
             Rows::Full => true,
             Rows::Mask(mask) => mask.contains_below(n),
         }
+    }
+
+    /// Returns the proof's retained mask bytes.
+    ///
+    /// A full axis holds no mask and counts zero, so the figure prices exactly what holding
+    /// this proof keeps allocated.
+    pub(super) fn heap_bytes(&self) -> u64 {
+        self.nodes.heap_bytes() + self.edges.heap_bytes()
     }
 
     /// Proves one node row visible: the sole [`VisibleRow`] constructor.

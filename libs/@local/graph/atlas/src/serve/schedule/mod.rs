@@ -229,6 +229,23 @@ impl ScopeSchedule {
         Self::over(rows)
     }
 
+    /// Builds the empty schedule: nothing delivers, and no cell is occupied at any depth.
+    pub(crate) fn empty() -> Self {
+        Self::over(Vec::new())
+    }
+
+    /// Returns the schedule's retained heap in bytes, pricing one materialized catch-all tail.
+    ///
+    /// Construction retains one slot and one position-lookup entry per visible row. Tails build
+    /// lazily per read offset and a served scope reads the one offset its authority sealed, so
+    /// the price covers one full tail. `size_of` carries the element widths, so the figure moves
+    /// with the layout.
+    pub(crate) fn heap_bytes(&self) -> u64 {
+        let per_row = size_of::<SlottedRow>() + size_of::<PositionBucket>() + size_of::<ScopeRow>();
+
+        size_of::<Self>() as u64 + self.slots.len() as u64 * per_row as u64
+    }
+
     /// Builds the cascade over exactly the given rows.
     ///
     /// [`cascade::separation_buckets`] assigns each row its natural bucket - the assignment

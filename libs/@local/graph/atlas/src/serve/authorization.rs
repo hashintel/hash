@@ -59,7 +59,7 @@ use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
-use super::{CutOffset, GenerationId, cache::FilterDigest};
+use super::{CutOffset, GenerationId, cache::scope::FilterDigest};
 use crate::integrity::SecretHexBytes;
 
 /// The HKDF expansion label, versioned in place for the one value this module seals.

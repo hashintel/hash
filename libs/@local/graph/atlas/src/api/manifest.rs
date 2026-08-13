@@ -31,7 +31,7 @@ use crate::{
     serve::{
         Atlas, CutOffset, DensityPolicy, GenerationId, Manifest, ViewOccupancy, VisibilityProof,
         authorization::{Scope, ScopeFilter},
-        cache::FilterDigest,
+        cache::scope::FilterDigest,
         visibility::ProofKind,
     },
 };
