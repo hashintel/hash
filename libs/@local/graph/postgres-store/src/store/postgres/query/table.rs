@@ -884,6 +884,9 @@ pub enum EntityIds {
     CreatedById,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
+    DeletedById,
+    DeletedAtTransactionTime,
+    DeletedAtDecisionTime,
 }
 
 impl DatabaseColumn<'_> for EntityIds {
@@ -896,17 +899,23 @@ impl DatabaseColumn<'_> for EntityIds {
             Self::CreatedById => "created_by_id".into(),
             Self::CreatedAtTransactionTime => "created_at_transaction_time".into(),
             Self::CreatedAtDecisionTime => "created_at_decision_time".into(),
+            Self::DeletedById => "deleted_by_id".into(),
+            Self::DeletedAtTransactionTime => "deleted_at_transaction_time".into(),
+            Self::DeletedAtDecisionTime => "deleted_at_decision_time".into(),
         }
     }
 
     fn postgres_type(&self) -> PostgresType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => PostgresType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById | Self::DeletedById => {
+                PostgresType::Uuid
+            }
             Self::Provenance => PostgresType::JsonB,
             Self::ReadOnly => PostgresType::Bool,
-            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
-                PostgresType::TimestampTz
-            }
+            Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::DeletedAtTransactionTime
+            | Self::DeletedAtDecisionTime => PostgresType::TimestampTz,
         }
     }
 }
@@ -914,12 +923,15 @@ impl DatabaseColumn<'_> for EntityIds {
 impl FilterColumn<'_> for EntityIds {
     fn parameter_type(&self) -> ParameterType {
         match self {
-            Self::WebId | Self::EntityUuid | Self::CreatedById => ParameterType::Uuid,
+            Self::WebId | Self::EntityUuid | Self::CreatedById | Self::DeletedById => {
+                ParameterType::Uuid
+            }
             Self::Provenance => ParameterType::Any,
             Self::ReadOnly => ParameterType::Boolean,
-            Self::CreatedAtTransactionTime | Self::CreatedAtDecisionTime => {
-                ParameterType::Timestamp
-            }
+            Self::CreatedAtTransactionTime
+            | Self::CreatedAtDecisionTime
+            | Self::DeletedAtTransactionTime
+            | Self::DeletedAtDecisionTime => ParameterType::Timestamp,
         }
     }
 }

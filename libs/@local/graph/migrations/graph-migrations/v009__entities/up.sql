@@ -6,13 +6,30 @@ CREATE TABLE entity_ids (
     created_by_id UUID NOT NULL,
     created_at_transaction_time TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at_decision_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    PRIMARY KEY (web_id, entity_uuid)
+    deleted_by_id UUID,
+    deleted_at_transaction_time TIMESTAMP WITH TIME ZONE,
+    deleted_at_decision_time TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (web_id, entity_uuid),
+
+    -- The deletion tombstone is total or absent: either all three deleted_* columns are set, or
+    -- none is.
+    CONSTRAINT entity_ids_deletion_tombstone_total CHECK (
+        ((deleted_by_id IS NULL) = (deleted_at_transaction_time IS NULL))
+        AND ((deleted_by_id IS NULL) = (deleted_at_decision_time IS NULL))
+    )
 );
 
 CREATE INDEX entity_ids_created_at_transaction_time
 ON entity_ids (created_at_transaction_time);
 CREATE INDEX entity_ids_created_at_decision_time
 ON entity_ids (created_at_decision_time);
+
+-- The deletion feed polls `deleted_at_transaction_time > $watermark`; the partial index covers
+-- exactly the tombstoned rows and carries the keys the feed returns.
+CREATE INDEX entity_ids_deleted_at_transaction_time
+ON entity_ids (deleted_at_transaction_time)
+INCLUDE (web_id, entity_uuid)
+WHERE deleted_at_transaction_time IS NOT NULL;
 
 CREATE TABLE entity_drafts (
     web_id UUID NOT NULL,

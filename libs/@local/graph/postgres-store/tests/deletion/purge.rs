@@ -25,7 +25,7 @@ use uuid::Uuid;
 use crate::{
     DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
     create_second_user, get_created_by_id, get_deletion_provenance, person_type_id, provenance,
-    raw_count, raw_entity_ids_exists, seed,
+    provenance_jsonb_has_deletion_keys, raw_count, raw_entity_ids_exists, seed,
 };
 
 /// Helper: purge with default settings (`include_drafts=false`, Ignore link behavior).
@@ -357,10 +357,9 @@ async fn purge_error_succeeds_without_incoming_links() {
 
 /// Verifies the tombstone carries correct deletion provenance.
 ///
-/// After purge, the `entity_ids` row persists with `provenance->'deletion'` containing
-/// `deletedById` (matching the acting actor), `deletedAtTransactionTime`, and
-/// `deletedAtDecisionTime`. The provenance is merged into the existing JSONB via
-/// `update_entity_ids_provenance` using PostgreSQL's `||` operator. Verified via raw SQL.
+/// After purge, the `entity_ids` row persists with the `deleted_by_id` (matching the acting
+/// actor), `deleted_at_transaction_time`, and `deleted_at_decision_time` columns set, written
+/// by `update_entity_ids_provenance`. Verified via raw SQL.
 #[tokio::test]
 async fn tombstone_has_deletion_provenance() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -793,10 +792,9 @@ async fn query_after_purge_returns_empty() {
 
 /// Verifies provenance records the deleting actor, not the creating actor.
 ///
-/// Actor A creates the entity, Actor B deletes it. `update_entity_ids_provenance` receives the
-/// `actor_id` from the `delete_entities` caller and stores it as `deleted_by_id` in
-/// [`EntityDeletionProvenance`]. The tombstone's `provenance->'deletion'->'deletedById'` must be
-/// Actor B's ID, not A's.
+/// Actor A creates the entity, Actor B deletes it. `stamp_deletion_tombstone` receives the
+/// `actor_id` from the `delete_entities` caller and stores it in the `deleted_by_id` column.
+/// The tombstone's `deleted_by_id` must be Actor B's ID, not A's.
 #[tokio::test]
 async fn different_actor_deleting() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -1050,12 +1048,13 @@ async fn archived_entity() {
     assert!(raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
-/// Verifies the soft-delete's provenance merge only adds deletion keys.
+/// Verifies the tombstone stamp touches only the deletion columns.
 ///
-/// The deletion is written as a JSONB `||` merge into `entity_ids.provenance`, which must leave
-/// the creator column and any other JSONB-resident keys untouched.
+/// The deletion is written into the three `deleted_*` columns. The creator column stays
+/// untouched, and the provenance JSONB gains no keys: each datum is stored exactly once since
+/// V58, so a deletion key surfacing in the JSONB means the retired write path is back.
 #[tokio::test]
-async fn provenance_merge_only_adds_deletion_keys() {
+async fn provenance_touches_only_deletion_columns() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
@@ -1076,12 +1075,18 @@ async fn provenance_merge_only_adds_deletion_keys() {
         .expect("entity_ids row should exist");
     assert_eq!(created_by_id, api.account_id);
 
-    // Deletion provenance must be added to the JSONB.
+    // Deletion provenance must be present in the columns.
     assert!(
         get_deletion_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
             .await
             .is_some(),
         "deletion provenance must be present"
+    );
+
+    // And the JSONB must not have gained any deletion keys.
+    assert!(
+        !provenance_jsonb_has_deletion_keys(&api, entity_id.web_id, entity_id.entity_uuid).await,
+        "the provenance JSONB must not carry deletion keys"
     );
 }
 

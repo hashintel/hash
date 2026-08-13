@@ -182,6 +182,9 @@ impl QueryRecordDecode for Entity {
                     created_by_id: row.get(indices.created_by_id),
                     created_at_transaction_time: row.get(indices.created_at_transaction_time),
                     created_at_decision_time: row.get(indices.created_at_decision_time),
+                    // A queryable entity always has rows in `entity_temporal_metadata`, therefore
+                    // deletion is never set.
+                    deletion: None,
                     json: row.get(indices.provenance),
                     edition: SqlEntityEditionProvenance {
                         created_by_id: row.get(indices.edition_created_by_id),

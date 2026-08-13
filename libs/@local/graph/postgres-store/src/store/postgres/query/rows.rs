@@ -458,6 +458,9 @@ pub struct EntityIdRow {
     pub created_by_id: ActorEntityUuid,
     pub created_at_transaction_time: Timestamp<TransactionTime>,
     pub created_at_decision_time: Timestamp<DecisionTime>,
+    pub deleted_by_id: Option<ActorEntityUuid>,
+    pub deleted_at_transaction_time: Option<Timestamp<TransactionTime>>,
+    pub deleted_at_decision_time: Option<Timestamp<DecisionTime>>,
 }
 
 impl PostgresRow for EntityIdRow {
@@ -475,6 +478,9 @@ impl PostgresRow for EntityIdRow {
         let mut created_by_ids = Vec::with_capacity(rows.len());
         let mut created_at_transaction_times = Vec::with_capacity(rows.len());
         let mut created_at_decision_times = Vec::with_capacity(rows.len());
+        let mut deleted_by_ids = Vec::with_capacity(rows.len());
+        let mut deleted_at_transaction_times = Vec::with_capacity(rows.len());
+        let mut deleted_at_decision_times = Vec::with_capacity(rows.len());
         for Self {
             web_id,
             entity_uuid,
@@ -483,6 +489,9 @@ impl PostgresRow for EntityIdRow {
             created_by_id,
             created_at_transaction_time,
             created_at_decision_time,
+            deleted_by_id,
+            deleted_at_transaction_time,
+            deleted_at_decision_time,
         } in rows
         {
             web_ids.push(web_id);
@@ -492,6 +501,9 @@ impl PostgresRow for EntityIdRow {
             created_by_ids.push(created_by_id);
             created_at_transaction_times.push(created_at_transaction_time);
             created_at_decision_times.push(created_at_decision_time);
+            deleted_by_ids.push(deleted_by_id);
+            deleted_at_transaction_times.push(deleted_at_transaction_time);
+            deleted_at_decision_times.push(deleted_at_decision_time);
         }
         vec![
             (EntityIds::WebId, web_ids.into()),
@@ -506,6 +518,15 @@ impl PostgresRow for EntityIdRow {
             (
                 EntityIds::CreatedAtDecisionTime,
                 created_at_decision_times.into(),
+            ),
+            (EntityIds::DeletedById, deleted_by_ids.into()),
+            (
+                EntityIds::DeletedAtTransactionTime,
+                deleted_at_transaction_times.into(),
+            ),
+            (
+                EntityIds::DeletedAtDecisionTime,
+                deleted_at_decision_times.into(),
             ),
         ]
     }
