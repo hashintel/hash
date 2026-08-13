@@ -1233,3 +1233,355 @@ fn assert_scoped_caps(
 
     counts
 }
+
+/// The reverse-rank gather (`ScopeSchedule::of`) equals a naive forward gather - position order,
+/// sorted by the corpus rank column, re-indexed dense - for EVERY node mask over the fixture.
+///
+/// The production gather traverses `position_of_rank` and never reads the forward rank column, so
+/// this equality witnesses the loaded reverse against the column it claims to invert, over
+/// saturated, empty, singleton, one-hidden, prefix, suffix, and random views.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
+    let (_generation, atlas) = publish("morton-proof-exhaustive-masks").await;
+
+    let row_ids = atlas.rows.view();
+    let ranks = atlas.ranks.view();
+    let count = u32::try_from(atlas.morton.count()).expect("fixture counts fit u32");
+
+    // Structured masks first, then a deterministic random sweep.
+    let mut masks: Vec<Vec<u32>> = vec![
+        Vec::new(),                             // saturated
+        (0..count).collect(),                   // empty view
+        (0..count).step_by(2).collect(),        // every other row
+        (0..count.saturating_sub(1)).collect(), // one visible row
+        (count >> 1..count).collect(),          // a position suffix
+        (0..count >> 1).collect(),              // a position prefix
+    ];
+    masks.extend((0..count).map(|row| vec![row])); // each single hidden row
+
+    let mut state = 0x5EED_0F0F_5EED_0F0F_u64;
+    for _ in 0..256 {
+        let bits = replay_rng(&mut state);
+        masks.push(
+            (0..count)
+                .filter(|&row| bits & (1 << (row & 63)) != 0)
+                .collect(),
+        );
+    }
+
+    for hidden in &masks {
+        let proof = mask_hiding(&atlas, hidden);
+
+        let built = ScopeSchedule::of(&atlas, &proof);
+
+        // Gather forward in position order and sort by the corpus rank column, then re-index the
+        // ranks dense by enumeration. The result is the input `of` derives from the reverse
+        // column alone.
+        let mut naive_rows: Vec<ScopeRow> = row_ids
+            .iter_enumerated()
+            .filter(|&(_, &row)| proof.contains(row))
+            .map(|(position, _)| ScopeRow {
+                position,
+                key: atlas.morton.code(position),
+                rank: ranks[position],
+            })
+            .collect();
+        naive_rows.sort_unstable_by_key(|row| row.rank);
+        for (dense, row) in naive_rows.iter_mut().enumerate() {
+            row.rank = ImportanceRank::from_usize(dense);
+        }
+        let naive = ScopeSchedule::over(naive_rows);
+
+        assert_eq!(
+            format!("{built:?}"),
+            format!("{naive:?}"),
+            "mask {hidden:?} builds a different schedule through the reverse column"
+        );
+    }
+}
+
+/// The generation's saturated memo is byte-identical to a schedule built directly under the
+/// saturated mask proof - equality of content, past the sharing the memo's own test pins.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn saturated_memo_equals_a_directly_built_scope_schedule() {
+    let (_generation, atlas) = publish("morton-proof-saturated-content").await;
+
+    let shared = ViewSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
+    let ViewSchedule::Scope(shared) = &shared else {
+        panic!("a saturated mask is a declared scope");
+    };
+
+    let direct = ScopeSchedule::of(&atlas, &mask_hiding(&atlas, &[]));
+    assert_eq!(
+        format!("{shared:?}"),
+        format!("{direct:?}"),
+        "the memo serves different bytes than a direct build"
+    );
+
+    let full = ScopeSchedule::of(&atlas, &VisibilityProof::full_visibility());
+    assert_eq!(
+        format!("{direct:?}"),
+        format!("{full:?}"),
+        "a saturated mask and the full proof gather different views"
+    );
+}
+
+/// A deterministic xorshift64* stream for adversarial cases without new dependencies.
+fn replay_rng(state: &mut u64) -> u64 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+}
+
+/// Draws a value below `bound` from the stream.
+#[expect(
+    clippy::integer_division_remainder_used,
+    clippy::cast_possible_truncation,
+    reason = "a bounded draw from the deterministic stream folds the word into the bound"
+)]
+fn replay_draw(state: &mut u64, bound: usize) -> usize {
+    (replay_rng(state) as usize) % bound
+}
+
+/// The shared depth of two keys through `prefix` comparison alone, for the replay oracle.
+fn replay_shared_depth(left: MortonKey, right: MortonKey) -> u8 {
+    (0..=32_u8)
+        .rev()
+        .find(|&at| {
+            let at = Depth::new(at).expect("the oracle sweeps the documented domain");
+            left.prefix(at) == right.prefix(at)
+        })
+        .expect("depth zero prefixes are always equal")
+}
+
+/// Each row's natural bucket by the quadratic law, written without the production cascade.
+fn replay_natural_buckets(rows: &[ScopeRow]) -> Vec<u8> {
+    rows.iter()
+        .map(|row| {
+            let mut best: Option<u8> = None;
+            for other in rows {
+                if other.rank < row.rank {
+                    let shared = replay_shared_depth(row.key, other.key);
+                    best = Some(best.map_or(shared, |held| held.max(shared)));
+                }
+            }
+
+            best.map_or(0, |shared| (shared + 1).min(Depth::MAX.get()))
+        })
+        .collect()
+}
+
+/// Hand-built adversarial row sets, each with pairwise-distinct ranks and positions.
+fn replay_row_sets() -> Vec<Vec<ScopeRow>> {
+    let row = |position: u32, key: u64, rank: u32| ScopeRow {
+        position: BasePosition::from_u32(position),
+        key: MortonKey::from_bits(key),
+        rank: ImportanceRank::from_u32(rank),
+    };
+
+    let mut state = 0x00DD_B01D_FACE_D00D_u64;
+
+    let mut sets = vec![
+        // Nothing, then one row.
+        Vec::new(),
+        vec![row(7, 0xDEAD_BEEF_0000_0000, 0)],
+        // Every row of this set shares one key, filling the catch-all.
+        (0..6)
+            .map(|at| row(at, 0xAAAA_0000_0000_1111, at))
+            .collect(),
+        // Two co-resident clusters parting at the first subdivision.
+        (0..6)
+            .map(|at| row(at, u64::from(at & 1) << 63, at))
+            .collect(),
+        // A nested-prefix chain, key `i` sharing exactly depth `i` with key zero.
+        (0..16)
+            .map(|at| row(at, 1_u64 << (63 - 2 * at), at))
+            .collect(),
+    ];
+
+    // The chain again under monotone-descending and alternating ranks over key order.
+    let chain = |at: u32| 1_u64 << (63 - 2 * at);
+    sets.push((0..16).map(|at| row(at, chain(at), 15 - at)).collect());
+    sets.push(
+        (0..16)
+            .map(|at| {
+                let rank = if at & 1 == 0 { at >> 1 } else { 15 - (at >> 1) };
+                row(at, chain(at), rank)
+            })
+            .collect(),
+    );
+
+    // Random draws from a four-key pool, and full-width randoms.
+    let pool = [
+        0x1234_5678_9ABC_DEF0_u64,
+        0x1234_5678_9ABC_DEF1,
+        0x1234_5678_0000_0000,
+        0x9234_5678_9ABC_DEF0,
+    ];
+    let mut ranks: Vec<u32> = (0..24).collect();
+    for at in (1..ranks.len()).rev() {
+        let swap = replay_draw(&mut state, at + 1);
+        ranks.swap(at, swap);
+    }
+    sets.push(
+        (0..24)
+            .map(|at| {
+                let key = pool[replay_draw(&mut state, pool.len())];
+                row(at, key, ranks[at as usize])
+            })
+            .collect(),
+    );
+    sets.push(
+        (0..24)
+            .map(|at| row(at, replay_rng(&mut state), ranks[at as usize]))
+            .collect(),
+    );
+
+    sets
+}
+
+/// The occupied-children bitmask by the quadratic law: bit `i` is one exactly when child `i`
+/// holds a row whose clamped bucket exceeds the cut.
+fn replay_children_mask(rows: &[ScopeRow], clamped: &[u8], cell: MortonCell, cut_depth: u8) -> u8 {
+    cell.children().map_or(0, |children| {
+        children
+            .iter()
+            .enumerate()
+            .fold(0_u8, |bits, (index, child)| {
+                let occupied = rows
+                    .iter()
+                    .zip(clamped)
+                    .any(|(row, &bucket)| child.contains(row.key) && bucket > cut_depth);
+                bits | (u8::from(occupied) << index)
+            })
+    })
+}
+
+/// Replays every cut query against the quadratic law over the adversarial row sets: every
+/// admissible offset, every served zoom, every occupied cell and an empty one, the per-bucket
+/// run order, the catch-all tail, `children`, `first_zoom`, `bucket_of`, `root_delivered`,
+/// and `min_resolution`.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn schedule_cuts_match_the_quadratic_replay_over_adversarial_rows() {
+    let (_generation, atlas) = publish("morton-proof-cut-battery").await;
+    let grid = atlas.grid;
+    let span = grid.span_log2();
+    let max_tile = grid.max_tile_depth();
+
+    for (case, rows) in replay_row_sets().into_iter().enumerate() {
+        let schedule = ScopeSchedule::over(rows.clone());
+        let natural = replay_natural_buckets(&rows);
+
+        for k in 0..=33_u8 {
+            let bound = schedule.cut(grid, CutOffset::new(k));
+            let admissible =
+                u16::from(max_tile) + u16::from(span) + u16::from(k) <= u16::from(Depth::MAX.get());
+            let Ok(cut) = bound else {
+                assert!(
+                    !admissible,
+                    "case {case}: binding refused an admissible offset"
+                );
+                continue;
+            };
+            assert!(
+                admissible,
+                "case {case}: binding accepted an offset past the width"
+            );
+
+            let deepest = max_tile + span + k;
+            assert_eq!(cut.deepest().get(), deepest, "case {case} k {k}");
+
+            let clamped: Vec<u8> = natural.iter().map(|&at| at.min(deepest)).collect();
+
+            // Root delivery and the deepest occupied bucket.
+            let cut_zero = span + k;
+            let delivered = rows
+                .iter()
+                .zip(&clamped)
+                .filter(|&(_, &bucket)| bucket <= cut_zero)
+                .count() as u64;
+            assert_eq!(cut.root_delivered(), delivered, "case {case} k {k}");
+            let resolution = clamped.iter().copied().max().map_or(0, u64::from);
+            assert_eq!(cut.min_resolution(), resolution, "case {case} k {k}");
+
+            // Position lookups, including one the view never held.
+            for (row, &bucket) in rows.iter().zip(&clamped) {
+                let held = cut.bucket_of(row.position).map(Depth::get);
+                assert_eq!(held, Some(bucket), "case {case} k {k}");
+                let zoom = cut.first_zoom(row.position);
+                assert_eq!(
+                    zoom,
+                    Some(bucket.saturating_sub(span + k)),
+                    "case {case} k {k}"
+                );
+            }
+            assert_eq!(cut.bucket_of(BasePosition::from_u32(9_999)), None);
+            assert_eq!(cut.first_zoom(BasePosition::from_u32(9_999)), None);
+
+            for zoom in 0..=max_tile {
+                let cut_depth = zoom + span + k;
+                let zoom_grid = Depth::new(zoom).expect("served zooms lie within the key width");
+
+                // Every occupied cell of the zoom, plus one cell nothing occupies.
+                let mut cells: Vec<MortonCell> =
+                    rows.iter().map(|row| row.key.cell(zoom_grid)).collect();
+                cells.sort_unstable_by_key(|cell| cell.min_key());
+                cells.dedup();
+                cells.push(MortonKey::from_bits(0x5555_5555_5555_5555).cell(zoom_grid));
+
+                for cell in cells {
+                    // The expected delivery, bucket-major, (key, rank)-ascending per run.
+                    let expect = |first: u8, last: u8| {
+                        let mut positions = Vec::new();
+                        let mut runs = Vec::new();
+                        for bucket in first..=last {
+                            let mut members: Vec<&ScopeRow> = rows
+                                .iter()
+                                .zip(&natural)
+                                .filter(|&(row, &at)| {
+                                    cell.contains(row.key)
+                                        && if bucket == deepest {
+                                            at >= deepest
+                                        } else {
+                                            at == bucket
+                                        }
+                                })
+                                .map(|(row, _)| row)
+                                .collect();
+                            members.sort_unstable_by_key(|row| (row.key, row.rank));
+                            runs.push(u32::try_from(members.len()).expect("fixture rows fit u32"));
+                            positions.extend(members.iter().map(|row| row.position));
+                        }
+                        (positions, runs)
+                    };
+
+                    let total = cut.total(zoom, cell);
+                    let (positions, runs) = expect(0, cut_depth);
+                    assert_eq!(total.positions, positions, "case {case} k {k} z {zoom}");
+                    assert_eq!(total.runs, runs, "case {case} k {k} z {zoom}");
+                    assert_eq!(total.first_bucket, 0);
+
+                    let delta = cut.delta(zoom, cell);
+                    let first = if zoom == 0 { 0 } else { cut_depth };
+                    let (positions, runs) = expect(first, cut_depth);
+                    assert_eq!(delta.positions, positions, "case {case} k {k} z {zoom}");
+                    assert_eq!(delta.runs, runs, "case {case} k {k} z {zoom}");
+                    assert_eq!(delta.first_bucket, first);
+
+                    // The occupied-children bitmask against the same law.
+                    let mask = cut.children(zoom, cell);
+                    let expected_mask = if cut_depth >= deepest {
+                        0_u8
+                    } else {
+                        replay_children_mask(&rows, &clamped, cell, cut_depth)
+                    };
+                    assert_eq!(mask, expected_mask, "case {case} k {k} z {zoom}");
+                }
+            }
+        }
+    }
+}
