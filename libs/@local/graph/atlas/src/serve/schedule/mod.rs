@@ -67,7 +67,7 @@ impl BucketPost {
 
 /// The delivery schedule one view's responses read.
 ///
-/// An operator proof serves the generation's own corpus schedule; a scoped proof serves the
+/// An operator proof serves the generation's own corpus schedule, and a scoped proof serves the
 /// cascade built over exactly its visible rows. The constructor derives the variant from the
 /// proof, so production has one build site and the pairing law in one place.
 ///
@@ -84,7 +84,7 @@ pub(crate) enum ViewSchedule {
 impl ViewSchedule {
     /// Derives the schedule variant `proof` serves under.
     ///
-    /// An operator proof reads the corpus artifacts; any scoped proof - saturated or empty
+    /// An operator proof reads the corpus artifacts. Any scoped proof - saturated or empty
     /// included - serves a cascade, because the serving contract follows the scope declaration
     /// rather than the visible cardinality. A scope whose node mask admits the whole corpus
     /// reads the generation's shared saturated cascade instead of building one. A cascade is a
@@ -203,8 +203,9 @@ impl ScopeSchedule {
 
     /// Builds the cascade over the visible view `proof` admits on `atlas`.
     ///
-    /// The gather traverses the generation's reverse rank column - proven at open to invert the
-    /// rank column - in rank order and keeps the positions whose rows `proof` admits. The view's
+    /// The gather traverses the generation's reverse rank column - the rank column's inverse by
+    /// the fit pipeline's construction, spot-checked at open - in rank order and keeps the
+    /// positions whose rows `proof` admits. The view's
     /// rows therefore arrive rank-ascending, and each row's local rank is its arrival ordinal:
     /// dense and pairwise distinct by construction. [`Self::over`] assigns the buckets.
     pub(crate) fn of(atlas: &Atlas, proof: &VisibilityProof) -> Self {

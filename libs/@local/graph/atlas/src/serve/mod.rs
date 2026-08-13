@@ -9,7 +9,7 @@
 //! the manifest document of the Surface v1 bootstrap is [`Atlas::manifest`].
 //!
 //! An [`Atlas`] is immutable after open and `Send + Sync`, so hold it in an
-//! [`Arc`](alloc::sync::Arc) across requests for the process lifetime of the generation. Reads are
+//! [`Arc`] across requests for the process lifetime of the generation. Reads are
 //! synchronous and CPU-bound (the columns live in mapped memory), so an async transport schedules
 //! them on a compute pool - rayon plus `catch_unwind` - never inline on its runtime threads.
 //!
@@ -214,9 +214,10 @@ pub struct Atlas {
     positions_of_row: Column<NodeRowId, BasePosition>,
     /// The reverse rank permutation, mapping each rank to its base position.
     ///
-    /// The open pass proves it the inverse of the rank column, so a traversal in rank order
+    /// The fit pipeline constructs it as the rank column's inverse, so a traversal in rank order
     /// visits every base position exactly once, and the scoped schedule's gather reads it
-    /// instead of sorting the view by rank.
+    /// instead of sorting the view by rank. The open pass spot-checks the pairing at a bounded
+    /// sample of roundtrips rather than proving the full inversion.
     positions_of_rank: Column<ImportanceRank, BasePosition>,
     postings: PostingsArchive,
     closure: ClosureMap,

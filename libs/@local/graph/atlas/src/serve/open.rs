@@ -148,15 +148,19 @@ impl Artifacts {
         })
     }
 
-    /// Proves the artifacts agree on every domain they share.
+    /// Checks the artifacts agree on every domain they share.
     ///
     /// The morton column's code count is the point domain, the adjacency spans the node and edge
-    /// domains, and the identity tables join to both. The pass checks every shared domain once, so
-    /// the read paths index across artifacts without re-validating.
+    /// domains, and the identity tables join to both. The pass checks every shared count once, so
+    /// the read paths index across artifacts without re-validating. The rank pairing gets a
+    /// deterministic bounded sample of roundtrips rather than a full inversion proof, so a
+    /// mispairing outside the sample stays the fit-time contract's to exclude.
     ///
     /// # Errors
     ///
-    /// Returns [`OpenAtlasError::Columns`], [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`],
+    /// Returns [`OpenAtlasError::Columns`] when the point-domain columns disagree on a count,
+    /// and [`OpenAtlasError::RankInverse`] when the rank columns disagree on a sampled position.
+    /// Returns [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`],
     /// [`OpenAtlasError::Subtree`], [`OpenAtlasError::Points`], [`OpenAtlasError::Types`],
     /// [`OpenAtlasError::Identities`] or [`OpenAtlasError::EdgeIdentities`] when two artifacts
     /// disagree on a count, and [`OpenAtlasError::EdgeUniverse`] when the edge rows exceed the
@@ -303,10 +307,11 @@ impl Atlas {
     /// [`OpenAtlasError::Schedule`] follows when the recorded schedule exceeds the Morton key
     /// width, which leaves no tile grid to serve.
     ///
-    /// The agreement proof over the mapped artifacts returns [`OpenAtlasError::Columns`],
+    /// The agreement pass over the mapped artifacts returns [`OpenAtlasError::Columns`],
     /// [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`], [`OpenAtlasError::Subtree`],
     /// [`OpenAtlasError::Points`], [`OpenAtlasError::Types`], [`OpenAtlasError::Identities`] or
-    /// [`OpenAtlasError::EdgeIdentities`] when two artifacts disagree on a count they share, and
+    /// [`OpenAtlasError::EdgeIdentities`] when two artifacts disagree on a count they share,
+    /// [`OpenAtlasError::RankInverse`] when the rank columns disagree on a sampled position, and
     /// [`OpenAtlasError::EdgeUniverse`] when the edge rows exceed the `u32` edge-row domain.
     ///
     /// Deriving the type closure over the agreed artifacts returns [`OpenAtlasError::Closure`]

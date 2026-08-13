@@ -106,7 +106,7 @@ impl ScheduleCut<'_> {
     /// Feeds one bucket's delivered positions inside `cell` to `deliver`, ascending by
     /// `(key, rank)`, and returns the run length.
     ///
-    /// Buckets above the catch-all read from the slot column; the catch-all reads from its
+    /// Buckets above the catch-all read from the slot column, and the catch-all reads from its
     /// tail. A bucket past the catch-all holds nothing by construction.
     fn run(&self, bucket: Depth, cell: MortonCell, deliver: &mut impl FnMut(BasePosition)) -> u32 {
         match bucket.cmp(&self.deepest) {
@@ -233,7 +233,7 @@ impl ScheduleCut<'_> {
 
     /// Assembles zoom `z`'s delta delivery inside `cell`.
     ///
-    /// The root delivers its whole cumulative schedule, buckets `0..=d(0)`; every deeper zoom
+    /// The root delivers its whole cumulative schedule, buckets `0..=d(0)`. Every deeper zoom
     /// delivers exactly its own cut bucket `d(z)`, one run. Runs keep their positional slot when
     /// empty, so accumulation down an ancestry reproduces the total response as a set.
     pub(crate) fn delta(&self, z: u8, cell: MortonCell) -> ScopeDelivery {
