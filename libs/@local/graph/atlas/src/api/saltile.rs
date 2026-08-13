@@ -12,6 +12,7 @@ use axum::{
 };
 
 use super::{headers, problem::Problem};
+use crate::offload::{self, OffloadError};
 
 /// The tile response media type, the `SALTILE` family at version 1.
 const SALTILE: &str = "application/vnd.hash.saltile-v1";
@@ -78,37 +79,24 @@ impl OperationOutput for Saltile {
     }
 }
 
-/// Runs CPU-bound response assembly on a rayon worker behind `catch_unwind`.
+/// Runs CPU-bound response assembly on a rayon worker, answering a panic as an internal problem.
 pub(super) async fn spawn<T: Send + 'static>(
     work: impl FnOnce() -> T + Send + 'static,
 ) -> Result<T, Problem<'static>> {
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-
-    rayon::spawn(move || {
-        let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work));
-        let _: Result<(), _> = sender.send(result);
-    });
-
-    match receiver.await {
-        Ok(Ok(value)) => Ok(value),
-        Ok(Err(panic)) => {
-            let payload = panic
-                .downcast_ref::<&str>()
-                .map(|&message| message.to_owned())
-                .or_else(|| panic.downcast_ref::<String>().cloned())
-                .unwrap_or_else(|| "non-string panic payload".to_owned());
-
+    offload::run(work).await.map_err(|error| match error {
+        OffloadError::Panicked(payload) => {
+            let payload = payload.unwrap_or(Cow::Borrowed("non-string panic payload"));
             let detail: Cow<'static, str> = if cfg!(debug_assertions) {
                 Cow::Owned(format!("the response assembly panicked: {payload}"))
             } else {
                 Cow::Borrowed("the response assembly panicked")
             };
 
-            Err(Problem::internal(payload, detail))
+            Problem::internal(payload, detail)
         }
-        Err(_closed) => Err(Problem::internal(
+        OffloadError::Vanished => Problem::internal(
             "the assembly worker dropped its channel",
             "the assembly worker vanished",
-        )),
-    }
+        ),
+    })
 }

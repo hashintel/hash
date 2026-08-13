@@ -38,7 +38,7 @@ use core::{
     sync::atomic::{Atomic, Ordering},
     time::Duration,
 };
-use std::{borrow::Cow, time::Instant};
+use std::time::Instant;
 
 use moka::ops::compute::Op;
 use type_system::principal::actor::ActorEntityUuid;
@@ -173,40 +173,14 @@ impl PendingCacheEntry {
         masking: MaskingActor,
         filter: Option<Arc<[u8]>>,
     ) -> Result<Self, ProofError> {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        rayon::spawn(move || {
-            let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
-                let schedule = ViewSchedule::of(&atlas, &proof);
-                let census = atlas.census(&proof);
+        let (schedule, census, proof) = crate::offload::run(move || {
+            let schedule = ViewSchedule::of(&atlas, &proof);
+            let census = atlas.census(&proof);
 
-                (schedule, census)
-            }));
-
-            let result = result.map_err(|payload| match payload.downcast_ref::<&'static str>() {
-                Some(&message) => Some(Cow::Borrowed(message)),
-                None => payload
-                    .downcast::<String>()
-                    .map_or(None, |message| Some(Cow::Owned(*message))),
-            });
-
-            if let Err(error) = tx.send((result, proof)) {
-                tracing::warn!(
-                    ?error,
-                    "while trying to compute the view schedule, the parent async task either \
-                     panicked or was cancelled"
-                );
-            }
-        });
-
-        let (schedule, census, proof) = match rx.await {
-            Ok((Err(panic), _)) => {
-                return Err(ProofError::Panic(panic));
-            }
-            Ok((Ok((schedule, census)), proof)) => (schedule, census, proof),
-            Err(error) => {
-                return Err(ProofError::ComputeView(error));
-            }
-        };
+            (schedule, census, proof)
+        })
+        .await
+        .map_err(ProofError::ComputeView)?;
 
         Ok(Self {
             proof,

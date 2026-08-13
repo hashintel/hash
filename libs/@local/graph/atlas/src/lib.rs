@@ -135,6 +135,7 @@ pub(crate) mod identity;
 pub(crate) mod integrity;
 pub(crate) mod math;
 pub(crate) mod morton;
+pub(crate) mod offload;
 pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;

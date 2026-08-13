@@ -21,7 +21,6 @@
 //! decision-time axes, so the proof reflects policy as it stands at request time. Entities the
 //! store admits that the generation does not carry contribute no rows.
 
-use alloc::borrow::Cow;
 use core::{error::Error, fmt, pin::pin};
 
 use error_stack::Report;
@@ -57,6 +56,7 @@ use super::MaskingActor;
 use crate::{
     bitset::CompressedBitSet,
     dataset::postgres::id::{ArchivedEntityId, ArchivedEntityUuid, ArchivedWebId},
+    offload::OffloadError,
     serve::{Atlas, VisibilityProof},
 };
 
@@ -82,8 +82,8 @@ pub(crate) enum ProofError {
     Query(tokio_postgres::Error),
     /// The visibility query stopped partway through its rows.
     Rows(tokio_postgres::Error),
-    ComputeView(tokio::sync::oneshot::error::RecvError),
-    Panic(Option<Cow<'static, str>>),
+    /// The offloaded schedule-and-census computation produced no value.
+    ComputeView(OffloadError),
 }
 
 impl fmt::Display for ProofError {
@@ -99,14 +99,8 @@ impl fmt::Display for ProofError {
             Self::PolicyFilter(_) => fmt.write_str("the policy filter does not compile"),
             Self::Query(_) => fmt.write_str("the store rejected the visibility query"),
             Self::Rows(_) => fmt.write_str("the visibility query stopped partway through its rows"),
-            Self::ComputeView(_) => fmt.write_str("the compute view task failed"),
-            Self::Panic(payload) => {
-                fmt.write_str("the compute view task panicked")?;
-                if let Some(message) = payload {
-                    fmt.write_str(": ")?;
-                    fmt.write_str(message)?;
-                }
-                Ok(())
+            Self::ComputeView(_) => {
+                fmt.write_str("the view's schedule and census failed to compute")
             }
         }
     }
@@ -122,7 +116,6 @@ impl Error for ProofError {
             Self::Document(error) => Some(error),
             Self::Query(error) | Self::Rows(error) => Some(error),
             Self::ComputeView(error) => Some(error),
-            Self::Panic(_) => None,
         }
     }
 }

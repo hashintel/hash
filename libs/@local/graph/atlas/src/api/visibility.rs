@@ -309,8 +309,7 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
         | ProofError::Document(_)
         | ProofError::Query(_)
         | ProofError::Rows(_)
-        | ProofError::ComputeView(_)
-        | ProofError::Panic(_) => visibility_unavailable(error),
+        | ProofError::ComputeView(_) => visibility_unavailable(error),
     }
 }
 
