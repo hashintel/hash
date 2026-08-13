@@ -55,7 +55,8 @@ fn shorten_entities<R: Row>(path: &Utf8PathBuf, rows: u64, seed: u8) {
         let row = u8::try_from(row).expect("fixture row counts fit u8");
         table.push(entity_id_of(seed + row));
     }
-    rewrite_identities(path, &table);
+    let empty = vec![Vec::new(); usize::try_from(rows).expect("fixture row counts fit usize")];
+    rewrite_identities(path, &table, &empty);
 }
 
 /// Rewrites the ontology identity artifact with `rows` fixture type uuids.
@@ -67,7 +68,8 @@ fn shorten_ontology(path: &Utf8PathBuf, rows: u64) {
             .expect("the fixture URL parses");
         table.push(ArchivedOntologyTypeUuid::from_url(&url));
     }
-    rewrite_identities(path, &table);
+    let empty = vec![Vec::new(); usize::try_from(rows).expect("fixture row counts fit usize")];
+    rewrite_identities(path, &table, &empty);
 }
 
 /// Rewrites the endpoint column with `pairs`, dropping whatever the fixture published beyond it.

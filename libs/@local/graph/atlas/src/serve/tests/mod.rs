@@ -17,7 +17,7 @@ use futures::future::ready;
 use hashql_core::id::{Id, IdSlice, IdVec};
 use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use smallvec::smallvec;
+use smallvec::{SmallVec, smallvec};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use zerocopy::{LE, U64};
 
@@ -45,6 +45,7 @@ use crate::{
 };
 
 mod authorization;
+mod auxiliary;
 mod density;
 mod frame_channel;
 mod masking;
@@ -129,11 +130,17 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A fit-scale corpus.
+/// The fit-scale corpus rows.
 ///
-/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
-/// node type alternating between two ontology rows, and one link type.
-fn fixture_dataset() -> MemoryDataset {
+/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros,
+/// typed per row by `types`. Every fixture corpus shares this geometry, so the placement
+/// conditioning is one derivation.
+fn fixture_nodes(
+    types: impl Fn(usize) -> SmallVec<OntologyRowId, 2>,
+) -> (
+    Vec<CorpusNode<U64<LE>>>,
+    HashMap<u64, BoxedVecN<CANONICAL_DIMENSIONS>>,
+) {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x5E4E);
     let mut canonical = HashMap::new();
 
@@ -163,12 +170,22 @@ fn fixture_dataset() -> MemoryDataset {
 
             CorpusNode {
                 id: U64::<LE>::new(row as u64),
-                ontology: smallvec![OntologyRowId::from_usize(row & 1)],
+                ontology: types(row),
                 embedding: BoxedVecN::new(&VecN::new(components)),
                 confidence: None,
             }
         })
         .collect();
+
+    (nodes, canonical)
+}
+
+/// A fit-scale corpus.
+///
+/// The [`fixture_nodes`] geometry with one node type alternating between two ontology rows, and
+/// one link type.
+fn fixture_dataset() -> MemoryDataset {
+    let (nodes, canonical) = fixture_nodes(|row| smallvec![OntologyRowId::from_usize(row & 1)]);
 
     let edges = FIXTURE_EDGES
         .into_iter()
@@ -373,6 +390,9 @@ const EDGE_SEED: u8 = 64;
 /// is the test-lane bridge that gives a fixture generation store-width ids. Open
 /// trusts the metadata document's hash, not per-file digests (tooling verifies those), so the
 /// rewritten artifacts serve.
+///
+/// Display payloads copy through the rewrite row by row, so a dataset's labels and icons survive
+/// the bridge and serve exactly as the production pipeline wrote them.
 fn store_identities(generation: &Generation) {
     use type_system::ontology::id::VersionedUrl;
 
@@ -410,28 +430,70 @@ fn store_identities(generation: &Generation) {
     let nodes = entity_table::<NodeRowId>(rows_of(&files.node_identities.name), 0);
     let edges = entity_table::<EdgeRowId>(rows_of(&files.edge_identities.name), EDGE_SEED);
 
+    let ontology_payloads = payloads_of(&generation.path_of(&files.ontology_identities.name));
+    let node_payloads = payloads_of(&generation.path_of(&files.node_identities.name));
+    let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name));
+
     rewrite_identities(
         &generation.path_of(&files.ontology_identities.name),
         &ontology,
+        &ontology_payloads,
     );
-    rewrite_identities(&generation.path_of(&files.node_identities.name), &nodes);
-    rewrite_identities(&generation.path_of(&files.edge_identities.name), &edges);
+    rewrite_identities(
+        &generation.path_of(&files.node_identities.name),
+        &nodes,
+        &node_payloads,
+    );
+    rewrite_identities(
+        &generation.path_of(&files.edge_identities.name),
+        &edges,
+        &edge_payloads,
+    );
 }
 
-/// Overwrites one identity artifact with a hand-built table.
+/// Reads every row's payload bytes out of a published identity artifact.
+///
+/// The mapping drops when this returns, so the caller can truncate and rewrite the file
+/// afterwards.
+fn payloads_of(path: &camino::Utf8Path) -> Vec<Vec<u8>> {
+    use crate::file::identity::read::IdentityFile;
+
+    let file = IdentityFile::open(path).expect("the published identity artifact opens");
+    let payload = file.payload();
+    file.spans()
+        .iter()
+        .map(|span| {
+            let offset = usize::try_from(span.offset()).expect("payload regions fit usize");
+            let length = usize::try_from(span.length()).expect("payload regions fit usize");
+            payload[offset..offset + length].to_vec()
+        })
+        .collect()
+}
+
+/// Overwrites one identity artifact with a hand-built table, keeping the given payloads.
+///
+/// `payloads` carries one byte string per row, in row order - [`payloads_of`] of the published
+/// artifact when the rewrite preserves them.
 fn rewrite_identities<R, I>(
     path: &camino::Utf8Path,
     table: &crate::salt::fit::prepare::identity::IdentityTable<R, I>,
+    payloads: &[Vec<u8>],
 ) where
     R: Row,
     I: Key,
 {
     let rows = usize::try_from(table.len()).expect("fixture row counts fit the address space");
+    assert_eq!(payloads.len(), rows, "one payload survives per row");
     let mut file = recreate_writable(path);
-    let empty = <I::Payload as zerocopy::TryFromBytes>::try_ref_from_bytes(&[])
-        .expect("every payload type admits the empty byte string");
+    let payloads: Vec<&I::Payload> = payloads
+        .iter()
+        .map(|bytes| {
+            <I::Payload as zerocopy::TryFromBytes>::try_ref_from_bytes(bytes)
+                .expect("published payload bytes cast as the id type's payload")
+        })
+        .collect();
     let _digest = table
-        .write_into(core::iter::repeat_n(empty, rows), &mut file)
+        .write_into(payloads, &mut file)
         .expect("the identities should write");
 }
 
