@@ -22,6 +22,7 @@
 use alloc::borrow::Cow;
 
 use hashql_core::id::{Id as _, IdSlice};
+use type_system::ontology::id::{BaseUrl, VersionedUrl};
 use zerocopy::IntoBytes as _;
 
 use super::{
@@ -38,7 +39,11 @@ use crate::{
     integrity::Sha256Digest,
     math::Vec2,
     salt::postings::artifact::Membership,
-    serve::{TableIndex, WireRow, hydrate::EdgeSlot},
+    serve::{
+        TableIndex, WireRow,
+        hydrate::{EdgeSlot, NodeSlot},
+        neighbourhood::EdgeColumns,
+    },
 };
 
 /// One locate response in writable form.
@@ -76,7 +81,7 @@ pub(crate) struct LocateResponse<'doc> {
     /// the store no longer serves.
     pub properties_complete: bool,
     /// Base positions in delivered order, source first.
-    pub delivered: &'doc [BasePosition],
+    pub delivered: &'doc IdSlice<NodeSlot, BasePosition>,
     /// The generation's wire-coordinate column, base order, in full.
     pub positions: &'doc IdSlice<BasePosition, Vec2>,
     /// The generation's row-id column (row by base position), in full.
@@ -86,15 +91,12 @@ pub(crate) struct LocateResponse<'doc> {
     /// Bit `i` of every point's mask reads from `masks[i]`. `None` when the request carried no
     /// ids: the `TYPE_MASK` slot is then absent rather than empty.
     pub masks: Option<&'doc [Membership<'doc>]>,
-    /// The `EDGE_SOURCES` column: node row ids, edge order.
-    pub sources: &'doc [WireRow<NodeRowId>],
-    /// The `EDGE_TARGETS` column: node row ids, edge order.
-    pub targets: &'doc [WireRow<NodeRowId>],
-    /// The `EDGE_IDS` column: link-entity identities, edge order, `bstr(32)` records.
+    /// The delivered edges in column form: `EDGE_SOURCES`, `EDGE_TARGETS` and `EDGE_IDS`.
     ///
-    /// Identity is generation-frozen, so every delivered edge carries one. Edge order itself is
-    /// ascending by these bytes - the delivery order is client-verifiable from the column alone.
-    pub edge_ids: &'doc [ArchivedEntityId],
+    /// `EDGE_IDS` carries `bstr(32)` records. Identity is generation-frozen, so every delivered
+    /// edge carries one. Edge order itself is ascending by those bytes - the delivery order is
+    /// client-verifiable from the column alone.
+    pub edges: &'doc EdgeColumns,
     /// The detail trailer; locate is the detail view, so it always rides.
     pub trailer: LocateTrailer<'doc>,
 }
@@ -104,9 +106,7 @@ impl LocateResponse<'_> {
     ///
     /// # Panics
     ///
-    /// This panics when the edge columns disagree on the edge count, when the trailer arrays do not
-    /// cover the delivered nodes and edges, or when a trailer's intern tables or property maps
-    /// break the interning laws.
+    /// This panics when the trailer arrays do not cover the delivered nodes and edges.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         /// Bytes per delivered point across the node columns: an f32 pair and a row id.
@@ -115,17 +115,7 @@ impl LocateResponse<'_> {
         const EDGE_SIZE: usize =
             size_of::<u32>() + size_of::<u32>() + size_of::<ArchivedEntityId>();
 
-        let edges = self.sources.len();
-        debug_assert_eq!(
-            self.targets.len(),
-            edges,
-            "the source and target columns must cover the same edges",
-        );
-        debug_assert_eq!(
-            self.edge_ids.len(),
-            edges,
-            "the source and edge-id columns must cover the same edges",
-        );
+        let edges = self.edges.count();
         self.trailer
             .debug_assert_invariants(self.delivered.len(), edges);
 
@@ -138,9 +128,9 @@ impl LocateResponse<'_> {
             Some(masks) => envelope.slot(|buf| self.write_masks(buf, masks)),
             None => envelope.absent(),
         }
-        envelope.slot(|buf| write_column(buf, self.sources));
-        envelope.slot(|buf| write_column(buf, self.targets));
-        envelope.slot(|buf| write_identities(buf, self.edge_ids));
+        envelope.slot(|buf| write_column(buf, self.edges.sources()));
+        envelope.slot(|buf| write_column(buf, self.edges.targets()));
+        envelope.slot(|buf| write_identities(buf, self.edges.ids()));
 
         envelope.finish_with_trailer(|buf| self.trailer.encode(buf))
     }
@@ -226,31 +216,31 @@ impl LocateResponse<'_> {
 pub(crate) struct LocateTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
+    pub type_table: &'trailer IdSlice<TableIndex<VersionedUrl>, Cow<'trailer, str>>,
     /// Trailer key 1: the property intern table - every surviving property base URL once,
     /// bytewise-sorted.
-    pub property_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
+    pub property_table: &'trailer IdSlice<TableIndex<BaseUrl>, Cow<'trailer, str>>,
     /// Trailer key 2: labels, delivered order.
-    pub labels: &'trailer [&'trailer Label],
+    pub labels: &'trailer IdSlice<NodeSlot, &'trailer Label>,
     /// Trailer key 3.
     ///
     /// Each delivered node's first direct type as a type-table index, delivered order. `null`
     /// marks a node the store no longer serves or whose types the store does not record.
-    pub type_ids: &'trailer [Option<TableIndex>],
+    pub type_ids: &'trailer IdSlice<NodeSlot, Option<TableIndex<VersionedUrl>>>,
     /// Trailer key 4.
     ///
     /// The source's property map, keyed by uint index into the property table, keys ascending.
     /// `null` marks a source the store no longer serves. Neighbour nodes carry no properties, and
     /// their detail is one locate away.
-    pub properties: Option<&'trailer [(TableIndex, PropertyValue<'trailer>)]>,
+    pub properties: Option<&'trailer PropertyMap<'trailer>>,
     /// Trailer key 5: link labels, edge order.
-    pub link_labels: &'trailer [&'trailer Label],
+    pub link_labels: &'trailer IdSlice<EdgeSlot, &'trailer Label>,
     /// Trailer key 6.
     ///
     /// Each delivered edge's direct types as type-table indexes, edge order, canonical type order
     /// preserved, capped by the published `locateLinkTypeIds` limit. Empty for a link the store no
     /// longer serves.
-    pub link_type_ids: &'trailer [Vec<TableIndex>],
+    pub link_type_ids: &'trailer IdSlice<EdgeSlot, Vec<TableIndex<VersionedUrl>>>,
     /// Trailer key 7: per-edge type completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
@@ -262,7 +252,7 @@ pub(crate) struct LocateTrailer<'trailer> {
     /// Per-edge property maps, edge order, keyed by uint index into the property table, keys
     /// ascending, capped by the published `locateLinkProperties` limit. `null` marks a link the
     /// store no longer serves.
-    pub link_properties: &'trailer [Option<&'trailer [(TableIndex, PropertyValue<'trailer>)]>],
+    pub link_properties: &'trailer IdSlice<EdgeSlot, Option<&'trailer PropertyMap<'trailer>>>,
     /// Trailer key 9: per-edge property completeness, edge order.
     ///
     /// Encoded as an LSB-first bitmask in whole 8-byte words, padding bits zero. Bit `e` set
@@ -363,8 +353,8 @@ impl LocateTrailer<'_> {
 
         cbor.uint(8);
         cbor.array(self.link_properties.len() as u64);
-        for entries in self.link_properties {
-            encode_property_map(&mut cbor, *entries);
+        for map in self.link_properties {
+            encode_property_map(&mut cbor, *map);
         }
 
         cbor.uint(9);
@@ -372,19 +362,53 @@ impl LocateTrailer<'_> {
     }
 }
 
-/// Encodes one property map, `null` for an entity the store no longer serves.
-fn encode_property_map(
-    cbor: &mut CborWriter<'_>,
-    entries: Option<&[(TableIndex, PropertyValue<'_>)]>,
-) {
-    match entries {
-        Some(entries) => {
-            cbor.map(entries.len() as u64);
-            for &(index, ref value) in entries {
-                cbor.uint(index.as_u64());
-                value.encode(cbor);
-            }
+/// A property-table key paired with its value, one entry of an encoded property map.
+pub(crate) type PropertyEntry<'trailer> = (TableIndex<BaseUrl>, PropertyValue<'trailer>);
+
+/// One entity's wire property map, keys ascending into the property table.
+///
+/// Ascending keys are the interning derivation's own order. Hydration emits each entity's
+/// surviving properties ascending by base URL, a base URL renders as its own string, and the
+/// table's wire order is bytewise over renderings, so ascending names map to ascending indexes.
+#[derive(Debug, PartialEq)]
+pub(crate) struct PropertyMap<'doc> {
+    /// The encoded entries, keys ascending.
+    entries: Vec<PropertyEntry<'doc>>,
+}
+
+impl<'doc> PropertyMap<'doc> {
+    /// Builds one map over interned entries.
+    ///
+    /// The keys must ascend by table index.
+    pub(crate) fn new_unchecked(entries: Vec<PropertyEntry<'doc>>) -> Self {
+        // Safe fn: the ascending-keys invariant is correctness rather than memory safety, and
+        // debug builds check it as a maintainer tripwire.
+        debug_assert!(
+            entries.is_sorted_by(|left, right| left.0 < right.0),
+            "property map keys must ascend",
+        );
+
+        Self { entries }
+    }
+
+    /// Views the entries, keys ascending.
+    pub(crate) const fn entries(&self) -> &[PropertyEntry<'doc>] {
+        &self.entries
+    }
+
+    fn encode(&self, cbor: &mut CborWriter<'_>) {
+        cbor.map(self.entries.len() as u64);
+        for &(index, ref value) in &self.entries {
+            cbor.uint(index.as_u64());
+            value.encode(cbor);
         }
+    }
+}
+
+/// Encodes one property map, `null` for an entity the store no longer serves.
+fn encode_property_map(cbor: &mut CborWriter<'_>, map: Option<&PropertyMap<'_>>) {
+    match map {
+        Some(map) => map.encode(cbor),
         None => cbor.null(),
     }
 }

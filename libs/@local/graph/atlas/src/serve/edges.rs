@@ -5,20 +5,20 @@
 
 use core::{error::Error, fmt};
 
-use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
+use hashql_core::id::{IdVec, bit_vec::DenseBitSet};
+use type_system::ontology::id::VersionedUrl;
 
 use super::{
-    Atlas, TileCoordinate, WireRow, grid,
-    hydrate::{DetailError, EdgeLinkDetails, EdgesStore},
-    intern::Table,
-    neighbourhood::Neighbourhood,
+    Atlas, TileCoordinate, grid,
+    hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesStore},
+    intern::{Table, TableIndex},
+    neighbourhood::{EdgeColumns, Neighbourhood},
     schedule::ScheduleCut,
     view::{View, ViewError},
     walk::Walk,
 };
 use crate::{
-    dataset::postgres::id::ArchivedEntityId,
-    identity::{EdgeRowId, NodeRowId},
+    identity::NodeRowId,
     salt::wire::edges::{EdgesResponse, EdgesTrailer},
 };
 
@@ -152,14 +152,8 @@ const impl Default for EdgesLimits {
 #[derive(Debug)]
 pub struct EdgesDocument {
     complete: bool,
-    sources: Vec<WireRow<NodeRowId>>,
-    targets: Vec<WireRow<NodeRowId>>,
-    /// The delivered edges' link-entity identities, delivered order.
-    edge_ids: Vec<ArchivedEntityId>,
-    /// The internal edge rows behind `edge_ids`, delivered order.
-    ///
-    /// The hydration key the identity table speaks.
-    rows: Vec<EdgeRowId>,
+    /// The delivered edges in column form, ascending link-entity identity bytes.
+    edges: EdgeColumns,
 }
 
 impl Atlas {
@@ -189,7 +183,8 @@ impl Atlas {
             EdgesDetail::Minimal => None,
             EdgesDetail::Auxiliary => {
                 let labels = document
-                    .rows
+                    .edges
+                    .rows()
                     .iter()
                     .map(|&edge| {
                         self.edge_ids.payload_of(edge).expect(
@@ -198,7 +193,7 @@ impl Atlas {
                     })
                     .collect();
                 let first_type_urls = store
-                    .hydrate(IdSlice::from_raw(&document.edge_ids))
+                    .hydrate(document.edges.ids())
                     .map_err(EdgesError::Details)?;
 
                 Some(EdgeLinkDetails::new(labels, first_type_urls))
@@ -273,23 +268,9 @@ impl Atlas {
         }
         edges.sort_unstable_by_key(|&(_, id)| id);
 
-        let mut sources = Vec::with_capacity(edges.len());
-        let mut targets = Vec::with_capacity(edges.len());
-        let mut edge_ids = Vec::with_capacity(edges.len());
-        let mut internal_rows = Vec::with_capacity(edges.len());
-        for &(edge, id) in &edges {
-            sources.push(self.node_codec.encode(edge.source));
-            targets.push(self.node_codec.encode(edge.target));
-            edge_ids.push(id);
-            internal_rows.push(edge.row.get());
-        }
-
         Ok(EdgesDocument {
             complete,
-            sources,
-            targets,
-            edge_ids,
-            rows: internal_rows,
+            edges: EdgeColumns::of(&self.node_codec, &edges),
         })
     }
 
@@ -313,7 +294,7 @@ impl Atlas {
     ) -> Vec<u8> {
         let columns = details.map(|details| {
             let table = Table::new(details.first_type_urls().iter().flatten());
-            let link_type_ids: Vec<_> = details
+            let link_type_ids: IdVec<EdgeSlot, Option<TableIndex<VersionedUrl>>> = details
                 .first_type_urls()
                 .iter()
                 .map(|url| url.as_ref().map(|url| table.index_of(url)))
@@ -326,7 +307,7 @@ impl Atlas {
             .as_ref()
             .map(|(labels, table, link_type_ids)| EdgesTrailer {
                 type_table: table.entries(),
-                link_labels: labels.as_raw(),
+                link_labels: labels,
                 link_type_ids,
             });
 
@@ -334,9 +315,7 @@ impl Atlas {
             generation: self.generation.id().digest(),
             variant: 0,
             complete: document.complete,
-            sources: &document.sources,
-            targets: &document.targets,
-            edge_ids: &document.edge_ids,
+            edges: &document.edges,
             trailer,
         }
         .encode()

@@ -21,13 +21,13 @@
 use alloc::borrow::Cow;
 
 use hashql_core::id::{Id as _, IdSlice};
+use type_system::ontology::id::VersionedUrl;
 
 use super::{Kind, cbor::CborWriter, envelope::EnvelopeWriter, tile::encode_details};
 use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
-    identity::NodeRowId,
     integrity::Sha256Digest,
-    serve::{TableIndex, WireRow},
+    serve::{TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns},
 };
 
 /// One edges response in writable form.
@@ -39,15 +39,11 @@ pub(crate) struct EdgesResponse<'doc> {
     pub variant: u64,
     /// `HEAD` key 3: `false` when the rank-ordered cap truncated the set.
     pub complete: bool,
-    /// The `EDGE_SOURCES` column: node row ids, delivery order.
-    pub sources: &'doc [WireRow<NodeRowId>],
-    /// The `EDGE_TARGETS` column: node row ids, delivery order.
-    pub targets: &'doc [WireRow<NodeRowId>],
-    /// The `EDGE_IDS` column: link-entity identities, delivery order, `bstr(32)` records.
+    /// The delivered edges in column form: `EDGE_SOURCES`, `EDGE_TARGETS` and `EDGE_IDS`.
     ///
-    /// The web uuid then the entity uuid, sixteen raw bytes each, generation-frozen. Delivery
-    /// order ascends by these bytes.
-    pub edge_ids: &'doc [ArchivedEntityId],
+    /// `EDGE_IDS` carries `bstr(32)` records - the web uuid then the entity uuid, sixteen raw
+    /// bytes each, generation-frozen - and delivery order ascends by those bytes.
+    pub edges: &'doc EdgeColumns,
     /// The hydrated detail trailer, `Some` iff the request set `detail: "auxiliary"`.
     pub trailer: Option<EdgesTrailer<'doc>>,
 }
@@ -57,8 +53,7 @@ impl EdgesResponse<'_> {
     ///
     /// # Panics
     ///
-    /// This panics when the three columns disagree on the edge count, when trailer arrays do not
-    /// cover the delivered edges, or when a trailer's intern table breaks the interning laws.
+    /// This panics when trailer arrays do not cover the delivered edges.
     #[must_use]
     pub(crate) fn encode(&self) -> Vec<u8> {
         /// Bytes per delivered edge across the three columns: source, target, identity.
@@ -72,17 +67,7 @@ impl EdgesResponse<'_> {
         /// hydration.
         const HEAD_AND_PADDING: usize = 96;
 
-        let count = self.sources.len();
-        debug_assert_eq!(
-            self.targets.len(),
-            count,
-            "the source and target columns must cover the same edges",
-        );
-        debug_assert_eq!(
-            self.edge_ids.len(),
-            count,
-            "the source and edge-id columns must cover the same edges",
-        );
+        let count = self.edges.count();
         if let Some(trailer) = &self.trailer {
             trailer.debug_assert_invariants(count);
         }
@@ -91,9 +76,9 @@ impl EdgesResponse<'_> {
 
         envelope.reserve(HEAD_AND_PADDING + count * ROW_SIZE);
         envelope.slot(|buf| self.encode_head(buf, count as u64));
-        envelope.slot(|buf| write_column(buf, self.sources));
-        envelope.slot(|buf| write_column(buf, self.targets));
-        envelope.slot(|buf| write_identities(buf, self.edge_ids));
+        envelope.slot(|buf| write_column(buf, self.edges.sources()));
+        envelope.slot(|buf| write_column(buf, self.edges.targets()));
+        envelope.slot(|buf| write_identities(buf, self.edges.ids()));
 
         match &self.trailer {
             Some(trailer) => envelope.finish_with_trailer(|buf| trailer.encode(buf)),
@@ -128,14 +113,14 @@ impl EdgesResponse<'_> {
 pub(crate) struct EdgesTrailer<'trailer> {
     /// Trailer key 0: the type intern table - every referenced versioned type URL once,
     /// bytewise-sorted.
-    pub type_table: &'trailer IdSlice<TableIndex, Cow<'trailer, str>>,
+    pub type_table: &'trailer IdSlice<TableIndex<VersionedUrl>, Cow<'trailer, str>>,
     /// Trailer key 1: link labels, edge order.
-    pub link_labels: &'trailer [&'trailer Label],
+    pub link_labels: &'trailer IdSlice<EdgeSlot, &'trailer Label>,
     /// Trailer key 2.
     ///
     /// Each edge's first direct type as a type-table index, edge order. `null` marks a link the
     /// store no longer serves or whose types the store does not record.
-    pub link_type_ids: &'trailer [Option<TableIndex>],
+    pub link_type_ids: &'trailer IdSlice<EdgeSlot, Option<TableIndex<VersionedUrl>>>,
 }
 
 impl EdgesTrailer<'_> {
@@ -183,8 +168,8 @@ impl EdgesTrailer<'_> {
 }
 
 /// Writes one u32 column little-endian.
-pub(super) fn write_column<I>(bytes: &mut Vec<u8>, values: &[WireRow<I>]) {
-    bytes.reserve(size_of_val(values));
+pub(super) fn write_column<I>(bytes: &mut Vec<u8>, values: &IdSlice<EdgeSlot, WireRow<I>>) {
+    bytes.reserve(size_of_val(values.as_raw()));
     for &value in values {
         bytes.extend_from_slice(&value.get().to_le_bytes());
     }
@@ -193,6 +178,6 @@ pub(super) fn write_column<I>(bytes: &mut Vec<u8>, values: &[WireRow<I>]) {
 /// Writes one identity column: raw 32-byte records, concatenated.
 ///
 /// The records are contiguous in memory, so one copy writes the whole column.
-pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &[ArchivedEntityId]) {
-    bytes.extend_from_slice(zerocopy::IntoBytes::as_bytes(ids));
+pub(super) fn write_identities(bytes: &mut Vec<u8>, ids: &IdSlice<EdgeSlot, ArchivedEntityId>) {
+    bytes.extend_from_slice(zerocopy::IntoBytes::as_bytes(ids.as_raw()));
 }

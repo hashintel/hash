@@ -619,11 +619,10 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
                     .expect("the scoped edges request serves");
 
                 let (sources, targets, edge_rows) = qualifying_columns(&endpoints, &delivered);
-                let (sources, targets, edge_rows) =
-                    wire_columns(&atlas, &sources, &targets, &edge_rows);
+                let columns = wire_columns(&atlas, &sources, &targets, &edge_rows);
                 assert_eq!(
                     bytes,
-                    expected_edges_bytes(&generation, true, &sources, &targets, &edge_rows),
+                    expected_edges_bytes(&generation, true, &columns),
                     "{at} draws the subgraph its own tiles delivered",
                 );
             }

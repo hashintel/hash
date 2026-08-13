@@ -11,10 +11,16 @@
 //! value's own order only deduplicates.
 
 use alloc::borrow::Cow;
+use core::{
+    cmp::Ordering,
+    fmt::{self, Debug, Display},
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
 
 use hashql_core::{
     algorithms::co_sort,
-    id::{Id as _, IdSlice, IdVec},
+    id::{Id, IdError, IdSlice, IdVec},
 };
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
@@ -41,9 +47,179 @@ impl Reference for VersionedUrl {
     }
 }
 
-hashql_core::id::newtype! {
-    #[id(const)]
-    pub(crate) struct TableIndex(u32)
+/// One reference's index into its domain's intern table.
+///
+/// The parameter is the interned domain. A type-table index and a property-table index are
+/// distinct types, and one response builds exactly one table per domain, so an index cannot
+/// reach the wrong table. Index order is the table's wire order: ascending bytewise over the
+/// interned renderings.
+// Manual implementations: a derive would bound `T`, and the parameter is phantom - `fn() -> T`
+// keeps the index `Copy`, `Send` and `Sync` for every domain.
+pub(crate) struct TableIndex<T>(u32, PhantomData<fn() -> T>);
+
+impl<T> TableIndex<T> {
+    /// Creates an index from a raw table position.
+    #[must_use]
+    #[inline]
+    pub(crate) const fn new(value: u32) -> Self {
+        Self(value, PhantomData)
+    }
+}
+
+impl<T> Copy for TableIndex<T> {}
+
+impl<T> Clone for TableIndex<T> {
+    #[inline]
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+const impl<T> PartialEq for TableIndex<T> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl<T> Eq for TableIndex<T> {}
+
+const impl<T> PartialOrd for TableIndex<T> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+const impl<T> Ord for TableIndex<T> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<T> Hash for TableIndex<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T> Debug for TableIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_tuple("TableIndex").field(&self.0).finish()
+    }
+}
+
+impl<T> Display for TableIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
+    }
+}
+
+const impl<T> TryFrom<u32> for TableIndex<T> {
+    type Error = IdError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        Ok(Self::new(value))
+    }
+}
+
+const impl<T> TryFrom<u64> for TableIndex<T> {
+    type Error = IdError;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value <= u32::MAX as u64 {
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "guarded by the range check"
+            )]
+            Ok(Self::new(value as u32))
+        } else {
+            Err(IdError::OutOfRange {
+                value,
+                min: 0,
+                max: u32::MAX as u64,
+            })
+        }
+    }
+}
+
+const impl<T> TryFrom<usize> for TableIndex<T> {
+    type Error = IdError;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if value as u64 <= u32::MAX as u64 {
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "guarded by the range check"
+            )]
+            Ok(Self::new(value as u32))
+        } else {
+            Err(IdError::OutOfRange {
+                value: value as u64,
+                min: 0,
+                max: u32::MAX as u64,
+            })
+        }
+    }
+}
+
+const impl<T: 'static> Id for TableIndex<T> {
+    const MAX: Self = Self::new(u32::MAX);
+    const MIN: Self = Self::new(0);
+
+    #[inline]
+    fn from_u32(index: u32) -> Self {
+        Self::new(index)
+    }
+
+    #[inline]
+    fn from_u64(index: u64) -> Self {
+        assert!(index <= u32::MAX as u64, "id value must fit in `u32`");
+
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "guarded by the width assertion"
+        )]
+        Self::new(index as u32)
+    }
+
+    #[inline]
+    fn from_usize(index: usize) -> Self {
+        assert!(
+            index as u64 <= u32::MAX as u64,
+            "id value must fit in `u32`"
+        );
+
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "guarded by the width assertion"
+        )]
+        Self::new(index as u32)
+    }
+
+    #[inline]
+    fn as_u32(self) -> u32 {
+        self.0
+    }
+
+    #[inline]
+    fn as_u64(self) -> u64 {
+        self.0 as u64
+    }
+
+    #[inline]
+    fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+
+    #[inline]
+    fn prev(self) -> Option<Self> {
+        match self.0.checked_sub(1) {
+            Some(value) => Some(Self::new(value)),
+            None => None,
+        }
+    }
 }
 
 /// One trailer's intern table.
@@ -54,12 +230,12 @@ hashql_core::id::newtype! {
 #[derive(Debug)]
 pub(super) struct Table<'doc, T> {
     /// The interned renderings, ascending bytewise, deduplicated.
-    entries: IdVec<TableIndex, Cow<'doc, str>>,
+    entries: IdVec<TableIndex<T>, Cow<'doc, str>>,
     /// The interned references in their own ascending order, each with its wire index.
-    lookup: Vec<(&'doc T, TableIndex)>,
+    lookup: Vec<(&'doc T, TableIndex<T>)>,
 }
 
-impl<'doc, T: Reference> Table<'doc, T> {
+impl<'doc, T: Reference + 'static> Table<'doc, T> {
     /// Builds the table over every reference the trailer makes.
     ///
     /// # Panics
@@ -70,7 +246,7 @@ impl<'doc, T: Reference> Table<'doc, T> {
         values.sort_unstable();
         values.dedup();
 
-        let (mut entries, mut lookup): (IdVec<TableIndex, _>, Vec<_>) = values
+        let (mut entries, mut lookup): (IdVec<TableIndex<T>, _>, Vec<_>) = values
             .into_iter()
             .map(|value| (value.rendering(), (value, TableIndex::MIN)))
             .collect();
@@ -93,7 +269,7 @@ impl<'doc, T: Reference> Table<'doc, T> {
     ///
     /// This panics for a reference the table does not intern, which construction over the whole
     /// reference set rules out.
-    pub(super) fn index_of(&self, reference: &T) -> TableIndex {
+    pub(super) fn index_of(&self, reference: &T) -> TableIndex<T> {
         let index = self
             .lookup
             .binary_search_by(|&(value, _)| value.cmp(reference))
@@ -103,7 +279,7 @@ impl<'doc, T: Reference> Table<'doc, T> {
     }
 
     /// Views the interned renderings, ascending bytewise.
-    pub(super) const fn entries(&self) -> &IdSlice<TableIndex, Cow<'doc, str>> {
+    pub(super) const fn entries(&self) -> &IdSlice<TableIndex<T>, Cow<'doc, str>> {
         &self.entries
     }
 }

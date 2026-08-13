@@ -33,12 +33,13 @@ use std::fs;
 use camino::Utf8PathBuf;
 use hashql_core::id::{Id, IdSlice};
 use serde_json::{Value, json};
+use type_system::ontology::id::VersionedUrl;
 
 use super::{
     Kind, Mode,
     edges::{EdgesResponse, EdgesTrailer},
     envelope::EnvelopeWriter,
-    locate::{LocateResponse, LocateTrailer, PropertyValue},
+    locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
     tests::{directory, section},
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
@@ -52,7 +53,7 @@ use crate::{
     integrity::Sha256Digest,
     math::{Bounds2, Vec2},
     salt::postings::artifact::Membership,
-    serve::{TableIndex, WireRow, hydrate::EdgeSlot},
+    serve::{TableIndex, WireRow, hydrate::EdgeSlot, neighbourhood::EdgeColumns},
 };
 
 /// One pinned fixture with its name, response bytes, and sidecar.
@@ -635,23 +636,21 @@ fn g6_edges() -> Fixture {
     ];
     let type_table = ["https://t.test/authored/v/1", "https://t.test/cites/v/2"].map(Cow::Borrowed);
     let link_type_ids = [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None];
-    let edge_ids = [
-        identity_of(0xA0, 0xA1),
-        identity_of(0xB0, 0xB1),
-        identity_of(0xC0, 0xC1),
-    ];
+    let edges = EdgeColumns::pinned([
+        (4, 11, identity_of(0xA0, 0xA1)),
+        (4, 7, identity_of(0xB0, 0xB1)),
+        (9, 2, identity_of(0xC0, 0xC1)),
+    ]);
 
     let response = EdgesResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x66; 32]),
         variant: 0,
         complete: false,
-        sources: &[4, 4, 9].map(WireRow::pinned),
-        targets: &[11, 7, 2].map(WireRow::pinned),
-        edge_ids: &edge_ids,
+        edges: &edges,
         trailer: Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&type_table),
-            link_labels: &link_labels,
-            link_type_ids: &link_type_ids,
+            link_labels: IdSlice::from_raw(&link_labels),
+            link_type_ids: IdSlice::from_raw(&link_type_ids),
         }),
     };
     let bytes = response.encode();
@@ -668,9 +667,9 @@ fn g6_edges() -> Fixture {
             "complete": false,
             "trailer": true,
         },
-        "sources": response.sources,
-        "targets": response.targets,
-        "edgeIds": identities_sidecar(&edge_ids),
+        "sources": response.edges.sources().as_raw(),
+        "targets": response.edges.targets().as_raw(),
+        "edgeIds": identities_sidecar(response.edges.ids().as_raw()),
         "trailer": {
             "typeTable": type_table,
             "linkLabels": details_sidecar(&link_labels),
@@ -692,22 +691,22 @@ struct G7Trailer {
     /// The property intern table, bytewise-sorted.
     property_table: [Cow<'static, str>; 4],
     /// The source's property map, covering text, a negative integer, a double, and a boolean.
-    source_map: [(TableIndex, PropertyValue<'static>); 4],
+    source_map: PropertyMap<'static>,
     /// One edge's property map, covering a positive integer, an explicit `null`, and a negative
     /// double.
-    link_map: [(TableIndex, PropertyValue<'static>); 3],
+    link_map: PropertyMap<'static>,
     /// Node labels: non-ASCII, an empty label (a wire `null`), an astral plane character, a
     /// combining mark.
     labels: [&'static Label; 4],
     /// Each node's first direct type as a type-table index, one store-absent `null` among them.
-    type_ids: [Option<TableIndex>; 4],
+    type_ids: [Option<TableIndex<VersionedUrl>>; 4],
     /// Link labels: non-ASCII, an empty label (a wire `null`), ASCII.
     link_labels: [&'static Label; 3],
     /// Each edge's direct types as type-table indexes, one list empty.
     ///
     /// Canonical direct-type order is the store's, never sorted: the first list pins a descending
     /// pair on purpose.
-    link_type_ids: [Vec<TableIndex>; 3],
+    link_type_ids: [Vec<TableIndex<VersionedUrl>>; 3],
     /// The delivered edges whose type list is complete.
     link_type_ids_complete: Box<DenseBitSlice<EdgeSlot>>,
     /// The delivered edges whose property map is complete.
@@ -730,17 +729,17 @@ fn g7_trailer() -> G7Trailer {
             "https://x.test/score/",
         ]
         .map(Cow::Borrowed),
-        source_map: [
+        source_map: PropertyMap::new_unchecked(vec![
             (TableIndex::new(0), PropertyValue::Integer(-3)),
             (TableIndex::new(1), PropertyValue::Text("Ada")),
             (TableIndex::new(2), PropertyValue::Boolean(true)),
             (TableIndex::new(3), PropertyValue::Float(0.5)),
-        ],
-        link_map: [
+        ]),
+        link_map: PropertyMap::new_unchecked(vec![
             (TableIndex::new(0), PropertyValue::Integer(977)),
             (TableIndex::new(1), PropertyValue::Null),
             (TableIndex::new(3), PropertyValue::Float(-2.5)),
-        ],
+        ]),
         labels: [
             Label::new("Caf\u{e9}"),
             Label::empty(),
@@ -807,13 +806,14 @@ fn g7_locate() -> Fixture {
     let masks = [Membership::List(&t0), Membership::Dense(&t1_dense)];
 
     let trailer = g7_trailer();
-    let link_properties: [Option<&[(TableIndex, PropertyValue<'_>)]>; 3] =
-        [Some(&trailer.link_map), None, Some(&[])];
-    let edge_ids = [
-        identity_of(0xD0, 0xD1),
-        identity_of(0xE0, 0xE1),
-        identity_of(0xF0, 0xF1),
-    ];
+    let empty_map = PropertyMap::new_unchecked(Vec::new());
+    let link_properties: [Option<&PropertyMap<'_>>; 3] =
+        [Some(&trailer.link_map), None, Some(&empty_map)];
+    let edges = EdgeColumns::pinned([
+        (61, 11, identity_of(0xD0, 0xD1)),
+        (41, 61, identity_of(0xE0, 0xE1)),
+        (21, 41, identity_of(0xF0, 0xF1)),
+    ]);
 
     let response = LocateResponse {
         generation: Sha256Digest::from_bytes_unchecked([0x77; 32]),
@@ -823,23 +823,21 @@ fn g7_locate() -> Fixture {
         entity_id: identity_of(0x42, 0x24),
         type_ids_complete: true,
         properties_complete: false,
-        delivered: &delivered,
+        delivered: IdSlice::from_raw(&delivered),
         positions: IdSlice::from_raw(&positions),
         rows: IdSlice::from_raw(&rows),
         masks: Some(&masks),
-        sources: &[61, 41, 21].map(WireRow::pinned),
-        targets: &[11, 61, 41].map(WireRow::pinned),
-        edge_ids: &edge_ids,
+        edges: &edges,
         trailer: LocateTrailer {
             type_table: IdSlice::from_raw(&trailer.type_table),
             property_table: IdSlice::from_raw(&trailer.property_table),
-            labels: &trailer.labels,
-            type_ids: &trailer.type_ids,
+            labels: IdSlice::from_raw(&trailer.labels),
+            type_ids: IdSlice::from_raw(&trailer.type_ids),
             properties: Some(&trailer.source_map),
-            link_labels: &trailer.link_labels,
-            link_type_ids: &trailer.link_type_ids,
+            link_labels: IdSlice::from_raw(&trailer.link_labels),
+            link_type_ids: IdSlice::from_raw(&trailer.link_type_ids),
             link_type_ids_complete: &trailer.link_type_ids_complete,
-            link_properties: &link_properties,
+            link_properties: IdSlice::from_raw(&link_properties),
             link_properties_complete: &trailer.link_properties_complete,
         },
     };
@@ -928,7 +926,7 @@ fn locate_sidecar(
             "count": response.delivered.len(),
             "zoom": response.cell.z,
             "cell": [response.cell.z, response.cell.x, response.cell.y],
-            "edges": response.sources.len(),
+            "edges": response.edges.count(),
             "complete": response.complete,
             "entityId": identities_sidecar(&[response.entity_id]).remove(0),
             "typeIdsComplete": response.type_ids_complete,
@@ -937,20 +935,20 @@ fn locate_sidecar(
         "positions": positions_bits,
         "rowIds": row_ids,
         "typeMask": type_mask,
-        "sources": response.sources,
-        "targets": response.targets,
-        "edgeIds": identities_sidecar(response.edge_ids),
+        "sources": response.edges.sources().as_raw(),
+        "targets": response.edges.targets().as_raw(),
+        "edgeIds": identities_sidecar(response.edges.ids().as_raw()),
         "trailer": {
             "typeTable": trailer.type_table.as_raw(),
             "propertyTable": trailer.property_table.as_raw(),
-            "labels": details_sidecar(trailer.labels),
+            "labels": details_sidecar(trailer.labels.as_raw()),
             "typeIds": trailer
                 .type_ids
                 .iter()
                 .map(|entry| entry.map(Id::as_u32))
                 .collect::<Vec<_>>(),
             "properties": properties,
-            "linkLabels": details_sidecar(trailer.link_labels),
+            "linkLabels": details_sidecar(trailer.link_labels.as_raw()),
             "linkTypeIds": trailer
                 .link_type_ids
                 .iter()

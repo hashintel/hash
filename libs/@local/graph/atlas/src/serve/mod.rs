@@ -101,7 +101,7 @@ pub(crate) mod hydrate;
 mod intern;
 mod locate;
 mod manifest;
-mod neighbourhood;
+pub(crate) mod neighbourhood;
 mod open;
 pub(crate) mod schedule;
 mod secret;

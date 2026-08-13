@@ -31,6 +31,7 @@ use super::{
         DetailError, EdgeSlot, EdgesStore, LocateHydration, LocateLinkHydration,
         LocateNodeHydration, LocateOrder, LocateStore,
     },
+    neighbourhood::EdgeColumns,
     schedule::ViewSchedule,
     tile::TileDetail,
 };
@@ -1139,46 +1140,31 @@ fn qualifying_columns(
 /// Node ids encoded through an independently derived codec; edge identities from the fixture's
 /// seeding rule. Delivery order ascends by identity bytes, which for the fixture is ascending
 /// internal edge row - the input order `qualifying_columns` already produces.
-fn wire_columns(
-    atlas: &Atlas,
-    sources: &[u32],
-    targets: &[u32],
-    rows: &[u32],
-) -> (
-    Vec<WireRow<NodeRowId>>,
-    Vec<WireRow<NodeRowId>>,
-    Vec<crate::dataset::postgres::id::ArchivedEntityId>,
-) {
+fn wire_columns(atlas: &Atlas, sources: &[u32], targets: &[u32], rows: &[u32]) -> EdgeColumns {
     let node_codec = test_codec(atlas);
     assert!(rows.is_sorted(), "the derivation supplies ascending rows");
 
-    let wire_sources = sources
-        .iter()
-        .map(|&source| node_codec.encode(NodeRowId::from_u32(source)))
-        .collect();
-    let wire_targets = targets
-        .iter()
-        .map(|&target| node_codec.encode(NodeRowId::from_u32(target)))
-        .collect();
-    let edge_ids = rows.iter().map(|&row| edge_identity_of(row)).collect();
-
-    (wire_sources, wire_targets, edge_ids)
+    EdgeColumns::pinned(
+        sources
+            .iter()
+            .zip(targets)
+            .zip(rows)
+            .map(|((&source, &target), &row)| {
+                (
+                    node_codec.encode(NodeRowId::from_u32(source)).get(),
+                    node_codec.encode(NodeRowId::from_u32(target)).get(),
+                    edge_identity_of(row),
+                )
+            }),
+    )
 }
 
-fn expected_edges_bytes(
-    generation: &Generation,
-    complete: bool,
-    sources: &[WireRow<NodeRowId>],
-    targets: &[WireRow<NodeRowId>],
-    edge_ids: &[crate::dataset::postgres::id::ArchivedEntityId],
-) -> Vec<u8> {
+fn expected_edges_bytes(generation: &Generation, complete: bool, edges: &EdgeColumns) -> Vec<u8> {
     EdgesResponse {
         generation: generation.id().digest(),
         variant: 0,
         complete,
-        sources,
-        targets,
-        edge_ids,
+        edges,
         trailer: None,
     }
     .encode()
@@ -1225,11 +1211,8 @@ async fn edges_deliver_the_whole_graph_under_full_coverage() {
         FIXTURE_EDGES.len(),
         "every fixture edge qualifies"
     );
-    let (sources, targets, rows) = wire_columns(&atlas, &sources, &targets, &rows);
-    assert_eq!(
-        bytes,
-        expected_edges_bytes(&generation, true, &sources, &targets, &rows),
-    );
+    let columns = wire_columns(&atlas, &sources, &targets, &rows);
+    assert_eq!(bytes, expected_edges_bytes(&generation, true, &columns));
 
     // Identical requests yield identical bytes.
     assert_eq!(
@@ -1270,7 +1253,7 @@ async fn edges_serve_the_root_visible_subgraph() {
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
 
     let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
-    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
+    let columns = wire_columns(&atlas, &sources, &targets, &edge_rows);
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
     let bytes = atlas
         .edges(
@@ -1280,10 +1263,7 @@ async fn edges_serve_the_root_visible_subgraph() {
             UntouchedStore,
         )
         .expect("the root should serve");
-    assert_eq!(
-        bytes,
-        expected_edges_bytes(&generation, true, &sources, &targets, &edge_rows),
-    );
+    assert_eq!(bytes, expected_edges_bytes(&generation, true, &columns));
 
     // Listing a tile twice changes nothing: the delivered union
     // deduplicates before the outgoing walk.
@@ -1360,11 +1340,8 @@ async fn edges_exclude_partially_delivered_pairs() {
         !edge_rows.contains(&crossing),
         "the crossing edge is excluded from the derivation",
     );
-    let (sources, targets, edge_rows) = wire_columns(&atlas, &sources, &targets, &edge_rows);
-    assert_eq!(
-        bytes,
-        expected_edges_bytes(&generation, true, &sources, &targets, &edge_rows),
-    );
+    let columns = wire_columns(&atlas, &sources, &targets, &edge_rows);
+    assert_eq!(bytes, expected_edges_bytes(&generation, true, &columns));
 }
 
 #[tokio::test]
@@ -1426,7 +1403,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         .iter()
         .map(|&row| u32::try_from(endpoints[row as usize][1]).expect("fixture rows fit u32"))
         .collect();
-    let (sources, targets, kept) = wire_columns(&atlas, &sources, &targets, &kept);
+    let columns = wire_columns(&atlas, &sources, &targets, &kept);
 
     let capped = EdgesLimits {
         edges: 2,
@@ -1440,10 +1417,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
             UntouchedStore,
         )
         .expect("the capped request should serve");
-    assert_eq!(
-        bytes,
-        expected_edges_bytes(&generation, false, &sources, &targets, &kept),
-    );
+    assert_eq!(bytes, expected_edges_bytes(&generation, false, &columns));
 
     // A zero cap serves the honest empty truncation.
     let empty = atlas
@@ -1459,7 +1433,7 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
         .expect("the zero cap should serve");
     assert_eq!(
         empty,
-        expected_edges_bytes(&generation, false, &[], &[], &[])
+        expected_edges_bytes(&generation, false, &EdgeColumns::pinned([]))
     );
 }
 
@@ -1515,7 +1489,7 @@ async fn edges_reject_and_report_the_contract() {
         .expect("the empty request should serve");
     assert_eq!(
         bytes,
-        expected_edges_bytes(&generation, true, &[], &[], &[])
+        expected_edges_bytes(&generation, true, &EdgeColumns::pinned([]))
     );
     assert!(
         section(&bytes, EDGE_IDS)
@@ -1568,21 +1542,19 @@ async fn detailed_edges_encode_the_hydrated_trailer() {
     let head = usize::try_from(head).expect("fixture counts fit usize");
     let delivered: HashSet<u32> = row_ids[..head].iter().copied().collect();
     let (sources, targets, internal_edges) = qualifying_columns(endpoints, &delivered);
-    let (sources, targets, edge_ids) = wire_columns(&atlas, &sources, &targets, &internal_edges);
+    let columns = wire_columns(&atlas, &sources, &targets, &internal_edges);
 
-    let no_labels: Vec<&Label> = vec![Label::empty(); edge_ids.len()];
-    let no_types: Vec<Option<super::TableIndex>> = vec![None; edge_ids.len()];
+    let no_labels: Vec<&Label> = vec![Label::empty(); columns.count()];
+    let no_types: Vec<Option<super::TableIndex<VersionedUrl>>> = vec![None; columns.count()];
     let expected = EdgesResponse {
         generation: generation.id().digest(),
         variant: 0,
         complete: true,
-        sources: &sources,
-        targets: &targets,
-        edge_ids: &edge_ids,
+        edges: &columns,
         trailer: Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&[]),
-            link_labels: &no_labels,
-            link_type_ids: &no_types,
+            link_labels: IdSlice::from_raw(&no_labels),
+            link_type_ids: IdSlice::from_raw(&no_types),
         }),
     }
     .encode();
@@ -1742,7 +1714,8 @@ async fn locate_subgraph_delivers_the_ego_graph() {
             .map(|&row| atlas.positions_of_row()[NodeRowId::from_u32(row)])
             .collect();
         assert_eq!(
-            subgraph.positions, expected_positions,
+            subgraph.positions.as_raw(),
+            expected_positions,
             "ego({source_row}) positions",
         );
 
@@ -1825,8 +1798,8 @@ async fn locate_edge_cap_keeps_the_nearest_partners() {
     );
     // Partner 1's only edge truncated, so partner 1 is not
     // delivered: the source stands alone.
-    assert_eq!(capped.rows, [NodeRowId::new(2)]);
-    assert_eq!(capped.positions, [source.position]);
+    assert_eq!(capped.rows.as_raw(), [NodeRowId::new(2)]);
+    assert_eq!(capped.positions.as_raw(), [source.position]);
 
     // The general law, swept: survivors are the cap smallest under
     // the independent key, presented ascending by wire edge id, and
@@ -2629,35 +2602,22 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
     let subgraph = atlas.locate_subgraph(source, limits.locate, &view);
     let node_codec = test_codec(&atlas);
     let wire_of = |row: NodeRowId| node_codec.encode(row);
-    let sources: Vec<WireRow<NodeRowId>> = subgraph
-        .edges
-        .iter()
-        .map(|&(edge, _)| wire_of(edge.source))
-        .collect();
-    let targets: Vec<WireRow<NodeRowId>> = subgraph
-        .edges
-        .iter()
-        .map(|&(edge, _)| wire_of(edge.target))
-        .collect();
-    let edge_ids: Vec<crate::dataset::postgres::id::ArchivedEntityId> =
-        subgraph.edges.iter().map(|&(_, id)| id).collect();
+    let columns = EdgeColumns::pinned(
+        subgraph
+            .edges
+            .iter()
+            .map(|&(edge, id)| (wire_of(edge.source).get(), wire_of(edge.target).get(), id)),
+    );
     let wire_rows: Vec<WireRow<NodeRowId>> =
         atlas.row_ids().iter().map(|&row| wire_of(row)).collect();
     let nodes = subgraph.rows.len();
     let edges = subgraph.edges.len();
     let no_labels: Vec<&Label> = vec![Label::empty(); nodes];
-    let no_types: Vec<Option<super::TableIndex>> = vec![None; nodes];
+    let no_types: Vec<Option<super::TableIndex<VersionedUrl>>> = vec![None; nodes];
     let no_link_labels: Vec<&Label> = vec![Label::empty(); edges];
-    let no_lists: Vec<Vec<super::TableIndex>> = vec![Vec::new(); edges];
+    let no_lists: Vec<Vec<super::TableIndex<VersionedUrl>>> = vec![Vec::new(); edges];
     let no_flags: Box<DenseBitSlice<EdgeSlot>> = DenseBitSlice::new_empty(edges);
-    let no_maps: Vec<
-        Option<
-            &[(
-                super::TableIndex,
-                crate::salt::wire::locate::PropertyValue<'_>,
-            )],
-        >,
-    > = vec![None; edges];
+    let no_maps: Vec<Option<&crate::salt::wire::locate::PropertyMap<'_>>> = vec![None; edges];
     let response = |masks: Option<&[Membership<'_>]>| {
         LocateResponse {
             generation: generation.id().digest(),
@@ -2671,19 +2631,17 @@ async fn locate_end_to_end_encodes_the_pinned_envelope() {
             positions: atlas.positions(),
             rows: IdSlice::from_raw(&wire_rows),
             masks,
-            sources: &sources,
-            targets: &targets,
-            edge_ids: &edge_ids,
+            edges: &columns,
             trailer: LocateTrailer {
                 type_table: IdSlice::from_raw(&[]),
                 property_table: IdSlice::from_raw(&[]),
-                labels: &no_labels,
-                type_ids: &no_types,
+                labels: IdSlice::from_raw(&no_labels),
+                type_ids: IdSlice::from_raw(&no_types),
                 properties: None,
-                link_labels: &no_link_labels,
-                link_type_ids: &no_lists,
+                link_labels: IdSlice::from_raw(&no_link_labels),
+                link_type_ids: IdSlice::from_raw(&no_lists),
                 link_type_ids_complete: &no_flags,
-                link_properties: &no_maps,
+                link_properties: IdSlice::from_raw(&no_maps),
                 link_properties_complete: &no_flags,
             },
         }
@@ -2766,7 +2724,7 @@ fn intern_tables_build_the_references() {
         hydrate::ScalarValue,
         locate::{intern_properties, intern_types},
     };
-    use crate::salt::wire::locate::PropertyValue;
+    use crate::salt::wire::locate::{PropertyMap, PropertyValue};
 
     let owned = |name: &str, value: ScalarValue| {
         (
@@ -2799,16 +2757,16 @@ fn intern_tables_build_the_references() {
     assert_eq!(
         maps,
         vec![
-            Some(vec![
+            Some(PropertyMap::new_unchecked(vec![
                 (TableIndex::new(1), PropertyValue::Text("t")),
                 (TableIndex::new(2), PropertyValue::Integer(7)),
-            ]),
+            ])),
             None,
-            Some(vec![
+            Some(PropertyMap::new_unchecked(vec![
                 (TableIndex::new(0), PropertyValue::Null),
                 (TableIndex::new(1), PropertyValue::Boolean(true)),
-            ]),
-            Some(vec![]),
+            ])),
+            Some(PropertyMap::new_unchecked(vec![])),
         ],
     );
 
@@ -2823,10 +2781,10 @@ fn intern_tables_build_the_references() {
         vec![
             None,
             None,
-            Some(vec![
+            Some(PropertyMap::new_unchecked(vec![
                 (TableIndex::new(0), PropertyValue::Null),
                 (TableIndex::new(1), PropertyValue::Boolean(true)),
-            ]),
+            ])),
         ],
     );
 
@@ -2852,12 +2810,12 @@ fn intern_tables_build_the_references() {
         ],
     );
     assert_eq!(
-        type_ids,
-        vec![Some(TableIndex::new(1)), None, Some(TableIndex::new(0))]
+        type_ids.as_raw(),
+        [Some(TableIndex::new(1)), None, Some(TableIndex::new(0))],
     );
     assert_eq!(
-        link_type_ids,
-        vec![vec![TableIndex::new(2), TableIndex::new(0)], Vec::new()]
+        link_type_ids.as_raw(),
+        [vec![TableIndex::new(2), TableIndex::new(0)], Vec::new()],
     );
 }
 

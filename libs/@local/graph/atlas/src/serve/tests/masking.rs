@@ -252,7 +252,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
         FIXTURE_EDGES.len() - 2,
         "two edges hide with row 5"
     );
-    let (sources, targets, rows) = wire_columns(&atlas, &sources, &targets, &rows);
+    let columns = wire_columns(&atlas, &sources, &targets, &rows);
 
     assert_eq!(
         atlas
@@ -263,7 +263,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
-        expected_edges_bytes(&generation, true, &sources, &targets, &rows),
+        expected_edges_bytes(&generation, true, &columns),
     );
 }
 
@@ -326,7 +326,7 @@ async fn locate_filters_partners_under_the_mask() {
         .expect("row 5 resolves");
     let full = atlas.locate_subgraph(source, limits.locate, &full_view);
     assert_eq!(
-        full.rows,
+        full.rows.as_raw(),
         [NodeRowId::new(5), NodeRowId::new(40)],
         "the source and its one partner"
     );
@@ -339,7 +339,7 @@ async fn locate_filters_partners_under_the_mask() {
     let masked_view = masked_bound.view(&atlas);
     let masked = atlas.locate_subgraph(source, limits.locate, &masked_view);
     assert_eq!(
-        masked.rows,
+        masked.rows.as_raw(),
         [NodeRowId::new(5)],
         "the hidden partner is not delivered"
     );
@@ -430,7 +430,7 @@ async fn hidden_link_row_is_withheld_from_the_edges_grid() {
         kept_rows.contains(&4),
         "the reciprocal edge over the same endpoints stays delivered"
     );
-    let (sources, targets, rows) = wire_columns(&atlas, &kept_sources, &kept_targets, &kept_rows);
+    let columns = wire_columns(&atlas, &kept_sources, &kept_targets, &kept_rows);
 
     assert_eq!(
         atlas
@@ -441,7 +441,7 @@ async fn hidden_link_row_is_withheld_from_the_edges_grid() {
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
-        expected_edges_bytes(&generation, true, &sources, &targets, &rows),
+        expected_edges_bytes(&generation, true, &columns),
     );
 }
 
@@ -471,7 +471,7 @@ async fn hidden_link_row_leaves_the_locate_partner_delivered() {
         atlas.locate_subgraph(source, limits.locate, view)
     });
     assert_eq!(
-        masked.rows,
+        masked.rows.as_raw(),
         [NodeRowId::new(5), NodeRowId::new(40)],
         "the partner stays: its other edge still delivers it"
     );
@@ -717,7 +717,7 @@ fn assert_edges_mask_by_intersection(
         .collect();
     let delivered: HashSet<u32> = (0..universe).filter(|row| !hidden.contains(row)).collect();
     let (sources, targets, rows) = qualifying_columns(&endpoints, &delivered);
-    let (sources, targets, rows) = wire_columns(atlas, &sources, &targets, &rows);
+    let columns = wire_columns(atlas, &sources, &targets, &rows);
     assert_eq!(
         atlas
             .edges(
@@ -727,7 +727,7 @@ fn assert_edges_mask_by_intersection(
                 UntouchedStore,
             )
             .expect("the masked grid serves"),
-        expected_edges_bytes(generation, true, &sources, &targets, &rows),
+        expected_edges_bytes(generation, true, &columns),
     );
 }
 

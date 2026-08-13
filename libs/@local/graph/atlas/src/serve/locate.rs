@@ -8,7 +8,7 @@
 //! trailer always accompanies the response, so serving locate requires a store connection for
 //! hydration.
 
-use hashql_core::id::IdSlice;
+use hashql_core::id::{IdSlice, IdVec};
 use type_system::ontology::id::{BaseUrl, VersionedUrl};
 
 use super::{
@@ -20,16 +20,16 @@ use super::{
         LocateStore, NodeSlot, ScalarValue,
     },
     intern::{Table, TableIndex},
-    neighbourhood::{DeliveredEdge, Neighbourhood},
+    neighbourhood::{DeliveredEdge, EdgeColumns, Neighbourhood},
     schedule::ScheduleCut,
     view::{View, ViewError},
     visibility::VisibleRow,
 };
 use crate::{
     dataset::{auxiliary::Label, postgres::id::ArchivedEntityId},
-    identity::{BasePosition, EdgeRowId, NodeRowId},
+    identity::{BasePosition, NodeRowId},
     morton::MortonKey,
-    salt::wire::locate::{LocateResponse, LocateTrailer, PropertyValue},
+    salt::wire::locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
 };
 
 /// The locate endpoint's limits.
@@ -194,8 +194,10 @@ impl Atlas {
         partners.sort_unstable();
         partners.dedup();
 
-        let mut rows = vec![source.row.get()];
-        let mut delivered = vec![source.position];
+        let mut rows = IdVec::with_capacity(partners.len() + 1);
+        let mut delivered = IdVec::with_capacity(partners.len() + 1);
+        rows.push(source.row.get());
+        delivered.push(source.position);
         for &(_, row) in &partners {
             rows.push(row);
             delivered.push(positions_of_row[row]);
@@ -300,9 +302,9 @@ struct NearestKey {
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LocateSubgraph {
     /// The delivered node rows, in delivered order.
-    pub rows: Vec<NodeRowId>,
+    pub rows: IdVec<NodeSlot, NodeRowId>,
     /// The delivered base positions, parallel to `rows`.
-    pub positions: Vec<BasePosition>,
+    pub positions: IdVec<NodeSlot, BasePosition>,
     /// The delivered edges paired with their link-entity identities, ascending by those bytes.
     pub edges: Vec<(DeliveredEdge, ArchivedEntityId)>,
     /// Whether the response delivers every qualifying edge. `false` iff the cap truncated.
@@ -424,18 +426,10 @@ impl From<ViewError> for LocateError {
 #[derive(Debug)]
 pub(crate) struct LocateDocument {
     source: SourcePoint,
-    delivered: Vec<BasePosition>,
-    rows: Vec<NodeRowId>,
-    sources: Vec<WireRow<NodeRowId>>,
-    targets: Vec<WireRow<NodeRowId>>,
-
-    /// The delivered edges' link-entity identities, delivered order.
-    edge_ids: Vec<ArchivedEntityId>,
-    /// The internal edge rows behind `edge_ids`, delivered order.
-    ///
-    /// The hydration key the identity table speaks.
-    edge_rows: Vec<EdgeRowId>,
-
+    delivered: IdVec<NodeSlot, BasePosition>,
+    rows: IdVec<NodeSlot, NodeRowId>,
+    /// The delivered edges in column form, ascending link-entity identity bytes.
+    edges: EdgeColumns,
     complete: bool,
     mask_set: Option<super::colour::MaskSet>,
     /// The request's parsed palette, the `typeIdsComplete` reference set.
@@ -475,7 +469,7 @@ impl Atlas {
         let hydration = store
             .hydrate(LocateOrder {
                 nodes,
-                links: IdSlice::from_raw(&document.edge_ids),
+                links: document.edges.ids(),
                 properties: limits.locate.properties,
                 link_type_ids: limits.locate.link_type_ids,
                 link_properties: limits.locate.link_properties,
@@ -503,7 +497,8 @@ impl Atlas {
         );
 
         let link_labels = document
-            .edge_rows
+            .edges
+            .rows()
             .iter()
             .zip(&hydration.links.properties)
             .map(|(&row, properties)| {
@@ -578,17 +573,6 @@ impl Atlas {
             complete,
         } = self.locate_subgraph(source, limits.locate, view);
 
-        let mut sources = Vec::with_capacity(edges.len());
-        let mut targets = Vec::with_capacity(edges.len());
-        let mut edge_ids = Vec::with_capacity(edges.len());
-        let mut internal_rows = Vec::with_capacity(edges.len());
-        for &(edge, id) in &edges {
-            sources.push(self.node_codec.encode(edge.source));
-            targets.push(self.node_codec.encode(edge.target));
-            edge_ids.push(id);
-            internal_rows.push(edge.row.get());
-        }
-
         let palette = Palette::of(&request.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));
 
@@ -596,10 +580,7 @@ impl Atlas {
             source,
             delivered: positions,
             rows,
-            sources,
-            targets,
-            edge_ids,
-            edge_rows: internal_rows,
+            edges: EdgeColumns::of(&self.node_codec, &edges),
             complete,
             mask_set,
             palette,
@@ -615,7 +596,7 @@ impl Atlas {
         &'doc self,
         document: &'doc LocateDocument,
     ) -> DeliveredNodes<'doc> {
-        DeliveredNodes::new(self.node_ids.ids(), IdSlice::from_raw(&document.rows))
+        DeliveredNodes::new(self.node_ids.ids(), &document.rows)
     }
 
     /// Encodes an assembled document with its hydrated details.
@@ -652,7 +633,7 @@ impl Atlas {
         // the generation-frozen tables in process.
         let entity_id = self
             .node_ids
-            .id(document.rows[0])
+            .id(document.rows[NodeSlot::new(0)])
             .expect("open validated the identity rows against the code column");
 
         let type_ids_complete = covers_source_types(
@@ -670,7 +651,7 @@ impl Atlas {
             .pop()
             .expect("the source's map is the intern order's first entry");
 
-        let link_properties: Vec<_> = link_property_maps.iter().map(Option::as_deref).collect();
+        let link_properties: IdVec<_, _> = link_property_maps.iter().map(Option::as_ref).collect();
 
         LocateResponse {
             generation: self.generation.id().digest(),
@@ -684,16 +665,14 @@ impl Atlas {
             positions: self.positions(),
             rows: self.wire_rows(),
             masks: masks.as_deref(),
-            sources: &document.sources,
-            targets: &document.targets,
-            edge_ids: &document.edge_ids,
+            edges: &document.edges,
             trailer: LocateTrailer {
                 type_table: type_table.entries(),
                 property_table: property_table.entries(),
-                labels: nodes.labels().as_raw(),
+                labels: nodes.labels(),
                 type_ids: &type_ids,
-                properties: source_properties.as_deref(),
-                link_labels: links.labels().as_raw(),
+                properties: source_properties.as_ref(),
+                link_labels: links.labels(),
                 link_type_ids: &link_type_ids,
                 link_type_ids_complete: links.type_urls_complete(),
                 link_properties: &link_properties,
@@ -704,11 +683,16 @@ impl Atlas {
     }
 }
 
-/// One entity's wire property map.
+/// One entity's interned property map.
 ///
-/// Uint indexes into the property table paired with borrowed values, ascending by index. `None`
-/// marks an entity the store no longer serves.
-type PropertyMapView<'doc> = Option<Vec<(TableIndex, PropertyValue<'doc>)>>;
+/// `None` marks an entity the store no longer serves.
+type PropertyMapView<'doc> = Option<PropertyMap<'doc>>;
+
+/// Node first-type references into one response's type table, delivered order.
+type NodeTypeIds = IdVec<NodeSlot, Option<TableIndex<VersionedUrl>>>;
+
+/// Link type lists into one response's type table, edge order.
+type LinkTypeIds = IdVec<EdgeSlot, Vec<TableIndex<VersionedUrl>>>;
 
 /// Returns whether a request's palette covers the source's direct types.
 ///
@@ -733,11 +717,7 @@ pub(crate) fn covers_source_types(
 pub(crate) fn intern_types<'doc>(
     nodes: &'doc IdSlice<NodeSlot, Vec<VersionedUrl>>,
     links: &'doc IdSlice<EdgeSlot, Vec<VersionedUrl>>,
-) -> (
-    Table<'doc, VersionedUrl>,
-    Vec<Option<TableIndex>>,
-    Vec<Vec<TableIndex>>,
-) {
+) -> (Table<'doc, VersionedUrl>, NodeTypeIds, LinkTypeIds) {
     let table = Table::new(
         nodes
             .iter()
@@ -789,12 +769,12 @@ pub(crate) fn intern_properties<'doc>(
         .map(|entry| {
             let survivors = entry?;
 
-            Some(
+            Some(PropertyMap::new_unchecked(
                 survivors
                     .iter()
                     .map(|(name, value)| (table.index_of(name), wire_value(value)))
                     .collect(),
-            )
+            ))
         })
         .collect();
 

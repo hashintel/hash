@@ -12,10 +12,12 @@
 //! edge the proof withholds, so every collected edge carries its delivery proof in the type and
 //! neither walk states the rule a second time.
 
-use hashql_core::id::{IdSlice, bit_vec::DenseBitSet};
+use hashql_core::id::{IdSlice, IdVec, bit_vec::DenseBitSet};
 
 use super::{
-    Atlas,
+    Atlas, WireRow,
+    codec::RowCodec,
+    hydrate::EdgeSlot,
     visibility::{VisibilityProof, VisibleEdge},
 };
 use crate::{
@@ -45,6 +47,100 @@ impl DeliveredEdge {
         } else {
             self.source
         }
+    }
+}
+
+/// The delivered edges in column form, every column in lockstep.
+///
+/// One constructor writes every column in one pass over the delivered edge set, so the columns
+/// cover the same edges by construction and delivery order is the input's own. The endpoint
+/// columns speak wire row ids. The identity column is the wire's `EDGE_IDS`, and the internal
+/// row column is the hydration key behind it.
+#[derive(Debug)]
+pub(crate) struct EdgeColumns {
+    /// The `EDGE_SOURCES` column: node row ids in wire form, edge order.
+    sources: IdVec<EdgeSlot, WireRow<NodeRowId>>,
+    /// The `EDGE_TARGETS` column: node row ids in wire form, edge order.
+    targets: IdVec<EdgeSlot, WireRow<NodeRowId>>,
+    /// The `EDGE_IDS` column: link-entity identities, edge order.
+    ids: IdVec<EdgeSlot, ArchivedEntityId>,
+    /// The internal edge rows behind `ids`, edge order: the hydration key.
+    rows: IdVec<EdgeSlot, EdgeRowId>,
+}
+
+impl EdgeColumns {
+    /// Gathers the delivered edges into their column form.
+    pub(super) fn of(
+        codec: &RowCodec<NodeRowId>,
+        edges: &[(DeliveredEdge, ArchivedEntityId)],
+    ) -> Self {
+        let mut columns = Self {
+            sources: IdVec::with_capacity(edges.len()),
+            targets: IdVec::with_capacity(edges.len()),
+            ids: IdVec::with_capacity(edges.len()),
+            rows: IdVec::with_capacity(edges.len()),
+        };
+
+        for &(edge, id) in edges {
+            columns.sources.push(codec.encode(edge.source));
+            columns.targets.push(codec.encode(edge.target));
+            columns.ids.push(id);
+            columns.rows.push(edge.row.get());
+        }
+
+        columns
+    }
+
+    /// Returns the delivered edge count.
+    pub(crate) const fn count(&self) -> usize {
+        self.ids.len()
+    }
+
+    /// Views the `EDGE_SOURCES` column, edge order.
+    pub(crate) const fn sources(&self) -> &IdSlice<EdgeSlot, WireRow<NodeRowId>> {
+        &self.sources
+    }
+
+    /// Views the `EDGE_TARGETS` column, edge order.
+    pub(crate) const fn targets(&self) -> &IdSlice<EdgeSlot, WireRow<NodeRowId>> {
+        &self.targets
+    }
+
+    /// Views the `EDGE_IDS` column, edge order.
+    pub(crate) const fn ids(&self) -> &IdSlice<EdgeSlot, ArchivedEntityId> {
+        &self.ids
+    }
+
+    /// Views the internal edge rows, edge order.
+    pub(crate) const fn rows(&self) -> &IdSlice<EdgeSlot, EdgeRowId> {
+        &self.rows
+    }
+}
+
+#[cfg(test)]
+impl EdgeColumns {
+    /// Mints columns from one literal wire-form triple per edge: source, target, identity.
+    ///
+    /// The triple shape keeps the columns in lockstep at the call site, and the internal row
+    /// column numbers the edges in order, because a pinned response never hydrates.
+    pub(crate) fn pinned(edges: impl IntoIterator<Item = (u32, u32, ArchivedEntityId)>) -> Self {
+        use hashql_core::id::Id as _;
+
+        let mut columns = Self {
+            sources: IdVec::new(),
+            targets: IdVec::new(),
+            ids: IdVec::new(),
+            rows: IdVec::new(),
+        };
+        for (source, target, id) in edges {
+            let row = u32::try_from(columns.rows.len()).expect("pinned fixtures are small");
+            columns.sources.push(WireRow::pinned(source));
+            columns.targets.push(WireRow::pinned(target));
+            columns.ids.push(id);
+            columns.rows.push(EdgeRowId::from_u32(row));
+        }
+
+        columns
     }
 }
 

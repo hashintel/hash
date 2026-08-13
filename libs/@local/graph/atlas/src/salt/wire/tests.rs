@@ -21,7 +21,7 @@ use super::{
     cbor::CborWriter,
     edges::{EdgesResponse, EdgesTrailer},
     envelope::EnvelopeWriter,
-    locate::{LocateResponse, LocateTrailer, PropertyValue},
+    locate::{LocateResponse, LocateTrailer, PropertyMap, PropertyValue},
     tile::{DeliveredSet, GlobalHead, TileCoordinate, TileHead, TileResponse, TileTrailer},
 };
 use crate::{
@@ -763,11 +763,21 @@ mod tile {
 
 mod edges {
     use alloc::borrow::Cow;
+    use std::sync::LazyLock;
 
     use hashql_core::id::IdSlice;
 
-    use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, WireRow, identity_of, section};
-    use crate::serve::TableIndex;
+    use super::{EdgesResponse, EdgesTrailer, Label, Sha256Digest, identity_of, section};
+    use crate::serve::{TableIndex, neighbourhood::EdgeColumns};
+
+    /// The three-edge columns behind the minimal response.
+    static EDGES: LazyLock<EdgeColumns> = LazyLock::new(|| {
+        EdgeColumns::pinned([
+            (4, 7, identity_of(0x11)),
+            (9, 2, identity_of(0x22)),
+            (4, 11, identity_of(0x33)),
+        ])
+    });
 
     /// A three-edge response without a trailer.
     fn minimal() -> EdgesResponse<'static> {
@@ -775,9 +785,7 @@ mod edges {
             generation: Sha256Digest::from_bytes_unchecked([0xCD; 32]),
             variant: 1,
             complete: false,
-            sources: &const { [WireRow::pinned(4), WireRow::pinned(9), WireRow::pinned(4)] },
-            targets: &const { [WireRow::pinned(7), WireRow::pinned(2), WireRow::pinned(11)] },
-            edge_ids: &const { [identity_of(0x11), identity_of(0x22), identity_of(0x33)] },
+            edges: &EDGES,
             trailer: None,
         }
     }
@@ -821,8 +829,12 @@ mod edges {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
-            link_labels: &const { [Label::new("a"), Label::empty(), Label::empty()] },
-            link_type_ids: &const { [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None] },
+            link_labels: IdSlice::from_raw(
+                &const { [Label::new("a"), Label::empty(), Label::empty()] },
+            ),
+            link_type_ids: IdSlice::from_raw(
+                &const { [Some(TableIndex::new(1)), Some(TableIndex::new(0)), None] },
+            ),
         });
         let bytes = response.encode();
 
@@ -842,10 +854,9 @@ mod edges {
 
     #[test]
     fn zero_edge_response_is_present_empty() {
+        let empty = EdgeColumns::pinned([]);
         let mut response = minimal();
-        response.sources = &[];
-        response.targets = &[];
-        response.edge_ids = &[];
+        response.edges = &empty;
         let bytes = response.encode();
 
         for slot in 1..4 {
@@ -856,29 +867,13 @@ mod edges {
     }
 
     #[test]
-    #[should_panic(expected = "must cover the same edges")]
-    fn ragged_columns_are_rejected() {
-        let mut response = minimal();
-        response.targets = &const { [WireRow::pinned(7), WireRow::pinned(2)] };
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "edge-id columns must cover the same edges")]
-    fn ragged_id_columns_are_rejected() {
-        let mut response = minimal();
-        response.edge_ids = &const { [identity_of(0)] };
-        let _bytes = response.encode();
-    }
-
-    #[test]
     #[should_panic(expected = "link type ids must cover")]
     fn short_trailers_are_rejected() {
         let mut response = minimal();
         response.trailer = Some(EdgesTrailer {
             type_table: IdSlice::from_raw(&[]),
-            link_labels: &const { [Label::empty(); 3] },
-            link_type_ids: &[None],
+            link_labels: IdSlice::from_raw(&const { [Label::empty(); 3] }),
+            link_type_ids: IdSlice::from_raw(&[None]),
         });
         let _bytes = response.encode();
     }
@@ -889,13 +884,14 @@ mod locate {
     use std::sync::LazyLock;
 
     use hashql_core::id::{Id as _, IdSlice};
+    use type_system::ontology::id::VersionedUrl;
 
     use super::{
-        BasePosition, DenseBitSlice, Label, LocateResponse, LocateTrailer, Membership,
+        BasePosition, DenseBitSlice, Label, LocateResponse, LocateTrailer, Membership, PropertyMap,
         PropertyValue, Sha256Digest, TileCoordinate, Vec2, WireRow, dense_set, identity_of,
         section,
     };
-    use crate::serve::{TableIndex, hydrate::EdgeSlot};
+    use crate::serve::{TableIndex, hydrate::EdgeSlot, neighbourhood::EdgeColumns};
 
     /// The four-point base-order coordinate column behind the tests.
     fn points() -> [Vec2; 4] {
@@ -908,10 +904,15 @@ mod locate {
     }
 
     /// The two-edge link-type lists behind the minimal trailer: both empty.
-    static NO_TYPES: [Vec<TableIndex>; 2] = [Vec::new(), Vec::new()];
+    static NO_TYPES: [Vec<TableIndex<VersionedUrl>>; 2] = [Vec::new(), Vec::new()];
 
     /// The two-edge completeness set behind the minimal trailer: nothing complete.
     static NO_FLAGS: LazyLock<Box<DenseBitSlice<EdgeSlot>>> = LazyLock::new(|| dense_set(2, &[]));
+
+    /// The two-edge columns behind the minimal response.
+    static EDGES: LazyLock<EdgeColumns> = LazyLock::new(|| {
+        EdgeColumns::pinned([(10, 12, identity_of(0x44)), (12, 13, identity_of(0x55))])
+    });
 
     /// A three-node, two-edge response with an all-null trailer.
     ///
@@ -927,13 +928,15 @@ mod locate {
             entity_id: identity_of(0xEE),
             type_ids_complete: false,
             properties_complete: true,
-            delivered: &const {
-                [
-                    BasePosition::from_u32(2),
-                    BasePosition::from_u32(0),
-                    BasePosition::from_u32(3),
-                ]
-            },
+            delivered: IdSlice::from_raw(
+                &const {
+                    [
+                        BasePosition::from_u32(2),
+                        BasePosition::from_u32(0),
+                        BasePosition::from_u32(3),
+                    ]
+                },
+            ),
             positions: IdSlice::from_raw(positions),
             rows: IdSlice::from_raw(
                 &const {
@@ -946,19 +949,17 @@ mod locate {
                 },
             ),
             masks: None,
-            sources: &const { [WireRow::pinned(10), WireRow::pinned(12)] },
-            targets: &const { [WireRow::pinned(12), WireRow::pinned(13)] },
-            edge_ids: &const { [identity_of(0x44), identity_of(0x55)] },
+            edges: &EDGES,
             trailer: LocateTrailer {
                 type_table: IdSlice::from_raw(&[]),
                 property_table: IdSlice::from_raw(&[]),
-                labels: &const { [Label::empty(); 3] },
-                type_ids: &[None, None, None],
+                labels: IdSlice::from_raw(&const { [Label::empty(); 3] }),
+                type_ids: IdSlice::from_raw(&[None, None, None]),
                 properties: None,
-                link_labels: &const { [Label::empty(); 2] },
-                link_type_ids: &NO_TYPES,
+                link_labels: IdSlice::from_raw(&const { [Label::empty(); 2] }),
+                link_type_ids: IdSlice::from_raw(&NO_TYPES),
                 link_type_ids_complete: &NO_FLAGS,
-                link_properties: &[None, None],
+                link_properties: IdSlice::from_raw(&[None, None]),
                 link_properties_complete: &NO_FLAGS,
             },
         }
@@ -1053,12 +1054,15 @@ mod locate {
     fn trailer_encodes_by_hand() {
         let positions = points();
         let lists = [vec![TableIndex::new(1), TableIndex::new(0)], Vec::new()];
-        let link_map = [
+        let source_map = PropertyMap::new_unchecked(vec![
+            (TableIndex::new(0), PropertyValue::Text("x")),
+            (TableIndex::new(1), PropertyValue::Integer(-2)),
+        ]);
+        let link_map = PropertyMap::new_unchecked(vec![
             (TableIndex::new(0), PropertyValue::Boolean(true)),
             (TableIndex::new(1), PropertyValue::Null),
-        ];
-        let link_properties: [Option<&[(TableIndex, PropertyValue<'_>)]>; 2] =
-            [Some(&link_map), None];
+        ]);
+        let link_properties: [Option<&PropertyMap<'_>>; 2] = [Some(&link_map), None];
         // Slot 0's type list is complete and slot 1's property map is, over the two delivered
         // edges.
         let type_flags = dense_set::<EdgeSlot>(2, &[0]);
@@ -1067,20 +1071,15 @@ mod locate {
         response.trailer = LocateTrailer {
             type_table: IdSlice::from_raw(&const { [Cow::Borrowed("s"), Cow::Borrowed("t")] }),
             property_table: IdSlice::from_raw(&const { [Cow::Borrowed("a"), Cow::Borrowed("b")] }),
-            labels: &const { [Label::new("n"), Label::empty(), Label::empty()] },
-            type_ids: &const { [Some(TableIndex::new(1)), None, Some(TableIndex::new(0))] },
-            properties: Some(
-                &const {
-                    [
-                        (TableIndex::new(0), PropertyValue::Text("x")),
-                        (TableIndex::new(1), PropertyValue::Integer(-2)),
-                    ]
-                },
+            labels: IdSlice::from_raw(&const { [Label::new("n"), Label::empty(), Label::empty()] }),
+            type_ids: IdSlice::from_raw(
+                &const { [Some(TableIndex::new(1)), None, Some(TableIndex::new(0))] },
             ),
-            link_labels: &const { [Label::new("l"), Label::empty()] },
-            link_type_ids: &lists,
+            properties: Some(&source_map),
+            link_labels: IdSlice::from_raw(&const { [Label::new("l"), Label::empty()] }),
+            link_type_ids: IdSlice::from_raw(&lists),
             link_type_ids_complete: &type_flags,
-            link_properties: &link_properties,
+            link_properties: IdSlice::from_raw(&link_properties),
             link_properties_complete: &property_flags,
         };
         let bytes = response.encode();
@@ -1105,17 +1104,16 @@ mod locate {
     fn source_only_response_is_present_empty_on_edges() {
         let positions = points();
         let no_edges = dense_set::<EdgeSlot>(0, &[]);
+        let empty = EdgeColumns::pinned([]);
         let mut response = minimal(&positions);
-        response.delivered = &const { [BasePosition::from_u32(1)] };
-        response.sources = &[];
-        response.targets = &[];
-        response.edge_ids = &[];
-        response.trailer.labels = &const { [Label::empty()] };
-        response.trailer.type_ids = &[None];
-        response.trailer.link_labels = &[];
-        response.trailer.link_type_ids = &[];
+        response.delivered = IdSlice::from_raw(&const { [BasePosition::from_u32(1)] });
+        response.edges = &empty;
+        response.trailer.labels = IdSlice::from_raw(&const { [Label::empty()] });
+        response.trailer.type_ids = IdSlice::from_raw(&[None]);
+        response.trailer.link_labels = IdSlice::from_raw(&[]);
+        response.trailer.link_type_ids = IdSlice::from_raw(&[]);
         response.trailer.link_type_ids_complete = &no_edges;
-        response.trailer.link_properties = &[];
+        response.trailer.link_properties = IdSlice::from_raw(&[]);
         response.trailer.link_properties_complete = &no_edges;
         let bytes = response.encode();
 
@@ -1127,29 +1125,11 @@ mod locate {
     }
 
     #[test]
-    #[should_panic(expected = "must cover the same edges")]
-    fn ragged_edge_columns_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.targets = &const { [WireRow::pinned(12)] };
-        let _bytes = response.encode();
-    }
-
-    #[test]
-    #[should_panic(expected = "edge-id columns must cover the same edges")]
-    fn ragged_id_columns_are_rejected() {
-        let positions = points();
-        let mut response = minimal(&positions);
-        response.edge_ids = &const { [identity_of(0)] };
-        let _bytes = response.encode();
-    }
-
-    #[test]
     #[should_panic(expected = "labels must cover exactly the delivered nodes")]
     fn short_trailers_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.labels = &const { [Label::empty()] };
+        response.trailer.labels = IdSlice::from_raw(&const { [Label::empty()] });
         let _bytes = response.encode();
     }
 
@@ -1158,7 +1138,7 @@ mod locate {
     fn short_type_id_columns_are_rejected() {
         let positions = points();
         let mut response = minimal(&positions);
-        response.trailer.type_ids = &[None];
+        response.trailer.type_ids = IdSlice::from_raw(&[None]);
         let _bytes = response.encode();
     }
 
@@ -1171,5 +1151,14 @@ mod locate {
         let mut response = minimal(&positions);
         response.trailer.link_type_ids_complete = &short;
         let _bytes = response.encode();
+    }
+
+    #[test]
+    #[should_panic(expected = "property map keys must ascend")]
+    fn descending_property_keys_are_rejected() {
+        let _map = PropertyMap::new_unchecked(vec![
+            (TableIndex::new(1), PropertyValue::Null),
+            (TableIndex::new(0), PropertyValue::Null),
+        ]);
     }
 }
