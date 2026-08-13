@@ -22,12 +22,39 @@ runs:
   using: composite
 
   steps:
+    # `mise install` builds the Rust toolchain by shelling out to `rustup`, so mise's own
+    # `http_retries` does not cover that download. Non-fatal here, retried below.
     - name: Run `mise install` with `ci` environment
+      id: mise-install
       uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
+      continue-on-error: true
       with:
         # renovate: datasource=github-releases depName=jdx/mise
         version: 2026.7.14
         install_args: --env ci --jobs 1 --locked
+      env:
+        MISE_VERBOSE: 1
+        GITHUB_TOKEN: ${{ inputs.token }}
+
+    # Without `mise` on `PATH` there is no install to retry, only five minutes of `not found`.
+    - name: Fail fast if `mise` itself is missing
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      shell: bash
+      run: |
+        command -v mise > /dev/null || {
+          echo "::error::mise is not on PATH: jdx/mise-action failed during its own setup, so there is no install to retry"
+          exit 1
+        }
+
+    # Skipped on the happy path; `!= 'success'` so an unresolved `outcome` retries too.
+    - name: Retry `mise install` if it failed
+      if: ${{ steps.mise-install.outcome != 'success' }}
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+      with:
+        timeout_minutes: 20
+        max_attempts: 5
+        retry_wait_seconds: 60
+        command: mise install --env ci --jobs 1 --locked
       env:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
