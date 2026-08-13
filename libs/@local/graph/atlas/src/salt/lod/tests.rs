@@ -1174,3 +1174,207 @@ fn quad_trees_uphold_the_contract_laws(
     prop_assert!(evidence.leaves >= 1);
     prop_assert!(evidence.depth.get() <= max_tile_depth);
 }
+
+/// A deterministic xorshift64* stream for adversarial cases without new dependencies.
+fn harness_rng(state: &mut u64) -> u64 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+}
+
+/// Draws a value below `bound` from the stream.
+#[expect(
+    clippy::integer_division_remainder_used,
+    clippy::cast_possible_truncation,
+    reason = "a bounded draw from the deterministic stream folds the word into the bound"
+)]
+fn harness_draw(state: &mut u64, bound: usize) -> usize {
+    (harness_rng(state) as usize) % bound
+}
+
+/// The deepest depth at which both keys' prefixes agree, computed through `prefix` alone.
+fn oracle_shared_depth(left: MortonKey, right: MortonKey) -> u8 {
+    (0..=32_u8)
+        .rev()
+        .find(|&at| {
+            let at = depth(at);
+            left.prefix(at) == right.prefix(at)
+        })
+        .expect("depth zero prefixes are always equal")
+}
+
+/// Computes each point's bucket quadratically, as one past the deepest grid the point
+/// shares with ANY better-ranked point, clamped to `deepest`. The best point takes zero.
+fn oracle_natural_buckets(points: &[(MortonKey, ImportanceRank)], deepest: Depth) -> Vec<Depth> {
+    points
+        .iter()
+        .map(|&(key, rank)| {
+            let mut best: Option<u8> = None;
+            for &(other_key, other_rank) in points {
+                if other_rank < rank {
+                    let shared = oracle_shared_depth(key, other_key);
+                    best = Some(best.map_or(shared, |held| held.max(shared)));
+                }
+            }
+
+            best.map_or(Depth::MIN, |shared| {
+                depth(shared).saturating_add(1).min(deepest)
+            })
+        })
+        .collect()
+}
+
+/// Builds adversarial key pools that force heavy duplication, deep shared prefixes,
+/// splits at even and at odd bit positions, and full-width randoms.
+fn harness_key_pools(state: &mut u64) -> Vec<Vec<MortonKey>> {
+    let base = harness_rng(state);
+    vec![
+        // Every point drawn from here is co-resident at the full width.
+        vec![MortonKey::from_bits(base)],
+        // The pair differs in the lowest bit, so the shared depth is 31.
+        vec![
+            MortonKey::from_bits(base | 1),
+            MortonKey::from_bits(base & !1),
+        ],
+        // The pair differs at bit 62, x's top bit, so the shared depth is 0.
+        vec![
+            MortonKey::from_bits(base | (1 << 62)),
+            MortonKey::from_bits(base & !(1 << 62)),
+        ],
+        // The pair differs at bit 63, y's top bit, so the shared depth is 0.
+        vec![
+            MortonKey::from_bits(base | (1 << 63)),
+            MortonKey::from_bits(base & !(1 << 63)),
+        ],
+        // Members of this pool agree on 30 leading pairs and then split inside one pair.
+        (0..4)
+            .map(|low| MortonKey::from_bits((base & !0b1111) | low))
+            .collect(),
+        // Full-width randoms.
+        core::iter::repeat_with(|| MortonKey::from_bits(harness_rng(state)))
+            .take(6)
+            .collect(),
+    ]
+}
+
+/// `separation_buckets` equals both the quadratic closed form and `cascade::buckets` at the
+/// key width, over adversarial duplicate-heavy inputs.
+#[test]
+fn separation_buckets_matches_oracle_and_cascade_adversarially() {
+    let mut state = 0x0BAD_5EED_0BAD_5EED_u64;
+    let mut cases = 0_usize;
+
+    for round in 0..400_u32 {
+        for pool in harness_key_pools(&mut state) {
+            let count = harness_draw(&mut state, 13);
+
+            // Keys drawn from the pool with heavy repetition.
+            let keys: Vec<MortonKey> =
+                core::iter::repeat_with(|| pool[harness_draw(&mut state, pool.len())])
+                    .take(count)
+                    .collect();
+
+            // Deal distinct ranks shuffled, ascending, descending, or alternating
+            // outside-in, and the stack sees every monotone shape.
+            let ranks = u32::try_from(count).expect("the draw is bounded");
+            let mut row_of_rank: Vec<u32> = (0..ranks).collect();
+            match round & 3 {
+                0 => {
+                    for at in (1..count).rev() {
+                        let swap = harness_draw(&mut state, at + 1);
+                        row_of_rank.swap(at, swap);
+                    }
+                }
+                1 => {}
+                2 => row_of_rank.reverse(),
+                _ => {
+                    let mut low = 0_u32;
+                    let mut high = ranks;
+                    for (at, slot) in row_of_rank.iter_mut().enumerate() {
+                        if at & 1 == 0 {
+                            *slot = low;
+                            low += 1;
+                        } else {
+                            high -= 1;
+                            *slot = high;
+                        }
+                    }
+                }
+            }
+            let ranking = ranking_of(&row_of_rank);
+
+            // The reference cascade at the key width, per row.
+            let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+            let reference = cascade::buckets(keyed, &ranking, Depth::MAX);
+
+            // The candidate, over (key, rank)-sorted points.
+            let mut points: Vec<(MortonKey, ImportanceRank, NodeRowId)> = keyed
+                .iter_enumerated()
+                .map(|(row, &key)| (key, ranking.rank_of_row[row], row))
+                .collect();
+            points.sort_unstable_by_key(|&(key, rank, _)| (key, rank));
+            let candidate = cascade::separation_buckets(&points, |point| point.0, |point| point.1);
+
+            // The quadratic oracle over the same sorted points.
+            let flat: Vec<(MortonKey, ImportanceRank)> =
+                points.iter().map(|&(key, rank, _)| (key, rank)).collect();
+            let oracle = oracle_natural_buckets(&flat, Depth::MAX);
+
+            for (at, &(_, _, row)) in points.iter().enumerate() {
+                assert_eq!(
+                    candidate[at], oracle[at],
+                    "candidate vs oracle: round {round} case {cases} at {at}"
+                );
+                assert_eq!(
+                    candidate[at], reference[row],
+                    "candidate vs cascade: round {round} case {cases} at {at}"
+                );
+            }
+            cases += 1;
+        }
+    }
+
+    assert!(cases >= 2_000, "the sweep exercised the pools");
+}
+
+/// `cascade::buckets` itself realizes the min(D + 1, deepest) closed form at EVERY deepest,
+/// not only the key width: the analytic reading the replacement rests on.
+#[test]
+fn cascade_buckets_matches_the_closed_form_at_every_deepest() {
+    let mut state = 0xFEED_FACE_FEED_FACE_u64;
+
+    for _ in 0..200_u32 {
+        for pool in harness_key_pools(&mut state) {
+            let count = harness_draw(&mut state, 9);
+            let keys: Vec<MortonKey> =
+                core::iter::repeat_with(|| pool[harness_draw(&mut state, pool.len())])
+                    .take(count)
+                    .collect();
+
+            let mut row_of_rank: Vec<u32> =
+                (0..u32::try_from(count).expect("the draw is bounded")).collect();
+            for at in (1..count).rev() {
+                let swap = harness_draw(&mut state, at + 1);
+                row_of_rank.swap(at, swap);
+            }
+            let ranking = ranking_of(&row_of_rank);
+            let keyed = IdSlice::<NodeRowId, _>::from_raw(&keys);
+
+            for deepest in [0_u8, 1, 2, 5, 31, 32] {
+                let deepest = depth(deepest);
+                let reference = cascade::buckets(keyed, &ranking, deepest);
+
+                let flat: Vec<(MortonKey, ImportanceRank)> = keyed
+                    .iter_enumerated()
+                    .map(|(row, &key)| (key, ranking.rank_of_row[row]))
+                    .collect();
+                let oracle = oracle_natural_buckets(&flat, deepest);
+
+                for (row, expected) in keyed.ids().zip(&oracle) {
+                    assert_eq!(reference[row], *expected);
+                }
+            }
+        }
+    }
+}
