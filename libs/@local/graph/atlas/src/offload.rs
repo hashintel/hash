@@ -41,7 +41,8 @@ impl Error for OffloadError {}
 ///
 /// The future resolves when the work completes. Dropping the future first - a cancelled request,
 /// an abandoned resolution - drops the computed value on the worker and nothing else happens: the
-/// work itself always runs to completion once spawned.
+/// work itself always runs to completion once spawned, and the rejected value's drop stays inside
+/// an unwind boundary, so even a panicking destructor cannot abort the pool.
 ///
 /// # Errors
 ///
@@ -54,13 +55,18 @@ pub(crate) async fn run<T: Send + 'static>(
     let (sender, receiver) = tokio::sync::oneshot::channel();
 
     rayon::spawn(move || {
-        // AssertUnwindSafe: the panic is answered as a value rather than resumed, so nothing
-        // observes the closure's state after the unwind - the captures drop with the worker's
-        // frame.
         let result = std::panic::catch_unwind(work);
 
-        // A send failure means the caller's future was dropped and nothing wants the value.
-        let _cancelled: Result<(), _> = sender.send(result);
+        // A send failure means the caller's future was dropped and nothing wants the value: the
+        // rejected result drops right here on the worker. That drop runs inside its own unwind
+        // boundary, because a panicking destructor would otherwise reach the pool as a panic no
+        // join point observes, which aborts the process.
+        //
+        // AssertUnwindSafe: the panic is swallowed after the caller has gone, so nothing
+        // observes the sender's or the value's state after the unwind.
+        let _cancelled = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
+            let _rejected: Result<(), _> = sender.send(result);
+        }));
     });
 
     match receiver.await {
@@ -84,7 +90,7 @@ fn panic_message(panic: Box<dyn Any + Send>) -> Option<Cow<'static, str>> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::{OffloadError, run};
 
     /// A completed computation answers its value.
@@ -138,5 +144,56 @@ mod tests {
             matches!(error, OffloadError::Panicked(None)),
             "a numeric payload has no text to extract"
         );
+    }
+
+    /// A cancelled caller whose rejected value panics on drop does not abort the pool.
+    ///
+    /// A failed send drops the computed value on the rayon worker, and that drop runs inside an
+    /// unwind boundary. Dropped bare, the destructor's panic would reach the pool with no join
+    /// point to observe it, and rayon aborts a process on such a panic. Under nextest, a
+    /// regression here therefore fails this one test with its own process's SIGABRT.
+    #[tokio::test]
+    async fn cancelled_send_with_panicking_destructor_does_not_abort() {
+        /// Signals that its drop ran, then panics inside it.
+        struct PanicsOnDrop(std::sync::mpsc::Sender<()>);
+
+        impl Drop for PanicsOnDrop {
+            fn drop(&mut self) {
+                let _witnessed: Result<(), _> = self.0.send(());
+                panic!("the fixture destructor panicked on purpose");
+            }
+        }
+
+        let (release, held) = std::sync::mpsc::channel::<()>();
+        let (dropped, drop_witness) = std::sync::mpsc::channel::<()>();
+
+        // Poll the offload once so the worker spawns, then drop it on the timeout: the receiver
+        // is gone before the worker answers, because the worker waits on `held` until the
+        // release below.
+        let cancelled = tokio::time::timeout(
+            core::time::Duration::from_millis(10),
+            run(move || {
+                held.recv()
+                    .expect("the test releases the worker after cancelling");
+                PanicsOnDrop(dropped)
+            }),
+        )
+        .await;
+        assert!(
+            cancelled.is_err(),
+            "the held worker cannot answer before the timeout"
+        );
+
+        release.send(()).expect("the worker waits on this release");
+
+        // The worker computed the value, failed the send, and ran the panicking destructor.
+        drop_witness
+            .recv_timeout(core::time::Duration::from_secs(10))
+            .expect("the rejected value's destructor runs on the worker");
+
+        let value = run(|| 7)
+            .await
+            .expect("the pool serves after the contained panic");
+        assert_eq!(value, 7);
     }
 }
