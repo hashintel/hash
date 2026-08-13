@@ -114,11 +114,22 @@ pub(crate) struct CacheKey {
 /// between the two windows is what the refresh runs in, so no request waits on store latency while
 /// a scope stays in use.
 ///
-/// [`Self::bytes`] bounds the heap the held scopes retain, weighed per entry at resolution over
-/// the proof's masks, a scoped view's own cascade, and the filter document. A deployment whose
-/// active scopes outweigh the budget still answers every request, and the scopes that fall out
-/// resolve again, one store round trip each. A refresh briefly holds an entry beside its
-/// replacement, and the weigher prices both.
+/// [`Self::bytes`] budgets the held scopes by estimated weight rather than by an
+/// allocator-faithful ceiling. Each entry is weighed once at resolution, and the configured
+/// value bounds the sum of those insertion-time estimates. The weight covers the proof's mask
+/// containers with a fixed per-container allowance and the scoped view's own cascade, measured
+/// exactly. The weight also adds the filter document and the entry's and key's inline sizes. The
+/// saturated cascade is the generation's own memo, alive for the atlas's lifetime outside this
+/// budget, and an entry sharing it weighs none of it. A deployment whose active scopes outweigh the
+/// budget still answers every request, and the scopes that fall out resolve again, one store round
+/// trip each.
+///
+/// What the estimate leaves out is stated rather than implied. Eviction is asynchronous and
+/// trails admission, so a burst briefly holds more than
+/// the budget. A value a caller still holds after eviction lives for that caller's request
+/// and is off the ledger. A refresh builds its replacement unpriced until publication. A
+/// single entry weighing past `u32::MAX` bytes weighs exactly `u32::MAX`. The cache's own
+/// per-entry bookkeeping, `Arc` control blocks and allocator slack go uncounted.
 ///
 /// [`Self::soft`] is shorter than [`Self::hard`]. Where it is not, the expiry test runs first and
 /// no entry ever refreshes behind its answer, so every request past the hard window waits on a
@@ -151,7 +162,7 @@ pub(crate) struct CacheKey {
 /// halving it doubles the resolutions a steady population of actors produces.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct VisibilityLimits {
-    /// The retained-heap budget for held scopes, in bytes.
+    /// The estimated-weight budget for held scopes, in bytes.
     pub bytes: u64,
     /// When a held entry starts refreshing behind the answer it serves.
     pub soft: Duration,
@@ -160,7 +171,8 @@ pub struct VisibilityLimits {
 }
 
 impl Default for VisibilityLimits {
-    /// A ten-minute revocation lag, refreshing at eight, retaining at most one gibibyte.
+    /// A ten-minute revocation lag, refreshing at eight, budgeting one gibibyte of estimated
+    /// weight.
     ///
     /// The refresh runs in the two-minute gap between the windows. A scope in continuous use
     /// re-resolves at eight minutes and keeps answering from the held proof while that runs, so

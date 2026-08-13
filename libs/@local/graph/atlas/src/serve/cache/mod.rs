@@ -70,18 +70,22 @@ pub(crate) struct PendingCacheEntry {
     /// Held so a refresh can recompile the filter without a client round trip: the client is the
     /// document's durable holder, and this copy lives exactly as long as the entry it resolved.
     filter: Option<Arc<[u8]>>,
-    /// The entry's retained heap, folded into moka's weight domain at resolution.
+    /// The entry's estimated weight, folded into moka's weight domain at resolution.
     weight: u32,
 }
 
 /// Folds an entry's retained bytes into moka's `u32` weight domain, saturating.
 ///
 /// `retained` is what the resolution measured: the proof's masks and a scoped view's own
-/// cascade. The fold adds the entry's inline size and the filter document it holds.
+/// cascade. The fold adds the entry's and its key's inline sizes and the filter document the
+/// entry holds. A total past `u32::MAX` saturates, so a single entry retaining more than
+/// 4 GiB weighs 4 GiB and the budget under-enforces by the difference - the one gap in the
+/// weight domain, stated on [`VisibilityLimits::bytes`] with the other exclusions.
 fn weight_of(retained: u64, filter: Option<&[u8]>) -> u32 {
-    let total = size_of::<CacheEntry>() as u64
-        + retained
-        + filter.map_or(0, |document| document.len() as u64);
+    let inline = size_of::<CacheEntry>() as u64 + size_of::<CacheKey>() as u64;
+    let total = retained
+        .saturating_add(inline)
+        .saturating_add(filter.map_or(0, |document| document.len() as u64));
 
     u32::try_from(total).unwrap_or(u32::MAX)
 }
@@ -105,16 +109,15 @@ impl PendingCacheEntry {
             let census = atlas.census(&proof);
 
             // The saturated cascade is the generation's own memo, alive for the atlas's
-            // lifetime, so an entry sharing it retains none of it.
+            // lifetime, so an entry sharing it retains none of it. A sharer took its `Arc`
+            // from the memo itself, so an unbuilt memo already proves this schedule is not
+            // shared - recognition peeks and never forces the full-corpus build.
             let schedule_bytes = match &schedule {
                 ViewSchedule::Corpus => 0,
-                ViewSchedule::Scope(scope) => {
-                    if Arc::ptr_eq(scope, atlas.saturated_scope_schedule()) {
-                        0
-                    } else {
-                        scope.heap_bytes()
-                    }
-                }
+                ViewSchedule::Scope(scope) => match atlas.saturated_scope_schedule_if_built() {
+                    Some(memo) if Arc::ptr_eq(scope, memo) => 0,
+                    _ => scope.heap_bytes(),
+                },
             };
             let retained = proof.heap_bytes() + schedule_bytes;
 
@@ -190,7 +193,7 @@ pub(crate) struct CacheEntry {
     /// resolution rather than one each. Which entry that resolution may publish over is
     /// [`Publication`]'s question, and this answers nothing about it.
     refreshing: Atomic<bool>,
-    /// The entry's retained heap, priced at resolution, read by the cache's weigher.
+    /// The entry's estimated weight, priced once at resolution, read by the cache's weigher.
     weight: u32,
 }
 
@@ -294,8 +297,8 @@ impl VisibilityCache {
             // cannot swap it. The time-to-live runs from insertion, which is the resolution's END,
             // so the window it enforces is `hard` plus however long the resolution took: `resolve`
             // refuses on the entry's own `resolved_at`, and this bounds the memory behind it.
-            // Weights are the entries' retained bytes, priced at resolution, so the capacity is a
-            // byte budget.
+            // Weights are the entries' estimated bytes, priced once at resolution, so the
+            // capacity is an estimated-weight budget rather than an allocator-faithful ceiling.
             entries: moka::future::Cache::builder()
                 .max_capacity(bytes)
                 .weigher(|_key, entry: &Arc<CacheEntry>| entry.weight)

@@ -17,7 +17,11 @@ use super::{
 use crate::{
     bitset::CompressedBitSet,
     identity::{EdgeRowId, NodeRowId},
-    serve::VisibilityProof,
+    serve::{
+        VisibilityProof,
+        hydrate::MaskingActor,
+        tests::{mask_hiding, publish},
+    },
 };
 
 const SOFT: Duration = Duration::from_mins(8);
@@ -238,6 +242,53 @@ async fn capacity_bound_prices_retained_bytes() {
         cache.entries.entry_count(),
         2,
         "the third scope did not raise the held bytes past the budget"
+    );
+}
+
+/// Weighing a small scope never builds the saturated memo it is compared against.
+///
+/// The weigher recognizes a memo sharer by pointer identity, and a sharer took its `Arc` from
+/// the memo itself, so an unbuilt memo already answers no. This pins the regression where the
+/// weigher reached the memo through its building accessor and billed the first small scope's
+/// resolution for the whole corpus's cascade construction.
+#[tokio::test]
+#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
+async fn weighing_a_small_scope_leaves_the_memo_unbuilt() {
+    let (_generation, atlas) = publish("cache-weigher-memo-unbuilt").await;
+    let atlas = Arc::new(atlas);
+    let proof = mask_hiding(&atlas, &[0]);
+
+    let entry = PendingCacheEntry::of(
+        Arc::clone(&atlas),
+        proof,
+        MaskingActor {
+            id: None,
+            instance_admin: false,
+        },
+        None,
+    )
+    .await
+    .expect("a masked proof resolves");
+
+    assert!(entry.weight > 0, "the scope weighed its own cascade");
+    assert!(
+        atlas.saturated_scope_schedule_if_built().is_none(),
+        "recognition peeked: pricing a small scope must not construct the full-corpus memo",
+    );
+}
+
+/// The weight fold saturates at the weight domain's top instead of failing or wrapping.
+#[test]
+fn weight_of_saturates_at_the_moka_domain() {
+    assert_eq!(
+        weight_of(u64::MAX, None),
+        u32::MAX,
+        "a retained figure past the domain weighs the domain's top",
+    );
+    assert_eq!(
+        weight_of(u64::from(u32::MAX), Some(&[0_u8; 16])),
+        u32::MAX,
+        "the fold's own additions saturate with it",
     );
 }
 

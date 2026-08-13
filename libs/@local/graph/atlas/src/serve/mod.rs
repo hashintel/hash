@@ -315,4 +315,15 @@ impl Atlas {
         self.saturated
             .get_or_init(|| Arc::new(ScopeSchedule::of(self, &VisibilityProof::full_visibility())))
     }
+
+    /// Returns the saturated cascade only when some resolution already built it.
+    ///
+    /// The cache's weigher asks whether an entry's schedule is the memo, and a sharer took its
+    /// `Arc` from the memo itself, so an unbuilt memo already answers no. Recognition therefore
+    /// never builds: forcing the full-corpus construction here would bill the first small
+    /// scope's resolution for the whole corpus. [`Self::saturated_scope_schedule`] stays the
+    /// building accessor.
+    fn saturated_scope_schedule_if_built(&self) -> Option<&Arc<ScopeSchedule>> {
+        self.saturated.get()
+    }
 }

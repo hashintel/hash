@@ -57,6 +57,14 @@ impl<T> Default for CompressedBitSet<T> {
 }
 
 impl<T> CompressedBitSet<T> {
+    /// Per-container bookkeeping allowance for [`Self::heap_bytes`], in bytes.
+    ///
+    /// The store keeps each container behind its own entry - key, variant tag and the
+    /// container's inline vector or box - which the payload statistics do not report. The
+    /// allowance is a deliberate overestimate of that entry, so a heavily containerized set
+    /// never reads as cheaper than it is.
+    const CONTAINER_ALLOWANCE: u64 = 64;
+
     /// Creates a set admitting no rows.
     #[must_use]
     pub(crate) fn new() -> Self {
@@ -80,9 +88,10 @@ impl<T> CompressedBitSet<T> {
 
     /// Returns the set's retained container bytes.
     ///
-    /// The figure sums the bitmap's array, run and bitset containers, so it moves with the
-    /// compression the row distribution earns rather than with the row count. Container
-    /// headers and the wrapper's own inline size are not counted.
+    /// The figure sums the bitmap's array, run and bitset container payloads plus
+    /// [`Self::CONTAINER_ALLOWANCE`] per container, so it moves with the compression the row
+    /// distribution earns rather than with the row count. The wrapper's own inline size and
+    /// allocator slack are not counted.
     #[must_use]
     pub(crate) fn heap_bytes(&self) -> u64 {
         let statistics = self.rows.statistics();
@@ -90,6 +99,7 @@ impl<T> CompressedBitSet<T> {
         statistics.n_bytes_array_containers
             + statistics.n_bytes_run_containers
             + statistics.n_bytes_bitset_containers
+            + u64::from(statistics.n_containers) * Self::CONTAINER_ALLOWANCE
     }
 
     /// Returns whether the set admits every row of `[0, n)`.
