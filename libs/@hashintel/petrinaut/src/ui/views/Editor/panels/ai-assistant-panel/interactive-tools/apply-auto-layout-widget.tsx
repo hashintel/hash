@@ -1,4 +1,4 @@
-import { Button } from "@hashintel/ds-components";
+import { Button, ButtonGroup } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   aiCommandActionInputSchemas,
@@ -27,12 +27,6 @@ const widgetStyle = css({
   color: "[#0666c6]",
   fontSize: "sm",
   fontWeight: "medium",
-});
-
-const buttonsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
 });
 
 const summaryStyle = css({
@@ -65,7 +59,7 @@ const ApplyAutoLayoutWidget = ({
         The assistant suggests running auto-layout on the net. This may
         reposition places and transitions.
       </span>
-      <div className={buttonsStyle}>
+      <ButtonGroup spacing="sm">
         <Button
           size="sm"
           variant="solid"
@@ -89,7 +83,7 @@ const ApplyAutoLayoutWidget = ({
         >
           No, keep current layout
         </Button>
-      </div>
+      </ButtonGroup>
     </div>
   );
 };
