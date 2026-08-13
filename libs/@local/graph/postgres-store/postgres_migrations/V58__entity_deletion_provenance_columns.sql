@@ -20,8 +20,6 @@ UPDATE entity_ids
         - 'deletedById' - 'deletedAtTransactionTime' - 'deletedAtDecisionTime'
     WHERE provenance ?| array['deletedById', 'deletedAtTransactionTime', 'deletedAtDecisionTime'];
 
--- The deletion feed polls `deleted_at_transaction_time > $watermark`; the partial index covers
--- exactly the tombstoned rows and carries the keys the feed returns.
 CREATE INDEX entity_ids_deleted_at_transaction_time
     ON entity_ids (deleted_at_transaction_time)
     INCLUDE (web_id, entity_uuid)
