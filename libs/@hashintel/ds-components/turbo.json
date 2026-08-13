@@ -19,14 +19,31 @@
     },
     "codegen": {
       "dependsOn": ["^build"],
-      // `codegen:panda` must never be run with `--clean`. Its outdir is
-      // `../ds-helpers/styled-system`, which is the entire published payload of
-      // `@hashintel/ds-helpers`. `changeset publish` publishes packages
-      // concurrently, so this task runs (from several packages' publish hooks)
-      // while `npm pack` is reading that directory; Panda's `--clean` calls
-      // `emptyDirSync` on it and the tarball comes out with only the six
-      // metadata files. See 0.1.1 / 0.2.0 / 0.2.1 on npm.
-      "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
+      // `styled-system/**` is this package's *private* Panda output directory,
+      // and `codegen:panda` empties it with `--clean` on every run so that stale
+      // artifacts are swept. It must stay inside this package: it used to be
+      // `../ds-helpers/styled-system`, the entire published payload of
+      // `@hashintel/ds-helpers`, and because `changeset publish` publishes
+      // packages concurrently this task ran (from several packages' publish
+      // hooks) while `npm pack` was reading that directory — so `--clean`'s
+      // `emptyDirSync` shipped tarballs containing only the six metadata files.
+      // See 0.1.1 / 0.2.0 / 0.2.1 on npm.
+      //
+      // `codegen:ds-helpers` then copies this directory into
+      // `../ds-helpers/styled-system` atomically (stage in a temporary sibling,
+      // then `rename`, and write nothing at all when the content is unchanged).
+      // That copy is declared as an output here as well as on
+      // `@hashintel/ds-helpers#codegen`, because every task in this repo that
+      // needs the styled system already depends on *this* task — directly for
+      // this package's own tasks, and transitively via `^build` for
+      // `@hashintel/petrinaut`, `@apps/hash-frontend` and
+      // `@apps/petrinaut-website`. Moving the copy out of this task's outputs
+      // would leave all of them without a styled system on a cache hit.
+      "outputs": [
+        "src/preset/**/*.gen.ts",
+        "styled-system/**",
+        "../ds-helpers/styled-system/**"
+      ]
     },
     "dev": {
       "cache": false,

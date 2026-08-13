@@ -1,5 +1,10 @@
 node_modules
 styled-system
+# Staging directories used by `scripts/sync-styled-system.mjs` to assemble a
+# complete `styled-system/` before moving it into place. Normally short-lived;
+# left behind only if the process is killed mid-copy.
+styled-system.tmp-*
+styled-system.old-*
 .build
 dist
 *.log

@@ -47,7 +47,7 @@
     "access": "public"
   },
   "scripts": {
-    "codegen": "true",
+    "codegen": "node scripts/sync-styled-system.mjs",
     "prepack": "turbo run codegen --filter @hashintel/ds-helpers && node scripts/verify-package-contents.mjs"
   }
 }

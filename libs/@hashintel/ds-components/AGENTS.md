@@ -21,7 +21,15 @@ It still consumes the generated runtime styling utilities from `@hashintel/ds-he
 │  preset source + scripts + demos    │
 └──────────────────────┬──────────────┘
                        │
-                       │ panda codegen
+                       │ panda codegen --clean
+                       ▼
+              ┌─────────────────┐
+              │  ds-components  │
+              │  styled-system  │
+              │    (private)    │
+              └────────┬────────┘
+                       │
+                       │ atomic copy (ds-helpers' codegen)
                        ▼
               ┌─────────────────┐
               │   ds-helpers    │
@@ -34,7 +42,8 @@ It still consumes the generated runtime styling utilities from `@hashintel/ds-he
 
 Boundary rules:
 
-- `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
+- Panda's `outdir` is `styled-system` — private to `ds-components`. It must never point outside this package: `codegen:panda` runs with `--clean`, which empties `outdir`, and aiming that at `ds-helpers`' published payload let a concurrent `changeset publish` worker empty it mid-pack.
+- `codegen:ds-helpers` then copies that directory into `../ds-helpers/styled-system` atomically, via `../ds-helpers/scripts/sync-styled-system.mjs`.
 - `ds-helpers` must not depend on `ds-components`.
 - `@hashintel/ds-components/preset` is the canonical public styling entrypoint.
 - `@hashintel/ds-components/tokens` is the public package-owned token export for `tokens` and `semanticTokens`.
@@ -50,7 +59,7 @@ import { preset } from "./src/preset";
 
 export default defineConfig({
   importMap: "@hashintel/ds-helpers",
-  outdir: "../ds-helpers/styled-system",
+  outdir: "styled-system",
   include: ["./src/components/**/*.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
@@ -65,8 +74,8 @@ export default defineConfig({
 Key points:
 
 - `src/preset.ts` is the local source of truth for the preset.
-- publish codegen writes to `../ds-helpers/styled-system`
-- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
+- codegen writes to this package's private `styled-system/`, which is git-ignored; `yarn codegen:ds-helpers` copies it into `../ds-helpers/styled-system` for publishing.
+- `panda.local.config.ts` inherits the same `outdir`; it only broadens the scanned demo/story globs.
 - `panda.local.config.ts` exists separately for local demo surfaces such as Ladle
 
 ### Token Naming Patterns (Strict Mode)
@@ -232,17 +241,17 @@ export const Checkbox = (props) => (
 
 ## Scripts
 
-| Script                | Description                                                        |
-| --------------------- | ------------------------------------------------------------------ |
-| `yarn dev`            | Start the primary Ladle-based demo loop                            |
-| `yarn dev:lib`        | Watch the publishable component library build                      |
-| `yarn codegen`        | Generate token source files and `../ds-helpers/styled-system`      |
-| `yarn build`          | Build the component library entrypoints                            |
-| `yarn build:ladle`    | Build the Ladle demo surface                                       |
-| `yarn lint:eslint`    | Lint the publishable package surface                               |
-| `yarn lint:tsc`       | TypeScript type checking                                           |
-| `yarn test:unit`      | Run the Vitest unit suites without the Playwright snapshot harness |
-| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite                  |
+| Script                | Description                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `yarn dev`            | Start the primary Ladle-based demo loop                                                |
+| `yarn dev:lib`        | Watch the publishable component library build                                          |
+| `yarn codegen`        | Generate token source files and `styled-system/`, then copy the latter to `ds-helpers` |
+| `yarn build`          | Build the component library entrypoints                                                |
+| `yarn build:ladle`    | Build the Ladle demo surface                                                           |
+| `yarn lint:eslint`    | Lint the publishable package surface                                                   |
+| `yarn lint:tsc`       | TypeScript type checking                                                               |
+| `yarn test:unit`      | Run the Vitest unit suites without the Playwright snapshot harness                     |
+| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite                                      |
 
 ## File Structure
 
