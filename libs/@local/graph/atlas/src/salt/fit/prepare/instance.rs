@@ -6,15 +6,15 @@
 //! [`ScratchDirectory`], and only the run that wrote it consumes it. It never publishes.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
+use core::fmt;
 use std::{
     fs::File,
     io::{self, BufWriter, Write as _},
 };
 
 use camino::Utf8PathBuf;
-use hashql_core::id::Id as _;
 use memmap2::Mmap;
-use zerocopy::{F64, FromBytes as _, IntoBytes as _, LE, U32, U64};
+use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U32, Unalign};
 
 use crate::{
     file::generation::ScratchDirectory,
@@ -27,27 +27,26 @@ use crate::{
 ///
 /// Each confidence stores its value beside a presence bit (bit 0 link, bit 1 source, bit 2 target,
 /// the attraction file's score vocabulary), so the absent-score distinction survives the spool.
-// `FromBytes` is sound here: every field is an unconstrained primitive
-// encoding, and the score ranges are the dataset stream's contract,
-// consumed rather than re-checked.
+// The confidence fields carry their domains in their types, so the mapping's parse refuses an
+// out-of-domain value. The row ids, the presence bits and the multiplicity are unconstrained
+// primitive encodings.
 #[derive(
-    Debug,
     Copy,
     Clone,
-    zerocopy::FromBytes,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
 )]
 #[repr(C)]
 pub(crate) struct InstanceRecord {
-    edge: U64<LE>,
-    relation: U64<LE>,
-    source: U64<LE>,
-    target: U64<LE>,
-    link: F64<LE>,
-    source_confidence: F64<LE>,
-    target_confidence: F64<LE>,
+    edge: EdgeRowId,
+    relation: OntologyRowId,
+    source: NodeRowId,
+    target: NodeRowId,
+    link: Unalign<UnitFraction>,
+    source_confidence: Unalign<UnitFraction>,
+    target_confidence: Unalign<UnitFraction>,
     scored: U32<LE>,
     multiplicity: U32<LE>,
 }
@@ -59,8 +58,10 @@ impl InstanceRecord {
 
     /// Encodes one reading of `edge` under `relation`.
     ///
-    /// `multiplicity` is the edge's total reading count: the number of relation types the edge
-    /// carries, each spooled as its own record.
+    /// The confidences carry their domains in their types, entering an absent score as the
+    /// neutral [`UnitFraction::ONE`] behind a cleared presence bit. `multiplicity` is the edge's
+    /// total reading count: the number of relation types the edge carries, each spooled as its
+    /// own record.
     #[must_use]
     pub(crate) const fn new(
         edge: EdgeRowId,
@@ -82,13 +83,13 @@ impl InstanceRecord {
         }
 
         Self {
-            edge: U64::new(edge.as_u64()),
-            relation: U64::new(relation.as_u64()),
-            source: U64::new(source.as_u64()),
-            target: U64::new(target.as_u64()),
-            link: F64::new(confidence.link.unwrap_or(UnitFraction::ONE).get()),
-            source_confidence: F64::new(confidence.source.unwrap_or(UnitFraction::ONE).get()),
-            target_confidence: F64::new(confidence.target.unwrap_or(UnitFraction::ONE).get()),
+            edge,
+            relation,
+            source,
+            target,
+            link: Unalign::new(confidence.link.unwrap_or(UnitFraction::ONE)),
+            source_confidence: Unalign::new(confidence.source.unwrap_or(UnitFraction::ONE)),
+            target_confidence: Unalign::new(confidence.target.unwrap_or(UnitFraction::ONE)),
             scored: U32::new(scored),
             multiplicity: U32::new(multiplicity),
         }
@@ -100,22 +101,33 @@ impl InstanceRecord {
         let scored = self.scored.get();
 
         RelationInstance {
-            edge: EdgeRowId::new(self.edge.get()),
-            relation: OntologyRowId::new(self.relation.get()),
-            source: NodeRowId::new(self.source.get()),
-            target: NodeRowId::new(self.target.get()),
+            edge: self.edge,
+            relation: self.relation,
+            source: self.source,
+            target: self.target,
             confidence: RelationConfidence {
-                // The spool reads back the fractions this run wrote, so the domain is consumed
-                // rather than re-checked, as for every other field.
-                link: (scored & Self::LINK != 0)
-                    .then(|| UnitFraction::new_unchecked(self.link.get())),
-                source: (scored & Self::SOURCE != 0)
-                    .then(|| UnitFraction::new_unchecked(self.source_confidence.get())),
-                target: (scored & Self::TARGET != 0)
-                    .then(|| UnitFraction::new_unchecked(self.target_confidence.get())),
+                link: (scored & Self::LINK != 0).then(|| self.link.get()),
+                source: (scored & Self::SOURCE != 0).then(|| self.source_confidence.get()),
+                target: (scored & Self::TARGET != 0).then(|| self.target_confidence.get()),
             },
             multiplicity: self.multiplicity.get(),
         }
+    }
+}
+
+impl fmt::Debug for InstanceRecord {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("InstanceRecord")
+            .field("edge", &self.edge)
+            .field("relation", &self.relation)
+            .field("source", &self.source)
+            .field("target", &self.target)
+            .field("link", &self.link.get())
+            .field("source_confidence", &self.source_confidence.get())
+            .field("target_confidence", &self.target_confidence.get())
+            .field("scored", &self.scored.get())
+            .field("multiplicity", &self.multiplicity.get())
+            .finish()
     }
 }
 
@@ -227,14 +239,17 @@ pub(crate) struct MappedInstances {
 
 impl MappedInstances {
     /// Views the spooled readings, in drain order.
+    ///
+    /// The parse validates each confidence's domain as the bytes are read, so a reading never
+    /// decodes to a value its type refuses.
     #[must_use]
     pub(crate) fn records(&self) -> &[InstanceRecord] {
         let Some(map) = &self.map else {
             return &[];
         };
 
-        <[InstanceRecord]>::ref_from_bytes(map)
-            .expect("the mapping validated against the record geometry")
+        <[InstanceRecord]>::try_ref_from_bytes(map)
+            .expect("the spool holds the records this run wrote, every confidence in its domain")
     }
 }
 

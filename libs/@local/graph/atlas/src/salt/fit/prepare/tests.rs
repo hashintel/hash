@@ -372,3 +372,31 @@ fn empty_spool_maps_to_zero_readings() {
     let mapped = spool.map().expect("the empty spool should map");
     assert!(mapped.records().is_empty());
 }
+
+#[test]
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "the test plants an out-of-domain value in the record's little-endian lane"
+)]
+fn spool_record_parse_refuses_an_out_of_domain_confidence() {
+    let record = InstanceRecord::new(
+        EdgeRowId::new(0),
+        OntologyRowId::new(1),
+        NodeRowId::new(0),
+        NodeRowId::new(1),
+        RelationConfidence::default(),
+        1,
+    );
+    assert_matches!(
+        InstanceRecord::try_read_from_bytes(record.as_bytes()),
+        Ok(_)
+    );
+
+    // The link confidence sits behind the record's row ids: `repr(C)` places it after the
+    // edge, relation, source, and target columns, one u64 lane each.
+    let link_offset = 4 * size_of::<u64>();
+    let mut bytes = record.as_bytes().to_vec();
+    bytes[link_offset..link_offset + size_of::<f64>()].copy_from_slice(&2.0_f64.to_le_bytes());
+
+    assert_matches!(InstanceRecord::try_read_from_bytes(&bytes), Err(_));
+}
