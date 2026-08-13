@@ -121,10 +121,9 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
     // The stack holds the points whose nearest better-ranked right neighbour is still unseen, ranks
     // ascending from bottom to top. The point that pops an entry is that neighbour, and
     // the entry below a pushed point is its nearest better-ranked left neighbour.
-    let mut buckets = Box::new_uninit_slice_in(points.len(), alloc);
-    buckets.write_filled(Depth::MIN);
-    // SAFETY: `buckets` got initialized to `Depth::MIN` above.
-    let mut buckets: Box<[Depth], A> = unsafe { buckets.assume_init() };
+    let mut buckets = Vec::with_capacity_in(points.len(), alloc);
+    buckets.resize(points.len(), Depth::MIN);
+    let mut buckets: Box<[Depth], A> = buckets.into_boxed_slice();
 
     let mut stack = Vec::with_capacity_in(points.len(), scratch);
 
