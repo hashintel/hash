@@ -18,7 +18,7 @@ use super::{
     cache::CacheEntry,
     density::CutOffset,
     grid::Grid,
-    schedule::{ScheduleCut, ScheduleWidthError, ViewSchedule},
+    schedule::{ScheduleWidthError, ViewSchedule, cut::ScheduleCut},
     visibility::ProofKind,
 };
 

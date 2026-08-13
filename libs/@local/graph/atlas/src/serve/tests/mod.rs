@@ -2854,7 +2854,7 @@ fn source_type_coverage_follows_the_subset_rule() {
 ///
 /// The link mask admits every link row of the generation, so a battery built on this helper varies
 /// the node axis alone.
-fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
+pub(crate) fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
     mask_hiding_rows(atlas, hidden, &[])
 }
 

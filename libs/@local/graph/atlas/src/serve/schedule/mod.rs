@@ -22,7 +22,7 @@ use std::sync::OnceLock;
 
 use hashql_core::id::{Id as _, IdArray, IdSlice};
 
-pub(crate) use self::cut::ScheduleCut;
+use self::cut::ScheduleCut;
 use super::grid::Grid;
 use crate::{
     identity::{BasePosition, ImportanceRank},
@@ -31,7 +31,9 @@ use crate::{
     serve::{Atlas, VisibilityProof, density::CutOffset, visibility::ProofKind},
 };
 
-mod cut;
+pub(crate) mod cut;
+#[cfg(test)]
+pub(crate) mod tests;
 
 hashql_core::id::newtype! {
     /// A reference to a visible row by its slot in one scope schedule's natural order.
@@ -104,16 +106,16 @@ impl ViewSchedule {
 
 /// One visible row of the cascade's input.
 ///
-/// The base position addresses the generation's columns; the key and rank are the row's pinned
-/// generation-layout values. These three are the whole vocabulary the schedule reads.
+/// The base position addresses the generation's columns, and the key and rank are the row's
+/// pinned generation-layout values. These three are the whole vocabulary the schedule reads.
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct ScopeRow {
+struct ScopeRow {
     /// The row's slot in the generation's base order.
-    pub position: BasePosition,
+    position: BasePosition,
     /// The row's Morton key, quantized from the delivered coordinate column.
-    pub key: MortonKey,
+    key: MortonKey,
     /// The row's rank within the view: dense, ascending in corpus rank order.
-    pub rank: ImportanceRank,
+    rank: ImportanceRank,
 }
 
 /// A visible row with its natural cascade bucket.
@@ -238,7 +240,7 @@ impl ScopeSchedule {
     ///
     /// Caller requirement: the rows' ranks are pairwise distinct. [`Self::of`] guarantees that by
     /// enumeration, and a fixture caller owes the same property.
-    pub(crate) fn over(mut rows: Vec<ScopeRow>) -> Self {
+    fn over(mut rows: Vec<ScopeRow>) -> Self {
         rows.sort_unstable_by_key(|row| (row.key, row.rank));
         let buckets = cascade::separation_buckets(&rows, |row| row.key, |row| row.rank);
 

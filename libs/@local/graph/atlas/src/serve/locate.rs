@@ -21,7 +21,7 @@ use super::{
     },
     intern::{Table, TableIndex},
     neighbourhood::{DeliveredEdge, EdgeColumns, Neighbourhood},
-    schedule::ScheduleCut,
+    schedule::cut::ScheduleCut,
     view::{View, ViewError},
     visibility::VisibleRow,
 };

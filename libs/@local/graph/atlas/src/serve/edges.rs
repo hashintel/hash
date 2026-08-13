@@ -13,7 +13,7 @@ use super::{
     hydrate::{DetailError, EdgeLinkDetails, EdgeSlot, EdgesStore},
     intern::{Table, TableIndex},
     neighbourhood::{EdgeColumns, Neighbourhood},
-    schedule::ScheduleCut,
+    schedule::cut::ScheduleCut,
     view::{View, ViewError},
     walk::Walk,
 };
